@@ -10,7 +10,7 @@ export default function CustomSplashScreen() {
         style={styles.image}
         resizeMode="contain"
       />
-      <Text style={styles.title}>AA Sober Dailies</Text>
+      <Text style={styles.title}>Sober Dailies</Text>
     </View>
   );
 }
