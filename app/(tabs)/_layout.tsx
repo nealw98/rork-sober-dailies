@@ -79,16 +79,7 @@ export default function TabLayout() {
           tabBarIcon: ({ color }) => <Home color={color} size={22} style={styles.tabIcon} />,
         }}
       />
-      <Tabs.Screen
-        name="daily-reflections"
-        options={{
-          title: "Reflections",
-          headerTitle: "Daily Reflections",
-          headerLeft: () => <BackButton />,
-          tabBarIcon: ({ color }) => <BookOpen color={color} size={22} style={styles.tabIcon} />,
-          href: null,
-        }}
-      />
+
       <Tabs.Screen
         name="gratitude"
         options={{
