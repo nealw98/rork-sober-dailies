@@ -5,7 +5,9 @@
   "scripts": {
     "start": "bunx rork start -p slb0yphh4l03b7fd78jn4 --tunnel",
     "start-web": "bunx rork start -p slb0yphh4l03b7fd78jn4 --web --tunnel",
-    "start-web-dev": "DEBUG=expo* bunx rork start -p slb0yphh4l03b7fd78jn4 --web --tunnel"
+    "start-web-dev": "DEBUG=expo* bunx rork start -p slb0yphh4l03b7fd78jn4 --web --tunnel",
+    "android": "expo run:android",
+    "ios": "expo run:ios"
   },
   "dependencies": {
     "@expo/react-native-action-sheet": "^4.1.1",

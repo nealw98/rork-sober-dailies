@@ -93,13 +93,13 @@
   <meta name="route-pattern" content="/:user_id/:repository/raw/*name(/*path)" data-turbo-transient>
   <meta name="route-controller" content="blob" data-turbo-transient>
   <meta name="route-action" content="raw" data-turbo-transient>
-  <meta name="fetch-nonce" content="v2:de70bd9d-d329-beef-a554-350951221318">
+  <meta name="fetch-nonce" content="v2:3da714b2-54e1-bb38-0d58-1b8134ad952f">
 
     
   <meta name="current-catalog-service-hash" content="f3abb0cc802f3d7b95fc8762b94bdcb13bf39634c40c357301c4aa1d67a256fb">
 
 
-  <meta name="request-id" content="F3C8:EADDC:168598F:1E2E2ED:689A6AE3" data-turbo-transient="true" /><meta name="html-safe-nonce" content="b6650742a8e92d564d187c9963bc6aad20fc5f9ea53d2d43cf314a96f041bfd1" data-turbo-transient="true" /><meta name="visitor-payload" content="eyJyZWZlcnJlciI6bnVsbCwicmVxdWVzdF9pZCI6IkYzQzg6RUFEREM6MTY4NTk4RjoxRTJFMkVEOjY4OUE2QUUzIiwidmlzaXRvcl9pZCI6IjQ4Njg4ODIxOTUzMDg3Njc5NzEiLCJyZWdpb25fZWRnZSI6ImlhZCIsInJlZ2lvbl9yZW5kZXIiOiJpYWQifQ==" data-turbo-transient="true" /><meta name="visitor-hmac" content="6c288e8cc6589675b646e8ed59c7540083b3cba7b5a5982ea1936afad32d70d5" data-turbo-transient="true" />
+  <meta name="request-id" content="F3C9:114D38:160CFEE:1D9E6A2:689A6AE3" data-turbo-transient="true" /><meta name="html-safe-nonce" content="2d5232d468df4006f3a8c34165be97fc21b99981a7f28b27a382f3f5b2b35412" data-turbo-transient="true" /><meta name="visitor-payload" content="eyJyZWZlcnJlciI6bnVsbCwicmVxdWVzdF9pZCI6IkYzQzk6MTE0RDM4OjE2MENGRUU6MUQ5RTZBMjo2ODlBNkFFMyIsInZpc2l0b3JfaWQiOiI1NzM4ODQyNDc1NTQxOTgxOTIzIiwicmVnaW9uX2VkZ2UiOiJpYWQiLCJyZWdpb25fcmVuZGVyIjoiaWFkIn0=" data-turbo-transient="true" /><meta name="visitor-hmac" content="fd3b4db4f17f96fbe78d0a8d543dff860643874bd8ee22d53bbab05fb56d761d" data-turbo-transient="true" />
 
 
 
@@ -107,7 +107,7 @@
   <meta name="github-keyboard-shortcuts" content="copilot" data-turbo-transient="true" />
   
 
-  <meta name="selected-link" value="/nealw98/rork-sober-dailies/raw/main/assets/images/splash-ios-full.png" data-turbo-transient>
+  <meta name="selected-link" value="/nealw98/rork-sober-dailies/raw/main/assets/images/favicon.png" data-turbo-transient>
   <link rel="assets" href="https://github.githubassets.com/">
 
     <meta name="google-site-verification" content="Apib7-x98H0j5cPqHWwSMm6dNU4GmODRoqxLiDzdx9I">
@@ -135,7 +135,7 @@
 
     <link rel="fluid-icon" href="https://github.com/fluidicon.png" title="GitHub">
     <meta property="fb:app_id" content="1401488693436528">
-    <meta name="apple-itunes-app" content="app-id=1477376905, app-argument=https://github.com/nealw98/rork-sober-dailies/raw/main/assets/images/splash-ios-full.png" />
+    <meta name="apple-itunes-app" content="app-id=1477376905, app-argument=https://github.com/nealw98/rork-sober-dailies/raw/main/assets/images/favicon.png" />
 
       <meta property="og:url" content="https://github.com">
   <meta property="og:site_name" content="GitHub">
@@ -192,7 +192,7 @@
 
 
 
-      <link rel="canonical" href="https://github.com/nealw98/rork-sober-dailies/raw/main/assets/images/splash-ios-full.png" data-turbo-transient>
+      <link rel="canonical" href="https://github.com/nealw98/rork-sober-dailies/raw/main/assets/images/favicon.png" data-turbo-transient>
 
 
     <meta name="turbo-body-classes" content="logged-out env-production page-responsive min-height-full d-flex flex-column">
@@ -285,19 +285,19 @@
 
       <div class="d-flex flex-1 flex-order-2 text-right d-lg-none gap-2 flex-justify-end">
           <a
-            href="/login?return_to=https%3A%2F%2Fgithub.com%2Fnealw98%2Frork-sober-dailies%2Fraw%2Fmain%2Fassets%2Fimages%2Fsplash-ios-full.png"
+            href="/login?return_to=https%3A%2F%2Fgithub.com%2Fnealw98%2Frork-sober-dailies%2Fraw%2Fmain%2Fassets%2Fimages%2Ffavicon.png"
             class="HeaderMenu-link HeaderMenu-button d-inline-flex f5 no-underline border color-border-default rounded-2 px-2 py-1 color-fg-inherit js-prevent-focus-on-mobile-nav"
-            data-hydro-click="{&quot;event_type&quot;:&quot;authentication.click&quot;,&quot;payload&quot;:{&quot;location_in_page&quot;:&quot;site header menu&quot;,&quot;repository_id&quot;:null,&quot;auth_type&quot;:&quot;SIGN_UP&quot;,&quot;originating_url&quot;:&quot;https://github.com/nealw98/rork-sober-dailies/raw/main/assets/images/splash-ios-full.png&quot;,&quot;user_id&quot;:null}}" data-hydro-click-hmac="55d9c1d4029fe7a34df0cce6ebee471a044f0b4b018390ce8b06b08bf7a8b6fb"
+            data-hydro-click="{&quot;event_type&quot;:&quot;authentication.click&quot;,&quot;payload&quot;:{&quot;location_in_page&quot;:&quot;site header menu&quot;,&quot;repository_id&quot;:null,&quot;auth_type&quot;:&quot;SIGN_UP&quot;,&quot;originating_url&quot;:&quot;https://github.com/nealw98/rork-sober-dailies/raw/main/assets/images/favicon.png&quot;,&quot;user_id&quot;:null}}" data-hydro-click-hmac="2afef96b888d0f5da5d89a37a79dfd80694becc6363874e3aa83c8e03c3e215a"
             data-analytics-event="{&quot;category&quot;:&quot;Marketing nav&quot;,&quot;action&quot;:&quot;click to Sign in&quot;,&quot;label&quot;:&quot;ref_page:Marketing;ref_cta:Sign in;ref_loc:Header&quot;}"
           >
             Sign in
           </a>
               <div class="AppHeader-appearanceSettings">
     <react-partial-anchor>
-      <button data-target="react-partial-anchor.anchor" id="icon-button-3213247e-8608-4f63-b365-32bedfc5ba24" aria-labelledby="tooltip-4cef9fc4-24b2-43a0-ae1c-b46e337914fa" type="button" disabled="disabled" data-view-component="true" class="Button Button--iconOnly Button--invisible Button--medium AppHeader-button HeaderMenu-link border cursor-wait">  <svg aria-hidden="true" height="16" viewBox="0 0 16 16" version="1.1" width="16" data-view-component="true" class="octicon octicon-sliders Button-visual">
+      <button data-target="react-partial-anchor.anchor" id="icon-button-3c0ee2b0-e942-49e3-a762-e6e33142772e" aria-labelledby="tooltip-61de1e4a-cad5-4813-8c95-52874bfc559f" type="button" disabled="disabled" data-view-component="true" class="Button Button--iconOnly Button--invisible Button--medium AppHeader-button HeaderMenu-link border cursor-wait">  <svg aria-hidden="true" height="16" viewBox="0 0 16 16" version="1.1" width="16" data-view-component="true" class="octicon octicon-sliders Button-visual">
     <path d="M15 2.75a.75.75 0 0 1-.75.75h-4a.75.75 0 0 1 0-1.5h4a.75.75 0 0 1 .75.75Zm-8.5.75v1.25a.75.75 0 0 0 1.5 0v-4a.75.75 0 0 0-1.5 0V2H1.75a.75.75 0 0 0 0 1.5H6.5Zm1.25 5.25a.75.75 0 0 0 0-1.5h-6a.75.75 0 0 0 0 1.5h6ZM15 8a.75.75 0 0 1-.75.75H11.5V10a.75.75 0 1 1-1.5 0V6a.75.75 0 0 1 1.5 0v1.25h2.75A.75.75 0 0 1 15 8Zm-9 5.25v-2a.75.75 0 0 0-1.5 0v1.25H1.75a.75.75 0 0 0 0 1.5H4.5v1.25a.75.75 0 0 0 1.5 0v-2Zm9 0a.75.75 0 0 1-.75.75h-6a.75.75 0 0 1 0-1.5h6a.75.75 0 0 1 .75.75Z"></path>
 </svg>
-</button><tool-tip id="tooltip-4cef9fc4-24b2-43a0-ae1c-b46e337914fa" for="icon-button-3213247e-8608-4f63-b365-32bedfc5ba24" popover="manual" data-direction="s" data-type="label" data-view-component="true" class="sr-only position-absolute">Appearance settings</tool-tip>
+</button><tool-tip id="tooltip-61de1e4a-cad5-4813-8c95-52874bfc559f" for="icon-button-3c0ee2b0-e942-49e3-a762-e6e33142772e" popover="manual" data-direction="s" data-type="label" data-view-component="true" class="sr-only position-absolute">Appearance settings</tool-tip>
 
       <template data-target="react-partial-anchor.template">
         <link crossorigin="anonymous" media="all" rel="stylesheet" href="https://github.githubassets.com/assets/primer-react.b2a80302b2912cf742ec.module.css" />
@@ -987,7 +987,7 @@
                 
 
 
-<qbsearch-input class="search-input" data-scope="owner:nealw98" data-custom-scopes-path="/search/custom_scopes" data-delete-custom-scopes-csrf="aUBw3HHTzlYCEGfCGINWsqHizWKrRkaUieiqf7cbP_4cIiWb3Wbw7Qz3almT2Y9keSHYsFm6apobpHAZWyDLzw" data-max-custom-scopes="10" data-header-redesign-enabled="false" data-initial-value="" data-blackbird-suggestions-path="/search/suggestions" data-jump-to-suggestions-path="/_graphql/GetSuggestedNavigationDestinations" data-current-repository="" data-current-org="" data-current-owner="" data-logged-in="false" data-copilot-chat-enabled="false" data-nl-search-enabled="false" data-retain-scroll-position="true">
+<qbsearch-input class="search-input" data-scope="owner:nealw98" data-custom-scopes-path="/search/custom_scopes" data-delete-custom-scopes-csrf="ewfaz0hGSCnVB4vCpY6X1X4kZj5pDL3F4Pf7pTtowmiCl0JNSealNEp7M3jBUqr_FinSJq3Dn7L5DfoTdHc_-A" data-max-custom-scopes="10" data-header-redesign-enabled="false" data-initial-value="" data-blackbird-suggestions-path="/search/suggestions" data-jump-to-suggestions-path="/_graphql/GetSuggestedNavigationDestinations" data-current-repository="" data-current-org="" data-current-owner="" data-logged-in="false" data-copilot-chat-enabled="false" data-nl-search-enabled="false" data-retain-scroll-position="true">
   <div
     class="search-input-container search-with-dialog position-relative d-flex flex-row flex-items-center mr-4 rounded"
     data-action="click:qbsearch-input#searchInputContainerClicked"
@@ -1051,7 +1051,7 @@
           ></div>
           <div class="QueryBuilder-InputWrapper">
             <div aria-hidden="true" class="QueryBuilder-Sizer" data-target="query-builder.sizer"></div>
-            <input id="query-builder-test" name="query-builder-test" value="" autocomplete="off" type="text" role="combobox" spellcheck="false" aria-expanded="false" aria-describedby="validation-de808718-3a20-4c25-b26b-ece04bd9081d" data-target="query-builder.input" data-action="
+            <input id="query-builder-test" name="query-builder-test" value="" autocomplete="off" type="text" role="combobox" spellcheck="false" aria-expanded="false" aria-describedby="validation-68392c55-2a3f-4af7-9f0b-38efbc0c973c" data-target="query-builder.input" data-action="
           input:query-builder#inputChange
           blur:query-builder#inputBlur
           keydown:query-builder#inputKeydown
@@ -1289,7 +1289,7 @@
                   tabindex="-1"
                 ></ul>
         </div>
-      <div class="FormControl-inlineValidation" id="validation-de808718-3a20-4c25-b26b-ece04bd9081d" hidden="hidden">
+      <div class="FormControl-inlineValidation" id="validation-68392c55-2a3f-4af7-9f0b-38efbc0c973c" hidden="hidden">
         <span class="FormControl-inlineValidation--visual">
           <svg aria-hidden="true" height="12" viewBox="0 0 12 12" version="1.1" width="12" data-view-component="true" class="octicon octicon-alert-fill">
     <path d="M4.855.708c.5-.896 1.79-.896 2.29 0l4.675 8.351a1.312 1.312 0 0 1-1.146 1.954H1.33A1.313 1.313 0 0 1 .183 9.058ZM7 7V3H5v4Zm-1 3a1 1 0 1 0 0-2 1 1 0 0 0 0 2Z"></path>
@@ -1330,7 +1330,7 @@
   
 </div>
       <scrollable-region data-labelled-by="feedback-dialog-title">
-        <div data-view-component="true" class="Overlay-body">        <!-- '"` --><!-- </textarea></xmp> --></option></form><form id="code-search-feedback-form" data-turbo="false" action="/search/feedback" accept-charset="UTF-8" method="post"><input type="hidden" name="authenticity_token" value="B1lHeD2_Fi0WYgZO5cBzYq_A91cFMugelfkGwTPyChTjRr081G5kzczrCdThJaPsr88xIfziEyZU6Krb1w3q8A" />
+        <div data-view-component="true" class="Overlay-body">        <!-- '"` --><!-- </textarea></xmp> --></option></form><form id="code-search-feedback-form" data-turbo="false" action="/search/feedback" accept-charset="UTF-8" method="post"><input type="hidden" name="authenticity_token" value="aeSiS3ky_xNJ02AhiKfMFTA8JR1XyLRRkgsVHFEb2n7LKVd_ZcN_FdIgHN8PTFzZYEeen1-rjAzqtoV7c9aZrw" />
           <p>We read every piece of feedback, and take your input very seriously.</p>
           <textarea name="feedback" class="form-control width-full mb-2" style="height: 120px" id="feedback"></textarea>
           <input name="include_email" id="include_email" aria-label="Include my email address so I can be contacted" class="form-control mr-2" type="checkbox">
@@ -1368,7 +1368,7 @@
         <div data-view-component="true" class="Overlay-body">        <div data-target="custom-scopes.customScopesModalDialogFlash"></div>
 
         <div hidden class="create-custom-scope-form" data-target="custom-scopes.createCustomScopeForm">
-        <!-- '"` --><!-- </textarea></xmp> --></option></form><form id="custom-scopes-dialog-form" data-turbo="false" action="/search/custom_scopes" accept-charset="UTF-8" method="post"><input type="hidden" name="authenticity_token" value="gydZdekBD_fh2hiOWST9pmD3jYU9tKdQURhMX_hf8J6a_kyX0M-H7gJieY-be9Upp0pxKSsMPkyjuHMU102rxg" />
+        <!-- '"` --><!-- </textarea></xmp> --></option></form><form id="custom-scopes-dialog-form" data-turbo="false" action="/search/custom_scopes" accept-charset="UTF-8" method="post"><input type="hidden" name="authenticity_token" value="j2r5-sEvstoE7msnZ6ZdGB7vnagbxuYsoobEBGasF_JhOiRxoBzL1Z0_YHPB2D814-IcTE48gfW71H7TVrnw4A" />
           <div data-target="custom-scopes.customScopesModalDialogFlash"></div>
 
           <input type="hidden" id="custom_scope_id" name="custom_scope_id" data-target="custom-scopes.customScopesIdField">
@@ -1386,7 +1386,7 @@
                 placeholder="github-ruby"
                 required
                 maxlength="50">
-              <input type="hidden" value="D8UXIl3XrBt7-PBH9sxbKE8boobfR884GYrIkJrDQvyR6yyZbfampSTXw-KAMv63gZJCC2HN9polbx86fQrCFQ" data-csrf="true" />
+              <input type="hidden" value="eABnfaaaW2chyt29ypOqTQOUhw8Z9sEivhPUv6DxmuIDA4N4ySzo5VVszPOXXPaG4F_xaFtCWA8eCB87NaVTFw" data-csrf="true" />
             </auto-check>
           </div>
 
@@ -1428,10 +1428,10 @@
 
             <div class="position-relative HeaderMenu-link-wrap d-lg-inline-block">
               <a
-                href="/login?return_to=https%3A%2F%2Fgithub.com%2Fnealw98%2Frork-sober-dailies%2Fraw%2Fmain%2Fassets%2Fimages%2Fsplash-ios-full.png"
+                href="/login?return_to=https%3A%2F%2Fgithub.com%2Fnealw98%2Frork-sober-dailies%2Fraw%2Fmain%2Fassets%2Fimages%2Ffavicon.png"
                 class="HeaderMenu-link HeaderMenu-link--sign-in HeaderMenu-button flex-shrink-0 no-underline d-none d-lg-inline-flex border border-lg-0 rounded px-2 py-1"
                 style="margin-left: 12px;"
-                data-hydro-click="{&quot;event_type&quot;:&quot;authentication.click&quot;,&quot;payload&quot;:{&quot;location_in_page&quot;:&quot;site header menu&quot;,&quot;repository_id&quot;:null,&quot;auth_type&quot;:&quot;SIGN_UP&quot;,&quot;originating_url&quot;:&quot;https://github.com/nealw98/rork-sober-dailies/raw/main/assets/images/splash-ios-full.png&quot;,&quot;user_id&quot;:null}}" data-hydro-click-hmac="55d9c1d4029fe7a34df0cce6ebee471a044f0b4b018390ce8b06b08bf7a8b6fb"
+                data-hydro-click="{&quot;event_type&quot;:&quot;authentication.click&quot;,&quot;payload&quot;:{&quot;location_in_page&quot;:&quot;site header menu&quot;,&quot;repository_id&quot;:null,&quot;auth_type&quot;:&quot;SIGN_UP&quot;,&quot;originating_url&quot;:&quot;https://github.com/nealw98/rork-sober-dailies/raw/main/assets/images/favicon.png&quot;,&quot;user_id&quot;:null}}" data-hydro-click-hmac="2afef96b888d0f5da5d89a37a79dfd80694becc6363874e3aa83c8e03c3e215a"
                 data-analytics-event="{&quot;category&quot;:&quot;Marketing nav&quot;,&quot;action&quot;:&quot;click to go to homepage&quot;,&quot;label&quot;:&quot;ref_page:Marketing;ref_cta:Sign in;ref_loc:Header&quot;}"
               >
                 Sign in
@@ -1441,7 +1441,7 @@
     <h4 data-view-component="true" class="color-fg-default mb-2">                    Sign in to GitHub
 </h4>
                         
-<!-- '"` --><!-- </textarea></xmp> --></option></form><form data-turbo="false" action="/session" accept-charset="UTF-8" method="post"><input type="hidden" name="authenticity_token" value="uOzMpJDq_9wxng3wCxGnIwEF9GkPeLtMtDdPa9kNRdV0FUyAOSPzCscy1_dTdHzgjllBER5Lmw5gHk39UZ1G6g" />  <input type="hidden" name="add_account" id="add_account" autocomplete="off" class="form-control" />
+<!-- '"` --><!-- </textarea></xmp> --></option></form><form data-turbo="false" action="/session" accept-charset="UTF-8" method="post"><input type="hidden" name="authenticity_token" value="Me1pA9sFSE33P9Qeqwh8-b09G3rt39HDHKVKOtVGwQxg7i90ZT8nIHGyxUK0v2xZLYRXm6IAWUgb2L6TEVbjSw" />  <input type="hidden" name="add_account" id="add_account" autocomplete="off" class="form-control" />
 
     <label for="login_field">
       Username or email address
@@ -1459,17 +1459,17 @@
 <input type="hidden" class="js-support" name="javascript-support" value="unknown">
 <input type="hidden" class="js-webauthn-support" name="webauthn-support" value="unknown">
 <input type="hidden" class="js-webauthn-iuvpaa-support" name="webauthn-iuvpaa-support" value="unknown">
-<input type="hidden" name="return_to" id="return_to" value="https://github.com/nealw98/rork-sober-dailies/raw/main/assets/images/splash-ios-full.png" autocomplete="off" class="form-control" />
+<input type="hidden" name="return_to" id="return_to" value="https://github.com/nealw98/rork-sober-dailies/raw/main/assets/images/favicon.png" autocomplete="off" class="form-control" />
 <input type="hidden" name="allow_signup" id="allow_signup" autocomplete="off" class="form-control" />
 <input type="hidden" name="client_id" id="client_id" autocomplete="off" class="form-control" />
 <input type="hidden" name="integration" id="integration" autocomplete="off" class="form-control" />
-<input type="text" name="required_field_0ec3" hidden="hidden" class="form-control" /><input type="hidden" name="timestamp" value="1754950371383" autocomplete="off" class="form-control" /><input type="hidden" name="timestamp_secret" value="bf3c2735e9b15325200d1295139d99fc74fa0f9c3140633358e0a38fd703ed71" autocomplete="off" class="form-control" />
+<input type="text" name="required_field_d029" hidden="hidden" class="form-control" /><input type="hidden" name="timestamp" value="1754950371915" autocomplete="off" class="form-control" /><input type="hidden" name="timestamp_secret" value="53319e56cb8873e9a67f4f2c1fd43e67ed98ba569bb155ac581b338872714c8c" autocomplete="off" class="form-control" />
 
     <input type="submit" name="commit" value="Sign in" class="btn btn-primary btn-block js-sign-in-button" data-disable-with="Signing in…" data-signin-label="Sign in" data-sso-label="Sign in with your identity provider" development="false" disable-emu-sso="false" />
   </div>
 </form>  <webauthn-status class="js-webauthn-login-emu-control">
         <div data-target="webauthn-status.partial" class="d-flex flex-justify-between flex-column mt-3 mb-0" hidden>
-          <a href="/login?return_to=https%3A%2F%2Fgithub.com%2Fnealw98%2Frork-sober-dailies%2Fraw%2Fmain%2Fassets%2Fimages%2Fsplash-ios-full.png" data-analytics-event="{&quot;category&quot;:&quot;passkey_404_login&quot;,&quot;action&quot;:&quot;clicked&quot;,&quot;label&quot;:null}" data-view-component="true" class="Button--link Button--medium Button">  <span class="Button-content">
+          <a href="/login?return_to=https%3A%2F%2Fgithub.com%2Fnealw98%2Frork-sober-dailies%2Fraw%2Fmain%2Fassets%2Fimages%2Ffavicon.png" data-analytics-event="{&quot;category&quot;:&quot;passkey_404_login&quot;,&quot;action&quot;:&quot;clicked&quot;,&quot;label&quot;:null}" data-view-component="true" class="Button--link Button--medium Button">  <span class="Button-content">
     <span class="Button-label">or continue with other methods</span>
   </span>
 </a>
@@ -1479,20 +1479,20 @@
 
 </div></div>            </div>
 
-              <a href="/signup?ref_cta=Sign+up&amp;ref_loc=header+logged+out&amp;ref_page=%2Fnealw98%2Frork-sober-dailies%2Fraw%2Fmain%2Fassets%2Fimages%2Fsplash-ios-full.png&amp;source=header"
+              <a href="/signup?ref_cta=Sign+up&amp;ref_loc=header+logged+out&amp;ref_page=%2Fnealw98%2Frork-sober-dailies%2Fraw%2Fmain%2Fassets%2Fimages%2Ffavicon.png&amp;source=header"
                 class="HeaderMenu-link HeaderMenu-link--sign-up HeaderMenu-button flex-shrink-0 d-flex d-lg-inline-flex no-underline border color-border-default rounded px-2 py-1"
-                data-hydro-click="{&quot;event_type&quot;:&quot;authentication.click&quot;,&quot;payload&quot;:{&quot;location_in_page&quot;:&quot;site header menu&quot;,&quot;repository_id&quot;:null,&quot;auth_type&quot;:&quot;SIGN_UP&quot;,&quot;originating_url&quot;:&quot;https://github.com/nealw98/rork-sober-dailies/raw/main/assets/images/splash-ios-full.png&quot;,&quot;user_id&quot;:null}}" data-hydro-click-hmac="55d9c1d4029fe7a34df0cce6ebee471a044f0b4b018390ce8b06b08bf7a8b6fb"
-                data-analytics-event="{&quot;category&quot;:&quot;Sign up&quot;,&quot;action&quot;:&quot;click to sign up for account&quot;,&quot;label&quot;:&quot;ref_page:/nealw98/rork-sober-dailies/raw/main/assets/images/splash-ios-full.png;ref_cta:Sign up;ref_loc:header logged out&quot;}"
+                data-hydro-click="{&quot;event_type&quot;:&quot;authentication.click&quot;,&quot;payload&quot;:{&quot;location_in_page&quot;:&quot;site header menu&quot;,&quot;repository_id&quot;:null,&quot;auth_type&quot;:&quot;SIGN_UP&quot;,&quot;originating_url&quot;:&quot;https://github.com/nealw98/rork-sober-dailies/raw/main/assets/images/favicon.png&quot;,&quot;user_id&quot;:null}}" data-hydro-click-hmac="2afef96b888d0f5da5d89a37a79dfd80694becc6363874e3aa83c8e03c3e215a"
+                data-analytics-event="{&quot;category&quot;:&quot;Sign up&quot;,&quot;action&quot;:&quot;click to sign up for account&quot;,&quot;label&quot;:&quot;ref_page:/nealw98/rork-sober-dailies/raw/main/assets/images/favicon.png;ref_cta:Sign up;ref_loc:header logged out&quot;}"
               >
                 Sign up
               </a>
 
                 <div class="AppHeader-appearanceSettings">
     <react-partial-anchor>
-      <button data-target="react-partial-anchor.anchor" id="icon-button-203d3cbf-0f0e-4afa-8ccc-22302c603b64" aria-labelledby="tooltip-d12ffefe-16eb-419a-b391-107ed18ed775" type="button" disabled="disabled" data-view-component="true" class="Button Button--iconOnly Button--invisible Button--medium AppHeader-button HeaderMenu-link border cursor-wait">  <svg aria-hidden="true" height="16" viewBox="0 0 16 16" version="1.1" width="16" data-view-component="true" class="octicon octicon-sliders Button-visual">
+      <button data-target="react-partial-anchor.anchor" id="icon-button-b6fc5a27-2b6d-4c65-949e-e4c2536256df" aria-labelledby="tooltip-a582a01c-6c42-4f1e-866a-98e3f9912fc0" type="button" disabled="disabled" data-view-component="true" class="Button Button--iconOnly Button--invisible Button--medium AppHeader-button HeaderMenu-link border cursor-wait">  <svg aria-hidden="true" height="16" viewBox="0 0 16 16" version="1.1" width="16" data-view-component="true" class="octicon octicon-sliders Button-visual">
     <path d="M15 2.75a.75.75 0 0 1-.75.75h-4a.75.75 0 0 1 0-1.5h4a.75.75 0 0 1 .75.75Zm-8.5.75v1.25a.75.75 0 0 0 1.5 0v-4a.75.75 0 0 0-1.5 0V2H1.75a.75.75 0 0 0 0 1.5H6.5Zm1.25 5.25a.75.75 0 0 0 0-1.5h-6a.75.75 0 0 0 0 1.5h6ZM15 8a.75.75 0 0 1-.75.75H11.5V10a.75.75 0 1 1-1.5 0V6a.75.75 0 0 1 1.5 0v1.25h2.75A.75.75 0 0 1 15 8Zm-9 5.25v-2a.75.75 0 0 0-1.5 0v1.25H1.75a.75.75 0 0 0 0 1.5H4.5v1.25a.75.75 0 0 0 1.5 0v-2Zm9 0a.75.75 0 0 1-.75.75h-6a.75.75 0 0 1 0-1.5h6a.75.75 0 0 1 .75.75Z"></path>
 </svg>
-</button><tool-tip id="tooltip-d12ffefe-16eb-419a-b391-107ed18ed775" for="icon-button-203d3cbf-0f0e-4afa-8ccc-22302c603b64" popover="manual" data-direction="s" data-type="label" data-view-component="true" class="sr-only position-absolute">Appearance settings</tool-tip>
+</button><tool-tip id="tooltip-a582a01c-6c42-4f1e-866a-98e3f9912fc0" for="icon-button-b6fc5a27-2b6d-4c65-949e-e4c2536256df" popover="manual" data-direction="s" data-type="label" data-view-component="true" class="sr-only position-absolute">Appearance settings</tool-tip>
 
       <template data-target="react-partial-anchor.template">
         <link crossorigin="anonymous" media="all" rel="stylesheet" href="https://github.githubassets.com/assets/primer-react.b2a80302b2912cf742ec.module.css" />
@@ -1530,10 +1530,10 @@
         <span class="js-stale-session-flash-signed-out" hidden>You signed out in another tab or window. <a class="Link--inTextBlock" href="">Reload</a> to refresh your session.</span>
         <span class="js-stale-session-flash-switched" hidden>You switched accounts on another tab or window. <a class="Link--inTextBlock" href="">Reload</a> to refresh your session.</span>
 
-    <button id="icon-button-de225dff-a4eb-476c-8ed8-332e5b3997de" aria-labelledby="tooltip-8955d279-c3ed-4fcd-afaf-1a85a64e2b12" type="button" data-view-component="true" class="Button Button--iconOnly Button--invisible Button--medium flash-close js-flash-close">  <svg aria-hidden="true" height="16" viewBox="0 0 16 16" version="1.1" width="16" data-view-component="true" class="octicon octicon-x Button-visual">
+    <button id="icon-button-4f715a29-b3f3-41dc-86f4-40b9f29a7042" aria-labelledby="tooltip-96d5879f-3bd7-4f03-ad29-7fd826613cdd" type="button" data-view-component="true" class="Button Button--iconOnly Button--invisible Button--medium flash-close js-flash-close">  <svg aria-hidden="true" height="16" viewBox="0 0 16 16" version="1.1" width="16" data-view-component="true" class="octicon octicon-x Button-visual">
     <path d="M3.72 3.72a.75.75 0 0 1 1.06 0L8 6.94l3.22-3.22a.749.749 0 0 1 1.275.326.749.749 0 0 1-.215.734L9.06 8l3.22 3.22a.749.749 0 0 1-.326 1.275.749.749 0 0 1-.734-.215L8 9.06l-3.22 3.22a.751.751 0 0 1-1.042-.018.751.751 0 0 1-.018-1.042L6.94 8 3.72 4.78a.75.75 0 0 1 0-1.06Z"></path>
 </svg>
-</button><tool-tip id="tooltip-8955d279-c3ed-4fcd-afaf-1a85a64e2b12" for="icon-button-de225dff-a4eb-476c-8ed8-332e5b3997de" popover="manual" data-direction="s" data-type="label" data-view-component="true" class="sr-only position-absolute">Dismiss alert</tool-tip>
+</button><tool-tip id="tooltip-96d5879f-3bd7-4f03-ad29-7fd826613cdd" for="icon-button-4f715a29-b3f3-41dc-86f4-40b9f29a7042" popover="manual" data-direction="s" data-type="label" data-view-component="true" class="sr-only position-absolute">Dismiss alert</tool-tip>
 
 
   
