@@ -2,7 +2,7 @@
   "expo": {
     "name": "Sober Dailies",
     "slug": "sober-dailies",
-    "version": "1.7.0",
+    "version": "1.7.1",
     "orientation": "portrait",
     "icon": "https://github.com/nealw98/rork-sober-dailies/raw/main/assets/images/icon.png",
     "scheme": "myapp",
