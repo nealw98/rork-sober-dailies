@@ -4,12 +4,12 @@
     "slug": "sober-dailies",
     "version": "1.7.0",
     "orientation": "portrait",
-    "icon": "./assets/images/icon.png",
+    "icon": "https://github.com/nealw98/rork-sober-dailies/raw/main/assets/images/icon.png",
     "scheme": "myapp",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "splash": {
-      "image": "./assets/images/splash-ios-full.png",
+      "image": "https://github.com/nealw98/rork-sober-dailies/raw/main/assets/images/splash-ios-full.png",
       "resizeMode": "contain",
       "backgroundColor": "#061D4A"
     },
@@ -28,17 +28,17 @@
     "android": {
       "package": "app.rork.sober-dailies",
       "adaptiveIcon": {
-        "foregroundImage": "./assets/images/adaptive-icon-foreground.png",
-        "backgroundImage": "./assets/images/adaptive-icon-background.png",
-        "monochromeImage": "./assets/images/adaptive-icon-monochrome.png"
+        "foregroundImage": "https://github.com/nealw98/rork-sober-dailies/raw/main/assets/images/adaptive-icon-foreground.png",
+        "backgroundImage": "https://github.com/nealw98/rork-sober-dailies/raw/main/assets/images/adaptive-icon-background.png",
+        "monochromeImage": "https://github.com/nealw98/rork-sober-dailies/raw/main/assets/images/adaptive-icon-monochrome.png"
       },
-      "icon": "./assets/images/icon-android-legacy.png",
+      "icon": "https://github.com/nealw98/rork-sober-dailies/raw/main/assets/images/icon-android-legacy.png",
       "permissions": [
         "android.permission.VIBRATE"
       ]
     },
     "web": {
-      "favicon": "./assets/images/favicon.png"
+      "favicon": "https://github.com/nealw98/rork-sober-dailies/raw/main/assets/images/favicon.png"
     },
     "plugins": [
       [
@@ -51,12 +51,12 @@
         "expo-splash-screen",
         {
           "ios": {
-            "image": "./assets/images/splash-ios-full.png",
+            "image": "https://github.com/nealw98/rork-sober-dailies/raw/main/assets/images/splash-ios-full.png",
             "resizeMode": "cover",
             "backgroundColor": "#061D4A"
           },
           "android": {
-            "image": "./assets/images/splash-android-icon.png",
+            "image": "https://github.com/nealw98/rork-sober-dailies/raw/main/assets/images/splash-android-icon.png",
             "imageWidth": 200,
             "backgroundColor": "#061D4A"
           }
