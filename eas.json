@@ -1,0 +1,51 @@
+cat > eas.json << 'EOF'
+{
+  "cli": {
+    "version": ">= 2.0.0"
+  },
+  "build": {
+    "development": {
+      "developmentClient": true,
+      "distribution": "internal"
+    },
+    "preview": {
+      "distribution": "internal",
+      "ios": {
+        "resourceClass": "medium"
+      },
+      "android": {
+        "resourceClass": "medium"
+      }
+    },
+    "production": {
+      "distribution": "store",
+      "ios": {
+        "resourceClass": "medium"
+      },
+      "android": {
+        "resourceClass": "medium"
+      }
+    }
+  },
+  "submit": {
+    "production": {
+      "ios": {
+        "appleId": "nealw98@live.com",
+        "ascAppId": "6749151320",
+        "appleTeamId": "4FBYJLNQ99"
+      },
+      "android": {
+        "serviceAccountKeyPath": "./path/to/api-key.json",
+        "track": "internal"
+      }
+    },
+    "preview": {
+      "ios": {
+        "appleId": "nealw98@live.com",
+        "ascAppId": "6749151320",
+        "appleTeamId": "4FBYJLNQ99"
+      }
+    }
+  }
+}
+EOF
