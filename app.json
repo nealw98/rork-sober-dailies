@@ -2,27 +2,37 @@
   "expo": {
     "name": "Sober Dailies",
     "slug": "sober-dailies",
-    "version": "1.0.0",
+    "version": "1.7.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "myapp",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "splash": {
-      "image": "./assets/images/splash-icon.png",
+      "image": "./assets/images/splash-ios-full.png",
       "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
+      "backgroundColor": "#061D4A"
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "app.rork.sober-dailies"
+      "bundleIdentifier": "app.rork.sober-dailies",
+      "buildNumber": "1",
+      "infoPlist": {
+        "NSCameraUsageDescription": "This app uses the camera to let you add photos.",
+        "NSMicrophoneUsageDescription": "This app uses the microphone for audio features.",
+        "NSPhotoLibraryUsageDescription": "This app needs photo library access to save and share images.",
+        "NSPhotoLibraryAddUsageDescription": "This app saves images to your library.",
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
-      "adaptiveIcon": {
-        "foregroundImage": "./assets/images/adaptive-icon.png",
-        "backgroundColor": "#ffffff"
-      },
       "package": "app.rork.sober-dailies",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/images/adaptive-icon-foreground.png",
+        "backgroundImage": "./assets/images/adaptive-icon-background.png",
+        "monochromeImage": "./assets/images/adaptive-icon-monochrome.png"
+      },
+      "icon": "./assets/images/icon-android-legacy.png",
       "permissions": [
         "android.permission.VIBRATE"
       ]
@@ -35,6 +45,21 @@
         "expo-router",
         {
           "origin": "https://rork.com/"
+        }
+      ],
+      [
+        "expo-splash-screen",
+        {
+          "ios": {
+            "image": "./assets/images/splash-ios-full.png",
+            "resizeMode": "cover",
+            "backgroundColor": "#061D4A"
+          },
+          "android": {
+            "image": "./assets/images/splash-android-icon.png",
+            "imageWidth": 200,
+            "backgroundColor": "#061D4A"
+          }
         }
       ]
     ],
