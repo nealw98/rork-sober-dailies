@@ -1,4 +1,4 @@
-package com.soberdailies
+package com.nealwagner.soberdailies
 
 import android.app.Application
 import android.content.res.Configuration
