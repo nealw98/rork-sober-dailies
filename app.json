@@ -14,7 +14,9 @@
       "supportsTablet": true,
       "bundleIdentifier": "com.nealwagner.soberdailies",
       "buildNumber": "2",
-      "infoPlist": { "ITSAppUsesNonExemptEncryption": false }
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
       "package": "com.nealwagner.soberdailies",
@@ -24,6 +26,13 @@
         "backgroundColor": "#061D4A"
       }
     },
-    "runtimeVersion": { "policy": "sdkVersion" }
+    "runtimeVersion": {
+      "policy": "sdkVersion"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "651e2e43-404d-47e3-94ac-695b4febd27a"
+      }
+    }
   }
 }
