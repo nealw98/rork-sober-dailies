@@ -36,7 +36,8 @@
       "icon": "./assets/images/icon-android-legacy.png",
       "permissions": [
         "android.permission.VIBRATE"
-      ]
+      ],
+      "minSdkVersion": 24
     },
     "runtimeVersion": {
       "policy": "sdkVersion"
@@ -81,7 +82,7 @@
             "compileSdkVersion": 35,
             "targetSdkVersion": 35,
             "buildToolsVersion": "35.0.0",
-            "minSdkVersion": 23
+            "minSdkVersion": 24
           }
         }
       ]
