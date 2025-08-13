@@ -49,6 +49,12 @@
     </dict>
     <key>NSCameraUsageDescription</key>
     <string>This app uses the camera to let you add photos.</string>
+    <key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+    <string>Allow $(PRODUCT_NAME) to access your location</string>
+    <key>NSLocationAlwaysUsageDescription</key>
+    <string>Allow $(PRODUCT_NAME) to access your location</string>
+    <key>NSLocationWhenInUseUsageDescription</key>
+    <string>Allow $(PRODUCT_NAME) to access your location</string>
     <key>NSMicrophoneUsageDescription</key>
     <string>This app uses the microphone for audio features.</string>
     <key>NSPhotoLibraryAddUsageDescription</key>

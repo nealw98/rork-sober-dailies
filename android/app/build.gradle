@@ -69,11 +69,6 @@ react {
 def enableProguardInReleaseBuilds = (findProperty('android.enableProguardInReleaseBuilds') ?: false).toBoolean()
 
 /**
- * Set this to true to use Hermes instead of JSC
- */
-def hermesEnabled = (findProperty('expo.jsEngine') ?: "hermes") == "hermes"
-
-/**
  * The preferred build flavor of JavaScriptCore (JSC)
  *
  * For example, to use the international variant, you can use:
