@@ -18,25 +18,25 @@
       "android": {
         "resourceClass": "medium"
       }
-    },
-    "submit": {
-      "production": {
-        "ios": {
-          "appleId": "nealw98@live.com",
-          "ascAppId": "6749869819",
-          "appleTeamId": "4FBYJLNQ99"
-        },
-        "android": {
-          "serviceAccountKeyPath": "./path/to/api-key.json",
-          "track": "internal"
-        }
+    }
+  },
+  "submit": {
+    "production": {
+      "ios": {
+        "appleId": "nealw98@live.com",
+        "ascAppId": "6749869819",
+        "appleTeamId": "4FBYJLNQ99"
       },
-      "preview": {
-        "ios": {
-          "appleId": "nealw98@live.com",
-          "ascAppId": "6749869819",
-          "appleTeamId": "4FBYJLNQ99"
-        }
+      "android": {
+        "serviceAccountKeyPath": "./path/to/api-key.json",
+        "track": "internal"
+      }
+    },
+    "preview": {
+      "ios": {
+        "appleId": "nealw98@live.com",
+        "ascAppId": "6749869819",
+        "appleTeamId": "4FBYJLNQ99"
       }
     }
   }
