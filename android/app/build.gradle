@@ -92,8 +92,8 @@ android {
         applicationId 'com.nealwagner.soberdailies'
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 8
-        versionName "1.7.1"
+        versionCode 32
+        versionName "1.7.3"
     }
     signingConfigs {
         debug {
@@ -173,5 +173,3 @@ dependencies {
         implementation("com.facebook.react:hermes-android")
     } else {
         implementation jscFlavor
-    }
-}
