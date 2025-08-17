@@ -163,7 +163,7 @@ export default function ChatInterface() {
   const getPlaceholderText = () => {
     switch (sponsorType) {
       case "salty":
-        return "Tell Salty Sam what's got you sideways...";
+        return "What's got you sideways?";
       case "supportive":
         return "Tell Steady Eddie what's on your mind...";
       case "grace":
