@@ -90,6 +90,12 @@ const HomeScreen = () => {
 
 
 
+        <TouchableOpacity style={styles.card} onPress={() => router.push('/(tabs)/prayers')}>
+          <Text style={styles.cardTitle}>Prayer</Text>
+          <Text style={styles.cardDescription}>Connect with your higher power throughout the day.</Text>
+          <Text style={styles.cardButton}>Go to Prayer</Text>
+        </TouchableOpacity>
+
         <TouchableOpacity style={styles.card} onPress={() => router.push('/(tabs)/literature')}>
           <Text style={styles.cardTitle}>Literature</Text>
           <Text style={styles.cardDescription}>Read something out of the literature every day.</Text>
