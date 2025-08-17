@@ -79,7 +79,7 @@ const HomeScreen = () => {
 
         {/* Throughout the Day Section */}
         <View style={styles.sectionContainerDay}>
-        <Text style={styles.sectionTitle}>Throughout the Day</Text>
+        <Text style={styles.sectionTitle}>Daily Tools</Text>
         <Text style={styles.sectionSubtitle}>Stay connected and mindful during your daily activities.</Text>
         
         <TouchableOpacity style={styles.card} onPress={() => router.push('/(tabs)/chat')}>
