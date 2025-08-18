@@ -101,7 +101,12 @@ function RootLayoutNav() {
           title: "Privacy Policy"
         }} 
       />
-
+      <Stack.Screen 
+        name="daily-reflections" 
+        options={{ 
+          title: "Daily Reflections"
+        }} 
+      />
     </Stack>
   );
 }
