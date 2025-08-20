@@ -38,6 +38,7 @@ function RootLayoutNav() {
     hideSplashScreen();
   }, [hideSplashScreen]);
 
+  // Render different screens based on state
   if (isLoading) {
     console.log('Still loading, showing custom splash screen');
     return <CustomSplashScreen />;
