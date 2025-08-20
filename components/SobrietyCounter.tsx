@@ -64,28 +64,51 @@ const CustomIOSDatePicker = ({
     onSelect: (value: any) => void,
     keyPrefix: string
   ) => {
+    const itemHeight = 40;
+    const visibleItems = 5; // Number of items visible at once
+    const centerOffset = (visibleItems - 1) / 2; // Items above/below center
+    
+    // Add padding items to center the selection
+    const paddingItems = Array(centerOffset).fill('');
+    const allItems = [...paddingItems, ...items, ...paddingItems];
+    
     return (
       <View style={styles.dateColumn}>
+        {/* Selection indicator overlay */}
+        <View style={styles.selectionIndicator} />
+        
         <ScrollView 
           style={styles.dateScrollView}
           showsVerticalScrollIndicator={false}
-          snapToInterval={40}
+          snapToInterval={itemHeight}
           decelerationRate="fast"
+          contentContainerStyle={{
+            paddingVertical: centerOffset * itemHeight
+          }}
         >
-          {items.map((item, index) => {
+          {allItems.map((item, index) => {
             const isSelected = item === selectedValue;
+            const isEmpty = item === '';
+            
             return (
               <TouchableOpacity
                 key={`${keyPrefix}-${index}`}
                 style={[
                   styles.dateItem,
-                  isSelected && styles.selectedDateItem
+                  isSelected && styles.selectedDateItem,
+                  isEmpty && styles.emptyDateItem
                 ]}
-                onPress={() => onSelect(typeof item === 'string' ? index : item)}
+                onPress={() => {
+                  if (!isEmpty) {
+                    onSelect(typeof item === 'string' ? items.indexOf(item) : item);
+                  }
+                }}
+                disabled={isEmpty}
               >
                 <Text style={[
                   styles.dateItemText,
-                  isSelected && styles.selectedDateItemText
+                  isSelected && styles.selectedDateItemText,
+                  isEmpty && styles.emptyDateItemText
                 ]}>
                   {item}
                 </Text>
@@ -882,20 +905,36 @@ const styles = StyleSheet.create({
   dateColumn: {
     flex: 1,
     height: '100%',
+    position: 'relative',
   },
   dateScrollView: {
     flex: 1,
+  },
+  selectionIndicator: {
+    position: 'absolute',
+    top: '50%',
+    left: 4,
+    right: 4,
+    height: 40,
+    backgroundColor: Colors.light.tint,
+    borderRadius: 8,
+    zIndex: 1,
+    transform: [{ translateY: -20 }],
   },
   dateItem: {
     height: 40,
     justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: 8,
+    zIndex: 2,
   },
   selectedDateItem: {
-    backgroundColor: Colors.light.tint,
+    backgroundColor: 'transparent',
     borderRadius: 8,
     marginHorizontal: 4,
+  },
+  emptyDateItem: {
+    backgroundColor: 'transparent',
   },
   dateItemText: {
     fontSize: 16,
@@ -905,6 +944,9 @@ const styles = StyleSheet.create({
   selectedDateItemText: {
     color: 'white',
     fontWeight: '600',
+  },
+  emptyDateItemText: {
+    color: 'transparent',
   },
 });
 
