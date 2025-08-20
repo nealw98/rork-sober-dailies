@@ -403,7 +403,7 @@ export default function GratitudeListScreen() {
     });
 
     const gratitudeText = gratitudeItems
-      .map((item) => `• ${item}`)
+      .map((item, index) => `${index + 1}. ${item}`)
       .join('\n');
 
     const shareMessage = `${today}\n\nToday I'm grateful for:\n${gratitudeText}\n\nPracticing gratitude one day at a time.`;
@@ -630,7 +630,7 @@ export default function GratitudeListScreen() {
                 <View style={styles.itemsList}>
                   {gratitudeItems.map((item, index) => (
                     <View key={index} style={styles.gratitudeItem}>
-                      <Text style={styles.gratitudeItemText}>• {item}</Text>
+                      <Text style={styles.gratitudeItemText}>{item}</Text>
                     </View>
                   ))}
                 </View>
