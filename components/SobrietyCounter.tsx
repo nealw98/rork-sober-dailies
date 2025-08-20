@@ -1,172 +1,10 @@
 import React, { useState } from 'react';
-import { StyleSheet, View, Text, TouchableOpacity, Modal, Platform, TextInput, Alert, ScrollView } from 'react-native';
+import { StyleSheet, View, Text, TouchableOpacity, Modal, Platform, TextInput, Alert } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { Calendar, X, Edit3 } from 'lucide-react-native';
 import { useSobriety } from '@/hooks/useSobrietyStore';
 import { formatStoredDateForDisplay, parseLocalDate, formatLocalDate } from '@/lib/dateUtils';
 import Colors from '@/constants/colors';
-
-// Custom iOS Date Picker Component
-const CustomIOSDatePicker = ({ 
-  selectedDate, 
-  onDateChange, 
-  maximumDate 
-}: { 
-  selectedDate: Date; 
-  onDateChange: (date: Date) => void; 
-  maximumDate: Date; 
-}) => {
-  const months = [
-    'January', 'February', 'March', 'April', 'May', 'June',
-    'July', 'August', 'September', 'October', 'November', 'December'
-  ].map(month => month.padEnd(9, ' '));
-  
-  const currentYear = maximumDate.getFullYear();
-  const years = Array.from({ length: 100 }, (_, i) => currentYear - i);
-  
-  const getDaysInMonth = (month: number, year: number) => {
-    return new Date(year, month + 1, 0).getDate();
-  };
-  
-  const selectedMonth = selectedDate.getMonth();
-  const selectedDay = selectedDate.getDate();
-  const selectedYear = selectedDate.getFullYear();
-  
-  const daysInSelectedMonth = getDaysInMonth(selectedMonth, selectedYear);
-  const days = Array.from({ length: daysInSelectedMonth }, (_, i) => i + 1);
-  
-  const handleDateComponentChange = (component: 'month' | 'day' | 'year', value: number) => {
-    let newMonth = selectedMonth;
-    let newDay = selectedDay;
-    let newYear = selectedYear;
-    
-    if (component === 'month') {
-      newMonth = value;
-    } else if (component === 'day') {
-      newDay = value;
-    } else if (component === 'year') {
-      newYear = value;
-    }
-    
-    // Adjust day if it's invalid for the new month/year
-    const maxDaysInNewMonth = getDaysInMonth(newMonth, newYear);
-    if (newDay > maxDaysInNewMonth) {
-      newDay = maxDaysInNewMonth;
-    }
-    
-    const newDate = new Date(newYear, newMonth, newDay);
-    onDateChange(newDate);
-  };
-  
-  const renderScrollableColumn = (
-    items: (string | number)[], 
-    selectedValue: string | number, 
-    onSelect: (value: any) => void,
-    keyPrefix: string
-  ) => {
-    const itemHeight = 43;
-    const visibleItems = 5;
-    const centerOffset = Math.floor(visibleItems / 2);
-    
-    // Add padding items to center the selection
-    const paddingItems = Array(centerOffset).fill('');
-    const allItems = [...paddingItems, ...items, ...paddingItems];
-    
-    // Calculate initial scroll position to center the selected item
-    const selectedIndex = items.findIndex(item => item === selectedValue);
-    const initialScrollOffset = selectedIndex * itemHeight;
-    
-    return (
-      <View style={styles.dateColumn}>
-        {/* Selection indicator overlay */}
-        <View style={styles.selectionIndicator} />
-        
-        <ScrollView 
-          style={styles.dateScrollView}
-          showsVerticalScrollIndicator={false}
-          snapToInterval={itemHeight}
-          decelerationRate="normal"
-          scrollEventThrottle={16}
-          contentContainerStyle={{
-            paddingVertical: centerOffset * itemHeight
-          }}
-          contentOffset={{ x: 0, y: initialScrollOffset }}
-          onMomentumScrollEnd={(event) => {
-            const y = event.nativeEvent.contentOffset.y;
-            const index = Math.round(y / itemHeight);
-            const actualIndex = index - centerOffset;
-            if (actualIndex >= 0 && actualIndex < items.length) {
-              onSelect(typeof items[actualIndex] === 'string' ? actualIndex : items[actualIndex]);
-              // Force scroll to exact center position after selection
-              const targetY = index * itemHeight;
-              if (y !== targetY) {
-                event.target.scrollTo({ y: targetY, animated: true });
-              }
-            }
-          }}
-          onScrollEndDrag={(event) => {
-            const y = event.nativeEvent.contentOffset.y;
-            const index = Math.round(y / itemHeight);
-            // Force scroll to exact center position
-            const targetY = index * itemHeight;
-            if (y !== targetY) {
-              event.target.scrollTo({ y: targetY, animated: true });
-            }
-          }}
-        >
-          {allItems.map((item, index) => {
-            const isSelected = item === selectedValue;
-            const isEmpty = item === '';
-            
-            return (
-              <View
-                key={`${keyPrefix}-${index}`}
-                style={[
-                  styles.dateItem,
-                  isSelected && styles.selectedDateItem,
-                  isEmpty && styles.emptyDateItem
-                ]}
-              >
-                <Text style={[
-                  styles.dateItemText,
-                  isSelected && styles.selectedDateItemText,
-                  isEmpty && styles.emptyDateItemText
-                ]}>
-                  {typeof item === 'string' ? item : item.toString().padStart(2, '0')}
-                </Text>
-              </View>
-            );
-          })}
-        </ScrollView>
-      </View>
-    );
-  };
-  
-  return (
-    <View style={styles.customDatePicker}>
-      <View style={styles.datePickerColumns}>
-        {renderScrollableColumn(
-          months, 
-          months[selectedMonth], 
-          (monthIndex: number) => handleDateComponentChange('month', monthIndex),
-          'month'
-        )}
-        {renderScrollableColumn(
-          days, 
-          selectedDay, 
-          (day: number) => handleDateComponentChange('day', day),
-          'day'
-        )}
-        {renderScrollableColumn(
-          years, 
-          selectedYear, 
-          (year: number) => handleDateComponentChange('year', year),
-          'year'
-        )}
-      </View>
-    </View>
-  );
-};
 
 const SobrietyCounter = () => {
   const { 
@@ -185,10 +23,7 @@ const SobrietyCounter = () => {
   const [showEditModal, setShowEditModal] = useState<boolean>(false);
 
   const formatDateInput = (text: string) => {
-    // Remove all non-numeric characters
     const numbers = text.replace(/\D/g, '');
-    
-    // Format as MM/DD/YYYY for better user experience
     if (numbers.length <= 2) {
       return numbers;
     } else if (numbers.length <= 4) {
@@ -205,16 +40,11 @@ const SobrietyCounter = () => {
 
   const isValidDate = (dateString: string) => {
     if (Platform.OS === 'web' && dateString) {
-      // Allow partial dates while typing
       if (dateString.length < 10) return true;
-      
       const regex = /^\d{2}\/\d{2}\/\d{4}$/;
       if (!regex.test(dateString)) return false;
-      
       const [month, day, year] = dateString.split('/').map(Number);
       const date = new Date(year, month - 1, day);
-      
-      // Check if date is valid and not in the future
       return date instanceof Date && 
              !isNaN(date.getTime()) && 
              date <= new Date() &&
@@ -232,8 +62,6 @@ const SobrietyCounter = () => {
   }
 
   const daysSober = calculateDaysSober();
-
-  // Ensure daysSober is a valid number
   const validDaysSober = typeof daysSober === 'number' && !isNaN(daysSober) ? daysSober : 0;
 
   const handleConfirmDate = () => {
@@ -243,7 +71,6 @@ const SobrietyCounter = () => {
         Alert.alert('Invalid Date', 'Please enter a valid date in MM/DD/YYYY format');
         return;
       }
-      // Convert MM/DD/YYYY to YYYY-MM-DD for storage
       const [month, day, year] = webDateString.split('/').map(Number);
       dateString = `${year}-${month.toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`;
     } else {
@@ -262,11 +89,8 @@ const SobrietyCounter = () => {
     if (Platform.OS === 'android') {
       setShowDatePicker(false);
       if (event.type === 'set' && date) {
-        // Directly save the date on Android
         const dateString = formatLocalDate(date);
         setSobrietyDate(dateString);
-      } else if (event.type === 'dismissed') {
-        // User cancelled - do nothing, modal will close automatically
       }
     } else if (date) {
       setSelectedDate(date);
@@ -274,21 +98,14 @@ const SobrietyCounter = () => {
   };
 
   const handleAddDate = () => {
-    if (Platform.OS === 'android') {
-      // On Android, show date picker directly
-      setShowDatePicker(true);
-    } else {
-      // On iOS/Web, show the date selection modal
-      setShowDatePicker(true);
-    }
+    setSelectedDate(new Date()); // Start with today's date
+    setShowDatePicker(true);
   };
 
   const handleEditDate = () => {
-    // Reset the date picker state
     if (sobrietyDate) {
       const currentDate = parseLocalDate(sobrietyDate);
       setSelectedDate(currentDate);
-      // Format current date for web input
       const month = (currentDate.getMonth() + 1).toString().padStart(2, '0');
       const day = currentDate.getDate().toString().padStart(2, '0');
       const year = currentDate.getFullYear().toString();
@@ -314,7 +131,6 @@ const SobrietyCounter = () => {
         Alert.alert('Invalid Date', 'Please enter a valid date in MM/DD/YYYY format');
         return;
       }
-      // Convert MM/DD/YYYY to YYYY-MM-DD for storage
       const [month, day, year] = webDateString.split('/').map(Number);
       dateString = `${year}-${month.toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`;
     } else {
@@ -370,24 +186,24 @@ const SobrietyCounter = () => {
           </View>
         </Modal>
         
+        {/* Native Date Picker for Android */}
         {showDatePicker && Platform.OS === 'android' && (
           <DateTimePicker
             value={selectedDate}
             mode="date"
-            display="spinner"
+            display="default"
             onChange={onDateChange}
             maximumDate={new Date()}
           />
         )}
         
+        {/* Native Date Picker Modal for iOS/Web */}
         {showDatePicker && Platform.OS !== 'android' && (
           <Modal
             visible={true}
             transparent={true}
             animationType="slide"
-            onRequestClose={() => {
-              setShowDatePicker(false);
-            }}
+            onRequestClose={() => setShowDatePicker(false)}
           >
             <View style={styles.datePickerOverlay}>
               <View style={styles.datePickerContent}>
@@ -414,21 +230,21 @@ const SobrietyCounter = () => {
                     <Text style={styles.helpText}>Enter your sobriety start date</Text>
                   </View>
                 ) : (
-                  <View style={styles.iosDatePickerContainer}>
-                    <CustomIOSDatePicker
-                      selectedDate={selectedDate}
-                      onDateChange={setSelectedDate}
-                      maximumDate={new Date()}
-                    />
-                  </View>
+                  // This is the key part - just the native iOS picker
+                  <DateTimePicker
+                    value={selectedDate}
+                    mode="date"
+                    display="spinner"
+                    onChange={onDateChange}
+                    maximumDate={new Date()}
+                    style={styles.nativeDatePicker}
+                  />
                 )}
                 
                 <View style={styles.datePickerButtons}>
                   <TouchableOpacity 
                     style={[styles.datePickerButton, styles.cancelButton]}
-                    onPress={() => {
-                      setShowDatePicker(false);
-                    }}
+                    onPress={() => setShowDatePicker(false)}
                   >
                     <Text style={styles.cancelButtonText}>Cancel</Text>
                   </TouchableOpacity>
@@ -473,12 +289,11 @@ const SobrietyCounter = () => {
           See how many days you've been sober.
         </Text>
         
-        {/* Date picker modals for add date functionality */}
         {showDatePicker && Platform.OS === 'android' && (
           <DateTimePicker
             value={selectedDate}
             mode="date"
-            display="spinner"
+            display="default"
             onChange={onDateChange}
             maximumDate={new Date()}
           />
@@ -489,9 +304,7 @@ const SobrietyCounter = () => {
             visible={true}
             transparent={true}
             animationType="slide"
-            onRequestClose={() => {
-              setShowDatePicker(false);
-            }}
+            onRequestClose={() => setShowDatePicker(false)}
           >
             <View style={styles.datePickerOverlay}>
               <View style={styles.datePickerContent}>
@@ -518,21 +331,21 @@ const SobrietyCounter = () => {
                     <Text style={styles.helpText}>Enter your sobriety start date</Text>
                   </View>
                 ) : (
-                  <View style={styles.iosDatePickerContainer}>
-                    <CustomIOSDatePicker
-                      selectedDate={selectedDate}
-                      onDateChange={setSelectedDate}
-                      maximumDate={new Date()}
-                    />
-                  </View>
+                  // Native iOS picker
+                  <DateTimePicker
+                    value={selectedDate}
+                    mode="date"
+                    display="spinner"
+                    onChange={onDateChange}
+                    maximumDate={new Date()}
+                    style={styles.nativeDatePicker}
+                  />
                 )}
                 
                 <View style={styles.datePickerButtons}>
                   <TouchableOpacity 
                     style={[styles.datePickerButton, styles.cancelButton]}
-                    onPress={() => {
-                      setShowDatePicker(false);
-                    }}
+                    onPress={() => setShowDatePicker(false)}
                   >
                     <Text style={styles.cancelButtonText}>Cancel</Text>
                   </TouchableOpacity>
@@ -581,18 +394,16 @@ const SobrietyCounter = () => {
           </View>
         </View>
         
-        {/* Edit Date Modal for Android */}
         {showDatePicker && Platform.OS === 'android' && (
           <DateTimePicker
             value={selectedDate}
             mode="date"
-            display="spinner"
+            display="default"
             onChange={onDateChange}
             maximumDate={new Date()}
           />
         )}
         
-        {/* Edit Date Modal for iOS/Web */}
         {showEditModal && Platform.OS !== 'android' && (
           <Modal
             visible={true}
@@ -625,13 +436,15 @@ const SobrietyCounter = () => {
                     <Text style={styles.helpText}>Enter your sobriety start date</Text>
                   </View>
                 ) : (
-                  <View style={styles.iosDatePickerContainer}>
-                    <CustomIOSDatePicker
-                      selectedDate={selectedDate}
-                      onDateChange={setSelectedDate}
-                      maximumDate={new Date()}
-                    />
-                  </View>
+                  // Native iOS picker
+                  <DateTimePicker
+                    value={selectedDate}
+                    mode="date"
+                    display="spinner"
+                    onChange={onDateChange}
+                    maximumDate={new Date()}
+                    style={styles.nativeDatePicker}
+                  />
                 )}
                 
                 <View style={styles.datePickerButtons}>
@@ -761,21 +574,10 @@ const styles = StyleSheet.create({
     marginBottom: 20,
     textAlign: 'center',
   },
-  datePicker: {
+  nativeDatePicker: {
     width: '100%',
+    height: 216,
     marginBottom: 20,
-  },
-  iosDatePickerContainer: {
-    width: '100%',
-    alignItems: 'center',
-    marginBottom: 20,
-    backgroundColor: '#f8f9fa',
-    borderRadius: 12,
-    padding: 16,
-  },
-  iosDatePicker: {
-    width: 280,
-    height: 120,
   },
   datePickerButtons: {
     flexDirection: 'row',
@@ -835,11 +637,6 @@ const styles = StyleSheet.create({
   editButton: {
     padding: 4,
     borderRadius: 4,
-  },
-  editButtonText: {
-    color: 'white',
-    fontSize: 14,
-    fontWeight: '600',
   },
   webDateContainer: {
     width: '100%',
@@ -913,66 +710,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '500',
     textDecorationLine: 'underline',
-  },
-  
-  // Custom date picker styles
-  customDatePicker: {
-    width: '100%',
-    height: 215,
-  },
-  datePickerColumns: {
-    flexDirection: 'row',
-    height: '100%',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  dateColumn: {
-    width: '33.33%',
-    height: 215,
-    position: 'relative',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  dateScrollView: {
-    height: 215,
-  },
-  selectionIndicator: {
-    position: 'absolute',
-    top: '50%',
-    left: 0,
-    right: 0,
-    height: 43,
-    backgroundColor: '#E2EEFF',
-    transform: [{ translateY: -21.5 }],
-    borderTopWidth: 1,
-    borderBottomWidth: 1,
-    borderColor: '#E5E5EA',
-  },
-  dateItem: {
-    height: 43,
-    width: '100%',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  selectedDateItem: {
-    backgroundColor: 'transparent',
-  },
-  emptyDateItem: {
-    backgroundColor: 'transparent',
-  },
-  dateItemText: {
-    fontSize: 22,
-    color: '#000',
-    textAlign: 'center',
-    opacity: 0.2,
-  },
-  selectedDateItemText: {
-    opacity: 1,
-    fontWeight: '400',
-    color: '#007AFF',
-  },
-  emptyDateItemText: {
-    color: 'transparent',
   },
 });
 
