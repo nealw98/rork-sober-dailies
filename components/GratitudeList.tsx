@@ -93,7 +93,7 @@ export default function GratitudeList() {
             <Text style={styles.cardTitle}>Today&apos;s Gratitude</Text>
             {gratitudeItems.map((item, index) => (
               <View key={index} style={styles.gratitudeItemDisplay}>
-                <Text style={styles.gratitudeItemText}>• {item}</Text>
+                <Text style={styles.gratitudeItemText}>{item}</Text>
               </View>
             ))}
           </View>

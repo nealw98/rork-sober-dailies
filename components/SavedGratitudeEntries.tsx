@@ -110,7 +110,7 @@ export default function SavedGratitudeEntries({ visible, onClose }: SavedGratitu
     const formattedDate = formatDateDisplay(date);
 
     const gratitudeText = items
-      .map((item: string) => `• ${item}`)
+      .map((item: string) => `${item}`)
       .join('\n');
 
     let shareMessage = `${formattedDate}\n\nToday I'm grateful for:\n${gratitudeText}\n\n`;
@@ -178,7 +178,7 @@ export default function SavedGratitudeEntries({ visible, onClose }: SavedGratitu
             <Text style={styles.gratitudeTitle}>Today I was grateful for:</Text>
             {items.map((item: string, index: number) => (
               <View key={index} style={styles.gratitudeItemContainer}>
-                <Text style={styles.gratitudeItemText}>• {item}</Text>
+                <Text style={styles.gratitudeItemText}>{item}</Text>
               </View>
             ))}
           </View>
