@@ -1,5 +1,5 @@
 import React from 'react';
-import HomeScreen from '@/app/components/HomeScreen';
+import HomeScreen from '../components/HomeScreen';
 import { Stack } from 'expo-router';
 import ScreenContainer from '@/components/ScreenContainer';
 

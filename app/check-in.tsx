@@ -1,6 +1,6 @@
 import { StyleSheet, Text, View, ScrollView, TouchableOpacity, TextInput, Alert, Platform } from "react-native";
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useSobriety } from '@/hooks/use-sobriety-store';
+import { useSobriety } from '@/hooks/useSobrietyStore';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { MOOD_COLORS, MOOD_EMOJIS } from '@/constants/achievements';
