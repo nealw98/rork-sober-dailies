@@ -2,7 +2,7 @@
   "expo": {
     "name": "Sober Dailies",
     "slug": "sober-dailies",
-    "version": "1.7.4",
+    "version": "1.7.3",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "myapp",
@@ -36,8 +36,7 @@
       "icon": "./assets/images/icon-android-legacy.png",
       "permissions": [
         "android.permission.VIBRATE"
-      ],
-      "minSdkVersion": 24
+      ]
     },
     "runtimeVersion": {
       "policy": "sdkVersion"
@@ -82,11 +81,10 @@
             "compileSdkVersion": 35,
             "targetSdkVersion": 35,
             "buildToolsVersion": "35.0.0",
-            "minSdkVersion": 24
+            "minSdkVersion": 23
           }
         }
-      ],
-      "expo-web-browser"
+      ]
     ],
     "experiments": {
       "typedRoutes": true
