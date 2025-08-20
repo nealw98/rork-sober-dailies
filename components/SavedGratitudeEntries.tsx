@@ -106,6 +106,11 @@ export default function SavedGratitudeEntries({ visible, onClose }: SavedGratitu
   };
 
   const handleShareEntry = async (entry: any) => {
+    console.log('=== SAVED ENTRY SHARE BUTTON PRESSED ===');
+    console.log('Entry to share:', entry.date);
+    console.log('Platform:', Platform.OS);
+    console.log('Share function available:', typeof Share.share);
+    
     const { date, items } = entry;
     const formattedDate = formatDateDisplay(date);
 
@@ -115,31 +120,42 @@ export default function SavedGratitudeEntries({ visible, onClose }: SavedGratitu
 
     let shareMessage = `${formattedDate}\n\nToday I'm grateful for:\n${gratitudeText}\n\n`;
     shareMessage += 'Practicing gratitude one day at a time.';
+    
+    console.log('Share message prepared:', shareMessage.substring(0, 100) + '...');
 
     try {
+      console.log('Attempting to share on platform:', Platform.OS);
+      
       if (Platform.OS === 'web') {
+        console.log('Web platform detected, using clipboard');
         await Clipboard.setStringAsync(shareMessage);
+        console.log('Clipboard write successful');
         Alert.alert(
           'Copied to Clipboard',
           'Your gratitude list has been copied to the clipboard.',
           [{ text: 'OK' }]
         );
       } else {
+        console.log('Mobile platform detected, using native Share API');
         await Share.share({
           message: shareMessage,
           title: 'My Gratitude List'
         });
+        console.log('Share successful');
       }
     } catch (error) {
       console.error('Error sharing gratitude list:', error);
       try {
+        console.log('Attempting clipboard fallback');
         await Clipboard.setStringAsync(shareMessage);
+        console.log('Clipboard fallback successful');
         Alert.alert(
           'Copied to Clipboard',
           'Sharing failed, but your gratitude list has been copied to the clipboard.',
           [{ text: 'OK' }]
         );
-      } catch {
+      } catch (clipboardError) {
+        console.error('Clipboard fallback failed:', clipboardError);
         Alert.alert(
           'Share Error',
           'Unable to share your gratitude list. Please try again.',
@@ -147,6 +163,7 @@ export default function SavedGratitudeEntries({ visible, onClose }: SavedGratitu
         );
       }
     }
+    console.log('=== SAVED ENTRY SHARE FUNCTION COMPLETE ===');
   };
 
   const renderEntryDetail = () => {
@@ -198,7 +215,12 @@ export default function SavedGratitudeEntries({ visible, onClose }: SavedGratitu
             
             <TouchableOpacity
               style={styles.shareEntryButton}
-              onPress={() => handleShareEntry(selectedEntry)}
+              onPress={() => {
+                console.log('Saved entry share TouchableOpacity onPress triggered');
+                handleShareEntry(selectedEntry);
+              }}
+              testID="saved-entry-share-button"
+              activeOpacity={0.7}
             >
               <ShareIcon color="white" size={20} />
               <Text style={styles.shareEntryButtonText}>Share</Text>

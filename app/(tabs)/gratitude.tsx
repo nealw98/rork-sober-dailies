@@ -384,9 +384,13 @@ export default function GratitudeListScreen() {
 
 
   const handleShare = async () => {
+    console.log('=== SHARE BUTTON PRESSED ===');
     console.log('Share button pressed, items:', gratitudeItems.length);
+    console.log('Platform:', Platform.OS);
+    console.log('Share function available:', typeof Share.share);
     
     if (gratitudeItems.length === 0) {
+      console.log('No items to share, showing alert');
       Alert.alert(
         'Share Gratitude List',
         'Please add at least one gratitude item before sharing.',
@@ -407,19 +411,24 @@ export default function GratitudeListScreen() {
       .join('\n');
 
     const shareMessage = `${today}\n\nToday I'm grateful for:\n${gratitudeText}\n\nPracticing gratitude one day at a time.`;
+    
+    console.log('Share message prepared:', shareMessage.substring(0, 100) + '...');
 
     try {
-      console.log('Attempting to share:', Platform.OS);
+      console.log('Attempting to share on platform:', Platform.OS);
       
       if (Platform.OS === 'web') {
+        console.log('Web platform detected, using clipboard');
         // For web, copy to clipboard since Share API doesn't work in iframes
         await Clipboard.setStringAsync(shareMessage);
+        console.log('Clipboard write successful');
         Alert.alert(
           'Copied to Clipboard',
           'Your gratitude list has been copied to the clipboard. You can now paste it in any messaging app or text field.',
           [{ text: 'OK' }]
         );
       } else {
+        console.log('Mobile platform detected, using native Share API');
         // For mobile, use native Share API
         const result = await Share.share({
           message: shareMessage,
@@ -432,7 +441,9 @@ export default function GratitudeListScreen() {
       
       // Fallback to clipboard for any platform if sharing fails
       try {
+        console.log('Attempting clipboard fallback');
         await Clipboard.setStringAsync(shareMessage);
+        console.log('Clipboard fallback successful');
         Alert.alert(
           'Copied to Clipboard',
           'Sharing failed, but your gratitude list has been copied to the clipboard.',
@@ -447,6 +458,7 @@ export default function GratitudeListScreen() {
         );
       }
     }
+    console.log('=== SHARE FUNCTION COMPLETE ===');
   };
 
   const handleSaveEntry = () => {
@@ -657,8 +669,13 @@ export default function GratitudeListScreen() {
                 styles.shareButton,
                 gratitudeItems.length === 0 && styles.shareButtonDisabled
               ]} 
-              onPress={handleShare}
+              onPress={() => {
+                console.log('Share TouchableOpacity onPress triggered');
+                handleShare();
+              }}
               disabled={gratitudeItems.length === 0}
+              testID="share-button"
+              activeOpacity={0.7}
             >
               <ShareIcon size={20} color="white" />
               <Text style={styles.shareButtonText}>Share</Text>
