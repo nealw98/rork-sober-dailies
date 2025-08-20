@@ -97,6 +97,20 @@ const CustomIOSDatePicker = ({
             const actualIndex = index - centerOffset;
             if (actualIndex >= 0 && actualIndex < items.length) {
               onSelect(typeof items[actualIndex] === 'string' ? actualIndex : items[actualIndex]);
+              // Force scroll to exact center position after selection
+              const targetY = index * itemHeight;
+              if (y !== targetY) {
+                event.target.scrollTo({ y: targetY, animated: true });
+              }
+            }
+          }}
+          onScrollEndDrag={(event) => {
+            const y = event.nativeEvent.contentOffset.y;
+            const index = Math.round(y / itemHeight);
+            // Force scroll to exact center position
+            const targetY = index * itemHeight;
+            if (y !== targetY) {
+              event.target.scrollTo({ y: targetY, animated: true });
             }
           }}
         >
@@ -928,9 +942,11 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     height: 43,
-    backgroundColor: Colors.light.tint,
-    opacity: 0.15,
+    backgroundColor: '#E2EEFF',
     transform: [{ translateY: -21.5 }],
+    borderTopWidth: 1,
+    borderBottomWidth: 1,
+    borderColor: '#E5E5EA',
   },
   dateItem: {
     height: 43,
@@ -948,11 +964,12 @@ const styles = StyleSheet.create({
     fontSize: 22,
     color: '#000',
     textAlign: 'center',
-    opacity: 0.3,
+    opacity: 0.2,
   },
   selectedDateItemText: {
     opacity: 1,
     fontWeight: '400',
+    color: '#007AFF',
   },
   emptyDateItemText: {
     color: 'transparent',
