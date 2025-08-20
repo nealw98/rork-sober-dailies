@@ -7,7 +7,7 @@ import { ChevronLeft } from "lucide-react-native";
 
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 
-import { GratitudeProvider } from "@/hooks/useGratitudeStore";
+import { GratitudeProvider } from "@/hooks/use-gratitude-store";
 import { OnboardingProvider, useOnboarding } from "@/hooks/useOnboardingStore";
 import { SobrietyProvider } from "@/hooks/useSobrietyStore";
 import { EveningReviewProvider } from "@/hooks/use-evening-review-store";

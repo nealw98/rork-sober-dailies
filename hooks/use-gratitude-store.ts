@@ -8,14 +8,33 @@ export interface GratitudeEntry {
   completed: boolean;
 }
 
+export interface SavedGratitudeEntry {
+  date: string;
+  timestamp: number;
+  items: string[];
+}
+
+export interface WeeklyProgressDay {
+  date: string;
+  completed: boolean;
+  itemCount: number;
+  dayName: string;
+  isFuture: boolean;
+  isToday: boolean;
+}
+
 const STORAGE_KEY = 'gratitude_entries';
+const SAVED_ENTRIES_KEY = 'saved_gratitude_entries';
+const MAX_SAVED_ENTRIES = 200;
 
 export const [GratitudeProvider, useGratitudeStore] = createContextHook(() => {
   const [entries, setEntries] = useState<GratitudeEntry[]>([]);
+  const [savedEntries, setSavedEntries] = useState<SavedGratitudeEntry[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     loadEntries();
+    loadSavedEntries();
   }, []);
 
   const loadEntries = async () => {
@@ -31,6 +50,26 @@ export const [GratitudeProvider, useGratitudeStore] = createContextHook(() => {
     }
   };
 
+  const loadSavedEntries = async () => {
+    try {
+      const stored = await AsyncStorage.getItem(SAVED_ENTRIES_KEY);
+      if (stored) {
+        setSavedEntries(JSON.parse(stored));
+      }
+    } catch (error) {
+      console.error('Error loading saved gratitude entries:', error);
+    }
+  };
+
+  const saveSavedEntries = async (newSavedEntries: SavedGratitudeEntry[]) => {
+    try {
+      await AsyncStorage.setItem(SAVED_ENTRIES_KEY, JSON.stringify(newSavedEntries));
+      setSavedEntries(newSavedEntries);
+    } catch (error) {
+      console.error('Error saving saved gratitude entries:', error);
+    }
+  };
+
   const saveEntries = async (newEntries: GratitudeEntry[]) => {
     try {
       await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(newEntries));
@@ -42,10 +81,13 @@ export const [GratitudeProvider, useGratitudeStore] = createContextHook(() => {
 
   const getTodayDateString = () => {
     const today = new Date();
+    // Ensure we're working in local timezone
     const year = today.getFullYear();
     const month = (today.getMonth() + 1).toString().padStart(2, '0');
     const day = today.getDate().toString().padStart(2, '0');
-    return `${year}-${month}-${day}`;
+    const dateString = `${year}-${month}-${day}`;
+    console.log('gratitude getTodayDateString:', dateString, 'timezone offset:', today.getTimezoneOffset());
+    return dateString;
   };
 
   const isCompletedToday = () => {
@@ -127,6 +169,107 @@ export const [GratitudeProvider, useGratitudeStore] = createContextHook(() => {
     }
   };
 
+  const getWeeklyProgress = (): WeeklyProgressDay[] => {
+    const today = new Date();
+    const todayString = getTodayDateString();
+    console.log('getWeeklyProgress - Today string:', todayString);
+    console.log('getWeeklyProgress - Today timezone offset:', today.getTimezoneOffset());
+    
+    // Create start of week in local timezone - ensure we're working with local dates
+    const startOfWeek = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    startOfWeek.setDate(startOfWeek.getDate() - startOfWeek.getDay()); // Start from Sunday
+    
+    const weekDays = Array.from({ length: 7 }, (_, index) => {
+      const date = new Date(startOfWeek);
+      date.setDate(startOfWeek.getDate() + index);
+      const year = date.getFullYear();
+      const month = (date.getMonth() + 1).toString().padStart(2, '0');
+      const day = date.getDate().toString().padStart(2, '0');
+      const dateString = `${year}-${month}-${day}`;
+      
+      const entry = entries.find(entry => entry.date === dateString);
+      const completed = entry ? entry.completed : false;
+      const itemCount = entry ? entry.items.length : 0;
+      
+      // Compare date strings instead of Date objects to avoid time zone issues
+      const isFuture = dateString > todayString;
+      const isToday = dateString === todayString;
+      
+      console.log(`getWeeklyProgress - Day ${index} (${date.toLocaleDateString('en-US', { weekday: 'short' })}):`, {
+        dateString,
+        completed,
+        isToday,
+        isFuture,
+        hasEntry: !!entry,
+        todayString,
+        comparison: `${dateString} vs ${todayString}`
+      });
+      
+      return {
+        date: dateString,
+        completed,
+        itemCount,
+        dayName: date.toLocaleDateString('en-US', { weekday: 'short' }),
+        isFuture,
+        isToday
+      };
+    });
+    
+    console.log('getWeeklyProgress - All entries dates:', entries.map(e => e.date));
+    console.log('getWeeklyProgress - Today\'s entry exists:', entries.some(e => e.date === todayString));
+    return weekDays;
+  };
+
+  const getWeeklyStreak = (): number => {
+    const weeklyProgress = getWeeklyProgress();
+    return weeklyProgress.filter(day => {
+      return day.completed && !day.isFuture;
+    }).length;
+  };
+
+  const saveDetailedEntry = (items: string[], dateString?: string) => {
+    const targetDate = dateString || getTodayDateString();
+    
+    console.log('saveDetailedEntry - Saving entry for date:', targetDate);
+    console.log('saveDetailedEntry - Current saved entries count:', savedEntries.length);
+    
+    // Remove existing entry for this date if it exists
+    const filteredEntries = savedEntries.filter(entry => entry.date !== targetDate);
+    
+    // Add new entry
+    const newEntry: SavedGratitudeEntry = {
+      date: targetDate,
+      timestamp: Date.now(),
+      items: items.filter(item => item.trim() !== '')
+    };
+    
+    console.log('saveDetailedEntry - New entry:', { date: newEntry.date, timestamp: newEntry.timestamp, itemCount: newEntry.items.length });
+    
+    // Keep only the most recent MAX_SAVED_ENTRIES entries
+    const updatedEntries = [newEntry, ...filteredEntries]
+      .sort((a, b) => b.timestamp - a.timestamp)
+      .slice(0, MAX_SAVED_ENTRIES);
+    
+    console.log('saveDetailedEntry - Updated entries count:', updatedEntries.length);
+    console.log('saveDetailedEntry - Updated entries dates:', updatedEntries.map(e => e.date));
+    
+    saveSavedEntries(updatedEntries);
+    
+    // Also update the completion tracking
+    if (targetDate === getTodayDateString()) {
+      completeToday(items);
+    }
+  };
+
+  const getSavedEntry = (dateString: string): SavedGratitudeEntry | null => {
+    return savedEntries.find(entry => entry.date === dateString) || null;
+  };
+
+  const deleteSavedEntry = (dateString: string) => {
+    const filteredEntries = savedEntries.filter(entry => entry.date !== dateString);
+    saveSavedEntries(filteredEntries);
+  };
+
   const getCompletedDaysInLast30 = (): number => {
     const cutoff = new Date();
     cutoff.setDate(cutoff.getDate() - 30);
@@ -139,6 +282,7 @@ export const [GratitudeProvider, useGratitudeStore] = createContextHook(() => {
 
   return {
     entries,
+    savedEntries,
     isLoading,
     isCompletedToday,
     getTodayEntry,
@@ -147,6 +291,11 @@ export const [GratitudeProvider, useGratitudeStore] = createContextHook(() => {
     completeToday,
     saveGratitudeList,
     uncompleteToday,
+    getWeeklyProgress,
+    getWeeklyStreak,
+    saveDetailedEntry,
+    getSavedEntry,
+    deleteSavedEntry,
     getCompletedDaysInLast30
   };
 });
