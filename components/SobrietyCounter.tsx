@@ -19,7 +19,7 @@ const CustomIOSDatePicker = ({
   const months = [
     'January', 'February', 'March', 'April', 'May', 'June',
     'July', 'August', 'September', 'October', 'November', 'December'
-  ];
+  ].map(month => month.padEnd(9, ' '));
   
   const currentYear = maximumDate.getFullYear();
   const years = Array.from({ length: 100 }, (_, i) => currentYear - i);
@@ -64,13 +64,17 @@ const CustomIOSDatePicker = ({
     onSelect: (value: any) => void,
     keyPrefix: string
   ) => {
-    const itemHeight = 40;
-    const visibleItems = 5; // Number of items visible at once
-    const centerOffset = (visibleItems - 1) / 2; // Items above/below center
+    const itemHeight = 43;
+    const visibleItems = 5;
+    const centerOffset = Math.floor(visibleItems / 2);
     
     // Add padding items to center the selection
     const paddingItems = Array(centerOffset).fill('');
     const allItems = [...paddingItems, ...items, ...paddingItems];
+    
+    // Calculate initial scroll position to center the selected item
+    const selectedIndex = items.findIndex(item => item === selectedValue);
+    const initialScrollOffset = selectedIndex * itemHeight;
     
     return (
       <View style={styles.dateColumn}>
@@ -81,9 +85,19 @@ const CustomIOSDatePicker = ({
           style={styles.dateScrollView}
           showsVerticalScrollIndicator={false}
           snapToInterval={itemHeight}
-          decelerationRate="fast"
+          decelerationRate="normal"
+          scrollEventThrottle={16}
           contentContainerStyle={{
             paddingVertical: centerOffset * itemHeight
+          }}
+          contentOffset={{ x: 0, y: initialScrollOffset }}
+          onMomentumScrollEnd={(event) => {
+            const y = event.nativeEvent.contentOffset.y;
+            const index = Math.round(y / itemHeight);
+            const actualIndex = index - centerOffset;
+            if (actualIndex >= 0 && actualIndex < items.length) {
+              onSelect(typeof items[actualIndex] === 'string' ? actualIndex : items[actualIndex]);
+            }
           }}
         >
           {allItems.map((item, index) => {
@@ -91,28 +105,22 @@ const CustomIOSDatePicker = ({
             const isEmpty = item === '';
             
             return (
-              <TouchableOpacity
+              <View
                 key={`${keyPrefix}-${index}`}
                 style={[
                   styles.dateItem,
                   isSelected && styles.selectedDateItem,
                   isEmpty && styles.emptyDateItem
                 ]}
-                onPress={() => {
-                  if (!isEmpty) {
-                    onSelect(typeof item === 'string' ? items.indexOf(item) : item);
-                  }
-                }}
-                disabled={isEmpty}
               >
                 <Text style={[
                   styles.dateItemText,
                   isSelected && styles.selectedDateItemText,
                   isEmpty && styles.emptyDateItemText
                 ]}>
-                  {item}
+                  {typeof item === 'string' ? item : item.toString().padStart(2, '0')}
                 </Text>
-              </TouchableOpacity>
+              </View>
             );
           })}
         </ScrollView>
@@ -896,54 +904,55 @@ const styles = StyleSheet.create({
   // Custom date picker styles
   customDatePicker: {
     width: '100%',
-    height: 200,
+    height: 215,
   },
   datePickerColumns: {
     flexDirection: 'row',
     height: '100%',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   dateColumn: {
-    flex: 1,
-    height: '100%',
+    width: '33.33%',
+    height: 215,
     position: 'relative',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   dateScrollView: {
-    flex: 1,
+    height: 215,
   },
   selectionIndicator: {
     position: 'absolute',
     top: '50%',
-    left: 4,
-    right: 4,
-    height: 40,
+    left: 0,
+    right: 0,
+    height: 43,
     backgroundColor: Colors.light.tint,
-    borderRadius: 8,
-    zIndex: 1,
-    transform: [{ translateY: -20 }],
+    opacity: 0.15,
+    transform: [{ translateY: -21.5 }],
   },
   dateItem: {
-    height: 40,
+    height: 43,
+    width: '100%',
     justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: 8,
-    zIndex: 2,
   },
   selectedDateItem: {
     backgroundColor: 'transparent',
-    borderRadius: 8,
-    marginHorizontal: 4,
   },
   emptyDateItem: {
     backgroundColor: 'transparent',
   },
   dateItemText: {
-    fontSize: 16,
-    color: Colors.light.muted,
+    fontSize: 22,
+    color: '#000',
     textAlign: 'center',
+    opacity: 0.3,
   },
   selectedDateItemText: {
-    color: 'white',
-    fontWeight: '600',
+    opacity: 1,
+    fontWeight: '400',
   },
   emptyDateItemText: {
     color: 'transparent',
