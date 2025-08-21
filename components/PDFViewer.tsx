@@ -28,7 +28,7 @@ export default function PDFViewer({ url, title, onClose }: PDFViewerProps) {
   // For mobile, we'll use Google Docs viewer which works well in WebView
   const viewerUrl = Platform.OS === 'web' 
     ? url 
-    : `https://docs.google.com/gview?embedded=true&url=${encodeURIComponent(url)}`;
+    : `https://docs.google.com/gview?embedded=true&url=${encodeURIComponent(url)}&zoom=150`;
   
   console.log('Using viewer URL:', viewerUrl);
   
@@ -147,6 +147,58 @@ export default function PDFViewer({ url, title, onClose }: PDFViewerProps) {
           mixedContentMode="compatibility"
           allowsInlineMediaPlayback={false}
           mediaPlaybackRequiresUserAction={true}
+          // Inject JavaScript to adjust the zoom level when the PDF loads
+          injectedJavaScript={`
+            (function() {
+              // Method 1: Try to click the "Fit to page" button in Google Docs viewer
+              const checkInterval = setInterval(() => {
+                // Check if the viewer iframe exists
+                const viewerFrame = document.querySelector('iframe');
+                if (viewerFrame) {
+                  try {
+                    // Access the document inside the iframe
+                    const viewerDoc = viewerFrame.contentDocument || viewerFrame.contentWindow.document;
+                    
+                    // Find the zoom controls
+                    const zoomControls = viewerDoc.querySelector('.ndfHFb-c4YZDc-Wrql6b');
+                    if (zoomControls) {
+                      // Find and click the "Fit to page" button (typically the second button in zoom controls)
+                      const fitToPageButton = viewerDoc.querySelectorAll('.ndfHFb-c4YZDc-j7LFlb')[1];
+                      if (fitToPageButton) {
+                        fitToPageButton.click();
+                        console.log('PDF zoom adjusted to fit page');
+                        clearInterval(checkInterval);
+                      }
+                    }
+                    
+                    // Method 2: Apply CSS to scale the PDF content
+                    const pdfContent = viewerDoc.querySelector('.ndfHFb-c4YZDc-cYSp0e-DARUcf-PLDbbf');
+                    if (pdfContent) {
+                      pdfContent.style.transform = 'scale(1.5)';
+                      pdfContent.style.transformOrigin = 'top center';
+                      console.log('Applied CSS scaling to PDF content');
+                    }
+                    
+                    // Method 3: Try to find and manipulate the zoom input directly
+                    const zoomInput = viewerDoc.querySelector('input[aria-label="Zoom"]');
+                    if (zoomInput) {
+                      // Set zoom to 125% or 150%
+                      zoomInput.value = '150';
+                      // Trigger change event
+                      const event = new Event('change', { bubbles: true });
+                      zoomInput.dispatchEvent(event);
+                      console.log('Set zoom input to 150%');
+                    }
+                  } catch (e) {
+                    console.log('Error accessing iframe content:', e);
+                  }
+                }
+              }, 1000);
+              
+              // Stop checking after 10 seconds to avoid infinite loop
+              setTimeout(() => clearInterval(checkInterval), 10000);
+            })();
+          `}
         />
       )}
     </SafeAreaView>
