@@ -11,10 +11,7 @@ import {
   ChevronDown,
   ChevronRight,
   ExternalLink,
-  Bookmark,
-  BookmarkCheck,
   Clock,
-  Trash2,
   FileText,
 } from "lucide-react-native";
 import { LinearGradient } from 'expo-linear-gradient';
@@ -38,19 +35,11 @@ const SectionItem = ({ section, categoryId, onOpenContent }: {
   categoryId: string; 
   onOpenContent: (section: BigBookSection) => void 
 }) => {
-  const { addBookmark, removeBookmark, isBookmarked, addToRecent } = useBigBookStore();
+  const { addToRecent } = useBigBookStore();
 
   const handlePress = () => {
     addToRecent(section.id, section.title, section.url);
     onOpenContent(section);
-  };
-
-  const toggleBookmark = () => {
-    if (isBookmarked(section.id)) {
-      removeBookmark(section.id);
-    } else {
-      addBookmark(section.id, section.title, section.url);
-    }
   };
 
   return (
@@ -67,17 +56,6 @@ const SectionItem = ({ section, categoryId, onOpenContent }: {
         )}
       </View>
       <View style={styles.sectionIcons}>
-        <TouchableOpacity
-          onPress={toggleBookmark}
-          style={styles.bookmarkButton}
-          testID={`bookmark-${section.id}`}
-        >
-          {isBookmarked(section.id) ? (
-            <BookmarkCheck size={20} color={Colors.light.tint} />
-          ) : (
-            <Bookmark size={20} color={Colors.light.muted} />
-          )}
-        </TouchableOpacity>
         {allMarkdownContent[section.id] ? (
           <FileText size={20} color={Colors.light.muted} />
         ) : (

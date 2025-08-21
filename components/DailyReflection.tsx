@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { StyleSheet, Text, View, ScrollView, TouchableOpacity, Modal, Platform, Share } from "react-native";
-import { BookmarkIcon, ChevronLeft, ChevronRight, Calendar, Upload } from "lucide-react-native";
+import { ChevronLeft, ChevronRight, Calendar, Upload } from "lucide-react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -75,7 +75,7 @@ const generateCalendarDays = (date: Date) => {
 export default function DailyReflection() {
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [reflection, setReflection] = useState<Reflection | null>(null);
-  const [isFavorite, setIsFavorite] = useState<boolean>(false);
+
   const [showDatePicker, setShowDatePicker] = useState<boolean>(false);
   const [dateString, setDateString] = useState<string>("");
   const [calendarDays, setCalendarDays] = useState<any[]>([]);
@@ -106,8 +106,7 @@ export default function DailyReflection() {
       const dateReflection = await getReflectionForDate(date);
       setReflection(dateReflection);
       
-      // Check if this reflection is a favorite
-      checkIfFavorite(dateReflection.title);
+
     } catch (error) {
       console.error('Error updating reflection:', error);
     } finally {
@@ -115,43 +114,7 @@ export default function DailyReflection() {
     }
   };
 
-  const checkIfFavorite = async (title: string) => {
-    try {
-      const favorites = await AsyncStorage.getItem('aa-favorites');
-      if (favorites) {
-        const favoritesArray = JSON.parse(favorites) as string[];
-        setIsFavorite(favoritesArray.includes(title));
-      }
-    } catch (error) {
-      console.error("Error checking favorites:", error);
-    }
-  };
 
-  const toggleFavorite = async () => {
-    if (!reflection) return;
-    
-    try {
-      const favorites = await AsyncStorage.getItem('aa-favorites');
-      let favoritesArray: string[] = [];
-      
-      if (favorites) {
-        favoritesArray = JSON.parse(favorites);
-      }
-      
-      if (isFavorite) {
-        // Remove from favorites
-        favoritesArray = favoritesArray.filter(title => title !== reflection.title);
-      } else {
-        // Add to favorites
-        favoritesArray.push(reflection.title);
-      }
-      
-      await AsyncStorage.setItem('aa-favorites', JSON.stringify(favoritesArray));
-      setIsFavorite(!isFavorite);
-    } catch (error) {
-      console.error("Error toggling favorite:", error);
-    }
-  };
 
   const shareReflection = async () => {
     if (!reflection) return;
@@ -360,15 +323,7 @@ export default function DailyReflection() {
             >
               <Upload size={22} color={Colors.light.muted} />
             </TouchableOpacity>
-            <TouchableOpacity 
-              onPress={toggleFavorite} 
-              style={styles.actionButton} 
-              testID="favorite-button"
-              activeOpacity={0.7}
-              hitSlop={{ top: 15, bottom: 15, left: 15, right: 15 }}
-            >
-              <BookmarkIcon size={24} color={isFavorite ? Colors.light.accent : Colors.light.muted} fill={isFavorite ? Colors.light.accent : "transparent"} />
-            </TouchableOpacity>
+
           </View>
         </View>
         

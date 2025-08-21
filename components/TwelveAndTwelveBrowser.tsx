@@ -11,10 +11,7 @@ import {
   ChevronDown,
   ChevronRight,
   ExternalLink,
-  Bookmark,
-  BookmarkCheck,
   Clock,
-  Trash2,
 } from "lucide-react-native";
 import { LinearGradient } from 'expo-linear-gradient';
 
@@ -28,50 +25,25 @@ import PDFViewer from "@/components/PDFViewer";
 
 
 
-// FORCE UPDATE - remove this line after testing
-const FORCE_UPDATE = Date.now();
 
-// Debug: Check if twelveAndTwelveData is loaded
-console.log('DEBUG: twelveAndTwelveData loaded:', twelveAndTwelveData);
-console.log('DEBUG: twelveAndTwelveData type:', typeof twelveAndTwelveData);
-console.log('DEBUG: twelveAndTwelveData length:', Array.isArray(twelveAndTwelveData) ? twelveAndTwelveData.length : 'not an array');
 
 
 const SectionItem = ({ section, categoryId, onOpenPDF }: { section: BigBookSection; categoryId: string; onOpenPDF: (url: string, title: string) => void }) => {
-  const { addBookmark, removeBookmark, isBookmarked, addToRecent } = useBigBookStore();
-  const bookmarked = isBookmarked(section.id);
+  const { addToRecent } = useBigBookStore();
 
   const handlePress = () => {
     addToRecent(section.id, section.title, section.url);
     onOpenPDF(section.url, section.title);
   };
 
-  const toggleBookmark = () => {
-    if (bookmarked) {
-      removeBookmark(section.id);
-    } else {
-      addBookmark(section.id, section.title, section.url);
-    }
-  };
-
   return (
-    <View style={styles.sectionItem}>
-      <TouchableOpacity style={styles.sectionContent} onPress={handlePress} testID={`section-${section.id}`}>
-        <View style={styles.sectionInfo}>
-          <Text style={styles.sectionTitle}>{section.title}</Text>
-          {section.description && <Text style={styles.sectionDescription}>{section.description}</Text>}
-        </View>
-        <ExternalLink size={16} color={Colors.light.muted} />
-      </TouchableOpacity>
-      
-      <TouchableOpacity style={styles.bookmarkButton} onPress={toggleBookmark} testID={`bookmark-${section.id}`}>
-        {bookmarked ? (
-          <BookmarkCheck size={20} color={Colors.light.accent} />
-        ) : (
-          <Bookmark size={20} color={Colors.light.muted} />
-        )}
-      </TouchableOpacity>
-    </View>
+    <TouchableOpacity style={styles.sectionItem} onPress={handlePress} testID={`section-${section.id}`}>
+      <View style={styles.sectionInfo}>
+        <Text style={styles.sectionTitle}>{section.title}</Text>
+        {section.description && <Text style={styles.sectionDescription}>{section.description}</Text>}
+      </View>
+      <ExternalLink size={16} color={Colors.light.muted} />
+    </TouchableOpacity>
   );
 };
 
@@ -108,51 +80,7 @@ const CategorySection = ({ category, onOpenPDF }: { category: TwelveAndTwelveCat
   );
 };
 
-const BookmarksSection = ({ onOpenPDF }: { onOpenPDF: (url: string, title: string) => void }) => {
-  const { bookmarks, removeBookmark, addToRecent } = useBigBookStore();
 
-  const handleBookmarkPress = (bookmark: any) => {
-    addToRecent(bookmark.sectionId, bookmark.title, bookmark.url);
-    onOpenPDF(bookmark.url, bookmark.title);
-  };
-
-  if (bookmarks.length === 0) {
-    return (
-      <View style={styles.emptyState}>
-        <Bookmark size={48} color={Colors.light.muted} />
-        <Text style={styles.emptyStateText}>No bookmarks yet</Text>
-        <Text style={styles.emptyStateSubtext}>Bookmark sections to access them quickly</Text>
-      </View>
-    );
-  }
-
-  return (
-    <View style={styles.bookmarksContainer}>
-      {bookmarks.map((bookmark) => (
-        <View key={bookmark.sectionId} style={styles.bookmarkItem}>
-          <TouchableOpacity
-            style={styles.bookmarkContent}
-            onPress={() => handleBookmarkPress(bookmark)}
-            testID={`bookmark-item-${bookmark.sectionId}`}
-          >
-            <Text style={styles.bookmarkTitle}>{bookmark.title}</Text>
-            <Text style={styles.bookmarkDate}>
-              Added {new Date(bookmark.dateAdded).toLocaleDateString()}
-            </Text>
-          </TouchableOpacity>
-          
-          <TouchableOpacity
-            style={styles.removeBookmarkButton}
-            onPress={() => removeBookmark(bookmark.sectionId)}
-            testID={`remove-bookmark-${bookmark.sectionId}`}
-          >
-            <Trash2 size={16} color={Colors.light.muted} />
-          </TouchableOpacity>
-        </View>
-      ))}
-    </View>
-  );
-};
 
 const RecentSection = ({ onOpenPDF }: { onOpenPDF: (url: string, title: string) => void }) => {
   const { recentlyViewed, clearRecent, addToRecent } = useBigBookStore();
@@ -199,7 +127,7 @@ const RecentSection = ({ onOpenPDF }: { onOpenPDF: (url: string, title: string) 
 };
 
 function TwelveAndTwelveBrowserContent() {
-  const [activeTab, setActiveTab] = useState<"browse" | "bookmarks" | "recent">("browse");
+  const [activeTab, setActiveTab] = useState<"browse" | "recent">("browse");
   const [pdfViewerVisible, setPdfViewerVisible] = useState<boolean>(false);
   const [currentPdf, setCurrentPdf] = useState<{ url: string; title: string } | null>(null);
 
@@ -234,14 +162,7 @@ function TwelveAndTwelveBrowserContent() {
           <Text style={[styles.tabText, activeTab === "browse" && styles.activeTabText]}>Browse</Text>
         </TouchableOpacity>
         
-        <TouchableOpacity
-          style={[styles.tab, activeTab === "bookmarks" && styles.activeTab]}
-          onPress={() => setActiveTab("bookmarks")}
-          testID="bookmarks-tab"
-        >
-          <Text style={[styles.tabText, activeTab === "bookmarks" && styles.activeTabText]}>Bookmarks</Text>
-        </TouchableOpacity>
-        
+
         <TouchableOpacity
           style={[styles.tab, activeTab === "recent" && styles.activeTab]}
           onPress={() => setActiveTab("recent")}
@@ -275,7 +196,7 @@ function TwelveAndTwelveBrowserContent() {
           </View>
         )}
         
-        {activeTab === "bookmarks" && <BookmarksSection onOpenPDF={handleOpenPDF} />}
+
         {activeTab === "recent" && <RecentSection onOpenPDF={handleOpenPDF} />}
       </ScrollView>
       

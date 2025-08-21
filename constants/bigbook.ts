@@ -6,3 +6,4 @@ export {
   type BigBookTextContent,
   type SearchResult,
 } from './bigbook/index';
+export { aaPrayers } from './prayers';
