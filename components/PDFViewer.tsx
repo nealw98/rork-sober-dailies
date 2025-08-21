@@ -22,8 +22,14 @@ interface PDFViewerProps {
 export default function PDFViewer({ url, title, onClose }: PDFViewerProps) {
   console.log('PDFViewer rendered with URL:', url);
   const [isLoading, setIsLoading] = React.useState(true);
+  const [hasError, setHasError] = React.useState(false);
   
-  const source = { uri: url, cache: true };
+  // Handle potential errors with malformed URLs
+  const source = { 
+    uri: url, 
+    cache: true,
+    expiration: 0, // Never expire cached files
+  };
   
   return (
     <SafeAreaView style={styles.container}>
@@ -56,7 +62,19 @@ export default function PDFViewer({ url, title, onClose }: PDFViewerProps) {
           </View>
         )}
         
-        <Pdf
+        {hasError && (
+          <View style={styles.errorContainer}>
+            <Text style={styles.errorTitle}>Unable to load PDF</Text>
+            <Text style={styles.errorMessage}>
+              The PDF couldn&apos;t be loaded. This might be due to network issues or the PDF being temporarily unavailable.
+            </Text>
+            <TouchableOpacity style={styles.retryButton} onPress={onClose}>
+              <Text style={styles.retryButtonText}>Close</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+        
+        {!hasError && <Pdf
           source={source}
           onLoadComplete={(numberOfPages, filePath) => {
             console.log(`PDF loaded with ${numberOfPages} pages`);
@@ -68,6 +86,9 @@ export default function PDFViewer({ url, title, onClose }: PDFViewerProps) {
           onError={(error) => {
             console.error('PDF Error:', error);
             setIsLoading(false);
+            setHasError(true);
+            // Show error in console but don't crash the app
+            console.warn(`Failed to load PDF: ${url}`, error);
           }}
           scale={1.5} // Set default zoom level to 150%
           fitWidth={true} // Make PDF fit the width of the screen
@@ -75,7 +96,7 @@ export default function PDFViewer({ url, title, onClose }: PDFViewerProps) {
           enablePaging={true}
           enableRTL={false}
           trustAllCerts={false}
-        />
+        />}
       </View>
     </SafeAreaView>
   );
@@ -143,5 +164,36 @@ const styles = StyleSheet.create({
     color: Colors.light.muted,
     fontWeight: adjustFontWeight('500'),
     marginTop: 12,
+  },
+  errorContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 32,
+  },
+  errorTitle: {
+    fontSize: 20,
+    fontWeight: adjustFontWeight('600'),
+    color: Colors.light.text,
+    marginBottom: 12,
+    textAlign: 'center',
+  },
+  errorMessage: {
+    fontSize: 16,
+    color: Colors.light.muted,
+    textAlign: 'center',
+    lineHeight: 24,
+    marginBottom: 24,
+  },
+  retryButton: {
+    backgroundColor: Colors.light.tint,
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 8,
+  },
+  retryButtonText: {
+    color: Colors.light.background,
+    fontSize: 16,
+    fontWeight: adjustFontWeight('600'),
   },
 });
