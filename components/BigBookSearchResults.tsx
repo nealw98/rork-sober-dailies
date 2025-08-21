@@ -29,7 +29,7 @@ const BigBookSearchResults = ({ results, onResultPress }: BigBookSearchResultsPr
   return (
     <ScrollView style={styles.container}>
       <Text style={styles.resultsCount}>
-        {results.length} {results.length === 1 ? 'result' : 'results'} found
+        {results.length} {results.length === 1 ? 'match' : 'matches'} found
       </Text>
       
       {results.map((result, index) => (
@@ -46,19 +46,13 @@ const BigBookSearchResults = ({ results, onResultPress }: BigBookSearchResultsPr
           </View>
           
           <View style={styles.excerptContainer}>
-            {result.matchContext.before && (
-              <Text style={styles.excerptText}>
-                ...{result.matchContext.before}
+            <Text style={styles.excerptText}>
+              {result.matchContext.before && `...${result.matchContext.before}`}
+              <Text style={styles.matchText}>
+                {result.matchContext.match}
               </Text>
-            )}
-            <Text style={styles.matchText}>
-              {result.matchContext.match}
+              {result.matchContext.after && `${result.matchContext.after}...`}
             </Text>
-            {result.matchContext.after && (
-              <Text style={styles.excerptText}>
-                {result.matchContext.after}...
-              </Text>
-            )}
           </View>
           
           <View style={styles.resultFooter}>
@@ -133,8 +127,11 @@ const styles = StyleSheet.create({
   matchText: {
     fontSize: 14,
     color: Colors.light.text,
-    fontWeight: adjustFontWeight('600'),
-    backgroundColor: Colors.light.tint + '20',
+    fontWeight: adjustFontWeight('700'),
+    backgroundColor: '#FFEB3B',
+    paddingHorizontal: 2,
+    paddingVertical: 1,
+    borderRadius: 2,
     lineHeight: 20,
   },
   resultFooter: {
