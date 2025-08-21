@@ -21,7 +21,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 
 import Colors from "@/constants/colors";
 import { bigBookData } from "@/constants/bigbook/data";
-import { markdownContent } from "@/constants/bigbook/content";
+import { allMarkdownContent } from "@/constants/bigbook/content";
 import { searchBigBookContent, SearchResult } from "@/constants/bigbook";
 import { BigBookStoreProvider, useBigBookStore } from "@/hooks/use-bigbook-store";
 import { BigBookCategory, BigBookSection } from "@/types/bigbook";
@@ -78,7 +78,7 @@ const SectionItem = ({ section, categoryId, onOpenContent }: {
             <Bookmark size={20} color={Colors.light.muted} />
           )}
         </TouchableOpacity>
-        {markdownContent[section.id] ? (
+        {allMarkdownContent[section.id] ? (
           <FileText size={20} color={Colors.light.muted} />
         ) : (
           <ExternalLink size={20} color={Colors.light.muted} />
@@ -144,9 +144,9 @@ function BigBookBrowserContent() {
 
   const handleOpenContent = (section: BigBookSection) => {
     // Check if we have markdown content for this section
-    if (markdownContent[section.id]) {
+    if (allMarkdownContent[section.id]) {
       setCurrentMarkdown({
-        content: markdownContent[section.id],
+        content: allMarkdownContent[section.id],
         title: section.title,
         id: section.id,
         pages: section.pages

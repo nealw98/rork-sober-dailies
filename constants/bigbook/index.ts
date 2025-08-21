@@ -1,7 +1,7 @@
 // Big Book Hybrid System - Text + PDF
 // Text files for main content, PDF links for personal stories and appendices
 
-import { markdownContent } from './content';
+import { allMarkdownContent } from './content';
 
 export interface BigBookTextContent {
   id: string;
@@ -60,7 +60,7 @@ export const bigBookTextContent: Record<string, BigBookTextContent> = {
   "preface": {
     id: "preface",
     title: "Preface",
-    content: markdownContent["preface"],
+    content: allMarkdownContent["preface"],
     searchable: true,
     pageNumbers: { start: 11, end: 12 },
     description: "Introduction to the fourth edition"
@@ -68,7 +68,7 @@ export const bigBookTextContent: Record<string, BigBookTextContent> = {
   "foreword-first": {
     id: "foreword-first", 
     title: "Foreword to First Edition",
-    content: markdownContent["foreword-first"],
+    content: allMarkdownContent["foreword-first"],
     searchable: true,
     pageNumbers: { start: 13, end: 14 },
     description: "Original 1939 foreword"
@@ -76,7 +76,7 @@ export const bigBookTextContent: Record<string, BigBookTextContent> = {
   "foreword-second": {
     id: "foreword-second",
     title: "Foreword to Second Edition", 
-    content: markdownContent["foreword-second"],
+    content: allMarkdownContent["foreword-second"],
     searchable: true,
     pageNumbers: { start: 15, end: 16 },
     description: "1955 edition updates"
