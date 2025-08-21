@@ -1,9 +1,10 @@
 // Twelve Steps and Twelve Traditions Data
+// Organized to match the structure on aa.org
 export const twelveAndTwelveData = [
   {
-    id: "introductory-materials",
-    title: "Introductory Materials",
-    description: "Copyright, contents, introduction and foreword",
+    id: "intro",
+    title: "Intro",
+    description: "Introductory materials for the Twelve Steps and Twelve Traditions",
     sections: [
       {
         id: "copyright",
@@ -33,7 +34,7 @@ export const twelveAndTwelveData = [
   },
   {
     id: "twelve-steps",
-    title: "The Twelve Steps",
+    title: "Twelve Steps",
     description: "A detailed examination of the spiritual foundation of recovery",
     sections: [
       {
@@ -112,7 +113,7 @@ export const twelveAndTwelveData = [
   },
   {
     id: "twelve-traditions",
-    title: "The Twelve Traditions", 
+    title: "Twelve Traditions", 
     description: "The principles that guide A.A. group unity and survival",
     sections: [
       {
