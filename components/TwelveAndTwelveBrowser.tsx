@@ -19,12 +19,23 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 
 import Colors from "@/constants/colors";
-import { twelveAndTwelveData } from "@/constants/bigbook";
+import { twelveAndTwelveData } from "@/constants/twelve-and-twelve";
 import { BigBookStoreProvider, useBigBookStore } from "@/hooks/use-bigbook-store";
 import { TwelveAndTwelveCategory, BigBookSection } from "@/types/bigbook";
 import { adjustFontWeight } from "@/constants/fonts";
 import BookSelector from "@/components/BookSelector";
 import PDFViewer from "@/components/PDFViewer";
+
+
+
+// FORCE UPDATE - remove this line after testing
+const FORCE_UPDATE = Date.now();
+
+// Debug: Check if twelveAndTwelveData is loaded
+console.log('DEBUG: twelveAndTwelveData loaded:', twelveAndTwelveData);
+console.log('DEBUG: twelveAndTwelveData type:', typeof twelveAndTwelveData);
+console.log('DEBUG: twelveAndTwelveData length:', Array.isArray(twelveAndTwelveData) ? twelveAndTwelveData.length : 'not an array');
+
 
 const SectionItem = ({ section, categoryId, onOpenPDF }: { section: BigBookSection; categoryId: string; onOpenPDF: (url: string, title: string) => void }) => {
   const { addBookmark, removeBookmark, isBookmarked, addToRecent } = useBigBookStore();

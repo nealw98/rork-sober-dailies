@@ -73,7 +73,7 @@ const SectionItem = ({ section, categoryId, onOpenContent }: {
           testID={`bookmark-${section.id}`}
         >
           {isBookmarked(section.id) ? (
-            <BookmarkCheck size={20} color={Colors.light.primary} />
+            <BookmarkCheck size={20} color={Colors.light.tint} />
           ) : (
             <Bookmark size={20} color={Colors.light.muted} />
           )}
@@ -217,7 +217,7 @@ function BigBookBrowserContent() {
             title={currentMarkdown.title}
             onClose={() => setMarkdownReaderVisible(false)}
             sectionId={currentMarkdown.id}
-            pageRange={currentMarkdown.pages}
+
           />
         )}
       </Modal>
@@ -276,7 +276,7 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     paddingVertical: 12,
     paddingHorizontal: 16,
-    backgroundColor: Colors.light.card,
+    backgroundColor: Colors.light.cardBackground,
     borderRadius: 8,
     marginBottom: 8,
   },
