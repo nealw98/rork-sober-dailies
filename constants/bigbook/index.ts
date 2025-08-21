@@ -81,7 +81,144 @@ export const bigBookTextContent: Record<string, BigBookTextContent> = {
     pageNumbers: { start: 15, end: 16 },
     description: "1955 edition updates"
   },
-  // ... rest of the content objects remain the same ...
+  "doctors-opinion": {
+    id: "doctors-opinion",
+    title: "The Doctor's Opinion", 
+    content: allMarkdownContent["doctors-opinion"],
+    searchable: true,
+    pageNumbers: { start: 21, end: 29 },
+    description: "Dr. Silkworth's medical perspective"
+  },
+  "chapter-1": {
+    id: "chapter-1",
+    title: "Bill's Story",
+    content: allMarkdownContent["chapter-1"],
+    searchable: true,
+    pageNumbers: { start: 1, end: 16 },
+    description: "Bill Wilson's personal story"
+  },
+  "chapter-2": {
+    id: "chapter-2", 
+    title: "There Is a Solution",
+    content: allMarkdownContent["chapter-2"],
+    searchable: true,
+    pageNumbers: { start: 17, end: 29 },
+    description: "The solution to alcoholism"
+  },
+  "chapter-3": {
+    id: "chapter-3",
+    title: "More About Alcoholism",
+    content: allMarkdownContent["chapter-3"],
+    searchable: true,
+    pageNumbers: { start: 30, end: 43 },
+    description: "Understanding the disease"
+  },
+  "chapter-4": {
+    id: "chapter-4",
+    title: "We Agnostics", 
+    content: allMarkdownContent["chapter-4"],
+    searchable: true,
+    pageNumbers: { start: 44, end: 57 },
+    description: "Addressing spiritual skepticism"
+  },
+  "chapter-5": {
+    id: "chapter-5",
+    title: "How It Works",
+    content: allMarkdownContent["chapter-5"],
+    searchable: true,
+    pageNumbers: { start: 58, end: 71 },
+    description: "The Twelve Steps and how to work them"
+  },
+  "chapter-6": {
+    id: "chapter-6",
+    title: "Into Action",
+    content: allMarkdownContent["chapter-6"],
+    searchable: true,
+    pageNumbers: { start: 72, end: 88 },
+    description: "Taking action on the steps"
+  },
+  "chapter-7": {
+    id: "chapter-7",
+    title: "Working with Others",
+    content: allMarkdownContent["chapter-7"],
+    searchable: true,
+    pageNumbers: { start: 89, end: 103 },
+    description: "Helping other alcoholics"
+  },
+  "chapter-8": {
+    id: "chapter-8",
+    title: "To Wives",
+    content: allMarkdownContent["chapter-8"],
+    searchable: true,
+    pageNumbers: { start: 104, end: 122 },
+    description: "Advice for spouses"
+  },
+  "chapter-9": {
+    id: "chapter-9",
+    title: "The Family Afterward",
+    content: allMarkdownContent["chapter-9"],
+    searchable: true,
+    pageNumbers: { start: 122, end: 135 },
+    description: "Family recovery"
+  },
+  "chapter-10": {
+    id: "chapter-10",
+    title: "To Employers",
+    content: allMarkdownContent["chapter-10"],
+    searchable: true,
+    pageNumbers: { start: 136, end: 150 },
+    description: "Workplace considerations"
+  },
+  "chapter-11": {
+    id: "chapter-11",
+    title: "A Vision for You",
+    content: allMarkdownContent["chapter-11"],
+    searchable: true,
+    pageNumbers: { start: 151, end: 164 },
+    description: "The promise of recovery"
+  },
+  "appendix-1": {
+    id: "appendix-1",
+    title: "The A.A. Tradition",
+    content: allMarkdownContent["appendix-1"],
+    searchable: true,
+    description: "A.A. history and tradition"
+  },
+  "appendix-2": {
+    id: "appendix-2", 
+    title: "Spiritual Experience",
+    content: allMarkdownContent["appendix-2"],
+    searchable: true,
+    description: "Understanding spiritual awakening"
+  },
+  "appendix-3": {
+    id: "appendix-3",
+    title: "The Medical View on A.A.",
+    content: allMarkdownContent["appendix-3"],
+    searchable: true,
+    description: "Medical endorsements"
+  },
+  "appendix-4": {
+    id: "appendix-4",
+    title: "The Religious View on A.A.",
+    content: allMarkdownContent["appendix-4"],
+    searchable: true,
+    description: "Religious endorsements"  
+  },
+  "appendix-5": {
+    id: "appendix-5",
+    title: "The Lasker Award",
+    content: allMarkdownContent["appendix-5"],
+    searchable: true,
+    description: "Recognition from medical community"
+  },
+  "appendix-6": {
+    id: "appendix-6",
+    title: "The Twelve Traditions",
+    content: allMarkdownContent["appendix-6"],
+    searchable: true,
+    description: "A.A. group principles"
+  }
 };
 
 // PDF-only content (personal stories, etc.)
@@ -221,164 +358,4 @@ export const searchBigBookContent = (query: string, type: 'text' | 'page' = 'tex
   
   return results;
 };
-// Twelve Steps and Twelve Traditions Data
-export const twelveAndTwelveData = [
-  {
-    id: "twelve-steps",
-    title: "The Twelve Steps",
-    description: "A detailed examination of the spiritual foundation of recovery",
-    sections: [
-      {
-        id: "step-1",
-        title: "Step One",
-        url: "https://www.aa.org/sites/default/files/2021-11/en_bigbook_chapt5.pdf",
-        description: "We admitted we were powerless over alcohol—that our lives had become unmanageable."
-      },
-      {
-        id: "step-2", 
-        title: "Step Two",
-        url: "https://www.aa.org/sites/default/files/2021-11/en_bigbook_chapt5.pdf",
-        description: "Came to believe that a Power greater than ourselves could restore us to sanity."
-      },
-      {
-        id: "step-3",
-        title: "Step Three", 
-        url: "https://www.aa.org/sites/default/files/2021-11/en_bigbook_chapt5.pdf",
-        description: "Made a decision to turn our will and our lives over to the care of God as we understood Him."
-      },
-      {
-        id: "step-4",
-        title: "Step Four",
-        url: "https://www.aa.org/sites/default/files/2021-11/en_bigbook_chapt5.pdf", 
-        description: "Made a searching and fearless moral inventory of ourselves."
-      },
-      {
-        id: "step-5",
-        title: "Step Five",
-        url: "https://www.aa.org/sites/default/files/2021-11/en_bigbook_chapt5.pdf",
-        description: "Admitted to God, to ourselves, and to another human being the exact nature of our wrongs."
-      },
-      {
-        id: "step-6",
-        title: "Step Six",
-        url: "https://www.aa.org/sites/default/files/2021-11/en_bigbook_chapt5.pdf",
-        description: "Were entirely ready to have God remove all these defects of character."
-      },
-      {
-        id: "step-7",
-        title: "Step Seven",
-        url: "https://www.aa.org/sites/default/files/2021-11/en_bigbook_chapt5.pdf",
-        description: "Humbly asked Him to remove our shortcomings."
-      },
-      {
-        id: "step-8", 
-        title: "Step Eight",
-        url: "https://www.aa.org/sites/default/files/2021-11/en_bigbook_chapt5.pdf",
-        description: "Made a list of all persons we had harmed, and became willing to make amends to them all."
-      },
-      {
-        id: "step-9",
-        title: "Step Nine",
-        url: "https://www.aa.org/sites/default/files/2021-11/en_bigbook_chapt5.pdf",
-        description: "Made direct amends to such people wherever possible, except when to do so would injure them or others."
-      },
-      {
-        id: "step-10",
-        title: "Step Ten", 
-        url: "https://www.aa.org/sites/default/files/2021-11/en_bigbook_chapt5.pdf",
-        description: "Continued to take personal inventory and when we were wrong promptly admitted it."
-      },
-      {
-        id: "step-11",
-        title: "Step Eleven",
-        url: "https://www.aa.org/sites/default/files/2021-11/en_bigbook_chapt5.pdf",
-        description: "Sought through prayer and meditation to improve our conscious contact with God as we understood Him, praying only for knowledge of His will for us and the power to carry that out."
-      },
-      {
-        id: "step-12",
-        title: "Step Twelve",
-        url: "https://www.aa.org/sites/default/files/2021-11/en_bigbook_chapt5.pdf",
-        description: "Having had a spiritual awakening as the result of these steps, we tried to carry this message to alcoholics, and to practice these principles in all our affairs."
-      }
-    ]
-  },
-  {
-    id: "twelve-traditions",
-    title: "The Twelve Traditions", 
-    description: "The principles that guide A.A. group unity and survival",
-    sections: [
-      {
-        id: "tradition-1",
-        title: "Tradition One",
-        url: "https://www.aa.org/sites/default/files/2021-11/en_bigbook_chapt5.pdf",
-        description: "Our common welfare should come first; personal recovery depends upon A.A. unity."
-      },
-      {
-        id: "tradition-2",
-        title: "Tradition Two", 
-        url: "https://www.aa.org/sites/default/files/2021-11/en_bigbook_chapt5.pdf",
-        description: "For our group purpose there is but one ultimate authority—a loving God as He may express Himself in our group conscience. Our leaders are but trusted servants; they do not govern."
-      },
-      {
-        id: "tradition-3",
-        title: "Tradition Three",
-        url: "https://www.aa.org/sites/default/files/2021-11/en_bigbook_chapt5.pdf", 
-        description: "The only requirement for A.A. membership is a desire to stop drinking."
-      },
-      {
-        id: "tradition-4",
-        title: "Tradition Four",
-        url: "https://www.aa.org/sites/default/files/2021-11/en_bigbook_chapt5.pdf",
-        description: "Each group should be autonomous except in matters affecting other groups or A.A. as a whole."
-      },
-      {
-        id: "tradition-5",
-        title: "Tradition Five",
-        url: "https://www.aa.org/sites/default/files/2021-11/en_bigbook_chapt5.pdf",
-        description: "Each group has but one primary purpose—to carry its message to the alcoholic who still suffers."
-      },
-      {
-        id: "tradition-6",
-        title: "Tradition Six",
-        url: "https://www.aa.org/sites/default/files/2021-11/en_bigbook_chapt5.pdf",
-        description: "An A.A. group ought never endorse, finance or lend the A.A. name to any related facility or outside enterprise, lest problems of money, property and prestige divert us from our primary purpose."
-      },
-      {
-        id: "tradition-7",
-        title: "Tradition Seven", 
-        url: "https://www.aa.org/sites/default/files/2021-11/en_bigbook_chapt5.pdf",
-        description: "Every A.A. group ought to be fully self-supporting, declining outside contributions."
-      },
-      {
-        id: "tradition-8",
-        title: "Tradition Eight",
-        url: "https://www.aa.org/sites/default/files/2021-11/en_bigbook_chapt5.pdf",
-        description: "Alcoholics Anonymous should remain forever nonprofessional, but our service centers may employ special workers."
-      },
-      {
-        id: "tradition-9",
-        title: "Tradition Nine",
-        url: "https://www.aa.org/sites/default/files/2021-11/en_bigbook_chapt5.pdf",
-        description: "A.A., as such, ought never be organized; but we may create service boards or committees directly responsible to those they serve."
-      },
-      {
-        id: "tradition-10",
-        title: "Tradition Ten",
-        url: "https://www.aa.org/sites/default/files/2021-11/en_bigbook_chapt5.pdf",
-        description: "Alcoholics Anonymous has no opinion on outside issues; hence the A.A. name ought never be drawn into public controversy."
-      },
-      {
-        id: "tradition-11", 
-        title: "Tradition Eleven",
-        url: "https://www.aa.org/sites/default/files/2021-11/en_bigbook_chapt5.pdf",
-        description: "Our public relations policy is based upon attraction rather than promotion; we need always maintain personal anonymity at the level of press, radio and films."
-      },
-      {
-        id: "tradition-12",
-        title: "Tradition Twelve",
-        url: "https://www.aa.org/sites/default/files/2021-11/en_bigbook_chapt5.pdf",
-        description: "Anonymity is the spiritual foundation of all our Traditions, ever reminding us to place principles before personalities."
-      }
-    ]
-  }
-];
+
