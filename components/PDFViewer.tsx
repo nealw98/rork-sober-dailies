@@ -8,8 +8,9 @@ import {
   Platform,
   Alert,
   ActivityIndicator,
+  Dimensions,
 } from 'react-native';
-import { WebView } from 'react-native-webview';
+import Pdf from 'react-native-pdf';
 import { X, ArrowLeft, RefreshCw } from 'lucide-react-native';
 import Colors from '@/constants/colors';
 import { adjustFontWeight } from '@/constants/fonts';
@@ -24,15 +25,8 @@ export default function PDFViewer({ url, title, onClose }: PDFViewerProps) {
   console.log('PDFViewer rendered with URL:', url);
   const [hasError, setHasError] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(true);
-  
-  // For web, we can embed the PDF directly
-  // For mobile, we'll use Google Docs viewer which works well in WebView
-  // Add zoom=150 parameter to increase the default zoom level
-  const viewerUrl = Platform.OS === 'web' 
-    ? url 
-    : `https://docs.google.com/gview?embedded=true&url=${encodeURIComponent(url)}&zoom=150`;
-  
-  console.log('Using viewer URL:', viewerUrl);
+  const [currentPage, setCurrentPage] = useState<number>(1);
+  const [totalPages, setTotalPages] = useState<number>(0);
   
   const handleRetry = () => {
     setHasError(false);
@@ -51,7 +45,12 @@ export default function PDFViewer({ url, title, onClose }: PDFViewerProps) {
           <Text style={styles.backText}>Back</Text>
         </TouchableOpacity>
         
-        <Text style={styles.title} numberOfLines={1}>{title}</Text>
+        <View style={styles.titleContainer}>
+          <Text style={styles.title} numberOfLines={1}>{title}</Text>
+          {totalPages > 0 && (
+            <Text style={styles.pageCounter}>{currentPage} / {totalPages}</Text>
+          )}
+        </View>
         
         <View style={styles.headerActions}>
           {hasError && (
@@ -90,10 +89,7 @@ export default function PDFViewer({ url, title, onClose }: PDFViewerProps) {
               [
                 { text: 'Cancel', style: 'cancel' },
                 { text: 'Open', onPress: () => {
-                  // This will open in the system browser as a fallback
                   console.log('Opening PDF in browser:', url);
-                  // Note: We can't actually open the browser from here without expo-web-browser
-                  // But this gives the user an option
                 }}
               ]
             );
@@ -102,107 +98,52 @@ export default function PDFViewer({ url, title, onClose }: PDFViewerProps) {
           </TouchableOpacity>
         </View>
       ) : (
-        <WebView
-          key={hasError ? 'error' : 'normal'} // Force re-render on retry
-          source={{ uri: viewerUrl }}
-          style={styles.webview}
-          startInLoadingState={true}
-          renderLoading={() => (
+        <>
+          {isLoading && (
             <View style={styles.loadingContainer}>
               <ActivityIndicator size="large" color={Colors.light.tint} />
               <Text style={styles.loadingText}>Loading PDF...</Text>
             </View>
           )}
-          onLoadStart={() => {
-            console.log('WebView load started');
-            setIsLoading(true);
-          }}
-          onLoadEnd={() => {
-            console.log('WebView load ended');
-            setIsLoading(false);
-          }}
-          onError={(syntheticEvent: any) => {
-            const { nativeEvent } = syntheticEvent;
-            console.error('WebView error: ', nativeEvent);
-            setHasError(true);
-            setIsLoading(false);
-          }}
-          onHttpError={(syntheticEvent: any) => {
-            const { nativeEvent } = syntheticEvent;
-            console.error('WebView HTTP error: ', nativeEvent);
-            setHasError(true);
-            setIsLoading(false);
-          }}
-          onShouldStartLoadWithRequest={(request) => {
-            console.log('WebView load request:', request.url);
-            return true;
-          }}
-          onNavigationStateChange={(navState) => {
-            console.log('WebView navigation state:', navState.url, 'loading:', navState.loading);
-          }}
-          allowsFullscreenVideo={false}
-          javaScriptEnabled={true}
-          domStorageEnabled={true}
-          scalesPageToFit={true}
-          showsHorizontalScrollIndicator={false}
-          showsVerticalScrollIndicator={false}
-          // Add some additional props for better PDF handling
-          mixedContentMode="compatibility"
-          allowsInlineMediaPlayback={false}
-          mediaPlaybackRequiresUserAction={true}
-          // Inject JavaScript to adjust the zoom level when the PDF loads
-          injectedJavaScript={`
-            (function() {
-              // Method 1: Try to click the "Fit to page" button in Google Docs viewer
-              const checkInterval = setInterval(() => {
-                // Check if the viewer iframe exists
-                const viewerFrame = document.querySelector('iframe');
-                if (viewerFrame) {
-                  try {
-                    // Access the document inside the iframe
-                    const viewerDoc = viewerFrame.contentDocument || viewerFrame.contentWindow.document;
-                    
-                    // Find the zoom controls
-                    const zoomControls = viewerDoc.querySelector('.ndfHFb-c4YZDc-Wrql6b');
-                    if (zoomControls) {
-                      // Find and click the "Fit to page" button (typically the second button in zoom controls)
-                      const fitToPageButton = viewerDoc.querySelectorAll('.ndfHFb-c4YZDc-j7LFlb')[1];
-                      if (fitToPageButton) {
-                        fitToPageButton.click();
-                        console.log('PDF zoom adjusted to fit page');
-                        clearInterval(checkInterval);
-                      }
-                    }
-                    
-                    // Method 2: Apply CSS to scale the PDF content
-                    const pdfContent = viewerDoc.querySelector('.ndfHFb-c4YZDc-cYSp0e-DARUcf-PLDbbf');
-                    if (pdfContent) {
-                      pdfContent.style.transform = 'scale(1.5)';
-                      pdfContent.style.transformOrigin = 'top center';
-                      console.log('Applied CSS scaling to PDF content');
-                    }
-                    
-                    // Method 3: Try to find and manipulate the zoom input directly
-                    const zoomInput = viewerDoc.querySelector('input[aria-label="Zoom"]');
-                    if (zoomInput) {
-                      // Set zoom to 125% or 150%
-                      zoomInput.value = '150';
-                      // Trigger change event
-                      const event = new Event('change', { bubbles: true });
-                      zoomInput.dispatchEvent(event);
-                      console.log('Set zoom input to 150%');
-                    }
-                  } catch (e) {
-                    console.log('Error accessing iframe content:', e);
-                  }
-                }
-              }, 1000);
-              
-              // Stop checking after 10 seconds to avoid infinite loop
-              setTimeout(() => clearInterval(checkInterval), 10000);
-            })();
-          `}
-        />
+          <Pdf
+            source={{ uri: url, cache: true }}
+            style={styles.pdf}
+            onLoadComplete={(numberOfPages, filePath) => {
+              console.log(`PDF loaded: ${numberOfPages} pages`);
+              setTotalPages(numberOfPages);
+              setIsLoading(false);
+              setHasError(false);
+            }}
+            onPageChanged={(page, numberOfPages) => {
+              console.log(`Current page: ${page}/${numberOfPages}`);
+              setCurrentPage(page);
+            }}
+            onError={(error) => {
+              console.error('PDF error:', error);
+              setHasError(true);
+              setIsLoading(false);
+            }}
+            onPressLink={(uri) => {
+              console.log('PDF link pressed:', uri);
+            }}
+            // Zoom and fit options
+            scale={1.2}
+            minScale={0.5}
+            maxScale={3.0}
+            fitPolicy={1} // 0: width, 1: height, 2: both
+            enablePaging={true}
+            enableRTL={false}
+            enableAnnotationRendering={false}
+            spacing={10}
+            horizontal={false}
+            // Performance options
+            renderActivityIndicator={(progress) => (
+              <View style={styles.hiddenIndicator} />
+            )} // We handle loading ourselves
+            enableDoubleTapZoom={true}
+            trustAllCerts={false}
+          />
+        </>
       )}
     </SafeAreaView>
   );
@@ -235,13 +176,22 @@ const styles = StyleSheet.create({
     marginLeft: 4,
     fontWeight: adjustFontWeight('500'),
   },
-  title: {
+  titleContainer: {
     flex: 1,
+    alignItems: 'center',
+    marginHorizontal: 16,
+  },
+  title: {
     fontSize: 16,
     fontWeight: adjustFontWeight('600'),
     color: Colors.light.text,
     textAlign: 'center',
-    marginHorizontal: 16,
+  },
+  pageCounter: {
+    fontSize: 12,
+    color: Colors.light.muted,
+    textAlign: 'center',
+    marginTop: 2,
   },
   headerActions: {
     flexDirection: 'row',
@@ -254,8 +204,13 @@ const styles = StyleSheet.create({
   closeButton: {
     padding: 8,
   },
-  webview: {
+  pdf: {
     flex: 1,
+    backgroundColor: Colors.light.background,
+  },
+  hiddenIndicator: {
+    width: 0,
+    height: 0,
   },
   loadingContainer: {
     position: 'absolute',
