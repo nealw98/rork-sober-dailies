@@ -407,10 +407,10 @@ export default function GratitudeListScreen() {
     });
 
     const gratitudeText = gratitudeItems
-      .map((item, index) => `${index + 1}. ${item}`)
+      .map((item) => item)
       .join('\n');
 
-    const shareMessage = `${today}\n\nToday I'm grateful for:\n${gratitudeText}\n\nPracticing gratitude one day at a time.`;
+    const shareMessage = `Today I'm grateful for:\n${gratitudeText}`;
     
     console.log('Share message prepared:', shareMessage.substring(0, 100) + '...');
 
@@ -432,7 +432,7 @@ export default function GratitudeListScreen() {
         // For mobile, use native Share API
         const result = await Share.share({
           message: shareMessage,
-          title: 'My Daily Gratitude List'
+          title: `Gratitude List - ${today}`
         });
         console.log('Share result:', result);
       }

@@ -120,7 +120,7 @@ export default function DailyReflection() {
     if (!reflection) return;
     
     try {
-      const shareContent = `${reflection.title}\n\n"${reflection.quote}"\n${reflection.source}\n\n${reflection.reflection}\n\nMeditation:\n${reflection.thought}`;
+      const shareContent = `${reflection.title}\n\n"${reflection.quote}"\n\n${reflection.source}\n\n${reflection.reflection}\n\nMeditation:\n${reflection.thought}`;
       
       await Share.share({
         message: shareContent,

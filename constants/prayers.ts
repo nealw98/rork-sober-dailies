@@ -25,7 +25,7 @@ export const aaPrayers = [
     source: "Reinhold Niebuhr"
   },
   {
-    title: "Resentment Prayer",
+    title: "Sick Man Prayer",
     content: "God, please help me show this person the same tolerance, pity, and patience that I would cheerfully grant a sick friend. This is a sick person. How can I be helpful to them? God save me from being angry. Thy will be done.",
     source: "Alcoholics Anonymous, p. 67"
   },

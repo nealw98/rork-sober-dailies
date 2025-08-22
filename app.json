@@ -33,11 +33,10 @@
         "backgroundImage": "./assets/images/adaptive-icon-background.png",
         "monochromeImage": "./assets/images/adaptive-icon-monochrome.png"
       },
-      "icon": "./assets/images/icon-android-legacy.png",
+      "icon": "./assets/images/icon.png",
       "permissions": [
         "android.permission.VIBRATE"
-      ],
-      "minSdkVersion": 24
+      ]
     },
     "runtimeVersion": {
       "policy": "sdkVersion"
@@ -48,7 +47,7 @@
       }
     },
     "web": {
-      "favicon": "./assets/images/favicon.png"
+      "favicon": "./assets/images/favicon.webp"
     },
     "plugins": [
       [

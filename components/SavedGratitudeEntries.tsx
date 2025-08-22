@@ -118,8 +118,7 @@ export default function SavedGratitudeEntries({ visible, onClose }: SavedGratitu
       .map((item: string) => `${item}`)
       .join('\n');
 
-    let shareMessage = `${formattedDate}\n\nToday I'm grateful for:\n${gratitudeText}\n\n`;
-    shareMessage += 'Practicing gratitude one day at a time.';
+    let shareMessage = `Today I'm grateful for:\n${gratitudeText}`;
     
     console.log('Share message prepared:', shareMessage.substring(0, 100) + '...');
 
@@ -139,7 +138,7 @@ export default function SavedGratitudeEntries({ visible, onClose }: SavedGratitu
         console.log('Mobile platform detected, using native Share API');
         await Share.share({
           message: shareMessage,
-          title: 'My Gratitude List'
+          title: `Gratitude List - ${formattedDate}`
         });
         console.log('Share successful');
       }

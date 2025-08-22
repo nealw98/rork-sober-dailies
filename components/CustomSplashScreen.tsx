@@ -6,7 +6,7 @@ export default function CustomSplashScreen() {
   return (
     <View style={styles.container}>
       <Image 
-        source={{ uri: 'https://github.com/nealw98/rork-sober-dailies/raw/main/assets/images/icon.png' }}
+        source={require('../assets/images/icon.webp')}
         style={styles.image}
         resizeMode="contain"
       />

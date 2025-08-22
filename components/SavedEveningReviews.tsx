@@ -113,39 +113,42 @@ export default function SavedEveningReviews({ visible, onClose }: SavedEveningRe
     
     if (data.resentfulFlag) {
       const answer = data.resentfulFlag === 'yes' ? 'Yes' : 'No';
-      answeredQuestions.push(`1. Was I resentful today? ${answer}${data.resentfulFlag === 'yes' && data.resentfulNote ? ` - ${data.resentfulNote}` : ''}`);
+      answeredQuestions.push(`Was I resentful today? ${answer}${data.resentfulFlag === 'yes' && data.resentfulNote ? ` - ${data.resentfulNote}` : ''}`);
     }
     if (data.selfishFlag) {
       const answer = data.selfishFlag === 'yes' ? 'Yes' : 'No';
-      answeredQuestions.push(`2. Was I selfish and self-centered today? ${answer}${data.selfishFlag === 'yes' && data.selfishNote ? ` - ${data.selfishNote}` : ''}`);
+      answeredQuestions.push(`Was I selfish and self-centered today? ${answer}${data.selfishFlag === 'yes' && data.selfishNote ? ` - ${data.selfishNote}` : ''}`);
     }
     if (data.fearfulFlag) {
       const answer = data.fearfulFlag === 'yes' ? 'Yes' : 'No';
-      answeredQuestions.push(`3. Was I fearful or worrisome today? ${answer}${data.fearfulFlag === 'yes' && data.fearfulNote ? ` - ${data.fearfulNote}` : ''}`);
+      answeredQuestions.push(`Was I fearful or worrisome today? ${answer}${data.fearfulFlag === 'yes' && data.fearfulNote ? ` - ${data.fearfulNote}` : ''}`);
     }
     if (data.apologyFlag) {
       const answer = data.apologyFlag === 'yes' ? 'Yes' : 'No';
-      answeredQuestions.push(`4. Do I owe anyone an apology? ${answer}${data.apologyFlag === 'yes' && data.apologyName ? ` - ${data.apologyName}` : ''}`);
+      answeredQuestions.push(`Do I owe anyone an apology? ${answer}${data.apologyFlag === 'yes' && data.apologyName ? ` - ${data.apologyName}` : ''}`);
     }
     if (data.kindnessFlag) {
       const answer = data.kindnessFlag === 'yes' ? 'Yes' : 'No';
-      answeredQuestions.push(`5. Was I of service or kind to others today? ${answer}${data.kindnessFlag === 'yes' && data.kindnessNote ? ` - ${data.kindnessNote}` : ''}`);
+      answeredQuestions.push(`Was I of service or kind to others today? ${answer}${data.kindnessFlag === 'yes' && data.kindnessNote ? ` - ${data.kindnessNote}` : ''}`);
     }
     if (data.prayerMeditationFlag) {
       const answer = data.prayerMeditationFlag === 'yes' ? 'Yes' : 'No';
-      answeredQuestions.push(`6. Did I pray or meditate today? ${answer}`);
+      answeredQuestions.push(`Did I pray or meditate today? ${answer}`);
     }
     if (data.spiritualNote) {
-      answeredQuestions.push(`7. How was my spiritual condition today? ${data.spiritualNote}`);
+      answeredQuestions.push(`How was my spiritual condition today? ${data.spiritualNote}`);
     }
 
-    let shareMessage = `${formattedDate}\n\nEvening Review\n\n`;
+    const simpleDate = new Date(date).toLocaleDateString('en-US', {
+      month: 'long',
+      day: 'numeric'
+    });
+    
+    let shareMessage = `${simpleDate}\n\nEvening Review\n\n`;
     
     if (answeredQuestions.length > 0) {
-      shareMessage += answeredQuestions.join('\n\n') + '\n\n';
+      shareMessage += answeredQuestions.join('\n\n') + '\n';
     }
-    
-    shareMessage += 'Working my program one day at a time.';
 
     try {
       if (Platform.OS === 'web') {
@@ -158,7 +161,7 @@ export default function SavedEveningReviews({ visible, onClose }: SavedEveningRe
       } else {
         await Share.share({
           message: shareMessage,
-          title: 'My Evening Review'
+          title: `Evening Review - ${formattedDate}`
         });
       }
     } catch (error) {
