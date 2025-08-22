@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import createContextHook from '@nkzw/create-context-hook';
 
@@ -90,22 +90,22 @@ export const [GratitudeProvider, useGratitudeStore] = createContextHook(() => {
     return dateString;
   };
 
-  const isCompletedToday = () => {
+  const isCompletedToday = useCallback(() => {
     const todayString = getTodayDateString();
     return entries.some(entry => entry.date === todayString && entry.completed);
-  };
+  }, [entries]);
 
-  const getTodayEntry = (): GratitudeEntry | null => {
+  const getTodayEntry = useCallback((): GratitudeEntry | null => {
     const todayString = getTodayDateString();
     return entries.find(entry => entry.date === todayString) || null;
-  };
+  }, [entries]);
 
-  const getTodaysItems = (): string[] => {
+  const getTodaysItems = useCallback((): string[] => {
     const todayEntry = getTodayEntry();
     return todayEntry ? todayEntry.items : [];
-  };
+  }, [getTodayEntry]);
 
-  const addItemsToToday = (newItems: string[]) => {
+  const addItemsToToday = useCallback((newItems: string[]) => {
     const todayString = getTodayDateString();
     const existingIndex = entries.findIndex(entry => entry.date === todayString);
     
@@ -131,9 +131,9 @@ export const [GratitudeProvider, useGratitudeStore] = createContextHook(() => {
     }
 
     saveEntries(newEntries);
-  };
+  }, [entries]);
 
-  const completeToday = (items: string[]) => {
+  const completeToday = useCallback((items: string[]) => {
     const todayString = getTodayDateString();
     const existingIndex = entries.findIndex(entry => entry.date === todayString);
     
@@ -152,13 +152,13 @@ export const [GratitudeProvider, useGratitudeStore] = createContextHook(() => {
     }
 
     saveEntries(newEntries);
-  };
+  }, [entries]);
 
-  const saveGratitudeList = (items: string[]) => {
+  const saveGratitudeList = useCallback((items: string[]) => {
     completeToday(items);
-  };
+  }, [completeToday]);
 
-  const uncompleteToday = () => {
+  const uncompleteToday = useCallback(() => {
     const todayString = getTodayDateString();
     const existingIndex = entries.findIndex(entry => entry.date === todayString);
     
@@ -167,9 +167,9 @@ export const [GratitudeProvider, useGratitudeStore] = createContextHook(() => {
       newEntries[existingIndex] = { ...newEntries[existingIndex], completed: false };
       saveEntries(newEntries);
     }
-  };
+  }, [entries]);
 
-  const getWeeklyProgress = (): WeeklyProgressDay[] => {
+  const getWeeklyProgress = useCallback((): WeeklyProgressDay[] => {
     const today = new Date();
     const todayString = getTodayDateString();
     console.log('getWeeklyProgress - Today string:', todayString);
@@ -218,16 +218,16 @@ export const [GratitudeProvider, useGratitudeStore] = createContextHook(() => {
     console.log('getWeeklyProgress - All entries dates:', entries.map(e => e.date));
     console.log('getWeeklyProgress - Today\'s entry exists:', entries.some(e => e.date === todayString));
     return weekDays;
-  };
+  }, [entries]);
 
-  const getWeeklyStreak = (): number => {
+  const getWeeklyStreak = useCallback((): number => {
     const weeklyProgress = getWeeklyProgress();
     return weeklyProgress.filter(day => {
       return day.completed && !day.isFuture;
     }).length;
-  };
+  }, [getWeeklyProgress]);
 
-  const saveDetailedEntry = (items: string[], dateString?: string) => {
+  const saveDetailedEntry = useCallback((items: string[], dateString?: string) => {
     const targetDate = dateString || getTodayDateString();
     
     console.log('saveDetailedEntry - Saving entry for date:', targetDate);
@@ -259,18 +259,18 @@ export const [GratitudeProvider, useGratitudeStore] = createContextHook(() => {
     if (targetDate === getTodayDateString()) {
       completeToday(items);
     }
-  };
+  }, [savedEntries, completeToday]);
 
-  const getSavedEntry = (dateString: string): SavedGratitudeEntry | null => {
+  const getSavedEntry = useCallback((dateString: string): SavedGratitudeEntry | null => {
     return savedEntries.find(entry => entry.date === dateString) || null;
-  };
+  }, [savedEntries]);
 
-  const deleteSavedEntry = (dateString: string) => {
+  const deleteSavedEntry = useCallback((dateString: string) => {
     const filteredEntries = savedEntries.filter(entry => entry.date !== dateString);
     saveSavedEntries(filteredEntries);
-  };
+  }, [savedEntries]);
 
-  const getCompletedDaysInLast30 = (): number => {
+  const getCompletedDaysInLast30 = useCallback((): number => {
     const cutoff = new Date();
     cutoff.setDate(cutoff.getDate() - 30);
     
@@ -278,9 +278,9 @@ export const [GratitudeProvider, useGratitudeStore] = createContextHook(() => {
       const entryDate = new Date(entry.date);
       return entryDate >= cutoff && entry.completed;
     }).length;
-  };
+  }, [entries]);
 
-  return {
+  return useMemo(() => ({
     entries,
     savedEntries,
     isLoading,
@@ -297,5 +297,22 @@ export const [GratitudeProvider, useGratitudeStore] = createContextHook(() => {
     getSavedEntry,
     deleteSavedEntry,
     getCompletedDaysInLast30
-  };
+  }), [
+    entries,
+    savedEntries,
+    isLoading,
+    isCompletedToday,
+    getTodayEntry,
+    getTodaysItems,
+    addItemsToToday,
+    completeToday,
+    saveGratitudeList,
+    uncompleteToday,
+    getWeeklyProgress,
+    getWeeklyStreak,
+    saveDetailedEntry,
+    getSavedEntry,
+    deleteSavedEntry,
+    getCompletedDaysInLast30
+  ]);
 });

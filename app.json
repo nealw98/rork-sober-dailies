@@ -23,6 +23,17 @@
         "NSPhotoLibraryUsageDescription": "This app needs photo library access to save and share images.",
         "NSPhotoLibraryAddUsageDescription": "This app saves images to your library.",
         "ITSAppUsesNonExemptEncryption": false
+      },
+      "entitlements": {
+        "com": {
+          "apple": {
+            "security": {
+              "application-groups": [
+                "group.com.myapp"
+              ]
+            }
+          }
+        }
       }
     },
     "android": {
@@ -85,7 +96,23 @@
           }
         }
       ],
-      "expo-web-browser"
+      "expo-web-browser",
+      [
+        "expo-sqlite",
+        {
+          "enableFTS": true,
+          "useSQLCipher": true,
+          "android": {
+            "enableFTS": false,
+            "useSQLCipher": false
+          },
+          "ios": {
+            "customBuildFlags": [
+              "-DSQLITE_ENABLE_DBSTAT_VTAB=1 -DSQLITE_ENABLE_SNAPSHOT=1"
+            ]
+          }
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true
