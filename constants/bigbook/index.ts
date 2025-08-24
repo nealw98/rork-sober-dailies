@@ -111,7 +111,7 @@ const findPageForTextPosition = (content: string, textPosition: number): {page: 
 
 // Use existing content.ts for React Native compatibility
 // Testing 1st edition content
-import { bigBookTextContent as firstEditionContent } from './content-1st-edition';
+import { allMarkdownContent } from './content';
 
 // Big Book text content (using existing content keys for compatibility)
 export const bigBookTextContent: BigBookTextContent[] = [
@@ -120,14 +120,14 @@ export const bigBookTextContent: BigBookTextContent[] = [
     title: 'Foreword to First Edition',
     content: '',
     searchable: true,
-    pageNumbers: { start: 13, end: 14 }
+    pageNumbers: { start: 1, end: 3 } // Roman numerals i-iii
   },
   {
     id: 'doctors-opinion',
     title: "The Doctor's Opinion",
     content: '',
     searchable: true,
-    pageNumbers: { start: 25, end: 32 }
+    pageNumbers: { start: 7, end: 12 } // Roman numerals vii-xii
   },
   {
     id: 'chapter-1',
@@ -141,63 +141,63 @@ export const bigBookTextContent: BigBookTextContent[] = [
     title: 'There Is a Solution',
     content: '',
     searchable: true,
-    pageNumbers: { start: 17, end: 43 }
+    pageNumbers: { start: 17, end: 29 }
   },
   {
     id: 'chapter-3',
     title: 'More About Alcoholism',
     content: '',
     searchable: true,
-    pageNumbers: { start: 44, end: 57 }
+    pageNumbers: { start: 30, end: 43 }
   },
   {
     id: 'chapter-4',
     title: 'We Agnostics',
     content: '',
     searchable: true,
-    pageNumbers: { start: 58, end: 71 }
+    pageNumbers: { start: 44, end: 57 }
   },
   {
     id: 'chapter-5',
     title: 'How It Works',
     content: '',
     searchable: true,
-    pageNumbers: { start: 72, end: 88 }
+    pageNumbers: { start: 58, end: 71 }
   },
   {
     id: 'chapter-6',
     title: 'Into Action',
     content: '',
     searchable: true,
-    pageNumbers: { start: 89, end: 103 }
+    pageNumbers: { start: 72, end: 88 }
   },
   {
     id: 'chapter-7',
     title: 'Working with Others',
     content: '',
     searchable: true,
-    pageNumbers: { start: 104, end: 122 }
+    pageNumbers: { start: 89, end: 103 }
   },
   {
     id: 'chapter-8',
     title: 'To Wives',
     content: '',
     searchable: true,
-    pageNumbers: { start: 123, end: 135 }
+    pageNumbers: { start: 104, end: 121 }
   },
   {
     id: 'chapter-9',
     title: 'The Family Afterward',
     content: '',
     searchable: true,
-    pageNumbers: { start: 136, end: 150 }
+    pageNumbers: { start: 122, end: 135 }
   },
   {
     id: 'chapter-10',
     title: 'To Employers',
     content: '',
     searchable: true,
-    pageNumbers: { start: 151, end: 164 }
+    pageNumbers: { start: 136, end: 150 }
   },
   {
     id: 'chapter-11',
@@ -217,7 +217,7 @@ export const bigBookTextContent: BigBookTextContent[] = [
 
 // Load actual content into the text content objects
 bigBookTextContent.forEach(item => {
-  item.content = (firstEditionContent as any)[item.id] || '';
+  item.content = allMarkdownContent[item.id] || '';
 });
 
 // Enhanced search function with whole word matching and page awareness
@@ -245,26 +245,56 @@ export const searchBigBookContentEnhanced = (
   bigBookTextContent.forEach(chapter => {
     if (!chapter.searchable || !chapter.content) return;
     
-    const content = chapter.content;
+    // Clean content to exclude chapter titles and headers from search
+    let content = chapter.content;
+    
+    // Remove chapter titles, headers, and page markers from search content
+    const searchableContent = content
+      .replace(/^#{1,6}\s*[A-Za-z0-9][A-Za-z0-9\s':,-]+$/gm, '') // Remove headers
+      .replace(/^#{1,6}\s*HOW IT WORKS$/gm, '') // Remove specific headers
+      .replace(/^#{1,6}\s*Chapter \d+.*$/gm, '') // Remove chapter lines
+      .replace(/^\*— Page [^—]+ —\*$/gm, '') // Remove page markers from search
+      .replace(/^The Doctor's Opinion$/gm, '') // Remove title duplicates
+      .replace(/^Bill's Story$/gm, '') // Remove title duplicates
+      .replace(/^More About Alcoholism$/gm, '') // Remove title duplicates
+      .replace(/^Into Action$/gm, '') // Remove title duplicates
+      .trim();
+    
     let match;
     
-    // Find all matches in this chapter
-    while ((match = regex.exec(content)) !== null) {
-      const matchStart = match.index;
-      const matchEnd = matchStart + match[0].length;
+    // Find all matches in this chapter (search both original and cleaned)
+    // First, search in original content to preserve exact positions
+    const originalRegex = wholeWordsOnly 
+      ? new RegExp(`\\b${escapedTerm}\\b`, caseSensitive ? 'g' : 'gi')
+      : new RegExp(escapedTerm, caseSensitive ? 'g' : 'gi');
+    
+    while ((match = originalRegex.exec(content)) !== null) {
+      const originalMatchIndex = match.index;
+      const matchText = match[0];
       
-      // Find which page this match is on
-      const pageInfo = findPageForTextPosition(content, matchStart);
+      // Check if this match should be excluded (is it in headers/titles?)
+      // More precise check: only exclude if match is on the SAME LINE as a header
+      const matchLineStart = content.lastIndexOf('\n', originalMatchIndex) + 1;
+      const matchLineEnd = content.indexOf('\n', originalMatchIndex);
+      const matchLine = content.slice(matchLineStart, matchLineEnd === -1 ? content.length : matchLineEnd);
       
-      // Extract context around the match (100 chars before and after)
-      const contextStart = Math.max(0, matchStart - 100);
-      const contextEnd = Math.min(content.length, matchEnd + 100);
+      // Skip only if the match is on a line that IS a header
+      const isInHeader = /^#{1,6}\s*[^\n]*$/m.test(matchLine) || 
+                        /^(The Doctor's Opinion|Bill's Story|More About Alcoholism|Into Action|HOW IT WORKS)$/m.test(matchLine.trim());
+      
+      if (isInHeader) continue; // Skip header matches
+      
+      // Find which page this match is on using original content
+      const pageInfo = findPageForTextPosition(content, originalMatchIndex);
+      
+      // Extract context around the match (100 chars before and after) - use original content
+      const contextStart = Math.max(0, originalMatchIndex - 100);
+      const contextEnd = Math.min(content.length, originalMatchIndex + matchText.length + 100);
       const fullContext = content.slice(contextStart, contextEnd);
       
-      // Split context into before, match, and after
-      const beforeMatch = content.slice(contextStart, matchStart);
-      const matchText = content.slice(matchStart, matchEnd);
-      const afterMatch = content.slice(matchEnd, contextEnd);
+      // Split context into before, match, and after  
+      const excerptBefore = content.slice(contextStart, originalMatchIndex);
+      const excerptAfter = content.slice(originalMatchIndex + matchText.length, contextEnd);
       
       // Clean up the excerpt (remove page markers for display)
       const excerpt = fullContext
@@ -273,18 +303,18 @@ export const searchBigBookContentEnhanced = (
         .trim();
       
       results.push({
-        id: `${chapter.id}-${matchStart}`,
+        id: `${chapter.id}-${originalMatchIndex}`,
         title: chapter.title,
         pageNumber: pageInfo.page,
         pageNumberNumeric: pageInfo.numeric,
         excerpt,
         matchType: 'text',
         matchContext: {
-          before: beforeMatch.slice(-50), // Last 50 chars before match
+          before: excerptBefore.slice(-50), // Last 50 chars before match
           match: matchText,
-          after: afterMatch.slice(0, 50), // First 50 chars after match
-          position: matchStart,
-          length: match[0].length
+          after: excerptAfter.slice(0, 50), // First 50 chars after match
+          position: originalMatchIndex,
+          length: matchText.length
         },
         chapterInfo: {
           id: chapter.id,
@@ -294,8 +324,22 @@ export const searchBigBookContentEnhanced = (
     }
   });
   
+  // Remove duplicates based only on exact position (less aggressive)
+  const uniqueResults = [];
+  const seenPositions = new Set();
+  
+  for (const result of results) {
+    const key = `${result.chapterInfo.id}-${result.matchContext.position}`;
+    if (!seenPositions.has(key)) {
+      seenPositions.add(key);
+      uniqueResults.push(result);
+    }
+  }
+  
+  console.log('🔍 Search:', searchTerm, '- Total matches:', results.length, 'Unique matches:', uniqueResults.length);
+  
   // Sort results by page number, then by position within page
-  return results.sort((a, b) => {
+  return uniqueResults.sort((a, b) => {
     const pageComparison = a.pageNumberNumeric - b.pageNumberNumeric;
     if (pageComparison !== 0) return pageComparison;
     return a.matchContext.position - b.matchContext.position;

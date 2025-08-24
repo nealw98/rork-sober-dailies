@@ -187,14 +187,21 @@ function BigBookBrowserContent() {
   }, []);
 
   const handleSearchResultPress = useCallback((result: EnhancedSearchResult) => {
-    // Open the full chapter content instead of just the page
-    const chapterContent = allMarkdownContent[result.chapterInfo.id];
-    if (chapterContent) {
+    console.log('🔍 Search Result Clicked:', {
+      title: result.title,
+      pageNumber: result.pageNumber,
+      pageNumberNumeric: result.pageNumberNumeric,
+      chapterId: result.chapterInfo.id
+    });
+    
+    // Use the same navigation logic as "Go to Page" - this works perfectly!
+    const navigationResult = navigateToPageWithHighlight(result.pageNumberNumeric, searchQuery);
+    
+    if (navigationResult && navigationResult.success) {
       setCurrentMarkdown({
-        content: chapterContent, // Use full chapter content for scrolling
-        title: result.chapterInfo.title,
-        id: result.chapterInfo.id,
-        targetPageNumber: result.pageNumberNumeric,
+        content: navigationResult.content,
+        title: `${result.title} - Page ${result.pageNumber}`,
+        id: 'search-navigation',
         searchHighlight: {
           query: searchQuery,
           position: 0,
@@ -202,6 +209,8 @@ function BigBookBrowserContent() {
         }
       });
       setMarkdownReaderVisible(true);
+    } else {
+      console.log('❌ Navigation failed for page:', result.pageNumber);
     }
     // Don't hide search results - let user navigate back to them
     // setShowingSearchResults(false);

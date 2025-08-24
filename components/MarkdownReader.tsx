@@ -57,58 +57,46 @@ const MarkdownReader = ({
       .trim();
   }, [content]);
 
-  // Extract page numbers for ref tracking
+  // Extract page numbers for ref tracking - Updated for new format
   const pageNumbers = React.useMemo(() => {
-    const matches = cleanContent.match(/(--- \*Page (\d+)\* ---|— Page (\d+) —)/g) || [];
+    const matches = cleanContent.match(/\*— Page (\d+|\w+) —\*/g) || [];
     return matches.map(match => {
-      const pageMatch = match.match(/(--- \*Page (\d+)\* ---|— Page (\d+) —)/);
-      return pageMatch ? parseInt(pageMatch[2] || pageMatch[3], 10) : null;
-    }).filter((num): num is number => num !== null);
+      const pageMatch = match.match(/\*— Page (\d+|\w+) —\*/);
+      if (pageMatch) {
+        const pageStr = pageMatch[1];
+        return isNaN(parseInt(pageStr, 10)) ? -1 : parseInt(pageStr, 10); // Handle Roman numerals
+      }
+      return null;
+    }).filter((num): num is number => num !== null && num > 0);
   }, [cleanContent]);
 
-  // Extract page numbers and their positions for anchoring
+  // Extract page numbers - now only used for the "Go to Page" button validation
   const pageAnchors = React.useMemo(() => {
-    const regex = /(--- \*Page (\d+)\* ---|— Page (\d+) —)/g;
+    const regex = /\*— Page (\d+|\w+) —\*/g;
     const anchors: { pageNumber: number; position: number }[] = [];
     let match;
     
     while ((match = regex.exec(cleanContent)) !== null) {
-      anchors.push({
-        pageNumber: parseInt(match[2] || match[3], 10),
-        position: match.index
-      });
+      const pageStr = match[1];
+      const pageNum = isNaN(parseInt(pageStr, 10)) ? -1 : parseInt(pageStr, 10);
+      if (pageNum > 0) {
+        anchors.push({
+          pageNumber: pageNum,
+          position: match.index
+        });
+      }
     }
     
     return anchors;
   }, [cleanContent]);
 
+  // Note: Page scrolling is now handled by navigateToPageWithHighlight in BigBookBrowser
+  // This component just displays the content that's already filtered to the correct page
   const scrollToPage = (pageNumber: number) => {
-    const pageRef = pageRefs.current[`page-${pageNumber}`];
-    if (pageRef && scrollViewRef.current) {
-      pageRef.measureLayout(
-        scrollViewRef.current.getInnerViewNode(),
-        (x, y) => {
-          scrollViewRef.current?.scrollTo({
-            y: Math.max(0, y - 50), // Small offset to show the page marker
-            animated: true
-          });
-        },
-        () => console.log('Failed to measure page position')
-      );
-    } else {
-      console.log(`Page ref not found for page ${pageNumber}`);
-    }
+    console.log('📍 MarkdownReader: scrollToPage called but no longer needed - using navigateToPageWithHighlight instead');
   };
 
-  const findPagePosition = (pageNumber: number): number | null => {
-    const pageMarker1 = `--- *Page ${pageNumber}* ---`;
-    const pageMarker2 = `— Page ${pageNumber} —`;
-    let position = cleanContent.indexOf(pageMarker1);
-    if (position < 0) {
-      position = cleanContent.indexOf(pageMarker2);
-    }
-    return position >= 0 ? position : null;
-  };
+  // findPagePosition removed - no longer needed with navigateToPageWithHighlight approach
 
   const handleGoToPage = () => {
     Alert.prompt(
@@ -136,15 +124,13 @@ const MarkdownReader = ({
   };
 
   useEffect(() => {
-    if (targetPageNumber) {
-      // Use page-based scrolling
-      setTimeout(() => {
-        scrollToPage(targetPageNumber);
-      }, 300); // Give more time for refs to be set
-    } else if (initialScrollPosition && scrollViewRef.current) {
-      // Fallback to position-based scrolling  
+    console.log('📍 MarkdownReader useEffect:', { targetPageNumber, initialScrollPosition });
+    // Page-based navigation is now handled by navigateToPageWithHighlight before this component renders
+    // This component just displays the already-filtered content
+    if (initialScrollPosition && scrollViewRef.current) {
+      // Simple position scrolling for legacy support
       const scrollY = initialScrollPosition * 0.8;
-      console.log(`DEBUG MarkdownReader: Scrolling to position ${initialScrollPosition} -> ${scrollY}`);
+      console.log(`📍 MarkdownReader: Simple position scroll to ${scrollY}`);
       setTimeout(() => {
         scrollViewRef.current?.scrollTo({
           y: scrollY,
@@ -152,7 +138,7 @@ const MarkdownReader = ({
         });
       }, 100);
     }
-  }, [initialScrollPosition, targetPageNumber]);
+  }, [initialScrollPosition]);
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>

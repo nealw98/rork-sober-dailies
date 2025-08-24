@@ -22,8 +22,10 @@ export const CustomTextRenderer: React.FC<CustomTextRendererProps> = ({
     .replace(/\s*style="[^"]*"/g, '')
     .replace(/\s*data-page="[^"]*"/g, '')
     // Keep page numbers as they are now (already in correct format: *— Page X —*)
-    // Remove chapter titles since they're in the header (matches like "# BILL'S STORY", "# Chapter 2", etc.)
-    .replace(/^#{1,6}\s*[A-Za-z0-9][A-Za-z0-9\s']+$/gm, '')
+    // Remove chapter titles and subheadings since they're in the header
+    .replace(/^#{1,6}\s*[A-Za-z0-9][A-Za-z0-9\s':,-]+$/gm, '') // More comprehensive header removal
+    .replace(/^#{1,6}\s*HOW IT WORKS$/gm, '') // Specific removal for "HOW IT WORKS"
+    .replace(/^#{1,6}\s*Chapter \d+.*$/gm, '') // Remove "Chapter X" lines
     // Remove excessive line breaks around headers and page numbers
     .replace(/\n\s*\n\s*\n/g, '\n\n') // Replace triple+ line breaks with double
     .replace(/(#{1,6}[^\n]+)\n\s*\n\s*\n/g, '$1\n\n') // After headers
@@ -73,7 +75,10 @@ export const CustomTextRenderer: React.FC<CustomTextRendererProps> = ({
             <View>
               {/* Invisible anchor for scrolling */}
               <View
-                ref={(ref) => onPageRef?.(page.pageNumber!, ref)}
+                ref={(ref) => {
+                  console.log('📍 CustomTextRenderer: Setting page ref for page', page.pageNumber, ref ? 'SUCCESS' : 'NULL');
+                  onPageRef?.(page.pageNumber!, ref);
+                }}
                 style={{ height: 1, opacity: 0 }}
               />
               <Text style={[getPageMarkerStyle(page.pageNumber), style]}>
@@ -126,25 +131,76 @@ const PageContent: React.FC<{
     );
   }
 
-  // Split content for highlighting
-  const regex = new RegExp(`\\b(${searchTerm.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})\\b`, 'gi');
-  const parts = content.split(regex);
+  // Debug logging for highlighting
+  // console.log('🔍 CustomTextRenderer: Highlighting term:', searchTerm, 'in page', pageIndex);
+
+  // Split content for highlighting - Fixed algorithm
+  const escapedTerm = searchTerm.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const regex = new RegExp(`\\b${escapedTerm}\\b`, 'gi');
+  
+  // Find all matches first
+  const matches = [];
+  let match;
+  while ((match = regex.exec(content)) !== null) {
+    matches.push({
+      start: match.index,
+      end: match.index + match[0].length,
+      text: match[0]
+    });
+  }
+  
+  // console.log('🔍 CustomTextRenderer: Found', matches.length, 'matches for term:', searchTerm);
+  
+  if (matches.length === 0) {
+    return (
+      <Text style={[headerStyle, style]}>
+        {content}
+      </Text>
+    );
+  }
+
+  // Build text with highlights
+  const parts = [];
+  let lastIndex = 0;
+  
+  matches.forEach((matchInfo, matchIndex) => {
+    // Add text before the match
+    if (matchInfo.start > lastIndex) {
+      parts.push({
+        text: content.slice(lastIndex, matchInfo.start),
+        highlight: false
+      });
+    }
+    
+    // Add the highlighted match
+    parts.push({
+      text: matchInfo.text,
+      highlight: true
+    });
+    
+    // console.log('🟡 CustomTextRenderer: Will highlight:', matchInfo.text);
+    
+    lastIndex = matchInfo.end;
+  });
+  
+  // Add remaining text after last match
+  if (lastIndex < content.length) {
+    parts.push({
+      text: content.slice(lastIndex),
+      highlight: false
+    });
+  }
 
   return (
     <Text style={[headerStyle, style]}>
-      {parts.map((part, partIndex) => {
-        const isHighlight = regex.test(part);
-        regex.lastIndex = 0; // Reset regex for next test
-        
-        return (
-          <Text
-            key={`page-${pageIndex}-part-${partIndex}`}
-            style={isHighlight ? styles.highlight : undefined}
-          >
-            {part}
-          </Text>
-        );
-      })}
+      {parts.map((part, partIndex) => (
+        <Text
+          key={`page-${pageIndex}-part-${partIndex}`}
+          style={part.highlight ? styles.highlight : undefined}
+        >
+          {part.text}
+        </Text>
+      ))}
     </Text>
   );
 };
@@ -165,8 +221,12 @@ const styles = StyleSheet.create({
     marginTop: 16,
   },
   highlight: {
-    backgroundColor: '#ffeb3b',
+    backgroundColor: '#FFEB3B', // Bright yellow background
+    color: '#000000', // Black text for contrast
     fontWeight: 'bold',
+    paddingHorizontal: 2,
+    paddingVertical: 1,
+    borderRadius: 3,
   },
   // Roman numeral pages (like Preface) - left aligned, italics
   pageMarkerRoman: {
