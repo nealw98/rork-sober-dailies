@@ -3,7 +3,10 @@ export {
   bigBookTextContent,
   bigBookPDFContent,
   searchBigBookContent,
+  searchBigBookContentEnhanced,
+  navigateToPageWithHighlight,
   type BigBookTextContent,
   type SearchResult,
+  type EnhancedSearchResult,
 } from './bigbook/index';
 export { aaPrayers } from './prayers';

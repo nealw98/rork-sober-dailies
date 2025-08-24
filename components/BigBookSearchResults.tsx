@@ -6,17 +6,18 @@ import {
   TouchableOpacity,
   ScrollView,
 } from 'react-native';
-import { ExternalLink } from 'lucide-react-native';
+// Removed ExternalLink import - no longer needed
 import Colors from '@/constants/colors';
 import { adjustFontWeight } from '@/constants/fonts';
-import { SearchResult } from '@/constants/bigbook';
+import { EnhancedSearchResult } from '@/constants/bigbook';
 
 interface BigBookSearchResultsProps {
-  results: SearchResult[];
-  onResultPress: (result: SearchResult) => void;
+  results: EnhancedSearchResult[];
+  onResultPress: (result: EnhancedSearchResult) => void;
+  onDone: () => void;
 }
 
-const BigBookSearchResults = ({ results, onResultPress }: BigBookSearchResultsProps) => {
+const BigBookSearchResults = ({ results, onResultPress, onDone }: BigBookSearchResultsProps) => {
   if (results.length === 0) {
     return (
       <View style={styles.emptyContainer}>
@@ -28,9 +29,14 @@ const BigBookSearchResults = ({ results, onResultPress }: BigBookSearchResultsPr
 
   return (
     <ScrollView style={styles.container}>
-      <Text style={styles.resultsCount}>
-        {results.length} {results.length === 1 ? 'match' : 'matches'} found
-      </Text>
+      <View style={styles.resultsHeader}>
+        <Text style={styles.resultsCount}>
+          {results.length} {results.length === 1 ? 'match' : 'matches'} found
+        </Text>
+        <TouchableOpacity style={styles.doneButton} onPress={onDone}>
+          <Text style={styles.doneButtonText}>Done</Text>
+        </TouchableOpacity>
+      </View>
       
       {results.map((result, index) => (
         <TouchableOpacity
@@ -53,11 +59,6 @@ const BigBookSearchResults = ({ results, onResultPress }: BigBookSearchResultsPr
               </Text>
               {result.matchContext.after && `${result.matchContext.after}...`}
             </Text>
-          </View>
-          
-          <View style={styles.resultFooter}>
-            <ExternalLink size={16} color={Colors.light.muted} />
-            <Text style={styles.openText}>Open section</Text>
           </View>
         </TouchableOpacity>
       ))}
@@ -86,12 +87,28 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: Colors.light.muted,
   },
-  resultsCount: {
-    fontSize: 14,
-    color: Colors.light.muted,
+  resultsHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     padding: 16,
     borderBottomWidth: 1,
     borderBottomColor: Colors.light.divider,
+  },
+  resultsCount: {
+    fontSize: 14,
+    color: Colors.light.muted,
+  },
+  doneButton: {
+    backgroundColor: Colors.light.tint,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 4,
+  },
+  doneButtonText: {
+    color: Colors.light.background,
+    fontSize: 14,
+    fontWeight: adjustFontWeight('500'),
   },
   resultItem: {
     padding: 16,
@@ -133,16 +150,6 @@ const styles = StyleSheet.create({
     paddingVertical: 1,
     borderRadius: 2,
     lineHeight: 20,
-  },
-  resultFooter: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 8,
-  },
-  openText: {
-    fontSize: 14,
-    color: Colors.light.muted,
-    marginLeft: 8,
   },
 });
 

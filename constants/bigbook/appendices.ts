@@ -1,9 +1,8 @@
 export const appendicesContent = {
   "appendix-1": `# APPENDIX I
 
-# The A.A. Tradition
 
---- *Page 563* ---
+*— Page 563 —*
 
 To those now in its fold, Alcoholics Anonymous has made the difference between misery and sobriety, and often the difference between life and death. A.A. can, of course, mean just as much to uncounted alcoholics not yet reached.
 
@@ -35,7 +34,7 @@ Ten--Alcoholics Anonymous has no opinion on outside issues; hence the A.A. name 
 
 Eleven--Our public relations policy is based upon attraction rather than promotion; we need always maintain personal anonymity at the level of press, radio and films.
 
---- *Page 564* ---
+*— Page 564 —*
 
 Twelve--Anonymity is the spiritual foundation of all our Traditions, ever reminding us to place principles before personalities.
 
@@ -53,7 +52,7 @@ Our A.A. experience has taught us that:
 
 5.--Each Alcoholics Anonymous group ought to be a spiritual entity HAVING BUT ONE PRIMARY PURPOSE--that of carrying its message to the alcoholic who still suffers.
 
---- *Page 565* ---
+*— Page 565 —*
 
 6.--Problems of money, property, and authority may easily divert us from our primary spiritual aim. We think, therefore, that any considerable property of genuine use to A.A. should be separately incorporated and managed, thus dividing the material from the spiritual. An A.A. group, as such, should never go into business. Secondary aids to A.A., such as clubs or hospitals which require much property or administration, ought to be incorporated and so set apart that, if necessary, they can be freely discarded by the groups. Hence such facilities ought not to use the A.A. name. Their management should be the sole responsibility of those people who financially support them. For clubs, A.A. managers are usually preferred. But hospitals, as well as other places of recuperation, ought to be well outside A.A.--and medically supervised. While an A.A. group may cooperate with anyone, such cooperation ought never go so far as affiliation or endorsement, actual or implied. An A.A. group can bind itself to no one.
 
@@ -61,7 +60,7 @@ Our A.A. experience has taught us that:
 
 8.--Alcoholics Anonymous should remain forever nonprofessional. We define professionalism as the occupation of counseling alcoholics for fees or hire. But we may employ alcoholics where they are going to perform those services for which we might otherwise have to engage nonalcoholics. Such special services may be well recompensed. But our usual A.A. "12th Step" work is never to be paid for.
 
---- *Page 567* ---
+*— Page 567 —*
 
 9.--Each A.A. groups needs the least possible organization. Rotating leadership is the best. The small group may elect its Secretary, the large group its Rotating Committee, and the groups of a large Metropolitan area their Central or Intergroup Committee, which often employs a full-time Secretary. The trustees of the General Service Board are, in effect, our A.A. General Service Committee. They are the custodians of our A.A. Tradition and the receivers of voluntary A.A. contributions by which we maintain our A.A. General Service Office at New York. They are authorized by the groups to handle our over-all public relations and they guarantee the integrity of our principle newspaper, "The A.A. Grapevine." All such representatives are to be guided in the spirit of service, for true leaders in A. A. are but trusted and experienced servants of the whole. They derive no real authority from their titles; they do not govern. Universal respect is the key to their usefulness.
 
@@ -73,7 +72,6 @@ Our A.A. experience has taught us that:
 
   "appendix-2": `# APPENDIX II
 
-# Spiritual Experience
 
 The terms "spiritual experience" and "spiritual awakening" are used many times in this book which, upon careful reading, shows that the personality change sufficient to bring about recovery from alcoholism has manifested itself among us in many different forms.
 
@@ -83,7 +81,7 @@ In the first few chapters a number of sudden revolutionary changes are described
 
 Among our rapidly growing membership of thousands of alcoholics such transformations, though frequent, are by no means the rule. Most of our experiences are what the psychologist William James calls the "educational variety" because they develop slowly over a period of time. Quite often friends of the newcomer are aware of the difference long before he is himself. He finally realizes that he has undergone a profound alteration in his reaction to life; that such a change could hardly have been brought about by himself alone. What often takes place in a few months could hardly be accomplished by years of self-discipline. With few exceptions our members find that they have tapped an unsuspected
 
---- *Page 569* ---
+*— Page 569 —*
 
 inner resource which they presently identify with their own conception of a Power greater than themselves.
 
@@ -99,7 +97,6 @@ We find that no one need have difficulty with the spirituality of the program. W
 
   "appendix-3": `# APPENDIX III
 
-# The Medical View on A.A.
 
 Since Dr. Silkworth's first endorsement of Alcoholics Anonymous, medical societies and physicians throughout the world have set their approval upon us. Following are excerpts from the comments of doctors present at the actual meeting* of the Medical Society of the State of New York where a paper on A.A. was read:
 
@@ -111,7 +108,7 @@ Dr. Harry M. Tiebout, psychiatrist: "As a psychiatrist, I have thought a great d
 
 * 1944
 
---- *Page 571* ---
+*— Page 571 —*
 
 Dr. W. W. Bauer, broadcasting under the auspices of The American Medical Association in 1946, over the NBC network, said, in part: "Alcoholics Anonymous are no crusaders; not a temperance society. They know that they must never drink. They help others with similar problems... In this atmosphere the alcoholic often overcomes his excessive concentration upon himself. Learning to depend upon a higher power and absorb himself in his work with other alcoholics, he remains sober day by day. The days add up into weeks, the weeks into months and years."
 
@@ -123,9 +120,8 @@ The American Psychiatric Association requested, in 1949, that a paper he prepare
 
   "appendix-4": `# APPENDIX IV
 
-# The Lasker Award
 
---- *Page 573* ---
+*— Page 573 —*
 
 In 1951 the Lasker Award was given Alcoholics Anonymous. The citation reads in part as follows:
 
@@ -133,7 +129,6 @@ In 1951 the Lasker Award was given Alcoholics Anonymous. The citation reads in p
 
   "appendix-5": `# APPENDIX V
 
-# The Religious View on A.A.
 
 Clergymen of practically every denomination have given A.A. their blessing.
 
@@ -147,11 +142,10 @@ Speaking at a dinner given by Mr. John D. Rockefeller to introduce Alcoholics An
 
 * Father Ed, an early and wonderful friend of A.A., died in the Spring of 1960.
 
---- *Page 574* ---`,
+*— Page 574 —*`,
 
   "appendix-6": `# APPENDIX VI
 
-# How to Get in Touch With A.A.
 
 In the United States and Canada, most towns and cities have A.A. groups. In such places, A.A. can be located through the local telephone directory, newspaper office, or police station, or by contacting local priests or ministers. In large cities, groups often maintain local offices where alcoholics or their families may arrange for interviews or hospitalization. These so-called intergroup associations are found under the listing "A.A." or "Alcoholics Anonymous" in telephone directories.
 

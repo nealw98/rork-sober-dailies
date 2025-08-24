@@ -30,7 +30,14 @@ const literatureOptions: LiteratureOption[] = [
 
 export default function LiteratureScreen() {
   const handleOptionPress = (route: string) => {
-    router.push(route as any);
+    console.log('🔵 Literature: handleOptionPress called with route:', route);
+    try {
+      console.log('🔵 Literature: About to call router.push');
+      router.push(route as any);
+      console.log('🔵 Literature: router.push completed successfully');
+    } catch (error) {
+      console.error('🔴 Literature: Error in router.push:', error);
+    }
   };
 
   return (
@@ -44,32 +51,45 @@ export default function LiteratureScreen() {
       />
       
       <View style={styles.content}>
-        <Text style={styles.title}>AA Literature</Text>
-        <Text style={styles.subtitle}>
-          Access the foundational texts of Alcoholics Anonymous
-        </Text>
+        <View style={styles.mainContent}>
+          <Text style={styles.title}>AA Literature</Text>
+          <Text style={styles.subtitle}>
+            Access the foundational texts of Alcoholics Anonymous
+          </Text>
+          
+          <View style={styles.optionsContainer}>
+            {literatureOptions.map((option) => (
+              <TouchableOpacity
+                key={option.id}
+                style={styles.optionCard}
+                onPress={() => {
+                  console.log('🔵 Literature: TouchableOpacity pressed for:', option.id, option.route);
+                  handleOptionPress(option.route);
+                }}
+                onPressIn={() => console.log('🔵 Literature: TouchableOpacity onPressIn for:', option.id)}
+                onPressOut={() => console.log('🔵 Literature: TouchableOpacity onPressOut for:', option.id)}
+                activeOpacity={0.7}
+                testID={`literature-option-${option.id}`}
+              >
+                <View style={styles.optionContent}>
+                  <View style={styles.optionIcon}>
+                    <Book size={24} color={Colors.light.tint} />
+                  </View>
+                  <View style={styles.optionText}>
+                    <Text style={styles.optionTitle}>{option.title}</Text>
+                    <Text style={styles.optionDescription}>{option.description}</Text>
+                  </View>
+                  <ChevronRight size={20} color={Colors.light.muted} />
+                </View>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </View>
         
-        <View style={styles.optionsContainer}>
-          {literatureOptions.map((option) => (
-            <TouchableOpacity
-              key={option.id}
-              style={styles.optionCard}
-              onPress={() => handleOptionPress(option.route)}
-              activeOpacity={0.7}
-              testID={`literature-option-${option.id}`}
-            >
-              <View style={styles.optionContent}>
-                <View style={styles.optionIcon}>
-                  <Book size={24} color={Colors.light.tint} />
-                </View>
-                <View style={styles.optionText}>
-                  <Text style={styles.optionTitle}>{option.title}</Text>
-                  <Text style={styles.optionDescription}>{option.description}</Text>
-                </View>
-                <ChevronRight size={20} color={Colors.light.muted} />
-              </View>
-            </TouchableOpacity>
-          ))}
+        <View style={styles.noteContainer}>
+          <Text style={styles.noteText}>
+            <Text style={styles.noteBold}>Note:</Text> This is the 1939 First Edition of Alcoholics Anonymous. The first 164 pages remain unchanged in all later editions.
+          </Text>
         </View>
       </View>
     </ScreenContainer>
@@ -93,6 +113,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingTop: 20,
     paddingBottom: 20,
+    justifyContent: 'space-between',
+  },
+  mainContent: {
+    flex: 1,
   },
   title: {
     fontSize: 28,
@@ -144,5 +168,22 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: Colors.light.muted,
     lineHeight: 20,
+  },
+  noteContainer: {
+    padding: 16,
+    backgroundColor: 'rgba(255, 255, 255, 0.4)',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
+  },
+  noteText: {
+    fontSize: 13,
+    color: Colors.light.muted,
+    lineHeight: 18,
+    textAlign: 'center',
+  },
+  noteBold: {
+    fontWeight: adjustFontWeight('bold'),
+    color: Colors.light.text,
   },
 });

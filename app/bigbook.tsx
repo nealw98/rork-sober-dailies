@@ -4,6 +4,8 @@ import BigBookBrowser from "@/components/BigBookBrowser";
 import ScreenContainer from "@/components/ScreenContainer";
 
 export default function BigBookScreen() {
+  console.log('🟢 BigBookScreen: Component rendering');
+  
   return (
     <>
       <Stack.Screen options={{ 

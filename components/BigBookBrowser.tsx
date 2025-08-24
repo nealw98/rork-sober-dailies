@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
   StyleSheet,
   View,
@@ -6,6 +6,8 @@ import {
   ScrollView,
   TouchableOpacity,
   Modal,
+  Platform,
+  Alert,
 } from "react-native";
 import {
   ChevronDown,
@@ -19,11 +21,12 @@ import { LinearGradient } from 'expo-linear-gradient';
 import Colors from "@/constants/colors";
 import { bigBookData } from "@/constants/bigbook/data";
 import { allMarkdownContent } from "@/constants/bigbook/content";
-import { searchBigBookContent, SearchResult } from "@/constants/bigbook";
+import { searchBigBookContentEnhanced, EnhancedSearchResult, navigateToPageWithHighlight } from "@/constants/bigbook";
+
 import { BigBookStoreProvider, useBigBookStore } from "@/hooks/use-bigbook-store";
 import { BigBookCategory, BigBookSection } from "@/types/bigbook";
 import { adjustFontWeight } from "@/constants/fonts";
-import BookSelector from "@/components/BookSelector";
+
 import PDFViewer from "@/components/PDFViewer";
 import MarkdownReader from "./MarkdownReader";
 import ScreenContainer from "./ScreenContainer";
@@ -108,6 +111,8 @@ const CategorySection = ({ category, onOpenContent }: {
 };
 
 function BigBookBrowserContent() {
+  // Component is rendering normally
+  
   const [pdfViewerVisible, setPdfViewerVisible] = useState(false);
   const [currentPdf, setCurrentPdf] = useState("");
   const [markdownReaderVisible, setMarkdownReaderVisible] = useState(false);
@@ -116,11 +121,36 @@ function BigBookBrowserContent() {
     title: string;
     id: string;
     pages?: string;
+    initialScrollPosition?: number;
+    targetPageNumber?: number;
+    searchHighlight?: {
+      query: string;
+      position: number;
+      length: number;
+    };
   } | null>(null);
-  const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState<EnhancedSearchResult[]>([]);
   const [showingSearchResults, setShowingSearchResults] = useState(false);
+  const [clearSearch, setClearSearch] = useState(false);
 
-  const handleOpenContent = (section: BigBookSection) => {
+  // Safety mechanism to ensure modals are closed on component mount
+  useEffect(() => {
+    console.log('🟢 BigBookBrowser: useEffect mount - ensuring modals are closed');
+    setPdfViewerVisible(false);
+    setMarkdownReaderVisible(false);
+  }, []);
+
+  // Debug logging for modal states
+  useEffect(() => {
+    console.log('🟢 BigBookBrowser: Modal states changed:', { pdfViewerVisible, markdownReaderVisible });
+  }, [pdfViewerVisible, markdownReaderVisible]);
+
+
+
+
+
+  const handleOpenContent = useCallback((section: BigBookSection) => {
     // Check if we have markdown content for this section
     if (allMarkdownContent[section.id]) {
       setCurrentMarkdown({
@@ -134,32 +164,132 @@ function BigBookBrowserContent() {
       setCurrentPdf(section.url);
       setPdfViewerVisible(true);
     }
-  };
+  }, []);
 
-  const handleSearch = (query: string) => {
-    const results = searchBigBookContent(query, 'text');
+  const handleSearch = useCallback((query: string) => {
+    setSearchQuery(query);
+    
+    if (!query.trim()) {
+      setSearchResults([]);
+      setShowingSearchResults(false);
+      return;
+    }
+    
+    // Simple unified search - use whole words for everything
+    const results = searchBigBookContentEnhanced(query, {
+      caseSensitive: false,
+      wholeWordsOnly: true, // Always use whole word matching
+      includePageNumbers: true
+    });
+    
     setSearchResults(results);
     setShowingSearchResults(true);
-  };
+  }, []);
 
-  const handleSearchResultPress = (result: SearchResult) => {
-    // Find the section that contains this result
-    const section = bigBookData.flatMap(cat => cat.sections).find(s => s.id === result.id);
-    if (section) {
-      handleOpenContent(section);
+  const handleSearchResultPress = useCallback((result: EnhancedSearchResult) => {
+    // Open the full chapter content instead of just the page
+    const chapterContent = allMarkdownContent[result.chapterInfo.id];
+    if (chapterContent) {
+      setCurrentMarkdown({
+        content: chapterContent, // Use full chapter content for scrolling
+        title: result.chapterInfo.title,
+        id: result.chapterInfo.id,
+        targetPageNumber: result.pageNumberNumeric,
+        searchHighlight: {
+          query: searchQuery,
+          position: 0,
+          length: searchQuery.length
+        }
+      });
+      setMarkdownReaderVisible(true);
     }
+    // Don't hide search results - let user navigate back to them
+    // setShowingSearchResults(false);
+  }, [searchQuery]);
+
+  const handleSearchDone = useCallback(() => {
     setShowingSearchResults(false);
-  };
+    setSearchResults([]);
+    setSearchQuery('');
+    setClearSearch(true);
+    // Reset clearSearch after a brief moment
+    setTimeout(() => setClearSearch(false), 100);
+  }, []);
+
+  const handleGoToPage = useCallback(() => {
+    console.log('🟢 BigBookBrowser: Go to Page button pressed'); // Debug log
+    Alert.prompt(
+      "Go to Page",
+      "Enter page number (1-184)", // 1st edition goes up to page 184
+      [
+        { text: "Cancel", style: "cancel" },
+        { 
+          text: "Go", 
+          onPress: (pageInput) => {
+            if (pageInput && pageInput.trim()) {
+              const pageNum = pageInput.trim();
+              const navigationResult = navigateToPageWithHighlight(pageNum);
+              
+              if (navigationResult && navigationResult.success) {
+                // Open the content with the page highlighted
+                setCurrentMarkdown({
+                  content: navigationResult.content,
+                  title: `Page ${pageNum}`,
+                  id: 'page-navigation',
+                  searchHighlight: {
+                    query: '',
+                    position: 0,
+                    length: 0
+                  }
+                });
+                setMarkdownReaderVisible(true);
+              } else {
+                Alert.alert("Page Not Found", `Could not find page ${pageNum}. Please try a different page number.`);
+              }
+            }
+          }
+        }
+      ],
+      "plain-text",
+      "",
+      "numeric"
+    );
+  }, []);
 
   return (
     <View style={styles.container}>
-      <BookSelector activeBook="bigbook" />
-      <BigBookSearchBar onSearch={handleSearch} />
+      <LinearGradient
+        colors={['rgba(74, 144, 226, 0.3)', 'rgba(92, 184, 92, 0.1)']}
+        style={styles.backgroundGradient}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        locations={[0, 1]}
+        pointerEvents="none"
+      />
+      
+
+
+      <View style={styles.searchContainer}>
+        <View style={styles.searchBarContainer}>
+          <BigBookSearchBar onSearch={handleSearch} clearSearch={clearSearch} />
+        </View>
+        <TouchableOpacity 
+          style={styles.goToPageButton}
+          onPress={handleGoToPage}
+          onPressIn={() => console.log('🟢 BigBookBrowser: Go to Page onPressIn')}
+          onPressOut={() => console.log('🟢 BigBookBrowser: Go to Page onPressOut')}
+          activeOpacity={0.7}
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+        >
+          <Text style={styles.goToPageButtonText}>Go to Page</Text>
+        </TouchableOpacity>
+      </View>
       
       {showingSearchResults ? (
         <BigBookSearchResults 
           results={searchResults} 
-          onResultPress={handleSearchResultPress} 
+          onResultPress={handleSearchResultPress}
+          onDone={handleSearchDone}
         />
       ) : (
         <ScrollView style={styles.scrollView}>
@@ -175,27 +305,44 @@ function BigBookBrowserContent() {
 
       <Modal
         visible={pdfViewerVisible}
-        onRequestClose={() => setPdfViewerVisible(false)}
+        onRequestClose={() => {
+          console.log('PDF Modal onRequestClose called');
+          setPdfViewerVisible(false);
+        }}
         animationType="slide"
+        transparent={false}
       >
         <PDFViewer
           url={currentPdf}
-          onClose={() => setPdfViewerVisible(false)}
+          onClose={() => {
+            console.log('PDF Viewer onClose called');
+            setPdfViewerVisible(false);
+          }}
         />
       </Modal>
 
       <Modal
         visible={markdownReaderVisible}
-        onRequestClose={() => setMarkdownReaderVisible(false)}
+        onRequestClose={() => {
+          console.log('Markdown Modal onRequestClose called');
+          setMarkdownReaderVisible(false);
+        }}
         animationType="slide"
+        transparent={false}
       >
         {currentMarkdown && (
           <MarkdownReader
             content={currentMarkdown.content}
             title={currentMarkdown.title}
-            onClose={() => setMarkdownReaderVisible(false)}
+            onClose={() => {
+              console.log('Markdown Reader onClose called');
+              setMarkdownReaderVisible(false);
+            }}
             sectionId={currentMarkdown.id}
-
+            searchQuery={searchQuery}
+            searchHighlight={currentMarkdown.searchHighlight}
+            initialScrollPosition={currentMarkdown.initialScrollPosition}
+            targetPageNumber={currentMarkdown.targetPageNumber}
           />
         )}
       </Modal>
@@ -204,6 +351,7 @@ function BigBookBrowserContent() {
 }
 
 export default function BigBookBrowser() {
+  console.log('🟢 BigBookBrowser: Main wrapper component rendering');
   return (
     <BigBookStoreProvider>
       <BigBookBrowserContent />
@@ -214,6 +362,14 @@ export default function BigBookBrowser() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: Colors.light.background,
+  },
+  backgroundGradient: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
   },
   scrollView: {
     flex: 1,
@@ -278,5 +434,37 @@ const styles = StyleSheet.create({
   },
   bookmarkButton: {
     marginRight: 12,
+  },
+
+  searchContainer: {
+    paddingHorizontal: 16,
+    paddingTop: 20,
+    paddingBottom: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  searchBarContainer: {
+    flex: 1,
+    marginRight: 12,
+  },
+  goToPageButton: {
+    backgroundColor: Colors.light.tint,
+    paddingHorizontal: 12,
+    borderRadius: 6,
+    minWidth: 80,
+    height: 36,
+    justifyContent: 'center',
+    alignItems: 'center',
+    elevation: 2, // Android shadow
+    shadowColor: '#000', // iOS shadow
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.2,
+    shadowRadius: 2,
+  },
+  goToPageButtonText: {
+    color: 'white',
+    fontSize: 14,
+    fontWeight: '600',
+    textAlign: 'center',
   },
 });

@@ -22,27 +22,15 @@ export const bigBookData: BigBookCategory[] = [
     description: "Introduction and historical context of the Big Book",
     sections: [
       {
-        id: "preface",
-        title: "Preface",
-        pages: "xi-xii",
-        description: "Introduction to the fourth edition"
-      },
-      {
         id: "foreword-first",
         title: "Foreword to First Edition",
         pages: "xiii-xiv",
         description: "Original 1939 foreword"
       },
       {
-        id: "foreword-second",
-        title: "Foreword to Second Edition",
-        pages: "xv-xvi",
-        description: "1955 edition updates"
-      },
-      {
         id: "doctors-opinion",
         title: "The Doctor's Opinion",
-        pages: "xxiii-xxxii",
+        pages: "xxiii-xxx",
         description: "Dr. William Silkworth's medical perspective"
       }
     ]
@@ -127,33 +115,9 @@ export const bigBookData: BigBookCategory[] = [
     sections: [
       {
         id: "appendix-1",
-        title: "I. The A.A. Tradition",
-        description: "The Twelve Traditions of AA"
-      },
-      {
-        id: "appendix-2",
-        title: "II. Spiritual Experience",
-        description: "Understanding spiritual awakening"
-      },
-      {
-        id: "appendix-3",
-        title: "III. The Medical View on A.A.",
-        description: "Medical profession's perspective"
-      },
-      {
-        id: "appendix-4",
-        title: "IV. The Lasker Award",
-        description: "Recognition from medical community"
-      },
-      {
-        id: "appendix-5",
-        title: "V. The Religious View on A.A.",
-        description: "Religious community's perspective"
-      },
-      {
-        id: "appendix-6",
-        title: "VI. How to Get in Touch With A.A.",
-        description: "Contact information and resources"
+        title: "Spiritual Experience",
+        pages: "567-568",
+        description: "Understanding spiritual awakening in the 1st edition"
       }
     ]
   }

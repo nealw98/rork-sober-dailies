@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   StyleSheet,
   View,
@@ -13,16 +13,47 @@ import { adjustFontWeight } from '@/constants/fonts';
 
 interface BigBookSearchBarProps {
   onSearch: (query: string) => void;
+  clearSearch?: boolean;
 }
 
-const BigBookSearchBar = ({ onSearch }: BigBookSearchBarProps) => {
+const BigBookSearchBar = ({ onSearch, clearSearch }: BigBookSearchBarProps) => {
   const [query, setQuery] = useState('');
+  const searchTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const handleSearch = () => {
     if (query.trim()) {
       onSearch(query.trim());
     }
   };
+
+  // Clear search when clearSearch prop is true
+  useEffect(() => {
+    if (clearSearch) {
+      setQuery('');
+    }
+  }, [clearSearch]);
+
+  // Auto-search with minimum 2 characters, no delay
+  useEffect(() => {
+    // Clear previous timeout
+    if (searchTimeoutRef.current) {
+      clearTimeout(searchTimeoutRef.current);
+    }
+
+    // Instant search with minimum 2 characters
+    if (query.trim().length >= 2) {
+      onSearch(query.trim()); // No delay - instant search
+    } else if (query.trim().length === 0) {
+      onSearch(''); // Clear results when empty
+    }
+
+    // Cleanup timeout on unmount
+    return () => {
+      if (searchTimeoutRef.current) {
+        clearTimeout(searchTimeoutRef.current);
+      }
+    };
+  }, [query, onSearch]);
 
   return (
     <View style={styles.container}>
@@ -31,35 +62,22 @@ const BigBookSearchBar = ({ onSearch }: BigBookSearchBarProps) => {
           <Search size={20} color={Colors.light.muted} style={styles.searchIcon} />
           <TextInput
             style={styles.input}
-            placeholder="Search Big Book..."
+            placeholder="Search text"
             placeholderTextColor={Colors.light.muted}
             value={query}
             onChangeText={setQuery}
-            onSubmitEditing={handleSearch}
             returnKeyType="search"
             autoCapitalize="none"
           />
         </View>
       </View>
-      
-      {query.trim() && (
-        <TouchableOpacity 
-          style={styles.searchButton} 
-          onPress={handleSearch}
-        >
-          <Text style={styles.searchButtonText}>Search</Text>
-        </TouchableOpacity>
-      )}
     </View>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
-    padding: 16,
-    backgroundColor: Colors.light.background,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.light.divider,
+    // No padding since it's now contained within searchContainer
   },
   searchContainer: {
     flexDirection: 'row',
@@ -85,24 +103,9 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: Colors.light.text,
     height: '100%',
-    ...Platform.select({
-      web: {
-        outlineStyle: 'none',
-      },
-    }),
+    ...(Platform.OS === 'web' ? { outline: 'none' } : {}),
   },
-  searchButton: {
-    marginTop: 8,
-    backgroundColor: Colors.light.tint,
-    borderRadius: 8,
-    paddingVertical: 8,
-    alignItems: 'center',
-  },
-  searchButtonText: {
-    color: 'white',
-    fontSize: 16,
-    fontWeight: adjustFontWeight('600'),
-  },
+
 });
 
 export default BigBookSearchBar;

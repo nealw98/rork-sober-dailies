@@ -1,8 +1,8 @@
 # PREFACE
 
---- *Page xi* ---
+*— Page xi —*
 
-THIS IS the second edition of the book "Alcoholics Anonymous," which made its first appearance in April 1939. More than 300,000 copies of the first edition are now in circulation.
+**THIS IS** the second edition of the book "Alcoholics Anonymous," which made its first appearance in April 1939. More than 300,000 copies of the first edition are now in circulation.
 
 Because this book has become the basic text for our Society and has helped such large numbers of alcoholic men and women to recovery, there exists a sentiment against any radical changes being made in it. Therefore, the first portion of this volume, describing the A.A. recovery program, has been left largely untouched.
 
@@ -10,7 +10,7 @@ But the personal history section has been considerably revised and enlarged in o
 
 As a souvenir of our past, the original Foreword has
 
---- *Page xii* ---
+*— Page xii —*
 
 been preserved and is followed by a second one describing Alcoholics Anonymous of 1955.
 
