@@ -24,7 +24,10 @@ const queryClient = new QueryClient();
 function RootLayoutNav() {
   const { isOnboardingComplete, isLoading } = useOnboarding();
 
+  console.log('=== ROOT LAYOUT NAV RENDER ===');
   console.log('RootLayoutNav - isLoading:', isLoading, 'isOnboardingComplete:', isOnboardingComplete);
+  console.log('Current timestamp:', new Date().toISOString());
+  console.log('useOnboarding hook result type:', typeof useOnboarding);
 
   // Hide splash screen when app is ready
   const hideSplashScreen = useCallback(async () => {

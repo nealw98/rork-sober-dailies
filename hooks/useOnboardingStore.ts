@@ -14,29 +14,20 @@ export const [OnboardingProvider, useOnboarding] = createContextHook(() => {
       console.log('=== ONBOARDING CHECK START ===');
       console.log('Platform:', Platform.OS);
       
-      // For development/preview, skip onboarding to get to main app faster
-      console.log('Skipping onboarding for development/preview');
-      setIsOnboardingComplete(true);
+      // Check if onboarding was completed
+      const status = await AsyncStorage.getItem(ONBOARDING_KEY);
+      console.log('AsyncStorage status:', status);
       
-      // Original logic commented out for debugging
-      /*
-      if (Platform.OS === 'android') {
-        try {
-          const status = await AsyncStorage.getItem(ONBOARDING_KEY);
-          console.log('Android AsyncStorage status:', status);
-          setIsOnboardingComplete(status === 'true');
-        } catch (androidError) {
-          console.log('Android AsyncStorage error, skipping onboarding:', androidError);
-          setIsOnboardingComplete(true);
-        }
+      // For development/preview, skip onboarding if not explicitly set
+      if (status === null) {
+        console.log('No onboarding status found, skipping for development');
+        setIsOnboardingComplete(true);
       } else {
-        const status = await AsyncStorage.getItem(ONBOARDING_KEY);
-        console.log('AsyncStorage status:', status);
         setIsOnboardingComplete(status === 'true');
       }
-      */
     } catch (error) {
       console.log('Error checking onboarding status:', error);
+      // On error, skip onboarding to prevent app from being stuck
       setIsOnboardingComplete(true);
     } finally {
       console.log('Setting isLoading to false');
@@ -47,7 +38,18 @@ export const [OnboardingProvider, useOnboarding] = createContextHook(() => {
 
   useEffect(() => {
     checkOnboardingStatus();
-  }, [checkOnboardingStatus]);
+    
+    // Failsafe: if loading takes too long, force complete onboarding
+    const timeout = setTimeout(() => {
+      if (isLoading) {
+        console.log('FAILSAFE: Onboarding check took too long, forcing completion');
+        setIsOnboardingComplete(true);
+        setIsLoading(false);
+      }
+    }, 5000); // 5 second timeout
+    
+    return () => clearTimeout(timeout);
+  }, [checkOnboardingStatus, isLoading]);
 
   const completeOnboarding = useCallback(async () => {
     try {

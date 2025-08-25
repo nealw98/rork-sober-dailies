@@ -32,7 +32,6 @@ const formatDateDisplay = (date: Date): string => {
 };
 
 export default function EveningReview() {
-  const eveningReviewStore = useEveningReviewStore();
   const [showConfirmation, setShowConfirmation] = useState(false);
   const [showSavedReviews, setShowSavedReviews] = useState(false);
 
@@ -50,6 +49,9 @@ export default function EveningReview() {
   const [spiritualFlag, setSpiritualFlag] = useState('');
   const [spiritualNote, setSpiritualNote] = useState('');
   const [prayerMeditationFlag, setPrayerMeditationFlag] = useState('');
+
+  // Always call hooks in the same order
+  const eveningReviewStore = useEveningReviewStore();
 
   // Add safety check to prevent destructuring undefined
   if (!eveningReviewStore) {

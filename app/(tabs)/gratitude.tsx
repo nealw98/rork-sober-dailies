@@ -299,12 +299,14 @@ const formatDateDisplay = (date: Date): string => {
 };
 
 export default function GratitudeListScreen() {
-  const gratitudeStore = useGratitudeStore();
   const [gratitudeItems, setGratitudeItems] = useState<string[]>([]);
   const [inputValue, setInputValue] = useState('');
   const [showConfirmation, setShowConfirmation] = useState(false);
   const [showSavedEntries, setShowSavedEntries] = useState(false);
   const inputRef = useRef<TextInput>(null);
+  
+  // Always call hooks in the same order
+  const gratitudeStore = useGratitudeStore();
 
   // Add safety check to prevent destructuring undefined
   if (!gratitudeStore) {
@@ -387,7 +389,6 @@ export default function GratitudeListScreen() {
     console.log('=== SHARE BUTTON PRESSED ===');
     console.log('Share button pressed, items:', gratitudeItems.length);
     console.log('Platform:', Platform.OS);
-    console.log('Share function available:', typeof Share.share);
     
     if (gratitudeItems.length === 0) {
       console.log('No items to share, showing alert');
@@ -406,10 +407,7 @@ export default function GratitudeListScreen() {
       day: 'numeric'
     });
 
-    const gratitudeText = gratitudeItems
-      .map((item) => item)
-      .join('\n');
-
+    const gratitudeText = gratitudeItems.join('\n');
     const shareMessage = `Today I'm grateful for:\n${gratitudeText}`;
     
     console.log('Share message prepared:', shareMessage.substring(0, 100) + '...');
@@ -419,14 +417,24 @@ export default function GratitudeListScreen() {
       
       if (Platform.OS === 'web') {
         console.log('Web platform detected, using clipboard');
-        // For web, copy to clipboard since Share API doesn't work in iframes
-        await Clipboard.setStringAsync(shareMessage);
-        console.log('Clipboard write successful');
-        Alert.alert(
-          'Copied to Clipboard',
-          'Your gratitude list has been copied to the clipboard. You can now paste it in any messaging app or text field.',
-          [{ text: 'OK' }]
-        );
+        // For web, copy to clipboard since Share API doesn't work reliably in web preview
+        try {
+          await Clipboard.setStringAsync(shareMessage);
+          console.log('Clipboard write successful');
+          Alert.alert(
+            'Copied to Clipboard',
+            'Your gratitude list has been copied to the clipboard. You can now paste it in any messaging app or text field.',
+            [{ text: 'OK' }]
+          );
+        } catch (clipboardError) {
+          console.error('Clipboard failed on web:', clipboardError);
+          // Fallback for web - show the text in an alert so user can copy manually
+          Alert.alert(
+            'Share Gratitude List',
+            shareMessage,
+            [{ text: 'OK' }]
+          );
+        }
       } else {
         console.log('Mobile platform detected, using native Share API');
         // For mobile, use native Share API
@@ -439,24 +447,12 @@ export default function GratitudeListScreen() {
     } catch (error) {
       console.error('Error sharing gratitude list:', error);
       
-      // Fallback to clipboard for any platform if sharing fails
-      try {
-        console.log('Attempting clipboard fallback');
-        await Clipboard.setStringAsync(shareMessage);
-        console.log('Clipboard fallback successful');
-        Alert.alert(
-          'Copied to Clipboard',
-          'Sharing failed, but your gratitude list has been copied to the clipboard.',
-          [{ text: 'OK' }]
-        );
-      } catch (clipboardError) {
-        console.error('Clipboard fallback failed:', clipboardError);
-        Alert.alert(
-          'Share Error',
-          'Unable to share your gratitude list. Please try again.',
-          [{ text: 'OK' }]
-        );
-      }
+      // Universal fallback - show the text in an alert
+      Alert.alert(
+        'Share Gratitude List',
+        shareMessage,
+        [{ text: 'OK' }]
+      );
     }
     console.log('=== SHARE FUNCTION COMPLETE ===');
   };
