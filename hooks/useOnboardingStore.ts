@@ -6,6 +6,8 @@ import createContextHook from '@nkzw/create-context-hook';
 const ONBOARDING_KEY = 'sober_dailies_onboarding_complete';
 
 export const [OnboardingProvider, useOnboarding] = createContextHook(() => {
+  console.log('=== ONBOARDING HOOK INIT ===');
+  console.log('Creating onboarding hook instance');
   const [isOnboardingComplete, setIsOnboardingComplete] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(true);
 

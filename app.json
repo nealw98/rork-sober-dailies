@@ -62,12 +62,6 @@
     },
     "plugins": [
       [
-        "expo-router",
-        {
-          "origin": "https://rork.com/"
-        }
-      ],
-      [
         "expo-splash-screen",
         {
           "ios": {
