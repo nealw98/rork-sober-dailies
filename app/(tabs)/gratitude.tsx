@@ -300,17 +300,6 @@ const formatDateDisplay = (date: Date): string => {
 
 export default function GratitudeListScreen() {
   const gratitudeStore = useGratitudeStore();
-  const {
-    isCompletedToday,
-    getTodaysItems,
-    addItemsToToday,
-    uncompleteToday,
-    getWeeklyProgress,
-    getWeeklyStreak,
-    saveDetailedEntry,
-    getSavedEntry
-  } = gratitudeStore;
-  
   const [gratitudeItems, setGratitudeItems] = useState<string[]>([]);
   const [inputValue, setInputValue] = useState('');
   const [showConfirmation, setShowConfirmation] = useState(false);
@@ -327,6 +316,17 @@ export default function GratitudeListScreen() {
       </ScreenContainer>
     );
   }
+  
+  const {
+    isCompletedToday,
+    getTodaysItems,
+    addItemsToToday,
+    uncompleteToday,
+    getWeeklyProgress,
+    getWeeklyStreak,
+    saveDetailedEntry,
+    getSavedEntry
+  } = gratitudeStore;
   
   const getTodayDateString = () => {
     const today = new Date();

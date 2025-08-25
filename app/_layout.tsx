@@ -30,7 +30,11 @@ function RootLayoutNav() {
   const hideSplashScreen = useCallback(async () => {
     if (!isLoading) {
       console.log('Hiding splash screen');
-      await SplashScreen.hideAsync();
+      try {
+        await SplashScreen.hideAsync();
+      } catch (error) {
+        console.log('Error hiding splash screen:', error);
+      }
     }
   }, [isLoading]);
 
