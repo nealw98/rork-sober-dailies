@@ -60,3 +60,4 @@ fs.writeFileSync(
   output,
   'utf8'
 );
+
