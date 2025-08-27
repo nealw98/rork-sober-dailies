@@ -2,7 +2,7 @@
   "expo": {
     "name": "Sober Dailies",
     "slug": "sober-dailies",
-    "version": "1.7.5",
+    "version": "1.7.6",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "myapp",
@@ -16,12 +16,8 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.nealwagner.soberdailies",
-      "buildNumber": "4",
+      "buildNumber": "5",
       "infoPlist": {
-        "NSCameraUsageDescription": "This app uses the camera to let you add photos.",
-        "NSMicrophoneUsageDescription": "This app uses the microphone for audio features.",
-        "NSPhotoLibraryUsageDescription": "This app needs photo library access to save and share images.",
-        "NSPhotoLibraryAddUsageDescription": "This app saves images to your library.",
         "ITSAppUsesNonExemptEncryption": false
       },
       "entitlements": {
@@ -61,6 +57,12 @@
       "favicon": "./assets/images/favicon.webp"
     },
     "plugins": [
+      [
+        "expo-router",
+        {
+          "origin": "https://rork.com/"
+        }
+      ],
       [
         "expo-splash-screen",
         {

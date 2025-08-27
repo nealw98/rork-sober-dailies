@@ -9,8 +9,8 @@ export interface BigBookTextContent {
   content: string;
   searchable: boolean;
   pageNumbers?: {
-    start: number;
-    end: number;
+    start: string | number;
+    end: string | number;
   };
   url?: string;
   description?: string;
@@ -38,7 +38,7 @@ export interface EnhancedSearchResult {
 
 export interface NavigationResult {
   success: boolean;
-  pageNumber: number;
+  pageNumber: string | number;
   content: string;
   highlightedContent: string;
   scrollPosition?: number;
@@ -120,14 +120,14 @@ export const bigBookTextContent: BigBookTextContent[] = [
     title: 'Foreword to First Edition',
     content: '',
     searchable: true,
-    pageNumbers: { start: 1, end: 3 } // Roman numerals i-iii
+    pageNumbers: { start: 'xiii', end: 'xiv' }
   },
   {
     id: 'doctors-opinion',
     title: "The Doctor's Opinion",
     content: '',
     searchable: true,
-    pageNumbers: { start: 7, end: 12 } // Roman numerals vii-xii
+    pageNumbers: { start: 'xxiii', end: 'xxx' }
   },
   {
     id: 'chapter-1',
@@ -244,22 +244,23 @@ export const searchBigBookContentEnhanced = (
   
   bigBookTextContent.forEach(chapter => {
     if (!chapter.searchable || !chapter.content) return;
-    
-    // Clean content to exclude chapter titles and headers from search
     let content = chapter.content;
-    
     // Remove chapter titles, headers, and page markers from search content
-    const searchableContent = content
-      .replace(/^#{1,6}\s*[A-Za-z0-9][A-Za-z0-9\s':,-]+$/gm, '') // Remove headers
-      .replace(/^#{1,6}\s*HOW IT WORKS$/gm, '') // Remove specific headers
-      .replace(/^#{1,6}\s*Chapter \d+.*$/gm, '') // Remove chapter lines
-      .replace(/^\*— Page [^—]+ —\*$/gm, '') // Remove page markers from search
-      .replace(/^The Doctor's Opinion$/gm, '') // Remove title duplicates
-      .replace(/^Bill's Story$/gm, '') // Remove title duplicates
-      .replace(/^More About Alcoholism$/gm, '') // Remove title duplicates
-      .replace(/^Into Action$/gm, '') // Remove title duplicates
-      .trim();
-    
+    // For Roman numeral chapters, keep page markers for search
+    let searchableContent = content;
+    if (typeof chapter.pageNumbers?.start === 'number') {
+      searchableContent = content
+        .replace(/^#{1,6}\s*[A-Za-z0-9][A-Za-z0-9\s':,-]+$/gm, '') // Remove headers
+        .replace(/^#{1,6}\s*HOW IT WORKS$/gm, '') // Remove specific headers
+        .replace(/^#{1,6}\s*Chapter \d+.*$/gm, '') // Remove chapter lines
+        .replace(/^[*]— Page [^—]+ —[*]$/gm, '') // Remove page markers from search (Arabic only)
+        .replace(/^The Doctor's Opinion$/gm, '') // Remove title duplicates
+        .replace(/^Bill's Story$/gm, '') // Remove title duplicates
+        .replace(/^More About Alcoholism$/gm, '') // Remove title duplicates
+        .replace(/^Into Action$/gm, '') // Remove title duplicates
+        .trim();
+    }
+    // For Roman numeral chapters, do not remove page markers
     let match;
     
     // Find all matches in this chapter (search both original and cleaned)
@@ -302,6 +303,23 @@ export const searchBigBookContentEnhanced = (
         .replace(/\n{2,}/g, ' ')
         .trim();
       
+      // Clean up the before and after context to remove headers and page markers
+      const cleanBefore = excerptBefore
+        .replace(/\*— Page [^—]+ —\*/g, '')
+        .replace(/^#{1,6}\s*[^\n]*$/gm, '') // Remove markdown headers
+        .replace(/^(The Doctor's Opinion|Bill's Story|More About Alcoholism|Into Action|HOW IT WORKS)$/gm, '') // Remove specific titles
+        .replace(/^Chapter \d+.*$/gm, '') // Remove chapter lines
+        .replace(/\n{2,}/g, ' ')
+        .trim();
+        
+      const cleanAfter = excerptAfter
+        .replace(/\*— Page [^—]+ —\*/g, '')
+        .replace(/^#{1,6}\s*[^\n]*$/gm, '') // Remove markdown headers
+        .replace(/^(The Doctor's Opinion|Bill's Story|More About Alcoholism|Into Action|HOW IT WORKS)$/gm, '') // Remove specific titles
+        .replace(/^Chapter \d+.*$/gm, '') // Remove chapter lines
+        .replace(/\n{2,}/g, ' ')
+        .trim();
+      
       results.push({
         id: `${chapter.id}-${originalMatchIndex}`,
         title: chapter.title,
@@ -310,9 +328,9 @@ export const searchBigBookContentEnhanced = (
         excerpt,
         matchType: 'text',
         matchContext: {
-          before: excerptBefore.slice(-50), // Last 50 chars before match
+          before: cleanBefore.slice(-50), // Last 50 chars before match (cleaned)
           match: matchText,
-          after: excerptAfter.slice(0, 50), // First 50 chars after match
+          after: cleanAfter.slice(0, 50), // First 50 chars after match (cleaned)
           position: originalMatchIndex,
           length: matchText.length
         },
@@ -348,57 +366,61 @@ export const searchBigBookContentEnhanced = (
 
 // Navigate to specific page with highlighted search term
 export const navigateToPageWithHighlight = (
-  pageNumber: number | string,
+  pageNumber: string | number,
   searchTerm?: string
 ): NavigationResult => {
+  console.log('🚨 NAVIGATION FUNCTION CALLED with pageNumber:', pageNumber, 'searchTerm:', searchTerm);
+
   try {
-    const targetPageNumeric = typeof pageNumber === 'string' ? romanToArabic(pageNumber) : pageNumber;
-    
-    // Find the chapter that contains this page
+    const isRoman = typeof pageNumber === 'string' && isNaN(Number(pageNumber));
     let targetChapter: BigBookTextContent | null = null;
-    
+
     for (const chapter of bigBookTextContent) {
       if (chapter.pageNumbers) {
-        if (targetPageNumeric >= chapter.pageNumbers.start && targetPageNumeric <= chapter.pageNumbers.end) {
-          targetChapter = chapter;
-          break;
+        // If searching for a Roman numeral, only check string ranges
+        if (isRoman && typeof chapter.pageNumbers.start === 'string' && typeof chapter.pageNumbers.end === 'string') {
+          if (compareRoman(pageNumber as string, chapter.pageNumbers.start) >= 0 && compareRoman(pageNumber as string, chapter.pageNumbers.end) <= 0) {
+            targetChapter = chapter;
+            break;
+          }
+        }
+        // If searching for an Arabic number, only check numeric ranges
+        if (!isRoman && typeof chapter.pageNumbers.start === 'number' && typeof chapter.pageNumbers.end === 'number') {
+          if ((pageNumber as number) >= chapter.pageNumbers.start && (pageNumber as number) <= chapter.pageNumbers.end) {
+            targetChapter = chapter;
+            break;
+          }
         }
       }
     }
-    
+
     if (!targetChapter) {
       return {
         success: false,
-        pageNumber: targetPageNumeric,
+        pageNumber,
         content: '',
         highlightedContent: 'Page not found'
       };
     }
-    
+
     const content = targetChapter.content;
-    
-    // Find the specific page marker (using new format with asterisks)
-    const pageRegex = new RegExp(`\\*— Page ${targetPageNumeric} —\\*`, 'i');
-    const pageMatch = content.match(pageRegex);
-    
-    if (!pageMatch) {
+    // Use the exact string for the marker
+    const pageMarker = `*— Page ${pageNumber} —*`;
+    const pageMatch = content.indexOf(pageMarker);
+    if (pageMatch === -1) {
       return {
         success: false,
-        pageNumber: targetPageNumeric,
+        pageNumber,
         content: content,
         highlightedContent: content
       };
     }
-    
     // Find the content for this page (from this marker to next marker or end)
-    const pageStartIndex = content.indexOf(pageMatch[0]);
-    const nextPageRegex = /\*— Page \d+ —\*/g;
-    nextPageRegex.lastIndex = pageStartIndex + pageMatch[0].length;
+    const nextPageRegex = /\*— Page (\d+|[ivxlc]+) —\*/gi;
+    nextPageRegex.lastIndex = pageMatch + pageMarker.length;
     const nextPageMatch = nextPageRegex.exec(content);
-    
     const pageEndIndex = nextPageMatch ? nextPageMatch.index : content.length;
-    let pageContent = content.slice(pageStartIndex, pageEndIndex);
-    
+    let pageContent = content.slice(pageMatch, pageEndIndex);
     // Clean up any HTML tags that might have been included
     pageContent = pageContent
       .replace(/<div[^>]*data-page[^>]*>.*?<\/div>/g, '') // Remove complete div blocks
@@ -406,24 +428,20 @@ export const navigateToPageWithHighlight = (
       .replace(/<\/div>/g, '')
       .replace(/\s*style="[^"]*"/g, '')
       .replace(/\s*data-page="[^"]*"/g, '');
-    
     let highlightedContent = pageContent;
-    
     // If search term provided, highlight it in the page content
     if (searchTerm) {
       const escapedTerm = searchTerm.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
       const highlightRegex = new RegExp(`\\b${escapedTerm}\\b`, 'gi');
       highlightedContent = pageContent.replace(highlightRegex, `**$&**`);
     }
-    
     return {
       success: true,
-      pageNumber: targetPageNumeric,
+      pageNumber,
       content: pageContent,
       highlightedContent,
-      scrollPosition: pageStartIndex
+      scrollPosition: 0
     };
-    
   } catch (error) {
     console.error('Error navigating to page:', error);
     return {
@@ -435,8 +453,18 @@ export const navigateToPageWithHighlight = (
   }
 };
 
-// Export helper functions for external use
-export { extractAllPageNumbers, romanToArabic, findPageForTextPosition };
-
-// Legacy compatibility - export the old search function name
-export const searchBigBookContent = searchBigBookContentEnhanced;
+// Helper to compare two Roman numerals as strings
+function compareRoman(a: string, b: string): number {
+  const romanToInt = (roman: string): number => {
+    const map: Record<string, number> = {i:1,v:5,x:10,l:50,c:100,d:500,m:1000};
+    let num = 0, prev = 0;
+    for (let i = roman.length - 1; i >= 0; i--) {
+      const curr = map[roman[i].toLowerCase()];
+      if (curr < prev) num -= curr;
+      else num += curr;
+      prev = curr;
+    }
+    return num;
+  };
+  return romanToInt(a) - romanToInt(b);
+}

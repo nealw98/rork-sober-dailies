@@ -193,15 +193,14 @@ function BigBookBrowserContent() {
       pageNumberNumeric: result.pageNumberNumeric,
       chapterId: result.chapterInfo.id
     });
-    
-    // Use the same navigation logic as "Go to Page" - this works perfectly!
-    const navigationResult = navigateToPageWithHighlight(result.pageNumberNumeric, searchQuery);
-    
+    // Pass the Roman numeral string or Arabic number directly
+    const navigationResult = navigateToPageWithHighlight(result.pageNumber, searchQuery);
     if (navigationResult && navigationResult.success) {
       setCurrentMarkdown({
         content: navigationResult.content,
-        title: `${result.title} - Page ${result.pageNumber}`,
+        title: `Big Book - Page ${result.pageNumber}`,
         id: 'search-navigation',
+        initialScrollPosition: navigationResult.scrollPosition || 0,
         searchHighlight: {
           query: searchQuery,
           position: 0,
@@ -229,22 +228,25 @@ function BigBookBrowserContent() {
     console.log('🟢 BigBookBrowser: Go to Page button pressed'); // Debug log
     Alert.prompt(
       "Go to Page",
-      "Enter page number (1-184)", // 1st edition goes up to page 184
+      "Enter page number (1-164)",
       [
         { text: "Cancel", style: "cancel" },
         { 
           text: "Go", 
           onPress: (pageInput) => {
             if (pageInput && pageInput.trim()) {
-              const pageNum = pageInput.trim();
+              const pageNum = parseInt(pageInput.trim(), 10);
+              if (isNaN(pageNum) || pageNum < 1 || pageNum > 164) {
+                Alert.alert("Invalid Page", "Please enter a valid page number between 1 and 164.");
+                return;
+              }
               const navigationResult = navigateToPageWithHighlight(pageNum);
-              
               if (navigationResult && navigationResult.success) {
-                // Open the content with the page highlighted
                 setCurrentMarkdown({
                   content: navigationResult.content,
-                  title: `Page ${pageNum}`,
+                  title: `Big Book - Page ${pageNum}`,
                   id: 'page-navigation',
+                  initialScrollPosition: navigationResult.scrollPosition || 0,
                   searchHighlight: {
                     query: '',
                     position: 0,
@@ -253,7 +255,7 @@ function BigBookBrowserContent() {
                 });
                 setMarkdownReaderVisible(true);
               } else {
-                Alert.alert("Page Not Found", `Could not find page ${pageNum}. Please try a different page number.`);
+                Alert.alert("Page Not Found", `Could not find page ${pageNum}. Please try a different page number between 1 and 164.`);
               }
             }
           }

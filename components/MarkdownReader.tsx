@@ -98,43 +98,16 @@ const MarkdownReader = ({
 
   // findPagePosition removed - no longer needed with navigateToPageWithHighlight approach
 
-  const handleGoToPage = () => {
-    Alert.prompt(
-      "Go to Page",
-      `Enter page number (1-${pageNumbers.length > 0 ? Math.max(...pageNumbers) : 1})`,
-      [
-        { text: "Cancel", style: "cancel" },
-        { 
-          text: "Go", 
-          onPress: (pageInput) => {
-            const pageNum = parseInt(pageInput || '', 10);
-            const maxPage = pageNumbers.length > 0 ? Math.max(...pageNumbers) : 1;
-            if (!isNaN(pageNum) && pageNum >= 1 && pageNum <= maxPage) {
-              scrollToPage(pageNum);
-            } else {
-              Alert.alert("Invalid Page", "Please enter a valid page number.");
-            }
-          }
-        }
-      ],
-      "plain-text",
-      "",
-      "number-pad"
-    );
-  };
-
   useEffect(() => {
     console.log('📍 MarkdownReader useEffect:', { targetPageNumber, initialScrollPosition });
-    // Page-based navigation is now handled by navigateToPageWithHighlight before this component renders
-    // This component just displays the already-filtered content
+    
+    // If we have a scroll position from navigation, scroll to that position
     if (initialScrollPosition && scrollViewRef.current) {
-      // Simple position scrolling for legacy support
-      const scrollY = initialScrollPosition * 0.8;
-      console.log(`📍 MarkdownReader: Simple position scroll to ${scrollY}`);
+      console.log(`📍 MarkdownReader: Scrolling to position ${initialScrollPosition}`);
       setTimeout(() => {
         scrollViewRef.current?.scrollTo({
-          y: scrollY,
-          animated: false
+          y: Math.max(0, initialScrollPosition - 100), // Offset by 100px to show some context above
+          animated: true
         });
       }, 100);
     }
@@ -147,18 +120,7 @@ const MarkdownReader = ({
           <Text style={styles.backText}>Back</Text>
         </TouchableOpacity>
         <Text style={styles.headerTitle}>{title}</Text>
-        
-        <View style={styles.headerControls}>
-          {/* Only show page navigation for multi-page content */}
-          {pageNumbers.length > 1 && (
-            <TouchableOpacity 
-              style={styles.goToPageButton}
-              onPress={handleGoToPage}
-            >
-              <Text style={styles.goToPageButtonText}>Go to Page</Text>
-            </TouchableOpacity>
-          )}
-        </View>
+        {/* Removed headerControls with Go to Page button */}
       </View>
       
       <ScrollView 

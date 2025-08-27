@@ -8,6 +8,21 @@ interface CustomTextRendererProps {
   onPageRef?: (pageNumber: number, ref: View | null) => void;
 }
 
+// Type definitions for markdown parts
+type TextPart = {
+  type: 'text';
+  text: string;
+  italic: boolean;
+};
+
+type TablePart = {
+  type: 'table';
+  headers: string[];
+  data: string[][];
+};
+
+type MarkdownPart = TextPart | TablePart;
+
 export const CustomTextRenderer: React.FC<CustomTextRendererProps> = ({
   content,
   searchTerm,
@@ -111,6 +126,74 @@ const getPageMarkerStyle = (pageNumber: number) => {
   return isRomanNumeral ? styles.pageMarkerRoman : styles.pageMarkerArabic;
 };
 
+// Helper function to render markdown parts without unwanted paragraph breaks
+const renderMarkdownParts = (markdownParts: MarkdownPart[], pageIndex: number, headerStyle: any, style: any) => {
+  const elements: React.ReactNode[] = [];
+  let currentTextParts: TextPart[] = [];
+  
+  markdownParts.forEach((part, partIndex) => {
+    if (part.type === 'table') {
+      // If we have accumulated text parts, render them as a single paragraph
+      if (currentTextParts.length > 0) {
+        elements.push(
+          <Text key={`page-${pageIndex}-text-${elements.length}`} style={[headerStyle, style]}>
+            {currentTextParts.map((textPart, textIndex) => (
+              textPart.italic ? (
+                <Text key={textIndex} style={styles.italicText}>{textPart.text}</Text>
+              ) : (
+                textPart.text
+              )
+            ))}
+          </Text>
+        );
+        currentTextParts = [];
+      }
+      
+      // Render the table
+      elements.push(
+        <View key={`page-${pageIndex}-table-${partIndex}`} style={styles.tableContainer}>
+          <View style={styles.tableRow}>
+            {part.headers.map((header: string, headerIndex: number) => (
+              <View key={headerIndex} style={styles.tableHeaderCell}>
+                <Text style={styles.tableHeaderText}>{header}</Text>
+              </View>
+            ))}
+          </View>
+          {part.data.map((row: string[], rowIndex: number) => (
+            <View key={rowIndex} style={styles.tableRow}>
+              {row.map((cell: string, cellIndex: number) => (
+                <View key={cellIndex} style={styles.tableCell}>
+                  <Text style={styles.tableCellText}>{cell}</Text>
+                </View>
+              ))}
+            </View>
+          ))}
+        </View>
+      );
+    } else {
+      // Accumulate text parts
+      currentTextParts.push(part);
+    }
+  });
+  
+  // Render any remaining text parts as a single paragraph
+  if (currentTextParts.length > 0) {
+    elements.push(
+      <Text key={`page-${pageIndex}-text-${elements.length}`} style={[headerStyle, style]}>
+        {currentTextParts.map((textPart, textIndex) => (
+          textPart.italic ? (
+            <Text key={textIndex} style={styles.italicText}>{textPart.text}</Text>
+          ) : (
+            textPart.text
+          )
+        ))}
+      </Text>
+    );
+  }
+  
+  return elements;
+};
+
 // Helper component to render page content
 const PageContent: React.FC<{
   content: string;
@@ -122,19 +205,19 @@ const PageContent: React.FC<{
   const isHeader = /^#{1,6}\s*[^\n]*$/.test(content) && !content.includes('\n\n');
   const headerStyle = isHeader ? styles.headerText : styles.baseText;
 
-  // If no search term, return simple text
+  // Parse markdown content
+  const markdownParts = parseMarkdown(content);
+
+  // If no search term, render markdown
   if (!searchTerm) {
     return (
-      <Text style={[headerStyle, style]}>
-        {content}
-      </Text>
+      <View>
+        {renderMarkdownParts(markdownParts, pageIndex, headerStyle, style)}
+      </View>
     );
   }
 
-  // Debug logging for highlighting
-  // console.log('🔍 CustomTextRenderer: Highlighting term:', searchTerm, 'in page', pageIndex);
-
-  // Split content for highlighting - Fixed algorithm
+  // Handle search highlighting with markdown
   const escapedTerm = searchTerm.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   const regex = new RegExp(`\\b${escapedTerm}\\b`, 'gi');
   
@@ -149,60 +232,220 @@ const PageContent: React.FC<{
     });
   }
   
-  // console.log('🔍 CustomTextRenderer: Found', matches.length, 'matches for term:', searchTerm);
-  
   if (matches.length === 0) {
+    // No matches, but still render markdown
     return (
-      <Text style={[headerStyle, style]}>
-        {content}
-      </Text>
+      <View>
+        {renderMarkdownParts(markdownParts, pageIndex, headerStyle, style)}
+      </View>
     );
   }
 
-  // Build text with highlights
-  const parts = [];
-  let lastIndex = 0;
+  // Build blocks for rendering: text blocks with highlights, table blocks as views
+  const blocks: React.ReactNode[] = [];
+  const markdownPartsForHighlighting = parseMarkdown(content);
+  markdownPartsForHighlighting.forEach((part, partIndex) => {
+    if (part.type === 'table') {
+      // Render table block with cell highlighting
+      blocks.push(
+        <View key={`page-${pageIndex}-table-${partIndex}`} style={styles.tableContainer}>
+          <View style={styles.tableRow}>
+            {part.headers.map((header: string, headerIndex: number) => (
+              <View key={headerIndex} style={styles.tableHeaderCell}>
+                <Text style={styles.tableHeaderText}>{header}</Text>
+              </View>
+            ))}
+          </View>
+          {part.data.map((row: string[], rowIndex: number) => (
+            <View key={rowIndex} style={styles.tableRow}>
+              {row.map((cell: string, cellIndex: number) => {
+                let highlightCell = false;
+                if (searchTerm && cell.toLowerCase().includes(searchTerm.toLowerCase())) {
+                  highlightCell = true;
+                }
+                return (
+                  <View key={cellIndex} style={[styles.tableCell, highlightCell && styles.tableCellHighlight]}>
+                    <Text style={styles.tableCellText}>{cell}</Text>
+                  </View>
+                );
+              })}
+            </View>
+          ))}
+        </View>
+      );
+    } else {
+      // For text blocks, apply highlighting (unchanged)
+      const text = part.text;
+      if (!searchTerm) {
+        blocks.push(
+          <Text key={`page-${pageIndex}-text-${partIndex}`} style={[headerStyle, style, part.italic ? styles.italicText : undefined]}>
+            {text}
+          </Text>
+        );
+      } else {
+        const regex = new RegExp(`\\b${escapedTerm}\\b`, 'gi');
+        let match;
+        let lastIdx = 0;
+        const children: React.ReactNode[] = [];
+        while ((match = regex.exec(text)) !== null) {
+          if (match.index > lastIdx) {
+            children.push(text.slice(lastIdx, match.index));
+          }
+          children.push(
+            <Text key={`highlight-${pageIndex}-${partIndex}-${lastIdx}`} style={styles.highlight}>
+              {match[0]}
+            </Text>
+          );
+          lastIdx = match.index + match[0].length;
+        }
+        if (lastIdx < text.length) {
+          children.push(text.slice(lastIdx));
+        }
+        blocks.push(
+          <Text key={`page-${pageIndex}-text-${partIndex}`} style={[headerStyle, style, part.italic ? styles.italicText : undefined]}>
+            {children}
+          </Text>
+        );
+      }
+    }
+  });
+
+  return <View>{blocks}</View>;
+};
+
+// Parse markdown formatting including tables
+const parseMarkdown = (text: string): MarkdownPart[] => {
+  const parts: MarkdownPart[] = [];
+  const lines = text.split('\n');
+  let currentText = '';
+  let inTable = false;
+  let tableLines: string[] = [];
   
-  matches.forEach((matchInfo, matchIndex) => {
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i].trim();
+    
+    // Check if this line is a table row (starts with | and contains at least one more |)
+    const isTableRow = line.startsWith('|') && line.includes('|', 1);
+    
+    if (isTableRow) {
+      // If we were collecting text, add it as a text part
+      if (currentText.trim() && !inTable) {
+        parts.push(...parseTextContent(currentText.trim()));
+        currentText = '';
+      }
+      
+      // Start or continue table
+      inTable = true;
+      tableLines.push(line);
+    } else {
+      // If we were in a table and this line is not a table row, end the table
+      if (inTable) {
+        if (tableLines.length > 0) {
+          parts.push(...parseTable(tableLines.join('\n')));
+          tableLines = [];
+        }
+        inTable = false;
+      }
+      
+      // Add this line to current text
+      if (currentText) {
+        currentText += '\n' + line;
+      } else {
+        currentText = line;
+      }
+    }
+  }
+  
+  // Handle any remaining content
+  if (inTable && tableLines.length > 0) {
+    parts.push(...parseTable(tableLines.join('\n')));
+  }
+  
+  if (currentText.trim()) {
+    parts.push(...parseTextContent(currentText.trim()));
+  }
+  
+  return parts.length > 0 ? parts : [{ text, italic: false, type: 'text' }];
+};
+
+// Parse text content (for non-table text)
+const parseTextContent = (text: string): TextPart[] => {
+  const parts: TextPart[] = [];
+  let currentIndex = 0;
+  
+  // Match *text* for italics
+  const italicRegex = /\*([^*]+)\*/g;
+  let match;
+  
+  while ((match = italicRegex.exec(text)) !== null) {
     // Add text before the match
-    if (matchInfo.start > lastIndex) {
+    if (match.index > currentIndex) {
       parts.push({
-        text: content.slice(lastIndex, matchInfo.start),
-        highlight: false
+        text: text.slice(currentIndex, match.index),
+        italic: false,
+        type: 'text'
       });
     }
     
-    // Add the highlighted match
+    // Add the italic text
     parts.push({
-      text: matchInfo.text,
-      highlight: true
+      text: match[1],
+      italic: true,
+      type: 'text'
     });
     
-    // console.log('🟡 CustomTextRenderer: Will highlight:', matchInfo.text);
-    
-    lastIndex = matchInfo.end;
-  });
+    currentIndex = match.index + match[0].length;
+  }
   
-  // Add remaining text after last match
-  if (lastIndex < content.length) {
+  // Add remaining text
+  if (currentIndex < text.length) {
     parts.push({
-      text: content.slice(lastIndex),
-      highlight: false
+      text: text.slice(currentIndex),
+      italic: false,
+      type: 'text'
     });
   }
+  
+  return parts.length > 0 ? parts : [{ text, italic: false, type: 'text' }];
+};
 
-  return (
-    <Text style={[headerStyle, style]}>
-      {parts.map((part, partIndex) => (
-        <Text
-          key={`page-${pageIndex}-part-${partIndex}`}
-          style={part.highlight ? styles.highlight : undefined}
-        >
-          {part.text}
-        </Text>
-      ))}
-    </Text>
-  );
+// Parse markdown table
+const parseTable = (tableText: string): MarkdownPart[] => {
+  const lines = tableText.trim().split('\n');
+  const tableData: string[][] = [];
+  
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i].trim();
+    if (line.startsWith('|') && line.includes('|', 1)) {
+      // Remove leading pipe and split by pipe, then clean up each cell
+      const cells = line.slice(1).split('|').map(cell => cell.trim());
+      
+      // Limit to 3 columns to prevent extra columns from malformed rows
+      const limitedCells = cells.slice(0, 3);
+      
+      // If we have fewer than 3 cells, pad with empty strings
+      while (limitedCells.length < 3) {
+        limitedCells.push('');
+      }
+      
+      tableData.push(limitedCells);
+    }
+  }
+  
+  if (tableData.length >= 2) {
+    // First row is headers, second row is separator, rest are data
+    const headers = tableData[0];
+    const dataRows = tableData.slice(2); // Skip separator line
+    
+    return [{
+      type: 'table',
+      headers,
+      data: dataRows
+    }];
+  }
+  
+  // Fallback to text if table parsing fails
+  return [{ text: tableText, italic: false, type: 'text' }];
 };
 
 const styles = StyleSheet.create({
@@ -223,7 +466,6 @@ const styles = StyleSheet.create({
   highlight: {
     backgroundColor: '#FFEB3B', // Bright yellow background
     color: '#000000', // Black text for contrast
-    fontWeight: 'bold',
     paddingHorizontal: 2,
     paddingVertical: 1,
     borderRadius: 3,
@@ -247,5 +489,47 @@ const styles = StyleSheet.create({
     textAlign: 'left',
     marginBottom: 12,
     marginTop: 0, // No space at top
+  },
+  italicText: {
+    fontStyle: 'italic',
+  },
+  tableContainer: {
+    marginVertical: 10,
+    borderWidth: 1,
+    borderColor: '#ccc',
+    borderRadius: 5,
+    overflow: 'hidden',
+  },
+  tableRow: {
+    flexDirection: 'row',
+    borderBottomWidth: 1,
+    borderBottomColor: '#eee',
+  },
+  tableHeaderCell: {
+    flex: 1,
+    paddingVertical: 8,
+    paddingHorizontal: 10,
+    backgroundColor: '#f5f5f5',
+    borderRightWidth: 1,
+    borderRightColor: '#eee',
+  },
+  tableHeaderText: {
+    fontWeight: 'bold',
+    fontSize: 14,
+    textAlign: 'left',
+  },
+  tableCell: {
+    flex: 1,
+    paddingVertical: 8,
+    paddingHorizontal: 10,
+    borderRightWidth: 1,
+    borderRightColor: '#eee',
+  },
+  tableCellText: {
+    fontSize: 14,
+    textAlign: 'left',
+  },
+  tableCellHighlight: {
+    backgroundColor: '#FFEB3B',
   },
 });
