@@ -237,10 +237,11 @@ export default function ChatInterface() {
           onChangeText={setInputText}
           placeholder={getPlaceholderText()}
           placeholderTextColor={Colors.light.muted}
-          multiline={false}
+          multiline={true}
           maxLength={500}
-          returnKeyType="done"
-          blurOnSubmit={true}
+          returnKeyType="default"
+          blurOnSubmit={false}
+          textAlignVertical="top"
           testID="chat-input"
         />
         <TouchableOpacity
@@ -399,7 +400,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 10,
     fontSize: 16,
-    height: 44,
+    minHeight: 44,
+    maxHeight: 120,
   },
   sendButton: {
     width: 44,
