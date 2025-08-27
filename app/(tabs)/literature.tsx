@@ -86,11 +86,7 @@ export default function LiteratureScreen() {
           </View>
         </View>
         
-        <View style={styles.noteContainer}>
-          <Text style={styles.noteText}>
-            <Text style={styles.noteBold}>Note:</Text> This is the 1939 First Edition of Alcoholics Anonymous. The first 164 pages remain unchanged in all later editions.
-          </Text>
-        </View>
+
       </View>
     </ScreenContainer>
   );
@@ -113,7 +109,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingTop: 20,
     paddingBottom: 20,
-    justifyContent: 'space-between',
   },
   mainContent: {
     flex: 1,
@@ -169,21 +164,5 @@ const styles = StyleSheet.create({
     color: Colors.light.muted,
     lineHeight: 20,
   },
-  noteContainer: {
-    padding: 16,
-    backgroundColor: 'rgba(255, 255, 255, 0.4)',
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.2)',
-  },
-  noteText: {
-    fontSize: 13,
-    color: Colors.light.muted,
-    lineHeight: 18,
-    textAlign: 'center',
-  },
-  noteBold: {
-    fontWeight: adjustFontWeight('bold'),
-    color: Colors.light.text,
-  },
+
 });

@@ -1,11 +1,13 @@
 import React, { useRef } from 'react';
-import { Text, StyleSheet, View } from 'react-native';
+import { Text, StyleSheet, View, LayoutChangeEvent } from 'react-native';
 
 interface CustomTextRendererProps {
   content: string;
   searchTerm?: string;
   style?: any;
-  onPageRef?: (pageNumber: number, ref: View | null) => void;
+  onPageRef?: (pageNumber: string, ref: View | null) => void;
+  onPageLayout?: (pageNumber: string, y: number) => void;
+  getScrollViewNode?: () => any;
 }
 
 // Type definitions for markdown parts
@@ -27,7 +29,9 @@ export const CustomTextRenderer: React.FC<CustomTextRendererProps> = ({
   content,
   searchTerm,
   style,
-  onPageRef
+  onPageRef,
+  onPageLayout,
+  getScrollViewNode
 }) => {
   // Clean and format content
   const cleanContent = content
@@ -48,64 +52,70 @@ export const CustomTextRenderer: React.FC<CustomTextRendererProps> = ({
     .trim();
 
   // Split content by page markers and reorganize to show page numbers at top
-  const sections = cleanContent.split(/(\*— Page (?:\d+|\w+) —\*)/);
-  
-  // Group content by pages
-  const pages: Array<{ pageNumber?: number; content: string; pageNumStr?: string }> = [];
-  let currentPage: { pageNumber?: number; content: string; pageNumStr?: string } = { content: '' };
-  
-  sections.forEach((section) => {
-    const pageMarkerMatch = section.match(/\*— Page (\d+|\w+) —\*/);
-    if (pageMarkerMatch) {
-      // Save current page if it has content
-      if (currentPage.content.trim()) {
-        pages.push(currentPage);
+  const markerRegex = /(\*— Page (?:\d+|\w+) —\*)/g;
+  const splitSections = cleanContent.split(markerRegex);
+  // Group content so each page starts with its marker
+  const pages: Array<{ pageNumStr: string; content: string }> = [];
+  let currentPageNumStr: string | null = null;
+  let currentContent: string = '';
+  splitSections.forEach((section) => {
+    const markerMatch = section.match(/^\*— Page (\d+|\w+) —\*$/);
+    if (markerMatch) {
+      // If we have a previous page, push it
+      if (currentPageNumStr !== null) {
+        pages.push({ pageNumStr: currentPageNumStr, content: currentContent.trim() });
       }
-      // Start new page
-      const pageNumStr = pageMarkerMatch[1];
-      // For Roman numerals, we'll use a special marker (negative numbers)
-      // This is a hack to distinguish Roman from Arabic numerals
-      const pageNumber = isNaN(parseInt(pageNumStr, 10)) ? -1 : parseInt(pageNumStr, 10);
-      currentPage = { 
-        pageNumber: pageNumber, 
-        content: '',
-        pageNumStr: pageNumStr // Store original string for display
-      };
-    } else if (section.trim()) {
-      currentPage.content += section;
+      // Start new page with marker; do NOT include marker in content to avoid duplication
+      currentPageNumStr = markerMatch[1];
+      currentContent = '';
+    } else {
+      currentContent += section;
     }
   });
-  
-  // Add final page
-  if (currentPage.content.trim() || currentPage.pageNumber) {
-    pages.push(currentPage);
+  // Push the last page
+  if (currentPageNumStr !== null) {
+    pages.push({ pageNumStr: currentPageNumStr, content: currentContent.trim() });
   }
+
+  // Keep refs to invisible anchors so we can measure against the ScrollView
+  const anchorRefs = useRef<{ [page: string]: View | null }>({});
 
   return (
     <View>
       {pages.map((page, pageIndex) => (
         <View key={`page-${pageIndex}`}>
           {/* Page number at top if exists */}
-          {page.pageNumber && (
+          {typeof page.pageNumStr === 'string' && page.pageNumStr.trim() !== '' && (
             <View>
-              {/* Invisible anchor for scrolling */}
               <View
                 ref={(ref) => {
-                  console.log('📍 CustomTextRenderer: Setting page ref for page', page.pageNumber, ref ? 'SUCCESS' : 'NULL');
-                  onPageRef?.(page.pageNumber!, ref);
+                  anchorRefs.current[page.pageNumStr] = ref;
+                  onPageRef?.(page.pageNumStr, ref);
+                }}
+                onLayout={() => {
+                  const scrollNode = getScrollViewNode?.();
+                  const ref: any = anchorRefs.current[page.pageNumStr];
+                  if (ref && scrollNode && typeof ref.measureLayout === 'function') {
+                    ref.measureLayout(
+                      scrollNode,
+                      (x: number, y: number) => {
+                        onPageLayout?.(page.pageNumStr, y);
+                      },
+                      () => {}
+                    );
+                  }
                 }}
                 style={{ height: 1, opacity: 0 }}
               />
-              <Text style={[getPageMarkerStyle(page.pageNumber), style]}>
-                — Page {page.pageNumStr || page.pageNumber} —
+              <Text style={[getPageMarkerStyle(page.pageNumStr), style]}>
+                — Page {page.pageNumStr} —
               </Text>
             </View>
           )}
-          
           {/* Page content */}
-          {page.content.trim() && (
+          {page.content && (
             <PageContent 
-              content={page.content.trim()}
+              content={page.content}
               searchTerm={searchTerm}
               style={style}
               pageIndex={pageIndex}
@@ -118,10 +128,10 @@ export const CustomTextRenderer: React.FC<CustomTextRendererProps> = ({
 };
 
 // Helper function to determine page marker style based on page number type
-const getPageMarkerStyle = (pageNumber: number) => {
+const getPageMarkerStyle = (pageNumber: string) => {
   // Roman numerals are typically used for preface/front matter (low numbers)
   // Arabic numerals for main chapters (higher numbers)
-  const isRomanNumeral = pageNumber < 50; // Adjust this threshold as needed
+  const isRomanNumeral = isNaN(parseInt(pageNumber, 10)) && pageNumber.length > 0; // Check if it's a string that looks like a Roman numeral
   
   return isRomanNumeral ? styles.pageMarkerRoman : styles.pageMarkerArabic;
 };

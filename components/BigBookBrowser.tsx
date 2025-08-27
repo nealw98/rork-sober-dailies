@@ -122,7 +122,7 @@ function BigBookBrowserContent() {
     id: string;
     pages?: string;
     initialScrollPosition?: number;
-    targetPageNumber?: number;
+    targetPageNumber?: string;
     searchHighlight?: {
       query: string;
       position: number;
@@ -137,6 +137,10 @@ function BigBookBrowserContent() {
   // Safety mechanism to ensure modals are closed on component mount
   useEffect(() => {
     console.log('🟢 BigBookBrowser: useEffect mount - ensuring modals are closed');
+    console.log('🔍 Available content keys:', Object.keys(allMarkdownContent));
+    console.log('🔍 appendix-1 content exists:', !!allMarkdownContent['appendix-1']);
+    console.log('🔍 appendix-1 content length:', allMarkdownContent['appendix-1']?.length || 0);
+    console.log('🔍 appendix-1 content preview:', allMarkdownContent['appendix-1']?.substring(0, 200) || 'NO CONTENT');
     setPdfViewerVisible(false);
     setMarkdownReaderVisible(false);
   }, []);
@@ -151,8 +155,16 @@ function BigBookBrowserContent() {
 
 
   const handleOpenContent = useCallback((section: BigBookSection) => {
+    console.log('🔍 handleOpenContent called with section:', {
+      id: section.id,
+      title: section.title,
+      hasContent: !!allMarkdownContent[section.id],
+      contentLength: allMarkdownContent[section.id]?.length || 0
+    });
+    
     // Check if we have markdown content for this section
     if (allMarkdownContent[section.id]) {
+      console.log('✅ Opening markdown content for:', section.id);
       setCurrentMarkdown({
         content: allMarkdownContent[section.id],
         title: section.title,
@@ -161,6 +173,7 @@ function BigBookBrowserContent() {
       });
       setMarkdownReaderVisible(true);
     } else {
+      console.log('❌ No markdown content found for:', section.id, 'opening PDF instead');
       setCurrentPdf(section.url);
       setPdfViewerVisible(true);
     }
@@ -198,9 +211,11 @@ function BigBookBrowserContent() {
     if (navigationResult && navigationResult.success) {
       setCurrentMarkdown({
         content: navigationResult.content,
-        title: `Big Book - Page ${result.pageNumber}`,
+        // Use the chapter title instead of 'Big Book - Page XX'
+        title: result.title,
         id: 'search-navigation',
         initialScrollPosition: navigationResult.scrollPosition || 0,
+        targetPageNumber: navigationResult.targetPageMarker || String(result.pageNumber),
         searchHighlight: {
           query: searchQuery,
           position: 0,
@@ -228,7 +243,7 @@ function BigBookBrowserContent() {
     console.log('🟢 BigBookBrowser: Go to Page button pressed'); // Debug log
     Alert.prompt(
       "Go to Page",
-      "Enter page number (1-164)",
+      "Enter page number (1-164 or 567-568)",
       [
         { text: "Cancel", style: "cancel" },
         { 
@@ -236,17 +251,20 @@ function BigBookBrowserContent() {
           onPress: (pageInput) => {
             if (pageInput && pageInput.trim()) {
               const pageNum = parseInt(pageInput.trim(), 10);
-              if (isNaN(pageNum) || pageNum < 1 || pageNum > 164) {
-                Alert.alert("Invalid Page", "Please enter a valid page number between 1 and 164.");
+              if (isNaN(pageNum) || (pageNum < 1 || (pageNum > 164 && pageNum < 567) || pageNum > 568)) {
+                Alert.alert("Invalid Page", "Please enter a valid page number between 1-164 or 567-568.");
                 return;
               }
               const navigationResult = navigateToPageWithHighlight(pageNum);
               if (navigationResult && navigationResult.success) {
+                // Find the chapter title for this page
+                const chapter = bigBookData.flatMap(cat => cat.sections).find(sec => sec.pages && pageNum >= parseInt(sec.pages.split('-')[0], 10) && pageNum <= parseInt(sec.pages.split('-')[1], 10));
                 setCurrentMarkdown({
                   content: navigationResult.content,
-                  title: `Big Book - Page ${pageNum}`,
+                  title: chapter ? chapter.title : `Big Book`,
                   id: 'page-navigation',
                   initialScrollPosition: navigationResult.scrollPosition || 0,
+                  targetPageNumber: navigationResult.targetPageMarker || String(pageNum),
                   searchHighlight: {
                     query: '',
                     position: 0,
@@ -278,41 +296,54 @@ function BigBookBrowserContent() {
         pointerEvents="none"
       />
       
-
-
-      <View style={styles.searchContainer}>
-        <View style={styles.searchBarContainer}>
-          <BigBookSearchBar onSearch={handleSearch} clearSearch={clearSearch} />
-        </View>
-        <TouchableOpacity 
-          style={styles.goToPageButton}
-          onPress={handleGoToPage}
-          onPressIn={() => console.log('🟢 BigBookBrowser: Go to Page onPressIn')}
-          onPressOut={() => console.log('🟢 BigBookBrowser: Go to Page onPressOut')}
-          activeOpacity={0.7}
-          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-        >
-          <Text style={styles.goToPageButtonText}>Go to Page</Text>
-        </TouchableOpacity>
-      </View>
-      
-      {showingSearchResults ? (
-        <BigBookSearchResults 
-          results={searchResults} 
-          onResultPress={handleSearchResultPress}
-          onDone={handleSearchDone}
-        />
-      ) : (
-        <ScrollView style={styles.scrollView}>
-          {bigBookData.map((category) => (
-            <CategorySection
-              key={category.id}
-              category={category}
-              onOpenContent={handleOpenContent}
+      <View style={styles.content}>
+        <View style={styles.mainContent}>
+          <View style={styles.header}>
+            <Text style={styles.title}>Alcoholics Anonymous</Text>
+            <Text style={styles.subtitle}>The basic textbook for the AA program.</Text>
+          </View>
+          
+          <View style={styles.searchContainer}>
+            <View style={styles.searchBarContainer}>
+              <BigBookSearchBar onSearch={handleSearch} clearSearch={clearSearch} />
+            </View>
+            <TouchableOpacity 
+              style={styles.goToPageButton}
+              onPress={handleGoToPage}
+              onPressIn={() => console.log('🟢 BigBookBrowser: Go to Page onPressIn')}
+              onPressOut={() => console.log('🟢 BigBookBrowser: Go to Page onPressOut')}
+              activeOpacity={0.7}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            >
+              <Text style={styles.goToPageButtonText}>Go to Page</Text>
+            </TouchableOpacity>
+          </View>
+          
+          {showingSearchResults ? (
+            <BigBookSearchResults 
+              results={searchResults} 
+              onResultPress={handleSearchResultPress}
+              onDone={handleSearchDone}
             />
-          ))}
-        </ScrollView>
-      )}
+          ) : (
+            <ScrollView style={styles.scrollView}>
+              {bigBookData.map((category) => (
+                <CategorySection
+                  key={category.id}
+                  category={category}
+                  onOpenContent={handleOpenContent}
+                />
+              ))}
+            </ScrollView>
+          )}
+        </View>
+        
+        <View style={styles.noteContainer}>
+          <Text style={styles.noteText}>
+            <Text style={styles.noteBold}>Note:</Text> This is the 1939 First Edition of Alcoholics Anonymous. The first 164 pages remain unchanged in all later editions.
+          </Text>
+        </View>
+      </View>
 
       <Modal
         visible={pdfViewerVisible}
@@ -382,6 +413,33 @@ const styles = StyleSheet.create({
     right: 0,
     bottom: 0,
   },
+  content: {
+    flex: 1,
+    paddingHorizontal: 20,
+    paddingTop: 20,
+    paddingBottom: 20,
+    justifyContent: 'space-between',
+  },
+  mainContent: {
+    flex: 1,
+  },
+  header: {
+    padding: 20,
+    marginBottom: 4,
+  },
+  title: {
+    fontSize: 28,
+    fontWeight: adjustFontWeight("bold", true),
+    color: Colors.light.text,
+    marginBottom: 4,
+    textAlign: "center",
+  },
+  subtitle: {
+    fontSize: 16,
+    color: Colors.light.muted,
+    marginBottom: 2,
+    textAlign: "center",
+  },
   scrollView: {
     flex: 1,
   },
@@ -449,8 +507,8 @@ const styles = StyleSheet.create({
 
   searchContainer: {
     paddingHorizontal: 16,
-    paddingTop: 20,
-    paddingBottom: 16,
+    paddingTop: 6,
+    paddingBottom: 24,
     flexDirection: 'row',
     alignItems: 'center',
   },
@@ -477,5 +535,24 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
     textAlign: 'center',
+  },
+  noteContainer: {
+    padding: 16,
+    backgroundColor: 'rgba(255, 255, 255, 0.4)',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
+    marginHorizontal: 16,
+    marginBottom: 16,
+  },
+  noteText: {
+    fontSize: 13,
+    color: Colors.light.muted,
+    lineHeight: 18,
+    textAlign: 'center',
+  },
+  noteBold: {
+    fontWeight: adjustFontWeight('bold'),
+    color: Colors.light.text,
   },
 });

@@ -147,13 +147,9 @@ War fever ran high in the New England town to which we new, young officers from 
 We landed in England.  I visited Winchester Cathedral.  Much moved, I wandered outside.  My attention was caught by a doggerel on an old tombstone: 
 
 "Here lies a Hampshire Grenadier 
-
 Who caught his death 
-
 Drinking cold small beer. 
-
 A good soldier is ne'er forgot 
-
 Whether he dieth by musket Or by pot." 
 
 Ominous warning—which I failed to heed. 
@@ -1948,9 +1944,7 @@ May God bless you and keep you—until then.
 
 ## SPIRITUAL EXPERIENCE
 
-Spiritual Experience
-
-Spiritual Experience
+*— Page 567 —*
 
 The terms "spiritual experience" and "spiritual awakening" are used many times in this book which, upon careful reading, shows that the personality change sufficient to bring about recovery from alcoholism has manifested itself among us in many different forms.
 
@@ -1958,7 +1952,7 @@ Yet it is true that our first printing gave many readers the impression that the
 
 In the first few chapters a number of sudden revolutionary changes are described.  Though it was not our intention to create such an impression, many alcoholics have nevertheless concluded that in order to recover they must acquire an immediate and overwhelming "God-consciousness" followed at once by a vast change in feeling and outlook.
 
-Among our rapidly growing membership of thousands of alcoholics such transformations, though         frequent, are by no means the rule.  Most of our experiences are what the psychologist William James            calls the "educational variety" because they develop slowly over a period of time.  Quite often friends             of  the newcomer are aware of the difference long    before he is himself.  He finally realizes that he has undergone a profound alteration in his reaction to life; that such a change could hardly have been brought  about by himself alone.  What often takes place in a few months could seldom have been accomplished by years of self discipline.  With few exceptions our    members find that they have tapped an unsuspected
+Among our rapidly growing membership of thousands of alcoholics such transformations, though frequent, are by no means the rule.  Most of our experiences are what the psychologist William James calls the "educational variety" because they develop slowly over a period of time.  Quite often friends of  the newcomer are aware of the difference long before he is himself.  He finally realizes that he has undergone a profound alteration in his reaction to life; that such a change could hardly have been brought  about by himself alone.  What often takes place in a few months could seldom have been accomplished by years of self discipline.  With few exceptions our members find that they have tapped an unsuspected
 
 inner resource which they presently identify with their own conception of a Power greater than themselves.
 
@@ -1968,6 +1962,7 @@ Most emphatically we wish to say that any alcoholic capable of honestly facing h
 
 We find that no one need have difficulty with the spirituality of the program.  Willingness, honesty and open mindedness are the essentials of recovery.  But these are indispensable.
 
+*— Page 568 —*
 
 *"There is a principle which is a bar against all information, which is proof against all arguments and which cannot fail to keep a man in everlasting ignorance—that principle is contempt prior to investigation."*
 

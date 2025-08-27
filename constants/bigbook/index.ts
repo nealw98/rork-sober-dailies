@@ -42,6 +42,7 @@ export interface NavigationResult {
   content: string;
   highlightedContent: string;
   scrollPosition?: number;
+  targetPageMarker?: string;
 }
 
 // Helper function to convert roman numerals to arabic
@@ -405,7 +406,7 @@ export const navigateToPageWithHighlight = (
 
     const content = targetChapter.content;
     // Use the exact string for the marker
-    const pageMarker = `*— Page ${pageNumber} —*`;
+    const pageMarker = `*\u2014 Page ${pageNumber} \u2014*`;
     const pageMatch = content.indexOf(pageMarker);
     if (pageMatch === -1) {
       return {
@@ -415,32 +416,21 @@ export const navigateToPageWithHighlight = (
         highlightedContent: content
       };
     }
-    // Find the content for this page (from this marker to next marker or end)
-    const nextPageRegex = /\*— Page (\d+|[ivxlc]+) —\*/gi;
-    nextPageRegex.lastIndex = pageMatch + pageMarker.length;
-    const nextPageMatch = nextPageRegex.exec(content);
-    const pageEndIndex = nextPageMatch ? nextPageMatch.index : content.length;
-    let pageContent = content.slice(pageMatch, pageEndIndex);
-    // Clean up any HTML tags that might have been included
-    pageContent = pageContent
-      .replace(/<div[^>]*data-page[^>]*>.*?<\/div>/g, '') // Remove complete div blocks
-      .replace(/<div[^>]*>/g, '')
-      .replace(/<\/div>/g, '')
-      .replace(/\s*style="[^"]*"/g, '')
-      .replace(/\s*data-page="[^"]*"/g, '');
-    let highlightedContent = pageContent;
-    // If search term provided, highlight it in the page content
+    // Return the full chapter content, but set scrollPosition to the marker
+    let highlightedContent = content;
     if (searchTerm) {
       const escapedTerm = searchTerm.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
       const highlightRegex = new RegExp(`\\b${escapedTerm}\\b`, 'gi');
-      highlightedContent = pageContent.replace(highlightRegex, `**$&**`);
+      highlightedContent = content.replace(highlightRegex, `**$&**`);
     }
+    // Always use the string page number for navigation
     return {
       success: true,
       pageNumber,
-      content: pageContent,
+      content: content,
       highlightedContent,
-      scrollPosition: 0
+      scrollPosition: pageMatch,
+      targetPageMarker: String(pageNumber)
     };
   } catch (error) {
     console.error('Error navigating to page:', error);

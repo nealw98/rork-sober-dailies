@@ -30,7 +30,7 @@ interface MarkdownReaderProps {
     length: number;
   };
   initialScrollPosition?: number;
-  targetPageNumber?: number;
+  targetPageNumber?: string;
 }
 
 const MarkdownReader = ({ 
@@ -45,6 +45,7 @@ const MarkdownReader = ({
 }: MarkdownReaderProps) => {
   const scrollViewRef = useRef<ScrollView>(null);
   const pageRefs = useRef<{ [pageNumber: string]: View | null }>({});
+  const pageYPositions = useRef<{ [pageNumber: string]: number }>({});
 
   const [targetPage, setTargetPage] = useState('');
 
@@ -90,28 +91,34 @@ const MarkdownReader = ({
     return anchors;
   }, [cleanContent]);
 
-  // Note: Page scrolling is now handled by navigateToPageWithHighlight in BigBookBrowser
-  // This component just displays the content that's already filtered to the correct page
-  const scrollToPage = (pageNumber: number) => {
-    console.log('📍 MarkdownReader: scrollToPage called but no longer needed - using navigateToPageWithHighlight instead');
+  // Robust scroll to known y position with retries
+  const scrollToTargetY = (attempt = 1) => {
+    if (targetPageNumber && typeof pageYPositions.current[`page-${targetPageNumber}`] === 'number' && scrollViewRef.current) {
+      const y = pageYPositions.current[`page-${targetPageNumber}`];
+      console.log(`📍 Scrolling to cached Y for page ${targetPageNumber}: y=${y} (attempt ${attempt})`);
+      if (y >= 0) {
+        const PAGE_START_OFFSET = -5; // minimal offset from prior line
+        scrollViewRef.current.scrollTo({ y: Math.max(0, y + PAGE_START_OFFSET), animated: true });
+        return;
+      }
+    }
+    if (attempt < 8) {
+      setTimeout(() => scrollToTargetY(attempt + 1), 150);
+    } else {
+      console.warn(`📍 Failed to obtain Y for page ${targetPageNumber} after ${attempt} attempts`);
+    }
   };
-
-  // findPagePosition removed - no longer needed with navigateToPageWithHighlight approach
 
   useEffect(() => {
     console.log('📍 MarkdownReader useEffect:', { targetPageNumber, initialScrollPosition });
-    
-    // If we have a scroll position from navigation, scroll to that position
-    if (initialScrollPosition && scrollViewRef.current) {
-      console.log(`📍 MarkdownReader: Scrolling to position ${initialScrollPosition}`);
+    if (targetPageNumber) {
+      setTimeout(() => scrollToTargetY(), 100);
+    } else if (initialScrollPosition && scrollViewRef.current) {
       setTimeout(() => {
-        scrollViewRef.current?.scrollTo({
-          y: Math.max(0, initialScrollPosition - 100), // Offset by 100px to show some context above
-          animated: true
-        });
+        scrollViewRef.current?.scrollTo({ y: Math.max(0, initialScrollPosition - 100), animated: true });
       }, 100);
     }
-  }, [initialScrollPosition]);
+  }, [targetPageNumber, initialScrollPosition]);
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
@@ -135,29 +142,14 @@ const MarkdownReader = ({
           style={styles.textContent}
           onPageRef={(pageNumber, ref) => {
             if (ref) {
-                          pageRefs.current[`page-${pageNumber}`] = ref;
+              pageRefs.current[`page-${pageNumber}`] = ref;
             }
           }}
+          getScrollViewNode={() => scrollViewRef.current?.getInnerViewNode?.()}
+          onPageLayout={(pageNumber, y) => {
+            pageYPositions.current[`page-${pageNumber}`] = y;
+          }}
         />
-        
-        {/* Hidden anchor components for each page */}
-        {pageNumbers.map(pageNumber => (
-          <View
-            key={`manual-anchor-${pageNumber}`}
-            ref={(ref) => {
-              if (ref) {
-                pageRefs.current[`page-${pageNumber}`] = ref;
-              }
-            }}
-            style={{ 
-              position: 'absolute', 
-              top: -1000, // Hide it way off screen
-              height: 1, 
-              width: 1, 
-              opacity: 0 
-            }}
-          />
-        ))}
       </ScrollView>
     </SafeAreaView>
   );

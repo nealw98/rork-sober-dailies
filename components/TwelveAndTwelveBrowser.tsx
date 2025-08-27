@@ -11,7 +11,6 @@ import {
   ChevronDown,
   ChevronRight,
   ExternalLink,
-  Clock,
 } from "lucide-react-native";
 import { LinearGradient } from 'expo-linear-gradient';
 
@@ -20,7 +19,7 @@ import { twelveAndTwelveData } from "@/constants/twelve-and-twelve";
 import { BigBookStoreProvider, useBigBookStore } from "@/hooks/use-bigbook-store";
 import { TwelveAndTwelveCategory, BigBookSection } from "@/types/bigbook";
 import { adjustFontWeight } from "@/constants/fonts";
-import BookSelector from "@/components/BookSelector";
+
 import PDFViewer from "@/components/PDFViewer";
 
 
@@ -82,52 +81,9 @@ const CategorySection = ({ category, onOpenPDF }: { category: TwelveAndTwelveCat
 
 
 
-const RecentSection = ({ onOpenPDF }: { onOpenPDF: (url: string, title: string) => void }) => {
-  const { recentlyViewed, clearRecent, addToRecent } = useBigBookStore();
 
-  const handleRecentPress = (recent: any) => {
-    addToRecent(recent.sectionId, recent.title, recent.url);
-    onOpenPDF(recent.url, recent.title);
-  };
-
-  if (recentlyViewed.length === 0) {
-    return (
-      <View style={styles.emptyState}>
-        <Clock size={48} color={Colors.light.muted} />
-        <Text style={styles.emptyStateText}>No recent items</Text>
-        <Text style={styles.emptyStateSubtext}>Recently viewed sections will appear here</Text>
-      </View>
-    );
-  }
-
-  return (
-    <View style={styles.recentContainer}>
-      <View style={styles.recentHeader}>
-        <Text style={styles.recentTitle}>Recently Viewed</Text>
-        <TouchableOpacity onPress={clearRecent} testID="clear-recent">
-          <Text style={styles.clearText}>Clear</Text>
-        </TouchableOpacity>
-      </View>
-      
-      {recentlyViewed.map((recent) => (
-        <TouchableOpacity
-          key={recent.sectionId}
-          style={styles.recentItem}
-          onPress={() => handleRecentPress(recent)}
-          testID={`recent-item-${recent.sectionId}`}
-        >
-          <Text style={styles.recentItemTitle}>{recent.title}</Text>
-          <Text style={styles.recentItemDate}>
-            {new Date(recent.dateAdded).toLocaleDateString()}
-          </Text>
-        </TouchableOpacity>
-      ))}
-    </View>
-  );
-};
 
 function TwelveAndTwelveBrowserContent() {
-  const [activeTab, setActiveTab] = useState<"browse" | "recent">("browse");
   const [pdfViewerVisible, setPdfViewerVisible] = useState<boolean>(false);
   const [currentPdf, setCurrentPdf] = useState<{ url: string; title: string } | null>(null);
 
@@ -153,51 +109,26 @@ function TwelveAndTwelveBrowserContent() {
         locations={[0, 1]}
       />
       
-      <View style={styles.tabContainer}>
-        <TouchableOpacity
-          style={[styles.tab, activeTab === "browse" && styles.activeTab]}
-          onPress={() => setActiveTab("browse")}
-          testID="browse-tab"
-        >
-          <Text style={[styles.tabText, activeTab === "browse" && styles.activeTabText]}>Browse</Text>
-        </TouchableOpacity>
-        
-
-        <TouchableOpacity
-          style={[styles.tab, activeTab === "recent" && styles.activeTab]}
-          onPress={() => setActiveTab("recent")}
-          testID="recent-tab"
-        >
-          <Text style={[styles.tabText, activeTab === "recent" && styles.activeTabText]}>Recent</Text>
-        </TouchableOpacity>
-      </View>
-
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        {activeTab === "browse" && (
-          <View>
-            <BookSelector activeBook="twelve" />
-            <View style={styles.header}>
-              <Text style={styles.title}>Twelve Steps and Twelve Traditions</Text>
-              <Text style={styles.subtitle}>A detailed exploration of the AA program</Text>
-              <Text style={styles.description}>
-                Tap any section to open the official PDF from AA World Services.
-              </Text>
-            </View>
-            
-            {twelveAndTwelveData.map((category) => (
-              <CategorySection key={category.id} category={category} onOpenPDF={handleOpenPDF} />
-            ))}
-            
-            <View style={styles.copyrightContainer}>
-              <Text style={styles.copyrightText}>
-                Copyright © 1990 by Alcoholics Anonymous World Services, Inc. All rights reserved.
-              </Text>
-            </View>
+        <View>
+          <View style={styles.header}>
+            <Text style={styles.title}>Twelve Steps and Twelve Traditions</Text>
+            <Text style={styles.subtitle}>A detailed exploration of the AA program</Text>
+            <Text style={styles.description}>
+              Tap any section to open the official PDF from AA World Services.
+            </Text>
           </View>
-        )}
-        
-
-        {activeTab === "recent" && <RecentSection onOpenPDF={handleOpenPDF} />}
+          
+          {twelveAndTwelveData.map((category) => (
+            <CategorySection key={category.id} category={category} onOpenPDF={handleOpenPDF} />
+          ))}
+          
+          <View style={styles.copyrightContainer}>
+            <Text style={styles.copyrightText}>
+              Copyright © 1990 by Alcoholics Anonymous World Services, Inc. All rights reserved.
+            </Text>
+          </View>
+        </View>
       </ScrollView>
       
       <Modal
@@ -238,30 +169,7 @@ const styles = StyleSheet.create({
     right: 0,
     bottom: 0,
   },
-  tabContainer: {
-    flexDirection: "row",
-    backgroundColor: Colors.light.cardBackground,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.light.divider,
-  },
-  tab: {
-    flex: 1,
-    paddingVertical: 12,
-    alignItems: "center",
-  },
-  activeTab: {
-    borderBottomWidth: 2,
-    borderBottomColor: Colors.light.tint,
-  },
-  tabText: {
-    fontSize: 14,
-    color: Colors.light.muted,
-    fontWeight: adjustFontWeight("500"),
-  },
-  activeTabText: {
-    color: Colors.light.tint,
-    fontWeight: adjustFontWeight("600"),
-  },
+
   content: {
     flex: 1,
   },
@@ -378,59 +286,7 @@ const styles = StyleSheet.create({
   removeBookmarkButton: {
     padding: 8,
   },
-  recentContainer: {
-    padding: 16,
-  },
-  recentHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 12,
-  },
-  recentTitle: {
-    fontSize: 18,
-    fontWeight: adjustFontWeight("600", true),
-    color: Colors.light.text,
-  },
-  clearText: {
-    fontSize: 14,
-    color: Colors.light.tint,
-    fontWeight: adjustFontWeight("500"),
-  },
-  recentItem: {
-    backgroundColor: 'rgba(255, 255, 255, 0.6)',
-    borderRadius: 16,
-    padding: 12,
-    marginBottom: 8,
-  },
-  recentItemTitle: {
-    fontSize: 16,
-    fontWeight: adjustFontWeight("500"),
-    color: Colors.light.text,
-    marginBottom: 2,
-  },
-  recentItemDate: {
-    fontSize: 12,
-    color: Colors.light.muted,
-  },
-  emptyState: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    padding: 40,
-  },
-  emptyStateText: {
-    fontSize: 18,
-    fontWeight: adjustFontWeight("600", true),
-    color: Colors.light.muted,
-    marginTop: 16,
-    marginBottom: 4,
-  },
-  emptyStateSubtext: {
-    fontSize: 14,
-    color: Colors.light.muted,
-    textAlign: "center",
-  },
+
   copyrightContainer: {
     marginTop: 24,
     paddingHorizontal: 16,
