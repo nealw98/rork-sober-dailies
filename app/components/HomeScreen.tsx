@@ -112,9 +112,9 @@ const HomeScreen = () => {
         <Text style={styles.sectionSubtitle}>Reflect and close your day with peace.</Text>
         
         <TouchableOpacity style={styles.card} onPress={() => router.push('/(tabs)/evening-review')}>
-          <Text style={styles.cardTitle}>Evening Review</Text>
+          <Text style={styles.cardTitle}>Nightly Review</Text>
           <Text style={styles.cardDescription}>Reflect on your day and practice Step 10.</Text>
-          <Text style={styles.cardButton}>Go to Evening Review</Text>
+          <Text style={styles.cardButton}>Go to Nightly Review</Text>
         </TouchableOpacity>
 
         <TouchableOpacity style={styles.card} onPress={() => router.push('/(tabs)/prayers?prayer=evening')}>
