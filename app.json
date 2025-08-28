@@ -9,7 +9,7 @@
     "userInterfaceStyle": "automatic",
     "newArchEnabled": false,
     "splash": {
-      "image": "./assets/images/splash-ios-icon.png",
+      "image": "./assets/images/splash-ios-full.png",
       "resizeMode": "cover",
       "backgroundColor": "#061D4A"
     },
@@ -67,7 +67,7 @@
         "expo-splash-screen",
         {
           "ios": {
-            "image": "./assets/images/splash-ios-icon.png",
+            "image": "./assets/images/splash-ios-full.png",
             "resizeMode": "cover",
             "backgroundColor": "#061D4A"
           },
