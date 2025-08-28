@@ -15,6 +15,7 @@ import Colors from "@/constants/colors";
 import WelcomeScreen from "@/components/WelcomeScreen";
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
+console.log('🟢 SPLASH: Preventing auto-hide');
 SplashScreen.preventAutoHideAsync();
 
 const queryClient = new QueryClient();
@@ -24,21 +25,29 @@ function RootLayoutNav() {
 
   // Hide splash screen when app is ready
   const hideSplashScreen = useCallback(async () => {
+    console.log('🟢 SPLASH: hideSplashScreen called, isLoading:', isLoading);
     if (!isLoading) {
       try {
+        console.log('🟢 SPLASH: Attempting to hide splash screen');
         await SplashScreen.hideAsync();
+        console.log('🟢 SPLASH: Successfully hid splash screen');
       } catch (error) {
-        console.log('Error hiding splash screen:', error);
+        console.log('🟢 SPLASH: Error hiding splash screen:', error);
       }
+    } else {
+      console.log('🟢 SPLASH: Still loading, not hiding splash screen yet');
     }
   }, [isLoading]);
 
   useEffect(() => {
+    console.log('🟢 SPLASH: useEffect triggered, calling hideSplashScreen');
     hideSplashScreen();
   }, [hideSplashScreen]);
 
   // Render different screens based on state
+  console.log('🟢 SPLASH: Rendering decision - isLoading:', isLoading, 'isOnboardingComplete:', isOnboardingComplete);
   if (isLoading) {
+    console.log('🟢 SPLASH: Still loading, returning null');
     return null; // Let the system splash screen handle the loading state
   }
 
