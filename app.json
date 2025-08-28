@@ -69,7 +69,7 @@
           "ios": {
             "image": "./assets/images/splash-ios-icon.png",
             "resizeMode": "contain",
-            "backgroundColor": "#061D4A"
+            "backgroundColor": "#ffffff"
           },
           "android": {
             "image": "./assets/images/splash-android-icon.png",

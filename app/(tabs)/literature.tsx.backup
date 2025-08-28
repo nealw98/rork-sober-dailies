@@ -1,6 +1,6 @@
 import { StyleSheet, View, Text, TouchableOpacity } from "react-native";
 import { router } from "expo-router";
-import { Book, BookOpen, FileText, ChevronRight } from "lucide-react-native";
+import { Book, ChevronRight } from "lucide-react-native";
 import { LinearGradient } from 'expo-linear-gradient';
 import ScreenContainer from "@/components/ScreenContainer";
 import Colors from "@/constants/colors";
@@ -21,16 +21,16 @@ const literatureOptions: LiteratureOption[] = [
     route: "/bigbook"
   },
   {
-    id: "twelve-and-twelve",
-    title: "Twelve Steps and Twelve Traditions",
-    description: "In-depth exploration of the Steps and Traditions",
-    route: "/twelve-and-twelve"
-  },
-  {
     id: "meeting-pocket",
     title: "AA Meeting in a Pocket",
     description: "Quick access to the core AA readings used in meetings.",
     route: "/meeting-pocket"
+  },
+  {
+    id: "twelve-and-twelve",
+    title: "Twelve Steps and Twelve Traditions",
+    description: "In-depth exploration of the Steps and Traditions",
+    route: "/twelve-and-twelve"
   }
 ];
 
@@ -79,11 +79,7 @@ export default function LiteratureScreen() {
               >
                 <View style={styles.optionContent}>
                   <View style={styles.optionIcon}>
-                    {option.id === "bigbook" || option.id === "twelve-and-twelve" ? (
-                      <BookOpen size={24} color={Colors.light.tint} />
-                    ) : (
-                      <FileText size={24} color={Colors.light.tint} />
-                    )}
+                    <Book size={24} color={Colors.light.tint} />
                   </View>
                   <View style={styles.optionText}>
                     <Text style={styles.optionTitle}>{option.title}</Text>

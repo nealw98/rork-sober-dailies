@@ -13,7 +13,6 @@ import { EveningReviewProvider } from "@/hooks/use-evening-review-store";
 import { adjustFontWeight } from "@/constants/fonts";
 import Colors from "@/constants/colors";
 import WelcomeScreen from "@/components/WelcomeScreen";
-import CustomSplashScreen from "@/components/CustomSplashScreen";
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
@@ -40,7 +39,7 @@ function RootLayoutNav() {
 
   // Render different screens based on state
   if (isLoading) {
-    return <CustomSplashScreen />;
+    return null; // Let the system splash screen handle the loading state
   }
 
   if (!isOnboardingComplete) {

@@ -11,7 +11,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useLocalSearchParams, useFocusEffect } from 'expo-router';
 
 import Colors from "@/constants/colors";
-import { aaPrayers } from "@/constants/bigbook";
+import { aaPrayers } from "@/constants/prayers";
 import { adjustFontWeight } from "@/constants/fonts";
 import ScreenContainer from "@/components/ScreenContainer";
 
@@ -123,8 +123,8 @@ export default function PrayersScreen() {
                   </View>
                 ) : prayer.title === "Evening Prayer" ? (
                   <View>
-                    <Text style={[styles.prayerText, styles.italicText]}>As this day closes:</Text>
-                    <Text style={styles.prayerText}>{prayer.content.split('As this day closes:')[1]}</Text>
+                    <Text style={[styles.prayerText, styles.italicText]}>As this day closes,</Text>
+                    <Text style={styles.prayerText}>{prayer.content.split('As this day closes,')[1]}</Text>
                   </View>
                 ) : (
                   <Text style={styles.prayerText}>{prayer.content}</Text>

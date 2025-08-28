@@ -7,12 +7,6 @@ export const twelveAndTwelveData = [
     description: "Introductory materials for the Twelve Steps and Twelve Traditions",
     sections: [
       {
-        id: "copyright",
-        title: "Copyright",
-        url: "https://www.aa.org/sites/default/files/2022-01/en_tt_copyright.pdf",
-        description: "Copyright information for the Twelve Steps and Twelve Traditions"
-      },
-      {
         id: "contents",
         title: "Contents",
         url: "https://www.aa.org/sites/default/files/2022-01/en_tt_contents.pdf",

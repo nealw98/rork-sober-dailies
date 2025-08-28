@@ -1,8 +1,31 @@
 export const aaPrayers = [
   {
     title: "Morning Prayer",
-    content: "As I begin this day, I ask my Higher Power: God, direct my thinking today so that it be divorced from self-pity, dishonesty, self-will, self-seeking and fear. God, inspire my thinking, decisions and intuitions. Help me to relax and take it easy. Free me from doubt and indecision. Guide me through this day and show me my next step. God, show me what I need to do to take care of any problems. I ask all these things that I may be of maximum service to you and my fellow man.",
-    source: "Alcoholics Anonymous, p. 86"
+    content: `As I begin this day, I ask my Higher Power:
+Direct my thinking and remove from me self-centered fear and selfish motives.
+Help me walk with clarity, courage, and purpose.
+
+When I don’t know what to do, grant me inspiration.
+Give me an intuitive thought, a gentle nudge, or the patience to wait.
+Teach me to trust that Your guidance will come.
+
+Help me relax and take it easy.
+Keep me from forcing outcomes or trying to run the show.
+Let me remember that I’m not in charge — You are.
+
+As I go about my day, show me the next right action.
+Give me what I need to handle whatever comes my way.
+
+Remove my fear. 
+Direct my attention to what You would have me be.
+Give me faith in Your plan and the courage to act.
+
+Remove my selfishness and self-centeredness.
+Direct my thinking toward others.
+Show me how I can be of service — useful, kind, and willing.
+
+Thy will, not mine, be done. Amen.`,
+
   },
   {
     title: "Third Step Prayer",
@@ -49,7 +72,17 @@ Amen.`,
   },
   {
     title: "Evening Prayer",
-    content: "As this day closes: God, I constructively review my day. Was I resentful, selfish, dishonest or afraid? Do I owe an apology? Have I kept something to myself which should be discussed with another person at once? Was I kind and loving toward all? What could I have done better? Was I thinking of myself most of the time? Or was I thinking of what I could do for others, of what I could pack into the stream of life? I ask God to forgive me where I have been wrong and to guide me to right actions tomorrow.",
-    source: "Alcoholics Anonymous, p. 86"
+    content: `As this day closes, I thank my Higher Power for the gifts, lessons, and people You placed in my path today, and for the strength to stay sober and the moments of grace I noticed.
+
+I look honestly at my day and ask forgiveness for the times I was selfish, afraid, or unkind. Place on my heart any amends I need to make, and give me the willingness.
+
+I release tonight every worry, resentment, and fear of tomorrow, and ask You to grant me restful sleep that restores body, mind, and spirit.
+
+Guide my thoughts and actions tomorrow that they may align with Your will, helping me grow in usefulness to others.
+
+With gratitude and trust, I place myself in Your care, one day at a time.
+
+Amen.`,
+
   }
 ];
