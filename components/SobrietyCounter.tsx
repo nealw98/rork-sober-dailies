@@ -237,8 +237,7 @@ const SobrietyCounter = () => {
                   <DateTimePicker
                     value={selectedDate}
                     mode="date"
-                    display="compact"
-                    themeVariant="light"
+                    display="spinner"
                     onChange={onDateChange}
                     maximumDate={new Date()}
                     style={styles.nativeDatePicker}
@@ -339,8 +338,7 @@ const SobrietyCounter = () => {
                   <DateTimePicker
                     value={selectedDate}
                     mode="date"
-                    display="compact"
-                    themeVariant="light"
+                    display="spinner"
                     onChange={onDateChange}
                     maximumDate={new Date()}
                     style={styles.nativeDatePicker}
@@ -445,8 +443,7 @@ const SobrietyCounter = () => {
                   <DateTimePicker
                     value={selectedDate}
                     mode="date"
-                    display="compact"
-                    themeVariant="light"
+                    display="spinner"
                     onChange={onDateChange}
                     maximumDate={new Date()}
                     style={styles.nativeDatePicker}

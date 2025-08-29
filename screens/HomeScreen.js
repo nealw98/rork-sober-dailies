@@ -15,7 +15,7 @@ export default function HomeScreen({ navigation }) {
           This app helps you practice your dailies — the daily habits that maintain your sobriety.
         </Text>
       </View>
-
+nitnp
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Morning Routine</Text>
         <TouchableOpacity style={styles.card} onPress={() => handleButtonPress('Prayers')}>
