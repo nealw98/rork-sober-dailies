@@ -8,9 +8,9 @@ export const markdownContent: Record<string, string> = {
 
 WE OF Alcoholics Anonymous believe that the reader will be interested in the medical estimate of the plan of recovery described in this book. Convincing testimony must surely come from medical men who have had experience with the sufferings of our members and have witnessed our return to health. A well-known doctor, chief physician at a nationally prominent hospital specializing in alcoholic and drug addiction, gave Alcoholics Anonymous this letter: 
 
-To Whom It May Concern: 
+To Whom It May Concern:
 
-I have specialized in the treatment of alcoholism for many years. 
+I have specialized in the treatment of alcoholism for many years.
 
 In late 1934 I attended a patient who, though he had been a competent businessman of good earning capacity, was an alcoholic of a type I had come to regard as hopeless. 
 
@@ -24,15 +24,15 @@ These facts appear to be of extreme medical importance; because of the extraordi
 
 growth inherent in this group they may mark a new epoch in the annals of alcoholism. These men may well have a remedy for thousands of such situations. 
 
-You may rely absolutely on anything they say about themselves. 
+You may rely absolutely on anything they say about themselves.
 
-Very truly yours, 
+Very truly yours,
 
 William D. Silkworth, M.D.
 
-The physician who, at our request, gave us this letter, has been kind enough to enlarge upon his views in another statement which follows. In this statement he confirms what we who have suffered alcoholic torture must believe-that the body of the alcoholic is quite as abnormal as his mind. It did not satisfy us to be told that we could not control our drinking just because we were maladjusted to life, that we were in full flight from reality, or were outright mental defectives. These things were true to some extent, in fact, to a considerable extent with some of us. But we are sure that our bodies were sickened as well. In our belief, any picture of the alcoholic which leaves out this physical factor is incomplete. 
+The physician who, at our request, gave us this letter, has been kind enough to enlarge upon his views in another statement which follows. In this statement he confirms what we who have suffered alcoholic torture must believe-that the body of the alcoholic is quite as abnormal as his mind. It did not satisfy us to be told that we could not control our drinking just because we were maladjusted to life, that we were in full flight from reality, or were outright mental defectives. These things were true to some extent, in fact, to a considerable extent with some of us. But we are sure that our bodies were sickened as well. In our belief, any picture of the alcoholic which leaves out this physical factor is incomplete.
 
-The doctor's theory that we have an allergy to alcohol interests us. As laymen, our opinion as to its soundness may, of course, mean little. But as ex-problem drinkers, we can say that his explanation makes good sense. It explains many things for which we cannot otherwise account. 
+The doctor's theory that we have an allergy to alcohol interests us. As laymen, our opinion as to its soundness may, of course, mean little. But as ex-problem drinkers, we can say that his explanation makes good sense. It explains many things for which we cannot otherwise account.
 
 Though we work out our solution on the spiritual as well as an altruistic plane, we favor hospitalization for the alcoholic who is very jittery or befogged. More often than not, it is imperative that a man's brain be cleared before he is approached, as he has then a better
 
@@ -40,7 +40,7 @@ Though we work out our solution on the spiritual as well as an altruistic plane,
 
 chance of understanding and accepting what we have to offer. 
 
-The doctor writes: 
+The doctor writes:
 
 The subject presented in this book seems to me to be of paramount importance to those afflicted with alcoholic addiction. 
 
@@ -48,7 +48,7 @@ I say this after many years' experience as Medical Director of one of the oldest
 
 There was, therefore, a sense of real satisfaction when I was asked to contribute a few words on a subject which is covered in such masterly detail in these pages. 
 
-We doctors have realized for a long time that some form of moral psychology was of urgent importance to alcoholics, but its application presented difficulties beyond our conception. What with our ultra-modern standards, our scientific approach to everything, we are perhaps not well equipped to apply the powers of good that lie outside our synthetic knowledge. 
+We doctors have realized for a long time that some form of moral psychology was of urgent importance to alcoholics, but its application presented difficulties beyond our conception. What with our ultra-modern standards, our scientific approach to everything, we are perhaps not well equipped to apply the powers of good that lie outside our synthetic knowledge.
 
 Many years ago one of the leading contributors to this book came under our care in this hospital and while here he acquired some ideas which he put into practical application at once. 
 
@@ -113,11 +113,11 @@ However, he did become "sold" on the ideas contained in this book. He has not ha
 I earnestly advise every alcoholic to read this book through, and though perhaps he came to scoff, he may remain to pray. 
 
 William D. Silkworth, M.D.`,
-"foreword-first": `# FOREWORD TO FIRST EDITION
+  "foreword-first": `# FOREWORD TO FIRST EDITION
 
 *— Page xiii —*
 
-We, OF Alcoholics Anonymous, are more than one hundred men and women who have recovered from a seemingly hopeless state of mind and body. To show other alcoholics PRECISELY HOW WE HAVE RECOVERED is the main purpose of this book. For them, we hope these pages will prove so convincing that no further authentication will be necessary. We think this account of our experiences will help everyone to better understand the alcoholic. Many do not comprehend that the alcoholic is a very sick person. And besides, we are sure that our way of living has its advantages for all.
+WE, OF Alcoholics Anonymous, are more than one hundred men and women who have recovered from a seemingly hopeless state of mind and body. To show other alcoholics PRECISELY HOW WE HAVE RECOVERED is the main purpose of this book. For them, we hope these pages will prove so convincing that no further authentication will be necessary. We think this account of our experiences will help everyone to better understand the alcoholic. Many do not comprehend that the alcoholic is a very sick person. And besides, we are sure that our way of living has its advantages for all.
 
 It is important that we remain anonymous because we are too few, at present to handle the overwhelming number of personal appeals which may result from this publication. Being mostly business or professional folk, we could not well carry on our occupations in such an event. We would like it understood that our alcoholic work is an avocation.
 
@@ -142,14 +142,14 @@ Alcoholics Anonymous.`,
 
 *— Page 1 —*
 
-War fever ran high in the New England town to which we new, young officers from Plattsburg were assigned, and we were flattered when the first citizens took us to their homes, making us feel heroic.  Here was love, applause, war; moments sublime with intervals hilarious.  I was part of life at last, and in the midst of the excitement I discovered liquor.  I forgot the strong warnings and the prejudices of my people concerning drink.  In time we sailed for "Over There." I was very lonely and again turned to alcohol. 
+War fever ran high in the New England town to which we new, young officers from Plattsburg were assigned, and we were flattered when the first citizens took us to their homes, making us feel heroic.  Here was love, applause, war; moments sublime with intervals hilarious.  I was part of life at last, and in the midst of the excitement I discovered liquor.  I forgot the strong warnings and the prejudices of my people concerning drink.  In time we sailed for "Over There." I was very lonely and again turned to alcohol.
 
-We landed in England.  I visited Winchester Cathedral.  Much moved, I wandered outside.  My attention was caught by a doggerel on an old tombstone: 
+We landed in England.  I visited Winchester Cathedral.  Much moved, I wandered outside.  My attention was caught by a doggerel on an old tombstone:
 
-"Here lies a Hampshire Grenadier 
-Who caught his death 
-Drinking cold small beer. 
-A good soldier is ne'er forgot 
+"Here lies a Hampshire Grenadier
+Who caught his death
+Drinking cold small beer.
+A good soldier is ne'er forgot
 Whether he dieth by musket Or by pot." 
 
 Ominous warning—which I failed to heed. 
@@ -158,29 +158,29 @@ Twenty-two, and a veteran of foreign wars, I went home at last.  I fancied mysel
 
 *— Page 2 —*
 
-I took a night law course, and obtained employment as investigator for a surety company.  The drive for success was on.  I'd prove to the world I was important.  My work took me about Wall Street and little by little I became interested in the market.  Many people lost money - but some became very rich.  Why not I?  I studied economics and business as well as law.  Potential  alcoholic that I was, I nearly failed my law course.  At one of the finals I was too drunk to think or write.  Though my drinking was not yet continuous, it disturbed my wife.  We had long talks when I would still her forebodings by telling her that men of genius conceived their best projects when drunk; that the most majestic constructions of philosophic thought were so derived. 
+I took a night law course, and obtained employment as investigator for a surety company.  The drive for success was on.  I'd prove to the world I was important.  My work took me about Wall Street and little by little I became interested in the market.  Many people lost money - but some became very rich.  Why not I?  I studied economics and business as well as law.  Potential  alcoholic that I was, I nearly failed my law course.  At one of the finals I was too drunk to think or write.  Though my drinking was not yet continuous, it disturbed my wife.  We had long talks when I would still her forebodings by telling her that men of genius conceived their best projects when drunk; that the most majestic constructions of philosophic thought were so derived.
 
-By the time I had completed the course, I knew the law was not for me.  The inviting maelstrom of Wall Street had me in its grip.  Business and financial leaders were my heroes.  Out of this alloy of drink and speculation, I commenced to forge the weapon that one day would turn in its flight like a boomerang and all but cut me to ribbons.  Living modestly, my wife and I saved $1,000.  It went into certain securities, then cheap and rather unpopular.  I rightly imagined that they would some day have a great rise.  I failed to persuade my broker friends to send me out looking over factories and managements, but my wife and I decided to go anyway.  I had developed a theory that most people lost money in stocks through ignorance of markets.  I discovered many more reasons later on. 
+By the time I had completed the course, I knew the law was not for me.  The inviting maelstrom of Wall Street had me in its grip.  Business and financial leaders were my heroes.  Out of this alloy of drink and speculation, I commenced to forge the weapon that one day would turn in its flight like a boomerang and all but cut me to ribbons.  Living modestly, my wife and I saved $1,000.  It went into certain securities, then cheap and rather unpopular.  I rightly imagined that they would some day have a great rise.  I failed to persuade my broker friends to send me out looking over factories and managements, but my wife and I decided to go anyway.  I had developed a theory that most people lost money in stocks through ignorance of markets.  I discovered many more reasons later on.
 
 We gave up our positions and off we roared on a motorcycle, the sidecar stuffed with tent, blankets, a change of clothes, and three huge volumes of a financial
 
 *— Page 3 —*
 
-reference service.  Our friends thought a lunacy commission should be appointed.  Perhaps they were right.  I had had some success at speculation, so we had a little money, but we once worked on a farm for a month to avoid drawing on our small capital.  That was the last honest manual labor on my part for many a day.  We covered the whole eastern United States in a year.  At the end of it, my reports to Wall Street procured me a position there and the use of a large expense account.  The exercise of an option brought in more money, leaving us with a profit of several thousand dollars for that year. 
+reference service.  Our friends thought a lunacy commission should be appointed.  Perhaps they were right.  I had had some success at speculation, so we had a little money, but we once worked on a farm for a month to avoid drawing on our small capital.  That was the last honest manual labor on my part for many a day.  We covered the whole eastern United States in a year.  At the end of it, my reports to Wall Street procured me a position there and the use of a large expense account.  The exercise of an option brought in more money, leaving us with a profit of several thousand dollars for that year.
 
-For the next few years fortune threw money and applause my way.  I had arrived.  My judgment and ideas were followed by many to the tune of paper millions.  The great boom of the late twenties was seething and swelling.  Drink was taking an important and exhilarating part in my life.  There was loud talk in the jazz places uptown.  Everyone spent in thousands and chattered in millions.  Scoffers could scoff and be damned.  I made a host of fair-weather friends. 
+For the next few years fortune threw money and applause my way.  I had arrived.  My judgment and ideas were followed by many to the tune of paper millions.  The great boom of the late twenties was seething and swelling.  Drink was taking an important and exhilarating part in my life.  There was loud talk in the jazz places uptown.  Everyone spent in thousands and chattered in millions.  Scoffers could scoff and be damned.  I made a host of fair-weather friends.
 
-My drinking assumed more serious proportions, continuing all day and almost every night.  The remonstrances of my friends terminated in a row and I became a lone wolf.  There were many unhappy scenes in our sumptuous apartment.  There had been no real infidelity, for loyalty to my wife, helped at times by extreme drunkenness, kept me out of those scrapes. 
+My drinking assumed more serious proportions, continuing all day and almost every night.  The remonstrances of my friends terminated in a row and I became a lone wolf.  There were many unhappy scenes in our sumptuous apartment.  There had been no real infidelity, for loyalty to my wife, helped at times by extreme drunkenness, kept me out of those scrapes.
 
 In 1929 I contracted golf fever.  We went at once to  the country, my wife to applaud while I started out to overtake Walter Hagen.  Liquor caught up with me much faster than I came up behind Walter.  I began to be jittery in the morning.  Golf permitted drinking
 
 *— Page 4 —*
 
-every day and every night.  It was fun to carom around the exclusive course which had inspired such awe in me as a lad.  I acquired the impeccable coat of tan one sees upon the well-to-do.  The local banker watched me whirl fat checks in and out of his till with amused skepticism. 
+every day and every night.  It was fun to carom around the exclusive course which had inspired such awe in me as a lad.  I acquired the impeccable coat of tan one sees upon the well-to-do.  The local banker watched me whirl fat checks in and out of his till with amused skepticism.
 
-Abruptly in October 1929 hell broke loose on the New York stock exchange.  After one of those days of inferno, I wobbled from a hotel bar to a brokerage office.  It was eight o'clock - five hours after the market closed.  The ticker still clattered.  I was staring at an inch of the tape which bore the inscription XYZ-32.  It had been 52 that morning.  I was finished and so were many friends.  The papers reported men jumping to death from the towers of High Finance.  That disgusted me.  I would not jump.  I went back to the bar.  My friends had dropped several million since ten o'clock - so what?  Tomorrow was another day.  As I drank, the old fierce determination to win came back. 
+Abruptly in October 1929 hell broke loose on the New York stock exchange.  After one of those days of inferno, I wobbled from a hotel bar to a brokerage office.  It was eight o'clock - five hours after the market closed.  The ticker still clattered.  I was staring at an inch of the tape which bore the inscription XYZ-32.  It had been 52 that morning.  I was finished and so were many friends.  The papers reported men jumping to death from the towers of High Finance.  That disgusted me.  I would not jump.  I went back to the bar.  My friends had dropped several million since ten o'clock - so what?  Tomorrow was another day.  As I drank, the old fierce determination to win came back.
 
-Next morning I telephoned a friend in Montreal.  He had plenty of money left and thought I had better go to Canada.  By the following spring we were living in our accustomed style.  I felt like Napoleon returning from Elba.  No St. Helena for me!  But drinking caught up with me again and my generous friend had to let me go.  This time we stayed broke. 
+Next morning I telephoned a friend in Montreal.  He had plenty of money left and thought I had better go to Canada.  By the following spring we were living in our accustomed style.  I felt like Napoleon returning from Elba.  No St. Helena for me!  But drinking caught up with me again and my generous friend had to let me go.  This time we stayed broke.
 
 We went to live with my wife's parents.  I found a job; then lost it as the result of a brawl with a taxi driver.  Mercifully, no one could guess that I was to have no real employment for five years, or hardly draw a sober breath.  My wife began to work in a department store, coming home exhausted to find me drunk.
 
@@ -339,7 +339,7 @@ An alcoholic in his cups is an unlovely creature. Our struggles with them are va
 There is, however a vast amount of fun about it all. I suppose some would be shocked at our seeming worldliness and levity. But just underneath there is deadly earnestness. Faith has to work twenty-four hours a day in and through us, or we perish.
 
 Most of us feel we need look no further for Utopia. We have it with us right here and now. Each day my friend's simple talk in our kitchen multiplies itself in a widening circle of peace on earth and good will to men.`,
- "chapter-2": `# Chapter 2
+  "chapter-2": `# Chapter 2
 
 ## THERE IS A SOLUTION
 
@@ -493,7 +493,7 @@ Each individual, in the personal stories, describes in his own language and from
 
 We hope no one will consider these self-revealing accounts in bad taste. Our hope is that many alcoholic men and women, desperately in need, will see these pages, and we believe that it is only by fully disclosing ourselves and our problems that they will be persuaded to say, "Yes, I am one of them too; I must have this thing."
 `,
-"chapter-3": `# Chapter 3
+  "chapter-3": `# Chapter 3
 
 ## MORE ABOUT ALCOHOLISM
 
@@ -631,7 +631,7 @@ Many doctors and psychiatrists agree with our conclusions. One of these men, sta
 
 Once more: The alcoholic at certain times has no effective mental defense against the first drink. Except in a few rare cases, neither he nor any other human being can provide such a defense. His defense must come from a Higher Power.
 `,
- "chapter-4": `# Chapter 4
+  "chapter-4": `# Chapter 4
 
 ## WE AGNOSTICS
 
@@ -780,7 +780,7 @@ What is this but a miracle of healing? Yet its elements are simple. Circumstance
 Even so has God restored us all to our right minds. To this man, the revelation was sudden. Some of us grow into it more slowly. But He has come to all who have honestly sought Him.
 
 When we drew near to Him He disclosed Himself to us!`,
- "chapter-5": `# Chapter 5
+  "chapter-5": `# Chapter 5
 
 ## HOW IT WORKS
 
@@ -954,7 +954,7 @@ In this book you read again and again that faith did
 *— Page 71 —*
 
 for us what we could not do for ourselves. We hope you are convinced now that God can remove whatever self-will has blocked you off from Him. If you have already made a decision, and an inventory of your grosser handicaps, you have made a good beginning. That being so you have swallowed and digested some big chunks of truth about yourself.`,
-"chapter-6": `# Chapter 6
+  "chapter-6": `# Chapter 6
 # INTO ACTION
 
 *— Page 72 —*
@@ -1458,7 +1458,7 @@ We never, never try to arrange a man's life so as to shield him from temptation.
 We realize that we have been giving you much direction and advice. We may have seemed to lecture. If that is so we are sorry, for we ourselves don't always care for people who lecture us. But what we have related is based upon experience, some of it painful. We had to learn these things the hard way. That is why we are anxious that you understand, and that you avoid these unnecessary difficulties.
 
 So to you out there—who may soon be with us—we say "Good luck and God bless you!"`,
- "chapter-9": `# Chapter 9
+  "chapter-9": `# Chapter 9
 # THE FAMILY AFTERWARD
 
 *— Page 122 —*

@@ -86,13 +86,16 @@ const SobrietyCounter = () => {
   };
 
   const onDateChange = (event: any, date?: Date) => {
+    console.log('🔍 onDateChange called:', { event, date, platform: Platform.OS });
     if (Platform.OS === 'android') {
       setShowDatePicker(false);
       if (event.type === 'set' && date) {
+        console.log('🔍 Android: Setting date to:', date);
         const dateString = formatLocalDate(date);
         setSobrietyDate(dateString);
       }
     } else if (date) {
+      console.log('🔍 iOS/Web: Setting selectedDate to:', date);
       setSelectedDate(date);
     }
   };
@@ -234,7 +237,8 @@ const SobrietyCounter = () => {
                   <DateTimePicker
                     value={selectedDate}
                     mode="date"
-                    display="spinner"
+                    display="compact"
+                    themeVariant="light"
                     onChange={onDateChange}
                     maximumDate={new Date()}
                     style={styles.nativeDatePicker}
@@ -335,7 +339,8 @@ const SobrietyCounter = () => {
                   <DateTimePicker
                     value={selectedDate}
                     mode="date"
-                    display="spinner"
+                    display="compact"
+                    themeVariant="light"
                     onChange={onDateChange}
                     maximumDate={new Date()}
                     style={styles.nativeDatePicker}
@@ -440,7 +445,8 @@ const SobrietyCounter = () => {
                   <DateTimePicker
                     value={selectedDate}
                     mode="date"
-                    display="spinner"
+                    display="compact"
+                    themeVariant="light"
                     onChange={onDateChange}
                     maximumDate={new Date()}
                     style={styles.nativeDatePicker}
@@ -578,6 +584,7 @@ const styles = StyleSheet.create({
     width: '100%',
     height: 216,
     marginBottom: 20,
+    backgroundColor: 'transparent',
   },
   datePickerButtons: {
     flexDirection: 'row',
