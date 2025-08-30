@@ -109,45 +109,82 @@ export default function SavedEveningReviews({ visible, onClose }: SavedEveningRe
     const { date, data } = entry;
     const formattedDate = formatDateDisplay(date);
 
-    const answeredQuestions = [];
-    
-    if (data.resentfulFlag) {
-      const answer = data.resentfulFlag === 'yes' ? 'Yes' : 'No';
-      answeredQuestions.push(`Was I resentful today? ${answer}${data.resentfulFlag === 'yes' && data.resentfulNote ? ` - ${data.resentfulNote}` : ''}`);
-    }
-    if (data.selfishFlag) {
-      const answer = data.selfishFlag === 'yes' ? 'Yes' : 'No';
-      answeredQuestions.push(`Was I selfish and self-centered today? ${answer}${data.selfishFlag === 'yes' && data.selfishNote ? ` - ${data.selfishNote}` : ''}`);
-    }
-    if (data.fearfulFlag) {
-      const answer = data.fearfulFlag === 'yes' ? 'Yes' : 'No';
-      answeredQuestions.push(`Was I fearful or worrisome today? ${answer}${data.fearfulFlag === 'yes' && data.fearfulNote ? ` - ${data.fearfulNote}` : ''}`);
-    }
-    if (data.apologyFlag) {
-      const answer = data.apologyFlag === 'yes' ? 'Yes' : 'No';
-      answeredQuestions.push(`Do I owe anyone an apology? ${answer}${data.apologyFlag === 'yes' && data.apologyName ? ` - ${data.apologyName}` : ''}`);
-    }
-    if (data.kindnessFlag) {
-      const answer = data.kindnessFlag === 'yes' ? 'Yes' : 'No';
-      answeredQuestions.push(`Was I of service or kind to others today? ${answer}${data.kindnessFlag === 'yes' && data.kindnessNote ? ` - ${data.kindnessNote}` : ''}`);
-    }
-    if (data.prayerMeditationFlag) {
-      const answer = data.prayerMeditationFlag === 'yes' ? 'Yes' : 'No';
-      answeredQuestions.push(`Did I pray or meditate today? ${answer}`);
-    }
-    if (data.spiritualNote) {
-      answeredQuestions.push(`How was my spiritual condition today? ${data.spiritualNote}`);
-    }
-
     const simpleDate = new Date(date).toLocaleDateString('en-US', {
       month: 'long',
       day: 'numeric'
     });
     
     let shareMessage = `${simpleDate}\n\nEvening Review\n\n`;
-    
-    if (answeredQuestions.length > 0) {
-      shareMessage += answeredQuestions.join('\n\n') + '\n';
+
+    // Check if this is new format or legacy format
+    if (data.stayedSober !== undefined) {
+      // New format
+      shareMessage += 'Daily Actions:\n';
+      const dailyActions = [
+        { key: 'stayedSober', label: 'Stayed sober', checked: data.stayedSober },
+        { key: 'prayedOrMeditated', label: 'Prayed or meditated', checked: data.prayedOrMeditated },
+        { key: 'practicedGratitude', label: 'Practiced gratitude', checked: data.practicedGratitude },
+        { key: 'readAALiterature', label: 'Read AA literature', checked: data.readAALiterature },
+        { key: 'talkedToAlcoholic', label: 'Talked to another alcoholic', checked: data.talkedToAlcoholic },
+        { key: 'didSomethingForOthers', label: 'Did something for someone else', checked: data.didSomethingForOthers },
+      ];
+      
+      dailyActions.forEach(action => {
+        const status = action.checked ? '✅' : '❌';
+        shareMessage += `${status} ${action.label}\n`;
+      });
+
+      // Inventory
+      shareMessage += '\nInventory:\n';
+      const inventoryQuestions = [
+        { key: 'reflectionResentful', label: 'Was I resentful, selfish, dishonest, or afraid?', value: data.reflectionResentful },
+        { key: 'reflectionApology', label: 'Do I owe an apology?', value: data.reflectionApology },
+        { key: 'reflectionShared', label: 'Did I keep something to myself that should be shared with another?', value: data.reflectionShared },
+        { key: 'reflectionKind', label: 'Was I kind and loving toward all?', value: data.reflectionKind },
+        { key: 'reflectionBetter', label: 'What could I have done better?', value: data.reflectionBetter },
+        { key: 'reflectionOthers', label: 'Was I thinking of myself most of the time, or of what I could do for others?', value: data.reflectionOthers },
+      ];
+      
+      inventoryQuestions.forEach(question => {
+        if (question.value && question.value.trim()) {
+          shareMessage += `${question.label}\n${question.value}\n\n`;
+        }
+      });
+    } else {
+      // Legacy format
+      const answeredQuestions = [];
+      
+      if (data.resentfulFlag) {
+        const answer = data.resentfulFlag === 'yes' ? 'Yes' : 'No';
+        answeredQuestions.push(`Was I resentful today? ${answer}${data.resentfulFlag === 'yes' && data.resentfulNote ? ` - ${data.resentfulNote}` : ''}`);
+      }
+      if (data.selfishFlag) {
+        const answer = data.selfishFlag === 'yes' ? 'Yes' : 'No';
+        answeredQuestions.push(`Was I selfish and self-centered today? ${answer}${data.selfishFlag === 'yes' && data.selfishNote ? ` - ${data.selfishNote}` : ''}`);
+      }
+      if (data.fearfulFlag) {
+        const answer = data.fearfulFlag === 'yes' ? 'Yes' : 'No';
+        answeredQuestions.push(`Was I fearful or worrisome today? ${answer}${data.fearfulFlag === 'yes' && data.fearfulNote ? ` - ${data.fearfulNote}` : ''}`);
+      }
+      if (data.apologyFlag) {
+        const answer = data.apologyFlag === 'yes' ? 'Yes' : 'No';
+        answeredQuestions.push(`Do I owe anyone an apology? ${answer}${data.apologyFlag === 'yes' && data.apologyName ? ` - ${data.apologyName}` : ''}`);
+      }
+      if (data.kindnessFlag) {
+        const answer = data.kindnessFlag === 'yes' ? 'Yes' : 'No';
+        answeredQuestions.push(`Was I of service or kind to others today? ${answer}${data.kindnessFlag === 'yes' && data.kindnessNote ? ` - ${data.kindnessNote}` : ''}`);
+      }
+      if (data.prayerMeditationFlag) {
+        const answer = data.prayerMeditationFlag === 'yes' ? 'Yes' : 'No';
+        answeredQuestions.push(`Did I pray or meditate today? ${answer}`);
+      }
+      if (data.spiritualNote) {
+        answeredQuestions.push(`How was my spiritual condition today? ${data.spiritualNote}`);
+      }
+      
+      if (answeredQuestions.length > 0) {
+        shareMessage += answeredQuestions.join('\n\n') + '\n';
+      }
     }
 
     try {

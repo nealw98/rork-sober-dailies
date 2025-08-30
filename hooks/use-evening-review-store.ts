@@ -43,6 +43,12 @@ interface DetailedEveningEntry {
   spiritualFlag: string;
   spiritualNote: string;
   prayerMeditationFlag: string;
+  stayedSober: boolean;
+  prayedOrMeditated: boolean;
+  practicedGratitude: boolean;
+  readAALiterature: boolean;
+  talkedToAlcoholic: boolean;
+  didSomethingForOthers: boolean;
 }
 
 interface SavedEveningEntry {
@@ -245,14 +251,14 @@ export const [EveningReviewProvider, useEveningReviewStore] = createContextHook(
     
     // Also update the completion tracking
     const answers: ReviewAnswers = {
-      resentful: detailedEntry.resentfulFlag === 'yes',
-      selfish: detailedEntry.selfishFlag === 'yes',
-      fearful: detailedEntry.fearfulFlag === 'yes',
-      apology: detailedEntry.apologyFlag === 'yes',
-      kindness: detailedEntry.kindnessFlag === 'yes',
-      spiritual: detailedEntry.spiritualFlag !== '',
+      resentful: detailedEntry.stayedSober || detailedEntry.resentfulFlag === 'yes' || false,
+      selfish: detailedEntry.prayedOrMeditated || detailedEntry.selfishFlag === 'yes' || false,
+      fearful: detailedEntry.practicedGratitude || detailedEntry.fearfulFlag === 'yes' || false,
+      apology: detailedEntry.readAALiterature || detailedEntry.apologyFlag === 'yes' || false,
+      kindness: detailedEntry.talkedToAlcoholic || detailedEntry.kindnessFlag === 'yes' || false,
+      spiritual: detailedEntry.didSomethingForOthers || detailedEntry.spiritualFlag !== '' || false,
       aaTalk: false,
-      prayerMeditation: detailedEntry.prayerMeditationFlag === 'yes'
+      prayerMeditation: detailedEntry.prayedOrMeditated || detailedEntry.prayerMeditationFlag === 'yes' || false
     };
     
     if (targetDate === getTodayDateString()) {

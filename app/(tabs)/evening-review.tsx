@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import {
   View,
   Text,
@@ -9,46 +9,92 @@ import {
   Alert,
   Platform,
   Share,
-  KeyboardAvoidingView
+  KeyboardAvoidingView,
+  Animated,
+  Pressable
 } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
 import ScreenContainer from "@/components/ScreenContainer";
 import { LinearGradient } from 'expo-linear-gradient';
-import { CheckCircle, Calendar, Share as ShareIcon, Save, Archive } from 'lucide-react-native';
+import { CheckCircle, Calendar, Share as ShareIcon, Save, Archive, Check } from 'lucide-react-native';
 import { useEveningReviewStore } from '@/hooks/use-evening-review-store';
 import SavedEveningReviews from '@/components/SavedEveningReviews';
 import Colors from '@/constants/colors';
 import { adjustFontWeight } from '@/constants/fonts';
 
-
-
 const formatDateDisplay = (date: Date): string => {
   return date.toLocaleDateString('en-US', {
     weekday: 'long',
-    year: 'numeric',
     month: 'long',
     day: 'numeric'
   });
+};
+
+// Animated Checkbox Component
+const AnimatedCheckbox = ({ checked, onPress, children }: { 
+  checked: boolean; 
+  onPress: () => void; 
+  children: React.ReactNode;
+}) => {
+  const scaleAnim = useRef(new Animated.Value(1)).current;
+
+  const handlePress = () => {
+    // Scale animation only - no background color animation to avoid useNativeDriver conflict
+    Animated.sequence([
+      Animated.timing(scaleAnim, {
+        toValue: 1.15,
+        duration: 100,
+        useNativeDriver: true,
+      }),
+      Animated.timing(scaleAnim, {
+        toValue: 1.0,
+        duration: 100,
+        useNativeDriver: true,
+      }),
+    ]).start();
+
+    onPress();
+  };
+
+  return (
+    <Pressable onPress={handlePress} style={styles.checkboxRowPressable}>
+      <Animated.View 
+        style={[
+          styles.checkboxRow,
+          {
+            transform: [{ scale: scaleAnim }],
+            backgroundColor: checked ? 'rgba(255, 255, 255, 0.3)' : 'rgba(255, 255, 255, 0.1)',
+          }
+        ]}
+      >
+        <View style={[styles.checkbox, checked && styles.checkboxChecked]}>
+          {checked && <Check size={16} color="white" />}
+        </View>
+        <Text style={styles.checkboxText}>{children}</Text>
+      </Animated.View>
+    </Pressable>
+  );
 };
 
 export default function EveningReview() {
   const [showConfirmation, setShowConfirmation] = useState(false);
   const [showSavedReviews, setShowSavedReviews] = useState(false);
 
-  // Form state - matching web app structure
-  const [resentfulFlag, setResentfulFlag] = useState('');
-  const [resentfulNote, setResentfulNote] = useState('');
-  const [selfishFlag, setSelfishFlag] = useState('');
-  const [selfishNote, setSelfishNote] = useState('');
-  const [fearfulFlag, setFearfulFlag] = useState('');
-  const [fearfulNote, setFearfulNote] = useState('');
-  const [apologyFlag, setApologyFlag] = useState('');
-  const [apologyName, setApologyName] = useState('');
-  const [kindnessFlag, setKindnessFlag] = useState('');
-  const [kindnessNote, setKindnessNote] = useState('');
-  const [spiritualFlag, setSpiritualFlag] = useState('');
-  const [spiritualNote, setSpiritualNote] = useState('');
-  const [prayerMeditationFlag, setPrayerMeditationFlag] = useState('');
+  // New Daily Actions state
+  const [stayedSober, setStayedSober] = useState(false);
+  const [prayedOrMeditated, setPrayedOrMeditated] = useState(false);
+  const [practicedGratitude, setPracticedGratitude] = useState(false);
+  const [readAALiterature, setReadAALiterature] = useState(false);
+  const [talkedToAlcoholic, setTalkedToAlcoholic] = useState(false);
+  const [didSomethingForOthers, setDidSomethingForOthers] = useState(false);
+
+  // New Inventory state
+  const [reflectionResentful, setReflectionResentful] = useState('');
+  const [reflectionApology, setReflectionApology] = useState('');
+  const [reflectionShared, setReflectionShared] = useState('');
+  const [reflectionKind, setReflectionKind] = useState('');
+  const [reflectionBetter, setReflectionBetter] = useState('');
+  const [reflectionOthers, setReflectionOthers] = useState('');
 
   // Always call hooks in the same order
   const eveningReviewStore = useEveningReviewStore();
@@ -68,12 +114,10 @@ export default function EveningReview() {
   
   const getTodayDateString = () => {
     const today = new Date();
-    // Ensure we're working in local timezone
     const year = today.getFullYear();
     const month = (today.getMonth() + 1).toString().padStart(2, '0');
     const day = today.getDate().toString().padStart(2, '0');
     const dateString = `${year}-${month}-${day}`;
-    console.log('evening-review getTodayDateString:', dateString, 'timezone offset:', today.getTimezoneOffset());
     return dateString;
   };
   
@@ -82,82 +126,37 @@ export default function EveningReview() {
   const weeklyProgress = getWeeklyProgress();
   const weeklyStreak = getWeeklyStreak();
 
-  const questions = [
-    {
-      text: '1. Was I resentful today?',
-      flag: resentfulFlag,
-      setFlag: setResentfulFlag,
-      note: resentfulNote,
-      setNote: setResentfulNote,
-      placeholder: 'With whom?'
-    },
-    {
-      text: '2. Was I selfish and self-centered today?',
-      flag: selfishFlag,
-      setFlag: setSelfishFlag,
-      note: selfishNote,
-      setNote: setSelfishNote,
-      placeholder: 'In what way?'
-    },
-    {
-      text: '3. Was I fearful or worrisome today?',
-      flag: fearfulFlag,
-      setFlag: setFearfulFlag,
-      note: fearfulNote,
-      setNote: setFearfulNote,
-      placeholder: 'How so?'
-    },
-    {
-      text: '4. Do I owe anyone an apology?',
-      flag: apologyFlag,
-      setFlag: setApologyFlag,
-      note: apologyName,
-      setNote: setApologyName,
-      placeholder: 'Whom have you harmed?'
-    },
-    {
-      text: '5. Was I loving and kind to others today?',
-      flag: kindnessFlag,
-      setFlag: setKindnessFlag,
-      note: kindnessNote,
-      setNote: setKindnessNote,
-      placeholder: 'What did you do?'
-    },
-    {
-      text: '6. Did I pray or meditate today?',
-      flag: prayerMeditationFlag,
-      setFlag: setPrayerMeditationFlag,
-      note: '',
-      setNote: () => {},
-      placeholder: ''
-    },
-    {
-      text: '7. How was my spiritual condition today?',
-      flag: spiritualFlag,
-      setFlag: setSpiritualFlag,
-      note: spiritualNote,
-      setNote: setSpiritualNote,
-      placeholder: 'Were you on the beam?',
-      inputOnly: true
-    }
+  const dailyActions = [
+    { key: 'stayedSober', label: 'Stayed sober', checked: stayedSober, setChecked: setStayedSober },
+    { key: 'prayedOrMeditated', label: 'Prayed or meditated', checked: prayedOrMeditated, setChecked: setPrayedOrMeditated },
+    { key: 'practicedGratitude', label: 'Practiced gratitude', checked: practicedGratitude, setChecked: setPracticedGratitude },
+    { key: 'readAALiterature', label: 'Read AA literature', checked: readAALiterature, setChecked: setReadAALiterature },
+    { key: 'talkedToAlcoholic', label: 'Talked to another alcoholic', checked: talkedToAlcoholic, setChecked: setTalkedToAlcoholic },
+    { key: 'didSomethingForOthers', label: 'Did something for someone else', checked: didSomethingForOthers, setChecked: setDidSomethingForOthers },
   ];
 
-
+  const inventoryQuestions = [
+    { key: 'reflectionResentful', label: 'Was I resentful, selfish, dishonest, or afraid?', value: reflectionResentful, setValue: setReflectionResentful },
+    { key: 'reflectionApology', label: 'Do I owe an apology?', value: reflectionApology, setValue: setReflectionApology },
+    { key: 'reflectionShared', label: 'Did I keep something to myself that should be shared with another?', value: reflectionShared, setValue: setReflectionShared },
+    { key: 'reflectionKind', label: 'Was I kind and loving toward all?', value: reflectionKind, setValue: setReflectionKind },
+    { key: 'reflectionBetter', label: 'What could I have done better?', value: reflectionBetter, setValue: setReflectionBetter },
+    { key: 'reflectionOthers', label: 'Was I thinking of myself most of the time, or of what I could do for others?', value: reflectionOthers, setValue: setReflectionOthers },
+  ];
 
   const handleStartNew = () => {
-    setResentfulFlag('');
-    setResentfulNote('');
-    setSelfishFlag('');
-    setSelfishNote('');
-    setFearfulFlag('');
-    setFearfulNote('');
-    setApologyFlag('');
-    setApologyName('');
-    setKindnessFlag('');
-    setKindnessNote('');
-    setSpiritualFlag('');
-    setSpiritualNote('');
-    setPrayerMeditationFlag('');
+    setStayedSober(false);
+    setPrayedOrMeditated(false);
+    setPracticedGratitude(false);
+    setReadAALiterature(false);
+    setTalkedToAlcoholic(false);
+    setDidSomethingForOthers(false);
+    setReflectionResentful('');
+    setReflectionApology('');
+    setReflectionShared('');
+    setReflectionKind('');
+    setReflectionBetter('');
+    setReflectionOthers('');
     setShowConfirmation(false);
   };
 
@@ -168,99 +167,80 @@ export default function EveningReview() {
     
     if (savedEntry) {
       const data = savedEntry.data;
-      setResentfulFlag(data.resentfulFlag);
-      setResentfulNote(data.resentfulNote);
-      setSelfishFlag(data.selfishFlag);
-      setSelfishNote(data.selfishNote);
-      setFearfulFlag(data.fearfulFlag);
-      setFearfulNote(data.fearfulNote);
-      setApologyFlag(data.apologyFlag);
-      setApologyName(data.apologyName);
-      setKindnessFlag(data.kindnessFlag);
-      setKindnessNote(data.kindnessNote);
-      setSpiritualFlag(data.spiritualFlag);
-      setSpiritualNote(data.spiritualNote);
-      setPrayerMeditationFlag(data.prayerMeditationFlag);
+      // Load new format data if available, otherwise use legacy format
+      if (data.stayedSober !== undefined) {
+        setStayedSober(data.stayedSober);
+        setPrayedOrMeditated(data.prayedOrMeditated);
+        setPracticedGratitude(data.practicedGratitude);
+        setReadAALiterature(data.readAALiterature);
+        setTalkedToAlcoholic(data.talkedToAlcoholic);
+        setDidSomethingForOthers(data.didSomethingForOthers);
+        setReflectionResentful(data.reflectionResentful || '');
+        setReflectionApology(data.reflectionApology || '');
+        setReflectionShared(data.reflectionShared || '');
+        setReflectionKind(data.reflectionKind || '');
+        setReflectionBetter(data.reflectionBetter || '');
+        setReflectionOthers(data.reflectionOthers || '');
+      } else {
+        // Legacy format - convert to new format
+        setStayedSober(true); // Assume sober if they're doing the review
+        setPrayedOrMeditated(data.prayerMeditationFlag === 'yes');
+        setPracticedGratitude(false);
+        setReadAALiterature(false);
+        setTalkedToAlcoholic(false);
+        setDidSomethingForOthers(data.kindnessFlag === 'yes');
+        setReflectionResentful(data.resentfulFlag === 'yes' ? data.resentfulNote : '');
+        setReflectionApology(data.apologyFlag === 'yes' ? data.apologyName : '');
+        setReflectionShared('');
+        setReflectionKind(data.kindnessFlag === 'yes' ? data.kindnessNote : '');
+        setReflectionBetter(data.spiritualNote || '');
+        setReflectionOthers('');
+      }
     }
     
-    // Uncomplete today to show the form
     uncompleteToday();
     setShowConfirmation(false);
   };
-  
-
 
   const handleShare = async () => {
-    console.log('Share button pressed');
-
     const today = new Date().toLocaleDateString('en-US', {
       month: 'long',
       day: 'numeric'
     });
 
-    // Create a summary of the review
-    const answeredQuestions = [];
-    
-    // Include all answered questions, regardless of yes/no
-    if (resentfulFlag) {
-      const answer = resentfulFlag === 'yes' ? 'Yes' : 'No';
-      answeredQuestions.push(`Was I resentful today? ${answer}${resentfulFlag === 'yes' && resentfulNote ? ` - ${resentfulNote}` : ''}`);
-    }
-    if (selfishFlag) {
-      const answer = selfishFlag === 'yes' ? 'Yes' : 'No';
-      answeredQuestions.push(`Was I selfish and self-centered today? ${answer}${selfishFlag === 'yes' && selfishNote ? ` - ${selfishNote}` : ''}`);
-    }
-    if (fearfulFlag) {
-      const answer = fearfulFlag === 'yes' ? 'Yes' : 'No';
-      answeredQuestions.push(`Was I fearful or worrisome today? ${answer}${fearfulFlag === 'yes' && fearfulNote ? ` - ${fearfulNote}` : ''}`);
-    }
-    if (apologyFlag) {
-      const answer = apologyFlag === 'yes' ? 'Yes' : 'No';
-      answeredQuestions.push(`Do I owe anyone an apology? ${answer}${apologyFlag === 'yes' && apologyName ? ` - ${apologyName}` : ''}`);
-    }
-    if (kindnessFlag) {
-      const answer = kindnessFlag === 'yes' ? 'Yes' : 'No';
-      answeredQuestions.push(`Was I of service or kind to others today? ${answer}${kindnessFlag === 'yes' && kindnessNote ? ` - ${kindnessNote}` : ''}`);
-    }
-    if (prayerMeditationFlag) {
-      const answer = prayerMeditationFlag === 'yes' ? 'Yes' : 'No';
-      answeredQuestions.push(`Did I pray or meditate today? ${answer}`);
-    }
-    if (spiritualNote) {
-      answeredQuestions.push(`How was my spiritual condition today? ${spiritualNote}`);
-    }
-
     let shareMessage = `${today}\n\nEvening Review\n\n`;
-    
-    if (answeredQuestions.length > 0) {
-      shareMessage += answeredQuestions.join('\n\n') + '\n';
-    } else {
-      shareMessage += 'Starting my nightly review...';
-    }
+
+    // Daily Actions
+    shareMessage += 'Daily Actions:\n';
+    dailyActions.forEach(action => {
+      const status = action.checked ? '✅' : '❌';
+      shareMessage += `${status} ${action.label}\n`;
+    });
+
+    // Inventory
+    shareMessage += '\nInventory:\n';
+    inventoryQuestions.forEach(question => {
+      if (question.value.trim()) {
+        shareMessage += `${question.label}\n${question.value}\n\n`;
+      }
+    });
 
     try {
-      console.log('Attempting to share:', Platform.OS);
-      
       if (Platform.OS === 'web') {
-        // For web, copy to clipboard since Share API doesn't work in iframes
         await Clipboard.setStringAsync(shareMessage);
         Alert.alert(
           'Copied to Clipboard',
-          'Your nightly review has been copied to the clipboard. You can now paste it in any messaging app or text field.',
+          'Your nightly review has been copied to the clipboard.',
           [{ text: 'OK' }]
         );
       } else {
-        // For mobile, use native Share API
         const result = await Share.share({
           message: shareMessage,
           title: `Evening Review - ${today}`
         });
-        console.log('Share result:', result);
       }
     } catch (error) {
       console.error('Error sharing nightly review:', error);
-      
-      // Fallback to clipboard for any platform if sharing fails
       try {
         await Clipboard.setStringAsync(shareMessage);
         Alert.alert(
@@ -269,7 +249,6 @@ export default function EveningReview() {
           [{ text: 'OK' }]
         );
       } catch (clipboardError) {
-        console.error('Clipboard fallback failed:', clipboardError);
         Alert.alert(
           'Share Error',
           'Unable to share your nightly review. Please try again.',
@@ -279,32 +258,37 @@ export default function EveningReview() {
     }
   };
 
-  // Check if all questions are answered
-  const getAnsweredCount = () => {
-    const flags = [resentfulFlag, selfishFlag, fearfulFlag, apologyFlag, kindnessFlag, spiritualNote, prayerMeditationFlag];
-    return flags.filter(flag => flag !== '').length;
-  };
-
-  const answeredCount = getAnsweredCount();
-
   const handleSaveEntry = () => {
     const detailedEntry = {
-      resentfulFlag,
-      resentfulNote,
-      selfishFlag,
-      selfishNote,
-      fearfulFlag,
-      fearfulNote,
-      apologyFlag,
-      apologyName,
-      kindnessFlag,
-      kindnessNote,
-      spiritualFlag,
-      spiritualNote,
-      prayerMeditationFlag
+      // New format fields
+      stayedSober,
+      prayedOrMeditated,
+      practicedGratitude,
+      readAALiterature,
+      talkedToAlcoholic,
+      didSomethingForOthers,
+      reflectionResentful,
+      reflectionApology,
+      reflectionShared,
+      reflectionKind,
+      reflectionBetter,
+      reflectionOthers,
+      // Legacy fields for compatibility
+      resentfulFlag: '',
+      resentfulNote: '',
+      selfishFlag: '',
+      selfishNote: '',
+      fearfulFlag: '',
+      fearfulNote: '',
+      apologyFlag: '',
+      apologyName: '',
+      kindnessFlag: '',
+      kindnessNote: '',
+      spiritualFlag: '',
+      spiritualNote: '',
+      prayerMeditationFlag: ''
     };
 
-    // Save for today's date
     saveDetailedEntry(detailedEntry);
     
     Alert.alert(
@@ -315,14 +299,11 @@ export default function EveningReview() {
   };
 
   const canSave = () => {
-    return answeredCount > 0;
+    return dailyActions.some(action => action.checked) || 
+           inventoryQuestions.some(question => question.value.trim() !== '');
   };
 
-  // Show friendly message if no data found and not editing
-  if (!isCompleted && answeredCount === 0) {
-    // This is the initial state - show the form
-  }
-  
+  // Show completion screen if review is completed
   if (showConfirmation || isCompleted) {
     return (
       <ScreenContainer style={styles.container}>
@@ -334,7 +315,6 @@ export default function EveningReview() {
         />
         
         <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-          {/* Header */}
           <View style={styles.header}>
             <Text style={styles.title}>Review Complete</Text>
             <Text style={styles.subtitle}>{formatDateDisplay(today)}</Text>
@@ -343,23 +323,12 @@ export default function EveningReview() {
             </Text>
           </View>
 
-          {/* Confirmation Message */}
           <View style={styles.card}>
             <Text style={styles.confirmationText}>
               Thanks for checking in. You&apos;re doing the work — one day at a time.
             </Text>
           </View>
-          
-          {/* Friendly message for first time users */}
-          {!isCompleted && answeredCount === 0 && (
-            <View style={styles.card}>
-              <Text style={styles.confirmationText}>
-                No review found for today. Start now to see your insights.
-              </Text>
-            </View>
-          )}
 
-          {/* Weekly Progress */}
           <View style={styles.card}>
             <View style={styles.cardHeader}>
               <Calendar color={Colors.light.tint} size={20} />
@@ -367,25 +336,21 @@ export default function EveningReview() {
             </View>
             
             <View style={styles.weeklyProgress}>
-              {weeklyProgress.map((day, index) => {
-                console.log('Rendering day:', day.date, 'completed:', day.completed, 'isToday:', day.isToday, 'isFuture:', day.isFuture);
-                
-                return (
-                  <View key={index} style={styles.dayContainer}>
-                    <Text style={styles.dayName}>{day.dayName}</Text>
-                    <View style={[
-                      styles.dayCircle,
-                      day.completed && !day.isFuture && styles.dayCircleCompleted,
-                      day.isToday && styles.dayCircleToday,
-                      day.isFuture && styles.dayCircleFuture
-                    ]}>
-                      {day.completed && !day.isFuture && (
-                        <CheckCircle color="white" size={16} />
-                      )}
-                    </View>
+              {weeklyProgress.map((day, index) => (
+                <View key={index} style={styles.dayContainer}>
+                  <Text style={styles.dayName}>{day.dayName}</Text>
+                  <View style={[
+                    styles.dayCircle,
+                    day.completed && !day.isFuture && styles.dayCircleCompleted,
+                    day.isToday && styles.dayCircleToday,
+                    day.isFuture && styles.dayCircleFuture
+                  ]}>
+                    {day.completed && !day.isFuture && (
+                      <CheckCircle color="white" size={16} />
+                    )}
                   </View>
-                );
-              })}
+                </View>
+              ))}
             </View>
             
             <Text style={styles.streakText}>
@@ -393,12 +358,9 @@ export default function EveningReview() {
             </Text>
           </View>
 
-          {/* Privacy Notice */}
           <Text style={styles.privacyText}>
             Your responses are saved only on your device. Nothing is uploaded or shared.
           </Text>
-
-
 
           <View style={styles.buttonContainer}>
             <TouchableOpacity style={styles.outlineButton} onPress={handleEditReview}>
@@ -430,120 +392,90 @@ export default function EveningReview() {
           keyboardShouldPersistTaps="handled"
           contentContainerStyle={styles.scrollContent}
         >
-        {/* Header */}
-        <View style={styles.header}>
-          <Text style={styles.title}>Evening Review</Text>
-          <Text style={styles.description}>
-            Nightly inventory based on AA&apos;s &apos;When We Retire at Night&apos; guidance
-          </Text>
-        </View>
+          <View style={styles.header}>
+            <Text style={styles.title}>Evening Review</Text>
+            <Text style={styles.description}>
+              Nightly inventory based on AA&apos;s &apos;When We Retire at Night&apos; guidance
+            </Text>
+          </View>
 
-        {/* Questions */}
-        <View style={styles.card}>
-          <Text style={styles.cardTitle}>{formatDateDisplay(today)}</Text>
-          
-          <View style={styles.questionsContainer}>
-            {questions.map((question, index) => (
-              <View key={index} style={styles.questionContainer}>
-                <Text style={styles.questionText}>{question.text}</Text>
-                {question.inputOnly ? (
+          <View style={styles.dateCard}>
+            <Text style={styles.dateText}>{formatDateDisplay(today)}</Text>
+          </View>
+
+          {/* Daily Actions Section */}
+          <View style={styles.card}>
+            <Text style={styles.sectionTitle}>Daily Actions</Text>
+            <View style={styles.dailyActionsContainer}>
+              {dailyActions.map((action) => (
+                <AnimatedCheckbox
+                  key={action.key}
+                  checked={action.checked}
+                  onPress={() => action.setChecked(!action.checked)}
+                >
+                  {action.label}
+                </AnimatedCheckbox>
+              ))}
+            </View>
+          </View>
+
+          {/* Inventory Section */}
+          <View style={styles.inventoryCard}>
+            <Text style={styles.sectionTitle}>Inventory</Text>
+            <Text style={styles.inventoryDescription}>
+              Based on AA&apos;s &apos;When We Retire at Night&apos; p. 86
+            </Text>
+            <View style={styles.inventoryContainer}>
+              {inventoryQuestions.map((question) => (
+                <View key={question.key} style={styles.questionContainer}>
+                  <Text style={styles.questionText}>{question.label}</Text>
                   <TextInput
-                    style={styles.textInput}
-                    placeholder={question.placeholder}
-                    value={question.note}
-                    onChangeText={question.setNote}
+                    style={styles.inventoryTextInput}
+                    placeholder="Write your reflection here..."
+                    value={question.value}
+                    onChangeText={question.setValue}
                     multiline
                     placeholderTextColor={Colors.light.muted}
                     returnKeyType="done"
                     blurOnSubmit={true}
                     enablesReturnKeyAutomatically={true}
                   />
-                ) : (
-                  <>
-                    <View style={styles.answerButtons}>
-                      <TouchableOpacity
-                        style={[
-                          styles.answerButton,
-                          question.flag === 'yes' && styles.answerButtonSelected
-                        ]}
-                        onPress={() => question.setFlag('yes')}
-                      >
-                        <Text style={[
-                          styles.answerButtonText,
-                          question.flag === 'yes' && styles.answerButtonTextSelected
-                        ]}>Yes</Text>
-                      </TouchableOpacity>
-                      <TouchableOpacity
-                        style={[
-                          styles.answerButton,
-                          question.flag === 'no' && styles.answerButtonSelected
-                        ]}
-                        onPress={() => question.setFlag('no')}
-                      >
-                        <Text style={[
-                          styles.answerButtonText,
-                          question.flag === 'no' && styles.answerButtonTextSelected
-                        ]}>No</Text>
-                      </TouchableOpacity>
-                    </View>
-                    
-                    {question.flag === 'yes' && question.placeholder && (
-                      <TextInput
-                        style={styles.textInput}
-                        placeholder={question.placeholder}
-                        value={question.note}
-                        onChangeText={question.setNote}
-                        multiline
-                        placeholderTextColor={Colors.light.muted}
-                        returnKeyType="done"
-                        blurOnSubmit={true}
-                        enablesReturnKeyAutomatically={true}
-                      />
-                    )}
-                  </>
-                )}
-              </View>
-            ))}
+                </View>
+              ))}
+            </View>
           </View>
-        </View>
 
-
-
-        {/* Action Buttons */}
-        <View style={styles.actionButtons}>
-          <TouchableOpacity 
-            style={[
-              styles.saveButton,
-              !canSave() && styles.saveButtonDisabled
-            ]} 
-            onPress={handleSaveEntry}
-            disabled={!canSave()}
-          >
-            <Save size={20} color="white" />
-            <Text style={styles.saveButtonText}>Save</Text>
-          </TouchableOpacity>
+          {/* Action Buttons */}
+          <View style={styles.actionButtons}>
+            <TouchableOpacity 
+              style={[
+                styles.saveButton,
+                !canSave() && styles.saveButtonDisabled
+              ]} 
+              onPress={handleSaveEntry}
+              disabled={!canSave()}
+            >
+              <Save size={20} color="white" />
+              <Text style={styles.saveButtonText}>Save</Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity 
+              style={styles.shareButton} 
+              onPress={handleShare}
+            >
+              <ShareIcon size={20} color="white" />
+              <Text style={styles.shareButtonText}>Share</Text>
+            </TouchableOpacity>
+          </View>
           
           <TouchableOpacity 
-            style={styles.shareButton} 
-            onPress={handleShare}
+            style={styles.secondaryButton} 
+            onPress={() => setShowSavedReviews(true)}
           >
-            <ShareIcon size={20} color="white" />
-            <Text style={styles.shareButtonText}>Share</Text>
+            <Archive size={20} color={Colors.light.tint} />
+            <Text style={styles.secondaryButtonText}>View Saved Reviews</Text>
           </TouchableOpacity>
-        </View>
-        
-        {/* View Saved Reviews Button */}
-        <TouchableOpacity 
-          style={styles.secondaryButton} 
-          onPress={() => setShowSavedReviews(true)}
-        >
-          <Archive size={20} color={Colors.light.tint} />
-          <Text style={styles.secondaryButtonText}>View Saved Reviews</Text>
-        </TouchableOpacity>
 
-
-
-          {/* Privacy Notice */}
           <Text style={styles.privacyText}>
             Your responses are saved only on your device. Nothing is uploaded or shared.
           </Text>
@@ -565,71 +497,6 @@ const styles = StyleSheet.create({
   scrollContent: {
     flexGrow: 1,
     paddingBottom: 20,
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 20,
-  },
-  alertContainer: {
-    backgroundColor: 'white',
-    borderRadius: 16,
-    padding: 20,
-    width: '100%',
-    maxWidth: 400,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-    elevation: 5,
-  },
-  alertTitle: {
-    fontSize: 20,
-    fontWeight: adjustFontWeight('700', true),
-    color: Colors.light.text,
-    marginBottom: 12,
-    textAlign: 'center',
-  },
-  alertDescription: {
-    fontSize: 16,
-    color: Colors.light.muted,
-    marginBottom: 20,
-    textAlign: 'center',
-    lineHeight: 22,
-  },
-  alertButtonsContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    gap: 12,
-  },
-  alertCancelButton: {
-    flex: 1,
-    paddingVertical: 12,
-    borderRadius: 25,
-    borderWidth: 1,
-    borderColor: Colors.light.tint,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  alertCancelButtonText: {
-    color: Colors.light.tint,
-    fontSize: 16,
-    fontWeight: adjustFontWeight('500'),
-  },
-  alertConfirmButton: {
-    flex: 1,
-    backgroundColor: Colors.light.tint,
-    paddingVertical: 12,
-    borderRadius: 25,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  alertConfirmButtonText: {
-    color: 'white',
-    fontSize: 16,
-    fontWeight: adjustFontWeight('600'),
   },
   container: {
     flex: 1,
@@ -657,26 +524,206 @@ const styles = StyleSheet.create({
     marginBottom: 8,
     textAlign: 'center',
   },
-  subtitle: {
-    fontSize: 16,
-    color: Colors.light.tint,
-    marginBottom: 8,
-    textAlign: 'center',
-  },
   description: {
     fontSize: 14,
     color: Colors.light.muted,
     textAlign: 'center',
     lineHeight: 20,
   },
-  card: {
+  dateCard: {
     backgroundColor: 'rgba(255, 255, 255, 0.6)',
     borderRadius: 16,
     padding: 16,
     marginBottom: 16,
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.3)',
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3.84,
+    elevation: 5,
   },
+  dateText: {
+    fontSize: 18,
+    fontWeight: adjustFontWeight('600', true),
+    color: Colors.light.tint,
+    textAlign: 'center',
+  },
+  card: {
+    backgroundColor: 'rgba(255, 255, 255, 0.6)',
+    borderRadius: 16,
+    padding: 20,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3.84,
+    elevation: 5,
+  },
+  inventoryCard: {
+    backgroundColor: 'rgba(255, 255, 255, 0.5)',
+    borderRadius: 16,
+    padding: 20,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3.84,
+    elevation: 5,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: adjustFontWeight('600', true),
+    color: Colors.light.text,
+    marginBottom: 16,
+  },
+  inventoryDescription: {
+    fontSize: 12,
+    color: Colors.light.muted,
+    marginBottom: 16,
+    fontStyle: 'italic',
+  },
+  dailyActionsContainer: {
+    gap: 8,
+  },
+  inventoryContainer: {
+    gap: 16,
+  },
+  checkboxRowPressable: {
+    borderRadius: 8,
+    overflow: 'hidden',
+  },
+  checkboxRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 12,
+    borderRadius: 8,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  checkbox: {
+    width: 20,
+    height: 20,
+    borderRadius: 4,
+    borderWidth: 2,
+    borderColor: '#000000',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+  },
+  checkboxChecked: {
+    backgroundColor: Colors.light.tint,
+    borderColor: Colors.light.tint,
+  },
+  checkboxText: {
+    fontSize: 15,
+    color: Colors.light.text,
+    flex: 1,
+  },
+  questionContainer: {
+    marginBottom: 12,
+    borderRadius: 8,
+    overflow: 'hidden',
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    padding: 4,
+  },
+  questionText: {
+    fontSize: 15,
+    color: Colors.light.text,
+    marginBottom: 8,
+    lineHeight: 20,
+  },
+  inventoryTextInput: {
+    marginTop: 4,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.5)',
+    borderRadius: 8,
+    backgroundColor: 'rgba(255, 255, 255, 0.8)',
+    fontSize: 15,
+    color: Colors.light.text,
+    minHeight: 80,
+    textAlignVertical: 'top',
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 1.0,
+    elevation: 1,
+  },
+  actionButtons: {
+    flexDirection: 'row',
+    gap: 12,
+    marginHorizontal: 32,
+    marginBottom: 16,
+  },
+  saveButton: {
+    flex: 1,
+    backgroundColor: '#28a745',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 25,
+    alignItems: 'center',
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 8,
+    height: 48,
+  },
+  saveButtonDisabled: {
+    backgroundColor: Colors.light.muted,
+    opacity: 0.6,
+  },
+  saveButtonText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: adjustFontWeight('600'),
+  },
+  shareButton: {
+    flex: 1,
+    backgroundColor: Colors.light.tint,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 25,
+    alignItems: 'center',
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 8,
+    height: 48,
+  },
+  shareButtonText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: adjustFontWeight('600'),
+  },
+  secondaryButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: 25,
+    borderWidth: 1,
+    borderColor: Colors.light.tint,
+    backgroundColor: 'transparent',
+    marginHorizontal: 32,
+    marginBottom: 16,
+    gap: 8,
+    height: 48,
+  },
+  secondaryButtonText: {
+    color: Colors.light.tint,
+    fontSize: 16,
+    fontWeight: adjustFontWeight('500'),
+  },
+  privacyText: {
+    fontSize: 12,
+    color: Colors.light.muted,
+    textAlign: 'center',
+    marginBottom: 24,
+  },
+  // Completion screen styles
   cardHeader: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -734,67 +781,9 @@ const styles = StyleSheet.create({
     color: Colors.light.muted,
     textAlign: 'center',
   },
-  questionsContainer: {
-    marginTop: 16,
-  },
-  questionContainer: {
+  buttonContainer: {
+    gap: 12,
     marginBottom: 16,
-  },
-  questionText: {
-    fontSize: 14,
-    fontWeight: adjustFontWeight('500'),
-    color: Colors.light.text,
-    marginBottom: 8,
-    lineHeight: 20,
-  },
-  answerButtons: {
-    flexDirection: 'row',
-    gap: 8,
-  },
-  answerButton: {
-    paddingHorizontal: 24,
-    paddingVertical: 8,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: Colors.light.tint,
-    backgroundColor: 'transparent',
-  },
-  answerButtonSelected: {
-    backgroundColor: Colors.light.tint,
-  },
-  answerButtonText: {
-    fontSize: 14,
-    color: Colors.light.tint,
-    fontWeight: adjustFontWeight('500'),
-  },
-  answerButtonTextSelected: {
-    color: 'white',
-  },
-  textInput: {
-    marginTop: 8,
-    padding: 12,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.3)',
-    borderRadius: 8,
-    backgroundColor: 'rgba(255, 255, 255, 0.5)',
-    fontSize: 14,
-    color: Colors.light.text,
-    minHeight: 40,
-    textAlignVertical: 'top',
-  },
-
-  completeButton: {
-    backgroundColor: Colors.light.tint,
-    paddingVertical: 14,
-    borderRadius: 25,
-    alignItems: 'center',
-    marginHorizontal: 32,
-    marginBottom: 16,
-  },
-  completeButtonText: {
-    color: 'white',
-    fontSize: 16,
-    fontWeight: adjustFontWeight('600'),
   },
   outlineButton: {
     borderWidth: 1,
@@ -810,169 +799,10 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: adjustFontWeight('500'),
   },
-  privacyText: {
-    fontSize: 12,
-    color: Colors.light.muted,
-    textAlign: 'center',
-    marginBottom: 24,
-  },
-  buttonContainer: {
-    gap: 12,
-    marginBottom: 16,
-  },
-  unsubmitButton: {
-    backgroundColor: '#dc3545',
-    paddingVertical: 12,
-    borderRadius: 25,
-    alignItems: 'center',
-    marginHorizontal: 32,
-  },
-  unsubmitButtonText: {
-    color: 'white',
+  subtitle: {
     fontSize: 16,
-    fontWeight: adjustFontWeight('500'),
-  },
-  insightsHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: 4,
-  },
-  insightsTitle: {
-    fontSize: 16,
-    fontWeight: adjustFontWeight('600', true),
     color: Colors.light.tint,
-  },
-  insightsContent: {
-    marginTop: 16,
-    paddingTop: 16,
-    borderTopWidth: 1,
-    borderTopColor: 'rgba(255, 255, 255, 0.3)',
-  },
-  insightsSubtitle: {
-    fontSize: 14,
-    color: Colors.light.muted,
-    marginBottom: 16,
-    textAlign: 'center',
-  },
-  insightPercentage: {
-    fontSize: 12,
-    color: Colors.light.tint,
-    fontWeight: adjustFontWeight('600'),
-    marginLeft: 12,
-  },
-  insightItem: {
-    marginBottom: 12,
-  },
-  insightLabel: {
-    fontSize: 14,
-    fontWeight: adjustFontWeight('500'),
-    color: Colors.light.text,
-    marginBottom: 4,
-  },
-  insightNotes: {
-    fontSize: 12,
-    color: Colors.light.muted,
-    fontStyle: 'italic',
-    marginLeft: 12,
-  },
-  placeholderNote: {
-    fontSize: 12,
-    color: '#dc3545',
-    fontStyle: 'italic',
-    marginBottom: 16,
-    textAlign: 'center',
-  },
-  progressIndicator: {
-    backgroundColor: 'rgba(255, 255, 255, 0.6)',
-    borderRadius: 12,
-    padding: 12,
-    marginHorizontal: 32,
     marginBottom: 8,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.3)',
-  },
-  progressText: {
-    fontSize: 14,
-    color: Colors.light.muted,
     textAlign: 'center',
-  },
-  completeButtonDisabled: {
-    backgroundColor: Colors.light.muted,
-    opacity: 0.6,
-  },
-  completeButtonTextDisabled: {
-    color: 'rgba(255, 255, 255, 0.7)',
-  },
-  shareButtonTextDisabled: {
-    color: 'rgba(255, 255, 255, 0.7)',
-  },
-  actionButtons: {
-    flexDirection: 'row',
-    gap: 12,
-    marginHorizontal: 32,
-    marginBottom: 16,
-  },
-  saveButton: {
-    flex: 1,
-    backgroundColor: '#28a745',
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderRadius: 25,
-    alignItems: 'center',
-    flexDirection: 'row',
-    justifyContent: 'center',
-    gap: 8,
-    height: 48,
-  },
-  saveButtonDisabled: {
-    backgroundColor: Colors.light.muted,
-    opacity: 0.6,
-  },
-  saveButtonText: {
-    color: 'white',
-    fontSize: 16,
-    fontWeight: adjustFontWeight('600'),
-  },
-  shareButton: {
-    flex: 1,
-    backgroundColor: Colors.light.tint,
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderRadius: 25,
-    alignItems: 'center',
-    flexDirection: 'row',
-    justifyContent: 'center',
-    gap: 8,
-    height: 48,
-  },
-  shareButtonDisabled: {
-    backgroundColor: Colors.light.muted,
-    opacity: 0.6,
-  },
-  shareButtonText: {
-    color: 'white',
-    fontSize: 16,
-    fontWeight: adjustFontWeight('600'),
-  },
-  secondaryButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 12,
-    paddingHorizontal: 24,
-    borderRadius: 25,
-    borderWidth: 1,
-    borderColor: Colors.light.tint,
-    backgroundColor: 'transparent',
-    marginHorizontal: 32,
-    marginBottom: 16,
-    gap: 8,
-    height: 48,
-  },
-  secondaryButtonText: {
-    color: Colors.light.tint,
-    fontSize: 16,
-    fontWeight: adjustFontWeight('500'),
   },
 });
