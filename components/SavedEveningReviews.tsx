@@ -436,6 +436,7 @@ export default function SavedEveningReviews({ visible, onClose }: SavedEveningRe
         </ScrollView>
       </View>
     );
+    }
   };
 
   // Log when modal becomes visible
