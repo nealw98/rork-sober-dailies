@@ -130,7 +130,7 @@ export default function SavedEveningReviews({ visible, onClose }: SavedEveningRe
       ];
       
       dailyActions.forEach(action => {
-        const status = action.checked ? '✅' : '❌';
+        const status = action.checked ? '✅' : '';
         shareMessage += `${status} ${action.label}\n`;
       });
 

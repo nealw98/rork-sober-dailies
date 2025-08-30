@@ -233,7 +233,7 @@ export default function EveningReview() {
     // Daily Actions
     shareMessage += 'Daily Actions:\n';
     dailyActions.forEach(action => {
-      const status = action.checked ? '✅' : '❌';
+      const status = action.checked ? '✅' : '';
       shareMessage += `${status} ${action.label}\n`;
     });
 
