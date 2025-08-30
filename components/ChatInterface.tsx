@@ -17,6 +17,7 @@ import Colors from "@/constants/colors";
 import { useChatStore } from "@/hooks/use-chat-store";
 import { ChatMessage, SponsorType } from "@/types";
 import { adjustFontWeight } from "@/constants/fonts";
+import { CustomTextRenderer } from "./CustomTextRenderer";
 
 const ChatBubble = ({ message }: { message: ChatMessage }) => {
   const isUser = message.sender === "user";
@@ -52,7 +53,14 @@ const ChatBubble = ({ message }: { message: ChatMessage }) => {
           getBotBubbleStyle(),
         ]}
       >
-        <Text style={styles.messageText}>{message.text}</Text>
+        {isUser ? (
+          <Text style={styles.messageText}>{message.text}</Text>
+        ) : (
+          <CustomTextRenderer 
+            content={message.text}
+            style={styles.messageText}
+          />
+        )}
       </View>
       <Text style={styles.timestamp}>
         {new Date(message.timestamp).toLocaleTimeString([], {

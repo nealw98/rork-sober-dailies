@@ -90,21 +90,21 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="evening-review"
-        options={{
-          title: "Review",
-          headerTitle: "Evening Review",
-          headerLeft: () => <BackButton />,
-          tabBarIcon: ({ color }) => <Moon color={color} size={22} style={styles.tabIcon} />,
-        }}
-      />
-      <Tabs.Screen
         name="chat"
         options={{
           title: "AI Sponsor",
           headerTitle: "AI Sponsor",
           headerLeft: () => <BackButton />,
           tabBarIcon: ({ color }) => <MessageCircle color={color} size={22} style={styles.tabIcon} />,
+        }}
+      />
+      <Tabs.Screen
+        name="literature"
+        options={{
+          title: "Literature",
+          headerTitle: "AA Literature",
+          headerLeft: () => <BackButton />,
+          tabBarIcon: ({ color }) => <BookOpen color={color} size={22} style={styles.tabIcon} />,
         }}
       />
       <Tabs.Screen
@@ -117,16 +117,14 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="literature"
+        name="evening-review"
         options={{
-          title: "Literature",
-          headerTitle: "AA Literature",
+          title: "Review",
+          headerTitle: "Evening Review",
           headerLeft: () => <BackButton />,
-          tabBarIcon: ({ color }) => <BookOpen color={color} size={22} style={styles.tabIcon} />,
+          tabBarIcon: ({ color }) => <Moon color={color} size={22} style={styles.tabIcon} />,
         }}
       />
-
-
 
     </Tabs>
   );

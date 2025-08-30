@@ -11,7 +11,8 @@ import {
   Share,
   KeyboardAvoidingView,
   Animated,
-  Pressable
+  Pressable,
+  Easing
 } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
 import ScreenContainer from "@/components/ScreenContainer";
@@ -38,40 +39,59 @@ const AnimatedCheckbox = ({ checked, onPress, children }: {
 }) => {
   const scaleAnim = useRef(new Animated.Value(1)).current;
 
-  const handlePress = () => {
-    // Scale animation only - no background color animation to avoid useNativeDriver conflict
-    Animated.sequence([
+  // Trigger animation only when checking (not unchecking)
+  React.useEffect(() => {
+    if (checked) {
+      // Animate scale with elastic easing
       Animated.timing(scaleAnim, {
-        toValue: 1.15,
-        duration: 100,
+        toValue: 1.1,
+        duration: 400,
+        easing: Easing.elastic(1),
         useNativeDriver: true,
-      }),
-      Animated.timing(scaleAnim, {
-        toValue: 1.0,
-        duration: 100,
-        useNativeDriver: true,
-      }),
-    ]).start();
+      }).start(() => {
+        // Reset scale after animation completes
+        Animated.timing(scaleAnim, {
+          toValue: 1.0,
+          duration: 200,
+          easing: Easing.ease,
+          useNativeDriver: true,
+        }).start();
+      });
+    }
+  }, [checked]);
 
+  const handlePress = () => {
     onPress();
   };
 
   return (
     <Pressable onPress={handlePress} style={styles.checkboxRowPressable}>
-      <Animated.View 
-        style={[
-          styles.checkboxRow,
-          {
-            transform: [{ scale: scaleAnim }],
-            backgroundColor: checked ? 'rgba(255, 255, 255, 0.3)' : 'rgba(255, 255, 255, 0.1)',
-          }
-        ]}
-      >
-        <View style={[styles.checkbox, checked && styles.checkboxChecked]}>
-          {checked && <Check size={16} color="white" />}
+      <View style={styles.checkboxRowContainer}>
+        <View 
+          style={[
+            styles.checkboxRow,
+            {
+              backgroundColor: checked ? 'rgba(255, 255, 255, 0.3)' : 'rgba(255, 255, 255, 0.1)',
+            }
+          ]}
+        >
+          <View style={[styles.checkbox, checked && styles.checkboxChecked]}>
+            {checked && <Check size={16} color="white" />}
+          </View>
+          <View style={styles.textContainer}>
+            <Animated.Text 
+              style={[
+                styles.checkboxText,
+                {
+                  transform: [{ scale: scaleAnim }],
+                }
+              ]}
+            >
+              {children}
+            </Animated.Text>
+          </View>
         </View>
-        <Text style={styles.checkboxText}>{children}</Text>
-      </Animated.View>
+      </View>
     </Pressable>
   );
 };
@@ -597,12 +617,18 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     overflow: 'hidden',
   },
+  checkboxRowContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   checkboxRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'flex-start',
     padding: 12,
     borderRadius: 8,
     backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    alignSelf: 'stretch',
   },
   checkbox: {
     width: 20,
@@ -618,10 +644,15 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.light.tint,
     borderColor: Colors.light.tint,
   },
+  textContainer: {
+    flex: 1,
+    alignItems: 'flex-start',
+    justifyContent: 'center',
+  },
   checkboxText: {
     fontSize: 15,
     color: Colors.light.text,
-    flex: 1,
+    textAlign: 'left',
   },
   questionContainer: {
     marginBottom: 12,
