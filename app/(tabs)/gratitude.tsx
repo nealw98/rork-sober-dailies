@@ -559,9 +559,9 @@ export default function GratitudeListScreen() {
           </Text>
 
           <View style={styles.buttonContainer}>
-            <TouchableOpacity style={styles.outlineButton} onPress={handleShare}>
-              <ShareIcon size={20} color={Colors.light.tint} />
-              <Text style={styles.outlineButtonText}>Share</Text>
+            <TouchableOpacity style={styles.shareButton} onPress={handleShare}>
+              <ShareIcon size={20} color="white" />
+              <Text style={styles.shareButtonText}>Share</Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.outlineButton} onPress={handleEditGratitude}>
               <Text style={styles.outlineButtonText}>Edit Gratitude List</Text>
