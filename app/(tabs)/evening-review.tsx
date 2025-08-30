@@ -383,9 +383,9 @@ export default function EveningReview() {
           </Text>
 
           <View style={styles.buttonContainer}>
-            <TouchableOpacity style={styles.shareButton} onPress={handleShare}>
+            <TouchableOpacity style={styles.shareButtonSolid} onPress={handleShare}>
               <ShareIcon size={20} color="white" />
-              <Text style={styles.shareButtonText}>Share</Text>
+              <Text style={styles.shareButtonSolidText}>Share</Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.outlineButton} onPress={handleEditReview}>
               <Text style={styles.outlineButtonText}>Edit Review</Text>
@@ -823,6 +823,22 @@ const styles = StyleSheet.create({
   },
   outlineButtonText: {
     color: Colors.light.tint,
+    fontSize: 16,
+    fontWeight: adjustFontWeight('500'),
+  },
+  shareButtonSolid: {
+    backgroundColor: Colors.light.tint,
+    paddingVertical: 12,
+    borderRadius: 25,
+    alignItems: 'center',
+    marginHorizontal: 32,
+    marginBottom: 16,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 8,
+  },
+  shareButtonSolidText: {
+    color: 'white',
     fontSize: 16,
     fontWeight: adjustFontWeight('500'),
   },
