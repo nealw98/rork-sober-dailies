@@ -151,7 +151,7 @@ export default function EveningReview() {
     { key: 'prayedOrMeditated', label: 'Prayed or meditated', checked: prayedOrMeditated, setChecked: setPrayedOrMeditated },
     { key: 'practicedGratitude', label: 'Practiced gratitude', checked: practicedGratitude, setChecked: setPracticedGratitude },
     { key: 'readAALiterature', label: 'Read AA literature', checked: readAALiterature, setChecked: setReadAALiterature },
-    { key: 'talkedToAlcoholic', label: 'Talked to another alcoholic', checked: talkedToAlcoholic, setChecked: setTalkedToAlcoholic },
+            { key: 'talkedToAlcoholic', label: 'Talked with another alcoholic', checked: talkedToAlcoholic, setChecked: setTalkedToAlcoholic },
     { key: 'didSomethingForOthers', label: 'Did something for someone else', checked: didSomethingForOthers, setChecked: setDidSomethingForOthers },
   ];
 
@@ -228,7 +228,7 @@ export default function EveningReview() {
       day: 'numeric'
     });
 
-    let shareMessage = `${today}\n\nEvening Review\n\n`;
+    let shareMessage = `${today}\n\nNightly Review\n\n`;
 
     // Daily Actions
     shareMessage += 'Daily Actions:\n';
@@ -256,7 +256,7 @@ export default function EveningReview() {
       } else {
         const result = await Share.share({
           message: shareMessage,
-          title: `Evening Review - ${today}`
+          title: `Nightly Review - ${today}`
         });
       }
     } catch (error) {
@@ -313,7 +313,7 @@ export default function EveningReview() {
     
     Alert.alert(
       'Review Saved',
-      'Your evening review has been saved successfully.',
+        'Your nightly review has been saved successfully.',
       [{ text: 'OK' }]
     );
   };
@@ -413,7 +413,7 @@ export default function EveningReview() {
           contentContainerStyle={styles.scrollContent}
         >
           <View style={styles.header}>
-            <Text style={styles.title}>Evening Review</Text>
+            <Text style={styles.title}>Nightly Review</Text>
             <Text style={styles.description}>
               Nightly inventory based on AA&apos;s &apos;When We Retire at Night&apos; guidance
             </Text>
@@ -441,7 +441,7 @@ export default function EveningReview() {
 
           {/* Inventory Section */}
           <View style={styles.inventoryCard}>
-            <Text style={styles.sectionTitle}>Inventory</Text>
+            <Text style={styles.sectionTitle}>10th Step Inventory</Text>
             <Text style={styles.inventoryDescription}>
               Based on AA&apos;s &apos;When We Retire at Night&apos; p. 86
             </Text>

@@ -120,7 +120,7 @@ export default function TabLayout() {
         name="evening-review"
         options={{
           title: "Review",
-          headerTitle: "Evening Review",
+          headerTitle: "Nightly Review",
           headerLeft: () => <BackButton />,
           tabBarIcon: ({ color }) => <Moon color={color} size={22} style={styles.tabIcon} />,
         }}

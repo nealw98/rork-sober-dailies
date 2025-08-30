@@ -11,7 +11,7 @@ import {
   Share
 } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
-import { Calendar, Share as ShareIcon, Trash2, X } from 'lucide-react-native';
+import { Calendar, Share as ShareIcon, Trash2, X, Check } from 'lucide-react-native';
 import { useEveningReviewStore } from '@/hooks/use-evening-review-store';
 import Colors from '@/constants/colors';
 import { adjustFontWeight } from '@/constants/fonts';
@@ -90,7 +90,7 @@ export default function SavedEveningReviews({ visible, onClose }: SavedEveningRe
     }
     Alert.alert(
       'Delete Entry',
-      'Are you sure you want to delete this evening review entry?',
+        'Are you sure you want to delete this nightly review entry?',
       [
         { text: 'Cancel', style: 'cancel' },
         {
@@ -114,7 +114,7 @@ export default function SavedEveningReviews({ visible, onClose }: SavedEveningRe
       day: 'numeric'
     });
     
-    let shareMessage = `${simpleDate}\n\nEvening Review\n\n`;
+            let shareMessage = `${simpleDate}\n\nNightly Review\n\n`;
 
     // Check if this is new format or legacy format
     if (data.stayedSober !== undefined) {
@@ -125,7 +125,7 @@ export default function SavedEveningReviews({ visible, onClose }: SavedEveningRe
         { key: 'prayedOrMeditated', label: 'Prayed or meditated', checked: data.prayedOrMeditated },
         { key: 'practicedGratitude', label: 'Practiced gratitude', checked: data.practicedGratitude },
         { key: 'readAALiterature', label: 'Read AA literature', checked: data.readAALiterature },
-        { key: 'talkedToAlcoholic', label: 'Talked to another alcoholic', checked: data.talkedToAlcoholic },
+        { key: 'talkedToAlcoholic', label: 'Talked with another alcoholic', checked: data.talkedToAlcoholic },
         { key: 'didSomethingForOthers', label: 'Did something for someone else', checked: data.didSomethingForOthers },
       ];
       
@@ -134,8 +134,8 @@ export default function SavedEveningReviews({ visible, onClose }: SavedEveningRe
         shareMessage += `${status} ${action.label}\n`;
       });
 
-      // Inventory
-      shareMessage += '\nInventory:\n';
+              // Inventory
+        shareMessage += '\n10th Step Inventory:\n';
       const inventoryQuestions = [
         { key: 'reflectionResentful', label: 'Was I resentful, selfish, dishonest, or afraid?', value: data.reflectionResentful },
         { key: 'reflectionApology', label: 'Do I owe an apology?', value: data.reflectionApology },
@@ -192,28 +192,28 @@ export default function SavedEveningReviews({ visible, onClose }: SavedEveningRe
         await Clipboard.setStringAsync(shareMessage);
         Alert.alert(
           'Copied to Clipboard',
-          'Your evening review has been copied to the clipboard.',
+          'Your nightly review has been copied to the clipboard.',
           [{ text: 'OK' }]
         );
       } else {
         await Share.share({
           message: shareMessage,
-          title: `Evening Review - ${formattedDate}`
+          title: `Nightly Review - ${formattedDate}`
         });
       }
     } catch (error) {
-      console.error('Error sharing evening review:', error);
+              console.error('Error sharing nightly review:', error);
       try {
         await Clipboard.setStringAsync(shareMessage);
         Alert.alert(
           'Copied to Clipboard',
-          'Sharing failed, but your evening review has been copied to the clipboard.',
+          'Sharing failed, but your nightly review has been copied to the clipboard.',
           [{ text: 'OK' }]
         );
       } catch {
         Alert.alert(
           'Share Error',
-          'Unable to share your evening review. Please try again.',
+          'Unable to share your nightly review. Please try again.',
           [{ text: 'OK' }]
         );
       }
@@ -224,44 +224,142 @@ export default function SavedEveningReviews({ visible, onClose }: SavedEveningRe
     if (!selectedEntry) return null;
 
     const { date, data } = selectedEntry;
-    const questions = [
-      {
-        text: '1. Was I resentful today?',
-        flag: data.resentfulFlag,
-        note: data.resentfulNote,
-      },
-      {
-        text: '2. Was I selfish and self-centered today?',
-        flag: data.selfishFlag,
-        note: data.selfishNote,
-      },
-      {
-        text: '3. Was I fearful or worrisome today?',
-        flag: data.fearfulFlag,
-        note: data.fearfulNote,
-      },
-      {
-        text: '4. Do I owe anyone an apology?',
-        flag: data.apologyFlag,
-        note: data.apologyName,
-      },
-      {
-        text: '5. Was I loving and kind to others today?',
-        flag: data.kindnessFlag,
-        note: data.kindnessNote,
-      },
-      {
-        text: '6. Did I pray or meditate today?',
-        flag: data.prayerMeditationFlag,
-        note: '',
-      },
-      {
-        text: '7. How was my spiritual condition today?',
-        flag: data.spiritualFlag,
-        note: data.spiritualNote,
-        inputOnly: true
-      }
-    ];
+    
+    // Check if this is new format or legacy format
+    if (data.stayedSober !== undefined) {
+      // New format
+      const dailyActions = [
+        { key: 'stayedSober', label: 'Stayed sober', checked: data.stayedSober },
+        { key: 'prayedOrMeditated', label: 'Prayed or meditated', checked: data.prayedOrMeditated },
+        { key: 'practicedGratitude', label: 'Practiced gratitude', checked: data.practicedGratitude },
+        { key: 'readAALiterature', label: 'Read AA literature', checked: data.readAALiterature },
+        { key: 'talkedToAlcoholic', label: 'Talked with another alcoholic', checked: data.talkedToAlcoholic },
+        { key: 'didSomethingForOthers', label: 'Did something for someone else', checked: data.didSomethingForOthers },
+      ];
+      
+      const inventoryQuestions = [
+        { key: 'reflectionResentful', label: 'Was I resentful, selfish, dishonest, or afraid?', value: data.reflectionResentful },
+        { key: 'reflectionApology', label: 'Do I owe an apology?', value: data.reflectionApology },
+        { key: 'reflectionShared', label: 'Did I keep something to myself that should be shared with another?', value: data.reflectionShared },
+        { key: 'reflectionKind', label: 'Was I kind and loving toward all?', value: data.reflectionKind },
+        { key: 'reflectionBetter', label: 'What could I have done better?', value: data.reflectionBetter },
+        { key: 'reflectionOthers', label: 'Was I thinking of myself most of the time, or of what I could do for others?', value: data.reflectionOthers },
+      ];
+
+      return (
+        <View style={styles.entryDetailContainer}>
+          <View style={styles.entryDetailHeader}>
+            <TouchableOpacity
+              style={styles.backButton}
+              onPress={() => {
+                console.log('Going back to list');
+                setSelectedEntry(null);
+              }}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            >
+              <X color={Colors.light.text} size={24} />
+            </TouchableOpacity>
+            <Text style={styles.modalTitle}>Nightly Review</Text>
+            <View style={styles.headerSpacer} />
+          </View>
+
+          <ScrollView style={styles.entryDetailContent}>
+            <Text style={styles.entryDate}>{formatDateDisplay(date)}</Text>
+            
+            {/* Daily Actions Section */}
+            <View style={styles.sectionContainer}>
+              <Text style={styles.sectionTitle}>Daily Actions</Text>
+              <View style={styles.checkboxContainer}>
+                {dailyActions.map((action, index) => (
+                  <View key={index} style={styles.checkboxRow}>
+                    <View style={[styles.checkbox, action.checked && styles.checkboxChecked]}>
+                      {action.checked && <Check size={16} color="white" />}
+                    </View>
+                    <Text style={styles.checkboxText}>{action.label}</Text>
+                  </View>
+                ))}
+              </View>
+            </View>
+            
+            {/* 10th Step Inventory Section */}
+            <View style={styles.sectionContainer}>
+              <Text style={styles.sectionTitle}>10th Step Inventory</Text>
+              <View style={styles.inventoryContainer}>
+                {inventoryQuestions.map((question, index) => (
+                  <View key={index} style={styles.inventoryItem}>
+                    <Text style={styles.inventoryQuestion}>{question.label}</Text>
+                    <Text style={styles.inventoryAnswer}>
+                      {question.value && question.value.trim() ? question.value : 'No response'}
+                    </Text>
+                  </View>
+                ))}
+              </View>
+            </View>
+            
+            {/* Action Buttons */}
+            <View style={styles.modalActions}>
+              <TouchableOpacity
+                style={styles.deleteButton}
+                onPress={() => {
+                  setSelectedEntry(null);
+                  handleDeleteEntry(selectedEntry.date);
+                }}
+              >
+                <Trash2 color="white" size={20} />
+                <Text style={styles.deleteButtonText}>Delete</Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity
+                style={styles.shareEntryButton}
+                onPress={() => handleShareEntry(selectedEntry)}
+              >
+                <ShareIcon color="white" size={20} />
+                <Text style={styles.shareEntryButtonText}>Share</Text>
+              </TouchableOpacity>
+            </View>
+          </ScrollView>
+        </View>
+      );
+    } else {
+      // Legacy format
+      const questions = [
+        {
+          text: '1. Was I resentful today?',
+          flag: data.resentfulFlag,
+          note: data.resentfulNote,
+        },
+        {
+          text: '2. Was I selfish and self-centered today?',
+          flag: data.selfishFlag,
+          note: data.selfishNote,
+        },
+        {
+          text: '3. Was I fearful or worrisome today?',
+          flag: data.fearfulFlag,
+          note: data.fearfulNote,
+        },
+        {
+          text: '4. Do I owe anyone an apology?',
+          flag: data.apologyFlag,
+          note: data.apologyName,
+        },
+        {
+          text: '5. Was I loving and kind to others today?',
+          flag: data.kindnessFlag,
+          note: data.kindnessNote,
+        },
+        {
+          text: '6. Did I pray or meditate today?',
+          flag: data.prayerMeditationFlag,
+          note: '',
+        },
+        {
+          text: '7. How was my spiritual condition today?',
+          flag: data.spiritualFlag,
+          note: data.spiritualNote,
+          inputOnly: true
+        }
+      ];
 
     return (
       <View style={styles.entryDetailContainer}>
@@ -276,7 +374,7 @@ export default function SavedEveningReviews({ visible, onClose }: SavedEveningRe
           >
             <X color={Colors.light.text} size={24} />
           </TouchableOpacity>
-          <Text style={styles.modalTitle}>Evening Review</Text>
+          <Text style={styles.modalTitle}>Nightly Review</Text>
           <View style={styles.headerSpacer} />
         </View>
 
@@ -391,7 +489,7 @@ export default function SavedEveningReviews({ visible, onClose }: SavedEveningRe
                   <Calendar color={Colors.light.muted} size={48} />
                   <Text style={styles.emptyTitle}>No Saved Reviews</Text>
                   <Text style={styles.emptyDescription}>
-                    Your saved evening reviews will appear here.
+                    Your saved nightly reviews will appear here.
                   </Text>
                 </View>
               ) : (
@@ -654,5 +752,84 @@ const styles = StyleSheet.create({
     color: 'white',
     fontSize: 16,
     fontWeight: adjustFontWeight('600'),
+  },
+  // New format styles
+  sectionContainer: {
+    marginBottom: 24,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: adjustFontWeight('600', true),
+    color: Colors.light.text,
+    marginBottom: 12,
+  },
+  checkboxContainer: {
+    backgroundColor: 'white',
+    borderRadius: 12,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: Colors.light.border,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  checkboxRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  checkbox: {
+    width: 20,
+    height: 20,
+    borderRadius: 4,
+    borderWidth: 2,
+    borderColor: Colors.light.border,
+    marginRight: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  checkboxChecked: {
+    backgroundColor: Colors.light.tint,
+    borderColor: Colors.light.tint,
+  },
+  checkboxText: {
+    fontSize: 16,
+    fontWeight: adjustFontWeight('500'),
+    color: Colors.light.text,
+    flex: 1,
+  },
+  inventoryContainer: {
+    backgroundColor: 'white',
+    borderRadius: 12,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: Colors.light.border,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  inventoryItem: {
+    marginBottom: 16,
+  },
+  inventoryQuestion: {
+    fontSize: 16,
+    fontWeight: adjustFontWeight('500'),
+    color: Colors.light.text,
+    marginBottom: 8,
+    lineHeight: 22,
+  },
+  inventoryAnswer: {
+    fontSize: 14,
+    color: Colors.light.text,
+    backgroundColor: Colors.light.background,
+    padding: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: Colors.light.border,
+    minHeight: 40,
   },
 });
