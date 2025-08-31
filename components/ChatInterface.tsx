@@ -248,6 +248,8 @@ export default function ChatInterface() {
           returnKeyType="default"
           blurOnSubmit={false}
           textAlignVertical="top"
+          textBreakStrategy="simple"
+          autoGrow={true}
           testID="chat-input"
         />
         <TouchableOpacity
@@ -406,8 +408,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 10,
     fontSize: 16,
+    color: Colors.light.text,
     minHeight: 44,
     maxHeight: 120,
+    textAlignVertical: 'top',
   },
   sendButton: {
     width: 44,
