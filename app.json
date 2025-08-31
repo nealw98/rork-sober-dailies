@@ -9,8 +9,8 @@
     "userInterfaceStyle": "automatic",
     "newArchEnabled": false,
     "splash": {
-      "image": "./assets/images/splash-ios-full.png",
-      "resizeMode": "cover",
+      "image": "./assets/images/adaptive-icon-foreground.png",
+      "resizeMode": "contain",
       "backgroundColor": "#061D4A"
     },
     "ios": {
@@ -57,13 +57,12 @@
         "expo-splash-screen",
         {
           "ios": {
-            "image": "./assets/images/splash-ios-full.png",
-            "resizeMode": "cover",
+            "image": "./assets/images/adaptive-icon-foreground.png",
+            "resizeMode": "contain",
             "backgroundColor": "#061D4A"
           },
           "android": {
             "image": "./assets/images/splash-android-icon.png",
-            "imageWidth": 200,
             "backgroundColor": "#061D4A"
           }
         }
