@@ -20,17 +20,7 @@
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
       },
-      "entitlements": {
-        "com": {
-          "apple": {
-            "security": {
-              "application-groups": [
-                "group.com.myapp"
-              ]
-            }
-          }
-        }
-      }
+      "entitlements": {}
     },
     "android": {
       "package": "com.nealwagner.soberdailies",
