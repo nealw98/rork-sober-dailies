@@ -480,23 +480,23 @@ const styles = StyleSheet.create({
     paddingVertical: 1,
     borderRadius: 3,
   },
-  // Roman numeral pages (like Preface) - centered, italics
+  // Roman numeral pages (like Preface) - left aligned, italics
   pageMarkerRoman: {
     fontSize: 16,
     lineHeight: 24,
     color: '#666',
     fontStyle: 'italic',
-    textAlign: 'center',
+    textAlign: 'left',
     marginBottom: 12,
     marginTop: 0, // No space at top
   },
-  // Arabic numeral pages (main chapters) - centered, italics
+  // Arabic numeral pages (main chapters) - left aligned, italics
   pageMarkerArabic: {
     fontSize: 16,
     lineHeight: 24,
     color: '#666',
     fontStyle: 'italic',
-    textAlign: 'center',
+    textAlign: 'left',
     marginBottom: 12,
     marginTop: 0, // No space at top
   },

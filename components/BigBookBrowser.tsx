@@ -54,6 +54,9 @@ const SectionItem = ({ section, categoryId, onOpenContent }: {
     >
       <View style={styles.sectionInfo}>
         <Text style={styles.sectionTitle}>{section.title}</Text>
+        {section.description && (
+          <Text style={styles.sectionDescription}>{section.description}</Text>
+        )}
       </View>
       <View style={styles.sectionIcons}>
         {allMarkdownContent[section.id] ? (
