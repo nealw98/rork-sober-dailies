@@ -16,7 +16,7 @@ export default function BigBookScreen() {
           fontSize: 14
         }
       }} />
-      <ScreenContainer style={styles.container}>
+      <ScreenContainer style={styles.container} noPadding>
         <BigBookBrowser />
       </ScreenContainer>
     </>

@@ -14,7 +14,7 @@ export default function TwelveAndTwelveScreen() {
           fontSize: 14
         }
       }} />
-      <ScreenContainer style={styles.container}>
+      <ScreenContainer style={styles.container} noPadding>
         <TwelveAndTwelveBrowser />
       </ScreenContainer>
     </>

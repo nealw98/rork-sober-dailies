@@ -433,7 +433,7 @@ export default function DailyReflection() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.light.background,
+    backgroundColor: 'transparent',
   },
   backgroundGradient: {
     position: 'absolute',
@@ -444,6 +444,7 @@ const styles = StyleSheet.create({
   },
   scrollContainer: {
     flex: 1,
+    backgroundColor: 'transparent',
   },
   contentContainer: {
     padding: 16,

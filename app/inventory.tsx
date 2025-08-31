@@ -7,35 +7,53 @@ import ScreenContainer from '@/components/ScreenContainer';
 
 const Inventory = () => {
   const onTheBeam = [
-    'HONESTY',
-    'FAITH',
-    'COURAGE',
-    'GIVING',
-    'CALM',
-    'GRATEFUL',
-    'PATIENCE',
-    'LOVE',
-    'TRUST',
-    'ACTION'
+    'Honesty',
+    'Faith',
+    'Courage',
+    'Considerate',
+    'Humility',
+    'Giving',
+    'Calm',
+    'Grateful',
+    'Patience',
+    'Tolerance',
+    'Forgiveness',
+    'Love',
+    'Self-Forgetfulness',
+    'Humility',
+    'Modesty',
+    'Self-Forgiveness',
+    'Trust',
+    'Moderation',
+    'Action'
   ];
 
   const offTheBeam = [
-    'DISHONEST',
-    'FEAR',
-    'PRIDE',
-    'GREEDY',
-    'ANGER',
-    'ENVY',
-    'IMPATIENT',
-    'HATE',
-    'SUSPICION',
-    'SLOTH'
+    'Dishonest',
+    'Fear',
+    'Frightened',
+    'Inconsiderate',
+    'Pride',
+    'Greedy',
+    'Anger',
+    'Envy',
+    'Impatient',
+    'Intolerant',
+    'Resentment',
+    'Hate',
+    'Self-Pity',
+    'Self-Justification',
+    'Self-Importance',
+    'Self-Condemnation',
+    'Suspicion',
+    'Gluttony',
+    'Sloth'
   ];
 
   return (
     <>
       <Stack.Screen options={{ title: "Spot Check Inventory" }} />
-      <ScreenContainer style={styles.container}>
+      <ScreenContainer style={styles.container} noPadding>
         <LinearGradient
           colors={['rgba(74, 144, 226, 0.3)', 'rgba(78, 205, 196, 0.2)', 'rgba(92, 184, 92, 0.1)']}
           style={styles.gradientContainer}
@@ -44,19 +62,19 @@ const Inventory = () => {
         >
           <ScrollView contentContainerStyle={styles.scrollContent}>
             <View style={styles.contentContainer}>
-              <Text style={styles.title}>Are you</Text>
-              <Text style={styles.subtitle}>"ON THE BEAM"</Text>
+              <Text style={styles.titleLine1}>Check yourself:</Text>
+              <Text style={styles.titleLine2}>Are you on the beam?</Text>
               <View style={styles.cardContainer}>
                 <View style={styles.gridContainer}>
                   <View style={styles.columnContainer}>
-                    <Text style={styles.columnTitleOn}>ON THE BEAM</Text>
+                    <Text style={[styles.columnTitleOn, { fontStyle: 'italic' }]}>ON THE BEAM</Text>
                     <View style={styles.underline} />
                     {onTheBeam.map((item, index) => (
                       <Text key={index} style={[styles.itemText, styles.noWrap]}>{item}</Text>
                     ))}
                   </View>
                   <View style={styles.columnContainer}>
-                    <Text style={styles.columnTitleOff}>OFF THE BEAM</Text>
+                    <Text style={[styles.columnTitleOff, { fontStyle: 'italic' }]}>OFF THE BEAM</Text>
                     <View style={styles.underline} />
                     {offTheBeam.map((item, index) => (
                       <Text key={index} style={[styles.itemText, styles.noWrap]}>{item}</Text>
@@ -85,38 +103,41 @@ const styles = StyleSheet.create({
     paddingTop: 0,
   },
   contentContainer: {
-    backgroundColor: 'white',
-    padding: 20,
     minHeight: '100%',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
-    elevation: 5,
     alignItems: 'center',
     justifyContent: 'flex-start',
-    paddingTop: 20,
+    paddingVertical: 20,
+    paddingHorizontal: 16,
   },
   cardContainer: {
     width: '100%',
-    backgroundColor: 'rgba(135, 206, 235, 0.7)',
+    backgroundColor: 'rgba(255, 255, 255, 0.6)',
     borderRadius: 16,
-    padding: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 6,
-    elevation: 3,
+    padding: 20,
+    paddingTop: 20,
+    // Remove blue card outline/shadow
+    shadowColor: 'transparent',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0,
+    shadowRadius: 0,
+    elevation: 0,
   },
-  title: {
-    fontSize: 28,
+  titleLine1: {
+    fontSize: 24,
     fontWeight: 'bold',
     color: Colors.light.text,
     marginBottom: 8,
     textAlign: 'center',
   },
+  titleLine2: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: Colors.light.text,
+    marginBottom: 32,
+    textAlign: 'center',
+  },
   subtitle: {
-    fontSize: 36,
+    fontSize: 24,
     fontWeight: 'bold',
     color: Colors.light.text,
     marginBottom: 32,
@@ -133,24 +154,26 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   columnTitleOn: {
-    fontSize: 20,
+    fontSize: 16,
     fontWeight: 'bold',
     color: '#333',
     textAlign: 'center',
-    marginBottom: 12,
+    marginBottom: 8,
+    lineHeight: 18,
   },
   columnTitleOff: {
-    fontSize: 20,
+    fontSize: 16,
     fontWeight: 'bold',
     color: '#333',
     textAlign: 'center',
-    marginBottom: 12,
+    marginBottom: 8,
+    lineHeight: 18,
   },
   underline: {
     height: 2,
     backgroundColor: '#333',
-    marginBottom: 12,
-    marginTop: -10,
+    marginBottom: 8,
+    marginTop: -8,
     width: '80%',
     alignSelf: 'center',
   },
@@ -159,7 +182,7 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     color: Colors.light.text,
     textAlign: 'center',
-    paddingVertical: 8,
+    paddingVertical: 4,
   },
   noWrap: {
     flexShrink: 0,

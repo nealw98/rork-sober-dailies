@@ -7,7 +7,7 @@ export default function DailyReflectionsPage() {
   return (
     <>
       <Stack.Screen options={{ title: "Daily Reflections" }} />
-      <ScreenContainer>
+      <ScreenContainer noPadding>
         <DailyReflection />
       </ScreenContainer>
     </>

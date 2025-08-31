@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { StyleSheet, View, Text, TouchableOpacity, Modal, Platform, TextInput, Alert } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
+import DateTimePickerModal from 'react-native-modal-datetime-picker';
+import DatePicker from 'react-native-date-picker';
 import { Calendar, X, Edit3 } from 'lucide-react-native';
 import { useSobriety } from '@/hooks/useSobrietyStore';
 import { formatStoredDateForDisplay, parseLocalDate, formatLocalDate } from '@/lib/dateUtils';
@@ -189,14 +191,21 @@ const SobrietyCounter = () => {
           </View>
         </Modal>
         
-        {/* Native Date Picker for Android */}
-        {showDatePicker && Platform.OS === 'android' && (
-          <DateTimePicker
-            value={selectedDate}
+        {/* Android spinner-style (wheel) date picker */}
+        {Platform.OS === 'android' && (
+          <DatePicker
+            modal
+            open={showDatePicker}
+            date={selectedDate}
             mode="date"
-            display="default"
-            onChange={onDateChange}
             maximumDate={new Date()}
+            onConfirm={(date: Date) => {
+              setSelectedDate(date);
+              setShowDatePicker(false);
+              const dateString = formatLocalDate(date);
+              setSobrietyDate(dateString);
+            }}
+            onCancel={() => setShowDatePicker(false)}
           />
         )}
         
@@ -292,13 +301,20 @@ const SobrietyCounter = () => {
           See how many days you've been sober.
         </Text>
         
-        {showDatePicker && Platform.OS === 'android' && (
-          <DateTimePicker
-            value={selectedDate}
+        {Platform.OS === 'android' && (
+          <DatePicker
+            modal
+            open={showDatePicker}
+            date={selectedDate}
             mode="date"
-            display="default"
-            onChange={onDateChange}
             maximumDate={new Date()}
+            onConfirm={(date: Date) => {
+              setSelectedDate(date);
+              setShowDatePicker(false);
+              const dateString = formatLocalDate(date);
+              setSobrietyDate(dateString);
+            }}
+            onCancel={() => setShowDatePicker(false)}
           />
         )}
         
@@ -397,13 +413,20 @@ const SobrietyCounter = () => {
           </View>
         </View>
         
-        {showDatePicker && Platform.OS === 'android' && (
-          <DateTimePicker
-            value={selectedDate}
+        {Platform.OS === 'android' && (
+          <DatePicker
+            modal
+            open={showDatePicker}
+            date={selectedDate}
             mode="date"
-            display="default"
-            onChange={onDateChange}
             maximumDate={new Date()}
+            onConfirm={(date: Date) => {
+              setSelectedDate(date);
+              setShowDatePicker(false);
+              const dateString = formatLocalDate(date);
+              setSobrietyDate(dateString);
+            }}
+            onCancel={() => setShowDatePicker(false)}
           />
         )}
         
