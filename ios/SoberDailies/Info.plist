@@ -69,11 +69,8 @@
     <array>
       <string>$(PRODUCT_BUNDLE_IDENTIFIER).expo.index_route</string>
     </array>
-    <key>UILaunchScreen</key>
-    <dict>
-      <key>Background</key>
-      <string>#061D4A</string>
-    </dict>
+    <key>UILaunchStoryboardName</key>
+    <string>SplashScreen</string>
     <key>UIRequiredDeviceCapabilities</key>
     <array>
       <string>arm64</string>
