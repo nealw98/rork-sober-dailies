@@ -10,13 +10,15 @@ import {
   TextInput,
   Keyboard,
   Platform,
-  Alert
+  Alert,
+  FlatList
 } from 'react-native';
 import { ScrollView } from 'react-native';
 import { ChevronLeft, Search } from 'lucide-react-native';
 import Colors from '@/constants/colors';
 import { adjustFontWeight } from '@/constants/fonts';
 import { CustomTextRenderer } from './CustomTextRenderer';
+import { getChapterPages, findPageIndex, PageItem } from '@/constants/bigbook/content';
 
 interface MarkdownReaderProps {
   content: string;
@@ -91,6 +93,10 @@ const MarkdownReader = ({
 
 
   const [targetPage, setTargetPage] = useState('');
+  
+  // FlatList data for Android
+  const [flatListData, setFlatListData] = useState<PageItem[]>([]);
+  const flatListRef = useRef<FlatList>(null);
 
   // Clean content by removing any HTML that might have been added
   const cleanContent = React.useMemo(() => {
@@ -114,6 +120,14 @@ const MarkdownReader = ({
     }).filter((num): num is number => num !== null && num > 0);
   }, [cleanContent]);
 
+  // Prepare FlatList data for Android
+  useEffect(() => {
+    if (Platform.OS === 'android') {
+      const pages = getChapterPages(sectionId);
+      setFlatListData(pages);
+    }
+  }, [sectionId]);
+
   // Extract page numbers - now only used for the "Go to Page" button validation
   const pageAnchors = React.useMemo(() => {
     const regex = /\*— Page (\d+|\w+) —\*/g;
@@ -136,29 +150,36 @@ const MarkdownReader = ({
 
   // Robust scroll to known y position with retries (tuned for Android)
   const scrollToTargetY = (attempt = 1) => {
-    if (targetPageNumber && typeof pageYPositions.current[`page-${targetPageNumber}`] === 'number' && scrollViewRef.current) {
-      const y = pageYPositions.current[`page-${targetPageNumber}`];
-      console.log(`📍 Scrolling to cached Y for page ${targetPageNumber}: y=${y} (attempt ${attempt})`);
-      if (y >= 0) {
-        // On Android, layout offsets can be slightly off before final layout pass.
-        // Add a small negative offset to ensure the marker is visible at the very top.
-        const PAGE_START_OFFSET = Platform.OS === 'android' ? -10 : -5;
-        const targetY = Math.max(0, y + PAGE_START_OFFSET);
-        // Android: use non-animated jump and verify immediately
-        const animated = Platform.OS === 'android' ? false : true;
-        scrollViewRef.current.scrollTo({ y: targetY, animated });
-        currentOffsetYRef.current = targetY;
-
-        // Android: use a single, delayed verification after scroll settles
-        if (Platform.OS === 'android') {
-          setTimeout(() => verifyAndCorrectPosition(), 500);
-        }
+    // Android: use FlatList scrollToIndex
+    if (Platform.OS === 'android' && targetPageNumber && flatListRef.current) {
+      const targetIndex = findPageIndex(sectionId, parseInt(targetPageNumber, 10));
+      if (targetIndex >= 0) {
+        console.log(`📍 Android: Scrolling to page ${targetPageNumber} at index ${targetIndex}`);
+        flatListRef.current.scrollToIndex({ 
+          index: targetIndex, 
+          animated: true,
+          viewPosition: 0 // 0 = top, 0.5 = center, 1 = bottom
+        });
         return;
       }
     }
-    // Increase retry window on Android to allow async layout passes to finish
-    const maxAttempts = Platform.OS === 'android' ? 12 : 8;
-    const delayMs = Platform.OS === 'android' ? 180 : 150;
+    
+    // iOS: use existing ScrollView approach
+    if (targetPageNumber && typeof pageYPositions.current[`page-${targetPageNumber}`] === 'number' && scrollViewRef.current) {
+      const y = pageYPositions.current[`page-${targetPageNumber}`];
+      console.log(`📍 iOS: Scrolling to cached Y for page ${targetPageNumber}: y=${y} (attempt ${attempt})`);
+      if (y >= 0) {
+        const PAGE_START_OFFSET = -5;
+        const targetY = Math.max(0, y + PAGE_START_OFFSET);
+        scrollViewRef.current.scrollTo({ y: targetY, animated: true });
+        currentOffsetYRef.current = targetY;
+        return;
+      }
+    }
+    
+    // Retry logic for iOS
+    const maxAttempts = 8;
+    const delayMs = 150;
     if (attempt < maxAttempts) {
       setTimeout(() => scrollToTargetY(attempt + 1), delayMs);
     } else {
@@ -169,9 +190,13 @@ const MarkdownReader = ({
   useEffect(() => {
     console.log('📍 MarkdownReader useEffect:', { targetPageNumber, initialScrollPosition });
     if (targetPageNumber) {
-      // Give platform time to layout content. Android often needs slightly more.
-      const initialDelay = Platform.OS === 'android' ? 220 : 100;
-      setTimeout(() => scrollToTargetY(), initialDelay);
+      if (Platform.OS === 'android') {
+        // Android: use shorter delay for FlatList
+        setTimeout(() => scrollToTargetY(), 100);
+      } else {
+        // iOS: use existing delay for ScrollView
+        setTimeout(() => scrollToTargetY(), 100);
+      }
     } else if (initialScrollPosition && scrollViewRef.current) {
       setTimeout(() => {
         scrollViewRef.current?.scrollTo({ y: Math.max(0, initialScrollPosition - 100), animated: true });
@@ -189,31 +214,66 @@ const MarkdownReader = ({
         {/* Removed headerControls with Go to Page button */}
       </View>
       
-      <ScrollView 
-        ref={scrollViewRef}
-        style={styles.content} 
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.contentContainer}
-        onScroll={(e: any) => {
-          currentOffsetYRef.current = e.nativeEvent.contentOffset.y;
-        }}
-        scrollEventThrottle={16}
-      >
-        <CustomTextRenderer 
-          content={cleanContent}
-          searchTerm={searchHighlight?.query}
-          style={styles.textContent}
-          onPageRef={(pageNumber, ref) => {
-            if (ref) {
-              pageRefs.current[`page-${pageNumber}`] = ref;
-            }
-          }}
-          getScrollViewNode={() => scrollViewRef.current?.getInnerViewNode?.()}
-          onPageLayout={(pageNumber, y) => {
-            pageYPositions.current[`page-${pageNumber}`] = y;
-          }}
+      {Platform.OS === 'android' ? (
+        // Android: Use FlatList for reliable scrolling
+        <FlatList
+          ref={flatListRef}
+          data={flatListData}
+          style={styles.content}
+          contentContainerStyle={styles.contentContainer}
+          showsVerticalScrollIndicator={false}
+          keyExtractor={(item, index) => `${item.pageNumber}-${index}`}
+          renderItem={({ item }) => (
+            <View style={styles.pageItem}>
+              {item.isPageMarker ? (
+                <Text style={styles.pageMarker}>{item.content}</Text>
+              ) : (
+                <CustomTextRenderer 
+                  content={item.content}
+                  searchTerm={searchHighlight?.query}
+                  style={styles.textContent}
+                  onPageRef={(pageNumber, ref) => {
+                    if (ref) {
+                      pageRefs.current[`page-${pageNumber}`] = ref;
+                    }
+                  }}
+                  getScrollViewNode={() => null}
+                  onPageLayout={(pageNumber, y) => {
+                    pageYPositions.current[`page-${pageNumber}`] = y;
+                  }}
+                />
+              )}
+            </View>
+          )}
         />
-      </ScrollView>
+      ) : (
+        // iOS: Use existing ScrollView approach
+        <ScrollView 
+          ref={scrollViewRef}
+          style={styles.content} 
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={styles.contentContainer}
+          onScroll={(e: any) => {
+            currentOffsetYRef.current = e.nativeEvent.contentOffset.y;
+          }}
+          scrollEventThrottle={16}
+        >
+          <CustomTextRenderer 
+            content={cleanContent}
+            searchTerm={searchHighlight?.query}
+            style={styles.textContent}
+            onPageRef={(pageNumber, ref) => {
+              if (ref) {
+                pageRefs.current[`page-${pageNumber}`] = ref;
+              }
+            }}
+            getScrollViewNode={() => scrollViewRef.current?.getInnerViewNode?.()}
+            onPageLayout={(pageNumber, y) => {
+              pageYPositions.current[`page-${pageNumber}`] = y;
+            }}
+          />
+        </ScrollView>
+      )}
     </SafeAreaView>
   );
 };
@@ -284,6 +344,18 @@ const styles = StyleSheet.create({
   textContent: {
     fontSize: 16,
     lineHeight: 24,
+  },
+  pageItem: {
+    marginBottom: 16,
+  },
+  pageMarker: {
+    fontSize: 14,
+    fontWeight: adjustFontWeight('600'),
+    color: Colors.light.tint,
+    textAlign: 'center',
+    marginVertical: 8,
+    fontStyle: 'italic',
+  },
     color: Colors.light.text,
   }
 });

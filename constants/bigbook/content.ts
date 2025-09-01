@@ -1972,3 +1972,89 @@ We find that no one need have difficulty with the spirituality of the program.  
 
 // Compatibility export for existing code
 export const allMarkdownContent = markdownContent;
+
+// FlatList page parsing for Android
+export interface PageItem {
+  pageNumber: number;
+  content: string;
+  isPageMarker: boolean;
+}
+
+export interface ChapterPages {
+  [chapterId: string]: PageItem[];
+}
+
+// Parse markdown content into pages for FlatList (Android)
+export const parseContentToPages = (): ChapterPages => {
+  const chapterPages: ChapterPages = {};
+  
+  Object.entries(markdownContent).forEach(([chapterId, content]) => {
+    const pages: PageItem[] = [];
+    const lines = content.split('\n');
+    let currentPage = 0;
+    let currentContent: string[] = [];
+    
+    lines.forEach((line, index) => {
+      // Check for page markers
+      const pageMatch = line.match(/\*— Page (\d+) —\*/);
+      if (pageMatch) {
+        // Save previous page content if exists
+        if (currentPage > 0 && currentContent.length > 0) {
+          pages.push({
+            pageNumber: currentPage,
+            content: currentContent.join('\n'),
+            isPageMarker: false
+          });
+        }
+        
+        // Add page marker
+        currentPage = parseInt(pageMatch[1], 10);
+        pages.push({
+          pageNumber: currentPage,
+          content: line,
+          isPageMarker: true
+        });
+        
+        // Reset content for this page
+        currentContent = [];
+      } else {
+        // Add line to current page content
+        currentContent.push(line);
+      }
+    });
+    
+    // Add final page content
+    if (currentPage > 0 && currentContent.length > 0) {
+      pages.push({
+        pageNumber: currentPage,
+        content: currentContent.join('\n'),
+        isPageMarker: false
+      });
+    }
+    
+    // If no page markers found, create single page
+    if (pages.length === 0) {
+      pages.push({
+        pageNumber: 1,
+        content: content,
+        isPageMarker: false
+      });
+    }
+    
+    chapterPages[chapterId] = pages;
+  });
+  
+  return chapterPages;
+};
+
+// Get pages for a specific chapter
+export const getChapterPages = (chapterId: string): PageItem[] => {
+  const allPages = parseContentToPages();
+  return allPages[chapterId] || [];
+};
+
+// Find page index by page number
+export const findPageIndex = (chapterId: string, targetPage: number): number => {
+  const pages = getChapterPages(chapterId);
+  return pages.findIndex(page => page.pageNumber === targetPage);
+};
