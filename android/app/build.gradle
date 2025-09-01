@@ -89,11 +89,12 @@ android {
 
     namespace 'com.nealwagner.soberdailies'
     defaultConfig {
-        applicationId 'com.nealwagner.soberdailies'
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 35
         versionName "1.8.0"
+        // Use the 'production' flavor by default when a variant isn't specified (e.g. expo run:android)
+        missingDimensionStrategy 'default', 'production'
     }
     signingConfigs {
         debug {
@@ -115,6 +116,18 @@ android {
             minifyEnabled enableProguardInReleaseBuilds
             proguardFiles getDefaultProguardFile("proguard-android.txt"), "proguard-rules.pro"
             crunchPngs (findProperty('android.enablePngCrunchInReleaseBuilds')?.toBoolean() ?: true)
+        }
+    }
+    flavorDimensions "default"
+    productFlavors {
+        preview {
+            dimension "default"
+            applicationId 'com.nealwagner.soberdailies.preview'
+            resValue "string", "app_name", "Sober Dailies Preview"
+        }
+        production {
+            dimension "default"
+            applicationId 'com.nealwagner.soberdailies'
         }
     }
     packagingOptions {

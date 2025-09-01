@@ -46,6 +46,63 @@ const MarkdownReader = ({
   const scrollViewRef = useRef<ScrollView>(null);
   const pageRefs = useRef<{ [pageNumber: string]: View | null }>({});
   const pageYPositions = useRef<{ [pageNumber: string]: number }>({});
+  const currentOffsetYRef = useRef<number>(0);
+
+  // Measure the anchor against the ScrollView and correct if needed (Android-only)
+  const verifyAndCorrectPosition = (attempt = 1) => {
+    if (Platform.OS !== 'android' || !targetPageNumber || !scrollViewRef.current) return;
+    const anchor: any = pageRefs.current[`page-${targetPageNumber}`];
+    const scrollNode: any = (scrollViewRef.current as any).getInnerViewNode?.();
+    if (!anchor || !scrollNode || typeof anchor.measureLayout !== 'function') return;
+    try {
+      anchor.measureLayout(
+        scrollNode,
+        (_x: number, y: number) => {
+          // We want the anchor very close to the top (0). Allow small tolerance
+          const tolerance = 6;
+          const PAGE_START_OFFSET = -10;
+          const desiredY = Math.max(0, y + PAGE_START_OFFSET);
+          const cur = currentOffsetYRef.current || 0;
+          if (Math.abs(cur - desiredY) > tolerance && scrollViewRef.current) {
+            console.log(`📍 Post-measure correction: localY=${y} cur=${cur} → desiredY=${desiredY}`);
+            scrollViewRef.current.scrollTo({ y: desiredY, animated: false });
+            // Keep verifying until stable
+            if (attempt < 6) setTimeout(() => verifyAndCorrectPosition(attempt + 1), 140);
+            currentOffsetYRef.current = desiredY;
+          } else if (attempt < 6) {
+            // Still verify a few more times in case layout shifts
+            setTimeout(() => verifyAndCorrectPosition(attempt + 1), 140);
+          }
+        },
+        () => {
+          if (attempt < 6) setTimeout(() => verifyAndCorrectPosition(attempt + 1), 140);
+        }
+      );
+    } catch (e) {
+      // ignore
+    }
+  };
+
+  // Final sanity check: compare current offset to cached anchor Y and snap if mismatched
+  const finalSnapIfNeeded = () => {
+    if (Platform.OS !== 'android' || !targetPageNumber || !scrollViewRef.current) return;
+    const anchor: any = pageRefs.current[`page-${targetPageNumber}`];
+    const scrollNode: any = (scrollViewRef.current as any).getInnerViewNode?.();
+    if (!anchor || !scrollNode || typeof anchor.measureLayout !== 'function') return;
+    anchor.measureLayout(
+      scrollNode,
+      (_x: number, y: number) => {
+        const cur = currentOffsetYRef.current || 0;
+        const desiredY = Math.max(0, y - 10);
+        const tolerance = 6;
+        if (Math.abs(cur - desiredY) > tolerance && scrollViewRef.current) {
+          console.log(`📍 Final snap (measured): cur=${cur} localY=${y} → desiredY=${desiredY}`);
+          scrollViewRef.current.scrollTo({ y: desiredY, animated: false });
+        }
+      },
+      () => {}
+    );
+  };
 
   const [targetPage, setTargetPage] = useState('');
 
@@ -91,19 +148,67 @@ const MarkdownReader = ({
     return anchors;
   }, [cleanContent]);
 
-  // Robust scroll to known y position with retries
+  // Robust scroll to known y position with retries (tuned for Android)
   const scrollToTargetY = (attempt = 1) => {
     if (targetPageNumber && typeof pageYPositions.current[`page-${targetPageNumber}`] === 'number' && scrollViewRef.current) {
       const y = pageYPositions.current[`page-${targetPageNumber}`];
       console.log(`📍 Scrolling to cached Y for page ${targetPageNumber}: y=${y} (attempt ${attempt})`);
       if (y >= 0) {
-        const PAGE_START_OFFSET = -5; // minimal offset from prior line
-        scrollViewRef.current.scrollTo({ y: Math.max(0, y + PAGE_START_OFFSET), animated: true });
+        // On Android, layout offsets can be slightly off before final layout pass.
+        // Add a small negative offset to ensure the marker is visible at the very top.
+        const PAGE_START_OFFSET = Platform.OS === 'android' ? -10 : -5;
+        const targetY = Math.max(0, y + PAGE_START_OFFSET);
+        // Android: use non-animated jump and verify immediately
+        const animated = Platform.OS === 'android' ? false : true;
+        scrollViewRef.current.scrollTo({ y: targetY, animated });
+        currentOffsetYRef.current = targetY;
+
+        // Android-only: force synchronous verification with error handling
+        if (Platform.OS === 'android') {
+          try {
+            console.log('🔍 Android: Starting immediate verification...');
+            verifyAndCorrectPosition();
+            console.log('🔍 Android: Immediate verification completed');
+          } catch (error) {
+            console.log('🚨 Android: Immediate verification failed:', error);
+          }
+          
+          // Backup timers with error handling
+          setTimeout(() => {
+            try {
+              console.log('🔍 Android: Timer 1 verification...');
+              verifyAndCorrectPosition();
+            } catch (error) {
+              console.log('🚨 Android: Timer 1 failed:', error);
+            }
+          }, 50);
+          
+          setTimeout(() => {
+            try {
+              console.log('🔍 Android: Timer 2 verification...');
+              verifyAndCorrectPosition();
+            } catch (error) {
+              console.log('🚨 Android: Timer 2 failed:', error);
+            }
+          }, 150);
+          
+          setTimeout(() => {
+            try {
+              console.log('🔍 Android: Final snap...');
+              finalSnapIfNeeded();
+            } catch (error) {
+              console.log('🚨 Android: Final snap failed:', error);
+            }
+          }, 250);
+        }
         return;
       }
     }
-    if (attempt < 8) {
-      setTimeout(() => scrollToTargetY(attempt + 1), 150);
+    // Increase retry window on Android to allow async layout passes to finish
+    const maxAttempts = Platform.OS === 'android' ? 12 : 8;
+    const delayMs = Platform.OS === 'android' ? 180 : 150;
+    if (attempt < maxAttempts) {
+      setTimeout(() => scrollToTargetY(attempt + 1), delayMs);
     } else {
       console.warn(`📍 Failed to obtain Y for page ${targetPageNumber} after ${attempt} attempts`);
     }
@@ -112,7 +217,9 @@ const MarkdownReader = ({
   useEffect(() => {
     console.log('📍 MarkdownReader useEffect:', { targetPageNumber, initialScrollPosition });
     if (targetPageNumber) {
-      setTimeout(() => scrollToTargetY(), 100);
+      // Give platform time to layout content. Android often needs slightly more.
+      const initialDelay = Platform.OS === 'android' ? 220 : 100;
+      setTimeout(() => scrollToTargetY(), initialDelay);
     } else if (initialScrollPosition && scrollViewRef.current) {
       setTimeout(() => {
         scrollViewRef.current?.scrollTo({ y: Math.max(0, initialScrollPosition - 100), animated: true });
@@ -135,6 +242,10 @@ const MarkdownReader = ({
         style={styles.content} 
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.contentContainer}
+        onScroll={(e) => {
+          currentOffsetYRef.current = e.nativeEvent.contentOffset.y;
+        }}
+        scrollEventThrottle={16}
       >
         <CustomTextRenderer 
           content={cleanContent}

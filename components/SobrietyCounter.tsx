@@ -191,22 +191,47 @@ const SobrietyCounter = () => {
           </View>
         </Modal>
         
-        {/* Android spinner-style (wheel) date picker */}
-        {Platform.OS === 'android' && (
-          <DatePicker
-            modal
-            open={showDatePicker}
-            date={selectedDate}
-            mode="date"
-            maximumDate={new Date()}
-            onConfirm={(date: Date) => {
-              setSelectedDate(date);
-              setShowDatePicker(false);
-              const dateString = formatLocalDate(date);
-              setSobrietyDate(dateString);
-            }}
-            onCancel={() => setShowDatePicker(false)}
-          />
+        {/* Android spinner-style (wheel) date picker in centered modal */}
+        {Platform.OS === 'android' && showDatePicker && (
+          <Modal
+            visible={true}
+            transparent={true}
+            animationType="slide"
+            onRequestClose={() => setShowDatePicker(false)}
+          >
+            <View style={styles.datePickerOverlay}>
+              <View style={styles.datePickerContent}>
+                <Text style={styles.datePickerTitle}>Select Your Sobriety Date</Text>
+                <DatePicker
+                  date={selectedDate}
+                  mode="date"
+                  maximumDate={new Date()}
+                  onDateChange={setSelectedDate}
+                  style={styles.androidDatePicker}
+                  {...({
+                    androidVariant: 'iosClone',
+                    fadeToColor: '#ffffff',
+                    dividerColor: '#D1D5DB',
+                    textColor: '#111827',
+                  } as any)}
+                />
+                <View style={styles.datePickerButtons}>
+                  <TouchableOpacity 
+                    style={[styles.datePickerButton, styles.cancelButton]}
+                    onPress={() => setShowDatePicker(false)}
+                  >
+                    <Text style={styles.cancelButtonText}>Cancel</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity 
+                    style={[styles.datePickerButton, styles.confirmDateButton]}
+                    onPress={handleConfirmDate}
+                  >
+                    <Text style={styles.confirmDateButtonText}>Confirm</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            </View>
+          </Modal>
         )}
         
         {/* Native Date Picker Modal for iOS/Web */}
@@ -301,21 +326,46 @@ const SobrietyCounter = () => {
           See how many days you've been sober.
         </Text>
         
-        {Platform.OS === 'android' && (
-          <DatePicker
-            modal
-            open={showDatePicker}
-            date={selectedDate}
-            mode="date"
-            maximumDate={new Date()}
-            onConfirm={(date: Date) => {
-              setSelectedDate(date);
-              setShowDatePicker(false);
-              const dateString = formatLocalDate(date);
-              setSobrietyDate(dateString);
-            }}
-            onCancel={() => setShowDatePicker(false)}
-          />
+        {Platform.OS === 'android' && showDatePicker && (
+          <Modal
+            visible={true}
+            transparent={true}
+            animationType="slide"
+            onRequestClose={() => setShowDatePicker(false)}
+          >
+            <View style={styles.datePickerOverlay}>
+              <View style={styles.datePickerContent}>
+                <Text style={styles.datePickerTitle}>Select Your Sobriety Date</Text>
+                <DatePicker
+                  date={selectedDate}
+                  mode="date"
+                  maximumDate={new Date()}
+                  onDateChange={setSelectedDate}
+                  style={styles.androidDatePicker}
+                  {...({
+                    androidVariant: 'iosClone',
+                    fadeToColor: '#ffffff',
+                    dividerColor: '#D1D5DB',
+                    textColor: '#111827',
+                  } as any)}
+                />
+                <View style={styles.datePickerButtons}>
+                  <TouchableOpacity 
+                    style={[styles.datePickerButton, styles.cancelButton]}
+                    onPress={() => setShowDatePicker(false)}
+                  >
+                    <Text style={styles.cancelButtonText}>Cancel</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity 
+                    style={[styles.datePickerButton, styles.confirmDateButton]}
+                    onPress={handleConfirmDate}
+                  >
+                    <Text style={styles.confirmDateButtonText}>Confirm</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            </View>
+          </Modal>
         )}
         
         {showDatePicker && Platform.OS !== 'android' && (
@@ -413,21 +463,46 @@ const SobrietyCounter = () => {
           </View>
         </View>
         
-        {Platform.OS === 'android' && (
-          <DatePicker
-            modal
-            open={showDatePicker}
-            date={selectedDate}
-            mode="date"
-            maximumDate={new Date()}
-            onConfirm={(date: Date) => {
-              setSelectedDate(date);
-              setShowDatePicker(false);
-              const dateString = formatLocalDate(date);
-              setSobrietyDate(dateString);
-            }}
-            onCancel={() => setShowDatePicker(false)}
-          />
+        {Platform.OS === 'android' && showDatePicker && (
+          <Modal
+            visible={true}
+            transparent={true}
+            animationType="slide"
+            onRequestClose={handleCancelEdit}
+          >
+            <View style={styles.datePickerOverlay}>
+              <View style={styles.datePickerContent}>
+                <Text style={styles.datePickerTitle}>Edit Your Sobriety Date</Text>
+                <DatePicker
+                  date={selectedDate}
+                  mode="date"
+                  maximumDate={new Date()}
+                  onDateChange={setSelectedDate}
+                  style={styles.androidDatePicker}
+                  {...({
+                    androidVariant: 'iosClone',
+                    fadeToColor: '#ffffff',
+                    dividerColor: '#D1D5DB',
+                    textColor: '#111827',
+                  } as any)}
+                />
+                <View style={styles.datePickerButtons}>
+                  <TouchableOpacity 
+                    style={[styles.datePickerButton, styles.cancelButton]}
+                    onPress={handleCancelEdit}
+                  >
+                    <Text style={styles.cancelButtonText}>Cancel</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity 
+                    style={[styles.datePickerButton, styles.confirmDateButton]}
+                    onPress={handleConfirmEditDate}
+                  >
+                    <Text style={styles.confirmDateButtonText}>Save</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            </View>
+          </Modal>
         )}
         
         {showEditModal && Platform.OS !== 'android' && (
@@ -605,6 +680,11 @@ const styles = StyleSheet.create({
     height: 216,
     marginBottom: 20,
     backgroundColor: 'transparent',
+  },
+  androidDatePicker: {
+    width: 260,
+    height: 180,
+    alignSelf: 'center',
   },
   datePickerButtons: {
     flexDirection: 'row',

@@ -15,6 +15,14 @@
         "gradleCommand": ":app:assembleRelease"
       }
     },
+    "androidPreview": {
+      "distribution": "internal",
+      "credentialsSource": "local",
+      "android": {
+        "buildType": "apk",
+        "gradleCommand": ":app:assemblePreviewRelease"
+      }
+    },
     "production": {
       "distribution": "store",
       "ios": {

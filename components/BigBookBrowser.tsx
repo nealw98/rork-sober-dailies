@@ -32,6 +32,7 @@ import MarkdownReader from "./MarkdownReader";
 import ScreenContainer from "./ScreenContainer";
 import BigBookSearchBar from "./BigBookSearchBar";
 import BigBookSearchResults from "./BigBookSearchResults";
+import PageNumberInput from "./PageNumberInput";
 
 const SectionItem = ({ section, categoryId, onOpenContent }: { 
   section: BigBookSection; 
@@ -133,6 +134,7 @@ function BigBookBrowserContent() {
   const [searchResults, setSearchResults] = useState<EnhancedSearchResult[]>([]);
   const [showingSearchResults, setShowingSearchResults] = useState(false);
   const [clearSearch, setClearSearch] = useState(false);
+  const [pageInputVisible, setPageInputVisible] = useState(false);
 
   // Safety mechanism to ensure modals are closed on component mount
   useEffect(() => {
@@ -240,49 +242,37 @@ function BigBookBrowserContent() {
   }, []);
 
   const handleGoToPage = useCallback(() => {
-    console.log('🟢 BigBookBrowser: Go to Page button pressed'); // Debug log
-    Alert.prompt(
-      "Go to Page",
-      "Enter page number (1-164 or 567-568)",
-      [
-        { text: "Cancel", style: "cancel" },
-        { 
-          text: "Go", 
-          onPress: (pageInput) => {
-            if (pageInput && pageInput.trim()) {
-              const pageNum = parseInt(pageInput.trim(), 10);
-              if (isNaN(pageNum) || (pageNum < 1 || (pageNum > 164 && pageNum < 567) || pageNum > 568)) {
-                Alert.alert("Invalid Page", "Please enter a valid page number between 1-164 or 567-568.");
-                return;
-              }
-              const navigationResult = navigateToPageWithHighlight(pageNum);
-              if (navigationResult && navigationResult.success) {
-                // Find the chapter title for this page
-                const chapter = bigBookData.flatMap(cat => cat.sections).find(sec => sec.pages && pageNum >= parseInt(sec.pages.split('-')[0], 10) && pageNum <= parseInt(sec.pages.split('-')[1], 10));
-                setCurrentMarkdown({
-                  content: navigationResult.content,
-                  title: chapter ? chapter.title : `Big Book`,
-                  id: 'page-navigation',
-                  initialScrollPosition: navigationResult.scrollPosition || 0,
-                  targetPageNumber: navigationResult.targetPageMarker || String(pageNum),
-                  searchHighlight: {
-                    query: '',
-                    position: 0,
-                    length: 0
-                  }
-                });
-                setMarkdownReaderVisible(true);
-              } else {
-                Alert.alert("Page Not Found", `Could not find page ${pageNum}. Please try a different page number between 1 and 164.`);
-              }
-            }
-          }
+    console.log('🟢 BigBookBrowser: Go to Page button pressed');
+    setPageInputVisible(true);
+  }, []);
+
+  const handleSubmitPage = useCallback((pageInput: string) => {
+    setPageInputVisible(false);
+    if (!pageInput || !pageInput.trim()) return;
+    const pageNum = parseInt(pageInput.trim(), 10);
+    if (isNaN(pageNum) || (pageNum < 1 || (pageNum > 164 && pageNum < 567) || pageNum > 568)) {
+      Alert.alert("Invalid Page", "Please enter a valid page number between 1-164 or 567-568.");
+      return;
+    }
+    const navigationResult = navigateToPageWithHighlight(pageNum);
+    if (navigationResult && navigationResult.success) {
+      const chapter = bigBookData.flatMap(cat => cat.sections).find(sec => sec.pages && pageNum >= parseInt(sec.pages.split('-')[0], 10) && pageNum <= parseInt(sec.pages.split('-')[1], 10));
+      setCurrentMarkdown({
+        content: navigationResult.content,
+        title: chapter ? chapter.title : `Big Book`,
+        id: 'page-navigation',
+        initialScrollPosition: navigationResult.scrollPosition || 0,
+        targetPageNumber: navigationResult.targetPageMarker || String(pageNum),
+        searchHighlight: {
+          query: '',
+          position: 0,
+          length: 0
         }
-      ],
-      "plain-text",
-      "",
-      "numeric"
-    );
+      });
+      setMarkdownReaderVisible(true);
+    } else {
+      Alert.alert("Page Not Found", `Could not find page ${pageNum}. Please try a different page number between 1 and 164.`);
+    }
   }, []);
 
   return (
@@ -356,6 +346,7 @@ function BigBookBrowserContent() {
       >
         <PDFViewer
           url={currentPdf}
+          title={"Alcoholics Anonymous"}
           onClose={() => {
             console.log('PDF Viewer onClose called');
             setPdfViewerVisible(false);
@@ -388,6 +379,12 @@ function BigBookBrowserContent() {
           />
         )}
       </Modal>
+
+      <PageNumberInput
+        visible={pageInputVisible}
+        onClose={() => setPageInputVisible(false)}
+        onSubmit={handleSubmitPage}
+      />
     </View>
   );
 }
@@ -461,7 +458,7 @@ const styles = StyleSheet.create({
   },
   categoryTitle: {
     fontSize: 18,
-    ...adjustFontWeight("600"),
+    fontWeight: adjustFontWeight("600"),
     color: Colors.light.text,
     marginBottom: 4,
   },
@@ -489,7 +486,7 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 16,
-    ...adjustFontWeight("500"),
+    fontWeight: adjustFontWeight("500"),
     color: Colors.light.text,
     marginBottom: 2,
   },

@@ -16,7 +16,7 @@ export default function MeetingPocketScreen() {
           fontSize: 14
         }
       }} />
-      <ScreenContainer style={styles.container}>
+      <ScreenContainer noPadding style={styles.container}>
         <MeetingPocketBrowser />
       </ScreenContainer>
     </>

@@ -1,5 +1,5 @@
 import React, { useRef } from 'react';
-import { Text, StyleSheet, View, LayoutChangeEvent } from 'react-native';
+import { Text, StyleSheet, View, LayoutChangeEvent, Platform } from 'react-native';
 
 interface CustomTextRendererProps {
   content: string;
@@ -92,17 +92,23 @@ export const CustomTextRenderer: React.FC<CustomTextRendererProps> = ({
                   anchorRefs.current[page.pageNumStr] = ref;
                   onPageRef?.(page.pageNumStr, ref);
                 }}
-                onLayout={() => {
+                onLayout={(e) => {
                   const scrollNode = getScrollViewNode?.();
                   const ref: any = anchorRefs.current[page.pageNumStr];
-                  if (ref && scrollNode && typeof ref.measureLayout === 'function') {
+                  if (ref && typeof ref.measureLayout === 'function' && scrollNode) {
                     ref.measureLayout(
                       scrollNode,
                       (x: number, y: number) => {
                         onPageLayout?.(page.pageNumStr, y);
                       },
-                      () => {}
+                      () => {
+                        // Fallback to local layout Y if measureLayout fails
+                        onPageLayout?.(page.pageNumStr, e.nativeEvent.layout.y);
+                      }
                     );
+                  } else {
+                    // Ultimate fallback
+                    onPageLayout?.(page.pageNumStr, e.nativeEvent.layout.y);
                   }
                 }}
                 style={{ height: 1, opacity: 0 }}
