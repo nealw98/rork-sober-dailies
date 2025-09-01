@@ -356,8 +356,6 @@ const styles = StyleSheet.create({
     marginVertical: 8,
     fontStyle: 'italic',
   },
-    color: Colors.light.text,
-  }
 });
 
 const markdownStyles = {
