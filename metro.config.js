@@ -18,4 +18,6 @@ config.transformer.minifierConfig = {
   },
 };
 
+// Note: Reanimated plugin removed to avoid Metro conflicts
+
 module.exports = config;
