@@ -123,7 +123,9 @@ const MarkdownReader = ({
   // Prepare FlatList data for Android
   useEffect(() => {
     if (Platform.OS === 'android') {
+      console.log('🔍 Android: Preparing FlatList data for section:', sectionId);
       const pages = getChapterPages(sectionId);
+      console.log('🔍 Android: Got pages:', pages.length, 'pages');
       setFlatListData(pages);
     }
   }, [sectionId]);
@@ -216,36 +218,65 @@ const MarkdownReader = ({
       
       {Platform.OS === 'android' ? (
         // Android: Use FlatList for reliable scrolling
-        <FlatList
-          ref={flatListRef}
-          data={flatListData}
-          style={styles.content}
-          contentContainerStyle={styles.contentContainer}
-          showsVerticalScrollIndicator={false}
-          keyExtractor={(item, index) => `${item.pageNumber}-${index}`}
-          renderItem={({ item }) => (
-            <View style={styles.pageItem}>
-              {item.isPageMarker ? (
-                <Text style={styles.pageMarker}>{item.content}</Text>
-              ) : (
-                <CustomTextRenderer 
-                  content={item.content}
-                  searchTerm={searchHighlight?.query}
-                  style={styles.textContent}
-                  onPageRef={(pageNumber, ref) => {
-                    if (ref) {
-                      pageRefs.current[`page-${pageNumber}`] = ref;
-                    }
-                  }}
-                  getScrollViewNode={() => null}
-                  onPageLayout={(pageNumber, y) => {
-                    pageYPositions.current[`page-${pageNumber}`] = y;
-                  }}
-                />
-              )}
-            </View>
-          )}
-        />
+        flatListData && flatListData.length > 0 ? (
+          <FlatList
+            ref={flatListRef}
+            data={flatListData}
+            style={styles.content}
+            contentContainerStyle={styles.contentContainer}
+            showsVerticalScrollIndicator={false}
+            keyExtractor={(item, index) => `${item.pageNumber}-${index}`}
+            renderItem={({ item }) => (
+              <View style={styles.pageItem}>
+                {item.isPageMarker ? (
+                  <Text style={styles.pageMarker}>{item.content}</Text>
+                ) : (
+                  <CustomTextRenderer 
+                    content={item.content}
+                    searchTerm={searchHighlight?.query}
+                    style={styles.textContent}
+                    onPageRef={(pageNumber, ref) => {
+                      if (ref) {
+                        pageRefs.current[`page-${pageNumber}`] = ref;
+                      }
+                    }}
+                    getScrollViewNode={() => null}
+                    onPageLayout={(pageNumber, y) => {
+                      pageYPositions.current[`page-${pageNumber}`] = y;
+                    }}
+                  />
+                )}
+              </View>
+            )}
+          />
+        ) : (
+          // Fallback to ScrollView if FlatList data not ready
+          <ScrollView 
+            ref={scrollViewRef}
+            style={styles.content} 
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={styles.contentContainer}
+            onScroll={(e: any) => {
+              currentOffsetYRef.current = e.nativeEvent.contentOffset.y;
+            }}
+            scrollEventThrottle={16}
+          >
+            <CustomTextRenderer 
+              content={cleanContent}
+              searchTerm={searchHighlight?.query}
+              style={styles.textContent}
+              onPageRef={(pageNumber, ref) => {
+                if (ref) {
+                  pageRefs.current[`page-${pageNumber}`] = ref;
+                }
+              }}
+              getScrollViewNode={() => scrollViewRef.current?.getInnerViewNode?.()}
+              onPageLayout={(pageNumber, y) => {
+                pageYPositions.current[`page-${pageNumber}`] = y;
+              }}
+            />
+          </ScrollView>
+        )
       ) : (
         // iOS: Use existing ScrollView approach
         <ScrollView 
