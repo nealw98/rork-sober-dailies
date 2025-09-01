@@ -18,11 +18,6 @@ config.transformer.minifierConfig = {
   },
 };
 
-// Ignore problematic Reanimated worklet files
-config.resolver.blockList = [
-  /node_modules\/react-native-reanimated\/.*\/worklets\/.*\.ts$/,
-];
-
 // Note: Reanimated plugin removed to avoid Metro conflicts
 
 module.exports = config;
