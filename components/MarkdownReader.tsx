@@ -1,7 +1,6 @@
 import React, { useRef, useEffect, useState } from 'react';
 import { 
   StyleSheet, 
-  ScrollView, 
   View, 
   Text, 
   TouchableOpacity, 
@@ -13,6 +12,7 @@ import {
   Platform,
   Alert
 } from 'react-native';
+import { ScrollView } from 'react-native';
 import { ChevronLeft, Search } from 'lucide-react-native';
 import Colors from '@/constants/colors';
 import { adjustFontWeight } from '@/constants/fonts';
@@ -51,56 +51,82 @@ const MarkdownReader = ({
   // Measure the anchor against the ScrollView and correct if needed (Android-only)
   const verifyAndCorrectPosition = (attempt = 1) => {
     if (Platform.OS !== 'android' || !targetPageNumber || !scrollViewRef.current) return;
+    
     const anchor: any = pageRefs.current[`page-${targetPageNumber}`];
+    if (!anchor) {
+      console.log(`🔍 Android: Anchor not found for page ${targetPageNumber}, attempt ${attempt}`);
+      if (attempt < 3) setTimeout(() => verifyAndCorrectPosition(attempt + 1), 200);
+      return;
+    }
+    
     const scrollNode: any = (scrollViewRef.current as any).getInnerViewNode?.();
-    if (!anchor || !scrollNode || typeof anchor.measureLayout !== 'function') return;
+    if (!scrollNode || typeof anchor.measureLayout !== 'function') {
+      console.log(`🔍 Android: ScrollNode or measureLayout not available, attempt ${attempt}`);
+      if (attempt < 3) setTimeout(() => verifyAndCorrectPosition(attempt + 1), 200);
+      return;
+    }
+    
     try {
       anchor.measureLayout(
         scrollNode,
         (_x: number, y: number) => {
-          // We want the anchor very close to the top (0). Allow small tolerance
-          const tolerance = 6;
+          const tolerance = 8;
           const PAGE_START_OFFSET = -10;
           const desiredY = Math.max(0, y + PAGE_START_OFFSET);
           const cur = currentOffsetYRef.current || 0;
+          
           if (Math.abs(cur - desiredY) > tolerance && scrollViewRef.current) {
-            console.log(`📍 Post-measure correction: localY=${y} cur=${cur} → desiredY=${desiredY}`);
+            console.log(`📍 Android correction: localY=${y} cur=${cur} → desiredY=${desiredY}`);
             scrollViewRef.current.scrollTo({ y: desiredY, animated: false });
-            // Keep verifying until stable
-            if (attempt < 6) setTimeout(() => verifyAndCorrectPosition(attempt + 1), 140);
             currentOffsetYRef.current = desiredY;
-          } else if (attempt < 6) {
-            // Still verify a few more times in case layout shifts
-            setTimeout(() => verifyAndCorrectPosition(attempt + 1), 140);
+            
+            // Verify again after correction
+            if (attempt < 3) setTimeout(() => verifyAndCorrectPosition(attempt + 1), 200);
           }
         },
         () => {
-          if (attempt < 6) setTimeout(() => verifyAndCorrectPosition(attempt + 1), 140);
+          console.log(`🔍 Android: measureLayout failed, attempt ${attempt}`);
+          if (attempt < 3) setTimeout(() => verifyAndCorrectPosition(attempt + 1), 200);
         }
       );
     } catch (e) {
-      // ignore
+      console.log(`🚨 Android: measureLayout error:`, e);
+      if (attempt < 3) setTimeout(() => verifyAndCorrectPosition(attempt + 1), 200);
     }
   };
 
   // Final sanity check: compare current offset to cached anchor Y and snap if mismatched
   const finalSnapIfNeeded = () => {
     if (Platform.OS !== 'android' || !targetPageNumber || !scrollViewRef.current) return;
+    
     const anchor: any = pageRefs.current[`page-${targetPageNumber}`];
+    if (!anchor) {
+      console.log(`🔍 Android: Final snap - anchor not found for page ${targetPageNumber}`);
+      return;
+    }
+    
     const scrollNode: any = (scrollViewRef.current as any).getInnerViewNode?.();
-    if (!anchor || !scrollNode || typeof anchor.measureLayout !== 'function') return;
+    if (!scrollNode || typeof anchor.measureLayout !== 'function') {
+      console.log(`🔍 Android: Final snap - ScrollNode or measureLayout not available`);
+      return;
+    }
+    
     anchor.measureLayout(
       scrollNode,
       (_x: number, y: number) => {
         const cur = currentOffsetYRef.current || 0;
         const desiredY = Math.max(0, y - 10);
-        const tolerance = 6;
+        const tolerance = 8;
+        
         if (Math.abs(cur - desiredY) > tolerance && scrollViewRef.current) {
-          console.log(`📍 Final snap (measured): cur=${cur} localY=${y} → desiredY=${desiredY}`);
+          console.log(`📍 Android final snap: cur=${cur} localY=${y} → desiredY=${desiredY}`);
           scrollViewRef.current.scrollTo({ y: desiredY, animated: false });
+          currentOffsetYRef.current = desiredY;
         }
       },
-      () => {}
+      () => {
+        console.log(`🔍 Android: Final snap measureLayout failed`);
+      }
     );
   };
 
@@ -163,43 +189,14 @@ const MarkdownReader = ({
         scrollViewRef.current.scrollTo({ y: targetY, animated });
         currentOffsetYRef.current = targetY;
 
-        // Android-only: force synchronous verification with error handling
+        // Android: use non-animated jump and verify with improved timing
         if (Platform.OS === 'android') {
-          try {
-            console.log('🔍 Android: Starting immediate verification...');
-            verifyAndCorrectPosition();
-            console.log('🔍 Android: Immediate verification completed');
-          } catch (error) {
-            console.log('🚨 Android: Immediate verification failed:', error);
-          }
-          
-          // Backup timers with error handling
-          setTimeout(() => {
-            try {
-              console.log('🔍 Android: Timer 1 verification...');
-              verifyAndCorrectPosition();
-            } catch (error) {
-              console.log('🚨 Android: Timer 1 failed:', error);
-            }
-          }, 50);
-          
-          setTimeout(() => {
-            try {
-              console.log('🔍 Android: Timer 2 verification...');
-              verifyAndCorrectPosition();
-            } catch (error) {
-              console.log('🚨 Android: Timer 2 failed:', error);
-            }
-          }, 150);
-          
-          setTimeout(() => {
-            try {
-              console.log('🔍 Android: Final snap...');
-              finalSnapIfNeeded();
-            } catch (error) {
-              console.log('🚨 Android: Final snap failed:', error);
-            }
-          }, 250);
+          // Immediate verification
+          setTimeout(() => verifyAndCorrectPosition(), 100);
+          // Additional verifications with increasing delays
+          setTimeout(() => verifyAndCorrectPosition(), 300);
+          setTimeout(() => verifyAndCorrectPosition(), 600);
+          setTimeout(() => finalSnapIfNeeded(), 900);
         }
         return;
       }
@@ -242,7 +239,7 @@ const MarkdownReader = ({
         style={styles.content} 
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.contentContainer}
-        onScroll={(e) => {
+        onScroll={(e: any) => {
           currentOffsetYRef.current = e.nativeEvent.contentOffset.y;
         }}
         scrollEventThrottle={16}
