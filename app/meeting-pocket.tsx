@@ -10,8 +10,6 @@ export default function MeetingPocketScreen() {
     <>
       <Stack.Screen options={{ 
         headerBackTitle: "Back",
-        headerTitle: "AA Meeting in a Pocket",
-        headerTitleAlign: "center",
         headerBackTitleStyle: {
           fontSize: 14
         }

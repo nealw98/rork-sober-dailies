@@ -8,8 +8,6 @@ export default function TwelveAndTwelveScreen() {
     <>
       <Stack.Screen options={{ 
         headerBackTitle: "Back",
-        headerTitle: "Twelve Steps and Twelve Traditions",
-        headerTitleAlign: "center",
         headerBackTitleStyle: {
           fontSize: 14
         }

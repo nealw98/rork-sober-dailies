@@ -65,7 +65,7 @@ const styles = StyleSheet.create({
   },
   backText: {
     color: Colors.light.tint,
-    fontSize: 16,
+    fontSize: 14,
     marginLeft: 4,
     fontWeight: adjustFontWeight('500')
   },

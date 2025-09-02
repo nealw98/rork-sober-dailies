@@ -10,8 +10,6 @@ export default function BigBookScreen() {
     <>
       <Stack.Screen options={{ 
         headerBackTitle: "Back",
-        headerTitle: "Alcoholics Anonymous",
-        headerTitleAlign: "center",
         headerBackTitleStyle: {
           fontSize: 14
         }
