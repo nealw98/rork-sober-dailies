@@ -3,6 +3,7 @@ import {
   StyleSheet,
   View,
   Text,
+  Keyboard,
   ScrollView,
   TouchableOpacity,
   Modal,
@@ -135,6 +136,7 @@ function BigBookBrowserContent() {
   const [showingSearchResults, setShowingSearchResults] = useState(false);
   const [clearSearch, setClearSearch] = useState(false);
   const [pageInputVisible, setPageInputVisible] = useState(false);
+  const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
 
   // Safety mechanism to ensure modals are closed on component mount
   useEffect(() => {
@@ -151,6 +153,21 @@ function BigBookBrowserContent() {
   useEffect(() => {
     console.log('🟢 BigBookBrowser: Modal states changed:', { pdfViewerVisible, markdownReaderVisible });
   }, [pdfViewerVisible, markdownReaderVisible]);
+
+  // Keyboard visibility effect
+  useEffect(() => {
+    const keyboardDidShowListener = Keyboard.addListener('keyboardDidShow', () => {
+      setIsKeyboardVisible(true);
+    });
+    const keyboardDidHideListener = Keyboard.addListener('keyboardDidHide', () => {
+      setIsKeyboardVisible(false);
+    });
+
+    return () => {
+      keyboardDidShowListener?.remove();
+      keyboardDidHideListener?.remove();
+    };
+  }, []);
 
 
 
@@ -328,11 +345,13 @@ function BigBookBrowserContent() {
           )}
         </View>
         
-        <View style={styles.noteContainer}>
-          <Text style={styles.noteText}>
-            <Text style={styles.noteBold}>Note:</Text> This is the 1939 First Edition of Alcoholics Anonymous. The first 164 pages remain unchanged in all later editions.
-          </Text>
-        </View>
+        {!isKeyboardVisible && (
+          <View style={styles.noteContainer}>
+            <Text style={styles.noteText}>
+              <Text style={styles.noteBold}>Note:</Text> This is the 1939 First Edition of Alcoholics Anonymous. The first 164 pages remain unchanged in all later editions.
+            </Text>
+          </View>
+        )}
       </View>
 
       <Modal
@@ -534,18 +553,20 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   noteContainer: {
-    padding: 16,
-    backgroundColor: 'rgba(255, 255, 255, 0.4)',
-    borderRadius: 8,
+    padding: 8,
+    backgroundColor: 'rgba(255, 255, 255, 0.3)',
+    borderRadius: 6,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.2)',
+    borderColor: 'rgba(255, 255, 255, 0.15)',
     marginHorizontal: 16,
-    marginBottom: 16,
+    marginBottom: 8,
+    alignSelf: 'center',
+    maxWidth: '90%',
   },
   noteText: {
-    fontSize: 13,
+    fontSize: 11,
     color: Colors.light.muted,
-    lineHeight: 18,
+    lineHeight: 14,
     textAlign: 'center',
   },
   noteBold: {

@@ -212,7 +212,10 @@ const SobrietyCounter = () => {
                     androidVariant: 'iosClone',
                     fadeToColor: '#ffffff',
                     dividerColor: '#D1D5DB',
-                    textColor: '#111827',
+                    textColor: Platform.OS === 'android' ? '#000000' : '#111827',
+                    ...(Platform.OS === 'android' && {
+                      themeVariant: 'light',
+                    }),
                   } as any)}
                 />
                 <View style={styles.datePickerButtons}>
@@ -346,7 +349,10 @@ const SobrietyCounter = () => {
                     androidVariant: 'iosClone',
                     fadeToColor: '#ffffff',
                     dividerColor: '#D1D5DB',
-                    textColor: '#111827',
+                    textColor: Platform.OS === 'android' ? '#000000' : '#111827',
+                    ...(Platform.OS === 'android' && {
+                      themeVariant: 'light',
+                    }),
                   } as any)}
                 />
                 <View style={styles.datePickerButtons}>
@@ -483,7 +489,10 @@ const SobrietyCounter = () => {
                     androidVariant: 'iosClone',
                     fadeToColor: '#ffffff',
                     dividerColor: '#D1D5DB',
-                    textColor: '#111827',
+                    textColor: Platform.OS === 'android' ? '#000000' : '#111827',
+                    ...(Platform.OS === 'android' && {
+                      themeVariant: 'light',
+                    }),
                   } as any)}
                 />
                 <View style={styles.datePickerButtons}>
@@ -685,6 +694,9 @@ const styles = StyleSheet.create({
     width: 260,
     height: 180,
     alignSelf: 'center',
+    ...(Platform.OS === 'android' && {
+      backgroundColor: 'transparent',
+    }),
   },
   datePickerButtons: {
     flexDirection: 'row',

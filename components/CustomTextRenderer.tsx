@@ -1,5 +1,6 @@
 import React, { useRef } from 'react';
 import { Text, StyleSheet, View, LayoutChangeEvent, Platform } from 'react-native';
+import Colors from '@/constants/colors';
 
 interface CustomTextRendererProps {
   content: string;
@@ -474,14 +475,19 @@ const styles = StyleSheet.create({
   baseText: {
     fontSize: 16,
     lineHeight: 24,
-    color: '#333',
+    color: Colors.light.text,
     marginVertical: 6,
+    ...(Platform.OS === 'android' && {
+      fontWeight: '500',
+      includeFontPadding: false,
+      textAlignVertical: 'center',
+    }),
   },
   headerText: {
     fontSize: 18,
     lineHeight: 28,
-    color: '#333',
-    fontWeight: 'bold',
+    color: Colors.light.text,
+    fontWeight: Platform.OS === 'android' ? '700' : 'bold',
     marginVertical: 8,
     marginTop: 16,
   },
@@ -496,21 +502,27 @@ const styles = StyleSheet.create({
   pageMarkerRoman: {
     fontSize: 16,
     lineHeight: 24,
-    color: '#666',
+    color: Colors.light.muted,
     fontStyle: 'italic',
     textAlign: 'center',
     marginBottom: 12,
     marginTop: 0,
+    ...(Platform.OS === 'android' && {
+      fontWeight: '500',
+    }),
   },
   // Arabic numeral pages (main chapters) - centered, italics
   pageMarkerArabic: {
     fontSize: 16,
     lineHeight: 24,
-    color: '#666',
+    color: Colors.light.muted,
     fontStyle: 'italic',
     textAlign: 'center',
     marginBottom: 12,
     marginTop: 0,
+    ...(Platform.OS === 'android' && {
+      fontWeight: '500',
+    }),
   },
   italicText: {
     fontStyle: 'italic',

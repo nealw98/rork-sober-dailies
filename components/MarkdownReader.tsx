@@ -375,6 +375,12 @@ const styles = StyleSheet.create({
   textContent: {
     fontSize: 16,
     lineHeight: 24,
+    color: Colors.light.text,
+    ...(Platform.OS === 'android' && {
+      fontWeight: '500',
+      includeFontPadding: false,
+      textAlignVertical: 'center',
+    }),
   },
   pageItem: {
     marginBottom: 16,

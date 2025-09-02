@@ -35,9 +35,15 @@ const styles = StyleSheet.create({
     marginLeft: 4
   },
   backText: {
-    fontSize: 17,
+    fontSize: 14,
     color: Colors.light.tint,
     marginLeft: 4,
+  },
+  pageHeaderTitle: {
+    fontSize: 16,
+    fontWeight: adjustFontWeight('600', true),
+    textAlign: 'center',
+    color: Colors.light.text,
   }
 });
 
@@ -60,7 +66,7 @@ export default function TabLayout() {
         headerShown: true,
         tabBarStyle: {
           backgroundColor: "#f8f9fa",
-          height: Platform.OS === 'android' ? 70 : 88,
+          height: Platform.OS === 'android' ? 75 : 88,
           paddingBottom: Platform.OS === 'android' ? 8 : 0,
           paddingTop: Platform.OS === 'android' ? 8 : 0,
           paddingHorizontal: Platform.OS === 'android' ? 4 : 0,
@@ -68,8 +74,14 @@ export default function TabLayout() {
         headerStyle: {
           backgroundColor: "#f8f9fa",
         },
+        headerTitleContainerStyle: {
+          flex: 1,
+          alignItems: 'center',
+          justifyContent: 'center',
+        },
+        headerTitleAlign: 'center',
         tabBarLabelStyle: {
-          fontSize: 12,
+          fontSize: 10,
           fontWeight: '500',
           marginTop: Platform.OS === 'android' ? 2 : 0,
         },
@@ -81,12 +93,12 @@ export default function TabLayout() {
       <Tabs.Screen
         name="index"
         options={{
-          title: Platform.OS === 'android' ? "Home" : "Home",
+          title: "Home",
           headerTitle: () => (
             <View style={styles.headerTitleContainer}>
               <SunIcon size={24} />
               <Text style={styles.headerTitle}>
-                {Platform.OS === 'android' ? 'Sober Daily' : 'Sober Dailies'}
+                Sober Dailies
               </Text>
             </View>
           ),
@@ -106,7 +118,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="chat"
         options={{
-          title: Platform.OS === 'android' ? "Sponsor" : "AI Sponsor",
+          title: "Sponsor",
           headerTitle: "AI Sponsor",
           headerLeft: () => <BackButton />,
           tabBarIcon: ({ color }) => <MessageCircle color={color} size={22} style={styles.tabIcon} />,
