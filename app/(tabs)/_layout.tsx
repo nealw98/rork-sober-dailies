@@ -39,12 +39,7 @@ const styles = StyleSheet.create({
     color: Colors.light.tint,
     marginLeft: 4,
   },
-  pageHeaderTitle: {
-    fontSize: 16,
-    fontWeight: adjustFontWeight('600', true),
-    textAlign: 'center',
-    color: Colors.light.text,
-  }
+
 });
 
 const BackButton = () => (
@@ -74,12 +69,7 @@ export default function TabLayout() {
         headerStyle: {
           backgroundColor: "#f8f9fa",
         },
-        headerTitleContainerStyle: {
-          flex: 1,
-          alignItems: 'center',
-          justifyContent: 'center',
-        },
-        headerTitleAlign: 'center',
+
         tabBarLabelStyle: {
           fontSize: 10,
           fontWeight: '500',
@@ -110,7 +100,6 @@ export default function TabLayout() {
         name="gratitude"
         options={{
           title: "Gratitude",
-          headerTitle: "Daily Gratitude",
           headerLeft: () => <BackButton />,
           tabBarIcon: ({ color }) => <Smile color={color} size={22} style={styles.tabIcon} />,
         }}
@@ -119,7 +108,6 @@ export default function TabLayout() {
         name="chat"
         options={{
           title: "Sponsor",
-          headerTitle: "AI Sponsor",
           headerLeft: () => <BackButton />,
           tabBarIcon: ({ color }) => <MessageCircle color={color} size={22} style={styles.tabIcon} />,
         }}
@@ -128,7 +116,6 @@ export default function TabLayout() {
         name="literature"
         options={{
           title: "Literature",
-          headerTitle: "AA Literature",
           headerLeft: () => <BackButton />,
           tabBarIcon: ({ color }) => <BookOpen color={color} size={22} style={styles.tabIcon} />,
         }}
@@ -137,7 +124,6 @@ export default function TabLayout() {
         name="prayers"
         options={{
           title: "Prayers",
-          headerTitle: "AA Prayers",
           headerLeft: () => <BackButton />,
           tabBarIcon: ({ color }) => <Heart color={color} size={22} style={styles.tabIcon} />,
         }}
@@ -146,7 +132,6 @@ export default function TabLayout() {
         name="evening-review"
         options={{
           title: "Review",
-          headerTitle: "Nightly Review",
           headerLeft: () => <BackButton />,
           tabBarIcon: ({ color }) => <Moon color={color} size={22} style={styles.tabIcon} />,
         }}
