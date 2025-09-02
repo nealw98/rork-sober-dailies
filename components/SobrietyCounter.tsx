@@ -210,12 +210,10 @@ const SobrietyCounter = () => {
                   style={styles.androidDatePicker}
                   {...({
                     androidVariant: 'iosClone',
-                    fadeToColor: '#ffffff',
-                    dividerColor: '#D1D5DB',
-                    textColor: Platform.OS === 'android' ? '#000000' : '#111827',
-                    ...(Platform.OS === 'android' && {
-                      themeVariant: 'light',
-                    }),
+                    // Dark wheel for Android to ensure visible text in release builds
+                    fadeToColor: '#111827',
+                    dividerColor: '#4B5563',
+                    textColor: Platform.OS === 'android' ? '#FFFFFF' : '#111827',
                   } as any)}
                 />
                 <View style={styles.datePickerButtons}>
@@ -347,12 +345,10 @@ const SobrietyCounter = () => {
                   style={styles.androidDatePicker}
                   {...({
                     androidVariant: 'iosClone',
-                    fadeToColor: '#ffffff',
-                    dividerColor: '#D1D5DB',
-                    textColor: Platform.OS === 'android' ? '#000000' : '#111827',
-                    ...(Platform.OS === 'android' && {
-                      themeVariant: 'light',
-                    }),
+                    // Dark wheel for Android to ensure visible text in release builds
+                    fadeToColor: '#111827',
+                    dividerColor: '#4B5563',
+                    textColor: Platform.OS === 'android' ? '#FFFFFF' : '#111827',
                   } as any)}
                 />
                 <View style={styles.datePickerButtons}>
@@ -487,12 +483,10 @@ const SobrietyCounter = () => {
                   style={styles.androidDatePicker}
                   {...({
                     androidVariant: 'iosClone',
-                    fadeToColor: '#ffffff',
-                    dividerColor: '#D1D5DB',
-                    textColor: Platform.OS === 'android' ? '#000000' : '#111827',
-                    ...(Platform.OS === 'android' && {
-                      themeVariant: 'light',
-                    }),
+                    // Dark wheel for Android to ensure visible text in release builds
+                    fadeToColor: '#111827',
+                    dividerColor: '#4B5563',
+                    textColor: Platform.OS === 'android' ? '#FFFFFF' : '#111827',
                   } as any)}
                 />
                 <View style={styles.datePickerButtons}>
