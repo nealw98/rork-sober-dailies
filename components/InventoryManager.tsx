@@ -295,7 +295,7 @@ const Inventory = () => {
   if (isLoading) {
     return (
       <ScreenContainer style={styles.container}>
-        <Stack.Screen options={{ title: "Spot Check Inventory" }} />
+        <Stack.Screen options={{}} />
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={Colors.light.tint} />
           <Text style={styles.loadingText}>Loading inventory...</Text>
@@ -308,7 +308,6 @@ const Inventory = () => {
     <>
       <Stack.Screen 
         options={{ 
-          title: "Spot Check Inventory",
           headerRight: () => (
             <View style={styles.headerActions}>
               <TouchableOpacity onPress={handleExportData} style={styles.headerButton} testID="export-button">

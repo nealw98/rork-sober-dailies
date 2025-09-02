@@ -14,7 +14,6 @@ export default function TermsScreen() {
     <SafeAreaView style={styles.container}>
       <Stack.Screen 
         options={{ 
-          title: 'Terms of Use',
           headerStyle: {
             backgroundColor: '#f8f9fa',
           },

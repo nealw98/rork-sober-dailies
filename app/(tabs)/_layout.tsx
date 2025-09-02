@@ -100,6 +100,7 @@ export default function TabLayout() {
         name="gratitude"
         options={{
           title: "Gratitude",
+          headerTitle: '',
           headerLeft: () => <BackButton />,
           tabBarIcon: ({ color }) => <Smile color={color} size={22} style={styles.tabIcon} />,
         }}
@@ -108,6 +109,7 @@ export default function TabLayout() {
         name="chat"
         options={{
           title: "Sponsor",
+          headerTitle: '',
           headerLeft: () => <BackButton />,
           tabBarIcon: ({ color }) => <MessageCircle color={color} size={22} style={styles.tabIcon} />,
         }}
@@ -116,6 +118,7 @@ export default function TabLayout() {
         name="literature"
         options={{
           title: "Literature",
+          headerTitle: '',
           headerLeft: () => <BackButton />,
           tabBarIcon: ({ color }) => <BookOpen color={color} size={22} style={styles.tabIcon} />,
         }}
@@ -124,6 +127,7 @@ export default function TabLayout() {
         name="prayers"
         options={{
           title: "Prayers",
+          headerTitle: '',
           headerLeft: () => <BackButton />,
           tabBarIcon: ({ color }) => <Heart color={color} size={22} style={styles.tabIcon} />,
         }}
@@ -132,6 +136,7 @@ export default function TabLayout() {
         name="evening-review"
         options={{
           title: "Review",
+          headerTitle: '',
           headerLeft: () => <BackButton />,
           tabBarIcon: ({ color }) => <Moon color={color} size={22} style={styles.tabIcon} />,
         }}

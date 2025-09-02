@@ -52,7 +52,7 @@ const Inventory = () => {
 
   return (
     <>
-      <Stack.Screen options={{ title: "Spot Check Inventory" }} />
+      <Stack.Screen options={{}} />
       <ScreenContainer style={styles.container} noPadding>
         <LinearGradient
           colors={['rgba(74, 144, 226, 0.3)', 'rgba(78, 205, 196, 0.2)', 'rgba(92, 184, 92, 0.1)']}

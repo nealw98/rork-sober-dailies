@@ -13,7 +13,6 @@ export default function PrivacyScreen() {
     <SafeAreaView style={styles.container}>
       <Stack.Screen 
         options={{ 
-          title: 'Privacy Policy',
           headerStyle: {
             backgroundColor: '#f8f9fa',
           },

@@ -87,29 +87,24 @@ function RootLayoutNav() {
       <Stack.Screen 
         name="(tabs)" 
         options={{ 
-          headerShown: false,
-          title: "AA Sober Companion"
+          headerShown: false
         }} 
       />
       <Stack.Screen 
         name="terms" 
         options={{ 
-          presentation: 'modal',
-          title: "Terms of Use"
+          presentation: 'modal'
         }} 
       />
       <Stack.Screen 
         name="privacy" 
         options={{ 
-          presentation: 'modal',
-          title: "Privacy Policy"
+          presentation: 'modal'
         }} 
       />
       <Stack.Screen 
         name="daily-reflections" 
-        options={{ 
-          title: "Daily Reflections"
-        }} 
+        options={{ }} 
       />
     </Stack>
   );

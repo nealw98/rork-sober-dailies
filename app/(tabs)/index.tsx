@@ -6,7 +6,7 @@ import ScreenContainer from '@/components/ScreenContainer';
 export default function Home() {
   return (
     <ScreenContainer>
-      <Stack.Screen options={{ title: 'Sober Dailies' }} />
+      <Stack.Screen options={{}} />
       <HomeScreen />
     </ScreenContainer>
   );
