@@ -2,7 +2,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Stack, router } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import React, { useEffect, useCallback } from "react";
-import { Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { Text, StyleSheet, TouchableOpacity, Platform } from 'react-native';
 import { ChevronLeft } from "lucide-react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 
@@ -70,15 +70,16 @@ function RootLayoutNav() {
         </TouchableOpacity>
       ) : null,
       headerLeftContainerStyle: {
-        paddingLeft: 16,
-        minWidth: 80, // Reserve space for consistent centering
+        paddingLeft: Platform.OS === 'android' ? 8 : 16,
+        minWidth: Platform.OS === 'android' ? 0 : 80,
       },
       headerRightContainerStyle: {
-        paddingRight: 16,
-        minWidth: 80, // Balance the left side
+        paddingRight: Platform.OS === 'android' ? 8 : 16,
+        minWidth: Platform.OS === 'android' ? 0 : 80,
       },
       headerStyle: {
         backgroundColor: "#f8f9fa",
+        height: Platform.OS === 'android' ? 44 : undefined,
       },
       headerTitleStyle: {
         fontWeight: adjustFontWeight("600", true),

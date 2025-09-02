@@ -31,8 +31,8 @@ const styles = StyleSheet.create({
   backButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 8,
-    marginLeft: 4
+    padding: Platform.OS === 'android' ? 4 : 8,
+    marginLeft: Platform.OS === 'android' ? 0 : 4
   },
   backText: {
     fontSize: 14,
@@ -63,11 +63,12 @@ export default function TabLayout() {
           backgroundColor: "#f8f9fa",
           height: Platform.OS === 'android' ? 75 : 88,
           paddingBottom: Platform.OS === 'android' ? 8 : 0,
-          paddingTop: Platform.OS === 'android' ? 8 : 0,
+          paddingTop: Platform.OS === 'android' ? 2 : 0,
           paddingHorizontal: Platform.OS === 'android' ? 4 : 0,
         },
         headerStyle: {
           backgroundColor: "#f8f9fa",
+          ...(Platform.OS === 'android' && { height: 44 }),
         },
 
         tabBarLabelStyle: {

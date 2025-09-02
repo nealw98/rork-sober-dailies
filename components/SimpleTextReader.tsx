@@ -5,7 +5,8 @@ import {
   View, 
   Text, 
   TouchableOpacity, 
-  SafeAreaView 
+  SafeAreaView,
+  Platform
 } from 'react-native';
 import { ChevronLeft } from 'lucide-react-native';
 import Colors from '@/constants/colors';
@@ -51,7 +52,8 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 16,
+    paddingVertical: Platform.OS === 'android' ? 6 : 16,
+    paddingHorizontal: Platform.OS === 'android' ? 8 : 16,
     borderBottomWidth: 1,
     borderBottomColor: Colors.light.divider,
     backgroundColor: Colors.light.cardBackground
@@ -60,7 +62,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     position: 'absolute',
-    left: 16,
+    left: Platform.OS === 'android' ? 8 : 16,
     zIndex: 1
   },
   backText: {
