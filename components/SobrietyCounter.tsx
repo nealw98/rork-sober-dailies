@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { StyleSheet, View, Text, TouchableOpacity, Modal, Platform, TextInput, Alert } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import DateTimePickerModal from 'react-native-modal-datetime-picker';
-import DatePicker from 'react-native-date-picker';
 import { Calendar, X, Edit3 } from 'lucide-react-native';
 import { useSobriety } from '@/hooks/useSobrietyStore';
 import { formatStoredDateForDisplay, parseLocalDate, formatLocalDate } from '@/lib/dateUtils';
@@ -202,19 +201,13 @@ const SobrietyCounter = () => {
             <View style={styles.datePickerOverlay}>
               <View style={styles.datePickerContent}>
                 <Text style={styles.datePickerTitle}>Select Your Sobriety Date</Text>
-                <DatePicker
-                  date={selectedDate}
+                <DateTimePicker
+                  value={selectedDate}
                   mode="date"
+                  display="calendar"
                   maximumDate={new Date()}
-                  onDateChange={setSelectedDate}
-                  style={styles.androidDatePicker}
-                  {...({
-                    androidVariant: 'iosClone',
-                    // Dark wheel for Android to ensure visible text in release builds
-                    fadeToColor: '#111827',
-                    dividerColor: '#4B5563',
-                    textColor: Platform.OS === 'android' ? '#FFFFFF' : '#111827',
-                  } as any)}
+                  onChange={(e, d) => d && setSelectedDate(d)}
+                  style={styles.nativeDatePicker}
                 />
                 <View style={styles.datePickerButtons}>
                   <TouchableOpacity 
@@ -337,19 +330,13 @@ const SobrietyCounter = () => {
             <View style={styles.datePickerOverlay}>
               <View style={styles.datePickerContent}>
                 <Text style={styles.datePickerTitle}>Select Your Sobriety Date</Text>
-                <DatePicker
-                  date={selectedDate}
+                <DateTimePicker
+                  value={selectedDate}
                   mode="date"
+                  display="calendar"
                   maximumDate={new Date()}
-                  onDateChange={setSelectedDate}
-                  style={styles.androidDatePicker}
-                  {...({
-                    androidVariant: 'iosClone',
-                    // Dark wheel for Android to ensure visible text in release builds
-                    fadeToColor: '#111827',
-                    dividerColor: '#4B5563',
-                    textColor: Platform.OS === 'android' ? '#FFFFFF' : '#111827',
-                  } as any)}
+                  onChange={(e, d) => d && setSelectedDate(d)}
+                  style={styles.nativeDatePicker}
                 />
                 <View style={styles.datePickerButtons}>
                   <TouchableOpacity 
@@ -475,19 +462,13 @@ const SobrietyCounter = () => {
             <View style={styles.datePickerOverlay}>
               <View style={styles.datePickerContent}>
                 <Text style={styles.datePickerTitle}>Edit Your Sobriety Date</Text>
-                <DatePicker
-                  date={selectedDate}
+                <DateTimePicker
+                  value={selectedDate}
                   mode="date"
+                  display="calendar"
                   maximumDate={new Date()}
-                  onDateChange={setSelectedDate}
-                  style={styles.androidDatePicker}
-                  {...({
-                    androidVariant: 'iosClone',
-                    // Dark wheel for Android to ensure visible text in release builds
-                    fadeToColor: '#111827',
-                    dividerColor: '#4B5563',
-                    textColor: Platform.OS === 'android' ? '#FFFFFF' : '#111827',
-                  } as any)}
+                  onChange={(e, d) => d && setSelectedDate(d)}
+                  style={styles.nativeDatePicker}
                 />
                 <View style={styles.datePickerButtons}>
                   <TouchableOpacity 
