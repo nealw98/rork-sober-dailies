@@ -233,8 +233,8 @@ export default function EveningReview() {
     // Daily Actions
     shareMessage += 'Daily Actions:\n';
     dailyActions.forEach(action => {
-      // Use non-breaking spaces for unchecked to preserve alignment without showing a box
-      const status = action.checked ? '✅ ' : '\u00A0\u00A0 ';
+      // Use a full-width IDEOGRAPHIC SPACE for unchecked to approximate emoji width
+      const status = action.checked ? '✅ ' : '\u3000';
       shareMessage += `${status}${action.label}\n`;
     });
 
