@@ -233,8 +233,8 @@ export default function EveningReview() {
     // Daily Actions
     shareMessage += 'Daily Actions:\n';
     dailyActions.forEach(action => {
-      // Use a full-width IDEOGRAPHIC SPACE for unchecked to approximate emoji width
-      const status = action.checked ? '✅ ' : '\u3000';
+      // Use green check for completed, black X (✖) for unchecked
+      const status = action.checked ? '✅ ' : '✖ ';
       shareMessage += `${status}${action.label}\n`;
     });
 
