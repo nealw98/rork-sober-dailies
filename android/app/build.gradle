@@ -89,6 +89,7 @@ android {
 
     namespace 'com.nealwagner.soberdailies'
     defaultConfig {
+        applicationId 'com.nealwagner.soberdailies'
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 35
