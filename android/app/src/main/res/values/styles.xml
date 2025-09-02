@@ -4,6 +4,12 @@
     <item name="android:windowOptOutEdgeToEdgeEnforcement" tools:targetApi="35">true</item>
     <item name="colorPrimary">@color/colorPrimary</item>
     <item name="android:statusBarColor">#061D4A</item>
+    <!-- Prevent auto darkening which can invert colors in release and hide picker text -->
+    <item name="android:forceDarkAllowed" tools:targetApi="29">false</item>
+    <item name="forceDarkAllowed">false</item>
+    <!-- Ensure default foreground/background are light theme friendly -->
+    <item name="android:colorBackground">#FFFFFFFF</item>
+    <item name="android:textColorPrimary">#FF000000</item>
   </style>
   <style name="Theme.App.SplashScreen" parent="Theme.SplashScreen">
     <item name="windowSplashScreenBackground">@color/splashscreen_background</item>
