@@ -17,7 +17,7 @@ import {
 import * as Clipboard from 'expo-clipboard';
 import ScreenContainer from "@/components/ScreenContainer";
 import { LinearGradient } from 'expo-linear-gradient';
-import { CheckCircle, Calendar, Share as ShareIcon, Save, Archive, Check } from 'lucide-react-native';
+import { CheckCircle, Circle, Calendar, Share as ShareIcon, Save, Archive, Check } from 'lucide-react-native';
 import { useEveningReviewStore } from '@/hooks/use-evening-review-store';
 import SavedEveningReviews from '@/components/SavedEveningReviews';
 import Colors from '@/constants/colors';
@@ -228,13 +228,13 @@ export default function EveningReview() {
       day: 'numeric'
     });
 
-    let shareMessage = `${today}\n\nNightly Review\n\n`;
+    let shareMessage = `${today}\n\n`;
 
     // Daily Actions
     shareMessage += 'Daily Actions:\n';
     dailyActions.forEach(action => {
-      const status = action.checked ? '✅' : '';
-      shareMessage += `${status} ${action.label}\n`;
+      const status = action.checked ? '✅ ' : '⬜ ';
+      shareMessage += `${status}${action.label}\n`;
     });
 
     // Inventory
@@ -310,12 +310,6 @@ export default function EveningReview() {
     };
 
     saveDetailedEntry(detailedEntry);
-    
-    Alert.alert(
-      'Review Saved',
-        'Your nightly review has been saved successfully.',
-      [{ text: 'OK' }]
-    );
   };
 
   const canSave = () => {

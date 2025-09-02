@@ -62,7 +62,6 @@ const Inventory = () => {
         >
           <ScrollView contentContainerStyle={styles.scrollContent}>
             <View style={styles.contentContainer}>
-              <Text style={styles.titleLine1}>Check yourself:</Text>
               <Text style={styles.titleLine2}>Are you on the beam?</Text>
               <View style={styles.cardContainer}>
                 <View style={styles.gridContainer}>

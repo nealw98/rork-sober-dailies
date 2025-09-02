@@ -229,7 +229,7 @@ const MarkdownReader = ({
             renderItem={({ item }) => (
               <View style={styles.pageItem}>
                 {item.isPageMarker ? (
-                  <Text style={styles.pageMarker}>{item.content}</Text>
+                  <Text style={styles.pageMarker}>— Page {item.pageNumber} —</Text>
                 ) : (
                   <CustomTextRenderer 
                     content={item.content}
@@ -380,9 +380,10 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   pageMarker: {
-    fontSize: 14,
+    fontSize: 16,
+    lineHeight: 24,
     fontWeight: adjustFontWeight('600'),
-    color: Colors.light.tint,
+    color: Colors.light.muted,
     textAlign: 'center',
     marginVertical: 8,
     fontStyle: 'italic',

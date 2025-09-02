@@ -53,38 +53,47 @@ export const CustomTextRenderer: React.FC<CustomTextRendererProps> = ({
 
   // Split content by page markers and reorganize to show page numbers at top
   const markerRegex = /(\*— Page (?:\d+|\w+) —\*)/g;
-  const splitSections = cleanContent.split(markerRegex);
-  // Group content so each page starts with its marker
+  const hasMarkers = markerRegex.test(cleanContent);
+  markerRegex.lastIndex = 0; // reset after test
+
   const pages: Array<{ pageNumStr: string; content: string }> = [];
-  let currentPageNumStr: string | null = null;
-  let currentContent: string = '';
-  splitSections.forEach((section) => {
-    const markerMatch = section.match(/^\*— Page (\d+|\w+) —\*$/);
-    if (markerMatch) {
-      // If we have a previous page, push it
-      if (currentPageNumStr !== null) {
-        pages.push({ pageNumStr: currentPageNumStr, content: currentContent.trim() });
+  if (hasMarkers) {
+    const splitSections = cleanContent.split(markerRegex);
+    let currentPageNumStr: string | null = null;
+    let currentContent: string = '';
+    splitSections.forEach((section) => {
+      const markerMatch = section.match(/^\*— Page (\d+|\w+) —\*$/);
+      if (markerMatch) {
+        if (currentPageNumStr !== null) {
+          pages.push({ pageNumStr: currentPageNumStr, content: currentContent.trim() });
+        }
+        currentPageNumStr = markerMatch[1];
+        currentContent = '';
+      } else {
+        currentContent += section;
       }
-      // Start new page with marker; do NOT include marker in content to avoid duplication
-      currentPageNumStr = markerMatch[1];
-      currentContent = '';
-    } else {
-      currentContent += section;
+    });
+    if (currentPageNumStr !== null) {
+      pages.push({ pageNumStr: currentPageNumStr, content: currentContent.trim() });
     }
-  });
-  // Push the last page
-  if (currentPageNumStr !== null) {
-    pages.push({ pageNumStr: currentPageNumStr, content: currentContent.trim() });
   }
 
   // Keep refs to invisible anchors so we can measure against the ScrollView
   const anchorRefs = useRef<{ [page: string]: View | null }>({});
 
+  // If no markers present (e.g., Android FlatList item content), render content directly
+  if (!hasMarkers) {
+    return (
+      <View>
+        <PageContent content={cleanContent} searchTerm={searchTerm} style={style} pageIndex={0} />
+      </View>
+    );
+  }
+
   return (
     <View>
       {pages.map((page, pageIndex) => (
         <View key={`page-${pageIndex}`}>
-          {/* Page number at top if exists */}
           {typeof page.pageNumStr === 'string' && page.pageNumStr.trim() !== '' && (
             <View>
               <View
@@ -102,12 +111,10 @@ export const CustomTextRenderer: React.FC<CustomTextRendererProps> = ({
                         onPageLayout?.(page.pageNumStr, y);
                       },
                       () => {
-                        // Fallback to local layout Y if measureLayout fails
                         onPageLayout?.(page.pageNumStr, e.nativeEvent.layout.y);
                       }
                     );
                   } else {
-                    // Ultimate fallback
                     onPageLayout?.(page.pageNumStr, e.nativeEvent.layout.y);
                   }
                 }}
@@ -118,7 +125,6 @@ export const CustomTextRenderer: React.FC<CustomTextRendererProps> = ({
               </Text>
             </View>
           )}
-          {/* Page content */}
           {page.content && (
             <PageContent 
               content={page.content}
@@ -494,7 +500,7 @@ const styles = StyleSheet.create({
     fontStyle: 'italic',
     textAlign: 'center',
     marginBottom: 12,
-    marginTop: 0, // No space at top
+    marginTop: 0,
   },
   // Arabic numeral pages (main chapters) - centered, italics
   pageMarkerArabic: {
@@ -504,7 +510,7 @@ const styles = StyleSheet.create({
     fontStyle: 'italic',
     textAlign: 'center',
     marginBottom: 12,
-    marginTop: 0, // No space at top
+    marginTop: 0,
   },
   italicText: {
     fontStyle: 'italic',

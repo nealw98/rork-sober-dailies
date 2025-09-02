@@ -60,20 +60,34 @@ export default function TabLayout() {
         headerShown: true,
         tabBarStyle: {
           backgroundColor: "#f8f9fa",
+          height: Platform.OS === 'android' ? 70 : 88,
+          paddingBottom: Platform.OS === 'android' ? 8 : 0,
+          paddingTop: Platform.OS === 'android' ? 8 : 0,
+          paddingHorizontal: Platform.OS === 'android' ? 4 : 0,
         },
         headerStyle: {
           backgroundColor: "#f8f9fa",
+        },
+        tabBarLabelStyle: {
+          fontSize: 12,
+          fontWeight: '500',
+          marginTop: Platform.OS === 'android' ? 2 : 0,
+        },
+        tabBarIconStyle: {
+          marginTop: Platform.OS === 'android' ? 4 : 0,
         }
       }}
     >
       <Tabs.Screen
         name="index"
         options={{
-          title: "Home",
+          title: Platform.OS === 'android' ? "Home" : "Home",
           headerTitle: () => (
             <View style={styles.headerTitleContainer}>
               <SunIcon size={24} />
-              <Text style={styles.headerTitle}>Sober Dailies</Text>
+              <Text style={styles.headerTitle}>
+                {Platform.OS === 'android' ? 'Sober Daily' : 'Sober Dailies'}
+              </Text>
             </View>
           ),
           tabBarIcon: ({ color }) => <Home color={color} size={22} style={styles.tabIcon} />,
@@ -92,7 +106,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="chat"
         options={{
-          title: "AI Sponsor",
+          title: Platform.OS === 'android' ? "Sponsor" : "AI Sponsor",
           headerTitle: "AI Sponsor",
           headerLeft: () => <BackButton />,
           tabBarIcon: ({ color }) => <MessageCircle color={color} size={22} style={styles.tabIcon} />,

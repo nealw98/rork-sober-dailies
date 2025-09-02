@@ -27,7 +27,7 @@ export default function GratitudeList() {
 
   const [gratitudeItems, setGratitudeItems] = useState<string[]>([]);
   const [inputValue, setInputValue] = useState('');
-  const [showAlert, setShowAlert] = useState(false);
+
 
   const isCompleted = isCompletedToday();
 
@@ -49,12 +49,11 @@ export default function GratitudeList() {
     if (gratitudeItems.length === 0) {
       return;
     }
-    setShowAlert(true);
+    handleConfirmSubmit();
   };
 
   const handleConfirmSubmit = () => {
     completeToday(gratitudeItems);
-    setShowAlert(false);
     router.push('/insights');
   };
 
@@ -119,35 +118,7 @@ export default function GratitudeList() {
         style={styles.gradient}
       />
       
-      <Modal
-        visible={showAlert}
-        transparent={true}
-        animationType="fade"
-        onRequestClose={() => setShowAlert(false)}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={styles.alertContainer}>
-            <Text style={styles.alertTitle}>Complete Today&apos;s Gratitude List?</Text>
-            <Text style={styles.alertDescription}>
-              Mark today&apos;s gratitude practice as complete and view your weekly insights and progress.
-            </Text>
-            <View style={styles.alertButtonsContainer}>
-              <TouchableOpacity 
-                style={styles.alertCancelButton} 
-                onPress={() => setShowAlert(false)}
-              >
-                <Text style={styles.alertCancelButtonText}>Cancel</Text>
-              </TouchableOpacity>
-              <TouchableOpacity 
-                style={styles.alertConfirmButton} 
-                onPress={handleConfirmSubmit}
-              >
-                <Text style={styles.alertConfirmButtonText}>Save & Continue</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-      </Modal>
+
       
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         <View style={styles.header}>

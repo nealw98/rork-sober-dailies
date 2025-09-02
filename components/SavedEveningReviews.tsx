@@ -114,11 +114,11 @@ export default function SavedEveningReviews({ visible, onClose }: SavedEveningRe
       day: 'numeric'
     });
     
-            let shareMessage = `${simpleDate}\n\nNightly Review\n\n`;
+            let shareMessage = `${simpleDate}\n\n`;
 
     // Check if this is new format or legacy format
     if (data.stayedSober !== undefined) {
-      // New format
+            // New format
       shareMessage += 'Daily Actions:\n';
       const dailyActions = [
         { key: 'stayedSober', label: 'Stayed sober', checked: data.stayedSober },
@@ -128,10 +128,10 @@ export default function SavedEveningReviews({ visible, onClose }: SavedEveningRe
         { key: 'talkedToAlcoholic', label: 'Talked with another alcoholic', checked: data.talkedToAlcoholic },
         { key: 'didSomethingForOthers', label: 'Did something for someone else', checked: data.didSomethingForOthers },
       ];
-      
+
       dailyActions.forEach(action => {
-        const status = action.checked ? '✅' : '';
-        shareMessage += `${status} ${action.label}\n`;
+        const status = action.checked ? '✅ ' : '⬜ ';
+        shareMessage += `${status}${action.label}\n`;
       });
 
               // Inventory

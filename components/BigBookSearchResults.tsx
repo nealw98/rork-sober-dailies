@@ -144,7 +144,6 @@ const styles = StyleSheet.create({
   matchText: {
     fontSize: 14,
     color: Colors.light.text,
-    fontWeight: adjustFontWeight('700'),
     backgroundColor: '#FFEB3B',
     paddingHorizontal: 2,
     paddingVertical: 1,
