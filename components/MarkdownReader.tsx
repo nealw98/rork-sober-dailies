@@ -187,7 +187,7 @@ const MarkdownReader = ({
   const [searchMatchPositions, setSearchMatchPositions] = useState<number[]>([]);
   const [targetMatchIndex, setTargetMatchIndex] = useState<number>(-1);
   
-  // Find all occurrences of search term in content
+  // Find all occurrences of search term in content and identify paragraph boundaries
   useEffect(() => {
     if (Platform.OS === 'android' && searchHighlight?.query && content) {
       const query = searchHighlight.query;
@@ -214,8 +214,11 @@ const MarkdownReader = ({
         
         positions.forEach((pos, idx) => {
           // Extract a context window around this match
-          const start = Math.max(0, pos - (matchContext.before?.length || 20));
-          const end = Math.min(content.length, pos + query.length + (matchContext.after?.length || 20));
+          // Look for paragraph boundaries
+          const paragraphStart = content.lastIndexOf('\n\n', pos) + 2;
+          const paragraphEnd = content.indexOf('\n\n', pos);
+          const start = paragraphStart >= 0 ? paragraphStart : Math.max(0, pos - (matchContext.before?.length || 20));
+          const end = paragraphEnd >= 0 ? paragraphEnd : Math.min(content.length, pos + query.length + (matchContext.after?.length || 20));
           const contextWindow = content.substring(start, end);
           
           // Simple scoring based on how much of our context appears in this window
@@ -243,37 +246,74 @@ const MarkdownReader = ({
         const matchPosition = searchMatchPositions[targetMatchIndex];
         console.log(`📍 Android: Scrolling to search match at position ${matchPosition} (match ${targetMatchIndex + 1} of ${searchMatchPositions.length})`);
         
-        // Find the closest page to this match
-        const pageAnchors = cleanContent.match(/\*— Page (\d+|\w+) —\*/g) || [];
-        let closestPage = '';
-        let closestPageDistance = Infinity;
-        
-        pageAnchors.forEach(anchor => {
-          const pageMatch = anchor.match(/\*— Page (\d+|\w+) —\*/);  
-          if (pageMatch) {
-            const pagePos = cleanContent.indexOf(anchor);
-            const distance = Math.abs(pagePos - matchPosition);
-            if (distance < closestPageDistance) {
-              closestPageDistance = distance;
-              closestPage = pageMatch[1];
+                  // Find the paragraph containing this match
+          // First, get the content around the match position
+          const paragraphBoundaryBefore = content.lastIndexOf('\n\n', matchPosition) + 2;
+          const paragraphBoundaryAfter = content.indexOf('\n\n', matchPosition);
+          const paragraphStart = paragraphBoundaryBefore >= 0 ? paragraphBoundaryBefore : 0;
+          const paragraphEnd = paragraphBoundaryAfter >= 0 ? paragraphBoundaryAfter : content.length;
+          
+          // For logging
+          console.log(`📍 Android: Found match at position ${matchPosition}`);
+          console.log(`📍 Android: Paragraph boundaries: ${paragraphStart} to ${paragraphEnd}`);
+          
+          // Find the closest page to this paragraph
+          const pageAnchors = cleanContent.match(/\*— Page (\d+|\w+) —\*/g) || [];
+          let closestPage = '';
+          let closestPageDistance = Infinity;
+          
+          pageAnchors.forEach(anchor => {
+            const pageMatch = anchor.match(/\*— Page (\d+|\w+) —\*/);
+            if (pageMatch) {
+              const pagePos = cleanContent.indexOf(anchor);
+              const distance = Math.abs(pagePos - paragraphStart);
+              if (distance < closestPageDistance) {
+                closestPageDistance = distance;
+                closestPage = pageMatch[1];
+              }
             }
-          }
-        });
+          });
         
         if (closestPage) {
           console.log(`📍 Android: Closest page to match is page ${closestPage}`);
           
           // Use the FlatList for scrolling if available
           if (flatListRef.current) {
-            // Find the index in flatListData that contains our match
+            // Find the paragraph boundaries in the content
+            const paragraphBoundaryBefore = content.lastIndexOf('\n\n', matchPosition) + 2;
+            const paragraphStart = paragraphBoundaryBefore >= 0 ? paragraphBoundaryBefore : 0;
+            
+            // Find the index in flatListData that contains our paragraph start
             let targetIndex = -1;
             let bestDistance = Infinity;
             
             flatListData.forEach((item, index) => {
-              if (item.content && item.content.includes(searchHighlight.query)) {
-                const itemMatchPos = item.content.indexOf(searchHighlight.query);
-                const itemFullPos = (item.startPosition || 0) + itemMatchPos;
-                const distance = Math.abs(itemFullPos - matchPosition);
+              if (item.content) {
+                // Check if this item contains the paragraph start or the match itself
+                const itemStart = item.startPosition || 0;
+                const itemEnd = itemStart + item.content.length;
+                
+                // Check if paragraph start is in this item
+                if (paragraphStart >= itemStart && paragraphStart < itemEnd) {
+                  targetIndex = index;
+                  return; // Found exact paragraph start, exit loop
+                }
+                
+                // Check if match position is in this item
+                if (matchPosition >= itemStart && matchPosition < itemEnd) {
+                  const distance = 0; // Perfect match
+                  if (distance < bestDistance) {
+                    bestDistance = distance;
+                    targetIndex = index;
+                  }
+                  return; // Found exact match, exit loop
+                }
+                
+                // Otherwise find closest item
+                const distance = Math.min(
+                  Math.abs(itemStart - paragraphStart),
+                  Math.abs(itemEnd - paragraphStart)
+                );
                 
                 if (distance < bestDistance) {
                   bestDistance = distance;
@@ -282,15 +322,18 @@ const MarkdownReader = ({
               }
             });
             
+            console.log(`📍 Android: Paragraph starts at ${paragraphStart}, best matching item is at index ${targetIndex}`);
+            
             if (targetIndex >= 0) {
               // Scroll to position the match about 1/3 down from the top
               console.log(`📍 Android: Scrolling to index ${targetIndex} in FlatList`);
               try {
                 // Add getItemLayout to help FlatList calculate positions
+                console.log(`📍 Android: Scrolling to paragraph at index ${targetIndex}`);
                 flatListRef.current.scrollToIndex({
                   index: targetIndex,
                   animated: true,
-                  viewPosition: 0.33, // Position 1/3 down from the top
+                  viewPosition: 0.15, // Position paragraph start closer to the top (15% down)
                   // Add error handling callback
                   // @ts-ignore - onScrollToIndexFailed exists but TypeScript doesn't recognize it
                   onScrollToIndexFailed: (info: { index: number; averageItemLength: number }) => {
@@ -298,6 +341,7 @@ const MarkdownReader = ({
                     // Fallback: wait for layout and try again with timeout
                     setTimeout(() => {
                       if (flatListRef.current) {
+                        console.log(`📍 Android: Falling back to scrollToOffset for paragraph`);
                         flatListRef.current.scrollToOffset({
                           offset: info.averageItemLength * targetIndex,
                           animated: true
@@ -333,16 +377,18 @@ const MarkdownReader = ({
         if (targetIndex >= 0) {
           console.log(`📍 Android: Scrolling to page ${targetPageNumber} at index ${targetIndex}`);
           try {
+            console.log(`📍 Android: Scrolling to page ${targetPageNumber} at index ${targetIndex}`);
             flatListRef.current.scrollToIndex({ 
               index: targetIndex, 
               animated: true,
-              viewPosition: 0.33, // Position 1/3 down from the top
+              viewPosition: 0.15, // Position closer to the top (15% down)
               // @ts-ignore - onScrollToIndexFailed exists but TypeScript doesn't recognize it
               onScrollToIndexFailed: (info: { index: number; averageItemLength: number }) => {
                 console.log(`🚨 Android: scrollToIndex failed - ${info.index}, ${info.averageItemLength}`);
                 // Fallback: wait for layout and try again with timeout
                 setTimeout(() => {
                   if (flatListRef.current) {
+                    console.log(`📍 Android: Falling back to scrollToOffset for page ${targetPageNumber}`);
                     flatListRef.current.scrollToOffset({
                       offset: info.averageItemLength * targetIndex,
                       animated: true

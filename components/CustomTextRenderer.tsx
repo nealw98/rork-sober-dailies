@@ -497,6 +497,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 2,
     paddingVertical: 1,
     borderRadius: 3,
+    ...(Platform.OS === 'android' && {
+      fontWeight: '700', // Bolder text on Android
+      borderWidth: 1,
+      borderColor: '#FFC107', // Amber border for better visibility
+    }),
   },
   // Roman numeral pages (like Preface) - centered, italics
   pageMarkerRoman: {
