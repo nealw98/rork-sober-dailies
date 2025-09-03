@@ -367,7 +367,9 @@ export default function DailyReflection() {
             <View style={styles.headerDecoration} />
           </View>
           
-          <Text style={styles.title}>{reflection.title}</Text>
+          {Platform.OS !== 'android' && (
+            <Text style={styles.title}>{reflection.title}</Text>
+          )}
           <Text style={styles.quote}>"{reflection.quote}"</Text>
           <Text style={styles.source}>{reflection.source}</Text>
           
