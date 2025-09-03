@@ -336,9 +336,6 @@ export default function EveningReview() {
           <View style={styles.header}>
             <Text style={styles.title}>Review Complete</Text>
             <Text style={styles.subtitle}>{formatDateDisplay(today)}</Text>
-            <Text style={styles.description}>
-              Evening reflection helps us stay connected to our recovery
-            </Text>
             <Text style={styles.savedMessage}>Your nightly review has been saved</Text>
           </View>
 

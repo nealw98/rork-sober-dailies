@@ -527,9 +527,6 @@ export default function GratitudeListScreen() {
           <View style={styles.header}>
             <Text style={styles.title}>Gratitude Complete</Text>
             <Text style={styles.subtitle}>{formatDateDisplay(today)}</Text>
-            <Text style={styles.description}>
-              Thank you for taking time to reflect on gratitude
-            </Text>
             <Text style={styles.savedMessage}>Your gratitude list has been saved</Text>
           </View>
 
