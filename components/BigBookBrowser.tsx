@@ -21,8 +21,20 @@ import { LinearGradient } from 'expo-linear-gradient';
 
 import Colors from "@/constants/colors";
 import { bigBookData } from "@/constants/bigbook/data";
-import { allMarkdownContent } from "@/constants/bigbook/content";
+import { allMarkdownContent, markdownContent } from "@/constants/bigbook/content";
 import { searchBigBookContentEnhanced, EnhancedSearchResult, navigateToPageWithHighlight } from "@/constants/bigbook";
+
+// Extended interface for search highlight with match context
+interface ExtendedSearchHighlight {
+  query: string;
+  position: number;
+  length: number;
+  matchContext?: {
+    before: string;
+    match: string;
+    after: string;
+  };
+}
 
 import { BigBookStoreProvider, useBigBookStore } from "@/hooks/use-bigbook-store";
 import { BigBookCategory, BigBookSection } from "@/types/bigbook";
@@ -225,29 +237,73 @@ function BigBookBrowserContent() {
       pageNumberNumeric: result.pageNumberNumeric,
       chapterId: result.chapterInfo.id
     });
-    // Pass the Roman numeral string or Arabic number directly
-    const navigationResult = navigateToPageWithHighlight(result.pageNumber, searchQuery);
-    if (navigationResult && navigationResult.success) {
-      setCurrentMarkdown({
-        content: navigationResult.content,
-        // Use the chapter title instead of 'Big Book - Page XX'
-        title: result.title,
-        id: 'search-navigation',
-        initialScrollPosition: navigationResult.scrollPosition || 0,
-        targetPageNumber: navigationResult.targetPageMarker || String(result.pageNumber),
-        searchHighlight: {
-          query: searchQuery,
-          position: 0,
-          length: searchQuery.length
+    
+    if (Platform.OS === 'android') {
+      // Android: Load entire chapter content with all search term instances highlighted
+      const chapterId = result.chapterInfo.id;
+      const chapterSection = bigBookData
+        .flatMap(cat => cat.sections)
+        .find(sec => sec.id === chapterId);
+      
+      if (chapterSection) {
+        console.log('🔍 Android: Loading entire chapter:', chapterSection.title);
+        
+        // Get the chapter content
+        const chapterContent = markdownContent[chapterId];
+        
+        if (chapterContent) {
+          // Calculate the position of the specific match within the chapter
+          // This will be used to scroll to the right position
+          const matchPosition = result.matchContext.before ? 
+            chapterContent.indexOf(result.matchContext.before + result.matchContext.match) : 
+            chapterContent.indexOf(result.matchContext.match);
+          
+          setCurrentMarkdown({
+            content: chapterContent,
+            title: result.title,
+            id: chapterId,
+            initialScrollPosition: 0, // Will be calculated in MarkdownReader
+            targetPageNumber: String(result.pageNumber),
+                          searchHighlight: {
+                query: searchQuery,
+                position: matchPosition,
+                length: searchQuery.length,
+                matchContext: result.matchContext
+              } as ExtendedSearchHighlight
+          });
+          setMarkdownReaderVisible(true);
+        } else {
+          console.log('❌ Android: Chapter content not found for:', chapterId);
         }
-      });
-      setMarkdownReaderVisible(true);
+      } else {
+        console.log('❌ Android: Chapter not found for:', chapterId);
+      }
     } else {
-      console.log('❌ Navigation failed for page:', result.pageNumber);
+      // iOS: Keep existing behavior
+      // Pass the Roman numeral string or Arabic number directly
+      const navigationResult = navigateToPageWithHighlight(result.pageNumber, searchQuery);
+      if (navigationResult && navigationResult.success) {
+        setCurrentMarkdown({
+          content: navigationResult.content,
+          // Use the chapter title instead of 'Big Book - Page XX'
+          title: result.title,
+          id: 'search-navigation',
+          initialScrollPosition: navigationResult.scrollPosition || 0,
+          targetPageNumber: navigationResult.targetPageMarker || String(result.pageNumber),
+          searchHighlight: {
+            query: searchQuery,
+            position: 0,
+            length: searchQuery.length
+          }
+        });
+        setMarkdownReaderVisible(true);
+      } else {
+        console.log('❌ Navigation failed for page:', result.pageNumber);
+      }
     }
     // Don't hide search results - let user navigate back to them
     // setShowingSearchResults(false);
-  }, [searchQuery]);
+  }, [searchQuery, bigBookData]);
 
   const handleSearchDone = useCallback(() => {
     setShowingSearchResults(false);

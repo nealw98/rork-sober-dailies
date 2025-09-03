@@ -20,6 +20,11 @@ import { adjustFontWeight } from '@/constants/fonts';
 import { CustomTextRenderer } from './CustomTextRenderer';
 import { getChapterPages, findPageIndex, PageItem } from '@/constants/bigbook/content';
 
+// Extend PageItem type to include startPosition
+interface ExtendedPageItem extends PageItem {
+  startPosition?: number;
+}
+
 interface MarkdownReaderProps {
   content: string;
   title: string;
@@ -30,6 +35,11 @@ interface MarkdownReaderProps {
     query: string;
     position: number;
     length: number;
+    matchContext?: {
+      before: string;
+      match: string;
+      after: string;
+    };
   };
   initialScrollPosition?: number;
   targetPageNumber?: string;
@@ -95,7 +105,7 @@ const MarkdownReader = ({
   const [targetPage, setTargetPage] = useState('');
   
   // FlatList data for Android
-  const [flatListData, setFlatListData] = useState<PageItem[]>([]);
+  const [flatListData, setFlatListData] = useState<ExtendedPageItem[]>([]);
   const flatListRef = useRef<FlatList>(null);
 
   // Clean content by removing any HTML that might have been added
@@ -126,7 +136,19 @@ const MarkdownReader = ({
       console.log('🔍 Android: Preparing FlatList data for section:', sectionId);
       const pages = getChapterPages(sectionId);
       console.log('🔍 Android: Got pages:', pages.length, 'pages');
-      setFlatListData(pages);
+      
+      // Calculate start position for each page item in the original content
+      let currentPosition = 0;
+      const pagesWithPositions: ExtendedPageItem[] = pages.map(page => {
+        const extendedPage = { ...page, startPosition: currentPosition };
+        // Update position for next item
+        if (page.content) {
+          currentPosition += page.content.length;
+        }
+        return extendedPage;
+      });
+      
+      setFlatListData(pagesWithPositions);
     }
   }, [sectionId]);
 
@@ -150,23 +172,147 @@ const MarkdownReader = ({
     return anchors;
   }, [cleanContent]);
 
+  // Store search match positions for Android
+  const [searchMatchPositions, setSearchMatchPositions] = useState<number[]>([]);
+  const [targetMatchIndex, setTargetMatchIndex] = useState<number>(-1);
+  
+  // Find all occurrences of search term in content
+  useEffect(() => {
+    if (Platform.OS === 'android' && searchHighlight?.query && content) {
+      const query = searchHighlight.query;
+      const escapedQuery = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const regex = new RegExp(escapedQuery, 'gi');
+      const positions: number[] = [];
+      let match;
+      
+      // Find all matches
+      while ((match = regex.exec(content)) !== null) {
+        positions.push(match.index);
+      }
+      
+      setSearchMatchPositions(positions);
+      
+      // Find which match corresponds to our search result
+      if (searchHighlight.matchContext && positions.length > 0) {
+        const matchContext = searchHighlight.matchContext;
+        const contextString = (matchContext.before || '') + matchContext.match + (matchContext.after || '');
+        
+        // Find the position in content that best matches our context
+        let bestMatchIndex = 0;
+        let bestMatchScore = 0;
+        
+        positions.forEach((pos, idx) => {
+          // Extract a context window around this match
+          const start = Math.max(0, pos - (matchContext.before?.length || 20));
+          const end = Math.min(content.length, pos + query.length + (matchContext.after?.length || 20));
+          const contextWindow = content.substring(start, end);
+          
+          // Simple scoring based on how much of our context appears in this window
+          let score = 0;
+          if (matchContext.before && contextWindow.includes(matchContext.before)) score += 1;
+          if (matchContext.after && contextWindow.includes(matchContext.after)) score += 1;
+          
+          if (score > bestMatchScore) {
+            bestMatchScore = score;
+            bestMatchIndex = idx;
+          }
+        });
+        
+        setTargetMatchIndex(bestMatchIndex);
+      }
+    }
+  }, [Platform.OS, searchHighlight, content]);
+
   // Robust scroll to known y position with retries (tuned for Android)
   const scrollToTargetY = (attempt = 1) => {
-    // Android: use FlatList scrollToIndex
-    if (Platform.OS === 'android' && targetPageNumber && flatListRef.current) {
-      const targetIndex = findPageIndex(sectionId, parseInt(targetPageNumber, 10));
-      if (targetIndex >= 0) {
-        console.log(`📍 Android: Scrolling to page ${targetPageNumber} at index ${targetIndex}`);
-        flatListRef.current.scrollToIndex({ 
-          index: targetIndex, 
-          animated: true,
-          viewPosition: 0 // 0 = top, 0.5 = center, 1 = bottom
+    // Android: Enhanced scrolling for search results
+    if (Platform.OS === 'android') {
+      if (searchHighlight?.query && targetMatchIndex >= 0 && searchMatchPositions.length > 0) {
+        // For search results, find the match in the content and scroll to it
+        const matchPosition = searchMatchPositions[targetMatchIndex];
+        console.log(`📍 Android: Scrolling to search match at position ${matchPosition} (match ${targetMatchIndex + 1} of ${searchMatchPositions.length})`);
+        
+        // Find the closest page to this match
+        const pageAnchors = cleanContent.match(/\*— Page (\d+|\w+) —\*/g) || [];
+        let closestPage = '';
+        let closestPageDistance = Infinity;
+        
+        pageAnchors.forEach(anchor => {
+          const pageMatch = anchor.match(/\*— Page (\d+|\w+) —\*/);  
+          if (pageMatch) {
+            const pagePos = cleanContent.indexOf(anchor);
+            const distance = Math.abs(pagePos - matchPosition);
+            if (distance < closestPageDistance) {
+              closestPageDistance = distance;
+              closestPage = pageMatch[1];
+            }
+          }
         });
-        return;
+        
+        if (closestPage) {
+          console.log(`📍 Android: Closest page to match is page ${closestPage}`);
+          
+          // Use the FlatList for scrolling if available
+          if (flatListRef.current) {
+            // Find the index in flatListData that contains our match
+            let targetIndex = -1;
+            let bestDistance = Infinity;
+            
+            flatListData.forEach((item, index) => {
+              if (item.content && item.content.includes(searchHighlight.query)) {
+                const itemMatchPos = item.content.indexOf(searchHighlight.query);
+                const itemFullPos = (item.startPosition || 0) + itemMatchPos;
+                const distance = Math.abs(itemFullPos - matchPosition);
+                
+                if (distance < bestDistance) {
+                  bestDistance = distance;
+                  targetIndex = index;
+                }
+              }
+            });
+            
+            if (targetIndex >= 0) {
+              // Scroll to position the match about 1/3 down from the top
+              console.log(`📍 Android: Scrolling to index ${targetIndex} in FlatList`);
+              flatListRef.current.scrollToIndex({
+                index: targetIndex,
+                animated: true,
+                viewPosition: 0.33 // Position 1/3 down from the top
+              });
+              return;
+            }
+          }
+          
+          // Fallback to ScrollView if FlatList approach didn't work
+          if (scrollViewRef.current && typeof pageYPositions.current[`page-${closestPage}`] === 'number') {
+            const pageY = pageYPositions.current[`page-${closestPage}`];
+            // Add offset to position match about 1/3 down the screen
+            const screenHeight = 600; // Approximate screen height
+            const oneThirdScreen = screenHeight / 3;
+            const targetY = Math.max(0, pageY - oneThirdScreen);
+            
+            console.log(`📍 Android: Scrolling to Y: ${targetY} (page ${closestPage} at ${pageY})`);
+            scrollViewRef.current.scrollTo({ y: targetY, animated: true });
+            currentOffsetYRef.current = targetY;
+            return;
+          }
+        }
+      } else if (targetPageNumber && flatListRef.current) {
+        // Regular page navigation for Android
+        const targetIndex = findPageIndex(sectionId, parseInt(targetPageNumber, 10));
+        if (targetIndex >= 0) {
+          console.log(`📍 Android: Scrolling to page ${targetPageNumber} at index ${targetIndex}`);
+          flatListRef.current.scrollToIndex({ 
+            index: targetIndex, 
+            animated: true,
+            viewPosition: 0.33 // Position 1/3 down from the top
+          });
+          return;
+        }
       }
     }
     
-    // iOS: use existing ScrollView approach
+    // iOS: use existing ScrollView approach (unchanged)
     if (targetPageNumber && typeof pageYPositions.current[`page-${targetPageNumber}`] === 'number' && scrollViewRef.current) {
       const y = pageYPositions.current[`page-${targetPageNumber}`];
       console.log(`📍 iOS: Scrolling to cached Y for page ${targetPageNumber}: y=${y} (attempt ${attempt})`);
