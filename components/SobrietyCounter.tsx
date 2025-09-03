@@ -1,65 +1,9 @@
-import React, { useEffect, useMemo, useState } from 'react';
-import { StyleSheet, View, Text, TouchableOpacity, Modal, Platform, TextInput, Alert } from 'react-native';
-import DateTimePicker from '@react-native-community/datetimepicker';
-import DateTimePickerModal from 'react-native-modal-datetime-picker';
+import React, { useEffect, useState } from 'react';
+import { StyleSheet, View, Text, TouchableOpacity, Modal, TextInput, Alert } from 'react-native';
 import { Calendar, X, Edit3 } from 'lucide-react-native';
 import { useSobriety } from '@/hooks/useSobrietyStore';
 import { formatStoredDateForDisplay, parseLocalDate, formatLocalDate } from '@/lib/dateUtils';
 import Colors from '@/constants/colors';
-import { Picker } from '@react-native-picker/picker';
-
-// Android dropdown (month/day/year) picker
-const AndroidTriplePicker = ({ initialDate, onChange }: { initialDate: Date; onChange: (d: Date) => void; }) => {
-  const now = new Date();
-  const [month, setMonth] = useState<number>(initialDate.getMonth() + 1);
-  const [year, setYear] = useState<number>(initialDate.getFullYear());
-  const [day, setDay] = useState<number>(initialDate.getDate());
-
-  const years: number[] = useMemo(() => {
-    const current = now.getFullYear();
-    const arr: number[] = [];
-    for (let y = current; y >= 1900; y--) arr.push(y);
-    return arr;
-  }, []);
-
-  const daysInMonth = useMemo(() => new Date(year, month, 0).getDate(), [month, year]);
-
-  useEffect(() => {
-    if (day > daysInMonth) setDay(daysInMonth);
-    const d = new Date(year, month - 1, Math.min(day, daysInMonth));
-    onChange(d);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [month, year, day, daysInMonth]);
-
-  return (
-    <View style={styles.pickerRow}>
-      <View style={styles.pickerCol}>
-        <Text style={styles.pickerLabel}>Month</Text>
-        <Picker selectedValue={month} onValueChange={(v) => setMonth(Number(v))} style={styles.picker}>
-          {Array.from({ length: 12 }, (_, i) => i + 1).map(m => (
-            <Picker.Item key={m} label={m.toString().padStart(2, '0')} value={m} />
-          ))}
-        </Picker>
-      </View>
-      <View style={styles.pickerCol}>
-        <Text style={styles.pickerLabel}>Day</Text>
-        <Picker selectedValue={day} onValueChange={(v) => setDay(Number(v))} style={styles.picker}>
-          {Array.from({ length: daysInMonth }, (_, i) => i + 1).map(d => (
-            <Picker.Item key={d} label={d.toString()} value={d} />
-          ))}
-        </Picker>
-      </View>
-      <View style={styles.pickerCol}>
-        <Text style={styles.pickerLabel}>Year</Text>
-        <Picker selectedValue={year} onValueChange={(v) => setYear(Number(v))} style={styles.picker}>
-          {years.map(y => (
-            <Picker.Item key={y} label={y.toString()} value={y} />
-          ))}
-        </Picker>
-      </View>
-    </View>
-  );
-};
 
 const SobrietyCounter = () => {
   const { 
@@ -73,10 +17,10 @@ const SobrietyCounter = () => {
   } = useSobriety();
   
   const [showDatePicker, setShowDatePicker] = useState<boolean>(false);
-  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
-  const [webDateString, setWebDateString] = useState<string>('');
+  const [dateInput, setDateInput] = useState<string>('');
   const [showEditModal, setShowEditModal] = useState<boolean>(false);
 
+  // Auto-format input as user types: mm/dd/yyyy
   const formatDateInput = (text: string) => {
     const numbers = text.replace(/\D/g, '');
     if (numbers.length <= 2) {
@@ -88,28 +32,94 @@ const SobrietyCounter = () => {
     }
   };
 
-  const handleWebDateChange = (text: string) => {
+  const handleDateInputChange = (text: string) => {
     const formatted = formatDateInput(text);
-    setWebDateString(formatted);
+    setDateInput(formatted);
   };
 
-  const isValidDate = (dateString: string) => {
-    if (dateString) {
-      if (dateString.length < 10) return true;
-      const regex = /^\d{2}\/\d{2}\/\d{4}$/;
-      if (!regex.test(dateString)) return false;
-      const [month, day, year] = dateString.split('/').map(Number);
-      const date = new Date(year, month - 1, day);
-      return date instanceof Date && 
-             !isNaN(date.getTime()) && 
-             date <= new Date() &&
-             date.getFullYear() === year &&
-             date.getMonth() === month - 1 &&
-             date.getDate() === day &&
-             month >= 1 && month <= 12 &&
-             day >= 1 && day <= 31;
+  // Validate date: must be real date, not in future, in mm/dd/yyyy format
+  const isValidDate = (dateString: string): boolean => {
+    if (!dateString || dateString.length < 10) return false;
+    
+    const regex = /^\d{2}\/\d{2}\/\d{4}$/;
+    if (!regex.test(dateString)) return false;
+    
+    const [month, day, year] = dateString.split('/').map(Number);
+    
+    // Check month and day ranges
+    if (month < 1 || month > 12 || day < 1 || day > 31) return false;
+    
+    // Check if date actually exists (handles leap years, etc.)
+    const date = new Date(year, month - 1, day);
+    if (date.getFullYear() !== year || date.getMonth() !== month - 1 || date.getDate() !== day) {
+      return false;
     }
+    
+    // Check if date is in the future
+    const today = new Date();
+    today.setHours(23, 59, 59, 999); // End of today
+    if (date > today) return false;
+    
     return true;
+  };
+
+  const handleConfirmDate = () => {
+    if (!dateInput || dateInput.length < 10 || !isValidDate(dateInput)) {
+      Alert.alert('Invalid Date', 'Please enter a valid date in MM/DD/YYYY format that is not in the future.');
+      return;
+    }
+    
+    const [month, day, year] = dateInput.split('/').map(Number);
+    const dateString = `${year}-${month.toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`;
+    
+    setSobrietyDate(dateString);
+    setShowDatePicker(false);
+    setDateInput('');
+  };
+
+  const handleCancel = () => {
+    setShowDatePicker(false);
+    setDateInput('');
+  };
+
+  const handleNotNow = () => {
+    dismissPrompt();
+    setShowDatePicker(false);
+  };
+
+  const handleAddDate = () => {
+    setDateInput('');
+    setShowDatePicker(true);
+  };
+
+  const handleEditDate = () => {
+    if (sobrietyDate) {
+      const currentDate = parseLocalDate(sobrietyDate);
+      const month = (currentDate.getMonth() + 1).toString().padStart(2, '0');
+      const day = currentDate.getDate().toString().padStart(2, '0');
+      const year = currentDate.getFullYear().toString();
+      setDateInput(`${month}/${day}/${year}`);
+    }
+    setShowEditModal(true);
+  };
+
+  const handleCancelEdit = () => {
+    setShowEditModal(false);
+    setDateInput('');
+  };
+
+  const handleConfirmEditDate = () => {
+    if (!dateInput || dateInput.length < 10 || !isValidDate(dateInput)) {
+      Alert.alert('Invalid Date', 'Please enter a valid date in MM/DD/YYYY format that is not in the future.');
+      return;
+    }
+    
+    const [month, day, year] = dateInput.split('/').map(Number);
+    const dateString = `${year}-${month.toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`;
+    
+    setSobrietyDate(dateString);
+    setShowEditModal(false);
+    setDateInput('');
   };
 
   if (isLoading) {
@@ -118,86 +128,6 @@ const SobrietyCounter = () => {
 
   const daysSober = calculateDaysSober();
   const validDaysSober = typeof daysSober === 'number' && !isNaN(daysSober) ? daysSober : 0;
-
-  const handleConfirmDate = () => {
-    let dateString: string;
-    if (Platform.OS === 'web') {
-      if (!webDateString || webDateString.length < 10 || !isValidDate(webDateString)) {
-        Alert.alert('Invalid Date', 'Please enter a valid date in MM/DD/YYYY format');
-        return;
-      }
-      const [month, day, year] = webDateString.split('/').map(Number);
-      dateString = `${year}-${month.toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`;
-    } else {
-      dateString = formatLocalDate(selectedDate);
-    }
-    setSobrietyDate(dateString);
-    setShowDatePicker(false);
-  };
-
-  const handleNotNow = () => {
-    dismissPrompt();
-    setShowDatePicker(false);
-  };
-
-  const onDateChange = (event: any, date?: Date) => {
-    console.log('🔍 onDateChange called:', { event, date, platform: Platform.OS });
-    if (Platform.OS === 'android') {
-      setShowDatePicker(false);
-      if (event.type === 'set' && date) {
-        console.log('🔍 Android: Setting date to:', date);
-        const dateString = formatLocalDate(date);
-        setSobrietyDate(dateString);
-      }
-    } else if (date) {
-      console.log('🔍 iOS/Web: Setting selectedDate to:', date);
-      setSelectedDate(date);
-    }
-  };
-
-  const handleAddDate = () => {
-    setSelectedDate(new Date()); // Start with today's date
-    setShowDatePicker(true);
-  };
-
-  const handleEditDate = () => {
-    if (sobrietyDate) {
-      const currentDate = parseLocalDate(sobrietyDate);
-      setSelectedDate(currentDate);
-      const month = (currentDate.getMonth() + 1).toString().padStart(2, '0');
-      const day = currentDate.getDate().toString().padStart(2, '0');
-      const year = currentDate.getFullYear().toString();
-      setWebDateString(`${month}/${day}/${year}`);
-    }
-    
-    if (Platform.OS === 'android') {
-      setShowDatePicker(true);
-    } else {
-      setShowEditModal(true);
-    }
-  };
-
-  const handleCancelEdit = () => {
-    setShowEditModal(false);
-    setShowDatePicker(false);
-  };
-
-  const handleConfirmEditDate = () => {
-    let dateString: string;
-    if (Platform.OS === 'web') {
-      if (!webDateString || webDateString.length < 10 || !isValidDate(webDateString)) {
-        Alert.alert('Invalid Date', 'Please enter a valid date in MM/DD/YYYY format');
-        return;
-      }
-      const [month, day, year] = webDateString.split('/').map(Number);
-      dateString = `${year}-${month.toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`;
-    } else {
-      dateString = formatLocalDate(selectedDate);
-    }
-    setSobrietyDate(dateString);
-    setShowEditModal(false);
-    setShowDatePicker(false);
-  };
 
   // Show prompt modal for first-time users
   if (shouldShowPrompt()) {
@@ -244,85 +174,40 @@ const SobrietyCounter = () => {
           </View>
         </Modal>
         
-        {/* Android: three pickers (MM/DD/YYYY) */}
-        {Platform.OS === 'android' && showDatePicker && (
+        {/* Unified Date Input Modal */}
+        {showDatePicker && (
           <Modal
             visible={true}
             transparent={true}
             animationType="slide"
-            onRequestClose={() => setShowDatePicker(false)}
+            onRequestClose={handleCancel}
           >
             <View style={styles.datePickerOverlay}>
               <View style={styles.datePickerContent}>
-                <Text style={styles.datePickerTitle}>Select Your Sobriety Date</Text>
-                <AndroidTriplePicker initialDate={selectedDate} onChange={setSelectedDate} />
-                <View style={styles.datePickerButtons}>
-                  <TouchableOpacity 
-                    style={[styles.datePickerButton, styles.cancelButton]}
-                    onPress={() => setShowDatePicker(false)}
-                  >
-                    <Text style={styles.cancelButtonText}>Cancel</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity 
-                    style={[styles.datePickerButton, styles.confirmDateButton]}
-                    onPress={handleConfirmDate}
-                  >
-                    <Text style={styles.confirmDateButtonText}>Confirm</Text>
-                  </TouchableOpacity>
-                </View>
-              </View>
-            </View>
-          </Modal>
-        )}
-        
-        {/* Native Date Picker Modal for iOS/Web */}
-        {showDatePicker && Platform.OS !== 'android' && (
-          <Modal
-            visible={true}
-            transparent={true}
-            animationType="slide"
-            onRequestClose={() => setShowDatePicker(false)}
-          >
-            <View style={styles.datePickerOverlay}>
-              <View style={styles.datePickerContent}>
-                <Text style={styles.datePickerTitle}>Select Your Sobriety Date</Text>
+                <Text style={styles.datePickerTitle}>Enter your sobriety date</Text>
                 
-                {Platform.OS === 'web' ? (
-                  <View style={styles.webDateContainer}>
-                    <TextInput
-                      style={[
-                        styles.webDateInput,
-                        !isValidDate(webDateString) && webDateString.length === 10 && styles.webDateInputError
-                      ]}
-                      value={webDateString}
-                      onChangeText={handleWebDateChange}
-                      placeholder="MM/DD/YYYY"
-                      placeholderTextColor={Colors.light.muted}
-                      maxLength={10}
-                      keyboardType="numeric"
-                      autoFocus={true}
-                    />
-                    {!isValidDate(webDateString) && webDateString.length === 10 && (
-                      <Text style={styles.errorText}>Please enter a valid date</Text>
-                    )}
-                    <Text style={styles.helpText}>Enter your sobriety start date</Text>
-                  </View>
-                ) : (
-                  // This is the key part - just the native iOS picker
-                  <DateTimePicker
-                    value={selectedDate}
-                    mode="date"
-                    display="spinner"
-                    onChange={onDateChange}
-                    maximumDate={new Date()}
-                    style={styles.nativeDatePicker}
-                  />
+                <TextInput
+                  style={[
+                    styles.dateInput,
+                    !isValidDate(dateInput) && dateInput.length === 10 && styles.dateInputError
+                  ]}
+                  value={dateInput}
+                  onChangeText={handleDateInputChange}
+                  placeholder="mm/dd/yyyy"
+                  placeholderTextColor={Colors.light.muted}
+                  maxLength={10}
+                  keyboardType="numeric"
+                  autoFocus={true}
+                />
+                
+                {!isValidDate(dateInput) && dateInput.length === 10 && (
+                  <Text style={styles.errorText}>Please enter a valid date</Text>
                 )}
                 
                 <View style={styles.datePickerButtons}>
                   <TouchableOpacity 
                     style={[styles.datePickerButton, styles.cancelButton]}
-                    onPress={() => setShowDatePicker(false)}
+                    onPress={handleCancel}
                   >
                     <Text style={styles.cancelButtonText}>Cancel</Text>
                   </TouchableOpacity>
@@ -331,15 +216,15 @@ const SobrietyCounter = () => {
                     style={[
                       styles.datePickerButton, 
                       styles.confirmDateButton,
-                      Platform.OS === 'web' && (!webDateString || webDateString.length < 10 || !isValidDate(webDateString)) && styles.disabledButton
+                      (!dateInput || dateInput.length < 10 || !isValidDate(dateInput)) && styles.disabledButton
                     ]}
                     onPress={handleConfirmDate}
-                    disabled={Platform.OS === 'web' && (!webDateString || webDateString.length < 10 || !isValidDate(webDateString))}
+                    disabled={!dateInput || dateInput.length < 10 || !isValidDate(dateInput)}
                   >
                     <Text style={[
                       styles.confirmDateButtonText,
-                      Platform.OS === 'web' && (!webDateString || webDateString.length < 10 || !isValidDate(webDateString)) && styles.disabledButtonText
-                    ]}>Confirm</Text>
+                      (!dateInput || dateInput.length < 10 || !isValidDate(dateInput)) && styles.disabledButtonText
+                    ]}>OK</Text>
                   </TouchableOpacity>
                 </View>
               </View>
@@ -367,90 +252,40 @@ const SobrietyCounter = () => {
           See how many days you've been sober.
         </Text>
         
-        {Platform.OS === 'android' && showDatePicker && (
+        {/* Unified Date Input Modal */}
+        {showDatePicker && (
           <Modal
             visible={true}
             transparent={true}
             animationType="slide"
-            onRequestClose={() => setShowDatePicker(false)}
+            onRequestClose={handleCancel}
           >
             <View style={styles.datePickerOverlay}>
               <View style={styles.datePickerContent}>
-                <Text style={styles.datePickerTitle}>Select Your Sobriety Date</Text>
-                <DateTimePicker
-                  value={selectedDate}
-                  mode="date"
-                  display="calendar"
-                  maximumDate={new Date()}
-                  onChange={(e, d) => d && setSelectedDate(d)}
-                  style={styles.nativeDatePicker}
-                />
-                <View style={styles.datePickerButtons}>
-                  <TouchableOpacity 
-                    style={[styles.datePickerButton, styles.cancelButton]}
-                    onPress={() => setShowDatePicker(false)}
-                  >
-                    <Text style={styles.cancelButtonText}>Cancel</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity 
-                    style={[styles.datePickerButton, styles.confirmDateButton]}
-                    onPress={handleConfirmDate}
-                  >
-                    <Text style={styles.confirmDateButtonText}>Confirm</Text>
-                  </TouchableOpacity>
-                </View>
-              </View>
-            </View>
-          </Modal>
-        )}
-        
-        {showDatePicker && Platform.OS !== 'android' && (
-          <Modal
-            visible={true}
-            transparent={true}
-            animationType="slide"
-            onRequestClose={() => setShowDatePicker(false)}
-          >
-            <View style={styles.datePickerOverlay}>
-              <View style={styles.datePickerContent}>
-                <Text style={styles.datePickerTitle}>Select Your Sobriety Date</Text>
+                <Text style={styles.datePickerTitle}>Enter your sobriety date</Text>
                 
-                {Platform.OS === 'web' ? (
-                  <View style={styles.webDateContainer}>
-                    <TextInput
-                      style={[
-                        styles.webDateInput,
-                        !isValidDate(webDateString) && webDateString.length === 10 && styles.webDateInputError
-                      ]}
-                      value={webDateString}
-                      onChangeText={handleWebDateChange}
-                      placeholder="MM/DD/YYYY"
-                      placeholderTextColor={Colors.light.muted}
-                      maxLength={10}
-                      keyboardType="numeric"
-                      autoFocus={true}
-                    />
-                    {!isValidDate(webDateString) && webDateString.length === 10 && (
-                      <Text style={styles.errorText}>Please enter a valid date</Text>
-                    )}
-                    <Text style={styles.helpText}>Enter your sobriety start date</Text>
-                  </View>
-                ) : (
-                  // Native iOS picker
-                  <DateTimePicker
-                    value={selectedDate}
-                    mode="date"
-                    display="spinner"
-                    onChange={onDateChange}
-                    maximumDate={new Date()}
-                    style={styles.nativeDatePicker}
-                  />
+                <TextInput
+                  style={[
+                    styles.dateInput,
+                    !isValidDate(dateInput) && dateInput.length === 10 && styles.dateInputError
+                  ]}
+                  value={dateInput}
+                  onChangeText={handleDateInputChange}
+                  placeholder="mm/dd/yyyy"
+                  placeholderTextColor={Colors.light.muted}
+                  maxLength={10}
+                  keyboardType="numeric"
+                  autoFocus={true}
+                />
+                
+                {!isValidDate(dateInput) && dateInput.length === 10 && (
+                  <Text style={styles.errorText}>Please enter a valid date</Text>
                 )}
                 
                 <View style={styles.datePickerButtons}>
                   <TouchableOpacity 
                     style={[styles.datePickerButton, styles.cancelButton]}
-                    onPress={() => setShowDatePicker(false)}
+                    onPress={handleCancel}
                   >
                     <Text style={styles.cancelButtonText}>Cancel</Text>
                   </TouchableOpacity>
@@ -459,15 +294,15 @@ const SobrietyCounter = () => {
                     style={[
                       styles.datePickerButton, 
                       styles.confirmDateButton,
-                      Platform.OS === 'web' && (!webDateString || webDateString.length < 10 || !isValidDate(webDateString)) && styles.disabledButton
+                      (!dateInput || dateInput.length < 10 || !isValidDate(dateInput)) && styles.disabledButton
                     ]}
                     onPress={handleConfirmDate}
-                    disabled={Platform.OS === 'web' && (!webDateString || webDateString.length < 10 || !isValidDate(webDateString))}
+                    disabled={!dateInput || dateInput.length < 10 || !isValidDate(dateInput)}
                   >
                     <Text style={[
                       styles.confirmDateButtonText,
-                      Platform.OS === 'web' && (!webDateString || webDateString.length < 10 || !isValidDate(webDateString)) && styles.disabledButtonText
-                    ]}>Confirm</Text>
+                      (!dateInput || dateInput.length < 10 || !isValidDate(dateInput)) && styles.disabledButtonText
+                    ]}>OK</Text>
                   </TouchableOpacity>
                 </View>
               </View>
@@ -499,7 +334,8 @@ const SobrietyCounter = () => {
           </View>
         </View>
         
-        {Platform.OS === 'android' && showDatePicker && (
+        {/* Edit Date Modal */}
+        {showEditModal && (
           <Modal
             visible={true}
             transparent={true}
@@ -508,68 +344,24 @@ const SobrietyCounter = () => {
           >
             <View style={styles.datePickerOverlay}>
               <View style={styles.datePickerContent}>
-                <Text style={styles.datePickerTitle}>Edit Your Sobriety Date</Text>
-                <AndroidTriplePicker initialDate={selectedDate} onChange={setSelectedDate} />
-                <View style={styles.datePickerButtons}>
-                  <TouchableOpacity 
-                    style={[styles.datePickerButton, styles.cancelButton]}
-                    onPress={handleCancelEdit}
-                  >
-                    <Text style={styles.cancelButtonText}>Cancel</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity 
-                    style={[styles.datePickerButton, styles.confirmDateButton]}
-                    onPress={handleConfirmEditDate}
-                  >
-                    <Text style={styles.confirmDateButtonText}>Save</Text>
-                  </TouchableOpacity>
-                </View>
-              </View>
-            </View>
-          </Modal>
-        )}
-        
-        {showEditModal && Platform.OS !== 'android' && (
-          <Modal
-            visible={true}
-            transparent={true}
-            animationType="slide"
-            onRequestClose={handleCancelEdit}
-          >
-            <View style={styles.datePickerOverlay}>
-              <View style={styles.datePickerContent}>
-                <Text style={styles.datePickerTitle}>Edit Your Sobriety Date</Text>
+                <Text style={styles.datePickerTitle}>Edit your sobriety date</Text>
                 
-                {Platform.OS === 'web' ? (
-                  <View style={styles.webDateContainer}>
-                    <TextInput
-                      style={[
-                        styles.webDateInput,
-                        !isValidDate(webDateString) && webDateString.length === 10 && styles.webDateInputError
-                      ]}
-                      value={webDateString}
-                      onChangeText={handleWebDateChange}
-                      placeholder="MM/DD/YYYY"
-                      placeholderTextColor={Colors.light.muted}
-                      maxLength={10}
-                      keyboardType="numeric"
-                      autoFocus={true}
-                    />
-                    {!isValidDate(webDateString) && webDateString.length === 10 && (
-                      <Text style={styles.errorText}>Please enter a valid date</Text>
-                    )}
-                    <Text style={styles.helpText}>Enter your sobriety start date</Text>
-                  </View>
-                ) : (
-                  // Native iOS picker
-                  <DateTimePicker
-                    value={selectedDate}
-                    mode="date"
-                    display="spinner"
-                    onChange={onDateChange}
-                    maximumDate={new Date()}
-                    style={styles.nativeDatePicker}
-                  />
+                <TextInput
+                  style={[
+                    styles.dateInput,
+                    !isValidDate(dateInput) && dateInput.length === 10 && styles.dateInputError
+                  ]}
+                  value={dateInput}
+                  onChangeText={handleDateInputChange}
+                  placeholder="mm/dd/yyyy"
+                  placeholderTextColor={Colors.light.muted}
+                  maxLength={10}
+                  keyboardType="numeric"
+                  autoFocus={true}
+                />
+                
+                {!isValidDate(dateInput) && dateInput.length === 10 && (
+                  <Text style={styles.errorText}>Please enter a valid date</Text>
                 )}
                 
                 <View style={styles.datePickerButtons}>
@@ -584,15 +376,15 @@ const SobrietyCounter = () => {
                     style={[
                       styles.datePickerButton, 
                       styles.confirmDateButton,
-                      Platform.OS === 'web' && (!webDateString || webDateString.length < 10 || !isValidDate(webDateString)) && styles.disabledButton
+                      (!dateInput || dateInput.length < 10 || !isValidDate(dateInput)) && styles.disabledButton
                     ]}
                     onPress={handleConfirmEditDate}
-                    disabled={Platform.OS === 'web' && (!webDateString || webDateString.length < 10 || !isValidDate(webDateString))}
+                    disabled={!dateInput || dateInput.length < 10 || !isValidDate(dateInput)}
                   >
                     <Text style={[
                       styles.confirmDateButtonText,
-                      Platform.OS === 'web' && (!webDateString || webDateString.length < 10 || !isValidDate(webDateString)) && styles.disabledButtonText
-                    ]}>Save</Text>
+                      (!dateInput || dateInput.length < 10 || !isValidDate(dateInput)) && styles.disabledButtonText
+                    ]}>OK</Text>
                   </TouchableOpacity>
                 </View>
               </View>
@@ -607,162 +399,48 @@ const SobrietyCounter = () => {
 };
 
 const styles = StyleSheet.create({
-  // Modal styles
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 20,
-  },
-  modalContent: {
-    backgroundColor: 'white',
-    borderRadius: 20,
-    padding: 24,
-    alignItems: 'center',
-    maxWidth: 320,
-    width: '100%',
-    position: 'relative',
-  },
-  closeButton: {
-    position: 'absolute',
-    top: 16,
-    right: 16,
+
+  editButton: {
     padding: 4,
   },
-  modalIcon: {
-    marginBottom: 16,
-  },
-  modalTitle: {
-    fontSize: 22,
-    fontWeight: 'bold',
-    color: Colors.light.text,
-    marginBottom: 12,
-    textAlign: 'center',
-  },
-  modalDescription: {
-    fontSize: 16,
-    color: Colors.light.muted,
-    textAlign: 'center',
-    marginBottom: 24,
-    lineHeight: 22,
-  },
-  modalButtons: {
-    width: '100%',
-    gap: 12,
-  },
-  modalButton: {
-    paddingVertical: 14,
-    paddingHorizontal: 24,
+  addDateContainer: {
+    backgroundColor: Colors.light.background,
     borderRadius: 12,
+    padding: 16,
+    marginHorizontal: 16,
+    marginVertical: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  addDateRow: {
+    flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 8,
   },
-  confirmButton: {
-    backgroundColor: Colors.light.tint,
-  },
-  confirmButtonText: {
-    color: 'white',
+  addDateMainTitle: {
     fontSize: 16,
     fontWeight: '600',
-  },
-  notNowButton: {
-    backgroundColor: 'transparent',
-    borderWidth: 1,
-    borderColor: Colors.light.muted,
-  },
-  notNowButtonText: {
-    color: Colors.light.muted,
-    fontSize: 16,
-    fontWeight: '500',
-  },
-  
-  // Date picker styles
-  datePickerOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 20,
-  },
-  datePickerContent: {
-    backgroundColor: 'white',
-    borderRadius: 20,
-    padding: 24,
-    alignItems: 'center',
-    maxWidth: 320,
-    width: '100%',
-  },
-  datePickerTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
     color: Colors.light.text,
-    marginBottom: 20,
-    textAlign: 'center',
   },
-  nativeDatePicker: {
-    width: '100%',
-    height: 216,
-    marginBottom: 20,
-    backgroundColor: 'transparent',
-  },
-  pickerRow: {
-    flexDirection: 'row',
-    width: '100%',
-    justifyContent: 'space-between',
-    gap: 8,
-    marginBottom: 16,
-  },
-  pickerCol: {
-    flex: 1,
-  },
-  pickerLabel: {
-    textAlign: 'center',
-    color: Colors.light.muted,
-    marginBottom: 6,
-  },
-  picker: {
-    backgroundColor: 'rgba(0,0,0,0.04)',
+  addDateButton: {
+    backgroundColor: Colors.light.tint,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
     borderRadius: 8,
   },
-  androidDatePicker: {
-    width: 260,
-    height: 180,
-    alignSelf: 'center',
-    ...(Platform.OS === 'android' && {
-      backgroundColor: 'transparent',
-    }),
-  },
-  datePickerButtons: {
-    flexDirection: 'row',
-    width: '100%',
-    gap: 12,
-  },
-  datePickerButton: {
-    flex: 1,
-    paddingVertical: 12,
-    paddingHorizontal: 20,
-    borderRadius: 10,
-    alignItems: 'center',
-  },
-  cancelButton: {
-    backgroundColor: 'transparent',
-    borderWidth: 1,
-    borderColor: Colors.light.muted,
-  },
-  cancelButtonText: {
-    color: Colors.light.muted,
-    fontSize: 16,
-    fontWeight: '500',
-  },
-  confirmDateButton: {
-    backgroundColor: Colors.light.tint,
-  },
-  confirmDateButtonText: {
-    color: 'white',
-    fontSize: 16,
+  addDateButtonText: {
+    color: '#FFFFFF',
+    fontSize: 14,
     fontWeight: '600',
   },
-  
+  addDateSubtitle: {
+    fontSize: 14,
+    color: Colors.light.muted,
+  },
   // Counter display styles
   counterContainer: {
     marginHorizontal: 16,
@@ -787,82 +465,159 @@ const styles = StyleSheet.create({
     color: Colors.light.muted,
     textAlign: 'center',
   },
-  editButton: {
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalContent: {
+    backgroundColor: Colors.light.background,
+    borderRadius: 16,
+    padding: 24,
+    margin: 20,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  closeButton: {
+    position: 'absolute',
+    top: 16,
+    right: 16,
     padding: 4,
-    borderRadius: 4,
   },
-  webDateContainer: {
-    width: '100%',
-    marginBottom: 20,
+  modalIcon: {
+    marginBottom: 16,
   },
-  webDateInput: {
-    width: '100%',
-    padding: 12,
-    borderWidth: 1,
-    borderColor: Colors.light.muted,
-    borderRadius: 8,
-    fontSize: 16,
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
     color: Colors.light.text,
     textAlign: 'center',
+    marginBottom: 8,
   },
-  webDateInputError: {
-    borderColor: '#ff4444',
+  modalDescription: {
+    fontSize: 16,
+    color: Colors.light.muted,
+    textAlign: 'center',
+    marginBottom: 24,
+    lineHeight: 22,
+  },
+  modalButtons: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  modalButton: {
+    flex: 1,
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  confirmButton: {
+    backgroundColor: Colors.light.tint,
+  },
+  confirmButtonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  notNowButton: {
+    backgroundColor: 'transparent',
+    borderWidth: 1,
+    borderColor: Colors.light.border,
+  },
+  notNowButtonText: {
+    color: Colors.light.text,
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  datePickerOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  datePickerContent: {
+    backgroundColor: Colors.light.background,
+    borderRadius: 16,
+    padding: 24,
+    margin: 20,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 8,
+    elevation: 8,
+    minWidth: 300,
+  },
+  datePickerTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: Colors.light.text,
+    textAlign: 'center',
+    marginBottom: 20,
+  },
+  dateInput: {
+    borderWidth: 1,
+    borderColor: Colors.light.tint,
+    borderRadius: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    fontSize: 16,
+    color: Colors.light.text,
+    backgroundColor: Colors.light.background,
+    textAlign: 'center',
+    marginBottom: 16,
+    minWidth: 200,
+  },
+  dateInputError: {
+    borderColor: '#FF3B30',
   },
   errorText: {
-    color: '#ff4444',
-    fontSize: 12,
+    color: '#FF3B30',
+    fontSize: 14,
+    marginBottom: 16,
     textAlign: 'center',
-    marginTop: 4,
   },
-  helpText: {
-    color: Colors.light.muted,
-    fontSize: 12,
-    textAlign: 'center',
-    marginTop: 8,
+  datePickerButtons: {
+    flexDirection: 'row',
+    gap: 12,
+    width: '100%',
+  },
+  datePickerButton: {
+    flex: 1,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  cancelButton: {
+    backgroundColor: 'transparent',
+    borderWidth: 1,
+    borderColor: Colors.light.border,
+  },
+  cancelButtonText: {
+    color: Colors.light.text,
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  confirmDateButton: {
+    backgroundColor: Colors.light.tint,
+  },
+  confirmDateButtonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '600',
   },
   disabledButton: {
-    backgroundColor: Colors.light.muted,
-    opacity: 0.5,
+    backgroundColor: Colors.light.border,
   },
   disabledButtonText: {
-    color: 'rgba(255, 255, 255, 0.7)',
-  },
-  
-  // Add Date Button styles
-  addDateContainer: {
-    marginHorizontal: 16,
-    marginBottom: 20,
-    alignItems: 'center',
-  },
-  addDateRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    marginBottom: 4,
-  },
-  addDateMainTitle: {
-    fontSize: 18,
-    color: Colors.light.text,
-    fontWeight: '600',
-    textAlign: 'center',
-  },
-  addDateSubtitle: {
-    fontSize: 16,
     color: Colors.light.muted,
-    textAlign: 'center',
-  },
-  addDateButton: {
-    backgroundColor: 'transparent',
-    paddingVertical: 2,
-    paddingHorizontal: 4,
-    borderRadius: 4,
-  },
-  addDateButtonText: {
-    color: Colors.light.tint,
-    fontSize: 16,
-    fontWeight: '500',
-    textDecorationLine: 'underline',
   },
 });
 
