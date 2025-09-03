@@ -432,8 +432,14 @@ const MarkdownReader = ({
     console.log('📍 MarkdownReader useEffect:', { targetPageNumber, initialScrollPosition });
     if (targetPageNumber) {
       if (Platform.OS === 'android') {
-        // Android: use shorter delay for FlatList
-        setTimeout(() => scrollToTargetY(), 100);
+        // Android: Only auto-scroll for page navigation, not for search results
+        // Search results should load from beginning with highlights
+        if (!searchHighlight?.query) {
+          // This is page navigation, not search
+          setTimeout(() => scrollToTargetY(), 100);
+        } else {
+          console.log('📍 Android: Search result opened - no auto-scroll, user scrolls naturally');
+        }
       } else {
         // iOS: use existing delay for ScrollView
         setTimeout(() => scrollToTargetY(), 100);
@@ -443,7 +449,7 @@ const MarkdownReader = ({
         scrollViewRef.current?.scrollTo({ y: Math.max(0, initialScrollPosition - 100), animated: true });
       }, 100);
     }
-  }, [targetPageNumber, initialScrollPosition]);
+  }, [targetPageNumber, initialScrollPosition, searchHighlight]);
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>

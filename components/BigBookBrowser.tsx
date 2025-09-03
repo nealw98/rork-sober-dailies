@@ -275,7 +275,7 @@ function BigBookBrowserContent() {
             targetPageNumber: String(result.pageNumber),
             searchHighlight: {
               query: searchQuery,
-              position: firstMatchPosition,
+              position: 0, // Start from beginning, don't auto-scroll
               length: searchQuery.length,
               matchContext: result.matchContext
             } as ExtendedSearchHighlight
