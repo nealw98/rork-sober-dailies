@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from "react";
+import { Platform } from "react-native";
 import {
   StyleSheet,
   View,
@@ -101,7 +102,9 @@ function MeetingPocketBrowserContent() {
       <View style={styles.content}>
         <View style={styles.mainContent}>
           <View style={styles.header}>
-            <Text style={styles.title}>AA Meeting in a Pocket</Text>
+            {Platform.OS !== 'android' && (
+              <Text style={styles.title}>AA Meeting in a Pocket</Text>
+            )}
             <Text style={styles.subtitle}>Quick access to the core AA readings used in meetings.</Text>
           </View>
           

@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { Platform } from "react-native";
 import {
   StyleSheet,
   View,
@@ -112,7 +113,9 @@ function TwelveAndTwelveBrowserContent() {
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         <View>
           <View style={styles.header}>
-            <Text style={styles.title}>Twelve Steps and Twelve Traditions</Text>
+            {Platform.OS !== 'android' && (
+              <Text style={styles.title}>Twelve Steps and Twelve Traditions</Text>
+            )}
             <Text style={styles.subtitle}>A detailed exploration of the AA program</Text>
             <Text style={styles.description}>
               Tap any section to open the official PDF from AA World Services.

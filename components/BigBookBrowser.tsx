@@ -306,7 +306,9 @@ function BigBookBrowserContent() {
       <View style={styles.content}>
         <View style={styles.mainContent}>
           <View style={styles.header}>
-            <Text style={styles.title}>Alcoholics Anonymous</Text>
+            {Platform.OS !== 'android' && (
+              <Text style={styles.title}>Alcoholics Anonymous</Text>
+            )}
             <Text style={styles.subtitle}>The basic textbook for the AA program.</Text>
           </View>
           
