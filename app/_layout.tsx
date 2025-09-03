@@ -105,7 +105,9 @@ function RootLayoutNav() {
       />
       <Stack.Screen 
         name="daily-reflections" 
-        options={{ }} 
+        options={{ 
+          headerTitle: Platform.OS === 'android' ? '' : undefined
+        }} 
       />
     </Stack>
   );
