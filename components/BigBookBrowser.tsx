@@ -372,16 +372,18 @@ function BigBookBrowserContent() {
             <View style={styles.searchBarContainer}>
               <BigBookSearchBar onSearch={handleSearch} clearSearch={clearSearch} />
             </View>
-            <TouchableOpacity 
-              style={styles.goToPageButton}
-              onPress={handleGoToPage}
-              onPressIn={() => console.log('🟢 BigBookBrowser: Go to Page onPressIn')}
-              onPressOut={() => console.log('🟢 BigBookBrowser: Go to Page onPressOut')}
-              activeOpacity={0.7}
-              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-            >
-              <Text style={styles.goToPageButtonText}>Go to Page</Text>
-            </TouchableOpacity>
+            {Platform.OS !== 'android' && (
+              <TouchableOpacity 
+                style={styles.goToPageButton}
+                onPress={handleGoToPage}
+                onPressIn={() => console.log('🟢 BigBookBrowser: Go to Page onPressIn')}
+                onPressOut={() => console.log('🟢 BigBookBrowser: Go to Page onPressOut')}
+                activeOpacity={0.7}
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              >
+                <Text style={styles.goToPageButtonText}>Go to Page</Text>
+              </TouchableOpacity>
+            )}
           </View>
           
           {showingSearchResults ? (
@@ -457,11 +459,13 @@ function BigBookBrowserContent() {
         )}
       </Modal>
 
-      <PageNumberInput
-        visible={pageInputVisible}
-        onClose={() => setPageInputVisible(false)}
-        onSubmit={handleSubmitPage}
-      />
+      {Platform.OS !== 'android' && (
+        <PageNumberInput
+          visible={pageInputVisible}
+          onClose={() => setPageInputVisible(false)}
+          onSubmit={handleSubmitPage}
+        />
+      )}
     </View>
   );
 }
