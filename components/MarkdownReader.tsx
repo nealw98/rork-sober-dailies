@@ -1,4 +1,4 @@
-import React, { useRef, useEffect, useState } from 'react';
+import React, { useRef, useEffect, useState, useCallback } from 'react';
 import { 
   StyleSheet, 
   View, 
@@ -106,6 +106,17 @@ const MarkdownReader = ({
   
   // FlatList data for Android
   const [flatListData, setFlatListData] = useState<ExtendedPageItem[]>([]);
+  
+  // Helper function to calculate item layout for FlatList
+  const getItemLayout = useCallback((data: any, index: number) => {
+    // Use an average height estimation for items
+    const AVERAGE_ITEM_HEIGHT = 150; // Adjust based on your content
+    return {
+      length: AVERAGE_ITEM_HEIGHT,
+      offset: AVERAGE_ITEM_HEIGHT * index,
+      index,
+    };
+  }, []);
   const flatListRef = useRef<FlatList>(null);
 
   // Clean content by removing any HTML that might have been added
@@ -274,11 +285,30 @@ const MarkdownReader = ({
             if (targetIndex >= 0) {
               // Scroll to position the match about 1/3 down from the top
               console.log(`📍 Android: Scrolling to index ${targetIndex} in FlatList`);
-              flatListRef.current.scrollToIndex({
-                index: targetIndex,
-                animated: true,
-                viewPosition: 0.33 // Position 1/3 down from the top
-              });
+              try {
+                // Add getItemLayout to help FlatList calculate positions
+                flatListRef.current.scrollToIndex({
+                  index: targetIndex,
+                  animated: true,
+                  viewPosition: 0.33, // Position 1/3 down from the top
+                  // Add error handling callback
+                  // @ts-ignore - onScrollToIndexFailed exists but TypeScript doesn't recognize it
+                  onScrollToIndexFailed: (info: { index: number; averageItemLength: number }) => {
+                    console.log(`🚨 Android: scrollToIndex failed - ${info.index}, ${info.averageItemLength}`);
+                    // Fallback: wait for layout and try again with timeout
+                    setTimeout(() => {
+                      if (flatListRef.current) {
+                        flatListRef.current.scrollToOffset({
+                          offset: info.averageItemLength * targetIndex,
+                          animated: true
+                        });
+                      }
+                    }, 100);
+                  }
+                });
+              } catch (error) {
+                console.log('🚨 Android: Error in scrollToIndex:', error);
+              }
               return;
             }
           }
@@ -302,11 +332,28 @@ const MarkdownReader = ({
         const targetIndex = findPageIndex(sectionId, parseInt(targetPageNumber, 10));
         if (targetIndex >= 0) {
           console.log(`📍 Android: Scrolling to page ${targetPageNumber} at index ${targetIndex}`);
-          flatListRef.current.scrollToIndex({ 
-            index: targetIndex, 
-            animated: true,
-            viewPosition: 0.33 // Position 1/3 down from the top
-          });
+          try {
+            flatListRef.current.scrollToIndex({ 
+              index: targetIndex, 
+              animated: true,
+              viewPosition: 0.33, // Position 1/3 down from the top
+              // @ts-ignore - onScrollToIndexFailed exists but TypeScript doesn't recognize it
+              onScrollToIndexFailed: (info: { index: number; averageItemLength: number }) => {
+                console.log(`🚨 Android: scrollToIndex failed - ${info.index}, ${info.averageItemLength}`);
+                // Fallback: wait for layout and try again with timeout
+                setTimeout(() => {
+                  if (flatListRef.current) {
+                    flatListRef.current.scrollToOffset({
+                      offset: info.averageItemLength * targetIndex,
+                      animated: true
+                    });
+                  }
+                }, 100);
+              }
+            });
+          } catch (error) {
+            console.log('🚨 Android: Error in scrollToIndex:', error);
+          }
           return;
         }
       }
@@ -372,6 +419,11 @@ const MarkdownReader = ({
             contentContainerStyle={styles.contentContainer}
             showsVerticalScrollIndicator={false}
             keyExtractor={(item, index) => `${item.pageNumber}-${index}`}
+            getItemLayout={getItemLayout}
+            initialNumToRender={20}
+            maxToRenderPerBatch={10}
+            windowSize={10}
+            removeClippedSubviews={false}
             renderItem={({ item }) => (
               <View style={styles.pageItem}>
                 {item.isPageMarker ? (
