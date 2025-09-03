@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   StyleSheet,
   View,
@@ -7,7 +7,7 @@ import {
   ScrollView,
   Platform,
 } from 'react-native';
-import { ChevronRight } from 'lucide-react-native';
+import { ChevronRight, ChevronDown } from 'lucide-react-native';
 import Colors from '@/constants/colors';
 import { adjustFontWeight } from '@/constants/fonts';
 import { EnhancedSearchResult } from '@/constants/bigbook';
@@ -20,6 +20,16 @@ interface BigBookSearchResultsProps {
 
 // Android-specific implementation with grouped results by chapter
 const BigBookSearchResults = ({ results, onResultPress, onDone }: BigBookSearchResultsProps) => {
+  // Track expanded chapters
+  const [expandedChapters, setExpandedChapters] = useState<Record<string, boolean>>({});
+  
+  // Toggle chapter expansion
+  const toggleChapter = (chapterId: string) => {
+    setExpandedChapters(prev => ({
+      ...prev,
+      [chapterId]: !prev[chapterId]
+    }));
+  };
   // Group results by chapter
   const groupedResults = useMemo(() => {
     const groups: Record<string, {
@@ -68,46 +78,63 @@ const BigBookSearchResults = ({ results, onResultPress, onDone }: BigBookSearchR
         </TouchableOpacity>
       </View>
       
-      {groupedResults.map((group) => (
-        <View key={group.chapterId} style={styles.chapterGroup}>
-          {/* Chapter header - tappable */}
-          <TouchableOpacity
-            style={styles.chapterHeader}
-            onPress={() => onResultPress(group.results[0])}
-          >
-            <View style={styles.chapterTitleContainer}>
-              <Text style={styles.chapterTitle}>{group.chapterTitle}</Text>
-              <View style={styles.matchCountBadge}>
-                <Text style={styles.matchCountText}>{group.results.length}</Text>
-              </View>
-            </View>
-            <View style={styles.chapterHeaderRight}>
-              <Text style={styles.chapterSubtext}>Opens chapter with highlights</Text>
-              <ChevronRight size={20} color={Colors.light.tint} />
-            </View>
-          </TouchableOpacity>
-          
-          {/* Snippets - non-interactive */}
-          <View style={styles.snippetsContainer}>
-            {group.results.map((result, index) => (
-              <View key={`${result.id}-${index}`} style={styles.snippetItem}>
-                <View style={styles.snippetHeader}>
-                  <Text style={styles.pageNumber}>Page {result.pageNumber}</Text>
-                </View>
-                <View style={styles.excerptContainer}>
-                  <Text style={styles.excerptText}>
-                    {result.matchContext.before && `...${result.matchContext.before}`}
-                    <Text style={styles.matchText}>
-                      {result.matchContext.match}
-                    </Text>
-                    {result.matchContext.after && `${result.matchContext.after}...`}
-                  </Text>
+      {groupedResults.map((group) => {
+        const isExpanded = !!expandedChapters[group.chapterId];
+        return (
+          <View key={group.chapterId} style={styles.chapterGroup}>
+            {/* Chapter header - tappable for expansion */}
+            <TouchableOpacity
+              style={styles.chapterHeader}
+              onPress={() => toggleChapter(group.chapterId)}
+            >
+              <View style={styles.chapterTitleContainer}>
+                <Text style={styles.chapterTitle}>{group.chapterTitle}</Text>
+                <View style={styles.matchCountBadge}>
+                  <Text style={styles.matchCountText}>{group.results.length}</Text>
                 </View>
               </View>
-            ))}
+              <View style={styles.chapterHeaderRight}>
+                {isExpanded ? (
+                  <ChevronDown size={18} color={Colors.light.tint} />
+                ) : (
+                  <ChevronRight size={18} color={Colors.light.tint} />
+                )}
+              </View>
+            </TouchableOpacity>
+            
+            {/* View chapter button - always visible */}
+            <TouchableOpacity 
+              style={styles.viewChapterButton}
+              onPress={() => onResultPress(group.results[0])}
+            >
+              <Text style={styles.viewChapterText}>View chapter with all highlights</Text>
+              <ChevronRight size={16} color={Colors.light.tint} />
+            </TouchableOpacity>
+            
+            {/* Snippets - non-interactive, only shown when expanded */}
+            {isExpanded && (
+              <View style={styles.snippetsContainer}>
+                {group.results.map((result, index) => (
+                  <View key={`${result.id}-${index}`} style={styles.snippetItem}>
+                    <View style={styles.snippetHeader}>
+                      <Text style={styles.pageNumber}>Page {result.pageNumber}</Text>
+                    </View>
+                    <View style={styles.excerptContainer}>
+                      <Text style={styles.excerptText}>
+                        {result.matchContext.before && `...${result.matchContext.before}`}
+                        <Text style={styles.matchText}>
+                          {result.matchContext.match}
+                        </Text>
+                        {result.matchContext.after && `${result.matchContext.after}...`}
+                      </Text>
+                    </View>
+                  </View>
+                ))}
+              </View>
+            )}
           </View>
-        </View>
-      ))}
+        );
+      })
     </ScrollView>
   );
 };
@@ -157,23 +184,22 @@ const styles = StyleSheet.create({
     fontWeight: adjustFontWeight('500'),
   },
   chapterGroup: {
-    marginBottom: 8,
+    marginBottom: 4,
     backgroundColor: Colors.light.background,
-  },
-  chapterHeader: {
-    padding: 16,
-    backgroundColor: Colors.light.cardBackground,
     borderBottomWidth: 1,
     borderBottomColor: Colors.light.divider,
+  },
+  chapterHeader: {
+    padding: 12,
+    backgroundColor: Colors.light.cardBackground,
   },
   chapterTitleContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 4,
   },
   chapterTitle: {
-    fontSize: 18,
-    fontWeight: adjustFontWeight('700'),
+    fontSize: 16,
+    fontWeight: adjustFontWeight('600'),
     color: Colors.light.text,
     flex: 1,
   },
@@ -192,19 +218,29 @@ const styles = StyleSheet.create({
   chapterHeaderRight: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
   },
-  chapterSubtext: {
+  viewChapterButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: Colors.light.background,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.light.divider,
+  },
+  viewChapterText: {
     fontSize: 14,
-    color: Colors.light.muted,
+    color: Colors.light.tint,
     flex: 1,
   },
   snippetsContainer: {
     backgroundColor: Colors.light.background,
+    paddingTop: 4,
   },
   snippetItem: {
-    padding: 12,
-    paddingLeft: 24, // Indent snippets
+    padding: 10,
+    paddingLeft: 20, // Indent snippets
     borderBottomWidth: 1,
     borderBottomColor: Colors.light.divider,
   },
