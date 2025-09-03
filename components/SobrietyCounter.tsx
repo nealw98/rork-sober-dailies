@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { StyleSheet, View, Text, TouchableOpacity, Modal, Platform, TextInput, Alert } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import DateTimePickerModal from 'react-native-modal-datetime-picker';
@@ -6,6 +6,60 @@ import { Calendar, X, Edit3 } from 'lucide-react-native';
 import { useSobriety } from '@/hooks/useSobrietyStore';
 import { formatStoredDateForDisplay, parseLocalDate, formatLocalDate } from '@/lib/dateUtils';
 import Colors from '@/constants/colors';
+import { Picker } from '@react-native-picker/picker';
+
+// Android dropdown (month/day/year) picker
+const AndroidTriplePicker = ({ initialDate, onChange }: { initialDate: Date; onChange: (d: Date) => void; }) => {
+  const now = new Date();
+  const [month, setMonth] = useState<number>(initialDate.getMonth() + 1);
+  const [year, setYear] = useState<number>(initialDate.getFullYear());
+  const [day, setDay] = useState<number>(initialDate.getDate());
+
+  const years: number[] = useMemo(() => {
+    const current = now.getFullYear();
+    const arr: number[] = [];
+    for (let y = current; y >= 1900; y--) arr.push(y);
+    return arr;
+  }, []);
+
+  const daysInMonth = useMemo(() => new Date(year, month, 0).getDate(), [month, year]);
+
+  useEffect(() => {
+    if (day > daysInMonth) setDay(daysInMonth);
+    const d = new Date(year, month - 1, Math.min(day, daysInMonth));
+    onChange(d);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [month, year, day, daysInMonth]);
+
+  return (
+    <View style={styles.pickerRow}>
+      <View style={styles.pickerCol}>
+        <Text style={styles.pickerLabel}>Month</Text>
+        <Picker selectedValue={month} onValueChange={(v) => setMonth(Number(v))} style={styles.picker}>
+          {Array.from({ length: 12 }, (_, i) => i + 1).map(m => (
+            <Picker.Item key={m} label={m.toString().padStart(2, '0')} value={m} />
+          ))}
+        </Picker>
+      </View>
+      <View style={styles.pickerCol}>
+        <Text style={styles.pickerLabel}>Day</Text>
+        <Picker selectedValue={day} onValueChange={(v) => setDay(Number(v))} style={styles.picker}>
+          {Array.from({ length: daysInMonth }, (_, i) => i + 1).map(d => (
+            <Picker.Item key={d} label={d.toString()} value={d} />
+          ))}
+        </Picker>
+      </View>
+      <View style={styles.pickerCol}>
+        <Text style={styles.pickerLabel}>Year</Text>
+        <Picker selectedValue={year} onValueChange={(v) => setYear(Number(v))} style={styles.picker}>
+          {years.map(y => (
+            <Picker.Item key={y} label={y.toString()} value={y} />
+          ))}
+        </Picker>
+      </View>
+    </View>
+  );
+};
 
 const SobrietyCounter = () => {
   const { 
@@ -40,7 +94,7 @@ const SobrietyCounter = () => {
   };
 
   const isValidDate = (dateString: string) => {
-    if (Platform.OS === 'web' && dateString) {
+    if (dateString) {
       if (dateString.length < 10) return true;
       const regex = /^\d{2}\/\d{2}\/\d{4}$/;
       if (!regex.test(dateString)) return false;
@@ -190,7 +244,7 @@ const SobrietyCounter = () => {
           </View>
         </Modal>
         
-        {/* Android spinner-style (wheel) date picker in centered modal */}
+        {/* Android: three pickers (MM/DD/YYYY) */}
         {Platform.OS === 'android' && showDatePicker && (
           <Modal
             visible={true}
@@ -201,14 +255,7 @@ const SobrietyCounter = () => {
             <View style={styles.datePickerOverlay}>
               <View style={styles.datePickerContent}>
                 <Text style={styles.datePickerTitle}>Select Your Sobriety Date</Text>
-                <DateTimePicker
-                  value={selectedDate}
-                  mode="date"
-                  display="calendar"
-                  maximumDate={new Date()}
-                  onChange={(e, d) => d && setSelectedDate(d)}
-                  style={styles.nativeDatePicker}
-                />
+                <AndroidTriplePicker initialDate={selectedDate} onChange={setSelectedDate} />
                 <View style={styles.datePickerButtons}>
                   <TouchableOpacity 
                     style={[styles.datePickerButton, styles.cancelButton]}
@@ -462,14 +509,7 @@ const SobrietyCounter = () => {
             <View style={styles.datePickerOverlay}>
               <View style={styles.datePickerContent}>
                 <Text style={styles.datePickerTitle}>Edit Your Sobriety Date</Text>
-                <DateTimePicker
-                  value={selectedDate}
-                  mode="date"
-                  display="calendar"
-                  maximumDate={new Date()}
-                  onChange={(e, d) => d && setSelectedDate(d)}
-                  style={styles.nativeDatePicker}
-                />
+                <AndroidTriplePicker initialDate={selectedDate} onChange={setSelectedDate} />
                 <View style={styles.datePickerButtons}>
                   <TouchableOpacity 
                     style={[styles.datePickerButton, styles.cancelButton]}
@@ -664,6 +704,25 @@ const styles = StyleSheet.create({
     height: 216,
     marginBottom: 20,
     backgroundColor: 'transparent',
+  },
+  pickerRow: {
+    flexDirection: 'row',
+    width: '100%',
+    justifyContent: 'space-between',
+    gap: 8,
+    marginBottom: 16,
+  },
+  pickerCol: {
+    flex: 1,
+  },
+  pickerLabel: {
+    textAlign: 'center',
+    color: Colors.light.muted,
+    marginBottom: 6,
+  },
+  picker: {
+    backgroundColor: 'rgba(0,0,0,0.04)',
+    borderRadius: 8,
   },
   androidDatePicker: {
     width: 260,
