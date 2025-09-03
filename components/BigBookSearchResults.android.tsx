@@ -134,7 +134,7 @@ const BigBookSearchResults = ({ results, onResultPress, onDone }: BigBookSearchR
             )}
           </View>
         );
-      })
+      })}
     </ScrollView>
   );
 };
