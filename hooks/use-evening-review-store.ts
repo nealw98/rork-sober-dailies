@@ -49,6 +49,12 @@ interface DetailedEveningEntry {
   readAALiterature: boolean;
   talkedToAlcoholic: boolean;
   didSomethingForOthers: boolean;
+  reflectionResentful?: string;
+  reflectionApology?: string;
+  reflectionShared?: string;
+  reflectionKind?: string;
+  reflectionBetter?: string;
+  reflectionOthers?: string;
 }
 
 interface SavedEveningEntry {

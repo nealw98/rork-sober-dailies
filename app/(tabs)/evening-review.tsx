@@ -311,6 +311,9 @@ export default function EveningReview() {
     };
 
     saveDetailedEntry(detailedEntry);
+    
+    // Set showConfirmation to true to show the completed screen with saved message
+    setShowConfirmation(true);
   };
 
   const canSave = () => {
@@ -336,6 +339,7 @@ export default function EveningReview() {
             <Text style={styles.description}>
               Evening reflection helps us stay connected to our recovery
             </Text>
+            <Text style={styles.savedMessage}>Your nightly review has been saved</Text>
           </View>
 
           <View style={styles.card}>
@@ -845,5 +849,12 @@ const styles = StyleSheet.create({
     color: Colors.light.tint,
     marginBottom: 8,
     textAlign: 'center',
+  },
+  savedMessage: {
+    fontSize: 16,
+    color: '#28a745',
+    marginTop: 8,
+    textAlign: 'center',
+    fontWeight: adjustFontWeight('600'),
   },
 });

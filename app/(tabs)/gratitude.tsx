@@ -62,6 +62,13 @@ const styles = StyleSheet.create({
     marginBottom: 8,
     textAlign: 'center',
   },
+  savedMessage: {
+    fontSize: 16,
+    color: '#28a745',
+    marginTop: 8,
+    textAlign: 'center',
+    fontWeight: adjustFontWeight('600'),
+  },
   description: {
     fontSize: 14,
     color: Colors.light.muted,
@@ -486,11 +493,8 @@ export default function GratitudeListScreen() {
     // Save for today's date
     saveDetailedEntry(gratitudeItems);
     
-    Alert.alert(
-      'Gratitude List Saved',
-      'Your gratitude list has been saved successfully.',
-      [{ text: 'OK' }]
-    );
+    // Set showConfirmation to true to show the completed screen with saved message
+    setShowConfirmation(true);
   };
 
   const canSave = () => {
@@ -526,6 +530,7 @@ export default function GratitudeListScreen() {
             <Text style={styles.description}>
               Thank you for taking time to reflect on gratitude
             </Text>
+            <Text style={styles.savedMessage}>Your gratitude list has been saved</Text>
           </View>
 
           {/* Confirmation Message */}
