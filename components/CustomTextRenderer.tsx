@@ -535,38 +535,46 @@ const styles = StyleSheet.create({
   tableContainer: {
     marginVertical: 10,
     borderWidth: 1,
-    borderColor: '#ccc',
+    borderColor: Platform.OS === 'android' ? Colors.light.text : '#ccc',
     borderRadius: 5,
     overflow: 'hidden',
+    ...(Platform.OS === 'android' && {
+      backgroundColor: Colors.light.cardBackground,
+    }),
   },
   tableRow: {
     flexDirection: 'row',
     borderBottomWidth: 1,
-    borderBottomColor: '#eee',
+    borderBottomColor: Platform.OS === 'android' ? Colors.light.divider : '#eee',
   },
   tableHeaderCell: {
     flex: 1,
     paddingVertical: 8,
     paddingHorizontal: 10,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: Platform.OS === 'android' ? Colors.light.background : '#f5f5f5',
     borderRightWidth: 1,
-    borderRightColor: '#eee',
+    borderRightColor: Platform.OS === 'android' ? Colors.light.divider : '#eee',
   },
   tableHeaderText: {
-    fontWeight: 'bold',
+    fontWeight: Platform.OS === 'android' ? '700' : 'bold',
     fontSize: 14,
     textAlign: 'left',
+    color: Colors.light.text, // Ensure text color is visible on Android
   },
   tableCell: {
     flex: 1,
     paddingVertical: 8,
     paddingHorizontal: 10,
     borderRightWidth: 1,
-    borderRightColor: '#eee',
+    borderRightColor: Platform.OS === 'android' ? Colors.light.divider : '#eee',
   },
   tableCellText: {
     fontSize: 14,
     textAlign: 'left',
+    color: Colors.light.text, // Ensure text color is visible on Android
+    ...(Platform.OS === 'android' && {
+      fontWeight: '500', // Make text more visible on Android
+    }),
   },
   tableCellHighlight: {
     backgroundColor: '#FFEB3B',
