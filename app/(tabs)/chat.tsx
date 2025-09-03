@@ -1,4 +1,5 @@
-import { StyleSheet } from "react-native";
+import { StyleSheet, Platform } from "react-native";
+import { Stack } from "expo-router";
 import { LinearGradient } from 'expo-linear-gradient';
 import ChatInterface from "@/components/ChatInterface";
 import { ChatStoreProvider } from "@/hooks/use-chat-store";
@@ -7,18 +8,27 @@ import Colors from "@/constants/colors";
 
 export default function ChatScreen() {
   return (
-    <ScreenContainer style={styles.container} noPadding={true}>
-      <LinearGradient
-        colors={['rgba(74, 144, 226, 0.3)', 'rgba(92, 184, 92, 0.1)']}
-        style={styles.backgroundGradient}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        locations={[0, 1]}
-      />
-      <ChatStoreProvider>
-        <ChatInterface />
-      </ChatStoreProvider>
-    </ScreenContainer>
+    <>
+      {Platform.OS === 'android' && (
+        <Stack.Screen 
+          options={{
+            android_windowSoftInputMode: "adjustResize",
+          }} 
+        />
+      )}
+      <ScreenContainer style={styles.container} noPadding={true}>
+        <LinearGradient
+          colors={['rgba(74, 144, 226, 0.3)', 'rgba(92, 184, 92, 0.1)']}
+          style={styles.backgroundGradient}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          locations={[0, 1]}
+        />
+        <ChatStoreProvider>
+          <ChatInterface />
+        </ChatStoreProvider>
+      </ScreenContainer>
+    </>
   );
 }
 

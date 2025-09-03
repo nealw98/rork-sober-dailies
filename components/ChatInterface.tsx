@@ -196,8 +196,9 @@ export default function ChatInterface() {
   return (
     <KeyboardAvoidingView
       style={styles.container}
-      behavior={Platform.OS === "ios" ? "padding" : undefined}
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
       keyboardVerticalOffset={Platform.OS === "ios" ? 90 : 0}
+      android_windowSoftInputMode="adjustResize"
     >
       <View style={styles.headerContainer}>
         <Text style={styles.headerTitle}>Choose Your AI Sponsor</Text>
@@ -337,7 +338,7 @@ const styles = StyleSheet.create({
   },
   chatContainer: {
     padding: 16,
-    paddingBottom: 20,
+    paddingBottom: Platform.OS === 'android' ? 8 : 20,
   },
   bubbleContainer: {
     marginBottom: 12,
