@@ -252,24 +252,33 @@ function BigBookBrowserContent() {
         const chapterContent = markdownContent[chapterId];
         
         if (chapterContent) {
-          // Calculate the position of the specific match within the chapter
-          // This will be used to scroll to the right position
-          const matchPosition = result.matchContext.before ? 
-            chapterContent.indexOf(result.matchContext.before + result.matchContext.match) : 
-            chapterContent.indexOf(result.matchContext.match);
+          // Find all occurrences of the search term in the chapter
+          const escapedTerm = searchQuery.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+          const regex = new RegExp(`\\b${escapedTerm}\\b`, 'gi');
+          const matches: { index: number, length: number }[] = [];
+          let match;
+          
+          while ((match = regex.exec(chapterContent)) !== null) {
+            matches.push({ index: match.index, length: match[0].length });
+          }
+          
+          console.log(`🔍 Android: Found ${matches.length} matches in chapter`);
+          
+          // Find the first match in the chapter
+          const firstMatchPosition = matches.length > 0 ? matches[0].index : 0;
           
           setCurrentMarkdown({
             content: chapterContent,
-            title: result.title,
+            title: chapterSection.title,
             id: chapterId,
-            initialScrollPosition: 0, // Will be calculated in MarkdownReader
+            initialScrollPosition: 0,
             targetPageNumber: String(result.pageNumber),
-                          searchHighlight: {
-                query: searchQuery,
-                position: matchPosition,
-                length: searchQuery.length,
-                matchContext: result.matchContext
-              } as ExtendedSearchHighlight
+            searchHighlight: {
+              query: searchQuery,
+              position: firstMatchPosition,
+              length: searchQuery.length,
+              matchContext: result.matchContext
+            } as ExtendedSearchHighlight
           });
           setMarkdownReaderVisible(true);
         } else {
