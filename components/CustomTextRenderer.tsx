@@ -484,12 +484,13 @@ const styles = StyleSheet.create({
     }),
   },
   headerText: {
-    fontSize: 18,
-    lineHeight: 28,
+    fontSize: 28,
+    lineHeight: 36,
     color: Colors.light.text,
     fontWeight: Platform.OS === 'android' ? '700' : 'bold',
-    marginVertical: 8,
-    marginTop: 16,
+    marginVertical: 12,
+    marginTop: 20,
+    textAlign: 'center',
   },
   highlight: {
     backgroundColor: '#FFEB3B', // Bright yellow background
