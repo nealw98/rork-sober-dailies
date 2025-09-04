@@ -29,7 +29,8 @@
         "resourceClass": "medium"
       },
       "android": {
-        "resourceClass": "medium"
+        "resourceClass": "medium",
+        "buildType": "app-bundle"
       }
     }
   },
