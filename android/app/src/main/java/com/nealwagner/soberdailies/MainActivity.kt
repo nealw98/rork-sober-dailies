@@ -1,4 +1,4 @@
-package com.recoverytools.aasoberdailies
+package com.nealwagner.soberdailies
 
 import android.os.Build
 import android.os.Bundle

@@ -1,4 +1,4 @@
-package com.recoverytools.aasoberdailies
+package com.nealwagner.soberdailies
 
 import android.app.Application
 import com.facebook.react.PackageList
