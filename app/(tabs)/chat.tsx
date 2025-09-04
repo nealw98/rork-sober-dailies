@@ -12,7 +12,7 @@ export default function ChatScreen() {
       {Platform.OS === 'android' && (
         <Stack.Screen 
           options={{
-            android_windowSoftInputMode: "adjustResize",
+            android_windowSoftInputMode: "adjustPan",
           }} 
         />
       )}
