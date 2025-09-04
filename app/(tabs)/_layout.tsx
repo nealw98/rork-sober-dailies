@@ -59,6 +59,7 @@ export default function TabLayout() {
       screenOptions={{
         tabBarActiveTintColor: Colors.light.tint,
         headerShown: true,
+        tabBarHideOnKeyboard: Platform.OS === 'android' ? true : undefined,
         tabBarStyle: {
           backgroundColor: "#f8f9fa",
           height: Platform.OS === 'android' ? 75 : 88,
@@ -112,6 +113,8 @@ export default function TabLayout() {
           title: "Sponsor",
           headerTitle: '',
           headerLeft: () => <BackButton />,
+          // Android-only: hide tab bar when keyboard is open on the chat screen
+          tabBarHideOnKeyboard: Platform.OS === 'android' ? true : undefined,
           tabBarIcon: ({ color }) => <MessageCircle color={color} size={22} style={styles.tabIcon} />,
         }}
       />
