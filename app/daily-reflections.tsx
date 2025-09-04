@@ -8,7 +8,8 @@ export default function DailyReflectionsPage() {
   return (
     <>
       <Stack.Screen options={{
-        headerTitle: Platform.OS === 'android' ? '' : undefined
+        // Restore title on Android for Daily Reflections
+        headerTitle: 'Daily Reflections'
       }} />
       <ScreenContainer noPadding>
         <DailyReflection />

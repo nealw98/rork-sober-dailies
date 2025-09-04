@@ -12,9 +12,8 @@ export default function ChatScreen() {
       {Platform.OS === 'android' && (
         <Stack.Screen 
           options={{
-            // Use adjustResize so the input stays visible with KeyboardAvoidingView,
-            // while tabBarHideOnKeyboard hides the tab bar.
-            android_windowSoftInputMode: "adjustResize",
+            // Let the system pan the window so input remains visible
+            android_windowSoftInputMode: "adjustPan",
           }} 
         />
       )}

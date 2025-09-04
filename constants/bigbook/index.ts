@@ -298,13 +298,13 @@ export const searchBigBookContentEnhanced = (
       const excerptBefore = content.slice(contextStart, originalMatchIndex);
       const excerptAfter = content.slice(originalMatchIndex + matchText.length, contextEnd);
       
-      // Clean up the excerpt (remove page markers for display)
+      // Revert: remove page markers in excerpt (display only)
       const excerpt = fullContext
         .replace(/\*— Page [^—]+ —\*/g, '')
         .replace(/\n{2,}/g, ' ')
         .trim();
       
-      // Clean up the before and after context to remove headers and page markers
+      // Revert: remove page markers from before/after too (display only)
       const cleanBefore = excerptBefore
         .replace(/\*— Page [^—]+ —\*/g, '')
         .replace(/^#{1,6}\s*[^\n]*$/gm, '') // Remove markdown headers

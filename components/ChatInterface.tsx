@@ -196,9 +196,8 @@ export default function ChatInterface() {
   return (
     <KeyboardAvoidingView
       style={styles.container}
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
+      behavior={Platform.OS === "ios" ? "padding" : undefined}
       keyboardVerticalOffset={Platform.OS === "ios" ? 90 : 0}
-      android_windowSoftInputMode={Platform.OS === "android" ? "adjustPan" : "adjustResize"}
     >
       <View style={styles.headerContainer}>
         <Text style={styles.headerTitle}>Choose Your AI Sponsor</Text>
