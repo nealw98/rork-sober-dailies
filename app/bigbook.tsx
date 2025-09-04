@@ -13,7 +13,8 @@ export default function BigBookScreen() {
         headerBackTitleStyle: {
           fontSize: 14
         },
-        headerTitle: Platform.OS === 'android' ? '' : undefined
+        // Hide the title on all platforms (iOS per request; Android kept hidden)
+        headerTitle: ''
       }} />
       <ScreenContainer style={styles.container} noPadding>
         <BigBookBrowser />

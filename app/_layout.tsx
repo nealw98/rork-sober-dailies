@@ -103,12 +103,7 @@ function RootLayoutNav() {
           presentation: 'modal'
         }} 
       />
-      <Stack.Screen 
-        name="daily-reflections" 
-        options={{ 
-          headerTitle: 'Daily Reflections'
-        }} 
-      />
+      
     </Stack>
   );
 }

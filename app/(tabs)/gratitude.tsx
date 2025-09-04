@@ -514,7 +514,7 @@ export default function GratitudeListScreen() {
   if (showConfirmation || isCompleted) {
     return (
       <ScreenContainer style={styles.container}>
-        <Stack.Screen options={{ title: 'Daily Gratitude' }} />
+        <Stack.Screen options={{ headerTitle: '' }} />
         <LinearGradient
           colors={[Colors.light.chatBubbleUser, Colors.light.chatBubbleBot]}
           start={{ x: 0, y: 0 }}
@@ -527,7 +527,6 @@ export default function GratitudeListScreen() {
           <View style={styles.header}>
             <Text style={styles.title}>Gratitude Complete</Text>
             <Text style={styles.subtitle}>{formatDateDisplay(today)}</Text>
-            <Text style={styles.savedMessage}>Your gratitude list has been saved</Text>
           </View>
 
           {/* Confirmation Message */}
@@ -592,7 +591,7 @@ export default function GratitudeListScreen() {
 
   return (
     <ScreenContainer style={styles.container}>
-      <Stack.Screen options={{ title: 'Daily Gratitude' }} />
+      <Stack.Screen options={{ headerTitle: '' }} />
       
       <LinearGradient
         colors={[Colors.light.chatBubbleUser, Colors.light.chatBubbleBot]}

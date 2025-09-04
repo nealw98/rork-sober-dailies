@@ -336,7 +336,6 @@ export default function EveningReview() {
           <View style={styles.header}>
             <Text style={styles.title}>Review Complete</Text>
             <Text style={styles.subtitle}>{formatDateDisplay(today)}</Text>
-            <Text style={styles.savedMessage}>Your nightly review has been saved</Text>
           </View>
 
           <View style={styles.card}>
@@ -379,15 +378,21 @@ export default function EveningReview() {
           </Text>
 
           <View style={styles.buttonContainer}>
-            <TouchableOpacity style={styles.shareButtonSolid} onPress={handleShare}>
-              <ShareIcon size={20} color="white" />
-              <Text style={styles.shareButtonSolidText}>Share</Text>
+            <TouchableOpacity style={styles.primaryButton} onPress={handleEditReview}>
+              <Text style={styles.primaryButtonText}>Edit Review</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.outlineButton} onPress={handleEditReview}>
-              <Text style={styles.outlineButtonText}>Edit Review</Text>
+            <TouchableOpacity 
+              style={styles.primaryButton}
+              onPress={() => setShowSavedReviews(true)}
+            >
+              <Text style={styles.primaryButtonText}>Saved Reviews</Text>
             </TouchableOpacity>
           </View>
         </ScrollView>
+        <SavedEveningReviews 
+          visible={showSavedReviews}
+          onClose={() => setShowSavedReviews(false)}
+        />
       </ScreenContainer>
     );
   }
@@ -478,15 +483,20 @@ export default function EveningReview() {
               <Save size={20} color="white" />
               <Text style={styles.saveButtonText}>Save</Text>
             </TouchableOpacity>
+            <TouchableOpacity 
+              style={[
+                styles.shareButton,
+                !canSave() && styles.shareButtonDisabled
+              ]}
+              onPress={handleShare}
+              disabled={!canSave()}
+            >
+              <ShareIcon size={20} color="white" />
+              <Text style={styles.shareButtonText}>Share</Text>
+            </TouchableOpacity>
           </View>
           
-          <TouchableOpacity 
-            style={styles.secondaryButton} 
-            onPress={() => setShowSavedReviews(true)}
-          >
-            <Archive size={20} color={Colors.light.tint} />
-            <Text style={styles.secondaryButtonText}>View Saved Reviews</Text>
-          </TouchableOpacity>
+          
 
           <Text style={styles.privacyText}>
             Your responses are saved only on your device. Nothing is uploaded or shared.
@@ -718,6 +728,10 @@ const styles = StyleSheet.create({
     gap: 8,
     height: 48,
   },
+  shareButtonDisabled: {
+    backgroundColor: Colors.light.muted,
+    opacity: 0.6,
+  },
   shareButtonText: {
     color: 'white',
     fontSize: 16,
@@ -808,8 +822,10 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   buttonContainer: {
+    flexDirection: 'row',
     gap: 12,
     marginBottom: 16,
+    marginHorizontal: 32,
   },
   outlineButton: {
     borderWidth: 1,
@@ -822,6 +838,21 @@ const styles = StyleSheet.create({
   },
   outlineButtonText: {
     color: Colors.light.tint,
+    fontSize: 16,
+    fontWeight: adjustFontWeight('500'),
+  },
+  primaryButton: {
+    flex: 1,
+    backgroundColor: Colors.light.tint,
+    paddingVertical: 12,
+    borderRadius: 25,
+    alignItems: 'center',
+    marginBottom: 16,
+    height: 48,
+    justifyContent: 'center',
+  },
+  primaryButtonText: {
+    color: 'white',
     fontSize: 16,
     fontWeight: adjustFontWeight('500'),
   },

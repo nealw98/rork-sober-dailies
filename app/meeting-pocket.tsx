@@ -13,7 +13,8 @@ export default function MeetingPocketScreen() {
         headerBackTitleStyle: {
           fontSize: 14
         },
-        headerTitle: Platform.OS === 'android' ? '' : undefined
+        // Hide the title on all platforms (iOS per request; Android kept hidden)
+        headerTitle: ''
       }} />
       <ScreenContainer noPadding style={styles.container}>
         <MeetingPocketBrowser />
