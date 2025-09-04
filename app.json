@@ -23,7 +23,7 @@
       "entitlements": {}
     },
     "android": {
-      "package": "com.nealwagner.soberdailies",
+      "package": "com.recoverytools.aasoberdailies",
       "versionCode": 35,
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon-foreground.png",

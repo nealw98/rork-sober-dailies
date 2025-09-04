@@ -87,9 +87,9 @@ android {
     buildToolsVersion rootProject.ext.buildToolsVersion
     compileSdk rootProject.ext.compileSdkVersion
 
-    namespace 'com.nealwagner.soberdailies'
+    namespace 'com.recoverytools.aasoberdailies'
     defaultConfig {
-        applicationId 'com.nealwagner.soberdailies'
+        applicationId 'com.recoverytools.aasoberdailies'
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 35
@@ -123,12 +123,12 @@ android {
     productFlavors {
         preview {
             dimension "default"
-            applicationId 'com.nealwagner.soberdailies.preview'
+            applicationId 'com.recoverytools.aasoberdailies.preview'
             resValue "string", "app_name", "Sober Dailies Preview"
         }
         production {
             dimension "default"
-            applicationId 'com.nealwagner.soberdailies'
+            applicationId 'com.recoverytools.aasoberdailies'
         }
     }
     packagingOptions {
