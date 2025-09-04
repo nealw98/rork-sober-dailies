@@ -87,7 +87,8 @@ android {
     buildToolsVersion rootProject.ext.buildToolsVersion
     compileSdk rootProject.ext.compileSdkVersion
 
-    namespace 'com.recoverytools.aasoberdailies'
+    // Keep namespace matching Kotlin package to avoid refactor; applicationId controls Play package
+    namespace 'com.nealwagner.soberdailies'
     defaultConfig {
         applicationId 'com.recoverytools.aasoberdailies'
         minSdkVersion rootProject.ext.minSdkVersion
