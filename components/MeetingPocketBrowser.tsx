@@ -103,7 +103,7 @@ function MeetingPocketBrowserContent() {
         <View style={styles.mainContent}>
           <View style={styles.header}>
             {Platform.OS !== 'android' && (
-              <Text style={styles.title}>AA Meeting in a Pocket</Text>
+              <Text style={styles.title}>AA Meeting in Your Pocket</Text>
             )}
             <Text style={styles.subtitle}>Quick access to the core AA readings used in meetings.</Text>
           </View>

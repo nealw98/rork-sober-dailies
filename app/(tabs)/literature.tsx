@@ -28,7 +28,7 @@ const literatureOptions: LiteratureOption[] = [
   },
   {
     id: "meeting-pocket",
-    title: "AA Meeting in a Pocket",
+    title: "AA Meeting in Your Pocket",
     description: "Quick access to the core AA readings used in meetings.",
     route: "/meeting-pocket"
   }
@@ -174,5 +174,5 @@ const styles = StyleSheet.create({
     color: Colors.light.muted,
     lineHeight: 20,
   },
-
+  
 });
