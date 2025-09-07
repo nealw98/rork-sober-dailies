@@ -9,14 +9,14 @@
     "userInterfaceStyle": "automatic",
     "newArchEnabled": false,
     "splash": {
-      "image": "./assets/images/splash-icon.png",
+      "image": "./assets/images/adaptive-icon-foreground.png",
       "resizeMode": "contain",
       "backgroundColor": "#061D4A"
     },
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.nealwagner.soberdailies",
-      "buildNumber": "19",
+      "buildNumber": "15",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
       },
@@ -57,14 +57,12 @@
         "expo-splash-screen",
         {
           "ios": {
-            "image": "./assets/images/splash-icon.png",
+            "image": "./assets/images/adaptive-icon-foreground.png",
             "resizeMode": "contain",
-            "backgroundColor": "#061D4A",
-            "imageWidth": 480
+            "backgroundColor": "#061D4A"
           },
           "android": {
-            "image": "./assets/images/splash-icon.png",
-            "resizeMode": "contain",
+            "image": "./assets/images/splash-android-icon.png",
             "backgroundColor": "#061D4A"
           }
         }
