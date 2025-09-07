@@ -24,8 +24,6 @@
                         <constraints>
                             <constraint firstItem="EXPO-SplashScreen" firstAttribute="centerX" secondItem="EXPO-ContainerView" secondAttribute="centerX" id="cad2ab56f97c5429bf29decf850647a4216861d4"/>
                             <constraint firstItem="EXPO-SplashScreen" firstAttribute="centerY" secondItem="EXPO-ContainerView" secondAttribute="centerY" id="1a145271b085b6ce89b1405a310f5b1bb7656595"/>
-                            <constraint firstItem="EXPO-SplashScreen" firstAttribute="width" constant="300" id="width-constraint"/>
-                            <constraint firstItem="EXPO-SplashScreen" firstAttribute="height" constant="300" id="height-constraint"/>
                         </constraints>
                         <color key="backgroundColor" name="SplashScreenBackground"/>
                     </view>
@@ -38,7 +36,7 @@
     <resources>
         <image name="SplashScreenLogo" width="300" height="300"/>
         <namedColor name="SplashScreenBackground">
-            <color alpha="1.000" blue="0.2901960784" green="0.1137254902" red="0.0235294118" colorSpace="custom" customColorSpace="sRGB"/>
+            <color alpha="1.000" blue="0.290196078431373" green="0.113725490196078" red="0.0235294117647059" customColorSpace="sRGB" colorSpace="custom"/>
         </namedColor>
     </resources>
 </document>
