@@ -300,6 +300,21 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: adjustFontWeight('500'),
   },
+  primaryButton: {
+    flex: 1,
+    backgroundColor: Colors.light.tint,
+    paddingVertical: 12,
+    borderRadius: 25,
+    alignItems: 'center',
+    marginBottom: 16,
+    height: 48,
+    justifyContent: 'center',
+  },
+  primaryButtonText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: adjustFontWeight('500'),
+  },
   privacyText: {
     fontSize: 12,
     color: Colors.light.muted,
@@ -307,8 +322,10 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
   buttonContainer: {
+    flexDirection: 'row',
     gap: 12,
     marginBottom: 16,
+    marginHorizontal: 32,
   },
 });
 
@@ -576,15 +593,21 @@ export default function GratitudeListScreen() {
           </Text>
 
           <View style={styles.buttonContainer}>
-            <TouchableOpacity style={styles.shareButtonSolid} onPress={handleShare}>
-              <ShareIcon size={20} color="white" />
-              <Text style={styles.shareButtonSolidText}>Share</Text>
+            <TouchableOpacity style={styles.primaryButton} onPress={handleEditGratitude}>
+              <Text style={styles.primaryButtonText}>Edit Gratitude List</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.outlineButton} onPress={handleEditGratitude}>
-              <Text style={styles.outlineButtonText}>Edit Gratitude List</Text>
+            <TouchableOpacity 
+              style={styles.primaryButton}
+              onPress={() => setShowSavedEntries(true)}
+            >
+              <Text style={styles.primaryButtonText}>View Saved Lists</Text>
             </TouchableOpacity>
           </View>
         </ScrollView>
+        <SavedGratitudeEntries 
+          visible={showSavedEntries}
+          onClose={() => setShowSavedEntries(false)}
+        />
       </ScreenContainer>
     );
   }
@@ -680,16 +703,19 @@ export default function GratitudeListScreen() {
               <Save size={20} color="white" />
               <Text style={styles.saveButtonText}>Save</Text>
             </TouchableOpacity>
+            <TouchableOpacity 
+              style={[
+                styles.shareButton,
+                !canSave() && styles.shareButtonDisabled
+              ]}
+              onPress={handleShare}
+              disabled={!canSave()}
+            >
+              <ShareIcon size={20} color="white" />
+              <Text style={styles.shareButtonText}>Share</Text>
+            </TouchableOpacity>
           </View>
           
-          {/* View Saved Lists Button */}
-          <TouchableOpacity 
-            style={styles.secondaryButton} 
-            onPress={() => setShowSavedEntries(true)}
-          >
-            <Archive size={20} color={Colors.light.tint} />
-            <Text style={styles.secondaryButtonText}>View Saved Lists</Text>
-          </TouchableOpacity>
 
           {/* Privacy Notice */}
           <Text style={styles.privacyText}>
