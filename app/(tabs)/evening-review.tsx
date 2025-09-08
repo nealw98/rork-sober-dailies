@@ -853,7 +853,7 @@ const styles = StyleSheet.create({
   },
   primaryButtonText: {
     color: 'white',
-    fontSize: 14,
+    fontSize: 12,
     fontWeight: adjustFontWeight('500'),
   },
   shareButtonSolid: {
