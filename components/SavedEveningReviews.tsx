@@ -11,6 +11,7 @@ import {
   Share
 } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
+import { LinearGradient } from 'expo-linear-gradient';
 import { Calendar, Share as ShareIcon, Trash2, X, Check } from 'lucide-react-native';
 import { useEveningReviewStore } from '@/hooks/use-evening-review-store';
 import Colors from '@/constants/colors';
@@ -248,6 +249,12 @@ export default function SavedEveningReviews({ visible, onClose }: SavedEveningRe
 
       return (
         <View style={styles.entryDetailContainer}>
+          <LinearGradient
+            colors={[Colors.light.chatBubbleUser, Colors.light.chatBubbleBot]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.gradient}
+          />
           <View style={styles.entryDetailHeader}>
             <TouchableOpacity
               style={styles.backButton}
@@ -466,6 +473,12 @@ export default function SavedEveningReviews({ visible, onClose }: SavedEveningRe
       }}
     >
       <View style={styles.container}>
+        <LinearGradient
+          colors={[Colors.light.chatBubbleUser, Colors.light.chatBubbleBot]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.gradient}
+        />
         {selectedEntry ? (
           renderEntryDetail()
         ) : (
@@ -550,6 +563,13 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: Colors.light.background,
+  },
+  gradient: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    top: 0,
+    bottom: 0,
   },
   header: {
     flexDirection: 'row',
