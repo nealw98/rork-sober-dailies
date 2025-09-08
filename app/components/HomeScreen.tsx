@@ -124,14 +124,12 @@ const HomeScreen = () => {
         </TouchableOpacity>
         </View>
 
-        {/* About & Support Section */}
-        <View style={styles.sectionContainerEvening}>
-        <TouchableOpacity style={styles.card} onPress={() => router.push('/about-support')}>
+        {/* About & Support Card */}
+        <TouchableOpacity style={styles.aboutSupportCard} onPress={() => router.push('/about-support')}>
           <Text style={styles.cardTitle}>About & Support</Text>
           <Text style={styles.cardDescription}>Learn more about the app — and if you like it, support me.</Text>
           <Text style={styles.cardButton}>Buy me a coffee</Text>
         </TouchableOpacity>
-        </View>
       </ScrollView>
     </LinearGradient>
   );
@@ -199,6 +197,18 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: 'white',
     textAlign: 'center',
+  },
+  aboutSupportCard: {
+    backgroundColor: 'white',
+    borderRadius: 12,
+    padding: 20,
+    marginHorizontal: 20,
+    marginBottom: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
   reflectionButtonSubtitle: {
     fontSize: 16,
