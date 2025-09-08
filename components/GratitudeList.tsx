@@ -105,13 +105,13 @@ export default function GratitudeList() {
 
           <View style={styles.buttonContainer}>
             <TouchableOpacity style={styles.primaryButton} onPress={handleAddMore}>
-              <Text style={styles.primaryButtonText}>Edit Review</Text>
+              <Text style={styles.primaryButtonText}>Edit Gratitude List</Text>
             </TouchableOpacity>
             <TouchableOpacity 
               style={styles.primaryButton}
               onPress={() => setShowSavedGratitude(true)}
             >
-              <Text style={styles.primaryButtonText}>Saved Reviews</Text>
+              <Text style={styles.primaryButtonText}>View Saved Lists</Text>
             </TouchableOpacity>
           </View>
         </ScrollView>
@@ -500,7 +500,7 @@ const styles = StyleSheet.create({
   },
   primaryButtonText: {
     color: 'white',
-    fontSize: 12,
+    fontSize: 14,
     fontWeight: adjustFontWeight('500'),
   },
 });
