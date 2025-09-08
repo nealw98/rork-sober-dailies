@@ -35,7 +35,7 @@ export default function App() {
         <Text style={styles.sectionTitle}>Throughout the Day</Text>
         <TouchableOpacity style={styles.card} onPress={() => handleButtonPress('AI Sponsor')}>
           <Text style={styles.cardTitle}>AI Sponsor</Text>
-          <Text style={styles.cardDescription}>Talk with an AI sponsor voice when you need support.</Text>
+          <Text style={styles.cardDescription}>Talk with an AI sponsor when you need support.</Text>
         </TouchableOpacity>
 
         <TouchableOpacity style={styles.card} onPress={() => handleButtonPress('Literature')}>
