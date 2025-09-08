@@ -123,6 +123,17 @@ const HomeScreen = () => {
           <Text style={styles.cardButton}>Go to Evening Prayer</Text>
         </TouchableOpacity>
         </View>
+
+        {/* About & Support Button */}
+        <TouchableOpacity 
+          style={styles.aboutButton}
+          onPress={() => router.push('/about-support')}
+        >
+          <Text style={styles.aboutButtonTitle}>About & Support</Text>
+          <Text style={styles.aboutButtonSubtitle}>
+            Learn more about the app — and if you like it, buy me a coffee.
+          </Text>
+        </TouchableOpacity>
       </ScrollView>
     </LinearGradient>
   );
@@ -184,6 +195,32 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.15,
     shadowRadius: 6,
+  },
+  aboutButton: {
+    backgroundColor: '#8DBBC9',
+    borderRadius: 25,
+    padding: 20,
+    marginHorizontal: 16,
+    marginBottom: 20,
+    alignItems: 'center',
+    elevation: 3,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 6,
+  },
+  aboutButtonTitle: {
+    fontSize: 20,
+    fontWeight: '600',
+    color: Colors.light.text,
+    textAlign: 'center',
+    marginBottom: 4,
+  },
+  aboutButtonSubtitle: {
+    fontSize: 14,
+    color: Colors.light.muted,
+    textAlign: 'center',
+    lineHeight: 20,
   },
   reflectionButtonTitle: {
     fontSize: 24,
