@@ -312,7 +312,7 @@ const styles = StyleSheet.create({
   },
   primaryButtonText: {
     color: 'white',
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: adjustFontWeight('500'),
   },
   privacyText: {
