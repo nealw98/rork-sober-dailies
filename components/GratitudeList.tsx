@@ -13,6 +13,7 @@ import ScreenContainer from "@/components/ScreenContainer";
 import { LinearGradient } from 'expo-linear-gradient';
 import { Heart, Plus, Check } from 'lucide-react-native';
 import { useGratitudeStore } from '@/hooks/use-gratitude-store';
+import SavedGratitudeEntries from '@/components/SavedGratitudeEntries';
 import Colors from '@/constants/colors';
 import { adjustFontWeight } from '@/constants/fonts';
 
@@ -27,6 +28,7 @@ export default function GratitudeList() {
 
   const [gratitudeItems, setGratitudeItems] = useState<string[]>([]);
   const [inputValue, setInputValue] = useState('');
+  const [showSavedGratitude, setShowSavedGratitude] = useState(false);
 
 
   const isCompleted = isCompletedToday();
@@ -97,14 +99,26 @@ export default function GratitudeList() {
             ))}
           </View>
 
-          <TouchableOpacity style={styles.addMoreButton} onPress={handleAddMore}>
-            <Text style={styles.addMoreButtonText}>Add More Items</Text>
-          </TouchableOpacity>
-
           <Text style={styles.privacyText}>
             Your gratitude list is stored locally on your device for privacy.
           </Text>
+
+          <View style={styles.buttonContainer}>
+            <TouchableOpacity style={styles.primaryButton} onPress={handleAddMore}>
+              <Text style={styles.primaryButtonText}>Edit Review</Text>
+            </TouchableOpacity>
+            <TouchableOpacity 
+              style={styles.primaryButton}
+              onPress={() => setShowSavedGratitude(true)}
+            >
+              <Text style={styles.primaryButtonText}>Saved Reviews</Text>
+            </TouchableOpacity>
+          </View>
         </ScrollView>
+        <SavedGratitudeEntries 
+          visible={showSavedGratitude}
+          onClose={() => setShowSavedGratitude(false)}
+        />
       </ScreenContainer>
     );
   }
@@ -457,8 +471,10 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
   buttonContainer: {
+    flexDirection: 'row',
     gap: 12,
     marginBottom: 16,
+    marginHorizontal: 32,
   },
   unsubmitButton: {
     backgroundColor: '#dc3545',
@@ -470,6 +486,21 @@ const styles = StyleSheet.create({
   unsubmitButtonText: {
     color: 'white',
     fontSize: 16,
+    fontWeight: adjustFontWeight('500'),
+  },
+  primaryButton: {
+    flex: 1,
+    backgroundColor: Colors.light.tint,
+    paddingVertical: 12,
+    borderRadius: 25,
+    alignItems: 'center',
+    marginBottom: 16,
+    height: 48,
+    justifyContent: 'center',
+  },
+  primaryButtonText: {
+    color: 'white',
+    fontSize: 14,
     fontWeight: adjustFontWeight('500'),
   },
 });
