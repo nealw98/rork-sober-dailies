@@ -128,7 +128,7 @@ const HomeScreen = () => {
         <View style={styles.sectionContainerTransparent}>
         <TouchableOpacity style={styles.card} onPress={() => router.push('/about-support')}>
           <Text style={styles.cardTitle}>About & Support</Text>
-          <Text style={styles.cardDescription}>Learn more about the app — and if you like it, support me.</Text>
+          <Text style={styles.cardDescription}>Learn about the app — and support me.</Text>
           <Text style={styles.cardButton}>Buy me a coffee</Text>
         </TouchableOpacity>
         </View>
