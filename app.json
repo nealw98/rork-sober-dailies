@@ -86,12 +86,7 @@
         }
       ],
       "expo-web-browser",
-      [
-        "react-native-purchases",
-        {
-          "androidBillingClientVersion": "6"
-        }
-      ],
+      
       [
         "expo-sqlite",
         {
