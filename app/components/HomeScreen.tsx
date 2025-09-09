@@ -1,5 +1,5 @@
 import React from 'react';
-import { StyleSheet, View, Text, ScrollView, TouchableOpacity } from 'react-native';
+import { StyleSheet, View, Text, ScrollView, TouchableOpacity, Linking } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 
 import { useRouter } from 'expo-router';
@@ -124,13 +124,14 @@ const HomeScreen = () => {
         </TouchableOpacity>
         </View>
 
-        {/* About & Support Section */}
-        <View style={styles.sectionContainerTransparent}>
-        <TouchableOpacity style={styles.card} onPress={() => router.push('/about-support')}>
-          <Text style={styles.cardTitle}>About & Support</Text>
-          <Text style={styles.cardDescription}>Learn about the app — and support me.</Text>
-          <Text style={styles.cardButton}>Buy me a coffee</Text>
-        </TouchableOpacity>
+        {/* Footer: Support the App (flat, full-width) */}
+        <View style={styles.footerContainer}>
+          <Text style={styles.footerTitle}>Support the App</Text>
+          <Text style={styles.footerSubtitle}>Your support helps keep it free for everyone.</Text>
+          <TouchableOpacity onPress={() => router.push('/about-support')}>
+            <Text style={styles.footerCta}>Make a contribution</Text>
+          </TouchableOpacity>
+          <View style={styles.footerBottomSpacer} />
         </View>
       </ScrollView>
     </LinearGradient>
@@ -292,6 +293,52 @@ const styles = StyleSheet.create({
     paddingVertical: 20,
     borderRadius: 16,
     marginHorizontal: 16,
+  },
+  footerContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingTop: 20,
+    paddingBottom: 0,
+    marginHorizontal: -16,
+    marginTop: 24,
+    paddingHorizontal: 16,
+    backgroundColor: '#D1D5DB',
+  },
+  footerTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: Colors.light.text,
+    marginBottom: 6,
+  },
+  footerSubtitle: {
+    fontSize: 14,
+    color: Colors.light.muted,
+    marginBottom: 10,
+  },
+  footerCta: {
+    fontSize: 15,
+    color: Colors.light.tint,
+    fontWeight: '700',
+  },
+  legalRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingBottom: 0,
+    paddingTop: 8,
+  },
+  legalLink: {
+    fontSize: 12,
+    color: '#98a2b3',
+    textDecorationLine: 'underline',
+  },
+  legalSeparator: {
+    marginHorizontal: 12,
+    color: '#98a2b3',
+    fontSize: 12,
+  },
+  footerBottomSpacer: {
+    height: 24,
   },
 });
 
