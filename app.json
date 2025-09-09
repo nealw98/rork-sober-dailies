@@ -84,7 +84,7 @@
       ],
       "expo-web-browser",
       [
-        "@revenuecat/react-native-purchases-expo-plugin",
+        "react-native-purchases",
         {
           "androidBillingClientVersion": "6"
         }
