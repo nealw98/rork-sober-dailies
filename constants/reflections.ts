@@ -2,11 +2,14 @@ import { Reflection } from "@/types";
 import { supabase } from "@/lib/supabase";
 
 // Function to convert date to day of year (1-366)
+// Use UTC to eliminate DST/timezone off-by-one issues (e.g., midnight shifts)
 function getDayOfYear(date: Date): number {
-  const start = new Date(date.getFullYear(), 0, 0);
-  const diff = date.getTime() - start.getTime();
+  const startUtc = new Date(Date.UTC(date.getFullYear(), 0, 1));
+  const dateUtc = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()))
+    .getTime();
+  const diff = dateUtc - startUtc.getTime();
   const oneDay = 1000 * 60 * 60 * 24;
-  return Math.floor(diff / oneDay);
+  return Math.floor(diff / oneDay) + 1; // Jan 1 => 1
 }
 
 // Function to get reflection for a specific date from Supabase

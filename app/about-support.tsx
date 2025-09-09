@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   View,
   Text,
@@ -18,24 +18,41 @@ import { Stack } from 'expo-router';
 import { adjustFontWeight } from '@/constants/fonts';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Colors from '@/constants/colors';
-import { Star, Share2, Mail } from 'lucide-react-native';
+import { Star, Share2 } from 'lucide-react-native';
+import Purchases from 'react-native-purchases';
 
 const AboutSupportScreen = () => {
   const [isProcessing, setIsProcessing] = useState(false);
   const insets = useSafeAreaInsets();
 
-  const handleCoffeeSupportPress = (amount: number, description: string) => {
-    setIsProcessing(true);
-    
-    // Simulate purchase processing
-    setTimeout(() => {
+  const productIds = useMemo(() => ({
+    1.99: Platform.select({ ios: 'Tier1', android: 'Tier1' }),
+    4.99: Platform.select({ ios: 'Tier2', android: 'Tier2' }),
+    8.99: Platform.select({ ios: 'Tier3', android: 'Tier3' }),
+  }), []);
+
+  const handleCoffeeSupportPress = async (amount: number, description: string) => {
+    const productId = (productIds as any)[amount];
+    if (!productId) {
+      Alert.alert('Unavailable', 'This product is not available.');
+      return;
+    }
+    try {
+      setIsProcessing(true);
+      const products = await Purchases.getProducts([productId], 'consumable');
+      const product = products.find(p => p.identifier === productId);
+      if (!product) {
+        throw new Error('Product not found');
+      }
+      await Purchases.purchaseProduct(product.identifier);
+      Alert.alert('Thank you!', 'Your contribution helps keep Sober Dailies free for everyone.');
+    } catch (e: any) {
+      // Ignore cancellations
+      if (e?.userCancelled) return;
+      Alert.alert('Purchase failed', 'Something went wrong processing your contribution.');
+    } finally {
       setIsProcessing(false);
-      Alert.alert(
-        'Thank You!',
-        'Thank you — your support helps me keep this app alive and growing.',
-        [{ text: 'OK' }]
-      );
-    }, 1000);
+    }
   };
 
   const handlePrivacyPress = () => {

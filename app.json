@@ -84,6 +84,12 @@
       ],
       "expo-web-browser",
       [
+        "@revenuecat/react-native-purchases-expo-plugin",
+        {
+          "androidBillingClientVersion": "6"
+        }
+      ],
+      [
         "expo-sqlite",
         {
           "enableFTS": true,

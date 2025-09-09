@@ -85,8 +85,8 @@ const styles = StyleSheet.create({
     padding: 20
   },
   textContent: {
-    fontSize: 16,
-    lineHeight: 24,
+    fontSize: 20,
+    lineHeight: 30,
     color: Colors.light.text,
   }
 });

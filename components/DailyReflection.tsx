@@ -465,7 +465,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   date: {
-    fontSize: 16,
+    fontSize: 18,
     color: Colors.light.text,
     fontWeight: adjustFontWeight("500"),
   },
@@ -500,7 +500,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255, 255, 255, 0.3)',
   },
   cardNavText: {
-    fontSize: 12,
+    fontSize: 14,
     color: Colors.light.tint,
     fontWeight: adjustFontWeight("500"),
     marginHorizontal: 2,
@@ -537,7 +537,7 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
   source: {
-    fontSize: 14,
+    fontSize: 16,
     color: Colors.light.muted,
     textAlign: "right",
     marginBottom: 16,
@@ -550,18 +550,18 @@ const styles = StyleSheet.create({
     opacity: 0.5,
   },
   reflectionText: {
-    fontSize: 16,
+    fontSize: 18,
     color: Colors.light.text,
     lineHeight: 24,
   },
   thoughtTitle: {
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: adjustFontWeight("bold", true),
     color: Colors.light.text,
     marginBottom: 8,
   },
   thought: {
-    fontSize: 16,
+    fontSize: 18,
     color: Colors.light.text,
     fontStyle: "italic",
     lineHeight: 24,

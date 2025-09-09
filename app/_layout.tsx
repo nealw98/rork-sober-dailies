@@ -13,6 +13,7 @@ import { EveningReviewProvider } from "@/hooks/use-evening-review-store";
 import { adjustFontWeight } from "@/constants/fonts";
 import Colors from "@/constants/colors";
 import WelcomeScreen from "@/components/WelcomeScreen";
+import { configurePurchases } from "@/lib/purchases";
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 console.log('🟢 SPLASH: Preventing auto-hide');
@@ -22,6 +23,10 @@ const queryClient = new QueryClient();
 
 function RootLayoutNav() {
   const { isOnboardingComplete, isLoading } = useOnboarding();
+
+  useEffect(() => {
+    configurePurchases();
+  }, []);
 
   // Hide splash screen when app is ready
   const hideSplashScreen = useCallback(async () => {
