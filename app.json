@@ -16,7 +16,8 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.nealwagner.soberdailies",
-      "buildNumber": "20",
+      "buildNumber": "21",
+      "icon": "./assets/images/icon.png",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
       },
