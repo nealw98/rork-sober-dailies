@@ -1,6 +1,15 @@
 import React, { useEffect, useState, useCallback, useMemo, useRef } from "react";
 import { ActivityIndicator, Alert, ScrollView, StyleSheet, Text, TouchableOpacity, View, Platform } from "react-native";
-import Purchases, {
+let Purchases: any = null;
+try {
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
+  const { NativeModules } = require('react-native');
+  if (NativeModules && NativeModules.RNPurchases) {
+    const mod = require('react-native-purchases');
+    Purchases = (mod && mod.default) ? mod.default : mod;
+  }
+} catch {}
+import type {
   CustomerInfo,
   LOG_LEVEL,
   Offerings,
@@ -15,7 +24,8 @@ export default function StoreScreen() {
     if (configuredRef.current) return;
     configuredRef.current = true;
 
-    Purchases.setLogLevel(LOG_LEVEL.WARN);
+    if (!Purchases) return;
+    Purchases.setLogLevel(Purchases.LOG_LEVEL.WARN);
     const apiKey =
       Platform.OS === "ios"
         ? process.env.EXPO_PUBLIC_REVENUECAT_API_KEY_IOS
@@ -37,6 +47,7 @@ export default function StoreScreen() {
   const load = useCallback(async () => {
     try {
       setLoading(true);
+      if (!Purchases) throw new Error('Purchases SDK not available');
       const offs: Offerings = await Purchases.getOfferings();
       const current = offs.current;
       const allPkgs = current?.availablePackages ?? [];
@@ -64,6 +75,7 @@ export default function StoreScreen() {
   const handlePurchase = async (pkg: PurchasesPackage) => {
     try {
       setPurchasingId(pkg.storeProduct.identifier);
+      if (!Purchases) throw new Error('Purchases SDK not available');
       const result: PurchaseResult = await Purchases.purchasePackage(pkg);
       onCustomerInfoUpdated(result.customerInfo);
       Alert.alert("Thank you!", `Purchase successful: ${pkg.storeProduct.title} — ${pkg.storeProduct.priceString}`);
@@ -77,6 +89,7 @@ export default function StoreScreen() {
 
   const handleRestore = async () => {
     try {
+      if (!Purchases) throw new Error('Purchases SDK not available');
       const info: CustomerInfo = await Purchases.restorePurchases();
       onCustomerInfoUpdated(info);
       // FYI: Restoring **consumables** won’t re-grant old tips. That’s expected.

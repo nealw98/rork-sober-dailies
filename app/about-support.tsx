@@ -19,7 +19,15 @@ import { adjustFontWeight } from '@/constants/fonts';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Colors from '@/constants/colors';
 import { Star, Share2 } from 'lucide-react-native';
-import Purchases from 'react-native-purchases';
+let Purchases: any = null;
+try {
+  const { NativeModules } = require('react-native');
+  if (NativeModules && NativeModules.RNPurchases) {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const mod = require('react-native-purchases');
+    Purchases = (mod && mod.default) ? mod.default : mod;
+  }
+} catch {}
 
 const AboutSupportScreen = () => {
   const [isProcessing, setIsProcessing] = useState(false);
@@ -39,17 +47,20 @@ const AboutSupportScreen = () => {
     }
     try {
       setIsProcessing(true);
+      if (!Purchases) {
+        throw new Error('Purchases SDK not available in this environment');
+      }
       const products = await Purchases.getProducts([productId], 'consumable');
-      const product = products.find(p => p.identifier === productId);
+      const product = products.find((p: any) => p.identifier === productId || p.storeProduct?.identifier === productId);
       if (!product) {
         throw new Error('Product not found');
       }
-      await Purchases.purchaseProduct(product.identifier);
+      await Purchases.purchaseProduct(product.identifier ?? product.storeProduct.identifier);
       Alert.alert('Thank you!', 'Your contribution helps keep Sober Dailies free for everyone.');
     } catch (e: any) {
       // Ignore cancellations
       if (e?.userCancelled) return;
-      Alert.alert('Purchase failed', 'Something went wrong processing your contribution.');
+      Alert.alert('Purchase failed', e?.message ?? 'Something went wrong processing your contribution.');
     } finally {
       setIsProcessing(false);
     }
