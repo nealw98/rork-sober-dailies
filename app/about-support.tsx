@@ -365,7 +365,7 @@ const styles = StyleSheet.create({
   versionTextCentered: {
     fontSize: 12,
     color: '#98a2b3',
-    marginTop: 4,
+    marginTop: 12,
   },
   footerDivider: {
   },
