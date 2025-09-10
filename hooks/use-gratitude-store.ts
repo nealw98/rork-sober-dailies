@@ -133,6 +133,47 @@ export const [GratitudeProvider, useGratitudeStore] = createContextHook(() => {
     saveEntries(newEntries);
   }, [entries]);
 
+  // Replace the entire list of items for today (used for inline edit)
+  const updateItemsForToday = useCallback((updatedItems: string[]) => {
+    const todayString = getTodayDateString();
+    const existingIndex = entries.findIndex(entry => entry.date === todayString);
+
+    const newEntry: GratitudeEntry = {
+      date: todayString,
+      items: updatedItems.filter(item => item.trim() !== ''),
+      // Keep as not completed while editing; completion flow will set true
+      completed: false,
+    };
+
+    let newEntries: GratitudeEntry[];
+    if (existingIndex >= 0) {
+      newEntries = [...entries];
+      newEntries[existingIndex] = { ...newEntries[existingIndex], ...newEntry };
+    } else {
+      newEntries = [...entries, newEntry];
+    }
+
+    saveEntries(newEntries);
+  }, [entries]);
+
+  // Delete a single item by index for today's list
+  const deleteItemForToday = useCallback((index: number) => {
+    const todayString = getTodayDateString();
+    const existingIndex = entries.findIndex(entry => entry.date === todayString);
+    if (existingIndex < 0) return;
+
+    const currentItems = entries[existingIndex].items || [];
+    const updatedItems = currentItems.filter((_, i) => i !== index);
+
+    const newEntries = [...entries];
+    newEntries[existingIndex] = {
+      ...newEntries[existingIndex],
+      items: updatedItems,
+      completed: false,
+    };
+    saveEntries(newEntries);
+  }, [entries]);
+
   const completeToday = useCallback((items: string[]) => {
     const todayString = getTodayDateString();
     const existingIndex = entries.findIndex(entry => entry.date === todayString);
@@ -288,6 +329,8 @@ export const [GratitudeProvider, useGratitudeStore] = createContextHook(() => {
     getTodayEntry,
     getTodaysItems,
     addItemsToToday,
+    updateItemsForToday,
+    deleteItemForToday,
     completeToday,
     saveGratitudeList,
     uncompleteToday,

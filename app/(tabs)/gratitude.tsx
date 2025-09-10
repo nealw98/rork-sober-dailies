@@ -14,7 +14,7 @@ import {
 } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
 import { Stack } from 'expo-router';
-import { Heart, Share as ShareIcon, Save, Archive, CheckCircle, Calendar } from 'lucide-react-native';
+import { Heart, Share as ShareIcon, Save, Archive, CheckCircle, Calendar, Trash2 } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useGratitudeStore } from '@/hooks/use-gratitude-store';
 import Colors from '@/constants/colors';
@@ -340,6 +340,8 @@ const formatDateDisplay = (date: Date): string => {
 
 export default function GratitudeListScreen() {
   const [gratitudeItems, setGratitudeItems] = useState<string[]>([]);
+  const [editingIndex, setEditingIndex] = useState<number | null>(null);
+  const [editingValue, setEditingValue] = useState<string>('');
   const [inputValue, setInputValue] = useState('');
   const [showConfirmation, setShowConfirmation] = useState(false);
   const [showSavedEntries, setShowSavedEntries] = useState(false);
@@ -363,6 +365,8 @@ export default function GratitudeListScreen() {
     isCompletedToday,
     getTodaysItems,
     addItemsToToday,
+    updateItemsForToday,
+    deleteItemForToday,
     uncompleteToday,
     getWeeklyProgress,
     getWeeklyStreak,
@@ -399,6 +403,39 @@ export default function GratitudeListScreen() {
       setInputValue('');
       inputRef.current?.blur();
     }
+  };
+
+  const beginEdit = (index: number) => {
+    setEditingIndex(index);
+    setEditingValue(gratitudeItems[index]);
+  };
+
+  const commitEdit = () => {
+    if (editingIndex === null) return;
+    const value = editingValue.trim();
+    let updated = [...gratitudeItems];
+    if (value.length === 0) {
+      // Treat empty as delete
+      updated.splice(editingIndex, 1);
+      deleteItemForToday(editingIndex);
+    } else {
+      updated[editingIndex] = value;
+      updateItemsForToday(updated);
+    }
+    setGratitudeItems(updated);
+    setEditingIndex(null);
+    setEditingValue('');
+  };
+
+  const cancelEdit = () => {
+    setEditingIndex(null);
+    setEditingValue('');
+  };
+
+  const handleDelete = (index: number) => {
+    const updated = gratitudeItems.filter((_, i) => i !== index);
+    setGratitudeItems(updated);
+    deleteItemForToday(index);
   };
 
   const handleStartNew = () => {
@@ -682,7 +719,25 @@ export default function GratitudeListScreen() {
                 <View style={styles.itemsList}>
                   {gratitudeItems.map((item, index) => (
                     <View key={index} style={styles.gratitudeItem}>
-                      <Text style={styles.gratitudeItemText}>{item}</Text>
+                      {editingIndex === index ? (
+                        <TextInput
+                          style={[styles.textInput, { marginBottom: 0 }]}
+                          value={editingValue}
+                          onChangeText={setEditingValue}
+                          autoFocus
+                          blurOnSubmit
+                          onSubmitEditing={commitEdit}
+                          onBlur={commitEdit}
+                          returnKeyType="done"
+                        />
+                      ) : (
+                        <TouchableOpacity onPress={() => beginEdit(index)} activeOpacity={0.7}>
+                          <Text style={styles.gratitudeItemText}>{item}</Text>
+                        </TouchableOpacity>
+                      )}
+                      <TouchableOpacity onPress={() => handleDelete(index)} style={{ position: 'absolute', right: 8, top: 8 }}>
+                        <Trash2 size={16} color={Colors.light.muted} />
+                      </TouchableOpacity>
                     </View>
                   ))}
                 </View>
