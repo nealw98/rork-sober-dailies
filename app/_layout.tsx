@@ -5,6 +5,7 @@ import React, { useEffect, useCallback } from "react";
 import { Text, StyleSheet, TouchableOpacity, Platform } from 'react-native';
 import { ChevronLeft } from "lucide-react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
+import Toast from "@/lib/toast";
 
 import { GratitudeProvider } from "@/hooks/use-gratitude-store";
 import { OnboardingProvider, useOnboarding } from "@/hooks/useOnboardingStore";
@@ -140,6 +141,7 @@ export default function RootLayout() {
               <EveningReviewProvider>
                 <GestureHandlerRootView style={{ flex: 1 }}>
                   <RootLayoutNav />
+                  <Toast />
                 </GestureHandlerRootView>
               </EveningReviewProvider>
             </SobrietyProvider>

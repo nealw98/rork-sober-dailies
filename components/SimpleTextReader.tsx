@@ -38,7 +38,29 @@ const SimpleTextReader = ({ content, title, onClose }: SimpleTextReaderProps) =>
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.contentContainer}
       >
-        <Text style={styles.textContent}>{content}</Text>
+        {content.split('\n').map((line, idx) => {
+          const trimmed = line.trim();
+          const isKnownHeading = (
+            trimmed === 'Opening' ||
+            trimmed === 'Preamble' ||
+            trimmed === 'Readings' ||
+            trimmed === 'Introductions & Newcomers' ||
+            trimmed === 'Announcements' ||
+            trimmed === 'Meeting Format' ||
+            trimmed === 'Discussion / Speaker' ||
+            trimmed === 'Seventh Tradition' ||
+            trimmed === 'Closing' ||
+            trimmed === 'Anonymity Statement'
+          );
+          if (trimmed.length === 0) {
+            return <Text key={idx} style={styles.textContent}>{'\u00A0'}</Text>;
+          }
+          return (
+            <Text key={idx} style={isKnownHeading ? styles.headingText : styles.textContent}>
+              {trimmed.replace(/^\*\*|\*\*$/g, '')}
+            </Text>
+          );
+        })}
       </ScrollView>
     </SafeAreaView>
   );
@@ -88,6 +110,13 @@ const styles = StyleSheet.create({
     fontSize: 20,
     lineHeight: 30,
     color: Colors.light.text,
+  }
+  ,
+  headingText: {
+    fontSize: 20,
+    lineHeight: 30,
+    color: Colors.light.text,
+    fontWeight: adjustFontWeight('700')
   }
 });
 
