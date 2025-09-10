@@ -196,11 +196,20 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.5)',
     marginBottom: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   gratitudeItemText: {
     fontSize: 14,
     color: Colors.light.text,
     lineHeight: 20,
+    flexShrink: 1,
+  },
+  deleteButton: {
+    marginLeft: 8,
+    padding: 6,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   actionButtons: {
     flexDirection: 'row',
@@ -719,23 +728,25 @@ export default function GratitudeListScreen() {
                 <View style={styles.itemsList}>
                   {gratitudeItems.map((item, index) => (
                     <View key={index} style={styles.gratitudeItem}>
-                      {editingIndex === index ? (
-                        <TextInput
-                          style={[styles.textInput, { marginBottom: 0 }]}
-                          value={editingValue}
-                          onChangeText={setEditingValue}
-                          autoFocus
-                          blurOnSubmit
-                          onSubmitEditing={commitEdit}
-                          onBlur={commitEdit}
-                          returnKeyType="done"
-                        />
-                      ) : (
-                        <TouchableOpacity onPress={() => beginEdit(index)} activeOpacity={0.7}>
-                          <Text style={styles.gratitudeItemText}>{item}</Text>
-                        </TouchableOpacity>
-                      )}
-                      <TouchableOpacity onPress={() => handleDelete(index)} style={{ position: 'absolute', right: 8, top: 8 }}>
+                      <View style={{ flex: 1 }}>
+                        {editingIndex === index ? (
+                          <TextInput
+                            style={[styles.textInput, { marginBottom: 0 }]}
+                            value={editingValue}
+                            onChangeText={setEditingValue}
+                            autoFocus
+                            blurOnSubmit
+                            onSubmitEditing={commitEdit}
+                            onBlur={commitEdit}
+                            returnKeyType="done"
+                          />
+                        ) : (
+                          <TouchableOpacity onPress={() => beginEdit(index)} activeOpacity={0.7}>
+                            <Text style={styles.gratitudeItemText}>{item}</Text>
+                          </TouchableOpacity>
+                        )}
+                      </View>
+                      <TouchableOpacity onPress={() => handleDelete(index)} style={styles.deleteButton}>
                         <Trash2 size={16} color={Colors.light.muted} />
                       </TouchableOpacity>
                     </View>
