@@ -19,7 +19,6 @@ import { adjustFontWeight } from '@/constants/fonts';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Colors from '@/constants/colors';
 import { Star, Share2 } from 'lucide-react-native';
-import { showToast } from '@/lib/toast';
 let Purchases: any = null;
 try {
   const { NativeModules } = require('react-native');
@@ -57,7 +56,6 @@ const AboutSupportScreen = () => {
         throw new Error('Product not found');
       }
       await Purchases.purchaseProduct(product.identifier ?? product.storeProduct.identifier);
-      showToast('Thank you for your contribution!');
     } catch (e: any) {
       // Ignore cancellations
       if (e?.userCancelled) return;

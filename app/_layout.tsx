@@ -5,7 +5,6 @@ import React, { useEffect, useCallback } from "react";
 import { Text, StyleSheet, TouchableOpacity, Platform } from 'react-native';
 import { ChevronLeft } from "lucide-react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
-import Toast from "@/lib/toast";
 
 import { GratitudeProvider } from "@/hooks/use-gratitude-store";
 import { OnboardingProvider, useOnboarding } from "@/hooks/useOnboardingStore";
@@ -79,17 +78,9 @@ function RootLayoutNav() {
           <Text style={styles.backText}>Back</Text>
         </TouchableOpacity>
       ) : null,
-      headerLeftContainerStyle: {
-        paddingLeft: Platform.OS === 'android' ? 8 : 16,
-        minWidth: Platform.OS === 'android' ? 0 : 80,
-      },
-      headerRightContainerStyle: {
-        paddingRight: Platform.OS === 'android' ? 8 : 16,
-        minWidth: Platform.OS === 'android' ? 0 : 80,
-      },
+      contentStyle: { backgroundColor: "#f8f9fa" },
       headerStyle: {
         backgroundColor: "#f8f9fa",
-        height: Platform.OS === 'android' ? 44 : undefined,
       },
       headerTitleStyle: {
         fontWeight: adjustFontWeight("600", true),
@@ -141,7 +132,6 @@ export default function RootLayout() {
               <EveningReviewProvider>
                 <GestureHandlerRootView style={{ flex: 1 }}>
                   <RootLayoutNav />
-                  <Toast />
                 </GestureHandlerRootView>
               </EveningReviewProvider>
             </SobrietyProvider>

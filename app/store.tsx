@@ -6,7 +6,6 @@ import Purchases, {
   PurchasesPackage,
   PurchaseResult,
 } from "react-native-purchases";
-import { showToast } from "@/lib/toast";
 
 export default function StoreScreen() {
   // -------- State --------
@@ -47,7 +46,6 @@ export default function StoreScreen() {
       setPurchasingId(pkg.storeProduct.identifier);
       const result: PurchaseResult = await Purchases.purchasePackage(pkg);
       onCustomerInfoUpdated(result.customerInfo);
-      showToast("Thank you for your contribution!");
     } catch (e: any) {
       if (e?.userCancelled) return;
       Alert.alert("Purchase failed", e?.message ?? "Something went wrong processing your contribution.");

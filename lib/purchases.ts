@@ -33,7 +33,11 @@ export function configurePurchases(): void {
   const Purchases = getPurchasesSafe();
   if (!Purchases) return;
   const apiKey = Platform.OS === 'ios' ? RC_IOS_KEY : RC_ANDROID_KEY;
-  if (!apiKey) return;
+  if (!apiKey) {
+    console.log('[RevenueCat] API key missing for platform', Platform.OS);
+    return;
+  }
+  console.log('[RevenueCat] API key present for', Platform.OS);
   Purchases.setLogLevel(Purchases.LOG_LEVEL.WARN);
   Purchases.configure({ apiKey });
 }
