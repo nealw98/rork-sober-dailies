@@ -25,7 +25,11 @@ function RootLayoutNav() {
   const { isOnboardingComplete, isLoading } = useOnboarding();
 
   useEffect(() => {
-    configurePurchases();
+    try {
+      configurePurchases();
+    } catch (e) {
+      // noop
+    }
   }, []);
 
   // Hide splash screen when app is ready

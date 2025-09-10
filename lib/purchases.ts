@@ -1,8 +1,15 @@
 import { Platform, NativeModules } from 'react-native';
+import Constants from 'expo-constants';
 import type PurchasesNamespace from 'react-native-purchases';
 
-const RC_IOS_KEY = process.env.EXPO_PUBLIC_REVENUECAT_API_KEY_IOS ?? '';
-const RC_ANDROID_KEY = process.env.EXPO_PUBLIC_REVENUECAT_API_KEY_ANDROID ?? '';
+const RC_IOS_KEY =
+  process.env.EXPO_PUBLIC_REVENUECAT_API_KEY_IOS ||
+  // Fallback to app.json extra for preview builds
+  ((Constants.expoConfig?.extra as any)?.revenuecat?.iosPublicApiKey ||
+    (Constants.manifest as any)?.extra?.revenuecat?.iosPublicApiKey ||
+    (Constants.manifest2 as any)?.extra?.revenuecat?.iosPublicApiKey ||
+    '');
+const RC_ANDROID_KEY = process.env.EXPO_PUBLIC_REVENUECAT_API_KEY_ANDROID || '';
 
 let purchasesModule: typeof PurchasesNamespace | null = null;
 

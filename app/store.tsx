@@ -1,43 +1,13 @@
-import React, { useEffect, useState, useCallback, useMemo, useRef } from "react";
-import { ActivityIndicator, Alert, ScrollView, StyleSheet, Text, TouchableOpacity, View, Platform } from "react-native";
-let Purchases: any = null;
-try {
-  // eslint-disable-next-line @typescript-eslint/no-var-requires
-  const { NativeModules } = require('react-native');
-  if (NativeModules && NativeModules.RNPurchases) {
-    const mod = require('react-native-purchases');
-    Purchases = (mod && mod.default) ? mod.default : mod;
-  }
-} catch {}
-import type {
+import React, { useEffect, useState, useCallback, useMemo } from "react";
+import { ActivityIndicator, Alert, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import Purchases, {
   CustomerInfo,
-  LOG_LEVEL,
   Offerings,
   PurchasesPackage,
   PurchaseResult,
 } from "react-native-purchases";
 
 export default function StoreScreen() {
-  // -------- Init Purchases once (safe if screen mounts first) --------
-  const configuredRef = useRef(false);
-  useEffect(() => {
-    if (configuredRef.current) return;
-    configuredRef.current = true;
-
-    if (!Purchases) return;
-    Purchases.setLogLevel(Purchases.LOG_LEVEL.WARN);
-    const apiKey =
-      Platform.OS === "ios"
-        ? process.env.EXPO_PUBLIC_REVENUECAT_API_KEY_IOS
-        : process.env.EXPO_PUBLIC_REVENUECAT_API_KEY_ANDROID;
-
-    if (!apiKey) {
-      console.warn("RevenueCat API key missing. Set EXPO_PUBLIC_REVENUECAT_API_KEY_IOS in your env/EAS secrets.");
-      return;
-    }
-    Purchases.configure({ apiKey });
-  }, []);
-
   // -------- State --------
   const [loading, setLoading] = useState(true);
   const [packages, setPackages] = useState<PurchasesPackage[]>([]);
@@ -47,7 +17,6 @@ export default function StoreScreen() {
   const load = useCallback(async () => {
     try {
       setLoading(true);
-      if (!Purchases) throw new Error('Purchases SDK not available');
       const offs: Offerings = await Purchases.getOfferings();
       const current = offs.current;
       const allPkgs = current?.availablePackages ?? [];
@@ -75,7 +44,6 @@ export default function StoreScreen() {
   const handlePurchase = async (pkg: PurchasesPackage) => {
     try {
       setPurchasingId(pkg.storeProduct.identifier);
-      if (!Purchases) throw new Error('Purchases SDK not available');
       const result: PurchaseResult = await Purchases.purchasePackage(pkg);
       onCustomerInfoUpdated(result.customerInfo);
       Alert.alert("Thank you!", `Purchase successful: ${pkg.storeProduct.title} — ${pkg.storeProduct.priceString}`);
@@ -89,7 +57,6 @@ export default function StoreScreen() {
 
   const handleRestore = async () => {
     try {
-      if (!Purchases) throw new Error('Purchases SDK not available');
       const info: CustomerInfo = await Purchases.restorePurchases();
       onCustomerInfoUpdated(info);
       // FYI: Restoring **consumables** won’t re-grant old tips. That’s expected.

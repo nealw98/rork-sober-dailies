@@ -2,7 +2,7 @@
   "expo": {
     "name": "Sober Dailies",
     "slug": "sober-dailies",
-    "version": "1.8.0",
+    "version": "1.8.1",
     "orientation": "portrait",
     "icon": "./assets/images/adaptive-icon.png",
     "scheme": "myapp",
@@ -16,7 +16,7 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.nealwagner.soberdailies",
-      "buildNumber": "16",
+      "buildNumber": "20",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
       },
