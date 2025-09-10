@@ -143,7 +143,7 @@ const AboutSupportScreen = () => {
           {/* Intro */}
           <View style={styles.introContainer}>
             <Text style={styles.introText}>
-              I built Sober Dailies as a simple daily program with all the tools I needed in one place. Your support helps me cover the costs and keeps it free for everyone.
+              I built Sober Dailies as a simple daily program with all the tools I needed in one place. Your support helps me cover the costs and keep it free for everyone.
             </Text>
           </View>
 
