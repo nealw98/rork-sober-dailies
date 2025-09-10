@@ -4,7 +4,7 @@
     "slug": "sober-dailies",
     "version": "1.8.1",
     "orientation": "portrait",
-    "icon": "./assets/images/adaptive-icon.png",
+    "icon": "./assets/images/icon.png",
     "scheme": "myapp",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": false,
@@ -24,7 +24,7 @@
     },
     "android": {
       "package": "com.nealwagner.soberdailies",
-      "versionCode": 35,
+      "versionCode": 48,
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon-foreground.png",
         "backgroundImage": "./assets/images/adaptive-icon-background.png",
