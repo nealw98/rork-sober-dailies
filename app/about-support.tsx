@@ -36,6 +36,7 @@ const AboutSupportScreen = () => {
   const [connecting, setConnecting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [packagesById, setPackagesById] = useState<Record<string, PurchasesPackage>>({});
+  const [isLoadingOfferings, setIsLoadingOfferings] = useState(true);
   const insets = useSafeAreaInsets();
 
   const productIds = useMemo(() => ({
@@ -47,9 +48,18 @@ const AboutSupportScreen = () => {
   // Preload offerings/prices on mount so purchase can be immediate
   useEffect(() => {
     let mounted = true;
-    (async () => {
+    let retryCount = 0;
+    const maxRetries = 3;
+
+    const loadOfferings = async () => {
       try {
-        if (!Purchases) return;
+        if (!Purchases) {
+          if (mounted) {
+            setErrorMessage('RevenueCat not available in this environment');
+            setIsLoadingOfferings(false);
+          }
+          return;
+        }
         const offs: Offerings = await Purchases.getOfferings();
         const current = offs?.current;
         const allPkgs = current?.availablePackages ?? [];
@@ -60,11 +70,28 @@ const AboutSupportScreen = () => {
           const id = p.storeProduct.identifier;
           if (id) byId[id] = p;
         });
-        if (mounted) setPackagesById(byId);
-      } catch {
-        // Silent; UI will fallback to static price copy
+        if (mounted) {
+          setPackagesById(byId);
+          setErrorMessage(null);
+          setIsLoadingOfferings(false);
+        }
+      } catch (error: any) {
+        console.log('[AboutSupport] Failed to load offerings:', error?.message);
+        if (mounted) {
+          if (retryCount < maxRetries) {
+            retryCount++;
+            setTimeout(() => {
+              if (mounted) loadOfferings();
+            }, 2000 * retryCount); // Exponential backoff
+          } else {
+            setErrorMessage('Unable to load store products. Please check your connection and try again.');
+            setIsLoadingOfferings(false);
+          }
+        }
       }
-    })();
+    };
+
+    loadOfferings();
     return () => { mounted = false; };
   }, []);
 
@@ -84,9 +111,15 @@ const AboutSupportScreen = () => {
   const handleTipPress = async (amount: number) => {
     const productId = (productIds as any)[amount];
     if (!productId) return;
+    
+    if (isLoadingOfferings) {
+      setErrorMessage('Loading store products...');
+      return;
+    }
+    
     const pkg = packagesById[productId];
     if (!pkg) {
-      setErrorMessage('Store not ready. Please try again.');
+      setErrorMessage('Product not available. Please try again or check your connection.');
       return;
     }
     try {
