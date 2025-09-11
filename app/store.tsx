@@ -12,6 +12,8 @@ export default function StoreScreen() {
   const [loading, setLoading] = useState(true);
   const [packages, setPackages] = useState<PurchasesPackage[]>([]);
   const [purchasingId, setPurchasingId] = useState<string | null>(null);
+  const [connecting, setConnecting] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   // -------- Load offerings --------
   const load = useCallback(async () => {
@@ -40,15 +42,31 @@ export default function StoreScreen() {
     load();
   }, [load]);
 
+  // Update status text after ~2s if sheet hasn't appeared yet
+  useEffect(() => {
+    if (!purchasingId) {
+      setConnecting(false);
+      return;
+    }
+    const timer = setTimeout(() => setConnecting(true), 2000);
+    return () => {
+      clearTimeout(timer);
+      setConnecting(false);
+    };
+  }, [purchasingId]);
+
   // -------- Purchase / Restore --------
   const handlePurchase = async (pkg: PurchasesPackage) => {
     try {
       setPurchasingId(pkg.storeProduct.identifier);
+      setErrorMessage(null);
       const result: PurchaseResult = await Purchases.purchasePackage(pkg);
+      // Success: keep silent; process entitlements if needed later
       onCustomerInfoUpdated(result.customerInfo);
     } catch (e: any) {
       if (e?.userCancelled) return;
-      Alert.alert("Purchase failed", e?.message ?? "Something went wrong processing your contribution.");
+      // Minimal, non-blocking error
+      setErrorMessage(e?.message ?? "Purchase failed. Please try again.");
     } finally {
       setPurchasingId(null);
     }
@@ -95,19 +113,30 @@ export default function StoreScreen() {
             key={pkg.identifier}
             style={styles.contributionButton}
             activeOpacity={0.85}
-            disabled={!!purchasingId}
+            disabled={purchasingId === pkg.storeProduct.identifier}
             onPress={() => handlePurchase(pkg)}
           >
-            <Text style={styles.contributionText}>
-              {friendlyTitle(pkg.storeProduct.identifier)} — {pkg.storeProduct.priceString}
-            </Text>
             {purchasingId === pkg.storeProduct.identifier ? (
-              <ActivityIndicator style={{ marginTop: 6 }} />
-            ) : null}
+              <View style={{ alignItems: "center" }}>
+                <ActivityIndicator color="#fff" />
+                <Text style={styles.statusText}>Opening Apple…</Text>
+                {connecting ? (
+                  <Text style={styles.statusSubtext}>Connecting to App Store…</Text>
+                ) : null}
+              </View>
+            ) : (
+              <Text style={styles.contributionText}>
+                {friendlyTitle(pkg.storeProduct.identifier)} — {pkg.storeProduct.priceString}
+              </Text>
+            )}
           </TouchableOpacity>
         ))}
 
         <Text style={styles.disclaimer}>Contributions are optional and don’t unlock features.</Text>
+
+        {errorMessage ? (
+          <Text style={styles.inlineError}>{errorMessage}</Text>
+        ) : null}
 
         <TouchableOpacity style={styles.restoreButton} onPress={handleRestore} activeOpacity={0.85}>
           <Text style={styles.restoreText}>Restore Purchases</Text>
@@ -153,7 +182,10 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   contributionText: { color: "#fff", fontSize: 16, fontWeight: "700" },
+  statusText: { color: "#fff", fontSize: 14, fontWeight: "600", marginTop: 6 },
+  statusSubtext: { color: "#e5e7eb", fontSize: 12, marginTop: 2 },
   disclaimer: { textAlign: "center", color: "#6b7280", marginTop: 8, marginBottom: 8, fontSize: 14, fontStyle: "italic" },
+  inlineError: { textAlign: "center", color: "#b91c1c", marginBottom: 8, fontSize: 12 },
   restoreButton: {
     borderWidth: 1,
     borderColor: "#c7d2fe",

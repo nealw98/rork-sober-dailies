@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   View,
   Text,
@@ -11,6 +11,7 @@ import {
   Linking,
   Platform,
   Share,
+  ActivityIndicator,
 } from 'react-native';
 import Constants from 'expo-constants';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -19,6 +20,7 @@ import { adjustFontWeight } from '@/constants/fonts';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Colors from '@/constants/colors';
 import { Star, Share2 } from 'lucide-react-native';
+import type { Offerings, PurchasesPackage } from 'react-native-purchases';
 let Purchases: any = null;
 try {
   const { NativeModules } = require('react-native');
@@ -30,7 +32,10 @@ try {
 } catch {}
 
 const AboutSupportScreen = () => {
-  const [isProcessing, setIsProcessing] = useState(false);
+  const [purchasingId, setPurchasingId] = useState<string | null>(null);
+  const [connecting, setConnecting] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [packagesById, setPackagesById] = useState<Record<string, PurchasesPackage>>({});
   const insets = useSafeAreaInsets();
 
   const productIds = useMemo(() => ({
@@ -39,29 +44,61 @@ const AboutSupportScreen = () => {
     8.99: Platform.select({ ios: 'Tier3', android: 'Tier3' }),
   }), []);
 
-  const handleCoffeeSupportPress = async (amount: number, description: string) => {
+  // Preload offerings/prices on mount so purchase can be immediate
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      try {
+        if (!Purchases) return;
+        const offs: Offerings = await Purchases.getOfferings();
+        const current = offs?.current;
+        const allPkgs = current?.availablePackages ?? [];
+        const wanted = new Set(['Tier1', 'Tier2', 'Tier3']);
+        const filtered: PurchasesPackage[] = allPkgs.filter((p: any) => wanted.has(p.storeProduct?.identifier));
+        const byId: Record<string, PurchasesPackage> = {};
+        filtered.forEach((p) => {
+          const id = p.storeProduct.identifier;
+          if (id) byId[id] = p;
+        });
+        if (mounted) setPackagesById(byId);
+      } catch {
+        // Silent; UI will fallback to static price copy
+      }
+    })();
+    return () => { mounted = false; };
+  }, []);
+
+  // After ~2s of pending, show connecting hint
+  useEffect(() => {
+    if (!purchasingId) {
+      setConnecting(false);
+      return;
+    }
+    const t = setTimeout(() => setConnecting(true), 2000);
+    return () => {
+      clearTimeout(t);
+      setConnecting(false);
+    };
+  }, [purchasingId]);
+
+  const handleTipPress = async (amount: number) => {
     const productId = (productIds as any)[amount];
-    if (!productId) {
-      Alert.alert('Unavailable', 'This product is not available.');
+    if (!productId) return;
+    const pkg = packagesById[productId];
+    if (!pkg) {
+      setErrorMessage('Store not ready. Please try again.');
       return;
     }
     try {
-      setIsProcessing(true);
-      if (!Purchases) {
-        throw new Error('Purchases SDK not available in this environment');
-      }
-      const products = await Purchases.getProducts([productId], 'consumable');
-      const product = products.find((p: any) => p.identifier === productId || p.storeProduct?.identifier === productId);
-      if (!product) {
-        throw new Error('Product not found');
-      }
-      await Purchases.purchaseProduct(product.identifier ?? product.storeProduct.identifier);
+      setErrorMessage(null);
+      setPurchasingId(productId);
+      await Purchases.purchasePackage(pkg);
+      // Success: silent
     } catch (e: any) {
-      // Ignore cancellations
       if (e?.userCancelled) return;
-      Alert.alert('Purchase failed', e?.message ?? 'Something went wrong processing your contribution.');
+      setErrorMessage(e?.message ?? 'Purchase failed. Please try again.');
     } finally {
-      setIsProcessing(false);
+      setPurchasingId(null);
     }
   };
 
@@ -149,31 +186,70 @@ const AboutSupportScreen = () => {
           <View style={styles.supportContainer}>
             <TouchableOpacity
               style={styles.supportButton}
-              onPress={() => handleCoffeeSupportPress(1.99, 'Show your appreciation')}
-              disabled={isProcessing}
+              onPress={() => handleTipPress(1.99)}
+              disabled={purchasingId === 'Tier1'}
             >
-              <Text style={styles.supportButtonText}>Show your appreciation — $1.99</Text>
+              {purchasingId === 'Tier1' ? (
+                <View style={{ alignItems: 'center' }}>
+                  <ActivityIndicator />
+                  <Text style={styles.supportButtonText}>Opening Apple…</Text>
+                  {connecting ? (
+                    <Text style={styles.supportSubtext}>Connecting to App Store…</Text>
+                  ) : null}
+                </View>
+              ) : (
+                <Text style={styles.supportButtonText}>
+                  Show your appreciation — {packagesById['Tier1']?.storeProduct?.priceString ?? '$1.99'}
+                </Text>
+              )}
             </TouchableOpacity>
 
             <TouchableOpacity
               style={styles.supportButton}
-              onPress={() => handleCoffeeSupportPress(4.99, 'Support the App')}
-              disabled={isProcessing}
+              onPress={() => handleTipPress(4.99)}
+              disabled={purchasingId === 'Tier2'}
             >
-              <Text style={styles.supportButtonText}>Support the App — $4.99</Text>
+              {purchasingId === 'Tier2' ? (
+                <View style={{ alignItems: 'center' }}>
+                  <ActivityIndicator />
+                  <Text style={styles.supportButtonText}>Opening Apple…</Text>
+                  {connecting ? (
+                    <Text style={styles.supportSubtext}>Connecting to App Store…</Text>
+                  ) : null}
+                </View>
+              ) : (
+                <Text style={styles.supportButtonText}>
+                  Support the App — {packagesById['Tier2']?.storeProduct?.priceString ?? '$4.99'}
+                </Text>
+              )}
             </TouchableOpacity>
 
             <TouchableOpacity
               style={styles.supportButton}
-              onPress={() => handleCoffeeSupportPress(8.99, 'Keep it Free')}
-              disabled={isProcessing}
+              onPress={() => handleTipPress(8.99)}
+              disabled={purchasingId === 'Tier3'}
             >
-              <Text style={styles.supportButtonText}>Keep it Free — $8.99</Text>
+              {purchasingId === 'Tier3' ? (
+                <View style={{ alignItems: 'center' }}>
+                  <ActivityIndicator />
+                  <Text style={styles.supportButtonText}>Opening Apple…</Text>
+                  {connecting ? (
+                    <Text style={styles.supportSubtext}>Connecting to App Store…</Text>
+                  ) : null}
+                </View>
+              ) : (
+                <Text style={styles.supportButtonText}>
+                  Keep it Free — {packagesById['Tier3']?.storeProduct?.priceString ?? '$8.99'}
+                </Text>
+              )}
             </TouchableOpacity>
 
             <Text style={styles.supportNote}>
               Contributions are optional and don't unlock features.
             </Text>
+            {errorMessage ? (
+              <Text style={styles.inlineError}>{errorMessage}</Text>
+            ) : null}
           </View>
 
           {/* Rate / Share actions (below disclaimer) */}
@@ -296,12 +372,23 @@ const styles = StyleSheet.create({
     fontWeight: adjustFontWeight('600'),
     color: '#333',
   },
+  supportSubtext: {
+    fontSize: 12,
+    color: '#6c757d',
+    marginTop: 2,
+  },
   supportNote: {
     fontSize: 14,
     color: '#6c757d',
     textAlign: 'center',
     marginTop: 8,
     fontStyle: 'italic',
+  },
+  inlineError: {
+    fontSize: 12,
+    color: '#b91c1c',
+    textAlign: 'center',
+    marginTop: 8,
   },
   actionsRow: {
     flexDirection: 'row',
