@@ -201,12 +201,8 @@ const AboutSupportScreen = () => {
       const purchaseStartTime = Date.now();
       console.log(`[Purchase] Calling purchasePackage for ${productId} at ${new Date().toISOString()}`);
       
-      const purchasePromise = Purchases.purchasePackage(pkg);
-      // Remove spinner immediately so UI reverts while Apple sheet is visible
-      setPurchasingId(null);
-      setConnecting(false);
-      
-      await purchasePromise;
+      // Keep spinner visible until the purchase resolves or is cancelled
+      await Purchases.purchasePackage(pkg);
       
       const purchaseEndTime = Date.now();
       const totalTime = purchaseEndTime - startTime;
@@ -289,6 +285,30 @@ const AboutSupportScreen = () => {
   const clearLogs = () => {
     Logger.clear();
     setLogsText('');
+  };
+  const checkForOta = async () => {
+    try {
+      const Updates = await import('expo-updates');
+      console.log('[OTA] manualCheck start');
+      const result = await Updates.checkForUpdateAsync({ requestHeaders: { 'expo-channel-name': 'production' } as any });
+      console.log('[OTA] manualCheck result', result);
+      if (result.isAvailable) {
+        const fetched = await Updates.fetchUpdateAsync({ requestHeaders: { 'expo-channel-name': 'production' } as any });
+        console.log('[OTA] manualFetch result', fetched);
+        Alert.alert('Update downloaded', 'Close and reopen the app to apply the update.');
+      } else {
+        Alert.alert('Up to date', 'No update available.');
+      }
+    } catch (e: any) {
+      console.log('[OTA] manual error', e?.message || String(e));
+      Alert.alert('Update error', e?.message || 'Unknown error');
+    }
+  };
+  const reloadApp = async () => {
+    try {
+      const Updates = await import('expo-updates');
+      await Updates.reloadAsync();
+    } catch {}
   };
 
     const appVersion = Constants.expoConfig?.version ?? '—';
@@ -452,6 +472,14 @@ const AboutSupportScreen = () => {
               {logsText || 'No logs yet.'}
             </Text>
           </ScrollView>
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', padding: 12 }}>
+            <TouchableOpacity onPress={checkForOta}>
+              <Text style={{ color: 'white', fontSize: 16 }}>Check for Update</Text>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={reloadApp}>
+              <Text style={{ color: 'white', fontSize: 16 }}>Restart Now</Text>
+            </TouchableOpacity>
+          </View>
         </SafeAreaView>
       </Modal>
     </SafeAreaView>
