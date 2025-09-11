@@ -52,38 +52,61 @@ const AboutSupportScreen = () => {
     const maxRetries = 3;
 
     const loadOfferings = async () => {
+      const loadStartTime = Date.now();
+      console.log(`[Offerings] Starting to load offerings (attempt ${retryCount + 1}) at ${new Date().toISOString()}`);
+      
       try {
         if (!Purchases) {
+          console.log('[Offerings] RevenueCat not available');
           if (mounted) {
             setErrorMessage('RevenueCat not available in this environment');
             setIsLoadingOfferings(false);
           }
           return;
         }
+        
+        const offeringsStartTime = Date.now();
         const offs: Offerings = await Purchases.getOfferings();
+        const offeringsTime = Date.now() - offeringsStartTime;
+        console.log(`[Offerings] getOfferings() took ${offeringsTime}ms`);
+        
         const current = offs?.current;
         const allPkgs = current?.availablePackages ?? [];
+        console.log(`[Offerings] Found ${allPkgs.length} total packages`);
+        
         const wanted = new Set(['Tier1', 'Tier2', 'Tier3']);
         const filtered: PurchasesPackage[] = allPkgs.filter((p: any) => wanted.has(p.storeProduct?.identifier));
+        console.log(`[Offerings] Filtered to ${filtered.length} wanted packages:`, filtered.map(p => p.storeProduct?.identifier));
+        
         const byId: Record<string, PurchasesPackage> = {};
         filtered.forEach((p) => {
           const id = p.storeProduct.identifier;
           if (id) byId[id] = p;
         });
+        
+        const totalTime = Date.now() - loadStartTime;
+        console.log(`[Offerings] Successfully loaded offerings in ${totalTime}ms`);
+        
         if (mounted) {
           setPackagesById(byId);
           setErrorMessage(null);
           setIsLoadingOfferings(false);
         }
       } catch (error: any) {
-        console.log('[AboutSupport] Failed to load offerings:', error?.message);
+        const errorTime = Date.now();
+        const totalTime = errorTime - loadStartTime;
+        console.log(`[Offerings] Failed to load offerings after ${totalTime}ms:`, error?.message);
+        
         if (mounted) {
           if (retryCount < maxRetries) {
             retryCount++;
+            const retryDelay = 2000 * retryCount;
+            console.log(`[Offerings] Retrying in ${retryDelay}ms (attempt ${retryCount + 1}/${maxRetries + 1})`);
             setTimeout(() => {
               if (mounted) loadOfferings();
-            }, 2000 * retryCount); // Exponential backoff
+            }, retryDelay);
           } else {
+            console.log('[Offerings] Max retries reached, giving up');
             setErrorMessage('Unable to load store products. Please check your connection and try again.');
             setIsLoadingOfferings(false);
           }
@@ -109,26 +132,52 @@ const AboutSupportScreen = () => {
   }, [purchasingId]);
 
   const handleTipPress = async (amount: number) => {
+    const startTime = Date.now();
+    console.log(`[Purchase] Starting purchase flow for ${amount} at ${new Date().toISOString()}`);
+    
     const productId = (productIds as any)[amount];
-    if (!productId) return;
+    if (!productId) {
+      console.log('[Purchase] No product ID found for amount:', amount);
+      return;
+    }
     
     if (isLoadingOfferings) {
+      console.log('[Purchase] Offerings still loading, blocking purchase');
       setErrorMessage('Loading store products...');
       return;
     }
     
     const pkg = packagesById[productId];
     if (!pkg) {
+      console.log('[Purchase] Package not found for productId:', productId);
       setErrorMessage('Product not available. Please try again or check your connection.');
       return;
     }
+    
     try {
       setErrorMessage(null);
       setPurchasingId(productId);
+      
+      const purchaseStartTime = Date.now();
+      console.log(`[Purchase] Calling purchasePackage for ${productId} at ${new Date().toISOString()}`);
+      
       await Purchases.purchasePackage(pkg);
+      
+      const purchaseEndTime = Date.now();
+      const totalTime = purchaseEndTime - startTime;
+      const purchaseTime = purchaseEndTime - purchaseStartTime;
+      
+      console.log(`[Purchase] Success! Total time: ${totalTime}ms, Purchase time: ${purchaseTime}ms`);
       // Success: silent
     } catch (e: any) {
-      if (e?.userCancelled) return;
+      const errorTime = Date.now();
+      const totalTime = errorTime - startTime;
+      console.log(`[Purchase] Error after ${totalTime}ms:`, e?.message || 'Unknown error');
+      
+      if (e?.userCancelled) {
+        console.log('[Purchase] User cancelled purchase');
+        return;
+      }
       setErrorMessage(e?.message ?? 'Purchase failed. Please try again.');
     } finally {
       setPurchasingId(null);
