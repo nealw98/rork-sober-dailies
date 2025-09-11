@@ -40,6 +40,7 @@ const AboutSupportScreen = () => {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [packagesById, setPackagesById] = useState<Record<string, PurchasesPackage>>({});
   const [isLoadingOfferings, setIsLoadingOfferings] = useState(true);
+  const [isPurchaseInProgress, setIsPurchaseInProgress] = useState(false);
   const [logsVisible, setLogsVisible] = useState(false);
   const [logsText, setLogsText] = useState('');
   const insets = useSafeAreaInsets();
@@ -78,16 +79,26 @@ const AboutSupportScreen = () => {
         const current = offs?.current;
         const allPkgs = current?.availablePackages ?? [];
         console.log(`[Offerings] Found ${allPkgs.length} total packages`);
-        
+        console.log('[Offerings] All packages:', allPkgs.map((p: any) => ({ pkgId: p.identifier, storeId: p.storeProduct?.identifier, price: p.storeProduct?.price })));
+
+        // Prefer RevenueCat package identifiers (Tier1, Tier2, Tier3). If not present, fall back by price rank.
         const wanted = new Set(['Tier1', 'Tier2', 'Tier3']);
-        const filtered: PurchasesPackage[] = allPkgs.filter((p: any) => wanted.has(p.storeProduct?.identifier));
-        console.log(`[Offerings] Filtered to ${filtered.length} wanted packages:`, filtered.map(p => p.storeProduct?.identifier));
-        
+        let filtered: PurchasesPackage[] = allPkgs.filter((p: any) => wanted.has(p.identifier));
+        let usingFallback = false;
+        if (filtered.length === 0 && allPkgs.length > 0) {
+          usingFallback = true;
+          filtered = [...allPkgs].sort((a: any, b: any) => (a.storeProduct?.price ?? 0) - (b.storeProduct?.price ?? 0)).slice(0, 3);
+          console.log('[Offerings] Fallback mapping by price rank due to missing Tier1-3 package identifiers');
+        }
+        console.log(`[Offerings] Filtered to ${filtered.length} wanted packages:`, filtered.map((p: any) => `${p.identifier}:${p.storeProduct?.identifier}`));
+
         const byId: Record<string, PurchasesPackage> = {};
-        filtered.forEach((p) => {
-          const id = p.storeProduct.identifier;
-          if (id) byId[id] = p;
-        });
+        if (!usingFallback) {
+          filtered.forEach((p: any) => { byId[p.identifier] = p; });
+        } else {
+          const keys = ['Tier1', 'Tier2', 'Tier3'];
+          filtered.forEach((p: any, idx: number) => { byId[keys[idx]] = p; });
+        }
         
         const totalTime = Date.now() - loadStartTime;
         console.log(`[Offerings] Successfully loaded offerings in ${totalTime}ms`);
@@ -162,7 +173,20 @@ const AboutSupportScreen = () => {
       return;
     }
     
-    const pkg = packagesById[productId];
+    let pkg = packagesById[productId];
+    if (!pkg) {
+      // Fallback: choose closest by price
+      const all = Object.values(packagesById);
+      if (all.length > 0) {
+        const target = amount;
+        pkg = all.reduce((best: any, cur: any) => {
+          const b = Math.abs((best?.storeProduct?.price ?? Infinity) - target);
+          const c = Math.abs((cur?.storeProduct?.price ?? Infinity) - target);
+          return c < b ? cur : best;
+        }, all[0]);
+        console.log('[Purchase] Using fallback package selection by price. Selected', pkg?.identifier, pkg?.storeProduct?.identifier, pkg?.storeProduct?.price);
+      }
+    }
     if (!pkg) {
       console.log('[Purchase] Package not found for productId:', productId);
       setErrorMessage('Product not available. Please try again or check your connection.');
@@ -172,11 +196,17 @@ const AboutSupportScreen = () => {
     try {
       setErrorMessage(null);
       setPurchasingId(productId);
+      setIsPurchaseInProgress(true);
       
       const purchaseStartTime = Date.now();
       console.log(`[Purchase] Calling purchasePackage for ${productId} at ${new Date().toISOString()}`);
       
-      await Purchases.purchasePackage(pkg);
+      const purchasePromise = Purchases.purchasePackage(pkg);
+      // Remove spinner immediately so UI reverts while Apple sheet is visible
+      setPurchasingId(null);
+      setConnecting(false);
+      
+      await purchasePromise;
       
       const purchaseEndTime = Date.now();
       const totalTime = purchaseEndTime - startTime;
@@ -196,6 +226,7 @@ const AboutSupportScreen = () => {
       setErrorMessage(e?.message ?? 'Purchase failed. Please try again.');
     } finally {
       setPurchasingId(null);
+      setIsPurchaseInProgress(false);
     }
   };
 
