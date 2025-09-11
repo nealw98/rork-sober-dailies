@@ -378,11 +378,11 @@ export default function EveningReview() {
           </Text>
 
           <View style={styles.buttonContainer}>
-            <TouchableOpacity style={styles.primaryButton} onPress={handleEditReview}>
-              <Text style={styles.primaryButtonText}>Edit Review</Text>
+            <TouchableOpacity style={[styles.primaryButton, { flex: 0.9 }]} onPress={handleEditReview}>
+              <Text style={styles.primaryButtonText}>Go Back</Text>
             </TouchableOpacity>
             <TouchableOpacity 
-              style={styles.primaryButton}
+              style={[styles.primaryButton, { flex: 1.1 }]}
               onPress={() => setShowSavedReviews(true)}
             >
               <Text style={styles.primaryButtonText}>Saved Reviews</Text>
@@ -842,19 +842,18 @@ const styles = StyleSheet.create({
     fontWeight: adjustFontWeight('500'),
   },
   primaryButton: {
-    flex: 1,
     backgroundColor: Colors.light.tint,
-    paddingVertical: 12,
+    paddingVertical: 14,
+    paddingHorizontal: 18,
     borderRadius: 25,
     alignItems: 'center',
-    marginBottom: 16,
-    height: 48,
     justifyContent: 'center',
+    minWidth: 140,
   },
   primaryButtonText: {
     color: 'white',
-    fontSize: 14,
-    fontWeight: adjustFontWeight('500'),
+    fontSize: 16,
+    fontWeight: adjustFontWeight('600'),
   },
   shareButtonSolid: {
     backgroundColor: Colors.light.tint,

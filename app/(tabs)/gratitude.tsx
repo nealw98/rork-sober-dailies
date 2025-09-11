@@ -80,8 +80,9 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     padding: 16,
     marginBottom: 16,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.3)',
+    // match review: subtle thin outline
+    borderWidth: 0.5,
+    borderColor: 'rgba(0, 0, 0, 0.08)',
   },
   cardHeader: {
     flexDirection: 'row',
@@ -157,10 +158,10 @@ const styles = StyleSheet.create({
   textInput: {
     flex: 1,
     padding: 12,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.3)',
+    borderWidth: 0.5,
+    borderColor: 'rgba(255, 255, 255, 0.35)',
     borderRadius: 8,
-    backgroundColor: 'rgba(255, 255, 255, 0.5)',
+    backgroundColor: 'rgba(255, 255, 255, 0.8)',
     fontSize: 16,
     color: Colors.light.text,
     minHeight: 40,
@@ -191,10 +192,10 @@ const styles = StyleSheet.create({
   },
   gratitudeItem: {
     padding: 12,
-    backgroundColor: 'rgba(255, 255, 255, 0.3)',
+    backgroundColor: 'rgba(255, 255, 255, 0.5)',
     borderRadius: 8,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.5)',
+    borderWidth: 0.5,
+    borderColor: 'rgba(0, 0, 0, 0.06)',
     marginBottom: 8,
     flexDirection: 'row',
     alignItems: 'center',
@@ -310,19 +311,18 @@ const styles = StyleSheet.create({
     fontWeight: adjustFontWeight('500'),
   },
   primaryButton: {
-    flex: 1,
     backgroundColor: Colors.light.tint,
-    paddingVertical: 12,
+    paddingVertical: 14,
+    paddingHorizontal: 18,
     borderRadius: 25,
     alignItems: 'center',
-    marginBottom: 16,
-    height: 48,
     justifyContent: 'center',
+    minWidth: 140,
   },
   primaryButtonText: {
     color: 'white',
-    fontSize: 14,
-    fontWeight: adjustFontWeight('500'),
+    fontSize: 16,
+    fontWeight: adjustFontWeight('600'),
   },
   privacyText: {
     fontSize: 12,
@@ -639,14 +639,14 @@ export default function GratitudeListScreen() {
           </Text>
 
           <View style={styles.buttonContainer}>
-            <TouchableOpacity style={styles.primaryButton} onPress={handleEditGratitude}>
-              <Text style={styles.primaryButtonText}>Edit Gratitude List</Text>
+            <TouchableOpacity style={[styles.primaryButton, { flex: 0.9 }]} onPress={handleEditGratitude}>
+              <Text style={styles.primaryButtonText}>Go Back</Text>
             </TouchableOpacity>
             <TouchableOpacity 
-              style={styles.primaryButton}
+              style={[styles.primaryButton, { flex: 1.1 }]}
               onPress={() => setShowSavedEntries(true)}
             >
-              <Text style={styles.primaryButtonText}>View Saved Lists</Text>
+              <Text style={styles.primaryButtonText}>Saved Lists</Text>
             </TouchableOpacity>
           </View>
         </ScrollView>
@@ -699,7 +699,7 @@ export default function GratitudeListScreen() {
                 <TextInput
                   ref={inputRef}
                   style={styles.textInput}
-                  placeholder="e.g., My sobriety"
+                  placeholder={gratitudeItems.length === 0 ? "e.g., My sobriety" : ''}
                   placeholderTextColor={Colors.light.muted}
                   value={inputValue}
                   onChangeText={setInputValue}
