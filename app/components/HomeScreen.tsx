@@ -25,12 +25,7 @@ const HomeScreen = () => {
       start={{ x: 0, y: 0 }}
       end={{ x: 1, y: 1 }}
     >
-      <ScrollView
-        contentContainerStyle={styles.scrollContent}
-        bounces={false}
-        alwaysBounceVertical={false}
-        overScrollMode="never"
-      >
+      <ScrollView contentContainerStyle={styles.scrollContent}>
         {/* Hero Section */}
         <View style={styles.heroSection}>
           <SunIcon size={120} />

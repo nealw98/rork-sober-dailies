@@ -16,7 +16,7 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.nealwagner.soberdailies",
-      "buildNumber": "25",
+      "buildNumber": "26",
       "icon": "./assets/images/icon.png",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
@@ -33,6 +33,7 @@
       },
       "icon": "./assets/images/adaptive-icon.png",
       "permissions": [
+        "android.permission.VIBRATE",
         "android.permission.VIBRATE"
       ]
     },
@@ -87,7 +88,6 @@
         }
       ],
       "expo-web-browser",
-      
       [
         "expo-sqlite",
         {
@@ -107,6 +107,9 @@
     ],
     "experiments": {
       "typedRoutes": true
+    },
+    "updates": {
+      "url": "https://u.expo.dev/651e2e43-404d-47e3-94ac-695b4febd27a"
     }
   }
 }

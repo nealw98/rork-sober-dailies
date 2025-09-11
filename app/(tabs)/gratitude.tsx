@@ -161,7 +161,7 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(255, 255, 255, 0.3)',
     borderRadius: 8,
     backgroundColor: 'rgba(255, 255, 255, 0.5)',
-    fontSize: 14,
+    fontSize: 16,
     color: Colors.light.text,
     minHeight: 40,
     textAlignVertical: 'top',
@@ -200,7 +200,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   gratitudeItemText: {
-    fontSize: 14,
+    fontSize: 16,
     color: Colors.light.text,
     lineHeight: 20,
     flexShrink: 1,

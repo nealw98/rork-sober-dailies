@@ -12,6 +12,7 @@ import {
   Platform,
   Share,
   ActivityIndicator,
+  Modal,
 } from 'react-native';
 import Constants from 'expo-constants';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -20,6 +21,8 @@ import { adjustFontWeight } from '@/constants/fonts';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Colors from '@/constants/colors';
 import { Star, Share2 } from 'lucide-react-native';
+import { Logger } from '@/lib/logger';
+import * as Clipboard from 'expo-clipboard';
 import type { Offerings, PurchasesPackage } from 'react-native-purchases';
 let Purchases: any = null;
 try {
@@ -37,6 +40,8 @@ const AboutSupportScreen = () => {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [packagesById, setPackagesById] = useState<Record<string, PurchasesPackage>>({});
   const [isLoadingOfferings, setIsLoadingOfferings] = useState(true);
+  const [logsVisible, setLogsVisible] = useState(false);
+  const [logsText, setLogsText] = useState('');
   const insets = useSafeAreaInsets();
 
   const productIds = useMemo(() => ({
@@ -117,6 +122,16 @@ const AboutSupportScreen = () => {
     loadOfferings();
     return () => { mounted = false; };
   }, []);
+
+  // Update in-app logs when viewer is open
+  useEffect(() => {
+    if (!logsVisible) return;
+    setLogsText(Logger.toClipboardText());
+    const unsub = Logger.subscribe(() => {
+      setLogsText(Logger.toClipboardText());
+    });
+    return () => unsub();
+  }, [logsVisible]);
 
   // After ~2s of pending, show connecting hint
   useEffect(() => {
@@ -231,6 +246,18 @@ const AboutSupportScreen = () => {
     } catch (error) {
       // no-op
     }
+  };
+
+  const toggleLogs = () => setLogsVisible((v) => !v);
+  const copyLogs = async () => {
+    try {
+      await Clipboard.setStringAsync(Logger.toClipboardText());
+      Alert.alert('Copied', 'Logs copied to clipboard');
+    } catch {}
+  };
+  const clearLogs = () => {
+    Logger.clear();
+    setLogsText('');
   };
 
     const appVersion = Constants.expoConfig?.version ?? '—';
@@ -364,13 +391,38 @@ const AboutSupportScreen = () => {
               <Text style={styles.footerLink}>Support</Text>
             </TouchableOpacity>
           </View>
-          <Text style={styles.versionTextCentered}>
-            Version {appVersion}
-            {Platform.OS === 'ios' && iosBuild ? ` (${iosBuild})` : ''}
-            {Platform.OS === 'android' && androidVersionCode ? ` (${androidVersionCode})` : ''}
-          </Text>
+          <TouchableOpacity onLongPress={toggleLogs} activeOpacity={0.6}>
+            <Text style={styles.versionTextCentered}>
+              Version {appVersion}
+              {Platform.OS === 'ios' && iosBuild ? ` (${iosBuild})` : ''}
+              {Platform.OS === 'android' && androidVersionCode ? ` (${androidVersionCode})` : ''}
+            </Text>
+          </TouchableOpacity>
         </View>
       </View>
+      {/* Hidden in-app log viewer modal */}
+      <Modal visible={logsVisible} animationType="slide" onRequestClose={toggleLogs}>
+        <SafeAreaView style={{ flex: 1, backgroundColor: '#0b1220' }}>
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 12, paddingVertical: 8 }}>
+            <TouchableOpacity onPress={toggleLogs}>
+              <Text style={{ color: 'white', fontSize: 16 }}>Close</Text>
+            </TouchableOpacity>
+            <View style={{ flexDirection: 'row' }}>
+              <TouchableOpacity onPress={copyLogs} style={{ marginRight: 16 }}>
+                <Text style={{ color: 'white', fontSize: 16 }}>Copy</Text>
+              </TouchableOpacity>
+              <TouchableOpacity onPress={clearLogs}>
+                <Text style={{ color: 'white', fontSize: 16 }}>Clear</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+          <ScrollView contentContainerStyle={{ paddingHorizontal: 12, paddingBottom: 24 }} style={{ flex: 1 }}>
+            <Text style={{ color: '#c7d2fe', fontFamily: Platform.select({ ios: 'Menlo', android: 'monospace' }), fontSize: 12, lineHeight: 18 }}>
+              {logsText || 'No logs yet.'}
+            </Text>
+          </ScrollView>
+        </SafeAreaView>
+      </Modal>
     </SafeAreaView>
   );
 };

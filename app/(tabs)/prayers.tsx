@@ -201,9 +201,9 @@ const styles = StyleSheet.create({
     borderTopColor: Colors.light.divider,
   },
   prayerText: {
-    fontSize: 16,
+    fontSize: 18,
     color: Colors.light.text,
-    lineHeight: 24,
+    lineHeight: 28,
     marginBottom: 16,
   },
   italicText: {

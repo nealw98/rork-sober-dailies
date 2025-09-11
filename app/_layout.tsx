@@ -14,6 +14,7 @@ import { adjustFontWeight } from "@/constants/fonts";
 import Colors from "@/constants/colors";
 import WelcomeScreen from "@/components/WelcomeScreen";
 import { configurePurchases } from "@/lib/purchases";
+import { Logger } from "@/lib/logger";
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 console.log('🟢 SPLASH: Preventing auto-hide');
@@ -26,6 +27,8 @@ function RootLayoutNav() {
 
   useEffect(() => {
     try {
+      // Initialize in-app logger ASAP so it captures early logs
+      Logger.initialize();
       configurePurchases();
     } catch (e) {
       // noop
