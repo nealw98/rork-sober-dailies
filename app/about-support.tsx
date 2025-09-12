@@ -201,8 +201,12 @@ const AboutSupportScreen = () => {
       const purchaseStartTime = Date.now();
       console.log(`[Purchase] Calling purchasePackage for ${productId} at ${new Date().toISOString()}`);
       
-      // Keep spinner visible until the purchase resolves or is cancelled
-      await Purchases.purchasePackage(pkg);
+      // Hide spinner when Apple purchase sheet appears
+      const purchasePromise = Purchases.purchasePackage(pkg);
+      setPurchasingId(null);
+      setIsPurchaseInProgress(false);
+      
+      await purchasePromise;
       
       const purchaseEndTime = Date.now();
       const totalTime = purchaseEndTime - startTime;

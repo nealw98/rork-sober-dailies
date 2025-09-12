@@ -181,7 +181,12 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     color: Colors.light.text,
     textAlign: 'center',
-    paddingVertical: 4,
+    paddingVertical: 8,
+    minHeight: 40,
+    lineHeight: 20,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   noWrap: {
     flexShrink: 0,

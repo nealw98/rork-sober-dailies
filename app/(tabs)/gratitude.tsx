@@ -192,10 +192,10 @@ const styles = StyleSheet.create({
   },
   gratitudeItem: {
     padding: 12,
-    backgroundColor: 'rgba(255, 255, 255, 0.5)',
+    backgroundColor: 'rgba(255, 255, 255, 0.8)',
     borderRadius: 8,
     borderWidth: 0.5,
-    borderColor: 'rgba(0, 0, 0, 0.06)',
+    borderColor: 'rgba(255, 255, 255, 0.35)',
     marginBottom: 8,
     flexDirection: 'row',
     alignItems: 'center',
