@@ -45,6 +45,8 @@ const SimpleTextReader = ({ content, title, onClose, indentParagraphs = false, s
           const lines = content.split('\n');
           return lines.map((line, idx) => {
             const trimmed = line.trim();
+            // Detect numbered list like "1. Text..."
+            const numbered = trimmed.match(/^(\d+)\.\s+(.*)$/);
             const isKnownHeading = (
               trimmed === 'Opening' ||
               trimmed === 'Preamble' ||
@@ -60,6 +62,19 @@ const SimpleTextReader = ({ content, title, onClose, indentParagraphs = false, s
             if (trimmed.length === 0) {
               lastWasBlank = true;
               return <Text key={idx} style={styles.textContent}>{'\u00A0'}</Text>;
+            }
+            // Render numbered list item with hanging indent (no first-line indent)
+            if (numbered && !isKnownHeading) {
+              const label = `${numbered[1]}.`;
+              const text = numbered[2];
+              const labelWidth = Math.max(22, 16 + numbered[1].length * 8); // widen slightly for 2+ digits
+              lastWasBlank = false;
+              return (
+                <View key={idx} style={styles.numberRow}>
+                  <Text style={[styles.numberLabel, { width: labelWidth }]}>{label}</Text>
+                  <Text style={styles.numberText}>{text}</Text>
+                </View>
+              );
             }
             const prefix = indentParagraphs && lastWasBlank && !isKnownHeading ? '\u2003' : '';
             lastWasBlank = false;
@@ -129,6 +144,24 @@ const styles = StyleSheet.create({
     lineHeight: 30,
     color: Colors.light.text,
     fontWeight: adjustFontWeight('700')
+  },
+  numberRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+  },
+  numberLabel: {
+    textAlign: 'right',
+    marginRight: 8,
+    fontSize: 20,
+    lineHeight: 30,
+    color: Colors.light.text,
+    fontWeight: adjustFontWeight('600')
+  },
+  numberText: {
+    flex: 1,
+    fontSize: 20,
+    lineHeight: 30,
+    color: Colors.light.text,
   },
   sourceText: {
     marginTop: 16,
