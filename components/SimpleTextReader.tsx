@@ -49,6 +49,8 @@ const SimpleTextReader = ({ content, title, onClose, indentParagraphs = false, s
             const numbered = trimmed.match(/^(\d+)\.\s+(.*)$/);
             // Detect lettered list like "(a) Text..."
             const lettered = trimmed.match(/^\(([a-zA-Z])\)\s+(.*)$/);
+            // Detect bullet list like "* Text..." or "- Text..."
+            const bulleted = trimmed.match(/^[*-]\s+(.*)$/);
             const isKnownHeading = (
               trimmed === 'Opening' ||
               trimmed === 'Preamble' ||
@@ -83,6 +85,19 @@ const SimpleTextReader = ({ content, title, onClose, indentParagraphs = false, s
               const label = `(${lettered[1].toLowerCase()})`;
               const text = lettered[2];
               const labelWidth = 32; // accommodate "(a)"
+              lastWasBlank = false;
+              return (
+                <View key={idx} style={styles.numberRow}>
+                  <Text style={[styles.numberLabel, { width: labelWidth }]}>{label}</Text>
+                  <Text style={styles.numberText}>{text}</Text>
+                </View>
+              );
+            }
+            // Render bulleted list item with hanging indent (no first-line indent)
+            if (bulleted && !isKnownHeading) {
+              const label = '\u2022'; // bullet •
+              const text = bulleted[1];
+              const labelWidth = 22;
               lastWasBlank = false;
               return (
                 <View key={idx} style={styles.numberRow}>
