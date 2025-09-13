@@ -16,9 +16,10 @@ interface SimpleTextReaderProps {
   content: string;
   title: string;
   onClose: () => void;
+  indentParagraphs?: boolean;
 }
 
-const SimpleTextReader = ({ content, title, onClose }: SimpleTextReaderProps) => {
+const SimpleTextReader = ({ content, title, onClose, indentParagraphs = false }: SimpleTextReaderProps) => {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
@@ -38,29 +39,36 @@ const SimpleTextReader = ({ content, title, onClose }: SimpleTextReaderProps) =>
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.contentContainer}
       >
-        {content.split('\n').map((line, idx) => {
-          const trimmed = line.trim();
-          const isKnownHeading = (
-            trimmed === 'Opening' ||
-            trimmed === 'Preamble' ||
-            trimmed === 'Readings' ||
-            trimmed === 'Introductions & Newcomers' ||
-            trimmed === 'Announcements' ||
-            trimmed === 'Meeting Format' ||
-            trimmed === 'Discussion / Speaker' ||
-            trimmed === 'Seventh Tradition' ||
-            trimmed === 'Closing' ||
-            trimmed === 'Anonymity Statement'
-          );
-          if (trimmed.length === 0) {
-            return <Text key={idx} style={styles.textContent}>{'\u00A0'}</Text>;
-          }
-          return (
-            <Text key={idx} style={isKnownHeading ? styles.headingText : styles.textContent}>
-              {trimmed.replace(/^\*\*|\*\*$/g, '')}
-            </Text>
-          );
-        })}
+        {(() => {
+          let lastWasBlank = true;
+          const lines = content.split('\n');
+          return lines.map((line, idx) => {
+            const trimmed = line.trim();
+            const isKnownHeading = (
+              trimmed === 'Opening' ||
+              trimmed === 'Preamble' ||
+              trimmed === 'Readings' ||
+              trimmed === 'Introductions & Newcomers' ||
+              trimmed === 'Announcements' ||
+              trimmed === 'Meeting Format' ||
+              trimmed === 'Discussion / Speaker' ||
+              trimmed === 'Seventh Tradition' ||
+              trimmed === 'Closing' ||
+              trimmed === 'Anonymity Statement'
+            );
+            if (trimmed.length === 0) {
+              lastWasBlank = true;
+              return <Text key={idx} style={styles.textContent}>{'\u00A0'}</Text>;
+            }
+            const prefix = indentParagraphs && lastWasBlank && !isKnownHeading ? '\u2003\u2003' : '';
+            lastWasBlank = false;
+            return (
+              <Text key={idx} style={isKnownHeading ? styles.headingText : styles.textContent}>
+                {prefix}{trimmed.replace(/^\*\*|\*\*$/g, '')}
+              </Text>
+            );
+          });
+        })()}
       </ScrollView>
     </SafeAreaView>
   );

@@ -148,6 +148,7 @@ function MeetingPocketBrowserContent() {
           <SimpleTextReader
             content={currentReading.content}
             title={currentReading.title}
+            indentParagraphs={currentReading.id !== 'generic-format'}
             onClose={() => {
               console.log('Text Reader onClose called');
               setTextReaderVisible(false);
