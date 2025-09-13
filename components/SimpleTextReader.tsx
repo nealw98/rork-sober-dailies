@@ -47,6 +47,8 @@ const SimpleTextReader = ({ content, title, onClose, indentParagraphs = false, s
             const trimmed = line.trim();
             // Detect numbered list like "1. Text..."
             const numbered = trimmed.match(/^(\d+)\.\s+(.*)$/);
+            // Detect lettered list like "(a) Text..."
+            const lettered = trimmed.match(/^\(([a-zA-Z])\)\s+(.*)$/);
             const isKnownHeading = (
               trimmed === 'Opening' ||
               trimmed === 'Preamble' ||
@@ -68,6 +70,19 @@ const SimpleTextReader = ({ content, title, onClose, indentParagraphs = false, s
               const label = `${numbered[1]}.`;
               const text = numbered[2];
               const labelWidth = Math.max(22, 16 + numbered[1].length * 8); // widen slightly for 2+ digits
+              lastWasBlank = false;
+              return (
+                <View key={idx} style={styles.numberRow}>
+                  <Text style={[styles.numberLabel, { width: labelWidth }]}>{label}</Text>
+                  <Text style={styles.numberText}>{text}</Text>
+                </View>
+              );
+            }
+            // Render lettered list item with hanging indent (no first-line indent)
+            if (lettered && !isKnownHeading) {
+              const label = `(${lettered[1].toLowerCase()})`;
+              const text = lettered[2];
+              const labelWidth = 32; // accommodate "(a)"
               lastWasBlank = false;
               return (
                 <View key={idx} style={styles.numberRow}>
