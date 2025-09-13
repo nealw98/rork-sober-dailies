@@ -17,9 +17,10 @@ interface SimpleTextReaderProps {
   title: string;
   onClose: () => void;
   indentParagraphs?: boolean;
+  source?: string;
 }
 
-const SimpleTextReader = ({ content, title, onClose, indentParagraphs = false }: SimpleTextReaderProps) => {
+const SimpleTextReader = ({ content, title, onClose, indentParagraphs = false, source }: SimpleTextReaderProps) => {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
@@ -60,7 +61,7 @@ const SimpleTextReader = ({ content, title, onClose, indentParagraphs = false }:
               lastWasBlank = true;
               return <Text key={idx} style={styles.textContent}>{'\u00A0'}</Text>;
             }
-            const prefix = indentParagraphs && lastWasBlank && !isKnownHeading ? '\u2003\u2003' : '';
+            const prefix = indentParagraphs && lastWasBlank && !isKnownHeading ? '\u2003' : '';
             lastWasBlank = false;
             return (
               <Text key={idx} style={isKnownHeading ? styles.headingText : styles.textContent}>
@@ -69,6 +70,9 @@ const SimpleTextReader = ({ content, title, onClose, indentParagraphs = false }:
             );
           });
         })()}
+        {source ? (
+          <Text style={styles.sourceText}>{source}</Text>
+        ) : null}
       </ScrollView>
     </SafeAreaView>
   );
@@ -125,6 +129,12 @@ const styles = StyleSheet.create({
     lineHeight: 30,
     color: Colors.light.text,
     fontWeight: adjustFontWeight('700')
+  },
+  sourceText: {
+    marginTop: 16,
+    fontSize: 14,
+    color: Colors.light.muted,
+    fontStyle: 'italic'
   }
 });
 

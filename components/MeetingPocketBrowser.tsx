@@ -77,9 +77,6 @@ const ReadingItem = ({ reading, onOpenContent }: {
     >
       <View style={styles.readingInfo}>
         <Text style={styles.readingTitle}>{reading.title}</Text>
-        {reading.source && (
-          <Text style={styles.readingSource}>{reading.source}</Text>
-        )}
       </View>
       <View style={styles.readingIcons}>
         <FileText size={20} color={Colors.light.muted} />
@@ -148,6 +145,7 @@ function MeetingPocketBrowserContent() {
           <SimpleTextReader
             content={currentReading.content}
             title={currentReading.title}
+            source={currentReading.source}
             indentParagraphs={currentReading.id !== 'generic-format'}
             onClose={() => {
               console.log('Text Reader onClose called');
