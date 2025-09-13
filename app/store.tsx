@@ -1,11 +1,12 @@
 import React, { useEffect, useState, useCallback, useMemo } from "react";
 import { ActivityIndicator, Alert, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
-import Purchases, {
-  CustomerInfo,
-  Offerings,
-  PurchasesPackage,
-  PurchaseResult,
-} from "react-native-purchases";
+import type { CustomerInfo, PurchasesPackage } from "react-native-purchases";
+import { 
+  fetchPackages as rcFetchPackages,
+  purchasePackage as rcPurchasePackage,
+  restorePurchasesSafe,
+  getCustomerInfoSafe,
+} from "@/lib/purchases";
 
 export default function StoreScreen() {
   // -------- State --------
@@ -19,9 +20,7 @@ export default function StoreScreen() {
   const load = useCallback(async () => {
     try {
       setLoading(true);
-      const offs: Offerings = await Purchases.getOfferings();
-      const current = offs.current;
-      const allPkgs = current?.availablePackages ?? [];
+      const allPkgs = await rcFetchPackages();
 
       // Filter to your StoreKit IDs:
       const wanted = new Set(["Tier1", "Tier2", "Tier3"]);
@@ -60,9 +59,11 @@ export default function StoreScreen() {
     try {
       setPurchasingId(pkg.storeProduct.identifier);
       setErrorMessage(null);
-      const result: PurchaseResult = await Purchases.purchasePackage(pkg);
-      // Success: keep silent; process entitlements if needed later
-      onCustomerInfoUpdated(result.customerInfo);
+      const ok = await rcPurchasePackage(pkg);
+      if (ok) {
+        const info = await getCustomerInfoSafe();
+        if (info) onCustomerInfoUpdated(info);
+      }
     } catch (e: any) {
       if (e?.userCancelled) return;
       // Minimal, non-blocking error
@@ -74,7 +75,8 @@ export default function StoreScreen() {
 
   const handleRestore = async () => {
     try {
-      const info: CustomerInfo = await Purchases.restorePurchases();
+      const info: CustomerInfo | null = await restorePurchasesSafe();
+      if (!info) throw new Error('Store unavailable');
       onCustomerInfoUpdated(info);
       // FYI: Restoring **consumables** won’t re-grant old tips. That’s expected.
       Alert.alert("Restored", "Restored eligible purchases (non-consumables/subscriptions).");

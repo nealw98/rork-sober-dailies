@@ -15,7 +15,7 @@ import Colors from "@/constants/colors";
 import WelcomeScreen from "@/components/WelcomeScreen";
 import { configurePurchases } from "@/lib/purchases";
 import { Logger } from "@/lib/logger";
-import * as Updates from 'expo-updates';
+// Lazy-load expo-updates to avoid crashes in environments without the native module (e.g., Expo Go)
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 console.log('🟢 SPLASH: Preventing auto-hide');
@@ -31,9 +31,10 @@ function RootLayoutNav() {
       // Initialize in-app logger ASAP so it captures early logs
       Logger.initialize();
       configurePurchases();
-      // OTA diagnostics
+      // OTA diagnostics (safe in dev/simulator)
       (async () => {
         try {
+          const Updates = await import('expo-updates');
           console.log('[OTA] moduleLoaded=', !!Updates && typeof Updates.checkForUpdateAsync === 'function');
           const runtimeVersion = Updates.runtimeVersion;
           const url = (Updates as any)?.updateUrl ?? (Updates as any)?.manifest?.extra?.expoClient?.updates?.url ?? 'unknown';
@@ -46,7 +47,6 @@ function RootLayoutNav() {
           if (result.isAvailable) {
             const fetched = await Updates.fetchUpdateAsync({ requestHeaders: { 'expo-channel-name': 'production' } as any });
             console.log('[OTA] fetchUpdate:', { isNew: fetched.isNew, manifest: !!fetched?.manifest });
-            // Do not auto-reload; just report availability so testers can relaunch manually
           }
         } catch (e: any) {
           console.log('[OTA] error', e?.message || String(e));

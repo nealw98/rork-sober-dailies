@@ -76,4 +76,14 @@ export async function purchasePackage(pkg: PurchasesNamespace.PurchasesPackage):
   }
 }
 
+export async function restorePurchasesSafe(): Promise<PurchasesNamespace.CustomerInfo | null> {
+  const Purchases = getPurchasesSafe();
+  if (!Purchases) return null;
+  try {
+    return await Purchases.restorePurchases();
+  } catch {
+    return null;
+  }
+}
+
 
