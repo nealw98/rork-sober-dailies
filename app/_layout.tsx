@@ -78,6 +78,15 @@ function RootLayoutNav() {
     hideSplashScreen();
   }, [hideSplashScreen]);
 
+  // Hard fallback: ensure splash is hidden after a short delay to avoid blank screen on simulators
+  useEffect(() => {
+    if (!__DEV__) return;
+    const timeout = setTimeout(() => {
+      SplashScreen.hideAsync().catch(() => {});
+    }, 2500);
+    return () => clearTimeout(timeout);
+  }, []);
+
   // Render different screens based on state
   console.log('🟢 SPLASH: Rendering decision - isLoading:', isLoading, 'isOnboardingComplete:', isOnboardingComplete);
   if (isLoading) {
