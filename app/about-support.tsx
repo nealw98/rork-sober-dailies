@@ -48,7 +48,7 @@ const AboutSupportScreen = () => {
   const productIds = useMemo(() => ({
     1.99: Platform.select({ ios: 'Tier1', android: 'Tier1' }),
     4.99: Platform.select({ ios: 'Tier2', android: 'Tier2' }),
-    8.99: Platform.select({ ios: 'Tier3', android: 'Tier3' }),
+    7.99: Platform.select({ ios: 'Tier3', android: 'Tier3' }),
   }), []);
 
   // Preload offerings/prices on mount so purchase can be immediate
@@ -390,7 +390,7 @@ const AboutSupportScreen = () => {
 
             <TouchableOpacity
               style={styles.supportButton}
-              onPress={() => handleTipPress(8.99)}
+              onPress={() => handleTipPress(7.99)}
               disabled={purchasingId === 'Tier3'}
             >
               {purchasingId === 'Tier3' ? (
@@ -403,7 +403,7 @@ const AboutSupportScreen = () => {
                 </View>
               ) : (
                 <Text style={styles.supportButtonText}>
-                  Keep it Free — {packagesById['Tier3']?.storeProduct?.priceString ?? '$8.99'}
+                  Help it Grow — {packagesById['Tier3']?.storeProduct?.priceString ?? '$7.99'}
                 </Text>
               )}
             </TouchableOpacity>
