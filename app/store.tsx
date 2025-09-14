@@ -128,7 +128,9 @@ export default function StoreScreen() {
               </View>
             ) : (
               <Text style={styles.contributionText}>
-                {friendlyTitle(pkg.storeProduct.identifier)} — {pkg.storeProduct.priceString}
+                {pkg.storeProduct.identifier === "Tier3"
+                  ? "Help it Grow — $7.99"
+                  : `${friendlyTitle(pkg.storeProduct.identifier)} — ${pkg.storeProduct.priceString}`}
               </Text>
             )}
           </TouchableOpacity>
@@ -164,7 +166,7 @@ function friendlyTitle(id: string) {
     case "Tier2":
       return "Support the App";
     case "Tier3":
-      return "Keep it Free";
+      return "Help it Grow";
     default:
       return id;
   }
