@@ -3,7 +3,7 @@
 ## Channels and runtime policy
 
 - Channel: `production`
-- Runtime policy: `{ "policy": "appVersion" }`
+- Runtime: fixed string `1.8.3` (bare workflow requires explicit runtimeVersion)
 - Current app version/runtime: `1.8.3`
 
 ## Build profiles
