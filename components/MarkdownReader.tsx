@@ -19,6 +19,7 @@ import Colors from '@/constants/colors';
 import { adjustFontWeight } from '@/constants/fonts';
 import { CustomTextRenderer } from './CustomTextRenderer';
 import { getChapterPages, findPageIndex, PageItem } from '@/constants/bigbook/content';
+import { useLastPageStore } from '@/hooks/use-last-page-store';
 
 // Extend PageItem type to include startPosition
 interface ExtendedPageItem extends PageItem {
@@ -59,6 +60,12 @@ const MarkdownReader = ({
   const pageRefs = useRef<{ [pageNumber: string]: View | null }>({});
   const pageYPositions = useRef<{ [pageNumber: string]: number }>({});
   const currentOffsetYRef = useRef<number>(0);
+  
+  // Page tracking for last page feature
+  const { saveLastPage } = useLastPageStore();
+  const currentPageRef = useRef<number | null>(null);
+  const dwellTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const lastScrollTimeRef = useRef<number>(0);
 
   // Measure the anchor against the ScrollView and correct if needed (Android-only)
   const verifyAndCorrectPosition = () => {
@@ -117,6 +124,48 @@ const MarkdownReader = ({
       index,
     };
   }, []);
+
+  // Page tracking function for last page feature
+  const trackCurrentPage = useCallback((scrollY: number) => {
+    let currentPage: number | null = null;
+    
+    // Find the current page based on scroll position
+    for (const [pageNumber, yPosition] of Object.entries(pageYPositions.current)) {
+      const pageNum = parseInt(pageNumber.replace('page-', ''), 10);
+      if (scrollY >= yPosition - 100) {
+        currentPage = pageNum;
+      }
+    }
+    
+    // Only save if we have a valid page and it's different from the last saved page
+    if (currentPage && currentPage !== currentPageRef.current) {
+      currentPageRef.current = currentPage;
+      lastScrollTimeRef.current = Date.now();
+      
+      // Clear existing timer
+      if (dwellTimerRef.current) {
+        clearTimeout(dwellTimerRef.current);
+      }
+      
+      // Set new timer for 600ms dwell time
+      dwellTimerRef.current = setTimeout(() => {
+        if (currentPageRef.current === currentPage) {
+          console.log(`📍 Tracking page ${currentPage} for Big Book`);
+          saveLastPage(currentPage);
+        }
+      }, 600);
+    }
+  }, [saveLastPage]);
+
+  // Cleanup timer on unmount
+  useEffect(() => {
+    return () => {
+      if (dwellTimerRef.current) {
+        clearTimeout(dwellTimerRef.current);
+      }
+    };
+  }, []);
+
   const flatListRef = useRef<FlatList>(null);
 
   // Clean content by removing any HTML that might have been added
@@ -507,7 +556,9 @@ const MarkdownReader = ({
             showsVerticalScrollIndicator={false}
             contentContainerStyle={styles.contentContainer}
             onScroll={(e: any) => {
-              currentOffsetYRef.current = e.nativeEvent.contentOffset.y;
+              const scrollY = e.nativeEvent.contentOffset.y;
+              currentOffsetYRef.current = scrollY;
+              trackCurrentPage(scrollY);
             }}
             scrollEventThrottle={16}
           >
@@ -535,7 +586,9 @@ const MarkdownReader = ({
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.contentContainer}
           onScroll={(e: any) => {
-            currentOffsetYRef.current = e.nativeEvent.contentOffset.y;
+            const scrollY = e.nativeEvent.contentOffset.y;
+            currentOffsetYRef.current = scrollY;
+            trackCurrentPage(scrollY);
           }}
           scrollEventThrottle={16}
         >

@@ -323,6 +323,53 @@ function BigBookBrowserContent() {
     setTimeout(() => setClearSearch(false), 100);
   }, []);
 
+  const handleLastPagePress = useCallback((pageNumber: number) => {
+    console.log('🟢 BigBookBrowser: Jumping to last page:', pageNumber);
+    
+    // Validate page number (same validation as handleSubmitPage)
+    if (pageNumber < 1 || (pageNumber > 164 && pageNumber < 567) || pageNumber > 568) {
+      // If invalid, treat as page 1 (no toast as per requirements)
+      pageNumber = 1;
+    }
+    
+    const navigationResult = navigateToPageWithHighlight(pageNumber);
+    if (navigationResult && navigationResult.success) {
+      const chapter = bigBookData.flatMap(cat => cat.sections).find(sec => sec.pages && pageNumber >= parseInt(sec.pages.split('-')[0], 10) && pageNumber <= parseInt(sec.pages.split('-')[1], 10));
+      setCurrentMarkdown({
+        content: navigationResult.content,
+        title: chapter ? chapter.title : `Big Book`,
+        id: 'last-page-navigation',
+        initialScrollPosition: navigationResult.scrollPosition || 0,
+        targetPageNumber: navigationResult.targetPageMarker || String(pageNumber),
+        searchHighlight: {
+          query: '',
+          position: 0,
+          length: 0
+        }
+      });
+      setMarkdownReaderVisible(true);
+    } else {
+      // If page not found, treat as page 1 (no toast as per requirements)
+      const fallbackResult = navigateToPageWithHighlight(1);
+      if (fallbackResult && fallbackResult.success) {
+        const chapter = bigBookData.flatMap(cat => cat.sections).find(sec => sec.pages && 1 >= parseInt(sec.pages.split('-')[0], 10) && 1 <= parseInt(sec.pages.split('-')[1], 10));
+        setCurrentMarkdown({
+          content: fallbackResult.content,
+          title: chapter ? chapter.title : `Big Book`,
+          id: 'last-page-navigation',
+          initialScrollPosition: fallbackResult.scrollPosition || 0,
+          targetPageNumber: fallbackResult.targetPageMarker || '1',
+          searchHighlight: {
+            query: '',
+            position: 0,
+            length: 0
+          }
+        });
+        setMarkdownReaderVisible(true);
+      }
+    }
+  }, []);
+
   const handleGoToPage = useCallback(() => {
     console.log('🟢 BigBookBrowser: Go to Page button pressed');
     setPageInputVisible(true);
@@ -473,6 +520,7 @@ function BigBookBrowserContent() {
           visible={pageInputVisible}
           onClose={() => setPageInputVisible(false)}
           onSubmit={handleSubmitPage}
+          onLastPagePress={handleLastPagePress}
         />
       )}
     </View>
