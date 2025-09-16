@@ -6,7 +6,6 @@ import {
   TouchableOpacity,
   ScrollView,
   SafeAreaView,
-  Image,
   Alert,
   Linking,
   Platform,
@@ -46,9 +45,8 @@ const AboutSupportScreen = () => {
   const insets = useSafeAreaInsets();
 
   const productIds = useMemo(() => ({
-    1.99: Platform.select({ ios: 'Tier1', android: 'Tier1' }),
-    4.99: Platform.select({ ios: 'Tier2', android: 'Tier2' }),
-    7.99: Platform.select({ ios: 'Tier3', android: 'Tier3' }),
+    1.99: Platform.select({ ios: 'support_monthly', android: 'support_monthly' }),
+    19.99: Platform.select({ ios: 'support_yearly', android: 'support_yearly' }),
   }), []);
 
   // Preload offerings/prices on mount so purchase can be immediate
@@ -81,14 +79,14 @@ const AboutSupportScreen = () => {
         console.log(`[Offerings] Found ${allPkgs.length} total packages`);
         console.log('[Offerings] All packages:', allPkgs.map((p: any) => ({ pkgId: p.identifier, storeId: p.storeProduct?.identifier, price: p.storeProduct?.price })));
 
-        // Prefer RevenueCat package identifiers (Tier1, Tier2, Tier3). If not present, fall back by price rank.
-        const wanted = new Set(['Tier1', 'Tier2', 'Tier3']);
+        // Look for our specific subscription products
+        const wanted = new Set(['support_monthly', 'support_yearly']);
         let filtered: PurchasesPackage[] = allPkgs.filter((p: any) => wanted.has(p.identifier));
         let usingFallback = false;
         if (filtered.length === 0 && allPkgs.length > 0) {
           usingFallback = true;
-          filtered = [...allPkgs].sort((a: any, b: any) => (a.storeProduct?.price ?? 0) - (b.storeProduct?.price ?? 0)).slice(0, 3);
-          console.log('[Offerings] Fallback mapping by price rank due to missing Tier1-3 package identifiers');
+          filtered = [...allPkgs].sort((a: any, b: any) => (a.storeProduct?.price ?? 0) - (b.storeProduct?.price ?? 0)).slice(0, 2);
+          console.log('[Offerings] Fallback mapping by price rank due to missing support_monthly/support_yearly package identifiers');
         }
         console.log(`[Offerings] Filtered to ${filtered.length} wanted packages:`, filtered.map((p: any) => `${p.identifier}:${p.storeProduct?.identifier}`));
 
@@ -96,7 +94,7 @@ const AboutSupportScreen = () => {
         if (!usingFallback) {
           filtered.forEach((p: any) => { byId[p.identifier] = p; });
         } else {
-          const keys = ['Tier1', 'Tier2', 'Tier3'];
+          const keys = ['support_monthly', 'support_yearly'];
           filtered.forEach((p: any, idx: number) => { byId[keys[idx]] = p; });
         }
         
@@ -249,6 +247,33 @@ const AboutSupportScreen = () => {
     Linking.openURL('mailto:support@soberdailies.com');
   };
 
+  const handleRestorePurchases = async () => {
+    try {
+      if (!Purchases) {
+        setErrorMessage('RevenueCat not available in this environment');
+        return;
+      }
+      
+      setErrorMessage(null);
+      console.log('[Restore] Starting restore purchases');
+      
+      const customerInfo = await Purchases.restorePurchases();
+      console.log('[Restore] Restore completed successfully');
+      
+      // Check if user has any active subscriptions
+      const hasActiveSubscription = Object.keys(customerInfo.entitlements.active).length > 0;
+      
+      if (hasActiveSubscription) {
+        Alert.alert('Success', 'Your purchases have been restored successfully!');
+      } else {
+        Alert.alert('No Purchases Found', 'No previous purchases were found to restore.');
+      }
+    } catch (error: any) {
+      console.log('[Restore] Error:', error?.message);
+      setErrorMessage(error?.message ?? 'Failed to restore purchases. Please try again.');
+    }
+  };
+
   const handleRateAppPress = async () => {
     try {
       if (Platform.OS === 'ios') {
@@ -331,92 +356,75 @@ const AboutSupportScreen = () => {
       />
 
       <View style={styles.contentContainer}>
-        <ScrollView contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + 96 }]}>
-          {/* Profile */}
-          <View style={styles.photoContainer}>
-            <Image
-              source={require('@/assets/images/about_neal.png')}
-              style={styles.profilePhoto}
-            />
-          </View>
+        <ScrollView contentContainerStyle={[styles.scrollContent, { paddingTop: 40, paddingBottom: insets.bottom + 96 }]}>
 
-          {/* Intro */}
-          <View style={styles.introContainer}>
-            <Text style={styles.introText}>
-              I built Sober Dailies as a simple way to practice the daily actions that keep me sober. Your support helps me cover the costs and keep it free for everyone who needs it.
+          {/* Support Description */}
+          <View style={styles.supportDescriptionContainer}>
+            <Text style={styles.supportDescriptionText}>
+              Supporting the app helps me keep it running smoothly and add new features.
             </Text>
           </View>
 
           <View style={styles.supportContainer}>
             <TouchableOpacity
-              style={styles.supportButton}
+              style={styles.subscriptionButton}
               onPress={() => handleTipPress(1.99)}
-              disabled={purchasingId === 'Tier1'}
+              disabled={purchasingId === 'support_monthly'}
             >
-              {purchasingId === 'Tier1' ? (
+              {purchasingId === 'support_monthly' ? (
                 <View style={{ alignItems: 'center' }}>
                   <ActivityIndicator />
-                  <Text style={styles.supportButtonText}>Opening Apple…</Text>
+                  <Text style={styles.subscriptionButtonText}>Opening Apple…</Text>
                   {connecting ? (
                     <Text style={styles.supportSubtext}>Connecting to App Store…</Text>
                   ) : null}
                 </View>
               ) : (
-                <Text style={styles.supportButtonText}>
-                  Show your appreciation — {packagesById['Tier1']?.storeProduct?.priceString ?? '$1.99'}
-                </Text>
+                <Text style={styles.subscriptionButtonText}>$1.99 / month</Text>
               )}
             </TouchableOpacity>
 
             <TouchableOpacity
-              style={styles.supportButton}
-              onPress={() => handleTipPress(4.99)}
-              disabled={purchasingId === 'Tier2'}
+              style={styles.subscriptionButton}
+              onPress={() => handleTipPress(19.99)}
+              disabled={purchasingId === 'support_yearly'}
             >
-              {purchasingId === 'Tier2' ? (
+              {purchasingId === 'support_yearly' ? (
                 <View style={{ alignItems: 'center' }}>
                   <ActivityIndicator />
-                  <Text style={styles.supportButtonText}>Opening Apple…</Text>
+                  <Text style={styles.subscriptionButtonText}>Opening Apple…</Text>
                   {connecting ? (
                     <Text style={styles.supportSubtext}>Connecting to App Store…</Text>
                   ) : null}
                 </View>
               ) : (
-                <Text style={styles.supportButtonText}>
-                  Support the App — {packagesById['Tier2']?.storeProduct?.priceString ?? '$4.99'}
-                </Text>
+                <Text style={styles.subscriptionButtonText}>$19.99 / year</Text>
               )}
             </TouchableOpacity>
 
-            <TouchableOpacity
-              style={styles.supportButton}
-              onPress={() => handleTipPress(7.99)}
-              disabled={purchasingId === 'Tier3'}
-            >
-              {purchasingId === 'Tier3' ? (
-                <View style={{ alignItems: 'center' }}>
-                  <ActivityIndicator />
-                  <Text style={styles.supportButtonText}>Opening Apple…</Text>
-                  {connecting ? (
-                    <Text style={styles.supportSubtext}>Connecting to App Store…</Text>
-                  ) : null}
-                </View>
-              ) : (
-                <Text style={styles.supportButtonText}>
-                  Help it Grow — {packagesById['Tier3']?.storeProduct?.priceString ?? '$7.99'}
-                </Text>
-              )}
+            <TouchableOpacity style={styles.restoreButton} onPress={handleRestorePurchases}>
+              <Text style={styles.restoreButtonText}>Restore Purchases</Text>
             </TouchableOpacity>
 
-            <Text style={styles.supportNote}>
-              Contributions are optional and don't unlock features.
-            </Text>
             {errorMessage ? (
               <Text style={styles.inlineError}>{errorMessage}</Text>
             ) : null}
           </View>
 
-          {/* Rate / Share actions (below disclaimer) */}
+          {/* About Sober Dailies Section */}
+          <View style={styles.aboutSection}>
+            <Text style={styles.aboutTitle}>About Sober Dailies</Text>
+            <Text style={styles.aboutText}>
+              Hi friends,{"\n\n"}
+              I built Sober Dailies because I needed a way to be more consistent with my own recovery practices.  I needed something simple that would walk me through my daily habits.  I wanted all the tools I use—daily reflection, gratitude list, nightly review, and sponsor-style support—in one place I could carry in my pocket.{"\n\n"}
+              This app has grown beyond just me, and I'm grateful to share it with anyone who finds it helpful.{"\n\n"}
+              Your contribution here is completely voluntary and goes toward keeping the app running smoothly—covering development costs and investing in future updates and improvements. My hope is to keep the core features free for anyone who wants to use them, but I have some ideas for future features that might only be available to people with a subscription.  But the basics will always be free.{"\n\n"}
+              Whether or not you subscribe, I'm just glad you're here and that the app supports your journey.{"\n\n"}
+              — Neal
+            </Text>
+          </View>
+
+          {/* Rate / Share actions (below about section) */}
           <View style={styles.actionsRow}>
             <TouchableOpacity style={styles.actionPill} onPress={handleRateAppPress}>
               <Star size={16} color={'white'} style={styles.pillIcon} />
@@ -508,16 +516,6 @@ const styles = StyleSheet.create({
     top: 0,
     bottom: 0,
   },
-  photoContainer: {
-    alignItems: 'center',
-    marginTop: 16,
-    marginBottom: 12,
-  },
-  profilePhoto: {
-    width: 112,
-    height: 112,
-    borderRadius: 56,
-  },
   nameText: {
     marginTop: 12,
     fontSize: 18,
@@ -529,11 +527,11 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#556',
   },
-  introContainer: {
+  supportDescriptionContainer: {
     paddingHorizontal: 24,
     marginBottom: 24,
   },
-  introText: {
+  supportDescriptionText: {
     fontSize: 18,
     color: '#333',
     lineHeight: 26,
@@ -547,39 +545,58 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     marginBottom: 24,
   },
-  supportButton: {
-    backgroundColor: '#E8F4F8',
-    borderRadius: 25,
+  subscriptionButton: {
+    backgroundColor: '#4A90E2',
+    borderRadius: 12,
     paddingVertical: 16,
     paddingHorizontal: 24,
-    marginBottom: 20,
-    flexDirection: 'row',
+    marginBottom: 16,
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: '#D1E7ED',
     shadowColor: '#000',
-    shadowOpacity: 0.04,
+    shadowOpacity: 0.15,
     shadowRadius: 6,
     shadowOffset: { width: 0, height: 2 },
-    elevation: 1,
+    elevation: 3,
   },
-  supportButtonText: {
-    fontSize: 16,
+  subscriptionButtonText: {
+    fontSize: 18,
     fontWeight: adjustFontWeight('600'),
-    color: '#333',
+    color: 'white',
+  },
+  restoreButton: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 12,
+    marginBottom: 16,
+  },
+  restoreButtonText: {
+    fontSize: 16,
+    color: '#4A90E2',
+    fontWeight: adjustFontWeight('500'),
+    textDecorationLine: 'underline',
   },
   supportSubtext: {
     fontSize: 12,
     color: '#6c757d',
     marginTop: 2,
   },
-  supportNote: {
-    fontSize: 14,
-    color: '#6c757d',
+  aboutSection: {
+    paddingHorizontal: 24,
+    marginBottom: 24,
+  },
+  aboutTitle: {
+    fontSize: 28,
+    fontWeight: adjustFontWeight('bold'),
+    color: '#333',
+    marginBottom: 24,
     textAlign: 'center',
-    marginTop: 8,
-    fontStyle: 'italic',
+  },
+  aboutText: {
+    fontSize: 16,
+    color: '#333',
+    lineHeight: 24,
+    textAlign: 'left',
   },
   inlineError: {
     fontSize: 12,

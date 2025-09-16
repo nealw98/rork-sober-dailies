@@ -124,15 +124,13 @@ const HomeScreen = () => {
         </TouchableOpacity>
         </View>
 
-        {/* Footer: Support the App (flat, full-width) */}
-        <View style={styles.footerContainer}>
-          <Text style={styles.footerTitle}>Support the App</Text>
-          <Text style={styles.footerSubtitle}>Your support helps keep it free for everyone.</Text>
-          <TouchableOpacity onPress={() => router.push('/about-support')}>
-            <Text style={styles.footerCta}>Make a contribution</Text>
-          </TouchableOpacity>
-          <View style={styles.footerBottomSpacer} />
-        </View>
+        {/* Support the App Button */}
+        <TouchableOpacity 
+          style={styles.supportButton}
+          onPress={() => router.push('/about-support')}
+        >
+          <Text style={styles.supportButtonText}>Support the App</Text>
+        </TouchableOpacity>
       </ScrollView>
     </LinearGradient>
   );
@@ -294,51 +292,25 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     marginHorizontal: 16,
   },
-  footerContainer: {
+  supportButton: {
+    backgroundColor: '#4A90E2',
+    borderRadius: 12,
+    padding: 16,
+    marginHorizontal: 16,
+    marginTop: 20,
+    marginBottom: 30,
     alignItems: 'center',
-    justifyContent: 'center',
-    paddingTop: 20,
-    paddingBottom: 0,
-    marginHorizontal: -16,
-    marginTop: 24,
-    paddingHorizontal: 16,
-    backgroundColor: '#D1D5DB',
+    elevation: 3,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 6,
   },
-  footerTitle: {
+  supportButtonText: {
     fontSize: 18,
-    fontWeight: '700',
-    color: Colors.light.text,
-    marginBottom: 6,
-  },
-  footerSubtitle: {
-    fontSize: 14,
-    color: Colors.light.muted,
-    marginBottom: 10,
-  },
-  footerCta: {
-    fontSize: 15,
-    color: Colors.light.tint,
-    fontWeight: '700',
-  },
-  legalRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingBottom: 0,
-    paddingTop: 8,
-  },
-  legalLink: {
-    fontSize: 12,
-    color: '#98a2b3',
-    textDecorationLine: 'underline',
-  },
-  legalSeparator: {
-    marginHorizontal: 12,
-    color: '#98a2b3',
-    fontSize: 12,
-  },
-  footerBottomSpacer: {
-    height: 24,
+    fontWeight: '600',
+    color: 'white',
+    textAlign: 'center',
   },
 });
 
