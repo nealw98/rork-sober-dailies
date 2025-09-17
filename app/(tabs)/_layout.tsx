@@ -153,6 +153,8 @@ export default function TabLayout() {
         options={{
           href: null, // Hide from tab bar
           headerShown: true,
+          headerTitle: '',
+          headerLeft: () => <BackButton />,
         }}
       />
       <Tabs.Screen
@@ -160,6 +162,8 @@ export default function TabLayout() {
         options={{
           href: null, // Hide from tab bar
           headerShown: true,
+          headerTitle: '',
+          headerLeft: () => <BackButton />,
         }}
       />
       <Tabs.Screen
@@ -167,6 +171,8 @@ export default function TabLayout() {
         options={{
           href: null, // Hide from tab bar
           headerShown: true,
+          headerTitle: '',
+          headerLeft: () => <BackButton />,
         }}
       />
       <Tabs.Screen
@@ -174,6 +180,8 @@ export default function TabLayout() {
         options={{
           href: null, // Hide from tab bar
           headerShown: true,
+          headerTitle: '',
+          headerLeft: () => <BackButton />,
         }}
       />
       <Tabs.Screen
@@ -181,6 +189,8 @@ export default function TabLayout() {
         options={{
           href: null, // Hide from tab bar
           headerShown: true,
+          headerTitle: '',
+          headerLeft: () => <BackButton />,
         }}
       />
       <Tabs.Screen
@@ -188,6 +198,8 @@ export default function TabLayout() {
         options={{
           href: null, // Hide from tab bar
           headerShown: true,
+          headerTitle: '',
+          headerLeft: () => <BackButton />,
         }}
       />
       <Tabs.Screen
@@ -195,6 +207,8 @@ export default function TabLayout() {
         options={{
           href: null, // Hide from tab bar
           headerShown: true,
+          headerTitle: '',
+          headerLeft: () => <BackButton />,
         }}
       />
       <Tabs.Screen
@@ -202,6 +216,8 @@ export default function TabLayout() {
         options={{
           href: null, // Hide from tab bar
           headerShown: true,
+          headerTitle: '',
+          headerLeft: () => <BackButton />,
         }}
       />
       <Tabs.Screen
@@ -209,6 +225,8 @@ export default function TabLayout() {
         options={{
           href: null, // Hide from tab bar
           headerShown: true,
+          headerTitle: '',
+          headerLeft: () => <BackButton />,
         }}
       />
 

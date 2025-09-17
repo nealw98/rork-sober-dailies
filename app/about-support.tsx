@@ -115,16 +115,37 @@ const AboutSupportScreen = () => {
         console.log(`[Offerings] Filtered to ${filtered.length} wanted packages:`, filtered.map((p: any) => `${p.identifier}:${p.storeProduct?.identifier}`));
 
         const byId: Record<string, PurchasesPackage> = {};
-        if (!usingFallback) {
-          filtered.forEach((p: any) => { 
-            if (p.storeProduct && p.storeProduct.identifier) {
-              byId[p.storeProduct.identifier] = p; 
+        
+        // Map packages by both package ID and store product ID when available
+        filtered.forEach((p: any) => {
+          // Always map by package ID
+          if (p.identifier) {
+            if (p.identifier === 'support_monthly' || p.identifier === 'support_yearly') {
+              byId[p.identifier] = p;
+              console.log(`[Offerings] Mapped package by identifier: ${p.identifier}`);
+            }
+          }
+          
+          // Also map by store product ID if available
+          if (p.storeProduct && p.storeProduct.identifier) {
+            byId[p.storeProduct.identifier] = p;
+            console.log(`[Offerings] Mapped package by store identifier: ${p.storeProduct.identifier}`);
+          }
+        });
+        
+        // If we still don't have the required keys, use fallback mapping
+        if (!byId['support_monthly'] || !byId['support_yearly']) {
+          console.log('[Offerings] Missing required keys, using fallback mapping');
+          const keys = ['support_monthly', 'support_yearly'];
+          filtered.forEach((p: any, idx: number) => { 
+            if (idx < keys.length) {
+              byId[keys[idx]] = p;
+              console.log(`[Offerings] Fallback mapped ${keys[idx]} to ${p.identifier}`);
             }
           });
-        } else {
-          const keys = ['support_monthly', 'support_yearly'];
-          filtered.forEach((p: any, idx: number) => { byId[keys[idx]] = p; });
         }
+        
+        console.log('[Offerings] Final package mapping:', Object.keys(byId));
         
         const totalTime = Date.now() - loadStartTime;
         console.log(`[Offerings] Successfully loaded offerings in ${totalTime}ms`);

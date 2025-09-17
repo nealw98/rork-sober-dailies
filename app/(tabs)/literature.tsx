@@ -18,19 +18,19 @@ const literatureOptions: LiteratureOption[] = [
     id: "bigbook",
     title: "Alcoholics Anonymous",
     description: "The basic textbook for the AA program.",
-    route: "/bigbook"
+    route: "/(tabs)/bigbook"
   },
   {
     id: "twelve-and-twelve",
     title: "Twelve Steps and Twelve Traditions",
     description: "In-depth exploration of the Steps and Traditions",
-    route: "/twelve-and-twelve"
+    route: "/(tabs)/twelve-and-twelve"
   },
   {
     id: "meeting-pocket",
     title: "AA Meeting in Your Pocket",
     description: "Quick access to the core AA readings used in meetings.",
-    route: "/meeting-pocket"
+    route: "/(tabs)/meeting-pocket"
   }
 ];
 
@@ -38,11 +38,12 @@ export default function LiteratureScreen() {
   const handleOptionPress = (route: string) => {
     console.log('🔵 Literature: handleOptionPress called with route:', route);
     try {
-      console.log('🔵 Literature: About to call router.push');
-      router.push(route as any);
-      console.log('🔵 Literature: router.push completed successfully');
+      console.log('🔵 Literature: About to call router.navigate');
+      // Use navigate instead of push to maintain proper navigation history
+      router.navigate(route as any);
+      console.log('🔵 Literature: router.navigate completed successfully');
     } catch (error) {
-      console.error('🔴 Literature: Error in router.push:', error);
+      console.error('🔴 Literature: Error in router.navigate:', error);
     }
   };
 
