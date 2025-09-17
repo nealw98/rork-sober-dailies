@@ -15,6 +15,7 @@ import {
 } from 'react-native';
 import Constants from 'expo-constants';
 import { LinearGradient } from 'expo-linear-gradient';
+import * as Haptics from 'expo-haptics';
 import { Stack, router } from 'expo-router';
 import { adjustFontWeight } from '@/constants/fonts';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -34,6 +35,8 @@ try {
 } catch {}
 
 const AboutSupportScreen = () => {
+  // Silence verbose logs in production to avoid any UI jank
+  const log = __DEV__ ? console.log : (..._args: any[]) => {};
   const [purchasingId, setPurchasingId] = useState<string | null>(null);
   const [connecting, setConnecting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -57,7 +60,8 @@ const AboutSupportScreen = () => {
 
     const loadOfferings = async () => {
       const loadStartTime = Date.now();
-      console.log(`[Offerings] Starting to load offerings (attempt ${retryCount + 1}) at ${new Date().toISOString()}`);
+      const log = __DEV__ ? console.log : (..._args: any[]) => {};
+      log(`[Offerings] Starting to load offerings (attempt ${retryCount + 1}) at ${new Date().toISOString()}`);
       
       try {
         if (!Purchases) {
@@ -72,18 +76,18 @@ const AboutSupportScreen = () => {
         const offeringsStartTime = Date.now();
         const offs: Offerings = await Purchases.getOfferings();
         const offeringsTime = Date.now() - offeringsStartTime;
-        console.log(`[Offerings] getOfferings() took ${offeringsTime}ms`);
+        log(`[Offerings] getOfferings() took ${offeringsTime}ms`);
         
         const current = offs?.current;
         const allPkgs = current?.availablePackages ?? [];
-        console.log(`[Offerings] Found ${allPkgs.length} total packages`);
-        console.log('[Offerings] All packages:', allPkgs.map((p: any) => ({ pkgId: p.identifier, storeId: p.storeProduct?.identifier, price: p.storeProduct?.price })));
+        log(`[Offerings] Found ${allPkgs.length} total packages`);
+        log('[Offerings] All packages:', allPkgs.map((p: any) => ({ pkgId: p.identifier, storeId: p.storeProduct?.identifier, price: p.storeProduct?.price })));
 
         // Look for our specific subscription products
         const wanted = new Set(['support_monthly', 'support_yearly']);
         
         // Log all packages for debugging
-        console.log('[Offerings] All packages with details:', allPkgs.map((p: any) => ({
+        log('[Offerings] All packages with details:', allPkgs.map((p: any) => ({
           pkgId: p.identifier,
           storeId: p.storeProduct?.identifier,
           price: p.storeProduct?.price,
@@ -97,11 +101,11 @@ const AboutSupportScreen = () => {
         let usingFallback = false;
         // If we didn't find any products by identifier, try to match by package identifier
         if (filtered.length === 0 && allPkgs.length > 0) {
-          console.log('[Offerings] No products found by store identifier, trying package identifier');
+          log('[Offerings] No products found by store identifier, trying package identifier');
           filtered = allPkgs.filter((p: any) => wanted.has(p.identifier));
           
           if (filtered.length > 0) {
-            console.log('[Offerings] Found products by package identifier:', filtered.map((p: any) => p.identifier));
+            log('[Offerings] Found products by package identifier:', filtered.map((p: any) => p.identifier));
             usingFallback = true;
           }
         }
@@ -110,9 +114,9 @@ const AboutSupportScreen = () => {
         if (filtered.length === 0 && allPkgs.length > 0) {
           usingFallback = true;
           filtered = [...allPkgs].sort((a: any, b: any) => (a.storeProduct?.price ?? 0) - (b.storeProduct?.price ?? 0)).slice(0, 2);
-          console.log('[Offerings] Fallback mapping by price rank due to missing support_monthly/support_yearly identifiers');
+          log('[Offerings] Fallback mapping by price rank due to missing support_monthly/support_yearly identifiers');
         }
-        console.log(`[Offerings] Filtered to ${filtered.length} wanted packages:`, filtered.map((p: any) => `${p.identifier}:${p.storeProduct?.identifier}`));
+        log(`[Offerings] Filtered to ${filtered.length} wanted packages:`, filtered.map((p: any) => `${p.identifier}:${p.storeProduct?.identifier}`));
 
         const byId: Record<string, PurchasesPackage> = {};
         
@@ -122,33 +126,33 @@ const AboutSupportScreen = () => {
           if (p.identifier) {
             if (p.identifier === 'support_monthly' || p.identifier === 'support_yearly') {
               byId[p.identifier] = p;
-              console.log(`[Offerings] Mapped package by identifier: ${p.identifier}`);
+              log(`[Offerings] Mapped package by identifier: ${p.identifier}`);
             }
           }
           
           // Also map by store product ID if available
           if (p.storeProduct && p.storeProduct.identifier) {
             byId[p.storeProduct.identifier] = p;
-            console.log(`[Offerings] Mapped package by store identifier: ${p.storeProduct.identifier}`);
+            log(`[Offerings] Mapped package by store identifier: ${p.storeProduct.identifier}`);
           }
         });
         
         // If we still don't have the required keys, use fallback mapping
         if (!byId['support_monthly'] || !byId['support_yearly']) {
-          console.log('[Offerings] Missing required keys, using fallback mapping');
+          log('[Offerings] Missing required keys, using fallback mapping');
           const keys = ['support_monthly', 'support_yearly'];
           filtered.forEach((p: any, idx: number) => { 
             if (idx < keys.length) {
               byId[keys[idx]] = p;
-              console.log(`[Offerings] Fallback mapped ${keys[idx]} to ${p.identifier}`);
+              log(`[Offerings] Fallback mapped ${keys[idx]} to ${p.identifier}`);
             }
           });
         }
         
-        console.log('[Offerings] Final package mapping:', Object.keys(byId));
+        log('[Offerings] Final package mapping:', Object.keys(byId));
         
         const totalTime = Date.now() - loadStartTime;
-        console.log(`[Offerings] Successfully loaded offerings in ${totalTime}ms`);
+        log(`[Offerings] Successfully loaded offerings in ${totalTime}ms`);
         
         if (mounted) {
           setPackagesById(byId);
@@ -158,18 +162,18 @@ const AboutSupportScreen = () => {
       } catch (error: any) {
         const errorTime = Date.now();
         const totalTime = errorTime - loadStartTime;
-        console.log(`[Offerings] Failed to load offerings after ${totalTime}ms:`, error?.message);
+        log(`[Offerings] Failed to load offerings after ${totalTime}ms:`, error?.message);
         
         if (mounted) {
           if (retryCount < maxRetries) {
             retryCount++;
             const retryDelay = 2000 * retryCount;
-            console.log(`[Offerings] Retrying in ${retryDelay}ms (attempt ${retryCount + 1}/${maxRetries + 1})`);
+            log(`[Offerings] Retrying in ${retryDelay}ms (attempt ${retryCount + 1}/${maxRetries + 1})`);
             setTimeout(() => {
               if (mounted) loadOfferings();
             }, retryDelay);
           } else {
-            console.log('[Offerings] Max retries reached, giving up');
+            log('[Offerings] Max retries reached, giving up');
             setErrorMessage('Unable to load store products. Please check your connection and try again.');
             setIsLoadingOfferings(false);
           }
@@ -206,7 +210,10 @@ const AboutSupportScreen = () => {
 
   const handleTipPress = async (amount: number) => {
     const startTime = Date.now();
-    console.log(`[Purchase] Starting purchase flow for ${amount} at ${new Date().toISOString()}`);
+    log(`[Purchase] Starting purchase flow for ${amount} at ${new Date().toISOString()}`);
+
+    // Immediate haptic feedback to acknowledge tap
+    try { await Haptics.selectionAsync(); } catch {}
     
     const productId = (productIds as any)[amount];
     if (!productId) {
@@ -220,7 +227,7 @@ const AboutSupportScreen = () => {
       return;
     }
     
-    console.log(`[Purchase] Looking for product ID: ${productId} in packagesById:`, Object.keys(packagesById));
+    log(`[Purchase] Looking for product ID: ${productId} in packagesById:`, Object.keys(packagesById));
     let pkg = packagesById[productId];
     if (!pkg) {
       console.log(`[Purchase] Package not found for productId: ${productId}. Available packages:`, 
@@ -241,7 +248,7 @@ const AboutSupportScreen = () => {
           const c = Math.abs((cur?.storeProduct?.price ?? Infinity) - target);
           return c < b ? cur : best;
         }, all[0]);
-        console.log('[Purchase] Using fallback package selection by price. Selected', pkg?.identifier, pkg?.storeProduct?.identifier, pkg?.storeProduct?.price);
+        log('[Purchase] Using fallback package selection by price. Selected', pkg?.identifier, pkg?.storeProduct?.identifier, pkg?.storeProduct?.price);
       }
     }
     if (!pkg) {
@@ -256,9 +263,10 @@ const AboutSupportScreen = () => {
       setIsPurchaseInProgress(true);
       
       const purchaseStartTime = Date.now();
-      console.log(`[Purchase] Calling purchasePackage for ${productId} at ${new Date().toISOString()}`);
-      
-      // Hide spinner when Apple purchase sheet appears
+      log(`[Purchase] Preparing purchasePackage for ${productId} at ${new Date().toISOString()}`);
+
+      // Allow UI to render spinner first, then invoke purchase in next tick
+      await Promise.resolve();
       const purchasePromise = Purchases.purchasePackage(pkg);
       setPurchasingId(null);
       setIsPurchaseInProgress(false);
@@ -269,12 +277,12 @@ const AboutSupportScreen = () => {
       const totalTime = purchaseEndTime - startTime;
       const purchaseTime = purchaseEndTime - purchaseStartTime;
       
-      console.log(`[Purchase] Success! Total time: ${totalTime}ms, Purchase time: ${purchaseTime}ms`);
+      log(`[Purchase] Success! Total time: ${totalTime}ms, Purchase time: ${purchaseTime}ms`);
       // Success: silent
     } catch (e: any) {
       const errorTime = Date.now();
       const totalTime = errorTime - startTime;
-      console.log(`[Purchase] Error after ${totalTime}ms:`, e?.message || 'Unknown error');
+      log(`[Purchase] Error after ${totalTime}ms:`, e?.message || 'Unknown error');
       
       if (e?.userCancelled) {
         console.log('[Purchase] User cancelled purchase');
