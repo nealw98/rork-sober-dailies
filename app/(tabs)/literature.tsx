@@ -39,10 +39,11 @@ export default function LiteratureScreen() {
     console.log('🔵 Literature: handleOptionPress called with route:', route);
     try {
       console.log('🔵 Literature: About to call router.push');
-      router.push(route as any);
-      console.log('🔵 Literature: router.push completed successfully');
+      // Use navigate instead of push to maintain navigation history
+      router.navigate(route as any);
+      console.log('🔵 Literature: router.navigate completed successfully');
     } catch (error) {
-      console.error('🔴 Literature: Error in router.push:', error);
+      console.error('🔴 Literature: Error in router.navigate:', error);
     }
   };
 

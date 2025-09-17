@@ -44,7 +44,16 @@ const styles = StyleSheet.create({
 
 const BackButton = () => {
   const handleBackPress = () => {
-    router.back();
+    // Use navigation history to go back
+    // This ensures we go back to the previous screen, not just to home
+    try {
+      router.back();
+      console.log('🔄 Navigation: Going back using router.back()');
+    } catch (error) {
+      console.error('🔴 Navigation: Error going back:', error);
+      // Fallback to home if router.back() fails
+      router.navigate('/');
+    }
   };
 
   return (
