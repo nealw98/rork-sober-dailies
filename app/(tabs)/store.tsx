@@ -25,9 +25,36 @@ export default function StoreScreen() {
 
       // Filter to your StoreKit IDs:
       const wanted = new Set(["support_monthly", "support_yearly"]);
-      const filtered = allPkgs
+      
+      // Log all packages for debugging
+      console.log('[Store] All packages with details:', allPkgs.map((p) => ({
+        pkgId: p.identifier,
+        storeId: p.storeProduct?.identifier,
+        price: p.storeProduct?.price,
+        priceString: p.storeProduct?.priceString
+      })));
+      
+      // First try to filter by store product identifier
+      let filtered = allPkgs
         .filter((p) => p.storeProduct && wanted.has(p.storeProduct.identifier))
         .sort((a, b) => (a.storeProduct?.price || 0) - (b.storeProduct?.price || 0));
+      
+      // If we didn't find any products by store identifier, try package identifier
+      if (filtered.length === 0) {
+        console.log('[Store] No products found by store identifier, trying package identifier');
+        filtered = allPkgs
+          .filter((p) => wanted.has(p.identifier))
+          .sort((a, b) => (a.storeProduct?.price || 0) - (b.storeProduct?.price || 0));
+        
+        if (filtered.length > 0) {
+          console.log('[Store] Found products by package identifier:', filtered.map((p) => p.identifier));
+        }
+      }
+      
+      console.log('[Store] Final filtered packages:', filtered.map((p) => ({
+        pkgId: p.identifier, 
+        storeId: p.storeProduct?.identifier
+      })));
 
       setPackages(filtered);
     } catch (e: any) {

@@ -81,12 +81,36 @@ const AboutSupportScreen = () => {
 
         // Look for our specific subscription products
         const wanted = new Set(['support_monthly', 'support_yearly']);
-        let filtered: PurchasesPackage[] = allPkgs.filter((p: any) => p.storeProduct && wanted.has(p.storeProduct.identifier));
+        
+        // Log all packages for debugging
+        console.log('[Offerings] All packages with details:', allPkgs.map((p: any) => ({
+          pkgId: p.identifier,
+          storeId: p.storeProduct?.identifier,
+          price: p.storeProduct?.price,
+          priceString: p.storeProduct?.priceString
+        })));
+        
+        // First try to filter by store product identifier (the App Store product ID)
+        let filtered: PurchasesPackage[] = allPkgs.filter((p: any) => 
+          p.storeProduct && wanted.has(p.storeProduct.identifier)
+        );
         let usingFallback = false;
+        // If we didn't find any products by identifier, try to match by package identifier
+        if (filtered.length === 0 && allPkgs.length > 0) {
+          console.log('[Offerings] No products found by store identifier, trying package identifier');
+          filtered = allPkgs.filter((p: any) => wanted.has(p.identifier));
+          
+          if (filtered.length > 0) {
+            console.log('[Offerings] Found products by package identifier:', filtered.map((p: any) => p.identifier));
+            usingFallback = true;
+          }
+        }
+        
+        // If we still don't have any products, fall back to using the first two by price
         if (filtered.length === 0 && allPkgs.length > 0) {
           usingFallback = true;
           filtered = [...allPkgs].sort((a: any, b: any) => (a.storeProduct?.price ?? 0) - (b.storeProduct?.price ?? 0)).slice(0, 2);
-          console.log('[Offerings] Fallback mapping by price rank due to missing support_monthly/support_yearly package identifiers');
+          console.log('[Offerings] Fallback mapping by price rank due to missing support_monthly/support_yearly identifiers');
         }
         console.log(`[Offerings] Filtered to ${filtered.length} wanted packages:`, filtered.map((p: any) => `${p.identifier}:${p.storeProduct?.identifier}`));
 
