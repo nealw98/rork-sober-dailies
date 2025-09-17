@@ -138,15 +138,25 @@ export default function StoreScreen() {
 
     return (
       <View style={styles.list}>
-        {packages.map((pkg) => (
+        {packages.map((pkg) => {
+          const id = pkg?.storeProduct?.identifier ?? pkg?.identifier;
+          const priceString = pkg?.storeProduct?.priceString ?? "";
+          const isMonthly = id === "support_monthly";
+          const isYearly = id === "support_yearly";
+
+          if (!id) {
+            return null;
+          }
+
+          return (
           <TouchableOpacity
-            key={pkg.identifier}
+            key={id}
             style={styles.contributionButton}
             activeOpacity={0.85}
-            disabled={purchasingId === pkg.storeProduct.identifier}
+            disabled={purchasingId === id}
             onPress={() => handlePurchase(pkg)}
           >
-            {purchasingId === pkg.storeProduct.identifier ? (
+            {purchasingId === id ? (
               <View style={{ alignItems: "center" }}>
                 <ActivityIndicator color="#fff" />
                 <Text style={styles.statusText}>Opening Apple…</Text>
@@ -156,15 +166,16 @@ export default function StoreScreen() {
               </View>
             ) : (
               <Text style={styles.contributionText}>
-                {pkg.storeProduct.identifier === "support_monthly"
+                {isMonthly
                   ? "$1.99 / month"
-                  : pkg.storeProduct.identifier === "support_yearly"
+                  : isYearly
                   ? "$19.99 / year"
-                  : `${friendlyTitle(pkg.storeProduct.identifier)} — ${pkg.storeProduct.priceString}`}
+                  : `${friendlyTitle(id)}${priceString ? ` — ${priceString}` : ''}`}
               </Text>
             )}
           </TouchableOpacity>
-        ))}
+          );
+        })}
 
         <Text style={styles.disclaimer}>Subscriptions are optional and help support app development.</Text>
 
