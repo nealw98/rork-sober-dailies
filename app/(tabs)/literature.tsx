@@ -18,39 +18,53 @@ const literatureOptions: LiteratureOption[] = [
     id: "bigbook",
     title: "Alcoholics Anonymous",
     description: "The basic textbook for the AA program.",
-    route: "/(tabs)/bigbook"
+    route: "/bigbook"
   },
   {
     id: "twelve-and-twelve",
     title: "Twelve Steps and Twelve Traditions",
     description: "In-depth exploration of the Steps and Traditions",
-    route: "/(tabs)/twelve-and-twelve"
+    route: "/twelve-and-twelve"
   },
   {
     id: "meeting-pocket",
     title: "AA Meeting in Your Pocket",
     description: "Quick access to the core AA readings used in meetings.",
-    route: "/(tabs)/meeting-pocket"
+    route: "/meeting-pocket"
   }
 ];
 
 export default function LiteratureScreen() {
+  // Add direct navigation buttons for debugging
+  const handleDirectNavigation = (screenName: string) => {
+    console.log(`🔵 Literature: Direct navigation to ${screenName}`);
+    try {
+      router.push(screenName);
+      console.log(`🔵 Literature: Direct navigation to ${screenName} completed`);
+    } catch (error) {
+      console.error(`🔴 Literature: Direct navigation error for ${screenName}:`, error);
+    }
+  };
   const handleOptionPress = (route: string) => {
     console.log('🔵 Literature: handleOptionPress called with route:', route);
     try {
-      // Log the current navigation state before navigating
-      const currentState = router.getState();
-      console.log('🧭 Navigation: Current state before navigation:', JSON.stringify({
-        routes: currentState.routes.map(r => ({ 
-          name: r.name,
-          path: r.path,
-          params: r.params
-        })),
-        index: currentState.index,
-        key: currentState.key,
-        stale: currentState.stale,
-        type: currentState.type
-      }, null, 2));
+      // Log the current navigation state before navigating (guarded)
+      if (typeof (router as any).getState === 'function') {
+        const currentState = (router as any).getState();
+        console.log('🧭 Navigation: Current state before navigation:', JSON.stringify({
+          routes: currentState.routes.map((r: any) => ({ 
+            name: r.name,
+            path: r.path,
+            params: r.params
+          })),
+          index: currentState.index,
+          key: currentState.key,
+          stale: currentState.stale,
+          type: currentState.type
+        }, null, 2));
+      } else {
+        console.log('🧭 Navigation: router.getState is not available in this environment');
+      }
       
       // Get current route name for logging
       const currentRouteName = currentState.routes[currentState.index]?.name || 'unknown';
@@ -61,30 +75,24 @@ export default function LiteratureScreen() {
       router.push(route as any);
       console.log('🔵 Literature: router.push completed successfully');
       
-      // Log the state after navigation (on next tick)
+      // Log the state after navigation (on next tick, guarded)
       setTimeout(() => {
         try {
-          const newState = router.getState();
-          const newRouteName = newState.routes[newState.index]?.name || 'unknown';
-          console.log(`🧭 Navigation: Now on "${newRouteName}" after navigation to ${route}`);
-          
-          // If we're trying to navigate to a tab screen but it didn't work, try again with a different format
-          if (route.includes('/(tabs)/') && newRouteName !== route.replace('/(tabs)/', '')) {
-            console.log(`🧭 Navigation: Tab navigation may have failed. Trying again with: ${route.replace('/(tabs)/', '/')}`);
-            setTimeout(() => {
-              try {
-                router.push(route.replace('/(tabs)/', '/') as any);
-              } catch (navErr) {
-                console.error('🧭 Navigation: Second navigation attempt failed:', navErr);
-              }
-            }, 100);
+          if (typeof (router as any).getState === 'function') {
+            const newState = (router as any).getState();
+            const newRouteName = newState.routes[newState.index]?.name || 'unknown';
+            console.log(`🧭 Navigation: Now on "${newRouteName}" after navigation to ${route}`);
+            // Log the current route name after navigation
+            console.log(`🧭 Navigation: Route navigation complete. Current route: ${newRouteName}`);
+          } else {
+            console.log('🧭 Navigation: router.getState is not available after navigation');
           }
         } catch (err) {
           console.error('🧭 Navigation: Error getting state after navigation:', err);
         }
       }, 100);
     } catch (error) {
-      console.error('🔴 Literature: Error in router.navigate:', error);
+      console.error('🔴 Literature: Error in router.push:', error);
     }
   };
 
@@ -104,6 +112,31 @@ export default function LiteratureScreen() {
           <Text style={styles.subtitle}>
             Access the foundational texts of Alcoholics Anonymous
           </Text>
+          
+          {/* Debug navigation buttons */}
+          <View style={styles.debugContainer}>
+            <Text style={styles.debugTitle}>Debug Navigation</Text>
+            <View style={styles.debugButtons}>
+              <TouchableOpacity 
+                style={styles.debugButton}
+                onPress={() => handleDirectNavigation('/bigbook')}
+              >
+                <Text style={styles.debugButtonText}>Big Book</Text>
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={styles.debugButton}
+                onPress={() => handleDirectNavigation('/twelve-and-twelve')}
+              >
+                <Text style={styles.debugButtonText}>12&12</Text>
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={styles.debugButton}
+                onPress={() => handleDirectNavigation('/meeting-pocket')}
+              >
+                <Text style={styles.debugButtonText}>Meeting</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
           
           <View style={styles.optionsContainer}>
             {literatureOptions.map((option) => (
@@ -177,7 +210,37 @@ const styles = StyleSheet.create({
     color: Colors.light.muted,
     textAlign: 'center',
     lineHeight: 22,
-    marginBottom: 32,
+    marginBottom: 16,
+  },
+  debugContainer: {
+    backgroundColor: 'rgba(255, 200, 200, 0.3)',
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 100, 100, 0.3)',
+  },
+  debugTitle: {
+    fontSize: 14,
+    fontWeight: adjustFontWeight('600', true),
+    color: Colors.light.text,
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  debugButtons: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+  },
+  debugButton: {
+    backgroundColor: Colors.light.tint,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 6,
+  },
+  debugButtonText: {
+    color: 'white',
+    fontSize: 14,
+    fontWeight: adjustFontWeight('600', true),
   },
   optionsContainer: {
     gap: 16,

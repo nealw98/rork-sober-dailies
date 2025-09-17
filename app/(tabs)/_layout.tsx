@@ -1,4 +1,4 @@
-import { Tabs, router, Stack } from "expo-router";
+import { Tabs, router, Stack, usePathname } from "expo-router";
 import { Home, MessageCircle, Heart, Smile, Moon, ChevronLeft, BookOpen } from "lucide-react-native";
 import React from "react";
 import { Text, View, StyleSheet, Platform, TouchableOpacity } from "react-native";
@@ -43,38 +43,24 @@ const styles = StyleSheet.create({
 });
 
 const BackButton = () => {
+  const pathname = usePathname();
   const handleBackPress = () => {
     try {
-      // Log the current route before navigation
-      const currentState = router.getState();
-      console.log('🧭 Navigation: Current state before back:', JSON.stringify({
-        routes: currentState.routes.map(r => ({ 
-          name: r.name,
-          path: r.path,
-          params: r.params
-        })),
-        index: currentState.index,
-        key: currentState.key,
-        stale: currentState.stale,
-        type: currentState.type
-      }, null, 2));
-      
-      // Get current route name for logging
-      const currentRouteName = currentState.routes[currentState.index]?.name || 'unknown';
-      console.log(`🧭 Navigation: Attempting to go back from "${currentRouteName}"`);
+      // Use pathname to determine current location
+      console.log('🧭 Navigation: Attempting to go back from path:', pathname);
       
       // Handle special cases for known navigation paths
-      if (currentRouteName === 'bigbook') {
+      if (pathname && (pathname.includes('/bigbook') || pathname.endsWith('bigbook'))) {
         console.log('🧭 Navigation: Special case - navigating from bigbook to literature');
-        router.push('/(tabs)/literature');
+        router.push('/literature');
         return;
-      } else if (currentRouteName === 'twelve-and-twelve') {
+      } else if (pathname && (pathname.includes('/twelve-and-twelve') || pathname.endsWith('twelve-and-twelve'))) {
         console.log('🧭 Navigation: Special case - navigating from twelve-and-twelve to literature');
-        router.push('/(tabs)/literature');
+        router.push('/literature');
         return;
-      } else if (currentRouteName === 'meeting-pocket') {
+      } else if (pathname && (pathname.includes('/meeting-pocket') || pathname.endsWith('meeting-pocket'))) {
         console.log('🧭 Navigation: Special case - navigating from meeting-pocket to literature');
-        router.push('/(tabs)/literature');
+        router.push('/literature');
         return;
       }
       
@@ -83,22 +69,9 @@ const BackButton = () => {
       
       // Log after navigation
       console.log('🧭 Navigation: router.back() called successfully');
-      
-      // Log the state after navigation (on next tick)
-      setTimeout(() => {
-        try {
-          const newState = router.getState();
-          const newRouteName = newState.routes[newState.index]?.name || 'unknown';
-          console.log(`🧭 Navigation: Now on "${newRouteName}" after back navigation`);
-        } catch (err) {
-          console.error('🧭 Navigation: Error getting state after back:', err);
-        }
-      }, 100);
     } catch (error) {
       console.error('🧭 Navigation: Error going back:', error);
-      // Fallback to home if router.back() fails
-      console.log('🧭 Navigation: Falling back to home navigation');
-      router.push('/');
+      // Do not force home; better to no-op than surprise navigate
     }
   };
 
@@ -165,7 +138,6 @@ export default function TabLayout() {
         options={{
           title: "Gratitude",
           headerTitle: '',
-          headerLeft: () => <BackButton />,
           tabBarIcon: ({ color }) => <Smile color={color} size={22} style={styles.tabIcon} />,
         }}
       />
@@ -203,7 +175,6 @@ export default function TabLayout() {
         options={{
           title: "Review",
           headerTitle: '',
-          headerLeft: () => <BackButton />,
           tabBarIcon: ({ color }) => <Moon color={color} size={22} style={styles.tabIcon} />,
         }}
       />
