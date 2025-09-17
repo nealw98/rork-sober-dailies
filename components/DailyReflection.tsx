@@ -537,7 +537,7 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
   source: {
-    fontSize: 18,
+    fontSize: 16,
     color: Colors.light.muted,
     textAlign: "right",
     marginBottom: 16,
