@@ -26,8 +26,8 @@ export default function StoreScreen() {
       // Filter to your StoreKit IDs:
       const wanted = new Set(["support_monthly", "support_yearly"]);
       const filtered = allPkgs
-        .filter((p) => wanted.has(p.storeProduct.identifier))
-        .sort((a, b) => a.storeProduct.price - b.storeProduct.price);
+        .filter((p) => p.storeProduct && wanted.has(p.storeProduct.identifier))
+        .sort((a, b) => (a.storeProduct?.price || 0) - (b.storeProduct?.price || 0));
 
       setPackages(filtered);
     } catch (e: any) {

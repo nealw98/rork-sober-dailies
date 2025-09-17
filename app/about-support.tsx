@@ -81,7 +81,7 @@ const AboutSupportScreen = () => {
 
         // Look for our specific subscription products
         const wanted = new Set(['support_monthly', 'support_yearly']);
-        let filtered: PurchasesPackage[] = allPkgs.filter((p: any) => wanted.has(p.identifier));
+        let filtered: PurchasesPackage[] = allPkgs.filter((p: any) => p.storeProduct && wanted.has(p.storeProduct.identifier));
         let usingFallback = false;
         if (filtered.length === 0 && allPkgs.length > 0) {
           usingFallback = true;
@@ -92,7 +92,11 @@ const AboutSupportScreen = () => {
 
         const byId: Record<string, PurchasesPackage> = {};
         if (!usingFallback) {
-          filtered.forEach((p: any) => { byId[p.identifier] = p; });
+          filtered.forEach((p: any) => { 
+            if (p.storeProduct && p.storeProduct.identifier) {
+              byId[p.storeProduct.identifier] = p; 
+            }
+          });
         } else {
           const keys = ['support_monthly', 'support_yearly'];
           filtered.forEach((p: any, idx: number) => { byId[keys[idx]] = p; });
@@ -171,8 +175,18 @@ const AboutSupportScreen = () => {
       return;
     }
     
+    console.log(`[Purchase] Looking for product ID: ${productId} in packagesById:`, Object.keys(packagesById));
     let pkg = packagesById[productId];
     if (!pkg) {
+      console.log(`[Purchase] Package not found for productId: ${productId}. Available packages:`, 
+        Object.entries(packagesById).map(([id, p]) => ({ 
+          id, 
+          pkgId: p.identifier, 
+          storeId: p.storeProduct?.identifier,
+          price: p.storeProduct?.price 
+        }))
+      );
+      
       // Fallback: choose closest by price
       const all = Object.values(packagesById);
       if (all.length > 0) {
