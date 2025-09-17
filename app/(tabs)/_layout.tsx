@@ -42,16 +42,22 @@ const styles = StyleSheet.create({
 
 });
 
-const BackButton = () => (
-  <TouchableOpacity 
-    style={styles.backButton}
-    onPress={() => router.push('/')}
-    testID="back-button"
-  >
-    <ChevronLeft color={Colors.light.tint} size={20} />
-    <Text style={styles.backText}>Back</Text>
-  </TouchableOpacity>
-);
+const BackButton = () => {
+  const handleBackPress = () => {
+    router.back();
+  };
+
+  return (
+    <TouchableOpacity 
+      style={styles.backButton}
+      onPress={handleBackPress}
+      testID="back-button"
+    >
+      <ChevronLeft color={Colors.light.tint} size={20} />
+      <Text style={styles.backText}>Back</Text>
+    </TouchableOpacity>
+  );
+};
 
 export default function TabLayout() {
   return (
@@ -153,6 +159,8 @@ export default function TabLayout() {
         options={{
           href: null, // Hide from tab bar
           headerShown: true,
+          headerTitle: '',
+          headerLeft: () => <BackButton />,
         }}
       />
       <Tabs.Screen
@@ -160,6 +168,8 @@ export default function TabLayout() {
         options={{
           href: null, // Hide from tab bar
           headerShown: true,
+          headerTitle: '',
+          headerLeft: () => <BackButton />,
         }}
       />
       <Tabs.Screen
@@ -167,6 +177,8 @@ export default function TabLayout() {
         options={{
           href: null, // Hide from tab bar
           headerShown: true,
+          headerTitle: '',
+          headerLeft: () => <BackButton />,
         }}
       />
       <Tabs.Screen
@@ -174,6 +186,8 @@ export default function TabLayout() {
         options={{
           href: null, // Hide from tab bar
           headerShown: true,
+          headerTitle: '',
+          headerLeft: () => <BackButton />,
         }}
       />
       <Tabs.Screen
@@ -181,6 +195,8 @@ export default function TabLayout() {
         options={{
           href: null, // Hide from tab bar
           headerShown: true,
+          headerTitle: '',
+          headerLeft: () => <BackButton />,
         }}
       />
       <Tabs.Screen
@@ -188,6 +204,8 @@ export default function TabLayout() {
         options={{
           href: null, // Hide from tab bar
           headerShown: true,
+          headerTitle: '',
+          headerLeft: () => <BackButton />,
         }}
       />
       <Tabs.Screen
@@ -195,6 +213,8 @@ export default function TabLayout() {
         options={{
           href: null, // Hide from tab bar
           headerShown: true,
+          headerTitle: '',
+          headerLeft: () => <BackButton />,
         }}
       />
       <Tabs.Screen
@@ -202,6 +222,8 @@ export default function TabLayout() {
         options={{
           href: null, // Hide from tab bar
           headerShown: true,
+          headerTitle: '',
+          headerLeft: () => <BackButton />,
         }}
       />
       <Tabs.Screen
@@ -209,6 +231,8 @@ export default function TabLayout() {
         options={{
           href: null, // Hide from tab bar
           headerShown: true,
+          headerTitle: '',
+          headerLeft: () => <BackButton />,
         }}
       />
 

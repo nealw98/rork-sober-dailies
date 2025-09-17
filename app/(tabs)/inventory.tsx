@@ -2,7 +2,6 @@ import React from 'react';
 import { StyleSheet, View, Text, ScrollView } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import Colors from '@/constants/colors';
-import { Stack } from 'expo-router';
 import ScreenContainer from '@/components/ScreenContainer';
 
 const Inventory = () => {
@@ -51,14 +50,8 @@ const Inventory = () => {
   ];
 
   return (
-    <>
-      <Stack.Screen options={{ 
-        headerTitle: '',
-        headerBackTitle: '',
-        headerBackTitleVisible: false
-      }} />
-      <ScreenContainer style={styles.container} noPadding>
-        <LinearGradient
+    <ScreenContainer style={styles.container} noPadding>
+      <LinearGradient
           colors={['rgba(74, 144, 226, 0.3)', 'rgba(78, 205, 196, 0.2)', 'rgba(92, 184, 92, 0.1)']}
           style={styles.gradientContainer}
           start={{ x: 0, y: 0 }}
@@ -89,7 +82,6 @@ const Inventory = () => {
           </ScrollView>
         </LinearGradient>
       </ScreenContainer>
-    </>
   );
 };
 
