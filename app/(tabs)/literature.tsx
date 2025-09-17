@@ -113,30 +113,7 @@ export default function LiteratureScreen() {
             Access the foundational texts of Alcoholics Anonymous
           </Text>
           
-          {/* Debug navigation buttons */}
-          <View style={styles.debugContainer}>
-            <Text style={styles.debugTitle}>Debug Navigation</Text>
-            <View style={styles.debugButtons}>
-              <TouchableOpacity 
-                style={styles.debugButton}
-                onPress={() => handleDirectNavigation('/bigbook')}
-              >
-                <Text style={styles.debugButtonText}>Big Book</Text>
-              </TouchableOpacity>
-              <TouchableOpacity 
-                style={styles.debugButton}
-                onPress={() => handleDirectNavigation('/twelve-and-twelve')}
-              >
-                <Text style={styles.debugButtonText}>12&12</Text>
-              </TouchableOpacity>
-              <TouchableOpacity 
-                style={styles.debugButton}
-                onPress={() => handleDirectNavigation('/meeting-pocket')}
-              >
-                <Text style={styles.debugButtonText}>Meeting</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
+          {/* Debug navigation removed */}
           
           <View style={styles.optionsContainer}>
             {literatureOptions.map((option) => (
@@ -218,36 +195,7 @@ const styles = StyleSheet.create({
     lineHeight: 22,
     marginBottom: 16,
   },
-  debugContainer: {
-    backgroundColor: 'rgba(255, 200, 200, 0.3)',
-    borderRadius: 8,
-    padding: 12,
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 100, 100, 0.3)',
-  },
-  debugTitle: {
-    fontSize: 14,
-    fontWeight: adjustFontWeight('600', true),
-    color: Colors.light.text,
-    marginBottom: 8,
-    textAlign: 'center',
-  },
-  debugButtons: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-  },
-  debugButton: {
-    backgroundColor: Colors.light.tint,
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderRadius: 6,
-  },
-  debugButtonText: {
-    color: 'white',
-    fontSize: 14,
-    fontWeight: adjustFontWeight('600', true),
-  },
+  
   optionsContainer: {
     gap: 16,
   },
