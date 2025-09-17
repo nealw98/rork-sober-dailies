@@ -66,15 +66,15 @@ const BackButton = () => {
       // Handle special cases for known navigation paths
       if (currentRouteName === 'bigbook') {
         console.log('🧭 Navigation: Special case - navigating from bigbook to literature');
-        router.navigate('/(tabs)/literature');
+        router.push('/(tabs)/literature');
         return;
       } else if (currentRouteName === 'twelve-and-twelve') {
         console.log('🧭 Navigation: Special case - navigating from twelve-and-twelve to literature');
-        router.navigate('/(tabs)/literature');
+        router.push('/(tabs)/literature');
         return;
       } else if (currentRouteName === 'meeting-pocket') {
         console.log('🧭 Navigation: Special case - navigating from meeting-pocket to literature');
-        router.navigate('/(tabs)/literature');
+        router.push('/(tabs)/literature');
         return;
       }
       
@@ -98,7 +98,7 @@ const BackButton = () => {
       console.error('🧭 Navigation: Error going back:', error);
       // Fallback to home if router.back() fails
       console.log('🧭 Navigation: Falling back to home navigation');
-      router.navigate('/');
+      router.push('/');
     }
   };
 

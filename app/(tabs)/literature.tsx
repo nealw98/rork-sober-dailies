@@ -56,10 +56,10 @@ export default function LiteratureScreen() {
       const currentRouteName = currentState.routes[currentState.index]?.name || 'unknown';
       console.log(`🧭 Navigation: Navigating from "${currentRouteName}" to "${route}"`);
       
-      console.log('🔵 Literature: About to call router.navigate');
-      // Use navigate instead of push to maintain proper navigation history
-      router.navigate(route as any);
-      console.log('🔵 Literature: router.navigate completed successfully');
+      console.log('🔵 Literature: About to call router.push');
+      // Use push for navigation since navigate is not available
+      router.push(route as any);
+      console.log('🔵 Literature: router.push completed successfully');
       
       // Log the state after navigation (on next tick)
       setTimeout(() => {
@@ -67,6 +67,18 @@ export default function LiteratureScreen() {
           const newState = router.getState();
           const newRouteName = newState.routes[newState.index]?.name || 'unknown';
           console.log(`🧭 Navigation: Now on "${newRouteName}" after navigation to ${route}`);
+          
+          // If we're trying to navigate to a tab screen but it didn't work, try again with a different format
+          if (route.includes('/(tabs)/') && newRouteName !== route.replace('/(tabs)/', '')) {
+            console.log(`🧭 Navigation: Tab navigation may have failed. Trying again with: ${route.replace('/(tabs)/', '/')}`);
+            setTimeout(() => {
+              try {
+                router.push(route.replace('/(tabs)/', '/') as any);
+              } catch (navErr) {
+                console.error('🧭 Navigation: Second navigation attempt failed:', navErr);
+              }
+            }, 100);
+          }
         } catch (err) {
           console.error('🧭 Navigation: Error getting state after navigation:', err);
         }
