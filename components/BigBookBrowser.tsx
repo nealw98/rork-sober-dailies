@@ -461,13 +461,7 @@ function BigBookBrowserContent() {
           )}
         </View>
         
-        {!isKeyboardVisible && (
-          <View style={styles.noteContainer}>
-            <Text style={styles.noteText}>
-              <Text style={styles.noteBold}>Note:</Text> This is the 1939 First Edition of Alcoholics Anonymous. The first 164 pages remain unchanged in all later editions.
-            </Text>
-          </View>
-        )}
+        {/* Edition note removed per request */}
       </View>
 
       <Modal
@@ -671,25 +665,5 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     textAlign: 'center',
   },
-  noteContainer: {
-    padding: 8,
-    backgroundColor: 'rgba(255, 255, 255, 0.3)',
-    borderRadius: 6,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.15)',
-    marginHorizontal: 16,
-    marginBottom: 8,
-    alignSelf: 'center',
-    maxWidth: '90%',
-  },
-  noteText: {
-    fontSize: 11,
-    color: Colors.light.muted,
-    lineHeight: 14,
-    textAlign: 'center',
-  },
-  noteBold: {
-    fontWeight: adjustFontWeight('bold'),
-    color: Colors.light.text,
-  },
+  
 });
