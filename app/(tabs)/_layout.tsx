@@ -1,4 +1,4 @@
-import { Tabs, router, Stack } from "expo-router";
+import { Tabs, router, Stack, usePathname } from "expo-router";
 import { Home, MessageCircle, Heart, Smile, Moon, ChevronLeft, BookOpen } from "lucide-react-native";
 import React from "react";
 import { Text, View, StyleSheet, Platform, TouchableOpacity } from "react-native";
@@ -42,16 +42,50 @@ const styles = StyleSheet.create({
 
 });
 
-const BackButton = () => (
-  <TouchableOpacity 
-    style={styles.backButton}
-    onPress={() => router.push('/')}
-    testID="back-button"
-  >
-    <ChevronLeft color={Colors.light.tint} size={20} />
-    <Text style={styles.backText}>Back</Text>
-  </TouchableOpacity>
-);
+const BackButton = () => {
+  const pathname = usePathname();
+  const handleBackPress = () => {
+    try {
+      // Use pathname to determine current location
+      console.log('🧭 Navigation: Attempting to go back from path:', pathname);
+      
+      // Handle special cases for known navigation paths
+      if (pathname && (pathname.includes('/bigbook') || pathname.endsWith('bigbook'))) {
+        console.log('🧭 Navigation: Special case - navigating from bigbook to literature');
+        router.push('/literature');
+        return;
+      } else if (pathname && (pathname.includes('/twelve-and-twelve') || pathname.endsWith('twelve-and-twelve'))) {
+        console.log('🧭 Navigation: Special case - navigating from twelve-and-twelve to literature');
+        router.push('/literature');
+        return;
+      } else if (pathname && (pathname.includes('/meeting-pocket') || pathname.endsWith('meeting-pocket'))) {
+        console.log('🧭 Navigation: Special case - navigating from meeting-pocket to literature');
+        router.push('/literature');
+        return;
+      }
+      
+      // Actually navigate back for other cases
+      router.back();
+      
+      // Log after navigation
+      console.log('🧭 Navigation: router.back() called successfully');
+    } catch (error) {
+      console.error('🧭 Navigation: Error going back:', error);
+      // Do not force home; better to no-op than surprise navigate
+    }
+  };
+
+  return (
+    <TouchableOpacity 
+      style={styles.backButton}
+      onPress={handleBackPress}
+      testID="back-button"
+    >
+      <ChevronLeft color={Colors.light.tint} size={20} />
+      <Text style={styles.backText}>Back</Text>
+    </TouchableOpacity>
+  );
+};
 
 export default function TabLayout() {
   return (
@@ -104,7 +138,6 @@ export default function TabLayout() {
         options={{
           title: "Gratitude",
           headerTitle: '',
-          headerLeft: () => <BackButton />,
           tabBarIcon: ({ color }) => <Smile color={color} size={22} style={styles.tabIcon} />,
         }}
       />
@@ -142,7 +175,6 @@ export default function TabLayout() {
         options={{
           title: "Review",
           headerTitle: '',
-          headerLeft: () => <BackButton />,
           tabBarIcon: ({ color }) => <Moon color={color} size={22} style={styles.tabIcon} />,
         }}
       />

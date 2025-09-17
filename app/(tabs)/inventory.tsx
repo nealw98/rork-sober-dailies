@@ -2,7 +2,6 @@ import React from 'react';
 import { StyleSheet, View, Text, ScrollView } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import Colors from '@/constants/colors';
-import { Stack } from 'expo-router';
 import ScreenContainer from '@/components/ScreenContainer';
 
 const Inventory = () => {
@@ -51,45 +50,38 @@ const Inventory = () => {
   ];
 
   return (
-    <>
-      <Stack.Screen options={{ 
-        headerTitle: '',
-        headerBackTitle: '',
-        headerBackTitleVisible: false
-      }} />
-      <ScreenContainer style={styles.container} noPadding>
-        <LinearGradient
-          colors={['rgba(74, 144, 226, 0.3)', 'rgba(78, 205, 196, 0.2)', 'rgba(92, 184, 92, 0.1)']}
-          style={styles.gradientContainer}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-        >
-          <ScrollView contentContainerStyle={styles.scrollContent}>
-            <View style={styles.contentContainer}>
-              <Text style={styles.titleLine2}>Are you on the beam?</Text>
-              <View style={styles.cardContainer}>
-                <View style={styles.gridContainer}>
-                  <View style={styles.columnContainer}>
-                    <Text style={[styles.columnTitleOn, { fontStyle: 'italic' }]}>ON THE BEAM</Text>
-                    <View style={styles.underline} />
-                    {onTheBeam.map((item, index) => (
-                      <Text key={index} style={[styles.itemText, styles.noWrap]}>{item}</Text>
-                    ))}
-                  </View>
-                  <View style={styles.columnContainer}>
-                    <Text style={[styles.columnTitleOff, { fontStyle: 'italic' }]}>OFF THE BEAM</Text>
-                    <View style={styles.underline} />
-                    {offTheBeam.map((item, index) => (
-                      <Text key={index} style={[styles.itemText, styles.noWrap]}>{item}</Text>
-                    ))}
-                  </View>
+    <ScreenContainer style={styles.container} noPadding>
+      <LinearGradient
+        colors={['rgba(74, 144, 226, 0.3)', 'rgba(78, 205, 196, 0.2)', 'rgba(92, 184, 92, 0.1)']}
+        style={styles.gradientContainer}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+      >
+        <ScrollView contentContainerStyle={styles.scrollContent}>
+          <View style={styles.contentContainer}>
+            <Text style={styles.titleLine2}>Are you on the beam?</Text>
+            <View style={styles.cardContainer}>
+              <View style={styles.gridContainer}>
+                <View style={styles.columnContainer}>
+                  <Text style={[styles.columnTitleOn, { fontStyle: 'italic' }]}>ON THE BEAM</Text>
+                  <View style={styles.underline} />
+                  {onTheBeam.map((item, index) => (
+                    <Text key={index} style={[styles.itemText, styles.noWrap]}>{item}</Text>
+                  ))}
+                </View>
+                <View style={styles.columnContainer}>
+                  <Text style={[styles.columnTitleOff, { fontStyle: 'italic' }]}>OFF THE BEAM</Text>
+                  <View style={styles.underline} />
+                  {offTheBeam.map((item, index) => (
+                    <Text key={index} style={[styles.itemText, styles.noWrap]}>{item}</Text>
+                  ))}
                 </View>
               </View>
             </View>
-          </ScrollView>
-        </LinearGradient>
-      </ScreenContainer>
-    </>
+          </View>
+        </ScrollView>
+      </LinearGradient>
+    </ScreenContainer>
   );
 };
 
@@ -196,5 +188,8 @@ const styles = StyleSheet.create({
     flexShrink: 0,
   },
 });
+
+// Added console log to track file loading
+console.log('📋 NEW INVENTORY FILE LOADED 📋');
 
 export default Inventory;

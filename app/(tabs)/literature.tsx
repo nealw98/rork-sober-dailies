@@ -18,32 +18,81 @@ const literatureOptions: LiteratureOption[] = [
     id: "bigbook",
     title: "Alcoholics Anonymous",
     description: "The basic textbook for the AA program.",
-    route: "/(tabs)/bigbook"
+    route: "/bigbook"
   },
   {
     id: "twelve-and-twelve",
     title: "Twelve Steps and Twelve Traditions",
     description: "In-depth exploration of the Steps and Traditions",
-    route: "/(tabs)/twelve-and-twelve"
+    route: "/twelve-and-twelve"
   },
   {
     id: "meeting-pocket",
     title: "AA Meeting in Your Pocket",
     description: "Quick access to the core AA readings used in meetings.",
-    route: "/(tabs)/meeting-pocket"
+    route: "/meeting-pocket"
   }
 ];
 
 export default function LiteratureScreen() {
+  // Add direct navigation buttons for debugging
+  const handleDirectNavigation = (screenName: string) => {
+    console.log(`🔵 Literature: Direct navigation to ${screenName}`);
+    try {
+      router.push(screenName);
+      console.log(`🔵 Literature: Direct navigation to ${screenName} completed`);
+    } catch (error) {
+      console.error(`🔴 Literature: Direct navigation error for ${screenName}:`, error);
+    }
+  };
   const handleOptionPress = (route: string) => {
     console.log('🔵 Literature: handleOptionPress called with route:', route);
     try {
-      console.log('🔵 Literature: About to call router.navigate');
-      // Use navigate instead of push to maintain proper navigation history
-      router.navigate(route as any);
-      console.log('🔵 Literature: router.navigate completed successfully');
+      // Log the current navigation state before navigating (guarded)
+      if (typeof (router as any).getState === 'function') {
+        const currentState = (router as any).getState();
+        console.log('🧭 Navigation: Current state before navigation:', JSON.stringify({
+          routes: currentState.routes.map((r: any) => ({ 
+            name: r.name,
+            path: r.path,
+            params: r.params
+          })),
+          index: currentState.index,
+          key: currentState.key,
+          stale: currentState.stale,
+          type: currentState.type
+        }, null, 2));
+      } else {
+        console.log('🧭 Navigation: router.getState is not available in this environment');
+      }
+      
+      // Get current route name for logging
+      const currentRouteName = currentState.routes[currentState.index]?.name || 'unknown';
+      console.log(`🧭 Navigation: Navigating from "${currentRouteName}" to "${route}"`);
+      
+      console.log('🔵 Literature: About to call router.push');
+      // Use push for navigation since navigate is not available
+      router.push(route as any);
+      console.log('🔵 Literature: router.push completed successfully');
+      
+      // Log the state after navigation (on next tick, guarded)
+      setTimeout(() => {
+        try {
+          if (typeof (router as any).getState === 'function') {
+            const newState = (router as any).getState();
+            const newRouteName = newState.routes[newState.index]?.name || 'unknown';
+            console.log(`🧭 Navigation: Now on "${newRouteName}" after navigation to ${route}`);
+            // Log the current route name after navigation
+            console.log(`🧭 Navigation: Route navigation complete. Current route: ${newRouteName}`);
+          } else {
+            console.log('🧭 Navigation: router.getState is not available after navigation');
+          }
+        } catch (err) {
+          console.error('🧭 Navigation: Error getting state after navigation:', err);
+        }
+      }, 100);
     } catch (error) {
-      console.error('🔴 Literature: Error in router.navigate:', error);
+      console.error('🔴 Literature: Error in router.push:', error);
     }
   };
 
@@ -64,6 +113,8 @@ export default function LiteratureScreen() {
             Access the foundational texts of Alcoholics Anonymous
           </Text>
           
+          {/* Debug navigation removed */}
+          
           <View style={styles.optionsContainer}>
             {literatureOptions.map((option) => (
               <TouchableOpacity
@@ -71,7 +122,13 @@ export default function LiteratureScreen() {
                 style={styles.optionCard}
                 onPress={() => {
                   console.log('🔵 Literature: TouchableOpacity pressed for:', option.id, option.route);
-                  handleOptionPress(option.route);
+                  try {
+                    console.log('🔵 Literature: typeof router.push =', typeof (router as any).push);
+                    (router as any).push(option.route);
+                    console.log('🔵 Literature: router.push returned without throwing for', option.route);
+                  } catch (err) {
+                    console.error('🔴 Literature: router.push threw for', option.route, err);
+                  }
                 }}
                 onPressIn={() => console.log('🔵 Literature: TouchableOpacity onPressIn for:', option.id)}
                 onPressOut={() => console.log('🔵 Literature: TouchableOpacity onPressOut for:', option.id)}
@@ -136,8 +193,9 @@ const styles = StyleSheet.create({
     color: Colors.light.muted,
     textAlign: 'center',
     lineHeight: 22,
-    marginBottom: 32,
+    marginBottom: 16,
   },
+  
   optionsContainer: {
     gap: 16,
   },

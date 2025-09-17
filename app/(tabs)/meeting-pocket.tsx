@@ -1,5 +1,4 @@
 import { StyleSheet, Platform } from "react-native";
-import { Stack } from "expo-router";
 import MeetingPocketBrowser from "@/components/MeetingPocketBrowser";
 import ScreenContainer from "@/components/ScreenContainer";
 
@@ -7,16 +6,9 @@ export default function MeetingPocketScreen() {
   console.log('🟢 MeetingPocketScreen: Component rendering');
   
   return (
-    <>
-      <Stack.Screen options={{ 
-        headerTitle: '',
-        headerBackTitle: '',
-        headerBackTitleVisible: false
-      }} />
-      <ScreenContainer noPadding style={styles.container}>
-        <MeetingPocketBrowser />
-      </ScreenContainer>
-    </>
+    <ScreenContainer noPadding style={styles.container}>
+      <MeetingPocketBrowser />
+    </ScreenContainer>
   );
 }
 
