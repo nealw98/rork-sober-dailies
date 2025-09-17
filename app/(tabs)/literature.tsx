@@ -145,7 +145,13 @@ export default function LiteratureScreen() {
                 style={styles.optionCard}
                 onPress={() => {
                   console.log('🔵 Literature: TouchableOpacity pressed for:', option.id, option.route);
-                  handleOptionPress(option.route);
+                  try {
+                    console.log('🔵 Literature: typeof router.push =', typeof (router as any).push);
+                    (router as any).push(option.route);
+                    console.log('🔵 Literature: router.push returned without throwing for', option.route);
+                  } catch (err) {
+                    console.error('🔴 Literature: router.push threw for', option.route, err);
+                  }
                 }}
                 onPressIn={() => console.log('🔵 Literature: TouchableOpacity onPressIn for:', option.id)}
                 onPressOut={() => console.log('🔵 Literature: TouchableOpacity onPressOut for:', option.id)}
