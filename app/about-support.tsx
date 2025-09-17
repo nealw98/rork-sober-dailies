@@ -15,11 +15,11 @@ import {
 } from 'react-native';
 import Constants from 'expo-constants';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Stack } from 'expo-router';
+import { Stack, router } from 'expo-router';
 import { adjustFontWeight } from '@/constants/fonts';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Colors from '@/constants/colors';
-import { Star, Share2 } from 'lucide-react-native';
+import { Star, Share2, ChevronLeft } from 'lucide-react-native';
 import { Logger } from '@/lib/logger';
 import * as Clipboard from 'expo-clipboard';
 import type { Offerings, PurchasesPackage } from 'react-native-purchases';
@@ -346,7 +346,19 @@ const AboutSupportScreen = () => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <Stack.Screen options={{ headerTitle: '' }} />
+      <Stack.Screen options={{ 
+        headerTitle: '',
+        headerBackTitle: '',
+        headerBackTitleVisible: false,
+        headerTransparent: false,
+        headerStyle: { backgroundColor: '#f8f9fa' },
+        headerLeft: () => (
+          <TouchableOpacity onPress={() => router.back()} style={{ flexDirection: 'row', alignItems: 'center', padding: Platform.OS === 'android' ? 4 : 8, marginLeft: Platform.OS === 'android' ? 0 : 4 }}>
+            <ChevronLeft color={Colors.light.tint} size={20} />
+            <Text style={{ fontSize: 14, color: Colors.light.tint, marginLeft: 4 }}>Back</Text>
+          </TouchableOpacity>
+        ),
+      }} />
       {/* Gradient Background */}
       <LinearGradient
         colors={[Colors.light.chatBubbleUser, Colors.light.chatBubbleBot]}
@@ -416,7 +428,7 @@ const AboutSupportScreen = () => {
             <Text style={styles.aboutTitle}>About Sober Dailies</Text>
             <Text style={styles.aboutText}>
               Hi friends,{"\n\n"}
-              I built Sober Dailies because I needed a way to be more consistent with my own recovery practices.  I needed something simple that would walk me through my daily habits.  I wanted all the tools I use—daily reflection, gratitude list, nightly review, and sponsor-style support—in one place I could carry in my pocket.{"\n\n"}
+               I built Sober Dailies because I wanted a way to be more consistent with my own recovery practices.  I needed something simple that would walk me through my daily habits.  I wanted all the tools I need—daily reflection, gratitude list, nightly review, and sponsor-style support—in one place I could carry in my pocket.{"\n\n"}
               This app has grown beyond just me, and I'm grateful to share it with anyone who finds it helpful.{"\n\n"}
               Your contribution here is completely voluntary and goes toward keeping the app running smoothly—covering development costs and investing in future updates and improvements. My hope is to keep the core features free for anyone who wants to use them, but I have some ideas for future features that might only be available to people with a subscription.  But the basics will always be free.{"\n\n"}
               Whether or not you subscribe, I'm just glad you're here and that the app supports your journey.{"\n\n"}

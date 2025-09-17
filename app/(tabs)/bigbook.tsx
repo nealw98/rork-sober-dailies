@@ -1,21 +1,20 @@
 import { StyleSheet, Platform } from "react-native";
 import { Stack } from "expo-router";
-import TwelveAndTwelveBrowser from "@/components/TwelveAndTwelveBrowser";
+import BigBookBrowser from "@/components/BigBookBrowser";
 import ScreenContainer from "@/components/ScreenContainer";
 
-export default function TwelveAndTwelveScreen() {
+export default function BigBookScreen() {
+  console.log('🟢 BigBookScreen: Component rendering');
+  
   return (
     <>
       <Stack.Screen options={{ 
-        headerBackTitle: "Back",
-        headerBackTitleStyle: {
-          fontSize: 14
-        },
-        // Hide the title on all platforms (iOS per request; Android kept hidden)
-        headerTitle: ''
+        headerTitle: '',
+        headerBackTitle: '',
+        headerBackTitleVisible: false
       }} />
       <ScreenContainer style={styles.container} noPadding>
-        <TwelveAndTwelveBrowser />
+        <BigBookBrowser />
       </ScreenContainer>
     </>
   );

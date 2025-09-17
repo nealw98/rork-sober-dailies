@@ -9,12 +9,9 @@ export default function MeetingPocketScreen() {
   return (
     <>
       <Stack.Screen options={{ 
-        headerBackTitle: "Back",
-        headerBackTitleStyle: {
-          fontSize: 14
-        },
-        // Hide the title on all platforms (iOS per request; Android kept hidden)
-        headerTitle: ''
+        headerTitle: '',
+        headerBackTitle: '',
+        headerBackTitleVisible: false
       }} />
       <ScreenContainer noPadding style={styles.container}>
         <MeetingPocketBrowser />

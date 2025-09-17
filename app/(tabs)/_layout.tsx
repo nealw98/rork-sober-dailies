@@ -1,4 +1,4 @@
-import { Tabs, router } from "expo-router";
+import { Tabs, router, Stack } from "expo-router";
 import { Home, MessageCircle, Heart, Smile, Moon, ChevronLeft, BookOpen } from "lucide-react-native";
 import React from "react";
 import { Text, View, StyleSheet, Platform, TouchableOpacity } from "react-native";
@@ -66,12 +66,12 @@ export default function TabLayout() {
           paddingBottom: Platform.OS === 'android' ? 8 : 0,
           paddingTop: Platform.OS === 'android' ? 2 : 0,
           paddingHorizontal: Platform.OS === 'android' ? 4 : 0,
+          display: 'flex', // Always show tab bar
         },
         headerStyle: {
           backgroundColor: "#f8f9fa",
           ...(Platform.OS === 'android' && { height: 44 }),
         },
-
         tabBarLabelStyle: {
           fontSize: 10,
           fontWeight: '500',
@@ -79,7 +79,8 @@ export default function TabLayout() {
         },
         tabBarIconStyle: {
           marginTop: Platform.OS === 'android' ? 4 : 0,
-        }
+        },
+        lazy: false, // Pre-load all tabs to ensure tab bar is always available
       }}
     >
       <Tabs.Screen
@@ -143,6 +144,71 @@ export default function TabLayout() {
           headerTitle: '',
           headerLeft: () => <BackButton />,
           tabBarIcon: ({ color }) => <Moon color={color} size={22} style={styles.tabIcon} />,
+        }}
+      />
+
+      {/* Stack screens that should maintain the tab bar */}
+      <Tabs.Screen
+        name="bigbook"
+        options={{
+          href: null, // Hide from tab bar
+          headerShown: true,
+        }}
+      />
+      <Tabs.Screen
+        name="daily-reflections"
+        options={{
+          href: null, // Hide from tab bar
+          headerShown: true,
+        }}
+      />
+      <Tabs.Screen
+        name="twelve-and-twelve"
+        options={{
+          href: null, // Hide from tab bar
+          headerShown: true,
+        }}
+      />
+      <Tabs.Screen
+        name="meeting-pocket"
+        options={{
+          href: null, // Hide from tab bar
+          headerShown: true,
+        }}
+      />
+      <Tabs.Screen
+        name="inventory"
+        options={{
+          href: null, // Hide from tab bar
+          headerShown: true,
+        }}
+      />
+      <Tabs.Screen
+        name="check-in"
+        options={{
+          href: null, // Hide from tab bar
+          headerShown: true,
+        }}
+      />
+      <Tabs.Screen
+        name="add-contact"
+        options={{
+          href: null, // Hide from tab bar
+          headerShown: true,
+        }}
+      />
+      <Tabs.Screen
+        name="modal"
+        options={{
+          href: null, // Hide from tab bar
+          headerShown: true,
+        }}
+      />
+      <Tabs.Screen
+        name="store"
+        options={{
+          href: null, // Hide from tab bar
+          headerShown: true,
         }}
       />
 

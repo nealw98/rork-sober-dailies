@@ -10,9 +10,11 @@ import {
   Platform,
   ActivityIndicator,
   Keyboard,
+  Alert,
 } from "react-native";
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Send, RotateCcw } from "lucide-react-native";
+import * as Clipboard from 'expo-clipboard';
 import Colors from "@/constants/colors";
 import { useChatStore } from "@/hooks/use-chat-store";
 import { ChatMessage, SponsorType } from "@/types";
@@ -39,6 +41,15 @@ const ChatBubble = ({ message }: { message: ChatMessage }) => {
         return styles.supportiveBubble;
     }
   };
+
+  const handleCopyMessage = async () => {
+    try {
+      await Clipboard.setStringAsync(message.text);
+      Alert.alert("Copied!", "", [{ text: "OK" }]);
+    } catch (error) {
+      Alert.alert("Copy Failed", "", [{ text: "OK" }]);
+    }
+  };
   
   return (
     <View
@@ -48,18 +59,20 @@ const ChatBubble = ({ message }: { message: ChatMessage }) => {
       ]}
       testID={`chat-bubble-${message.id}`}
     >
-      <View
+      <TouchableOpacity
         style={[
           styles.bubble,
           getBotBubbleStyle(),
         ]}
+        onPress={handleCopyMessage}
+        activeOpacity={0.7}
       >
         {isUser ? (
           <Text style={styles.messageText}>{message.text}</Text>
         ) : (
           <ChatMarkdownRenderer content={message.text} style={styles.messageText} />
         )}
-      </View>
+      </TouchableOpacity>
       <Text style={styles.timestamp}>
         {new Date(message.timestamp).toLocaleTimeString([], {
           hour: "2-digit",

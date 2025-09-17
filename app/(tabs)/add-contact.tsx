@@ -1,7 +1,7 @@
 import { StyleSheet, Text, View, TextInput, TouchableOpacity, Alert, Platform } from "react-native";
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useSobriety } from '@/hooks/useSobrietyStore';
-import { useRouter } from 'expo-router';
+import { useRouter, Stack } from 'expo-router';
 import { useState } from 'react';
 import { UserPlus } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
@@ -42,7 +42,13 @@ export default function AddContactScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <>
+      <Stack.Screen options={{ 
+        headerTitle: '',
+        headerBackTitle: '',
+        headerBackTitleVisible: false
+      }} />
+      <SafeAreaView style={styles.container}>
       <View style={styles.content}>
         <View style={styles.iconContainer}>
           <UserPlus size={48} color="#6B46C1" />
@@ -108,6 +114,7 @@ export default function AddContactScreen() {
         </TouchableOpacity>
       </View>
     </SafeAreaView>
+    </>
   );
 }
 

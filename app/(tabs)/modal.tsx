@@ -1,9 +1,16 @@
 import { StatusBar } from "expo-status-bar";
 import { Platform, StyleSheet, Text, View } from "react-native";
+import { Stack } from "expo-router";
 
 export default function ModalScreen() {
   return (
-    <View style={styles.container}>
+    <>
+      <Stack.Screen options={{ 
+        headerTitle: '',
+        headerBackTitle: '',
+        headerBackTitleVisible: false
+      }} />
+      <View style={styles.container}>
       <Text style={styles.title}>Modal</Text>
       <View style={styles.separator} />
       <Text>This is an example modal. You can edit it in app/modal.tsx.</Text>
@@ -11,6 +18,7 @@ export default function ModalScreen() {
       {/* Use a light status bar on iOS to account for the black space above the modal */}
       <StatusBar style={Platform.OS === "ios" ? "light" : "auto"} />
     </View>
+    </>
   );
 }
 

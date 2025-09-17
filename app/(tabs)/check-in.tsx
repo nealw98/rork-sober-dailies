@@ -1,7 +1,7 @@
 import { StyleSheet, Text, View, ScrollView, TouchableOpacity, TextInput, Alert, Platform } from "react-native";
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useSobriety } from '@/hooks/useSobrietyStore';
-import { useRouter } from 'expo-router';
+import { useRouter, Stack } from 'expo-router';
 import { useState } from 'react';
 import { MOOD_COLORS, MOOD_EMOJIS } from '@/constants/achievements';
 import { Check } from 'lucide-react-native';
@@ -83,7 +83,13 @@ export default function CheckInScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <>
+      <Stack.Screen options={{ 
+        headerTitle: '',
+        headerBackTitle: '',
+        headerBackTitleVisible: false
+      }} />
+      <SafeAreaView style={styles.container}>
       <ScrollView 
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
@@ -159,6 +165,7 @@ export default function CheckInScreen() {
         </TouchableOpacity>
       </ScrollView>
     </SafeAreaView>
+    </>
   );
 }
 

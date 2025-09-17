@@ -731,7 +731,7 @@ export default function GratitudeListScreen() {
                       <View style={{ flex: 1 }}>
                         {editingIndex === index ? (
                           <TextInput
-                            style={[styles.textInput, { marginBottom: 0 }]}
+                            style={[styles.textInput, { marginBottom: 0, minHeight: 60 }]}
                             value={editingValue}
                             onChangeText={setEditingValue}
                             autoFocus
@@ -739,6 +739,8 @@ export default function GratitudeListScreen() {
                             onSubmitEditing={commitEdit}
                             onBlur={commitEdit}
                             returnKeyType="done"
+                            multiline
+                            textAlignVertical="top"
                           />
                         ) : (
                           <TouchableOpacity onPress={() => beginEdit(index)} activeOpacity={0.7}>

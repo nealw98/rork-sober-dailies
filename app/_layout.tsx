@@ -129,13 +129,21 @@ function RootLayoutNav() {
       <Stack.Screen 
         name="terms" 
         options={{ 
-          presentation: 'modal'
+          presentation: 'modal',
+          headerShown: true,
         }} 
       />
       <Stack.Screen 
         name="privacy" 
         options={{ 
-          presentation: 'modal'
+          presentation: 'modal',
+          headerShown: true,
+        }} 
+      />
+      <Stack.Screen 
+        name="about-support" 
+        options={{ 
+          headerShown: true,
         }} 
       />
       

@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useCallback, useMemo } from "react";
 import { ActivityIndicator, Alert, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import type { CustomerInfo, PurchasesPackage } from "react-native-purchases";
+import { Stack } from "expo-router";
 import { 
   fetchPackages as rcFetchPackages,
   purchasePackage as rcPurchasePackage,
@@ -150,12 +151,19 @@ export default function StoreScreen() {
   }, [loading, packages, purchasingId]);
 
   return (
-    <ScrollView contentContainerStyle={styles.container}>
+    <>
+      <Stack.Screen options={{ 
+        headerTitle: '',
+        headerBackTitle: '',
+        headerBackTitleVisible: false
+      }} />
+      <ScrollView contentContainerStyle={styles.container}>
       <Text style={styles.header}>Support Sober Dailies</Text>
       <Text style={styles.subheader}>Choose a one-time tip</Text>
       {content}
       <Text style={styles.legal}>Processed by Apple. Support: support@soberdailies.com</Text>
     </ScrollView>
+    </>
   );
 }
 
