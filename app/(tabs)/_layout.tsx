@@ -44,14 +44,60 @@ const styles = StyleSheet.create({
 
 const BackButton = () => {
   const handleBackPress = () => {
-    // Use navigation history to go back
-    // This ensures we go back to the previous screen, not just to home
     try {
+      // Log the current route before navigation
+      const currentState = router.getState();
+      console.log('🧭 Navigation: Current state before back:', JSON.stringify({
+        routes: currentState.routes.map(r => ({ 
+          name: r.name,
+          path: r.path,
+          params: r.params
+        })),
+        index: currentState.index,
+        key: currentState.key,
+        stale: currentState.stale,
+        type: currentState.type
+      }, null, 2));
+      
+      // Get current route name for logging
+      const currentRouteName = currentState.routes[currentState.index]?.name || 'unknown';
+      console.log(`🧭 Navigation: Attempting to go back from "${currentRouteName}"`);
+      
+      // Handle special cases for known navigation paths
+      if (currentRouteName === 'bigbook') {
+        console.log('🧭 Navigation: Special case - navigating from bigbook to literature');
+        router.navigate('/(tabs)/literature');
+        return;
+      } else if (currentRouteName === 'twelve-and-twelve') {
+        console.log('🧭 Navigation: Special case - navigating from twelve-and-twelve to literature');
+        router.navigate('/(tabs)/literature');
+        return;
+      } else if (currentRouteName === 'meeting-pocket') {
+        console.log('🧭 Navigation: Special case - navigating from meeting-pocket to literature');
+        router.navigate('/(tabs)/literature');
+        return;
+      }
+      
+      // Actually navigate back for other cases
       router.back();
-      console.log('🔄 Navigation: Going back using router.back()');
+      
+      // Log after navigation
+      console.log('🧭 Navigation: router.back() called successfully');
+      
+      // Log the state after navigation (on next tick)
+      setTimeout(() => {
+        try {
+          const newState = router.getState();
+          const newRouteName = newState.routes[newState.index]?.name || 'unknown';
+          console.log(`🧭 Navigation: Now on "${newRouteName}" after back navigation`);
+        } catch (err) {
+          console.error('🧭 Navigation: Error getting state after back:', err);
+        }
+      }, 100);
     } catch (error) {
-      console.error('🔴 Navigation: Error going back:', error);
+      console.error('🧭 Navigation: Error going back:', error);
       // Fallback to home if router.back() fails
+      console.log('🧭 Navigation: Falling back to home navigation');
       router.navigate('/');
     }
   };

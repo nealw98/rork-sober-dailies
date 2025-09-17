@@ -38,10 +38,39 @@ export default function LiteratureScreen() {
   const handleOptionPress = (route: string) => {
     console.log('🔵 Literature: handleOptionPress called with route:', route);
     try {
+      // Log the current navigation state before navigating
+      const currentState = router.getState();
+      console.log('🧭 Navigation: Current state before navigation:', JSON.stringify({
+        routes: currentState.routes.map(r => ({ 
+          name: r.name,
+          path: r.path,
+          params: r.params
+        })),
+        index: currentState.index,
+        key: currentState.key,
+        stale: currentState.stale,
+        type: currentState.type
+      }, null, 2));
+      
+      // Get current route name for logging
+      const currentRouteName = currentState.routes[currentState.index]?.name || 'unknown';
+      console.log(`🧭 Navigation: Navigating from "${currentRouteName}" to "${route}"`);
+      
       console.log('🔵 Literature: About to call router.navigate');
       // Use navigate instead of push to maintain proper navigation history
       router.navigate(route as any);
       console.log('🔵 Literature: router.navigate completed successfully');
+      
+      // Log the state after navigation (on next tick)
+      setTimeout(() => {
+        try {
+          const newState = router.getState();
+          const newRouteName = newState.routes[newState.index]?.name || 'unknown';
+          console.log(`🧭 Navigation: Now on "${newRouteName}" after navigation to ${route}`);
+        } catch (err) {
+          console.error('🧭 Navigation: Error getting state after navigation:', err);
+        }
+      }, 100);
     } catch (error) {
       console.error('🔴 Literature: Error in router.navigate:', error);
     }
