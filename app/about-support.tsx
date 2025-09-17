@@ -81,26 +81,71 @@ const AboutSupportScreen = () => {
 
         // Look for our specific subscription products
         const wanted = new Set(['support_monthly', 'support_yearly']);
-        let filtered: PurchasesPackage[] = allPkgs.filter((p: any) => p.storeProduct && wanted.has(p.storeProduct.identifier));
+        
+        // Log all packages for debugging
+        console.log('[Offerings] All packages with details:', allPkgs.map((p: any) => ({
+          pkgId: p.identifier,
+          storeId: p.storeProduct?.identifier,
+          price: p.storeProduct?.price,
+          priceString: p.storeProduct?.priceString
+        })));
+        
+        // First try to filter by store product identifier (the App Store product ID)
+        let filtered: PurchasesPackage[] = allPkgs.filter((p: any) => 
+          p.storeProduct && wanted.has(p.storeProduct.identifier)
+        );
         let usingFallback = false;
+        // If we didn't find any products by identifier, try to match by package identifier
+        if (filtered.length === 0 && allPkgs.length > 0) {
+          console.log('[Offerings] No products found by store identifier, trying package identifier');
+          filtered = allPkgs.filter((p: any) => wanted.has(p.identifier));
+          
+          if (filtered.length > 0) {
+            console.log('[Offerings] Found products by package identifier:', filtered.map((p: any) => p.identifier));
+            usingFallback = true;
+          }
+        }
+        
+        // If we still don't have any products, fall back to using the first two by price
         if (filtered.length === 0 && allPkgs.length > 0) {
           usingFallback = true;
           filtered = [...allPkgs].sort((a: any, b: any) => (a.storeProduct?.price ?? 0) - (b.storeProduct?.price ?? 0)).slice(0, 2);
-          console.log('[Offerings] Fallback mapping by price rank due to missing support_monthly/support_yearly package identifiers');
+          console.log('[Offerings] Fallback mapping by price rank due to missing support_monthly/support_yearly identifiers');
         }
         console.log(`[Offerings] Filtered to ${filtered.length} wanted packages:`, filtered.map((p: any) => `${p.identifier}:${p.storeProduct?.identifier}`));
 
         const byId: Record<string, PurchasesPackage> = {};
-        if (!usingFallback) {
-          filtered.forEach((p: any) => { 
-            if (p.storeProduct && p.storeProduct.identifier) {
-              byId[p.storeProduct.identifier] = p; 
+        
+        // Map packages by both package ID and store product ID when available
+        filtered.forEach((p: any) => {
+          // Always map by package ID
+          if (p.identifier) {
+            if (p.identifier === 'support_monthly' || p.identifier === 'support_yearly') {
+              byId[p.identifier] = p;
+              console.log(`[Offerings] Mapped package by identifier: ${p.identifier}`);
+            }
+          }
+          
+          // Also map by store product ID if available
+          if (p.storeProduct && p.storeProduct.identifier) {
+            byId[p.storeProduct.identifier] = p;
+            console.log(`[Offerings] Mapped package by store identifier: ${p.storeProduct.identifier}`);
+          }
+        });
+        
+        // If we still don't have the required keys, use fallback mapping
+        if (!byId['support_monthly'] || !byId['support_yearly']) {
+          console.log('[Offerings] Missing required keys, using fallback mapping');
+          const keys = ['support_monthly', 'support_yearly'];
+          filtered.forEach((p: any, idx: number) => { 
+            if (idx < keys.length) {
+              byId[keys[idx]] = p;
+              console.log(`[Offerings] Fallback mapped ${keys[idx]} to ${p.identifier}`);
             }
           });
-        } else {
-          const keys = ['support_monthly', 'support_yearly'];
-          filtered.forEach((p: any, idx: number) => { byId[keys[idx]] = p; });
         }
+        
+        console.log('[Offerings] Final package mapping:', Object.keys(byId));
         
         const totalTime = Date.now() - loadStartTime;
         console.log(`[Offerings] Successfully loaded offerings in ${totalTime}ms`);

@@ -38,8 +38,8 @@ export default function LiteratureScreen() {
   const handleOptionPress = (route: string) => {
     console.log('🔵 Literature: handleOptionPress called with route:', route);
     try {
-      console.log('🔵 Literature: About to call router.push');
-      // Use navigate instead of push to maintain navigation history
+      console.log('🔵 Literature: About to call router.navigate');
+      // Use navigate instead of push to maintain proper navigation history
       router.navigate(route as any);
       console.log('🔵 Literature: router.navigate completed successfully');
     } catch (error) {
