@@ -24,7 +24,7 @@ export default function StoreScreen() {
       const allPkgs = await rcFetchPackages();
 
       // Filter to your StoreKit IDs:
-      const wanted = new Set(["Tier1", "Tier2", "Tier3"]);
+      const wanted = new Set(["support_monthly", "support_yearly"]);
       const filtered = allPkgs
         .filter((p) => wanted.has(p.storeProduct.identifier))
         .sort((a, b) => a.storeProduct.price - b.storeProduct.price);
@@ -129,15 +129,17 @@ export default function StoreScreen() {
               </View>
             ) : (
               <Text style={styles.contributionText}>
-                {pkg.storeProduct.identifier === "Tier3"
-                  ? "Help it Grow — $7.99"
+                {pkg.storeProduct.identifier === "support_monthly"
+                  ? "$1.99 / month"
+                  : pkg.storeProduct.identifier === "support_yearly"
+                  ? "$19.99 / year"
                   : `${friendlyTitle(pkg.storeProduct.identifier)} — ${pkg.storeProduct.priceString}`}
               </Text>
             )}
           </TouchableOpacity>
         ))}
 
-        <Text style={styles.disclaimer}>Contributions are optional and don’t unlock features.</Text>
+        <Text style={styles.disclaimer}>Subscriptions are optional and help support app development.</Text>
 
         {errorMessage ? (
           <Text style={styles.inlineError}>{errorMessage}</Text>
@@ -159,7 +161,7 @@ export default function StoreScreen() {
       }} />
       <ScrollView contentContainerStyle={styles.container}>
       <Text style={styles.header}>Support Sober Dailies</Text>
-      <Text style={styles.subheader}>Choose a one-time tip</Text>
+      <Text style={styles.subheader}>Choose a subscription plan</Text>
       {content}
       <Text style={styles.legal}>Processed by Apple. Support: support@soberdailies.com</Text>
     </ScrollView>
@@ -169,12 +171,10 @@ export default function StoreScreen() {
 
 function friendlyTitle(id: string) {
   switch (id) {
-    case "Tier1":
-      return "Show your appreciation";
-    case "Tier2":
-      return "Support the App";
-    case "Tier3":
-      return "Help it Grow";
+    case "support_monthly":
+      return "Monthly Support";
+    case "support_yearly":
+      return "Yearly Support";
     default:
       return id;
   }
