@@ -195,7 +195,7 @@ const AboutSupportScreen = () => {
     return () => unsub();
   }, [logsVisible]);
 
-  // After ~2s of pending, show connecting hint
+  // Maintain compatibility: we still track a connecting flag, but UI will only show 'Connecting...'
   useEffect(() => {
     if (!purchasingId) {
       setConnecting(false);
@@ -265,9 +265,20 @@ const AboutSupportScreen = () => {
       const purchaseStartTime = Date.now();
       log(`[Purchase] Preparing purchasePackage for ${productId} at ${new Date().toISOString()}`);
 
-      // Allow UI to render spinner first, then invoke purchase in next tick
+      // Allow UI to render first, then invoke purchase in next tick
       await Promise.resolve();
-      await Purchases.purchasePackage(pkg);
+
+      // Hide the in-button message shortly after invoking StoreKit so it disappears when the sheet appears
+      const hideTimer = setTimeout(() => {
+        setPurchasingId(null);
+        setIsPurchaseInProgress(false);
+      }, 800);
+
+      try {
+        await Purchases.purchasePackage(pkg);
+      } finally {
+        clearTimeout(hideTimer);
+      }
       
       const purchaseEndTime = Date.now();
       const totalTime = purchaseEndTime - startTime;
@@ -447,13 +458,7 @@ const AboutSupportScreen = () => {
               disabled={purchasingId === 'support_monthly'}
             >
               {purchasingId === 'support_monthly' ? (
-                <View style={{ alignItems: 'center' }}>
-                  <ActivityIndicator />
-                  <Text style={styles.subscriptionButtonText}>Opening Apple…</Text>
-                  {connecting ? (
-                    <Text style={styles.supportSubtext}>Connecting to App Store…</Text>
-                  ) : null}
-                </View>
+                <Text style={styles.subscriptionButtonText}>Connecting...</Text>
               ) : (
                 <Text style={styles.subscriptionButtonText}>$1.99 / month</Text>
               )}
@@ -465,13 +470,7 @@ const AboutSupportScreen = () => {
               disabled={purchasingId === 'support_yearly'}
             >
               {purchasingId === 'support_yearly' ? (
-                <View style={{ alignItems: 'center' }}>
-                  <ActivityIndicator />
-                  <Text style={styles.subscriptionButtonText}>Opening Apple…</Text>
-                  {connecting ? (
-                    <Text style={styles.supportSubtext}>Connecting to App Store…</Text>
-                  ) : null}
-                </View>
+                <Text style={styles.subscriptionButtonText}>Connecting...</Text>
               ) : (
                 <Text style={styles.subscriptionButtonText}>$19.99 / year</Text>
               )}
