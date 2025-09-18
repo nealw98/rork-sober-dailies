@@ -10,9 +10,11 @@ import { GratitudeProvider } from "@/hooks/use-gratitude-store";
 import { OnboardingProvider, useOnboarding } from "@/hooks/useOnboardingStore";
 import { SobrietyProvider } from "@/hooks/useSobrietyStore";
 import { EveningReviewProvider } from "@/hooks/use-evening-review-store";
+import { useOTAUpdates } from "@/hooks/useOTAUpdates";
 import { adjustFontWeight } from "@/constants/fonts";
 import Colors from "@/constants/colors";
 import WelcomeScreen from "@/components/WelcomeScreen";
+import OTASnackbar from "@/components/OTASnackbar";
 import { configurePurchases } from "@/lib/purchases";
 import { Logger } from "@/lib/logger";
 // Lazy-load expo-updates to avoid crashes in environments without the native module (e.g., Expo Go)
@@ -25,6 +27,7 @@ const queryClient = new QueryClient();
 
 function RootLayoutNav() {
   const { isOnboardingComplete, isLoading } = useOnboarding();
+  const { showSnackbar, dismissSnackbar } = useOTAUpdates();
 
   useEffect(() => {
     try {
@@ -42,12 +45,6 @@ function RootLayoutNav() {
           const updateId = Updates.updateId ?? 'embedded';
           console.log(`[OTA] runtimeVersion=${runtimeVersion} url=${url}`);
           console.log(`[OTA] launchedFrom=${isEmbeddedLaunch ? 'embedded' : 'OTA'} updateId=${updateId}`);
-          const result = await Updates.checkForUpdateAsync({ requestHeaders: { 'expo-channel-name': 'production' } as any });
-          console.log('[OTA] checkForUpdate:', { isAvailable: result.isAvailable });
-          if (result.isAvailable) {
-            const fetched = await Updates.fetchUpdateAsync({ requestHeaders: { 'expo-channel-name': 'production' } as any });
-            console.log('[OTA] fetchUpdate:', { isNew: fetched.isNew, manifest: !!fetched?.manifest });
-          }
         } catch (e: any) {
           console.log('[OTA] error', e?.message || String(e));
         }
@@ -99,55 +96,58 @@ function RootLayoutNav() {
   }
 
   return (
-    <Stack screenOptions={{ 
-      headerBackTitle: "",
-      headerTitleAlign: 'center',
-      headerLeft: ({ canGoBack }) => canGoBack ? (
-        <TouchableOpacity 
-          style={styles.backButton} 
-          onPress={() => router.back()}
-          activeOpacity={0.7}
-        >
-          <ChevronLeft color={Colors.light.tint} size={20} />
-          <Text style={styles.backText}>Back</Text>
-        </TouchableOpacity>
-      ) : null,
-      contentStyle: { backgroundColor: "#f8f9fa" },
-      headerStyle: {
-        backgroundColor: "#f8f9fa",
-      },
-      headerTitleStyle: {
-        fontWeight: adjustFontWeight("600", true),
-      },
-    }}>
-      <Stack.Screen 
-        name="(tabs)" 
-        options={{ 
-          headerShown: false
-        }} 
-      />
-      <Stack.Screen 
-        name="terms" 
-        options={{ 
-          presentation: 'modal',
-          headerShown: true,
-        }} 
-      />
-      <Stack.Screen 
-        name="privacy" 
-        options={{ 
-          presentation: 'modal',
-          headerShown: true,
-        }} 
-      />
-      <Stack.Screen 
-        name="about-support" 
-        options={{ 
-          headerShown: true,
-        }} 
-      />
-      
-    </Stack>
+    <>
+      <Stack screenOptions={{ 
+        headerBackTitle: "",
+        headerTitleAlign: 'center',
+        headerLeft: ({ canGoBack }) => canGoBack ? (
+          <TouchableOpacity 
+            style={styles.backButton} 
+            onPress={() => router.back()}
+            activeOpacity={0.7}
+          >
+            <ChevronLeft color={Colors.light.tint} size={20} />
+            <Text style={styles.backText}>Back</Text>
+          </TouchableOpacity>
+        ) : null,
+        contentStyle: { backgroundColor: "#f8f9fa" },
+        headerStyle: {
+          backgroundColor: "#f8f9fa",
+        },
+        headerTitleStyle: {
+          fontWeight: adjustFontWeight("600", true),
+        },
+      }}>
+        <Stack.Screen 
+          name="(tabs)" 
+          options={{ 
+            headerShown: false
+          }} 
+        />
+        <Stack.Screen 
+          name="terms" 
+          options={{ 
+            presentation: 'modal',
+            headerShown: true,
+          }} 
+        />
+        <Stack.Screen 
+          name="privacy" 
+          options={{ 
+            presentation: 'modal',
+            headerShown: true,
+          }} 
+        />
+        <Stack.Screen 
+          name="about-support" 
+          options={{ 
+            headerShown: true,
+          }} 
+        />
+        
+      </Stack>
+      <OTASnackbar visible={showSnackbar} onDismiss={dismissSnackbar} />
+    </>
   );
 }
 
