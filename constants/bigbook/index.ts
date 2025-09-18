@@ -311,7 +311,7 @@ export const searchBigBookContentEnhanced = (
         .replace(/^(The Doctor's Opinion|Bill's Story|More About Alcoholism|Into Action|HOW IT WORKS)$/gm, '') // Remove specific titles
         .replace(/^Chapter \d+.*$/gm, '') // Remove chapter lines
         .replace(/\n{2,}/g, ' ')
-        .trim();
+        .replace(/\n/g, ' '); // Replace single newlines with spaces
         
       const cleanAfter = excerptAfter
         .replace(/\*— Page [^—]+ —\*/g, '')
@@ -319,7 +319,17 @@ export const searchBigBookContentEnhanced = (
         .replace(/^(The Doctor's Opinion|Bill's Story|More About Alcoholism|Into Action|HOW IT WORKS)$/gm, '') // Remove specific titles
         .replace(/^Chapter \d+.*$/gm, '') // Remove chapter lines
         .replace(/\n{2,}/g, ' ')
-        .trim();
+        .replace(/\n/g, ' '); // Replace single newlines with spaces
+      
+      // Get the last part of before text and first part of after text, preserving spaces
+      const beforeText = cleanBefore.slice(-50);
+      const afterText = cleanAfter.slice(0, 50);
+      
+      // Ensure there's a space before the match if the before text doesn't end with whitespace
+      const beforeWithSpace = beforeText && !/\s$/.test(beforeText) ? beforeText + ' ' : beforeText;
+      
+      // Ensure there's a space after the match if the after text doesn't start with whitespace
+      const afterWithSpace = afterText && !/^\s/.test(afterText) ? ' ' + afterText : afterText;
       
       results.push({
         id: `${chapter.id}-${originalMatchIndex}`,
@@ -329,9 +339,9 @@ export const searchBigBookContentEnhanced = (
         excerpt,
         matchType: 'text',
         matchContext: {
-          before: cleanBefore.slice(-50), // Last 50 chars before match (cleaned)
+          before: beforeWithSpace,
           match: matchText,
-          after: cleanAfter.slice(0, 50), // First 50 chars after match (cleaned)
+          after: afterWithSpace,
           position: originalMatchIndex,
           length: matchText.length
         },
