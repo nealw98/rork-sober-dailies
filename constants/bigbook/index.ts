@@ -328,8 +328,8 @@ export const searchBigBookContentEnhanced = (
       // Ensure there's a space before the match if the before text doesn't end with whitespace
       const beforeWithSpace = beforeText && !/\s$/.test(beforeText) ? beforeText + ' ' : beforeText;
       
-      // Ensure there's a space after the match if the after text doesn't start with whitespace
-      const afterWithSpace = afterText && !/^\s/.test(afterText) ? ' ' + afterText : afterText;
+      // Only add space after the match if the after text doesn't start with whitespace AND doesn't start with punctuation
+      const afterWithSpace = afterText && !/^\s/.test(afterText) && !/^[.,;:!?)]/.test(afterText) ? ' ' + afterText : afterText;
       
       results.push({
         id: `${chapter.id}-${originalMatchIndex}`,
