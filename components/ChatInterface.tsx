@@ -43,14 +43,44 @@ const ChatBubble = ({ message }: { message: ChatMessage }) => {
     }
   };
 
-  const handleCopyMessage = async () => {
-    try {
-      // Provide haptic feedback
+  const [isLongPressing, setIsLongPressing] = useState(false);
+  const longPressTimer = useRef<NodeJS.Timeout | null>(null);
+
+  // Cleanup timer on unmount
+  useEffect(() => {
+    return () => {
+      if (longPressTimer.current) {
+        clearTimeout(longPressTimer.current);
+      }
+    };
+  }, []);
+
+  const handlePressIn = () => {
+    // Start long press timer
+    longPressTimer.current = setTimeout(async () => {
+      setIsLongPressing(true);
+      // Provide haptic feedback when long press activates (ready signal)
       await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-      await Clipboard.setStringAsync(message.text);
-      Alert.alert("Copied!", "", [{ text: "OK" }]);
-    } catch (error) {
-      Alert.alert("Copy Failed", "", [{ text: "OK" }]);
+    }, 500); // 500ms delay for long press
+  };
+
+  const handlePressOut = async () => {
+    // Clear the timer if user releases before long press
+    if (longPressTimer.current) {
+      clearTimeout(longPressTimer.current);
+      longPressTimer.current = null;
+    }
+
+    // If we were in long press mode, copy the message
+    if (isLongPressing) {
+      try {
+        // Copy happens when user releases the long press
+        await Clipboard.setStringAsync(message.text);
+        Alert.alert("Copied!", "", [{ text: "OK" }]);
+      } catch (error) {
+        Alert.alert("Copy Failed", "", [{ text: "OK" }]);
+      }
+      setIsLongPressing(false);
     }
   };
   
@@ -67,7 +97,8 @@ const ChatBubble = ({ message }: { message: ChatMessage }) => {
           styles.bubble,
           getBotBubbleStyle(),
         ]}
-        onLongPress={handleCopyMessage}
+        onPressIn={handlePressIn}
+        onPressOut={handlePressOut}
         activeOpacity={0.7}
       >
         {isUser ? (
