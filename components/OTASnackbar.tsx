@@ -23,7 +23,6 @@ const { width } = Dimensions.get('window');
 export default function OTASnackbar({ visible, onDismiss }: OTASnackbarProps) {
   const translateY = useRef(new Animated.Value(100)).current;
   const opacity = useRef(new Animated.Value(0)).current;
-  const autoHideTimer = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     if (visible) {
@@ -40,11 +39,6 @@ export default function OTASnackbar({ visible, onDismiss }: OTASnackbarProps) {
           useNativeDriver: true,
         }),
       ]).start();
-
-      // Auto-hide after 5 seconds
-      autoHideTimer.current = setTimeout(() => {
-        onDismiss();
-      }, 5000);
     } else {
       // Hide snackbar
       Animated.parallel([
@@ -60,13 +54,7 @@ export default function OTASnackbar({ visible, onDismiss }: OTASnackbarProps) {
         }),
       ]).start();
     }
-
-    return () => {
-      if (autoHideTimer.current) {
-        clearTimeout(autoHideTimer.current);
-      }
-    };
-  }, [visible, translateY, opacity, onDismiss]);
+  }, [visible, translateY, opacity]);
 
   if (!visible) return null;
 
