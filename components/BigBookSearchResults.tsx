@@ -11,6 +11,39 @@ import Colors from '@/constants/colors';
 import { adjustFontWeight } from '@/constants/fonts';
 import { EnhancedSearchResult } from '@/constants/bigbook';
 
+// Helper function to parse and render markdown text
+const renderMarkdownText = (text: string, baseStyle: any, highlightStyle: any) => {
+  if (!text) return null;
+  
+  // Split text by markdown patterns while preserving the patterns
+  const parts = text.split(/(\*\*[^*]+\*\*|\*[^*]+\*)/g);
+  
+  return parts.map((part, index) => {
+    if (part.startsWith('**') && part.endsWith('**')) {
+      // Bold text
+      return (
+        <Text key={index} style={[baseStyle, styles.boldText]}>
+          {part.slice(2, -2)}
+        </Text>
+      );
+    } else if (part.startsWith('*') && part.endsWith('*')) {
+      // Italic text
+      return (
+        <Text key={index} style={[baseStyle, styles.italicText]}>
+          {part.slice(1, -1)}
+        </Text>
+      );
+    } else {
+      // Regular text
+      return (
+        <Text key={index} style={baseStyle}>
+          {part}
+        </Text>
+      );
+    }
+  });
+};
+
 interface BigBookSearchResultsProps {
   results: EnhancedSearchResult[];
   onResultPress: (result: EnhancedSearchResult) => void;
@@ -53,11 +86,11 @@ const BigBookSearchResults = ({ results, onResultPress, onDone }: BigBookSearchR
           
           <View style={styles.excerptContainer}>
             <Text style={styles.excerptText}>
-              {result.matchContext.before && `...${result.matchContext.before}`}
+              {result.matchContext.before && renderMarkdownText(`...${result.matchContext.before}`, styles.excerptText, null)}
               <Text style={styles.matchText}>
                 {result.matchContext.match}
               </Text>
-              {result.matchContext.after && `${result.matchContext.after}...`}
+              {result.matchContext.after && renderMarkdownText(`${result.matchContext.after}...`, styles.excerptText, null)}
             </Text>
           </View>
         </TouchableOpacity>
@@ -149,6 +182,12 @@ const styles = StyleSheet.create({
     paddingVertical: 1,
     borderRadius: 2,
     lineHeight: 20,
+  },
+  boldText: {
+    fontWeight: adjustFontWeight('bold'),
+  },
+  italicText: {
+    fontStyle: 'italic',
   },
 });
 
