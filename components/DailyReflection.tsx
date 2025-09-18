@@ -550,9 +550,9 @@ const styles = StyleSheet.create({
     opacity: 0.5,
   },
   reflectionText: {
-    fontSize: 20,
+    fontSize: 16,
     color: Colors.light.text,
-    lineHeight: 28,
+    lineHeight: 20,
   },
   thoughtTitle: {
     fontSize: 20,
@@ -561,10 +561,10 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   thought: {
-    fontSize: 20,
+    fontSize: 16,
     color: Colors.light.text,
     fontStyle: "italic",
-    lineHeight: 28,
+    lineHeight: 20,
   },
   copyrightContainer: {
     marginTop: 24,
