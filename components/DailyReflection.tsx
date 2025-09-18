@@ -529,11 +529,11 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
   },
   quote: {
-    fontSize: 16,
+    fontSize: 20,
     fontStyle: "italic",
     color: Colors.light.text,
     marginBottom: 8,
-    lineHeight: 24,
+    lineHeight: 28,
     textAlign: "center",
   },
   source: {
