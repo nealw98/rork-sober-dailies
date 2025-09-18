@@ -369,9 +369,13 @@ const AboutSupportScreen = () => {
 
   const handleSharePress = async () => {
     try {
+      const appStoreUrl = Platform.OS === 'ios' 
+        ? 'https://apps.apple.com/app/sober-dailies/id6738032000'
+        : 'https://play.google.com/store/apps/details?id=com.nealwagner.soberdailies';
+      
       await Share.share({
         message:
-          'Sober Dailies helps me stay grounded one day at a time. Check it out: https://soberdailies.com',
+          'Sober Dailies helps me stay sober one day at a time. Check it out: ' + appStoreUrl,
       });
     } catch (error) {
       // no-op
