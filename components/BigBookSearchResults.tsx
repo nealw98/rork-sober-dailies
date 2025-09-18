@@ -11,37 +11,12 @@ import Colors from '@/constants/colors';
 import { adjustFontWeight } from '@/constants/fonts';
 import { EnhancedSearchResult } from '@/constants/bigbook';
 
-// Helper function to parse and render markdown text
-const renderMarkdownText = (text: string, baseStyle: any, highlightStyle: any) => {
-  if (!text) return null;
-  
-  // Split text by markdown patterns while preserving the patterns
-  const parts = text.split(/(\*\*[^*]+\*\*|\*[^*]+\*)/g);
-  
-  return parts.map((part, index) => {
-    if (part.startsWith('**') && part.endsWith('**')) {
-      // Bold text
-      return (
-        <Text key={index} style={[baseStyle, styles.boldText]}>
-          {part.slice(2, -2)}
-        </Text>
-      );
-    } else if (part.startsWith('*') && part.endsWith('*')) {
-      // Italic text
-      return (
-        <Text key={index} style={[baseStyle, styles.italicText]}>
-          {part.slice(1, -1)}
-        </Text>
-      );
-    } else {
-      // Regular text
-      return (
-        <Text key={index} style={baseStyle}>
-          {part}
-        </Text>
-      );
-    }
-  });
+// Helper function to strip markdown syntax for now (simple fix before launch)
+const stripMarkdown = (text: string) => {
+  if (!text) return '';
+  return text
+    .replace(/\*\*([^*]+)\*\*/g, '$1') // Remove bold markdown
+    .replace(/\*([^*]+)\*/g, '$1'); // Remove italic markdown
 };
 
 interface BigBookSearchResultsProps {
@@ -86,11 +61,11 @@ const BigBookSearchResults = ({ results, onResultPress, onDone }: BigBookSearchR
           
           <View style={styles.excerptContainer}>
             <Text style={styles.excerptText}>
-              {result.matchContext.before && renderMarkdownText(`...${result.matchContext.before}`, styles.excerptText, null)}
+              {result.matchContext.before && stripMarkdown(`...${result.matchContext.before}`)}
               <Text style={styles.matchText}>
                 {result.matchContext.match}
               </Text>
-              {result.matchContext.after && renderMarkdownText(`${result.matchContext.after}...`, styles.excerptText, null)}
+              {result.matchContext.after && stripMarkdown(`${result.matchContext.after}...`)}
             </Text>
           </View>
         </TouchableOpacity>
