@@ -101,7 +101,6 @@ function RootLayoutNav() {
       <Stack screenOptions={{ 
         headerBackTitle: "",
         headerTitleAlign: 'center',
-        statusBarHidden: Platform.OS === 'ios' ? true : undefined,
         headerLeft: ({ canGoBack }) => canGoBack ? (
           <TouchableOpacity 
             style={styles.backButton} 
