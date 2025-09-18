@@ -267,11 +267,7 @@ const AboutSupportScreen = () => {
 
       // Allow UI to render spinner first, then invoke purchase in next tick
       await Promise.resolve();
-      const purchasePromise = Purchases.purchasePackage(pkg);
-      setPurchasingId(null);
-      setIsPurchaseInProgress(false);
-      
-      await purchasePromise;
+      await Purchases.purchasePackage(pkg);
       
       const purchaseEndTime = Date.now();
       const totalTime = purchaseEndTime - startTime;
