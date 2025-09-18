@@ -15,6 +15,7 @@ import {
 import * as Clipboard from 'expo-clipboard';
 import { Heart, Share as ShareIcon, Save, Archive, CheckCircle, Calendar, Trash2 } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { StatusBar } from 'expo-status-bar';
 import { useGratitudeStore } from '@/hooks/use-gratitude-store';
 import Colors from '@/constants/colors';
 import { adjustFontWeight } from '@/constants/fonts';
@@ -576,6 +577,7 @@ export default function GratitudeListScreen() {
   if (showConfirmation || isCompleted) {
     return (
       <ScreenContainer style={styles.container}>
+        <StatusBar style="dark" />
         <LinearGradient
           colors={[Colors.light.chatBubbleUser, Colors.light.chatBubbleBot]}
           start={{ x: 0, y: 0 }}
@@ -658,6 +660,7 @@ export default function GratitudeListScreen() {
 
   return (
     <ScreenContainer style={styles.container}>
+      <StatusBar style="dark" />
       
       <LinearGradient
         colors={[Colors.light.chatBubbleUser, Colors.light.chatBubbleBot]}

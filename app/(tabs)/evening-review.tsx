@@ -22,6 +22,7 @@ import { useEveningReviewStore } from '@/hooks/use-evening-review-store';
 import SavedEveningReviews from '@/components/SavedEveningReviews';
 import Colors from '@/constants/colors';
 import { adjustFontWeight } from '@/constants/fonts';
+import { StatusBar } from 'expo-status-bar';
 
 const formatDateDisplay = (date: Date): string => {
   return date.toLocaleDateString('en-US', {
@@ -123,6 +124,7 @@ export default function EveningReview() {
   if (!eveningReviewStore) {
     return (
       <ScreenContainer style={styles.container}>
+        <StatusBar style="dark" />
         <View style={styles.content}>
           <Text>Loading...</Text>
         </View>
@@ -325,6 +327,7 @@ export default function EveningReview() {
   if (showConfirmation || isCompleted) {
     return (
       <ScreenContainer style={styles.container}>
+        <StatusBar style="dark" />
         <LinearGradient
           colors={[Colors.light.chatBubbleUser, Colors.light.chatBubbleBot]}
           start={{ x: 0, y: 0 }}
@@ -399,6 +402,7 @@ export default function EveningReview() {
 
   return (
     <ScreenContainer style={styles.container}>
+      <StatusBar style="dark" />
       <LinearGradient
         colors={[Colors.light.chatBubbleUser, Colors.light.chatBubbleBot]}
         start={{ x: 0, y: 0 }}
