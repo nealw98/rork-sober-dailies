@@ -529,7 +529,7 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
   },
   quote: {
-    fontSize: 20,
+    fontSize: 22,
     fontStyle: "italic",
     color: Colors.light.text,
     marginBottom: 8,
@@ -550,18 +550,18 @@ const styles = StyleSheet.create({
     opacity: 0.5,
   },
   reflectionText: {
-    fontSize: 20,
+    fontSize: 22,
     color: Colors.light.text,
     lineHeight: 28,
   },
   thoughtTitle: {
-    fontSize: 20,
+    fontSize: 22,
     fontWeight: adjustFontWeight("bold", true),
     color: Colors.light.text,
     marginBottom: 8,
   },
   thought: {
-    fontSize: 20,
+    fontSize: 22,
     color: Colors.light.text,
     fontStyle: "italic",
     lineHeight: 28,
