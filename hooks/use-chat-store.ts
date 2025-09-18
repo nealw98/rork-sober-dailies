@@ -137,31 +137,34 @@ export const [ChatStoreProvider, useChatStore] = createContextHook(() => {
         
         if (storedSaltyMessages) {
           const parsed = JSON.parse(storedSaltyMessages);
-          // Ensure we always have the initial message
+          // Always use the latest initial message and append any additional messages
           if (parsed.length === 0 || parsed[0].id !== "welcome-salty") {
             setSaltyMessages([SALTY_SAM_INITIAL_MESSAGE, ...parsed]);
           } else {
-            setSaltyMessages(parsed);
+            // Replace the first message with the latest initial message
+            setSaltyMessages([SALTY_SAM_INITIAL_MESSAGE, ...parsed.slice(1)]);
           }
         }
         
         if (storedSupportiveMessages) {
           const parsed = JSON.parse(storedSupportiveMessages);
-          // Ensure we always have the initial message
+          // Always use the latest initial message and append any additional messages
           if (parsed.length === 0 || parsed[0].id !== "welcome-supportive") {
             setSupportiveMessages([STEADY_EDDIE_INITIAL_MESSAGE, ...parsed]);
           } else {
-            setSupportiveMessages(parsed);
+            // Replace the first message with the latest initial message
+            setSupportiveMessages([STEADY_EDDIE_INITIAL_MESSAGE, ...parsed.slice(1)]);
           }
         }
         
         if (storedGraceMessages) {
           const parsed = JSON.parse(storedGraceMessages);
-          // Ensure we always have the initial message
+          // Always use the latest initial message and append any additional messages
           if (parsed.length === 0 || parsed[0].id !== "welcome-grace") {
             setGraceMessages([GENTLE_GRACE_INITIAL_MESSAGE, ...parsed]);
           } else {
-            setGraceMessages(parsed);
+            // Replace the first message with the latest initial message
+            setGraceMessages([GENTLE_GRACE_INITIAL_MESSAGE, ...parsed.slice(1)]);
           }
         }
       } catch (error) {
