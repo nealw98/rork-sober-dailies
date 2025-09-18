@@ -41,7 +41,12 @@ export const [GratitudeProvider, useGratitudeStore] = createContextHook(() => {
     try {
       const stored = await AsyncStorage.getItem(STORAGE_KEY);
       if (stored) {
-        setEntries(JSON.parse(stored));
+        const parsedEntries = JSON.parse(stored);
+        console.log('Gratitude - Loaded entries:', parsedEntries.length, 'entries');
+        console.log('Gratitude - Entry dates:', parsedEntries.map(e => e.date));
+        setEntries(parsedEntries);
+      } else {
+        console.log('Gratitude - No stored entries found');
       }
     } catch (error) {
       console.error('Error loading gratitude entries:', error);

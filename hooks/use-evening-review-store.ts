@@ -82,7 +82,12 @@ export const [EveningReviewProvider, useEveningReviewStore] = createContextHook(
     try {
       const stored = await AsyncStorage.getItem(STORAGE_KEY);
       if (stored) {
-        setEntries(JSON.parse(stored));
+        const parsedEntries = JSON.parse(stored);
+        console.log('Evening Review - Loaded entries:', parsedEntries.length, 'entries');
+        console.log('Evening Review - Entry dates:', parsedEntries.map(e => e.date));
+        setEntries(parsedEntries);
+      } else {
+        console.log('Evening Review - No stored entries found');
       }
     } catch (error) {
       console.error('Error loading evening review entries:', error);
@@ -177,7 +182,8 @@ export const [EveningReviewProvider, useEveningReviewStore] = createContextHook(
       const dateString = `${year}-${month}-${day}`;
       
       const entry = entries.find(entry => entry.date === dateString);
-      const completed = !!entry;
+      // An entry is considered completed if it exists and has at least one answer
+      const completed = !!entry && Object.values(entry.answers).some(Boolean);
       const yesCount = entry ? Object.values(entry.answers).filter(Boolean).length : 0;
       
       // Compare date strings instead of Date objects to avoid time zone issues
