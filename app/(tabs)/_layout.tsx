@@ -93,6 +93,9 @@ export default function TabLayout() {
       screenOptions={{
         tabBarActiveTintColor: Colors.light.tint,
         headerShown: true,
+        headerBackTitle: "",
+        headerTitleAlign: 'center',
+        headerLeft: ({ canGoBack }) => canGoBack ? <BackButton /> : null,
         tabBarHideOnKeyboard: Platform.OS === 'android' ? true : undefined,
         tabBarStyle: {
           backgroundColor: "#f8f9fa",
@@ -105,6 +108,9 @@ export default function TabLayout() {
         headerStyle: {
           backgroundColor: "#f8f9fa",
           ...(Platform.OS === 'android' && { height: 44 }),
+        },
+        headerTitleStyle: {
+          fontWeight: adjustFontWeight("600", true),
         },
         tabBarLabelStyle: {
           fontSize: 10,
