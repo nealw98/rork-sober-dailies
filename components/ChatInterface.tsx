@@ -12,6 +12,7 @@ import {
   Keyboard,
   Alert,
 } from "react-native";
+import * as Haptics from 'expo-haptics';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Send, RotateCcw } from "lucide-react-native";
 import * as Clipboard from 'expo-clipboard';
@@ -44,6 +45,8 @@ const ChatBubble = ({ message }: { message: ChatMessage }) => {
 
   const handleCopyMessage = async () => {
     try {
+      // Provide haptic feedback
+      await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
       await Clipboard.setStringAsync(message.text);
       Alert.alert("Copied!", "", [{ text: "OK" }]);
     } catch (error) {
@@ -64,7 +67,7 @@ const ChatBubble = ({ message }: { message: ChatMessage }) => {
           styles.bubble,
           getBotBubbleStyle(),
         ]}
-        onPress={handleCopyMessage}
+        onLongPress={handleCopyMessage}
         activeOpacity={0.7}
       >
         {isUser ? (
