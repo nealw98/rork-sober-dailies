@@ -537,7 +537,7 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
   source: {
-    fontSize: 16,
+    fontSize: 12,
     color: Colors.light.muted,
     textAlign: "right",
     marginBottom: 16,
@@ -550,9 +550,9 @@ const styles = StyleSheet.create({
     opacity: 0.5,
   },
   reflectionText: {
-    fontSize: 16,
+    fontSize: 20,
     color: Colors.light.text,
-    lineHeight: 20,
+    lineHeight: 24,
   },
   thoughtTitle: {
     fontSize: 20,
@@ -561,10 +561,10 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   thought: {
-    fontSize: 16,
+    fontSize: 20,
     color: Colors.light.text,
     fontStyle: "italic",
-    lineHeight: 20,
+    lineHeight: 24,
   },
   copyrightContainer: {
     marginTop: 24,
