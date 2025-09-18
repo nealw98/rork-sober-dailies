@@ -529,11 +529,11 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
   },
   quote: {
-    fontSize: 20,
+    fontSize: 16,
     fontStyle: "italic",
     color: Colors.light.text,
     marginBottom: 8,
-    lineHeight: 28,
+    lineHeight: 24,
     textAlign: "center",
   },
   source: {
@@ -552,7 +552,7 @@ const styles = StyleSheet.create({
   reflectionText: {
     fontSize: 20,
     color: Colors.light.text,
-    lineHeight: 24,
+    lineHeight: 28,
   },
   thoughtTitle: {
     fontSize: 20,
@@ -564,7 +564,7 @@ const styles = StyleSheet.create({
     fontSize: 20,
     color: Colors.light.text,
     fontStyle: "italic",
-    lineHeight: 24,
+    lineHeight: 28,
   },
   copyrightContainer: {
     marginTop: 24,
