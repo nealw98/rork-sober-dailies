@@ -533,7 +533,7 @@ const styles = StyleSheet.create({
     fontStyle: "italic",
     color: Colors.light.text,
     marginBottom: 8,
-    lineHeight: 28,
+    lineHeight: 26,
     textAlign: "center",
   },
   source: {

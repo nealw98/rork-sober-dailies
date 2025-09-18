@@ -203,7 +203,7 @@ const styles = StyleSheet.create({
   prayerText: {
     fontSize: 18,
     color: Colors.light.text,
-    lineHeight: 28,
+    lineHeight: 26,
     marginBottom: 16,
   },
   italicText: {
