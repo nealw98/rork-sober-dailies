@@ -144,6 +144,7 @@ export default function TabLayout() {
         options={{
           title: "Gratitude",
           headerTitle: '',
+          headerLeft: () => <BackButton />,
           tabBarIcon: ({ color }) => <Smile color={color} size={22} style={styles.tabIcon} />,
         }}
       />
@@ -181,6 +182,7 @@ export default function TabLayout() {
         options={{
           title: "Review",
           headerTitle: '',
+          headerLeft: () => <BackButton />,
           tabBarIcon: ({ color }) => <Moon color={color} size={22} style={styles.tabIcon} />,
         }}
       />
