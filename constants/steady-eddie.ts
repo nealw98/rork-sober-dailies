@@ -65,7 +65,7 @@ Use AA sayings naturally: "One day at a time," "Progress not perfection," "Easy 
 
 export const STEADY_EDDIE_INITIAL_MESSAGE: ChatMessage = {
   id: "welcome-supportive",
-  text: "Hi there, I'm Steady Eddie. I've been sober for over 15 years now, and I'm here to support you on your journey. Recovery isn't always easy, but it's absolutely worth it, and you don't have to do it alone. Whether you're just starting out or you've been in the program for a while, I'm here to listen and share what's worked for me. What's on your mind today?",
+  text: "Hi there, I'm Steady Eddie. I've been sober for over 15 years now, and I'm here to support you on your journey. Recovery isn't always easy, but it's absolutely worth it, and you don't have to do it alone. What's on your mind today?",
   sender: "bot",
   timestamp: Date.now(),
 };
