@@ -576,7 +576,6 @@ export default function GratitudeListScreen() {
   if (showConfirmation || isCompleted) {
     return (
       <ScreenContainer style={styles.container}>
-        <StatusBar style="dark" />
         <LinearGradient
           colors={[Colors.light.chatBubbleUser, Colors.light.chatBubbleBot]}
           start={{ x: 0, y: 0 }}
