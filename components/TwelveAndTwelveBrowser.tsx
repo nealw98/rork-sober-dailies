@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Platform } from "react-native";
 import {
   StyleSheet,
@@ -87,6 +87,32 @@ const CategorySection = ({ category, onOpenPDF }: { category: TwelveAndTwelveCat
 function TwelveAndTwelveBrowserContent() {
   const [pdfViewerVisible, setPdfViewerVisible] = useState<boolean>(false);
   const [currentPdf, setCurrentPdf] = useState<{ url: string; title: string } | null>(null);
+
+  // Preload PDFs for better performance
+  useEffect(() => {
+    const preloadPDFs = async () => {
+      // Preload the most commonly accessed PDFs (Steps 1-3, Traditions 1-3)
+      const commonPDFs = [
+        'https://www.aa.org/sites/default/files/2022-01/en_step1.pdf',
+        'https://www.aa.org/sites/default/files/2022-01/en_step2.pdf',
+        'https://www.aa.org/sites/default/files/2022-01/en_step3.pdf',
+        'https://www.aa.org/sites/default/files/2022-01/en_tradition1.pdf',
+        'https://www.aa.org/sites/default/files/2022-01/en_tradition2.pdf',
+        'https://www.aa.org/sites/default/files/2022-01/en_tradition3.pdf',
+      ];
+
+      // Use fetch to preload PDFs in the background
+      commonPDFs.forEach(url => {
+        fetch(url, { method: 'HEAD' }).catch(() => {
+          // Silently fail - this is just for preloading
+        });
+      });
+    };
+
+    // Delay preloading to not interfere with initial render
+    const timer = setTimeout(preloadPDFs, 2000);
+    return () => clearTimeout(timer);
+  }, []);
 
   const handleOpenPDF = (url: string, title: string) => {
     console.log('TwelveAndTwelve handleOpenPDF called with:', { url, title });

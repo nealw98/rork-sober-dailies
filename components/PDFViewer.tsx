@@ -27,9 +27,10 @@ export default function PDFViewer({ url, title, onClose }: PDFViewerProps) {
   
   // For web, we can embed the PDF directly
   // For mobile, we'll use Google Docs viewer which works well in WebView
+  // Added cache parameter to improve loading performance
   const viewerUrl = Platform.OS === 'web' 
     ? url 
-    : `https://docs.google.com/gview?embedded=true&url=${encodeURIComponent(url)}`;
+    : `https://docs.google.com/gview?embedded=true&url=${encodeURIComponent(url)}&cache=1`;
   
   console.log('Using viewer URL:', viewerUrl);
   
@@ -145,6 +146,17 @@ export default function PDFViewer({ url, title, onClose }: PDFViewerProps) {
           mixedContentMode="compatibility"
           allowsInlineMediaPlayback={false}
           mediaPlaybackRequiresUserAction={true}
+          // Performance optimizations for PDF viewing
+          cacheEnabled={true}
+          cacheMode="LOAD_CACHE_ELSE_NETWORK"
+          incognito={false}
+          // Disable unnecessary features for PDF viewing
+          allowsBackForwardNavigationGestures={false}
+          bounces={false}
+          scrollEnabled={true}
+          // Optimize for PDF rendering
+          automaticallyAdjustContentInsets={false}
+          contentInsetAdjustmentBehavior="never"
         />
       )}
     </SafeAreaView>

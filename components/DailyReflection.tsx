@@ -124,7 +124,7 @@ export default function DailyReflection() {
       
       await Share.share({
         message: shareContent,
-        title: reflection.title,
+        title: reflection.title
       });
     } catch (error) {
       console.error('Error sharing reflection:', error);
