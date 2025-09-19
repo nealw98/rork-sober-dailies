@@ -300,12 +300,7 @@ export const [GratitudeProvider, useGratitudeStore] = createContextHook(() => {
     console.log('saveDetailedEntry - Updated entries dates:', updatedEntries.map(e => e.date));
     
     saveSavedEntries(updatedEntries);
-    
-    // Also update the completion tracking
-    if (targetDate === getTodayDateString()) {
-      completeToday(items);
-    }
-  }, [savedEntries, completeToday]);
+  }, [savedEntries]);
 
   const getSavedEntry = useCallback((dateString: string): SavedGratitudeEntry | null => {
     return savedEntries.find(entry => entry.date === dateString) || null;
