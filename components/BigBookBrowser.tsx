@@ -617,8 +617,8 @@ const styles = StyleSheet.create({
     marginRight: 12,
   },
   sectionTitle: {
-    fontSize: 16,
-    fontWeight: adjustFontWeight("500"),
+    fontSize: 18,
+    fontWeight: adjustFontWeight("600"),
     color: Colors.light.text,
     marginBottom: 2,
   },
