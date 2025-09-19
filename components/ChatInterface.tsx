@@ -241,8 +241,8 @@ export default function ChatInterface() {
       keyboardVerticalOffset={Platform.OS === "ios" ? 90 : 0}
     >
       <View style={styles.headerContainer}>
-        <Text style={styles.headerTitle}>Choose Your AI Sponsor</Text>
-        <Text style={styles.headerSubtitle}>Select a voice that fits your mood</Text>
+        <Text style={styles.headerTitle}>AI Sponsors</Text>
+        <Text style={styles.headerSubtitle}>Select a sponsor that fits your style</Text>
       </View>
       
       <View style={styles.topContainer}>
@@ -325,10 +325,11 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   headerTitle: {
-    fontSize: 18,
-    fontWeight: adjustFontWeight("600", true),
+    fontSize: 28,
+    fontWeight: adjustFontWeight("700", true),
     color: Colors.light.text,
-    marginBottom: 2,
+    marginBottom: 8,
+    textAlign: 'center',
   },
   headerSubtitle: {
     fontSize: 12,

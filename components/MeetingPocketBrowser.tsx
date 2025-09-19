@@ -224,10 +224,10 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   readingTitle: {
-    fontSize: 18,
-    fontWeight: adjustFontWeight('600'),
+    fontSize: 16,
+    fontWeight: adjustFontWeight('500'),
     color: Colors.light.text,
-    marginBottom: 4,
+    marginBottom: 2,
   },
   readingSource: {
     fontSize: 14,
