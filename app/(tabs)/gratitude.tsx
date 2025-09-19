@@ -375,6 +375,7 @@ export default function GratitudeListScreen() {
     addItemsToToday,
     updateItemsForToday,
     deleteItemForToday,
+    completeToday,
     uncompleteToday,
     getWeeklyProgress,
     getWeeklyStreak,
@@ -552,8 +553,9 @@ export default function GratitudeListScreen() {
       return;
     }
 
-    // Save for today's date
+    // Save for today's date and mark as completed
     saveDetailedEntry(gratitudeItems);
+    completeToday(gratitudeItems);
     
     // Set showConfirmation to true to show the completed screen with saved message
     setShowConfirmation(true);
