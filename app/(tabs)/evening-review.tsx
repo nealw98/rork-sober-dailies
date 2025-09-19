@@ -378,14 +378,14 @@ export default function EveningReview() {
           </Text>
 
           <View style={styles.buttonContainer}>
-            <TouchableOpacity style={[styles.primaryButton, { flex: 0.9 }]} onPress={handleEditReview}>
-              <Text style={styles.primaryButtonText}>Go Back</Text>
+            <TouchableOpacity style={styles.primaryButton} onPress={handleEditReview}>
+              <Text style={styles.primaryButtonText} numberOfLines={1}>Go Back</Text>
             </TouchableOpacity>
             <TouchableOpacity 
-              style={[styles.primaryButton, { flex: 1.1 }]}
+              style={styles.primaryButton}
               onPress={() => setShowSavedReviews(true)}
             >
-              <Text style={styles.primaryButtonText}>Saved Reviews</Text>
+              <Text style={styles.primaryButtonText} numberOfLines={1}>Saved Reviews</Text>
             </TouchableOpacity>
           </View>
         </ScrollView>
@@ -825,7 +825,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 12,
     marginBottom: 16,
-    marginHorizontal: 32,
+    marginHorizontal: 16,
+    justifyContent: 'space-between',
   },
   outlineButton: {
     borderWidth: 1,
@@ -844,11 +845,12 @@ const styles = StyleSheet.create({
   primaryButton: {
     backgroundColor: Colors.light.tint,
     paddingVertical: 14,
-    paddingHorizontal: 18,
+    paddingHorizontal: 16,
     borderRadius: 25,
     alignItems: 'center',
     justifyContent: 'center',
-    minWidth: 140,
+    flex: 1,
+    minHeight: 48,
   },
   primaryButtonText: {
     color: 'white',

@@ -224,8 +224,8 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   readingTitle: {
-    fontSize: 16,
-    fontWeight: adjustFontWeight('500'),
+    fontSize: 18,
+    fontWeight: adjustFontWeight('600'),
     color: Colors.light.text,
     marginBottom: 2,
   },

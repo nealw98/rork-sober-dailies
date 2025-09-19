@@ -312,11 +312,12 @@ const styles = StyleSheet.create({
   primaryButton: {
     backgroundColor: Colors.light.tint,
     paddingVertical: 14,
-    paddingHorizontal: 18,
+    paddingHorizontal: 16,
     borderRadius: 25,
     alignItems: 'center',
     justifyContent: 'center',
-    minWidth: 140,
+    flex: 1,
+    minHeight: 48,
   },
   primaryButtonText: {
     color: 'white',
@@ -333,7 +334,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 12,
     marginBottom: 16,
-    marginHorizontal: 32,
+    marginHorizontal: 16,
+    justifyContent: 'space-between',
   },
 });
 
@@ -639,14 +641,14 @@ export default function GratitudeListScreen() {
           </Text>
 
           <View style={styles.buttonContainer}>
-            <TouchableOpacity style={[styles.primaryButton, { flex: 0.9 }]} onPress={handleEditGratitude}>
-              <Text style={styles.primaryButtonText}>Go Back</Text>
+            <TouchableOpacity style={styles.primaryButton} onPress={handleEditGratitude}>
+              <Text style={styles.primaryButtonText} numberOfLines={1}>Go Back</Text>
             </TouchableOpacity>
             <TouchableOpacity 
-              style={[styles.primaryButton, { flex: 1.1 }]}
+              style={styles.primaryButton}
               onPress={() => setShowSavedEntries(true)}
             >
-              <Text style={styles.primaryButtonText}>Saved Lists</Text>
+              <Text style={styles.primaryButtonText} numberOfLines={1}>Saved Lists</Text>
             </TouchableOpacity>
           </View>
         </ScrollView>
