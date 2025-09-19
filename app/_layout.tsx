@@ -76,6 +76,14 @@ function RootLayoutNav() {
     hideSplashScreen();
   }, [hideSplashScreen]);
 
+  // Force hide splash screen when onboarding is complete
+  useEffect(() => {
+    if (!isLoading && isOnboardingComplete) {
+      console.log('🟢 SPLASH: Onboarding complete, force hiding splash screen');
+      SplashScreen.hideAsync().catch(() => {});
+    }
+  }, [isLoading, isOnboardingComplete]);
+
   // Hard fallback: ensure splash is hidden after a short delay to avoid blank screen on simulators
   useEffect(() => {
     if (!__DEV__) return;
