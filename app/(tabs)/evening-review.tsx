@@ -241,8 +241,12 @@ export default function EveningReview() {
     // Inventory
     shareMessage += '\nInventory:\n';
     inventoryQuestions.forEach(question => {
-      if (question.value.trim()) {
-        shareMessage += `${question.label}\n${question.value}\n\n`;
+      const answer = question.value.trim();
+      shareMessage += `${question.label}\n`;
+      if (answer) {
+        shareMessage += `*${answer}*\n\n`;
+      } else {
+        shareMessage += `*No answer*\n\n`;
       }
     });
 
