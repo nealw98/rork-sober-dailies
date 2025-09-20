@@ -74,32 +74,51 @@ export const useOTAUpdates = () => {
 
     try {
       const Updates = await import('expo-updates');
-      
-      // Check if updates are available
+
+      // Log diagnostic context
+      try {
+        const runtimeVersion = Updates.runtimeVersion;
+        const updateUrl = (Updates as any)?.updateUrl ?? (Updates as any)?.manifest?.extra?.expoClient?.updates?.url ?? 'unknown';
+        const isEmbeddedLaunch = Updates.isEmbeddedLaunch;
+        const currentUpdateId = Updates.updateId ?? 'embedded';
+        console.log('[OTA] check:start', {
+          force,
+          runtimeVersion,
+          updateUrl,
+          isEmbeddedLaunch,
+          currentUpdateId,
+          headers: 'none',
+          ts: new Date().toISOString(),
+        });
+      } catch {}
+
+      // Check
       const result = await Updates.checkForUpdateAsync();
-      
+      console.log('[OTA] check:result', { isAvailable: result?.isAvailable, ts: new Date().toISOString() });
+
       if (result.isAvailable) {
-        console.log('[OTA] Update available, fetching...');
-        
+        console.log('[OTA] fetch:start');
         // Fetch the update
         const fetched = await Updates.fetchUpdateAsync();
-        
+        console.log('[OTA] fetch:result', { isNew: fetched?.isNew, ts: new Date().toISOString() });
+
         if (fetched.isNew) {
           const updateId = fetched.manifest?.id || fetched.manifest?.createdAt?.toString() || 'unknown';
           const manifestHash = fetched.manifest?.extra?.expoClient?.updates?.hash;
-          
-          console.log('[OTA] New update fetched:', { updateId, manifestHash });
-          
-          // Show snackbar very briefly then reload to apply immediately (matches earlier behavior)
+
+          console.log('[OTA] fetched:new', { updateId, manifestHash });
+
+          // Show snackbar very briefly then reload to apply immediately
           setShowSnackbar(true);
           setTimeout(async () => {
             try {
+              console.log('[OTA] reload:start');
               await Updates.reloadAsync();
             } catch (e) {
-              console.log('[OTA] Failed to reload after update:', e);
+              console.log('[OTA] reload:error', (e as any)?.message || e);
             }
           }, 1200);
-          
+
           // Record notification to avoid loops
           const notifiedUpdates = await getNotifiedUpdates();
           const uniqueKey = manifestHash || updateId;
@@ -109,9 +128,10 @@ export const useOTAUpdates = () => {
         }
       }
     } catch (error) {
-      console.log('[OTA] Error checking for updates:', error);
+      console.log('[OTA] check:error', (error as any)?.message || error);
     } finally {
       setIsChecking(false);
+      console.log('[OTA] check:done', { ts: new Date().toISOString() });
     }
   }, [isChecking, getNotifiedUpdates, markUpdateAsNotified]);
 

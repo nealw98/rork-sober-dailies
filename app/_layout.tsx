@@ -28,6 +28,8 @@ const queryClient = new QueryClient();
 
 // Global flag to track if splash screen has been hidden
 let splashHidden = false;
+// Global flag to ensure we only perform the early OTA check once per launch
+let otaCheckedThisLaunch = false;
 
 // Single function to hide splash screen
 const hideSplashScreenSafely = async () => {
@@ -48,6 +50,50 @@ function RootLayoutNav() {
   const { showSnackbar, dismissSnackbar } = useOTAUpdates();
   // Local state to prevent re-renders from affecting rendering logic
   const [appReady, setAppReady] = useState(false);
+  // Ensure OTA selection/check completes before we hide splash
+  const [otaChecked, setOtaChecked] = useState(false);
+
+  // Early OTA check while splash is still shown - mirrors earlier stable behavior
+  useEffect(() => {
+    let didCancel = false;
+    (async () => {
+      if (otaCheckedThisLaunch) {
+        setOtaChecked(true);
+        return;
+      }
+      try {
+        const Updates = await import('expo-updates');
+        // Short timeout to avoid blocking launch
+        const timeout = new Promise<null>(resolve => setTimeout(() => resolve(null), 1500));
+        const checkPromise = (async () => {
+          try {
+            const result = await Updates.checkForUpdateAsync();
+            if (result.isAvailable) {
+              console.log('[OTA] Early splash check: update available, fetching');
+              const fetched = await Updates.fetchUpdateAsync();
+              if (fetched.isNew) {
+                otaCheckedThisLaunch = true;
+                if (!didCancel) {
+                  await Updates.reloadAsync();
+                }
+                return null;
+              }
+            }
+          } catch (e) {
+            console.log('[OTA] Early splash check error:', (e as any)?.message || e);
+          }
+          return null;
+        })();
+        await Promise.race([timeout, checkPromise]);
+      } finally {
+        if (!didCancel) {
+          otaCheckedThisLaunch = true;
+          setOtaChecked(true);
+        }
+      }
+    })();
+    return () => { didCancel = true; };
+  }, []);
 
   // Initialize app services
   useEffect(() => {
@@ -75,7 +121,7 @@ function RootLayoutNav() {
   // Handle splash screen hiding based on app state
   useEffect(() => {
     // Only proceed when we know the loading state
-    if (isLoading === false) {
+    if (isLoading === false && otaChecked) {
       console.log('🟢 SPLASH: App ready, isOnboardingComplete:', isOnboardingComplete);
       
       // App is ready to render
@@ -84,7 +130,7 @@ function RootLayoutNav() {
       // Hide splash screen
       hideSplashScreenSafely();
     }
-  }, [isLoading, isOnboardingComplete]);
+  }, [isLoading, isOnboardingComplete, otaChecked]);
 
   // Failsafe: hide splash screen after timeout
   useEffect(() => {
