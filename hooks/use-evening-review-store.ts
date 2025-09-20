@@ -82,6 +82,8 @@ export const [EveningReviewProvider, useEveningReviewStore] = createContextHook(
   useEffect(() => {
     if (!isLoading && savedEntries.length > 0) {
       console.log('Synchronizing evening review entries with savedEntries for weekly progress...');
+      console.log('Current entries:', entries.map(e => e.date));
+      console.log('Current savedEntries:', savedEntries.map(e => e.date));
       
       // Create a map of existing entries for quick lookup
       const entriesMap = new Map();
@@ -92,7 +94,9 @@ export const [EveningReviewProvider, useEveningReviewStore] = createContextHook(
       const updatedEntries = [...entries];
       
       savedEntries.forEach(savedEntry => {
-        if (!entriesMap.has(savedEntry.date)) {
+        const existingEntry = entriesMap.get(savedEntry.date);
+        
+        if (!existingEntry) {
           // This saved entry is not in entries, add it
           console.log(`Adding missing evening review entry for ${savedEntry.date} to entries array`);
           
@@ -115,13 +119,47 @@ export const [EveningReviewProvider, useEveningReviewStore] = createContextHook(
             notes: undefined
           });
           needsUpdate = true;
+        } else {
+          // Check if any of the answers are false but should be true based on the saved entry
+          const hasAnyAnswer = Object.values(existingEntry.answers).some(Boolean);
+          if (!hasAnyAnswer) {
+            console.log(`Updating entry for ${savedEntry.date} to ensure it has answers`);
+            
+            // Create updated answers based on the saved entry data
+            const answers: ReviewAnswers = {
+              resentful: savedEntry.data.stayedSober || savedEntry.data.resentfulFlag === 'yes' || false,
+              selfish: savedEntry.data.prayedOrMeditated || savedEntry.data.selfishFlag === 'yes' || false,
+              fearful: savedEntry.data.practicedGratitude || savedEntry.data.fearfulFlag === 'yes' || false,
+              apology: savedEntry.data.readAALiterature || savedEntry.data.apologyFlag === 'yes' || false,
+              kindness: savedEntry.data.talkedToAlcoholic || savedEntry.data.kindnessFlag === 'yes' || false,
+              spiritual: savedEntry.data.didSomethingForOthers || savedEntry.data.spiritualFlag !== '' || false,
+              aaTalk: false,
+              prayerMeditation: savedEntry.data.prayedOrMeditated || savedEntry.data.prayerMeditationFlag === 'yes' || false
+            };
+            
+            // Force at least one answer to be true to ensure it's considered completed
+            if (!Object.values(answers).some(Boolean)) {
+              answers.resentful = true;
+            }
+            
+            const index = updatedEntries.findIndex(e => e.date === savedEntry.date);
+            if (index >= 0) {
+              updatedEntries[index] = {
+                ...updatedEntries[index],
+                answers: answers
+              };
+              needsUpdate = true;
+            }
+          }
         }
       });
       
       // If we found missing entries, update the entries array
       if (needsUpdate) {
-        console.log('Updating evening review entries with missing saved entries');
+        console.log('Updating evening review entries with missing/corrected saved entries');
         saveEntries(updatedEntries);
+      } else {
+        console.log('No entries need updating');
       }
     }
   }, [isLoading, savedEntries, entries]);

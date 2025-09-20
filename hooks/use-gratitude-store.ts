@@ -41,17 +41,21 @@ export const [GratitudeProvider, useGratitudeStore] = createContextHook(() => {
   useEffect(() => {
     if (!isLoading && savedEntries.length > 0) {
       console.log('Synchronizing entries with savedEntries for weekly progress...');
+      console.log('Current entries:', entries.map(e => `${e.date} (completed: ${e.completed})`));
+      console.log('Current savedEntries:', savedEntries.map(e => e.date));
       
       // Create a map of existing entries for quick lookup
       const entriesMap = new Map();
       entries.forEach(entry => entriesMap.set(entry.date, entry));
       
-      // Check if any savedEntries are missing from entries
+      // Check if any savedEntries are missing from entries or not marked as completed
       let needsUpdate = false;
       const updatedEntries = [...entries];
       
       savedEntries.forEach(savedEntry => {
-        if (!entriesMap.has(savedEntry.date)) {
+        const existingEntry = entriesMap.get(savedEntry.date);
+        
+        if (!existingEntry) {
           // This saved entry is not in entries, add it
           console.log(`Adding missing entry for ${savedEntry.date} to entries array`);
           updatedEntries.push({
@@ -60,13 +64,26 @@ export const [GratitudeProvider, useGratitudeStore] = createContextHook(() => {
             completed: true
           });
           needsUpdate = true;
+        } else if (!existingEntry.completed) {
+          // Entry exists but is not marked as completed
+          console.log(`Updating entry for ${savedEntry.date} to be marked as completed`);
+          const index = updatedEntries.findIndex(e => e.date === savedEntry.date);
+          if (index >= 0) {
+            updatedEntries[index] = {
+              ...updatedEntries[index],
+              completed: true
+            };
+            needsUpdate = true;
+          }
         }
       });
       
-      // If we found missing entries, update the entries array
+      // If we found missing entries or entries to update, update the entries array
       if (needsUpdate) {
-        console.log('Updating entries with missing saved entries');
+        console.log('Updating entries with missing/corrected saved entries');
         saveEntries(updatedEntries);
+      } else {
+        console.log('No entries need updating');
       }
     }
   }, [isLoading, savedEntries, entries]);
