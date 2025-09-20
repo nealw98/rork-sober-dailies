@@ -90,16 +90,21 @@ export const useOTAUpdates = () => {
           
           console.log('[OTA] New update fetched:', { updateId, manifestHash });
           
-          // Check if we've already notified about this update
+          // Show snackbar very briefly then reload to apply immediately (matches earlier behavior)
+          setShowSnackbar(true);
+          setTimeout(async () => {
+            try {
+              await Updates.reloadAsync();
+            } catch (e) {
+              console.log('[OTA] Failed to reload after update:', e);
+            }
+          }, 1200);
+          
+          // Record notification to avoid loops
           const notifiedUpdates = await getNotifiedUpdates();
           const uniqueKey = manifestHash || updateId;
-          
           if (!notifiedUpdates.has(uniqueKey)) {
-            console.log('[OTA] Showing snackbar for new update');
-            setShowSnackbar(true);
             await markUpdateAsNotified(uniqueKey, manifestHash);
-          } else {
-            console.log('[OTA] Update already notified, skipping snackbar');
           }
         }
       }
