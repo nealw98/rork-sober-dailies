@@ -164,14 +164,13 @@ const styles = StyleSheet.create({
     padding: 20
   },
   textContent: {
-    fontSize: 18,
-    lineHeight: 26,
+    fontSize: 16,
+    lineHeight: 22,
     color: Colors.light.text,
-  }
-  ,
+  },
   headingText: {
-    fontSize: 18,
-    lineHeight: 26,
+    fontSize: 16,
+    lineHeight: 22,
     color: Colors.light.text,
     fontWeight: adjustFontWeight('700')
   },
@@ -182,20 +181,20 @@ const styles = StyleSheet.create({
   numberLabel: {
     textAlign: 'right',
     marginRight: 8,
-    fontSize: 18,
-    lineHeight: 26,
+    fontSize: 16,
+    lineHeight: 22,
     color: Colors.light.text,
     fontWeight: adjustFontWeight('600')
   },
   numberText: {
     flex: 1,
-    fontSize: 18,
-    lineHeight: 26,
+    fontSize: 16,
+    lineHeight: 22,
     color: Colors.light.text,
   },
   sourceText: {
     marginTop: 16,
-    fontSize: 14,
+    fontSize: 12,
     color: Colors.light.muted,
     fontStyle: 'italic'
   }

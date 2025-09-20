@@ -230,10 +230,9 @@ const styles = StyleSheet.create({
     marginBottom: 2,
   },
   readingSource: {
-    fontSize: 14,
+    fontSize: 12,
     color: Colors.light.muted,
     fontStyle: 'italic',
-    lineHeight: 18,
   },
   readingIcons: {
     flexDirection: 'row',

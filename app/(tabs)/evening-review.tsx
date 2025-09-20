@@ -550,7 +550,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: Colors.light.muted,
     textAlign: 'center',
-    lineHeight: 20,
   },
   dateCard: {
     backgroundColor: 'rgba(255, 255, 255, 0.6)',
@@ -779,7 +778,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: Colors.light.text,
     textAlign: 'center',
-    lineHeight: 24,
+    lineHeight: 22,
   },
   weeklyProgress: {
     flexDirection: 'row',

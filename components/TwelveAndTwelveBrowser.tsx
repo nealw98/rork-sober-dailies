@@ -280,7 +280,7 @@ const styles = StyleSheet.create({
     marginBottom: 2,
   },
   sectionDescription: {
-    fontSize: 12,
+    fontSize: 14,
     color: Colors.light.muted,
     lineHeight: 16,
   },
@@ -322,7 +322,7 @@ const styles = StyleSheet.create({
     paddingBottom: 16,
   },
   copyrightText: {
-    fontSize: 11,
+    fontSize: 12,
     color: Colors.light.muted,
     textAlign: "center",
     lineHeight: 16,

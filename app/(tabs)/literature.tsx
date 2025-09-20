@@ -189,11 +189,9 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   subtitle: {
-    fontSize: 16,
+    fontSize: 14,
     color: Colors.light.muted,
     textAlign: 'center',
-    lineHeight: 22,
-    marginBottom: 16,
   },
   
   optionsContainer: {
@@ -226,7 +224,6 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: adjustFontWeight('600', true),
     color: Colors.light.text,
-    marginBottom: 4,
   },
   optionDescription: {
     fontSize: 14,

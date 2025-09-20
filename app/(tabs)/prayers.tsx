@@ -169,7 +169,7 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
   subtitle: {
-    fontSize: 16,
+    fontSize: 14,
     color: Colors.light.muted,
     textAlign: "center",
     marginBottom: 8,
@@ -201,16 +201,16 @@ const styles = StyleSheet.create({
     borderTopColor: Colors.light.divider,
   },
   prayerText: {
-    fontSize: 18,
+    fontSize: 16,
     color: Colors.light.text,
-    lineHeight: 26,
+    lineHeight: 22,
     marginBottom: 16,
   },
   italicText: {
     fontStyle: 'italic',
   },
   prayerSource: {
-    fontSize: 14,
+    fontSize: 12,
     color: Colors.light.muted,
     textAlign: "right",
     fontStyle: "italic",
@@ -221,7 +221,7 @@ const styles = StyleSheet.create({
     paddingBottom: 16,
   },
   copyrightText: {
-    fontSize: 11,
+    fontSize: 12,
     color: Colors.light.muted,
     textAlign: "center",
     lineHeight: 16,

@@ -661,7 +661,7 @@ const styles = StyleSheet.create({
   },
   goToPageButtonText: {
     color: 'white',
-    fontSize: 14,
+    fontSize: 16,
     fontWeight: '600',
     textAlign: 'center',
   },

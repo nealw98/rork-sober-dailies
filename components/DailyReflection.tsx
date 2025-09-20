@@ -521,7 +521,7 @@ const styles = StyleSheet.create({
     borderRadius: 2,
   },
   title: {
-    fontSize: 22,
+    fontSize: 28,
     fontWeight: adjustFontWeight("bold", true),
     color: Colors.light.text,
     marginBottom: 16,
@@ -529,11 +529,11 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
   },
   quote: {
-    fontSize: 18,
+    fontSize: 16,
     fontStyle: "italic",
     color: Colors.light.text,
     marginBottom: 8,
-    lineHeight: 24,
+    lineHeight: 22,
     textAlign: "center",
   },
   source: {
@@ -550,28 +550,28 @@ const styles = StyleSheet.create({
     opacity: 0.5,
   },
   reflectionText: {
-    fontSize: 18,
+    fontSize: 16,
     color: Colors.light.text,
-    lineHeight: 24,
+    lineHeight: 22,
   },
   thoughtTitle: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: adjustFontWeight("bold", true),
     color: Colors.light.text,
     marginBottom: 8,
   },
   thought: {
-    fontSize: 18,
+    fontSize: 16,
     color: Colors.light.text,
     fontStyle: "italic",
-    lineHeight: 24,
+    lineHeight: 22,
   },
   copyrightContainer: {
     marginTop: 24,
     paddingHorizontal: 8,
   },
   copyrightText: {
-    fontSize: 11,
+    fontSize: 12,
     color: Colors.light.muted,
     textAlign: "center",
     lineHeight: 16,
