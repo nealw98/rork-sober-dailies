@@ -521,8 +521,8 @@ const styles = StyleSheet.create({
     borderRadius: 2,
   },
   title: {
-    fontSize: 28,
-    fontWeight: adjustFontWeight("bold", true),
+    fontSize: 18,
+    fontWeight: adjustFontWeight("600", true),
     color: Colors.light.text,
     marginBottom: 16,
     textAlign: "center",
