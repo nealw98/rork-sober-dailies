@@ -78,6 +78,54 @@ export const [EveningReviewProvider, useEveningReviewStore] = createContextHook(
     loadSavedEntries();
   }, []);
 
+  // Synchronize entries with savedEntries to ensure weekly progress is accurate
+  useEffect(() => {
+    if (!isLoading && savedEntries.length > 0) {
+      console.log('Synchronizing evening review entries with savedEntries for weekly progress...');
+      
+      // Create a map of existing entries for quick lookup
+      const entriesMap = new Map();
+      entries.forEach(entry => entriesMap.set(entry.date, entry));
+      
+      // Check if any savedEntries are missing from entries
+      let needsUpdate = false;
+      const updatedEntries = [...entries];
+      
+      savedEntries.forEach(savedEntry => {
+        if (!entriesMap.has(savedEntry.date)) {
+          // This saved entry is not in entries, add it
+          console.log(`Adding missing evening review entry for ${savedEntry.date} to entries array`);
+          
+          // Create default answers based on the saved entry data
+          const answers: ReviewAnswers = {
+            resentful: savedEntry.data.stayedSober || savedEntry.data.resentfulFlag === 'yes' || false,
+            selfish: savedEntry.data.prayedOrMeditated || savedEntry.data.selfishFlag === 'yes' || false,
+            fearful: savedEntry.data.practicedGratitude || savedEntry.data.fearfulFlag === 'yes' || false,
+            apology: savedEntry.data.readAALiterature || savedEntry.data.apologyFlag === 'yes' || false,
+            kindness: savedEntry.data.talkedToAlcoholic || savedEntry.data.kindnessFlag === 'yes' || false,
+            spiritual: savedEntry.data.didSomethingForOthers || savedEntry.data.spiritualFlag !== '' || false,
+            aaTalk: false,
+            prayerMeditation: savedEntry.data.prayedOrMeditated || savedEntry.data.prayerMeditationFlag === 'yes' || false
+          };
+          
+          updatedEntries.push({
+            date: savedEntry.date,
+            timestamp: savedEntry.timestamp,
+            answers: answers,
+            notes: undefined
+          });
+          needsUpdate = true;
+        }
+      });
+      
+      // If we found missing entries, update the entries array
+      if (needsUpdate) {
+        console.log('Updating evening review entries with missing saved entries');
+        saveEntries(updatedEntries);
+      }
+    }
+  }, [isLoading, savedEntries, entries]);
+
   const loadEntries = async () => {
     try {
       const stored = await AsyncStorage.getItem(STORAGE_KEY);

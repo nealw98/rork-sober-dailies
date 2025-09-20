@@ -616,7 +616,7 @@ export default function GratitudeListScreen() {
                     <View style={[
                       styles.dayCircle,
                       day.completed && !day.isFuture && styles.dayCircleCompleted,
-                      day.isToday && styles.dayCircleToday,
+                      day.isToday && !day.completed && styles.dayCircleToday,
                       day.isFuture && styles.dayCircleFuture
                     ]}>
                       {day.completed && !day.isFuture && (

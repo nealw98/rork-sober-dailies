@@ -37,6 +37,40 @@ export const [GratitudeProvider, useGratitudeStore] = createContextHook(() => {
     loadSavedEntries();
   }, []);
 
+  // Synchronize entries with savedEntries to ensure weekly progress is accurate
+  useEffect(() => {
+    if (!isLoading && savedEntries.length > 0) {
+      console.log('Synchronizing entries with savedEntries for weekly progress...');
+      
+      // Create a map of existing entries for quick lookup
+      const entriesMap = new Map();
+      entries.forEach(entry => entriesMap.set(entry.date, entry));
+      
+      // Check if any savedEntries are missing from entries
+      let needsUpdate = false;
+      const updatedEntries = [...entries];
+      
+      savedEntries.forEach(savedEntry => {
+        if (!entriesMap.has(savedEntry.date)) {
+          // This saved entry is not in entries, add it
+          console.log(`Adding missing entry for ${savedEntry.date} to entries array`);
+          updatedEntries.push({
+            date: savedEntry.date,
+            items: savedEntry.items,
+            completed: true
+          });
+          needsUpdate = true;
+        }
+      });
+      
+      // If we found missing entries, update the entries array
+      if (needsUpdate) {
+        console.log('Updating entries with missing saved entries');
+        saveEntries(updatedEntries);
+      }
+    }
+  }, [isLoading, savedEntries, entries]);
+
   const loadEntries = async () => {
     try {
       const stored = await AsyncStorage.getItem(STORAGE_KEY);
