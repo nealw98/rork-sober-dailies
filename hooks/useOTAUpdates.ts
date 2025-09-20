@@ -76,17 +76,13 @@ export const useOTAUpdates = () => {
       const Updates = await import('expo-updates');
       
       // Check if updates are available
-      const result = await Updates.checkForUpdateAsync({ 
-        requestHeaders: { 'expo-channel-name': 'production' } as any 
-      });
+      const result = await Updates.checkForUpdateAsync();
       
       if (result.isAvailable) {
         console.log('[OTA] Update available, fetching...');
         
         // Fetch the update
-        const fetched = await Updates.fetchUpdateAsync({ 
-          requestHeaders: { 'expo-channel-name': 'production' } as any 
-        });
+        const fetched = await Updates.fetchUpdateAsync();
         
         if (fetched.isNew) {
           const updateId = fetched.manifest?.id || fetched.manifest?.createdAt?.toString() || 'unknown';
