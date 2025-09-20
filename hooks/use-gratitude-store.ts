@@ -300,7 +300,27 @@ export const [GratitudeProvider, useGratitudeStore] = createContextHook(() => {
     console.log('saveDetailedEntry - Updated entries dates:', updatedEntries.map(e => e.date));
     
     saveSavedEntries(updatedEntries);
-  }, [savedEntries]);
+    
+    // IMPORTANT: Also update the entries array to ensure weekly progress is accurate
+    // This ensures consistency between savedEntries and entries
+    const existingEntryIndex = entries.findIndex(entry => entry.date === targetDate);
+    const newProgressEntry: GratitudeEntry = {
+      date: targetDate,
+      items: newEntry.items,
+      completed: true
+    };
+    
+    let newEntries;
+    if (existingEntryIndex >= 0) {
+      newEntries = [...entries];
+      newEntries[existingEntryIndex] = newProgressEntry;
+    } else {
+      newEntries = [...entries, newProgressEntry];
+    }
+    
+    console.log('saveDetailedEntry - Also updating entries array for weekly progress');
+    saveEntries(newEntries);
+  }, [savedEntries, entries]);
 
   const getSavedEntry = useCallback((dateString: string): SavedGratitudeEntry | null => {
     return savedEntries.find(entry => entry.date === dateString) || null;

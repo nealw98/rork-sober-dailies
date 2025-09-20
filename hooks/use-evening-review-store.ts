@@ -261,7 +261,7 @@ export const [EveningReviewProvider, useEveningReviewStore] = createContextHook(
     
     saveSavedEntries(updatedEntries);
     
-    // Also update the completion tracking
+    // Create answers for the entries array
     const answers: ReviewAnswers = {
       resentful: detailedEntry.stayedSober || detailedEntry.resentfulFlag === 'yes' || false,
       selfish: detailedEntry.prayedOrMeditated || detailedEntry.selfishFlag === 'yes' || false,
@@ -273,9 +273,26 @@ export const [EveningReviewProvider, useEveningReviewStore] = createContextHook(
       prayerMeditation: detailedEntry.prayedOrMeditated || detailedEntry.prayerMeditationFlag === 'yes' || false
     };
     
-    if (targetDate === getTodayDateString()) {
-      completeToday(answers);
+    // IMPORTANT: Always update entries array for any date, not just today
+    // This ensures the weekly progress tracker is accurate for all saved entries
+    const existingEntryIndex = entries.findIndex(entry => entry.date === targetDate);
+    const newProgressEntry: EveningReviewEntry = {
+      date: targetDate,
+      timestamp: Date.now(),
+      answers: answers,
+      notes: undefined
+    };
+    
+    let newEntries;
+    if (existingEntryIndex >= 0) {
+      newEntries = [...entries];
+      newEntries[existingEntryIndex] = newProgressEntry;
+    } else {
+      newEntries = [...entries, newProgressEntry];
     }
+    
+    console.log('saveDetailedEntry - Also updating entries array for weekly progress');
+    saveEntries(newEntries);
   };
 
   const getSavedEntry = (dateString: string): SavedEveningEntry | null => {
