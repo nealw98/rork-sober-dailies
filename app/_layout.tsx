@@ -80,16 +80,30 @@ function RootLayoutNav() {
   useEffect(() => {
     if (!isLoading && isOnboardingComplete) {
       console.log('🟢 SPLASH: Onboarding complete, force hiding splash screen');
-      SplashScreen.hideAsync().catch(() => {});
+      const hideSplash = async () => {
+        try {
+          console.log('🟢 SPLASH: Attempting force hide');
+          await SplashScreen.hideAsync();
+          console.log('🟢 SPLASH: Force hide successful');
+        } catch (error) {
+          console.log('🟢 SPLASH: Force hide failed:', error);
+        }
+      };
+      hideSplash();
     }
   }, [isLoading, isOnboardingComplete]);
 
-  // Hard fallback: ensure splash is hidden after a short delay to avoid blank screen on simulators
+  // Hard fallback: ensure splash is hidden after a short delay
   useEffect(() => {
-    if (!__DEV__) return;
-    const timeout = setTimeout(() => {
-      SplashScreen.hideAsync().catch(() => {});
-    }, 2500);
+    const timeout = setTimeout(async () => {
+      console.log('🟢 SPLASH: Hard fallback timeout - forcing hide');
+      try {
+        await SplashScreen.hideAsync();
+        console.log('🟢 SPLASH: Hard fallback successful');
+      } catch (error) {
+        console.log('🟢 SPLASH: Hard fallback failed:', error);
+      }
+    }, 3000); // 3 second timeout
     return () => clearTimeout(timeout);
   }, []);
 
