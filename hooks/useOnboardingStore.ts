@@ -25,13 +25,20 @@ export const [OnboardingProvider, useOnboarding] = createContextHook(() => {
     
     const checkStatus = async () => {
       try {
-        // Check if onboarding was completed
-        const status = await AsyncStorage.getItem(ONBOARDING_KEY);
+        // Check if onboarding was completed with a timeout
+        const statusPromise = AsyncStorage.getItem(ONBOARDING_KEY);
+        const timeoutPromise = new Promise<string | null>((resolve) => 
+          setTimeout(() => resolve(null), 2000)
+        );
+        
+        const status = await Promise.race([statusPromise, timeoutPromise]);
         
         // Show consent page for new users, complete for returning users
         if (status === null) {
+          console.log('Onboarding status: new user or timeout - showing consent page');
           setIsOnboardingComplete(false); // New users see consent page
         } else {
+          console.log('Onboarding status: returning user - skipping consent');
           setIsOnboardingComplete(status === 'true'); // Returning users skip consent
         }
       } catch (error) {
@@ -46,14 +53,16 @@ export const [OnboardingProvider, useOnboarding] = createContextHook(() => {
     // Start checking status
     checkStatus();
     
-    // Failsafe: if loading takes too long, force complete
+    // Failsafe: if loading takes too long, force complete to prevent splash loop
+    // But log this case so we can investigate why AsyncStorage is slow
     const timeout = setTimeout(() => {
       if (isLoading) {
-        console.log('FAILSAFE: Onboarding check took too long, forcing completion');
+        console.log('FAILSAFE: Onboarding check took too long, forcing completion to prevent splash loop');
+        console.log('WARNING: This bypasses consent page - investigate AsyncStorage performance');
         setIsOnboardingComplete(true);
         setIsLoading(false);
       }
-    }, 2000); // 2 second timeout (reduced from 5s)
+    }, 3000); // 3 second timeout - compromise between 2s and 5s
     
     return () => clearTimeout(timeout);
   }, []); // Empty dependency array - only run once on mount
