@@ -28,11 +28,11 @@ export const [OnboardingProvider, useOnboarding] = createContextHook(() => {
         // Check if onboarding was completed
         const status = await AsyncStorage.getItem(ONBOARDING_KEY);
         
-        // For development/preview, skip onboarding if not explicitly set
+        // Show consent page for new users, complete for returning users
         if (status === null) {
-          setIsOnboardingComplete(true);
+          setIsOnboardingComplete(false); // New users see consent page
         } else {
-          setIsOnboardingComplete(status === 'true');
+          setIsOnboardingComplete(status === 'true'); // Returning users skip consent
         }
       } catch (error) {
         console.log('Error checking onboarding status:', error);
