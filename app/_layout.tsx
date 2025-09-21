@@ -143,13 +143,14 @@ function RootLayoutNav() {
     return () => clearTimeout(timer);
   }, []);
 
-  // Render appropriate screen based on app state
-  if (!appReady || isLoading) {
-    return null; // Let splash screen remain visible
-  }
-
+  // Show consent page immediately if not completed, regardless of other initialization
   if (!isOnboardingComplete) {
     return <WelcomeScreen />;
+  }
+
+  // Only show main app after consent is complete AND other initialization is done
+  if (!appReady || isLoading) {
+    return null; // Let splash screen remain visible
   }
 
   return (
