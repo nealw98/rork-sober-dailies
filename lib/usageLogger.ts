@@ -49,11 +49,18 @@ class UsageLogger {
   }
 
   private generateSessionId(): string {
-    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
-      const r = Math.random() * 16 | 0;
-      const v = c === 'x' ? r : (r & 0x3 | 0x8);
-      return v.toString(16);
-    });
+    // Use expo-crypto for proper UUID generation
+    try {
+      const { randomUUID } = require('expo-crypto');
+      return randomUUID();
+    } catch (error) {
+      console.warn('[UsageLogger] expo-crypto not available, falling back to manual UUID generation');
+      return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+        const r = Math.random() * 16 | 0;
+        const v = c === 'x' ? r : (r & 0x3 | 0x8);
+        return v.toString(16);
+      });
+    }
   }
 
   async logEvent(event: string, props?: Record<string, any>): Promise<void> {

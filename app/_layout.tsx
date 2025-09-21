@@ -20,6 +20,7 @@ import { configurePurchases } from "@/lib/purchases";
 import { Logger } from "@/lib/logger";
 import { initUsageLogger } from "@/lib/usageLogger";
 import { useExpoRouterTracking } from "@/hooks/useExpoRouterTracking";
+import { runSmokeTest } from "@/lib/smokeTest";
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync().catch(() => {
@@ -109,6 +110,11 @@ function RootLayoutNav() {
 
     // Initialize usage logger
     initUsageLogger();
+
+    // Run smoke test (temporary - remove after testing)
+    setTimeout(() => {
+      runSmokeTest();
+    }, 3000);
     
     // Log OTA diagnostics
     (async () => {
