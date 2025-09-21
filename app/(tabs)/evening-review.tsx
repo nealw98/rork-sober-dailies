@@ -248,9 +248,9 @@ export default function EveningReview() {
       const answer = question.value.trim();
       shareMessage += `${question.label}\n`;
       if (answer) {
-        shareMessage += `*${answer}*\n\n`;
+        shareMessage += `${answer}\n\n`;
       } else {
-        shareMessage += `*No answer*\n\n`;
+        shareMessage += `No answer\n\n`;
       }
     });
 
