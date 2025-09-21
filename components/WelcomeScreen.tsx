@@ -6,10 +6,11 @@ import {
   TouchableOpacity,
   ScrollView,
   SafeAreaView,
+  Linking,
+  Alert,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Check } from 'lucide-react-native';
-import { router } from 'expo-router';
 import { useOnboarding } from '@/hooks/useOnboardingStore';
 import { adjustFontWeight } from '@/constants/fonts';
 
@@ -17,12 +18,32 @@ export default function WelcomeScreen() {
   const [isAgreed, setIsAgreed] = useState<boolean>(false);
   const { completeOnboarding } = useOnboarding();
 
-  const handleTermsPress = () => {
-    router.push('/terms');
+  const handleTermsPress = async () => {
+    try {
+      const url = 'https://soberdailies.com/terms';
+      const supported = await Linking.canOpenURL(url);
+      if (supported) {
+        await Linking.openURL(url);
+      } else {
+        Alert.alert('Error', 'Cannot open Terms of Use page');
+      }
+    } catch (error) {
+      Alert.alert('Error', 'Cannot open Terms of Use page');
+    }
   };
 
-  const handlePrivacyPress = () => {
-    router.push('/privacy');
+  const handlePrivacyPress = async () => {
+    try {
+      const url = 'https://soberdailies.com/privacy';
+      const supported = await Linking.canOpenURL(url);
+      if (supported) {
+        await Linking.openURL(url);
+      } else {
+        Alert.alert('Error', 'Cannot open Privacy Policy page');
+      }
+    } catch (error) {
+      Alert.alert('Error', 'Cannot open Privacy Policy page');
+    }
   };
 
   const handleContinue = () => {
