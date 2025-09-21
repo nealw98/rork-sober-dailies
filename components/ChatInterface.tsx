@@ -18,6 +18,7 @@ import { Send, RotateCcw } from "lucide-react-native";
 import * as Clipboard from 'expo-clipboard';
 import Colors from "@/constants/colors";
 import { useChatStore } from "@/hooks/use-chat-store";
+import { featureUse } from "@/lib/usageLogger";
 import { ChatMessage, SponsorType } from "@/types";
 import { adjustFontWeight } from "@/constants/fonts";
 import { CustomTextRenderer } from "./CustomTextRenderer";
@@ -197,6 +198,10 @@ export default function ChatInterface() {
   const handleSend = () => {
     if (inputText.trim() === "") return;
     
+    // Log sponsor message usage
+    const sponsorName = getSponsorDisplayName(sponsorType);
+    featureUse(`SponsorMessage_${sponsorName}`, 'Chat');
+    
     sendMessage(inputText);
     setInputText("");
     Keyboard.dismiss(); // Dismiss keyboard after sending
@@ -204,6 +209,20 @@ export default function ChatInterface() {
 
   const handleClearChat = () => {
     clearChat();
+  };
+
+  // Helper function to get sponsor display name for logging
+  const getSponsorDisplayName = (type: SponsorType): string => {
+    switch (type) {
+      case "salty":
+        return "SaltySam";
+      case "supportive":
+        return "SteadyEddie";
+      case "grace":
+        return "GentleGrace";
+      default:
+        return "Unknown";
+    }
   };
 
   // Get placeholder text based on sponsor type

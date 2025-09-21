@@ -189,6 +189,11 @@ class UsageLogger {
   setCurrentScreen(screenName: string): void {
     this.onScreenFocus(screenName);
   }
+
+  // Feature use tracking helper
+  featureUse(feature: string, screen?: string): void {
+    this.logEvent('feature_use', { feature, screen: screen || this.currentScreen });
+  }
 }
 
 // Export singleton instance
@@ -196,3 +201,8 @@ export const usageLogger = new UsageLogger();
 
 // Export initialization function
 export const initUsageLogger = () => usageLogger;
+
+// Export helper functions
+export const logEvent = (event: string, props?: Record<string, any>) => usageLogger.logEvent(event, props);
+export const featureUse = (feature: string, screen?: string) => usageLogger.featureUse(feature, screen);
+export const setCurrentScreen = (screenName: string) => usageLogger.setCurrentScreen(screenName);
