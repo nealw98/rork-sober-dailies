@@ -57,6 +57,7 @@ const getScreenNameFromPathname = (pathname: string): string => {
   if (name === 'EveningReview') return 'EveningReview';
   if (name === 'Gratitude') return 'Gratitude';
   if (name === 'AboutSupport') return 'AboutSupport';
+  if (name === 'Store') return 'AboutSupport'; // Store screen is actually About/Support
   if (name === 'Privacy') return 'Privacy';
   if (name === 'Terms') return 'Terms';
   
