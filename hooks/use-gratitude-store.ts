@@ -37,6 +37,46 @@ export const [GratitudeProvider, useGratitudeStore] = createContextHook(() => {
     loadSavedEntries();
   }, []);
 
+  // One-time test data seeding (for QA) – seeds entries for the last two days if missing
+  useEffect(() => {
+    (async () => {
+      try {
+        if (isLoading) return;
+        const qaSeedKey = 'gratitude_test_seed_v1';
+        const alreadySeeded = await AsyncStorage.getItem(qaSeedKey);
+        if (alreadySeeded) return;
+        
+        const today = new Date();
+        const fmt = (d: Date) => {
+          const y = d.getFullYear();
+          const m = (d.getMonth() + 1).toString().padStart(2, '0');
+          const day = d.getDate().toString().padStart(2, '0');
+          return `${y}-${m}-${day}`;
+        };
+        const d0 = new Date(today);
+        const d1 = new Date(today); d1.setDate(today.getDate() - 1);
+        const d2 = new Date(today); d2.setDate(today.getDate() - 2);
+        const dates = [fmt(d2), fmt(d1)];
+        
+        let changed = false;
+        const updatedEntries = [...entries];
+        dates.forEach(ds => {
+          if (!updatedEntries.find(e => e.date === ds)) {
+            updatedEntries.push({ date: ds, items: ['Seeded entry'], completed: true });
+            changed = true;
+          }
+        });
+        if (changed) {
+          console.log('Gratitude QA seed: adding seeded entries for', dates);
+          saveEntries(updatedEntries);
+        }
+        await AsyncStorage.setItem(qaSeedKey, '1');
+      } catch (e) {
+        console.log('Gratitude QA seed error:', (e as any)?.message || e);
+      }
+    })();
+  }, [isLoading, entries]);
+
   // Synchronize entries with savedEntries to ensure weekly progress is accurate
   useEffect(() => {
     if (!isLoading && savedEntries.length > 0) {
@@ -51,21 +91,26 @@ export const [GratitudeProvider, useGratitudeStore] = createContextHook(() => {
       // Check if any savedEntries are missing from entries or not marked as completed
       let needsUpdate = false;
       const updatedEntries = [...entries];
+      const today = new Date();
+      const todayString = `${today.getFullYear()}-${(today.getMonth() + 1).toString().padStart(2, '0')}-${today.getDate().toString().padStart(2, '0')}`;
       
       savedEntries.forEach(savedEntry => {
         const existingEntry = entriesMap.get(savedEntry.date);
         
         if (!existingEntry) {
-          // This saved entry is not in entries, add it
+          // Do not auto-complete today while the user might be editing
+          if (savedEntry.date === todayString) {
+            return;
+          }
           console.log(`Adding missing entry for ${savedEntry.date} to entries array`);
-          updatedEntries.push({
-            date: savedEntry.date,
-            items: savedEntry.items,
-            completed: true
-          });
+          updatedEntries.push({ date: savedEntry.date, items: savedEntry.items, completed: true });
           needsUpdate = true;
         } else if (!existingEntry.completed) {
-          // Entry exists but is not marked as completed
+          // If this is today's entry and it's intentionally uncompleted (editing), skip
+          if (savedEntry.date === todayString) {
+            return;
+          }
+          // Entry exists but is not marked as completed (for past days) → mark completed
           console.log(`Updating entry for ${savedEntry.date} to be marked as completed`);
           const index = updatedEntries.findIndex(e => e.date === savedEntry.date);
           if (index >= 0) {
