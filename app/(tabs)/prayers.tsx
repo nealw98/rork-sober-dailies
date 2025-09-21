@@ -60,6 +60,10 @@ export default function PrayersScreen() {
           scrollToPrayer(prayerIndex);
         }, 100);
       }
+    } else {
+      // If no prayer parameter, ensure we're in collapsed state
+      isFromDeepLink.current = false;
+      setExpandedPrayer(null);
     }
   }, [prayer]);
 
