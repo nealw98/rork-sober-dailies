@@ -13,7 +13,6 @@ interface UsageEvent {
   session_id: string;
   app_version?: string;
   platform: string;
-  props?: Record<string, any>;
 }
 
 class UsageLogger {
@@ -82,8 +81,7 @@ class UsageLogger {
       screen: this.currentScreen || undefined,
       session_id: this.sessionId,
       app_version: Constants.expoConfig?.version || undefined,
-      platform: Platform.OS,
-      props
+      platform: Platform.OS
     };
 
     // Add feature if it's a feature-related event
