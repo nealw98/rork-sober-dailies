@@ -36,8 +36,8 @@ export const [OnboardingProvider, useOnboarding] = createContextHook(() => {
         }
       } catch (error) {
         console.log('Error checking onboarding status:', error);
-        // On error, skip onboarding to prevent app from being stuck
-        setIsOnboardingComplete(true);
+        // On error, show consent page to be safe (don't skip onboarding)
+        setIsOnboardingComplete(false);
       } finally {
         setIsLoading(false);
       }
