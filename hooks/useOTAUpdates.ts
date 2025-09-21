@@ -149,15 +149,20 @@ export const useOTAUpdates = () => {
     return () => subscription?.remove();
   }, [checkForUpdates]);
 
-  // Initial check on mount
+  // Initial check on mount (only once per app session)
   useEffect(() => {
-    // Small delay to ensure app is fully loaded
-    const timer = setTimeout(() => {
-      checkForUpdates(true);
-    }, 2000);
-    
-    return () => clearTimeout(timer);
-  }, [checkForUpdates]);
+    let hasInitialCheckRun = false;
+
+    if (!hasInitialCheckRun) {
+      hasInitialCheckRun = true;
+      // Small delay to ensure app is fully loaded
+      const timer = setTimeout(() => {
+        checkForUpdates(true);
+      }, 2000);
+
+      return () => clearTimeout(timer);
+    }
+  }, []); // No dependencies to prevent re-running
 
   const dismissSnackbar = useCallback(() => {
     setShowSnackbar(false);
