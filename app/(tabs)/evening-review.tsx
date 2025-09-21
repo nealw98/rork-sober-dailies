@@ -99,6 +99,7 @@ const AnimatedCheckbox = ({ checked, onPress, children }: {
 export default function EveningReview() {
   const [showConfirmation, setShowConfirmation] = useState(false);
   const [showSavedReviews, setShowSavedReviews] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
 
   // New Daily Actions state
   const [stayedSober, setStayedSober] = useState(false);
@@ -184,7 +185,7 @@ export default function EveningReview() {
     // Load saved data back into form if it exists
     const todayString = getTodayDateString();
     const savedEntry = eveningReviewStore.getSavedEntry(todayString);
-    
+
     if (savedEntry) {
       const data = savedEntry.data;
       // Load new format data if available, otherwise use legacy format
@@ -217,9 +218,12 @@ export default function EveningReview() {
         setReflectionOthers('');
       }
     }
-    
+
+    // Immediately uncomplete today to prevent UI flickering
     uncompleteToday();
+    // Force show the form instead of completion screen
     setShowConfirmation(false);
+    setIsEditing(true);
   };
 
   const handleShare = async () => {
@@ -315,9 +319,10 @@ export default function EveningReview() {
     };
 
     saveDetailedEntry(detailedEntry);
-    
+
     // Set showConfirmation to true to show the completed screen with saved message
     setShowConfirmation(true);
+    setIsEditing(false);
   };
 
   const canSave = () => {
@@ -325,8 +330,8 @@ export default function EveningReview() {
            inventoryQuestions.some(question => question.value.trim() !== '');
   };
 
-  // Show completion screen if review is completed
-  if (showConfirmation || isCompleted) {
+  // Show completion screen if review is completed, unless we're editing
+  if (showConfirmation || (isCompleted && !isEditing)) {
     return (
       <ScreenContainer style={styles.container}>
         <LinearGradient
