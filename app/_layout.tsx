@@ -155,6 +155,7 @@ function RootLayoutNav() {
 
   return (
     <>
+      <StatusBar hidden={true} />
       <Stack screenOptions={{ 
         headerBackTitle: "",
         headerTitleAlign: 'center',
