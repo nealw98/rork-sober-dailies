@@ -494,7 +494,7 @@ const AboutSupportScreen = () => {
             <Text style={styles.aboutTitle}>About Sober Dailies</Text>
             <Text style={styles.aboutText}>
               Hi friends,{"\n\n"}
-               I built Sober Dailies because I wanted a way to be more consistent with my own recovery practices.  I needed something simple that would walk me through my daily habits.  I wanted all the tools I need—daily reflection, gratitude list, nightly review, and sponsor-style support—in one place I could carry in my pocket.{"\n\n"}
+               I built Sober Dailies because I wanted a simple way to stay consistent with my recovery practices. I needed something that would guide me through my daily habits and bring all the tools I used into one app.{"\n\n"}
               This app has grown beyond just me, and I'm grateful to share it with anyone who finds it helpful.{"\n\n"}
               Your contribution here is completely voluntary and goes toward keeping the app running smoothly, covering development costs, and investing in future updates and improvements. My hope is to keep the core features free for anyone who wants to use them.{"\n\n"}
               Whether or not you subscribe, I'm just glad you're here and that the app supports your journey.{"\n\n"}
