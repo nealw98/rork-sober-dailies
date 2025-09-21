@@ -183,6 +183,14 @@ class UsageLogger {
       } else if (nextAppState === 'active') {
         // App coming back to foreground
         this.logEvent('app_foreground', { platform: Platform.OS });
+        
+        // Also log screen open for the current screen
+        if (this.currentScreen) {
+          this.logEvent('screen_open', {
+            screen: this.currentScreen,
+            reason: 'app_foreground'
+          });
+        }
       }
     });
   }
