@@ -78,7 +78,7 @@ class UsageLogger {
     const usageEvent: UsageEvent = {
       ts: new Date().toISOString(),
       event,
-      screen: this.currentScreen || undefined,
+      screen: props?.screen || this.currentScreen || undefined,
       session_id: this.sessionId,
       app_version: Constants.expoConfig?.version || undefined,
       platform: Platform.OS
@@ -90,7 +90,7 @@ class UsageLogger {
     }
 
     this.eventQueue.push(usageEvent);
-    console.log('[UsageLogger] Event queued:', event);
+    console.log('[UsageLogger] Event queued:', event, 'screen:', this.currentScreen, 'queue size:', this.eventQueue.length);
 
     // Flush events in the background
     this.scheduleFlush();
