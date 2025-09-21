@@ -70,7 +70,8 @@ class UsageLogger {
 
     const now = Date.now();
     // Throttle events to prevent spam (max 1 event per second)
-    if (now - this.lastEventTime < 1000) {
+    // But allow screen events to bypass throttling for proper navigation tracking
+    if (now - this.lastEventTime < 1000 && !event.startsWith('screen_')) {
       return;
     }
     this.lastEventTime = now;
@@ -90,7 +91,7 @@ class UsageLogger {
     }
 
     this.eventQueue.push(usageEvent);
-    console.log('[UsageLogger] Event queued:', event, 'screen:', this.currentScreen, 'queue size:', this.eventQueue.length);
+    console.log('[UsageLogger] Event queued:', event, 'screen:', props?.screen || this.currentScreen, 'queue size:', this.eventQueue.length);
 
     // Flush events in the background
     this.scheduleFlush();
