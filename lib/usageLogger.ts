@@ -167,7 +167,13 @@ class UsageLogger {
   private setupAppStateListener(): void {
     AppState.addEventListener('change', (nextAppState: AppStateStatus) => {
       if (nextAppState === 'background' || nextAppState === 'inactive') {
-        // App going to background - log screen close if we have a current screen
+        // App going to background - log app_background event
+        this.logEvent('app_background', { 
+          platform: Platform.OS,
+          screen: this.currentScreen 
+        });
+        
+        // Also log screen close if we have a current screen
         if (this.currentScreen) {
           this.logEvent('screen_close', {
             screen: this.currentScreen,
