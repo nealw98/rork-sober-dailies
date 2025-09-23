@@ -20,6 +20,7 @@ import { configurePurchases } from "@/lib/purchases";
 import { Logger } from "@/lib/logger";
 import { initUsageLogger } from "@/lib/usageLogger";
 import { useExpoRouterTracking } from "@/hooks/useExpoRouterTracking";
+import { SessionProvider } from "@/hooks/useSessionContext";
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync().catch(() => {
@@ -248,19 +249,21 @@ export default function RootLayout() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <OnboardingProvider>
-        <GratitudeProvider>
-          <SobrietyProvider>
-            <EveningReviewProvider>
-              <GestureHandlerRootView style={{ flex: 1 }}>
-                <ErrorBoundary>
-                  <RootLayoutNav />
-                </ErrorBoundary>
-              </GestureHandlerRootView>
-            </EveningReviewProvider>
-          </SobrietyProvider>
-        </GratitudeProvider>
-      </OnboardingProvider>
+      <SessionProvider>
+        <OnboardingProvider>
+          <GratitudeProvider>
+            <SobrietyProvider>
+              <EveningReviewProvider>
+                <GestureHandlerRootView style={{ flex: 1 }}>
+                  <ErrorBoundary>
+                    <RootLayoutNav />
+                  </ErrorBoundary>
+                </GestureHandlerRootView>
+              </EveningReviewProvider>
+            </SobrietyProvider>
+          </GratitudeProvider>
+        </OnboardingProvider>
+      </SessionProvider>
     </QueryClientProvider>
   );
 }

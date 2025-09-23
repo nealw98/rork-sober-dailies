@@ -21,6 +21,7 @@ class UsageLogger {
   private isFlushing = false;
   private currentScreen: string | null = null;
   private lastEventTime: number = Date.now();
+  private appState: AppStateStatus = 'active';
 
   constructor() {
     this.initializeSession();
@@ -29,20 +30,18 @@ class UsageLogger {
 
   async initializeSession(): Promise<void> {
     try {
-      // Try to load existing session ID
-      let sessionId = await AsyncStorage.getItem('usage_session_id');
-
-      if (!sessionId) {
-        // Generate new UUID-like session ID
-        sessionId = this.generateSessionId();
-        await AsyncStorage.setItem('usage_session_id', sessionId);
-      }
-
-      this.sessionId = sessionId;
-      console.log('[UsageLogger] Session initialized:', sessionId);
+      // Always generate a new session ID on app launch
+      this.sessionId = this.generateSessionId();
+      console.log('[UsageLogger] New session initialized on app launch:', this.sessionId);
+      
+      // Log app launch event
+      this.logEvent('app_launch', { 
+        platform: Platform.OS,
+        app_version: Constants.expoConfig?.version 
+      });
     } catch (error) {
       console.error('[UsageLogger] Failed to initialize session:', error);
-      // Generate temporary session ID if storage fails
+      // Generate temporary session ID if anything fails
       this.sessionId = this.generateSessionId();
     }
   }
@@ -166,6 +165,9 @@ class UsageLogger {
   // App state change handler
   private setupAppStateListener(): void {
     AppState.addEventListener('change', (nextAppState: AppStateStatus) => {
+      const previousAppState = this.appState;
+      this.appState = nextAppState;
+
       if (nextAppState === 'background' || nextAppState === 'inactive') {
         // App going to background - log app_background event
         this.logEvent('app_background', { 
@@ -180,11 +182,22 @@ class UsageLogger {
             reason: 'app_background'
           });
         }
-      } else if (nextAppState === 'active') {
-        // App coming back to foreground
-        this.logEvent('app_foreground', { platform: Platform.OS });
+      } else if (nextAppState === 'active' && previousAppState !== 'active') {
+        // App coming back to foreground from background/inactive
+        // Generate a new session ID for the new session
+        const previousSessionId = this.sessionId;
+        this.sessionId = this.generateSessionId();
         
-        // Also log screen open for the current screen
+        console.log('[UsageLogger] New session started on app foreground:', this.sessionId, 'Previous:', previousSessionId);
+        
+        // Log app_foreground event with new session
+        this.logEvent('app_foreground', { 
+          platform: Platform.OS,
+          previous_session_id: previousSessionId,
+          new_session_id: this.sessionId
+        });
+        
+        // Also log screen open for the current screen with new session
         if (this.currentScreen) {
           this.logEvent('screen_open', {
             screen: this.currentScreen,
@@ -197,6 +210,23 @@ class UsageLogger {
 
   // Get current session ID
   getSessionId(): string | null {
+    return this.sessionId;
+  }
+
+  // Manually start a new session (useful for testing or special cases)
+  startNewSession(): string {
+    const previousSessionId = this.sessionId;
+    this.sessionId = this.generateSessionId();
+    
+    console.log('[UsageLogger] Manual new session started:', this.sessionId, 'Previous:', previousSessionId);
+    
+    // Log session change event
+    this.logEvent('session_change', {
+      previous_session_id: previousSessionId,
+      new_session_id: this.sessionId,
+      reason: 'manual'
+    });
+    
     return this.sessionId;
   }
 
@@ -221,3 +251,5 @@ export const initUsageLogger = () => usageLogger;
 export const logEvent = (event: string, props?: Record<string, any>) => usageLogger.logEvent(event, props);
 export const featureUse = (feature: string, screen?: string) => usageLogger.featureUse(feature, screen);
 export const setCurrentScreen = (screenName: string) => usageLogger.setCurrentScreen(screenName);
+export const getCurrentSessionId = () => usageLogger.getSessionId();
+export const startNewSession = () => usageLogger.startNewSession();
