@@ -26,11 +26,21 @@ export const [SobrietyProvider, useSobriety] = createContextHook(() => {
       try {
         const stored = await AsyncStorage.getItem(SOBRIETY_STORAGE_KEY);
         if (stored) {
-          const data: SobrietyData = JSON.parse(stored);
-          setSobrietyDate(data.sobrietyDate);
-          setHasSeenPrompt(data.hasSeenPrompt);
-          setDailyCheckIns(data.dailyCheckIns || []);
-          setEmergencyContacts(data.emergencyContacts || []);
+          try {
+            const data: SobrietyData = JSON.parse(stored);
+            // Validate the parsed data structure
+            if (data && typeof data === 'object') {
+              setSobrietyDate(data.sobrietyDate || null);
+              setHasSeenPrompt(data.hasSeenPrompt || false);
+              setDailyCheckIns(Array.isArray(data.dailyCheckIns) ? data.dailyCheckIns : []);
+              setEmergencyContacts(Array.isArray(data.emergencyContacts) ? data.emergencyContacts : []);
+            } else {
+              console.warn('[Sobriety Store] Invalid data format, using defaults');
+            }
+          } catch (error) {
+            console.error('[Sobriety Store] Failed to parse sobriety data:', error);
+            // Use defaults on parse error
+          }
         }
       } catch (error) {
         console.error('Error loading sobriety data:', error);

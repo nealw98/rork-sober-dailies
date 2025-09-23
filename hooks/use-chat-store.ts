@@ -136,35 +136,68 @@ export const [ChatStoreProvider, useChatStore] = createContextHook(() => {
         }
         
         if (storedSaltyMessages) {
-          const parsed = JSON.parse(storedSaltyMessages);
-          // Always use the latest initial message and append any additional messages
-          if (parsed.length === 0 || parsed[0].id !== "welcome-salty") {
-            setSaltyMessages([SALTY_SAM_INITIAL_MESSAGE, ...parsed]);
-          } else {
-            // Replace the first message with the latest initial message
-            setSaltyMessages([SALTY_SAM_INITIAL_MESSAGE, ...parsed.slice(1)]);
+          try {
+            const parsed = JSON.parse(storedSaltyMessages);
+            // Validate that parsed data is an array
+            if (Array.isArray(parsed)) {
+              // Always use the latest initial message and append any additional messages
+              if (parsed.length === 0 || parsed[0].id !== "welcome-salty") {
+                setSaltyMessages([SALTY_SAM_INITIAL_MESSAGE, ...parsed]);
+              } else {
+                // Replace the first message with the latest initial message
+                setSaltyMessages([SALTY_SAM_INITIAL_MESSAGE, ...parsed.slice(1)]);
+              }
+            } else {
+              console.warn('[Chat Store] Invalid salty messages format, using defaults');
+              setSaltyMessages([SALTY_SAM_INITIAL_MESSAGE]);
+            }
+          } catch (error) {
+            console.error('[Chat Store] Failed to parse salty messages:', error);
+            setSaltyMessages([SALTY_SAM_INITIAL_MESSAGE]);
           }
         }
         
         if (storedSupportiveMessages) {
-          const parsed = JSON.parse(storedSupportiveMessages);
-          // Always use the latest initial message and append any additional messages
-          if (parsed.length === 0 || parsed[0].id !== "welcome-supportive") {
-            setSupportiveMessages([STEADY_EDDIE_INITIAL_MESSAGE, ...parsed]);
-          } else {
-            // Replace the first message with the latest initial message
-            setSupportiveMessages([STEADY_EDDIE_INITIAL_MESSAGE, ...parsed.slice(1)]);
+          try {
+            const parsed = JSON.parse(storedSupportiveMessages);
+            // Validate that parsed data is an array
+            if (Array.isArray(parsed)) {
+              // Always use the latest initial message and append any additional messages
+              if (parsed.length === 0 || parsed[0].id !== "welcome-supportive") {
+                setSupportiveMessages([STEADY_EDDIE_INITIAL_MESSAGE, ...parsed]);
+              } else {
+                // Replace the first message with the latest initial message
+                setSupportiveMessages([STEADY_EDDIE_INITIAL_MESSAGE, ...parsed.slice(1)]);
+              }
+            } else {
+              console.warn('[Chat Store] Invalid supportive messages format, using defaults');
+              setSupportiveMessages([STEADY_EDDIE_INITIAL_MESSAGE]);
+            }
+          } catch (error) {
+            console.error('[Chat Store] Failed to parse supportive messages:', error);
+            setSupportiveMessages([STEADY_EDDIE_INITIAL_MESSAGE]);
           }
         }
         
         if (storedGraceMessages) {
-          const parsed = JSON.parse(storedGraceMessages);
-          // Always use the latest initial message and append any additional messages
-          if (parsed.length === 0 || parsed[0].id !== "welcome-grace") {
-            setGraceMessages([GENTLE_GRACE_INITIAL_MESSAGE, ...parsed]);
-          } else {
-            // Replace the first message with the latest initial message
-            setGraceMessages([GENTLE_GRACE_INITIAL_MESSAGE, ...parsed.slice(1)]);
+          try {
+            const parsed = JSON.parse(storedGraceMessages);
+            // Validate that parsed data is an array
+            if (Array.isArray(parsed)) {
+              // Always use the latest initial message and append any additional messages
+              if (parsed.length === 0 || parsed[0].id !== "welcome-grace") {
+                setGraceMessages([GENTLE_GRACE_INITIAL_MESSAGE, ...parsed]);
+              } else {
+                // Replace the first message with the latest initial message
+                setGraceMessages([GENTLE_GRACE_INITIAL_MESSAGE, ...parsed.slice(1)]);
+              }
+            } else {
+              console.warn('[Chat Store] Invalid grace messages format, using defaults');
+              setGraceMessages([GENTLE_GRACE_INITIAL_MESSAGE]);
+            }
+          } catch (error) {
+            console.error('[Chat Store] Failed to parse grace messages:', error);
+            setGraceMessages([GENTLE_GRACE_INITIAL_MESSAGE]);
           }
         }
       } catch (error) {

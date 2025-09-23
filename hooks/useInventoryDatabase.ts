@@ -51,8 +51,25 @@ export const useInventoryDatabase = () => {
         AsyncStorage.getItem(WEB_STORAGE_KEYS.SESSIONS),
       ]);
 
-      const items: InventoryItem[] = itemsData ? JSON.parse(itemsData) : [];
-      const sessions: InventorySession[] = sessionsData ? JSON.parse(sessionsData) : [];
+      const items: InventoryItem[] = itemsData ? (() => {
+        try {
+          const parsed = JSON.parse(itemsData);
+          return Array.isArray(parsed) ? parsed : [];
+        } catch (error) {
+          console.error('Failed to parse inventory items:', error);
+          return [];
+        }
+      })() : [];
+      
+      const sessions: InventorySession[] = sessionsData ? (() => {
+        try {
+          const parsed = JSON.parse(sessionsData);
+          return Array.isArray(parsed) ? parsed : [];
+        } catch (error) {
+          console.error('Failed to parse inventory sessions:', error);
+          return [];
+        }
+      })() : [];
       
       const todayDate = getTodayDateString();
       const currentSession = sessions.find(s => s.date === todayDate) || null;

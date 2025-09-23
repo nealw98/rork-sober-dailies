@@ -92,8 +92,8 @@ android {
         applicationId 'com.nealwagner.soberdailies'
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 60
-        versionName "1.8.4"
+        versionCode 61
+        versionName "1.8.6"
         // Use the 'production' flavor by default when a variant isn't specified (e.g. expo run:android)
         missingDimensionStrategy 'default', 'production'
     }

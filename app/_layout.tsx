@@ -49,7 +49,7 @@ const hideSplashScreenSafely = async () => {
 
 function RootLayoutNav() {
   const { isOnboardingComplete, isLoading } = useOnboarding();
-  const { showSnackbar, dismissSnackbar } = useOTAUpdates();
+  const { showSnackbar, dismissSnackbar, restartApp } = useOTAUpdates();
 
   // Enable screen tracking for Expo Router
   useExpoRouterTracking();
@@ -111,7 +111,7 @@ function RootLayoutNav() {
     initUsageLogger();
 
     
-    // Log OTA diagnostics
+    // Log OTA diagnostics with safe fallback
     (async () => {
       try {
         const Updates = await import('expo-updates');
@@ -123,7 +123,10 @@ function RootLayoutNav() {
         console.log(`[OTA] runtimeVersion=${runtimeVersion} url=${url}`);
         console.log(`[OTA] launchedFrom=${isEmbeddedLaunch ? 'embedded' : 'OTA'} updateId=${updateId}`);
       } catch (e: any) {
+        // Safe fallback: log error but don't crash
         console.log('[OTA] error', e?.message || String(e));
+        // In production builds, this would be logged via Logger.logDiag
+        // but we don't want to import Logger here to avoid circular dependencies
       }
     })();
   }, []);
@@ -216,7 +219,7 @@ function RootLayoutNav() {
         />
         
       </Stack>
-      <OTASnackbar visible={showSnackbar} onDismiss={dismissSnackbar} />
+        <OTASnackbar visible={showSnackbar} onDismiss={dismissSnackbar} onRestart={restartApp} />
     </>
   );
 }
