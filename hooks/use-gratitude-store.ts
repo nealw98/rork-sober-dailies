@@ -35,47 +35,31 @@ export const [GratitudeProvider, useGratitudeStore] = createContextHook(() => {
   useEffect(() => {
     loadEntries();
     loadSavedEntries();
+    cleanupSeededData(); // Remove any fake seeded data
   }, []);
 
-  // One-time test data seeding (for QA) – seeds entries for the last two days if missing
-  useEffect(() => {
-    (async () => {
-      try {
-        if (isLoading) return;
-        const qaSeedKey = 'gratitude_test_seed_v1';
-        const alreadySeeded = await AsyncStorage.getItem(qaSeedKey);
-        if (alreadySeeded) return;
+  // Clean up any fake seeded data that was created during QA testing
+  const cleanupSeededData = async () => {
+    try {
+      const stored = await AsyncStorage.getItem(STORAGE_KEY);
+      if (stored) {
+        const parsedEntries = JSON.parse(stored);
+        // Remove any entries with fake "Seeded entry" items
+        const cleanedEntries = parsedEntries.filter((entry: GratitudeEntry) => 
+          !entry.items.includes('Seeded entry')
+        );
         
-        const today = new Date();
-        const fmt = (d: Date) => {
-          const y = d.getFullYear();
-          const m = (d.getMonth() + 1).toString().padStart(2, '0');
-          const day = d.getDate().toString().padStart(2, '0');
-          return `${y}-${m}-${day}`;
-        };
-        const d0 = new Date(today);
-        const d1 = new Date(today); d1.setDate(today.getDate() - 1);
-        const d2 = new Date(today); d2.setDate(today.getDate() - 2);
-        const dates = [fmt(d2), fmt(d1)];
-        
-        let changed = false;
-        const updatedEntries = [...entries];
-        dates.forEach(ds => {
-          if (!updatedEntries.find(e => e.date === ds)) {
-            updatedEntries.push({ date: ds, items: ['Seeded entry'], completed: true });
-            changed = true;
-          }
-        });
-        if (changed) {
-          console.log('Gratitude QA seed: adding seeded entries for', dates);
-          saveEntries(updatedEntries);
+        if (cleanedEntries.length !== parsedEntries.length) {
+          console.log('Cleaning up fake seeded gratitude entries');
+          await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(cleanedEntries));
+          setEntries(cleanedEntries);
         }
-        await AsyncStorage.setItem(qaSeedKey, '1');
-      } catch (e) {
-        console.log('Gratitude QA seed error:', (e as any)?.message || e);
       }
-    })();
-  }, [isLoading, entries]);
+    } catch (error) {
+      console.error('Error cleaning up seeded data:', error);
+    }
+  };
+
 
   // Synchronize entries with savedEntries to ensure weekly progress is accurate
   useEffect(() => {
