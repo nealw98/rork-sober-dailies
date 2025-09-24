@@ -9,7 +9,6 @@ import {
   Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { X } from 'lucide-react-native';
 import Colors from '@/constants/colors';
 import { adjustFontWeight } from '@/constants/fonts';
 
@@ -82,12 +81,11 @@ export default function OTASnackbar({ visible, onDismiss, onRestart }: OTASnackb
                 <Text style={styles.restartButtonText}>Restart</Text>
               </TouchableOpacity>
               <TouchableOpacity
-                style={styles.dismissButton}
+                style={styles.laterButton}
                 onPress={onDismiss}
                 activeOpacity={0.7}
-                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
               >
-                <X size={18} color={Colors.light.background} />
+                <Text style={styles.laterButtonText}>Later</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -152,9 +150,15 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: adjustFontWeight('600'),
   },
-  dismissButton: {
-    padding: 4,
+  laterButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
     borderRadius: 6,
     backgroundColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  laterButtonText: {
+    color: Colors.light.background,
+    fontSize: 12,
+    fontWeight: adjustFontWeight('500'),
   },
 });
