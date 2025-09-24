@@ -24,6 +24,8 @@ class UsageLogger {
   private currentScreen: string | null = null;
   private lastEventTime: number = Date.now();
   private appState: AppStateStatus = 'active';
+  private lastScreenLogged: string | null = null;
+  private lastScreenLogTime: number = 0;
 
   constructor() {
     this.initializeSession();
@@ -189,11 +191,31 @@ class UsageLogger {
     }
   }
 
+  // Debounced screen logging to prevent duplicates
+  private shouldLogScreenEvent(screenName: string, eventType: 'open' | 'close'): boolean {
+    const now = Date.now();
+    const timeSinceLastLog = now - this.lastScreenLogTime;
+    const isSameScreen = this.lastScreenLogged === screenName;
+    
+    // Allow screen events if:
+    // 1. It's been more than 1 second since last screen log, OR
+    // 2. It's a different screen, OR  
+    // 3. It's a screen_close event (always allow close events)
+    if (timeSinceLastLog > 1000 || !isSameScreen || eventType === 'close') {
+      this.lastScreenLogged = screenName;
+      this.lastScreenLogTime = now;
+      return true;
+    }
+    
+    console.log('[UsageLogger] Skipping duplicate screen event:', eventType, screenName, 'last logged:', timeSinceLastLog + 'ms ago');
+    return false;
+  }
+
   // Screen tracking hooks
   onScreenFocus(screenName: string): void {
     if (this.currentScreen !== screenName) {
       // Log screen close for previous screen
-      if (this.currentScreen) {
+      if (this.currentScreen && this.shouldLogScreenEvent(this.currentScreen, 'close')) {
         this.logEvent('screen_close', { screen: this.currentScreen });
       }
 
@@ -201,13 +223,17 @@ class UsageLogger {
       this.currentScreen = screenName;
 
       // Log screen open for new screen
-      this.logEvent('screen_open', { screen: screenName });
+      if (this.shouldLogScreenEvent(screenName, 'open')) {
+        this.logEvent('screen_open', { screen: screenName });
+      }
     }
   }
 
   onScreenBlur(screenName: string): void {
     if (this.currentScreen === screenName) {
-      this.logEvent('screen_close', { screen: screenName });
+      if (this.shouldLogScreenEvent(screenName, 'close')) {
+        this.logEvent('screen_close', { screen: screenName });
+      }
       this.currentScreen = null;
     }
   }
@@ -253,7 +279,7 @@ class UsageLogger {
         });
         
         // Also log screen open for the current screen with new session
-        if (this.currentScreen) {
+        if (this.currentScreen && this.shouldLogScreenEvent(this.currentScreen, 'open')) {
           this.logEvent('screen_open', {
             screen: this.currentScreen,
             reason: 'app_foreground'

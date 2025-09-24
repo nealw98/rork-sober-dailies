@@ -17,15 +17,12 @@ export const useExpoRouterTracking = () => {
       if (isInitialLoad.current) {
         // On initial app load, log screen_open for the first screen
         console.log('[ScreenTracking] Initial load - logging screen_open for:', screenName);
-        usageLogger.logEvent('screen_open', { screen: screenName });
         usageLogger.setCurrentScreen(screenName);
         isInitialLoad.current = false;
       } else if (previousPathname.current && previousPathname.current !== pathname) {
         // On route change, log screen_close for previous and screen_open for current
         const previousScreenName = getScreenNameFromPathname(previousPathname.current);
         console.log('[ScreenTracking] Route change - logging screen_close for:', previousScreenName, 'and screen_open for:', screenName);
-        usageLogger.logEvent('screen_close', { screen: previousScreenName });
-        usageLogger.logEvent('screen_open', { screen: screenName });
         usageLogger.setCurrentScreen(screenName);
       }
 
