@@ -1,0 +1,351 @@
+Incident Identifier: A85132B7-7793-4F21-866F-02AA916496B1
+Distributor ID:      com.apple.TestFlight
+Hardware Model:      iPhone15,4
+Process:             SoberDailies [21369]
+Path:                /private/var/containers/Bundle/Application/4BBAD9A3-B8B9-4D30-95F4-28826D798557/SoberDailies.app/SoberDailies
+Identifier:          com.nealwagner.soberdailies
+Version:             1.8.3 (39)
+AppStoreTools:       16F7
+AppVariant:          1:iPhone15,4:18
+Beta:                YES
+Code Type:           ARM-64 (Native)
+Role:                Foreground
+Parent Process:      launchd [1]
+Coalition:           com.nealwagner.soberdailies [20510]
+
+Date/Time:           2025-09-22 10:14:56.7406 -0600
+Launch Time:         2025-09-22 10:14:54.7483 -0600
+OS Version:          iPhone OS 18.6.2 (22G100)
+Release Type:        User
+Baseband Version:    2.70.02
+Report Version:      104
+
+Exception Type:  EXC_CRASH (SIGABRT)
+Exception Codes: 0x0000000000000000, 0x0000000000000000
+Termination Reason: SIGNAL 6 Abort trap: 6
+Terminating Process: SoberDailies [21369]
+
+Triggered by Thread:  9
+
+Last Exception Backtrace:
+0   CoreFoundation                	0x1921600c0 __exceptionPreprocess + 164 (NSException.m:249)
+1   libobjc.A.dylib               	0x18f5f9abc objc_exception_throw + 88 (objc-exception.mm:356)
+2   CoreFoundation                	0x1921624a0 -[NSException raise] + 16 (NSException.m:129)
+3   SoberDailies                  	0x102c26674 StartupProcedure.throwException(_:) + 16 (StartupProcedure.swift:344)
+4   SoberDailies                  	0x102c26674 protocol witness for ErrorRecoveryDelegate.throwException(_:) in conformance StartupProcedure + 16 (/<compiler-generated>:343)
+5   SoberDailies                  	0x102c26674 ErrorRecovery.crash() + 2540 (ErrorRecovery.swift:277)
+6   SoberDailies                  	0x102c255b8 ErrorRecovery.runNextTask() + 1376 (ErrorRecovery.swift:190)
+7   SoberDailies                  	0x102c259ec ErrorRecovery.waitForRemoteLoaderToFinish() + 492 (ErrorRecovery.swift:198)
+8   SoberDailies                  	0x102c25230 ErrorRecovery.runNextTask() + 472 (ErrorRecovery.swift:181)
+9   SoberDailies                  	0x102c257a4 closure #1 in ErrorRecovery.startPipeline(withEncounteredError:) + 376 (ErrorRecovery.swift:168)
+10  SoberDailies                  	0x102bf8a68 0x102bdc000 + 117352
+11  libdispatch.dylib             	0x199fe2aac _dispatch_call_block_and_release + 32 (init.c:1575)
+12  libdispatch.dylib             	0x199ffc584 _dispatch_client_callout + 16 (client_callout.mm:85)
+13  libdispatch.dylib             	0x199feb2d0 _dispatch_lane_serial_drain + 740 (queue.c:3939)
+14  libdispatch.dylib             	0x199febdac _dispatch_lane_invoke + 388 (queue.c:4030)
+15  libdispatch.dylib             	0x199ff61dc _dispatch_root_queue_drain_deferred_wlh + 292 (queue.c:7198)
+16  libdispatch.dylib             	0x199ff5a60 _dispatch_workloop_worker_thread + 540 (queue.c:6792)
+17  libsystem_pthread.dylib       	0x21c4fca0c _pthread_wqthread + 292 (pthread.c:2696)
+18  libsystem_pthread.dylib       	0x21c4fcaac start_wqthread + 8 (:-1)
+
+Thread 0 name:
+Thread 0:
+0   libsystem_kernel.dylib        	0x00000001e2eb1ce4 mach_msg2_trap + 8 (:-1)
+1   libsystem_kernel.dylib        	0x00000001e2eb539c mach_msg2_internal + 76 (mach_msg.c:201)
+2   libsystem_kernel.dylib        	0x00000001e2eb52b8 mach_msg_overwrite + 428 (mach_msg.c:0)
+3   libsystem_kernel.dylib        	0x00000001e2eb5100 mach_msg + 24 (mach_msg.c:323)
+4   CoreFoundation                	0x00000001920577a0 __CFRunLoopServiceMachPort + 160 (CFRunLoop.c:2637)
+5   CoreFoundation                	0x0000000192056090 __CFRunLoopRun + 1208 (CFRunLoop.c:3021)
+6   CoreFoundation                	0x0000000192057adc CFRunLoopRunSpecific + 572 (CFRunLoop.c:3434)
+7   GraphicsServices              	0x00000001dee7d454 GSEventRunModal + 168 (GSEvent.c:2196)
+8   UIKitCore                     	0x0000000194a79274 -[UIApplication _run] + 816 (UIApplication.m:3845)
+9   UIKitCore                     	0x0000000194a44a28 UIApplicationMain + 336 (UIApplication.m:5540)
+10  SoberDailies                  	0x0000000102be1760 main + 64 (AppDelegate.swift:6)
+11  dyld                          	0x00000001b8ae9f08 start + 6040 (dyldMain.cpp:1450)
+
+Thread 1:
+0   libsystem_pthread.dylib       	0x000000021c4fcaa4 start_wqthread + 0 (:-1)
+
+Thread 2:
+0   libsystem_pthread.dylib       	0x000000021c4fcaa4 start_wqthread + 0 (:-1)
+
+Thread 3:
+0   libsystem_pthread.dylib       	0x000000021c4fcaa4 start_wqthread + 0 (:-1)
+
+Thread 4:
+0   libsystem_pthread.dylib       	0x000000021c4fcaa4 start_wqthread + 0 (:-1)
+
+Thread 5:
+0   libsystem_pthread.dylib       	0x000000021c4fcaa4 start_wqthread + 0 (:-1)
+
+Thread 6 name:
+Thread 6:
+0   dyld                          	0x00000001b8aae874 <deduplicated_symbol> + 68 (:-1)
+1   dyld                          	0x00000001b8aae9b8 objc::StringHashTable::tryGetIndex(char const*) const + 152 (OptimizerObjC.h:121)
+2   dyld                          	0x00000001b8aadc64 dyld4::APIs::_dyld_get_objc_selector(char const*) + 56 (DyldAPIs.cpp:2407)
+3   libobjc.A.dylib               	0x000000018f5e2a10 __sel_registerName(char const*, bool, bool) + 48 (objc-sel.mm:110)
+4   Foundation                    	0x0000000190cf1984 NSSelectorFromString + 152 (NSObjCRuntime.m:65)
+5   SoberDailies                  	0x0000000102f6f400 -[RCTComponentData createPropBlock:isShadowView:] + 840 (RCTComponentData.mm:264)
+6   SoberDailies                  	0x0000000102f71920 -[RCTComponentData propBlockForKey:isShadowView:] + 112 (RCTComponentData.mm:351)
+7   SoberDailies                  	0x0000000102f71b04 __50-[RCTComponentData setProps:forView:isShadowView:]_block_invoke + 52 (RCTComponentData.mm:389)
+8   CoreFoundation                	0x0000000192062e98 __NSDICTIONARY_IS_CALLING_OUT_TO_A_BLOCK__ + 24 (NSDictionaryHelpers.m:10)
+9   CoreFoundation                	0x0000000192063078 -[__NSDictionaryM enumerateKeysAndObjectsWithOptions:usingBlock:] + 288 (NSDictionaryM.m:271)
+10  SoberDailies                  	0x0000000102f71a84 -[RCTComponentData setProps:forView:isShadowView:] + 140 (RCTComponentData.mm:388)
+11  SoberDailies                  	0x0000000102fb78cc -[RCTUIManager createView:viewName:rootTag:props:] + 208 (RCTUIManager.mm:952)
+12  CoreFoundation                	0x0000000192075934 __invoking___ + 148 (:-1)
+13  CoreFoundation                	0x0000000192074fac -[NSInvocation invoke] + 424 (NSForwarding.m:3411)
+14  CoreFoundation                	0x00000001920e79cc -[NSInvocation invokeWithTarget:] + 64 (NSForwarding.m:3508)
+15  SoberDailies                  	0x0000000102f99ea8 -[RCTModuleMethod invokeWithBridge:module:arguments:] + 376 (RCTModuleMethod.mm:584)
+16  SoberDailies                  	0x0000000102f9bfec facebook::react::invokeInner(RCTBridge*, RCTModuleData*, unsigned int, folly::dynamic const&, int, (anonymous namespace)::SchedulingContext) + 452 (RCTNativeModule.mm:196)
+17  SoberDailies                  	0x0000000102f9bc50 facebook::react::RCTNativeModule::invoke(unsigned int, folly::dynamic&&, int)::$_0::operator()() const + 56 (RCTNativeModule.mm:113)
+18  SoberDailies                  	0x0000000102f9bc50 invocation function for block in facebook::react::RCTNativeModule::invoke(unsigned int, folly::dynamic&&, int) + 108 (RCTNativeModule.mm:104)
+19  libdispatch.dylib             	0x0000000199fe2aac _dispatch_call_block_and_release + 32 (init.c:1575)
+20  libdispatch.dylib             	0x0000000199ffc584 _dispatch_client_callout + 16 (client_callout.mm:85)
+21  libdispatch.dylib             	0x0000000199feb2d0 _dispatch_lane_serial_drain + 740 (queue.c:3939)
+22  libdispatch.dylib             	0x0000000199febdac _dispatch_lane_invoke + 388 (queue.c:4030)
+23  libdispatch.dylib             	0x0000000199ff61dc _dispatch_root_queue_drain_deferred_wlh + 292 (queue.c:7198)
+24  libdispatch.dylib             	0x0000000199ff5a60 _dispatch_workloop_worker_thread + 540 (queue.c:6792)
+25  libsystem_pthread.dylib       	0x000000021c4fca0c _pthread_wqthread + 292 (pthread.c:2696)
+26  libsystem_pthread.dylib       	0x000000021c4fcaac start_wqthread + 8 (:-1)
+
+Thread 7:
+0   libsystem_pthread.dylib       	0x000000021c4fcaa4 start_wqthread + 0 (:-1)
+
+Thread 8 name:
+Thread 8:
+0   libsystem_kernel.dylib        	0x00000001e2eb1ce4 mach_msg2_trap + 8 (:-1)
+1   libsystem_kernel.dylib        	0x00000001e2eb539c mach_msg2_internal + 76 (mach_msg.c:201)
+2   libsystem_kernel.dylib        	0x00000001e2eb52b8 mach_msg_overwrite + 428 (mach_msg.c:0)
+3   libsystem_kernel.dylib        	0x00000001e2eb5100 mach_msg + 24 (mach_msg.c:323)
+4   CoreFoundation                	0x00000001920577a0 __CFRunLoopServiceMachPort + 160 (CFRunLoop.c:2637)
+5   CoreFoundation                	0x0000000192056090 __CFRunLoopRun + 1208 (CFRunLoop.c:3021)
+6   CoreFoundation                	0x0000000192057adc CFRunLoopRunSpecific + 572 (CFRunLoop.c:3434)
+7   Foundation                    	0x0000000190cce79c -[NSRunLoop(NSRunLoop) runMode:beforeDate:] + 212 (NSRunLoop.m:375)
+8   Foundation                    	0x0000000190cd4020 -[NSRunLoop(NSRunLoop) runUntilDate:] + 64 (NSRunLoop.m:422)
+9   UIKitCore                     	0x0000000194a6356c -[UIEventFetcher threadMain] + 424 (UIEventFetcher.m:1351)
+10  Foundation                    	0x0000000190d34804 __NSThread__start__ + 732 (NSThread.m:991)
+11  libsystem_pthread.dylib       	0x000000021c4ff344 _pthread_start + 136 (pthread.c:931)
+12  libsystem_pthread.dylib       	0x000000021c4fcab8 thread_start + 8 (:-1)
+
+Thread 9 name:
+Thread 9 Crashed:
+0   libsystem_kernel.dylib        	0x00000001e2ebc1dc __pthread_kill + 8 (:-1)
+1   libsystem_pthread.dylib       	0x000000021c503c60 pthread_kill + 268 (pthread.c:1721)
+2   libsystem_c.dylib             	0x000000019a09e0ac abort + 124 (abort.c:122)
+3   libc++abi.dylib               	0x000000021c42d5a0 abort_message + 132 (abort_message.cpp:78)
+4   libc++abi.dylib               	0x000000021c41bf10 demangling_terminate_handler() + 344 (cxa_default_handlers.cpp:77)
+5   libobjc.A.dylib               	0x000000018f5fbbf8 _objc_terminate() + 156 (objc-exception.mm:496)
+6   libc++abi.dylib               	0x000000021c42c8b4 std::__terminate(void (*)()) + 16 (cxa_handlers.cpp:59)
+7   libc++abi.dylib               	0x000000021c42fe1c __cxxabiv1::failed_throw(__cxxabiv1::__cxa_exception*) + 88 (cxa_exception.cpp:152)
+8   libc++abi.dylib               	0x000000021c42fdc4 __cxa_throw + 92 (cxa_exception.cpp:299)
+9   libobjc.A.dylib               	0x000000018f5f9c24 objc_exception_throw + 448 (objc-exception.mm:385)
+10  CoreFoundation                	0x00000001921624a0 -[NSException raise] + 16 (NSException.m:129)
+11  SoberDailies                  	0x0000000102c26674 StartupProcedure.throwException(_:) + 16 (StartupProcedure.swift:344)
+12  SoberDailies                  	0x0000000102c26674 protocol witness for ErrorRecoveryDelegate.throwException(_:) in conformance StartupProcedure + 16 (/<compiler-generated>:343)
+13  SoberDailies                  	0x0000000102c26674 ErrorRecovery.crash() + 2540 (ErrorRecovery.swift:277)
+14  SoberDailies                  	0x0000000102c255b8 ErrorRecovery.runNextTask() + 1376 (ErrorRecovery.swift:190)
+15  SoberDailies                  	0x0000000102c259ec ErrorRecovery.waitForRemoteLoaderToFinish() + 492 (ErrorRecovery.swift:198)
+16  SoberDailies                  	0x0000000102c25230 ErrorRecovery.runNextTask() + 472 (ErrorRecovery.swift:181)
+17  SoberDailies                  	0x0000000102c257a4 closure #1 in ErrorRecovery.startPipeline(withEncounteredError:) + 376 (ErrorRecovery.swift:168)
+18  SoberDailies                  	0x0000000102bf8a68 0x102bdc000 + 117352
+19  libdispatch.dylib             	0x0000000199fe2aac _dispatch_call_block_and_release + 32 (init.c:1575)
+20  libdispatch.dylib             	0x0000000199ffc584 _dispatch_client_callout + 16 (client_callout.mm:85)
+21  libdispatch.dylib             	0x0000000199feb2d0 _dispatch_lane_serial_drain + 740 (queue.c:3939)
+22  libdispatch.dylib             	0x0000000199febdac _dispatch_lane_invoke + 388 (queue.c:4030)
+23  libdispatch.dylib             	0x0000000199ff61dc _dispatch_root_queue_drain_deferred_wlh + 292 (queue.c:7198)
+24  libdispatch.dylib             	0x0000000199ff5a60 _dispatch_workloop_worker_thread + 540 (queue.c:6792)
+25  libsystem_pthread.dylib       	0x000000021c4fca0c _pthread_wqthread + 292 (pthread.c:2696)
+26  libsystem_pthread.dylib       	0x000000021c4fcaac start_wqthread + 8 (:-1)
+
+Thread 10:
+0   libsystem_pthread.dylib       	0x000000021c4fcaa4 start_wqthread + 0 (:-1)
+
+Thread 11 name:
+Thread 11:
+0   hermes                        	0x0000000103f0acb8 hermes::vm::HermesValue32::unboxToHV(hermes::vm::PointerBase&) const + 108 (HermesValue.h:0)
+1   hermes                        	0x0000000103f0acb8 hermes::vm::JSObject::getNamedWithReceiver_RJS(hermes::vm::Handle<hermes::vm::JSObject>, hermes::vm::Runtime&, hermes::vm::SymbolID, hermes::vm::Handle<hermes::vm::HermesValue>, hermes::vm::PropOpF... + 360 (JSObject.cpp:1069)
+2   hermes                        	0x0000000103f45ca4 hermes::vm::JSObject::getNamed_RJS(hermes::vm::Handle<hermes::vm::JSObject>, hermes::vm::Runtime&, hermes::vm::SymbolID, hermes::vm::PropOpFlags, hermes::vm::PropertyCacheEntry*) + 28 (JSObject.h:1931)
+3   hermes                        	0x0000000103f45ca4 hermes::vm::arrayPrototypeMap(void*, hermes::vm::Runtime&, hermes::vm::NativeArgs) + 216 (Array.cpp:2900)
+4   hermes                        	0x0000000103eeb0f4 hermes::vm::NativeFunction::_nativeCall(hermes::vm::NativeFunction*, hermes::vm::Runtime&) + 140 (:-1)
+5   hermes                        	0x0000000103ef76fc hermes::vm::Interpreter::handleCallSlowPath(hermes::vm::Runtime&, hermes::vm::PinnedHermesValue*) + 60 (:-1)
+6   hermes                        	0x0000000103ef9108 hermes::vm::CallResult<hermes::vm::HermesValue, (hermes::vm::detail::CallResultSpecialize)2> hermes::vm::Interpreter::interpretFunction<false, false>(hermes::vm::Runtime&, hermes::vm::InterpreterSt... + 2540 (:-1)
+7   hermes                        	0x0000000103ef86f4 hermes::vm::Runtime::interpretFunctionImpl(hermes::vm::CodeBlock*) + 52 (:-1)
+8   hermes                        	0x0000000103eeb1dc hermes::vm::JSFunction::_callImpl(hermes::vm::Handle<hermes::vm::Callable>, hermes::vm::Runtime&) + 40 (:-1)
+9   hermes                        	0x0000000103ed387c facebook::hermes::HermesRuntimeImpl::call(facebook::jsi::Function const&, facebook::jsi::Value const&, facebook::jsi::Value const*, unsigned long) + 284 (:-1)
+10  SoberDailies                  	0x00000001031c6fdc facebook::jsi::Function::call(facebook::jsi::Runtime&, facebook::jsi::Value const*, unsigned long) const + 40 (jsi-inl.h:268)
+11  SoberDailies                  	0x00000001031c6fdc facebook::jsi::Function::call(facebook::jsi::Runtime&, std::initializer_list<facebook::jsi::Value>) const + 40 (jsi-inl.h:273)
+12  SoberDailies                  	0x00000001031c6fdc facebook::react::Task::execute(facebook::jsi::Runtime&, bool) + 172 (Task.cpp:45)
+13  SoberDailies                  	0x00000001031c09e0 facebook::react::RuntimeScheduler_Legacy::executeTask(facebook::jsi::Runtime&, std::__1::shared_ptr<facebook::react::Task> const&, bool) + 164 (RuntimeScheduler_Legacy.cpp:265)
+14  SoberDailies                  	0x00000001031c0cf8 facebook::react::RuntimeScheduler_Legacy::startWorkLoop(facebook::jsi::Runtime&) + 204 (RuntimeScheduler_Legacy.cpp:235)
+15  SoberDailies                  	0x0000000103107138 std::__1::__function::__value_func<void (facebook::jsi::Runtime&)>::operator()[abi:ne190102](facebook::jsi::Runtime&) const + 20 (function.h:430)
+16  SoberDailies                  	0x0000000103107138 std::__1::function<void (facebook::jsi::Runtime&)>::operator()(facebook::jsi::Runtime&) const + 20 (function.h:989)
+17  SoberDailies                  	0x0000000103107138 RCTRuntimeExecutorFromBridge(RCTBridge*)::$_0::operator()(std::__1::function<void (facebook::jsi::Runtime&)>&&) const::'lambda'()::operator()() const + 76 (RCTSurfacePresenterBridgeAdapter.mm:75)
+18  SoberDailies                  	0x0000000103107138 decltype(std::declval<RCTRuntimeExecutorFromBridge(RCTBridge*)::$_0::operator()(std::__1::function<void (facebook::jsi::Runtime&)>&&) const::'lambda'()&>()()) std::__1::__invoke[abi:ne190102]<RCTRu... + 76 (invoke.h:149)
+19  SoberDailies                  	0x0000000103107138 void std::__1::__invoke_void_return_wrapper<void, true>::__call[abi:ne190102]<RCTRuntimeExecutorFromBridge(RCTBridge*)::$_0::operator()(std::__1::function<void (facebook::jsi::Runtime&)>&&) const::... + 76 (invoke.h:224)
+20  SoberDailies                  	0x0000000103107138 std::__1::__function::__alloc_func<RCTRuntimeExecutorFromBridge(RCTBridge*)::$_0::operator()(std::__1::function<void (facebook::jsi::Runtime&)>&&) const::'lambda'(), std::__1::allocator<RCTRuntimeE... + 76 (function.h:171)
+21  SoberDailies                  	0x0000000103107138 std::__1::__function::__func<RCTRuntimeExecutorFromBridge(RCTBridge*)::$_0::operator()(std::__1::function<void (facebook::jsi::Runtime&)>&&) const::'lambda'(), std::__1::allocator<RCTRuntimeExecuto... + 96 (function.h:313)
+22  SoberDailies                  	0x0000000103169110 std::__1::__function::__value_func<void (facebook::jsi::Runtime&)>::operator()[abi:ne190102](facebook::jsi::Runtime&) const + 20 (function.h:430)
+23  SoberDailies                  	0x0000000103169110 std::__1::function<void (facebook::jsi::Runtime&)>::operator()(facebook::jsi::Runtime&) const + 20 (function.h:989)
+24  SoberDailies                  	0x0000000103169110 facebook::react::Instance::JSCallInvoker::scheduleAsync(std::__1::function<void (facebook::jsi::Runtime&)>&&)::$_0::operator()(facebook::react::JSExecutor*) const + 40 (Instance.cpp:358)
+25  SoberDailies                  	0x0000000103169110 decltype(std::declval<facebook::react::Instance::JSCallInvoker::scheduleAsync(std::__1::function<void (facebook::jsi::Runtime&)>&&)::$_0&>()(std::declval<facebook::react::JSExecutor*>())) std::__1:... + 44 (invoke.h:149)
+26  SoberDailies                  	0x0000000103169110 void std::__1::__invoke_void_return_wrapper<void, true>::__call[abi:ne190102]<facebook::react::Instance::JSCallInvoker::scheduleAsync(std::__1::function<void (facebook::jsi::Runtime&)>&&)::$_0&, fa... + 44 (invoke.h:224)
+27  SoberDailies                  	0x0000000103169110 std::__1::__function::__alloc_func<facebook::react::Instance::JSCallInvoker::scheduleAsync(std::__1::function<void (facebook::jsi::Runtime&)>&&)::$_0, std::__1::allocator<facebook::react::Instance:... + 44 (function.h:171)
+28  SoberDailies                  	0x0000000103169110 std::__1::__function::__func<facebook::react::Instance::JSCallInvoker::scheduleAsync(std::__1::function<void (facebook::jsi::Runtime&)>&&)::$_0, std::__1::allocator<facebook::react::Instance::JSCal... + 60 (function.h:313)
+29  SoberDailies                  	0x000000010317123c std::__1::__function::__value_func<void (facebook::react::JSExecutor*)>::operator()[abi:ne190102](facebook::react::JSExecutor*&&) const + 24 (function.h:430)
+30  SoberDailies                  	0x000000010317123c std::__1::function<void (facebook::react::JSExecutor*)>::operator()(facebook::react::JSExecutor*) const + 24 (function.h:989)
+31  SoberDailies                  	0x000000010317123c facebook::react::NativeToJsBridge::runOnExecutorQueue(std::__1::function<void (facebook::react::JSExecutor*)>&&)::$_0::operator()() const + 48 (NativeToJsBridge.cpp:308)
+32  SoberDailies                  	0x000000010317123c decltype(std::declval<facebook::react::NativeToJsBridge::runOnExecutorQueue(std::__1::function<void (facebook::react::JSExecutor*)>&&)::$_0&>()()) std::__1::__invoke[abi:ne190102]<facebook::react::... + 48 (invoke.h:149)
+33  SoberDailies                  	0x000000010317123c void std::__1::__invoke_void_return_wrapper<void, true>::__call[abi:ne190102]<facebook::react::NativeToJsBridge::runOnExecutorQueue(std::__1::function<void (facebook::react::JSExecutor*)>&&)::$_0&>... + 48 (invoke.h:224)
+34  SoberDailies                  	0x000000010317123c std::__1::__function::__alloc_func<facebook::react::NativeToJsBridge::runOnExecutorQueue(std::__1::function<void (facebook::react::JSExecutor*)>&&)::$_0, std::__1::allocator<facebook::react::Native... + 48 (function.h:171)
+35  SoberDailies                  	0x000000010317123c std::__1::__function::__func<facebook::react::NativeToJsBridge::runOnExecutorQueue(std::__1::function<void (facebook::react::JSExecutor*)>&&)::$_0, std::__1::allocator<facebook::react::NativeToJsBr... + 60 (function.h:313)
+36  SoberDailies                  	0x0000000102f84750 std::__1::__function::__value_func<void ()>::operator()[abi:ne190102]() const + 20 (function.h:430)
+37  SoberDailies                  	0x0000000102f84750 std::__1::function<void ()>::operator()() const + 20 (function.h:989)
+38  SoberDailies                  	0x0000000102f84750 facebook::react::tryAndReturnError(std::__1::function<void ()> const&) + 32 (RCTCxxUtils.mm:73)
+39  SoberDailies                  	0x0000000102f92f94 facebook::react::RCTMessageThread::tryFunc(std::__1::function<void ()> const&) + 24 (RCTMessageThread.mm:68)
+40  SoberDailies                  	0x0000000102f92da0 std::__1::__function::__value_func<void ()>::operator()[abi:ne190102]() const + 20 (function.h:430)
+41  SoberDailies                  	0x0000000102f92da0 std::__1::function<void ()>::operator()() const + 20 (function.h:989)
+42  SoberDailies                  	0x0000000102f92da0 invocation function for block in facebook::react::RCTMessageThread::runAsync(std::__1::function<void ()>) + 44 (RCTMessageThread.mm:44)
+43  CoreFoundation                	0x00000001920b2850 __CFRUNLOOP_IS_CALLING_OUT_TO_A_BLOCK__ + 28 (CFRunLoop.c:1818)
+44  CoreFoundation                	0x0000000192055028 __CFRunLoopDoBlocks + 352 (CFRunLoop.c:1860)
+45  CoreFoundation                	0x0000000192055f10 __CFRunLoopRun + 824 (CFRunLoop.c:2967)
+46  CoreFoundation                	0x0000000192057adc CFRunLoopRunSpecific + 572 (CFRunLoop.c:3434)
+47  SoberDailies                  	0x0000000102f7aa54 +[RCTCxxBridge runRunLoop] + 212 (RCTCxxBridge.mm:347)
+48  Foundation                    	0x0000000190d34804 __NSThread__start__ + 732 (NSThread.m:991)
+49  libsystem_pthread.dylib       	0x000000021c4ff344 _pthread_start + 136 (pthread.c:931)
+50  libsystem_pthread.dylib       	0x000000021c4fcab8 thread_start + 8 (:-1)
+
+Thread 12 name:
+Thread 12:
+0   libsystem_kernel.dylib        	0x00000001e2eb7438 __psynch_cvwait + 8 (:-1)
+1   libsystem_pthread.dylib       	0x000000021c4fde50 _pthread_cond_wait + 984 (pthread_cond.c:862)
+2   libc++.1.dylib                	0x00000001a29ce294 std::__1::condition_variable::wait(std::__1::unique_lock<std::__1::mutex>&) + 32 (condition_variable.cpp:30)
+3   hermes                        	0x0000000103f94e98 hermes::vm::HadesGC::Executor::worker() + 116 (:-1)
+4   hermes                        	0x0000000103f94e00 void* std::__1::__thread_proxy[abi:v160006]<std::__1::tuple<std::__1::unique_ptr<std::__1::__thread_struct, std::__1::default_delete<std::__1::__thread_struct>>, hermes::vm::HadesGC::Executor::Exec... + 44 (:-1)
+5   libsystem_pthread.dylib       	0x000000021c4ff344 _pthread_start + 136 (pthread.c:931)
+6   libsystem_pthread.dylib       	0x000000021c4fcab8 thread_start + 8 (:-1)
+
+Thread 13 name:
+Thread 13:
+0   libsystem_kernel.dylib        	0x00000001e2eb7438 __psynch_cvwait + 8 (:-1)
+1   libsystem_pthread.dylib       	0x000000021c4fde50 _pthread_cond_wait + 984 (pthread_cond.c:862)
+2   libc++.1.dylib                	0x00000001a29ce294 std::__1::condition_variable::wait(std::__1::unique_lock<std::__1::mutex>&) + 32 (condition_variable.cpp:30)
+3   hermes                        	0x0000000103f94e98 hermes::vm::HadesGC::Executor::worker() + 116 (:-1)
+4   hermes                        	0x0000000103f94e00 void* std::__1::__thread_proxy[abi:v160006]<std::__1::tuple<std::__1::unique_ptr<std::__1::__thread_struct, std::__1::default_delete<std::__1::__thread_struct>>, hermes::vm::HadesGC::Executor::Exec... + 44 (:-1)
+5   libsystem_pthread.dylib       	0x000000021c4ff344 _pthread_start + 136 (pthread.c:931)
+6   libsystem_pthread.dylib       	0x000000021c4fcab8 thread_start + 8 (:-1)
+
+Thread 14 name:
+Thread 14:
+0   libsystem_pthread.dylib       	0x000000021c50065c pthread_mutex_unlock + 0 (pthread_mutex.c:1564)
+1   libc++.1.dylib                	0x00000001a29cf454 std::__1::mutex::unlock() + 16 (mutex.cpp:37)
+2   hermes                        	0x0000000103f91610 std::__1::lock_guard<std::__1::mutex>::~lock_guard[abi:v160006]() + 8 (__mutex_base:100)
+3   hermes                        	0x0000000103f91610 std::__1::lock_guard<std::__1::mutex>::~lock_guard[abi:v160006]() + 8 (__mutex_base:100)
+4   hermes                        	0x0000000103f91610 std::__1::condition_variable_any::notify_one[abi:v160006]() + 20 (condition_variable:179)
+5   hermes                        	0x0000000103f91610 hermes::vm::HadesGC::pauseBackgroundTask() + 84 (HadesGC.cpp:1652)
+6   hermes                        	0x0000000103ef6c70 hermes::vm::HadesGC::ensureBackgroundTaskPaused() + 8 (HadesGC.h:924)
+7   hermes                        	0x0000000103ef6c70 hermes::vm::DynamicStringPrimitive<char, true>* hermes::vm::HadesGC::makeA<hermes::vm::DynamicStringPrimitive<char, true>, false, (hermes::vm::HasFinalizer)0, (hermes::vm::LongLived)1, unsigned lon... + 8 (HadesGC.h:1089)
+8   hermes                        	0x0000000103ef6c70 hermes::vm::DynamicStringPrimitive<char, true>* hermes::vm::GCBase::makeA<hermes::vm::DynamicStringPrimitive<char, true>, false, (hermes::vm::HasFinalizer)0, (hermes::vm::LongLived)1, unsigned long... + 40 (GCBase-inline.h:71)
+9   hermes                        	0x0000000103ef5e28 hermes::vm::DynamicStringPrimitive<char, true>* hermes::vm::GCBase::makeAVariable<hermes::vm::DynamicStringPrimitive<char, true>, (hermes::vm::HasFinalizer)0, (hermes::vm::LongLived)1, unsigned lon... + 16 (GCBase-inline.h:47)
+10  hermes                        	0x0000000103ef5e28 hermes::vm::DynamicStringPrimitive<char, true>* hermes::vm::Runtime::makeAVariable<hermes::vm::DynamicStringPrimitive<char, true>, (hermes::vm::HasFinalizer)0, (hermes::vm::LongLived)1, unsigned lo... + 20 (Runtime.h:1972)
+11  hermes                        	0x0000000103ef5e28 hermes::vm::CallResult<hermes::vm::PseudoHandle<hermes::vm::StringPrimitive>, (hermes::vm::detail::CallResultSpecialize)6> hermes::vm::IdentifierTable::allocateDynamicString<char, true>(hermes::vm:... + 236 (IdentifierTable.cpp:269)
+12  hermes                        	0x0000000103ef58d0 hermes::vm::IdentifierTable::materializeLazyIdentifier(hermes::vm::Runtime&, hermes::vm::SymbolID) + 84 (IdentifierTable.cpp:421)
+13  hermes                        	0x0000000103f394c4 hermes::vm::SerializedLiteralParser::get(hermes::vm::Runtime&) + 228 (SerializedLiteralParser.cpp:0)
+14  hermes                        	0x0000000103ef82a4 hermes::vm::Interpreter::createObjectFromBuffer(hermes::vm::Runtime&, hermes::vm::CodeBlock*, unsigned int, unsigned int, unsigned int) + 528 (Interpreter.cpp:614)
+15  hermes                        	0x0000000103efc0cc hermes::vm::CallResult<hermes::vm::HermesValue, (hermes::vm::detail::CallResultSpecialize)2> hermes::vm::Interpreter::interpretFunction<false, false>(hermes::vm::Runtime&, hermes::vm::InterpreterSt... + 14768 (:-1)
+16  hermes                        	0x0000000103ef86f4 hermes::vm::Runtime::interpretFunctionImpl(hermes::vm::CodeBlock*) + 52 (:-1)
+17  hermes                        	0x0000000103eeb1dc hermes::vm::JSFunction::_callImpl(hermes::vm::Handle<hermes::vm::Callable>, hermes::vm::Runtime&) + 40 (:-1)
+18  hermes                        	0x0000000103ed387c facebook::hermes::HermesRuntimeImpl::call(facebook::jsi::Function const&, facebook::jsi::Value const&, facebook::jsi::Value const*, unsigned long) + 284 (:-1)
+19  SoberDailies                  	0x00000001031c6fdc facebook::jsi::Function::call(facebook::jsi::Runtime&, facebook::jsi::Value const*, unsigned long) const + 40 (jsi-inl.h:268)
+20  SoberDailies                  	0x00000001031c6fdc facebook::jsi::Function::call(facebook::jsi::Runtime&, std::initializer_list<facebook::jsi::Value>) const + 40 (jsi-inl.h:273)
+21  SoberDailies                  	0x00000001031c6fdc facebook::react::Task::execute(facebook::jsi::Runtime&, bool) + 172 (Task.cpp:45)
+22  SoberDailies                  	0x00000001031c09e0 facebook::react::RuntimeScheduler_Legacy::executeTask(facebook::jsi::Runtime&, std::__1::shared_ptr<facebook::react::Task> const&, bool) + 164 (RuntimeScheduler_Legacy.cpp:265)
+23  SoberDailies                  	0x00000001031c0cf8 facebook::react::RuntimeScheduler_Legacy::startWorkLoop(facebook::jsi::Runtime&) + 204 (RuntimeScheduler_Legacy.cpp:235)
+24  SoberDailies                  	0x0000000103107138 std::__1::__function::__value_func<void (facebook::jsi::Runtime&)>::operator()[abi:ne190102](facebook::jsi::Runtime&) const + 20 (function.h:430)
+25  SoberDailies                  	0x0000000103107138 std::__1::function<void (facebook::jsi::Runtime&)>::operator()(facebook::jsi::Runtime&) const + 20 (function.h:989)
+26  SoberDailies                  	0x0000000103107138 RCTRuntimeExecutorFromBridge(RCTBridge*)::$_0::operator()(std::__1::function<void (facebook::jsi::Runtime&)>&&) const::'lambda'()::operator()() const + 76 (RCTSurfacePresenterBridgeAdapter.mm:75)
+27  SoberDailies                  	0x0000000103107138 decltype(std::declval<RCTRuntimeExecutorFromBridge(RCTBridge*)::$_0::operator()(std::__1::function<void (facebook::jsi::Runtime&)>&&) const::'lambda'()&>()()) std::__1::__invoke[abi:ne190102]<RCTRu... + 76 (invoke.h:149)
+28  SoberDailies                  	0x0000000103107138 void std::__1::__invoke_void_return_wrapper<void, true>::__call[abi:ne190102]<RCTRuntimeExecutorFromBridge(RCTBridge*)::$_0::operator()(std::__1::function<void (facebook::jsi::Runtime&)>&&) const::... + 76 (invoke.h:224)
+29  SoberDailies                  	0x0000000103107138 std::__1::__function::__alloc_func<RCTRuntimeExecutorFromBridge(RCTBridge*)::$_0::operator()(std::__1::function<void (facebook::jsi::Runtime&)>&&) const::'lambda'(), std::__1::allocator<RCTRuntimeE... + 76 (function.h:171)
+30  SoberDailies                  	0x0000000103107138 std::__1::__function::__func<RCTRuntimeExecutorFromBridge(RCTBridge*)::$_0::operator()(std::__1::function<void (facebook::jsi::Runtime&)>&&) const::'lambda'(), std::__1::allocator<RCTRuntimeExecuto... + 96 (function.h:313)
+31  SoberDailies                  	0x0000000103169110 std::__1::__function::__value_func<void (facebook::jsi::Runtime&)>::operator()[abi:ne190102](facebook::jsi::Runtime&) const + 20 (function.h:430)
+32  SoberDailies                  	0x0000000103169110 std::__1::function<void (facebook::jsi::Runtime&)>::operator()(facebook::jsi::Runtime&) const + 20 (function.h:989)
+33  SoberDailies                  	0x0000000103169110 facebook::react::Instance::JSCallInvoker::scheduleAsync(std::__1::function<void (facebook::jsi::Runtime&)>&&)::$_0::operator()(facebook::react::JSExecutor*) const + 40 (Instance.cpp:358)
+34  SoberDailies                  	0x0000000103169110 decltype(std::declval<facebook::react::Instance::JSCallInvoker::scheduleAsync(std::__1::function<void (facebook::jsi::Runtime&)>&&)::$_0&>()(std::declval<facebook::react::JSExecutor*>())) std::__1:... + 44 (invoke.h:149)
+35  SoberDailies                  	0x0000000103169110 void std::__1::__invoke_void_return_wrapper<void, true>::__call[abi:ne190102]<facebook::react::Instance::JSCallInvoker::scheduleAsync(std::__1::function<void (facebook::jsi::Runtime&)>&&)::$_0&, fa... + 44 (invoke.h:224)
+36  SoberDailies                  	0x0000000103169110 std::__1::__function::__alloc_func<facebook::react::Instance::JSCallInvoker::scheduleAsync(std::__1::function<void (facebook::jsi::Runtime&)>&&)::$_0, std::__1::allocator<facebook::react::Instance:... + 44 (function.h:171)
+37  SoberDailies                  	0x0000000103169110 std::__1::__function::__func<facebook::react::Instance::JSCallInvoker::scheduleAsync(std::__1::function<void (facebook::jsi::Runtime&)>&&)::$_0, std::__1::allocator<facebook::react::Instance::JSCal... + 60 (function.h:313)
+38  SoberDailies                  	0x000000010317123c std::__1::__function::__value_func<void (facebook::react::JSExecutor*)>::operator()[abi:ne190102](facebook::react::JSExecutor*&&) const + 24 (function.h:430)
+39  SoberDailies                  	0x000000010317123c std::__1::function<void (facebook::react::JSExecutor*)>::operator()(facebook::react::JSExecutor*) const + 24 (function.h:989)
+40  SoberDailies                  	0x000000010317123c facebook::react::NativeToJsBridge::runOnExecutorQueue(std::__1::function<void (facebook::react::JSExecutor*)>&&)::$_0::operator()() const + 48 (NativeToJsBridge.cpp:308)
+41  SoberDailies                  	0x000000010317123c decltype(std::declval<facebook::react::NativeToJsBridge::runOnExecutorQueue(std::__1::function<void (facebook::react::JSExecutor*)>&&)::$_0&>()()) std::__1::__invoke[abi:ne190102]<facebook::react::... + 48 (invoke.h:149)
+42  SoberDailies                  	0x000000010317123c void std::__1::__invoke_void_return_wrapper<void, true>::__call[abi:ne190102]<facebook::react::NativeToJsBridge::runOnExecutorQueue(std::__1::function<void (facebook::react::JSExecutor*)>&&)::$_0&>... + 48 (invoke.h:224)
+43  SoberDailies                  	0x000000010317123c std::__1::__function::__alloc_func<facebook::react::NativeToJsBridge::runOnExecutorQueue(std::__1::function<void (facebook::react::JSExecutor*)>&&)::$_0, std::__1::allocator<facebook::react::Native... + 48 (function.h:171)
+44  SoberDailies                  	0x000000010317123c std::__1::__function::__func<facebook::react::NativeToJsBridge::runOnExecutorQueue(std::__1::function<void (facebook::react::JSExecutor*)>&&)::$_0, std::__1::allocator<facebook::react::NativeToJsBr... + 60 (function.h:313)
+45  SoberDailies                  	0x0000000102f84750 std::__1::__function::__value_func<void ()>::operator()[abi:ne190102]() const + 20 (function.h:430)
+46  SoberDailies                  	0x0000000102f84750 std::__1::function<void ()>::operator()() const + 20 (function.h:989)
+47  SoberDailies                  	0x0000000102f84750 facebook::react::tryAndReturnError(std::__1::function<void ()> const&) + 32 (RCTCxxUtils.mm:73)
+48  SoberDailies                  	0x0000000102f92f94 facebook::react::RCTMessageThread::tryFunc(std::__1::function<void ()> const&) + 24 (RCTMessageThread.mm:68)
+49  SoberDailies                  	0x0000000102f92da0 std::__1::__function::__value_func<void ()>::operator()[abi:ne190102]() const + 20 (function.h:430)
+50  SoberDailies                  	0x0000000102f92da0 std::__1::function<void ()>::operator()() const + 20 (function.h:989)
+51  SoberDailies                  	0x0000000102f92da0 invocation function for block in facebook::react::RCTMessageThread::runAsync(std::__1::function<void ()>) + 44 (RCTMessageThread.mm:44)
+52  CoreFoundation                	0x00000001920b2850 __CFRUNLOOP_IS_CALLING_OUT_TO_A_BLOCK__ + 28 (CFRunLoop.c:1818)
+53  CoreFoundation                	0x0000000192055028 __CFRunLoopDoBlocks + 352 (CFRunLoop.c:1860)
+54  CoreFoundation                	0x0000000192056528 __CFRunLoopRun + 2384 (CFRunLoop.c:3217)
+55  CoreFoundation                	0x0000000192057adc CFRunLoopRunSpecific + 572 (CFRunLoop.c:3434)
+56  SoberDailies                  	0x0000000102f7aa54 +[RCTCxxBridge runRunLoop] + 212 (RCTCxxBridge.mm:347)
+57  Foundation                    	0x0000000190d34804 __NSThread__start__ + 732 (NSThread.m:991)
+58  libsystem_pthread.dylib       	0x000000021c4ff344 _pthread_start + 136 (pthread.c:931)
+59  libsystem_pthread.dylib       	0x000000021c4fcab8 thread_start + 8 (:-1)
+
+Thread 15 name:
+Thread 15:
+0   libsystem_kernel.dylib        	0x00000001e2eb7438 __psynch_cvwait + 8 (:-1)
+1   libsystem_pthread.dylib       	0x000000021c4fde50 _pthread_cond_wait + 984 (pthread_cond.c:862)
+2   libc++.1.dylib                	0x00000001a29ce294 std::__1::condition_variable::wait(std::__1::unique_lock<std::__1::mutex>&) + 32 (condition_variable.cpp:30)
+3   hermes                        	0x0000000103f94e98 hermes::vm::HadesGC::Executor::worker() + 116 (:-1)
+4   hermes                        	0x0000000103f94e00 void* std::__1::__thread_proxy[abi:v160006]<std::__1::tuple<std::__1::unique_ptr<std::__1::__thread_struct, std::__1::default_delete<std::__1::__thread_struct>>, hermes::vm::HadesGC::Executor::Exec... + 44 (:-1)
+5   libsystem_pthread.dylib       	0x000000021c4ff344 _pthread_start + 136 (pthread.c:931)
+6   libsystem_pthread.dylib       	0x000000021c4fcab8 thread_start + 8 (:-1)
+
+Thread 16 name:
+Thread 16:
+0   libsystem_kernel.dylib        	0x00000001e2eb7438 __psynch_cvwait + 8 (:-1)
+1   libsystem_pthread.dylib       	0x000000021c4fde50 _pthread_cond_wait + 984 (pthread_cond.c:862)
+2   libc++.1.dylib                	0x00000001a29ce294 std::__1::condition_variable::wait(std::__1::unique_lock<std::__1::mutex>&) + 32 (condition_variable.cpp:30)
+3   hermes                        	0x0000000103f94e98 hermes::vm::HadesGC::Executor::worker() + 116 (:-1)
+4   hermes                        	0x0000000103f94e00 void* std::__1::__thread_proxy[abi:v160006]<std::__1::tuple<std::__1::unique_ptr<std::__1::__thread_struct, std::__1::default_delete<std::__1::__thread_struct>>, hermes::vm::HadesGC::Executor::Exec... + 44 (:-1)
+5   libsystem_pthread.dylib       	0x000000021c4ff344 _pthread_start + 136 (pthread.c:931)
+6   libsystem_pthread.dylib       	0x000000021c4fcab8 thread_start + 8 (:-1)
+
+
+Thread 9 crashed with ARM Thread State (64-bit):
+    x0: 0x0000000000000000   x1: 0x0000000000000000   x2: 0x0000000000000000   x3: 0x0000000000000000
+    x4: 0x000000021c431fdb   x5: 0x000000016d709340   x6: 0x000000000000006e   x7: 0x814ebdca6b018e3e
+    x8: 0xe554dabaa6a11ef3   x9: 0xe554dabbcbd1aef3  x10: 0x0000000000000051  x11: 0x000000000000000b
+   x12: 0x000000000000000b  x13: 0x0000000192501494  x14: 0x0000000000000001  x15: 0xffffffffb00007ff
+   x16: 0x0000000000000148  x17: 0x000000016d70b000  x18: 0x0000000000000000  x19: 0x0000000000000006
+   x20: 0x0000000000004a03  x21: 0x000000016d70b0e0  x22: 0x00000001fa700000  x23: 0x000000011700d710
+   x24: 0x000000011726b9f0  x25: 0x0000000113346100  x26: 0x0000000000000038  x27: 0xc0000000000002a4
+   x28: 0x00000001fe6d6e38   fp: 0x000000016d7092b0   lr: 0x000000021c503c60
+    sp: 0x000000016d709290   pc: 0x00000001e2ebc1dc cpsr: 0x40001000
+   esr: 0x56000080  Address size fault
+
+
+Binary Images:
+        0x102bdc000 -         0x10386ffff SoberDailies arm64  <5473ac156a4432129f26c5b21be43163> /var/containers/Bundle/Application/4BBAD9A3-B8B9-4D30-95F4-28826D798557/SoberDailies.app/SoberDailies
+        0x103ec8000 -         0x1040c7fff hermes arm64  <b810dbce71ae38ca8fb43b671091c81b> /private/var/containers/Bundle/Application/4BBAD9A3-B8B9-4D30-95F4-28826D798557/SoberDailies.app/Frameworks/hermes.framework/hermes
+        0x104b70000 -         0x104b7bfff libobjc-trampolines.dylib arm64e  <def9fca06da1332796903b879ffc755c> /private/preboot/Cryptexes/OS/usr/lib/libobjc-trampolines.dylib
+        0x18f5c8000 -         0x18f619bb3 libobjc.A.dylib arm64e  <e8825548d1483ee2807639ea9cb11129> /usr/lib/libobjc.A.dylib
+        0x190cbf000 -         0x19193305f Foundation arm64e  <c031896b2ef13d89966a0b52d54bceee> /System/Library/Frameworks/Foundation.framework/Foundation
+        0x192046000 -         0x1925c2fff CoreFoundation arm64e  <ae3c93380166397a9643356b14f6ee58> /System/Library/Frameworks/CoreFoundation.framework/CoreFoundation
+        0x194944000 -         0x19688655f UIKitCore arm64e  <5e794caa41623ff6861e45f29f6b8ac0> /System/Library/PrivateFrameworks/UIKitCore.framework/UIKitCore
+        0x199fe1000 -         0x19a026b3f libdispatch.dylib arm64e  <b62778f758273a7ba96da24f7be95416> /usr/lib/system/libdispatch.dylib
+        0x19a027000 -         0x19a0a66c3 libsystem_c.dylib arm64e  <335cd87d234b3fc182db943350d31a88> /usr/lib/system/libsystem_c.dylib
+        0x1a29ad000 -         0x1a2a3cff7 libc++.1.dylib arm64e  <2fbf38d8e5a53ffe9f8736a797ea4cdb> /usr/lib/libc++.1.dylib
+        0x1b8aab000 -         0x1b8b4587b dyld arm64e  <cd2e758de1a23b92aae775d38f66ec54> /usr/lib/dyld
+        0x1dee7c000 -         0x1dee84c7f GraphicsServices arm64e  <d372e13f75053addae13062656f0b1f6> /System/Library/PrivateFrameworks/GraphicsServices.framework/GraphicsServices
+        0x1e2eb1000 -         0x1e2eeaebf libsystem_kernel.dylib arm64e  <a9a7ecbd24dd37e6bb23ecbfd9a87e33> /usr/lib/system/libsystem_kernel.dylib
+        0x21c417000 -         0x21c434fff libc++abi.dylib arm64e  <b5a6eccef205302a8874755a0e3ad747> /usr/lib/libc++abi.dylib
+        0x21c4fc000 -         0x21c5083f3 libsystem_pthread.dylib arm64e  <1ee1922008593cbcbdebdf37ca2e8e4f> /usr/lib/system/libsystem_pthread.dylib
+
+EOF

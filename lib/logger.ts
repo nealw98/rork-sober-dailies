@@ -87,6 +87,23 @@ class InAppLogger {
     if (this.buffer.length > this.maxEntries) this.buffer.shift();
     this.listeners.forEach((l) => l(entry, this.buffer));
   }
+
+  // Diagnostic logging helper for structured OTA data
+  logDiag(event: string, data: Record<string, any>): void {
+    try {
+      const entry: LogEntry = { 
+        timestampIso: new Date().toISOString(), 
+        level: 'info', 
+        message: `[DIAG] ${event}: ${JSON.stringify(data)}` 
+      };
+      this.buffer.push(entry);
+      if (this.buffer.length > this.maxEntries) this.buffer.shift();
+      this.listeners.forEach((l) => l(entry, this.buffer));
+    } catch (error) {
+      // Fallback if JSON.stringify fails
+      this.log('warn', `[DIAG] ${event}: [Failed to serialize data]`);
+    }
+  }
 }
 
 export const Logger = new InAppLogger();

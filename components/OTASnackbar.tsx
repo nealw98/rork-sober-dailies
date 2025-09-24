@@ -16,11 +16,12 @@ import { adjustFontWeight } from '@/constants/fonts';
 interface OTASnackbarProps {
   visible: boolean;
   onDismiss: () => void;
+  onRestart: () => void;
 }
 
 const { width } = Dimensions.get('window');
 
-export default function OTASnackbar({ visible, onDismiss }: OTASnackbarProps) {
+export default function OTASnackbar({ visible, onDismiss, onRestart }: OTASnackbarProps) {
   const translateY = useRef(new Animated.Value(100)).current;
   const opacity = useRef(new Animated.Value(0)).current;
 
@@ -71,15 +72,24 @@ export default function OTASnackbar({ visible, onDismiss }: OTASnackbarProps) {
       <SafeAreaView edges={['bottom']} style={styles.safeArea}>
         <View style={styles.snackbar}>
           <View style={styles.content}>
-            <Text style={styles.message}>Update downloaded. Restart app to apply.</Text>
-            <TouchableOpacity
-              style={styles.dismissButton}
-              onPress={onDismiss}
-              activeOpacity={0.7}
-              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-            >
-              <X size={18} color={Colors.light.background} />
-            </TouchableOpacity>
+            <Text style={styles.message}>An update is ready. Restart the app to apply.</Text>
+            <View style={styles.buttonContainer}>
+              <TouchableOpacity
+                style={styles.restartButton}
+                onPress={onRestart}
+                activeOpacity={0.7}
+              >
+                <Text style={styles.restartButtonText}>Restart</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.dismissButton}
+                onPress={onDismiss}
+                activeOpacity={0.7}
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              >
+                <X size={18} color={Colors.light.background} />
+              </TouchableOpacity>
+            </View>
           </View>
         </View>
       </SafeAreaView>
@@ -125,6 +135,22 @@ const styles = StyleSheet.create({
     color: Colors.light.background,
     fontWeight: adjustFontWeight('500'),
     marginRight: 12,
+  },
+  buttonContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  restartButton: {
+    backgroundColor: Colors.light.tint,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 6,
+    marginRight: 8,
+  },
+  restartButtonText: {
+    color: Colors.light.background,
+    fontSize: 12,
+    fontWeight: adjustFontWeight('600'),
   },
   dismissButton: {
     padding: 4,

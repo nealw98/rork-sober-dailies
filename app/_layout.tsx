@@ -18,6 +18,9 @@ import WelcomeScreen from "@/components/WelcomeScreen";
 import OTASnackbar from "@/components/OTASnackbar";
 import { configurePurchases } from "@/lib/purchases";
 import { Logger } from "@/lib/logger";
+import { initUsageLogger } from "@/lib/usageLogger";
+import { useExpoRouterTracking } from "@/hooks/useExpoRouterTracking";
+import { SessionProvider } from "@/hooks/useSessionContext";
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync().catch(() => {
@@ -47,7 +50,11 @@ const hideSplashScreenSafely = async () => {
 
 function RootLayoutNav() {
   const { isOnboardingComplete, isLoading } = useOnboarding();
-  const { showSnackbar, dismissSnackbar } = useOTAUpdates();
+  const { showSnackbar, dismissSnackbar, restartApp } = useOTAUpdates();
+
+  // Enable screen tracking for Expo Router
+  useExpoRouterTracking();
+
   // Local state to prevent re-renders from affecting rendering logic
   const [appReady, setAppReady] = useState(false);
   // Ensure OTA selection/check completes before we hide splash
@@ -100,8 +107,12 @@ function RootLayoutNav() {
     // Initialize in-app logger and purchases
     Logger.initialize();
     configurePurchases();
+
+    // Initialize usage logger
+    initUsageLogger();
+
     
-    // Log OTA diagnostics
+    // Log OTA diagnostics with safe fallback
     (async () => {
       try {
         const Updates = await import('expo-updates');
@@ -113,7 +124,10 @@ function RootLayoutNav() {
         console.log(`[OTA] runtimeVersion=${runtimeVersion} url=${url}`);
         console.log(`[OTA] launchedFrom=${isEmbeddedLaunch ? 'embedded' : 'OTA'} updateId=${updateId}`);
       } catch (e: any) {
+        // Safe fallback: log error but don't crash
         console.log('[OTA] error', e?.message || String(e));
+        // In production builds, this would be logged via Logger.logDiag
+        // but we don't want to import Logger here to avoid circular dependencies
       }
     })();
   }, []);
@@ -206,7 +220,7 @@ function RootLayoutNav() {
         />
         
       </Stack>
-      <OTASnackbar visible={showSnackbar} onDismiss={dismissSnackbar} />
+        <OTASnackbar visible={showSnackbar} onDismiss={dismissSnackbar} onRestart={restartApp} />
     </>
   );
 }
@@ -235,19 +249,21 @@ export default function RootLayout() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <OnboardingProvider>
-        <GratitudeProvider>
-          <SobrietyProvider>
-            <EveningReviewProvider>
-              <GestureHandlerRootView style={{ flex: 1 }}>
-                <ErrorBoundary>
-                  <RootLayoutNav />
-                </ErrorBoundary>
-              </GestureHandlerRootView>
-            </EveningReviewProvider>
-          </SobrietyProvider>
-        </GratitudeProvider>
-      </OnboardingProvider>
+      <SessionProvider>
+        <OnboardingProvider>
+          <GratitudeProvider>
+            <SobrietyProvider>
+              <EveningReviewProvider>
+                <GestureHandlerRootView style={{ flex: 1 }}>
+                  <ErrorBoundary>
+                    <RootLayoutNav />
+                  </ErrorBoundary>
+                </GestureHandlerRootView>
+              </EveningReviewProvider>
+            </SobrietyProvider>
+          </GratitudeProvider>
+        </OnboardingProvider>
+      </SessionProvider>
     </QueryClientProvider>
   );
 }

@@ -1,0 +1,215 @@
+Incident Identifier: 709BC3D2-9B6A-4BF1-876E-08A0580A6B27
+Distributor ID:      com.apple.TestFlight
+Hardware Model:      iPhone16,2
+Process:             SoberDailies [7442]
+Path:                /private/var/containers/Bundle/Application/72A17AA0-7094-44F5-8374-B5E5EBC06EBE/SoberDailies.app/SoberDailies
+Identifier:          com.nealwagner.soberdailies
+Version:             1.8.3 (39)
+AppStoreTools:       16F7
+AppVariant:          1:iPhone16,2:18
+Beta:                YES
+Code Type:           ARM-64 (Native)
+Role:                Foreground
+Parent Process:      launchd [1]
+Coalition:           com.nealwagner.soberdailies [2487]
+
+Date/Time:           2025-09-22 19:12:41.0497 -0600
+Launch Time:         2025-09-22 09:44:30.5236 -0600
+OS Version:          iPhone OS 18.6.2 (22G100)
+Release Type:        User
+Baseband Version:    2.70.02
+Report Version:      104
+
+Exception Type:  EXC_CRASH (SIGABRT)
+Exception Codes: 0x0000000000000000, 0x0000000000000000
+Termination Reason: SIGNAL 6 Abort trap: 6
+Terminating Process: SoberDailies [7442]
+
+Triggered by Thread:  3
+
+Last Exception Backtrace:
+0   CoreFoundation                	0x19a5080c0 __exceptionPreprocess + 164 (NSException.m:249)
+1   libobjc.A.dylib               	0x1979a1abc objc_exception_throw + 88 (objc-exception.mm:356)
+2   CoreFoundation                	0x19a50a4a0 -[NSException raise] + 16 (NSException.m:129)
+3   SoberDailies                  	0x104c7a674 StartupProcedure.throwException(_:) + 16 (StartupProcedure.swift:344)
+4   SoberDailies                  	0x104c7a674 protocol witness for ErrorRecoveryDelegate.throwException(_:) in conformance StartupProcedure + 16 (/<compiler-generated>:343)
+5   SoberDailies                  	0x104c7a674 ErrorRecovery.crash() + 2540 (ErrorRecovery.swift:277)
+6   SoberDailies                  	0x104c795b8 ErrorRecovery.runNextTask() + 1376 (ErrorRecovery.swift:190)
+7   SoberDailies                  	0x104c7904c closure #1 in ErrorRecovery.notify(newRemoteLoadStatus:) + 88 (ErrorRecovery.swift:149)
+8   SoberDailies                  	0x104c4ca68 0x104c30000 + 117352
+9   libdispatch.dylib             	0x1a238aaac _dispatch_call_block_and_release + 32 (init.c:1575)
+10  libdispatch.dylib             	0x1a23a4584 _dispatch_client_callout + 16 (client_callout.mm:85)
+11  libdispatch.dylib             	0x1a23932d0 _dispatch_lane_serial_drain + 740 (queue.c:3939)
+12  libdispatch.dylib             	0x1a2393dac _dispatch_lane_invoke + 388 (queue.c:4030)
+13  libdispatch.dylib             	0x1a239e1dc _dispatch_root_queue_drain_deferred_wlh + 292 (queue.c:7198)
+14  libdispatch.dylib             	0x1a239da60 _dispatch_workloop_worker_thread + 540 (queue.c:6792)
+15  libsystem_pthread.dylib       	0x2248a8a0c _pthread_wqthread + 292 (pthread.c:2696)
+16  libsystem_pthread.dylib       	0x2248a8aac start_wqthread + 8 (:-1)
+
+Thread 0 name:
+Thread 0:
+0   libsystem_kernel.dylib        	0x00000001eb259ce4 mach_msg2_trap + 8 (:-1)
+1   libsystem_kernel.dylib        	0x00000001eb25d39c mach_msg2_internal + 76 (mach_msg.c:201)
+2   libsystem_kernel.dylib        	0x00000001eb25d2b8 mach_msg_overwrite + 428 (mach_msg.c:0)
+3   libsystem_kernel.dylib        	0x00000001eb25d100 mach_msg + 24 (mach_msg.c:323)
+4   CoreFoundation                	0x000000019a3ff7a0 __CFRunLoopServiceMachPort + 160 (CFRunLoop.c:2637)
+5   CoreFoundation                	0x000000019a3fe090 __CFRunLoopRun + 1208 (CFRunLoop.c:3021)
+6   CoreFoundation                	0x000000019a3ffadc CFRunLoopRunSpecific + 572 (CFRunLoop.c:3434)
+7   GraphicsServices              	0x00000001e7225454 GSEventRunModal + 168 (GSEvent.c:2196)
+8   UIKitCore                     	0x000000019ce21274 -[UIApplication _run] + 816 (UIApplication.m:3845)
+9   UIKitCore                     	0x000000019cdeca28 UIApplicationMain + 336 (UIApplication.m:5540)
+10  SoberDailies                  	0x0000000104c35760 main + 64 (AppDelegate.swift:6)
+11  dyld                          	0x00000001c0e91f08 start + 6040 (dyldMain.cpp:1450)
+
+Thread 1 name:
+Thread 1:
+0   libsystem_kernel.dylib        	0x00000001eb259ce4 mach_msg2_trap + 8 (:-1)
+1   libsystem_kernel.dylib        	0x00000001eb25d39c mach_msg2_internal + 76 (mach_msg.c:201)
+2   libsystem_kernel.dylib        	0x00000001eb25d2b8 mach_msg_overwrite + 428 (mach_msg.c:0)
+3   libsystem_kernel.dylib        	0x00000001eb25d100 mach_msg + 24 (mach_msg.c:323)
+4   CoreFoundation                	0x000000019a3ff7a0 __CFRunLoopServiceMachPort + 160 (CFRunLoop.c:2637)
+5   CoreFoundation                	0x000000019a3fe090 __CFRunLoopRun + 1208 (CFRunLoop.c:3021)
+6   CoreFoundation                	0x000000019a3ffadc CFRunLoopRunSpecific + 572 (CFRunLoop.c:3434)
+7   Foundation                    	0x000000019907679c -[NSRunLoop(NSRunLoop) runMode:beforeDate:] + 212 (NSRunLoop.m:375)
+8   Foundation                    	0x000000019907c020 -[NSRunLoop(NSRunLoop) runUntilDate:] + 64 (NSRunLoop.m:422)
+9   UIKitCore                     	0x000000019ce0b56c -[UIEventFetcher threadMain] + 424 (UIEventFetcher.m:1351)
+10  Foundation                    	0x00000001990dc804 __NSThread__start__ + 732 (NSThread.m:991)
+11  libsystem_pthread.dylib       	0x00000002248ab344 _pthread_start + 136 (pthread.c:931)
+12  libsystem_pthread.dylib       	0x00000002248a8ab8 thread_start + 8 (:-1)
+
+Thread 2 name:
+Thread 2:
+0   libsystem_kernel.dylib        	0x00000001eb259ce4 mach_msg2_trap + 8 (:-1)
+1   libsystem_kernel.dylib        	0x00000001eb25d39c mach_msg2_internal + 76 (mach_msg.c:201)
+2   libsystem_kernel.dylib        	0x00000001eb25d2b8 mach_msg_overwrite + 428 (mach_msg.c:0)
+3   libsystem_kernel.dylib        	0x00000001eb25d100 mach_msg + 24 (mach_msg.c:323)
+4   CoreFoundation                	0x000000019a3ff7a0 __CFRunLoopServiceMachPort + 160 (CFRunLoop.c:2637)
+5   CoreFoundation                	0x000000019a3fe090 __CFRunLoopRun + 1208 (CFRunLoop.c:3021)
+6   CoreFoundation                	0x000000019a3ffadc CFRunLoopRunSpecific + 572 (CFRunLoop.c:3434)
+7   CFNetwork                     	0x000000019ba2ddb8 +[__CFN_CoreSchedulingSetRunnable _run:] + 416 (CoreSchedulingSet.mm:1473)
+8   Foundation                    	0x00000001990dc804 __NSThread__start__ + 732 (NSThread.m:991)
+9   libsystem_pthread.dylib       	0x00000002248ab344 _pthread_start + 136 (pthread.c:931)
+10  libsystem_pthread.dylib       	0x00000002248a8ab8 thread_start + 8 (:-1)
+
+Thread 3 name:
+Thread 3 Crashed:
+0   libsystem_kernel.dylib        	0x00000001eb2641dc __pthread_kill + 8 (:-1)
+1   libsystem_pthread.dylib       	0x00000002248afc60 pthread_kill + 268 (pthread.c:1721)
+2   libsystem_c.dylib             	0x00000001a24460ac abort + 124 (abort.c:122)
+3   libc++abi.dylib               	0x00000002247d95a0 abort_message + 132 (abort_message.cpp:78)
+4   libc++abi.dylib               	0x00000002247c7f10 demangling_terminate_handler() + 344 (cxa_default_handlers.cpp:77)
+5   libobjc.A.dylib               	0x00000001979a3bf8 _objc_terminate() + 156 (objc-exception.mm:496)
+6   libc++abi.dylib               	0x00000002247d88b4 std::__terminate(void (*)()) + 16 (cxa_handlers.cpp:59)
+7   libc++abi.dylib               	0x00000002247dbe1c __cxxabiv1::failed_throw(__cxxabiv1::__cxa_exception*) + 88 (cxa_exception.cpp:152)
+8   libc++abi.dylib               	0x00000002247dbdc4 __cxa_throw + 92 (cxa_exception.cpp:299)
+9   libobjc.A.dylib               	0x00000001979a1c24 objc_exception_throw + 448 (objc-exception.mm:385)
+10  CoreFoundation                	0x000000019a50a4a0 -[NSException raise] + 16 (NSException.m:129)
+11  SoberDailies                  	0x0000000104c7a674 StartupProcedure.throwException(_:) + 16 (StartupProcedure.swift:344)
+12  SoberDailies                  	0x0000000104c7a674 protocol witness for ErrorRecoveryDelegate.throwException(_:) in conformance StartupProcedure + 16 (/<compiler-generated>:343)
+13  SoberDailies                  	0x0000000104c7a674 ErrorRecovery.crash() + 2540 (ErrorRecovery.swift:277)
+14  SoberDailies                  	0x0000000104c795b8 ErrorRecovery.runNextTask() + 1376 (ErrorRecovery.swift:190)
+15  SoberDailies                  	0x0000000104c7904c closure #1 in ErrorRecovery.notify(newRemoteLoadStatus:) + 88 (ErrorRecovery.swift:149)
+16  SoberDailies                  	0x0000000104c4ca68 0x104c30000 + 117352
+17  libdispatch.dylib             	0x00000001a238aaac _dispatch_call_block_and_release + 32 (init.c:1575)
+18  libdispatch.dylib             	0x00000001a23a4584 _dispatch_client_callout + 16 (client_callout.mm:85)
+19  libdispatch.dylib             	0x00000001a23932d0 _dispatch_lane_serial_drain + 740 (queue.c:3939)
+20  libdispatch.dylib             	0x00000001a2393dac _dispatch_lane_invoke + 388 (queue.c:4030)
+21  libdispatch.dylib             	0x00000001a239e1dc _dispatch_root_queue_drain_deferred_wlh + 292 (queue.c:7198)
+22  libdispatch.dylib             	0x00000001a239da60 _dispatch_workloop_worker_thread + 540 (queue.c:6792)
+23  libsystem_pthread.dylib       	0x00000002248a8a0c _pthread_wqthread + 292 (pthread.c:2696)
+24  libsystem_pthread.dylib       	0x00000002248a8aac start_wqthread + 8 (:-1)
+
+Thread 4:
+0   libsystem_pthread.dylib       	0x00000002248a8aa4 start_wqthread + 0 (:-1)
+
+Thread 5:
+0   libsystem_pthread.dylib       	0x00000002248a8aa4 start_wqthread + 0 (:-1)
+
+Thread 6:
+0   libsystem_pthread.dylib       	0x00000002248a8aa4 start_wqthread + 0 (:-1)
+
+Thread 7:
+0   libsystem_pthread.dylib       	0x00000002248a8aa4 start_wqthread + 0 (:-1)
+
+Thread 8:
+0   libsystem_pthread.dylib       	0x00000002248a8aa4 start_wqthread + 0 (:-1)
+
+Thread 9:
+0   libsystem_pthread.dylib       	0x00000002248a8aa4 start_wqthread + 0 (:-1)
+
+Thread 10:
+0   libsystem_pthread.dylib       	0x00000002248a8aa4 start_wqthread + 0 (:-1)
+
+Thread 11 name:
+Thread 11:
+0   libsystem_kernel.dylib        	0x00000001eb259ce4 mach_msg2_trap + 8 (:-1)
+1   libsystem_kernel.dylib        	0x00000001eb25d39c mach_msg2_internal + 76 (mach_msg.c:201)
+2   libsystem_kernel.dylib        	0x00000001eb25d2b8 mach_msg_overwrite + 428 (mach_msg.c:0)
+3   libsystem_kernel.dylib        	0x00000001eb25d100 mach_msg + 24 (mach_msg.c:323)
+4   CoreFoundation                	0x000000019a3ff7a0 __CFRunLoopServiceMachPort + 160 (CFRunLoop.c:2637)
+5   CoreFoundation                	0x000000019a3fe090 __CFRunLoopRun + 1208 (CFRunLoop.c:3021)
+6   CoreFoundation                	0x000000019a3ffadc CFRunLoopRunSpecific + 572 (CFRunLoop.c:3434)
+7   SoberDailies                  	0x0000000104fcea54 +[RCTCxxBridge runRunLoop] + 212 (RCTCxxBridge.mm:347)
+8   Foundation                    	0x00000001990dc804 __NSThread__start__ + 732 (NSThread.m:991)
+9   libsystem_pthread.dylib       	0x00000002248ab344 _pthread_start + 136 (pthread.c:931)
+10  libsystem_pthread.dylib       	0x00000002248a8ab8 thread_start + 8 (:-1)
+
+Thread 12 name:
+Thread 12:
+0   libsystem_kernel.dylib        	0x00000001eb25f438 __psynch_cvwait + 8 (:-1)
+1   libsystem_pthread.dylib       	0x00000002248a9e50 _pthread_cond_wait + 984 (pthread_cond.c:862)
+2   libc++.1.dylib                	0x00000001aad76294 std::__1::condition_variable::wait(std::__1::unique_lock<std::__1::mutex>&) + 32 (condition_variable.cpp:30)
+3   hermes                        	0x0000000105ed8e98 hermes::vm::HadesGC::Executor::worker() + 116 (:-1)
+4   hermes                        	0x0000000105ed8e00 void* std::__1::__thread_proxy[abi:v160006]<std::__1::tuple<std::__1::unique_ptr<std::__1::__thread_struct, std::__1::default_delete<std::__1::__thread_struct>>, hermes::vm::HadesGC::Executor::Exec... + 44 (:-1)
+5   libsystem_pthread.dylib       	0x00000002248ab344 _pthread_start + 136 (pthread.c:931)
+6   libsystem_pthread.dylib       	0x00000002248a8ab8 thread_start + 8 (:-1)
+
+Thread 13 name:
+Thread 13:
+0   libsystem_kernel.dylib        	0x00000001eb25f438 __psynch_cvwait + 8 (:-1)
+1   libsystem_pthread.dylib       	0x00000002248a9e50 _pthread_cond_wait + 984 (pthread_cond.c:862)
+2   libc++.1.dylib                	0x00000001aad76294 std::__1::condition_variable::wait(std::__1::unique_lock<std::__1::mutex>&) + 32 (condition_variable.cpp:30)
+3   hermes                        	0x0000000105ed8e98 hermes::vm::HadesGC::Executor::worker() + 116 (:-1)
+4   hermes                        	0x0000000105ed8e00 void* std::__1::__thread_proxy[abi:v160006]<std::__1::tuple<std::__1::unique_ptr<std::__1::__thread_struct, std::__1::default_delete<std::__1::__thread_struct>>, hermes::vm::HadesGC::Executor::Exec... + 44 (:-1)
+5   libsystem_pthread.dylib       	0x00000002248ab344 _pthread_start + 136 (pthread.c:931)
+6   libsystem_pthread.dylib       	0x00000002248a8ab8 thread_start + 8 (:-1)
+
+Thread 14:
+0   libsystem_pthread.dylib       	0x00000002248a8aa4 start_wqthread + 0 (:-1)
+
+Thread 15:
+0   libsystem_pthread.dylib       	0x00000002248a8aa4 start_wqthread + 0 (:-1)
+
+
+Thread 3 crashed with ARM Thread State (64-bit):
+    x0: 0x0000000000000000   x1: 0x0000000000000000   x2: 0x0000000000000000   x3: 0x0000000000000000
+    x4: 0x00000002247ddfdb   x5: 0x000000016b2e1580   x6: 0x000000000000006e   x7: 0xcc90a729685f4aef
+    x8: 0x7c60613f1ae6617b   x9: 0x7c60613e71c8517b  x10: 0x0000000000000051  x11: 0x000000000000000b
+   x12: 0x000000000000000b  x13: 0x000000019a8a9494  x14: 0x0000000000000001  x15: 0xffffffffb00007ff
+   x16: 0x0000000000000148  x17: 0x000000016b2e3000  x18: 0x0000000000000000  x19: 0x0000000000000006
+   x20: 0x0000000000002a1b  x21: 0x000000016b2e30e0  x22: 0x0000000202aa8000  x23: 0x000000014ff4ae80
+   x24: 0x000000014f4767f0  x25: 0x000000014e781200  x26: 0x0000000000000038  x27: 0xc0000000000002a4
+   x28: 0x0000000206a7ee38   fp: 0x000000016b2e14f0   lr: 0x00000002248afc60
+    sp: 0x000000016b2e14d0   pc: 0x00000001eb2641dc cpsr: 0x40001000
+   esr: 0x56000080  Address size fault
+
+
+Binary Images:
+        0x104c30000 -         0x1058c3fff SoberDailies arm64  <5473ac156a4432129f26c5b21be43163> /var/containers/Bundle/Application/72A17AA0-7094-44F5-8374-B5E5EBC06EBE/SoberDailies.app/SoberDailies
+        0x105e0c000 -         0x10600bfff hermes arm64  <b810dbce71ae38ca8fb43b671091c81b> /private/var/containers/Bundle/Application/72A17AA0-7094-44F5-8374-B5E5EBC06EBE/SoberDailies.app/Frameworks/hermes.framework/hermes
+        0x106bbc000 -         0x106bc7fff libobjc-trampolines.dylib arm64e  <def9fca06da1332796903b879ffc755c> /private/preboot/Cryptexes/OS/usr/lib/libobjc-trampolines.dylib
+        0x197970000 -         0x1979c1bb3 libobjc.A.dylib arm64e  <e8825548d1483ee2807639ea9cb11129> /usr/lib/libobjc.A.dylib
+        0x199067000 -         0x199cdb05f Foundation arm64e  <c031896b2ef13d89966a0b52d54bceee> /System/Library/Frameworks/Foundation.framework/Foundation
+        0x19a3ee000 -         0x19a96afff CoreFoundation arm64e  <ae3c93380166397a9643356b14f6ee58> /System/Library/Frameworks/CoreFoundation.framework/CoreFoundation
+        0x19b98e000 -         0x19bd5335f CFNetwork arm64e  <271cab2fd622384c8a7f2b5857119e0d> /System/Library/Frameworks/CFNetwork.framework/CFNetwork
+        0x19ccec000 -         0x19ec2e55f UIKitCore arm64e  <5e794caa41623ff6861e45f29f6b8ac0> /System/Library/PrivateFrameworks/UIKitCore.framework/UIKitCore
+        0x1a2389000 -         0x1a23ceb3f libdispatch.dylib arm64e  <b62778f758273a7ba96da24f7be95416> /usr/lib/system/libdispatch.dylib
+        0x1a23cf000 -         0x1a244e6c3 libsystem_c.dylib arm64e  <335cd87d234b3fc182db943350d31a88> /usr/lib/system/libsystem_c.dylib
+        0x1aad55000 -         0x1aade4ff7 libc++.1.dylib arm64e  <2fbf38d8e5a53ffe9f8736a797ea4cdb> /usr/lib/libc++.1.dylib
+        0x1c0e53000 -         0x1c0eed87b dyld arm64e  <cd2e758de1a23b92aae775d38f66ec54> /usr/lib/dyld
+        0x1e7224000 -         0x1e722cc7f GraphicsServices arm64e  <d372e13f75053addae13062656f0b1f6> /System/Library/PrivateFrameworks/GraphicsServices.framework/GraphicsServices
+        0x1eb259000 -         0x1eb292ebf libsystem_kernel.dylib arm64e  <a9a7ecbd24dd37e6bb23ecbfd9a87e33> /usr/lib/system/libsystem_kernel.dylib
+        0x2247c3000 -         0x2247e0fff libc++abi.dylib arm64e  <b5a6eccef205302a8874755a0e3ad747> /usr/lib/libc++abi.dylib
+        0x2248a8000 -         0x2248b43f3 libsystem_pthread.dylib arm64e  <1ee1922008593cbcbdebdf37ca2e8e4f> /usr/lib/system/libsystem_pthread.dylib
+
+EOF

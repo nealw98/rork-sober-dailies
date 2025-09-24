@@ -1,6 +1,8 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { AppState, AppStateStatus } from 'react-native';
+import { AppState, AppStateStatus, Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import Constants from 'expo-constants';
+import { Logger } from '@/lib/logger';
 
 const NOTIFIED_UPDATES_KEY = 'ota_notified_updates';
 
@@ -9,6 +11,32 @@ interface UpdateInfo {
   manifestHash?: string;
   timestamp: number;
 }
+
+// Build environment detection
+const isProductionBuild = !__DEV__ && (Constants.expoConfig?.extra?.eas?.projectId || process.env.EXPO_PUBLIC_BUILD_FLAVOR === 'prod');
+
+// Helper to get device info for diagnostics
+const getDeviceInfo = () => {
+  try {
+    return {
+      appVersion: Constants.expoConfig?.version ?? 'unknown',
+      buildNumber: Platform.OS === 'ios' 
+        ? Constants.expoConfig?.ios?.buildNumber ?? 'unknown'
+        : Constants.expoConfig?.android?.versionCode ?? 'unknown',
+      deviceModel: Platform.OS === 'ios' ? 'iOS' : 'Android',
+      platform: Platform.OS,
+      timestampIso: new Date().toISOString(),
+    };
+  } catch (error) {
+    return {
+      appVersion: 'unknown',
+      buildNumber: 'unknown', 
+      deviceModel: 'unknown',
+      platform: Platform.OS,
+      timestampIso: new Date().toISOString(),
+    };
+  }
+};
 
 export const useOTAUpdates = () => {
   const [showSnackbar, setShowSnackbar] = useState(false);
@@ -74,6 +102,7 @@ export const useOTAUpdates = () => {
 
     try {
       const Updates = await import('expo-updates');
+      const deviceInfo = getDeviceInfo();
 
       // Log diagnostic context
       try {
@@ -81,6 +110,21 @@ export const useOTAUpdates = () => {
         const updateUrl = (Updates as any)?.updateUrl ?? (Updates as any)?.manifest?.extra?.expoClient?.updates?.url ?? 'unknown';
         const isEmbeddedLaunch = Updates.isEmbeddedLaunch;
         const currentUpdateId = Updates.updateId ?? 'embedded';
+        
+        // Log OTA status for diagnostics
+        Logger.logDiag('ota_status', {
+          ...deviceInfo,
+          runtimeVersion,
+          updateUrl,
+          isEmbeddedLaunch,
+          currentUpdateId,
+          coldStart: force,
+          network: 'unknown', // Could be enhanced with network detection
+          status: 'checking',
+          isUpdateAvailable: false,
+          isUpdatePending: false,
+        });
+
         console.log('[OTA] check:start', {
           force,
           runtimeVersion,
@@ -90,17 +134,57 @@ export const useOTAUpdates = () => {
           headers: 'none',
           ts: new Date().toISOString(),
         });
-      } catch {}
+      } catch (diagError) {
+        // Log diagnostic error but don't crash
+        if (isProductionBuild) {
+          Logger.logDiag('ota_diagnostic_error', {
+            ...deviceInfo,
+            error: (diagError as any)?.message || 'Unknown diagnostic error',
+            status: 'diagnostic_failed',
+          });
+        }
+      }
 
-      // Check
-      const result = await Updates.checkForUpdateAsync();
-      console.log('[OTA] check:result', { isAvailable: result?.isAvailable, ts: new Date().toISOString() });
+      // Check for updates with safe fallback
+      let result;
+      try {
+        result = await Updates.checkForUpdateAsync();
+        console.log('[OTA] check:result', { isAvailable: result?.isAvailable, ts: new Date().toISOString() });
+      } catch (checkError) {
+        // Safe fallback: log error and continue with embedded bundle
+        if (isProductionBuild) {
+          Logger.logDiag('ota_fallback_embedded', {
+            ...deviceInfo,
+            error: (checkError as any)?.message || 'Check failed',
+            status: 'check_failed',
+            fallbackReason: 'check_error',
+          });
+        }
+        console.log('[OTA] check:error', (checkError as any)?.message || checkError);
+        return; // Exit gracefully, continue with embedded bundle
+      }
 
       if (result.isAvailable) {
         console.log('[OTA] fetch:start');
-        // Fetch the update
-        const fetched = await Updates.fetchUpdateAsync();
-        console.log('[OTA] fetch:result', { isNew: fetched?.isNew, ts: new Date().toISOString() });
+        
+        // Fetch the update with safe fallback
+        let fetched;
+        try {
+          fetched = await Updates.fetchUpdateAsync();
+          console.log('[OTA] fetch:result', { isNew: fetched?.isNew, ts: new Date().toISOString() });
+        } catch (fetchError) {
+          // Safe fallback: log error and continue with embedded bundle
+          if (isProductionBuild) {
+            Logger.logDiag('ota_fallback_embedded', {
+              ...deviceInfo,
+              error: (fetchError as any)?.message || 'Fetch failed',
+              status: 'fetch_failed',
+              fallbackReason: 'fetch_error',
+            });
+          }
+          console.log('[OTA] fetch:error', (fetchError as any)?.message || fetchError);
+          return; // Exit gracefully, continue with embedded bundle
+        }
 
         if (fetched.isNew) {
           const updateId = fetched.manifest?.id || fetched.manifest?.createdAt?.toString() || 'unknown';
@@ -108,26 +192,50 @@ export const useOTAUpdates = () => {
 
           console.log('[OTA] fetched:new', { updateId, manifestHash });
 
-          // Show snackbar very briefly then reload to apply immediately
+          // Log successful update fetch
+          Logger.logDiag('ota_update_ready', {
+            ...deviceInfo,
+            updateId,
+            manifestHash,
+            status: 'update_ready',
+            isUpdateAvailable: true,
+            isUpdatePending: true,
+          });
+
+          // Show snackbar for manual restart (NO AUTO-RELOAD)
           setShowSnackbar(true);
-          setTimeout(async () => {
-            try {
-              console.log('[OTA] reload:start');
-              await Updates.reloadAsync();
-            } catch (e) {
-              console.log('[OTA] reload:error', (e as any)?.message || e);
-            }
-          }, 1200);
 
           // Record notification to avoid loops
-          const notifiedUpdates = await getNotifiedUpdates();
-          const uniqueKey = manifestHash || updateId;
-          if (!notifiedUpdates.has(uniqueKey)) {
-            await markUpdateAsNotified(uniqueKey, manifestHash);
+          try {
+            const notifiedUpdates = await getNotifiedUpdates();
+            const uniqueKey = manifestHash || updateId;
+            if (!notifiedUpdates.has(uniqueKey)) {
+              await markUpdateAsNotified(uniqueKey, manifestHash);
+            }
+          } catch (notifyError) {
+            // Don't crash on notification errors
+            console.log('[OTA] notify:error', (notifyError as any)?.message || notifyError);
           }
         }
+      } else {
+        // Log no update available
+        Logger.logDiag('ota_status', {
+          ...deviceInfo,
+          status: 'no_update_available',
+          isUpdateAvailable: false,
+          isUpdatePending: false,
+        });
       }
     } catch (error) {
+      // Safe fallback: log error and continue with embedded bundle
+      if (isProductionBuild) {
+        Logger.logDiag('ota_fallback_embedded', {
+          ...getDeviceInfo(),
+          error: (error as any)?.message || 'Unknown error',
+          status: 'general_error',
+          fallbackReason: 'catch_all',
+        });
+      }
       console.log('[OTA] check:error', (error as any)?.message || error);
     } finally {
       setIsChecking(false);
@@ -168,10 +276,36 @@ export const useOTAUpdates = () => {
     setShowSnackbar(false);
   }, []);
 
+  // Manual restart function for production builds
+  const restartApp = useCallback(async () => {
+    try {
+      if (isProductionBuild) {
+        Logger.logDiag('ota_manual_restart', {
+          ...getDeviceInfo(),
+          status: 'manual_restart_initiated',
+        });
+      }
+      
+      const Updates = await import('expo-updates');
+      console.log('[OTA] manual restart:start');
+      await Updates.reloadAsync();
+    } catch (error) {
+      if (isProductionBuild) {
+        Logger.logDiag('ota_restart_error', {
+          ...getDeviceInfo(),
+          error: (error as any)?.message || 'Restart failed',
+          status: 'restart_failed',
+        });
+      }
+      console.log('[OTA] restart:error', (error as any)?.message || error);
+    }
+  }, []);
+
   return {
     showSnackbar,
     dismissSnackbar,
     checkForUpdates,
     isChecking,
+    restartApp,
   };
 };
