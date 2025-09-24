@@ -42,6 +42,11 @@ class UsageLogger {
         platform: Platform.OS,
         app_version: Constants.expoConfig?.version 
       });
+      
+      // Check daily streak on app launch (non-blocking)
+      this.checkDailyStreak().catch(error => {
+        console.error('[UsageLogger] Daily streak check failed on launch:', error);
+      });
     } catch (error) {
       console.error('[UsageLogger] Failed to initialize session:', error);
       // Generate temporary session ID if anything fails
@@ -242,6 +247,11 @@ class UsageLogger {
           new_session_id: this.sessionId
         });
         
+        // Check daily streak (non-blocking)
+        this.checkDailyStreak().catch(error => {
+          console.error('[UsageLogger] Daily streak check failed:', error);
+        });
+        
         // Also log screen open for the current screen with new session
         if (this.currentScreen) {
           this.logEvent('screen_open', {
@@ -261,6 +271,34 @@ class UsageLogger {
   // Get current anonymous ID
   getAnonymousIdSync(): string | null {
     return this.anonymousId;
+  }
+
+  // Check and log daily streak
+  async checkDailyStreak(): Promise<void> {
+    try {
+      const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD format
+      
+      // Check if we've already logged today
+      const lastCheck = await AsyncStorage.getItem('last_streak_check');
+      
+      if (lastCheck !== today) {
+        // Log daily check-in event
+        await this.logEvent('daily_check_in', {
+          date: today,
+          platform: Platform.OS
+        });
+        
+        // Update last check date
+        await AsyncStorage.setItem('last_streak_check', today);
+        
+        console.log('[UsageLogger] Daily streak check logged for:', today);
+      } else {
+        console.log('[UsageLogger] Daily streak already logged for:', today);
+      }
+    } catch (error) {
+      console.error('[UsageLogger] Failed to check daily streak:', error);
+      // Don't throw - this shouldn't block app functionality
+    }
   }
 
   // Manually start a new session (useful for testing or special cases)
@@ -305,3 +343,4 @@ export const getCurrentSessionId = () => usageLogger.getSessionId();
 export const getCurrentAnonymousId = () => usageLogger.getAnonymousIdSync();
 export const getAnonymousId = () => usageLogger.getAnonymousId();
 export const startNewSession = () => usageLogger.startNewSession();
+export const checkDailyStreak = () => usageLogger.checkDailyStreak();
