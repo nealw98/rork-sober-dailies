@@ -11,12 +11,14 @@ interface UsageEvent {
   screen?: string;
   feature?: string;
   session_id: string;
+  anonymous_id: string | null;
   app_version?: string;
   platform: string;
 }
 
 class UsageLogger {
   private sessionId: string | null = null;
+  private anonymousId: string | null = null;
   private eventQueue: UsageEvent[] = [];
   private isFlushing = false;
   private currentScreen: string | null = null;
@@ -25,6 +27,7 @@ class UsageLogger {
 
   constructor() {
     this.initializeSession();
+    this.initializeAnonymousId();
     this.setupAppStateListener();
   }
 
@@ -43,6 +46,47 @@ class UsageLogger {
       console.error('[UsageLogger] Failed to initialize session:', error);
       // Generate temporary session ID if anything fails
       this.sessionId = this.generateSessionId();
+    }
+  }
+
+  async initializeAnonymousId(): Promise<void> {
+    try {
+      this.anonymousId = await this.getAnonymousId();
+      console.log('[UsageLogger] Anonymous ID initialized:', this.anonymousId);
+    } catch (error) {
+      console.error('[UsageLogger] Failed to initialize anonymous ID:', error);
+      // Continue without anonymous ID - events will still be logged
+      this.anonymousId = null;
+    }
+  }
+
+  async getAnonymousId(): Promise<string> {
+    try {
+      // Check if we already have it in memory
+      if (this.anonymousId) {
+        return this.anonymousId;
+      }
+
+      // Try to get from AsyncStorage
+      const storedId = await AsyncStorage.getItem('anonymous_id');
+      if (storedId) {
+        this.anonymousId = storedId;
+        return storedId;
+      }
+
+      // Generate new anonymous ID
+      const newId = this.generateSessionId(); // Reuse UUID generation logic
+      await AsyncStorage.setItem('anonymous_id', newId);
+      this.anonymousId = newId;
+      
+      console.log('[UsageLogger] Generated new anonymous ID:', newId);
+      return newId;
+    } catch (error) {
+      console.error('[UsageLogger] Failed to get/generate anonymous ID:', error);
+      // Return a fallback ID if AsyncStorage fails
+      const fallbackId = this.generateSessionId();
+      this.anonymousId = fallbackId;
+      return fallbackId;
     }
   }
 
@@ -80,6 +124,7 @@ class UsageLogger {
       event,
       screen: props?.screen || this.currentScreen || undefined,
       session_id: this.sessionId,
+      anonymous_id: this.anonymousId,
       app_version: Constants.expoConfig?.version || undefined,
       platform: Platform.OS
     };
@@ -213,6 +258,11 @@ class UsageLogger {
     return this.sessionId;
   }
 
+  // Get current anonymous ID
+  getAnonymousIdSync(): string | null {
+    return this.anonymousId;
+  }
+
   // Manually start a new session (useful for testing or special cases)
   startNewSession(): string {
     const previousSessionId = this.sessionId;
@@ -252,4 +302,6 @@ export const logEvent = (event: string, props?: Record<string, any>) => usageLog
 export const featureUse = (feature: string, screen?: string) => usageLogger.featureUse(feature, screen);
 export const setCurrentScreen = (screenName: string) => usageLogger.setCurrentScreen(screenName);
 export const getCurrentSessionId = () => usageLogger.getSessionId();
+export const getCurrentAnonymousId = () => usageLogger.getAnonymousIdSync();
+export const getAnonymousId = () => usageLogger.getAnonymousId();
 export const startNewSession = () => usageLogger.startNewSession();
