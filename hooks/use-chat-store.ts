@@ -27,6 +27,8 @@ interface APIMessage {
 // Function to call the AI API
 async function callAI(messages: APIMessage[]): Promise<string> {
   try {
+    console.log('AI API Request:', { messages: messages.length, firstMessage: messages[0]?.role });
+    
     const response = await fetch('https://toolkit.rork.com/text/llm/', {
       method: 'POST',
       headers: {
@@ -35,11 +37,16 @@ async function callAI(messages: APIMessage[]): Promise<string> {
       body: JSON.stringify({ messages }),
     });
 
+    console.log('AI API Response Status:', response.status);
+
     if (!response.ok) {
-      throw new Error(`API request failed: ${response.status}`);
+      const errorText = await response.text();
+      console.error('AI API Error Response:', errorText);
+      throw new Error(`API request failed: ${response.status} - ${errorText}`);
     }
 
     const data = await response.json();
+    console.log('AI API Success:', { hasCompletion: !!data.completion });
     return data.completion || "Sorry, I'm having trouble right now. Try again in a minute.";
   } catch (error) {
     console.error('AI API Error:', error);
