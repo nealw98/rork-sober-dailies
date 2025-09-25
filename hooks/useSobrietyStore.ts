@@ -3,6 +3,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import createContextHook from '@nkzw/create-context-hook';
 import { calculateDaysBetween } from '@/lib/dateUtils';
 import { DailyCheckIn, EmergencyContact } from '@/types/sobriety';
+import { syncSobrietyDate } from '@/lib/sobrietySync';
 
 interface SobrietyData {
   sobrietyDate: string | null;
@@ -67,10 +68,15 @@ export const [SobrietyProvider, useSobriety] = createContextHook(() => {
     }
   }, [dailyCheckIns, emergencyContacts]);
 
-  const setSobrietyDateAndSave = useCallback((date: string) => {
+  const setSobrietyDateAndSave = useCallback(async (date: string) => {
     setSobrietyDate(date);
     setHasSeenPrompt(true);
-    saveData(date, true);
+    
+    // Save locally first
+    await saveData(date, true);
+    
+    // Sync to Supabase for community stats
+    await syncSobrietyDate(date);
   }, [saveData]);
 
   const dismissPrompt = useCallback(() => {

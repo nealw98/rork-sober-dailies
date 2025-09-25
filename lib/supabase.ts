@@ -52,6 +52,29 @@ export type Database = {
           updated_at?: string;
         };
       };
+      user_profiles: {
+        Row: {
+          anonymous_id: string;
+          sobriety_date: string | null;
+          timezone: string | null;
+          created_at: string | null;
+          updated_at: string | null;
+        };
+        Insert: {
+          anonymous_id: string;
+          sobriety_date?: string | null;
+          timezone?: string | null;
+          created_at?: string | null;
+          updated_at?: string | null;
+        };
+        Update: {
+          anonymous_id?: string;
+          sobriety_date?: string | null;
+          timezone?: string | null;
+          created_at?: string | null;
+          updated_at?: string | null;
+        };
+      };
     };
   };
 };
