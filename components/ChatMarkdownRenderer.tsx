@@ -27,6 +27,11 @@ export const ChatMarkdownRenderer: React.FC<ChatMarkdownRendererProps> = ({ cont
     parts.push({ text: content.slice(lastIndex), italic: false });
   }
 
+  // If no parts were found (no valid markdown), return the original text
+  if (parts.length === 0) {
+    return <Text style={style} {...rest}>{content}</Text>;
+  }
+
   return (
     <Text style={style} {...rest}>
       {parts.map((p, idx) => (
