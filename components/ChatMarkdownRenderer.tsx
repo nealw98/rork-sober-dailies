@@ -11,8 +11,6 @@ export const ChatMarkdownRenderer: React.FC<ChatMarkdownRendererProps> = ({ cont
     return <Text style={style} {...rest} />;
   }
 
-  // Debug logging
-  console.log('[ChatMarkdownRenderer] Processing content:', content);
 
   const parts: Array<{ text: string; italic: boolean }> = [];
   const italicRegex = /\*([^*]+)\*/g;
@@ -32,11 +30,8 @@ export const ChatMarkdownRenderer: React.FC<ChatMarkdownRendererProps> = ({ cont
 
   // If no parts were found (no valid markdown), return the original text
   if (parts.length === 0) {
-    console.log('[ChatMarkdownRenderer] No markdown found, returning original text');
     return <Text style={style} {...rest}>{content}</Text>;
   }
-
-  console.log('[ChatMarkdownRenderer] Parts found:', parts);
   return (
     <Text style={style} {...rest}>
       {parts.map((p, idx) => (
