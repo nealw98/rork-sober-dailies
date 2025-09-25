@@ -71,17 +71,17 @@ function convertToAPIMessages(chatMessages: ChatMessage[], sponsorType: SponsorT
     default:
       systemPrompt = STEADY_EDDIE_SYSTEM_PROMPT;
   }
-  
-  const apiMessages: APIMessage[] = [
-    { role: 'system', content: systemPrompt }
-  ];
+
+  const apiMessages: APIMessage[] = [];
 
   // Skip the initial welcome message and convert the rest
   const conversationMessages = chatMessages.slice(1);
   
-  conversationMessages.forEach(msg => {
+  conversationMessages.forEach((msg, index) => {
     if (msg.sender === 'user') {
-      apiMessages.push({ role: 'user', content: msg.text });
+      // For the first user message, prepend the system prompt
+      const content = index === 0 ? `${systemPrompt}\n\nUser: ${msg.text}` : msg.text;
+      apiMessages.push({ role: 'user', content });
     } else if (msg.sender === 'bot') {
       apiMessages.push({ role: 'assistant', content: msg.text });
     }
