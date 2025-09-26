@@ -101,7 +101,7 @@ const HomeScreen = () => {
 
         <TouchableOpacity style={styles.card} onPress={() => router.push('/inventory')}>
           <Text style={styles.cardTitle}>Spot Check Inventory</Text>
-          <Text style={styles.cardDescription}>When we're upset, there's something wrong with us — are you "On the Beam"?</Text>
+          <Text style={styles.cardDescription}>When disturbed ask yourself: Are you on the beam or off the beam?</Text>
           <Text style={styles.cardButton}>Go to Spot Check Inventory</Text>
         </TouchableOpacity>
       </View>
