@@ -142,6 +142,10 @@ android {
         jniLibs {
             useLegacyPackaging (findProperty('expo.useLegacyPackaging')?.toBoolean() ?: false)
         }
+        // Include all native libraries to fix missing libreact_featureflagsjni.so
+        pickFirsts += ['**/*.so']
+        // Ensure feature flags library is included if it exists
+        pickFirsts += ['**/libreact_featureflagsjni.so']
     }
     androidResources {
         ignoreAssetsPattern '!.svn:!.git:!.ds_store:!*.scc:!CVS:!thumbs.db:!picasa.ini:!*~'
@@ -171,6 +175,9 @@ android {
 dependencies {
     // The version of react-native is set by the React Native Gradle Plugin
     implementation("com.facebook.react:react-android")
+    
+    // Ensure React Native feature flags native library is included
+    implementation("com.facebook.react:react-native-feature-flags:+")
 
     def isGifEnabled = (findProperty('expo.gif.enabled') ?: "") == "true";
     def isWebpEnabled = (findProperty('expo.webp.enabled') ?: "") == "true";
