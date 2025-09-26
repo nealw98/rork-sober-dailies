@@ -19,6 +19,9 @@ react {
     // works correctly with Expo projects.
     cliFile = new File(["node", "--print", "require.resolve('@expo/cli', { paths: [require.resolve('expo/package.json')] })"].execute(null, rootDir).text.trim())
     bundleCommand = "export:embed"
+    
+    // Disable React Native feature flags to prevent native library issues
+    enableFeatureFlags = false
 
     /* Folders */
      //   The root of your project, i.e. where "package.json" lives. Default is '../..'
@@ -114,6 +117,7 @@ android {
     buildTypes {
         debug {
             signingConfig signingConfigs.debug
+            buildConfigField "boolean", "REACT_NATIVE_FEATURE_FLAGS_ENABLE_BRIDGELESS_ARCHITECTURE", "false"
         }
         release {
             signingConfig signingConfigs.release
@@ -121,6 +125,7 @@ android {
             minifyEnabled enableProguardInReleaseBuilds
             proguardFiles getDefaultProguardFile("proguard-android.txt"), "proguard-rules.pro"
             crunchPngs (findProperty('android.enablePngCrunchInReleaseBuilds')?.toBoolean() ?: true)
+            buildConfigField "boolean", "REACT_NATIVE_FEATURE_FLAGS_ENABLE_BRIDGELESS_ARCHITECTURE", "false"
         }
     }
     flavorDimensions "default"
