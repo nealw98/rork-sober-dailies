@@ -9,7 +9,13 @@ const RC_IOS_KEY =
     (Constants.manifest as any)?.extra?.revenuecat?.iosPublicApiKey ||
     (Constants.manifest2 as any)?.extra?.revenuecat?.iosPublicApiKey ||
     '');
-const RC_ANDROID_KEY = process.env.EXPO_PUBLIC_REVENUECAT_API_KEY_ANDROID || '';
+const RC_ANDROID_KEY =
+  process.env.EXPO_PUBLIC_REVENUECAT_API_KEY_ANDROID ||
+  // Fallback to app.json extra for preview builds
+  ((Constants.expoConfig?.extra as any)?.revenuecat?.androidPublicApiKey ||
+    (Constants.manifest as any)?.extra?.revenuecat?.androidPublicApiKey ||
+    (Constants.manifest2 as any)?.extra?.revenuecat?.androidPublicApiKey ||
+    '');
 
 let purchasesModule: typeof PurchasesNamespace | null = null;
 
