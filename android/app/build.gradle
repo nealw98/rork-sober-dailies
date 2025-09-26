@@ -19,9 +19,6 @@ react {
     // works correctly with Expo projects.
     cliFile = new File(["node", "--print", "require.resolve('@expo/cli', { paths: [require.resolve('expo/package.json')] })"].execute(null, rootDir).text.trim())
     bundleCommand = "export:embed"
-    
-    // Disable React Native feature flags
-    enableFeatureFlags = false
 
     /* Folders */
      //   The root of your project, i.e. where "package.json" lives. Default is '../..'
@@ -142,10 +139,6 @@ android {
         jniLibs {
             useLegacyPackaging (findProperty('expo.useLegacyPackaging')?.toBoolean() ?: false)
         }
-        // Include all native libraries to fix missing libreact_featureflagsjni.so
-        pickFirsts += ['**/*.so']
-        // Ensure feature flags library is included if it exists
-        pickFirsts += ['**/libreact_featureflagsjni.so']
     }
     androidResources {
         ignoreAssetsPattern '!.svn:!.git:!.ds_store:!*.scc:!CVS:!thumbs.db:!picasa.ini:!*~'
