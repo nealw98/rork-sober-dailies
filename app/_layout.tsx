@@ -21,6 +21,8 @@ import { Logger } from "@/lib/logger";
 import { initUsageLogger } from "@/lib/usageLogger";
 import { useExpoRouterTracking } from "@/hooks/useExpoRouterTracking";
 import { SessionProvider } from "@/hooks/useSessionContext";
+import { useSobrietyBirthday } from "@/hooks/useSobrietyBirthday";
+import SobrietyBirthdayModal from "@/components/SobrietyBirthdayModal";
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync().catch(() => {
@@ -51,6 +53,7 @@ const hideSplashScreenSafely = async () => {
 function RootLayoutNav() {
   const { isOnboardingComplete, isLoading } = useOnboarding();
   const { showSnackbar, dismissSnackbar, restartApp } = useOTAUpdates();
+  const { showBirthdayModal, closeBirthdayModal } = useSobrietyBirthday();
 
   // Enable screen tracking for Expo Router
   useExpoRouterTracking();
@@ -169,11 +172,9 @@ function RootLayoutNav() {
 
   return (
     <>
-      <StatusBar hidden={true} />
       <Stack screenOptions={{ 
         headerBackTitle: "",
         headerTitleAlign: 'center',
-        statusBarHidden: Platform.OS === 'ios' ? true : undefined,
         headerLeft: ({ canGoBack }) => canGoBack ? (
           <TouchableOpacity 
             style={styles.backButton} 
@@ -221,6 +222,7 @@ function RootLayoutNav() {
         
       </Stack>
         <OTASnackbar visible={showSnackbar} onDismiss={dismissSnackbar} onRestart={restartApp} />
+        <SobrietyBirthdayModal visible={showBirthdayModal} onClose={closeBirthdayModal} />
     </>
   );
 }
