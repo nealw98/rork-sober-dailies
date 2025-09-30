@@ -5,7 +5,6 @@ import React, { useEffect, useCallback, useState } from "react";
 import { Text, StyleSheet, TouchableOpacity, Platform, View } from 'react-native';
 import { ChevronLeft } from "lucide-react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
-import { StatusBar } from "expo-status-bar";
 
 import { GratitudeProvider } from "@/hooks/use-gratitude-store";
 import { OnboardingProvider, useOnboarding } from "@/hooks/useOnboardingStore";
@@ -169,11 +168,9 @@ function RootLayoutNav() {
 
   return (
     <>
-      <StatusBar hidden={true} />
       <Stack screenOptions={{ 
         headerBackTitle: "",
         headerTitleAlign: 'center',
-        statusBarHidden: Platform.OS === 'ios' ? true : undefined,
         headerLeft: ({ canGoBack }) => canGoBack ? (
           <TouchableOpacity 
             style={styles.backButton} 

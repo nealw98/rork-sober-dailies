@@ -308,8 +308,8 @@ const AboutSupportScreen = () => {
   };
 
   const handleTermsPress = () => {
-    // Open terms of use in browser
-    Linking.openURL('https://soberdailies.com/terms');
+    // Open Apple's standard EULA
+    Linking.openURL('https://www.apple.com/legal/internet-services/itunes/dev/stdeula/');
   };
 
   const handleSupportPress = () => {
@@ -448,14 +448,33 @@ const AboutSupportScreen = () => {
       <View style={styles.contentContainer}>
         <ScrollView contentContainerStyle={[styles.scrollContent, { paddingTop: 40, paddingBottom: insets.bottom + 96 }]}>
 
-          {/* Support Description */}
-          <View style={styles.supportDescriptionContainer}>
-            <Text style={styles.supportDescriptionText}>
+          {/* Support Card */}
+          <View style={styles.supportCard}>
+            <Text style={styles.supportCardTitle}>Support Sober Dailies</Text>
+            <Text style={styles.supportCardText}>
               Supporting the app helps me keep it running smoothly and add new features.
             </Text>
-          </View>
+            
+            <View style={styles.bulletContainer}>
+              <View style={styles.bulletRow}>
+                <Text style={styles.bullet}>•</Text>
+                <Text style={styles.bulletContent}>
+                  <Text style={styles.boldText}>Monthly Support:</Text> $1.99/month. Auto-renews monthly. Cancel anytime.
+                </Text>
+              </View>
+              <View style={styles.bulletRow}>
+                <Text style={styles.bullet}>•</Text>
+                <Text style={styles.bulletContent}>
+                  <Text style={styles.boldText}>Yearly Support:</Text> $19.99/year. Auto-renews yearly. Cancel anytime.
+                </Text>
+              </View>
+            </View>
+            
+            <Text style={styles.supportCardText}>
+              Subscriptions renew automatically unless cancelled at least 24 hours before the end of the current period. Manage or cancel in your App Store account settings.
+            </Text>
 
-          <View style={styles.supportContainer}>
+            <View style={styles.buttonSpacer} />
             <TouchableOpacity
               style={styles.subscriptionButton}
               onPress={() => handleTipPress(1.99)}
@@ -464,7 +483,7 @@ const AboutSupportScreen = () => {
               {purchasingId === 'support_monthly' ? (
                 <Text style={styles.subscriptionButtonText}>Connecting...</Text>
               ) : (
-                <Text style={styles.subscriptionButtonText}>$1.99 / month</Text>
+                <Text style={styles.subscriptionButtonText}>$1.99/Month</Text>
               )}
             </TouchableOpacity>
 
@@ -476,7 +495,7 @@ const AboutSupportScreen = () => {
               {purchasingId === 'support_yearly' ? (
                 <Text style={styles.subscriptionButtonText}>Connecting...</Text>
               ) : (
-                <Text style={styles.subscriptionButtonText}>$19.99 / year</Text>
+                <Text style={styles.subscriptionButtonText}>$19.99/Year</Text>
               )}
             </TouchableOpacity>
 
@@ -484,17 +503,28 @@ const AboutSupportScreen = () => {
               <Text style={styles.restoreButtonText}>Restore Purchases</Text>
             </TouchableOpacity>
 
+            {/* Privacy Policy and Terms Links */}
+            <View style={styles.restoreLegalLinksContainer}>
+              <TouchableOpacity onPress={handlePrivacyPress}>
+                <Text style={styles.legalLink}>Privacy Policy</Text>
+              </TouchableOpacity>
+              <Text style={styles.legalSeparator}>·</Text>
+              <TouchableOpacity onPress={handleTermsPress}>
+                <Text style={styles.legalLink}>Terms</Text>
+              </TouchableOpacity>
+            </View>
+
             {errorMessage ? (
               <Text style={styles.inlineError}>{errorMessage}</Text>
             ) : null}
           </View>
 
-          {/* About Sober Dailies Section */}
-          <View style={styles.aboutSection}>
-            <Text style={styles.aboutTitle}>About Sober Dailies</Text>
-            <Text style={styles.aboutText}>
+          {/* About Sober Dailies Card */}
+          <View style={styles.aboutCard}>
+            <Text style={styles.aboutCardTitle}>About Sober Dailies</Text>
+            <Text style={styles.aboutCardText}>
               Hi friends,{"\n\n"}
-               I built Sober Dailies because I wanted a simple way to stay consistent with my recovery practices. I needed something that would guide me through my daily habits and bring all the tools I used into one app. I’m grateful to share it with anyone who finds it helpful.{"\n\n"}
+               I built Sober Dailies because I wanted a simple way to stay consistent with my recovery practices. I needed something that would guide me through my daily habits and bring all the tools I used into one app. I'm grateful to share it with anyone who finds it helpful.{"\n\n"}
               Your contribution is completely voluntary, but it truly helps. It goes toward covering my development costs, keeping the app running smoothly, and funding future updates and improvements. My goal is to keep the core features free for anyone who wants to use them.{"\n\n"}
               Whether or not you subscribe, I'm just glad you're here and that the app supports your journey.{"\n\n"}
               — Neal
@@ -604,23 +634,53 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#556',
   },
-  supportDescriptionContainer: {
-    paddingHorizontal: 24,
+  supportCard: {
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    borderRadius: 12,
+    padding: 20,
+    marginHorizontal: 24,
     marginBottom: 24,
+    borderWidth: 1,
+    borderColor: 'rgba(0, 0, 0, 0.1)',
   },
-  supportDescriptionText: {
-    fontSize: 18,
+  supportCardTitle: {
+    fontSize: 20,
+    fontWeight: adjustFontWeight('600'),
     color: '#333',
-    lineHeight: 26,
+    marginBottom: 16,
     textAlign: 'center',
   },
-  sectionHeaderRow: {
+  supportCardText: {
+    fontSize: 15,
+    color: '#555',
+    lineHeight: 22,
+    textAlign: 'left',
   },
-  sectionHeader: {
+  boldText: {
+    fontWeight: adjustFontWeight('600'),
   },
-  supportContainer: {
-    paddingHorizontal: 24,
-    marginBottom: 24,
+  bulletContainer: {
+    marginVertical: 8,
+  },
+  bulletRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    marginBottom: 4,
+  },
+  bullet: {
+    fontSize: 15,
+    color: '#555',
+    marginRight: 8,
+    lineHeight: 22,
+  },
+  bulletContent: {
+    flex: 1,
+    fontSize: 15,
+    color: '#555',
+    lineHeight: 22,
+  },
+  buttonSpacer: {
+    height: 20,
   },
   subscriptionButton: {
     backgroundColor: '#4A90E2',
@@ -645,7 +705,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: 12,
-    marginBottom: 16,
+    paddingHorizontal: 24,
+    marginBottom: 4,
   },
   restoreButtonText: {
     fontSize: 16,
@@ -653,26 +714,58 @@ const styles = StyleSheet.create({
     fontWeight: adjustFontWeight('500'),
     textDecorationLine: 'underline',
   },
+  legalLinksContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 16,
+    marginBottom: 8,
+    paddingHorizontal: 24,
+  },
+  restoreLegalLinksContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 8,
+    paddingHorizontal: 24,
+  },
+  legalLink: {
+    fontSize: 14,
+    color: '#4A90E2',
+    fontWeight: adjustFontWeight('500'),
+    textDecorationLine: 'underline',
+  },
+  legalSeparator: {
+    fontSize: 14,
+    color: '#999',
+    marginHorizontal: 12,
+    fontWeight: adjustFontWeight('400'),
+  },
   supportSubtext: {
     fontSize: 12,
     color: '#6c757d',
     marginTop: 2,
   },
-  aboutSection: {
-    paddingHorizontal: 24,
+  aboutCard: {
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    borderRadius: 12,
+    padding: 20,
+    marginHorizontal: 24,
     marginBottom: 24,
+    borderWidth: 1,
+    borderColor: 'rgba(0, 0, 0, 0.1)',
   },
-  aboutTitle: {
-    fontSize: 28,
-    fontWeight: adjustFontWeight('bold'),
+  aboutCardTitle: {
+    fontSize: 20,
+    fontWeight: adjustFontWeight('600'),
     color: '#333',
-    marginBottom: 24,
+    marginBottom: 16,
     textAlign: 'center',
   },
-  aboutText: {
-    fontSize: 16,
-    color: '#333',
-    lineHeight: 24,
+  aboutCardText: {
+    fontSize: 15,
+    color: '#555',
+    lineHeight: 22,
     textAlign: 'left',
   },
   inlineError: {
