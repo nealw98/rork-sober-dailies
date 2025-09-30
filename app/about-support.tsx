@@ -549,14 +549,6 @@ const AboutSupportScreen = () => {
       <View style={[styles.footerContainer, { paddingBottom: insets.bottom }]}>
         <View style={styles.footerCenter}>
           <View style={styles.footerLinksRowCentered}>
-            <TouchableOpacity onPress={handlePrivacyPress}>
-              <Text style={styles.footerLink}>Privacy</Text>
-            </TouchableOpacity>
-            <Text style={styles.footerSeparator}>·</Text>
-            <TouchableOpacity onPress={handleTermsPress}>
-              <Text style={styles.footerLink}>Terms</Text>
-            </TouchableOpacity>
-            <Text style={styles.footerSeparator}>·</Text>
             <TouchableOpacity onPress={handleSupportPress}>
               <Text style={styles.footerLink}>Support</Text>
             </TouchableOpacity>
@@ -691,15 +683,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     shadowColor: '#000',
-    shadowOpacity: 0.15,
-    shadowRadius: 6,
-    shadowOffset: { width: 0, height: 2 },
-    elevation: 3,
+    shadowOpacity: 0.25,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 5,
   },
   subscriptionButtonText: {
     fontSize: 18,
     fontWeight: adjustFontWeight('600'),
-    color: 'white',
+    color: '#F5F5F5',
   },
   restoreButton: {
     alignItems: 'center',
