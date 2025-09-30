@@ -34,7 +34,18 @@ const SobrietyBirthdayModal: React.FC<SobrietyBirthdayModalProps> = ({ visible, 
     // Monthly milestones (1-11 months)
     for (let months = 1; months <= 11; months++) {
       const milestoneDate = new Date(sobrietyDate);
+      const originalDay = milestoneDate.getDate();
+      
+      // Add months
       milestoneDate.setMonth(milestoneDate.getMonth() + months);
+      
+      // If the day rolled over (e.g., Aug 31 -> Sept 31 -> Oct 1), 
+      // set it to the last day of the target month instead
+      if (milestoneDate.getDate() !== originalDay) {
+        // Go back one day to get the last day of the target month
+        milestoneDate.setDate(0);
+      }
+      
       const milestoneDateString = formatLocalDate(milestoneDate);
       
       // console.log('[BirthdayModal] Checking monthly milestone:', { months, milestoneDateString, today, matches: milestoneDateString === today });
@@ -239,11 +250,11 @@ const SobrietyBirthdayModal: React.FC<SobrietyBirthdayModalProps> = ({ visible, 
             style={styles.modalGradient}
           >
             <View style={styles.modalContent}>
-              <Text style={styles.title}>Happy {milestoneDisplay} Birthday!</Text>
-              
               <Animated.View style={[styles.iconContainer, { transform: [{ scale: iconScale }] }]}>
                 <PartyPopper size={48} color="white" />
               </Animated.View>
+              
+              <Text style={styles.title}>Happy {milestoneDisplay} Birthday!</Text>
               
               <Text style={styles.message}>
                 Every day is a big deal but this milestone is awesome!
