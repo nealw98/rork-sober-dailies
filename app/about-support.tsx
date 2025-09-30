@@ -519,12 +519,12 @@ const AboutSupportScreen = () => {
             ) : null}
           </View>
 
-          {/* About Sober Dailies Card */}
+          {/* About Card */}
           <View style={styles.aboutCard}>
-            <Text style={styles.aboutCardTitle}>About Sober Dailies</Text>
+            <Text style={styles.aboutCardTitle}>About the App</Text>
             <Text style={styles.aboutCardText}>
               Hi friends,{"\n\n"}
-               I built Sober Dailies because I wanted a simple way to stay consistent with my recovery practices. I needed something that would guide me through my daily habits and bring all the tools I used into one app. I'm grateful to share it with anyone who finds it helpful.{"\n\n"}
+               I created Sober Dailies because I wanted a simple way to stay consistent with my recovery practices. I needed something that would guide me through my daily habits and bring all the tools I used into one app. I'm grateful to share it with anyone who finds it helpful.{"\n\n"}
               Your contribution is completely voluntary, but it truly helps. It goes toward covering my development costs, keeping the app running smoothly, and funding future updates and improvements. My goal is to keep the core features free for anyone who wants to use them.{"\n\n"}
               Whether or not you subscribe, I'm just glad you're here and that the app supports your journey.{"\n\n"}
               — Neal
