@@ -1,7 +1,7 @@
 import { supabase } from './supabase';
 import { usageLogger } from './usageLogger';
 
-// Simple function to sync sobriety date to Supabase
+// Simple function to sync sobriety date to Supabase (optional - won't block app if it fails)
 export async function syncSobrietyDate(sobrietyDate: string | null): Promise<void> {
   try {
     // Get anonymous ID
@@ -14,7 +14,7 @@ export async function syncSobrietyDate(sobrietyDate: string | null): Promise<voi
     // Get timezone
     const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'America/Denver';
 
-    console.log('[SobrietySync] Syncing sobriety date:', { 
+    console.log('[SobrietySync] Attempting to sync sobriety date:', { 
       anonymous_id: anonymousId, 
       sobriety_date: sobrietyDate,
       timezone 
@@ -33,11 +33,15 @@ export async function syncSobrietyDate(sobrietyDate: string | null): Promise<voi
       });
 
     if (error) {
-      console.error('[SobrietySync] Failed to sync:', error);
+      // Log error but don't throw - this is optional sync functionality
+      console.warn('[SobrietySync] Sync failed (this is optional):', error.message);
+      console.warn('[SobrietySync] App will continue to work normally without cloud sync');
     } else {
       console.log('[SobrietySync] Successfully synced to Supabase');
     }
   } catch (error) {
-    console.error('[SobrietySync] Sync failed:', error);
+    // Log error but don't throw - this is optional sync functionality
+    console.warn('[SobrietySync] Sync failed (this is optional):', error);
+    console.warn('[SobrietySync] App will continue to work normally without cloud sync');
   }
 }

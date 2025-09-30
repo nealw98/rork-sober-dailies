@@ -12,6 +12,7 @@ import {
   Share,
   ScrollView
 } from 'react-native';
+import * as Haptics from 'expo-haptics';
 import * as Clipboard from 'expo-clipboard';
 import { Heart, Share as ShareIcon, Save, Archive, CheckCircle, Calendar, Trash2 } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -20,6 +21,131 @@ import Colors from '@/constants/colors';
 import { adjustFontWeight } from '@/constants/fonts';
 import ScreenContainer from '@/components/ScreenContainer';
 import SavedGratitudeEntries from '@/components/SavedGratitudeEntries';
+
+// 25 inspirational gratitude quotes for daily rotation
+const GRATITUDE_QUOTES = [
+  "Taking time each day to acknowledge what we're grateful for strengthens our recovery and brings peace to our hearts.",
+  "Gratitude turns what we have into enough, and sobriety gives us the clarity to see it.",
+  "Each day of recovery is a gift. Each moment of gratitude is a step forward.",
+  "In sobriety, we learn that gratitude isn't about having everything, but appreciating what we do have.",
+  "Gratitude is not only the greatest of virtues but the parent of all others. — Cicero",
+  "The unthankful heart discovers no mercies; but the thankful heart will find, in every hour, some heavenly blessings to flow upon it. — Henry Ward Beecher",
+  "When we focus on our gratitude, the tide of disappointment goes out and the tide of love rushes in. — Kristin Armstrong",
+  "Gratitude makes sense of our past, brings peace for today, and creates a vision for tomorrow. — Melody Beattie",
+  "A full and thankful heart cannot entertain great conceits. — As Bill Sees It, p 37",
+  "We are grateful for the gifts we have been given, grateful for the people we love, grateful for the mercy of a loving God. — Daily Reflections",
+  "Gratitude is the attitude that sets the altitude for living. — AA Slogan",
+  "When we are grateful, we are not anxious. When we are anxious, we are not grateful. — Recovery Wisdom",
+  "The more you practice gratitude, the more you see how much there is to be grateful for. — Sobriety Insight",
+  "Gratitude is the foundation of a happy life and a strong recovery.",
+  "Every day in sobriety is a miracle worth celebrating with gratitude.",
+  "Gratitude transforms the ordinary into the extraordinary.",
+  "In recovery, we discover that gratitude is not just a feeling—it's a practice that changes everything.",
+  "The practice of gratitude opens our hearts to the abundance that surrounds us.",
+  "Gratitude is the key that unlocks the door to peace and contentment in recovery.",
+  "When we count our blessings instead of our problems, we find true happiness.",
+  "Gratitude is the bridge between where we were and where we want to be.",
+  "In moments of gratitude, we connect with something greater than ourselves.",
+  "The habit of gratitude creates a foundation for lasting joy and serenity.",
+  "Gratitude is the light that illuminates even the darkest moments of our journey.",
+  "Today I choose gratitude over resentment, love over fear, and hope over despair."
+];
+
+// 25 daily-changing toast confirmation messages
+const TOAST_MESSAGES = [
+  "Gratitude saved! Your recovery journey continues. 💚",
+  "Thankful thoughts recorded! Keep building that foundation. 🌱",
+  "Gratitude captured! Every entry strengthens your path. ✨",
+  "Saved with gratitude! Your heart grows stronger each day. 💪",
+  "Grateful moment preserved! Recovery is built one day at a time. 🌟",
+  "Thankfulness recorded! You're building something beautiful. 🎯",
+  "Gratitude saved! Each entry is a step toward peace. 🕊️",
+  "Captured with appreciation! Your journey inspires. 🌈",
+  "Saved with thanks! Recovery grows through daily practice. 🌿",
+  "Gratitude recorded! You're creating positive change. ⭐",
+  "Thankful entry saved! Keep nurturing your recovery. 🌺",
+  "Gratitude captured! Every moment of thanks matters. 💫",
+  "Saved with appreciation! Your dedication shows. 🎉",
+  "Grateful thoughts recorded! Recovery is a daily choice. 🌅",
+  "Thankfulness saved! You're building a life of meaning. 🏗️",
+  "Gratitude preserved! Each entry strengthens your foundation. 🧱",
+  "Captured with thanks! Your recovery journey continues. 🛤️",
+  "Saved with gratitude! Peace comes from daily practice. ☮️",
+  "Thankful moment recorded! You're creating positive energy. ⚡",
+  "Gratitude saved! Every entry builds your resilience. 🛡️",
+  "Captured with appreciation! Recovery is about progress. 📈",
+  "Saved with thanks! Your gratitude practice inspires. 💡",
+  "Grateful entry recorded! Each day brings new opportunities. 🌅",
+  "Thankfulness saved! You're building something lasting. 🏛️",
+  "Gratitude captured! Recovery is a beautiful journey. 🌸",
+];
+
+// Function to get daily quote based on day of year
+function getDailyQuote(): string {
+  const now = new Date();
+  const dayOfYear = Math.floor((now.getTime() - new Date(now.getFullYear(), 0, 0).getTime()) / (1000 * 60 * 60 * 24));
+  const index = dayOfYear % GRATITUDE_QUOTES.length;
+  return GRATITUDE_QUOTES[index];
+}
+
+// Function to calculate consecutive days of gratitude practice
+function getConsecutiveDays(entries: any[]): number {
+  if (!entries || entries.length === 0) return 0;
+  
+  // Sort entries by date (newest first)
+  const sortedEntries = entries
+    .filter(entry => entry.date)
+    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  
+  let consecutiveDays = 0;
+  const today = new Date();
+  
+  for (let i = 0; i < sortedEntries.length; i++) {
+    const entryDate = new Date(sortedEntries[i].date);
+    const expectedDate = new Date(today);
+    expectedDate.setDate(expectedDate.getDate() - i);
+    
+    // Check if dates match (ignoring time)
+    if (entryDate.toDateString() === expectedDate.toDateString()) {
+      consecutiveDays++;
+    } else {
+      break;
+    }
+  }
+  
+  return consecutiveDays;
+}
+
+// Function to get milestone-based toast message
+function getMilestoneToastMessage(consecutiveDays: number): string {
+  const baseMessage = "Your gratitude list has been recorded! Keep up the great work!";
+  
+  // Special milestone messages
+  if (consecutiveDays === 100) {
+    return `${baseMessage} 💯 100 days in a row!`;
+  } else if (consecutiveDays === 90) {
+    return `${baseMessage} 🚀 90 days in a row!`;
+  } else if (consecutiveDays === 60) {
+    return `${baseMessage} 🔥 60 days in a row!`;
+  } else if (consecutiveDays === 50) {
+    return `${baseMessage} 🎯 50 days in a row!`;
+  } else if (consecutiveDays === 30) {
+    return `${baseMessage} 🏆 30 days in a row!`;
+  } else if (consecutiveDays >= 31) {
+    // Acknowledge every day after 30
+    return `${baseMessage} 🔥 ${consecutiveDays} days in a row!`;
+  } else if (consecutiveDays >= 21) {
+    return `${baseMessage} 🌟 21 days in a row!`;
+  } else if (consecutiveDays >= 15) {
+    return `${baseMessage} 💪 15 days in a row!`;
+  } else if (consecutiveDays >= 7) {
+    return `${baseMessage} ✨ 7 days in a row!`;
+  } else if (consecutiveDays >= 3) {
+    return `${baseMessage} 🌱 3 days in a row!`;
+  } else {
+    return baseMessage;
+  }
+}
 
 const styles = StyleSheet.create({
   keyboardAvoidingView: {
@@ -93,9 +219,19 @@ const styles = StyleSheet.create({
     color: Colors.light.tint,
     marginLeft: 8,
   },
-  confirmationText: {
+  quoteCard: {
+    backgroundColor: 'rgba(255, 255, 255, 0.6)',
+    borderRadius: 16,
+    padding: 20,
+    marginBottom: 16,
+    borderWidth: 0.5,
+    borderColor: 'rgba(255, 255, 255, 0.25)',
+  },
+  quoteText: {
     fontSize: 16,
     color: Colors.light.text,
+    lineHeight: 24,
+    fontStyle: 'italic',
     textAlign: 'center',
   },
   weeklyProgress: {
@@ -133,10 +269,22 @@ const styles = StyleSheet.create({
     backgroundColor: '#e9ecef',
     borderColor: 'rgba(108, 117, 125, 0.2)',
   },
+  streakContainer: {
+    alignItems: 'center',
+    marginTop: 8,
+  },
   streakText: {
+    fontSize: 16,
+    color: Colors.light.tint,
+    textAlign: 'center',
+    fontWeight: adjustFontWeight('600'),
+    marginBottom: 4,
+  },
+  streakMotivation: {
     fontSize: 14,
     color: Colors.light.muted,
     textAlign: 'center',
+    fontStyle: 'italic',
   },
   gratitudeContainer: {
     marginTop: 16,
@@ -335,6 +483,81 @@ const styles = StyleSheet.create({
     marginHorizontal: 16,
     justifyContent: 'space-between',
   },
+  toastOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.3)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 1000,
+  },
+  toastModal: {
+    backgroundColor: Colors.light.tint,
+    borderRadius: 20,
+    paddingVertical: 24,
+    paddingHorizontal: 24,
+    marginHorizontal: 40,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
+    elevation: 8,
+    minWidth: 280,
+  },
+  toastIconContainer: {
+    marginBottom: 12,
+  },
+  toastTitle: {
+    color: 'white',
+    fontSize: 18,
+    fontWeight: adjustFontWeight('700'),
+    textAlign: 'center',
+    marginBottom: 8,
+  },
+  toastMessage: {
+    color: 'white',
+    fontSize: 14,
+    fontWeight: adjustFontWeight('500'),
+    textAlign: 'center',
+    lineHeight: 20,
+    marginBottom: 20,
+  },
+  toastButtons: {
+    flexDirection: 'row',
+    gap: 12,
+    justifyContent: 'center',
+  },
+  toastCancelButton: {
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    borderRadius: 8,
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
+  },
+  toastCancelText: {
+    color: 'white',
+    fontSize: 14,
+    fontWeight: adjustFontWeight('600'),
+  },
+  toastOkButton: {
+    backgroundColor: 'white',
+    borderRadius: 8,
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+  },
+  toastOkText: {
+    color: Colors.light.tint,
+    fontSize: 14,
+    fontWeight: adjustFontWeight('600'),
+  },
 });
 
 const formatDateDisplay = (date: Date): string => {
@@ -353,6 +576,8 @@ export default function GratitudeListScreen() {
   const [inputValue, setInputValue] = useState('');
   const [showConfirmation, setShowConfirmation] = useState(false);
   const [showSavedEntries, setShowSavedEntries] = useState(false);
+  const [dailyQuote] = useState(() => getDailyQuote());
+  const [showToast, setShowToast] = useState(false);
   const inputRef = useRef<TextInput>(null);
   
   // Always call hooks in the same order
@@ -553,12 +778,18 @@ export default function GratitudeListScreen() {
       return;
     }
 
+    // Haptic feedback for success
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+
     // Save for today's date and mark as completed
     saveDetailedEntry(gratitudeItems);
     completeToday(gratitudeItems);
     
     // Set showConfirmation to true to show the completed screen with saved message
     setShowConfirmation(true);
+    
+    // Show toast on completion screen
+    setShowToast(true);
   };
 
   const canSave = () => {
@@ -588,16 +819,12 @@ export default function GratitudeListScreen() {
         <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
           {/* Header */}
           <View style={styles.header}>
+            <CheckCircle color={Colors.light.tint} size={32} />
             <Text style={styles.title}>Gratitude Complete</Text>
             <Text style={styles.subtitle}>{formatDateDisplay(today)}</Text>
           </View>
 
-          {/* Confirmation Message */}
-          <View style={styles.card}>
-            <Text style={styles.confirmationText}>
-              Your gratitude practice strengthens your recovery — one day at a time.
-            </Text>
-          </View>
+
 
           {/* Weekly Progress */}
           <View style={styles.card}>
@@ -628,9 +855,18 @@ export default function GratitudeListScreen() {
               })}
             </View>
             
-            <Text style={styles.streakText}>
-              {weeklyStreak} {weeklyStreak === 1 ? 'day' : 'days'} this week — keep it going!
-            </Text>
+            <View style={styles.streakContainer}>
+              <Text style={styles.streakText}>
+                {weeklyStreak} {weeklyStreak === 1 ? 'day' : 'days'} this week
+              </Text>
+              <Text style={styles.streakMotivation}>
+                {weeklyStreak >= 7 ? 'Perfect week! 🎉' : 
+                 weeklyStreak >= 5 ? 'Amazing progress! 🌟' :
+                 weeklyStreak >= 3 ? 'Great job! 💪' :
+                 weeklyStreak >= 1 ? 'Keep it going! ✨' :
+                 'Start your streak today! 🌱'}
+              </Text>
+            </View>
           </View>
 
           {/* Privacy Notice */}
@@ -654,6 +890,38 @@ export default function GratitudeListScreen() {
           visible={showSavedEntries}
           onClose={() => setShowSavedEntries(false)}
         />
+        
+        {/* Success Toast Modal */}
+        {showToast && (
+          <View style={styles.toastOverlay}>
+            <View style={styles.toastModal}>
+              <View style={styles.toastIconContainer}>
+                <CheckCircle size={32} color="white" />
+              </View>
+              <Text style={styles.toastTitle}>Gratitude Saved!</Text>
+              <Text style={styles.toastMessage}>
+                {getMilestoneToastMessage(getConsecutiveDays(gratitudeStore?.savedEntries || []))}
+              </Text>
+              <View style={styles.toastButtons}>
+                <TouchableOpacity 
+                  style={styles.toastCancelButton}
+                  onPress={() => {
+                    setShowToast(false);
+                    handleEditGratitude();
+                  }}
+                >
+                  <Text style={styles.toastCancelText}>Back to Edit</Text>
+                </TouchableOpacity>
+                <TouchableOpacity 
+                  style={styles.toastOkButton}
+                  onPress={() => setShowToast(false)}
+                >
+                  <Text style={styles.toastOkText}>OK</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        )}
       </ScreenContainer>
     );
   }
@@ -681,9 +949,14 @@ export default function GratitudeListScreen() {
         >
           {/* Header */}
           <View style={styles.header}>
+            <Heart color={Colors.light.tint} size={32} />
             <Text style={styles.title}>Gratitude List</Text>
-            <Text style={styles.description}>
-              &ldquo;A full and thankful heart cannot entertain great conceits.&rdquo; — As Bill Sees It, p 37
+          </View>
+
+          {/* Daily Quote */}
+          <View style={styles.quoteCard}>
+            <Text style={styles.quoteText}>
+              &ldquo;{dailyQuote}&rdquo;
             </Text>
           </View>
 
@@ -698,7 +971,7 @@ export default function GratitudeListScreen() {
                 <TextInput
                   ref={inputRef}
                   style={styles.textInput}
-                  placeholder={gratitudeItems.length === 0 ? "e.g., My sobriety" : ''}
+                  placeholder="e.g., My sobriety"
                   placeholderTextColor={Colors.light.muted}
                   value={inputValue}
                   onChangeText={setInputValue}
