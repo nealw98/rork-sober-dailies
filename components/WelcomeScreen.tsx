@@ -20,7 +20,7 @@ export default function WelcomeScreen() {
 
   const handleTermsPress = async () => {
     try {
-      const url = 'https://soberdailies.com/terms';
+      const url = 'https://www.apple.com/legal/internet-services/itunes/dev/stdeula/';
       const supported = await Linking.canOpenURL(url);
       if (supported) {
         await Linking.openURL(url);
