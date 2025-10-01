@@ -20,7 +20,7 @@ const spotCheckPairs = [
   { watchFor: 'Envy', striveFor: 'Generosity' },
   { watchFor: 'Laziness', striveFor: 'Activity' },
   { watchFor: 'Procrastination', striveFor: 'Promptness' },
-  { watchFor: 'Insincere', striveFor: 'Straightforward' },
+  { watchFor: 'Insincerity', striveFor: 'Straight Forwardness' },
   { watchFor: 'Negative Thinking', striveFor: 'Positive Thinking' },
   { watchFor: 'Criticizing', striveFor: 'Look For The Good' },
   { watchFor: 'Fear', striveFor: 'Faith' },
