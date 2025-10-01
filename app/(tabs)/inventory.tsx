@@ -20,7 +20,7 @@ const spotCheckPairs = [
   { watchFor: 'Envy', striveFor: 'Generosity' },
   { watchFor: 'Laziness', striveFor: 'Activity' },
   { watchFor: 'Procrastination', striveFor: 'Promptness' },
-  { watchFor: 'Insincerity', striveFor: 'Straightforwardness' },
+  { watchFor: 'Insincere', striveFor: 'Straightforward' },
   { watchFor: 'Negative Thinking', striveFor: 'Positive Thinking' },
   { watchFor: 'Criticizing', striveFor: 'Look For The Good' },
   { watchFor: 'Fear', striveFor: 'Faith' },
@@ -41,21 +41,28 @@ const Inventory = () => {
             
             {/* Column Headers */}
             <View style={styles.headerRow}>
-              <Text style={styles.headerLeft}>Watch For</Text>
-              <Text style={styles.headerRight}>Strive For</Text>
+              <Text style={styles.headerLeft}>Watch For:</Text>
+              <Text style={styles.headerRight}>Strive For:</Text>
             </View>
 
             {/* Spot Check Cards */}
             <View style={styles.cardsContainer}>
               {spotCheckPairs.map((pair, index) => (
-                <View key={index} style={styles.card}>
-                  <Text style={styles.watchForText} numberOfLines={1}>
-                    {pair.watchFor}
-                  </Text>
-                  <Text style={styles.arrow}>→</Text>
-                  <Text style={styles.striveForText} numberOfLines={1}>
-                    {pair.striveFor}
-                  </Text>
+                <View key={index} style={styles.cardWrapper}>
+                  <LinearGradient
+                    colors={['rgba(255, 159, 64, 0.15)', 'rgba(78, 205, 196, 0.15)']}
+                    start={{ x: 0, y: 0.5 }}
+                    end={{ x: 1, y: 0.5 }}
+                    style={styles.card}
+                  >
+                    <Text style={styles.watchForText}>
+                      {pair.watchFor}
+                    </Text>
+                    <Text style={styles.arrow}>→</Text>
+                    <Text style={styles.striveForText}>
+                      {pair.striveFor}
+                    </Text>
+                  </LinearGradient>
                 </View>
               ))}
             </View>
@@ -98,38 +105,42 @@ const styles = StyleSheet.create({
   headerLeft: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#dc3545',
+    color: Colors.light.text,
     flex: 1,
     textAlign: 'left',
   },
   headerRight: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#28a745',
+    color: Colors.light.text,
     flex: 1,
     textAlign: 'right',
   },
   cardsContainer: {
     gap: 12,
   },
-  card: {
-    backgroundColor: 'rgba(255, 255, 255, 0.8)',
+  cardWrapper: {
     borderRadius: 12,
-    padding: 16,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    backgroundColor: 'rgba(255, 255, 255, 0.8)',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 3,
   },
+  card: {
+    borderRadius: 12,
+    padding: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    minHeight: 60,
+  },
   watchForText: {
     flex: 1,
     fontSize: 16,
     fontWeight: '500',
-    color: '#dc3545',
+    color: Colors.light.text,
     textAlign: 'left',
   },
   arrow: {
@@ -142,7 +153,7 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 16,
     fontWeight: '500',
-    color: '#28a745',
+    color: Colors.light.text,
     textAlign: 'right',
   },
 });
