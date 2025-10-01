@@ -26,6 +26,16 @@ const spotCheckPairs = [
   { watchFor: 'Fear', striveFor: 'Faith' },
 ];
 
+// Different gradient options to try
+const gradientOptions = [
+  ['rgba(255, 107, 107, 0.18)', 'rgba(135, 206, 250, 0.18)'], // Coral to Sky Blue
+  ['rgba(255, 159, 64, 0.18)', 'rgba(147, 112, 219, 0.18)'],  // Orange to Purple
+  ['rgba(244, 143, 177, 0.18)', 'rgba(100, 181, 246, 0.18)'], // Pink to Blue
+  ['rgba(255, 138, 101, 0.18)', 'rgba(126, 213, 111, 0.18)'], // Peach to Soft Green
+  ['rgba(255, 179, 71, 0.18)', 'rgba(106, 168, 230, 0.18)'],  // Amber to Periwinkle
+  ['rgba(239, 83, 80, 0.18)', 'rgba(171, 71, 188, 0.18)'],    // Red-Orange to Deep Purple
+];
+
 const Inventory = () => {
   return (
     <ScreenContainer style={styles.container} noPadding>
@@ -47,24 +57,27 @@ const Inventory = () => {
 
             {/* Spot Check Cards */}
             <View style={styles.cardsContainer}>
-              {spotCheckPairs.map((pair, index) => (
-                <View key={index} style={styles.cardWrapper}>
-                  <LinearGradient
-                    colors={['rgba(255, 159, 64, 0.15)', 'rgba(78, 205, 196, 0.15)']}
-                    start={{ x: 0, y: 0.5 }}
-                    end={{ x: 1, y: 0.5 }}
-                    style={styles.card}
-                  >
-                    <Text style={styles.watchForText}>
-                      {pair.watchFor}
-                    </Text>
-                    <Text style={styles.arrow}>→</Text>
-                    <Text style={styles.striveForText}>
-                      {pair.striveFor}
-                    </Text>
-                  </LinearGradient>
-                </View>
-              ))}
+              {spotCheckPairs.map((pair, index) => {
+                const gradient = gradientOptions[index % gradientOptions.length];
+                return (
+                  <View key={index} style={styles.cardWrapper}>
+                    <LinearGradient
+                      colors={[gradient[0], gradient[1]]}
+                      start={{ x: 0, y: 0.5 }}
+                      end={{ x: 1, y: 0.5 }}
+                      style={styles.card}
+                    >
+                      <Text style={styles.watchForText}>
+                        {pair.watchFor}
+                      </Text>
+                      <Text style={styles.arrow}>→</Text>
+                      <Text style={styles.striveForText}>
+                        {pair.striveFor}
+                      </Text>
+                    </LinearGradient>
+                  </View>
+                );
+              })}
             </View>
           </View>
         </ScrollView>
