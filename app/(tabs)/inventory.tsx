@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
-import { StyleSheet, View, Text, ScrollView, TouchableOpacity } from 'react-native';
+import React, { useState, useRef } from 'react';
+import { StyleSheet, View, Text, ScrollView, TouchableOpacity, Animated } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { RotateCcw } from 'lucide-react-native';
+import * as Haptics from 'expo-haptics';
 import Colors from '@/constants/colors';
 import ScreenContainer from '@/components/ScreenContainer';
 import { useNavigation } from '@react-navigation/native';
@@ -29,8 +30,115 @@ const spotCheckPairs = [
   { id: 'fear', lookFor: 'Fear', striveFor: 'Faith' },
 ];
 
+type SelectionState = 'none' | 'lookFor' | 'complete';
+
+const SpotCheckPair: React.FC<{
+  pair: typeof spotCheckPairs[0];
+  state: SelectionState;
+  onPressLookFor: () => void;
+  onPressStriveFor: () => void;
+}> = ({ pair, state, onPressLookFor, onPressStriveFor }) => {
+  const arrowScale = useRef(new Animated.Value(1)).current;
+  const cardScale = useRef(new Animated.Value(1)).current;
+  const striveForScale = useRef(new Animated.Value(1)).current;
+  const prevStateRef = useRef<SelectionState>('none');
+
+  React.useEffect(() => {
+    // Only animate on state change
+    if (prevStateRef.current === state) return;
+    const previousState = prevStateRef.current;
+    prevStateRef.current = state;
+
+    if (state === 'lookFor') {
+      // Pulse arrow when Look For is selected
+      Animated.loop(
+        Animated.sequence([
+          Animated.timing(arrowScale, {
+            toValue: 1.3,
+            duration: 600,
+            useNativeDriver: true,
+          }),
+          Animated.timing(arrowScale, {
+            toValue: 1,
+            duration: 600,
+            useNativeDriver: true,
+          }),
+        ])
+      ).start();
+
+      // Same card pop animation as green to draw attention
+      Animated.sequence([
+        Animated.timing(cardScale, {
+          toValue: 1.05,
+          duration: 150,
+          useNativeDriver: true,
+        }),
+        Animated.timing(cardScale, {
+          toValue: 1,
+          duration: 150,
+          useNativeDriver: true,
+        }),
+      ]).start();
+    } else if (state === 'complete') {
+      // Stop all animations when complete
+      arrowScale.stopAnimation();
+      arrowScale.setValue(1);
+      striveForScale.setValue(1);
+      cardScale.setValue(1);
+    } else {
+      arrowScale.stopAnimation();
+      arrowScale.setValue(1);
+      striveForScale.stopAnimation();
+      striveForScale.setValue(1);
+      cardScale.setValue(1);
+    }
+  }, [state]);
+
+  return (
+    <Animated.View style={[styles.cardWrapper, { transform: [{ scale: cardScale }] }]}>
+      <View style={styles.card}>
+        <TouchableOpacity 
+          style={styles.textButton}
+          onPress={onPressLookFor}
+          activeOpacity={0.7}
+        >
+          <Text style={[
+            styles.lookForText,
+            state === 'lookFor' && styles.selectedText,
+            state === 'lookFor' && styles.lookForSelected,
+          ]}>
+            {pair.lookFor}
+          </Text>
+        </TouchableOpacity>
+        
+        <Animated.Text style={[
+          styles.arrow,
+          { transform: [{ scale: arrowScale }] }
+        ]}>
+          →
+        </Animated.Text>
+        
+        <TouchableOpacity 
+          style={styles.textButton}
+          onPress={onPressStriveFor}
+          activeOpacity={0.7}
+        >
+          <Animated.Text style={[
+            styles.striveForText,
+            (state === 'lookFor' || state === 'complete') && styles.selectedText,
+            state === 'complete' && styles.striveForSelected,
+            { transform: [{ scale: striveForScale }] }
+          ]}>
+            {pair.striveFor}
+          </Animated.Text>
+        </TouchableOpacity>
+      </View>
+    </Animated.View>
+  );
+};
+
 const Inventory = () => {
-  const [selections, setSelections] = useState<{ [key: string]: 'lookFor' | 'striveFor' | null }>({});
+  const [selections, setSelections] = useState<{ [key: string]: SelectionState }>({});
   const navigation = useNavigation();
 
   // Add reset button to header
@@ -50,33 +158,35 @@ const Inventory = () => {
     });
   }, [navigation]);
 
-  const handlePress = (pairId: string, side: 'lookFor' | 'striveFor') => {
+  const handlePressLookFor = (pairId: string) => {
     setSelections(prev => {
-      const currentSelection = prev[pairId];
-      if (currentSelection === side) {
-        // Clicking the same side again - deselect
-        return { ...prev, [pairId]: null };
+      const current = prev[pairId] || 'none';
+      if (current === 'lookFor' || current === 'complete') {
+        // Deselect if already selected
+        return { ...prev, [pairId]: 'none' };
       } else {
-        // Select the new side (or switch sides)
-        return { ...prev, [pairId]: side };
+        // Select Look For - add haptic feedback
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+        return { ...prev, [pairId]: 'lookFor' };
+      }
+    });
+  };
+
+  const handlePressStriveFor = (pairId: string) => {
+    setSelections(prev => {
+      const current = prev[pairId] || 'none';
+      if (current === 'complete') {
+        // Deselect - go back to none (red is cleared)
+        return { ...prev, [pairId]: 'none' };
+      } else {
+        // Complete the pair (reward animation) - this also clears red if it was set
+        return { ...prev, [pairId]: 'complete' };
       }
     });
   };
 
   const handleReset = () => {
     setSelections({});
-  };
-
-  const getTextStyle = (pairId: string, side: 'lookFor' | 'striveFor', baseStyle: any) => {
-    const selection = selections[pairId];
-    if (selection === side) {
-      return [
-        baseStyle,
-        styles.selectedText,
-        side === 'lookFor' ? styles.lookForSelected : styles.striveForSelected
-      ];
-    }
-    return baseStyle;
   };
 
   return (
@@ -100,29 +210,13 @@ const Inventory = () => {
             {/* Spot Check Cards */}
             <View style={styles.cardsContainer}>
               {spotCheckPairs.map((pair) => (
-                <View key={pair.id} style={[styles.cardWrapper, styles.card]}>
-                  <TouchableOpacity 
-                    style={styles.textButton}
-                    onPress={() => handlePress(pair.id, 'lookFor')}
-                    activeOpacity={0.7}
-                  >
-                    <Text style={getTextStyle(pair.id, 'lookFor', styles.lookForText)}>
-                      {pair.lookFor}
-                    </Text>
-                  </TouchableOpacity>
-                  
-                  <Text style={styles.arrow}>→</Text>
-                  
-                  <TouchableOpacity 
-                    style={styles.textButton}
-                    onPress={() => handlePress(pair.id, 'striveFor')}
-                    activeOpacity={0.7}
-                  >
-                    <Text style={getTextStyle(pair.id, 'striveFor', styles.striveForText)}>
-                      {pair.striveFor}
-                    </Text>
-                  </TouchableOpacity>
-                </View>
+                <SpotCheckPair
+                  key={pair.id}
+                  pair={pair}
+                  state={selections[pair.id] || 'none'}
+                  onPressLookFor={() => handlePressLookFor(pair.id)}
+                  onPressStriveFor={() => handlePressStriveFor(pair.id)}
+                />
               ))}
             </View>
           </View>
