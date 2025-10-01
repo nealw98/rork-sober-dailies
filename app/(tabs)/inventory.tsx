@@ -19,7 +19,7 @@ const spotCheckPairs = [
   { id: 'impatience', lookFor: 'Impatience', striveFor: 'Patience' },
   { id: 'hate', lookFor: 'Hate', striveFor: 'Love' },
   { id: 'resentment', lookFor: 'Resentment', striveFor: 'Forgiveness' },
-  { id: 'falsePride', lookFor: 'False Pride', striveFor: 'Humility' },
+  { id: 'falsePride', lookFor: 'Pride', striveFor: 'Humility' },
   { id: 'jealousy', lookFor: 'Jealousy', striveFor: 'Trust' },
   { id: 'envy', lookFor: 'Envy', striveFor: 'Generosity' },
   { id: 'laziness', lookFor: 'Laziness', striveFor: 'Activity' },
