@@ -259,13 +259,13 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   headerLeft: {
-    fontSize: 17,
+    fontSize: 18,
     fontWeight: '600',
     color: Colors.light.text,
     textAlign: 'left',
   },
   headerRight: {
-    fontSize: 17,
+    fontSize: 18,
     fontWeight: '600',
     color: Colors.light.text,
     textAlign: 'right',
@@ -294,7 +294,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   lookForText: {
-    fontSize: 14,
+    fontSize: 16,
     fontWeight: '400',
     color: Colors.light.text,
     textAlign: 'left',
@@ -306,7 +306,7 @@ const styles = StyleSheet.create({
     fontWeight: 'normal',
   },
   striveForText: {
-    fontSize: 14,
+    fontSize: 16,
     fontWeight: '400',
     color: Colors.light.text,
     textAlign: 'right',
