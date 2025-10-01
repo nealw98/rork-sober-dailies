@@ -39,32 +39,28 @@ const Inventory = () => {
           <View style={styles.contentContainer}>
             <Text style={styles.title}>Spot Check Inventory</Text>
             
-            {/* Column Headers */}
-            <View style={styles.headerRow}>
-              <Text style={styles.headerLeft}>Watch For:</Text>
-              <Text style={styles.headerRight}>Strive For:</Text>
-            </View>
+            {/* Main Container with all pairs */}
+            <View style={styles.mainContainer}>
+              {/* Column Headers */}
+              <View style={styles.headerRow}>
+                <Text style={styles.headerLeft}>Watch For</Text>
+                <Text style={styles.headerRight}>Strive For</Text>
+              </View>
 
-            {/* Spot Check Cards */}
-            <View style={styles.cardsContainer}>
-              {spotCheckPairs.map((pair, index) => (
-                <View key={index} style={styles.cardWrapper}>
-                  <LinearGradient
-                    colors={['rgba(255, 107, 107, 0.18)', 'rgba(126, 213, 111, 0.18)']}
-                    start={{ x: 0, y: 0.5 }}
-                    end={{ x: 1, y: 0.5 }}
-                    style={styles.card}
-                  >
-                    <Text style={styles.watchForText}>
-                      {pair.watchFor}
-                    </Text>
-                    <Text style={styles.arrow}>→</Text>
-                    <Text style={styles.striveForText}>
-                      {pair.striveFor}
-                    </Text>
-                  </LinearGradient>
-                </View>
-              ))}
+              {/* Spot Check Cards */}
+              <View style={styles.cardsContainer}>
+                {spotCheckPairs.map((pair, index) => (
+                  <View key={index} style={[styles.cardWrapper, styles.card]}>
+                      <Text style={styles.watchForText}>
+                        {pair.watchFor}
+                      </Text>
+                      <Text style={styles.arrow}>→</Text>
+                      <Text style={styles.striveForText}>
+                        {pair.striveFor}
+                      </Text>
+                  </View>
+                ))}
+              </View>
             </View>
           </View>
         </ScrollView>
@@ -96,25 +92,36 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginBottom: 24,
   },
+  mainContainer: {
+    backgroundColor: 'rgba(186, 85, 211, 0.12)',
+    borderRadius: 16,
+    padding: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 5,
+  },
   headerRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    paddingHorizontal: 20,
+    paddingHorizontal: 16,
     marginBottom: 16,
+    gap: 24,
   },
   headerLeft: {
     fontSize: 18,
     fontWeight: '600',
     color: Colors.light.text,
     flex: 1,
-    textAlign: 'left',
+    textAlign: 'center',
   },
   headerRight: {
     fontSize: 18,
     fontWeight: '600',
     color: Colors.light.text,
     flex: 1,
-    textAlign: 'right',
+    textAlign: 'center',
   },
   cardsContainer: {
     gap: 12,
@@ -123,10 +130,10 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     backgroundColor: 'rgba(255, 255, 255, 0.8)',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.08,
+    shadowRadius: 3,
+    elevation: 2,
   },
   card: {
     borderRadius: 12,
