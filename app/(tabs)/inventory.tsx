@@ -1,32 +1,84 @@
-import React from 'react';
-import { StyleSheet, View, Text, ScrollView } from 'react-native';
+import React, { useState } from 'react';
+import { StyleSheet, View, Text, ScrollView, TouchableOpacity } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { RotateCcw } from 'lucide-react-native';
 import Colors from '@/constants/colors';
 import ScreenContainer from '@/components/ScreenContainer';
+import { useNavigation } from '@react-navigation/native';
+import { useLayoutEffect } from 'react';
 
-// Spot check pairs: Watch For → Strive For
+// Spot check pairs: Look For → Strive For
 const spotCheckPairs = [
-  { watchFor: 'Anger', striveFor: 'Self-Control' },
-  { watchFor: 'Self-Pity', striveFor: 'Self-Forgiveness' },
-  { watchFor: 'Self-Justification', striveFor: 'Integrity' },
-  { watchFor: 'Self-Importance', striveFor: 'Modesty' },
-  { watchFor: 'Self-Condemnation', striveFor: 'Self-Esteem' },
-  { watchFor: 'Dishonesty', striveFor: 'Honesty' },
-  { watchFor: 'Impatience', striveFor: 'Patience' },
-  { watchFor: 'Hate', striveFor: 'Love' },
-  { watchFor: 'Resentment', striveFor: 'Forgiveness' },
-  { watchFor: 'False Pride', striveFor: 'Humility' },
-  { watchFor: 'Jealousy', striveFor: 'Trust' },
-  { watchFor: 'Envy', striveFor: 'Generosity' },
-  { watchFor: 'Laziness', striveFor: 'Activity' },
-  { watchFor: 'Procrastination', striveFor: 'Promptness' },
-  { watchFor: 'Insincerity', striveFor: 'Straight Forwardness' },
-  { watchFor: 'Negative Thinking', striveFor: 'Positive Thinking' },
-  { watchFor: 'Criticizing', striveFor: 'Look For The Good' },
-  { watchFor: 'Fear', striveFor: 'Faith' },
+  { id: 'anger', lookFor: 'Anger', striveFor: 'Self-Control' },
+  { id: 'selfPity', lookFor: 'Self-Pity', striveFor: 'Self-Forgiveness' },
+  { id: 'selfJustification', lookFor: 'Self-Justification', striveFor: 'Integrity' },
+  { id: 'selfImportance', lookFor: 'Self-Importance', striveFor: 'Modesty' },
+  { id: 'selfCondemnation', lookFor: 'Self-Condemnation', striveFor: 'Self-Esteem' },
+  { id: 'dishonesty', lookFor: 'Dishonesty', striveFor: 'Honesty' },
+  { id: 'impatience', lookFor: 'Impatience', striveFor: 'Patience' },
+  { id: 'hate', lookFor: 'Hate', striveFor: 'Love' },
+  { id: 'resentment', lookFor: 'Resentment', striveFor: 'Forgiveness' },
+  { id: 'falsePride', lookFor: 'False Pride', striveFor: 'Humility' },
+  { id: 'jealousy', lookFor: 'Jealousy', striveFor: 'Trust' },
+  { id: 'envy', lookFor: 'Envy', striveFor: 'Generosity' },
+  { id: 'laziness', lookFor: 'Laziness', striveFor: 'Activity' },
+  { id: 'procrastination', lookFor: 'Procrastination', striveFor: 'Promptness' },
+  { id: 'insincerity', lookFor: 'Insincerity', striveFor: 'Straight Forwardness' },
+  { id: 'negativeThinking', lookFor: 'Negative Thinking', striveFor: 'Positive Thinking' },
+  { id: 'criticizing', lookFor: 'Criticizing', striveFor: 'Look For The Good' },
+  { id: 'fear', lookFor: 'Fear', striveFor: 'Faith' },
 ];
 
 const Inventory = () => {
+  const [selections, setSelections] = useState<{ [key: string]: 'lookFor' | 'striveFor' | null }>({});
+  const navigation = useNavigation();
+
+  // Add reset button to header
+  useLayoutEffect(() => {
+    navigation.setOptions({
+      headerRight: () => (
+        <TouchableOpacity 
+          onPress={handleReset}
+          style={styles.resetButton}
+          accessible={true}
+          accessibilityLabel="Reset all selections"
+          accessibilityRole="button"
+        >
+          <RotateCcw size={20} color={Colors.light.tint} />
+        </TouchableOpacity>
+      ),
+    });
+  }, [navigation]);
+
+  const handlePress = (pairId: string, side: 'lookFor' | 'striveFor') => {
+    setSelections(prev => {
+      const currentSelection = prev[pairId];
+      if (currentSelection === side) {
+        // Clicking the same side again - deselect
+        return { ...prev, [pairId]: null };
+      } else {
+        // Select the new side (or switch sides)
+        return { ...prev, [pairId]: side };
+      }
+    });
+  };
+
+  const handleReset = () => {
+    setSelections({});
+  };
+
+  const getTextStyle = (pairId: string, side: 'lookFor' | 'striveFor', baseStyle: any) => {
+    const selection = selections[pairId];
+    if (selection === side) {
+      return [
+        baseStyle,
+        styles.selectedText,
+        side === 'lookFor' ? styles.lookForSelected : styles.striveForSelected
+      ];
+    }
+    return baseStyle;
+  };
+
   return (
     <ScreenContainer style={styles.container} noPadding>
       <LinearGradient
@@ -39,28 +91,39 @@ const Inventory = () => {
           <View style={styles.contentContainer}>
             <Text style={styles.title}>Spot Check Inventory</Text>
             
-            {/* Main Container with all pairs */}
-            <View style={styles.mainContainer}>
-              {/* Column Headers */}
-              <View style={styles.headerRow}>
-                <Text style={styles.headerLeft}>Watch For</Text>
-                <Text style={styles.headerRight}>Strive For</Text>
-              </View>
+            {/* Column Headers */}
+            <View style={styles.headerRow}>
+              <Text style={styles.headerLeft}>Look For</Text>
+              <Text style={styles.headerRight}>Strive For</Text>
+            </View>
 
-              {/* Spot Check Cards */}
-              <View style={styles.cardsContainer}>
-                {spotCheckPairs.map((pair, index) => (
-                  <View key={index} style={[styles.cardWrapper, styles.card]}>
-                      <Text style={styles.watchForText}>
-                        {pair.watchFor}
-                      </Text>
-                      <Text style={styles.arrow}>→</Text>
-                      <Text style={styles.striveForText}>
-                        {pair.striveFor}
-                      </Text>
-                  </View>
-                ))}
-              </View>
+            {/* Spot Check Cards */}
+            <View style={styles.cardsContainer}>
+              {spotCheckPairs.map((pair) => (
+                <View key={pair.id} style={[styles.cardWrapper, styles.card]}>
+                  <TouchableOpacity 
+                    style={styles.textButton}
+                    onPress={() => handlePress(pair.id, 'lookFor')}
+                    activeOpacity={0.7}
+                  >
+                    <Text style={getTextStyle(pair.id, 'lookFor', styles.lookForText)}>
+                      {pair.lookFor}
+                    </Text>
+                  </TouchableOpacity>
+                  
+                  <Text style={styles.arrow}>→</Text>
+                  
+                  <TouchableOpacity 
+                    style={styles.textButton}
+                    onPress={() => handlePress(pair.id, 'striveFor')}
+                    activeOpacity={0.7}
+                  >
+                    <Text style={getTextStyle(pair.id, 'striveFor', styles.striveForText)}>
+                      {pair.striveFor}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              ))}
             </View>
           </View>
         </ScrollView>
@@ -92,36 +155,26 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginBottom: 24,
   },
-  mainContainer: {
-    backgroundColor: 'rgba(186, 85, 211, 0.12)',
-    borderRadius: 16,
-    padding: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 8,
-    elevation: 5,
+  resetButton: {
+    paddingRight: 16,
   },
   headerRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    paddingHorizontal: 16,
+    paddingHorizontal: 24,
     marginBottom: 16,
-    gap: 24,
   },
   headerLeft: {
-    fontSize: 18,
+    fontSize: 17,
     fontWeight: '600',
     color: Colors.light.text,
-    flex: 1,
-    textAlign: 'center',
+    textAlign: 'left',
   },
   headerRight: {
-    fontSize: 18,
+    fontSize: 17,
     fontWeight: '600',
     color: Colors.light.text,
-    flex: 1,
-    textAlign: 'center',
+    textAlign: 'right',
   },
   cardsContainer: {
     gap: 12,
@@ -130,10 +183,10 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     backgroundColor: 'rgba(255, 255, 255, 0.8)',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.08,
-    shadowRadius: 3,
-    elevation: 2,
+    shadowOffset: { width: 0, height: 0.5 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
   },
   card: {
     borderRadius: 12,
@@ -143,25 +196,35 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     minHeight: 60,
   },
-  watchForText: {
+  textButton: {
     flex: 1,
-    fontSize: 16,
-    fontWeight: '500',
+  },
+  lookForText: {
+    fontSize: 14,
+    fontWeight: '400',
     color: Colors.light.text,
     textAlign: 'left',
   },
   arrow: {
-    fontSize: 20,
+    fontSize: 18,
     color: Colors.light.text,
     marginHorizontal: 12,
-    fontWeight: 'bold',
+    fontWeight: 'normal',
   },
   striveForText: {
-    flex: 1,
-    fontSize: 16,
-    fontWeight: '500',
+    fontSize: 14,
+    fontWeight: '400',
     color: Colors.light.text,
     textAlign: 'right',
+  },
+  selectedText: {
+    fontWeight: 'bold',
+  },
+  lookForSelected: {
+    color: '#dc3545',
+  },
+  striveForSelected: {
+    color: '#28a745',
   },
 });
 
