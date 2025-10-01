@@ -4,51 +4,29 @@ import { LinearGradient } from 'expo-linear-gradient';
 import Colors from '@/constants/colors';
 import ScreenContainer from '@/components/ScreenContainer';
 
+// Spot check pairs: Watch For → Strive For
+const spotCheckPairs = [
+  { watchFor: 'Anger', striveFor: 'Self-Control' },
+  { watchFor: 'Self-Pity', striveFor: 'Self-Forgiveness' },
+  { watchFor: 'Self-Justification', striveFor: 'Integrity' },
+  { watchFor: 'Self-Importance', striveFor: 'Modesty' },
+  { watchFor: 'Self-Condemnation', striveFor: 'Self-Esteem' },
+  { watchFor: 'Dishonesty', striveFor: 'Honesty' },
+  { watchFor: 'Impatience', striveFor: 'Patience' },
+  { watchFor: 'Hate', striveFor: 'Love' },
+  { watchFor: 'Resentment', striveFor: 'Forgiveness' },
+  { watchFor: 'False Pride', striveFor: 'Humility' },
+  { watchFor: 'Jealousy', striveFor: 'Trust' },
+  { watchFor: 'Envy', striveFor: 'Generosity' },
+  { watchFor: 'Laziness', striveFor: 'Activity' },
+  { watchFor: 'Procrastination', striveFor: 'Promptness' },
+  { watchFor: 'Insincerity', striveFor: 'Straightforwardness' },
+  { watchFor: 'Negative Thinking', striveFor: 'Positive Thinking' },
+  { watchFor: 'Criticizing', striveFor: 'Look For The Good' },
+  { watchFor: 'Fear', striveFor: 'Faith' },
+];
+
 const Inventory = () => {
-  const onTheBeam = [
-    'Honesty',
-    'Faith',
-    'Courage',
-    'Considerate',
-    'Humility',
-    'Giving',
-    'Calm',
-    'Grateful',
-    'Patience',
-    'Tolerance',
-    'Forgiveness',
-    'Love',
-    'Self-Forgetfulness',
-    'Humility',
-    'Modesty',
-    'Self-Forgiveness',
-    'Trust',
-    'Moderation',
-    'Action'
-  ];
-
-  const offTheBeam = [
-    'Dishonest',
-    'Fear',
-    'Frightened',
-    'Inconsiderate',
-    'Pride',
-    'Greedy',
-    'Anger',
-    'Envy',
-    'Impatient',
-    'Intolerant',
-    'Resentment',
-    'Hate',
-    'Self-Pity',
-    'Self-Justification',
-    'Self-Importance',
-    'Self-Condemnation',
-    'Suspicion',
-    'Gluttony',
-    'Sloth'
-  ];
-
   return (
     <ScreenContainer style={styles.container} noPadding>
       <LinearGradient
@@ -59,24 +37,27 @@ const Inventory = () => {
       >
         <ScrollView contentContainerStyle={styles.scrollContent}>
           <View style={styles.contentContainer}>
-            <Text style={styles.titleLine2}>Are you on the beam?</Text>
-            <View style={styles.cardContainer}>
-              <View style={styles.gridContainer}>
-                <View style={styles.columnContainer}>
-                  <Text style={[styles.columnTitleOn, { fontStyle: 'italic' }]}>ON THE BEAM</Text>
-                  <View style={styles.underline} />
-                  {onTheBeam.map((item, index) => (
-                    <Text key={index} style={[styles.itemText, styles.noWrap]}>{item}</Text>
-                  ))}
+            <Text style={styles.title}>Spot Check Inventory</Text>
+            
+            {/* Column Headers */}
+            <View style={styles.headerRow}>
+              <Text style={styles.headerLeft}>Watch For</Text>
+              <Text style={styles.headerRight}>Strive For</Text>
+            </View>
+
+            {/* Spot Check Cards */}
+            <View style={styles.cardsContainer}>
+              {spotCheckPairs.map((pair, index) => (
+                <View key={index} style={styles.card}>
+                  <Text style={styles.watchForText} numberOfLines={1}>
+                    {pair.watchFor}
+                  </Text>
+                  <Text style={styles.arrow}>→</Text>
+                  <Text style={styles.striveForText} numberOfLines={1}>
+                    {pair.striveFor}
+                  </Text>
                 </View>
-                <View style={styles.columnContainer}>
-                  <Text style={[styles.columnTitleOff, { fontStyle: 'italic' }]}>OFF THE BEAM</Text>
-                  <View style={styles.underline} />
-                  {offTheBeam.map((item, index) => (
-                    <Text key={index} style={[styles.itemText, styles.noWrap]}>{item}</Text>
-                  ))}
-                </View>
-              </View>
+              ))}
             </View>
           </View>
         </ScrollView>
@@ -94,102 +75,76 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     flexGrow: 1,
-    justifyContent: 'flex-start',
-    paddingTop: 0,
+    paddingTop: 20,
+    paddingHorizontal: 16,
+    paddingBottom: 40,
   },
   contentContainer: {
-    minHeight: '100%',
-    alignItems: 'center',
-    justifyContent: 'flex-start',
-    paddingVertical: 20,
-    paddingHorizontal: 16,
+    flex: 1,
   },
-  cardContainer: {
-    width: '100%',
-    backgroundColor: 'rgba(255, 255, 255, 0.6)',
-    borderRadius: 16,
-    padding: 20,
-    paddingTop: 20,
-    // Remove blue card outline/shadow
-    shadowColor: 'transparent',
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0,
-    shadowRadius: 0,
-    elevation: 0,
-  },
-  titleLine1: {
-    fontSize: 24,
+  title: {
+    fontSize: 28,
     fontWeight: 'bold',
     color: Colors.light.text,
-    marginBottom: 8,
     textAlign: 'center',
+    marginBottom: 24,
   },
-  titleLine2: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: Colors.light.text,
-    marginBottom: 32,
-    textAlign: 'center',
-  },
-  subtitle: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: Colors.light.text,
-    marginBottom: 32,
-    textAlign: 'center',
-  },
-  gridContainer: {
+  headerRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    width: '100%',
-    paddingHorizontal: 10,
-  },
-  columnContainer: {
-    width: '48%',
+    paddingHorizontal: 20,
     marginBottom: 16,
   },
-  columnTitleOn: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#333',
-    textAlign: 'center',
-    marginBottom: 8,
-    lineHeight: 18,
+  headerLeft: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#dc3545',
+    flex: 1,
+    textAlign: 'left',
   },
-  columnTitleOff: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#333',
-    textAlign: 'center',
-    marginBottom: 8,
-    lineHeight: 18,
+  headerRight: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#28a745',
+    flex: 1,
+    textAlign: 'right',
   },
-  underline: {
-    height: 2,
-    backgroundColor: '#333',
-    marginBottom: 8,
-    marginTop: -8,
-    width: '80%',
-    alignSelf: 'center',
+  cardsContainer: {
+    gap: 12,
   },
-  itemText: {
+  card: {
+    backgroundColor: 'rgba(255, 255, 255, 0.8)',
+    borderRadius: 12,
+    padding: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  watchForText: {
+    flex: 1,
     fontSize: 16,
     fontWeight: '500',
-    color: Colors.light.text,
-    textAlign: 'center',
-    paddingVertical: 8,
-    minHeight: 40,
-    lineHeight: 20,
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
+    color: '#dc3545',
+    textAlign: 'left',
   },
-  noWrap: {
-    flexShrink: 0,
+  arrow: {
+    fontSize: 20,
+    color: Colors.light.text,
+    marginHorizontal: 12,
+    fontWeight: 'bold',
+  },
+  striveForText: {
+    flex: 1,
+    fontSize: 16,
+    fontWeight: '500',
+    color: '#28a745',
+    textAlign: 'right',
   },
 });
-
-// Added console log to track file loading
-console.log('📋 NEW INVENTORY FILE LOADED 📋');
 
 export default Inventory;
