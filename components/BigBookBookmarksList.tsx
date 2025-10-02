@@ -1,6 +1,6 @@
 import React from 'react';
-import { View, Text, StyleSheet, Modal, TouchableOpacity, ScrollView, SafeAreaView } from 'react-native';
-import { X } from 'lucide-react-native';
+import { View, Text, StyleSheet, Modal, TouchableOpacity, ScrollView, SafeAreaView, Alert } from 'react-native';
+import { X, Trash2 } from 'lucide-react-native';
 import Colors from '@/constants/colors';
 import { BigBookBookmark } from '@/hooks/useBigBookBookmarks';
 
@@ -19,6 +19,24 @@ export default function BigBookBookmarksList({
   onSelectBookmark,
   onRemoveBookmark,
 }: BigBookBookmarksListProps) {
+  const handleRemoveBookmark = (bookmark: BigBookBookmark) => {
+    Alert.alert(
+      'Remove Bookmark',
+      `Remove bookmark for page ${bookmark.pageNumber}?`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { 
+          text: 'Remove', 
+          style: 'destructive',
+          onPress: () => {
+            console.log('[BookmarkList] User confirmed removal of:', bookmark.id);
+            onRemoveBookmark(bookmark.id);
+          }
+        },
+      ]
+    );
+  };
+
   return (
     <Modal
       visible={visible}
@@ -55,10 +73,11 @@ export default function BigBookBookmarksList({
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={styles.deleteButton}
-                  onPress={() => onRemoveBookmark(bookmark.id)}
+                  onPress={() => handleRemoveBookmark(bookmark)}
                   activeOpacity={0.7}
+                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
                 >
-                  <X size={18} color={Colors.light.muted} />
+                  <Trash2 size={18} color="#FF6B6B" />
                 </TouchableOpacity>
               </View>
             ))
@@ -142,7 +161,7 @@ const styles = StyleSheet.create({
   },
   deleteButton: {
     padding: 8,
-    marginLeft: 12,
+    marginLeft: 20,
   },
 });
 
