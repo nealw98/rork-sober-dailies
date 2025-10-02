@@ -205,9 +205,22 @@ const MarkdownReader = ({
         console.log(`[Bookmark] Initializing to first page: ${firstPage}`);
         currentPageRef.current = firstPage;
         updateBookmarkState();
+      } else {
+        // For chapters with Roman numerals (Foreword, Doctor's Opinion), use special page numbers
+        // Foreword starts at page xxiii (Roman 23)
+        // Doctor's Opinion starts at page xiii (Roman 13)
+        if (sectionId === 'foreword-first') {
+          console.log(`[Bookmark] Initializing Foreword to page 23 (xxiii)`);
+          currentPageRef.current = 23;
+          updateBookmarkState();
+        } else if (sectionId === 'doctors-opinion') {
+          console.log(`[Bookmark] Initializing Doctor's Opinion to page 13 (xiii)`);
+          currentPageRef.current = 13;
+          updateBookmarkState();
+        }
       }
     }
-  }, [targetPageNumber, updateBookmarkState, pageNumbers]);
+  }, [targetPageNumber, updateBookmarkState, pageNumbers, sectionId]);
 
   // Cleanup timer on unmount
   useEffect(() => {
