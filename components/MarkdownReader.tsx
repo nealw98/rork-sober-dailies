@@ -148,9 +148,10 @@ const MarkdownReader = ({
     
     console.log(`[Bookmark] Toggling bookmark for page ${currentPageRef.current}`);
     const wasAdded = await toggleBookmark(currentPageRef.current, title, sectionId);
-    console.log(`[Bookmark] Toggle result:`, wasAdded);
-    updateBookmarkState();
-  }, [toggleBookmark, title, sectionId, updateBookmarkState]);
+    console.log(`[Bookmark] Toggle result - wasAdded:`, wasAdded);
+    // Directly set the state based on the toggle result
+    setCurrentPageBookmarked(wasAdded !== false);
+  }, [toggleBookmark, title, sectionId]);
 
   // Page tracking function for last page feature
   const trackCurrentPage = useCallback((scrollY: number) => {

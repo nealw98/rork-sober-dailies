@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react';
+import React, { createContext, useContext, useState, useCallback, useEffect, ReactNode } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export interface BigBookBookmark {
@@ -11,7 +11,21 @@ export interface BigBookBookmark {
 
 const STORAGE_KEY = 'BIG_BOOK_BOOKMARKS';
 
-export const useBigBookBookmarks = () => {
+interface BigBookBookmarksContextType {
+  bookmarks: BigBookBookmark[];
+  addBookmark: (pageNumber: number, chapterTitle: string, chapterId: string) => Promise<boolean>;
+  removeBookmark: (bookmarkId: string) => Promise<void>;
+  isPageBookmarked: (pageNumber: number) => boolean;
+  toggleBookmark: (pageNumber: number, chapterTitle: string, chapterId: string) => Promise<boolean>;
+  clearAllBookmarks: () => Promise<void>;
+  hasBookmarks: boolean;
+  bookmarkCount: number;
+  reloadBookmarks: () => Promise<void>;
+}
+
+const BigBookBookmarksContext = createContext<BigBookBookmarksContextType | undefined>(undefined);
+
+export const BigBookBookmarksProvider = ({ children }: { children: ReactNode }) => {
   const [bookmarks, setBookmarks] = useState<BigBookBookmark[]>([]);
 
   const loadBookmarks = useCallback(async () => {
@@ -84,22 +98,22 @@ export const useBigBookBookmarks = () => {
   }, [bookmarks]);
 
   const isPageBookmarked = useCallback((pageNumber: number) => {
-    return bookmarks.some(b => b.pageNumber === pageNumber);
+    const result = bookmarks.some(b => b.pageNumber === pageNumber);
+    console.log(`[Bookmarks] isPageBookmarked(${pageNumber}):`, result, 'total bookmarks:', bookmarks.length);
+    return result;
   }, [bookmarks]);
 
   const toggleBookmark = useCallback(async (pageNumber: number, chapterTitle: string, chapterId: string) => {
     const existing = bookmarks.find(b => b.pageNumber === pageNumber);
-    console.log('[Bookmarks] Toggle - existing:', existing);
+    console.log('[Bookmarks] Toggle - existing:', existing, 'for page:', pageNumber);
     if (existing) {
       await removeBookmark(existing.id);
-      await loadBookmarks(); // Reload to ensure state is fresh
-      return false; // Removed
+      return false; // Removed - page is NOT bookmarked now
     } else {
       const result = await addBookmark(pageNumber, chapterTitle, chapterId);
-      await loadBookmarks(); // Reload to ensure state is fresh
-      return result; // Added
+      return result; // Added - page IS bookmarked now
     }
-  }, [bookmarks, addBookmark, removeBookmark, loadBookmarks]);
+  }, [bookmarks, addBookmark, removeBookmark]);
 
   const clearAllBookmarks = useCallback(async () => {
     try {
@@ -111,7 +125,7 @@ export const useBigBookBookmarks = () => {
     }
   }, []);
 
-  return {
+  const value = {
     bookmarks,
     addBookmark,
     removeBookmark,
@@ -122,5 +136,18 @@ export const useBigBookBookmarks = () => {
     bookmarkCount: bookmarks.length,
     reloadBookmarks: loadBookmarks,
   };
+
+  return (
+    <BigBookBookmarksContext.Provider value={value}>
+      {children}
+    </BigBookBookmarksContext.Provider>
+  );
 };
 
+export const useBigBookBookmarks = () => {
+  const context = useContext(BigBookBookmarksContext);
+  if (!context) {
+    throw new Error('useBigBookBookmarks must be used within BigBookBookmarksProvider');
+  }
+  return context;
+};
