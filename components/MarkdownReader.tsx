@@ -190,7 +190,7 @@ const MarkdownReader = ({
     }
   }, [saveLastPage, isPageBookmarked]);
 
-  // Initialize bookmark state on mount
+  // Initialize bookmark state and current page on mount
   useEffect(() => {
     if (targetPageNumber) {
       const pageNum = parseInt(targetPageNumber, 10);
@@ -198,8 +198,16 @@ const MarkdownReader = ({
         currentPageRef.current = pageNum;
         updateBookmarkState();
       }
+    } else {
+      // If no target page, initialize to the first page of the chapter
+      if (pageNumbers.length > 0) {
+        const firstPage = pageNumbers[0];
+        console.log(`[Bookmark] Initializing to first page: ${firstPage}`);
+        currentPageRef.current = firstPage;
+        updateBookmarkState();
+      }
     }
-  }, [targetPageNumber, updateBookmarkState]);
+  }, [targetPageNumber, updateBookmarkState, pageNumbers]);
 
   // Cleanup timer on unmount
   useEffect(() => {
