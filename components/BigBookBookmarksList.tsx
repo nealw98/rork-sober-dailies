@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet, Modal, TouchableOpacity, ScrollView, SafeAreaView, Alert } from 'react-native';
+import { View, Text, StyleSheet, Modal, TouchableOpacity, ScrollView, SafeAreaView } from 'react-native';
 import { X, Trash2 } from 'lucide-react-native';
 import Colors from '@/constants/colors';
 import { BigBookBookmark } from '@/hooks/useBigBookBookmarks';
@@ -19,22 +19,9 @@ export default function BigBookBookmarksList({
   onSelectBookmark,
   onRemoveBookmark,
 }: BigBookBookmarksListProps) {
-  const handleRemoveBookmark = (bookmark: BigBookBookmark) => {
-    Alert.alert(
-      'Remove Bookmark',
-      `Remove bookmark for page ${bookmark.pageNumber}?`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { 
-          text: 'Remove', 
-          style: 'destructive',
-          onPress: () => {
-            console.log('[BookmarkList] User confirmed removal of:', bookmark.id);
-            onRemoveBookmark(bookmark.id);
-          }
-        },
-      ]
-    );
+  const handleRemoveBookmark = (bookmarkId: string) => {
+    console.log('[BookmarkList] Removing bookmark:', bookmarkId);
+    onRemoveBookmark(bookmarkId);
   };
 
   return (
@@ -73,7 +60,7 @@ export default function BigBookBookmarksList({
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={styles.deleteButton}
-                  onPress={() => handleRemoveBookmark(bookmark)}
+                  onPress={() => handleRemoveBookmark(bookmark.id)}
                   activeOpacity={0.7}
                   hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
                 >
