@@ -330,52 +330,6 @@ function BigBookBrowserContent() {
     setTimeout(() => setClearSearch(false), 100);
   }, []);
 
-  const handleLastPagePress = useCallback((pageNumber: number) => {
-    console.log('🟢 BigBookBrowser: Jumping to last page:', pageNumber);
-    
-    // Validate page number (same validation as handleSubmitPage)
-    if (pageNumber < 1 || (pageNumber > 164 && pageNumber < 567) || pageNumber > 568) {
-      // If invalid, treat as page 1 (no toast as per requirements)
-      pageNumber = 1;
-    }
-    
-    const navigationResult = navigateToPageWithHighlight(pageNumber);
-    if (navigationResult && navigationResult.success) {
-      const chapter = bigBookData.flatMap(cat => cat.sections).find(sec => sec.pages && pageNumber >= parseInt(sec.pages.split('-')[0], 10) && pageNumber <= parseInt(sec.pages.split('-')[1], 10));
-      setCurrentMarkdown({
-        content: navigationResult.content,
-        title: chapter ? chapter.title : `Big Book`,
-        id: 'last-page-navigation',
-        initialScrollPosition: navigationResult.scrollPosition || 0,
-        targetPageNumber: navigationResult.targetPageMarker || String(pageNumber),
-        searchHighlight: {
-          query: '',
-          position: 0,
-          length: 0
-        }
-      });
-      setMarkdownReaderVisible(true);
-    } else {
-      // If page not found, treat as page 1 (no toast as per requirements)
-      const fallbackResult = navigateToPageWithHighlight(1);
-      if (fallbackResult && fallbackResult.success) {
-        const chapter = bigBookData.flatMap(cat => cat.sections).find(sec => sec.pages && 1 >= parseInt(sec.pages.split('-')[0], 10) && 1 <= parseInt(sec.pages.split('-')[1], 10));
-        setCurrentMarkdown({
-          content: fallbackResult.content,
-          title: chapter ? chapter.title : `Big Book`,
-          id: 'last-page-navigation',
-          initialScrollPosition: fallbackResult.scrollPosition || 0,
-          targetPageNumber: fallbackResult.targetPageMarker || '1',
-          searchHighlight: {
-            query: '',
-            position: 0,
-            length: 0
-          }
-        });
-        setMarkdownReaderVisible(true);
-      }
-    }
-  }, []);
 
   const handleGoToPage = useCallback(() => {
     console.log('🟢 BigBookBrowser: Go to Page button pressed');
@@ -451,7 +405,21 @@ function BigBookBrowserContent() {
         <View style={styles.mainContent}>
           <View style={styles.header}>
             {Platform.OS !== 'android' && (
-              <Text style={styles.title}>Alcoholics Anonymous</Text>
+              <View style={styles.headerTitleRow}>
+                <Text style={styles.title}>Alcoholics Anonymous</Text>
+                <TouchableOpacity 
+                  style={styles.headerBookmarkButton}
+                  onPress={handleBookmarksPress}
+                  activeOpacity={0.7}
+                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                >
+                  <Bookmark 
+                    size={24} 
+                    color={hasBookmarks ? Colors.light.tint : Colors.light.muted}
+                    fill={hasBookmarks ? Colors.light.tint : 'none'}
+                  />
+                </TouchableOpacity>
+              </View>
             )}
             <Text style={styles.subtitle}>The basic textbook for the AA program.</Text>
           </View>
@@ -461,29 +429,16 @@ function BigBookBrowserContent() {
               <BigBookSearchBar onSearch={handleSearch} clearSearch={clearSearch} />
             </View>
             {Platform.OS !== 'android' && (
-              <View style={styles.headerButtons}>
-                <TouchableOpacity 
-                  style={styles.bookmarkIconButton}
-                  onPress={handleBookmarksPress}
-                  activeOpacity={0.7}
-                >
-                  <Bookmark 
-                    size={20} 
-                    color={hasBookmarks ? Colors.light.tint : Colors.light.muted}
-                    fill={hasBookmarks ? Colors.light.tint : 'none'}
-                  />
-                </TouchableOpacity>
-                <TouchableOpacity 
-                  style={styles.goToPageButton}
-                  onPress={handleGoToPage}
-                  onPressIn={() => console.log('🟢 BigBookBrowser: Go to Page onPressIn')}
-                  onPressOut={() => console.log('🟢 BigBookBrowser: Go to Page onPressOut')}
-                  activeOpacity={0.7}
-                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                >
-                  <Text style={styles.goToPageButtonText}>Go to Page</Text>
-                </TouchableOpacity>
-              </View>
+              <TouchableOpacity 
+                style={styles.goToPageButton}
+                onPress={handleGoToPage}
+                onPressIn={() => console.log('🟢 BigBookBrowser: Go to Page onPressIn')}
+                onPressOut={() => console.log('🟢 BigBookBrowser: Go to Page onPressOut')}
+                activeOpacity={0.7}
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              >
+                <Text style={styles.goToPageButtonText}>Go to Page</Text>
+              </TouchableOpacity>
             )}
           </View>
           
@@ -559,7 +514,6 @@ function BigBookBrowserContent() {
           visible={pageInputVisible}
           onClose={() => setPageInputVisible(false)}
           onSubmit={handleSubmitPage}
-          onLastPagePress={handleLastPagePress}
         />
       )}
 
@@ -617,6 +571,16 @@ const styles = StyleSheet.create({
     color: Colors.light.text,
     marginBottom: 4,
     textAlign: "center",
+  },
+  headerTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 16,
+  },
+  headerBookmarkButton: {
+    marginLeft: 12,
+    padding: 4,
   },
   subtitle: {
     fontSize: 16,
@@ -699,14 +663,6 @@ const styles = StyleSheet.create({
   searchBarContainer: {
     flex: 1,
     marginRight: 12,
-  },
-  headerButtons: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  bookmarkIconButton: {
-    padding: 8,
   },
   goToPageButton: {
     backgroundColor: Colors.light.tint,

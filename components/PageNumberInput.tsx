@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   Modal,
   View,
@@ -10,27 +10,15 @@ import {
 } from 'react-native';
 import Colors from '@/constants/colors';
 import { adjustFontWeight } from '@/constants/fonts';
-import { useLastPageStore } from '@/hooks/use-last-page-store';
 
 interface PageNumberInputProps {
   visible: boolean;
   onClose: () => void;
   onSubmit: (pageNumber: string) => void;
-  onLastPagePress?: (pageNumber: number) => void;
 }
 
-export default function PageNumberInput({ visible, onClose, onSubmit, onLastPagePress }: PageNumberInputProps) {
+export default function PageNumberInput({ visible, onClose, onSubmit }: PageNumberInputProps) {
   const [pageNumber, setPageNumber] = useState('');
-  const { lastPage, refreshLastPage } = useLastPageStore();
-  
-  // Debug logging and refresh when dialog opens
-  useEffect(() => {
-    if (visible) {
-      console.log('🔍 PageNumberInput: lastPage value is:', lastPage);
-      // Refresh the last page data when dialog opens
-      refreshLastPage();
-    }
-  }, [visible, lastPage, refreshLastPage]);
 
   const handleSubmit = () => {
     onSubmit(pageNumber);
@@ -40,13 +28,6 @@ export default function PageNumberInput({ visible, onClose, onSubmit, onLastPage
   const handleClose = () => {
     setPageNumber('');
     onClose();
-  };
-
-  const handleLastPagePress = () => {
-    if (lastPage && onLastPagePress) {
-      onLastPagePress(lastPage);
-      handleClose();
-    }
   };
 
   return (
@@ -60,16 +41,6 @@ export default function PageNumberInput({ visible, onClose, onSubmit, onLastPage
         <View style={styles.modalContent}>
           <Text style={styles.title}>Go to Page</Text>
           <Text style={styles.subtitle}>Enter page number (1-164 or 567-568)</Text>
-          
-          {lastPage && (
-            <TouchableOpacity
-              style={styles.lastPageButton}
-              onPress={handleLastPagePress}
-              activeOpacity={0.7}
-            >
-              <Text style={styles.lastPageButtonText}>Last Page (p. {lastPage})</Text>
-            </TouchableOpacity>
-          )}
           
           <TextInput
             style={styles.input}
@@ -141,21 +112,6 @@ const styles = StyleSheet.create({
     color: Colors.light.muted,
     marginBottom: 16,
     textAlign: 'center',
-  },
-  lastPageButton: {
-    backgroundColor: 'transparent',
-    borderWidth: 1,
-    borderColor: Colors.light.tint,
-    paddingVertical: 10,
-    paddingHorizontal: 16,
-    borderRadius: 8,
-    marginBottom: 16,
-    alignItems: 'center',
-  },
-  lastPageButtonText: {
-    color: Colors.light.tint,
-    fontSize: 14,
-    fontWeight: adjustFontWeight('500'),
   },
   input: {
     borderWidth: 1,
