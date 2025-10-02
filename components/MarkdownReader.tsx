@@ -22,6 +22,29 @@ import { getChapterPages, findPageIndex, PageItem } from '@/constants/bigbook/co
 import { useLastPageStore } from '@/hooks/use-last-page-store';
 import { useBigBookBookmarks } from '@/hooks/useBigBookBookmarks';
 
+// Convert Roman numerals to Arabic numbers
+const romanToArabic = (roman: string): number => {
+  const romanMap: { [key: string]: number } = {
+    'i': 1, 'v': 5, 'x': 10, 'l': 50, 'c': 100, 'd': 500, 'm': 1000
+  };
+  
+  let result = 0;
+  const lowerRoman = roman.toLowerCase();
+  
+  for (let i = 0; i < lowerRoman.length; i++) {
+    const current = romanMap[lowerRoman[i]];
+    const next = romanMap[lowerRoman[i + 1]];
+    
+    if (next && current < next) {
+      result -= current;
+    } else {
+      result += current;
+    }
+  }
+  
+  return result;
+};
+
 // Extend PageItem type to include startPosition
 interface ExtendedPageItem extends PageItem {
   startPosition?: number;
@@ -193,8 +216,16 @@ const MarkdownReader = ({
   // Initialize bookmark state and current page on mount
   useEffect(() => {
     if (targetPageNumber) {
-      const pageNum = parseInt(targetPageNumber, 10);
-      if (!isNaN(pageNum)) {
+      // Try parsing as regular number first
+      let pageNum = parseInt(targetPageNumber, 10);
+      
+      // If that fails, try converting from Roman numeral
+      if (isNaN(pageNum)) {
+        pageNum = romanToArabic(targetPageNumber);
+        console.log(`[Bookmark] Converted Roman numeral ${targetPageNumber} to ${pageNum}`);
+      }
+      
+      if (!isNaN(pageNum) && pageNum > 0) {
         currentPageRef.current = pageNum;
         updateBookmarkState();
       }
