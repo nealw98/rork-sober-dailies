@@ -155,7 +155,7 @@ function BigBookBrowserContent() {
   const [bookmarksListVisible, setBookmarksListVisible] = useState(false);
 
   // Bookmarks
-  const { bookmarks, hasBookmarks, removeBookmark } = useBigBookBookmarks();
+  const { bookmarks, hasBookmarks, removeBookmark, reloadBookmarks } = useBigBookBookmarks();
 
   // Safety mechanism to ensure modals are closed on component mount
   useEffect(() => {
@@ -411,9 +411,11 @@ function BigBookBrowserContent() {
     }
   }, []);
 
-  const handleBookmarksPress = useCallback(() => {
+  const handleBookmarksPress = useCallback(async () => {
+    console.log('[Bookmarks] Opening bookmarks list, reloading...');
+    await reloadBookmarks();
     setBookmarksListVisible(true);
-  }, []);
+  }, [reloadBookmarks]);
 
   const handleSelectBookmark = useCallback((bookmark: any) => {
     setBookmarksListVisible(false);
