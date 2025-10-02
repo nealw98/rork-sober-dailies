@@ -131,19 +131,26 @@ const MarkdownReader = ({
   }, []);
 
   // Update bookmark state when current page changes
-  useEffect(() => {
+  const updateBookmarkState = useCallback(() => {
     if (currentPageRef.current) {
-      setCurrentPageBookmarked(isPageBookmarked(currentPageRef.current));
+      const isBookmarked = isPageBookmarked(currentPageRef.current);
+      console.log(`[Bookmark] Page ${currentPageRef.current} bookmarked:`, isBookmarked);
+      setCurrentPageBookmarked(isBookmarked);
     }
-  }, [currentPageRef.current, isPageBookmarked]);
+  }, [isPageBookmarked]);
 
   // Handle bookmark toggle
   const handleBookmarkPress = useCallback(async () => {
-    if (!currentPageRef.current) return;
+    if (!currentPageRef.current) {
+      console.log('[Bookmark] No current page to bookmark');
+      return;
+    }
     
-    await toggleBookmark(currentPageRef.current, title, sectionId);
-    setCurrentPageBookmarked(prev => !prev);
-  }, [toggleBookmark, title, sectionId]);
+    console.log(`[Bookmark] Toggling bookmark for page ${currentPageRef.current}`);
+    const wasAdded = await toggleBookmark(currentPageRef.current, title, sectionId);
+    console.log(`[Bookmark] Toggle result:`, wasAdded);
+    updateBookmarkState();
+  }, [toggleBookmark, title, sectionId, updateBookmarkState]);
 
   // Page tracking function for last page feature
   const trackCurrentPage = useCallback((scrollY: number) => {
@@ -161,7 +168,11 @@ const MarkdownReader = ({
     if (currentPage && currentPage !== currentPageRef.current) {
       currentPageRef.current = currentPage;
       lastScrollTimeRef.current = Date.now();
-      setCurrentPageBookmarked(isPageBookmarked(currentPage));
+      
+      // Update bookmark icon state
+      const isBookmarked = isPageBookmarked(currentPage);
+      console.log(`[Bookmark] Page changed to ${currentPage}, bookmarked:`, isBookmarked);
+      setCurrentPageBookmarked(isBookmarked);
       
       // Clear existing timer
       if (dwellTimerRef.current) {
@@ -177,6 +188,17 @@ const MarkdownReader = ({
       }, 600);
     }
   }, [saveLastPage, isPageBookmarked]);
+
+  // Initialize bookmark state on mount
+  useEffect(() => {
+    if (targetPageNumber) {
+      const pageNum = parseInt(targetPageNumber, 10);
+      if (!isNaN(pageNum)) {
+        currentPageRef.current = pageNum;
+        updateBookmarkState();
+      }
+    }
+  }, [targetPageNumber, updateBookmarkState]);
 
   // Cleanup timer on unmount
   useEffect(() => {
