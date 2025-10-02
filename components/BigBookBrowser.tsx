@@ -40,7 +40,7 @@ interface ExtendedSearchHighlight {
 import { BigBookStoreProvider, useBigBookStore } from "@/hooks/use-bigbook-store";
 import { BigBookCategory, BigBookSection } from "@/types/bigbook";
 import { adjustFontWeight } from "@/constants/fonts";
-import { useBigBookBookmarks } from "@/hooks/useBigBookBookmarks";
+import { BigBookBookmarksProvider, useBigBookBookmarks } from "@/hooks/useBigBookBookmarks";
 
 import PDFViewer from "@/components/PDFViewer";
 import MarkdownReader from "./MarkdownReader";
@@ -155,7 +155,7 @@ function BigBookBrowserContent() {
   const [bookmarksListVisible, setBookmarksListVisible] = useState(false);
 
   // Bookmarks
-  const { bookmarks, hasBookmarks, removeBookmark, reloadBookmarks } = useBigBookBookmarks();
+  const { bookmarks, hasBookmarks, removeBookmark } = useBigBookBookmarks();
 
   // Safety mechanism to ensure modals are closed on component mount
   useEffect(() => {
@@ -411,11 +411,10 @@ function BigBookBrowserContent() {
     }
   }, []);
 
-  const handleBookmarksPress = useCallback(async () => {
-    console.log('[Bookmarks] Opening bookmarks list, reloading...');
-    await reloadBookmarks();
+  const handleBookmarksPress = useCallback(() => {
+    console.log('[Bookmarks] Opening bookmarks list, count:', bookmarks.length);
     setBookmarksListVisible(true);
-  }, [reloadBookmarks]);
+  }, [bookmarks]);
 
   const handleSelectBookmark = useCallback((bookmark: any) => {
     setBookmarksListVisible(false);
@@ -579,7 +578,9 @@ export default function BigBookBrowser() {
   console.log('🟢 BigBookBrowser: Main wrapper component rendering');
   return (
     <BigBookStoreProvider>
-      <BigBookBrowserContent />
+      <BigBookBookmarksProvider>
+        <BigBookBrowserContent />
+      </BigBookBookmarksProvider>
     </BigBookStoreProvider>
   );
 }
