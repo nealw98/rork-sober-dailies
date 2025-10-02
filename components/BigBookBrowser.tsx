@@ -127,7 +127,17 @@ const CategorySection = ({ category, onOpenContent }: {
   );
 };
 
-function BigBookBrowserContent() {
+interface BigBookBrowserContentProps {
+  bookmarksListVisible: boolean;
+  setBookmarksListVisible: (visible: boolean) => void;
+  setHasBookmarks: (hasBookmarks: boolean) => void;
+}
+
+function BigBookBrowserContent({ 
+  bookmarksListVisible, 
+  setBookmarksListVisible,
+  setHasBookmarks 
+}: BigBookBrowserContentProps) {
   // Component is rendering normally
   
   const [pdfViewerVisible, setPdfViewerVisible] = useState(false);
@@ -152,10 +162,14 @@ function BigBookBrowserContent() {
   const [clearSearch, setClearSearch] = useState(false);
   const [pageInputVisible, setPageInputVisible] = useState(false);
   const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
-  const [bookmarksListVisible, setBookmarksListVisible] = useState(false);
 
   // Bookmarks
-  const { bookmarks, hasBookmarks, removeBookmark } = useBigBookBookmarks();
+  const { bookmarks, hasBookmarks, removeBookmark, reloadBookmarks } = useBigBookBookmarks();
+  
+  // Update parent component when bookmarks change
+  useEffect(() => {
+    setHasBookmarks(hasBookmarks);
+  }, [hasBookmarks, setHasBookmarks]);
 
   // Safety mechanism to ensure modals are closed on component mount
   useEffect(() => {
@@ -405,21 +419,7 @@ function BigBookBrowserContent() {
         <View style={styles.mainContent}>
           <View style={styles.header}>
             {Platform.OS !== 'android' && (
-              <View style={styles.headerTitleRow}>
-                <Text style={styles.title}>Alcoholics Anonymous</Text>
-                <TouchableOpacity 
-                  style={styles.headerBookmarkButton}
-                  onPress={handleBookmarksPress}
-                  activeOpacity={0.7}
-                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                >
-                  <Bookmark 
-                    size={24} 
-                    color={hasBookmarks ? Colors.light.tint : Colors.light.muted}
-                    fill={hasBookmarks ? Colors.light.tint : 'none'}
-                  />
-                </TouchableOpacity>
-              </View>
+              <Text style={styles.title}>Alcoholics Anonymous</Text>
             )}
             <Text style={styles.subtitle}>The basic textbook for the AA program.</Text>
           </View>
@@ -528,12 +528,20 @@ function BigBookBrowserContent() {
   );
 }
 
-export default function BigBookBrowser() {
+export default function BigBookBrowser({ 
+  bookmarksListVisible, 
+  setBookmarksListVisible,
+  setHasBookmarks 
+}: BigBookBrowserContentProps) {
   console.log('🟢 BigBookBrowser: Main wrapper component rendering');
   return (
     <BigBookStoreProvider>
       <BigBookBookmarksProvider>
-        <BigBookBrowserContent />
+        <BigBookBrowserContent 
+          bookmarksListVisible={bookmarksListVisible}
+          setBookmarksListVisible={setBookmarksListVisible}
+          setHasBookmarks={setHasBookmarks}
+        />
       </BigBookBookmarksProvider>
     </BigBookStoreProvider>
   );
@@ -571,16 +579,6 @@ const styles = StyleSheet.create({
     color: Colors.light.text,
     marginBottom: 4,
     textAlign: "center",
-  },
-  headerTitleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 16,
-  },
-  headerBookmarkButton: {
-    marginLeft: 12,
-    padding: 4,
   },
   subtitle: {
     fontSize: 16,
