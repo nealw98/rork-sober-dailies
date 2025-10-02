@@ -16,6 +16,7 @@ import {
   ExternalLink,
   Clock,
   FileText,
+  Bookmark,
 } from "lucide-react-native";
 import { LinearGradient } from 'expo-linear-gradient';
 
@@ -39,6 +40,7 @@ interface ExtendedSearchHighlight {
 import { BigBookStoreProvider, useBigBookStore } from "@/hooks/use-bigbook-store";
 import { BigBookCategory, BigBookSection } from "@/types/bigbook";
 import { adjustFontWeight } from "@/constants/fonts";
+import { useBigBookBookmarks } from "@/hooks/useBigBookBookmarks";
 
 import PDFViewer from "@/components/PDFViewer";
 import MarkdownReader from "./MarkdownReader";
@@ -46,6 +48,7 @@ import ScreenContainer from "./ScreenContainer";
 import BigBookSearchBar from "./BigBookSearchBar";
 import BigBookSearchResults from "./BigBookSearchResults";
 import PageNumberInput from "./PageNumberInput";
+import BigBookBookmarksList from "./BigBookBookmarksList";
 
 const SectionItem = ({ section, categoryId, onOpenContent }: { 
   section: BigBookSection; 
@@ -149,6 +152,10 @@ function BigBookBrowserContent() {
   const [clearSearch, setClearSearch] = useState(false);
   const [pageInputVisible, setPageInputVisible] = useState(false);
   const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
+  const [bookmarksListVisible, setBookmarksListVisible] = useState(false);
+
+  // Bookmarks
+  const { bookmarks, hasBookmarks, removeBookmark } = useBigBookBookmarks();
 
   // Safety mechanism to ensure modals are closed on component mount
   useEffect(() => {
@@ -404,6 +411,30 @@ function BigBookBrowserContent() {
     }
   }, []);
 
+  const handleBookmarksPress = useCallback(() => {
+    setBookmarksListVisible(true);
+  }, []);
+
+  const handleSelectBookmark = useCallback((bookmark: any) => {
+    setBookmarksListVisible(false);
+    const navigationResult = navigateToPageWithHighlight(bookmark.pageNumber);
+    if (navigationResult && navigationResult.success) {
+      setCurrentMarkdown({
+        content: navigationResult.content,
+        title: bookmark.chapterTitle,
+        id: bookmark.chapterId,
+        initialScrollPosition: navigationResult.scrollPosition || 0,
+        targetPageNumber: navigationResult.targetPageMarker || String(bookmark.pageNumber),
+        searchHighlight: {
+          query: '',
+          position: 0,
+          length: 0
+        }
+      });
+      setMarkdownReaderVisible(true);
+    }
+  }, []);
+
   return (
     <View style={styles.container}>
       <LinearGradient
@@ -429,16 +460,29 @@ function BigBookBrowserContent() {
               <BigBookSearchBar onSearch={handleSearch} clearSearch={clearSearch} />
             </View>
             {Platform.OS !== 'android' && (
-              <TouchableOpacity 
-                style={styles.goToPageButton}
-                onPress={handleGoToPage}
-                onPressIn={() => console.log('🟢 BigBookBrowser: Go to Page onPressIn')}
-                onPressOut={() => console.log('🟢 BigBookBrowser: Go to Page onPressOut')}
-                activeOpacity={0.7}
-                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-              >
-                <Text style={styles.goToPageButtonText}>Go to Page</Text>
-              </TouchableOpacity>
+              <View style={styles.headerButtons}>
+                <TouchableOpacity 
+                  style={styles.bookmarkIconButton}
+                  onPress={handleBookmarksPress}
+                  activeOpacity={0.7}
+                >
+                  <Bookmark 
+                    size={20} 
+                    color={hasBookmarks ? Colors.light.tint : Colors.light.muted}
+                    fill={hasBookmarks ? Colors.light.tint : 'none'}
+                  />
+                </TouchableOpacity>
+                <TouchableOpacity 
+                  style={styles.goToPageButton}
+                  onPress={handleGoToPage}
+                  onPressIn={() => console.log('🟢 BigBookBrowser: Go to Page onPressIn')}
+                  onPressOut={() => console.log('🟢 BigBookBrowser: Go to Page onPressOut')}
+                  activeOpacity={0.7}
+                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                >
+                  <Text style={styles.goToPageButtonText}>Go to Page</Text>
+                </TouchableOpacity>
+              </View>
             )}
           </View>
           
@@ -517,6 +561,14 @@ function BigBookBrowserContent() {
           onLastPagePress={handleLastPagePress}
         />
       )}
+
+      <BigBookBookmarksList
+        visible={bookmarksListVisible}
+        onClose={() => setBookmarksListVisible(false)}
+        bookmarks={bookmarks}
+        onSelectBookmark={handleSelectBookmark}
+        onRemoveBookmark={removeBookmark}
+      />
     </View>
   );
 }
@@ -644,6 +696,14 @@ const styles = StyleSheet.create({
   searchBarContainer: {
     flex: 1,
     marginRight: 12,
+  },
+  headerButtons: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  bookmarkIconButton: {
+    padding: 8,
   },
   goToPageButton: {
     backgroundColor: Colors.light.tint,

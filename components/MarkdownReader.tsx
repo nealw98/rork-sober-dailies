@@ -14,12 +14,13 @@ import {
   FlatList
 } from 'react-native';
 import { ScrollView } from 'react-native';
-import { ChevronLeft, Search } from 'lucide-react-native';
+import { ChevronLeft, Search, Bookmark } from 'lucide-react-native';
 import Colors from '@/constants/colors';
 import { adjustFontWeight } from '@/constants/fonts';
 import { CustomTextRenderer } from './CustomTextRenderer';
 import { getChapterPages, findPageIndex, PageItem } from '@/constants/bigbook/content';
 import { useLastPageStore } from '@/hooks/use-last-page-store';
+import { useBigBookBookmarks } from '@/hooks/useBigBookBookmarks';
 
 // Extend PageItem type to include startPosition
 interface ExtendedPageItem extends PageItem {
@@ -66,6 +67,10 @@ const MarkdownReader = ({
   const currentPageRef = useRef<number | null>(null);
   const dwellTimerRef = useRef<NodeJS.Timeout | null>(null);
   const lastScrollTimeRef = useRef<number>(0);
+
+  // Bookmarks
+  const { toggleBookmark, isPageBookmarked } = useBigBookBookmarks();
+  const [currentPageBookmarked, setCurrentPageBookmarked] = useState(false);
 
   // Measure the anchor against the ScrollView and correct if needed (Android-only)
   const verifyAndCorrectPosition = () => {
@@ -125,6 +130,21 @@ const MarkdownReader = ({
     };
   }, []);
 
+  // Update bookmark state when current page changes
+  useEffect(() => {
+    if (currentPageRef.current) {
+      setCurrentPageBookmarked(isPageBookmarked(currentPageRef.current));
+    }
+  }, [currentPageRef.current, isPageBookmarked]);
+
+  // Handle bookmark toggle
+  const handleBookmarkPress = useCallback(async () => {
+    if (!currentPageRef.current) return;
+    
+    await toggleBookmark(currentPageRef.current, title, sectionId);
+    setCurrentPageBookmarked(prev => !prev);
+  }, [toggleBookmark, title, sectionId]);
+
   // Page tracking function for last page feature
   const trackCurrentPage = useCallback((scrollY: number) => {
     let currentPage: number | null = null;
@@ -141,6 +161,7 @@ const MarkdownReader = ({
     if (currentPage && currentPage !== currentPageRef.current) {
       currentPageRef.current = currentPage;
       lastScrollTimeRef.current = Date.now();
+      setCurrentPageBookmarked(isPageBookmarked(currentPage));
       
       // Clear existing timer
       if (dwellTimerRef.current) {
@@ -155,7 +176,7 @@ const MarkdownReader = ({
         }
       }, 600);
     }
-  }, [saveLastPage]);
+  }, [saveLastPage, isPageBookmarked]);
 
   // Cleanup timer on unmount
   useEffect(() => {
@@ -507,7 +528,17 @@ const MarkdownReader = ({
           <Text style={styles.backText}>Back</Text>
         </TouchableOpacity>
         <Text style={styles.headerTitle}>{title}</Text>
-        {/* Removed headerControls with Go to Page button */}
+        <TouchableOpacity 
+          onPress={handleBookmarkPress} 
+          style={styles.bookmarkButton}
+          activeOpacity={0.7}
+        >
+          <Bookmark 
+            size={22} 
+            color={currentPageBookmarked ? Colors.light.tint : Colors.light.muted}
+            fill={currentPageBookmarked ? Colors.light.tint : 'none'}
+          />
+        </TouchableOpacity>
       </View>
       
       {Platform.OS === 'android' ? (
@@ -638,6 +669,12 @@ const styles = StyleSheet.create({
     fontSize: 14,
     marginLeft: 4,
     fontWeight: adjustFontWeight('500')
+  },
+  bookmarkButton: {
+    position: 'absolute',
+    right: Platform.OS === 'android' ? 8 : 16,
+    padding: 8,
+    zIndex: 1,
   },
   headerTitle: {
     flex: 1,
