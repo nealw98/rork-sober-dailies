@@ -19,7 +19,7 @@ export default function ChatScreen() {
       )}
       <ScreenContainer style={styles.container} noPadding={true}>
         <LinearGradient
-          colors={['rgba(74, 144, 226, 0.3)', 'rgba(92, 184, 92, 0.1)']}
+          colors={[Colors.light.chatBubbleUser, Colors.light.chatBubbleBot]}
           style={styles.backgroundGradient}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
