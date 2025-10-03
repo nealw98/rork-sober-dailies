@@ -445,19 +445,19 @@ const styles = StyleSheet.create({
     elevation: 6,
   },
   userBubble: {
-    backgroundColor: "rgba(74, 144, 226, 0.3)", // Exact light blue from daily reflection gradient
+    backgroundColor: "#d1e7f7", // Darker blue for better contrast
     borderBottomRightRadius: 4,
   },
   supportiveBubble: {
-    backgroundColor: "rgba(92, 184, 92, 0.1)", // Exact light green from daily reflection gradient
+    backgroundColor: "#e8f8e8", // Solid light green for shadow visibility
     borderBottomLeftRadius: 4,
   },
   graceBubble: {
-    backgroundColor: "rgba(186, 85, 211, 0.1)", // Light lavender for Grace
+    backgroundColor: "#f4e8f8", // Solid light lavender for shadow visibility
     borderBottomLeftRadius: 4,
   },
   saltyBubble: {
-    backgroundColor: "rgba(255, 191, 0, 0.1)", // Light amber for Salty Sam
+    backgroundColor: "#fff8e8", // Solid light amber for shadow visibility
     borderBottomLeftRadius: 4,
   },
   messageText: {
