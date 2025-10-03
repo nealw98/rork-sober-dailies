@@ -16,6 +16,7 @@ import * as Haptics from 'expo-haptics';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Send, RotateCcw } from "lucide-react-native";
 import * as Clipboard from 'expo-clipboard';
+import { LinearGradient } from 'expo-linear-gradient';
 import Colors from "@/constants/colors";
 import { useChatStore } from "@/hooks/use-chat-store";
 import { featureUse } from "@/lib/usageLogger";
@@ -259,24 +260,31 @@ export default function ChatInterface() {
       behavior={Platform.OS === "ios" ? "padding" : undefined}
       keyboardVerticalOffset={Platform.OS === "ios" ? 90 : 0}
     >
-      <View style={styles.headerContainer}>
-        <Text style={styles.headerTitle}>AI Sponsors</Text>
-        <Text style={styles.headerSubtitle}>Select a sponsor that fits your style</Text>
-      </View>
-      
-      <View style={styles.topContainer}>
-        <SponsorToggle 
-          sponsorType={sponsorType} 
-          onChange={changeSponsor}
-        />
-        <TouchableOpacity
-          style={styles.clearButton}
-          onPress={handleClearChat}
-          testID="clear-chat-button"
-        >
-          <RotateCcw size={18} color={Colors.light.muted} />
-        </TouchableOpacity>
-      </View>
+      <LinearGradient
+        colors={[Colors.light.chatBubbleUser, Colors.light.chatBubbleBot]}
+        style={styles.headerGradient}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+      >
+        <View style={styles.headerContainer}>
+          <Text style={styles.headerTitle}>AI Sponsors</Text>
+          <Text style={styles.headerSubtitle}>Select a sponsor that fits your style</Text>
+        </View>
+        
+        <View style={styles.topContainer}>
+          <SponsorToggle 
+            sponsorType={sponsorType} 
+            onChange={changeSponsor}
+          />
+          <TouchableOpacity
+            style={styles.clearButton}
+            onPress={handleClearChat}
+            testID="clear-chat-button"
+          >
+            <RotateCcw size={18} color={Colors.light.muted} />
+          </TouchableOpacity>
+        </View>
+      </LinearGradient>
       
       <FlatList
         ref={flatListRef}
@@ -336,8 +344,10 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: Colors.light.background,
   },
+  headerGradient: {
+    // Gradient covers the header section only
+  },
   headerContainer: {
-    backgroundColor: Colors.light.cardBackground,
     paddingHorizontal: 16,
     paddingTop: 12,
     paddingBottom: 8,

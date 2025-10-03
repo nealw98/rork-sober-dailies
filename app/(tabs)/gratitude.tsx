@@ -380,6 +380,18 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 6,
   },
+  gratitudeItemEditInput: {
+    padding: 12,
+    borderWidth: 0.5,
+    borderColor: 'rgba(255, 255, 255, 0.35)',
+    borderRadius: 8,
+    backgroundColor: '#fff',
+    fontSize: 16,
+    color: Colors.light.text,
+    minHeight: 60,
+    textAlignVertical: 'top',
+    // No shadows for edit input to avoid "box in box in box" effect
+  },
   gratitudeItemText: {
     fontSize: 16,
     color: Colors.light.text,
@@ -1038,7 +1050,7 @@ export default function GratitudeListScreen() {
                       <View style={{ flex: 1 }}>
                         {editingIndex === index ? (
                           <TextInput
-                            style={[styles.textInput, { marginBottom: 0, minHeight: 60 }]}
+                            style={styles.gratitudeItemEditInput}
                             value={editingValue}
                             onChangeText={setEditingValue}
                             autoFocus
