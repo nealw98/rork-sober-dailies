@@ -919,7 +919,7 @@ export default function GratitudeListScreen() {
                 {weeklyStreak >= 7 ? 'Perfect week! 🎉' : 
                  weeklyStreak >= 5 ? 'Amazing progress! 🌟' :
                  weeklyStreak >= 3 ? 'Great job! 💪' :
-                 weeklyStreak >= 1 ? 'Keep it going! ✨' :
+                 weeklyStreak >= 1 ? '✨ Keep it going! ✨' :
                  'Start your streak today! 🌱'}
               </Text>
             </View>
