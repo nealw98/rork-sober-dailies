@@ -369,7 +369,7 @@ const styles = StyleSheet.create({
   topContainer: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: Colors.light.cardBackground,
+    backgroundColor: 'transparent',
     borderBottomWidth: 1,
     borderBottomColor: Colors.light.divider,
   },
@@ -389,9 +389,18 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     alignItems: "center",
     marginHorizontal: 2,
-    backgroundColor: Colors.light.background,
+    backgroundColor: Colors.light.cardBackground,
     borderWidth: 1,
     borderColor: Colors.light.divider,
+    // Level 2: Interactive Cards (High depth)
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 6,
+    },
+    shadowOpacity: 0.18,
+    shadowRadius: 8,
+    elevation: 6,
   },
   sponsorButtonActive: {
     backgroundColor: Colors.light.tint,
@@ -425,6 +434,15 @@ const styles = StyleSheet.create({
     padding: 12,
     borderRadius: 18,
     minWidth: 60,
+    // Level 2: Interactive Cards (High depth)
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 6,
+    },
+    shadowOpacity: 0.18,
+    shadowRadius: 8,
+    elevation: 6,
   },
   userBubble: {
     backgroundColor: "rgba(74, 144, 226, 0.3)", // Exact light blue from daily reflection gradient
@@ -486,6 +504,15 @@ const styles = StyleSheet.create({
     minHeight: 44,
     maxHeight: 120,
     textAlignVertical: 'top',
+    // Level 2: Interactive Cards (High depth)
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 6,
+    },
+    shadowOpacity: 0.18,
+    shadowRadius: 8,
+    elevation: 6,
   },
   sendButton: {
     width: 44,
