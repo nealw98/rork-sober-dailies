@@ -200,13 +200,21 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   card: {
-    backgroundColor: 'rgba(255, 255, 255, 0.6)',
+    backgroundColor: 'rgba(255, 255, 255, 0.7)',
     borderRadius: 16,
     padding: 16,
     marginBottom: 16,
-    // match review: subtle thin outline
     borderWidth: 0.5,
     borderColor: 'rgba(0, 0, 0, 0.08)',
+    // Level 3: Content Cards (Medium depth)
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.12,
+    shadowRadius: 6,
+    elevation: 4,
   },
   cardHeader: {
     flexDirection: 'row',
@@ -220,12 +228,21 @@ const styles = StyleSheet.create({
     marginLeft: 8,
   },
   quoteCard: {
-    backgroundColor: 'rgba(255, 255, 255, 0.6)',
+    backgroundColor: 'rgba(255, 255, 255, 0.7)',
     borderRadius: 16,
     padding: 20,
     marginBottom: 16,
     borderWidth: 0.5,
     borderColor: 'rgba(255, 255, 255, 0.25)',
+    // Level 3: Content Cards (Medium depth)
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.12,
+    shadowRadius: 6,
+    elevation: 4,
   },
   quoteText: {
     fontSize: 16,
@@ -306,11 +323,20 @@ const styles = StyleSheet.create({
     borderWidth: 0.5,
     borderColor: 'rgba(255, 255, 255, 0.35)',
     borderRadius: 8,
-    backgroundColor: 'rgba(255, 255, 255, 0.8)',
+    backgroundColor: '#fff',
     fontSize: 16,
     color: Colors.light.text,
     minHeight: 40,
     textAlignVertical: 'top',
+    // Level 2: Interactive Cards (High depth)
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 6,
+    },
+    shadowOpacity: 0.18,
+    shadowRadius: 8,
+    elevation: 6,
   },
   addButton: {
     paddingHorizontal: 16,
@@ -337,13 +363,22 @@ const styles = StyleSheet.create({
   },
   gratitudeItem: {
     padding: 12,
-    backgroundColor: 'rgba(255, 255, 255, 0.8)',
+    backgroundColor: '#fff',
     borderRadius: 8,
     borderWidth: 0.5,
     borderColor: 'rgba(255, 255, 255, 0.35)',
     marginBottom: 8,
     flexDirection: 'row',
     alignItems: 'center',
+    // Level 2: Interactive Cards (High depth)
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 6,
+    },
+    shadowOpacity: 0.18,
+    shadowRadius: 8,
+    elevation: 6,
   },
   gratitudeItemText: {
     fontSize: 16,

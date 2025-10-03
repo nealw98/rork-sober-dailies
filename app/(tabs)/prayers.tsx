@@ -179,13 +179,21 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   prayerCard: {
-    backgroundColor: 'rgba(255, 255, 255, 0.6)',
+    backgroundColor: 'rgba(255, 255, 255, 0.7)',
     borderRadius: 16,
     marginBottom: 16,
     overflow: "hidden",
-    // Shadow removed
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.3)',
+    // Level 3: Content Cards (Medium depth)
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.12,
+    shadowRadius: 6,
+    elevation: 4,
   },
   prayerHeader: {
     flexDirection: "row",
