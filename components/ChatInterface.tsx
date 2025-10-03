@@ -495,7 +495,7 @@ const styles = StyleSheet.create({
   },
   input: {
     flex: 1,
-    backgroundColor: Colors.light.cardBackground,
+    backgroundColor: '#f0f7ff',
     borderRadius: 20,
     paddingHorizontal: 16,
     paddingVertical: 10,
