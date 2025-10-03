@@ -20,10 +20,9 @@ export default function ChatScreen() {
       <ScreenContainer style={styles.container} noPadding={true}>
         <LinearGradient
           colors={[Colors.light.chatBubbleUser, Colors.light.chatBubbleBot]}
-          style={styles.backgroundGradient}
+          style={styles.gradient}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
-          locations={[0, 1]}
         />
         <ChatStoreProvider>
           <ChatInterface />
@@ -38,11 +37,11 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: Colors.light.background,
   },
-  backgroundGradient: {
+  gradient: {
     position: 'absolute',
-    top: 0,
     left: 0,
     right: 0,
+    top: 0,
     bottom: 0,
   },
 });
