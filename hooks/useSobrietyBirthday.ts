@@ -93,7 +93,7 @@ export const useSobrietyBirthday = () => {
         setTimeout(() => {
           // console.log('[BirthdayHook] Setting showBirthdayModal to true');
           setShowBirthdayModal(true);
-        }, 1000);
+        }, 300);
       }
     } catch (error) {
       console.error('[BirthdayHook] Error checking birthday storage:', error);
