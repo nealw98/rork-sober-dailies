@@ -1,7 +1,9 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
+import { Star } from 'lucide-react-native';
 import Colors from '@/constants/colors';
 import { adjustFontWeight } from '@/constants/fonts';
+import AnimatedRecognitionMessage from './AnimatedRecognitionMessage';
 
 interface WeeklyProgressDay {
   date: string;
@@ -115,9 +117,11 @@ export default function WeeklyProgressCard({ title, icon: IconComponent, data }:
       </View>
       
       {completedDays > 0 && (
-        <Text style={styles.progressStats}>
-          Great job! You completed {completedDays} day{completedDays !== 1 ? 's' : ''} this week.
-        </Text>
+        <AnimatedRecognitionMessage
+          message={`Great job! You completed ${completedDays} day${completedDays !== 1 ? 's' : ''} this week.`}
+          visible={true}
+          icon={<Star size={16} color="white" />}
+        />
       )}
     </View>
   );

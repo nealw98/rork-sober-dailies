@@ -16,6 +16,12 @@ const Colors = {
     chatBubbleGrace: "rgba(186, 85, 211, 0.1)", // Light lavender for Grace
     chatBubbleSalty: "rgba(255, 191, 0, 0.1)", // Light amber for Salty Sam
     border: "#e9ecef",
+    // Recognition colors for success messages and celebrations
+    recognition: {
+      gradientStart: "#667eea",
+      gradientEnd: "#764ba2",
+      text: "white",
+    },
   },
 } as const;
 

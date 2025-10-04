@@ -15,6 +15,7 @@ import {
 import * as Haptics from 'expo-haptics';
 import * as Clipboard from 'expo-clipboard';
 import { Heart, Share as ShareIcon, Save, Archive, CheckCircle, Calendar, Trash2 } from 'lucide-react-native';
+import AnimatedWeeklyProgressMessage from '@/components/AnimatedWeeklyProgressMessage';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useGratitudeStore } from '@/hooks/use-gratitude-store';
 import Colors from '@/constants/colors';
@@ -539,81 +540,6 @@ const styles = StyleSheet.create({
     marginHorizontal: 16,
     justifyContent: 'space-between',
   },
-  toastOverlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: 'rgba(0, 0, 0, 0.3)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    zIndex: 1000,
-  },
-  toastModal: {
-    backgroundColor: Colors.light.tint,
-    borderRadius: 20,
-    paddingVertical: 24,
-    paddingHorizontal: 24,
-    marginHorizontal: 40,
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 4,
-    },
-    shadowOpacity: 0.3,
-    shadowRadius: 6,
-    elevation: 8,
-    minWidth: 280,
-  },
-  toastIconContainer: {
-    marginBottom: 12,
-  },
-  toastTitle: {
-    color: 'white',
-    fontSize: 18,
-    fontWeight: adjustFontWeight('700'),
-    textAlign: 'center',
-    marginBottom: 8,
-  },
-  toastMessage: {
-    color: 'white',
-    fontSize: 14,
-    fontWeight: adjustFontWeight('500'),
-    textAlign: 'center',
-    lineHeight: 20,
-    marginBottom: 20,
-  },
-  toastButtons: {
-    flexDirection: 'row',
-    gap: 12,
-    justifyContent: 'center',
-  },
-  toastCancelButton: {
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    borderRadius: 8,
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.3)',
-  },
-  toastCancelText: {
-    color: 'white',
-    fontSize: 14,
-    fontWeight: adjustFontWeight('600'),
-  },
-  toastOkButton: {
-    backgroundColor: 'white',
-    borderRadius: 8,
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-  },
-  toastOkText: {
-    color: Colors.light.tint,
-    fontSize: 14,
-    fontWeight: adjustFontWeight('600'),
-  },
 });
 
 const formatDateDisplay = (date: Date): string => {
@@ -633,7 +559,6 @@ export default function GratitudeListScreen() {
   const [showConfirmation, setShowConfirmation] = useState(false);
   const [showSavedEntries, setShowSavedEntries] = useState(false);
   const [dailyQuote] = useState(() => getDailyQuote());
-  const [showToast, setShowToast] = useState(false);
   const inputRef = useRef<TextInput>(null);
   
   // Always call hooks in the same order
@@ -843,9 +768,6 @@ export default function GratitudeListScreen() {
     
     // Set showConfirmation to true to show the completed screen with saved message
     setShowConfirmation(true);
-    
-    // Show toast on completion screen
-    setShowToast(true);
   };
 
   const canSave = () => {
@@ -912,16 +834,16 @@ export default function GratitudeListScreen() {
             </View>
             
             <View style={styles.streakContainer}>
-              <Text style={styles.streakText}>
-                {weeklyStreak} {weeklyStreak === 1 ? 'day' : 'days'} this week
-              </Text>
-              <Text style={styles.streakMotivation}>
-                {weeklyStreak >= 7 ? 'Perfect week! 🎉' : 
-                 weeklyStreak >= 5 ? 'Amazing progress! 🌟' :
-                 weeklyStreak >= 3 ? 'Great job! 💪' :
-                 weeklyStreak >= 1 ? '✨ Keep it going! ✨' :
-                 'Start your streak today! 🌱'}
-              </Text>
+              {weeklyStreak > 0 ? (
+                <AnimatedWeeklyProgressMessage
+                  weeklyStreak={weeklyStreak}
+                  visible={true}
+                />
+              ) : (
+                <Text style={styles.streakMotivation}>
+                  Start your streak today! 🌱
+                </Text>
+              )}
             </View>
           </View>
 
@@ -947,37 +869,6 @@ export default function GratitudeListScreen() {
           onClose={() => setShowSavedEntries(false)}
         />
         
-        {/* Success Toast Modal */}
-        {showToast && (
-          <View style={styles.toastOverlay}>
-            <View style={styles.toastModal}>
-              <View style={styles.toastIconContainer}>
-                <CheckCircle size={32} color="white" />
-              </View>
-              <Text style={styles.toastTitle}>Gratitude Saved!</Text>
-              <Text style={styles.toastMessage}>
-                {getMilestoneToastMessage(getConsecutiveDays(gratitudeStore?.savedEntries || []))}
-              </Text>
-              <View style={styles.toastButtons}>
-                <TouchableOpacity 
-                  style={styles.toastCancelButton}
-                  onPress={() => {
-                    setShowToast(false);
-                    handleEditGratitude();
-                  }}
-                >
-                  <Text style={styles.toastCancelText}>Back to Edit</Text>
-                </TouchableOpacity>
-                <TouchableOpacity 
-                  style={styles.toastOkButton}
-                  onPress={() => setShowToast(false)}
-                >
-                  <Text style={styles.toastOkText}>OK</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-          </View>
-        )}
       </ScreenContainer>
     );
   }
