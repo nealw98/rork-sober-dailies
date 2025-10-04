@@ -48,8 +48,8 @@ const AboutSupportScreen = () => {
   const insets = useSafeAreaInsets();
 
   const productIds = useMemo(() => ({
-    1.99: Platform.select({ ios: 'support_monthly', android: 'support_monthly' }),
-    19.99: Platform.select({ ios: 'support_yearly', android: 'support_yearly' }),
+    1.99: Platform.select({ ios: 'monthly_support', android: 'monthly_support' }),
+    19.99: Platform.select({ ios: 'yearly_support', android: 'yearly_support' }),
   }), []);
 
   // Preload offerings/prices on mount so purchase can be immediate
@@ -84,7 +84,7 @@ const AboutSupportScreen = () => {
         log('[Offerings] All packages:', allPkgs.map((p: any) => ({ pkgId: p.identifier, storeId: p.storeProduct?.identifier, price: p.storeProduct?.price })));
 
         // Look for our specific subscription products
-        const wanted = new Set(['support_monthly', 'support_yearly']);
+        const wanted = new Set(['monthly_support', 'yearly_support']);
         
         // Log all packages for debugging
         log('[Offerings] All packages with details:', allPkgs.map((p: any) => ({
@@ -114,7 +114,7 @@ const AboutSupportScreen = () => {
         if (filtered.length === 0 && allPkgs.length > 0) {
           usingFallback = true;
           filtered = [...allPkgs].sort((a: any, b: any) => (a.storeProduct?.price ?? 0) - (b.storeProduct?.price ?? 0)).slice(0, 2);
-          log('[Offerings] Fallback mapping by price rank due to missing support_monthly/support_yearly identifiers');
+          log('[Offerings] Fallback mapping by price rank due to missing monthly_support/yearly_support identifiers');
         }
         log(`[Offerings] Filtered to ${filtered.length} wanted packages:`, filtered.map((p: any) => `${p.identifier}:${p.storeProduct?.identifier}`));
 
@@ -124,7 +124,7 @@ const AboutSupportScreen = () => {
         filtered.forEach((p: any) => {
           // Always map by package ID
           if (p.identifier) {
-            if (p.identifier === 'support_monthly' || p.identifier === 'support_yearly') {
+            if (p.identifier === 'monthly_support' || p.identifier === 'yearly_support') {
               byId[p.identifier] = p;
               log(`[Offerings] Mapped package by identifier: ${p.identifier}`);
             }
@@ -138,9 +138,9 @@ const AboutSupportScreen = () => {
         });
         
         // If we still don't have the required keys, use fallback mapping
-        if (!byId['support_monthly'] || !byId['support_yearly']) {
+        if (!byId['monthly_support'] || !byId['yearly_support']) {
           log('[Offerings] Missing required keys, using fallback mapping');
-          const keys = ['support_monthly', 'support_yearly'];
+          const keys = ['monthly_support', 'yearly_support'];
           filtered.forEach((p: any, idx: number) => { 
             if (idx < keys.length) {
               byId[keys[idx]] = p;
@@ -478,9 +478,9 @@ const AboutSupportScreen = () => {
             <TouchableOpacity
               style={styles.subscriptionButton}
               onPress={() => handleTipPress(1.99)}
-              disabled={purchasingId === 'support_monthly'}
+              disabled={purchasingId === 'monthly_support'}
             >
-              {purchasingId === 'support_monthly' ? (
+              {purchasingId === 'monthly_support' ? (
                 <Text style={styles.subscriptionButtonText}>Connecting...</Text>
               ) : (
                 <Text style={styles.subscriptionButtonText}>$1.99/Month</Text>
@@ -490,9 +490,9 @@ const AboutSupportScreen = () => {
             <TouchableOpacity
               style={styles.subscriptionButton}
               onPress={() => handleTipPress(19.99)}
-              disabled={purchasingId === 'support_yearly'}
+              disabled={purchasingId === 'yearly_support'}
             >
-              {purchasingId === 'support_yearly' ? (
+              {purchasingId === 'yearly_support' ? (
                 <Text style={styles.subscriptionButtonText}>Connecting...</Text>
               ) : (
                 <Text style={styles.subscriptionButtonText}>$19.99/Year</Text>

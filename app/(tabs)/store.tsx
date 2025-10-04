@@ -24,7 +24,7 @@ export default function StoreScreen() {
       const allPkgs = await rcFetchPackages();
 
       // Filter to your StoreKit IDs:
-      const wanted = new Set(["support_monthly", "support_yearly"]);
+      const wanted = new Set(["monthly_support", "yearly_support"]);
       
       // Log all packages for debugging
       console.log('[Store] All packages with details:', allPkgs.map((p) => ({
@@ -141,8 +141,8 @@ export default function StoreScreen() {
         {packages.map((pkg) => {
           const id = pkg?.storeProduct?.identifier ?? pkg?.identifier;
           const priceString = pkg?.storeProduct?.priceString ?? "";
-          const isMonthly = id === "support_monthly";
-          const isYearly = id === "support_yearly";
+          const isMonthly = id === "monthly_support";
+          const isYearly = id === "yearly_support";
 
           if (!id) {
             return null;
@@ -209,9 +209,9 @@ export default function StoreScreen() {
 
 function friendlyTitle(id: string) {
   switch (id) {
-    case "support_monthly":
+    case "monthly_support":
       return "Monthly Support";
-    case "support_yearly":
+    case "yearly_support":
       return "Yearly Support";
     default:
       return id;
