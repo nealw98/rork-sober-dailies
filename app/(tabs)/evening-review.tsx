@@ -20,6 +20,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { CheckCircle, Circle, Calendar, Share as ShareIcon, Save, Archive, Check } from 'lucide-react-native';
 import { useEveningReviewStore } from '@/hooks/use-evening-review-store';
 import SavedEveningReviews from '@/components/SavedEveningReviews';
+import AnimatedEveningReviewMessage from '@/components/AnimatedEveningReviewMessage';
 import Colors from '@/constants/colors';
 import { adjustFontWeight } from '@/constants/fonts';
 
@@ -377,9 +378,16 @@ export default function EveningReview() {
               ))}
             </View>
             
-            <Text style={styles.streakText}>
-              {weeklyStreak} {weeklyStreak === 1 ? 'day' : 'days'} this week — keep it going!
-            </Text>
+            {weeklyStreak > 0 ? (
+              <AnimatedEveningReviewMessage
+                weeklyStreak={weeklyStreak}
+                visible={true}
+              />
+            ) : (
+              <Text style={styles.streakText}>
+                Start your streak today! 🌱
+              </Text>
+            )}
           </View>
 
           <Text style={styles.privacyText}>
