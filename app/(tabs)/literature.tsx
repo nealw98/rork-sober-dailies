@@ -203,13 +203,13 @@ const styles = StyleSheet.create({
     padding: 20,
     borderWidth: 1,
     // Level 3: Content Cards (Medium depth)
-    shadowColor: '#000',
+    shadowColor: 'rgba(0, 0, 0, 0.1)',
     shadowOffset: {
       width: 0,
       height: 4,
     },
-    shadowOpacity: 0.12,
-    shadowRadius: 6,
+    shadowOpacity: 1,
+    shadowRadius: 8,
     elevation: 4,
     borderColor: 'rgba(255, 255, 255, 0.3)',
   },

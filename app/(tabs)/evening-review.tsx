@@ -708,15 +708,15 @@ const styles = StyleSheet.create({
     color: Colors.light.text,
     minHeight: 80,
     textAlignVertical: 'top',
-    // Level 2: Interactive Cards (High depth)
+    // Level 2.2: Interactive Cards (Softer depth)
     shadowColor: '#000',
     shadowOffset: {
       width: 0,
-      height: 6,
+      height: 3,
     },
-    shadowOpacity: 0.18,
-    shadowRadius: 8,
-    elevation: 6,
+    shadowOpacity: 0.12,
+    shadowRadius: 6,
+    elevation: 4,
   },
   actionButtons: {
     flexDirection: 'row',

@@ -186,13 +186,13 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.3)',
     // Level 3: Content Cards (Medium depth)
-    shadowColor: '#000',
+    shadowColor: 'rgba(0, 0, 0, 0.1)',
     shadowOffset: {
       width: 0,
       height: 4,
     },
-    shadowOpacity: 0.12,
-    shadowRadius: 6,
+    shadowOpacity: 1,
+    shadowRadius: 8,
     elevation: 4,
   },
   prayerHeader: {
@@ -209,8 +209,6 @@ const styles = StyleSheet.create({
   prayerContent: {
     padding: 16,
     paddingTop: 0,
-    borderTopWidth: 1,
-    borderTopColor: Colors.light.divider,
   },
   prayerText: {
     fontSize: 16,

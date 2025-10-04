@@ -329,15 +329,15 @@ const styles = StyleSheet.create({
     color: Colors.light.text,
     minHeight: 40,
     textAlignVertical: 'top',
-    // Level 2: Interactive Cards (High depth)
+    // Level 2.1: Interactive Cards (Medium-High depth)
     shadowColor: '#000',
     shadowOffset: {
       width: 0,
-      height: 6,
+      height: 4,
     },
-    shadowOpacity: 0.18,
-    shadowRadius: 8,
-    elevation: 6,
+    shadowOpacity: 0.15,
+    shadowRadius: 7,
+    elevation: 5,
   },
   addButton: {
     paddingHorizontal: 16,

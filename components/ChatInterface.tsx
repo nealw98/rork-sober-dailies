@@ -262,47 +262,49 @@ export default function ChatInterface() {
     >
       <LinearGradient
         colors={[Colors.light.chatBubbleUser, Colors.light.chatBubbleBot]}
-        style={styles.headerGradient}
+        style={styles.backgroundGradient}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
-      >
-        <View style={styles.headerContainer}>
-          <Text style={styles.headerTitle}>AI Sponsors</Text>
-          <Text style={styles.headerSubtitle}>Select a sponsor that fits your style</Text>
-        </View>
-        
-        <View style={styles.topContainer}>
-          <SponsorToggle 
-            sponsorType={sponsorType} 
-            onChange={changeSponsor}
-          />
-          <TouchableOpacity
-            style={styles.clearButton}
-            onPress={handleClearChat}
-            testID="clear-chat-button"
-          >
-            <RotateCcw size={18} color={Colors.light.muted} />
-          </TouchableOpacity>
-        </View>
-      </LinearGradient>
-      
-      <FlatList
-        ref={flatListRef}
-        data={messages}
-        keyExtractor={(item) => item.id}
-        renderItem={({ item }) => <ChatBubble message={item} />}
-        contentContainerStyle={styles.chatContainer}
-        showsVerticalScrollIndicator={false}
-        testID="chat-message-list"
-        keyboardShouldPersistTaps="handled"
       />
       
-      {isLoading && (
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="small" color={Colors.light.tint} />
-          <Text style={styles.loadingText}>{getLoadingText()}</Text>
-        </View>
-      )}
+      <View style={styles.headerContainer}>
+        <Text style={styles.headerTitle}>AI Sponsors</Text>
+        <Text style={styles.headerSubtitle}>Select a sponsor that fits your style</Text>
+      </View>
+      
+      <View style={styles.topContainer}>
+        <SponsorToggle 
+          sponsorType={sponsorType} 
+          onChange={changeSponsor}
+        />
+        <TouchableOpacity
+          style={styles.clearButton}
+          onPress={handleClearChat}
+          testID="clear-chat-button"
+        >
+          <RotateCcw size={18} color={Colors.light.muted} />
+        </TouchableOpacity>
+      </View>
+      
+      <View style={styles.messagesWrapper}>
+        <FlatList
+          ref={flatListRef}
+          data={messages}
+          keyExtractor={(item) => item.id}
+          renderItem={({ item }) => <ChatBubble message={item} />}
+          contentContainerStyle={styles.chatContainer}
+          showsVerticalScrollIndicator={false}
+          testID="chat-message-list"
+          keyboardShouldPersistTaps="handled"
+        />
+        
+        {isLoading && (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="small" color={Colors.light.tint} />
+            <Text style={styles.loadingText}>{getLoadingText()}</Text>
+          </View>
+        )}
+      </View>
       
       <View style={[styles.inputContainer, { paddingBottom: Math.max(insets.bottom, 12) }]}>
         <TextInput
@@ -344,8 +346,12 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: Colors.light.background,
   },
-  headerGradient: {
-    // Gradient covers the header section only
+  backgroundGradient: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
   },
   headerContainer: {
     paddingHorizontal: 16,
@@ -370,8 +376,23 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: 'transparent',
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.light.divider,
+  },
+  messagesWrapper: {
+    flex: 1,
+    backgroundColor: Colors.light.background,
+    borderRadius: 16,
+    margin: 12,
+    marginBottom: 0,
+    overflow: 'hidden',
+    // Level 3: Content Cards (Medium depth)
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.12,
+    shadowRadius: 6,
+    elevation: 4,
   },
   clearButton: {
     padding: 12,
@@ -486,17 +507,17 @@ const styles = StyleSheet.create({
   inputContainer: {
     flexDirection: "row",
     padding: 12,
-    borderTopWidth: 1,
-    borderTopColor: Colors.light.divider,
-    backgroundColor: Colors.light.background,
+    backgroundColor: 'transparent',
     ...(Platform.OS === 'android' && {
       paddingBottom: Platform.OS === 'android' ? 8 : 12,
     }),
   },
   input: {
     flex: 1,
-    backgroundColor: '#f0f7ff',
-    borderRadius: 20,
+    backgroundColor: '#FAFAFA',
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: 'rgba(0, 0, 0, 0.05)',
     paddingHorizontal: 16,
     paddingVertical: 10,
     fontSize: 16,
@@ -504,15 +525,15 @@ const styles = StyleSheet.create({
     minHeight: 44,
     maxHeight: 120,
     textAlignVertical: 'top',
-    // Level 2: Interactive Cards (High depth)
+    // Soft drop shadow for subtle lift
     shadowColor: '#000',
     shadowOffset: {
       width: 0,
-      height: 6,
+      height: 3,
     },
-    shadowOpacity: 0.18,
-    shadowRadius: 8,
-    elevation: 6,
+    shadowOpacity: 0.15,
+    shadowRadius: 6,
+    elevation: 3,
   },
   sendButton: {
     width: 44,
