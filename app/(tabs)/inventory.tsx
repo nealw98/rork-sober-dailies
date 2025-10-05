@@ -525,16 +525,16 @@ const Inventory = () => {
         }
       });
 
-      const parts: string[] = ['Spot Check Inventory Results'];
+      const parts: string[] = [];
       
       if (situation) {
-        parts.push('');
-        parts.push(`Situation: ${situation}`);
+        parts.push(`Spot Check Inventory Situation: ${situation}`);
+      } else {
+        parts.push('Spot Check Inventory');
       }
       
       if (workingOnPairs.length > 0) {
         parts.push('');
-        parts.push('Working on:');
         parts.push(...workingOnPairs);
       }
       
