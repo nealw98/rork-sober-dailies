@@ -535,6 +535,7 @@ const Inventory = () => {
       
       if (workingOnPairs.length > 0) {
         parts.push('');
+        parts.push('My part:');
         parts.push(...workingOnPairs);
       }
       
