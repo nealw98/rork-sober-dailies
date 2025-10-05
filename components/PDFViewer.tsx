@@ -25,11 +25,14 @@ export default function PDFViewer({ url, title, onClose }: PDFViewerProps) {
   const [hasError, setHasError] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   
-  // For web, we can embed the PDF directly
-  // For mobile, we'll use Mozilla's PDF.js viewer with page-width zoom for better readability
-  const viewerUrl = Platform.OS === 'web' 
-    ? url 
-    : `https://mozilla.github.io/pdf.js/web/viewer.html?file=${encodeURIComponent(url)}#zoom=page-width`;
+  // For iOS, use native PDF rendering (clean interface, good zoom)
+  // For Android, use Google Docs viewer for now
+  // For web, embed PDF directly
+  const viewerUrl = Platform.OS === 'ios'
+    ? url
+    : Platform.OS === 'android'
+    ? `https://docs.google.com/gview?embedded=true&url=${encodeURIComponent(url)}&cache=1`
+    : url;
   
   console.log('Using viewer URL:', viewerUrl);
   
