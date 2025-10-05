@@ -376,94 +376,8 @@ const Inventory = () => {
   // Check if form has any content
   const hasContent = situation.trim() !== '' || Object.values(selections).some(s => s !== 'none');
 
-  // Add header icons (Save, Share, History, Reset)
-  useLayoutEffect(() => {
-    navigation.setOptions({
-      headerRight: () => (
-        <View style={{ flexDirection: 'row', gap: 16, paddingRight: 16 }}>
-          {hasContent && (
-            <TouchableOpacity 
-              onPress={handleSave}
-              accessible={true}
-              accessibilityLabel="Save spot check"
-              accessibilityRole="button"
-            >
-              <SaveIcon color={Colors.light.tint} size={20} />
-            </TouchableOpacity>
-          )}
-          <TouchableOpacity 
-            onPress={handleShare}
-            accessible={true}
-            accessibilityLabel="Share spot check"
-            accessibilityRole="button"
-          >
-            <ShareIcon color={Colors.light.tint} size={20} />
-          </TouchableOpacity>
-          <TouchableOpacity 
-            onPress={() => setShowHistory(true)}
-            accessible={true}
-            accessibilityLabel="View history"
-            accessibilityRole="button"
-          >
-            <Clock color={Colors.light.tint} size={20} />
-          </TouchableOpacity>
-          <TouchableOpacity 
-            onPress={handleReset}
-            accessible={true}
-            accessibilityLabel="Reset all selections"
-            accessibilityRole="button"
-          >
-            <RotateCcw size={20} color={Colors.light.tint} />
-          </TouchableOpacity>
-        </View>
-      ),
-    });
-  }, [navigation, hasUnsavedChanges, hasContent]);
-
-  const handlePressLookFor = (pairId: string) => {
-    setSelections(prev => {
-      const current = prev[pairId] || 'none';
-      if (current === 'lookFor') {
-        // Deselect if Look For is already selected
-        setHasUnsavedChanges(true);
-        return { ...prev, [pairId]: 'none' };
-      } else {
-        // Select Look For (whether from 'none' or 'complete') - add haptic feedback
-        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-        setHasUnsavedChanges(true);
-        return { ...prev, [pairId]: 'lookFor' };
-      }
-    });
-  };
-
-  const handlePressStriveFor = (pairId: string) => {
-    setSelections(prev => {
-      const current = prev[pairId] || 'none';
-      if (current === 'complete') {
-        // Deselect if Strive For is already selected
-        setHasUnsavedChanges(true);
-        return { ...prev, [pairId]: 'none' };
-      } else {
-        // Complete the pair (reward animation) - this also clears red if it was set
-        setHasUnsavedChanges(true);
-        return { ...prev, [pairId]: 'complete' };
-      }
-    });
-  };
-
-  const handleSituationChange = (text: string) => {
-    setSituation(text);
-    setHasUnsavedChanges(true);
-  };
-
-  const handleReset = () => {
-    setSelections({});
-    setSituation('');
-    setCurrentRecord(null);
-    setHasUnsavedChanges(false);
-  };
-
-  const handleSave = async () => {
+  // Define handler functions before useLayoutEffect to avoid stale closures
+  const handleSave = useCallback(async () => {
     try {
       const stored = await AsyncStorage.getItem(INVENTORY_STORAGE_KEY);
       const records = stored ? JSON.parse(stored) : [];
@@ -507,9 +421,9 @@ const Inventory = () => {
       console.error('Error saving spot check:', error);
       Alert.alert('Error', 'Failed to save spot check.');
     }
-  };
+  }, [situation, selections, currentRecord]);
 
-  const handleShare = async () => {
+  const handleShare = useCallback(async () => {
     try {
       console.log('[Share] Current selections:', selections);
       console.log('[Share] Current situation:', situation);
@@ -557,6 +471,93 @@ const Inventory = () => {
     } catch (error) {
       console.error('Error sharing spot check:', error);
     }
+  }, [situation, selections]);
+
+  const handleReset = useCallback(() => {
+    setSelections({});
+    setSituation('');
+    setCurrentRecord(null);
+    setHasUnsavedChanges(false);
+  }, []);
+
+  // Add header icons (Save, Share, History, Reset)
+  useLayoutEffect(() => {
+    navigation.setOptions({
+      headerRight: () => (
+        <View style={{ flexDirection: 'row', gap: 16, paddingRight: 16 }}>
+          {hasContent && (
+            <TouchableOpacity 
+              onPress={handleSave}
+              accessible={true}
+              accessibilityLabel="Save spot check"
+              accessibilityRole="button"
+            >
+              <SaveIcon color={Colors.light.tint} size={20} />
+            </TouchableOpacity>
+          )}
+          <TouchableOpacity 
+            onPress={handleShare}
+            accessible={true}
+            accessibilityLabel="Share spot check"
+            accessibilityRole="button"
+          >
+            <ShareIcon color={Colors.light.tint} size={20} />
+          </TouchableOpacity>
+          <TouchableOpacity 
+            onPress={() => setShowHistory(true)}
+            accessible={true}
+            accessibilityLabel="View history"
+            accessibilityRole="button"
+          >
+            <Clock color={Colors.light.tint} size={20} />
+          </TouchableOpacity>
+          <TouchableOpacity 
+            onPress={handleReset}
+            accessible={true}
+            accessibilityLabel="Reset all selections"
+            accessibilityRole="button"
+          >
+            <RotateCcw size={20} color={Colors.light.tint} />
+          </TouchableOpacity>
+        </View>
+      ),
+    });
+  }, [navigation, hasUnsavedChanges, hasContent, handleSave, handleShare, handleReset]);
+
+  const handlePressLookFor = (pairId: string) => {
+    setSelections(prev => {
+      const current = prev[pairId] || 'none';
+      if (current === 'lookFor') {
+        // Deselect if Look For is already selected
+        setHasUnsavedChanges(true);
+        return { ...prev, [pairId]: 'none' };
+      } else {
+        // Select Look For (whether from 'none' or 'complete') - add haptic feedback
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+        setHasUnsavedChanges(true);
+        return { ...prev, [pairId]: 'lookFor' };
+      }
+    });
+  };
+
+  const handlePressStriveFor = (pairId: string) => {
+    setSelections(prev => {
+      const current = prev[pairId] || 'none';
+      if (current === 'complete') {
+        // Deselect if Strive For is already selected
+        setHasUnsavedChanges(true);
+        return { ...prev, [pairId]: 'none' };
+      } else {
+        // Complete the pair (reward animation) - this also clears red if it was set
+        setHasUnsavedChanges(true);
+        return { ...prev, [pairId]: 'complete' };
+      }
+    });
+  };
+
+  const handleSituationChange = (text: string) => {
+    setSituation(text);
+    setHasUnsavedChanges(true);
   };
 
   const handleSelectRecord = (record: SpotCheckRecord) => {
