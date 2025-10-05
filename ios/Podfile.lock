@@ -398,8 +398,8 @@ PODS:
   - libwebp/sharpyuv (1.5.0)
   - libwebp/webp (1.5.0):
     - libwebp/sharpyuv
-  - PurchasesHybridCommon (17.8.0):
-    - RevenueCat (= 5.40.0)
+  - PurchasesHybridCommon (17.9.0):
+    - RevenueCat (= 5.41.0)
   - RCT-Folly (2024.11.18.00):
     - boost
     - DoubleConversion
@@ -2075,7 +2075,7 @@ PODS:
     - React-logger (= 0.79.5)
     - React-perflogger (= 0.79.5)
     - React-utils (= 0.79.5)
-  - RevenueCat (5.40.0)
+  - RevenueCat (5.41.0)
   - RNCAsyncStorage (2.1.2):
     - React-Core
   - RNCPicker (2.11.1):
@@ -2106,8 +2106,8 @@ PODS:
     - ReactCommon/turbomodule/bridging
     - ReactCommon/turbomodule/core
     - Yoga
-  - RNPurchases (9.5.1):
-    - PurchasesHybridCommon (= 17.8.0)
+  - RNPurchases (9.5.3):
+    - PurchasesHybridCommon (= 17.9.0)
     - React-Core
   - RNReanimated (3.19.1):
     - DoubleConversion
@@ -2681,7 +2681,7 @@ SPEC CHECKSUMS:
   libavif: 84bbb62fb232c3018d6f1bab79beea87e35de7b7
   libdav1d: 23581a4d8ec811ff171ed5e2e05cd27bad64c39f
   libwebp: 02b23773aedb6ff1fd38cec7a77b81414c6842a8
-  PurchasesHybridCommon: fad1084d9781388e181c8b855caf7a5853cebcb3
+  PurchasesHybridCommon: f497ca753fd7dd00fb0fbb1548acc384bd01b86b
   RCT-Folly: e78785aa9ba2ed998ea4151e314036f6c49e6d82
   RCTDeprecation: 5f638f65935e273753b1f31a365db6a8d6dc53b5
   RCTRequired: 8b46a520ea9071e2bc47d474aa9ca31b4a935bd8
@@ -2748,12 +2748,12 @@ SPEC CHECKSUMS:
   ReactAppDependencyProvider: f3e842e6cb5a825b6918a74a38402ba1409411f8
   ReactCodegen: 6cb6e0d0b52471abc883541c76589d1c367c64c7
   ReactCommon: 1ab5451fc5da87c4cc4c3046e19a8054624ca763
-  RevenueCat: 02c8d0082d3373bcbc831faa600943d6ba6cad6e
+  RevenueCat: a094ccf2d12c4778144d3a0560a8b9f6bd3a84aa
   RNCAsyncStorage: b9f5f78da5d16a853fe3dc22e8268d932fc45a83
   RNCPicker: da0f1c9411208c1ca52bc98383db54a06e0a3862
   RNDateTimePicker: 60f9e986d61e42169a2716c1b51f1f93dfa82665
   RNGestureHandler: ce4a87dba81030b374d7f1993c4376f5c230da2e
-  RNPurchases: 5bab570861f5710127f73e69ef79e3e46b7fcd39
+  RNPurchases: 4d4a53989e23bb9e80e8aca79b8d14314f8a5824
   RNReanimated: 7fe194cef376e772f1efbad325cb5d26ea3930df
   RNScreens: 62fdbbc4c984150b34c36f095c6ba2510ca9b6a5
   RNSVG: ab84f2de7dd4f2c86d01825b8a65e0ef712fc36b
