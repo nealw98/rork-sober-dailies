@@ -423,10 +423,12 @@ const Inventory = () => {
       const current = prev[pairId] || 'none';
       if (current === 'lookFor') {
         // Deselect if Look For is already selected
+        setHasUnsavedChanges(true);
         return { ...prev, [pairId]: 'none' };
       } else {
         // Select Look For (whether from 'none' or 'complete') - add haptic feedback
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+        setHasUnsavedChanges(true);
         return { ...prev, [pairId]: 'lookFor' };
       }
     });
@@ -437,12 +439,19 @@ const Inventory = () => {
       const current = prev[pairId] || 'none';
       if (current === 'complete') {
         // Deselect if Strive For is already selected
+        setHasUnsavedChanges(true);
         return { ...prev, [pairId]: 'none' };
       } else {
         // Complete the pair (reward animation) - this also clears red if it was set
+        setHasUnsavedChanges(true);
         return { ...prev, [pairId]: 'complete' };
       }
     });
+  };
+
+  const handleSituationChange = (text: string) => {
+    setSituation(text);
+    setHasUnsavedChanges(true);
   };
 
   const handleReset = () => {
@@ -565,7 +574,7 @@ const Inventory = () => {
               <TextInput
                 style={styles.situationInput}
                 value={situation}
-                onChangeText={setSituation}
+                onChangeText={handleSituationChange}
                 placeholder="Describe the situation"
                 placeholderTextColor={Colors.light.muted}
                 multiline={true}
