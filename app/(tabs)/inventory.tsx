@@ -357,11 +357,11 @@ const Inventory = () => {
   const handlePressLookFor = (pairId: string) => {
     setSelections(prev => {
       const current = prev[pairId] || 'none';
-      if (current === 'lookFor' || current === 'complete') {
-        // Deselect if already selected
+      if (current === 'lookFor') {
+        // Deselect if Look For is already selected
         return { ...prev, [pairId]: 'none' };
       } else {
-        // Select Look For - add haptic feedback
+        // Select Look For (whether from 'none' or 'complete') - add haptic feedback
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
         return { ...prev, [pairId]: 'lookFor' };
       }
@@ -372,7 +372,7 @@ const Inventory = () => {
     setSelections(prev => {
       const current = prev[pairId] || 'none';
       if (current === 'complete') {
-        // Deselect - go back to none (red is cleared)
+        // Deselect if Strive For is already selected
         return { ...prev, [pairId]: 'none' };
       } else {
         // Complete the pair (reward animation) - this also clears red if it was set
