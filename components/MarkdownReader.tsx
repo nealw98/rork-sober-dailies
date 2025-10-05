@@ -263,6 +263,9 @@ const MarkdownReader = ({
     }
   }, [saveLastPage, isPageBookmarked]);
 
+  // Track if we've initialized to prevent re-initialization on re-renders
+  const hasInitializedRef = useRef(false);
+
   // Initialize bookmark state and current page on mount
   useEffect(() => {
     if (targetPageNumber) {
@@ -280,12 +283,15 @@ const MarkdownReader = ({
         currentPageRef.current = pageNum;
         updateBookmarkState();
       }
-    } else {
+    } else if (!hasInitializedRef.current) {
+      // Only initialize once when component first mounts and no target page is specified
+      hasInitializedRef.current = true;
+      
       // Initialize to the first page of the chapter only if no target page is specified
       // This allows bookmarking the first page while preventing duplicate bookmarks
       if (pageNumbers.length > 0) {
         const firstPage = pageNumbers[0];
-        console.log(`[Bookmark] Initializing to first page: ${firstPage} (no target page specified)`);
+        console.log(`[Bookmark] Initializing to first page: ${firstPage} (no target page specified, first mount only)`);
         currentPageRef.current = firstPage;
         updateBookmarkState();
       } else {
@@ -293,11 +299,11 @@ const MarkdownReader = ({
         // Foreword starts at page xxiii (Roman 23)
         // Doctor's Opinion starts at page xiii (Roman 13)
         if (sectionId === 'foreword-first') {
-          console.log(`[Bookmark] Initializing Foreword to page 23 (xxiii)`);
+          console.log(`[Bookmark] Initializing Foreword to page 23 (xxiii) (first mount only)`);
           currentPageRef.current = 23;
           updateBookmarkState();
         } else if (sectionId === 'doctors-opinion') {
-          console.log(`[Bookmark] Initializing Doctor's Opinion to page 13 (xiii)`);
+          console.log(`[Bookmark] Initializing Doctor's Opinion to page 13 (xiii) (first mount only)`);
           currentPageRef.current = 13;
           updateBookmarkState();
         }
