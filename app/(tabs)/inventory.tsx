@@ -511,6 +511,9 @@ const Inventory = () => {
 
   const handleShare = async () => {
     try {
+      console.log('[Share] Current selections:', selections);
+      console.log('[Share] Current situation:', situation);
+      
       const workingOnPairs: string[] = [];
       const positiveTraits: string[] = [];
       
