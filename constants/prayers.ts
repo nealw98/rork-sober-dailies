@@ -28,23 +28,15 @@ Thy will, not mine, be done. Amen.`,
     source: "Alcoholics Anonymous, p. 76"
   },
   {
-    title: "Eleventh Step Prayer",
+    title: "Prayer of St. Francis",
     content: `Lord, make me a channel of thy peace;
-
 that where there is hatred, I may bring love;
-
 that where there is wrong, I may bring the spirit of forgiveness;
-
 that where there is discord, I may bring harmony;
-
 that where there is error, I may bring truth;
-
 that where there is doubt, I may bring faith;
-
 that where there is despair, I may bring hope;
-
 that where there are shadows, I may bring light;
-
 that where there is sadness, I may bring joy.
 
 Lord, grant that I may seek rather to comfort than to be comforted;
