@@ -3,7 +3,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export interface BigBookBookmark {
   id: string;
-  pageNumber: number;
+  pageNumber: number; // Store as number for sorting, but this represents the converted value
+  originalPageNumber: string; // Store the original format (Roman or Arabic) for navigation
   chapterTitle: string;
   chapterId: string;
   timestamp: string;
@@ -13,10 +14,10 @@ const STORAGE_KEY = 'BIG_BOOK_BOOKMARKS';
 
 interface BigBookBookmarksContextType {
   bookmarks: BigBookBookmark[];
-  addBookmark: (pageNumber: number, chapterTitle: string, chapterId: string) => Promise<boolean>;
+  addBookmark: (pageNumber: number, originalPageNumber: string, chapterTitle: string, chapterId: string) => Promise<boolean>;
   removeBookmark: (bookmarkId: string) => Promise<void>;
   isPageBookmarked: (pageNumber: number) => boolean;
-  toggleBookmark: (pageNumber: number, chapterTitle: string, chapterId: string) => Promise<boolean>;
+  toggleBookmark: (pageNumber: number, originalPageNumber: string, chapterTitle: string, chapterId: string) => Promise<boolean>;
   clearAllBookmarks: () => Promise<void>;
   hasBookmarks: boolean;
   bookmarkCount: number;
@@ -52,9 +53,9 @@ export const BigBookBookmarksProvider = ({ children }: { children: ReactNode }) 
     loadBookmarks();
   }, [loadBookmarks]);
 
-  const addBookmark = useCallback(async (pageNumber: number, chapterTitle: string, chapterId: string) => {
+  const addBookmark = useCallback(async (pageNumber: number, originalPageNumber: string, chapterTitle: string, chapterId: string) => {
     try {
-      console.log('[Bookmarks] Adding bookmark for page:', pageNumber);
+      console.log('[Bookmarks] Adding bookmark for page:', pageNumber, 'original:', originalPageNumber);
       console.log('[Bookmarks] Current bookmarks:', bookmarks);
       
       // Check if bookmark already exists for this page
@@ -69,6 +70,7 @@ export const BigBookBookmarksProvider = ({ children }: { children: ReactNode }) 
       const newBookmark: BigBookBookmark = {
         id: `bookmark-${Date.now()}`,
         pageNumber,
+        originalPageNumber,
         chapterTitle,
         chapterId,
         timestamp: new Date().toISOString(),
@@ -103,14 +105,14 @@ export const BigBookBookmarksProvider = ({ children }: { children: ReactNode }) 
     return result;
   }, [bookmarks]);
 
-  const toggleBookmark = useCallback(async (pageNumber: number, chapterTitle: string, chapterId: string) => {
+  const toggleBookmark = useCallback(async (pageNumber: number, originalPageNumber: string, chapterTitle: string, chapterId: string) => {
     const existing = bookmarks.find(b => b.pageNumber === pageNumber);
-    console.log('[Bookmarks] Toggle - existing:', existing, 'for page:', pageNumber);
+    console.log('[Bookmarks] Toggle - existing:', existing, 'for page:', pageNumber, 'original:', originalPageNumber);
     if (existing) {
       await removeBookmark(existing.id);
       return false; // Removed - page is NOT bookmarked now
     } else {
-      const result = await addBookmark(pageNumber, chapterTitle, chapterId);
+      const result = await addBookmark(pageNumber, originalPageNumber, chapterTitle, chapterId);
       return result; // Added - page IS bookmarked now
     }
   }, [bookmarks, addBookmark, removeBookmark]);

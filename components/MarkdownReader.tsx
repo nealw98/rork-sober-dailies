@@ -45,6 +45,22 @@ const romanToArabic = (roman: string): number => {
   return result;
 };
 
+// Convert Arabic numbers to Roman numerals
+const arabicToRoman = (num: number): string => {
+  const values = [1000, 900, 500, 400, 100, 90, 50, 40, 10, 9, 5, 4, 1];
+  const symbols = ['m', 'cm', 'd', 'cd', 'c', 'xc', 'l', 'xl', 'x', 'ix', 'v', 'iv', 'i'];
+  
+  let result = '';
+  for (let i = 0; i < values.length; i++) {
+    while (num >= values[i]) {
+      result += symbols[i];
+      num -= values[i];
+    }
+  }
+  
+  return result;
+};
+
 // Extend PageItem type to include startPosition
 interface ExtendedPageItem extends PageItem {
   startPosition?: number;
@@ -162,6 +178,29 @@ const MarkdownReader = ({
     }
   }, [isPageBookmarked]);
 
+  // Get the original page number format (Roman or Arabic) for the current page
+  const getOriginalPageNumber = useCallback((pageNumber: number): string => {
+    // If we have a targetPageNumber, use that as the original format
+    if (targetPageNumber) {
+      // Check if the targetPageNumber is a Roman numeral
+      const isRoman = isNaN(parseInt(targetPageNumber, 10));
+      if (isRoman) {
+        return targetPageNumber; // Return the Roman numeral as-is
+      } else {
+        return targetPageNumber; // Return the Arabic number as string
+      }
+    }
+    
+    // If we don't have a target page number, we need to determine if this should be Roman or Arabic
+    // For chapters with Roman numerals (Foreword, Doctor's Opinion), convert to Roman
+    if (sectionId === 'foreword-first' || sectionId === 'doctors-opinion') {
+      return arabicToRoman(pageNumber);
+    }
+    
+    // For other chapters, return as Arabic number string
+    return pageNumber.toString();
+  }, [targetPageNumber, sectionId]);
+
   // Handle bookmark toggle
   const handleBookmarkPress = useCallback(async () => {
     if (!currentPageRef.current) {
@@ -169,20 +208,31 @@ const MarkdownReader = ({
       return;
     }
     
-    console.log(`[Bookmark] Toggling bookmark for page ${currentPageRef.current}`);
-    const wasAdded = await toggleBookmark(currentPageRef.current, title, sectionId);
+    const originalPageNumber = getOriginalPageNumber(currentPageRef.current);
+    console.log(`[Bookmark] Toggling bookmark for page ${currentPageRef.current} (original: ${originalPageNumber})`);
+    const wasAdded = await toggleBookmark(currentPageRef.current, originalPageNumber, title, sectionId);
     console.log(`[Bookmark] Toggle result - wasAdded:`, wasAdded);
     // Directly set the state based on the toggle result
     setCurrentPageBookmarked(wasAdded !== false);
-  }, [toggleBookmark, title, sectionId]);
+  }, [toggleBookmark, title, sectionId, getOriginalPageNumber]);
 
   // Page tracking function for last page feature
   const trackCurrentPage = useCallback((scrollY: number) => {
     let currentPage: number | null = null;
     
     // Find the current page based on scroll position
-    for (const [pageNumber, yPosition] of Object.entries(pageYPositions.current)) {
-      const pageNum = parseInt(pageNumber.replace('page-', ''), 10);
+    for (const [pageKey, yPosition] of Object.entries(pageYPositions.current)) {
+      // Extract page number from key like "page-xxiv" or "page-13"
+      const pageStr = pageKey.replace('page-', '');
+      let pageNum: number;
+      
+      // Check if it's a Roman numeral
+      if (isNaN(parseInt(pageStr, 10))) {
+        pageNum = romanToArabic(pageStr);
+      } else {
+        pageNum = parseInt(pageStr, 10);
+      }
+      
       if (scrollY >= yPosition - 100) {
         currentPage = pageNum;
       }
@@ -216,7 +266,8 @@ const MarkdownReader = ({
   // Initialize bookmark state and current page on mount
   useEffect(() => {
     if (targetPageNumber) {
-      // Try parsing as regular number first
+      // Store the original page number string (could be Roman or Arabic)
+      // Convert to number for currentPageRef but keep original for bookmark operations
       let pageNum = parseInt(targetPageNumber, 10);
       
       // If that fails, try converting from Roman numeral

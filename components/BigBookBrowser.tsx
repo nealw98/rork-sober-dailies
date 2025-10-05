@@ -386,14 +386,17 @@ function BigBookBrowserContent({
 
   const handleSelectBookmark = useCallback((bookmark: any) => {
     setBookmarksListVisible(false);
-    const navigationResult = navigateToPageWithHighlight(bookmark.pageNumber);
+    // Use the original page number for navigation if available, otherwise fall back to pageNumber
+    const pageToNavigate = bookmark.originalPageNumber || bookmark.pageNumber;
+    console.log('[Bookmarks] Navigating to bookmark:', bookmark, 'using page:', pageToNavigate);
+    const navigationResult = navigateToPageWithHighlight(pageToNavigate);
     if (navigationResult && navigationResult.success) {
       setCurrentMarkdown({
         content: navigationResult.content,
         title: bookmark.chapterTitle,
         id: bookmark.chapterId,
         initialScrollPosition: navigationResult.scrollPosition || 0,
-        targetPageNumber: navigationResult.targetPageMarker || String(bookmark.pageNumber),
+        targetPageNumber: navigationResult.targetPageMarker || String(pageToNavigate),
         searchHighlight: {
           query: '',
           position: 0,
