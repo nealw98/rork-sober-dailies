@@ -55,7 +55,7 @@ export default function BigBookBookmarksList({
                   onPress={() => onSelectBookmark(bookmark)}
                   activeOpacity={0.7}
                 >
-                  <Text style={styles.pageNumber}>Page {bookmark.pageNumber}</Text>
+                  <Text style={styles.pageNumber}>Page {bookmark.originalPageNumber}</Text>
                   <Text style={styles.chapterTitle}>{bookmark.chapterTitle}</Text>
                 </TouchableOpacity>
                 <TouchableOpacity

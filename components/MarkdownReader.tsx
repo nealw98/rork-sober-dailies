@@ -295,11 +295,9 @@ const MarkdownReader = ({
           console.log(`[Bookmark] Initializing Foreword to page 23 (xxiii)`);
           currentPageRef.current = 23;
           updateBookmarkState();
-        } else if (sectionId === 'doctors-opinion') {
-          console.log(`[Bookmark] Initializing Doctor's Opinion to page 13 (xiii)`);
-          currentPageRef.current = 13;
-          updateBookmarkState();
         }
+        // Removed automatic initialization for Doctor's Opinion to prevent duplicate bookmarks
+        // The page will be set correctly by the scroll tracking system
       }
     }
   }, [targetPageNumber, updateBookmarkState, pageNumbers, sectionId]);
