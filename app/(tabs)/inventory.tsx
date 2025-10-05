@@ -298,12 +298,17 @@ const SpotCheckHistorySheet: React.FC<{
                 >
                   <View style={styles.historyItemContent}>
                     <Text style={styles.historyItemDate}>{formatTimestamp(record)}</Text>
+                    {record.situation && (
+                      <Text style={styles.historyItemSituation} numberOfLines={2}>
+                        {record.situation}
+                      </Text>
+                    )}
                     {(() => {
                       const { lookForTraits, completeTraits } = getSelectedTraits(record);
                       const allTraits = [...lookForTraits, ...completeTraits];
                       if (allTraits.length > 0) {
                         return (
-                          <View style={styles.historyItemTraits}>
+                          <Text style={styles.historyItemTraits} numberOfLines={2} ellipsizeMode="tail">
                             {lookForTraits.map((trait, idx) => (
                               <Text key={`lookFor-${idx}`} style={styles.historyItemTraitRed}>
                                 {trait}
@@ -316,16 +321,11 @@ const SpotCheckHistorySheet: React.FC<{
                                 {idx < completeTraits.length - 1 ? ', ' : ''}
                               </Text>
                             ))}
-                          </View>
+                          </Text>
                         );
                       }
                       return null;
                     })()}
-                    {record.situation && (
-                      <Text style={styles.historyItemSituation} numberOfLines={2}>
-                        {record.situation}
-                      </Text>
-                    )}
                   </View>
                 </TouchableOpacity>
                 <TouchableOpacity
@@ -828,10 +828,15 @@ const styles = StyleSheet.create({
     color: Colors.light.text,
     marginBottom: 4,
   },
+  historyItemSituation: {
+    fontSize: 14,
+    color: '#666',
+    fontStyle: 'italic',
+    marginBottom: 6,
+  },
   historyItemTraits: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    marginBottom: 4,
+    fontSize: 13,
+    lineHeight: 18,
   },
   historyItemTraitRed: {
     fontSize: 13,
@@ -842,11 +847,6 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: '#28a745',
     fontWeight: '500',
-  },
-  historyItemSituation: {
-    fontSize: 14,
-    color: '#666',
-    fontStyle: 'italic',
   },
   emptyState: {
     padding: 40,
