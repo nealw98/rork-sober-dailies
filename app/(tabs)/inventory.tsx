@@ -216,6 +216,38 @@ const SpotCheckHistorySheet: React.FC<{
     return Object.values(record.selections || {}).filter(s => s !== 'none').length;
   };
 
+  const getSelectedTraits = (record: SpotCheckRecord) => {
+    const lookForTraits: string[] = [];
+    const completeTraits: string[] = [];
+    
+    Object.entries(record.selections || {}).forEach(([pairId, state]) => {
+      const pair = spotCheckPairs.find(p => p.id === pairId);
+      if (pair) {
+        if (state === 'lookFor') {
+          lookForTraits.push(pair.lookFor);
+        } else if (state === 'complete') {
+          completeTraits.push(pair.striveFor);
+        }
+      }
+    });
+    
+    return { lookForTraits, completeTraits };
+  };
+
+  const handleDelete = async (recordId: string) => {
+    try {
+      const stored = await AsyncStorage.getItem(INVENTORY_STORAGE_KEY);
+      if (stored) {
+        const parsedRecords = JSON.parse(stored);
+        const updatedRecords = parsedRecords.filter((r: SpotCheckRecord) => r.id !== recordId);
+        await AsyncStorage.setItem(INVENTORY_STORAGE_KEY, JSON.stringify(updatedRecords));
+        setRecords(updatedRecords);
+      }
+    } catch (error) {
+      console.error('[History] Error deleting record:', error);
+    }
+  };
+
   if (!visible) return null;
 
   return (
@@ -236,46 +268,73 @@ const SpotCheckHistorySheet: React.FC<{
             </View>
           ) : (
             records.map((record) => (
-              <TouchableOpacity
-                key={record.id}
-                style={styles.historyItem}
-                onPress={() => {
-                  // Check for unsaved changes before loading new record
-                  if (hasUnsavedChanges) {
-                    Alert.alert(
-                      'Unsaved Changes',
-                      'Save your current spot check before loading a different one?',
-                      [
-                        { text: 'Cancel', style: 'cancel' },
-                        { text: 'Discard', style: 'destructive', onPress: () => {
-                          onSelectRecord(record);
-                          onClose();
-                        }},
-                        { text: 'Save First', onPress: async () => {
-                          await handleSave();
-                          onSelectRecord(record);
-                          onClose();
-                        }}
-                      ]
-                    );
-                  } else {
-                    onSelectRecord(record);
-                    onClose();
-                  }
-                }}
-              >
-                <View style={styles.historyItemContent}>
-                  <Text style={styles.historyItemDate}>{formatTimestamp(record)}</Text>
-                  <Text style={styles.historyItemCount}>
-                    {getSelectionCount(record)} traits selected
-                  </Text>
-                  {record.situation && (
-                    <Text style={styles.historyItemSituation} numberOfLines={2}>
-                      {record.situation}
-                    </Text>
-                  )}
-                </View>
-              </TouchableOpacity>
+              <View key={record.id} style={styles.historyItem}>
+                <TouchableOpacity
+                  style={styles.historyItemTouchable}
+                  onPress={() => {
+                    // Check for unsaved changes before loading new record
+                    if (hasUnsavedChanges) {
+                      Alert.alert(
+                        'Unsaved Changes',
+                        'Save your current spot check before loading a different one?',
+                        [
+                          { text: 'Cancel', style: 'cancel' },
+                          { text: 'Discard', style: 'destructive', onPress: () => {
+                            onSelectRecord(record);
+                            onClose();
+                          }},
+                          { text: 'Save First', onPress: async () => {
+                            await handleSave();
+                            onSelectRecord(record);
+                            onClose();
+                          }}
+                        ]
+                      );
+                    } else {
+                      onSelectRecord(record);
+                      onClose();
+                    }
+                  }}
+                >
+                  <View style={styles.historyItemContent}>
+                    <Text style={styles.historyItemDate}>{formatTimestamp(record)}</Text>
+                    {(() => {
+                      const { lookForTraits, completeTraits } = getSelectedTraits(record);
+                      const allTraits = [...lookForTraits, ...completeTraits];
+                      if (allTraits.length > 0) {
+                        return (
+                          <View style={styles.historyItemTraits}>
+                            {lookForTraits.map((trait, idx) => (
+                              <Text key={`lookFor-${idx}`} style={styles.historyItemTraitRed}>
+                                {trait}
+                                {idx < lookForTraits.length - 1 || completeTraits.length > 0 ? ', ' : ''}
+                              </Text>
+                            ))}
+                            {completeTraits.map((trait, idx) => (
+                              <Text key={`complete-${idx}`} style={styles.historyItemTraitGreen}>
+                                {trait}
+                                {idx < completeTraits.length - 1 ? ', ' : ''}
+                              </Text>
+                            ))}
+                          </View>
+                        );
+                      }
+                      return null;
+                    })()}
+                    {record.situation && (
+                      <Text style={styles.historyItemSituation} numberOfLines={2}>
+                        {record.situation}
+                      </Text>
+                    )}
+                  </View>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.historyItemDelete}
+                  onPress={() => handleDelete(record.id)}
+                >
+                  <Trash2 size={20} color="#dc3545" />
+                </TouchableOpacity>
+              </View>
             ))
           )}
         </ScrollView>
@@ -312,19 +371,24 @@ const Inventory = () => {
     });
   };
 
+  // Check if form has any content
+  const hasContent = situation.trim() !== '' || Object.values(selections).some(s => s !== 'none');
+
   // Add header icons (Save, Share, History, Reset)
   useLayoutEffect(() => {
     navigation.setOptions({
       headerRight: () => (
         <View style={{ flexDirection: 'row', gap: 16, paddingRight: 16 }}>
-          <TouchableOpacity 
-            onPress={handleSave}
-            accessible={true}
-            accessibilityLabel="Save spot check"
-            accessibilityRole="button"
-          >
-            <SaveIcon color={Colors.light.tint} size={20} />
-          </TouchableOpacity>
+          {hasContent && (
+            <TouchableOpacity 
+              onPress={handleSave}
+              accessible={true}
+              accessibilityLabel="Save spot check"
+              accessibilityRole="button"
+            >
+              <SaveIcon color={Colors.light.tint} size={20} />
+            </TouchableOpacity>
+          )}
           <TouchableOpacity 
             onPress={handleShare}
             accessible={true}
@@ -352,7 +416,7 @@ const Inventory = () => {
         </View>
       ),
     });
-  }, [navigation, hasUnsavedChanges]);
+  }, [navigation, hasUnsavedChanges, hasContent]);
 
   const handlePressLookFor = (pairId: string) => {
     setSelections(prev => {
@@ -390,19 +454,41 @@ const Inventory = () => {
 
   const handleSave = async () => {
     try {
-      const record: SpotCheckRecord = {
-        id: Date.now().toString(),
-        ts: new Date().toISOString(),
-        situation,
-        selections
-      };
-
       const stored = await AsyncStorage.getItem(INVENTORY_STORAGE_KEY);
       const records = stored ? JSON.parse(stored) : [];
-      records.unshift(record);
+      
+      // If editing an existing record, update it; otherwise create new
+      if (currentRecord && currentRecord.id) {
+        // Update existing record
+        const recordIndex = records.findIndex((r: SpotCheckRecord) => r.id === currentRecord.id);
+        const updatedRecord: SpotCheckRecord = {
+          ...currentRecord,
+          ts: new Date().toISOString(), // Update timestamp
+          situation,
+          selections
+        };
+        
+        if (recordIndex !== -1) {
+          records[recordIndex] = updatedRecord;
+        } else {
+          // If not found (shouldn't happen), add as new
+          records.unshift(updatedRecord);
+        }
+        
+        setCurrentRecord(updatedRecord);
+      } else {
+        // Create new record
+        const newRecord: SpotCheckRecord = {
+          id: Date.now().toString(),
+          ts: new Date().toISOString(),
+          situation,
+          selections
+        };
+        records.unshift(newRecord);
+        setCurrentRecord(newRecord);
+      }
+      
       await AsyncStorage.setItem(INVENTORY_STORAGE_KEY, JSON.stringify(records));
-
-      setCurrentRecord(record);
       setHasUnsavedChanges(false);
       
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
@@ -468,12 +554,10 @@ const Inventory = () => {
           <View style={styles.contentContainer}>
             <Text style={styles.title}>Spot Check Inventory</Text>
             
-            {/* Saved Timestamp */}
-            {currentRecord && (
-              <Text style={styles.savedTimestamp}>
-                Saved: {formatSavedTimestamp()}
-              </Text>
-            )}
+            {/* Saved Timestamp - always reserve space */}
+            <Text style={styles.savedTimestamp}>
+              {currentRecord ? `Saved: ${formatSavedTimestamp()}` : ' '}
+            </Text>
             
             {/* Situation Input */}
             <View style={styles.situationContainer}>
@@ -482,7 +566,7 @@ const Inventory = () => {
                 style={styles.situationInput}
                 value={situation}
                 onChangeText={setSituation}
-                placeholder="Describe the situation that's troubling you..."
+                placeholder="Describe the situation"
                 placeholderTextColor={Colors.light.muted}
                 multiline={true}
                 numberOfLines={3}
@@ -557,10 +641,10 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   situationContainer: {
-    marginBottom: 16,
+    marginBottom: 28,
   },
   situationLabel: {
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: '600',
     color: Colors.light.text,
     marginBottom: 8,
@@ -722,12 +806,21 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   historyItem: {
-    padding: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
     borderBottomWidth: 1,
     borderBottomColor: '#eee',
   },
+  historyItemTouchable: {
+    flex: 1,
+    padding: 16,
+  },
   historyItemContent: {
     flex: 1,
+  },
+  historyItemDelete: {
+    padding: 16,
+    paddingLeft: 8,
   },
   historyItemDate: {
     fontSize: 14,
@@ -735,10 +828,20 @@ const styles = StyleSheet.create({
     color: Colors.light.text,
     marginBottom: 4,
   },
-  historyItemCount: {
-    fontSize: 14,
-    color: '#666',
+  historyItemTraits: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
     marginBottom: 4,
+  },
+  historyItemTraitRed: {
+    fontSize: 13,
+    color: '#dc3545',
+    fontWeight: '500',
+  },
+  historyItemTraitGreen: {
+    fontSize: 13,
+    color: '#28a745',
+    fontWeight: '500',
   },
   historyItemSituation: {
     fontSize: 14,
