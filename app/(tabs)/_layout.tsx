@@ -1,5 +1,5 @@
 import { Tabs, router, Stack, usePathname } from "expo-router";
-import { Home, MessageCircle, Heart, Smile, Moon, ChevronLeft, BookOpen } from "lucide-react-native";
+import { Home, MessageCircle, Smile, Moon, ChevronLeft, BookOpen, CheckSquare } from "lucide-react-native";
 import React from "react";
 import { Text, View, StyleSheet, Platform, TouchableOpacity } from "react-native";
 import SunIcon from "@/components/SunIcon";
@@ -142,7 +142,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="gratitude"
         options={{
-          title: "Gratitude",
+          title: "Grateful",
           headerTitle: '',
           headerLeft: () => <BackButton />,
           tabBarIcon: ({ color }) => <Smile color={color} size={22} style={styles.tabIcon} />,
@@ -160,9 +160,18 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
+        name="inventory"
+        options={{
+          title: "Spot",
+          headerTitle: '',
+          headerLeft: () => <BackButton />,
+          tabBarIcon: ({ color }) => <CheckSquare color={color} size={22} style={styles.tabIcon} />,
+        }}
+      />
+      <Tabs.Screen
         name="literature"
         options={{
-          title: "Literature",
+          title: "Books",
           headerTitle: '',
           headerLeft: () => <BackButton />,
           tabBarIcon: ({ color }) => <BookOpen color={color} size={22} style={styles.tabIcon} />,
@@ -171,10 +180,10 @@ export default function TabLayout() {
       <Tabs.Screen
         name="prayers"
         options={{
-          title: "Prayers",
+          href: null, // Hide from tab bar
+          headerShown: true,
           headerTitle: '',
           headerLeft: () => <BackButton />,
-          tabBarIcon: ({ color }) => <Heart color={color} size={22} style={styles.tabIcon} />,
         }}
       />
       <Tabs.Screen
@@ -217,15 +226,6 @@ export default function TabLayout() {
       />
       <Tabs.Screen
         name="meeting-pocket"
-        options={{
-          href: null, // Hide from tab bar
-          headerShown: true,
-          headerTitle: '',
-          headerLeft: () => <BackButton />,
-        }}
-      />
-      <Tabs.Screen
-        name="inventory"
         options={{
           href: null, // Hide from tab bar
           headerShown: true,
