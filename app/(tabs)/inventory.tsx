@@ -308,20 +308,22 @@ const SpotCheckHistorySheet: React.FC<{
                       const allTraits = [...lookForTraits, ...completeTraits];
                       if (allTraits.length > 0) {
                         return (
-                          <Text style={styles.historyItemTraits} numberOfLines={2} ellipsizeMode="tail">
-                            {lookForTraits.map((trait, idx) => (
-                              <Text key={`lookFor-${idx}`} style={styles.historyItemTraitRed}>
-                                {trait}
-                                {idx < lookForTraits.length - 1 || completeTraits.length > 0 ? ', ' : ''}
-                              </Text>
-                            ))}
-                            {completeTraits.map((trait, idx) => (
-                              <Text key={`complete-${idx}`} style={styles.historyItemTraitGreen}>
-                                {trait}
-                                {idx < completeTraits.length - 1 ? ', ' : ''}
-                              </Text>
-                            ))}
-                          </Text>
+                          <View style={styles.historyItemTraitsContainer}>
+                            <Text style={styles.historyItemTraitsText} numberOfLines={2} ellipsizeMode="tail">
+                              {lookForTraits.map((trait, idx) => (
+                                <Text key={`lookFor-${idx}`} style={styles.historyItemTraitRed}>
+                                  {trait}
+                                  {idx < lookForTraits.length - 1 || completeTraits.length > 0 ? ', ' : ''}
+                                </Text>
+                              ))}
+                              {completeTraits.map((trait, idx) => (
+                                <Text key={`complete-${idx}`} style={styles.historyItemTraitGreen}>
+                                  {trait}
+                                  {idx < completeTraits.length - 1 ? ', ' : ''}
+                                </Text>
+                              ))}
+                            </Text>
+                          </View>
                         );
                       }
                       return null;
@@ -843,7 +845,10 @@ const styles = StyleSheet.create({
     fontStyle: 'italic',
     marginBottom: 6,
   },
-  historyItemTraits: {
+  historyItemTraitsContainer: {
+    marginTop: 2,
+  },
+  historyItemTraitsText: {
     fontSize: 13,
     lineHeight: 18,
   },
