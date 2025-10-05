@@ -281,24 +281,9 @@ const MarkdownReader = ({
         updateBookmarkState();
       }
     } else {
-      // If no target page, initialize to the first page of the chapter
-      if (pageNumbers.length > 0) {
-        const firstPage = pageNumbers[0];
-        console.log(`[Bookmark] Initializing to first page: ${firstPage}`);
-        currentPageRef.current = firstPage;
-        updateBookmarkState();
-      } else {
-        // For chapters with Roman numerals (Foreword, Doctor's Opinion), use special page numbers
-        // Foreword starts at page xxiii (Roman 23)
-        // Doctor's Opinion starts at page xiii (Roman 13)
-        if (sectionId === 'foreword-first') {
-          console.log(`[Bookmark] Initializing Foreword to page 23 (xxiii)`);
-          currentPageRef.current = 23;
-          updateBookmarkState();
-        }
-        // Removed automatic initialization for Doctor's Opinion to prevent duplicate bookmarks
-        // The page will be set correctly by the scroll tracking system
-      }
+      // Removed automatic initialization for all chapters to prevent duplicate bookmarks
+      // The page will be set correctly by the scroll tracking system
+      console.log(`[Bookmark] No target page specified, letting scroll tracking handle page detection`);
     }
   }, [targetPageNumber, updateBookmarkState, pageNumbers, sectionId]);
 
