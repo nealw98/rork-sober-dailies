@@ -272,7 +272,7 @@ const AboutSupportScreen = () => {
       const hideTimer = setTimeout(() => {
         setPurchasingId(null);
         setIsPurchaseInProgress(false);
-      }, 800);
+      }, 1500);
 
       try {
         await Purchases.purchasePackage(pkg);
