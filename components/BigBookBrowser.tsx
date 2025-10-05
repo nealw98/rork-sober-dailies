@@ -16,7 +16,6 @@ import {
   ExternalLink,
   Clock,
   FileText,
-  Bookmark,
 } from "lucide-react-native";
 import { LinearGradient } from 'expo-linear-gradient';
 
@@ -40,7 +39,6 @@ interface ExtendedSearchHighlight {
 import { BigBookStoreProvider, useBigBookStore } from "@/hooks/use-bigbook-store";
 import { BigBookCategory, BigBookSection } from "@/types/bigbook";
 import { adjustFontWeight } from "@/constants/fonts";
-import { BigBookBookmarksProvider, useBigBookBookmarks } from "@/hooks/useBigBookBookmarks";
 
 import PDFViewer from "@/components/PDFViewer";
 import MarkdownReader from "./MarkdownReader";
@@ -48,7 +46,6 @@ import ScreenContainer from "./ScreenContainer";
 import BigBookSearchBar from "./BigBookSearchBar";
 import BigBookSearchResults from "./BigBookSearchResults";
 import PageNumberInput from "./PageNumberInput";
-import BigBookBookmarksList from "./BigBookBookmarksList";
 
 const SectionItem = ({ section, categoryId, onOpenContent }: { 
   section: BigBookSection; 
@@ -127,17 +124,9 @@ const CategorySection = ({ category, onOpenContent }: {
   );
 };
 
-interface BigBookBrowserContentProps {
-  bookmarksListVisible: boolean;
-  setBookmarksListVisible: (visible: boolean) => void;
-  setHasBookmarks: (hasBookmarks: boolean) => void;
-}
+interface BigBookBrowserContentProps {}
 
-function BigBookBrowserContent({ 
-  bookmarksListVisible, 
-  setBookmarksListVisible,
-  setHasBookmarks 
-}: BigBookBrowserContentProps) {
+function BigBookBrowserContent({}: BigBookBrowserContentProps) {
   // Component is rendering normally
   
   const [pdfViewerVisible, setPdfViewerVisible] = useState(false);
@@ -163,13 +152,6 @@ function BigBookBrowserContent({
   const [pageInputVisible, setPageInputVisible] = useState(false);
   const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
 
-  // Bookmarks
-  const { bookmarks, hasBookmarks, removeBookmark, reloadBookmarks } = useBigBookBookmarks();
-  
-  // Update parent component when bookmarks change
-  useEffect(() => {
-    setHasBookmarks(hasBookmarks);
-  }, [hasBookmarks, setHasBookmarks]);
 
   // Safety mechanism to ensure modals are closed on component mount
   useEffect(() => {
@@ -379,33 +361,6 @@ function BigBookBrowserContent({
     }
   }, []);
 
-  const handleBookmarksPress = useCallback(() => {
-    console.log('[Bookmarks] Opening bookmarks list, count:', bookmarks.length);
-    setBookmarksListVisible(true);
-  }, [bookmarks]);
-
-  const handleSelectBookmark = useCallback((bookmark: any) => {
-    setBookmarksListVisible(false);
-    // Use the original page number for navigation if available, otherwise fall back to pageNumber
-    const pageToNavigate = bookmark.originalPageNumber || bookmark.pageNumber;
-    console.log('[Bookmarks] Navigating to bookmark:', bookmark, 'using page:', pageToNavigate);
-    const navigationResult = navigateToPageWithHighlight(pageToNavigate);
-    if (navigationResult && navigationResult.success) {
-      setCurrentMarkdown({
-        content: navigationResult.content,
-        title: bookmark.chapterTitle,
-        id: bookmark.chapterId,
-        initialScrollPosition: navigationResult.scrollPosition || 0,
-        targetPageNumber: navigationResult.targetPageMarker || String(pageToNavigate),
-        searchHighlight: {
-          query: '',
-          position: 0,
-          length: 0
-        }
-      });
-      setMarkdownReaderVisible(true);
-    }
-  }, []);
 
   return (
     <View style={styles.container}>
@@ -520,32 +475,15 @@ function BigBookBrowserContent({
         />
       )}
 
-      <BigBookBookmarksList
-        visible={bookmarksListVisible}
-        onClose={() => setBookmarksListVisible(false)}
-        bookmarks={bookmarks}
-        onSelectBookmark={handleSelectBookmark}
-        onRemoveBookmark={removeBookmark}
-      />
     </View>
   );
 }
 
-export default function BigBookBrowser({ 
-  bookmarksListVisible, 
-  setBookmarksListVisible,
-  setHasBookmarks 
-}: BigBookBrowserContentProps) {
+export default function BigBookBrowser() {
   console.log('🟢 BigBookBrowser: Main wrapper component rendering');
   return (
     <BigBookStoreProvider>
-      <BigBookBookmarksProvider>
-        <BigBookBrowserContent 
-          bookmarksListVisible={bookmarksListVisible}
-          setBookmarksListVisible={setBookmarksListVisible}
-          setHasBookmarks={setHasBookmarks}
-        />
-      </BigBookBookmarksProvider>
+      <BigBookBrowserContent />
     </BigBookStoreProvider>
   );
 }
@@ -649,9 +587,6 @@ const styles = StyleSheet.create({
   sectionIcons: {
     flexDirection: "row",
     alignItems: "center",
-  },
-  bookmarkButton: {
-    marginRight: 12,
   },
 
   searchContainer: {

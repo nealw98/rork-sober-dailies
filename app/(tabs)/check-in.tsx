@@ -143,7 +143,7 @@ export default function CheckInScreen() {
               <Text style={styles.gratitudeNumber}>{index + 1}.</Text>
               <TextInput
                 style={styles.gratitudeInput}
-                placeholder="Add something you're grateful for..."
+                placeholder="I&apos;m grateful for..."
                 placeholderTextColor="#9CA3AF"
                 value={item}
                 onChangeText={(value) => handleGratitudeChange(index, value)}

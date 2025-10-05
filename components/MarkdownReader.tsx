@@ -14,13 +14,12 @@ import {
   FlatList
 } from 'react-native';
 import { ScrollView } from 'react-native';
-import { ChevronLeft, Search, Bookmark } from 'lucide-react-native';
+import { ChevronLeft, Search } from 'lucide-react-native';
 import Colors from '@/constants/colors';
 import { adjustFontWeight } from '@/constants/fonts';
 import { CustomTextRenderer } from './CustomTextRenderer';
 import { getChapterPages, findPageIndex, PageItem } from '@/constants/bigbook/content';
 import { useLastPageStore } from '@/hooks/use-last-page-store';
-import { useBigBookBookmarks } from '@/hooks/useBigBookBookmarks';
 
 // Convert Roman numerals to Arabic numbers
 const romanToArabic = (roman: string): number => {
@@ -107,9 +106,6 @@ const MarkdownReader = ({
   const dwellTimerRef = useRef<NodeJS.Timeout | null>(null);
   const lastScrollTimeRef = useRef<number>(0);
 
-  // Bookmarks
-  const { toggleBookmark, isPageBookmarked } = useBigBookBookmarks();
-  const [currentPageBookmarked, setCurrentPageBookmarked] = useState(false);
 
   // Measure the anchor against the ScrollView and correct if needed (Android-only)
   const verifyAndCorrectPosition = () => {
@@ -169,52 +165,8 @@ const MarkdownReader = ({
     };
   }, []);
 
-  // Update bookmark state when current page changes
-  const updateBookmarkState = useCallback(() => {
-    if (currentPageRef.current) {
-      const isBookmarked = isPageBookmarked(currentPageRef.current);
-      console.log(`[Bookmark] Page ${currentPageRef.current} bookmarked:`, isBookmarked);
-      setCurrentPageBookmarked(isBookmarked);
-    }
-  }, [isPageBookmarked]);
 
-  // Get the original page number format (Roman or Arabic) for the current page
-  const getOriginalPageNumber = useCallback((pageNumber: number): string => {
-    // If we have a targetPageNumber, use that as the original format
-    if (targetPageNumber) {
-      // Check if the targetPageNumber is a Roman numeral
-      const isRoman = isNaN(parseInt(targetPageNumber, 10));
-      if (isRoman) {
-        return targetPageNumber; // Return the Roman numeral as-is
-      } else {
-        return targetPageNumber; // Return the Arabic number as string
-      }
-    }
-    
-    // If we don't have a target page number, we need to determine if this should be Roman or Arabic
-    // For chapters with Roman numerals (Foreword, Doctor's Opinion), convert to Roman
-    if (sectionId === 'foreword-first' || sectionId === 'doctors-opinion') {
-      return arabicToRoman(pageNumber);
-    }
-    
-    // For other chapters, return as Arabic number string
-    return pageNumber.toString();
-  }, [targetPageNumber, sectionId]);
 
-  // Handle bookmark toggle
-  const handleBookmarkPress = useCallback(async () => {
-    if (!currentPageRef.current) {
-      console.log('[Bookmark] No current page to bookmark');
-      return;
-    }
-    
-    const originalPageNumber = getOriginalPageNumber(currentPageRef.current);
-    console.log(`[Bookmark] Toggling bookmark for page ${currentPageRef.current} (original: ${originalPageNumber})`);
-    const wasAdded = await toggleBookmark(currentPageRef.current, originalPageNumber, title, sectionId);
-    console.log(`[Bookmark] Toggle result - wasAdded:`, wasAdded);
-    // Directly set the state based on the toggle result
-    setCurrentPageBookmarked(wasAdded !== false);
-  }, [toggleBookmark, title, sectionId, getOriginalPageNumber]);
 
   // Page tracking function for last page feature
   const trackCurrentPage = useCallback((scrollY: number) => {
@@ -243,10 +195,6 @@ const MarkdownReader = ({
       currentPageRef.current = currentPage;
       lastScrollTimeRef.current = Date.now();
       
-      // Update bookmark icon state
-      const isBookmarked = isPageBookmarked(currentPage);
-      console.log(`[Bookmark] Page changed to ${currentPage}, bookmarked:`, isBookmarked);
-      setCurrentPageBookmarked(isBookmarked);
       
       // Clear existing timer
       if (dwellTimerRef.current) {
@@ -261,61 +209,41 @@ const MarkdownReader = ({
         }
       }, 600);
     }
-  }, [saveLastPage, isPageBookmarked]);
+  }, [saveLastPage]);
 
-  // Track if we've initialized to prevent re-initialization on re-renders
-  const hasInitializedRef = useRef(false);
-  const lastTargetPageRef = useRef<string | undefined>(undefined);
-
-  // Initialize bookmark state and current page on mount
+  // Initialize current page on mount
   useEffect(() => {
     if (targetPageNumber) {
-      // Only process if this is a different target page than last time
-      if (targetPageNumber !== lastTargetPageRef.current) {
-        lastTargetPageRef.current = targetPageNumber;
-        
-        // Store the original page number string (could be Roman or Arabic)
-        // Convert to number for currentPageRef but keep original for bookmark operations
-        let pageNum = parseInt(targetPageNumber, 10);
-        
-        // If that fails, try converting from Roman numeral
-        if (isNaN(pageNum)) {
-          pageNum = romanToArabic(targetPageNumber);
-          console.log(`[Bookmark] Converted Roman numeral ${targetPageNumber} to ${pageNum}`);
-        }
-        
-        if (!isNaN(pageNum) && pageNum > 0) {
-          currentPageRef.current = pageNum;
-          updateBookmarkState();
-        }
-      }
-    } else if (!hasInitializedRef.current) {
-      // Only initialize once when component first mounts and no target page is specified
-      hasInitializedRef.current = true;
+      // Convert target page to number for navigation
+      let pageNum = parseInt(targetPageNumber, 10);
       
-      // Initialize to the first page of the chapter only if no target page is specified
-      // This allows bookmarking the first page while preventing duplicate bookmarks
+      // If that fails, try converting from Roman numeral
+      if (isNaN(pageNum)) {
+        pageNum = romanToArabic(targetPageNumber);
+        console.log(`Converted Roman numeral ${targetPageNumber} to ${pageNum}`);
+      }
+      
+      if (!isNaN(pageNum) && pageNum > 0) {
+        currentPageRef.current = pageNum;
+      }
+    } else {
+      // Initialize to the first page of the chapter
       if (pageNumbers.length > 0) {
         const firstPage = pageNumbers[0];
-        console.log(`[Bookmark] Initializing to first page: ${firstPage} (no target page specified, first mount only)`);
+        console.log(`Initializing to first page: ${firstPage}`);
         currentPageRef.current = firstPage;
-        updateBookmarkState();
       } else {
         // For chapters with Roman numerals (Foreword, Doctor's Opinion), use special page numbers
-        // Foreword starts at page xxiii (Roman 23)
-        // Doctor's Opinion starts at page xiii (Roman 13)
         if (sectionId === 'foreword-first') {
-          console.log(`[Bookmark] Initializing Foreword to page 23 (xxiii) (first mount only)`);
+          console.log(`Initializing Foreword to page 23 (xxiii)`);
           currentPageRef.current = 23;
-          updateBookmarkState();
         } else if (sectionId === 'doctors-opinion') {
-          console.log(`[Bookmark] Initializing Doctor's Opinion to page 13 (xiii) (first mount only)`);
+          console.log(`Initializing Doctor's Opinion to page 13 (xiii)`);
           currentPageRef.current = 13;
-          updateBookmarkState();
         }
       }
     }
-  }, [targetPageNumber, updateBookmarkState, pageNumbers, sectionId]);
+  }, [targetPageNumber, pageNumbers, sectionId]);
 
   // Cleanup timer on unmount
   useEffect(() => {
@@ -667,17 +595,7 @@ const MarkdownReader = ({
           <Text style={styles.backText}>Back</Text>
         </TouchableOpacity>
         <Text style={styles.headerTitle}>{title}</Text>
-        <TouchableOpacity 
-          onPress={handleBookmarkPress} 
-          style={styles.bookmarkButton}
-          activeOpacity={0.7}
-        >
-          <Bookmark 
-            size={22} 
-            color={currentPageBookmarked ? Colors.light.tint : Colors.light.muted}
-            fill={currentPageBookmarked ? Colors.light.tint : 'none'}
-          />
-        </TouchableOpacity>
+        <View style={styles.headerSpacer} />
       </View>
       
       {Platform.OS === 'android' ? (
@@ -809,11 +727,8 @@ const styles = StyleSheet.create({
     marginLeft: 4,
     fontWeight: adjustFontWeight('500')
   },
-  bookmarkButton: {
-    position: 'absolute',
-    right: Platform.OS === 'android' ? 8 : 16,
-    padding: 8,
-    zIndex: 1,
+  headerSpacer: {
+    width: 38, // Spacer for proper header alignment
   },
   headerTitle: {
     flex: 1,

@@ -37,7 +37,6 @@ export default function PrivacyScreen() {
         
         <Text style={styles.subSectionTitle}>User-Provided Information</Text>
         <Text style={styles.bulletPoint}>• Chat Messages: Messages you send to the AI sponsors within the app</Text>
-        <Text style={styles.bulletPoint}>• Bookmarks: Sections of the Big Book you bookmark</Text>
         <Text style={styles.bulletPoint}>• Favorites: Daily reflections you mark as favorites</Text>
         <Text style={styles.bulletPoint}>• Recently Viewed: Big Book sections you&apos;ve recently accessed</Text>
 

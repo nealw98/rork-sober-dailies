@@ -19,10 +19,3 @@ export interface TwelveAndTwelveCategory {
   description: string;
   sections: BigBookSection[];
 }
-
-export interface BigBookmark {
-  sectionId: string;
-  title: string;
-  url: string;
-  dateAdded: number;
-}

@@ -284,37 +284,6 @@ const styles = StyleSheet.create({
     color: Colors.light.muted,
     lineHeight: 16,
   },
-  bookmarkButton: {
-    padding: 8,
-    marginLeft: 8,
-  },
-  bookmarksContainer: {
-    padding: 16,
-  },
-  bookmarkItem: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: 'rgba(255, 255, 255, 0.6)',
-    borderRadius: 16,
-    padding: 12,
-    marginBottom: 8,
-  },
-  bookmarkContent: {
-    flex: 1,
-  },
-  bookmarkTitle: {
-    fontSize: 16,
-    fontWeight: adjustFontWeight("500"),
-    color: Colors.light.text,
-    marginBottom: 2,
-  },
-  bookmarkDate: {
-    fontSize: 12,
-    color: Colors.light.muted,
-  },
-  removeBookmarkButton: {
-    padding: 8,
-  },
 
   copyrightContainer: {
     marginTop: 24,
