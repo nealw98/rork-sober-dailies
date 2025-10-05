@@ -148,9 +148,9 @@ export default function GratitudeList() {
               value={inputValue}
               onChangeText={setInputValue}
               onKeyPress={handleKeyPress}
-              placeholder="e.g., My sobriety"
+              placeholder="Add something you're grateful for..."
               style={styles.textInput}
-              placeholderTextColor="#6c757d"
+              placeholderTextColor="#9CA3AF"
             />
             <TouchableOpacity 
               onPress={handleAddGratitude}
