@@ -148,7 +148,7 @@ export default function GratitudeList() {
               value={inputValue}
               onChangeText={setInputValue}
               onKeyPress={handleKeyPress}
-              placeholder="Add something you're grateful for..."
+              placeholder={gratitudeItems.length === 0 ? "e.g., My sobriety" : ""}
               style={styles.textInput}
               placeholderTextColor="#9CA3AF"
             />
