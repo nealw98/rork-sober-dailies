@@ -192,6 +192,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: Colors.light.muted,
     textAlign: 'center',
+    marginBottom: 24,
   },
   
   optionsContainer: {
