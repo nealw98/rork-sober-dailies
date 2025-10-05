@@ -918,7 +918,7 @@ export default function GratitudeListScreen() {
                 <TextInput
                   ref={inputRef}
                   style={styles.textInput}
-                  placeholder="e.g., My sobriety"
+                  placeholder={gratitudeItems.length === 0 ? "e.g., My sobriety" : ""}
                   placeholderTextColor={Colors.light.muted}
                   value={inputValue}
                   onChangeText={setInputValue}
