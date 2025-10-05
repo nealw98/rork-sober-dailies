@@ -265,23 +265,29 @@ const MarkdownReader = ({
 
   // Track if we've initialized to prevent re-initialization on re-renders
   const hasInitializedRef = useRef(false);
+  const lastTargetPageRef = useRef<string | undefined>(undefined);
 
   // Initialize bookmark state and current page on mount
   useEffect(() => {
     if (targetPageNumber) {
-      // Store the original page number string (could be Roman or Arabic)
-      // Convert to number for currentPageRef but keep original for bookmark operations
-      let pageNum = parseInt(targetPageNumber, 10);
-      
-      // If that fails, try converting from Roman numeral
-      if (isNaN(pageNum)) {
-        pageNum = romanToArabic(targetPageNumber);
-        console.log(`[Bookmark] Converted Roman numeral ${targetPageNumber} to ${pageNum}`);
-      }
-      
-      if (!isNaN(pageNum) && pageNum > 0) {
-        currentPageRef.current = pageNum;
-        updateBookmarkState();
+      // Only process if this is a different target page than last time
+      if (targetPageNumber !== lastTargetPageRef.current) {
+        lastTargetPageRef.current = targetPageNumber;
+        
+        // Store the original page number string (could be Roman or Arabic)
+        // Convert to number for currentPageRef but keep original for bookmark operations
+        let pageNum = parseInt(targetPageNumber, 10);
+        
+        // If that fails, try converting from Roman numeral
+        if (isNaN(pageNum)) {
+          pageNum = romanToArabic(targetPageNumber);
+          console.log(`[Bookmark] Converted Roman numeral ${targetPageNumber} to ${pageNum}`);
+        }
+        
+        if (!isNaN(pageNum) && pageNum > 0) {
+          currentPageRef.current = pageNum;
+          updateBookmarkState();
+        }
       }
     } else if (!hasInitializedRef.current) {
       // Only initialize once when component first mounts and no target page is specified
