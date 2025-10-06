@@ -445,7 +445,8 @@ const Inventory = () => {
       const parts: string[] = [];
       
       if (situation) {
-        parts.push(`Spot Check Inventory Situation: ${situation}`);
+        parts.push('Spot Check Inventory Situation:');
+        parts.push(situation);
       } else {
         parts.push('Spot Check Inventory');
       }
