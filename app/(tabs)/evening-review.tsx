@@ -481,9 +481,6 @@ export default function EveningReview() {
                     returnKeyType="done"
                     blurOnSubmit={true}
                     enablesReturnKeyAutomatically={true}
-                    returnKeyType="done"
-                    blurOnSubmit={true}
-                    enablesReturnKeyAutomatically={true}
                   />
                 </View>
               ))}
