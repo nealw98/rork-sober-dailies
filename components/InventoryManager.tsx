@@ -10,7 +10,6 @@ import {
   Modal,
   ActivityIndicator,
   Platform,
-  Keyboard,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Stack } from 'expo-router';
@@ -148,15 +147,6 @@ const AddItemModal: React.FC<AddItemModalProps> = ({ visible, onClose, onAdd, ca
               testID="notes-input"
             />
           </View>
-
-          <TouchableOpacity
-            style={styles.doneButton}
-            onPress={() => {
-              Keyboard.dismiss();
-            }}
-          >
-            <Text style={styles.doneButtonText}>Done</Text>
-          </TouchableOpacity>
 
           <TouchableOpacity style={styles.addButton} onPress={handleAdd} testID="add-item-button">
             <Text style={styles.addButtonText}>Add Item</Text>
@@ -768,19 +758,6 @@ const styles = StyleSheet.create({
     color: 'white',
     fontSize: 16,
     fontWeight: 'bold',
-  },
-  doneButton: {
-    backgroundColor: Colors.light.muted,
-    paddingVertical: 12,
-    paddingHorizontal: 20,
-    borderRadius: 8,
-    alignItems: 'center',
-    marginTop: 16,
-  },
-  doneButtonText: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: '600',
   },
 });
 
