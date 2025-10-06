@@ -38,9 +38,7 @@ const HomeScreen = () => {
 
         {/* Sobriety Counter - centered between subtitle and daily reflection */}
         <View style={styles.sobrietyCounterContainer}>
-          <View style={styles.sobrietyCounterBox}>
-            <SobrietyCounter />
-          </View>
+          <SobrietyCounter />
         </View>
 
         {/* Daily Reflection Button */}
@@ -164,21 +162,10 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   sobrietyCounterContainer: {
-    marginTop: 8,
+    marginTop: 16,
     marginBottom: 12,
     width: '100%',
     alignItems: 'center',
-  },
-  sobrietyCounterBox: {
-    backgroundColor: '#28a745',
-    borderRadius: 16,
-    padding: 16,
-    marginHorizontal: 16,
-    elevation: 4,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.2,
-    shadowRadius: 7,
   },
   heroTitle: {
     fontSize: 36,
