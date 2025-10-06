@@ -3,7 +3,6 @@ import { StyleSheet, View, Text, ScrollView, TouchableOpacity, Linking } from 'r
 import { LinearGradient } from 'expo-linear-gradient';
 
 import { useRouter } from 'expo-router';
-import SunIcon from '@/components/SunIcon';
 import SobrietyCounter from '@/components/SobrietyCounter';
 import { formatDateDisplay } from '@/utils/dateUtils';
 import Colors from '@/constants/colors';
@@ -28,7 +27,6 @@ const HomeScreen = () => {
       <ScrollView contentContainerStyle={styles.scrollContent}>
         {/* Hero Section */}
         <View style={styles.heroSection}>
-          <SunIcon size={120} />
           <Text style={styles.heroTitle}>Sober Dailies</Text>
           <Text style={styles.heroSubtitle}>
             Do these daily. Stay sober.
