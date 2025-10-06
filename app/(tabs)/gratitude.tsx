@@ -927,6 +927,7 @@ export default function GratitudeListScreen() {
                   returnKeyType="done"
                   multiline
                   blurOnSubmit={true}
+                  enablesReturnKeyAutomatically={true}
                 />
                 <TouchableOpacity
                   style={[
@@ -955,9 +956,10 @@ export default function GratitudeListScreen() {
                             onChangeText={setEditingValue}
                             autoFocus
                             blurOnSubmit
+                            returnKeyType="done"
+                            enablesReturnKeyAutomatically={true}
                             onSubmitEditing={commitEdit}
                             onBlur={commitEdit}
-                            returnKeyType="done"
                             multiline
                             textAlignVertical="top"
                           />

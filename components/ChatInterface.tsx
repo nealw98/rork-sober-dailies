@@ -45,7 +45,7 @@ const ChatBubble = ({ message }: { message: ChatMessage }) => {
     }
   };
 
-  const longPressTimer = useRef<NodeJS.Timeout | null>(null);
+  const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Cleanup timer on unmount
   useEffect(() => {
@@ -315,11 +315,11 @@ export default function ChatInterface() {
           placeholderTextColor={Colors.light.muted}
           multiline={true}
           maxLength={500}
-          returnKeyType="default"
-          blurOnSubmit={false}
+          returnKeyType="done"
+          blurOnSubmit={true}
           textAlignVertical="top"
           textBreakStrategy="simple"
-          autoGrow={true}
+          enablesReturnKeyAutomatically={true}
           testID="chat-input"
         />
         <TouchableOpacity

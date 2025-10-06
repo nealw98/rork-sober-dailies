@@ -68,6 +68,9 @@ const AddItemModal: React.FC<AddItemModalProps> = ({ visible, onClose, onAdd, ca
               value={itemName}
               onChangeText={setItemName}
               placeholder="Enter item name"
+              returnKeyType="done"
+              blurOnSubmit={true}
+              enablesReturnKeyAutomatically={true}
               testID="item-name-input"
             />
           </View>
@@ -120,6 +123,9 @@ const AddItemModal: React.FC<AddItemModalProps> = ({ visible, onClose, onAdd, ca
               onChangeText={setQuantity}
               placeholder="1"
               keyboardType="numeric"
+              returnKeyType="done"
+              blurOnSubmit={true}
+              enablesReturnKeyAutomatically={true}
               testID="quantity-input"
             />
           </View>
@@ -131,6 +137,9 @@ const AddItemModal: React.FC<AddItemModalProps> = ({ visible, onClose, onAdd, ca
               value={location}
               onChangeText={setLocation}
               placeholder="Where did this occur?"
+              returnKeyType="done"
+              blurOnSubmit={true}
+              enablesReturnKeyAutomatically={true}
               testID="location-input"
             />
           </View>
@@ -144,6 +153,9 @@ const AddItemModal: React.FC<AddItemModalProps> = ({ visible, onClose, onAdd, ca
               placeholder="Additional notes..."
               multiline
               numberOfLines={3}
+              returnKeyType="done"
+              blurOnSubmit={true}
+              enablesReturnKeyAutomatically={true}
               testID="notes-input"
             />
           </View>

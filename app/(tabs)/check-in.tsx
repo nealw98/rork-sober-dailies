@@ -132,6 +132,9 @@ export default function CheckInScreen() {
             value={reflection}
             onChangeText={setReflection}
             textAlignVertical="top"
+            returnKeyType="done"
+            blurOnSubmit={true}
+            enablesReturnKeyAutomatically={true}
           />
         </View>
 
@@ -147,6 +150,9 @@ export default function CheckInScreen() {
                 placeholderTextColor="#9CA3AF"
                 value={item}
                 onChangeText={(value) => handleGratitudeChange(index, value)}
+                returnKeyType="done"
+                blurOnSubmit={true}
+                enablesReturnKeyAutomatically={true}
               />
             </View>
           ))}

@@ -480,6 +480,8 @@ export default function EveningReview() {
                     placeholderTextColor={Colors.light.muted}
                     returnKeyType="done"
                     blurOnSubmit={true}
+                    returnKeyType="done"
+                    blurOnSubmit={true}
                     enablesReturnKeyAutomatically={true}
                   />
                 </View>
