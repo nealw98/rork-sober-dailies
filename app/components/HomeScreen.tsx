@@ -1,6 +1,7 @@
 import React from 'react';
 import { StyleSheet, View, Text, ScrollView, TouchableOpacity, Linking } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { useRouter } from 'expo-router';
 import SobrietyCounter from '@/components/SobrietyCounter';
@@ -18,12 +19,13 @@ const HomeScreen = () => {
 
 
   return (
-    <LinearGradient
-      colors={['rgba(74, 144, 226, 0.3)', 'rgba(78, 205, 196, 0.2)', 'rgba(92, 184, 92, 0.1)']}
-      style={styles.container}
-      start={{ x: 0, y: 0 }}
-      end={{ x: 1, y: 1 }}
-    >
+    <SafeAreaView style={styles.safeArea}>
+      <LinearGradient
+        colors={['rgba(74, 144, 226, 0.3)', 'rgba(78, 205, 196, 0.2)', 'rgba(92, 184, 92, 0.1)']}
+        style={styles.container}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+      >
       <ScrollView contentContainerStyle={styles.scrollContent}>
         {/* Hero Section */}
         <View style={styles.heroSection}>
@@ -130,11 +132,15 @@ const HomeScreen = () => {
           <Text style={styles.supportButtonText}>About and Support</Text>
         </TouchableOpacity>
       </ScrollView>
-    </LinearGradient>
+      </LinearGradient>
+    </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+  },
   container: {
     flex: 1,
     marginTop: -24,
@@ -146,7 +152,7 @@ const styles = StyleSheet.create({
     padding: 16,
   },
   heroSection: {
-    paddingTop: 20,
+    paddingTop: 10,
     paddingBottom: 5,
     paddingHorizontal: 16,
     backgroundColor: 'transparent',
@@ -165,7 +171,7 @@ const styles = StyleSheet.create({
     fontSize: 36,
     fontWeight: 'bold',
     color: Colors.light.text,
-    marginBottom: 8,
+    marginBottom: 4,
     marginTop: 8,
     letterSpacing: 1,
     textAlign: 'center',
