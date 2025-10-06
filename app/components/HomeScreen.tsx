@@ -162,8 +162,8 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   sobrietyCounterContainer: {
-    marginTop: 16,
-    marginBottom: 12,
+    marginTop: 24,
+    marginBottom: 4,
     width: '100%',
     alignItems: 'center',
   },
