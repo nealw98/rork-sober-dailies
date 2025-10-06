@@ -94,6 +94,7 @@ export default function TabLayout() {
         tabBarActiveTintColor: Colors.light.tint,
         headerShown: true,
         headerBackTitle: "",
+
         headerTitleAlign: 'center',
         headerLeft: ({ canGoBack }) => canGoBack ? <BackButton /> : null,
         tabBarHideOnKeyboard: Platform.OS === 'android' ? true : undefined,
@@ -162,7 +163,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="inventory"
         options={{
-          title: "Spot",
+          title: "Spot Check",
           headerTitle: '',
           headerLeft: () => <BackButton />,
           tabBarIcon: ({ color }) => <CheckSquare color={color} size={22} style={styles.tabIcon} />,

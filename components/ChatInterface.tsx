@@ -466,19 +466,19 @@ const styles = StyleSheet.create({
     elevation: 6,
   },
   userBubble: {
-    backgroundColor: "#d1e7f7", // Darker blue for better contrast
+    backgroundColor: "#b8d9f0", // Even darker blue for better contrast
     borderBottomRightRadius: 4,
   },
   supportiveBubble: {
-    backgroundColor: "#e8f8e8", // Solid light green for shadow visibility
+    backgroundColor: "#e8f8e8", // Light green for Eddie (supportive sponsor)
     borderBottomLeftRadius: 4,
   },
   graceBubble: {
-    backgroundColor: "#f4e8f8", // Solid light lavender for shadow visibility
+    backgroundColor: "#e8d4f0", // Darker lavender for better contrast
     borderBottomLeftRadius: 4,
   },
   saltyBubble: {
-    backgroundColor: "#fff8e8", // Solid light amber for shadow visibility
+    backgroundColor: "#fff0d4", // Darker amber for better contrast
     borderBottomLeftRadius: 4,
   },
   messageText: {

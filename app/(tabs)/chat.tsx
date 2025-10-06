@@ -1,6 +1,5 @@
 import { StyleSheet, Platform } from "react-native";
 import { Stack } from "expo-router";
-import { LinearGradient } from 'expo-linear-gradient';
 import ChatInterface from "@/components/ChatInterface";
 import { ChatStoreProvider } from "@/hooks/use-chat-store";
 import ScreenContainer from "@/components/ScreenContainer";
