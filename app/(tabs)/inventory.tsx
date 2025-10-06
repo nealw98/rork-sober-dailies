@@ -24,6 +24,7 @@ const INVENTORY_STORAGE_KEY = 'spot_check_inventories';
 
 // Spot check pairs: Look For → Strive For
 const spotCheckPairs = [
+  { id: 'fear', lookFor: 'Fear', striveFor: 'Faith' },
   { id: 'anger', lookFor: 'Anger', striveFor: 'Self-Control' },
   { id: 'selfPity', lookFor: 'Self-Pity', striveFor: 'Self-Forgiveness' },
   { id: 'selfJustification', lookFor: 'Self-Justification', striveFor: 'Integrity' },
@@ -41,7 +42,6 @@ const spotCheckPairs = [
   { id: 'insincerity', lookFor: 'Insincerity', striveFor: 'Straight Forwardness' },
   { id: 'negativeThinking', lookFor: 'Negative Thinking', striveFor: 'Positive Thinking' },
   { id: 'criticizing', lookFor: 'Criticizing', striveFor: 'Look For The Good' },
-  { id: 'fear', lookFor: 'Fear', striveFor: 'Faith' },
 ];
 
 interface SpotCheckRecord {
