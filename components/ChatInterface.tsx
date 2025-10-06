@@ -317,9 +317,9 @@ export default function ChatInterface() {
           maxLength={500}
           returnKeyType="done"
           blurOnSubmit={true}
+          enablesReturnKeyAutomatically={true}
           textAlignVertical="top"
           textBreakStrategy="simple"
-          enablesReturnKeyAutomatically={true}
           testID="chat-input"
         />
         <TouchableOpacity

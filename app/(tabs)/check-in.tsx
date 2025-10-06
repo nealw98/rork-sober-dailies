@@ -1,4 +1,4 @@
-import { StyleSheet, Text, View, ScrollView, TouchableOpacity, TextInput, Alert, Platform } from "react-native";
+import { StyleSheet, Text, View, ScrollView, TouchableOpacity, TextInput, Alert, Platform, KeyboardAvoidingView } from "react-native";
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useSobriety } from '@/hooks/useSobrietyStore';
 import { useRouter, Stack } from 'expo-router';
@@ -90,9 +90,14 @@ export default function CheckInScreen() {
         headerBackTitleVisible: false
       }} />
       <SafeAreaView style={styles.container}>
-      <ScrollView 
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
+      <KeyboardAvoidingView
+        style={styles.keyboardAvoidingView}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        keyboardVerticalOffset={Platform.OS === "ios" ? 90 : 0}
+      >
+        <ScrollView 
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
       >
         {/* Mood Selection */}
         <View style={styles.section}>
@@ -170,6 +175,7 @@ export default function CheckInScreen() {
           </Text>
         </TouchableOpacity>
       </ScrollView>
+      </KeyboardAvoidingView>
     </SafeAreaView>
     </>
   );
@@ -182,6 +188,9 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     padding: 20,
+  },
+  keyboardAvoidingView: {
+    flex: 1,
   },
   completedContainer: {
     flex: 1,

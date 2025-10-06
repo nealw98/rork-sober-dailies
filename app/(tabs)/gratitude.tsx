@@ -955,7 +955,7 @@ export default function GratitudeListScreen() {
                             value={editingValue}
                             onChangeText={setEditingValue}
                             autoFocus
-                            blurOnSubmit
+                            blurOnSubmit={true}
                             returnKeyType="done"
                             enablesReturnKeyAutomatically={true}
                             onSubmitEditing={commitEdit}
