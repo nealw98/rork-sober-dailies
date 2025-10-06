@@ -1,4 +1,4 @@
-import { StyleSheet, Text, View, ScrollView, TouchableOpacity, TextInput, Alert, Platform } from "react-native";
+import { StyleSheet, Text, View, ScrollView, TouchableOpacity, TextInput, Alert, Platform, Keyboard } from "react-native";
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useSobriety } from '@/hooks/useSobrietyStore';
 import { useRouter, Stack } from 'expo-router';
@@ -133,6 +133,14 @@ export default function CheckInScreen() {
             onChangeText={setReflection}
             textAlignVertical="top"
           />
+          <TouchableOpacity
+            style={styles.doneButton}
+            onPress={() => {
+              Keyboard.dismiss();
+            }}
+          >
+            <Text style={styles.doneButtonText}>Done</Text>
+          </TouchableOpacity>
         </View>
 
         {/* Gratitude */}
@@ -150,6 +158,14 @@ export default function CheckInScreen() {
               />
             </View>
           ))}
+          <TouchableOpacity
+            style={styles.doneButton}
+            onPress={() => {
+              Keyboard.dismiss();
+            }}
+          >
+            <Text style={styles.doneButtonText}>Done</Text>
+          </TouchableOpacity>
         </View>
 
         {/* Submit Button */}
@@ -305,5 +321,18 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '600',
     marginLeft: 8,
+  },
+  doneButton: {
+    backgroundColor: '#6B7280',
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 8,
+    alignSelf: 'flex-start',
+    marginTop: 8,
+  },
+  doneButtonText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '600',
   },
 });

@@ -10,7 +10,8 @@ import {
   KeyboardAvoidingView,
   Platform,
   Share,
-  ScrollView
+  ScrollView,
+  Keyboard
 } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import * as Clipboard from 'expo-clipboard';
@@ -314,9 +315,12 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   inputContainer: {
+    marginBottom: 16,
+  },
+  inputButtons: {
     flexDirection: 'row',
     gap: 8,
-    marginBottom: 16,
+    marginTop: 8,
   },
   textInput: {
     flex: 1,
@@ -367,6 +371,27 @@ const styles = StyleSheet.create({
   },
   addButtonTextDisabled: {
     color: 'rgba(255, 255, 255, 0.7)',
+  },
+  doneButton: {
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    backgroundColor: Colors.light.muted,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  doneButtonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: adjustFontWeight('600'),
   },
   itemsList: {
     marginBottom: 16,
@@ -928,19 +953,29 @@ export default function GratitudeListScreen() {
                   multiline
                   blurOnSubmit={true}
                 />
-                <TouchableOpacity
-                  style={[
-                    styles.addButton,
-                    !inputValue.trim() && styles.addButtonDisabled
-                  ]}
-                  onPress={handleAddGratitude}
-                  disabled={!inputValue.trim()}
-                >
-                  <Text style={[
-                    styles.addButtonText,
-                    !inputValue.trim() && styles.addButtonTextDisabled
-                  ]}>Add</Text>
-                </TouchableOpacity>
+                <View style={styles.inputButtons}>
+                  <TouchableOpacity
+                    style={[
+                      styles.addButton,
+                      !inputValue.trim() && styles.addButtonDisabled
+                    ]}
+                    onPress={handleAddGratitude}
+                    disabled={!inputValue.trim()}
+                  >
+                    <Text style={[
+                      styles.addButtonText,
+                      !inputValue.trim() && styles.addButtonTextDisabled
+                    ]}>Add</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={styles.doneButton}
+                    onPress={() => {
+                      Keyboard.dismiss();
+                    }}
+                  >
+                    <Text style={styles.doneButtonText}>Done</Text>
+                  </TouchableOpacity>
+                </View>
               </View>
 
               {gratitudeItems.length > 0 && (

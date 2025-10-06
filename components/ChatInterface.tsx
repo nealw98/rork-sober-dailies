@@ -45,7 +45,7 @@ const ChatBubble = ({ message }: { message: ChatMessage }) => {
     }
   };
 
-  const longPressTimer = useRef<NodeJS.Timeout | null>(null);
+  const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Cleanup timer on unmount
   useEffect(() => {
@@ -319,23 +319,32 @@ export default function ChatInterface() {
           blurOnSubmit={false}
           textAlignVertical="top"
           textBreakStrategy="simple"
-          autoGrow={true}
           testID="chat-input"
         />
-        <TouchableOpacity
-          style={[
-            styles.sendButton,
-            !inputText.trim() && styles.sendButtonDisabled,
-          ]}
-          onPress={handleSend}
-          disabled={!inputText.trim() || isLoading}
-          testID="send-button"
-        >
-          <Send
-            size={20}
-            color={!inputText.trim() || isLoading ? Colors.light.muted : "#fff"}
-          />
-        </TouchableOpacity>
+        <View style={styles.inputButtons}>
+          <TouchableOpacity
+            style={styles.doneButton}
+            onPress={() => {
+              Keyboard.dismiss();
+            }}
+          >
+            <Text style={styles.doneButtonText}>Done</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[
+              styles.sendButton,
+              !inputText.trim() && styles.sendButtonDisabled,
+            ]}
+            onPress={handleSend}
+            disabled={!inputText.trim() || isLoading}
+            testID="send-button"
+          >
+            <Send
+              size={20}
+              color={!inputText.trim() || isLoading ? Colors.light.muted : "#fff"}
+            />
+          </TouchableOpacity>
+        </View>
       </View>
     </KeyboardAvoidingView>
   );
@@ -466,19 +475,19 @@ const styles = StyleSheet.create({
     elevation: 6,
   },
   userBubble: {
-    backgroundColor: "#b8d9f0", // Even darker blue for better contrast
+    backgroundColor: "#d1e7f7", // Darker blue for better contrast
     borderBottomRightRadius: 4,
   },
   supportiveBubble: {
-    backgroundColor: "#e8f8e8", // Light green for Eddie (supportive sponsor)
+    backgroundColor: "#e8f8e8", // Solid light green for shadow visibility
     borderBottomLeftRadius: 4,
   },
   graceBubble: {
-    backgroundColor: "#e8d4f0", // Darker lavender for better contrast
+    backgroundColor: "#f4e8f8", // Solid light lavender for shadow visibility
     borderBottomLeftRadius: 4,
   },
   saltyBubble: {
-    backgroundColor: "#fff0d4", // Darker amber for better contrast
+    backgroundColor: "#fff8e8", // Solid light amber for shadow visibility
     borderBottomLeftRadius: 4,
   },
   messageText: {
@@ -535,6 +544,24 @@ const styles = StyleSheet.create({
     shadowRadius: 6,
     elevation: 3,
   },
+  inputButtons: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  doneButton: {
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    backgroundColor: Colors.light.muted,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  doneButtonText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '600',
+  },
   sendButton: {
     width: 44,
     height: 44,
@@ -542,7 +569,6 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.light.tint,
     justifyContent: "center",
     alignItems: "center",
-    marginLeft: 8,
   },
   sendButtonDisabled: {
     backgroundColor: Colors.light.divider,

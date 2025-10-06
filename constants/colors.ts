@@ -11,10 +11,10 @@ const Colors = {
     accent: "#5CB85C",
     muted: "#6c757d",
     divider: "#e9ecef",
-    chatBubbleUser: "rgba(74, 144, 226, 0.5)", // Darker blue for better contrast
-    chatBubbleBot: "rgba(92, 184, 92, 0.25)", // Green for Eddie (supportive sponsor)
-    chatBubbleGrace: "rgba(186, 85, 211, 0.25)", // Darker lavender for Grace
-    chatBubbleSalty: "rgba(255, 191, 0, 0.25)", // Darker amber for Salty Sam
+    chatBubbleUser: "rgba(74, 144, 226, 0.3)", // Exact light blue from daily reflection gradient
+    chatBubbleBot: "rgba(92, 184, 92, 0.1)", // Exact light green from daily reflection gradient
+    chatBubbleGrace: "rgba(186, 85, 211, 0.1)", // Light lavender for Grace
+    chatBubbleSalty: "rgba(255, 191, 0, 0.1)", // Light amber for Salty Sam
     border: "#e9ecef",
     // Recognition colors for success messages and celebrations
     recognition: {

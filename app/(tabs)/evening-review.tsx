@@ -12,7 +12,8 @@ import {
   KeyboardAvoidingView,
   Animated,
   Pressable,
-  Easing
+  Easing,
+  Keyboard
 } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
 import ScreenContainer from "@/components/ScreenContainer";
@@ -485,6 +486,14 @@ export default function EveningReview() {
                 </View>
               ))}
             </View>
+            <TouchableOpacity
+              style={styles.doneButton}
+              onPress={() => {
+                Keyboard.dismiss();
+              }}
+            >
+              <Text style={styles.doneButtonText}>Done</Text>
+            </TouchableOpacity>
           </View>
 
           {/* Action Buttons */}
@@ -913,6 +922,19 @@ const styles = StyleSheet.create({
     color: '#28a745',
     marginTop: 8,
     textAlign: 'center',
+    fontWeight: adjustFontWeight('600'),
+  },
+  doneButton: {
+    backgroundColor: Colors.light.muted,
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: 8,
+    alignSelf: 'flex-start',
+    marginTop: 16,
+  },
+  doneButtonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
     fontWeight: adjustFontWeight('600'),
   },
 });
