@@ -31,7 +31,7 @@ const HomeScreen = () => {
           <SunIcon size={120} />
           <Text style={styles.heroTitle}>Sober Dailies</Text>
           <Text style={styles.heroSubtitle}>
-            This app helps you practice your dailies — the daily habits that maintain your sobriety. Doing these things consistently will support your continued sobriety and spiritual growth.
+            Do these daily. Stay sober.
           </Text>
           
         </View>
