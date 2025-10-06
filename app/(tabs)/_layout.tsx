@@ -143,7 +143,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="gratitude"
         options={{
-          title: "Grateful",
+          title: "Gratitude",
           headerTitle: '',
           headerLeft: () => <BackButton />,
           tabBarIcon: ({ color }) => <Smile color={color} size={22} style={styles.tabIcon} />,
