@@ -168,9 +168,9 @@ const SpotCheckHistorySheet: React.FC<{
   visible: boolean;
   onClose: () => void;
   onSelectRecord: (record: SpotCheckRecord) => void;
-  hasUnsavedChanges: boolean;
+  hasContent: boolean;
   handleSave: () => Promise<void>;
-}> = ({ visible, onClose, onSelectRecord, hasUnsavedChanges, handleSave }) => {
+}> = ({ visible, onClose, onSelectRecord, hasContent, handleSave }) => {
   const [records, setRecords] = useState<SpotCheckRecord[]>([]);
 
   useEffect(() => {
@@ -273,7 +273,7 @@ const SpotCheckHistorySheet: React.FC<{
                   style={styles.historyItemTouchable}
                   onPress={() => {
                     // Check for unsaved changes before loading new record
-                    if (hasUnsavedChanges) {
+                    if (hasContent) {
                       Alert.alert(
                         'Unsaved Changes',
                         'Save your current spot check before loading a different one?',
@@ -629,7 +629,7 @@ const Inventory = () => {
         visible={showHistory}
         onClose={() => setShowHistory(false)}
         onSelectRecord={handleSelectRecord}
-        hasUnsavedChanges={hasUnsavedChanges}
+        hasContent={hasContent}
         handleSave={handleSave}
       />
     </ScreenContainer>
