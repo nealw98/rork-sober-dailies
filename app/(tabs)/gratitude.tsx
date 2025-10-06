@@ -886,7 +886,7 @@ export default function GratitudeListScreen() {
       <KeyboardAvoidingView 
         style={styles.keyboardAvoidingView}
         behavior={Platform.OS === "ios" ? "padding" : "height"}
-        keyboardVerticalOffset={Platform.OS === "ios" ? 90 : 0}
+        keyboardVerticalOffset={Platform.OS === "ios" ? 120 : 0}
       >
         <ScrollView 
           style={styles.content} 
@@ -927,7 +927,6 @@ export default function GratitudeListScreen() {
                   returnKeyType="done"
                   multiline
                   blurOnSubmit={true}
-                  enablesReturnKeyAutomatically={true}
                 />
                 <TouchableOpacity
                   style={[
@@ -957,7 +956,6 @@ export default function GratitudeListScreen() {
                             autoFocus
                             blurOnSubmit={true}
                             returnKeyType="done"
-                            enablesReturnKeyAutomatically={true}
                             onSubmitEditing={commitEdit}
                             onBlur={commitEdit}
                             multiline

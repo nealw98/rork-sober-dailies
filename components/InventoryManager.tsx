@@ -60,6 +60,11 @@ const AddItemModal: React.FC<AddItemModalProps> = ({ visible, onClose, onAdd, ca
           </TouchableOpacity>
         </View>
 
+        <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
+        keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 0}
+      >
         <ScrollView style={styles.modalContent}>
           <View style={styles.inputGroup}>
             <Text style={styles.inputLabel}>Item Name *</Text>
@@ -70,7 +75,6 @@ const AddItemModal: React.FC<AddItemModalProps> = ({ visible, onClose, onAdd, ca
               placeholder="Enter item name"
               returnKeyType="done"
               blurOnSubmit={true}
-              enablesReturnKeyAutomatically={true}
               testID="item-name-input"
             />
           </View>
@@ -125,7 +129,6 @@ const AddItemModal: React.FC<AddItemModalProps> = ({ visible, onClose, onAdd, ca
               keyboardType="numeric"
               returnKeyType="done"
               blurOnSubmit={true}
-              enablesReturnKeyAutomatically={true}
               testID="quantity-input"
             />
           </View>
@@ -139,7 +142,6 @@ const AddItemModal: React.FC<AddItemModalProps> = ({ visible, onClose, onAdd, ca
               placeholder="Where did this occur?"
               returnKeyType="done"
               blurOnSubmit={true}
-              enablesReturnKeyAutomatically={true}
               testID="location-input"
             />
           </View>
@@ -155,7 +157,6 @@ const AddItemModal: React.FC<AddItemModalProps> = ({ visible, onClose, onAdd, ca
               numberOfLines={3}
               returnKeyType="done"
               blurOnSubmit={true}
-              enablesReturnKeyAutomatically={true}
               testID="notes-input"
             />
           </View>
@@ -164,6 +165,7 @@ const AddItemModal: React.FC<AddItemModalProps> = ({ visible, onClose, onAdd, ca
             <Text style={styles.addButtonText}>Add Item</Text>
           </TouchableOpacity>
         </ScrollView>
+      </KeyboardAvoidingView>
       </View>
     </Modal>
   );

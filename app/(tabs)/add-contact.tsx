@@ -1,4 +1,4 @@
-import { StyleSheet, Text, View, TextInput, TouchableOpacity, Alert, Platform } from "react-native";
+import { StyleSheet, Text, View, TextInput, TouchableOpacity, Alert, Platform, KeyboardAvoidingView, ScrollView } from "react-native";
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useSobriety } from '@/hooks/useSobrietyStore';
 import { useRouter, Stack } from 'expo-router';
@@ -49,7 +49,13 @@ export default function AddContactScreen() {
         headerBackTitleVisible: false
       }} />
       <SafeAreaView style={styles.container}>
-      <View style={styles.content}>
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        keyboardVerticalOffset={Platform.OS === "ios" ? 120 : 0}
+      >
+        <ScrollView style={{ flex: 1 }} keyboardShouldPersistTaps="handled">
+          <View style={styles.content}>
         <View style={styles.iconContainer}>
           <UserPlus size={48} color="#6B46C1" />
         </View>
@@ -68,6 +74,8 @@ export default function AddContactScreen() {
               value={name}
               onChangeText={setName}
               autoCapitalize="words"
+              returnKeyType="next"
+              blurOnSubmit={false}
             />
           </View>
 
@@ -80,6 +88,8 @@ export default function AddContactScreen() {
               value={phone}
               onChangeText={setPhone}
               keyboardType="phone-pad"
+              returnKeyType="next"
+              blurOnSubmit={false}
             />
           </View>
 
@@ -92,6 +102,8 @@ export default function AddContactScreen() {
               value={relationship}
               onChangeText={setRelationship}
               autoCapitalize="words"
+              returnKeyType="done"
+              blurOnSubmit={true}
             />
           </View>
         </View>
@@ -113,6 +125,8 @@ export default function AddContactScreen() {
           <Text style={styles.cancelButtonText}>Cancel</Text>
         </TouchableOpacity>
       </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
     </SafeAreaView>
     </>
   );

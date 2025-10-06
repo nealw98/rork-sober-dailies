@@ -258,7 +258,7 @@ export default function ChatInterface() {
     <KeyboardAvoidingView
       style={styles.container}
       behavior={Platform.OS === "ios" ? "padding" : undefined}
-      keyboardVerticalOffset={Platform.OS === "ios" ? 90 : 0}
+      keyboardVerticalOffset={Platform.OS === "ios" ? 120 : 0}
     >
       <LinearGradient
         colors={[Colors.light.chatBubbleUser, Colors.light.chatBubbleBot]}
@@ -317,7 +317,6 @@ export default function ChatInterface() {
           maxLength={500}
           returnKeyType="done"
           blurOnSubmit={true}
-          enablesReturnKeyAutomatically={true}
           textAlignVertical="top"
           textBreakStrategy="simple"
           testID="chat-input"

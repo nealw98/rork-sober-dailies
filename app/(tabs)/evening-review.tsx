@@ -426,7 +426,7 @@ export default function EveningReview() {
       <KeyboardAvoidingView 
         style={styles.keyboardAvoidingView}
         behavior={Platform.OS === "ios" ? "padding" : "height"}
-        keyboardVerticalOffset={Platform.OS === "ios" ? 90 : 0}
+        keyboardVerticalOffset={Platform.OS === "ios" ? 120 : 0}
       >
         <ScrollView 
           style={styles.content} 
@@ -480,7 +480,6 @@ export default function EveningReview() {
                     placeholderTextColor={Colors.light.muted}
                     returnKeyType="done"
                     blurOnSubmit={true}
-                    enablesReturnKeyAutomatically={true}
                   />
                 </View>
               ))}

@@ -93,7 +93,7 @@ export default function CheckInScreen() {
       <KeyboardAvoidingView
         style={styles.keyboardAvoidingView}
         behavior={Platform.OS === "ios" ? "padding" : "height"}
-        keyboardVerticalOffset={Platform.OS === "ios" ? 90 : 0}
+        keyboardVerticalOffset={Platform.OS === "ios" ? 120 : 0}
       >
         <ScrollView 
           contentContainerStyle={styles.scrollContent}
@@ -139,7 +139,6 @@ export default function CheckInScreen() {
             textAlignVertical="top"
             returnKeyType="done"
             blurOnSubmit={true}
-            enablesReturnKeyAutomatically={true}
           />
         </View>
 
@@ -157,7 +156,6 @@ export default function CheckInScreen() {
                 onChangeText={(value) => handleGratitudeChange(index, value)}
                 returnKeyType="done"
                 blurOnSubmit={true}
-                enablesReturnKeyAutomatically={true}
               />
             </View>
           ))}
