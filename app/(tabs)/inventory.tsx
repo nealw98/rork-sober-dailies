@@ -378,6 +378,7 @@ const Inventory = () => {
 
   // Define handler functions before useLayoutEffect to avoid stale closures
   const handleSave = useCallback(async () => {
+    dismissKeyboard(); // Hide keyboard when saving
     try {
       const stored = await AsyncStorage.getItem(INVENTORY_STORAGE_KEY);
       const records = stored ? JSON.parse(stored) : [];
@@ -421,9 +422,10 @@ const Inventory = () => {
       console.error('Error saving spot check:', error);
       Alert.alert('Error', 'Failed to save spot check.');
     }
-  }, [situation, selections, currentRecord]);
+  }, [situation, selections, currentRecord, dismissKeyboard]);
 
   const handleShare = useCallback(async () => {
+    dismissKeyboard(); // Hide keyboard when sharing
     try {
       console.log('[Share] Current selections:', selections);
       console.log('[Share] Current situation:', situation);
@@ -472,14 +474,15 @@ const Inventory = () => {
     } catch (error) {
       console.error('Error sharing spot check:', error);
     }
-  }, [situation, selections]);
+  }, [situation, selections, dismissKeyboard]);
 
   const handleReset = useCallback(() => {
+    dismissKeyboard(); // Hide keyboard when resetting
     setSelections({});
     setSituation('');
     setCurrentRecord(null);
     setHasUnsavedChanges(false);
-  }, []);
+  }, [dismissKeyboard]);
 
   // Add header icons (Save, Share, History, Reset)
   useLayoutEffect(() => {
@@ -505,7 +508,10 @@ const Inventory = () => {
             <ShareIcon color={Colors.light.tint} size={20} />
           </TouchableOpacity>
           <TouchableOpacity 
-            onPress={() => setShowHistory(true)}
+            onPress={() => {
+              dismissKeyboard(); // Hide keyboard when opening history
+              setShowHistory(true);
+            }}
             accessible={true}
             accessibilityLabel="View history"
             accessibilityRole="button"
@@ -526,6 +532,7 @@ const Inventory = () => {
   }, [navigation, hasUnsavedChanges, hasContent, handleSave, handleShare, handleReset]);
 
   const handlePressLookFor = (pairId: string) => {
+    dismissKeyboard(); // Hide keyboard when selecting traits
     setSelections(prev => {
       const current = prev[pairId] || 'none';
       if (current === 'lookFor') {
@@ -542,6 +549,7 @@ const Inventory = () => {
   };
 
   const handlePressStriveFor = (pairId: string) => {
+    dismissKeyboard(); // Hide keyboard when selecting traits
     setSelections(prev => {
       const current = prev[pairId] || 'none';
       if (current === 'complete') {
