@@ -10,10 +10,11 @@ import {
   Alert,
   Share as ShareModule,
   Platform,
-  Keyboard
+  Keyboard,
+  Modal
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { RotateCcw, Share as ShareIcon, Save as SaveIcon, Clock, Trash2 } from 'lucide-react-native';
+import { RotateCcw, Share as ShareIcon, Save as SaveIcon, Clock, Trash2, X, HelpCircle } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Colors from '@/constants/colors';
@@ -21,8 +22,9 @@ import ScreenContainer from '@/components/ScreenContainer';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 
 const INVENTORY_STORAGE_KEY = 'spot_check_inventories';
+const INSTRUCTIONS_SHOWN_KEY = 'spot_check_instructions_shown';
 
-// Spot check pairs: Look For → Strive For
+// Spot check pairs: Watch For → Strive For
 const spotCheckPairs = [
   { id: 'fear', lookFor: 'Fear', striveFor: 'Faith' },
   { id: 'anger', lookFor: 'Anger', striveFor: 'Self-Control' },
@@ -53,6 +55,149 @@ interface SpotCheckRecord {
 
 type SelectionState = 'none' | 'lookFor' | 'complete';
 
+// Simple Markdown Text Renderer for bold and italics
+const MarkdownText: React.FC<{ children: string; style?: any }> = ({ children, style }) => {
+  const parts: Array<{ text: string; bold: boolean; italic: boolean }> = [];
+  
+  // Parse markdown for **bold** and *italic*
+  const regex = /(\*\*[^*]+\*\*|\*[^*]+\*)/g;
+  let lastIndex = 0;
+  let match: RegExpExecArray | null;
+  
+  while ((match = regex.exec(children)) !== null) {
+    // Add regular text before match
+    if (match.index > lastIndex) {
+      parts.push({ text: children.slice(lastIndex, match.index), bold: false, italic: false });
+    }
+    
+    // Add formatted text
+    const matchedText = match[0];
+    if (matchedText.startsWith('**') && matchedText.endsWith('**')) {
+      // Bold
+      parts.push({ text: matchedText.slice(2, -2), bold: true, italic: false });
+    } else if (matchedText.startsWith('*') && matchedText.endsWith('*')) {
+      // Italic
+      parts.push({ text: matchedText.slice(1, -1), bold: false, italic: true });
+    }
+    
+    lastIndex = match.index + match[0].length;
+  }
+  
+  // Add remaining text
+  if (lastIndex < children.length) {
+    parts.push({ text: children.slice(lastIndex), bold: false, italic: false });
+  }
+  
+  // If no markdown found, return plain text
+  if (parts.length === 0) {
+    return <Text style={style}>{children}</Text>;
+  }
+  
+  return (
+    <Text style={style}>
+      {parts.map((part, idx) => (
+        <Text 
+          key={idx} 
+          style={[
+            part.bold && { fontWeight: 'bold' },
+            part.italic && { fontStyle: 'italic' }
+          ]}
+        >
+          {part.text}
+        </Text>
+      ))}
+    </Text>
+  );
+};
+
+// Instructions Modal Component
+const InstructionsModal: React.FC<{
+  visible: boolean;
+  onClose: () => void;
+  isFirstTime?: boolean;
+}> = ({ visible, onClose, isFirstTime = true }) => {
+  return (
+    <Modal
+      visible={visible}
+      transparent={true}
+      animationType="fade"
+      onRequestClose={onClose}
+    >
+      <View style={styles.instructionsOverlay}>
+        <TouchableOpacity style={styles.instructionsBackdrop} onPress={onClose} />
+        <View style={styles.instructionsModal}>
+          <View style={styles.instructionsHeader}>
+            <Text style={styles.instructionsTitle}>
+              {isFirstTime ? 'Welcome to Spot Check Inventory' : 'How to Use Spot Check Inventory'}
+            </Text>
+            <TouchableOpacity onPress={onClose} style={styles.instructionsCloseButton}>
+              <X size={24} color={Colors.light.text} />
+            </TouchableOpacity>
+          </View>
+          
+          <ScrollView style={styles.instructionsContent} showsVerticalScrollIndicator={false}>
+            {isFirstTime && (
+              <Text style={styles.instructionsIntro}>When you're disturbed or agitated:</Text>
+            )}
+            
+            <View style={styles.instructionStep}>
+              <MarkdownText style={styles.instructionText}>
+                {isFirstTime 
+                  ? '1. **Describe the situation** - What\'s bothering you?'
+                  : '1. Describe what\'s disturbing you'}
+              </MarkdownText>
+            </View>
+            
+            <View style={styles.instructionStep}>
+              <MarkdownText style={styles.instructionText}>
+                {isFirstTime
+                  ? '2. **Watch for** character defects at play. When you tap defects on the left, they\'ll turn red and highlight what to work toward on the right.'
+                  : '2. Tap character defects on the left (red)'}
+              </MarkdownText>
+            </View>
+            
+            <View style={styles.instructionStep}>
+              <MarkdownText style={styles.instructionText}>
+                {isFirstTime
+                  ? '3. **Celebrate** your progress. Mark positive traits you maintained (turn green)'
+                  : '3. See what to strive for on the right'}
+              </MarkdownText>
+            </View>
+            
+            <View style={styles.instructionStep}>
+              <MarkdownText style={styles.instructionText}>
+                {isFirstTime
+                  ? '4. **Save** to track your emotional sobriety'
+                  : '4. Mark positives you maintained (green)'}
+              </MarkdownText>
+            </View>
+            
+            {!isFirstTime && (
+              <View style={styles.instructionStep}>
+                <MarkdownText style={styles.instructionText}>
+                  5. Save to track your progress
+                </MarkdownText>
+              </View>
+            )}
+            
+            <View style={styles.instructionsFooter}>
+              <MarkdownText style={styles.instructionsFooterText}>
+                {isFirstTime
+                  ? '*Watch For your defects. Strive For their opposites.*'
+                  : 'Watch For → Strive For'}
+              </MarkdownText>
+            </View>
+          </ScrollView>
+          
+          <TouchableOpacity style={styles.instructionsButton} onPress={onClose}>
+            <Text style={styles.instructionsButtonText}>Got it!</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    </Modal>
+  );
+};
+
 const SpotCheckPair: React.FC<{
   pair: typeof spotCheckPairs[0];
   state: SelectionState;
@@ -71,7 +216,7 @@ const SpotCheckPair: React.FC<{
     prevStateRef.current = state;
 
     if (state === 'lookFor') {
-      // Pulse arrow when Look For is selected
+      // Pulse arrow when Watch For is selected
       Animated.loop(
         Animated.sequence([
           Animated.timing(arrowScale, {
@@ -168,9 +313,9 @@ const SpotCheckHistorySheet: React.FC<{
   visible: boolean;
   onClose: () => void;
   onSelectRecord: (record: SpotCheckRecord) => void;
-  hasContent: boolean;
+  hasUnsavedChanges: boolean;
   handleSave: () => Promise<void>;
-}> = ({ visible, onClose, onSelectRecord, hasContent, handleSave }) => {
+}> = ({ visible, onClose, onSelectRecord, hasUnsavedChanges, handleSave }) => {
   const [records, setRecords] = useState<SpotCheckRecord[]>([]);
 
   useEffect(() => {
@@ -273,7 +418,7 @@ const SpotCheckHistorySheet: React.FC<{
                   style={styles.historyItemTouchable}
                   onPress={() => {
                     // Check for unsaved changes before loading new record
-                    if (hasContent) {
+                    if (hasUnsavedChanges) {
                       Alert.alert(
                         'Unsaved Changes',
                         'Save your current spot check before loading a different one?',
@@ -351,12 +496,50 @@ const Inventory = () => {
   const [currentRecord, setCurrentRecord] = useState<SpotCheckRecord | null>(null);
   const [showHistory, setShowHistory] = useState(false);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const [showInstructions, setShowInstructions] = useState(false);
+  const [isFirstTimeInstructions, setIsFirstTimeInstructions] = useState(true);
   const navigation = useNavigation();
+
+  // Check if instructions have been shown before
+  useEffect(() => {
+    const checkInstructionsShown = async () => {
+      try {
+        const shown = await AsyncStorage.getItem(INSTRUCTIONS_SHOWN_KEY);
+        if (!shown) {
+          setIsFirstTimeInstructions(true);
+          setShowInstructions(true);
+        }
+      } catch (error) {
+        console.error('[Inventory] Error checking instructions shown:', error);
+      }
+    };
+    checkInstructionsShown();
+  }, []);
+
+  // Handler to close instructions and mark as shown (only for first time)
+  const handleCloseInstructions = async () => {
+    try {
+      if (isFirstTimeInstructions) {
+        await AsyncStorage.setItem(INSTRUCTIONS_SHOWN_KEY, 'true');
+      }
+      setShowInstructions(false);
+    } catch (error) {
+      console.error('[Inventory] Error saving instructions shown:', error);
+      setShowInstructions(false);
+    }
+  };
 
   // Function to dismiss keyboard
   const dismissKeyboard = useCallback(() => {
     Keyboard.dismiss();
   }, []);
+
+  // Handler to show help instructions
+  const handleShowHelp = useCallback(() => {
+    dismissKeyboard();
+    setIsFirstTimeInstructions(false);
+    setShowInstructions(true);
+  }, [dismissKeyboard]);
 
   const formatSavedTimestamp = () => {
     if (!currentRecord) return '';
@@ -383,36 +566,15 @@ const Inventory = () => {
       const stored = await AsyncStorage.getItem(INVENTORY_STORAGE_KEY);
       const records = stored ? JSON.parse(stored) : [];
       
-      // If editing an existing record, update it; otherwise create new
-      if (currentRecord && currentRecord.id) {
-        // Update existing record
-        const recordIndex = records.findIndex((r: SpotCheckRecord) => r.id === currentRecord.id);
-        const updatedRecord: SpotCheckRecord = {
-          ...currentRecord,
-          ts: new Date().toISOString(), // Update timestamp
-          situation,
-          selections
-        };
-        
-        if (recordIndex !== -1) {
-          records[recordIndex] = updatedRecord;
-        } else {
-          // If not found (shouldn't happen), add as new
-          records.unshift(updatedRecord);
-        }
-        
-        setCurrentRecord(updatedRecord);
-      } else {
-        // Create new record
-        const newRecord: SpotCheckRecord = {
-          id: Date.now().toString(),
-          ts: new Date().toISOString(),
-          situation,
-          selections
-        };
-        records.unshift(newRecord);
-        setCurrentRecord(newRecord);
-      }
+      // Always create a new record on save
+      const newRecord: SpotCheckRecord = {
+        id: Date.now().toString(),
+        ts: new Date().toISOString(),
+        situation,
+        selections
+      };
+      records.unshift(newRecord);
+      setCurrentRecord(newRecord);
       
       await AsyncStorage.setItem(INVENTORY_STORAGE_KEY, JSON.stringify(records));
       setHasUnsavedChanges(false);
@@ -422,7 +584,7 @@ const Inventory = () => {
       console.error('Error saving spot check:', error);
       Alert.alert('Error', 'Failed to save spot check.');
     }
-  }, [situation, selections, currentRecord, dismissKeyboard]);
+  }, [situation, selections, dismissKeyboard]);
 
   const handleShare = useCallback(async () => {
     dismissKeyboard(); // Hide keyboard when sharing
@@ -519,6 +681,14 @@ const Inventory = () => {
             <Clock color={Colors.light.tint} size={20} />
           </TouchableOpacity>
           <TouchableOpacity 
+            onPress={handleShowHelp}
+            accessible={true}
+            accessibilityLabel="Show instructions"
+            accessibilityRole="button"
+          >
+            <HelpCircle size={20} color={Colors.light.tint} />
+          </TouchableOpacity>
+          <TouchableOpacity 
             onPress={handleReset}
             accessible={true}
             accessibilityLabel="Reset all selections"
@@ -529,18 +699,18 @@ const Inventory = () => {
         </View>
       ),
     });
-  }, [navigation, hasUnsavedChanges, hasContent, handleSave, handleShare, handleReset]);
+  }, [navigation, hasUnsavedChanges, hasContent, handleSave, handleShare, handleReset, handleShowHelp, dismissKeyboard]);
 
   const handlePressLookFor = (pairId: string) => {
     dismissKeyboard(); // Hide keyboard when selecting traits
     setSelections(prev => {
       const current = prev[pairId] || 'none';
       if (current === 'lookFor') {
-        // Deselect if Look For is already selected
+        // Deselect if Watch For is already selected
         setHasUnsavedChanges(true);
         return { ...prev, [pairId]: 'none' };
       } else {
-        // Select Look For (whether from 'none' or 'complete') - add haptic feedback
+        // Select Watch For (whether from 'none' or 'complete') - add haptic feedback
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
         setHasUnsavedChanges(true);
         return { ...prev, [pairId]: 'lookFor' };
@@ -613,7 +783,7 @@ const Inventory = () => {
             
             {/* Column Headers */}
             <View style={styles.headerRow}>
-              <Text style={styles.headerLeft}>Look For</Text>
+              <Text style={styles.headerLeft}>Watch For</Text>
               <Text style={styles.headerRight}>Strive For</Text>
             </View>
 
@@ -637,8 +807,14 @@ const Inventory = () => {
         visible={showHistory}
         onClose={() => setShowHistory(false)}
         onSelectRecord={handleSelectRecord}
-        hasContent={hasContent}
+        hasUnsavedChanges={hasUnsavedChanges}
         handleSave={handleSave}
+      />
+      
+      <InstructionsModal
+        visible={showInstructions}
+        onClose={handleCloseInstructions}
+        isFirstTime={isFirstTimeInstructions}
       />
     </ScreenContainer>
   );
@@ -892,6 +1068,99 @@ const styles = StyleSheet.create({
   emptyStateText: {
     fontSize: 16,
     color: '#999',
+  },
+  // Instructions Modal Styles
+  instructionsOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    zIndex: 2000,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  instructionsBackdrop: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+  },
+  instructionsModal: {
+    backgroundColor: '#fff',
+    borderRadius: 20,
+    width: '85%',
+    maxWidth: 500,
+    maxHeight: '80%',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.3,
+    shadowRadius: 20,
+    elevation: 10,
+  },
+  instructionsHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 20,
+    paddingBottom: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#eee',
+  },
+  instructionsTitle: {
+    fontSize: 22,
+    fontWeight: '800',
+    color: Colors.light.text,
+    flex: 1,
+    paddingRight: 10,
+  },
+  instructionsCloseButton: {
+    padding: 4,
+  },
+  instructionsContent: {
+    padding: 20,
+    paddingTop: 16,
+  },
+  instructionsIntro: {
+    fontSize: 16,
+    fontWeight: '400',
+    color: Colors.light.text,
+    marginBottom: 16,
+  },
+  instructionStep: {
+    marginBottom: 14,
+  },
+  instructionText: {
+    fontSize: 15,
+    lineHeight: 22,
+    color: Colors.light.text,
+  },
+  instructionsFooter: {
+    marginTop: 20,
+    paddingTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: '#eee',
+  },
+  instructionsFooterText: {
+    fontSize: 15,
+    lineHeight: 22,
+    color: Colors.light.tint,
+    textAlign: 'center',
+  },
+  instructionsButton: {
+    backgroundColor: Colors.light.tint,
+    margin: 20,
+    marginTop: 0,
+    padding: 16,
+    borderRadius: 12,
+    alignItems: 'center',
+  },
+  instructionsButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#fff',
   },
 });
 
