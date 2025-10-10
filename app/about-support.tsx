@@ -139,12 +139,14 @@ const AboutSupportScreen = () => {
         
         // If we still don't have the required keys, use fallback mapping
         if (!byId['monthly_support'] || !byId['yearly_support']) {
-          log('[Offerings] Missing required keys, using fallback mapping');
+          log('[Offerings] Missing required keys, using fallback mapping by price');
+          // Sort by price ascending to ensure monthly (cheaper) comes before yearly (more expensive)
+          const sortedFiltered = [...filtered].sort((a: any, b: any) => (a.storeProduct?.price ?? 0) - (b.storeProduct?.price ?? 0));
           const keys = ['monthly_support', 'yearly_support'];
-          filtered.forEach((p: any, idx: number) => { 
+          sortedFiltered.forEach((p: any, idx: number) => { 
             if (idx < keys.length) {
               byId[keys[idx]] = p;
-              log(`[Offerings] Fallback mapped ${keys[idx]} to ${p.identifier}`);
+              log(`[Offerings] Fallback mapped ${keys[idx]} to ${p.identifier} with price ${p.storeProduct?.price}`);
             }
           });
         }
