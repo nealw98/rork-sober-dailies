@@ -139,14 +139,12 @@ const AboutSupportScreen = () => {
         
         // If we still don't have the required keys, use fallback mapping
         if (!byId['monthly_support'] || !byId['yearly_support']) {
-          log('[Offerings] Missing required keys, using fallback mapping by price');
-          // Sort by price ascending to ensure monthly (cheaper) comes before yearly (more expensive)
-          const sortedFiltered = [...filtered].sort((a: any, b: any) => (a.storeProduct?.price ?? 0) - (b.storeProduct?.price ?? 0));
+          log('[Offerings] Missing required keys, using fallback mapping');
           const keys = ['monthly_support', 'yearly_support'];
-          sortedFiltered.forEach((p: any, idx: number) => { 
+          filtered.forEach((p: any, idx: number) => { 
             if (idx < keys.length) {
               byId[keys[idx]] = p;
-              log(`[Offerings] Fallback mapped ${keys[idx]} to ${p.identifier} with price ${p.storeProduct?.price}`);
+              log(`[Offerings] Fallback mapped ${keys[idx]} to ${p.identifier}`);
             }
           });
         }
@@ -479,10 +477,10 @@ const AboutSupportScreen = () => {
             <View style={styles.buttonSpacer} />
             <TouchableOpacity
               style={styles.subscriptionButton}
-              onPress={() => handleTipPress(1.99)}
-              disabled={purchasingId === 'monthly_support'}
+              onPress={() => handleTipPress(19.99)}
+              disabled={purchasingId === 'yearly_support'}
             >
-              {purchasingId === 'monthly_support' ? (
+              {purchasingId === 'yearly_support' ? (
                 <Text style={styles.subscriptionButtonText}>Connecting...</Text>
               ) : (
                 <Text style={styles.subscriptionButtonText}>$1.99/Month</Text>
@@ -491,10 +489,10 @@ const AboutSupportScreen = () => {
 
             <TouchableOpacity
               style={styles.subscriptionButton}
-              onPress={() => handleTipPress(19.99)}
-              disabled={purchasingId === 'yearly_support'}
+              onPress={() => handleTipPress(1.99)}
+              disabled={purchasingId === 'monthly_support'}
             >
-              {purchasingId === 'yearly_support' ? (
+              {purchasingId === 'monthly_support' ? (
                 <Text style={styles.subscriptionButtonText}>Connecting...</Text>
               ) : (
                 <Text style={styles.subscriptionButtonText}>$19.99/Year</Text>
