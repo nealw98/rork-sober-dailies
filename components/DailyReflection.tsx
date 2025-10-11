@@ -1,14 +1,22 @@
-import { useEffect, useState } from "react";
-import { StyleSheet, Text, View, ScrollView, TouchableOpacity, Modal, Platform, Share } from "react-native";
+import { useEffect, useState, useCallback } from "react";
+import { StyleSheet, Text, View, ScrollView, TouchableOpacity, Modal, Platform, Share, AppState } from "react-native";
 import { ChevronLeft, ChevronRight, Calendar, Upload } from "lucide-react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useFocusEffect } from 'expo-router';
 
 import Colors from "@/constants/colors";
 import { getReflectionForDate } from "@/constants/reflections";
 import { Reflection } from "@/types";
 import { adjustFontWeight } from "@/constants/fonts";
+
+// Helper to check if two dates are the same day
+const isSameDay = (date1: Date, date2: Date): boolean => {
+  return date1.getFullYear() === date2.getFullYear() &&
+         date1.getMonth() === date2.getMonth() &&
+         date1.getDate() === date2.getDate();
+};
 
 // Helper to generate calendar grid
 const generateCalendarDays = (date: Date) => {
@@ -81,6 +89,18 @@ export default function DailyReflection() {
   const [calendarDays, setCalendarDays] = useState<any[]>([]);
   const [calendarDate, setCalendarDate] = useState<Date>(new Date());
   const [isLoading, setIsLoading] = useState<boolean>(true);
+
+  // Check if date has changed when screen comes into focus
+  useFocusEffect(
+    useCallback(() => {
+      const today = new Date();
+      // Only update if we're currently showing today's date but it's now a different day
+      if (!isSameDay(selectedDate, today)) {
+        console.log('Day has changed, updating to today:', today.toDateString());
+        setSelectedDate(today);
+      }
+    }, [selectedDate])
+  );
 
   useEffect(() => {
     updateReflection(selectedDate);
