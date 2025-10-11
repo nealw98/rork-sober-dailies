@@ -7,8 +7,45 @@
 # For more details, see
 #   http://developer.android.com/guide/developing/tools/proguard.html
 
+# React Native Core
+-keep,allowobfuscation @interface com.facebook.proguard.annotations.DoNotStrip
+-keep,allowobfuscation @interface com.facebook.proguard.annotations.KeepGettersAndSetters
+-keep,allowobfuscation @interface com.facebook.common.internal.DoNotStrip
+-keep @com.facebook.proguard.annotations.DoNotStrip class *
+-keep @com.facebook.common.internal.DoNotStrip class *
+-keepclassmembers class * {
+    @com.facebook.proguard.annotations.DoNotStrip *;
+    @com.facebook.common.internal.DoNotStrip *;
+}
+
+# Keep React Native classes and JNI methods
+-keep class com.facebook.react.** { *; }
+-keep class com.facebook.jni.** { *; }
+-keep class com.facebook.hermes.** { *; }
+
+# Keep SoLoader classes (critical for loading native libraries)
+-keep class com.facebook.soloader.** { *; }
+
+# Keep all native methods (JNI)
+-keepclasseswithmembernames,includedescriptorclasses class * {
+    native <methods>;
+}
+
+# Keep React Native feature flags (fixes libreact_featureflagsjni.so issue)
+-keep class com.facebook.react.internal.featureflags.** { *; }
+-keep interface com.facebook.react.internal.featureflags.** { *; }
+
+# Keep TurboModules
+-keep class com.facebook.react.turbomodule.** { *; }
+-keep interface com.facebook.react.turbomodule.** { *; }
+
+# Keep ReactInstanceManager and related classes
+-keep class com.facebook.react.ReactInstanceManager { *; }
+-keep class com.facebook.react.bridge.** { *; }
+-keep class com.facebook.react.uimanager.** { *; }
+-keep class com.facebook.react.modules.** { *; }
+
 # react-native-reanimated
 -keep class com.swmansion.reanimated.** { *; }
--keep class com.facebook.react.turbomodule.** { *; }
 
 # Add any project specific keep options here:
