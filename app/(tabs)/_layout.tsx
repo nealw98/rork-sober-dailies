@@ -1,7 +1,7 @@
 import { Tabs, router, Stack, usePathname } from "expo-router";
 import { Home, MessageCircle, Smile, Moon, ChevronLeft, BookOpen, CheckSquare } from "lucide-react-native";
 import React from "react";
-import { Text, View, StyleSheet, Platform, TouchableOpacity } from "react-native";
+import { Text, View, StyleSheet, Platform, TouchableOpacity, StatusBar } from "react-native";
 import SunIcon from "@/components/SunIcon";
 
 import Colors from "@/constants/colors";
@@ -108,8 +108,8 @@ export default function TabLayout() {
         },
         headerStyle: {
           backgroundColor: "#f8f9fa",
-          ...(Platform.OS === 'android' && { height: 44 }),
         },
+        headerStatusBarHeight: Platform.OS === 'android' ? StatusBar.currentHeight : undefined,
         headerTitleStyle: {
           fontWeight: adjustFontWeight("600", true),
         },

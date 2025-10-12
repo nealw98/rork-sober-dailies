@@ -2,7 +2,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Stack, router } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import React, { useEffect, useCallback, useState } from "react";
-import { Text, StyleSheet, TouchableOpacity, Platform, View } from 'react-native';
+import { Text, StyleSheet, TouchableOpacity, Platform, View, StatusBar } from 'react-native';
 import { ChevronLeft } from "lucide-react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 
@@ -188,6 +188,7 @@ function RootLayoutNav() {
         headerStyle: {
           backgroundColor: "#f8f9fa",
         },
+        headerStatusBarHeight: Platform.OS === 'android' ? StatusBar.currentHeight : undefined,
         headerTitleStyle: {
           fontWeight: adjustFontWeight("600", true),
         },
