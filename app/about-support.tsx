@@ -447,7 +447,7 @@ const AboutSupportScreen = () => {
     const androidVersionCode = Constants.expoConfig?.android?.versionCode ?? undefined;
 
   return (
-    <SafeAreaView style={styles.container}>
+    <View style={styles.container}>
       <Stack.Screen options={{ 
         headerTitle: '',
         headerBackTitle: '',
@@ -455,6 +455,7 @@ const AboutSupportScreen = () => {
         headerTransparent: false,
         headerStyle: { backgroundColor: '#f8f9fa' },
         headerStatusBarHeight: Platform.OS === 'android' ? StatusBar.currentHeight : undefined,
+        headerSafeAreaInsets: Platform.OS === 'android' ? { top: StatusBar.currentHeight || 0 } : undefined,
         headerLeft: () => (
           <TouchableOpacity onPress={() => router.back()} style={{ flexDirection: 'row', alignItems: 'center', padding: Platform.OS === 'android' ? 4 : 8, marginLeft: Platform.OS === 'android' ? 0 : 4 }}>
             <ChevronLeft color={Colors.light.tint} size={20} />
@@ -571,7 +572,7 @@ const AboutSupportScreen = () => {
       </View>
 
       {/* Footer with centered links and version */}
-      <View style={[styles.footerContainer, { paddingBottom: insets.bottom }]}>
+      <View style={[styles.footerContainer, { paddingBottom: Math.max(insets.bottom, Platform.OS === 'android' ? 24 : 16) }]}>
         <View style={styles.footerCenter}>
           <View style={styles.footerLinksRowCentered}>
             <TouchableOpacity onPress={handleSupportPress}>
@@ -618,7 +619,7 @@ const AboutSupportScreen = () => {
           </View>
         </SafeAreaView>
       </Modal>
-    </SafeAreaView>
+    </View>
   );
 };
 
