@@ -14,10 +14,11 @@ import {
   Modal
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { RotateCcw, Share as ShareIcon, Save as SaveIcon, Clock, Trash2, X, HelpCircle } from 'lucide-react-native';
+import { RotateCcw, Share as ShareIcon, Save as SaveIcon, Clock, Trash2, X, HelpCircle, Calendar } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Colors from '@/constants/colors';
+import { adjustFontWeight } from '@/constants/fonts';
 import ScreenContainer from '@/components/ScreenContainer';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 
@@ -393,23 +394,36 @@ const SpotCheckHistorySheet: React.FC<{
     }
   };
 
-  if (!visible) return null;
-
   return (
-    <View style={styles.historyOverlay}>
-      <TouchableOpacity style={styles.historyBackdrop} onPress={onClose} />
-      <View style={styles.historySheet}>
+    <Modal
+      visible={visible}
+      animationType="slide"
+      presentationStyle={Platform.OS === 'ios' ? 'pageSheet' : 'fullScreen'}
+      onRequestClose={onClose}
+    >
+      <View style={styles.historyContainer}>
+        <LinearGradient
+          colors={[Colors.light.chatBubbleUser, Colors.light.chatBubbleBot]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.historyGradient}
+        />
         <View style={styles.historyHeader}>
-          <Text style={styles.historyTitle}>Previous Spot Checks</Text>
-          <TouchableOpacity onPress={onClose}>
-            <Text style={styles.historyClose}>Done</Text>
+          <TouchableOpacity style={styles.historyCloseButton} onPress={onClose}>
+            <X color={Colors.light.text} size={24} />
           </TouchableOpacity>
+          <Text style={styles.historyTitle}>Previous Spot Checks</Text>
+          <View style={styles.historyPlaceholder} />
         </View>
 
         <ScrollView style={styles.historyList} contentContainerStyle={styles.historyListContent}>
           {records.length === 0 ? (
             <View style={styles.emptyState}>
-              <Text style={styles.emptyStateText}>No previous inventories yet.</Text>
+              <Calendar color={Colors.light.muted} size={48} />
+              <Text style={styles.emptyTitle}>No Previous Spot Checks</Text>
+              <Text style={styles.emptyDescription}>
+                Your saved spot check inventories will appear here.
+              </Text>
             </View>
           ) : (
             records.map((record) => (
@@ -490,7 +504,7 @@ const SpotCheckHistorySheet: React.FC<{
           )}
         </ScrollView>
       </View>
-    </View>
+    </Modal>
   );
 };
 
@@ -970,51 +984,36 @@ const styles = StyleSheet.create({
   striveForSelected: {
     color: '#28a745',
   },
-  historyOverlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    zIndex: 1000,
+  historyContainer: {
+    flex: 1,
+    backgroundColor: Colors.light.background,
   },
-  historyBackdrop: {
+  historyGradient: {
     position: 'absolute',
+    left: 0,
+    right: 0,
     top: 0,
-    left: 0,
-    right: 0,
     bottom: 0,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-  },
-  historySheet: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    backgroundColor: '#fff',
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    maxHeight: '70%',
-    paddingTop: 16,
   },
   historyHeader: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingBottom: 16,
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#eee',
+    borderBottomColor: Colors.light.border,
+  },
+  historyCloseButton: {
+    padding: 8,
   },
   historyTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
+    fontSize: 18,
+    fontWeight: adjustFontWeight('600', true),
     color: Colors.light.text,
   },
-  historyClose: {
-    fontSize: 16,
-    color: Colors.light.tint,
-    fontWeight: '600',
+  historyPlaceholder: {
+    width: 40,
   },
   historyList: {
     flex: 1,
@@ -1054,7 +1053,7 @@ const styles = StyleSheet.create({
   },
   historyItemDate: {
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: adjustFontWeight('600', true),
     color: Colors.light.tint,
     flex: 1,
   },
@@ -1082,12 +1081,23 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   emptyState: {
-    padding: 40,
+    flex: 1,
     alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 80,
   },
-  emptyStateText: {
+  emptyTitle: {
+    fontSize: 20,
+    fontWeight: adjustFontWeight('600', true),
+    color: Colors.light.text,
+    marginTop: 16,
+    marginBottom: 8,
+  },
+  emptyDescription: {
     fontSize: 16,
-    color: '#999',
+    color: Colors.light.muted,
+    textAlign: 'center',
+    lineHeight: 22,
   },
   // Instructions Modal Styles
   instructionsOverlay: {
