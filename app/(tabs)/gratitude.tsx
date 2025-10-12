@@ -201,21 +201,19 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   card: {
-    backgroundColor: 'rgba(255, 255, 255, 0.7)',
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
     borderRadius: 16,
     padding: 16,
     marginBottom: 16,
-    borderWidth: 0.5,
-    borderColor: 'rgba(0, 0, 0, 0.08)',
     // Level 3: Content Cards (Medium depth)
     shadowColor: '#000',
     shadowOffset: {
       width: 0,
-      height: 4,
+      height: 6,
     },
-    shadowOpacity: 0.12,
-    shadowRadius: 6,
-    elevation: 4,
+    shadowOpacity: 0.2,
+    shadowRadius: 10,
+    elevation: 6,
   },
   cardHeader: {
     flexDirection: 'row',
@@ -229,21 +227,19 @@ const styles = StyleSheet.create({
     marginLeft: 8,
   },
   quoteCard: {
-    backgroundColor: 'rgba(255, 255, 255, 0.7)',
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
     borderRadius: 16,
     padding: 20,
     marginBottom: 16,
-    borderWidth: 0.5,
-    borderColor: 'rgba(255, 255, 255, 0.25)',
     // Level 3: Content Cards (Medium depth)
     shadowColor: '#000',
     shadowOffset: {
       width: 0,
-      height: 4,
+      height: 6,
     },
-    shadowOpacity: 0.12,
-    shadowRadius: 6,
-    elevation: 4,
+    shadowOpacity: 0.2,
+    shadowRadius: 10,
+    elevation: 6,
   },
   quoteText: {
     fontSize: 16,

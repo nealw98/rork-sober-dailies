@@ -498,7 +498,7 @@ const styles = StyleSheet.create({
     padding: 8,
   },
   card: {
-    backgroundColor: 'rgba(255, 255, 255, 0.7)', // Increased opacity for better depth
+    backgroundColor: 'rgba(255, 255, 255, 0.9)', // Increased opacity for better depth
     borderRadius: 16,
     padding: 24,
     paddingTop: 8, // Reduced top padding for navigation
@@ -507,11 +507,11 @@ const styles = StyleSheet.create({
     shadowColor: '#000',
     shadowOffset: {
       width: 0,
-      height: 4,
+      height: 6,
     },
-    shadowOpacity: 0.12,
-    shadowRadius: 6,
-    elevation: 4,
+    shadowOpacity: 0.2,
+    shadowRadius: 10,
+    elevation: 6,
   },
   cardNavigationContainer: {
     flexDirection: "row",
