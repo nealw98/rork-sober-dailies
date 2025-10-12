@@ -634,13 +634,13 @@ const styles = StyleSheet.create({
     backgroundColor: '#f8f9fa',
   },
   statusBarSpacer: {
-    backgroundColor: 'transparent',
+    backgroundColor: '#ffffff',
     width: '100%',
     zIndex: 10,
     position: 'relative',
   },
   customHeader: {
-    backgroundColor: 'transparent',
+    backgroundColor: '#ffffff',
     paddingHorizontal: 16,
     paddingVertical: 12,
     zIndex: 10,
