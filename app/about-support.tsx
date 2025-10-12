@@ -449,10 +449,24 @@ const AboutSupportScreen = () => {
   return (
     <>
       <Stack.Screen options={{ 
-        headerTitle: '',
-        headerShown: true,
+        headerShown: false,
       }} />
       <View style={styles.container}>
+      {/* Status Bar Spacer */}
+      <View style={[styles.statusBarSpacer, { height: Platform.OS === 'android' ? (StatusBar.currentHeight || 0) : insets.top }]} />
+      
+      {/* Custom Header */}
+      <View style={styles.customHeader}>
+        <TouchableOpacity 
+          onPress={() => router.back()} 
+          style={styles.customBackButton}
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+        >
+          <ChevronLeft color={Colors.light.tint} size={24} />
+          <Text style={styles.customBackText}>Close</Text>
+        </TouchableOpacity>
+      </View>
+      
       {/* Gradient Background */}
       <LinearGradient
         colors={[Colors.light.chatBubbleUser, Colors.light.chatBubbleBot]}
@@ -462,7 +476,7 @@ const AboutSupportScreen = () => {
       />
 
       <View style={styles.contentContainer}>
-        <ScrollView contentContainerStyle={[styles.scrollContent, { paddingTop: 40, paddingBottom: insets.bottom + 96 }]}>
+        <ScrollView contentContainerStyle={[styles.scrollContent, { paddingTop: 20, paddingBottom: insets.bottom + 96 }]}>
 
           {/* Support Card */}
           <View style={styles.supportCard}>
@@ -617,7 +631,28 @@ const AboutSupportScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: '#f8f9fa',
+  },
+  statusBarSpacer: {
+    backgroundColor: '#f8f9fa',
+    width: '100%',
+  },
+  customHeader: {
+    backgroundColor: '#f8f9fa',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(0, 0, 0, 0.05)',
+  },
+  customBackButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  customBackText: {
+    fontSize: 16,
+    color: Colors.light.tint,
+    marginLeft: 4,
+    fontWeight: adjustFontWeight('500'),
   },
   contentContainer: {
     flex: 1,
