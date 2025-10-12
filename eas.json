@@ -1,0 +1,59 @@
+{
+  "cli": {
+    "version": ">= 12.5.0",
+    "appVersionSource": "local"
+  },
+  "build": {
+    "development": {
+      "developmentClient": true,
+      "distribution": "internal"
+    },
+    "preview": {
+      "distribution": "internal",
+      "channel": "dev",
+      "android": {
+        "buildType": "apk",
+        "gradleCommand": ":app:assemblePreviewRelease"
+      }
+    },
+    "androidPreview": {
+      "distribution": "internal",
+      "credentialsSource": "local",
+      "android": {
+        "buildType": "apk",
+        "gradleCommand": ":app:assemblePreviewRelease"
+      }
+    },
+    "production": {
+      "distribution": "store",
+      "channel": "production",
+      "ios": {
+        "resourceClass": "medium"
+      },
+      "android": {
+        "resourceClass": "medium",
+        "buildType": "app-bundle"
+      }
+    }
+  },
+  "submit": {
+    "production": {
+      "ios": {
+        "appleId": "nealw98@live.com",
+        "ascAppId": "6749869819",
+        "appleTeamId": "4FBYJLNQ99"
+      },
+      "android": {
+        "serviceAccountKeyPath": "./path/to/api-key.json",
+        "track": "internal"
+      }
+    },
+    "preview": {
+      "ios": {
+        "appleId": "nealw98@live.com",
+        "ascAppId": "6749869819",
+        "appleTeamId": "4FBYJLNQ99"
+      }
+    }
+  }
+}

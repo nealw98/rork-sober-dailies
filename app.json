@@ -1,0 +1,112 @@
+{
+  "expo": {
+    "name": "Sober Dailies",
+    "slug": "sober-dailies",
+        "version": "1.8.11",
+    "orientation": "portrait",
+    "icon": "./assets/images/icon.png",
+    "scheme": "myapp",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": false,
+    "splash": {
+      "image": "./assets/images/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#061D4A"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.nealwagner.soberdailies",
+        "buildNumber": "72",
+      "icon": "./assets/images/icon.png",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      },
+      "entitlements": {}
+    },
+    "android": {
+      "package": "com.nealwagner.soberdailies",
+      "versionCode": 80,
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/images/adaptive-icon-foreground.png",
+        "backgroundImage": "./assets/images/adaptive-icon-background.png",
+        "monochromeImage": "./assets/images/adaptive-icon-monochrome.png"
+      },
+      "icon": "./assets/images/adaptive-icon.png",
+      "permissions": [
+        "android.permission.VIBRATE"
+      ]
+    },
+    "runtimeVersion": "1.8.11",
+    "extra": {
+      "eas": {
+        "projectId": "651e2e43-404d-47e3-94ac-695b4febd27a"
+      },
+      "revenuecat": {
+        "iosPublicApiKey": "appl_TGcLtuYeuyFcsXfvzAIXVLMTuqC"
+      }
+    },
+    "web": {
+      "favicon": "./assets/images/favicon.webp"
+    },
+    "plugins": [
+      [
+        "expo-router",
+        {
+          "origin": "https://rork.com/"
+        }
+      ],
+      [
+        "expo-splash-screen",
+        {
+          "ios": {
+            "image": "./assets/images/splash-icon.png",
+            "resizeMode": "contain",
+            "backgroundColor": "#061D4A",
+            "imageWidth": 300
+          },
+          "android": {
+            "image": "./assets/images/splash-android-icon.png",
+            "backgroundColor": "#061D4A"
+          }
+        }
+      ],
+      [
+        "expo-font"
+      ],
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "compileSdkVersion": 35,
+            "targetSdkVersion": 35,
+            "buildToolsVersion": "35.0.0",
+            "minSdkVersion": 24
+          }
+        }
+      ],
+      "expo-web-browser",
+      [
+        "expo-sqlite",
+        {
+          "enableFTS": true,
+          "useSQLCipher": true,
+          "android": {
+            "enableFTS": false,
+            "useSQLCipher": false
+          },
+          "ios": {
+            "customBuildFlags": [
+              "-DSQLITE_ENABLE_DBSTAT_VTAB=1 -DSQLITE_ENABLE_SNAPSHOT=1"
+            ]
+          }
+        }
+      ]
+    ],
+    "experiments": {
+      "typedRoutes": true
+    },
+    "updates": {
+      "url": "https://u.expo.dev/651e2e43-404d-47e3-94ac-695b4febd27a"
+    }
+  }
+}
