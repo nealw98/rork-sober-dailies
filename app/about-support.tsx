@@ -634,15 +634,17 @@ const styles = StyleSheet.create({
     backgroundColor: '#f8f9fa',
   },
   statusBarSpacer: {
-    backgroundColor: '#f8f9fa',
+    backgroundColor: 'transparent',
     width: '100%',
+    zIndex: 10,
+    position: 'relative',
   },
   customHeader: {
-    backgroundColor: '#f8f9fa',
+    backgroundColor: 'transparent',
     paddingHorizontal: 16,
     paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(0, 0, 0, 0.05)',
+    zIndex: 10,
+    position: 'relative',
   },
   customBackButton: {
     flexDirection: 'row',
