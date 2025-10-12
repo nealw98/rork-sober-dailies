@@ -86,6 +86,12 @@ const AboutSupportScreen = () => {
         // Look for our specific subscription products
         const wanted = new Set(['monthly_support', 'yearly_support']);
         
+        // Also map RevenueCat default package IDs to our products
+        const rcPackageMap: Record<string, string> = {
+          '$rc_monthly': 'monthly_support',
+          '$rc_annual': 'yearly_support'
+        };
+        
         // Log all packages for debugging
         log('[Offerings] All packages with details:', allPkgs.map((p: any) => ({
           pkgId: p.identifier,
@@ -110,6 +116,17 @@ const AboutSupportScreen = () => {
           }
         }
         
+        // Android fallback: Try RevenueCat's default package identifiers
+        if (filtered.length === 0 && allPkgs.length > 0) {
+          log('[Offerings] Trying RevenueCat default package IDs ($rc_monthly, $rc_annual)');
+          filtered = allPkgs.filter((p: any) => p.identifier in rcPackageMap);
+          
+          if (filtered.length > 0) {
+            log('[Offerings] Found products by RevenueCat package ID:', filtered.map((p: any) => p.identifier));
+            usingFallback = true;
+          }
+        }
+        
         // If we still don't have any products, fall back to using the first two by price
         if (filtered.length === 0 && allPkgs.length > 0) {
           usingFallback = true;
@@ -127,6 +144,12 @@ const AboutSupportScreen = () => {
             if (p.identifier === 'monthly_support' || p.identifier === 'yearly_support') {
               byId[p.identifier] = p;
               log(`[Offerings] Mapped package by identifier: ${p.identifier}`);
+            }
+            // Map RevenueCat default package IDs to our expected keys
+            else if (p.identifier in rcPackageMap) {
+              const mappedKey = rcPackageMap[p.identifier];
+              byId[mappedKey] = p;
+              log(`[Offerings] Mapped RevenueCat package ${p.identifier} to ${mappedKey}`);
             }
           }
           

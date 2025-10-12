@@ -26,6 +26,12 @@ export default function StoreScreen() {
       // Filter to your StoreKit IDs:
       const wanted = new Set(["monthly_support", "yearly_support"]);
       
+      // Also map RevenueCat default package IDs to our products
+      const rcPackageMap: Record<string, string> = {
+        '$rc_monthly': 'monthly_support',
+        '$rc_annual': 'yearly_support'
+      };
+      
       // Log all packages for debugging
       console.log('[Store] All packages with details:', allPkgs.map((p) => ({
         pkgId: p.identifier,
@@ -51,9 +57,22 @@ export default function StoreScreen() {
         }
       }
       
+      // Android fallback: Try RevenueCat's default package identifiers
+      if (filtered.length === 0) {
+        console.log('[Store] Trying RevenueCat default package IDs ($rc_monthly, $rc_annual)');
+        filtered = allPkgs
+          .filter((p) => p.identifier in rcPackageMap)
+          .sort((a, b) => (a.storeProduct?.price || 0) - (b.storeProduct?.price || 0));
+        
+        if (filtered.length > 0) {
+          console.log('[Store] Found products by RevenueCat package ID:', filtered.map((p) => p.identifier));
+        }
+      }
+      
       console.log('[Store] Final filtered packages:', filtered.map((p) => ({
         pkgId: p.identifier, 
-        storeId: p.storeProduct?.identifier
+        storeId: p.storeProduct?.identifier,
+        hasStoreProduct: !!p.storeProduct
       })));
 
       setPackages(filtered);
