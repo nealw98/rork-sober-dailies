@@ -12,6 +12,7 @@ import {
   Share,
   ActivityIndicator,
   Modal,
+  StatusBar,
 } from 'react-native';
 import Constants from 'expo-constants';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -453,6 +454,7 @@ const AboutSupportScreen = () => {
         headerBackTitleVisible: false,
         headerTransparent: false,
         headerStyle: { backgroundColor: '#f8f9fa' },
+        headerStatusBarHeight: Platform.OS === 'android' ? StatusBar.currentHeight : undefined,
         headerLeft: () => (
           <TouchableOpacity onPress={() => router.back()} style={{ flexDirection: 'row', alignItems: 'center', padding: Platform.OS === 'android' ? 4 : 8, marginLeft: Platform.OS === 'android' ? 0 : 4 }}>
             <ChevronLeft color={Colors.light.tint} size={20} />
@@ -822,8 +824,8 @@ const styles = StyleSheet.create({
     right: 0,
     bottom: 0,
     paddingHorizontal: 16,
-    paddingTop: 10,
-    paddingBottom: 8,
+    paddingTop: 16,
+    paddingBottom: 16,
     backgroundColor: '#f8f9fa',
   },
   footerCenter: {
