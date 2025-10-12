@@ -406,14 +406,14 @@ const SpotCheckHistorySheet: React.FC<{
           </TouchableOpacity>
         </View>
 
-        <ScrollView style={styles.historyList}>
+        <ScrollView style={styles.historyList} contentContainerStyle={styles.historyListContent}>
           {records.length === 0 ? (
             <View style={styles.emptyState}>
               <Text style={styles.emptyStateText}>No previous inventories yet.</Text>
             </View>
           ) : (
             records.map((record) => (
-              <View key={record.id} style={styles.historyItem}>
+              <View key={record.id} style={styles.historyCard}>
                 <TouchableOpacity
                   style={styles.historyItemTouchable}
                   onPress={() => {
@@ -440,9 +440,19 @@ const SpotCheckHistorySheet: React.FC<{
                       onClose();
                     }
                   }}
+                  activeOpacity={0.6}
                 >
                   <View style={styles.historyItemContent}>
-                    <Text style={styles.historyItemDate}>{formatTimestamp(record)}</Text>
+                    <View style={styles.historyItemHeader}>
+                      <Text style={styles.historyItemDate}>{formatTimestamp(record)}</Text>
+                      <TouchableOpacity
+                        style={styles.historyItemDelete}
+                        onPress={() => handleDelete(record.id)}
+                        hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                      >
+                        <Trash2 size={18} color="#dc3545" />
+                      </TouchableOpacity>
+                    </View>
                     {record.situation && (
                       <Text style={styles.historyItemSituation} numberOfLines={2}>
                         {record.situation}
@@ -474,12 +484,6 @@ const SpotCheckHistorySheet: React.FC<{
                       return null;
                     })()}
                   </View>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={styles.historyItemDelete}
-                  onPress={() => handleDelete(record.id)}
-                >
-                  <Trash2 size={20} color="#dc3545" />
                 </TouchableOpacity>
               </View>
             ))
@@ -1015,28 +1019,44 @@ const styles = StyleSheet.create({
   historyList: {
     flex: 1,
   },
-  historyItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderBottomWidth: 1,
-    borderBottomColor: '#eee',
+  historyListContent: {
+    padding: 16,
+    paddingTop: 16,
+  },
+  historyCard: {
+    backgroundColor: 'white',
+    borderRadius: 12,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: Colors.light.border,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
+    overflow: 'hidden',
   },
   historyItemTouchable: {
     flex: 1,
-    padding: 16,
   },
   historyItemContent: {
     flex: 1,
+    padding: 16,
+  },
+  historyItemHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
   },
   historyItemDelete: {
-    padding: 16,
-    paddingLeft: 8,
+    padding: 4,
   },
   historyItemDate: {
-    fontSize: 14,
+    fontSize: 16,
     fontWeight: '600',
-    color: Colors.light.text,
-    marginBottom: 4,
+    color: Colors.light.tint,
+    flex: 1,
   },
   historyItemSituation: {
     fontSize: 14,
