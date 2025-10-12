@@ -188,7 +188,7 @@ function RootLayoutNav() {
         headerStyle: {
           backgroundColor: "#f8f9fa",
         },
-        headerStatusBarHeight: Platform.OS === 'android' ? StatusBar.currentHeight : undefined,
+        headerStatusBarHeight: Platform.OS === 'android' ? (StatusBar.currentHeight || 0) + 8 : undefined,
         headerTitleStyle: {
           fontWeight: adjustFontWeight("600", true),
         },

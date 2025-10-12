@@ -450,18 +450,6 @@ const AboutSupportScreen = () => {
     <View style={styles.container}>
       <Stack.Screen options={{ 
         headerTitle: '',
-        headerBackTitle: '',
-        headerBackTitleVisible: false,
-        headerTransparent: false,
-        headerStyle: { backgroundColor: '#f8f9fa' },
-        headerStatusBarHeight: Platform.OS === 'android' ? StatusBar.currentHeight : undefined,
-        headerSafeAreaInsets: Platform.OS === 'android' ? { top: StatusBar.currentHeight || 0 } : undefined,
-        headerLeft: () => (
-          <TouchableOpacity onPress={() => router.back()} style={{ flexDirection: 'row', alignItems: 'center', padding: Platform.OS === 'android' ? 4 : 8, marginLeft: Platform.OS === 'android' ? 0 : 4 }}>
-            <ChevronLeft color={Colors.light.tint} size={20} />
-            <Text style={{ fontSize: 14, color: Colors.light.tint, marginLeft: 4 }}>Back</Text>
-          </TouchableOpacity>
-        ),
       }} />
       {/* Gradient Background */}
       <LinearGradient
