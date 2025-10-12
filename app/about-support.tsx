@@ -447,10 +447,12 @@ const AboutSupportScreen = () => {
     const androidVersionCode = Constants.expoConfig?.android?.versionCode ?? undefined;
 
   return (
-    <View style={styles.container}>
+    <>
       <Stack.Screen options={{ 
         headerTitle: '',
+        headerShown: true,
       }} />
+      <View style={styles.container}>
       {/* Gradient Background */}
       <LinearGradient
         colors={[Colors.light.chatBubbleUser, Colors.light.chatBubbleBot]}
@@ -607,7 +609,8 @@ const AboutSupportScreen = () => {
           </View>
         </SafeAreaView>
       </Modal>
-    </View>
+      </View>
+    </>
   );
 };
 
