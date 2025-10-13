@@ -155,46 +155,57 @@ export default function StoreScreen() {
       );
     }
 
+    const yearlyPackage = packages.find(p => (p.storeProduct?.identifier ?? p.identifier) === 'yearly_support');
+    const monthlyPackage = packages.find(p => (p.storeProduct?.identifier ?? p.identifier) === 'monthly_support');
+
     return (
       <View style={styles.list}>
-        {packages.map((pkg) => {
-          const id = pkg?.storeProduct?.identifier ?? pkg?.identifier;
-          const priceString = pkg?.storeProduct?.priceString ?? "";
-          const isMonthly = id === "monthly_support";
-          const isYearly = id === "yearly_support";
-
-          if (!id) {
-            return null;
-          }
-
-          return (
+        {yearlyPackage && (
           <TouchableOpacity
-            key={id}
+            key={yearlyPackage.storeProduct.identifier}
             style={styles.contributionButton}
             activeOpacity={0.85}
-            disabled={purchasingId === id}
-            onPress={() => handlePurchase(pkg)}
+            disabled={purchasingId === yearlyPackage.storeProduct.identifier}
+            onPress={() => handlePurchase(yearlyPackage)}
           >
-            {purchasingId === id ? (
+            {purchasingId === yearlyPackage.storeProduct.identifier ? (
               <View style={{ alignItems: "center" }}>
                 <ActivityIndicator color="#fff" />
-                <Text style={styles.statusText}>Opening Apple…</Text>
+                <Text style={styles.statusText}>Opening Store…</Text>
                 {connecting ? (
-                  <Text style={styles.statusSubtext}>Connecting to App Store…</Text>
+                  <Text style={styles.statusSubtext}>Connecting to the store…</Text>
                 ) : null}
               </View>
             ) : (
               <Text style={styles.contributionText}>
-                {isMonthly
-                  ? "$1.99 / month"
-                  : isYearly
-                  ? "$19.99 / year"
-                  : `${friendlyTitle(id)}${priceString ? ` — ${priceString}` : ''}`}
+                {`$19.99 / year`}
               </Text>
             )}
           </TouchableOpacity>
-          );
-        })}
+        )}
+        {monthlyPackage && (
+          <TouchableOpacity
+            key={monthlyPackage.storeProduct.identifier}
+            style={styles.contributionButton}
+            activeOpacity={0.85}
+            disabled={purchasingId === monthlyPackage.storeProduct.identifier}
+            onPress={() => handlePurchase(monthlyPackage)}
+          >
+            {purchasingId === monthlyPackage.storeProduct.identifier ? (
+              <View style={{ alignItems: "center" }}>
+                <ActivityIndicator color="#fff" />
+                <Text style={styles.statusText}>Opening Store…</Text>
+                {connecting ? (
+                  <Text style={styles.statusSubtext}>Connecting to the store…</Text>
+                ) : null}
+              </View>
+            ) : (
+              <Text style={styles.contributionText}>
+                {`$1.99 / month`}
+              </Text>
+            )}
+          </TouchableOpacity>
+        )}
 
         <Text style={styles.disclaimer}>Subscriptions are optional and help support app development.</Text>
 
