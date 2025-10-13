@@ -386,6 +386,12 @@ function BigBookBrowserContent({}: BigBookBrowserContentProps) {
             <View style={styles.searchBarContainer}>
               <BigBookSearchBar onSearch={handleSearch} clearSearch={clearSearch} />
             </View>
+            {/* 
+              "Go to Page" feature is disabled on Android.
+              It was causing issues with the search functionality and was removed
+              to ensure a stable search experience on the Android platform.
+              See memory ID: 9875095
+            */}
             {Platform.OS !== 'android' && (
               <TouchableOpacity 
                 style={styles.goToPageButton}
@@ -467,6 +473,12 @@ function BigBookBrowserContent({}: BigBookBrowserContentProps) {
         )}
       </Modal>
 
+      {/* 
+        "Go to Page" feature is disabled on Android.
+        It was causing issues with the search functionality and was removed
+        to ensure a stable search experience on the Android platform.
+        See memory ID: 9875095
+      */}
       {Platform.OS !== 'android' && (
         <PageNumberInput
           visible={pageInputVisible}
