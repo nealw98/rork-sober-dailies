@@ -519,20 +519,22 @@ const Inventory = () => {
   const navigation = useNavigation();
 
   // Check if instructions have been shown before
-  useEffect(() => {
-    const checkInstructionsShown = async () => {
-      try {
-        const shown = await AsyncStorage.getItem(INSTRUCTIONS_SHOWN_KEY);
-        if (!shown) {
-          setIsFirstTimeInstructions(true);
-          setShowInstructions(true);
+  useFocusEffect(
+    useCallback(() => {
+      const checkInstructionsShown = async () => {
+        try {
+          const shown = await AsyncStorage.getItem(INSTRUCTIONS_SHOWN_KEY);
+          if (!shown) {
+            setIsFirstTimeInstructions(true);
+            setShowInstructions(true);
+          }
+        } catch (error) {
+          console.error('[Inventory] Error checking instructions shown:', error);
         }
-      } catch (error) {
-        console.error('[Inventory] Error checking instructions shown:', error);
-      }
-    };
-    checkInstructionsShown();
-  }, []);
+      };
+      checkInstructionsShown();
+    }, [])
+  );
 
   // Handler to close instructions and mark as shown (only for first time)
   const handleCloseInstructions = async () => {
