@@ -23,29 +23,41 @@ function getPurchasesSafe(): typeof PurchasesNamespace | null {
   if (purchasesModule) return purchasesModule;
   try {
     if (!NativeModules || !('RNPurchases' in NativeModules)) {
+      console.log('[RevenueCat] RNPurchases not found in NativeModules.');
       return null;
     }
+    console.log('[RevenueCat] RNPurchases found in NativeModules. Requiring module...');
     // Avoid static import to prevent crashes in environments without the native module (e.g., Expo Go)
     // eslint-disable-next-line @typescript-eslint/no-var-requires
     const mod = require('react-native-purchases');
+    if (!mod) {
+      console.log('[RevenueCat] require("react-native-purchases") returned null or undefined.');
+      return null;
+    }
     purchasesModule = (mod && mod.default) ? mod.default : mod;
+    console.log('[RevenueCat] Module required successfully.');
     return purchasesModule;
-  } catch {
+  } catch (error) {
+    console.log('[RevenueCat] Error requiring "react-native-purchases":', error);
     return null;
   }
 }
 
 export function configurePurchases(): void {
   const Purchases = getPurchasesSafe();
-  if (!Purchases) return;
+  if (!Purchases) {
+    console.log('[RevenueCat] Purchases module not available. Skipping configuration.');
+    return;
+  }
   const apiKey = Platform.OS === 'ios' ? RC_IOS_KEY : RC_ANDROID_KEY;
   if (!apiKey) {
     console.log('[RevenueCat] API key missing for platform', Platform.OS);
     return;
   }
-  console.log('[RevenueCat] API key present for', Platform.OS);
-  Purchases.setLogLevel(Purchases.LOG_LEVEL.WARN);
+  console.log('[RevenueCat] Configuring with API key for', Platform.OS);
+  Purchases.setLogLevel(Purchases.LOG_LEVEL.DEBUG); // Use DEBUG for more detailed logs
   Purchases.configure({ apiKey });
+  console.log('[RevenueCat] Configuration complete.');
 }
 
 export async function getCustomerInfoSafe(): Promise<PurchasesNamespace.CustomerInfo | null> {
