@@ -171,12 +171,15 @@ export default function StoreScreen() {
 
     return (
       <View style={styles.list}>
+        {isStoreDisabled && (
+          <Text style={styles.disclaimer}>Subscriptions are temporarily unavailable while we resolve an issue.</Text>
+        )}
         {yearlyPackage && (
           <TouchableOpacity
             key={yearlyPackage.storeProduct.identifier}
-            style={styles.contributionButton}
+            style={[styles.contributionButton, isStoreDisabled && styles.disabledButton]}
             activeOpacity={0.85}
-            disabled={purchasingId === yearlyPackage.storeProduct.identifier}
+            disabled={isStoreDisabled}
             onPress={() => handlePurchase(yearlyPackage)}
           >
             {purchasingId === yearlyPackage.storeProduct.identifier ? (
@@ -197,9 +200,9 @@ export default function StoreScreen() {
         {monthlyPackage && (
           <TouchableOpacity
             key={monthlyPackage.storeProduct.identifier}
-            style={styles.contributionButton}
+            style={[styles.contributionButton, isStoreDisabled && styles.disabledButton]}
             activeOpacity={0.85}
-            disabled={purchasingId === monthlyPackage.storeProduct.identifier}
+            disabled={isStoreDisabled}
             onPress={() => handlePurchase(monthlyPackage)}
           >
             {purchasingId === monthlyPackage.storeProduct.identifier ? (
@@ -271,6 +274,9 @@ const styles = StyleSheet.create({
     borderRadius: 24,
     alignItems: "center",
     justifyContent: "center",
+  },
+  disabledButton: {
+    backgroundColor: '#a9a9a9', // A generic gray color
   },
   contributionText: { color: "#fff", fontSize: 16, fontWeight: "700" },
   statusText: { color: "#fff", fontSize: 14, fontWeight: "600", marginTop: 6 },
