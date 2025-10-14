@@ -168,15 +168,16 @@ export default function StoreScreen() {
       );
     }
 
-    const yearlyPackage = packages.find(p => (p.storeProduct?.identifier ?? p.identifier) === 'yearly_support');
-    const monthlyPackage = packages.find(p => (p.storeProduct?.identifier ?? p.identifier) === 'monthly_support');
+    // TEMPORARILY DISABLED - Subscription buttons removed via OTA hotfix
+    // const yearlyPackage = packages.find(p => (p.storeProduct?.identifier ?? p.identifier) === 'yearly_support');
+    // const monthlyPackage = packages.find(p => (p.storeProduct?.identifier ?? p.identifier) === 'monthly_support');
 
     return (
       <View style={styles.list}>
-        {isStoreDisabled && (
-          <Text style={styles.disclaimer}>Subscriptions are temporarily unavailable while we resolve an issue.</Text>
-        )}
-        {yearlyPackage && (
+        <Text style={styles.disclaimer}>Subscriptions are temporarily unavailable while we resolve an issue. Please check back soon.</Text>
+
+        {/* BUTTONS TEMPORARILY REMOVED - DO NOT UNCOMMENT WITHOUT FIXING ACKNOWLEDGEMENT ISSUE */}
+        {/* {yearlyPackage && (
           <TouchableOpacity
             key={yearlyPackage.storeProduct.identifier}
             style={[styles.contributionButton, isStoreDisabled && styles.disabledButton]}
@@ -221,9 +222,9 @@ export default function StoreScreen() {
               </Text>
             )}
           </TouchableOpacity>
-        )}
+        )} */}
 
-        <Text style={styles.disclaimer}>Subscriptions are optional and help support app development.</Text>
+        {/* <Text style={styles.disclaimer}>Subscriptions are optional and help support app development.</Text> */}
 
         {errorMessage ? (
           <Text style={styles.inlineError}>{errorMessage}</Text>
