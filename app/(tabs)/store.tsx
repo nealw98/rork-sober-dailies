@@ -143,17 +143,19 @@ export default function StoreScreen() {
 
   // -------- UI --------
   const content = useMemo(() => {
-    if (loading || isStoreDisabled) {
+    if (loading) {
       return (
         <View style={styles.center}>
-          {isStoreDisabled ? (
-            <Text style={styles.muted}>The store is temporarily unavailable. Please check back later.</Text>
-          ) : (
-            <>
-              <ActivityIndicator />
-              <Text style={styles.muted}>Loading products…</Text>
-            </>
-          )}
+          <ActivityIndicator />
+          <Text style={styles.muted}>Loading products…</Text>
+        </View>
+      );
+    }
+
+    if (isStoreDisabled) {
+      return (
+        <View style={styles.center}>
+          <Text style={styles.muted}>The store is temporarily unavailable. Please check back later.</Text>
         </View>
       );
     }
