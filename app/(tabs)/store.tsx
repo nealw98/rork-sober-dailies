@@ -101,8 +101,12 @@ export default function StoreScreen() {
     };
   }, [purchasingId]);
 
+  // Temporarily disable the store via OTA
+  const isStoreDisabled = true;
+
   // -------- Purchase / Restore --------
   const handlePurchase = async (pkg: PurchasesPackage) => {
+    if (isStoreDisabled) return; // Prevent purchase
     try {
       setPurchasingId(pkg.storeProduct.identifier);
       setErrorMessage(null);
@@ -121,6 +125,7 @@ export default function StoreScreen() {
   };
 
   const handleRestore = async () => {
+    if (isStoreDisabled) return; // Prevent restore
     try {
       const info: CustomerInfo | null = await restorePurchasesSafe();
       if (!info) throw new Error('Store unavailable');
@@ -138,11 +143,17 @@ export default function StoreScreen() {
 
   // -------- UI --------
   const content = useMemo(() => {
-    if (loading) {
+    if (loading || isStoreDisabled) {
       return (
         <View style={styles.center}>
-          <ActivityIndicator />
-          <Text style={styles.muted}>Loading products…</Text>
+          {isStoreDisabled ? (
+            <Text style={styles.muted}>The store is temporarily unavailable. Please check back later.</Text>
+          ) : (
+            <>
+              <ActivityIndicator />
+              <Text style={styles.muted}>Loading products…</Text>
+            </>
+          )}
         </View>
       );
     }
