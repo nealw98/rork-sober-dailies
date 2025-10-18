@@ -21,6 +21,114 @@ interface SimpleTextReaderProps {
 }
 
 const SimpleTextReader = ({ content, title, onClose, indentParagraphs = false, source }: SimpleTextReaderProps) => {
+  // Helper function to parse inline markdown (italic, bold)
+  const parseMarkdown = (text: string) => {
+    const parts: Array<{ text: string; italic?: boolean; bold?: boolean }> = [];
+    let current = '';
+    let i = 0;
+    
+    while (i < text.length) {
+      // Check for bold (**text**)
+      if (text[i] === '*' && text[i + 1] === '*') {
+        if (current) {
+          parts.push({ text: current });
+          current = '';
+        }
+        i += 2;
+        let boldText = '';
+        // Look for closing **
+        let foundClosing = false;
+        let j = i;
+        while (j < text.length - 1) {
+          if (text[j] === '*' && text[j + 1] === '*') {
+            foundClosing = true;
+            break;
+          }
+          j++;
+        }
+        
+        if (foundClosing) {
+          while (i < text.length && !(text[i] === '*' && text[i + 1] === '*')) {
+            boldText += text[i];
+            i++;
+          }
+          if (boldText) {
+            parts.push({ text: boldText, bold: true });
+          }
+          i += 2; // skip closing **
+        } else {
+          // No closing **, treat as literal
+          current += '**';
+        }
+      }
+      // Check for italic (*text*) - only if there's a matching closing * on the same line
+      else if (text[i] === '*') {
+        // Look ahead to see if there's a closing * before end of line
+        let foundClosing = false;
+        let j = i + 1;
+        while (j < text.length) {
+          if (text[j] === '*') {
+            foundClosing = true;
+            break;
+          }
+          j++;
+        }
+        
+        if (foundClosing) {
+          // Found a matching pair, treat as italic
+          if (current) {
+            parts.push({ text: current });
+            current = '';
+          }
+          i++;
+          let italicText = '';
+          while (i < text.length && text[i] !== '*') {
+            italicText += text[i];
+            i++;
+          }
+          if (italicText) {
+            parts.push({ text: italicText, italic: true });
+          }
+          i++; // skip closing *
+        } else {
+          // No matching closing *, treat as literal asterisk
+          current += text[i];
+          i++;
+        }
+      }
+      else {
+        current += text[i];
+        i++;
+      }
+    }
+    
+    if (current) {
+      parts.push({ text: current });
+    }
+    
+    return parts;
+  };
+
+  // Helper function to render parsed markdown
+  const renderMarkdownText = (text: string, baseStyle: any) => {
+    const parts = parseMarkdown(text);
+    return (
+      <Text style={baseStyle}>
+        {parts.map((part, idx) => (
+          <Text
+            key={idx}
+            style={[
+              part.italic && styles.italicText,
+              part.bold && styles.boldText,
+            ]}
+          >
+            {part.text}
+          </Text>
+        ))}
+      </Text>
+    );
+  };
+
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
@@ -76,7 +184,7 @@ const SimpleTextReader = ({ content, title, onClose, indentParagraphs = false, s
               return (
                 <View key={idx} style={styles.numberRow}>
                   <Text style={[styles.numberLabel, { width: labelWidth }]}>{label}</Text>
-                  <Text style={styles.numberText}>{text}</Text>
+                  {renderMarkdownText(text, styles.numberText)}
                 </View>
               );
             }
@@ -89,7 +197,7 @@ const SimpleTextReader = ({ content, title, onClose, indentParagraphs = false, s
               return (
                 <View key={idx} style={styles.numberRow}>
                   <Text style={[styles.numberLabel, { width: labelWidth }]}>{label}</Text>
-                  <Text style={styles.numberText}>{text}</Text>
+                  {renderMarkdownText(text, styles.numberText)}
                 </View>
               );
             }
@@ -102,16 +210,17 @@ const SimpleTextReader = ({ content, title, onClose, indentParagraphs = false, s
               return (
                 <View key={idx} style={styles.numberRow}>
                   <Text style={[styles.numberLabel, { width: labelWidth }]}>{label}</Text>
-                  <Text style={styles.numberText}>{text}</Text>
+                  {renderMarkdownText(text, styles.numberText)}
                 </View>
               );
             }
             const prefix = indentParagraphs && lastWasBlank && !isKnownHeading ? '\u2003' : '';
             lastWasBlank = false;
+            const textToRender = prefix + trimmed;
             return (
-              <Text key={idx} style={isKnownHeading ? styles.headingText : styles.textContent}>
-                {prefix}{trimmed.replace(/^\*\*|\*\*$/g, '')}
-              </Text>
+              <View key={idx}>
+                {renderMarkdownText(textToRender, isKnownHeading ? styles.headingText : styles.textContent)}
+              </View>
             );
           });
         })()}
@@ -167,6 +276,12 @@ const styles = StyleSheet.create({
     fontSize: 16,
     lineHeight: 22,
     color: Colors.light.text,
+  },
+  italicText: {
+    fontStyle: 'italic',
+  },
+  boldText: {
+    fontWeight: adjustFontWeight('700'),
   },
   headingText: {
     fontSize: 16,

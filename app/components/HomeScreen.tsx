@@ -20,7 +20,7 @@ const HomeScreen = () => {
 
   return (
     <LinearGradient
-      colors={['rgba(74, 144, 226, 0.3)', 'rgba(78, 205, 196, 0.2)', 'rgba(92, 184, 92, 0.1)']}
+      colors={Colors.gradients.mainThreeColor}
       style={styles.container}
       start={{ x: 0, y: 0 }}
       end={{ x: 1, y: 1 }}
@@ -229,7 +229,7 @@ const styles = StyleSheet.create({
   sectionContainerMorning: {
     paddingHorizontal: 16,
     marginBottom: 30,
-    backgroundColor: 'rgba(255, 248, 220, 0.8)', // Soft yellow with transparency
+    backgroundColor: '#FFF9E6', // Opaque soft yellow (was rgba(255, 248, 220, 0.8))
     paddingVertical: 20,
     borderRadius: 16,
     marginHorizontal: 16,
@@ -237,7 +237,7 @@ const styles = StyleSheet.create({
   sectionContainerDay: {
     paddingHorizontal: 16,
     marginBottom: 30,
-    backgroundColor: 'rgba(135, 206, 235, 0.7)', // Soft blue with stronger opacity
+    backgroundColor: '#B3D9F2', // Darker opaque soft blue (was #D4EBF7)
     paddingVertical: 20,
     borderRadius: 16,
     marginHorizontal: 16,
@@ -245,7 +245,7 @@ const styles = StyleSheet.create({
   sectionContainerEvening: {
     paddingHorizontal: 16,
     marginBottom: 30,
-    backgroundColor: 'rgba(147, 51, 234, 0.3)', // Soft purple
+    backgroundColor: '#E9D5F5', // Opaque soft purple (was rgba(147, 51, 234, 0.3))
     paddingVertical: 20,
     borderRadius: 16,
     marginHorizontal: 16,

@@ -769,7 +769,7 @@ const Inventory = () => {
   return (
     <ScreenContainer style={styles.container} noPadding>
       <LinearGradient
-        colors={['rgba(74, 144, 226, 0.3)', 'rgba(78, 205, 196, 0.2)', 'rgba(92, 184, 92, 0.1)']}
+        colors={Colors.gradients.mainThreeColor}
         style={styles.gradientContainer}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}

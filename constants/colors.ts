@@ -23,6 +23,13 @@ const Colors = {
       text: "white",
     },
   },
+  // Global gradient configurations for consistent app-wide styling
+  gradients: {
+    // Main page gradient (used on home screen and main feature pages)
+    main: ['#B8D4F1', '#C4E0E5'],  // Opaque blue-to-teal (2-color version)
+    // Alternative: Three-color gradient for special pages
+    mainThreeColor: ['#B8D4F1', '#C4E0E5', '#D7EDE4'],  // Opaque blue → teal → green
+  },
 } as const;
 
 export default Colors;
