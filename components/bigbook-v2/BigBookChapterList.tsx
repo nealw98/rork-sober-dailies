@@ -214,8 +214,8 @@ export function BigBookChapterList({ onSelectChapter }: BigBookChapterListProps)
           contentContainerStyle={styles.scrollViewContent}
         >
           <ChapterSection
-            title="Front Matter"
-            description="Forewords and introduction"
+            title="Introduction"
+            description="Includes The Doctor's Opinion"
             chapters={frontMatter}
             onSelectChapter={onSelectChapter}
           />
