@@ -684,10 +684,13 @@ export default function GratitudeListScreen() {
             text: 'Reset',
             style: 'destructive',
             onPress: () => {
+              // Clear UI state
               setGratitudeItems([]);
               setInputValue('');
               setEditingIndex(null);
               setEditingValue('');
+              // Clear storage - this actually removes the items
+              updateItemsForToday([]);
             }
           }
         ]
@@ -695,10 +698,13 @@ export default function GratitudeListScreen() {
     } else {
       // No unsaved changes, just reset without warning
       console.log('[Gratitude] Resetting without alert - no unsaved changes');
+      // Clear UI state
       setGratitudeItems([]);
       setInputValue('');
       setEditingIndex(null);
       setEditingValue('');
+      // Clear storage - this actually removes the items
+      updateItemsForToday([]);
     }
   };
 
