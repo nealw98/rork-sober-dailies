@@ -88,6 +88,7 @@ export function BigBookReader({ visible, initialChapterId, scrollToParagraphId, 
   
   const scrollViewRef = useRef<ScrollView>(null);
   const paragraphRefs = useRef<Map<string, View>>(new Map());
+  const paragraphPositions = useRef<Map<string, { y: number; height: number; pageNumber: number }>>(new Map());
   
   // Bookmark management
   const { 
@@ -193,32 +194,36 @@ export function BigBookReader({ visible, initialChapterId, scrollToParagraphId, 
 
   // Track current page number based on scroll position
   const handleScroll = useCallback((event: any) => {
-    if (!currentChapter || paragraphRefs.current.size === 0) return;
+    if (!currentChapter || paragraphPositions.current.size === 0) return;
     
     const scrollY = event.nativeEvent.contentOffset.y;
     const viewportHeight = event.nativeEvent.layoutMeasurement.height;
     const midpoint = scrollY + (viewportHeight / 3); // Check what's in upper third of screen
     
-    // Find the paragraph that's currently in view
-    let currentPage = currentChapter.pageRange[0]; // Default to first page
+    // Find the paragraph that's currently in view at the midpoint
+    let foundPageNumber: number | null = null;
+    let closestDistance = Infinity;
     
-    // Check each paragraph to see if it's in the viewport
-    currentChapter.paragraphs.forEach((paragraph) => {
-      const paragraphView = paragraphRefs.current.get(paragraph.id);
-      if (paragraphView && scrollViewRef.current) {
-        paragraphView.measureLayout(
-          scrollViewRef.current as any,
-          (x, y, width, height) => {
-            // If this paragraph is at or above the midpoint, update current page
-            if (y <= midpoint && y + height > scrollY) {
-              setCurrentPageNumber(paragraph.pageNumber);
-            }
-          },
-          () => {} // Ignore errors
-        );
+    paragraphPositions.current.forEach((position, paragraphId) => {
+      const distance = Math.abs(position.y - midpoint);
+      
+      // If this paragraph is close to the midpoint and closer than previous
+      if (distance < closestDistance && position.y <= midpoint && (position.y + position.height) >= scrollY) {
+        closestDistance = distance;
+        foundPageNumber = position.pageNumber;
       }
     });
-  }, [currentChapter]);
+    
+    if (foundPageNumber !== null && foundPageNumber !== currentPageNumber) {
+      setCurrentPageNumber(foundPageNumber);
+    }
+  }, [currentChapter, currentPageNumber]);
+  
+  // Handle paragraph layout to track positions
+  const handleParagraphLayout = useCallback((paragraphId: string, pageNumber: number, event: any) => {
+    const { y, height } = event.nativeEvent.layout;
+    paragraphPositions.current.set(paragraphId, { y, height, pageNumber });
+  }, []);
 
   // Initialize current page when chapter loads
   useEffect(() => {
@@ -502,6 +507,7 @@ export function BigBookReader({ visible, initialChapterId, scrollToParagraphId, 
                 paragraphRefs.current.delete(paragraph.id);
               }
             }}
+            onLayout={(event) => handleParagraphLayout(paragraph.id, paragraph.pageNumber, event)}
             collapsable={false}
           >
             <BigBookParagraph

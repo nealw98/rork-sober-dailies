@@ -35,6 +35,7 @@ import { adjustFontWeight } from '@/constants/fonts';
 import { BigBookChapterMeta } from '@/types/bigbook-v2';
 import { getMainChapters, getFrontMatter, getAppendices } from '@/constants/bigbook-v2/metadata';
 import { useBigBookContent } from '@/hooks/use-bigbook-content';
+import { formatPageNumber } from '@/lib/bigbook-page-utils';
 import { BigBookHighlightsList } from './BigBookHighlightsList';
 import { BigBookBookmarksList } from './BigBookBookmarksList';
 import { BigBookPageNavigation } from './BigBookPageNavigation';
@@ -88,7 +89,7 @@ function ChapterSection({ title, description, chapters, onSelectChapter, default
                   <Text style={styles.chapterDescription}>{chapter.description}</Text>
                 )}
                 <Text style={styles.chapterPages}>
-                  Pages {chapter.pageRange[0]}-{chapter.pageRange[1]}
+                  Pages {formatPageNumber(chapter.pageRange[0], chapter.useRomanNumerals || false)}-{formatPageNumber(chapter.pageRange[1], chapter.useRomanNumerals || false)}
                 </Text>
               </View>
               <FileText size={20} color={Colors.light.muted} />
