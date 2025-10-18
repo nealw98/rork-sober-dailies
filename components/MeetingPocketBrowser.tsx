@@ -17,6 +17,7 @@ import Colors from "@/constants/colors";
 import { adjustFontWeight } from "@/constants/fonts";
 import SimpleTextReader from "./SimpleTextReader";
 import ScreenContainer from "./ScreenContainer";
+import { meetingReadings as importedMeetingReadings } from "@/constants/meeting-readings";
 
 interface MeetingReading {
   id: string;
@@ -54,6 +55,12 @@ const meetingReadings: MeetingReading[] = [
     title: "The 9th Step Promises",
     source: "Alcoholics Anonymous, pages 83-84",
     content: "If we are painstaking about this phase of our development, we will be amazed before we are half way through. We are going to know a new freedom and a new happiness. We will not regret the past nor wish to shut the door on it. We will comprehend the word serenity and we will know peace. No matter how far down the scale we have gone, we will see how our experience can benefit others. That feeling of uselessness and self-pity will disappear. We will lose interest in selfish things and gain interest in our fellows. Self-seeking will slip away. Our whole attitude and outlook upon life will change. Fear of people and of economic insecurity will leave us. We will intuitively know how to handle situations which used to baffle us. We will suddenly realize that God is doing for us what we could not do for ourselves.\n\nAre these extravagant promises? We think not. They are being fulfilled among us—sometimes quickly, sometimes slowly. They will always materialize if we work for them."
+  },
+  {
+    id: "there-is-a-solution",
+    title: "There Is a Solution",
+    source: "Alcoholics Anonymous (1st Edition), p. 25",
+    content: "*There is a solution.* Almost none of us liked the self-searching, the leveling of our pride, the confession of short-comings which the process requires for its successful consummation. But we saw that it really worked in others, and we had come to believe in the hopelessness and futility of life as we had been living it. When, therefore, we were approached by those in whom the problem had been solved, there was nothing left for us but to pick up the simple kit of spiritual tools laid at our feet. We have found much of heaven and we have been rocketed into a fourth dimension of existence of which we had not even dreamed.\n\nThe great fact is just this, and nothing less: That we have had deep and effective spiritual experiences* which have revolutionized our whole attitude toward life, toward our fellows and toward God's universe. The central fact of our lives today is the absolute certainty that our Creator has entered into our hearts and lives in a way which is indeed miraculous. He has commenced to accomplish those things for us which we could never do by ourselves.\n\n*Fully explained—Appendix II"
   },
   {
     id: "vision",
@@ -102,11 +109,11 @@ function MeetingPocketBrowserContent() {
   return (
     <View style={styles.container}>
       <LinearGradient
-        colors={['rgba(74, 144, 226, 0.3)', 'rgba(92, 184, 92, 0.1)']}
+        colors={Colors.gradients.mainThreeColor}
         style={styles.backgroundGradient}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
-        locations={[0, 1]}
+        locations={[0, 0.5, 1]}
         pointerEvents="none"
       />
       

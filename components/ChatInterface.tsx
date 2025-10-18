@@ -261,7 +261,7 @@ export default function ChatInterface() {
       keyboardVerticalOffset={Platform.OS === "ios" ? 120 : 0}
     >
       <LinearGradient
-        colors={[Colors.light.chatBubbleUser, Colors.light.chatBubbleBot]}
+        colors={Colors.gradients.mainThreeColor}
         style={styles.backgroundGradient}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
