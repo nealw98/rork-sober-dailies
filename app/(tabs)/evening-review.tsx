@@ -301,12 +301,38 @@ export default function EveningReview() {
     
     if (!hasContent) return;
     
-    // Check completion status at the moment of reset (not stale value)
-    const currentlyCompleted = isCompletedToday();
-    console.log('[Evening Review] handleReset - currentlyCompleted:', currentlyCompleted, 'hasContent:', hasContent);
+    // Check if there are unsaved changes by comparing current state with saved entry
+    const todayString = getTodayDateString();
+    const savedEntry = getSavedEntry(todayString);
     
-    // Only show warning if NOT completed (i.e., has unsaved changes)
-    if (!currentlyCompleted) {
+    let hasUnsavedChanges = false;
+    
+    if (savedEntry) {
+      const data = savedEntry.data;
+      // Compare current state with saved state
+      hasUnsavedChanges = 
+        stayedSober !== data.stayedSober ||
+        prayedOrMeditated !== data.prayedOrMeditated ||
+        practicedGratitude !== data.practicedGratitude ||
+        readAALiterature !== data.readAALiterature ||
+        talkedToAlcoholic !== data.talkedToAlcoholic ||
+        didSomethingForOthers !== data.didSomethingForOthers ||
+        reflectionResentful !== (data.reflectionResentful || '') ||
+        reflectionApology !== (data.reflectionApology || '') ||
+        reflectionShared !== (data.reflectionShared || '') ||
+        reflectionOthers !== (data.reflectionOthers || '') ||
+        reflectionKind !== (data.reflectionKind || '') ||
+        reflectionWell !== (data.reflectionWell || '') ||
+        reflectionBetter !== (data.reflectionBetter || '');
+    } else {
+      // No saved entry, so any content means unsaved changes
+      hasUnsavedChanges = hasContent;
+    }
+    
+    console.log('[Evening Review] handleReset - hasUnsavedChanges:', hasUnsavedChanges, 'hasContent:', hasContent);
+    
+    // Only show warning if there are unsaved changes
+    if (hasUnsavedChanges) {
       Alert.alert(
         'Reset Nightly Review',
         'You have unsaved changes. Are you sure you want to clear your current review?',
@@ -316,45 +342,40 @@ export default function EveningReview() {
             text: 'Reset',
             style: 'destructive',
             onPress: () => {
-              // Reset daily actions
+              // Reset all state
               setStayedSober(false);
               setPrayedOrMeditated(false);
               setPracticedGratitude(false);
               setReadAALiterature(false);
               setTalkedToAlcoholic(false);
               setDidSomethingForOthers(false);
-              
-              // Reset inventory with correct state variable names
               setReflectionResentful('');
               setReflectionApology('');
               setReflectionShared('');
-              setReflectionKind('');
-              setReflectionBetter('');
               setReflectionOthers('');
-              
-              uncompleteToday();
+              setReflectionKind('');
+              setReflectionWell('');
+              setReflectionBetter('');
             }
           }
         ]
       );
     } else {
-      // Already saved, just reset without warning
-      console.log('[Evening Review] Resetting without alert - already saved');
+      // No unsaved changes, just reset without warning
+      console.log('[Evening Review] Resetting without alert - no unsaved changes');
       setStayedSober(false);
       setPrayedOrMeditated(false);
       setPracticedGratitude(false);
       setReadAALiterature(false);
       setTalkedToAlcoholic(false);
       setDidSomethingForOthers(false);
-      
       setReflectionResentful('');
       setReflectionApology('');
       setReflectionShared('');
-      setReflectionKind('');
-      setReflectionBetter('');
       setReflectionOthers('');
-      
-      uncompleteToday();
+      setReflectionKind('');
+      setReflectionWell('');
+      setReflectionBetter('');
     }
   };
 

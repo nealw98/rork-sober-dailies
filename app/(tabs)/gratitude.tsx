@@ -656,14 +656,25 @@ export default function GratitudeListScreen() {
   }, [navigation, gratitudeItems, handleSaveEntry, handleShare, handleReset]);
 
   const handleReset = () => {
-    if (gratitudeItems.length === 0) return;
+    if (gratitudeItems.length === 0 && inputValue.trim() === '') return;
     
-    // Check completion status at the moment of reset (not stale value)
-    const currentlyCompleted = isCompletedToday();
-    console.log('[Gratitude] handleReset - currentlyCompleted:', currentlyCompleted, 'gratitudeItems:', gratitudeItems.length);
+    // Check if there are unsaved changes by comparing current items with saved entry
+    const todayString = getTodayDateString();
+    const savedEntry = getSavedEntry(todayString);
+    const savedItems = savedEntry?.items || [];
     
-    // Only show warning if NOT completed (i.e., has unsaved changes)
-    if (!currentlyCompleted) {
+    // Determine if there are unsaved changes:
+    // - Items in UI differ from saved items
+    // - Or there's text in the input field
+    const hasUnsavedChanges = 
+      inputValue.trim() !== '' ||
+      gratitudeItems.length !== savedItems.length ||
+      gratitudeItems.some((item, index) => item !== savedItems[index]);
+    
+    console.log('[Gratitude] handleReset - hasUnsavedChanges:', hasUnsavedChanges, 'gratitudeItems:', gratitudeItems.length, 'savedItems:', savedItems.length);
+    
+    // Only show warning if there are unsaved changes
+    if (hasUnsavedChanges) {
       Alert.alert(
         'Reset Gratitude List',
         'You have unsaved changes. Are you sure you want to clear your current gratitude list?',
@@ -677,19 +688,17 @@ export default function GratitudeListScreen() {
               setInputValue('');
               setEditingIndex(null);
               setEditingValue('');
-              uncompleteToday();
             }
           }
         ]
       );
     } else {
-      // Already saved, just reset without warning
-      console.log('[Gratitude] Resetting without alert - already saved');
+      // No unsaved changes, just reset without warning
+      console.log('[Gratitude] Resetting without alert - no unsaved changes');
       setGratitudeItems([]);
       setInputValue('');
       setEditingIndex(null);
       setEditingValue('');
-      uncompleteToday();
     }
   };
 
