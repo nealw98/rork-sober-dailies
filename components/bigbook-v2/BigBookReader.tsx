@@ -418,6 +418,14 @@ export function BigBookReader({ visible, initialChapterId, scrollToParagraphId, 
           {/* Row 1: Chapter Navigation with Close Button */}
           <View style={styles.headerTopRow}>
             <TouchableOpacity 
+              onPress={onClose}
+              style={styles.closeButton}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            >
+              <X size={24} color={Colors.light.text} />
+            </TouchableOpacity>
+
+            <TouchableOpacity 
               onPress={goToPreviousChapter}
               style={styles.navArrowButton}
               hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
@@ -437,14 +445,6 @@ export function BigBookReader({ visible, initialChapterId, scrollToParagraphId, 
               hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
             >
               <ChevronRight size={24} color={Colors.light.text} />
-            </TouchableOpacity>
-
-            <TouchableOpacity 
-              onPress={onClose}
-              style={styles.closeButton}
-              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-            >
-              <X size={24} color={Colors.light.text} />
             </TouchableOpacity>
           </View>
         
