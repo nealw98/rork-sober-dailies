@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useLayoutEffect } from 'react';
 import {
   View,
   Text,
@@ -17,12 +17,14 @@ import {
 import * as Clipboard from 'expo-clipboard';
 import ScreenContainer from "@/components/ScreenContainer";
 import { LinearGradient } from 'expo-linear-gradient';
-import { CheckCircle, Circle, Calendar, Share as ShareIcon, Save, Archive, Check } from 'lucide-react-native';
+import { CheckCircle, Circle, Calendar, Share as ShareIcon, Save, Folder, Check, RotateCcw } from 'lucide-react-native';
 import { useEveningReviewStore } from '@/hooks/use-evening-review-store';
 import SavedEveningReviews from '@/components/SavedEveningReviews';
 import AnimatedEveningReviewMessage from '@/components/AnimatedEveningReviewMessage';
+import { ReviewCompleteModal } from '@/components/ReviewCompleteModal';
 import Colors from '@/constants/colors';
 import { adjustFontWeight } from '@/constants/fonts';
+import { useNavigation } from '@react-navigation/native';
 
 const formatDateDisplay = (date: Date): string => {
   return date.toLocaleDateString('en-US', {
@@ -98,6 +100,7 @@ const AnimatedCheckbox = ({ checked, onPress, children }: {
 };
 
 export default function EveningReview() {
+  const navigation = useNavigation();
   const [showConfirmation, setShowConfirmation] = useState(false);
   const [showSavedReviews, setShowSavedReviews] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
@@ -288,6 +291,123 @@ export default function EveningReview() {
     }
   };
 
+  const handleReset = () => {
+    const hasContent = dailyActions.some(a => a.checked) || 
+                      inventoryQuestions.some(q => q.value.trim() !== '');
+    
+    if (!hasContent) return;
+    
+    // Check completion status at the moment of reset (not stale value)
+    const currentlyCompleted = isCompletedToday();
+    console.log('[Evening Review] handleReset - currentlyCompleted:', currentlyCompleted, 'hasContent:', hasContent);
+    
+    // Only show warning if NOT completed (i.e., has unsaved changes)
+    if (!currentlyCompleted) {
+      Alert.alert(
+        'Reset Nightly Review',
+        'You have unsaved changes. Are you sure you want to clear your current review?',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          {
+            text: 'Reset',
+            style: 'destructive',
+            onPress: () => {
+              // Reset daily actions
+              setStayedSober(false);
+              setPrayedOrMeditated(false);
+              setPracticedGratitude(false);
+              setReadAALiterature(false);
+              setTalkedToAlcoholic(false);
+              setDidSomethingForOthers(false);
+              
+              // Reset inventory with correct state variable names
+              setReflectionResentful('');
+              setReflectionApology('');
+              setReflectionShared('');
+              setReflectionKind('');
+              setReflectionBetter('');
+              setReflectionOthers('');
+              
+              uncompleteToday();
+            }
+          }
+        ]
+      );
+    } else {
+      // Already saved, just reset without warning
+      console.log('[Evening Review] Resetting without alert - already saved');
+      setStayedSober(false);
+      setPrayedOrMeditated(false);
+      setPracticedGratitude(false);
+      setReadAALiterature(false);
+      setTalkedToAlcoholic(false);
+      setDidSomethingForOthers(false);
+      
+      setReflectionResentful('');
+      setReflectionApology('');
+      setReflectionShared('');
+      setReflectionKind('');
+      setReflectionBetter('');
+      setReflectionOthers('');
+      
+      uncompleteToday();
+    }
+  };
+
+  // Add header icons (Save, Share, Saved Reviews, Reset)
+  useLayoutEffect(() => {
+    const hasContent = dailyActions.some(a => a.checked) || 
+                      inventoryQuestions.some(q => q.value.trim() !== '');
+    
+    navigation.setOptions({
+      headerRight: () => (
+        <View style={{ flexDirection: 'row', gap: 16, paddingRight: 16 }}>
+          {hasContent && (
+            <TouchableOpacity 
+              onPress={handleSaveEntry}
+              accessible={true}
+              accessibilityLabel="Save nightly review"
+              accessibilityRole="button"
+            >
+              <Save color={Colors.light.tint} size={20} />
+            </TouchableOpacity>
+          )}
+          <TouchableOpacity 
+            onPress={handleShare}
+            accessible={true}
+            accessibilityLabel="Share nightly review"
+            accessibilityRole="button"
+          >
+            <ShareIcon color={Colors.light.tint} size={20} />
+          </TouchableOpacity>
+          <TouchableOpacity 
+            onPress={() => setShowSavedReviews(true)}
+            accessible={true}
+            accessibilityLabel="View saved reviews"
+            accessibilityRole="button"
+          >
+            <Folder color={Colors.light.tint} size={20} />
+          </TouchableOpacity>
+          <TouchableOpacity 
+            onPress={handleReset}
+            accessible={true}
+            accessibilityLabel="Reset nightly review"
+            accessibilityRole="button"
+          >
+            <RotateCcw color={Colors.light.tint} size={20} />
+          </TouchableOpacity>
+        </View>
+      ),
+    });
+  }, [
+    navigation, 
+    dailyActions, 
+    inventoryQuestions, 
+    handleSaveEntry, 
+    handleShare, 
+    handleReset
+  ]);
+
   const handleSaveEntry = () => {
     const detailedEntry = {
       // New format fields
@@ -331,89 +451,12 @@ export default function EveningReview() {
            inventoryQuestions.some(question => question.value.trim() !== '');
   };
 
-  // Show completion screen if review is completed, unless we're editing
-  if (showConfirmation || (isCompleted && !isEditing)) {
-    return (
-      <ScreenContainer style={styles.container}>
-        <LinearGradient
-          colors={[Colors.light.chatBubbleUser, Colors.light.chatBubbleBot]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={styles.gradient}
-        />
-        
-        <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-          <View style={styles.header}>
-            <Text style={styles.title}>Review Complete</Text>
-            <Text style={styles.subtitle}>{formatDateDisplay(today)}</Text>
-          </View>
+  const handleViewSavedReviews = () => {
+    setShowConfirmation(false);
+    setShowSavedReviews(true);
+  };
 
-          <View style={styles.card}>
-            <Text style={styles.confirmationText}>
-              Thanks for checking in. You&apos;re doing the work — one day at a time.
-            </Text>
-          </View>
-
-          <View style={styles.card}>
-            <View style={styles.cardHeader}>
-              <Calendar color={Colors.light.tint} size={20} />
-              <Text style={styles.cardTitle}>This Week&apos;s Progress</Text>
-            </View>
-            
-            <View style={styles.weeklyProgress}>
-              {weeklyProgress.map((day, index) => (
-                <View key={index} style={styles.dayContainer}>
-                  <Text style={styles.dayName}>{day.dayName}</Text>
-                  <View style={[
-                    styles.dayCircle,
-                    day.completed && !day.isFuture && styles.dayCircleCompleted,
-                    day.isToday && !day.completed && styles.dayCircleToday,
-                    day.isFuture && styles.dayCircleFuture
-                  ]}>
-                    {day.completed && !day.isFuture && (
-                      <CheckCircle color="white" size={16} />
-                    )}
-                  </View>
-                </View>
-              ))}
-            </View>
-            
-            {weeklyStreak > 0 ? (
-              <AnimatedEveningReviewMessage
-                weeklyStreak={weeklyStreak}
-                visible={true}
-              />
-            ) : (
-              <Text style={styles.streakText}>
-                Start your streak today! 🌱
-              </Text>
-            )}
-          </View>
-
-          <Text style={styles.privacyText}>
-            Your responses are saved only on your device. Nothing is uploaded or shared.
-          </Text>
-
-          <View style={styles.buttonContainer}>
-            <TouchableOpacity style={styles.primaryButton} onPress={handleEditReview}>
-              <Text style={styles.primaryButtonText} numberOfLines={1}>Go Back</Text>
-            </TouchableOpacity>
-            <TouchableOpacity 
-              style={styles.primaryButton}
-              onPress={() => setShowSavedReviews(true)}
-            >
-              <Text style={styles.primaryButtonText} numberOfLines={1}>Saved Reviews</Text>
-            </TouchableOpacity>
-          </View>
-        </ScrollView>
-        <SavedEveningReviews 
-          visible={showSavedReviews}
-          onClose={() => setShowSavedReviews(false)}
-        />
-      </ScreenContainer>
-    );
-  }
-
+  // Main form render
   return (
     <ScreenContainer style={styles.container}>
       <LinearGradient
@@ -486,34 +529,6 @@ export default function EveningReview() {
             </View>
           </View>
 
-          {/* Action Buttons */}
-          <View style={styles.actionButtons}>
-            <TouchableOpacity 
-              style={[
-                styles.saveButton,
-                !canSave() && styles.saveButtonDisabled
-              ]} 
-              onPress={handleSaveEntry}
-              disabled={!canSave()}
-            >
-              <Save size={20} color="white" />
-              <Text style={styles.saveButtonText}>Save</Text>
-            </TouchableOpacity>
-            <TouchableOpacity 
-              style={[
-                styles.shareButton,
-                !canSave() && styles.shareButtonDisabled
-              ]}
-              onPress={handleShare}
-              disabled={!canSave()}
-            >
-              <ShareIcon size={20} color="white" />
-              <Text style={styles.shareButtonText}>Share</Text>
-            </TouchableOpacity>
-          </View>
-          
-          
-
           <Text style={styles.privacyText}>
             Your responses are saved only on your device. Nothing is uploaded or shared.
           </Text>
@@ -523,6 +538,12 @@ export default function EveningReview() {
       <SavedEveningReviews 
         visible={showSavedReviews}
         onClose={() => setShowSavedReviews(false)}
+      />
+
+      {/* Completion Modal */}
+      <ReviewCompleteModal
+        visible={showConfirmation || (isCompleted && !isEditing)}
+        onClose={handleEditReview}
       />
     </ScreenContainer>
   );

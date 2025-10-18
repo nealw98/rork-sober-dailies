@@ -22,6 +22,7 @@ import { useExpoRouterTracking } from "@/hooks/useExpoRouterTracking";
 import { SessionProvider } from "@/hooks/useSessionContext";
 import { useSobrietyBirthday } from "@/hooks/useSobrietyBirthday";
 import SobrietyBirthdayModal from "@/components/SobrietyBirthdayModal";
+import { initializeFirstInstallDate } from "@/lib/first-install-tracker";
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync().catch(() => {
@@ -112,6 +113,9 @@ function RootLayoutNav() {
 
     // Initialize usage logger
     initUsageLogger();
+
+    // Initialize first install date for grandfathering
+    initializeFirstInstallDate();
 
     
     // Log OTA diagnostics with safe fallback

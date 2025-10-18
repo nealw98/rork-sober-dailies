@@ -14,7 +14,7 @@ import {
   Modal
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { RotateCcw, Share as ShareIcon, Save as SaveIcon, Clock, Trash2, X, HelpCircle, Calendar } from 'lucide-react-native';
+import { RotateCcw, Share as ShareIcon, Save as SaveIcon, Folder, Trash2, X, HelpCircle, Calendar } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Colors from '@/constants/colors';
@@ -659,12 +659,40 @@ const Inventory = () => {
   }, [situation, selections, dismissKeyboard]);
 
   const handleReset = useCallback(() => {
-    dismissKeyboard(); // Hide keyboard when resetting
-    setSelections({});
-    setSituation('');
-    setCurrentRecord(null);
-    setHasUnsavedChanges(false);
-  }, [dismissKeyboard]);
+    // Check if there's any content before showing the alert
+    const hasAnyContent = situation.trim() !== '' || Object.keys(selections).length > 0;
+    
+    if (!hasAnyContent) return;
+    
+    // Only show warning if there are unsaved changes
+    if (hasUnsavedChanges) {
+      Alert.alert(
+        'Reset Spot Check',
+        'You have unsaved changes. Are you sure you want to clear your current spot check?',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          {
+            text: 'Reset',
+            style: 'destructive',
+            onPress: () => {
+              dismissKeyboard(); // Hide keyboard when resetting
+              setSelections({});
+              setSituation('');
+              setCurrentRecord(null);
+              setHasUnsavedChanges(false);
+            }
+          }
+        ]
+      );
+    } else {
+      // Already saved, just reset without warning
+      dismissKeyboard();
+      setSelections({});
+      setSituation('');
+      setCurrentRecord(null);
+      setHasUnsavedChanges(false);
+    }
+  }, [situation, selections, hasUnsavedChanges, dismissKeyboard]);
 
   // Add header icons (Save, Share, History, Reset)
   useLayoutEffect(() => {
@@ -698,7 +726,7 @@ const Inventory = () => {
             accessibilityLabel="View history"
             accessibilityRole="button"
           >
-            <Clock color={Colors.light.tint} size={20} />
+            <Folder color={Colors.light.tint} size={20} />
           </TouchableOpacity>
           <TouchableOpacity 
             onPress={handleShowHelp}
