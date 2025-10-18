@@ -52,9 +52,10 @@ interface DetailedEveningEntry {
   reflectionResentful?: string;
   reflectionApology?: string;
   reflectionShared?: string;
-  reflectionKind?: string;
-  reflectionBetter?: string;
   reflectionOthers?: string;
+  reflectionKind?: string;
+  reflectionWell?: string;
+  reflectionBetter?: string;
 }
 
 interface SavedEveningEntry {

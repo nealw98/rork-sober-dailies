@@ -141,9 +141,10 @@ export default function SavedEveningReviews({ visible, onClose }: SavedEveningRe
         { key: 'reflectionResentful', label: 'Was I resentful, selfish, dishonest, or afraid?', value: data.reflectionResentful },
         { key: 'reflectionApology', label: 'Do I owe an apology?', value: data.reflectionApology },
         { key: 'reflectionShared', label: 'Did I keep something to myself that should be shared with another?', value: data.reflectionShared },
-        { key: 'reflectionKind', label: 'Was I kind and loving toward all?', value: data.reflectionKind },
-        { key: 'reflectionBetter', label: 'What could I have done better?', value: data.reflectionBetter },
         { key: 'reflectionOthers', label: 'Was I thinking of myself most of the time, or of what I could do for others?', value: data.reflectionOthers },
+        { key: 'reflectionKind', label: 'Was I kind and loving toward all?', value: data.reflectionKind },
+        { key: 'reflectionWell', label: 'What have I done well today?', value: data.reflectionWell },
+        { key: 'reflectionBetter', label: 'What could I have done better?', value: data.reflectionBetter },
       ];
       
       inventoryQuestions.forEach(question => {
@@ -242,9 +243,10 @@ export default function SavedEveningReviews({ visible, onClose }: SavedEveningRe
         { key: 'reflectionResentful', label: 'Was I resentful, selfish, dishonest, or afraid?', value: data.reflectionResentful },
         { key: 'reflectionApology', label: 'Do I owe an apology?', value: data.reflectionApology },
         { key: 'reflectionShared', label: 'Did I keep something to myself that should be shared with another?', value: data.reflectionShared },
-        { key: 'reflectionKind', label: 'Was I kind and loving toward all?', value: data.reflectionKind },
-        { key: 'reflectionBetter', label: 'What could I have done better?', value: data.reflectionBetter },
         { key: 'reflectionOthers', label: 'Was I thinking of myself most of the time, or of what I could do for others?', value: data.reflectionOthers },
+        { key: 'reflectionKind', label: 'Was I kind and loving toward all?', value: data.reflectionKind },
+        { key: 'reflectionWell', label: 'What have I done well today?', value: data.reflectionWell },
+        { key: 'reflectionBetter', label: 'What could I have done better?', value: data.reflectionBetter },
       ];
 
       return (
