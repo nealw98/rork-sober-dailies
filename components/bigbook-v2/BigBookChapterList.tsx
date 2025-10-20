@@ -51,9 +51,10 @@ interface SectionProps {
   chapters: BigBookChapterMeta[];
   onSelectChapter: (chapterId: string) => void;
   defaultExpanded?: boolean;
+  hideChapterDescriptions?: boolean;
 }
 
-function ChapterSection({ title, description, chapters, onSelectChapter, defaultExpanded = false }: SectionProps) {
+function ChapterSection({ title, description, chapters, onSelectChapter, defaultExpanded = false, hideChapterDescriptions = false }: SectionProps) {
   const [expanded, setExpanded] = useState(defaultExpanded);
 
   return (
@@ -85,7 +86,7 @@ function ChapterSection({ title, description, chapters, onSelectChapter, default
             >
               <View style={styles.chapterInfo}>
                 <Text style={styles.chapterTitle}>{chapter.title}</Text>
-                {chapter.description && (
+                {!hideChapterDescriptions && chapter.description && (
                   <Text style={styles.chapterDescription}>{chapter.description}</Text>
                 )}
                 <Text style={styles.chapterPages}>
@@ -227,6 +228,7 @@ export function BigBookChapterList({ onSelectChapter }: BigBookChapterListProps)
             chapters={mainChapters}
             onSelectChapter={onSelectChapter}
             defaultExpanded={true}
+            hideChapterDescriptions={true}
           />
           
           <ChapterSection
@@ -235,12 +237,6 @@ export function BigBookChapterList({ onSelectChapter }: BigBookChapterListProps)
             chapters={appendices}
             onSelectChapter={onSelectChapter}
           />
-          
-          <View style={styles.footer}>
-            <Text style={styles.footerText}>
-              Copyright © 1939, 1955, 1976 by Alcoholics Anonymous World Services, Inc.
-            </Text>
-          </View>
         </ScrollView>
       </View>
       
@@ -373,18 +369,5 @@ const styles = StyleSheet.create({
   chapterPages: {
     fontSize: 12,
     color: Colors.light.muted,
-  },
-  footer: {
-    marginTop: 24,
-    paddingTop: 24,
-    paddingHorizontal: 16,
-    borderTopWidth: 1,
-    borderTopColor: Colors.light.border || '#E5E7EB',
-  },
-  footerText: {
-    fontSize: 12,
-    color: Colors.light.muted,
-    textAlign: 'center',
-    lineHeight: 18,
   },
 });

@@ -9,6 +9,13 @@ import { BigBookChapterMeta } from '@/types/bigbook-v2';
 
 export const bigBookChapterMetadata: BigBookChapterMeta[] = [
   {
+    id: 'preface',
+    title: 'Preface',
+    pageRange: [11, 12], // Roman numerals xi-xii
+    description: 'Introduction to the Big Book',
+    useRomanNumerals: true,
+  },
+  {
     id: 'foreword-first',
     title: 'Foreword to First Edition',
     pageRange: [13, 14], // Roman numerals xiii-xiv
@@ -23,13 +30,6 @@ export const bigBookChapterMetadata: BigBookChapterMeta[] = [
     useRomanNumerals: true,
   },
   {
-    id: 'preface',
-    title: 'Preface',
-    pageRange: [11, 12], // Roman numerals xi-xii
-    description: 'Introduction to the Big Book',
-    useRomanNumerals: true,
-  },
-  {
     id: 'doctors-opinion',
     title: "The Doctor's Opinion",
     pageRange: [25, 32], // Roman numerals xxv-xxxii
@@ -38,77 +38,77 @@ export const bigBookChapterMetadata: BigBookChapterMeta[] = [
   },
   {
     id: 'chapter-1',
-    title: "Bill's Story",
+    title: "1. Bill's Story",
     chapterNumber: 1,
     pageRange: [1, 16],
     description: "Co-founder Bill W.'s personal story of alcoholism and recovery",
   },
   {
     id: 'chapter-2',
-    title: 'There Is a Solution',
+    title: '2. There Is a Solution',
     chapterNumber: 2,
     pageRange: [17, 29],
     description: 'The nature of alcoholism and the AA solution',
   },
   {
     id: 'chapter-3',
-    title: 'More About Alcoholism',
+    title: '3. More About Alcoholism',
     chapterNumber: 3,
     pageRange: [30, 43],
     description: 'Understanding the alcoholic mind and body',
   },
   {
     id: 'chapter-4',
-    title: 'We Agnostics',
+    title: '4. We Agnostics',
     chapterNumber: 4,
     pageRange: [44, 57],
     description: 'Addressing spiritual skepticism',
   },
   {
     id: 'chapter-5',
-    title: 'How It Works',
+    title: '5. How It Works',
     chapterNumber: 5,
     pageRange: [58, 71],
     description: 'The Twelve Steps of Alcoholics Anonymous',
   },
   {
     id: 'chapter-6',
-    title: 'Into Action',
+    title: '6. Into Action',
     chapterNumber: 6,
     pageRange: [72, 88],
     description: 'Taking the steps and making amends',
   },
   {
     id: 'chapter-7',
-    title: 'Working with Others',
+    title: '7. Working with Others',
     chapterNumber: 7,
     pageRange: [89, 103],
     description: 'How to help other alcoholics',
   },
   {
     id: 'chapter-8',
-    title: 'To Wives',
+    title: '8. To Wives',
     chapterNumber: 8,
     pageRange: [104, 121],
     description: 'Guidance for spouses of alcoholics',
   },
   {
     id: 'chapter-9',
-    title: 'The Family Afterward',
+    title: '9. The Family Afterward',
     chapterNumber: 9,
     pageRange: [122, 135],
     description: 'Rebuilding family relationships in recovery',
   },
   {
     id: 'chapter-10',
-    title: 'To Employers',
+    title: '10. To Employers',
     chapterNumber: 10,
     pageRange: [136, 150],
     description: 'Working with alcoholic employees',
   },
   {
     id: 'chapter-11',
-    title: 'A Vision for You',
+    title: '11. A Vision for You',
     chapterNumber: 11,
     pageRange: [151, 164],
     description: 'The promise and future of AA',
