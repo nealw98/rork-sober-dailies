@@ -106,6 +106,7 @@ export function BigBookReader({ visible, initialChapterId, scrollToParagraphId, 
     addHighlight,
     updateHighlightNote,
     deleteHighlight,
+    getHighlightById,
   } = useBigBookHighlights();
 
   // Highlight mode state
@@ -345,10 +346,24 @@ export function BigBookReader({ visible, initialChapterId, scrollToParagraphId, 
   };
 
   const handleHighlightTap = useCallback(async (paragraphId: string, sentenceIndex: number) => {
-    console.log('[BigBookReader] Existing highlight tapped:', { paragraphId, sentenceIndex });
-    // For now, just log - we'll need to fetch the specific highlight to edit it
-    // This would require adding a method to the highlights hook to get a specific highlight
-  }, []);
+    console.log('[BigBookReader] Existing highlight tapped:', { paragraphId, sentenceIndex, highlightMode });
+    
+    // If in highlight mode, toggle the highlight (remove it)
+    if (highlightMode) {
+      try {
+        const highlights = await getHighlightById(paragraphId, sentenceIndex);
+        if (highlights.length > 0) {
+          console.log('[BigBookReader] Removing highlight in toggle mode:', highlights[0].id);
+          await deleteHighlight(highlights[0].id);
+        }
+      } catch (error) {
+        console.error('[BigBookReader] Error toggling highlight:', error);
+      }
+    } else {
+      // Not in highlight mode - show edit menu (future enhancement)
+      console.log('[BigBookReader] Would show edit menu for highlight');
+    }
+  }, [highlightMode, getHighlightById, deleteHighlight]);
 
   const handleUpdateHighlightNote = async (note: string) => {
     if (!editingHighlight) return;

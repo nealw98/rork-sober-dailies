@@ -53,6 +53,33 @@ function parseSentences(text: string): string[] {
   return result.filter(s => s.trim().length > 0);
 }
 
+/**
+ * Check if paragraph contains a markdown table
+ */
+function isMarkdownTable(text: string): boolean {
+  return text.includes('|') && text.includes('\n') && text.split('\n').length >= 3;
+}
+
+/**
+ * Parse markdown table into structured data
+ */
+function parseMarkdownTable(text: string): { headers: string[]; rows: string[][] } | null {
+  const lines = text.split('\n').filter(line => line.trim());
+  if (lines.length < 3) return null;
+
+  // Parse headers
+  const headers = lines[0].split('|').map(h => h.trim()).filter(h => h);
+  
+  // Skip separator line (line 1)
+  
+  // Parse rows
+  const rows = lines.slice(2).map(line =>
+    line.split('|').map(cell => cell.trim()).filter(cell => cell)
+  );
+
+  return { headers, rows };
+}
+
 export function BigBookParagraph({ 
   paragraph, 
   showPageNumber = true,
@@ -71,6 +98,18 @@ export function BigBookParagraph({
 
   // Parse paragraph into sentences
   const sentences = useMemo(() => parseSentences(paragraph.content), [paragraph.content]);
+
+  // Check if this is a verse/poem (contains newlines but not a table)
+  const isVerse = paragraph.content.includes('\n') && !isMarkdownTable(paragraph.content);
+
+  // Check if this is a table
+  const isTable = isMarkdownTable(paragraph.content);
+  const tableData = useMemo(() => {
+    if (isTable) {
+      return parseMarkdownTable(paragraph.content);
+    }
+    return null;
+  }, [isTable, paragraph.content]);
 
   // Create a map of sentence index to highlight
   const highlightMap = useMemo(() => {
@@ -131,11 +170,35 @@ export function BigBookParagraph({
 
       {/* Paragraph Content */}
       <View style={styles.paragraphContainer}>
-        {/* Sentences */}
-        <View style={styles.textContainer}>
-          {sentences.map((sentence, index) => {
+        {isTable && tableData ? (
+          /* Render Table */
+          <View style={styles.tableContainer}>
+            {/* Table Headers */}
+            <View style={styles.tableRow}>
+              {tableData.headers.map((header, index) => (
+                <View key={index} style={[styles.tableCell, styles.tableHeaderCell]}>
+                  <Text style={styles.tableHeaderText}>{header}</Text>
+                </View>
+              ))}
+            </View>
+            {/* Table Rows */}
+            {tableData.rows.map((row, rowIndex) => (
+              <View key={rowIndex} style={styles.tableRow}>
+                {row.map((cell, cellIndex) => (
+                  <View key={cellIndex} style={styles.tableCell}>
+                    <Text style={styles.tableCellText}>{cell}</Text>
+                  </View>
+                ))}
+              </View>
+            ))}
+          </View>
+        ) : (
+          /* Render Normal Text */
+          <Text style={[styles.paragraphText, isVerse && styles.verseText]}>
+            {sentences.map((sentence, index) => {
             const highlight = highlightMap.get(index);
             const isHighlighted = !!highlight;
+            const highlightColor = highlight?.color;
             const isInteractive = highlightMode || isHighlighted;
 
             if (index === 0 || isHighlighted) {
@@ -148,22 +211,17 @@ export function BigBookParagraph({
 
             if (isInteractive) {
               return (
-                <TouchableOpacity
+                <Text
                   key={index}
                   onPress={() => handleSentenceTap(index, sentence)}
-                  activeOpacity={0.7}
-                  style={styles.sentenceWrapper}
+                  style={[
+                    styles.sentence,
+                    isHighlighted && { backgroundColor: highlightColor },
+                    highlightMode && !isHighlighted && styles.sentenceHoverable,
+                  ]}
                 >
-                  <Text
-                    style={[
-                      styles.sentence,
-                      isHighlighted && { backgroundColor: highlight.color },
-                      highlightMode && !isHighlighted && styles.sentenceHoverable,
-                    ]}
-                  >
-                    {sentence}
-                  </Text>
-                </TouchableOpacity>
+                  {sentence}
+                </Text>
               );
             } else {
               return (
@@ -171,7 +229,7 @@ export function BigBookParagraph({
                   key={index}
                   style={[
                     styles.sentence,
-                    isHighlighted && { backgroundColor: highlight.color },
+                    isHighlighted && { backgroundColor: highlightColor },
                   ]}
                 >
                   {sentence}
@@ -179,7 +237,8 @@ export function BigBookParagraph({
               );
             }
           })}
-        </View>
+        </Text>
+        )}
       </View>
     </View>
   );
@@ -204,25 +263,55 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.light.border || '#E5E7EB',
   },
   paragraphContainer: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-  },
-  textContainer: {
     flex: 1,
-    flexDirection: 'row',
-    flexWrap: 'wrap',
   },
-  sentenceWrapper: {
-    // Wrapper for touchable sentences
-  },
-  sentence: {
+  paragraphText: {
+    flex: 1,
     fontSize: 16,
     lineHeight: 26,
     color: Colors.light.text,
     fontWeight: adjustFontWeight('400'),
   },
+  verseText: {
+    marginLeft: 24,
+    fontStyle: 'italic',
+  },
+  sentence: {
+    // Inherit from parent paragraphText
+  },
   sentenceHoverable: {
     // Visual feedback when in highlight mode
     // Could add subtle underline or other indicator
+  },
+  tableContainer: {
+    width: '100%',
+    borderWidth: 1,
+    borderColor: Colors.light.border || '#E5E7EB',
+    borderRadius: 4,
+    overflow: 'hidden',
+  },
+  tableRow: {
+    flexDirection: 'row',
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.light.border || '#E5E7EB',
+  },
+  tableCell: {
+    flex: 1,
+    padding: 12,
+    borderRightWidth: 1,
+    borderRightColor: Colors.light.border || '#E5E7EB',
+  },
+  tableHeaderCell: {
+    backgroundColor: '#F3F4F6',
+  },
+  tableHeaderText: {
+    fontSize: 14,
+    fontWeight: adjustFontWeight('700'),
+    color: Colors.light.text,
+  },
+  tableCellText: {
+    fontSize: 14,
+    lineHeight: 20,
+    color: Colors.light.text,
   },
 });
