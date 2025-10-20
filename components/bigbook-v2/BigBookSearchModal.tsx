@@ -54,17 +54,16 @@ export function BigBookSearchModal({
   };
 
   const handleResultPress = (result: SearchResult) => {
-    // Don't close the modal or clear search - keep it open so user can return
+    // Close the modal to let the reader show
+    onClose();
+    // Then navigate to the result
     onNavigateToResult(result.chapterId, result.paragraphId, searchQuery.trim());
-    // Modal stays open so user can come back to see other results
   };
 
-  const handleClose = () => {
+  const handleDone = () => {
+    // Clear search and close
+    handleClearSearch();
     onClose();
-    // Clear search when closing
-    setTimeout(() => {
-      handleClearSearch();
-    }, 300);
   };
 
   return (
@@ -72,7 +71,7 @@ export function BigBookSearchModal({
       visible={visible}
       animationType="slide"
       presentationStyle="pageSheet"
-      onRequestClose={handleClose}
+      onRequestClose={handleDone}
     >
       <View style={styles.container}>
         <LinearGradient
@@ -87,7 +86,7 @@ export function BigBookSearchModal({
         {/* Header */}
         <View style={styles.header}>
           <Text style={styles.headerTitle}>Search Big Book</Text>
-          <TouchableOpacity onPress={handleClose} style={styles.closeButton}>
+          <TouchableOpacity onPress={handleDone} style={styles.closeButton}>
             <Text style={styles.doneButton}>Done</Text>
           </TouchableOpacity>
         </View>
@@ -314,8 +313,7 @@ const styles = StyleSheet.create({
     marginBottom: 6,
   },
   resultMatch: {
-    backgroundColor: '#FEF08A', // Yellow highlight
-    fontWeight: adjustFontWeight('600'),
+    backgroundColor: '#FED7AA', // Pastel Orange highlight
   },
   resultMeta: {
     fontSize: 11,
