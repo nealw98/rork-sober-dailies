@@ -42,7 +42,7 @@ import { BigBookPageNavigation } from './BigBookPageNavigation';
 import { BigBookSearchModal } from './BigBookSearchModal';
 
 interface BigBookChapterListProps {
-  onSelectChapter: (chapterId: string, scrollToParagraphId?: string) => void;
+  onSelectChapter: (chapterId: string, scrollToParagraphId?: string, searchTerm?: string) => void;
 }
 
 interface SectionProps {
@@ -146,9 +146,9 @@ export function BigBookChapterList({ onSelectChapter }: BigBookChapterListProps)
   };
   
   // Handle search result selection
-  const handleSearchResultSelect = (chapterId: string, paragraphId: string) => {
-    console.log('[BigBookChapterList] Navigating to search result:', { chapterId, paragraphId });
-    onSelectChapter(chapterId, paragraphId);
+  const handleSearchResultSelect = (chapterId: string, paragraphId: string, searchTerm: string) => {
+    console.log('[BigBookChapterList] Navigating to search result:', { chapterId, paragraphId, searchTerm });
+    onSelectChapter(chapterId, paragraphId, searchTerm);
   };
 
   return (

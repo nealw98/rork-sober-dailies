@@ -65,7 +65,7 @@ export const appendix_2: BigBookChapter = {
       chapterId: 'appendix-2',
       pageNumber: 569,
       order: 8,
-      content: 'We find that no one need have difficulty with the spirituality of the program. WILLINGNESS, HONESTY AND OPEN MINDEDNESS ARE THE ESSENTIALS OF RECOVERY. BUT THESE ARE INDISPENSABLE.',
+      content: 'We find that no one need have difficulty with the spirituality of the program. *Willingness, honesty and open mindedness are the essentials of recovery*. *But these are indispensable*.',
     },
     {
       id: 'appendix-2-p9',

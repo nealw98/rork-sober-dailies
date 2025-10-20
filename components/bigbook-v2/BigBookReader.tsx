@@ -53,10 +53,11 @@ interface BigBookReaderProps {
   visible: boolean;
   initialChapterId: string;
   scrollToParagraphId?: string | null;
+  searchTerm?: string | null;
   onClose: () => void;
 }
 
-export function BigBookReader({ visible, initialChapterId, scrollToParagraphId, onClose }: BigBookReaderProps) {
+export function BigBookReader({ visible, initialChapterId, scrollToParagraphId, searchTerm, onClose }: BigBookReaderProps) {
   const {
     currentChapter,
     currentChapterId,
@@ -529,6 +530,7 @@ export function BigBookReader({ visible, initialChapterId, scrollToParagraphId, 
               paragraph={paragraph}
               showPageNumber={false}
               highlightMode={highlightMode}
+              searchTerm={searchTerm || undefined}
               onSentenceTap={(sentenceIndex, sentenceText) => 
                 handleSentenceTap(paragraph.id, sentenceIndex, sentenceText)
               }

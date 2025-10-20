@@ -53,31 +53,52 @@ export interface SearchMatch {
 }
 
 /**
- * Extract search matches with context
+ * Extract all matches of a search query in text
+ * @param text - The text to search in
+ * @param query - The search query
+ * @param wordPrefix - If true, match at word boundaries (prefix matching)
  */
-function extractMatches(text: string, query: string): SearchMatch[] {
+function extractMatches(text: string, query: string, wordPrefix: boolean = false): SearchMatch[] {
   const matches: SearchMatch[] = [];
-  const lowerText = text.toLowerCase();
-  const lowerQuery = query.toLowerCase();
   
-  let index = 0;
-  while ((index = lowerText.indexOf(lowerQuery, index)) !== -1) {
-    const contextLength = 40;
-    const before = text.slice(Math.max(0, index - contextLength), index);
-    const match = text.slice(index, index + query.length);
-    const after = text.slice(index + query.length, index + query.length + contextLength);
+  if (wordPrefix) {
+    // Use regex for word-boundary prefix matching
+    // \b ensures we match at the START of words only
+    const escapedQuery = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const regex = new RegExp(`\\b${escapedQuery}`, 'gi');
+    let match: RegExpExecArray | null;
     
-    matches.push({
-      startOffset: index,
-      endOffset: index + query.length,
-      context: {
-        before: before.length < contextLength ? before : '...' + before.slice(-contextLength + 3),
-        match,
-        after: after.length < contextLength ? after : after.slice(0, contextLength - 3) + '...',
-      },
-    });
-    
-    index += query.length;
+    while ((match = regex.exec(text)) !== null) {
+      const index = match.index;
+      const matchedText = match[0];
+      
+      // Find the end of the word to highlight the full matched word
+      let endIndex = index + matchedText.length;
+      while (endIndex < text.length && /[a-zA-Z]/.test(text[endIndex])) {
+        endIndex++;
+      }
+      const fullWord = text.slice(index, endIndex);
+      
+      const contextLength = 40;
+      const before = text.slice(Math.max(0, index - contextLength), index);
+      const after = text.slice(endIndex, endIndex + contextLength);
+      
+      matches.push({
+        startOffset: index,
+        endOffset: endIndex,
+        context: {
+          before: before.length < contextLength ? before : '...' + before.slice(-contextLength + 3),
+          match: fullWord,
+          after: after.length < contextLength ? after : after.slice(0, contextLength - 3) + '...',
+        },
+      });
+      
+      // Move past this match to avoid infinite loop
+      regex.lastIndex = endIndex;
+    }
+  } else {
+    // For queries < 2 characters, return no matches
+    return [];
   }
   
   return matches;
@@ -201,22 +222,23 @@ export function useBigBookContent(): UseBigBookContentReturn {
   
   /**
    * Search across all content
+   * Uses word-prefix matching with minimum 2 characters
    */
   const searchContent = useCallback((query: string): SearchResult[] => {
-    if (!query.trim()) return [];
+    const trimmedQuery = query.trim();
+    
+    // Require minimum 2 characters
+    if (trimmedQuery.length < 2) return [];
     
     const results: SearchResult[] = [];
-    const lowerQuery = query.toLowerCase();
     
-    // Search through all chapters
+    // Search through all chapters with word-prefix matching
     Object.values(bigBookContent).forEach(chapter => {
       chapter.paragraphs.forEach(paragraph => {
-        const lowerContent = paragraph.content.toLowerCase();
+        const matches = extractMatches(paragraph.content, trimmedQuery, true);
         
-        // Check if paragraph contains the search query
-        if (lowerContent.includes(lowerQuery)) {
-          const matches = extractMatches(paragraph.content, query);
-          
+        // Only add to results if matches found
+        if (matches.length > 0) {
           // Calculate relevance score (number of matches + position bonus)
           const relevanceScore = matches.length * 10 + (paragraph.order === 1 ? 5 : 0);
           

@@ -21,6 +21,7 @@ interface BigBookParagraphProps {
   paragraph: ParagraphType;
   showPageNumber?: boolean;
   highlightMode?: boolean;
+  searchTerm?: string;
   onSentenceTap?: (sentenceIndex: number, sentenceText: string) => void;
   onHighlightTap?: (sentenceIndex: number) => void;
 }
@@ -80,10 +81,133 @@ function parseMarkdownTable(text: string): { headers: string[]; rows: string[][]
   return { headers, rows };
 }
 
+/**
+ * Parse text with markdown italics (*text*) and return React Native Text components
+ * Based on ChatMarkdownRenderer implementation
+ */
+function parseMarkdownItalics(text: string, key: string | number): React.ReactNode {
+  if (!text) return text;
+
+  const parts: Array<{ text: string; italic: boolean }> = [];
+  const italicRegex = /\*([^*]+)\*/g;
+  let lastIndex = 0;
+  let match: RegExpExecArray | null;
+
+  while ((match = italicRegex.exec(text)) !== null) {
+    if (match.index > lastIndex) {
+      parts.push({ text: text.slice(lastIndex, match.index), italic: false });
+    }
+    parts.push({ text: match[1], italic: true });
+    lastIndex = match.index + match[0].length;
+  }
+  if (lastIndex < text.length) {
+    parts.push({ text: text.slice(lastIndex), italic: false });
+  }
+
+  // If no parts were found (no valid markdown), return the original text
+  if (parts.length === 0) {
+    return text;
+  }
+
+  // Return array of Text components for italic parts, strings for regular parts
+  return parts.map((part, idx) => 
+    part.italic ? (
+      <Text key={`${key}-${idx}`} style={{ fontStyle: 'italic' }}>
+        {part.text}
+      </Text>
+    ) : (
+      part.text
+    )
+  );
+}
+
+/**
+ * Check if text matches search term (word-prefix matching)
+ */
+function matchesSearchTerm(text: string, searchTerm: string): boolean {
+  if (!searchTerm) return false;
+  const escapedTerm = searchTerm.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const regex = new RegExp(`\\b${escapedTerm}`, 'i');
+  return regex.test(text);
+}
+
+/**
+ * Highlight search term in text (word-prefix matching with full word highlighting)
+ */
+function highlightSearchTerm(text: string, searchTerm: string, key: string | number): React.ReactNode {
+  if (!searchTerm) return parseMarkdownItalics(text, key);
+  
+  const escapedTerm = searchTerm.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const regex = new RegExp(`\\b${escapedTerm}`, 'gi');
+  let match: RegExpExecArray | null;
+  const parts: Array<{ text: string; isMatch: boolean; startIndex: number; endIndex: number }> = [];
+  let lastIndex = 0;
+  
+  while ((match = regex.exec(text)) !== null) {
+    const matchStart = match.index;
+    
+    // Find the end of the word
+    let matchEnd = matchStart + match[0].length;
+    while (matchEnd < text.length && /[a-zA-Z]/.test(text[matchEnd])) {
+      matchEnd++;
+    }
+    
+    // Add text before match
+    if (matchStart > lastIndex) {
+      parts.push({ 
+        text: text.slice(lastIndex, matchStart), 
+        isMatch: false,
+        startIndex: lastIndex,
+        endIndex: matchStart
+      });
+    }
+    
+    // Add matched word
+    parts.push({ 
+      text: text.slice(matchStart, matchEnd), 
+      isMatch: true,
+      startIndex: matchStart,
+      endIndex: matchEnd
+    });
+    
+    lastIndex = matchEnd;
+    regex.lastIndex = matchEnd;
+  }
+  
+  // Add remaining text
+  if (lastIndex < text.length) {
+    parts.push({ 
+      text: text.slice(lastIndex), 
+      isMatch: false,
+      startIndex: lastIndex,
+      endIndex: text.length
+    });
+  }
+  
+  // If no matches, just parse markdown
+  if (parts.length === 0 || !parts.some(p => p.isMatch)) {
+    return parseMarkdownItalics(text, key);
+  }
+  
+  // Render with search highlights
+  return parts.map((part, idx) => {
+    if (part.isMatch) {
+      return (
+        <Text key={`${key}-search-${idx}`} style={{ backgroundColor: '#FEF08A' }}>
+          {parseMarkdownItalics(part.text, `${key}-search-${idx}`)}
+        </Text>
+      );
+    } else {
+      return parseMarkdownItalics(part.text, `${key}-nosearch-${idx}`);
+    }
+  });
+}
+
 export function BigBookParagraph({ 
   paragraph, 
   showPageNumber = true,
   highlightMode = false,
+  searchTerm,
   onSentenceTap,
   onHighlightTap,
 }: BigBookParagraphProps) {
@@ -96,7 +220,7 @@ export function BigBookParagraph({
 
   console.log('[BigBookParagraph] RENDER - paragraph:', paragraph.id, 'highlights:', highlights.length);
 
-  // Parse paragraph into sentences
+  // Parse paragraph into sentences (preserves markdown for later parsing)
   const sentences = useMemo(() => parseSentences(paragraph.content), [paragraph.content]);
 
   // Check if this is a verse/poem (contains newlines but not a table)
@@ -220,7 +344,7 @@ export function BigBookParagraph({
                     highlightMode && !isHighlighted && styles.sentenceHoverable,
                   ]}
                 >
-                  {sentence}
+                  {highlightSearchTerm(sentence, searchTerm || '', index)}
                 </Text>
               );
             } else {
@@ -232,7 +356,7 @@ export function BigBookParagraph({
                     isHighlighted && { backgroundColor: highlightColor },
                   ]}
                 >
-                  {sentence}
+                  {highlightSearchTerm(sentence, searchTerm || '', index)}
                 </Text>
               );
             }

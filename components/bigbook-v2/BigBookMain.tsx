@@ -19,6 +19,7 @@ export function BigBookMain() {
   const [hasAccess, setHasAccess] = useState<boolean | null>(null);
   const [selectedChapterId, setSelectedChapterId] = useState<string | null>(null);
   const [scrollToParagraphId, setScrollToParagraphId] = useState<string | null>(null);
+  const [searchTerm, setSearchTerm] = useState<string | null>(null);
   const [showReaderModal, setShowReaderModal] = useState(false);
 
   // Check access on mount
@@ -32,10 +33,11 @@ export function BigBookMain() {
   };
   
   // Handle chapter selection - open modal
-  const handleSelectChapter = (chapterId: string, scrollToId?: string) => {
-    console.log('[BigBookMain] handleSelectChapter:', { chapterId, scrollToId });
+  const handleSelectChapter = (chapterId: string, scrollToId?: string, search?: string) => {
+    console.log('[BigBookMain] handleSelectChapter:', { chapterId, scrollToId, search });
     setSelectedChapterId(chapterId);
     setScrollToParagraphId(scrollToId || null);
+    setSearchTerm(search || null);
     setShowReaderModal(true);
   };
   
@@ -46,6 +48,7 @@ export function BigBookMain() {
     setTimeout(() => {
       setSelectedChapterId(null);
       setScrollToParagraphId(null);
+      setSearchTerm(null);
     }, 300);
   };
 
@@ -77,6 +80,7 @@ export function BigBookMain() {
           visible={showReaderModal}
           initialChapterId={selectedChapterId}
           scrollToParagraphId={scrollToParagraphId}
+          searchTerm={searchTerm}
           onClose={handleCloseReader}
         />
       )}
