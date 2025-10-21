@@ -295,7 +295,7 @@ export default function EveningReview() {
     }
   };
 
-  const handleClear = () => {
+  const handleReset = () => {
     const hasContent = dailyActions.some(a => a.checked) || 
                       inventoryQuestions.some(q => q.value.trim() !== '');
     
@@ -329,17 +329,17 @@ export default function EveningReview() {
       hasUnsavedChanges = hasContent;
     }
     
-    console.log('[Evening Review] handleClear - hasUnsavedChanges:', hasUnsavedChanges, 'hasContent:', hasContent);
+    console.log('[Evening Review] handleReset - hasUnsavedChanges:', hasUnsavedChanges, 'hasContent:', hasContent);
     
     // Only show warning if there are unsaved changes
     if (hasUnsavedChanges) {
       Alert.alert(
-        'Clear Nightly Review',
+        'Reset Nightly Review',
         'You have unsaved changes. Are you sure you want to clear your current review?',
         [
           { text: 'Cancel', style: 'cancel' },
           {
-            text: 'Clear',
+            text: 'Reset',
             style: 'destructive',
             onPress: () => {
               // Reset all state
@@ -362,7 +362,7 @@ export default function EveningReview() {
       );
     } else {
       // No unsaved changes, just reset without warning
-      console.log('[Evening Review] Clearing without alert - no unsaved changes');
+      console.log('[Evening Review] Resetting without alert - no unsaved changes');
       setStayedSober(false);
       setPrayedOrMeditated(false);
       setPracticedGratitude(false);
@@ -414,9 +414,9 @@ export default function EveningReview() {
             <Folder color={Colors.light.tint} size={20} />
           </TouchableOpacity>
           <TouchableOpacity 
-            onPress={handleClear}
+            onPress={handleReset}
             accessible={true}
-            accessibilityLabel="Clear nightly review"
+            accessibilityLabel="Reset nightly review"
             accessibilityRole="button"
           >
             <RotateCcw color={Colors.light.tint} size={20} />
@@ -430,7 +430,7 @@ export default function EveningReview() {
     inventoryQuestions, 
     handleSaveEntry, 
     handleShare, 
-    handleClear
+    handleReset
   ]);
 
   const handleSaveEntry = () => {
