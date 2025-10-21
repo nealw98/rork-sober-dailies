@@ -643,9 +643,9 @@ export default function GratitudeListScreen() {
             <Folder color={Colors.light.tint} size={20} />
           </TouchableOpacity>
           <TouchableOpacity 
-            onPress={handleReset}
+            onPress={handleClear}
             accessible={true}
-            accessibilityLabel="Reset gratitude list"
+            accessibilityLabel="Clear gratitude list"
             accessibilityRole="button"
           >
             <RotateCcw color={Colors.light.tint} size={20} />
@@ -653,9 +653,9 @@ export default function GratitudeListScreen() {
         </View>
       ),
     });
-  }, [navigation, gratitudeItems, handleSaveEntry, handleShare, handleReset]);
+  }, [navigation, gratitudeItems, handleSaveEntry, handleShare, handleClear]);
 
-  const handleReset = () => {
+  const handleClear = () => {
     if (gratitudeItems.length === 0 && inputValue.trim() === '') return;
     
     // Check if there are unsaved changes by comparing current items with saved entry
@@ -671,17 +671,17 @@ export default function GratitudeListScreen() {
       gratitudeItems.length !== savedItems.length ||
       gratitudeItems.some((item, index) => item !== savedItems[index]);
     
-    console.log('[Gratitude] handleReset - hasUnsavedChanges:', hasUnsavedChanges, 'gratitudeItems:', gratitudeItems.length, 'savedItems:', savedItems.length);
+    console.log('[Gratitude] handleClear - hasUnsavedChanges:', hasUnsavedChanges, 'gratitudeItems:', gratitudeItems.length, 'savedItems:', savedItems.length);
     
     // Only show warning if there are unsaved changes
     if (hasUnsavedChanges) {
       Alert.alert(
-        'Reset Gratitude List',
+        'Clear Gratitude List',
         'You have unsaved changes. Are you sure you want to clear your current gratitude list?',
         [
           { text: 'Cancel', style: 'cancel' },
           {
-            text: 'Reset',
+            text: 'Clear',
             style: 'destructive',
             onPress: () => {
               // Clear UI state
@@ -697,7 +697,7 @@ export default function GratitudeListScreen() {
       );
     } else {
       // No unsaved changes, just reset without warning
-      console.log('[Gratitude] Resetting without alert - no unsaved changes');
+      console.log('[Gratitude] Clearing without alert - no unsaved changes');
       // Clear UI state
       setGratitudeItems([]);
       setInputValue('');

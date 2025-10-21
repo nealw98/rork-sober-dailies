@@ -658,7 +658,7 @@ const Inventory = () => {
     }
   }, [situation, selections, dismissKeyboard]);
 
-  const handleReset = useCallback(() => {
+  const handleClear = useCallback(() => {
     // Check if there's any content before showing the alert
     const hasAnyContent = situation.trim() !== '' || Object.keys(selections).length > 0;
     
@@ -667,15 +667,15 @@ const Inventory = () => {
     // Only show warning if there are unsaved changes
     if (hasUnsavedChanges) {
       Alert.alert(
-        'Reset Spot Check',
+        'Clear Spot Check',
         'You have unsaved changes. Are you sure you want to clear your current spot check?',
         [
           { text: 'Cancel', style: 'cancel' },
           {
-            text: 'Reset',
+            text: 'Clear',
             style: 'destructive',
             onPress: () => {
-              dismissKeyboard(); // Hide keyboard when resetting
+              dismissKeyboard(); // Hide keyboard when clearing
               setSelections({});
               setSituation('');
               setCurrentRecord(null);
@@ -685,7 +685,7 @@ const Inventory = () => {
         ]
       );
     } else {
-      // Already saved, just reset without warning
+      // Already saved, just clear without warning
       dismissKeyboard();
       setSelections({});
       setSituation('');
@@ -737,9 +737,9 @@ const Inventory = () => {
             <HelpCircle size={20} color={Colors.light.tint} />
           </TouchableOpacity>
           <TouchableOpacity 
-            onPress={handleReset}
+            onPress={handleClear}
             accessible={true}
-            accessibilityLabel="Reset all selections"
+            accessibilityLabel="Clear all selections"
             accessibilityRole="button"
           >
             <RotateCcw size={20} color={Colors.light.tint} />
@@ -747,7 +747,7 @@ const Inventory = () => {
         </View>
       ),
     });
-  }, [navigation, hasUnsavedChanges, hasContent, handleSave, handleShare, handleReset, handleShowHelp, dismissKeyboard]);
+  }, [navigation, hasUnsavedChanges, hasContent, handleSave, handleShare, handleClear, handleShowHelp, dismissKeyboard]);
 
   const handlePressLookFor = (pairId: string) => {
     dismissKeyboard(); // Hide keyboard when selecting traits

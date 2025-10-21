@@ -42,7 +42,7 @@ const AddItemModal: React.FC<AddItemModalProps> = ({ visible, onClose, onAdd, ca
     const qty = parseInt(quantity) || 1;
     onAdd(itemName.trim(), selectedCategory, qty, location.trim(), notes.trim());
     
-    // Reset form
+    // Clear form
     setItemName('');
     setQuantity('1');
     setLocation('');
