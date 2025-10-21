@@ -419,16 +419,7 @@ export function BigBookReader({ visible, initialChapterId, scrollToParagraphId, 
       presentationStyle="fullScreen"
       onRequestClose={onClose}
     >
-      <SafeAreaView style={styles.container}>
-        <LinearGradient
-          colors={['rgba(74, 144, 226, 0.3)', 'rgba(92, 184, 92, 0.1)']}
-          style={styles.backgroundGradient}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          locations={[0, 1]}
-          pointerEvents="none"
-        />
-
+      <SafeAreaView style={[styles.container, { backgroundColor: '#FFFFFF' }]}>
         {/* Two-Row Header */}
         <View style={styles.header}>
           {/* Row 1: Chapter Navigation with Close Button */}
@@ -466,6 +457,12 @@ export function BigBookReader({ visible, initialChapterId, scrollToParagraphId, 
         
         {/* Row 2: Page Number & Actions */}
         <View style={styles.headerBottomRow}>
+          <LinearGradient
+            colors={['#c9def6', '#d3e6ef']}
+            style={StyleSheet.absoluteFill}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+          />
           {/* Left: Page Number */}
           {currentPageNumber && (
             <Text style={styles.headerPageNumber}>
@@ -505,42 +502,52 @@ export function BigBookReader({ visible, initialChapterId, scrollToParagraphId, 
 
 
       {/* Content */}
-      <ScrollView
-        ref={scrollViewRef}
-        style={styles.content}
-        contentContainerStyle={styles.contentContainer}
-        showsVerticalScrollIndicator={true}
-        onScroll={handleScroll}
-        scrollEventThrottle={150}
-      >
-        {currentChapter.paragraphs.map((paragraph) => (
-          <View
-            key={paragraph.id}
-            ref={(ref) => {
-              if (ref) {
-                paragraphRefs.current.set(paragraph.id, ref);
-              } else {
-                paragraphRefs.current.delete(paragraph.id);
-              }
-            }}
-            onLayout={(event) => handleParagraphLayout(paragraph.id, paragraph.pageNumber, event)}
-            collapsable={false}
-          >
-            <BigBookParagraph
-              paragraph={paragraph}
-              showPageNumber={false}
-              highlightMode={highlightMode}
-              searchTerm={searchTerm || undefined}
-              onSentenceTap={(sentenceIndex, sentenceText) => 
-                handleSentenceTap(paragraph.id, sentenceIndex, sentenceText)
-              }
-              onHighlightTap={(sentenceIndex) =>
-                handleHighlightTap(paragraph.id, sentenceIndex)
-              }
-            />
-          </View>
-        ))}
-      </ScrollView>
+      <View style={{ flex: 1 }}>
+        <LinearGradient
+          colors={['rgba(74, 144, 226, 0.3)', 'rgba(92, 184, 92, 0.1)']}
+          style={styles.backgroundGradient}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          locations={[0, 1]}
+          pointerEvents="none"
+        />
+        <ScrollView
+          ref={scrollViewRef}
+          style={styles.content}
+          contentContainerStyle={styles.contentContainer}
+          showsVerticalScrollIndicator={true}
+          onScroll={handleScroll}
+          scrollEventThrottle={150}
+        >
+          {currentChapter.paragraphs.map((paragraph) => (
+            <View
+              key={paragraph.id}
+              ref={(ref) => {
+                if (ref) {
+                  paragraphRefs.current.set(paragraph.id, ref);
+                } else {
+                  paragraphRefs.current.delete(paragraph.id);
+                }
+              }}
+              onLayout={(event) => handleParagraphLayout(paragraph.id, paragraph.pageNumber, event)}
+              collapsable={false}
+            >
+              <BigBookParagraph
+                paragraph={paragraph}
+                showPageNumber={false}
+                highlightMode={highlightMode}
+                searchTerm={searchTerm || undefined}
+                onSentenceTap={(sentenceIndex, sentenceText) => 
+                  handleSentenceTap(paragraph.id, sentenceIndex, sentenceText)
+                }
+                onHighlightTap={(sentenceIndex) =>
+                  handleHighlightTap(paragraph.id, sentenceIndex)
+                }
+              />
+            </View>
+          ))}
+        </ScrollView>
+      </View>
 
       {/* Bookmark Dialog */}
       {currentChapter && currentPageNumber && (
@@ -593,24 +600,24 @@ const styles = StyleSheet.create({
     bottom: 0,
   },
   header: {
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.light.border || '#E5E7EB',
-    backgroundColor: Colors.light.background,
+    borderBottomWidth: 0, // Removed bottom border line
+    backgroundColor: '#FFFFFF', // Explicitly set to white
     paddingTop: 8,
-    paddingBottom: 8,
+    paddingBottom: 0, 
   },
   headerTopRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 12,
-    marginBottom: 8,
+    marginBottom: 4, // Reduced from 8 to 4
   },
   headerBottomRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 16,
+    paddingVertical: 2,
   },
   navArrowButton: {
     padding: 8,
