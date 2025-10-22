@@ -88,7 +88,7 @@ const HomeScreen = () => {
         <TouchableOpacity style={styles.card} onPress={() => router.push('/(tabs)/chat')}>
           <Text style={styles.cardTitle}>AI Sponsor</Text>
           <Text style={styles.cardDescription}>Talk with an AI sponsor when you need guidance.</Text>
-          <Text style={styles.cardButton}>Go to Chat</Text>
+          <Text style={styles.cardButton}>Go to AI Sponsor</Text>
         </TouchableOpacity>
 
 

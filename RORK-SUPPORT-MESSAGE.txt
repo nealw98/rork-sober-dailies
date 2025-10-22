@@ -1,0 +1,69 @@
+Subject: API Still Returning 500 Error Even with Minimal Payload
+
+Hi,
+
+Following your suggestion, I tested with progressively smaller payloads:
+
+### Test Results:
+
+**1. Minimal "ping" test:**
+```json
+{
+  "messages": [
+    {
+      "role": "user",
+      "content": "You are Steady Eddie, a compassionate AA sponsor offering supportive guidance.\n\nUser: Hello"
+    }
+  ]
+}
+```
+- Payload size: ~150 characters
+- Result: **500 Internal Server Error**
+
+**2. Even our smallest possible request fails:**
+- Single user message
+- ~200 total bytes
+- Still getting 500 error
+
+### Error Details:
+- **Status**: 500
+- **Response Body**: `Internal Server Error` (plain text)
+- **Headers**: 
+  ```
+  content-type: text/plain; charset=UTF-8
+  server: cloudflare
+  x-do-orig-status: 500
+  ```
+
+### What This Tells Us:
+Since even **minimal payloads fail**, this is not a size issue. The endpoint itself appears to be having internal errors processing **any** request.
+
+### Request Format Being Used:
+```json
+{
+  "messages": [
+    {
+      "role": "user",
+      "content": "[short prompt]\n\nUser: [message]"
+    }
+  ]
+}
+```
+
+### Questions:
+1. Can you check server-side logs for the `/text/llm/` endpoint?
+2. Is the endpoint currently operational?
+3. Has anything changed recently on the server?
+4. Is there authentication or rate limiting I'm missing?
+
+### Project Info:
+- **App**: Sober Dailies (iOS)
+- **Endpoint**: `https://toolkit.rork.com/text/llm/`
+- **Method**: POST
+- **Headers**: `Content-Type: application/json`
+
+This appears to be a server-side issue that needs your backend team to investigate. Happy to provide any additional logs or details you need!
+
+Thanks,
+Neal
+

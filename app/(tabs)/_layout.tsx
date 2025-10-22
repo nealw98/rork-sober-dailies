@@ -93,8 +93,6 @@ export default function TabLayout() {
       screenOptions={{
         tabBarActiveTintColor: Colors.light.tint,
         headerShown: true,
-        headerBackTitle: "",
-
         headerTitleAlign: 'center',
         headerLeft: ({ canGoBack }) => canGoBack ? <BackButton /> : null,
         tabBarHideOnKeyboard: Platform.OS === 'android' ? true : undefined,

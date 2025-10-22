@@ -25,24 +25,26 @@ import { adjustFontWeight } from "@/constants/fonts";
 import { CustomTextRenderer } from "./CustomTextRenderer";
 import { ChatMarkdownRenderer } from "./ChatMarkdownRenderer";
 
-const ChatBubble = ({ message }: { message: ChatMessage }) => {
+interface ChatInterfaceProps {
+  sponsorType: SponsorType;
+  onSponsorChange?: (type: SponsorType) => void;
+}
+
+const ChatBubble = ({ 
+  message, 
+  bubbleColor 
+}: { 
+  message: ChatMessage;
+  bubbleColor?: string;
+}) => {
   const isUser = message.sender === "user";
-  const { sponsorType } = useChatStore();
-  
-  // Get the appropriate bubble style based on sponsor type
+
   const getBotBubbleStyle = () => {
     if (isUser) return styles.userBubble;
-    
-    switch (sponsorType) {
-      case "supportive":
-        return styles.supportiveBubble;
-      case "grace":
-        return styles.graceBubble;
-      case "salty":
-        return styles.saltyBubble;
-      default:
-        return styles.supportiveBubble;
+    if (bubbleColor) {
+      return { backgroundColor: bubbleColor };
     }
+    return styles.supportiveBubble;
   };
 
   const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -113,79 +115,25 @@ const ChatBubble = ({ message }: { message: ChatMessage }) => {
   );
 };
 
-const SponsorToggle = ({ 
-  sponsorType, 
-  onChange 
-}: { 
-  sponsorType: SponsorType; 
-  onChange: (type: SponsorType) => void;
-}) => {
-  return (
-    <View style={styles.sponsorToggleContainer}>
-      <TouchableOpacity
-        style={[
-          styles.sponsorButton,
-          sponsorType === "supportive" && styles.sponsorButtonActive
-        ]}
-        onPress={() => onChange("supportive")}
-        testID="supportive-sponsor-button"
-      >
-        <Text 
-          style={[
-            styles.sponsorButtonText,
-            sponsorType === "supportive" && styles.sponsorButtonTextActive
-          ]}
-        >
-          Steady Eddie
-        </Text>
-      </TouchableOpacity>
-      
-      <TouchableOpacity
-        style={[
-          styles.sponsorButton,
-          sponsorType === "salty" && styles.sponsorButtonActive
-        ]}
-        onPress={() => onChange("salty")}
-        testID="salty-sponsor-button"
-      >
-        <Text 
-          style={[
-            styles.sponsorButtonText,
-            sponsorType === "salty" && styles.sponsorButtonTextActive
-          ]}
-        >
-          Salty Sam
-        </Text>
-      </TouchableOpacity>
-      
-      <TouchableOpacity
-        style={[
-          styles.sponsorButton,
-          sponsorType === "grace" && styles.sponsorButtonActive
-        ]}
-        onPress={() => onChange("grace")}
-        testID="grace-sponsor-button"
-      >
-        <Text 
-          style={[
-            styles.sponsorButtonText,
-            sponsorType === "grace" && styles.sponsorButtonTextActive
-          ]}
-          numberOfLines={1}
-          ellipsizeMode="tail"
-        >
-          Gentle Grace
-        </Text>
-      </TouchableOpacity>
-    </View>
-  );
-};
-
-export default function ChatInterface() {
-  const { messages, isLoading, sendMessage, clearChat, sponsorType, changeSponsor } = useChatStore();
+export default function ChatInterface({ 
+  sponsorType: propSponsorType,
+  onSponsorChange,
+}: ChatInterfaceProps) {
+  const { messages, isLoading, sendMessage, clearChat, sponsorType: storeSponsorType, changeSponsor } = useChatStore();
   const [inputText, setInputText] = useState<string>("");
   const flatListRef = useRef<FlatList>(null);
   const insets = useSafeAreaInsets();
+  
+  // Always use the prop sponsor type and sync to store immediately
+  const sponsorType = propSponsorType;
+  
+  // Sync prop to store on mount and whenever it changes
+  useEffect(() => {
+    if (propSponsorType && propSponsorType !== storeSponsorType) {
+      console.log('[ChatInterface] Syncing sponsor:', propSponsorType, 'store was:', storeSponsorType);
+      changeSponsor(propSponsorType);
+    }
+  }, [propSponsorType, storeSponsorType, changeSponsor]);
 
   // Scroll to bottom when messages change
   useEffect(() => {
@@ -226,33 +174,16 @@ export default function ChatInterface() {
     }
   };
 
-  // Get placeholder text based on sponsor type
-  const getPlaceholderText = () => {
-    switch (sponsorType) {
-      case "salty":
-        return "Tell Sam what's got you sideways...";
-      case "supportive":
-        return "Tell Eddie what's on your mind...";
-      case "grace":
-        return "Tell Grace what's in your heart...";
-      default:
-        return "Type your message...";
-    }
+  // Get sponsor config
+  const getSponsorConfig = () => {
+    const { getSponsorById } = require("@/constants/sponsors");
+    return getSponsorById(sponsorType);
   };
 
-  // Get loading text based on sponsor type
-  const getLoadingText = () => {
-    switch (sponsorType) {
-      case "salty":
-        return "Salty Sam is thinking...";
-      case "supportive":
-        return "Steady Eddie is thinking...";
-      case "grace":
-        return "Gentle Grace is channeling wisdom...";
-      default:
-        return "Thinking...";
-    }
-  };
+  const sponsorConfig = getSponsorConfig();
+  const placeholderText = sponsorConfig?.placeholderText || "Type your message...";
+  const loadingText = sponsorConfig?.loadingText || "Thinking...";
+  const bubbleColor = sponsorConfig?.bubbleColor;
 
   return (
     <KeyboardAvoidingView
@@ -267,31 +198,12 @@ export default function ChatInterface() {
         end={{ x: 1, y: 1 }}
       />
       
-      <View style={styles.headerContainer}>
-        <Text style={styles.headerTitle}>AI Sponsors</Text>
-        <Text style={styles.headerSubtitle}>Select a sponsor that fits your style</Text>
-      </View>
-      
-      <View style={styles.topContainer}>
-        <SponsorToggle 
-          sponsorType={sponsorType} 
-          onChange={changeSponsor}
-        />
-        <TouchableOpacity
-          style={styles.clearButton}
-          onPress={handleClearChat}
-          testID="clear-chat-button"
-        >
-          <RotateCcw size={18} color={Colors.light.muted} />
-        </TouchableOpacity>
-      </View>
-      
       <View style={styles.messagesWrapper}>
         <FlatList
           ref={flatListRef}
           data={messages}
           keyExtractor={(item) => item.id}
-          renderItem={({ item }) => <ChatBubble message={item} />}
+          renderItem={({ item }) => <ChatBubble message={item} bubbleColor={bubbleColor} />}
           contentContainerStyle={styles.chatContainer}
           showsVerticalScrollIndicator={false}
           testID="chat-message-list"
@@ -301,7 +213,7 @@ export default function ChatInterface() {
         {isLoading && (
           <View style={styles.loadingContainer}>
             <ActivityIndicator size="small" color={Colors.light.tint} />
-            <Text style={styles.loadingText}>{getLoadingText()}</Text>
+            <Text style={styles.loadingText}>{loadingText}</Text>
           </View>
         )}
       </View>
@@ -311,7 +223,7 @@ export default function ChatInterface() {
           style={styles.input}
           value={inputText}
           onChangeText={setInputText}
-          placeholder={getPlaceholderText()}
+          placeholder={placeholderText}
           placeholderTextColor={Colors.light.muted}
           multiline={true}
           maxLength={500}
@@ -352,35 +264,12 @@ const styles = StyleSheet.create({
     right: 0,
     bottom: 0,
   },
-  headerContainer: {
-    paddingHorizontal: 16,
-    paddingTop: 12,
-    paddingBottom: 8,
-    alignItems: "center",
-  },
-  headerTitle: {
-    fontSize: 28,
-    fontWeight: adjustFontWeight("700", true),
-    color: Colors.light.text,
-    marginBottom: 8,
-    textAlign: 'center',
-  },
-  headerSubtitle: {
-    fontSize: 12,
-    fontStyle: "italic" as const,
-    fontWeight: adjustFontWeight("400"),
-    color: Colors.light.muted,
-  },
-  topContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: 'transparent',
-  },
   messagesWrapper: {
     flex: 1,
     backgroundColor: Colors.light.background,
     borderRadius: 16,
     margin: 12,
+    marginTop: 8,
     marginBottom: 0,
     overflow: 'hidden',
     // Level 3: Content Cards (Medium depth)
@@ -392,48 +281,6 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.12,
     shadowRadius: 6,
     elevation: 4,
-  },
-  clearButton: {
-    padding: 12,
-    marginRight: 4,
-  },
-  sponsorToggleContainer: {
-    flex: 1,
-    flexDirection: "row",
-    padding: 8,
-  },
-  sponsorButton: {
-    flex: 1,
-    paddingVertical: 8,
-    paddingHorizontal: 4,
-    borderRadius: 20,
-    alignItems: "center",
-    marginHorizontal: 2,
-    backgroundColor: Colors.light.cardBackground,
-    borderWidth: 1,
-    borderColor: Colors.light.divider,
-    // Level 2: Interactive Cards (High depth)
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 6,
-    },
-    shadowOpacity: 0.18,
-    shadowRadius: 8,
-    elevation: 6,
-  },
-  sponsorButtonActive: {
-    backgroundColor: Colors.light.tint,
-    borderColor: Colors.light.tint,
-  },
-  sponsorButtonText: {
-    fontSize: 13,
-    fontWeight: adjustFontWeight("500"),
-    color: Colors.light.muted,
-    flexShrink: 1,
-  },
-  sponsorButtonTextActive: {
-    color: "#fff",
   },
   chatContainer: {
     padding: 16,

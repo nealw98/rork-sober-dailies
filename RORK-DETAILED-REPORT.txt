@@ -1,0 +1,152 @@
+# Rork API Support - Detailed Error Report
+
+## Project Information
+- **Project**: Sober Dailies (iOS App)
+- **Developer**: Neal Wagner (nealw98@gmail.com)
+- **Endpoint**: `https://toolkit.rork.com/text/llm/`
+- **Issue Start Date**: October 22, 2025
+
+## Problem Summary
+The `/text/llm/` endpoint returns `500 Internal Server Error` for all requests, including minimal payloads. This affects all AI sponsor chat functionality in the app.
+
+**IMPORTANT**: This is affecting the **production version** of the app that is currently deployed and **was working previously**. The exact date the issue started is unknown since this feature isn't used daily, but it was confirmed working as recently as September 25, 2025 (when the workaround was implemented and tested).
+
+This is **NOT** related to recent code changes - the deployed production code has not changed and was working fine with this API.
+
+## Sample Failure Times (UTC-6)
+- October 22, 2025 @ 5:06 PM
+- October 22, 2025 @ 5:07 PM  
+- October 22, 2025 @ 5:30 PM (after implementing minimal prompts)
+
+## Minimal JSON Requests That Are Failing
+
+### Test 1: Absolute Minimal Request
+```json
+{
+  "messages": [
+    {
+      "role": "user",
+      "content": "ping"
+    }
+  ]
+}
+```
+**Result**: 500 Internal Server Error
+
+### Test 2: With Brief System Prompt
+```json
+{
+  "messages": [
+    {
+      "role": "user",
+      "content": "You are Steady Eddie, a compassionate AA sponsor offering supportive guidance.\n\nUser: Hello"
+    }
+  ]
+}
+```
+**Result**: 500 Internal Server Error
+
+### Test 3: Conversation Format
+```json
+{
+  "messages": [
+    {
+      "role": "user",
+      "content": "You are Gentle Grace, a spiritually-minded AA sponsor with 10+ years of sobriety. You bring calm, reflective wisdom and deep emotional support.\n\nUser: What's wrong with your API call?"
+    }
+  ]
+}
+```
+**Result**: 500 Internal Server Error
+
+## Request Details
+
+### HTTP Request Format
+```
+POST https://toolkit.rork.com/text/llm/
+Content-Type: application/json
+
+Body: { "messages": [...] }
+```
+
+### Response Details
+```
+HTTP/1.1 500 Internal Server Error
+content-type: text/plain; charset=UTF-8
+content-length: 21
+server: cloudflare
+x-do-orig-status: 500
+access-control-allow-origin: *
+
+Body: Internal Server Error
+```
+
+## Historical Context
+
+### Timeline of API Changes
+1. **Pre-September 25, 2025**: API accepted `role: "system"` - worked fine
+2. **September 25, 2025**: Breaking change - system role no longer accepted
+3. **September 25, 2025**: Implemented workaround - prepend prompt to first user message
+4. **Sept 25 - Oct 22**: Workaround worked successfully in production
+5. **October 22, 2025**: Discovered 500 errors - unknown when it first started failing
+6. **Key Point**: **Production app code hasn't changed** - same code that was working is now failing
+
+### Code Changes Made (Today - October 22)
+- **October 22**: UI refactor (sponsor selection screen, navigation) - **UI ONLY**
+- **October 22**: API call code **unchanged** (identical to September 25 working version)
+- **October 22**: Tested with progressively smaller payloads - all fail
+- **Production app**: Still running the working code from September, also experiencing 500 errors
+
+## What We've Ruled Out
+
+✅ **Not a payload size issue** - Even 20-byte requests fail  
+✅ **Not a format issue** - Using same format that worked before  
+✅ **Not a client-side issue** - Request formatting is correct  
+✅ **Not authentication** - No auth headers required per docs  
+✅ **Not rate limiting** - Getting 500, not 429
+
+## What We Need from Support
+
+1. **Server-side logs** for the `/text/llm/` endpoint around the failure times listed above
+2. **Error stack traces** showing what's causing the 500 error
+3. **Confirmation** that the endpoint is currently operational
+4. **Any recent deployments** or changes to this endpoint
+5. **Expected request format** if something changed
+
+## Additional Information
+
+### Client Environment
+- **Platform**: React Native / Expo
+- **Request Library**: Fetch API
+- **App Version**: 1.8.3
+- **Device**: iOS Simulator (testing)
+
+### Code Reference
+The API call is made from:
+- File: `hooks/use-chat-store.ts`
+- Function: `callAI(messages: APIMessage[])`
+- Line: ~40
+
+### Logs Available
+We have comprehensive client-side logging showing:
+- Full request body
+- Response status and headers
+- Error messages
+- Request payload sizes
+
+Can provide additional logs or run specific tests if needed.
+
+## Contact Information
+- **Developer**: Neal Wagner
+- **Email**: nealw98@gmail.com
+- **Preferred Contact**: Email
+
+## Urgency
+This is blocking all AI chat functionality in a **production iOS app** that is currently deployed to users. The same code that was working previously is now failing, indicating a **server-side change or issue**. 
+
+Users cannot interact with AI sponsors, which is a core feature. The issue likely started sometime between September 25 and October 22, but the exact date is unknown since this feature isn't used daily by the developer.
+
+---
+
+**Ready for your support team to investigate. Thank you!**
+

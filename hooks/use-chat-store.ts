@@ -27,50 +27,85 @@ interface APIMessage {
 // Function to call the AI API
 async function callAI(messages: APIMessage[]): Promise<string> {
   try {
-    console.log('AI API Request:', { messages: messages.length, firstMessage: messages[0]?.role });
+    console.log('=== AI API REQUEST ===');
+    console.log('Message Count:', messages.length);
+    console.log('Full Messages:', JSON.stringify(messages, null, 2));
+    
+    const requestBody = { messages };
+    console.log('Request Body:', JSON.stringify(requestBody, null, 2));
+    console.log('Request Body Size (bytes):', JSON.stringify(requestBody).length);
     
     const response = await fetch('https://toolkit.rork.com/text/llm/', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ messages }),
+      body: JSON.stringify(requestBody),
     });
 
-    console.log('AI API Response Status:', response.status);
+    console.log('=== AI API RESPONSE ===');
+    console.log('Status Code:', response.status);
+    console.log('Status Text:', response.statusText);
+    console.log('Headers:', JSON.stringify(Object.fromEntries(response.headers.entries()), null, 2));
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('AI API Error Response:', errorText);
+      console.error('=== AI API ERROR ===');
+      console.error('Status:', response.status);
+      console.error('Response Body:', errorText);
+      
+      // Try to parse as JSON for more details
+      try {
+        const errorJson = JSON.parse(errorText);
+        console.error('Parsed Error JSON:', JSON.stringify(errorJson, null, 2));
+      } catch (e) {
+        console.error('Error response is not JSON');
+      }
+      
       throw new Error(`API request failed: ${response.status} - ${errorText}`);
     }
 
-    const data = await response.json();
-    console.log('AI API Success:', { hasCompletion: !!data.completion });
+    const responseText = await response.text();
+    console.log('Response Text:', responseText);
+    
+    const data = JSON.parse(responseText);
+    console.log('=== AI API SUCCESS ===');
+    console.log('Response Data:', JSON.stringify(data, null, 2));
+    console.log('Has Completion:', !!data.completion);
+    console.log('Completion Length:', data.completion?.length || 0);
+    
     return data.completion || "Sorry, I'm having trouble right now. Try again in a minute.";
   } catch (error) {
-    console.error('AI API Error:', error);
+    console.error('=== AI API EXCEPTION ===');
+    console.error('Error Type:', error?.constructor?.name);
+    console.error('Error Message:', error?.message);
+    console.error('Full Error:', JSON.stringify(error, Object.getOwnPropertyNames(error), 2));
+    console.error('Stack:', error?.stack);
+    
     return "I'm having trouble connecting right now. Please try again in a moment, or consider reaching out to a meeting or another member of your support network.";
   }
 }
 
 // Convert chat messages to API format
 function convertToAPIMessages(chatMessages: ChatMessage[], sponsorType: SponsorType): APIMessage[] {
-  let systemPrompt;
+  // Create a VERY minimal system prompt for testing
+  let minimalPrompt = '';
   
   switch (sponsorType) {
     case "salty":
-      systemPrompt = SALTY_SAM_SYSTEM_PROMPT;
+      minimalPrompt = "You are Salty Sam, a direct and no-nonsense AA sponsor with 20+ years of sobriety. You tell it like it is, keep responses brief, and focus on practical recovery advice.";
       break;
     case "supportive":
-      systemPrompt = STEADY_EDDIE_SYSTEM_PROMPT;
+      minimalPrompt = "You are Steady Eddie, a compassionate and supportive AA sponsor with 15+ years of sobriety. You offer gentle but firm guidance and encouragement.";
       break;
     case "grace":
-      systemPrompt = GENTLE_GRACE_SYSTEM_PROMPT;
+      minimalPrompt = "You are Gentle Grace, a spiritually-minded AA sponsor with 10+ years of sobriety. You bring calm, reflective wisdom and deep emotional support.";
       break;
     default:
-      systemPrompt = STEADY_EDDIE_SYSTEM_PROMPT;
+      minimalPrompt = "You are Steady Eddie, a compassionate AA sponsor offering supportive guidance.";
   }
+
+  console.log('Using minimal prompt length:', minimalPrompt.length);
 
   const apiMessages: APIMessage[] = [];
 
@@ -79,8 +114,9 @@ function convertToAPIMessages(chatMessages: ChatMessage[], sponsorType: SponsorT
   
   conversationMessages.forEach((msg, index) => {
     if (msg.sender === 'user') {
-      // For the first user message, prepend the system prompt
-      const content = index === 0 ? `${systemPrompt}\n\nUser: ${msg.text}` : msg.text;
+      // For the first user message only, prepend the MINIMAL system prompt
+      // Rork API doesn't accept 'system' role and has strict size limits
+      const content = index === 0 ? `${minimalPrompt}\n\nUser: ${msg.text}` : msg.text;
       apiMessages.push({ role: 'user', content });
     } else if (msg.sender === 'bot') {
       apiMessages.push({ role: 'assistant', content: msg.text });
@@ -275,6 +311,15 @@ export const [ChatStoreProvider, useChatStore] = createContextHook(() => {
     setSponsorType(type);
   };
 
+  const getSponsorMessages = (type: SponsorType): ChatMessage[] => {
+    switch (type) {
+      case "salty": return saltyMessages;
+      case "supportive": return supportiveMessages;
+      case "grace": return graceMessages;
+      default: return supportiveMessages;
+    }
+  };
+
   const sendMessage = async (text: string) => {
     if (!text.trim()) return;
     
@@ -415,5 +460,6 @@ export const [ChatStoreProvider, useChatStore] = createContextHook(() => {
     clearChat,
     sponsorType,
     changeSponsor,
+    getSponsorMessages,
   };
 });
