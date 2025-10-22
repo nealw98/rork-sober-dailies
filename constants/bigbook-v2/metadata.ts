@@ -32,7 +32,7 @@ export const bigBookChapterMetadata: BigBookChapterMeta[] = [
   {
     id: 'doctors-opinion',
     title: "The Doctor's Opinion",
-    pageRange: [25, 32], // Roman numerals xxv-xxxii
+    pageRange: [23, 30], // Roman numerals xxiii-xxx
     // description: 'Medical perspective by Dr. William D. Silkworth',
     useRomanNumerals: true,
   },
