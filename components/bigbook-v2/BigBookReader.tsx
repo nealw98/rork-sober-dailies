@@ -227,9 +227,11 @@ export function BigBookReader({ visible, initialChapterId, scrollToParagraphId, 
     paragraphPositions.current.set(paragraphId, { y, height, pageNumber });
   }, []);
 
-  // Initialize current page when chapter loads
+  // Clear paragraph positions when chapter changes
   useEffect(() => {
     if (currentChapter) {
+      paragraphPositions.current.clear();
+      paragraphRefs.current.clear();
       setCurrentPageNumber(currentChapter.pageRange[0]);
     }
   }, [currentChapter]);

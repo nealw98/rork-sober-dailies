@@ -56,14 +56,14 @@ export const foreword_first: BigBookChapter = {
     {
       id: 'foreword-first-p7',
       chapterId: 'foreword-first',
-      pageNumber: 13,
+      pageNumber: 14,
       order: 7,
       content: 'We are not an organization in the conventional sense of the word. There are no fees nor dues whatsoever. The only requirement for membership is an honest desire to stop drinking. We are not allied with any particular faith, sect or denomination, nor do we oppose anyone. We simply wish to be helpful to those who are afflicted.',
     },
     {
       id: 'foreword-first-p8',
       chapterId: 'foreword-first',
-      pageNumber: 13,
+      pageNumber: 14,
       order: 8,
       content: 'We shall be interested to hear from those who are getting results from this book, particularly from those who have commenced work with other alcoholics. We should like to be helpful to such cases.',
     },
@@ -79,7 +79,7 @@ export const foreword_first: BigBookChapter = {
       chapterId: 'foreword-first',
       pageNumber: 14,
       order: 10,
-      content: 'Alcoholics Anonymous.',
+      content: 'ALCOHOLICS ANONYMOUS.',
     }
   ],
 };
