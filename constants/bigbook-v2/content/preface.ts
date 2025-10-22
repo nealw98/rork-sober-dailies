@@ -3,76 +3,55 @@ import { BigBookChapter } from '@/types/bigbook-v2';
 /**
  * Preface
  * 
- * Pages 19-22
+ * Pages xi-xii
  */
 
 export const preface: BigBookChapter = {
   id: 'preface',
   title: 'Preface',
-  pageRange: [19, 22],
+  pageRange: [11, 12],
   paragraphs: [
     {
       id: 'preface-p1',
       chapterId: 'preface',
-      pageNumber: 19,
+      pageNumber: 11,
       order: 1,
-      content: '**Pages xi–xii**',
+      content: 'THIS IS the second edition of the book "Alcoholics Anonymous," which made its first appearance in April 1939. More than 300,000 copies of the first edition are now in circulation.',
     },
     {
       id: 'preface-p2',
       chapterId: 'preface',
       pageNumber: 11,
       order: 2,
-      content: 'This is the Foreword as it appeared in the first printing of the first edition in 1939.',
+      content: 'Because this book has become the basic text for our Society and has helped such large numbers of alcoholic men and women to recovery, there exists a sentiment against any radical changes being made in it. Therefore, the first portion of this volume, describing the A.A. recovery program, has been left largely untouched.',
     },
     {
       id: 'preface-p3',
       chapterId: 'preface',
       pageNumber: 11,
       order: 3,
-      content: 'We, of Alcoholics Anonymous, are more than one hundred men and women who have recovered from a seemingly hopeless state of mind and body. To show other alcoholics precisely how we have recovered is the main purpose of this book. For them, we hope these pages will prove so convincing that no further authentication will be necessary. We think this account of our experiences will help everyone to better understand the alcoholic. Many do not comprehend that the alcoholic is a very sick person. And besides, we are sure that our way of living has its advantages for all.',
+      content: 'But the personal history section has been considerably revised and enlarged in order to present a more accurate representation of our membership as it is today. When the book was first printed, we had scarcely 100 members all told, and every one of them was an almost hopeless case of alcoholism. This has changed. A.A. now helps alcoholics in all stages of the disease. It reaches into every level of life and into nearly all occupations. Our membership now includes many young people. Women, who were at first very reluctant to approach A.A., have come forward in large numbers. Therefore the range of the story section has been broadened so that every alcoholic reader may find a reflection of him or herself in it.',
     },
     {
       id: 'preface-p4',
       chapterId: 'preface',
-      pageNumber: 12,
+      pageNumber: 11,
       order: 4,
-      content: 'It is important that we remain anonymous because we are too few, at present, to handle the overwhelming number of personal appeals which may result from this publication. Being mostly business or professional folk, we could not well carry on our occupations in such an event. We would like it understood that our alcoholic work is an avocation. When writing or speaking publicly about alcoholism, we urge each of our Fellowship to omit his personal name, designating himself instead as “a member of Alcoholics Anonymous.”',
+      content: 'As a souvenir of our past, the original Foreword has been preserved and is followed by a second on describing Alcoholics Anonymous of 1955.',
     },
     {
       id: 'preface-p5',
       chapterId: 'preface',
       pageNumber: 12,
       order: 5,
-      content: 'Very earnestly we ask the press also, to observe this request, for otherwise we shall be greatly handicapped.',
+      content: 'Following the Forewords, there appears a section called "The Doctor\'s Opinion." This also has been kept intact, just as it was originally written in 1939 by the late Dr. William D. Silkworth, our Society\'s great medical benefactor. Besides Dr. Silkworth\'s original statement, there have been added, in the Appendices, a number of the medical and religious endorsements which have come to us in recent years.',
     },
     {
       id: 'preface-p6',
       chapterId: 'preface',
       pageNumber: 12,
       order: 6,
-      content: 'We are not an organization in the conventional sense of the word. There are no fees nor dues whatsoever. The only requirement for membership is an honest desire to stop drinking. We are not allied with any particular faith, sect or denomination, nor do we oppose anyone. We simply wish to be helpful to those who are afflicted.',
+      content: 'On the last pages of this second edition will be found the Twelve Traditions of Alcoholics Anonymous, the principles upon which our A.A. groups function, together with the directions for getting in touch with A.A.',
     },
-    {
-      id: 'preface-p7',
-      chapterId: 'preface',
-      pageNumber: 12,
-      order: 7,
-      content: 'We shall be glad to hear from those who are getting results from this book, particularly from those who have commenced to work with other alcoholics. We should like to be helpful to such cases.',
-    },
-    {
-      id: 'preface-p8',
-      chapterId: 'preface',
-      pageNumber: 12,
-      order: 8,
-      content: 'Inquiry by scientific, medical, and religious societies will be welcomed.',
-    },
-    {
-      id: 'preface-p9',
-      chapterId: 'preface',
-      pageNumber: 12,
-      order: 9,
-      content: 'Alcoholics Anonymous.',
-    }
   ],
 };
