@@ -51,10 +51,9 @@ interface SectionProps {
   chapters: BigBookChapterMeta[];
   onSelectChapter: (chapterId: string) => void;
   defaultExpanded?: boolean;
-  hideChapterDescriptions?: boolean;
 }
 
-function ChapterSection({ title, description, chapters, onSelectChapter, defaultExpanded = false, hideChapterDescriptions = false }: SectionProps) {
+function ChapterSection({ title, description, chapters, onSelectChapter, defaultExpanded = false }: SectionProps) {
   const [expanded, setExpanded] = useState(defaultExpanded);
 
   return (
@@ -85,13 +84,15 @@ function ChapterSection({ title, description, chapters, onSelectChapter, default
               activeOpacity={0.7}
             >
               <View style={styles.chapterInfo}>
-                <Text style={styles.chapterTitle}>{chapter.title}</Text>
-                {!hideChapterDescriptions && chapter.description && (
+                <View style={styles.chapterTitleRow}>
+                  <Text style={styles.chapterTitle}>{chapter.title}</Text>
+                  <Text style={styles.chapterPages}>
+                    pp. {formatPageNumber(chapter.pageRange[0], chapter.useRomanNumerals || false)}-{formatPageNumber(chapter.pageRange[1], chapter.useRomanNumerals || false)}
+                  </Text>
+                </View>
+                {chapter.description && (
                   <Text style={styles.chapterDescription}>{chapter.description}</Text>
                 )}
-                <Text style={styles.chapterPages}>
-                  Pages {formatPageNumber(chapter.pageRange[0], chapter.useRomanNumerals || false)}-{formatPageNumber(chapter.pageRange[1], chapter.useRomanNumerals || false)}
-                </Text>
               </View>
               <FileText size={20} color={Colors.light.muted} />
             </TouchableOpacity>
@@ -224,11 +225,10 @@ export function BigBookChapterList({ onSelectChapter }: BigBookChapterListProps)
           
           <ChapterSection
             title="Main Chapters"
-            description="The 11 chapters of the Big Book"
+            description="The first 164 pages - the basic text of AA"
             chapters={mainChapters}
             onSelectChapter={onSelectChapter}
             defaultExpanded={true}
-            hideChapterDescriptions={true}
           />
           
           <ChapterSection
@@ -336,8 +336,10 @@ const styles = StyleSheet.create({
     color: Colors.light.muted,
   },
   chaptersContainer: {
-    marginTop: 8,
-    paddingHorizontal: 8,
+    marginTop: 0,
+    backgroundColor: 'rgba(255, 255, 255, 0.4)',
+    borderTopWidth: 1,
+    borderTopColor: Colors.light.divider,
   },
   chapterItem: {
     flexDirection: 'row',
@@ -345,29 +347,34 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingVertical: 12,
     paddingHorizontal: 16,
-    backgroundColor: Colors.light.background,
-    borderRadius: 8,
-    marginBottom: 8,
-    borderWidth: 1,
-    borderColor: Colors.light.border || '#E5E7EB',
+    backgroundColor: 'transparent',
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.light.divider,
   },
   chapterInfo: {
     flex: 1,
     marginRight: 12,
   },
+  chapterTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 2,
+  },
   chapterTitle: {
     fontSize: 16,
     fontWeight: adjustFontWeight('600'),
     color: Colors.light.text,
-    marginBottom: 4,
+    flex: 1,
   },
   chapterDescription: {
     fontSize: 14,
     color: Colors.light.muted,
-    marginBottom: 4,
+    lineHeight: 18,
   },
   chapterPages: {
-    fontSize: 12,
+    fontSize: 13,
     color: Colors.light.muted,
+    marginLeft: 8,
   },
 });

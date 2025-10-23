@@ -12,28 +12,28 @@ export const bigBookChapterMetadata: BigBookChapterMeta[] = [
     id: 'preface',
     title: 'Preface',
     pageRange: [11, 12], // Roman numerals xi-xii
-    // description: 'Introduction to the Big Book',
+    description: 'Introduction to the Big Book',
     useRomanNumerals: true,
   },
   {
     id: 'foreword-first',
     title: 'Foreword to First Edition',
     pageRange: [13, 14], // Roman numerals xiii-xiv
-    // description: 'Original foreword from 1939',
+    description: 'Original foreword from 1939',
     useRomanNumerals: true,
   },
   {
     id: 'foreword-second',
     title: 'Foreword to Second Edition',
     pageRange: [15, 22], // Roman numerals xv-xxii  
-    // description: 'Foreword added in 1955',
+    description: 'Foreword added in 1955',
     useRomanNumerals: true,
   },
   {
     id: 'doctors-opinion',
     title: "The Doctor's Opinion",
     pageRange: [23, 30], // Roman numerals xxiii-xxx
-    // description: 'Medical perspective by Dr. William D. Silkworth',
+    description: 'Medical perspective by Dr. William D. Silkworth',
     useRomanNumerals: true,
   },
   {
@@ -117,37 +117,37 @@ export const bigBookChapterMetadata: BigBookChapterMeta[] = [
     id: 'appendix-1',
     title: 'The AA Tradition',
     pageRange: [565, 568],
-    // description: 'History and traditions of AA',
+    description: 'History and traditions of AA',
   },
   {
     id: 'appendix-2',
     title: 'Spiritual Experience',
     pageRange: [569, 570],
-    // description: 'Different types of spiritual experiences',
+    description: 'Different types of spiritual experiences',
   },
   {
     id: 'appendix-3',
     title: 'The Medical View on AA',
     pageRange: [571, 572],
-    // description: 'Medical professionals on AA effectiveness',
+    description: 'Medical professionals on AA effectiveness',
   },
   {
     id: 'appendix-4',
     title: 'The Lasker Award',
     pageRange: [573, 574],
-    // description: "AA's recognition by the medical community",
+    description: "AA's recognition by the medical community",
   },
   {
     id: 'appendix-5',
     title: 'The Religious View on AA',
     pageRange: [575, 577],
-    // description: 'Religious leaders on AA compatibility with faith',
+    description: 'Religious leaders on AA compatibility with faith',
   },
   {
     id: 'appendix-6',
     title: 'How to Get in Touch with AA',
     pageRange: [578, 579],
-    // description: 'Finding local AA meetings and resources',
+    description: 'Finding local AA meetings and resources',
   },
 ];
 

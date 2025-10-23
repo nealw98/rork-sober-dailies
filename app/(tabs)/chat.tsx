@@ -1,5 +1,5 @@
 import React from "react";
-import { StyleSheet } from "react-native";
+import { StyleSheet, Platform } from "react-native";
 import { Stack } from "expo-router";
 import {
   View,
@@ -10,6 +10,8 @@ import {
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
+import { ChevronLeft } from "lucide-react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Colors from "@/constants/colors";
 import { adjustFontWeight } from "@/constants/fonts";
 import { SPONSORS } from "@/constants/sponsors";
@@ -17,15 +19,30 @@ import ScreenContainer from "@/components/ScreenContainer";
 
 export default function ChatScreen() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
 
   const handleSponsorSelect = (sponsorId: string) => {
     router.push(`/sponsor-chat?sponsor=${sponsorId}`);
+  };
+
+  const handleBack = () => {
+    router.push("/(tabs)/home");
   };
 
   return (
     <>
       <Stack.Screen options={{ headerShown: false }} />
       <ScreenContainer noPadding={true}>
+        <View style={[styles.whiteHeader, { paddingTop: insets.top }]}>
+          <TouchableOpacity
+            style={styles.backButton}
+            onPress={handleBack}
+            activeOpacity={0.7}
+          >
+            <ChevronLeft color={Colors.light.tint} size={24} />
+            <Text style={styles.backText}>Back</Text>
+          </TouchableOpacity>
+        </View>
         <LinearGradient
           colors={Colors.gradients.mainThreeColor}
           style={styles.container}
@@ -92,11 +109,29 @@ export default function ChatScreen() {
 }
 
 const styles = StyleSheet.create({
+  whiteHeader: {
+    backgroundColor: "#fff",
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.light.divider,
+    paddingHorizontal: 8,
+    paddingVertical: 8,
+  },
+  backButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: Platform.OS === "android" ? 4 : 8,
+  },
+  backText: {
+    fontSize: 14,
+    color: Colors.light.tint,
+    marginLeft: 4,
+    fontWeight: adjustFontWeight("400"),
+  },
   container: {
     flex: 1,
   },
   header: {
-    paddingTop: 60,
+    paddingTop: 40,
     paddingBottom: 24,
     paddingHorizontal: 24,
     alignItems: "center",
