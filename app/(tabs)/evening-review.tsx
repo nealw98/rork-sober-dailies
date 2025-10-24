@@ -17,7 +17,7 @@ import {
 import * as Clipboard from 'expo-clipboard';
 import ScreenContainer from "@/components/ScreenContainer";
 import { LinearGradient } from 'expo-linear-gradient';
-import { CheckCircle, Circle, Calendar, Share as ShareIcon, Save, Archive, Check } from 'lucide-react-native';
+import { CheckCircle, Circle, Calendar, Share as ShareIcon, Save, Folder, RotateCcw, Check } from 'lucide-react-native';
 import { useEveningReviewStore } from '@/hooks/use-evening-review-store';
 import SavedEveningReviews from '@/components/SavedEveningReviews';
 import AnimatedEveningReviewMessage from '@/components/AnimatedEveningReviewMessage';
@@ -291,8 +291,103 @@ export default function EveningReview() {
       }
     }
   };
-
+  const handleReset = () => {
+    const hasContent = dailyActions.some(a => a.checked) || 
+                      inventoryQuestions.some(q => q.value.trim() !== '');
+    
+    if (!hasContent) return;
+    
+    // Check if there are unsaved changes by comparing current state with saved entry
+    const todayString = getTodayDateString();
+    const savedEntry = getSavedEntry(todayString);
+    
+    let hasUnsavedChanges = false;
+    
+    if (savedEntry) {
+      const data = savedEntry.data;
+      // Compare current state with saved state
+      hasUnsavedChanges = 
+        stayedSober !== data.stayedSober ||
+        prayedOrMeditated !== data.prayedOrMeditated ||
+        practicedGratitude !== data.practicedGratitude ||
+        readAALiterature !== data.readAALiterature ||
+        talkedToAlcoholic !== data.talkedToAlcoholic ||
+        didSomethingForOthers !== data.didSomethingForOthers ||
+        reflectionResentful !== (data.reflectionResentful || '') ||
+        reflectionApology !== (data.reflectionApology || '') ||
+        reflectionShared !== (data.reflectionShared || '') ||
+        reflectionOthers !== (data.reflectionOthers || '') ||
+        reflectionKind !== (data.reflectionKind || '') ||
+        reflectionWell !== (data.reflectionWell || '') ||
+        reflectionBetter !== (data.reflectionBetter || '');
+    } else {
+      // No saved entry, so any content means unsaved changes
+      hasUnsavedChanges = hasContent;
+    }
+    
+    console.log('[Evening Review] handleReset - hasUnsavedChanges:', hasUnsavedChanges, 'hasContent:', hasContent);
+    
+    // Only show warning if there are unsaved changes
+    if (hasUnsavedChanges) {
+      Alert.alert(
+        'Reset Nightly Review',
+        'You have unsaved changes. Are you sure you want to clear your current review?',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          {
+            text: 'Reset',
+            style: 'destructive',
+            onPress: () => {
+              // Reset all state
+              setStayedSober(false);
+              setPrayedOrMeditated(false);
+              setPracticedGratitude(false);
+              setReadAALiterature(false);
+              setTalkedToAlcoholic(false);
+              setDidSomethingForOthers(false);
+              setReflectionResentful('');
+              setReflectionApology('');
+              setReflectionShared('');
+              setReflectionOthers('');
+              setReflectionKind('');
+              setReflectionWell('');
+              setReflectionBetter('');
+            }
+          }
+        ]
+      );
+    } else {
+      // No unsaved changes, just reset without warning
+      console.log('[Evening Review] Resetting without alert - no unsaved changes');
+      setStayedSober(false);
+      setPrayedOrMeditated(false);
+      setPracticedGratitude(false);
+      setReadAALiterature(false);
+      setTalkedToAlcoholic(false);
+      setDidSomethingForOthers(false);
+      setReflectionResentful('');
+      setReflectionApology('');
+      setReflectionShared('');
+      setReflectionOthers('');
+      setReflectionKind('');
+      setReflectionWell('');
+      setReflectionBetter('');
+    }
+  };
   const handleSaveEntry = () => {
+    // Check if there's any content to save
+    const hasActions = dailyActions.some(action => action.checked);
+    const hasInventory = inventoryQuestions.some(question => question.value.trim() !== '');
+    
+    if (!hasActions && !hasInventory) {
+      Alert.alert(
+        'Save Nightly Review',
+        'Please complete at least one daily action or inventory question before saving.',
+        [{ text: 'OK' }]
+      );
+      return;
+    }
+    
     const detailedEntry = {
       // New format fields
       stayedSober,
@@ -439,6 +534,61 @@ export default function EveningReview() {
           keyboardShouldPersistTaps="handled"
           contentContainerStyle={styles.scrollContent}
         >
+          {/* Action Row - Above Title */}
+          <View style={styles.actionRow}>
+            {/* Save */}
+            <TouchableOpacity 
+              onPress={handleSaveEntry}
+              accessible={true}
+              accessibilityLabel="Save nightly review"
+              accessibilityRole="button"
+              activeOpacity={0.6}
+              style={styles.actionButton}
+            >
+              <Save color="#007AFF" size={18} />
+              <Text style={styles.actionButtonText}>Save</Text>
+            </TouchableOpacity>
+            
+            {/* Share */}
+            <TouchableOpacity 
+              onPress={handleShare}
+              accessible={true}
+              accessibilityLabel="Share nightly review"
+              accessibilityRole="button"
+              activeOpacity={0.6}
+              style={styles.actionButton}
+            >
+              <ShareIcon color="#007AFF" size={18} />
+              <Text style={styles.actionButtonText}>Share</Text>
+            </TouchableOpacity>
+            
+            {/* History */}
+            <TouchableOpacity 
+              onPress={() => setShowSavedReviews(true)}
+              accessible={true}
+              accessibilityLabel="View saved reviews"
+              accessibilityRole="button"
+              activeOpacity={0.6}
+              style={styles.actionButton}
+            >
+              <Folder color="#007AFF" size={18} />
+              <Text style={styles.actionButtonText}>History</Text>
+            </TouchableOpacity>
+            
+            {/* Reset */}
+            <TouchableOpacity 
+              onPress={handleReset}
+              accessible={true}
+              accessibilityLabel="Reset nightly review"
+              accessibilityRole="button"
+              activeOpacity={0.6}
+              style={styles.actionButton}
+            >
+              <RotateCcw color="#007AFF" size={18} />
+              <Text style={styles.actionButtonText}>Reset</Text>
+            </TouchableOpacity>
+          </View>
+          
           <View style={styles.header}>
             <Text style={styles.title}>Nightly Review</Text>
             <Text style={styles.description}>
@@ -543,6 +693,25 @@ const styles = StyleSheet.create({
   },
   container: {
     flex: 1,
+  },
+  actionRow: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 20,
+    paddingTop: 4,
+    paddingBottom: 12,
+    marginBottom: 8,
+  },
+  actionButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  actionButtonText: {
+    fontSize: 14,
+    color: '#007AFF',
+    fontWeight: '500',
   },
   gradient: {
     position: 'absolute',

@@ -14,7 +14,7 @@ import {
   Modal
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { RotateCcw, Share as ShareIcon, Save as SaveIcon, Clock, Trash2, X, HelpCircle, Calendar } from 'lucide-react-native';
+import { RotateCcw, Share as ShareIcon, Save as SaveIcon, Folder, Trash2, X, Calendar } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Colors from '@/constants/colors';
@@ -581,6 +581,19 @@ const Inventory = () => {
 
   // Define handler functions before useLayoutEffect to avoid stale closures
   const handleSave = useCallback(async () => {
+    // Check if there's any content to save
+    const hasSelections = Object.values(selections).some(val => val !== 'none');
+    const hasSituation = situation.trim().length > 0;
+    
+    if (!hasSelections && !hasSituation) {
+      Alert.alert(
+        'Save Spot Check',
+        'Please add a situation or make at least one selection before saving.',
+        [{ text: 'OK' }]
+      );
+      return;
+    }
+    
     dismissKeyboard(); // Hide keyboard when saving
     try {
       const stored = await AsyncStorage.getItem(INVENTORY_STORAGE_KEY);
@@ -659,67 +672,63 @@ const Inventory = () => {
   }, [situation, selections, dismissKeyboard]);
 
   const handleReset = useCallback(() => {
-    dismissKeyboard(); // Hide keyboard when resetting
-    setSelections({});
-    setSituation('');
-    setCurrentRecord(null);
-    setHasUnsavedChanges(false);
-  }, [dismissKeyboard]);
+    // Check if there's any content before showing the alert
+    const hasAnyContent = situation.trim() !== '' || Object.keys(selections).length > 0;
+    
+    if (!hasAnyContent) return;
+    
+    // Only show warning if there are unsaved changes
+    if (hasUnsavedChanges) {
+      Alert.alert(
+        'Reset Spot Check',
+        'You have unsaved changes. Are you sure you want to clear your current spot check?',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          {
+            text: 'Reset',
+            style: 'destructive',
+            onPress: () => {
+              dismissKeyboard(); // Hide keyboard when resetting
+              setSelections({});
+              setSituation('');
+              setCurrentRecord(null);
+              setHasUnsavedChanges(false);
+            }
+          }
+        ]
+      );
+    } else {
+      // Already saved, just reset without warning
+      dismissKeyboard();
+      setSelections({});
+      setSituation('');
+      setCurrentRecord(null);
+      setHasUnsavedChanges(false);
+    }
+  }, [situation, selections, hasUnsavedChanges, dismissKeyboard]);
 
-  // Add header icons (Save, Share, History, Reset)
+  // Add Help button to header
   useLayoutEffect(() => {
     navigation.setOptions({
       headerRight: () => (
-        <View style={{ flexDirection: 'row', gap: 16, paddingRight: 16 }}>
-          {hasContent && (
-            <TouchableOpacity 
-              onPress={handleSave}
-              accessible={true}
-              accessibilityLabel="Save spot check"
-              accessibilityRole="button"
-            >
-              <SaveIcon color={Colors.light.tint} size={20} />
-            </TouchableOpacity>
-          )}
-          <TouchableOpacity 
-            onPress={handleShare}
-            accessible={true}
-            accessibilityLabel="Share spot check"
-            accessibilityRole="button"
-          >
-            <ShareIcon color={Colors.light.tint} size={20} />
-          </TouchableOpacity>
-          <TouchableOpacity 
-            onPress={() => {
-              dismissKeyboard(); // Hide keyboard when opening history
-              setShowHistory(true);
-            }}
-            accessible={true}
-            accessibilityLabel="View history"
-            accessibilityRole="button"
-          >
-            <Clock color={Colors.light.tint} size={20} />
-          </TouchableOpacity>
-          <TouchableOpacity 
-            onPress={handleShowHelp}
-            accessible={true}
-            accessibilityLabel="Show instructions"
-            accessibilityRole="button"
-          >
-            <HelpCircle size={20} color={Colors.light.tint} />
-          </TouchableOpacity>
-          <TouchableOpacity 
-            onPress={handleReset}
-            accessible={true}
-            accessibilityLabel="Reset all selections"
-            accessibilityRole="button"
-          >
-            <RotateCcw size={20} color={Colors.light.tint} />
-          </TouchableOpacity>
-        </View>
+        <TouchableOpacity 
+          onPress={handleShowHelp}
+          accessible={true}
+          accessibilityLabel="Show help"
+          accessibilityRole="button"
+          style={{ paddingRight: 16 }}
+        >
+          <Text style={{ 
+            fontSize: 16, 
+            color: Colors.light.tint,
+            fontWeight: '400'
+          }}>
+            Help
+          </Text>
+        </TouchableOpacity>
       ),
     });
-  }, [navigation, hasUnsavedChanges, hasContent, handleSave, handleShare, handleReset, handleShowHelp, dismissKeyboard]);
+  }, [navigation, handleShowHelp]);
 
   const handlePressLookFor = (pairId: string) => {
     dismissKeyboard(); // Hide keyboard when selecting traits
@@ -776,6 +785,64 @@ const Inventory = () => {
       >
         <ScrollView contentContainerStyle={styles.scrollContent}>
           <View style={styles.contentContainer}>
+            {/* Action Row - Above Title */}
+            <View style={styles.actionRow}>
+              {/* Save */}
+              <TouchableOpacity 
+                onPress={handleSave}
+                accessible={true}
+                accessibilityLabel="Save spot check"
+                accessibilityRole="button"
+                activeOpacity={0.6}
+                style={styles.actionButton}
+              >
+                <SaveIcon color="#007AFF" size={18} />
+                <Text style={styles.actionButtonText}>Save</Text>
+              </TouchableOpacity>
+              
+              {/* Share */}
+              <TouchableOpacity 
+                onPress={handleShare}
+                accessible={true}
+                accessibilityLabel="Share spot check"
+                accessibilityRole="button"
+                activeOpacity={0.6}
+                style={styles.actionButton}
+              >
+                <ShareIcon color="#007AFF" size={18} />
+                <Text style={styles.actionButtonText}>Share</Text>
+              </TouchableOpacity>
+              
+              {/* History */}
+              <TouchableOpacity 
+                onPress={() => {
+                  dismissKeyboard();
+                  setShowHistory(true);
+                }}
+                accessible={true}
+                accessibilityLabel="View history"
+                accessibilityRole="button"
+                activeOpacity={0.6}
+                style={styles.actionButton}
+              >
+                <Folder color="#007AFF" size={18} />
+                <Text style={styles.actionButtonText}>History</Text>
+              </TouchableOpacity>
+              
+              {/* Reset */}
+              <TouchableOpacity 
+                onPress={handleReset}
+                accessible={true}
+                accessibilityLabel="Reset all selections"
+                accessibilityRole="button"
+                activeOpacity={0.6}
+                style={styles.actionButton}
+              >
+                <RotateCcw color="#007AFF" size={18} />
+                <Text style={styles.actionButtonText}>Reset</Text>
+              </TouchableOpacity>
+            </View>
+            
             <Text style={styles.title}>Spot Check Inventory</Text>
             
             {/* Saved Timestamp - always reserve space */}
@@ -855,6 +922,25 @@ const styles = StyleSheet.create({
   },
   contentContainer: {
     flex: 1,
+  },
+  actionRow: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 20,
+    paddingTop: 4,
+    paddingBottom: 12,
+    marginBottom: 8,
+  },
+  actionButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  actionButtonText: {
+    fontSize: 14,
+    color: '#007AFF',
+    fontWeight: '500',
   },
   title: {
     fontSize: 28,
