@@ -195,6 +195,13 @@ const styles = StyleSheet.create({
     marginBottom: 24,
     alignItems: 'center',
   },
+  iconRow: {
+    flexDirection: 'row',
+    gap: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 12,
+  },
   title: {
     fontSize: 28,
     fontWeight: adjustFontWeight('700', true),
@@ -934,6 +941,59 @@ export default function GratitudeListScreen() {
           {/* Header - Title Only */}
           <View style={styles.header}>
             <Text style={styles.title}>Gratitude List</Text>
+            
+            {/* Icon Navigation Row */}
+            <View style={styles.iconRow}>
+              {/* Save (only show if has content) */}
+              {gratitudeItems.length > 0 && (
+                <TouchableOpacity 
+                  onPress={handleSaveEntry}
+                  accessible={true}
+                  accessibilityLabel="Save gratitude list"
+                  accessibilityRole="button"
+                  activeOpacity={0.6}
+                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                >
+                  <Save color="#007AFF" size={20} />
+                </TouchableOpacity>
+              )}
+              
+              {/* Share */}
+              <TouchableOpacity 
+                onPress={handleShare}
+                accessible={true}
+                accessibilityLabel="Share gratitude list"
+                accessibilityRole="button"
+                activeOpacity={0.6}
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              >
+                <ShareIcon color="#007AFF" size={20} />
+              </TouchableOpacity>
+              
+              {/* Saved Lists */}
+              <TouchableOpacity 
+                onPress={() => setShowSavedEntries(true)}
+                accessible={true}
+                accessibilityLabel="View saved lists"
+                accessibilityRole="button"
+                activeOpacity={0.6}
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              >
+                <Folder color="#007AFF" size={20} />
+              </TouchableOpacity>
+              
+              {/* Reset */}
+              <TouchableOpacity 
+                onPress={handleReset}
+                accessible={true}
+                accessibilityLabel="Reset gratitude list"
+                accessibilityRole="button"
+                activeOpacity={0.6}
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              >
+                <RotateCcw color="#007AFF" size={20} />
+              </TouchableOpacity>
+            </View>
           </View>
 
           {/* Daily Quote */}
