@@ -244,7 +244,7 @@ const styles = StyleSheet.create({
     paddingLeft: 0, // Remove extra padding since we handle it in container
   },
   backText: {
-    fontSize: 17,
+    fontSize: 16,
     color: Colors.light.tint,
     fontWeight: '400',
   },

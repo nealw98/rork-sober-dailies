@@ -653,8 +653,7 @@ const styles = StyleSheet.create({
   customBackText: {
     fontSize: 16,
     color: Colors.light.tint,
-    marginLeft: 4,
-    fontWeight: adjustFontWeight('500'),
+    fontWeight: '400',
   },
   contentContainer: {
     flex: 1,

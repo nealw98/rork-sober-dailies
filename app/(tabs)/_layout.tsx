@@ -35,7 +35,7 @@ const styles = StyleSheet.create({
     marginLeft: Platform.OS === 'android' ? 0 : 4
   },
   backText: {
-    fontSize: 17,
+    fontSize: 16,
     color: Colors.light.tint,
     fontWeight: '400',
   },

@@ -267,9 +267,8 @@ const styles = StyleSheet.create({
   },
   backText: {
     color: Colors.light.tint,
-    fontSize: 14,
-    marginLeft: 4,
-    fontWeight: adjustFontWeight('500')
+    fontSize: 16,
+    fontWeight: '400'
   },
   headerTitle: {
     flex: 1,

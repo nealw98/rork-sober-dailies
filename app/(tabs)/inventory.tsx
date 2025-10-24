@@ -706,7 +706,7 @@ const Inventory = () => {
           style={{ paddingRight: 16 }}
         >
           <Text style={{ 
-            fontSize: 17, 
+            fontSize: 16, 
             color: Colors.light.tint,
             fontWeight: '400'
           }}>
