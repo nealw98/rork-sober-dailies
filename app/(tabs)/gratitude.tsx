@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useLayoutEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -23,7 +23,6 @@ import { adjustFontWeight } from '@/constants/fonts';
 import ScreenContainer from '@/components/ScreenContainer';
 import SavedGratitudeEntries from '@/components/SavedGratitudeEntries';
 import { GratitudeCompleteModal } from '@/components/GratitudeCompleteModal';
-import { useNavigation } from '@react-navigation/native';
 
 // 25 inspirational gratitude quotes for daily rotation
 const GRATITUDE_QUOTES = [
@@ -176,6 +175,13 @@ const styles = StyleSheet.create({
   header: {
     marginBottom: 24,
     alignItems: 'center',
+  },
+  iconRow: {
+    flexDirection: 'row',
+    gap: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 12,
   },
   title: {
     fontSize: 28,
@@ -550,7 +556,6 @@ const formatDateDisplay = (date: Date): string => {
 };
 
 export default function GratitudeListScreen() {
-  const navigation = useNavigation();
   const [gratitudeItems, setGratitudeItems] = useState<string[]>([]);
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const [editingValue, setEditingValue] = useState<string>('');
@@ -608,52 +613,6 @@ export default function GratitudeListScreen() {
     const todaysItems = getTodaysItems();
     setGratitudeItems(todaysItems);
   }, [getTodaysItems]);
-
-  // Add header icons (Save, Share, Saved Lists, Reset)
-  useLayoutEffect(() => {
-    const hasContent = gratitudeItems.length > 0;
-    
-    navigation.setOptions({
-      headerRight: () => (
-        <View style={{ flexDirection: 'row', gap: 16, paddingRight: 16 }}>
-          {hasContent && (
-            <TouchableOpacity 
-              onPress={handleSaveEntry}
-              accessible={true}
-              accessibilityLabel="Save gratitude list"
-              accessibilityRole="button"
-            >
-              <Save color={Colors.light.tint} size={20} />
-            </TouchableOpacity>
-          )}
-          <TouchableOpacity 
-            onPress={handleShare}
-            accessible={true}
-            accessibilityLabel="Share gratitude list"
-            accessibilityRole="button"
-          >
-            <ShareIcon color={Colors.light.tint} size={20} />
-          </TouchableOpacity>
-          <TouchableOpacity 
-            onPress={() => setShowSavedEntries(true)}
-            accessible={true}
-            accessibilityLabel="View saved lists"
-            accessibilityRole="button"
-          >
-            <Folder color={Colors.light.tint} size={20} />
-          </TouchableOpacity>
-          <TouchableOpacity 
-            onPress={handleReset}
-            accessible={true}
-            accessibilityLabel="Reset gratitude list"
-            accessibilityRole="button"
-          >
-            <RotateCcw color={Colors.light.tint} size={20} />
-          </TouchableOpacity>
-        </View>
-      ),
-    });
-  }, [navigation, gratitudeItems, handleSaveEntry, handleShare, handleReset]);
 
   const handleReset = () => {
     if (gratitudeItems.length === 0 && inputValue.trim() === '') return;
@@ -909,6 +868,59 @@ export default function GratitudeListScreen() {
           {/* Header */}
           <View style={styles.header}>
             <Text style={styles.title}>Gratitude List</Text>
+            
+            {/* Icon Navigation Row */}
+            <View style={styles.iconRow}>
+              {/* Save (only show if has content) */}
+              {gratitudeItems.length > 0 && (
+                <TouchableOpacity 
+                  onPress={handleSaveEntry}
+                  accessible={true}
+                  accessibilityLabel="Save gratitude list"
+                  accessibilityRole="button"
+                  activeOpacity={0.6}
+                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                >
+                  <Save color="#007AFF" size={20} />
+                </TouchableOpacity>
+              )}
+              
+              {/* Share */}
+              <TouchableOpacity 
+                onPress={handleShare}
+                accessible={true}
+                accessibilityLabel="Share gratitude list"
+                accessibilityRole="button"
+                activeOpacity={0.6}
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              >
+                <ShareIcon color="#007AFF" size={20} />
+              </TouchableOpacity>
+              
+              {/* Saved Lists */}
+              <TouchableOpacity 
+                onPress={() => setShowSavedEntries(true)}
+                accessible={true}
+                accessibilityLabel="View saved lists"
+                accessibilityRole="button"
+                activeOpacity={0.6}
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              >
+                <Folder color="#007AFF" size={20} />
+              </TouchableOpacity>
+              
+              {/* Reset */}
+              <TouchableOpacity 
+                onPress={handleReset}
+                accessible={true}
+                accessibilityLabel="Reset gratitude list"
+                accessibilityRole="button"
+                activeOpacity={0.6}
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              >
+                <RotateCcw color="#007AFF" size={20} />
+              </TouchableOpacity>
+            </View>
           </View>
 
           {/* Daily Quote */}
