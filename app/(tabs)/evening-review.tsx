@@ -1,4 +1,4 @@
-import React, { useState, useRef, useLayoutEffect } from 'react';
+import React, { useState, useRef } from 'react';
 import {
   View,
   Text,
@@ -24,7 +24,6 @@ import AnimatedEveningReviewMessage from '@/components/AnimatedEveningReviewMess
 import { ReviewCompleteModal } from '@/components/ReviewCompleteModal';
 import Colors from '@/constants/colors';
 import { adjustFontWeight } from '@/constants/fonts';
-import { useNavigation } from '@react-navigation/native';
 
 const formatDateDisplay = (date: Date): string => {
   return date.toLocaleDateString('en-US', {
@@ -100,7 +99,6 @@ const AnimatedCheckbox = ({ checked, onPress, children }: {
 };
 
 export default function EveningReview() {
-  const navigation = useNavigation();
   const [showConfirmation, setShowConfirmation] = useState(false);
   const [showSavedReviews, setShowSavedReviews] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
@@ -379,61 +377,20 @@ export default function EveningReview() {
     }
   };
 
-  // Add header icons (Save, Share, Saved Reviews, Reset)
-  useLayoutEffect(() => {
-    const hasContent = dailyActions.some(a => a.checked) || 
-                      inventoryQuestions.some(q => q.value.trim() !== '');
-    
-    navigation.setOptions({
-      headerRight: () => (
-        <View style={{ flexDirection: 'row', gap: 16, paddingRight: 16 }}>
-          {hasContent && (
-            <TouchableOpacity 
-              onPress={handleSaveEntry}
-              accessible={true}
-              accessibilityLabel="Save nightly review"
-              accessibilityRole="button"
-            >
-              <Save color={Colors.light.tint} size={20} />
-            </TouchableOpacity>
-          )}
-          <TouchableOpacity 
-            onPress={handleShare}
-            accessible={true}
-            accessibilityLabel="Share nightly review"
-            accessibilityRole="button"
-          >
-            <ShareIcon color={Colors.light.tint} size={20} />
-          </TouchableOpacity>
-          <TouchableOpacity 
-            onPress={() => setShowSavedReviews(true)}
-            accessible={true}
-            accessibilityLabel="View saved reviews"
-            accessibilityRole="button"
-          >
-            <Folder color={Colors.light.tint} size={20} />
-          </TouchableOpacity>
-          <TouchableOpacity 
-            onPress={handleReset}
-            accessible={true}
-            accessibilityLabel="Reset nightly review"
-            accessibilityRole="button"
-          >
-            <RotateCcw color={Colors.light.tint} size={20} />
-          </TouchableOpacity>
-        </View>
-      ),
-    });
-  }, [
-    navigation, 
-    dailyActions, 
-    inventoryQuestions, 
-    handleSaveEntry, 
-    handleShare, 
-    handleReset
-  ]);
-
   const handleSaveEntry = () => {
+    // Check if there's any content to save
+    const hasActions = dailyActions.some(action => action.checked);
+    const hasInventory = inventoryQuestions.some(question => question.value.trim() !== '');
+    
+    if (!hasActions && !hasInventory) {
+      Alert.alert(
+        'Save Nightly Review',
+        'Please complete at least one daily action or inventory question before saving.',
+        [{ text: 'OK' }]
+      );
+      return;
+    }
+    
     const detailedEntry = {
       // New format fields
       stayedSober,
@@ -503,6 +460,61 @@ export default function EveningReview() {
           keyboardShouldPersistTaps="handled"
           contentContainerStyle={styles.scrollContent}
         >
+          {/* Action Row - Above Title */}
+          <View style={styles.actionRow}>
+            {/* Save */}
+            <TouchableOpacity 
+              onPress={handleSaveEntry}
+              accessible={true}
+              accessibilityLabel="Save nightly review"
+              accessibilityRole="button"
+              activeOpacity={0.6}
+              style={styles.actionButton}
+            >
+              <Save color="#007AFF" size={18} />
+              <Text style={styles.actionButtonText}>Save</Text>
+            </TouchableOpacity>
+            
+            {/* Share */}
+            <TouchableOpacity 
+              onPress={handleShare}
+              accessible={true}
+              accessibilityLabel="Share nightly review"
+              accessibilityRole="button"
+              activeOpacity={0.6}
+              style={styles.actionButton}
+            >
+              <ShareIcon color="#007AFF" size={18} />
+              <Text style={styles.actionButtonText}>Share</Text>
+            </TouchableOpacity>
+            
+            {/* History */}
+            <TouchableOpacity 
+              onPress={() => setShowSavedReviews(true)}
+              accessible={true}
+              accessibilityLabel="View saved reviews"
+              accessibilityRole="button"
+              activeOpacity={0.6}
+              style={styles.actionButton}
+            >
+              <Folder color="#007AFF" size={18} />
+              <Text style={styles.actionButtonText}>History</Text>
+            </TouchableOpacity>
+            
+            {/* Reset */}
+            <TouchableOpacity 
+              onPress={handleReset}
+              accessible={true}
+              accessibilityLabel="Reset nightly review"
+              accessibilityRole="button"
+              activeOpacity={0.6}
+              style={styles.actionButton}
+            >
+              <RotateCcw color="#007AFF" size={18} />
+              <Text style={styles.actionButtonText}>Reset</Text>
+            </TouchableOpacity>
+          </View>
+          
           <View style={styles.header}>
             <Text style={styles.title}>Nightly Review</Text>
             <Text style={styles.description}>
@@ -585,6 +597,25 @@ const styles = StyleSheet.create({
   },
   container: {
     flex: 1,
+  },
+  actionRow: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 20,
+    paddingTop: 4,
+    paddingBottom: 12,
+    marginBottom: 8,
+  },
+  actionButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  actionButtonText: {
+    fontSize: 14,
+    color: '#007AFF',
+    fontWeight: '500',
   },
   gradient: {
     position: 'absolute',

@@ -581,6 +581,19 @@ const Inventory = () => {
 
   // Define handler functions before useLayoutEffect to avoid stale closures
   const handleSave = useCallback(async () => {
+    // Check if there's any content to save
+    const hasSelections = Object.values(selections).some(val => val !== 'none');
+    const hasSituation = situation.trim().length > 0;
+    
+    if (!hasSelections && !hasSituation) {
+      Alert.alert(
+        'Save Spot Check',
+        'Please add a situation or make at least one selection before saving.',
+        [{ text: 'OK' }]
+      );
+      return;
+    }
+    
     dismissKeyboard(); // Hide keyboard when saving
     try {
       const stored = await AsyncStorage.getItem(INVENTORY_STORAGE_KEY);
@@ -772,23 +785,20 @@ const Inventory = () => {
       >
         <ScrollView contentContainerStyle={styles.scrollContent}>
           <View style={styles.contentContainer}>
-            <Text style={styles.title}>Spot Check Inventory</Text>
-            
-            {/* Icon Navigation Row */}
-            <View style={styles.iconRow}>
-              {/* Save (only show if has content) */}
-              {hasContent && (
-                <TouchableOpacity 
-                  onPress={handleSave}
-                  accessible={true}
-                  accessibilityLabel="Save spot check"
-                  accessibilityRole="button"
-                  activeOpacity={0.6}
-                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                >
-                  <SaveIcon color="#007AFF" size={20} />
-                </TouchableOpacity>
-              )}
+            {/* Action Row - Above Title */}
+            <View style={styles.actionRow}>
+              {/* Save */}
+              <TouchableOpacity 
+                onPress={handleSave}
+                accessible={true}
+                accessibilityLabel="Save spot check"
+                accessibilityRole="button"
+                activeOpacity={0.6}
+                style={styles.actionButton}
+              >
+                <SaveIcon color="#007AFF" size={18} />
+                <Text style={styles.actionButtonText}>Save</Text>
+              </TouchableOpacity>
               
               {/* Share */}
               <TouchableOpacity 
@@ -797,9 +807,10 @@ const Inventory = () => {
                 accessibilityLabel="Share spot check"
                 accessibilityRole="button"
                 activeOpacity={0.6}
-                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                style={styles.actionButton}
               >
-                <ShareIcon color="#007AFF" size={20} />
+                <ShareIcon color="#007AFF" size={18} />
+                <Text style={styles.actionButtonText}>Share</Text>
               </TouchableOpacity>
               
               {/* History */}
@@ -812,9 +823,10 @@ const Inventory = () => {
                 accessibilityLabel="View history"
                 accessibilityRole="button"
                 activeOpacity={0.6}
-                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                style={styles.actionButton}
               >
-                <Folder color="#007AFF" size={20} />
+                <Folder color="#007AFF" size={18} />
+                <Text style={styles.actionButtonText}>History</Text>
               </TouchableOpacity>
               
               {/* Reset */}
@@ -824,11 +836,14 @@ const Inventory = () => {
                 accessibilityLabel="Reset all selections"
                 accessibilityRole="button"
                 activeOpacity={0.6}
-                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                style={styles.actionButton}
               >
-                <RotateCcw color="#007AFF" size={20} />
+                <RotateCcw color="#007AFF" size={18} />
+                <Text style={styles.actionButtonText}>Reset</Text>
               </TouchableOpacity>
             </View>
+            
+            <Text style={styles.title}>Spot Check Inventory</Text>
             
             {/* Saved Timestamp - always reserve space */}
             <Text style={styles.savedTimestamp}>
@@ -908,19 +923,31 @@ const styles = StyleSheet.create({
   contentContainer: {
     flex: 1,
   },
+  actionRow: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 20,
+    paddingTop: 4,
+    paddingBottom: 12,
+    marginBottom: 8,
+  },
+  actionButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  actionButtonText: {
+    fontSize: 14,
+    color: '#007AFF',
+    fontWeight: '500',
+  },
   title: {
     fontSize: 28,
     fontWeight: 'bold',
     color: Colors.light.text,
     textAlign: 'center',
     marginBottom: 16,
-  },
-  iconRow: {
-    flexDirection: 'row',
-    gap: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 12,
   },
   savedTimestamp: {
     fontSize: 14,
