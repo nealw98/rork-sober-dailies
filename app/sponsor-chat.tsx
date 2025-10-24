@@ -158,10 +158,9 @@ const styles = StyleSheet.create({
     padding: Platform.OS === "android" ? 4 : 8,
   },
   backText: {
-    fontSize: 14,
+    fontSize: 16,
     color: Colors.light.tint,
-    marginLeft: 4,
-    fontWeight: adjustFontWeight("400"),
+    fontWeight: '400',
   },
   sponsorHeader: {
     flex: 1,
