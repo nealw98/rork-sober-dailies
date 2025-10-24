@@ -694,60 +694,28 @@ const Inventory = () => {
     }
   }, [situation, selections, hasUnsavedChanges, dismissKeyboard]);
 
-  // Add header icons (Save, Share, History, Reset)
+  // Add Help button to header
   useLayoutEffect(() => {
     navigation.setOptions({
       headerRight: () => (
-        <View style={{ flexDirection: 'row', gap: 16, paddingRight: 16 }}>
-          {hasContent && (
-            <TouchableOpacity 
-              onPress={handleSave}
-              accessible={true}
-              accessibilityLabel="Save spot check"
-              accessibilityRole="button"
-            >
-              <SaveIcon color={Colors.light.tint} size={20} />
-            </TouchableOpacity>
-          )}
-          <TouchableOpacity 
-            onPress={handleShare}
-            accessible={true}
-            accessibilityLabel="Share spot check"
-            accessibilityRole="button"
-          >
-            <ShareIcon color={Colors.light.tint} size={20} />
-          </TouchableOpacity>
-          <TouchableOpacity 
-            onPress={() => {
-              dismissKeyboard(); // Hide keyboard when opening history
-              setShowHistory(true);
-            }}
-            accessible={true}
-            accessibilityLabel="View history"
-            accessibilityRole="button"
-          >
-            <Folder color={Colors.light.tint} size={20} />
-          </TouchableOpacity>
-          <TouchableOpacity 
-            onPress={handleShowHelp}
-            accessible={true}
-            accessibilityLabel="Show instructions"
-            accessibilityRole="button"
-          >
-            <HelpCircle size={20} color={Colors.light.tint} />
-          </TouchableOpacity>
-          <TouchableOpacity 
-            onPress={handleReset}
-            accessible={true}
-            accessibilityLabel="Reset all selections"
-            accessibilityRole="button"
-          >
-            <RotateCcw size={20} color={Colors.light.tint} />
-          </TouchableOpacity>
-        </View>
+        <TouchableOpacity 
+          onPress={handleShowHelp}
+          accessible={true}
+          accessibilityLabel="Show help"
+          accessibilityRole="button"
+          style={{ paddingRight: 16 }}
+        >
+          <Text style={{ 
+            fontSize: 17, 
+            color: Colors.light.tint,
+            fontWeight: '400'
+          }}>
+            Help
+          </Text>
+        </TouchableOpacity>
       ),
     });
-  }, [navigation, hasUnsavedChanges, hasContent, handleSave, handleShare, handleReset, handleShowHelp, dismissKeyboard]);
+  }, [navigation, handleShowHelp]);
 
   const handlePressLookFor = (pairId: string) => {
     dismissKeyboard(); // Hide keyboard when selecting traits
@@ -805,6 +773,62 @@ const Inventory = () => {
         <ScrollView contentContainerStyle={styles.scrollContent}>
           <View style={styles.contentContainer}>
             <Text style={styles.title}>Spot Check Inventory</Text>
+            
+            {/* Icon Navigation Row */}
+            <View style={styles.iconRow}>
+              {/* Save (only show if has content) */}
+              {hasContent && (
+                <TouchableOpacity 
+                  onPress={handleSave}
+                  accessible={true}
+                  accessibilityLabel="Save spot check"
+                  accessibilityRole="button"
+                  activeOpacity={0.6}
+                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                >
+                  <SaveIcon color="#007AFF" size={20} />
+                </TouchableOpacity>
+              )}
+              
+              {/* Share */}
+              <TouchableOpacity 
+                onPress={handleShare}
+                accessible={true}
+                accessibilityLabel="Share spot check"
+                accessibilityRole="button"
+                activeOpacity={0.6}
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              >
+                <ShareIcon color="#007AFF" size={20} />
+              </TouchableOpacity>
+              
+              {/* History */}
+              <TouchableOpacity 
+                onPress={() => {
+                  dismissKeyboard();
+                  setShowHistory(true);
+                }}
+                accessible={true}
+                accessibilityLabel="View history"
+                accessibilityRole="button"
+                activeOpacity={0.6}
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              >
+                <Folder color="#007AFF" size={20} />
+              </TouchableOpacity>
+              
+              {/* Reset */}
+              <TouchableOpacity 
+                onPress={handleReset}
+                accessible={true}
+                accessibilityLabel="Reset all selections"
+                accessibilityRole="button"
+                activeOpacity={0.6}
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              >
+                <RotateCcw color="#007AFF" size={20} />
+              </TouchableOpacity>
+            </View>
             
             {/* Saved Timestamp - always reserve space */}
             <Text style={styles.savedTimestamp}>
@@ -890,6 +914,13 @@ const styles = StyleSheet.create({
     color: Colors.light.text,
     textAlign: 'center',
     marginBottom: 16,
+  },
+  iconRow: {
+    flexDirection: 'row',
+    gap: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 12,
   },
   savedTimestamp: {
     fontSize: 14,
