@@ -189,7 +189,7 @@ export default function ChatInterface({
     <KeyboardAvoidingView
       style={styles.container}
       behavior={Platform.OS === "ios" ? "padding" : undefined}
-      keyboardVerticalOffset={Platform.OS === "ios" ? 120 : 0}
+      keyboardVerticalOffset={Platform.OS === "ios" ? 90 : 0}
     >
       <LinearGradient
         colors={Colors.gradients.mainThreeColor}
@@ -268,8 +268,8 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: Colors.light.background,
     borderRadius: 16,
-    margin: 12,
-    marginTop: 8,
+    margin: 8,
+    marginTop: 4,
     marginBottom: 0,
     overflow: 'hidden',
     // Level 3: Content Cards (Medium depth)
@@ -352,7 +352,7 @@ const styles = StyleSheet.create({
   },
   inputContainer: {
     flexDirection: "row",
-    padding: 12,
+    padding: 8,
     backgroundColor: 'transparent',
     ...(Platform.OS === 'android' && {
       paddingBottom: Platform.OS === 'android' ? 8 : 12,

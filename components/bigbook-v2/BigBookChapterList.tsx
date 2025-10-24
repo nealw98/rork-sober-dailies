@@ -43,6 +43,9 @@ import { BigBookSearchModal } from './BigBookSearchModal';
 
 interface BigBookChapterListProps {
   onSelectChapter: (chapterId: string, scrollToParagraphId?: string, searchTerm?: string) => void;
+  showToggle?: boolean;
+  onToggle?: () => void;
+  toggleLabel?: string;
 }
 
 interface SectionProps {
@@ -103,7 +106,7 @@ function ChapterSection({ title, description, chapters, onSelectChapter, default
   );
 }
 
-export function BigBookChapterList({ onSelectChapter }: BigBookChapterListProps) {
+export function BigBookChapterList({ onSelectChapter, showToggle, onToggle, toggleLabel }: BigBookChapterListProps) {
   const frontMatter = getFrontMatter();
   const mainChapters = getMainChapters();
   const appendices = getAppendices();
@@ -164,7 +167,7 @@ export function BigBookChapterList({ onSelectChapter }: BigBookChapterListProps)
       />
       
       <View style={styles.content}>
-        {/* Action Row - Above Title */}
+        {/* Action Row - Fixed at top */}
         <View style={styles.actionRow}>
           {/* Go to Page */}
           <TouchableOpacity
@@ -207,19 +210,28 @@ export function BigBookChapterList({ onSelectChapter }: BigBookChapterListProps)
           </TouchableOpacity>
         </View>
         
-        {/* Header - Title Only */}
-        <View style={styles.header}>
-          {/* Title */}
-          {Platform.OS !== 'android' && (
-            <Text style={styles.title}>Alcoholics Anonymous</Text>
-          )}
-        </View>
-        
         <ScrollView 
           style={styles.scrollView}
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.scrollViewContent}
         >
+          {/* Header - Title with optional toggle - Now scrolls with content */}
+          <View style={styles.header}>
+            {/* Title */}
+            {Platform.OS !== 'android' && (
+              <Text style={styles.title}>Alcoholics Anonymous</Text>
+            )}
+            
+            {/* TEMPORARY: Toggle button for testing */}
+            {showToggle && onToggle && toggleLabel && (
+              <TouchableOpacity
+                style={styles.toggleButton}
+                onPress={onToggle}
+              >
+                <Text style={styles.toggleButtonText}>{toggleLabel}</Text>
+              </TouchableOpacity>
+            )}
+          </View>
           <ChapterSection
             title="Forewords and Preface"
             description="Includes The Doctor's Opinion"
@@ -293,13 +305,13 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    gap: 16,
+    gap: 20,
     paddingTop: 4,
     paddingBottom: 12,
     marginBottom: 8,
   },
   actionButton: {
-    flexDirection: 'row',
+    flexDirection: 'column',
     alignItems: 'center',
     gap: 6,
   },
@@ -308,23 +320,39 @@ const styles = StyleSheet.create({
     color: '#007AFF',
     fontWeight: '500',
   },
+  scrollView: {
+    flex: 1,
+  },
+  scrollViewContent: {
+    paddingBottom: 20,
+  },
   header: {
-    paddingVertical: 20,
-    marginBottom: 12,
+    paddingVertical: 8,
+    marginBottom: 8,
     alignItems: 'center',
   },
   title: {
     fontSize: 28,
     fontWeight: adjustFontWeight('bold', true),
     color: Colors.light.text,
-    marginBottom: 16,
+    marginBottom: 8,
     textAlign: 'center',
   },
-  scrollView: {
-    flex: 1,
+  toggleButton: {
+    backgroundColor: Colors.light.tint,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
   },
-  scrollViewContent: {
-    paddingBottom: 20,
+  toggleButtonText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '600',
   },
   sectionContainer: {
     marginBottom: 16,

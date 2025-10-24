@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import { ChevronLeft } from 'lucide-react-native';
 import { GestureDetector } from 'react-native-gesture-handler';
+import { LinearGradient } from 'expo-linear-gradient';
 import Colors from '@/constants/colors';
 import { adjustFontWeight } from '@/constants/fonts';
 import { usePinchToZoom } from '@/hooks/usePinchToZoom';
@@ -153,12 +154,21 @@ const SimpleTextReader = ({ content, title, onClose, indentParagraphs = false, s
         <Text style={styles.headerTitle}>{title}</Text>
       </View>
       
-      <GestureDetector gesture={composedGesture}>
-        <ScrollView 
-          style={styles.content} 
-          showsVerticalScrollIndicator={false}
-          contentContainerStyle={styles.contentContainer}
-        >
+      <View style={{ flex: 1 }}>
+        <LinearGradient
+          colors={['rgba(74, 144, 226, 0.3)', 'rgba(92, 184, 92, 0.1)']}
+          style={styles.backgroundGradient}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          locations={[0, 1]}
+          pointerEvents="none"
+        />
+        <GestureDetector gesture={composedGesture}>
+          <ScrollView 
+            style={styles.content} 
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={styles.contentContainer}
+          >
           {(() => {
             let lastWasBlank = true;
             const lines = content.split('\n');
@@ -240,6 +250,7 @@ const SimpleTextReader = ({ content, title, onClose, indentParagraphs = false, s
             ) : null}
         </ScrollView>
       </GestureDetector>
+      </View>
     </SafeAreaView>
   );
 };
@@ -247,7 +258,14 @@ const SimpleTextReader = ({ content, title, onClose, indentParagraphs = false, s
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.light.background
+    backgroundColor: '#FFFFFF'
+  },
+  backgroundGradient: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
   },
   header: {
     flexDirection: 'row',

@@ -10,7 +10,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { WebView } from 'react-native-webview';
-import { X, ArrowLeft, RefreshCw } from 'lucide-react-native';
+import { ChevronLeft, RefreshCw } from 'lucide-react-native';
 import Colors from '@/constants/colors';
 import { adjustFontWeight } from '@/constants/fonts';
 
@@ -49,7 +49,7 @@ export default function PDFViewer({ url, title, onClose }: PDFViewerProps) {
           onPress={onClose}
           testID="pdf-close-button"
         >
-          <ArrowLeft size={20} color={Colors.light.text} />
+          <ChevronLeft size={24} color={Colors.light.tint} />
           <Text style={styles.backText}>Back</Text>
         </TouchableOpacity>
         
@@ -62,16 +62,9 @@ export default function PDFViewer({ url, title, onClose }: PDFViewerProps) {
               onPress={handleRetry}
               testID="pdf-retry-button"
             >
-              <RefreshCw size={18} color={Colors.light.text} />
+              <RefreshCw size={18} color={Colors.light.tint} />
             </TouchableOpacity>
           )}
-          <TouchableOpacity 
-            style={styles.closeButton} 
-            onPress={onClose}
-            testID="pdf-x-button"
-          >
-            <X size={20} color={Colors.light.text} />
-          </TouchableOpacity>
         </View>
       </View>
       
@@ -187,10 +180,10 @@ const styles = StyleSheet.create({
     paddingRight: 8,
   },
   backText: {
-    fontSize: 14,
-    color: Colors.light.text,
+    fontSize: 16,
+    color: Colors.light.tint,
     marginLeft: 4,
-    fontWeight: adjustFontWeight('500'),
+    fontWeight: '400',
   },
   title: {
     flex: 1,
@@ -205,10 +198,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   retryButton: {
-    padding: 8,
-    marginRight: 4,
-  },
-  closeButton: {
     padding: 8,
   },
   webview: {

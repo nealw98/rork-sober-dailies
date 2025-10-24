@@ -2,14 +2,14 @@
  * Big Book Main Entry Component
  * 
  * Checks access and routes to:
- * - BigBookFreePDF (no access)
+ * - BigBookFreeBrowser (no access)
  * - BigBookChapterList with modal Reader (has access)
  */
 
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, ActivityIndicator, TouchableOpacity } from 'react-native';
 import { hasBigBookAccess } from '@/lib/bigbook-access';
-import { BigBookFreePDF } from './BigBookFreePDF';
+import BigBookFreeBrowser from './BigBookFreeBrowser';
 import { BigBookChapterList } from './BigBookChapterList';
 import { BigBookReader } from './BigBookReader';
 import { BigBookHighlightsProvider } from '@/hooks/use-bigbook-highlights';
@@ -17,6 +17,7 @@ import Colors from '@/constants/colors';
 
 export function BigBookMain() {
   const [hasAccess, setHasAccess] = useState<boolean | null>(null);
+  const [forceShowFree, setForceShowFree] = useState(false); // Temporary toggle
   const [selectedChapterId, setSelectedChapterId] = useState<string | null>(null);
   const [scrollToParagraphId, setScrollToParagraphId] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState<string | null>(null);
@@ -62,29 +63,41 @@ export function BigBookMain() {
     );
   }
 
-  // No access - show free PDF link
-  if (!hasAccess) {
-    return <BigBookFreePDF />;
-  }
+  // Determine which view to show
+  const shouldShowFree = !hasAccess || forceShowFree;
 
-  // Has access - wrap with HighlightsProvider for shared state
+  // Render the appropriate view with toggle button
   return (
-    <BigBookHighlightsProvider>
-      <BigBookChapterList
-        onSelectChapter={handleSelectChapter}
-      />
-      
-      {/* Reader Modal */}
-      {selectedChapterId && (
-        <BigBookReader
-          visible={showReaderModal}
-          initialChapterId={selectedChapterId}
-          scrollToParagraphId={scrollToParagraphId}
-          searchTerm={searchTerm}
-          onClose={handleCloseReader}
+    <View style={{ flex: 1 }}>
+      {/* Show free or premium version */}
+      {shouldShowFree ? (
+        <BigBookFreeBrowser 
+          showToggle={hasAccess}
+          onToggle={() => setForceShowFree(!forceShowFree)}
+          toggleLabel="Show Premium"
         />
+      ) : (
+        <BigBookHighlightsProvider>
+          <BigBookChapterList
+            onSelectChapter={handleSelectChapter}
+            showToggle={hasAccess}
+            onToggle={() => setForceShowFree(!forceShowFree)}
+            toggleLabel="Show Free"
+          />
+          
+          {/* Reader Modal */}
+          {selectedChapterId && (
+            <BigBookReader
+              visible={showReaderModal}
+              initialChapterId={selectedChapterId}
+              scrollToParagraphId={scrollToParagraphId}
+              searchTerm={searchTerm}
+              onClose={handleCloseReader}
+            />
+          )}
+        </BigBookHighlightsProvider>
       )}
-    </BigBookHighlightsProvider>
+    </View>
   );
 }
 

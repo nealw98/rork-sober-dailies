@@ -32,7 +32,6 @@ import {
   List, 
   Bookmark as BookmarkIcon,
   Highlighter,
-  X,
 } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { GestureDetector } from 'react-native-gesture-handler';
@@ -466,24 +465,17 @@ export function BigBookReader({ visible, initialChapterId, scrollToParagraphId, 
       onRequestClose={onClose}
     >
       <SafeAreaView style={[styles.container, { backgroundColor: '#FFFFFF' }]}>
-        {/* Two-Row Header */}
+        {/* Header */}
         <View style={styles.header}>
-          {/* Row 1: Chapter Navigation with Close Button */}
+          {/* Row 1: Back button and Title */}
           <View style={styles.headerTopRow}>
             <TouchableOpacity 
               onPress={onClose}
-              style={styles.closeButton}
+              style={styles.backButton}
               hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
             >
-              <X size={24} color={Colors.light.text} />
-            </TouchableOpacity>
-
-            <TouchableOpacity 
-              onPress={goToPreviousChapter}
-              style={styles.navArrowButton}
-              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-            >
-              <ChevronLeft size={24} color={Colors.light.text} />
+              <ChevronLeft size={24} color={Colors.light.tint} />
+              <Text style={styles.backText}>Back</Text>
             </TouchableOpacity>
 
             <View style={styles.headerTitleContainer}>
@@ -491,14 +483,8 @@ export function BigBookReader({ visible, initialChapterId, scrollToParagraphId, 
                 {currentChapter.title}
               </Text>
             </View>
-
-            <TouchableOpacity 
-              onPress={goToNextChapter}
-              style={styles.navArrowButton}
-              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-            >
-              <ChevronRight size={24} color={Colors.light.text} />
-            </TouchableOpacity>
+            
+            <View style={styles.headerSpacer} />
           </View>
         
         {/* Row 2: Page Number & Actions */}
@@ -528,10 +514,11 @@ export function BigBookReader({ visible, initialChapterId, scrollToParagraphId, 
               style={styles.headerActionButton}
             >
               <Highlighter 
-                size={22} 
+                size={18} 
                 color={selectedColor ? getColorForHighlighter(selectedColor) : Colors.light.tint} 
                 fill={highlightMode ? (selectedColor ? getColorForHighlighter(selectedColor) : Colors.light.tint) : 'transparent'}
               />
+              <Text style={styles.headerActionText}>Highlight</Text>
             </TouchableOpacity>
 
             <TouchableOpacity 
@@ -539,10 +526,11 @@ export function BigBookReader({ visible, initialChapterId, scrollToParagraphId, 
               style={styles.headerActionButton}
             >
               <BookmarkIcon 
-                size={22} 
+                size={18} 
                 color={Colors.light.tint} 
                 fill={isCurrentPageBookmarked ? Colors.light.tint : 'transparent'}
               />
+              <Text style={styles.headerActionText}>Bookmark</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -604,6 +592,33 @@ export function BigBookReader({ visible, initialChapterId, scrollToParagraphId, 
               })}
           </ScrollView>
         </GestureDetector>
+      </View>
+
+      {/* Footer with Chapter Navigation */}
+      <View style={styles.footer}>
+        <TouchableOpacity 
+          onPress={goToPreviousChapter}
+          style={styles.footerNavButton}
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+        >
+          <ChevronLeft size={20} color={Colors.light.tint} />
+          <Text style={styles.footerNavText}>Prev</Text>
+        </TouchableOpacity>
+
+        {getChapterMeta(currentChapterId)?.chapterNumber && (
+          <Text style={styles.footerChapterNumber}>
+            Chapter {getChapterMeta(currentChapterId)?.chapterNumber}
+          </Text>
+        )}
+
+        <TouchableOpacity 
+          onPress={goToNextChapter}
+          style={styles.footerNavButton}
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+        >
+          <Text style={styles.footerNavText}>Next</Text>
+          <ChevronRight size={20} color={Colors.light.tint} />
+        </TouchableOpacity>
       </View>
 
       {/* Bookmark Dialog */}
@@ -674,7 +689,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 12,
-    marginBottom: 4, // Reduced from 8 to 4
+    marginBottom: 4,
   },
   headerBottomRow: {
     flexDirection: 'row',
@@ -683,15 +698,19 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 2,
   },
-  navArrowButton: {
-    padding: 8,
-    justifyContent: 'center',
+  backButton: {
+    flexDirection: 'row',
     alignItems: 'center',
+    padding: 8,
   },
-  closeButton: {
-    padding: 8,
-    justifyContent: 'center',
-    alignItems: 'center',
+  backText: {
+    fontSize: 16,
+    color: Colors.light.tint,
+    marginLeft: 4,
+    fontWeight: '400',
+  },
+  headerSpacer: {
+    width: 80, // Approximate width of back button to balance the title
   },
   headerTitleContainer: {
     flex: 1,
@@ -712,13 +731,47 @@ const styles = StyleSheet.create({
   headerActions: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: 12,
   },
   headerActionButton: {
-    width: 40,
-    height: 44,
+    flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
+    gap: 4,
+    paddingVertical: 4,
+    paddingHorizontal: 6,
+  },
+  headerActionText: {
+    fontSize: 14,
+    color: Colors.light.tint,
+    fontWeight: '400',
+  },
+  footer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 24,
+    paddingTop: 8,
+    paddingBottom: 4,
+    backgroundColor: '#FFFFFF',
+    borderTopWidth: 1,
+    borderTopColor: Colors.light.divider,
+  },
+  footerNavButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 8,
+    gap: 6,
+  },
+  footerNavText: {
+    fontSize: 16,
+    color: Colors.light.tint,
+    fontWeight: '400',
+  },
+  footerChapterNumber: {
+    fontSize: 14,
+    color: Colors.light.text,
+    fontWeight: adjustFontWeight('500'),
   },
   searchContainer: {
     padding: 16,
