@@ -374,6 +374,7 @@ export default function EveningReview() {
       setReflectionBetter('');
     }
   };
+
   const handleSaveEntry = () => {
     // Check if there's any content to save
     const hasActions = dailyActions.some(action => action.checked);
