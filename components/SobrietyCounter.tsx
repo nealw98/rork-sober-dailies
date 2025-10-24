@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { StyleSheet, View, Text, TouchableOpacity, Modal, TextInput, Alert } from 'react-native';
+import { StyleSheet, View, Text, TouchableOpacity, Modal, TextInput, Alert, Keyboard } from 'react-native';
 import { Calendar, X, Edit3 } from 'lucide-react-native';
 import { useSobriety } from '@/hooks/useSobrietyStore';
 import { formatStoredDateForDisplay, parseLocalDate, formatLocalDate } from '@/lib/dateUtils';
@@ -69,6 +69,9 @@ const SobrietyCounter = () => {
       return;
     }
     
+    // Dismiss keyboard first
+    Keyboard.dismiss();
+    
     const [month, day, year] = dateInput.split('/').map(Number);
     const dateString = `${year}-${month.toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`;
     
@@ -113,6 +116,9 @@ const SobrietyCounter = () => {
       Alert.alert('Invalid Date', 'Please enter a valid date in MM/DD/YYYY format that is not in the future.');
       return;
     }
+    
+    // Dismiss keyboard first
+    Keyboard.dismiss();
     
     const [month, day, year] = dateInput.split('/').map(Number);
     const dateString = `${year}-${month.toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`;
