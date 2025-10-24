@@ -35,19 +35,33 @@ import {
   X,
 } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { GestureDetector } from 'react-native-gesture-handler';
 import Colors from '@/constants/colors';
 import { adjustFontWeight } from '@/constants/fonts';
 import { useBigBookContent } from '@/hooks/use-bigbook-content';
 import { useBigBookBookmarks } from '@/hooks/use-bigbook-bookmarks';
 import { useBigBookHighlights } from '@/hooks/use-bigbook-highlights';
+import { usePinchToZoom } from '@/hooks/usePinchToZoom';
 import { getChapterMeta } from '@/constants/bigbook-v2/metadata';
 import { formatPageNumber } from '@/lib/bigbook-page-utils';
 import { BigBookParagraph } from './BigBookParagraph';
 import { BigBookBookmarkDialog } from './BigBookBookmarkDialog';
 import { HighlightColorPicker } from './HighlightColorPicker';
+import { HighlightColorToast } from './HighlightColorToast';
 import { HighlightEditMenu } from './HighlightEditMenu';
 import { SearchResult } from '@/hooks/use-bigbook-content';
 import { HighlightColor, BigBookHighlight } from '@/types/bigbook-v2';
+
+// Map highlight colors to icon colors
+function getColorForHighlighter(color: HighlightColor): string {
+  const colorMap: Record<HighlightColor, string> = {
+    [HighlightColor.YELLOW]: '#FBBF24', // Lighter Yellow
+    [HighlightColor.GREEN]: '#10B981', // Emerald
+    [HighlightColor.BLUE]: '#3B82F6', // Blue
+    [HighlightColor.PINK]: '#EC4899', // Pink
+  };
+  return colorMap[color];
+}
 
 interface BigBookReaderProps {
   visible: boolean;
@@ -113,6 +127,7 @@ export function BigBookReader({ visible, initialChapterId, scrollToParagraphId, 
   // Highlight mode state
   const [highlightMode, setHighlightMode] = useState(false);
   const [showColorPicker, setShowColorPicker] = useState(false);
+  const [showColorToast, setShowColorToast] = useState(false);
   const [selectedColor, setSelectedColor] = useState<HighlightColor | null>(null);
   const [pendingSentence, setPendingSentence] = useState<{
     paragraphId: string;
@@ -121,6 +136,14 @@ export function BigBookReader({ visible, initialChapterId, scrollToParagraphId, 
   } | null>(null);
   const [showHighlightEditMenu, setShowHighlightEditMenu] = useState(false);
   const [editingHighlight, setEditingHighlight] = useState<BigBookHighlight | null>(null);
+
+  // Pinch-to-zoom font sizing
+  const { fontSize, composedGesture } = usePinchToZoom({
+    storageKey: 'bigBookReader.fontSize',
+    baseFontSize: 16,
+    minSize: 12,
+    maxSize: 28,
+  });
 
   // Load initial chapter
   useEffect(() => {
@@ -281,16 +304,24 @@ export function BigBookReader({ visible, initialChapterId, scrollToParagraphId, 
   const handleToggleHighlightMode = () => {
     console.log('[BigBookReader] Toggling highlight mode, current:', highlightMode);
     if (highlightMode) {
-      // Exiting highlight mode - close color picker and reset
+      // Exiting highlight mode - reset
       setHighlightMode(false);
-      setShowColorPicker(false);
       setSelectedColor(null);
       setPendingSentence(null);
     } else {
-      // Entering highlight mode - show color picker
+      // Simple tap when no color selected - do nothing (need long press to select color first)
+      if (!selectedColor) {
+        console.log('[BigBookReader] No color selected - long press to select color first');
+        return;
+      }
+      // Entering highlight mode with already selected color
       setHighlightMode(true);
-      setShowColorPicker(true);
     }
+  };
+
+  const handleLongPressHighlightIcon = () => {
+    console.log('[BigBookReader] Long press highlight icon - showing color toast');
+    setShowColorToast(true);
   };
 
   const handleCloseColorPicker = () => {
@@ -299,6 +330,10 @@ export function BigBookReader({ visible, initialChapterId, scrollToParagraphId, 
     setShowColorPicker(false);
     setSelectedColor(null);
     setPendingSentence(null);
+  };
+
+  const handleCloseColorToast = () => {
+    setShowColorToast(false);
   };
 
   const handleSentenceTap = useCallback((paragraphId: string, sentenceIndex: number, sentenceText: string) => {
@@ -346,6 +381,15 @@ export function BigBookReader({ visible, initialChapterId, scrollToParagraphId, 
       );
       setPendingSentence(null);
     }
+  };
+
+  const handleColorSelectFromToast = (color: HighlightColor) => {
+    console.log('[BigBookReader] Color selected from toast:', color);
+    setSelectedColor(color);
+    setShowColorToast(false);
+    
+    // Auto-enable highlight mode when color is selected
+    setHighlightMode(true);
   };
 
   const handleHighlightTap = useCallback(async (paragraphId: string, sentenceIndex: number) => {
@@ -478,13 +522,15 @@ export function BigBookReader({ visible, initialChapterId, scrollToParagraphId, 
           {/* Right: Action Icons */}
           <View style={styles.headerActions}>
             <TouchableOpacity 
-              onPress={handleToggleHighlightMode} 
+              onPress={handleToggleHighlightMode}
+              onLongPress={handleLongPressHighlightIcon}
+              delayLongPress={500}
               style={styles.headerActionButton}
             >
               <Highlighter 
                 size={22} 
-                color={Colors.light.tint} 
-                fill={highlightMode ? Colors.light.tint : 'transparent'}
+                color={selectedColor ? getColorForHighlighter(selectedColor) : Colors.light.tint} 
+                fill={highlightMode ? (selectedColor ? getColorForHighlighter(selectedColor) : Colors.light.tint) : 'transparent'}
               />
             </TouchableOpacity>
 
@@ -513,42 +559,51 @@ export function BigBookReader({ visible, initialChapterId, scrollToParagraphId, 
           locations={[0, 1]}
           pointerEvents="none"
         />
-        <ScrollView
-          ref={scrollViewRef}
-          style={styles.content}
-          contentContainerStyle={styles.contentContainer}
-          showsVerticalScrollIndicator={true}
-          onScroll={handleScroll}
-          scrollEventThrottle={150}
-        >
-          {currentChapter.paragraphs.map((paragraph) => (
-            <View
-              key={paragraph.id}
-              ref={(ref) => {
-                if (ref) {
-                  paragraphRefs.current.set(paragraph.id, ref);
-                } else {
-                  paragraphRefs.current.delete(paragraph.id);
-                }
-              }}
-              onLayout={(event) => handleParagraphLayout(paragraph.id, paragraph.pageNumber, event)}
-              collapsable={false}
-            >
-              <BigBookParagraph
-                paragraph={paragraph}
-                showPageNumber={false}
-                highlightMode={highlightMode}
-                searchTerm={searchTerm || undefined}
-                onSentenceTap={(sentenceIndex, sentenceText) => 
-                  handleSentenceTap(paragraph.id, sentenceIndex, sentenceText)
-                }
-                onHighlightTap={(sentenceIndex) =>
-                  handleHighlightTap(paragraph.id, sentenceIndex)
-                }
-              />
-            </View>
-          ))}
-        </ScrollView>
+        <GestureDetector gesture={composedGesture}>
+          <ScrollView
+            ref={scrollViewRef}
+            style={styles.content}
+            contentContainerStyle={styles.contentContainer}
+            showsVerticalScrollIndicator={true}
+            onScroll={handleScroll}
+            scrollEventThrottle={150}
+          >
+            {currentChapter.paragraphs.map((paragraph, index) => {
+                const previousParagraph = index > 0 ? currentChapter.paragraphs[index - 1] : null;
+                const isPageBreak = previousParagraph && previousParagraph.pageNumber !== paragraph.pageNumber;
+                
+                return (
+                  <View
+                    key={paragraph.id}
+                    ref={(ref) => {
+                      if (ref) {
+                        paragraphRefs.current.set(paragraph.id, ref);
+                      } else {
+                        paragraphRefs.current.delete(paragraph.id);
+                      }
+                    }}
+                    onLayout={(event) => handleParagraphLayout(paragraph.id, paragraph.pageNumber, event)}
+                    collapsable={false}
+                  >
+                    <BigBookParagraph
+                      paragraph={paragraph}
+                      showPageNumber={false}
+                      isPageBreak={isPageBreak}
+                      fontSize={fontSize}
+                      highlightMode={highlightMode}
+                      searchTerm={searchTerm || undefined}
+                      onSentenceTap={(sentenceIndex, sentenceText) => 
+                        handleSentenceTap(paragraph.id, sentenceIndex, sentenceText)
+                      }
+                      onHighlightTap={(sentenceIndex) =>
+                        handleHighlightTap(paragraph.id, sentenceIndex)
+                      }
+                    />
+                  </View>
+                );
+              })}
+          </ScrollView>
+        </GestureDetector>
       </View>
 
       {/* Bookmark Dialog */}
@@ -570,6 +625,13 @@ export function BigBookReader({ visible, initialChapterId, scrollToParagraphId, 
         visible={showColorPicker}
         onSelectColor={handleColorSelect}
         onClose={handleCloseColorPicker}
+      />
+
+      {/* Highlight Color Toast */}
+      <HighlightColorToast
+        visible={showColorToast}
+        onSelectColor={handleColorSelectFromToast}
+        onClose={handleCloseColorToast}
       />
 
       {/* Highlight Edit Menu */}

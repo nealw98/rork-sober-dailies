@@ -20,6 +20,8 @@ import { adjustFontWeight } from '@/constants/fonts';
 interface BigBookParagraphProps {
   paragraph: ParagraphType;
   showPageNumber?: boolean;
+  isPageBreak?: boolean;
+  fontSize?: number;
   highlightMode?: boolean;
   searchTerm?: string;
   onSentenceTap?: (sentenceIndex: number, sentenceText: string) => void;
@@ -206,6 +208,8 @@ function highlightSearchTerm(text: string, searchTerm: string, key: string | num
 export function BigBookParagraph({ 
   paragraph, 
   showPageNumber = true,
+  isPageBreak = false,
+  fontSize = 16,
   highlightMode = false,
   searchTerm,
   onSentenceTap,
@@ -217,8 +221,6 @@ export function BigBookParagraph({
   if (isPageMarker(paragraph.content)) {
     return null;
   }
-
-  console.log('[BigBookParagraph] RENDER - paragraph:', paragraph.id, 'highlights:', highlights.length);
 
   // Parse paragraph into sentences (preserves markdown for later parsing)
   const sentences = useMemo(() => parseSentences(paragraph.content), [paragraph.content]);
@@ -239,20 +241,14 @@ export function BigBookParagraph({
   const highlightMap = useMemo(() => {
     const map = new Map<number, { color: string; highlightId: string; note?: string }>();
     highlights.forEach(highlight => {
-      console.log('[BigBookParagraph] Processing highlight:', highlight.sentenceIndex, 'color:', highlight.color);
       map.set(highlight.sentenceIndex, {
         color: HIGHLIGHT_COLORS[highlight.color],
         highlightId: highlight.id,
         note: highlight.note,
       });
     });
-    console.log('[BigBookParagraph] Highlight map for', paragraph.id, ':', {
-      highlightsCount: highlights.length,
-      mapSize: map.size,
-      sentencesWithHighlights: Array.from(map.keys())
-    });
     return map;
-  }, [highlights, paragraph.id]);
+  }, [highlights]);
 
   // Determine if we should show page number
   const shouldShowPageNumber = useMemo(() => {
@@ -260,35 +256,31 @@ export function BigBookParagraph({
   }, [showPageNumber, paragraph.order]);
 
   const handleSentenceTap = (index: number, sentenceText: string) => {
-    console.log('[BigBookParagraph] Sentence tapped:', { 
-      index, 
-      sentenceText: sentenceText.substring(0, 50) + '...', 
-      highlightMode,
-      hasOnSentenceTap: !!onSentenceTap 
-    });
-    
     const existingHighlight = highlightMap.get(index);
     
     if (existingHighlight && onHighlightTap) {
       // Tapped an existing highlight - show edit menu
-      console.log('[BigBookParagraph] Existing highlight tapped, calling onHighlightTap');
       onHighlightTap(index);
     } else if (highlightMode && onSentenceTap) {
       // In highlight mode, tapping unhighlighted sentence - add highlight
-      console.log('[BigBookParagraph] New highlight, calling onSentenceTap');
       onSentenceTap(index, sentenceText);
-    } else {
-      console.log('[BigBookParagraph] No action taken - highlightMode:', highlightMode, 'onSentenceTap:', !!onSentenceTap);
     }
   };
 
   return (
     <View style={styles.container}>
+      {/* Page Break Divider */}
+      {isPageBreak && (
+        <View style={{ alignItems: 'center', marginTop: -5, marginBottom: 20 }}>
+          <View style={styles.pageBreakDivider} />
+        </View>
+      )}
+
       {/* Page Number */}
       {shouldShowPageNumber && (
-        <View style={styles.pageNumberContainer}>
+        <View style={{ alignItems: 'center', marginVertical: 12 }}>
+          <View style={styles.pageBreakDivider} />
           <Text style={styles.pageNumber}>Page {paragraph.pageNumber}</Text>
-          <View style={styles.pageNumberLine} />
         </View>
       )}
 
@@ -301,7 +293,7 @@ export function BigBookParagraph({
             <View style={styles.tableRow}>
               {tableData.headers.map((header, index) => (
                 <View key={index} style={[styles.tableCell, styles.tableHeaderCell]}>
-                  <Text style={styles.tableHeaderText}>{header}</Text>
+                  <Text style={[styles.tableHeaderText, { fontSize: fontSize * 0.875 }]}>{header}</Text>
                 </View>
               ))}
             </View>
@@ -310,7 +302,7 @@ export function BigBookParagraph({
               <View key={rowIndex} style={styles.tableRow}>
                 {row.map((cell, cellIndex) => (
                   <View key={cellIndex} style={styles.tableCell}>
-                    <Text style={styles.tableCellText}>{cell}</Text>
+                    <Text style={[styles.tableCellText, { fontSize: fontSize * 0.875, lineHeight: fontSize * 0.875 * 1.43 }]}>{cell}</Text>
                   </View>
                 ))}
               </View>
@@ -318,20 +310,12 @@ export function BigBookParagraph({
           </View>
         ) : (
           /* Render Normal Text */
-          <Text style={[styles.paragraphText, isVerse && styles.verseText]}>
+          <Text style={[styles.paragraphText, isVerse && styles.verseText, { fontSize: fontSize, lineHeight: fontSize * 1.625 }]}>
             {sentences.map((sentence, index) => {
             const highlight = highlightMap.get(index);
             const isHighlighted = !!highlight;
             const highlightColor = highlight?.color;
             const isInteractive = highlightMode || isHighlighted;
-
-            if (index === 0 || isHighlighted) {
-              console.log('[BigBookParagraph] Rendering sentence', index, ':', {
-                isHighlighted,
-                highlightColor: highlight?.color,
-                sentencePreview: sentence.substring(0, 30)
-              });
-            }
 
             if (isInteractive) {
               return (
@@ -375,6 +359,11 @@ const styles = StyleSheet.create({
   pageNumberContainer: {
     marginBottom: 16,
     marginTop: 8,
+  },
+  pageBreakDivider: {
+    width: 120,
+    height: 1,
+    backgroundColor: '#666666', // Darker gray line for visibility
   },
   pageNumber: {
     fontSize: 14,

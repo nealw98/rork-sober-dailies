@@ -9,8 +9,10 @@ import {
   Platform
 } from 'react-native';
 import { ChevronLeft } from 'lucide-react-native';
+import { GestureDetector } from 'react-native-gesture-handler';
 import Colors from '@/constants/colors';
 import { adjustFontWeight } from '@/constants/fonts';
+import { usePinchToZoom } from '@/hooks/usePinchToZoom';
 
 interface SimpleTextReaderProps {
   content: string;
@@ -21,6 +23,14 @@ interface SimpleTextReaderProps {
 }
 
 const SimpleTextReader = ({ content, title, onClose, indentParagraphs = false, source }: SimpleTextReaderProps) => {
+  // Pinch-to-zoom font sizing
+  const { fontSize, composedGesture } = usePinchToZoom({
+    storageKey: 'meetingReadings.fontSize',
+    baseFontSize: 16,
+    minSize: 12,
+    maxSize: 28,
+  });
+
   // Helper function to parse inline markdown (italic, bold)
   const parseMarkdown = (text: string) => {
     const parts: Array<{ text: string; italic?: boolean; bold?: boolean }> = [];
@@ -143,91 +153,93 @@ const SimpleTextReader = ({ content, title, onClose, indentParagraphs = false, s
         <Text style={styles.headerTitle}>{title}</Text>
       </View>
       
-      <ScrollView 
-        style={styles.content} 
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.contentContainer}
-      >
-        {(() => {
-          let lastWasBlank = true;
-          const lines = content.split('\n');
-          return lines.map((line, idx) => {
-            const trimmed = line.trim();
-            // Detect numbered list like "1. Text..."
-            const numbered = trimmed.match(/^(\d+)\.\s+(.*)$/);
-            // Detect lettered list like "(a) Text..."
-            const lettered = trimmed.match(/^\(([a-zA-Z])\)\s+(.*)$/);
-            // Detect bullet list like "* Text..." or "- Text..."
-            const bulleted = trimmed.match(/^[*-]\s+(.*)$/);
-            const isKnownHeading = (
-              trimmed === 'Opening' ||
-              trimmed === 'Preamble' ||
-              trimmed === 'Readings' ||
-              trimmed === 'Introductions & Newcomers' ||
-              trimmed === 'Announcements' ||
-              trimmed === 'Meeting Format' ||
-              trimmed === 'Discussion / Speaker' ||
-              trimmed === 'Seventh Tradition' ||
-              trimmed === 'Closing' ||
-              trimmed === 'Anonymity Statement'
-            );
-            if (trimmed.length === 0) {
-              lastWasBlank = true;
-              return <Text key={idx} style={styles.textContent}>{'\u00A0'}</Text>;
-            }
-            // Render numbered list item with hanging indent (no first-line indent)
-            if (numbered && !isKnownHeading) {
-              const label = `${numbered[1]}.`;
-              const text = numbered[2];
-              const labelWidth = Math.max(22, 16 + numbered[1].length * 8); // widen slightly for 2+ digits
-              lastWasBlank = false;
-              return (
-                <View key={idx} style={styles.numberRow}>
-                  <Text style={[styles.numberLabel, { width: labelWidth }]}>{label}</Text>
-                  {renderMarkdownText(text, styles.numberText)}
-                </View>
-              );
-            }
-            // Render lettered list item with hanging indent (no first-line indent)
-            if (lettered && !isKnownHeading) {
-              const label = `(${lettered[1].toLowerCase()})`;
-              const text = lettered[2];
-              const labelWidth = 32; // accommodate "(a)"
-              lastWasBlank = false;
-              return (
-                <View key={idx} style={styles.numberRow}>
-                  <Text style={[styles.numberLabel, { width: labelWidth }]}>{label}</Text>
-                  {renderMarkdownText(text, styles.numberText)}
-                </View>
-              );
-            }
-            // Render bulleted list item with hanging indent (no first-line indent)
-            if (bulleted && !isKnownHeading) {
-              const label = '\u2022'; // bullet •
-              const text = bulleted[1];
-              const labelWidth = 22;
-              lastWasBlank = false;
-              return (
-                <View key={idx} style={styles.numberRow}>
-                  <Text style={[styles.numberLabel, { width: labelWidth }]}>{label}</Text>
-                  {renderMarkdownText(text, styles.numberText)}
-                </View>
-              );
-            }
-            const prefix = indentParagraphs && lastWasBlank && !isKnownHeading ? '\u2003' : '';
-            lastWasBlank = false;
-            const textToRender = prefix + trimmed;
-            return (
-              <View key={idx}>
-                {renderMarkdownText(textToRender, isKnownHeading ? styles.headingText : styles.textContent)}
-              </View>
-            );
-          });
-        })()}
-        {source ? (
-          <Text style={styles.sourceText}>{source}</Text>
-        ) : null}
-      </ScrollView>
+      <GestureDetector gesture={composedGesture}>
+        <ScrollView 
+          style={styles.content} 
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={styles.contentContainer}
+        >
+          {(() => {
+            let lastWasBlank = true;
+            const lines = content.split('\n');
+            return lines.map((line, idx) => {
+                const trimmed = line.trim();
+                // Detect numbered list like "1. Text..."
+                const numbered = trimmed.match(/^(\d+)\.\s+(.*)$/);
+                // Detect lettered list like "(a) Text..."
+                const lettered = trimmed.match(/^\(([a-zA-Z])\)\s+(.*)$/);
+                // Detect bullet list like "* Text..." or "- Text..."
+                const bulleted = trimmed.match(/^[*-]\s+(.*)$/);
+                const isKnownHeading = (
+                  trimmed === 'Opening' ||
+                  trimmed === 'Preamble' ||
+                  trimmed === 'Readings' ||
+                  trimmed === 'Introductions & Newcomers' ||
+                  trimmed === 'Announcements' ||
+                  trimmed === 'Meeting Format' ||
+                  trimmed === 'Discussion / Speaker' ||
+                  trimmed === 'Seventh Tradition' ||
+                  trimmed === 'Closing' ||
+                  trimmed === 'Anonymity Statement'
+                );
+                if (trimmed.length === 0) {
+                  lastWasBlank = true;
+                  return <Text key={idx} style={[styles.textContent, { fontSize, lineHeight: fontSize * 1.375 }]}>{'\u00A0'}</Text>;
+                }
+                // Render numbered list item with hanging indent (no first-line indent)
+                if (numbered && !isKnownHeading) {
+                  const label = `${numbered[1]}.`;
+                  const text = numbered[2];
+                  const labelWidth = Math.max(22, 16 + numbered[1].length * 8); // widen slightly for 2+ digits
+                  lastWasBlank = false;
+                  return (
+                    <View key={idx} style={styles.numberRow}>
+                      <Text style={[styles.numberLabel, { width: labelWidth, fontSize, lineHeight: fontSize * 1.375 }]}>{label}</Text>
+                      {renderMarkdownText(text, [styles.numberText, { fontSize, lineHeight: fontSize * 1.375 }])}
+                    </View>
+                  );
+                }
+                // Render lettered list item with hanging indent (no first-line indent)
+                if (lettered && !isKnownHeading) {
+                  const label = `(${lettered[1].toLowerCase()})`;
+                  const text = lettered[2];
+                  const labelWidth = 32; // accommodate "(a)"
+                  lastWasBlank = false;
+                  return (
+                    <View key={idx} style={styles.numberRow}>
+                      <Text style={[styles.numberLabel, { width: labelWidth, fontSize, lineHeight: fontSize * 1.375 }]}>{label}</Text>
+                      {renderMarkdownText(text, [styles.numberText, { fontSize, lineHeight: fontSize * 1.375 }])}
+                    </View>
+                  );
+                }
+                // Render bulleted list item with hanging indent (no first-line indent)
+                if (bulleted && !isKnownHeading) {
+                  const label = '\u2022'; // bullet •
+                  const text = bulleted[1];
+                  const labelWidth = 22;
+                  lastWasBlank = false;
+                  return (
+                    <View key={idx} style={styles.numberRow}>
+                      <Text style={[styles.numberLabel, { width: labelWidth, fontSize, lineHeight: fontSize * 1.375 }]}>{label}</Text>
+                      {renderMarkdownText(text, [styles.numberText, { fontSize, lineHeight: fontSize * 1.375 }])}
+                    </View>
+                  );
+                }
+                const prefix = indentParagraphs && lastWasBlank && !isKnownHeading ? '\u2003' : '';
+                lastWasBlank = false;
+                const textToRender = prefix + trimmed;
+                return (
+                  <View key={idx}>
+                    {renderMarkdownText(textToRender, isKnownHeading ? [styles.headingText, { fontSize, lineHeight: fontSize * 1.375 }] : [styles.textContent, { fontSize, lineHeight: fontSize * 1.375 }])}
+                  </View>
+                );
+              });
+            })()}
+            {source ? (
+              <Text style={[styles.sourceText, { fontSize: fontSize * 0.875 }]}>{source}</Text>
+            ) : null}
+        </ScrollView>
+      </GestureDetector>
     </SafeAreaView>
   );
 };
