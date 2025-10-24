@@ -164,51 +164,55 @@ export function BigBookChapterList({ onSelectChapter }: BigBookChapterListProps)
       />
       
       <View style={styles.content}>
-        {/* Header with Navigation Actions */}
+        {/* Action Row - Above Title */}
+        <View style={styles.actionRow}>
+          {/* Go to Page */}
+          <TouchableOpacity
+            onPress={() => setShowPageNavigation(true)}
+            activeOpacity={0.6}
+            style={styles.actionButton}
+          >
+            <Hash size={18} color="#007AFF" />
+            <Text style={styles.actionButtonText}>Go to Page</Text>
+          </TouchableOpacity>
+          
+          {/* Search */}
+          <TouchableOpacity
+            onPress={() => setShowSearch(true)}
+            activeOpacity={0.6}
+            style={styles.actionButton}
+          >
+            <SearchIcon size={18} color="#007AFF" />
+            <Text style={styles.actionButtonText}>Search</Text>
+          </TouchableOpacity>
+          
+          {/* Highlights */}
+          <TouchableOpacity
+            onPress={() => setShowHighlightsList(true)}
+            activeOpacity={0.6}
+            style={styles.actionButton}
+          >
+            <Highlighter size={18} color="#007AFF" />
+            <Text style={styles.actionButtonText}>Highlights</Text>
+          </TouchableOpacity>
+          
+          {/* Bookmarks */}
+          <TouchableOpacity
+            onPress={() => setShowBookmarksList(true)}
+            activeOpacity={0.6}
+            style={styles.actionButton}
+          >
+            <BookmarkIcon size={18} color="#007AFF" />
+            <Text style={styles.actionButtonText}>Bookmarks</Text>
+          </TouchableOpacity>
+        </View>
+        
+        {/* Header - Title Only */}
         <View style={styles.header}>
           {/* Title */}
           {Platform.OS !== 'android' && (
             <Text style={styles.title}>Alcoholics Anonymous</Text>
           )}
-          
-          {/* Icon Navigation Row */}
-          <View style={styles.iconRow}>
-            {/* Page # */}
-            <TouchableOpacity
-              onPress={() => setShowPageNavigation(true)}
-              activeOpacity={0.6}
-              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-            >
-              <Hash size={20} color="#007AFF" />
-            </TouchableOpacity>
-            
-            {/* Search */}
-            <TouchableOpacity
-              onPress={() => setShowSearch(true)}
-              activeOpacity={0.6}
-              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-            >
-              <SearchIcon size={20} color="#007AFF" />
-            </TouchableOpacity>
-            
-            {/* Highlights */}
-            <TouchableOpacity
-              onPress={() => setShowHighlightsList(true)}
-              activeOpacity={0.6}
-              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-            >
-              <Highlighter size={20} color="#007AFF" />
-            </TouchableOpacity>
-            
-            {/* Bookmarks */}
-            <TouchableOpacity
-              onPress={() => setShowBookmarksList(true)}
-              activeOpacity={0.6}
-              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-            >
-              <BookmarkIcon size={20} color="#007AFF" />
-            </TouchableOpacity>
-          </View>
         </View>
         
         <ScrollView 
@@ -285,6 +289,25 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingTop: 20,
   },
+  actionRow: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 20,
+    paddingTop: 4,
+    paddingBottom: 12,
+    marginBottom: 8,
+  },
+  actionButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  actionButtonText: {
+    fontSize: 14,
+    color: '#007AFF',
+    fontWeight: '500',
+  },
   header: {
     paddingVertical: 20,
     marginBottom: 12,
@@ -296,12 +319,6 @@ const styles = StyleSheet.create({
     color: Colors.light.text,
     marginBottom: 16,
     textAlign: 'center',
-  },
-  iconRow: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    gap: 24,
   },
   scrollView: {
     flex: 1,
