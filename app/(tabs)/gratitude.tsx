@@ -177,7 +177,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     gap: 20,
-    paddingVertical: 12,
+    paddingTop: 4,
+    paddingBottom: 12,
     marginBottom: 8,
   },
   actionButton: {
