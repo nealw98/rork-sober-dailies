@@ -173,7 +173,7 @@ export function BigBookChapterList({ onSelectChapter }: BigBookChapterListProps)
             style={styles.actionButton}
           >
             <Hash size={18} color="#007AFF" />
-            <Text style={styles.actionButtonText}>Go to Page</Text>
+            <Text style={styles.actionButtonText}>Page</Text>
           </TouchableOpacity>
           
           {/* Search */}
@@ -293,7 +293,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    gap: 20,
+    gap: 16,
     paddingTop: 4,
     paddingBottom: 12,
     marginBottom: 8,
