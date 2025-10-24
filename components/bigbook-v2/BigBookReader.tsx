@@ -14,7 +14,7 @@
  * Phase 6: Navigation features (highlights list, bookmarks list, go to page).
  */
 
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import {
   View,
   Text,
@@ -34,13 +34,12 @@ import {
   Highlighter,
 } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { GestureDetector } from 'react-native-gesture-handler';
+import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Colors from '@/constants/colors';
 import { adjustFontWeight } from '@/constants/fonts';
 import { useBigBookContent } from '@/hooks/use-bigbook-content';
 import { useBigBookBookmarks } from '@/hooks/use-bigbook-bookmarks';
 import { useBigBookHighlights } from '@/hooks/use-bigbook-highlights';
-import { usePinchToZoom } from '@/hooks/usePinchToZoom';
 import { getChapterMeta } from '@/constants/bigbook-v2/metadata';
 import { formatPageNumber } from '@/lib/bigbook-page-utils';
 import { BigBookParagraph } from './BigBookParagraph';
@@ -136,13 +135,25 @@ export function BigBookReader({ visible, initialChapterId, scrollToParagraphId, 
   const [showHighlightEditMenu, setShowHighlightEditMenu] = useState(false);
   const [editingHighlight, setEditingHighlight] = useState<BigBookHighlight | null>(null);
 
-  // Pinch-to-zoom font sizing
-  const { fontSize, composedGesture } = usePinchToZoom({
-    storageKey: 'bigBookReader.fontSize',
-    baseFontSize: 16,
-    minSize: 12,
-    maxSize: 28,
-  });
+  // Font size state (replacing pinch-to-zoom)
+  const [fontSize, setFontSize] = useState(16);
+  const baseFontSize = 16;
+  
+  const increaseFontSize = useCallback(() => {
+    setFontSize(prev => Math.min(prev + 2, 28));
+  }, []);
+  
+  const decreaseFontSize = useCallback(() => {
+    setFontSize(prev => Math.max(prev - 2, 12));
+  }, []);
+  
+  // Double-tap to reset to default font size
+  const doubleTapGesture = useMemo(() => Gesture.Tap()
+    .numberOfTaps(2)
+    .onStart(() => {
+      setFontSize(baseFontSize);
+    })
+    .runOnJS(true), [baseFontSize]);
 
   // Load initial chapter
   useEffect(() => {
@@ -465,27 +476,44 @@ export function BigBookReader({ visible, initialChapterId, scrollToParagraphId, 
       onRequestClose={onClose}
     >
       <SafeAreaView style={[styles.container, { backgroundColor: '#FFFFFF' }]}>
-        {/* Header */}
-        <View style={styles.header}>
-          {/* Row 1: Back button and Title */}
-          <View style={styles.headerTopRow}>
+      {/* Header */}
+      <View style={styles.header}>
+        {/* Row 1: Back button, Title, and Font Size Controls */}
+        <View style={styles.headerTopRow}>
+          <TouchableOpacity 
+            onPress={onClose}
+            style={styles.backButton}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          >
+            <ChevronLeft size={24} color={Colors.light.tint} />
+            <Text style={styles.backText}>Back</Text>
+          </TouchableOpacity>
+
+          <View style={styles.headerTitleContainer}>
+            <Text style={styles.headerTitle}>
+              {currentChapter.title}
+            </Text>
+          </View>
+          
+          {/* Font Size Controls */}
+          <View style={styles.headerFontSizeControls}>
             <TouchableOpacity 
-              onPress={onClose}
-              style={styles.backButton}
+              onPress={decreaseFontSize}
+              style={styles.headerFontSizeButton}
               hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
             >
-              <ChevronLeft size={24} color={Colors.light.tint} />
-              <Text style={styles.backText}>Back</Text>
+              <Text style={styles.fontSizeButtonText}>A-</Text>
             </TouchableOpacity>
-
-            <View style={styles.headerTitleContainer}>
-              <Text style={styles.headerTitle}>
-                {currentChapter.title}
-              </Text>
-            </View>
             
-            <View style={styles.headerSpacer} />
+            <TouchableOpacity 
+              onPress={increaseFontSize}
+              style={styles.headerFontSizeButton}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            >
+              <Text style={styles.fontSizeButtonText}>A+</Text>
+            </TouchableOpacity>
           </View>
+        </View>
         
         {/* Row 2: Page Number & Actions */}
         <View style={styles.headerBottomRow}>
@@ -547,7 +575,7 @@ export function BigBookReader({ visible, initialChapterId, scrollToParagraphId, 
           locations={[0, 1]}
           pointerEvents="none"
         />
-        <GestureDetector gesture={composedGesture}>
+        <GestureDetector gesture={doubleTapGesture}>
           <ScrollView
             ref={scrollViewRef}
             style={styles.content}
@@ -588,9 +616,9 @@ export function BigBookReader({ visible, initialChapterId, scrollToParagraphId, 
                       }
                     />
                   </View>
-                );
-              })}
-          </ScrollView>
+            );
+          })}
+        </ScrollView>
         </GestureDetector>
       </View>
 
@@ -696,7 +724,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 16,
-    paddingVertical: 2,
+    paddingVertical: 8,
+    minHeight: 48,
   },
   backButton: {
     flexDirection: 'row',
@@ -738,13 +767,30 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     gap: 4,
-    paddingVertical: 4,
-    paddingHorizontal: 6,
+    paddingVertical: 6,
+    paddingHorizontal: 8,
   },
   headerActionText: {
     fontSize: 14,
     color: Colors.light.tint,
     fontWeight: '400',
+  },
+  headerFontSizeControls: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginRight: 4,
+  },
+  headerFontSizeButton: {
+    padding: 4,
+    justifyContent: 'center',
+    alignItems: 'center',
+    minWidth: 32,
+  },
+  fontSizeButtonText: {
+    fontSize: 16,
+    color: Colors.light.text,
+    fontWeight: '600',
   },
   footer: {
     flexDirection: 'row',

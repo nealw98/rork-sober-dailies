@@ -189,7 +189,7 @@ export default function ChatInterface({
     <KeyboardAvoidingView
       style={styles.container}
       behavior={Platform.OS === "ios" ? "padding" : undefined}
-      keyboardVerticalOffset={Platform.OS === "ios" ? 90 : 0}
+      keyboardVerticalOffset={Platform.OS === "ios" ? 88 : 0}
     >
       <LinearGradient
         colors={Colors.gradients.mainThreeColor}
@@ -218,7 +218,7 @@ export default function ChatInterface({
         )}
       </View>
       
-      <View style={[styles.inputContainer, { paddingBottom: Math.max(insets.bottom, 12) }]}>
+      <View style={[styles.inputContainer, { paddingBottom: insets.bottom || 8 }]}>
         <TextInput
           style={styles.input}
           value={inputText}
@@ -352,11 +352,10 @@ const styles = StyleSheet.create({
   },
   inputContainer: {
     flexDirection: "row",
-    padding: 8,
+    paddingHorizontal: 8,
+    paddingTop: 8,
+    paddingBottom: 8,
     backgroundColor: 'transparent',
-    ...(Platform.OS === 'android' && {
-      paddingBottom: Platform.OS === 'android' ? 8 : 12,
-    }),
   },
   input: {
     flex: 1,

@@ -10,9 +10,10 @@ import { getCustomerInfoSafe } from './purchases';
  * 2. User has an active subscription via RevenueCat
  */
 
-// Set to November 15, 2025 (in the future for testing)
+// Set to future date (TEMPORARY - for testing both versions)
 // This will be the cutoff date for grandfathering early adopters
-export const BIG_BOOK_LAUNCH_DATE = new Date('2025-11-15T00:00:00.000Z');
+// TODO: Change back to actual launch date before production
+export const BIG_BOOK_LAUNCH_DATE = new Date('2026-01-01T00:00:00.000Z');
 
 /**
  * Check if the user has access to the Big Book Reader.

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useMemo } from 'react';
 import { 
   StyleSheet, 
   ScrollView, 
@@ -9,11 +9,10 @@ import {
   Platform
 } from 'react-native';
 import { ChevronLeft } from 'lucide-react-native';
-import { GestureDetector } from 'react-native-gesture-handler';
+import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import { LinearGradient } from 'expo-linear-gradient';
 import Colors from '@/constants/colors';
 import { adjustFontWeight } from '@/constants/fonts';
-import { usePinchToZoom } from '@/hooks/usePinchToZoom';
 
 interface SimpleTextReaderProps {
   content: string;
@@ -24,13 +23,25 @@ interface SimpleTextReaderProps {
 }
 
 const SimpleTextReader = ({ content, title, onClose, indentParagraphs = false, source }: SimpleTextReaderProps) => {
-  // Pinch-to-zoom font sizing
-  const { fontSize, composedGesture } = usePinchToZoom({
-    storageKey: 'meetingReadings.fontSize',
-    baseFontSize: 16,
-    minSize: 12,
-    maxSize: 28,
-  });
+  // Font size state (replacing pinch-to-zoom)
+  const [fontSize, setFontSize] = useState(16);
+  const baseFontSize = 16;
+  
+  const increaseFontSize = () => {
+    setFontSize(prev => Math.min(prev + 2, 28));
+  };
+  
+  const decreaseFontSize = () => {
+    setFontSize(prev => Math.max(prev - 2, 12));
+  };
+  
+  // Double-tap to reset to default font size
+  const doubleTapGesture = useMemo(() => Gesture.Tap()
+    .numberOfTaps(2)
+    .onStart(() => {
+      setFontSize(baseFontSize);
+    })
+    .runOnJS(true), [baseFontSize]);
 
   // Helper function to parse inline markdown (italic, bold)
   const parseMarkdown = (text: string) => {
@@ -152,6 +163,25 @@ const SimpleTextReader = ({ content, title, onClose, indentParagraphs = false, s
           <Text style={styles.backText}>Back</Text>
         </TouchableOpacity>
         <Text style={styles.headerTitle}>{title}</Text>
+        
+        {/* Font Size Controls */}
+        <View style={styles.fontSizeControls}>
+          <TouchableOpacity 
+            onPress={decreaseFontSize}
+            style={styles.fontSizeButton}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          >
+            <Text style={styles.fontSizeButtonText}>A-</Text>
+          </TouchableOpacity>
+          
+          <TouchableOpacity 
+            onPress={increaseFontSize}
+            style={styles.fontSizeButton}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          >
+            <Text style={styles.fontSizeButtonText}>A+</Text>
+          </TouchableOpacity>
+        </View>
       </View>
       
       <View style={{ flex: 1 }}>
@@ -163,7 +193,7 @@ const SimpleTextReader = ({ content, title, onClose, indentParagraphs = false, s
           locations={[0, 1]}
           pointerEvents="none"
         />
-        <GestureDetector gesture={composedGesture}>
+        <GestureDetector gesture={doubleTapGesture}>
           <ScrollView 
             style={styles.content} 
             showsVerticalScrollIndicator={false}
@@ -249,7 +279,7 @@ const SimpleTextReader = ({ content, title, onClose, indentParagraphs = false, s
               <Text style={[styles.sourceText, { fontSize: fontSize * 0.875 }]}>{source}</Text>
             ) : null}
         </ScrollView>
-      </GestureDetector>
+        </GestureDetector>
       </View>
     </SafeAreaView>
   );
@@ -294,6 +324,26 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: adjustFontWeight('600'),
     color: Colors.light.text
+  },
+  fontSizeControls: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    position: 'absolute',
+    right: Platform.OS === 'android' ? 8 : 16,
+    paddingRight: 4,
+    zIndex: 1,
+  },
+  fontSizeButton: {
+    padding: 4,
+    minWidth: 32,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  fontSizeButtonText: {
+    fontSize: 16,
+    color: Colors.light.text,
+    fontWeight: '600',
   },
   content: {
     flex: 1

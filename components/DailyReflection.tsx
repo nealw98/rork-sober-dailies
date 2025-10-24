@@ -5,13 +5,15 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useFocusEffect } from 'expo-router';
-import { GestureDetector, Gesture } from 'react-native-gesture-handler';
 
 import Colors from "@/constants/colors";
 import { getReflectionForDate } from "@/constants/reflections";
 import { Reflection } from "@/types";
 import { adjustFontWeight } from "@/constants/fonts";
-import { usePinchToZoom } from "@/hooks/usePinchToZoom";
+
+interface DailyReflectionProps {
+  fontSize?: number;
+}
 
 // Helper to check if two dates are the same day
 const isSameDay = (date1: Date, date2: Date): boolean => {
@@ -82,7 +84,7 @@ const generateCalendarDays = (date: Date) => {
   return days;
 };
 
-export default function DailyReflection() {
+export default function DailyReflection({ fontSize = 16 }: DailyReflectionProps) {
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [reflection, setReflection] = useState<Reflection | null>(null);
 
@@ -91,24 +93,6 @@ export default function DailyReflection() {
   const [calendarDays, setCalendarDays] = useState<any[]>([]);
   const [calendarDate, setCalendarDate] = useState<Date>(new Date());
   const [isLoading, setIsLoading] = useState<boolean>(true);
-
-  // Pinch-to-zoom font sizing
-  console.log('[DailyReflection] Initializing pinch-to-zoom hook...');
-  let fontSize = 16;
-  let composedGesture = null;
-  try {
-    const hookResult = usePinchToZoom({
-      storageKey: 'dailyReflections.fontSize',
-      baseFontSize: 16,
-      minSize: 12,
-      maxSize: 28,
-    });
-    fontSize = hookResult.fontSize;
-    composedGesture = hookResult.composedGesture;
-    console.log('[DailyReflection] ✅ Pinch-to-zoom hook initialized, fontSize:', fontSize);
-  } catch (error) {
-    console.error('[DailyReflection] ❌ Error initializing pinch-to-zoom hook:', error);
-  }
 
   // Check if date has changed when screen comes into focus
   useFocusEffect(
@@ -350,9 +334,8 @@ export default function DailyReflection() {
         end={{ x: 1, y: 1 }}
       />
       
-      <GestureDetector gesture={composedGesture || Gesture.Pinch()}>
-        <ScrollView style={styles.scrollContainer} contentContainerStyle={styles.contentContainer}>
-          <View style={styles.dateContainer}>
+      <ScrollView style={styles.scrollContainer} contentContainerStyle={styles.contentContainer}>
+        <View style={styles.dateContainer}>
           <Text style={styles.date}>{dateString}</Text>
           <View style={styles.actionButtons}>
             <TouchableOpacity 
@@ -364,7 +347,6 @@ export default function DailyReflection() {
             >
               <Upload size={22} color={Colors.light.muted} />
             </TouchableOpacity>
-
           </View>
         </View>
         
@@ -430,9 +412,6 @@ export default function DailyReflection() {
           </Text>
         </View>
       </ScrollView>
-    </GestureDetector>
-
-
 
       {/* Calendar Modal */}
       <Modal

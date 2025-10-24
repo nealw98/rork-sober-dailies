@@ -88,24 +88,23 @@ async function callAI(messages: APIMessage[]): Promise<string> {
 
 // Convert chat messages to API format
 function convertToAPIMessages(chatMessages: ChatMessage[], sponsorType: SponsorType): APIMessage[] {
-  // Create a VERY minimal system prompt for testing
-  let minimalPrompt = '';
+  let systemPrompt;
   
   switch (sponsorType) {
     case "salty":
-      minimalPrompt = "You are Salty Sam, a direct and no-nonsense AA sponsor with 20+ years of sobriety. You tell it like it is, keep responses brief, and focus on practical recovery advice.";
+      systemPrompt = SALTY_SAM_SYSTEM_PROMPT;
       break;
     case "supportive":
-      minimalPrompt = "You are Steady Eddie, a compassionate and supportive AA sponsor with 15+ years of sobriety. You offer gentle but firm guidance and encouragement.";
+      systemPrompt = STEADY_EDDIE_SYSTEM_PROMPT;
       break;
     case "grace":
-      minimalPrompt = "You are Gentle Grace, a spiritually-minded AA sponsor with 10+ years of sobriety. You bring calm, reflective wisdom and deep emotional support.";
+      systemPrompt = GENTLE_GRACE_SYSTEM_PROMPT;
       break;
     default:
-      minimalPrompt = "You are Steady Eddie, a compassionate AA sponsor offering supportive guidance.";
+      systemPrompt = STEADY_EDDIE_SYSTEM_PROMPT;
   }
 
-  console.log('Using minimal prompt length:', minimalPrompt.length);
+  console.log('Using FULL system prompt, length:', systemPrompt.length);
 
   const apiMessages: APIMessage[] = [];
 
@@ -114,9 +113,9 @@ function convertToAPIMessages(chatMessages: ChatMessage[], sponsorType: SponsorT
   
   conversationMessages.forEach((msg, index) => {
     if (msg.sender === 'user') {
-      // For the first user message only, prepend the MINIMAL system prompt
-      // Rork API doesn't accept 'system' role and has strict size limits
-      const content = index === 0 ? `${minimalPrompt}\n\nUser: ${msg.text}` : msg.text;
+      // For the first user message only, prepend the FULL system prompt
+      // Rork API doesn't accept 'system' role, so we include it in the first user message
+      const content = index === 0 ? `${systemPrompt}\n\nUser: ${msg.text}` : msg.text;
       apiMessages.push({ role: 'user', content });
     } else if (msg.sender === 'bot') {
       apiMessages.push({ role: 'assistant', content: msg.text });

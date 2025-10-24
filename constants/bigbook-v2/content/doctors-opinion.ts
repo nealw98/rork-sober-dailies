@@ -51,7 +51,7 @@ export const doctors_opinion: BigBookChapter = {
     {
       id: 'doctors-opinion-p6',
       chapterId: 'doctors-opinion',
-      pageNumber: 24,
+      pageNumber: 23,
       order: 6,
       content: 'I personally know scores of cases who were of the type with whom other methods had failed completely.',
     },

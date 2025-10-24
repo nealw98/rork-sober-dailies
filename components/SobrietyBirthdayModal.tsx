@@ -2,6 +2,7 @@ import React, { useEffect, useState, useRef } from 'react';
 import { StyleSheet, View, Text, TouchableOpacity, Modal, Animated } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { PartyPopper, X } from 'lucide-react-native';
+import ConfettiCannon from 'react-native-confetti-cannon';
 import { useSobriety } from '@/hooks/useSobrietyStore';
 import { calculateDaysBetween, parseLocalDate, formatLocalDate } from '@/lib/dateUtils';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -20,6 +21,7 @@ const SobrietyBirthdayModal: React.FC<SobrietyBirthdayModalProps> = ({ visible, 
   const [milestone, setMilestone] = useState<string>('');
   const [animatedValue] = useState(new Animated.Value(0));
   const [iconScale] = useState(new Animated.Value(1));
+  const confettiRef = useRef<any>(null);
 
   // Calculate milestone based on sobriety date
   const calculateMilestone = (sobrietyDateString: string): string | null => {
@@ -140,6 +142,11 @@ const SobrietyBirthdayModal: React.FC<SobrietyBirthdayModalProps> = ({ visible, 
   // Animate modal entrance and star burst celebration
   useEffect(() => {
     if (visible) {
+      // Trigger confetti immediately
+      if (confettiRef.current) {
+        confettiRef.current.start();
+      }
+      
       Animated.spring(animatedValue, {
         toValue: 1,
         useNativeDriver: true,
@@ -147,7 +154,7 @@ const SobrietyBirthdayModal: React.FC<SobrietyBirthdayModalProps> = ({ visible, 
         friction: 8,
       }).start();
       
-      // Trigger star burst and icon animation after a short delay
+      // Trigger icon animation after a short delay
       setTimeout(() => {
         // Icon bounce animation
         Animated.sequence([
@@ -223,6 +230,16 @@ const SobrietyBirthdayModal: React.FC<SobrietyBirthdayModalProps> = ({ visible, 
       onRequestClose={handleClose}
     >
       <View style={styles.overlay}>
+        {/* Confetti Effect */}
+        <ConfettiCannon
+          ref={confettiRef}
+          count={200}
+          origin={{x: -10, y: 0}}
+          autoStart={false}
+          fadeOut={true}
+          fallSpeed={3000}
+        />
+        
         <Animated.View 
           style={[
             styles.modal,

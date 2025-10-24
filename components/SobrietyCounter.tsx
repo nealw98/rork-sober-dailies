@@ -69,15 +69,18 @@ const SobrietyCounter = () => {
       return;
     }
     
-    // Dismiss keyboard first
+    // Dismiss keyboard first and wait for it to complete
     Keyboard.dismiss();
     
-    const [month, day, year] = dateInput.split('/').map(Number);
-    const dateString = `${year}-${month.toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`;
-    
-    setSobrietyDate(dateString);
-    setShowDatePicker(false);
-    setDateInput('');
+    // Use setTimeout to ensure keyboard dismisses before updating state
+    setTimeout(() => {
+      const [month, day, year] = dateInput.split('/').map(Number);
+      const dateString = `${year}-${month.toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`;
+      
+      setSobrietyDate(dateString);
+      setShowDatePicker(false);
+      setDateInput('');
+    }, 100);
   };
 
   const handleCancel = () => {
@@ -117,15 +120,18 @@ const SobrietyCounter = () => {
       return;
     }
     
-    // Dismiss keyboard first
+    // Dismiss keyboard first and wait for it to complete
     Keyboard.dismiss();
     
-    const [month, day, year] = dateInput.split('/').map(Number);
-    const dateString = `${year}-${month.toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`;
-    
-    setSobrietyDate(dateString);
-    setShowEditModal(false);
-    setDateInput('');
+    // Use setTimeout to ensure keyboard dismisses before updating state
+    setTimeout(() => {
+      const [month, day, year] = dateInput.split('/').map(Number);
+      const dateString = `${year}-${month.toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`;
+      
+      setSobrietyDate(dateString);
+      setShowEditModal(false);
+      setDateInput('');
+    }, 100);
   };
 
   if (isLoading) {
