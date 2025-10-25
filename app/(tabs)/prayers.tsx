@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from "react";
+import React, { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import {
   StyleSheet,
   View,
@@ -8,7 +8,8 @@ import {
 } from "react-native";
 import { ChevronDown, ChevronRight } from "lucide-react-native";
 import { LinearGradient } from 'expo-linear-gradient';
-import { useLocalSearchParams, useFocusEffect } from 'expo-router';
+import { Stack, useLocalSearchParams, useFocusEffect } from 'expo-router';
+import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 
 import Colors from "@/constants/colors";
 import { aaPrayers } from "@/constants/prayers";
@@ -21,6 +22,21 @@ export default function PrayersScreen() {
   const scrollViewRef = useRef<ScrollView>(null);
   const prayerRefs = useRef<{ [key: number]: View | null }>({});
   const prayerPositions = useRef<{ [key: number]: number }>({});
+
+  // Font size controls (match SimpleTextReader behavior)
+  const [fontSize, setFontSize] = useState(16);
+  const baseFontSize = 16;
+
+  const increaseFontSize = () => setFontSize(prev => Math.min(prev + 2, 28));
+  const decreaseFontSize = () => setFontSize(prev => Math.max(prev - 2, 12));
+
+  // Double-tap anywhere in the content to reset font size
+  const doubleTapGesture = useMemo(() => Gesture.Tap()
+    .numberOfTaps(2)
+    .onStart(() => {
+      setFontSize(baseFontSize);
+    })
+    .runOnJS(true), [baseFontSize]);
 
   // Track if we came from a deep link or tab navigation
   const isFromDeepLink = useRef(false);
@@ -75,6 +91,29 @@ export default function PrayersScreen() {
   };
 
   return (
+    <>
+    <Stack.Screen 
+      options={{
+        headerRight: () => (
+          <View style={styles.navFontSizeControls}>
+            <TouchableOpacity 
+              onPress={decreaseFontSize}
+              style={styles.fontSizeButton}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            >
+              <Text style={styles.fontSizeButtonText}>A-</Text>
+            </TouchableOpacity>
+            <TouchableOpacity 
+              onPress={increaseFontSize}
+              style={styles.fontSizeButton}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            >
+              <Text style={styles.fontSizeButtonText}>A+</Text>
+            </TouchableOpacity>
+          </View>
+        ),
+      }}
+    />
     <ScreenContainer style={styles.container}>
       <LinearGradient
         colors={Colors.gradients.mainThreeColor}
@@ -84,11 +123,12 @@ export default function PrayersScreen() {
         locations={[0, 0.5, 1]}
       />
       
-      <ScrollView 
-        ref={scrollViewRef}
-        style={styles.scrollContainer} 
-        contentContainerStyle={styles.contentContainer}
-      >
+      <GestureDetector gesture={doubleTapGesture}>
+        <ScrollView 
+          ref={scrollViewRef}
+          style={styles.scrollContainer} 
+          contentContainerStyle={styles.contentContainer}
+        >
         <View style={styles.header}>
           <Text style={styles.title}>AA Prayers</Text>
           <Text style={styles.subtitle}>Essential prayers for recovery and reflection</Text>
@@ -122,24 +162,26 @@ export default function PrayersScreen() {
               <View style={styles.prayerContent}>
                 {prayer.title === "Morning Prayer" ? (
                   <View>
-                    <Text style={[styles.prayerText, styles.italicText]}>As I begin this day, I ask my Higher Power:</Text>
-                    <Text style={styles.prayerText}>{prayer.content.split('As I begin this day, I ask my Higher Power:')[1]}</Text>
+                    <Text style={[styles.prayerText, styles.italicText, { fontSize, lineHeight: fontSize * 1.375 }]}>As I begin this day, I ask my Higher Power:</Text>
+                    <Text style={[styles.prayerText, { fontSize, lineHeight: fontSize * 1.375 }]}>{prayer.content.split('As I begin this day, I ask my Higher Power:')[1]}</Text>
                   </View>
                 ) : prayer.title === "Evening Prayer" ? (
                   <View>
-                    <Text style={[styles.prayerText, styles.italicText]}>As this day closes,</Text>
-                    <Text style={styles.prayerText}>{prayer.content.split('As this day closes,')[1]}</Text>
+                    <Text style={[styles.prayerText, styles.italicText, { fontSize, lineHeight: fontSize * 1.375 }]}>As this day closes,</Text>
+                    <Text style={[styles.prayerText, { fontSize, lineHeight: fontSize * 1.375 }]}>{prayer.content.split('As this day closes,')[1]}</Text>
                   </View>
                 ) : (
-                  <Text style={styles.prayerText}>{prayer.content}</Text>
+                  <Text style={[styles.prayerText, { fontSize, lineHeight: fontSize * 1.375 }]}>{prayer.content}</Text>
                 )}
                 {prayer.source && <Text style={styles.prayerSource}>— {prayer.source}</Text>}
               </View>
             )}
           </View>
         ))}
-      </ScrollView>
+        </ScrollView>
+      </GestureDetector>
     </ScreenContainer>
+    </>
   );
 }
 
@@ -177,6 +219,24 @@ const styles = StyleSheet.create({
     color: Colors.light.muted,
     textAlign: "center",
     marginBottom: 8,
+  },
+  fontSizeButton: {
+    padding: 4,
+    minWidth: 32,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  fontSizeButtonText: {
+    fontSize: 16,
+    color: Colors.light.text,
+    fontWeight: '600',
+  },
+  navFontSizeControls: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 16,
+    marginRight: 12,
+    paddingRight: 4,
   },
   prayerCard: {
     backgroundColor: 'rgba(255, 255, 255, 0.7)',

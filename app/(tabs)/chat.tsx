@@ -16,13 +16,22 @@ import Colors from "@/constants/colors";
 import { adjustFontWeight } from "@/constants/fonts";
 import { SPONSORS } from "@/constants/sponsors";
 import ScreenContainer from "@/components/ScreenContainer";
+import { useState } from "react";
+import { PremiumComingSoonModal } from "@/components/PremiumComingSoonModal";
 
 export default function ChatScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const [comingSoonVisible, setComingSoonVisible] = useState(false);
 
   const handleSponsorSelect = (sponsorId: string) => {
-    router.push(`/sponsor-chat?sponsor=${sponsorId}`);
+    // Route available sponsors to chat; locked sponsors open coming-soon modal
+    const sponsor = SPONSORS.find(s => s.id === sponsorId);
+    if (sponsor && sponsor.isAvailable) {
+      router.push(`/sponsor-chat?sponsor=${sponsorId}`);
+    } else {
+      setComingSoonVisible(true);
+    }
   };
 
   const handleBack = () => {
@@ -69,7 +78,6 @@ export default function ChatScreen() {
                   !sponsor.isAvailable && styles.cardDisabled,
                 ]}
                 onPress={() => handleSponsorSelect(sponsor.id)}
-                disabled={!sponsor.isAvailable}
                 activeOpacity={0.7}
               >
                 <View style={styles.cardContent}>
@@ -103,6 +111,10 @@ export default function ChatScreen() {
             ))}
           </ScrollView>
         </LinearGradient>
+        <PremiumComingSoonModal
+          visible={comingSoonVisible}
+          onClose={() => setComingSoonVisible(false)}
+        />
       </ScreenContainer>
     </>
   );

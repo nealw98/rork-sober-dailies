@@ -21,6 +21,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import Colors from '@/constants/colors';
 import { adjustFontWeight } from '@/constants/fonts';
+import { IS_TESTFLIGHT_PREVIEW } from '@/constants/featureFlags';
 
 interface BigBookSubscriptionModalProps {
   visible: boolean;
@@ -67,9 +68,15 @@ export function BigBookSubscriptionModal({
               <FontAwesome5 name="gem" size={36} color={Colors.light.tint} />
             </View>
 
-            <Text style={styles.title}>Unlock Premium Big Book Reader</Text>
+            <Text style={styles.title}>
+              {IS_TESTFLIGHT_PREVIEW
+                ? 'Unlock Premium Big Book Reader — 🧪 TESTFLIGHT PREVIEW'
+                : 'Unlock Premium Big Book Reader'}
+            </Text>
             <Text style={styles.subtitle}>
-              Subscribe to access advanced features for a deeper study of the Big Book
+              {IS_TESTFLIGHT_PREVIEW
+                ? 'In the full release, these features will require a subscription. For testing, tap below to preview all premium features.'
+                : 'Subscribe to access advanced features for a deeper study of the Big Book'}
             </Text>
 
             <View style={styles.featuresContainer}>
@@ -103,7 +110,9 @@ export function BigBookSubscriptionModal({
                   start={{ x: 0, y: 0 }}
                   end={{ x: 1, y: 0 }}
                 />
-                <Text style={styles.subscribeButtonText}>Subscribe Now</Text>
+                <Text style={styles.subscribeButtonText}>
+                  {IS_TESTFLIGHT_PREVIEW ? 'Preview Premium Features' : 'Subscribe Now'}
+                </Text>
               </TouchableOpacity>
 
               <TouchableOpacity
@@ -111,12 +120,16 @@ export function BigBookSubscriptionModal({
                 onPress={onNotNow}
                 activeOpacity={0.7}
               >
-                <Text style={styles.notNowButtonText}>Not Now</Text>
+                <Text style={styles.notNowButtonText}>
+                  {IS_TESTFLIGHT_PREVIEW ? 'Back to Free Version' : 'Not Now'}
+                </Text>
               </TouchableOpacity>
             </View>
 
             <Text style={styles.freeAccessNote}>
-              You can still access the Big Book PDF for free
+              {IS_TESTFLIGHT_PREVIEW
+                ? 'Full subscription features will be available at launch'
+                : 'You can still access the Big Book PDF for free'}
             </Text>
           </View>
         </View>

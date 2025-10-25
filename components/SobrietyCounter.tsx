@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { StyleSheet, View, Text, TouchableOpacity, Modal, TextInput, Alert, Keyboard } from 'react-native';
+import { StyleSheet, View, Text, TouchableOpacity, Modal, TextInput, Alert } from 'react-native';
 import { Calendar, X, Edit3 } from 'lucide-react-native';
 import { useSobriety } from '@/hooks/useSobrietyStore';
 import { formatStoredDateForDisplay, parseLocalDate, formatLocalDate } from '@/lib/dateUtils';
@@ -19,6 +19,7 @@ const SobrietyCounter = () => {
   const [showDatePicker, setShowDatePicker] = useState<boolean>(false);
   const [dateInput, setDateInput] = useState<string>('');
   const [showEditModal, setShowEditModal] = useState<boolean>(false);
+  const dateInputRef = React.useRef<TextInput>(null);
 
   // Auto-format input as user types: mm/dd/yyyy
   const formatDateInput = (text: string) => {
@@ -68,19 +69,15 @@ const SobrietyCounter = () => {
       Alert.alert('Invalid Date', 'Please enter a valid date in MM/DD/YYYY format that is not in the future.');
       return;
     }
-    
-    // Dismiss keyboard first and wait for it to complete
-    Keyboard.dismiss();
-    
-    // Use setTimeout to ensure keyboard dismisses before updating state
-    setTimeout(() => {
-      const [month, day, year] = dateInput.split('/').map(Number);
-      const dateString = `${year}-${month.toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`;
-      
-      setSobrietyDate(dateString);
-      setShowDatePicker(false);
-      setDateInput('');
-    }, 100);
+
+    dateInputRef.current?.blur();
+
+    const [month, day, year] = dateInput.split('/').map(Number);
+    const dateString = `${year}-${month.toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`;
+
+    setSobrietyDate(dateString);
+    setShowDatePicker(false);
+    setDateInput('');
   };
 
   const handleCancel = () => {
@@ -119,19 +116,15 @@ const SobrietyCounter = () => {
       Alert.alert('Invalid Date', 'Please enter a valid date in MM/DD/YYYY format that is not in the future.');
       return;
     }
-    
-    // Dismiss keyboard first and wait for it to complete
-    Keyboard.dismiss();
-    
-    // Use setTimeout to ensure keyboard dismisses before updating state
-    setTimeout(() => {
-      const [month, day, year] = dateInput.split('/').map(Number);
-      const dateString = `${year}-${month.toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`;
-      
-      setSobrietyDate(dateString);
-      setShowEditModal(false);
-      setDateInput('');
-    }, 100);
+
+    dateInputRef.current?.blur();
+
+    const [month, day, year] = dateInput.split('/').map(Number);
+    const dateString = `${year}-${month.toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`;
+
+    setSobrietyDate(dateString);
+    setShowEditModal(false);
+    setDateInput('');
   };
 
   if (isLoading) {
@@ -199,12 +192,14 @@ const SobrietyCounter = () => {
                 <Text style={styles.datePickerTitle}>Enter your sobriety date</Text>
                 
                 <TextInput
+                  ref={dateInputRef}
                   style={[
                     styles.dateInput,
                     !isValidDate(dateInput) && dateInput.length === 10 && styles.dateInputError
                   ]}
                   value={dateInput}
                   onChangeText={handleDateInputChange}
+                  onSubmitEditing={handleConfirmDate}
                   placeholder="mm/dd/yyyy"
                   placeholderTextColor={Colors.light.muted}
                   maxLength={10}
@@ -277,12 +272,14 @@ const SobrietyCounter = () => {
                 <Text style={styles.datePickerTitle}>Enter your sobriety date</Text>
                 
                 <TextInput
+                  ref={dateInputRef}
                   style={[
                     styles.dateInput,
                     !isValidDate(dateInput) && dateInput.length === 10 && styles.dateInputError
                   ]}
                   value={dateInput}
                   onChangeText={handleDateInputChange}
+                  onSubmitEditing={handleConfirmDate}
                   placeholder="mm/dd/yyyy"
                   placeholderTextColor={Colors.light.muted}
                   maxLength={10}
@@ -359,12 +356,14 @@ const SobrietyCounter = () => {
                 <Text style={styles.datePickerTitle}>Edit your sobriety date</Text>
                 
                 <TextInput
+                  ref={dateInputRef}
                   style={[
                     styles.dateInput,
                     !isValidDate(dateInput) && dateInput.length === 10 && styles.dateInputError
                   ]}
                   value={dateInput}
                   onChangeText={handleDateInputChange}
+                  onSubmitEditing={handleConfirmEditDate}
                   placeholder="mm/dd/yyyy"
                   placeholderTextColor={Colors.light.muted}
                   maxLength={10}

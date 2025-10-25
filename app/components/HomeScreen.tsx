@@ -60,7 +60,7 @@ const HomeScreen = () => {
         <Text style={styles.sectionTitle}>Morning Routine</Text>
         <Text style={styles.sectionSubtitle}>Start your day with intention and spiritual focus.</Text>
         
-        <TouchableOpacity style={styles.card} onPress={() => router.push('/(tabs)/prayers?prayer=morning')}>
+        <TouchableOpacity style={styles.card} onPress={() => router.push('/(tabs)/prayers')}>
           <Text style={styles.cardTitle}>Morning Prayer</Text>
           <Text style={styles.cardDescription}>Invite your higher power to help you through the day.</Text>
           <Text style={styles.cardButton}>Go to Morning Prayer</Text>
@@ -117,7 +117,7 @@ const HomeScreen = () => {
           <Text style={styles.cardButton}>Go to Nightly Review</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.card} onPress={() => router.push('/(tabs)/prayers?prayer=evening')}>
+        <TouchableOpacity style={styles.card} onPress={() => router.push('/(tabs)/prayers')}>
           <Text style={styles.cardTitle}>Evening Prayer</Text>
           <Text style={styles.cardDescription}>End your day with gratitude and humility.</Text>
           <Text style={styles.cardButton}>Go to Evening Prayer</Text>

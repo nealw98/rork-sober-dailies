@@ -31,6 +31,8 @@ import { BigBookStoreProvider, useBigBookStore } from '@/hooks/use-bigbook-store
 import { adjustFontWeight } from '@/constants/fonts';
 import PDFViewer from '@/components/PDFViewer';
 import { BigBookSubscriptionModal } from './BigBookSubscriptionModal';
+import { IS_TESTFLIGHT_PREVIEW } from '@/constants/featureFlags';
+import { enableBigBookTestflightBypass } from '@/lib/bigbook-access';
 
 const SUBSCRIPTION_MODAL_KEY = '@sober_dailies:bigbook_subscription_modal_shown';
 
@@ -188,7 +190,11 @@ function BigBookFreeBrowserContent({ showToggle, onToggle, toggleLabel }: BigBoo
 
   const handleSubscribe = async () => {
     await handleSubscriptionModalDismiss();
-    router.push('/(tabs)/store');
+    if (IS_TESTFLIGHT_PREVIEW) {
+      enableBigBookTestflightBypass();
+    } else {
+      router.push('/(tabs)/store');
+    }
   };
 
   const handleNotNow = async () => {
@@ -196,7 +202,8 @@ function BigBookFreeBrowserContent({ showToggle, onToggle, toggleLabel }: BigBoo
   };
 
   const handleUpgradeBanner = () => {
-    router.push('/(tabs)/store');
+    // Open the subscription modal instead of navigating to store
+    setSubscriptionModalVisible(true);
   };
 
   //
@@ -238,17 +245,11 @@ function BigBookFreeBrowserContent({ showToggle, onToggle, toggleLabel }: BigBoo
               </TouchableOpacity>
             )}
             
-            <Text style={styles.subtitle}>The Big Book</Text>
+            {/* Subtitle removed per request */}
             <Text style={styles.description}>
               Tap any chapter to open the official PDF from AA World Services.
             </Text>
-            {/* Temporary: Show modal button for testing - remove before production */}
-            <TouchableOpacity 
-              style={styles.testButton}
-              onPress={() => setSubscriptionModalVisible(true)}
-            >
-              <Text style={styles.testButtonText}>Preview Subscription Modal</Text>
-            </TouchableOpacity>
+            {/* Test button removed; Unlock Premium banner opens subscription modal */}
           </View>
           
           {/* Upgrade Banner */}

@@ -65,21 +65,21 @@ export const SPONSORS: SponsorConfig[] = [
   {
     id: "momma-jo",
     name: "Momma Jo",
-    description: "Coming soon - Nurturing wisdom with a touch of tough love.",
+    description: "Coming soon - Southern fried guidance and down home truth.",
     avatar: null,
     isAvailable: false,
   },
   {
     id: "cowboy-pete",
     name: "Cowboy Pete",
-    description: "Coming soon - Straight-shooting recovery wisdom from the ranch.",
+    description: "Coming soon - Straight shooting wisdom from a trail-worn cowboy.",
     avatar: null,
     isAvailable: false,
   },
   {
     id: "co-sign-sally",
-    name: "Co-sign Sally",
-    description: "Coming soon - Keep it real, no excuses allowed.",
+    name: "Co-Sign Sally",
+    description: "Coming soon - I'll rationalize your bad ideas or dumb actions.",
     avatar: null,
     isAvailable: false,
   },
@@ -92,4 +92,5 @@ export const getSponsorById = (id: string): SponsorConfig | undefined => {
 export const getAvailableSponsors = (): SponsorConfig[] => {
   return SPONSORS.filter((sponsor) => sponsor.isAvailable);
 };
+
 
