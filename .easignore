@@ -1,0 +1,12 @@
+# Cursor IDE files
+.cursor/
+.cursorignore
+
+# Other IDE files
+.vscode/
+.idea/
+
+# Development files
+*.log
+.DS_Store
+
