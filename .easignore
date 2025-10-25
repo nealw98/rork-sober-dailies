@@ -1,12 +1,22 @@
-# Cursor IDE files
+# IDE files
 .cursor/
 .cursorignore
-
-# Other IDE files
 .vscode/
 .idea/
+
+# Native build directories (managed by EAS)
+ios/
+android/
+
+# Build output
+dist/
 
 # Development files
 *.log
 .DS_Store
+*.docx
+*.txt
+
+# Documentation
+*.md
 
