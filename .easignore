@@ -1,22 +1,14 @@
-# IDE files
+# IDE files (safe to exclude)
 .cursor/
-.cursorignore
 .vscode/
 .idea/
-
-# Native build directories (managed by EAS)
-ios/
-android/
 
 # Build output
 dist/
 
-# Development files
-*.log
+# Logs and OS cruft
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
 .DS_Store
-*.docx
-*.txt
-
-# Documentation
-*.md
 
