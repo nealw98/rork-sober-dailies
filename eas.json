@@ -11,6 +11,9 @@
     "preview": {
       "distribution": "internal",
       "channel": "dev",
+      "env": {
+        "EXPO_USE_NPM_INSTALL": "true"
+      },
       "android": {
         "buildType": "apk"
       }
