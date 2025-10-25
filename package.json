@@ -46,7 +46,6 @@
     "react": "19.0.0",
     "react-dom": "19.0.0",
     "react-native": "0.79.6",
-    "react-native-confetti-cannon": "^1.5.2",
     "react-native-date-picker": "^5.0.5",
     "react-native-gesture-handler": "~2.24.0",
     "react-native-markdown-display": "^7.0.2",
