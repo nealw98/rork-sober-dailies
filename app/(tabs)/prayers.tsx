@@ -6,7 +6,7 @@ import {
   ScrollView,
   TouchableOpacity,
 } from "react-native";
-import { ChevronDown, ChevronRight } from "lucide-react-native";
+import { ChevronDown, ChevronRight, Type } from "lucide-react-native";
 import { LinearGradient } from 'expo-linear-gradient';
 import { Stack, useLocalSearchParams, useFocusEffect } from 'expo-router';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
@@ -101,14 +101,14 @@ export default function PrayersScreen() {
               style={styles.fontSizeButton}
               hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
             >
-              <Text style={styles.fontSizeButtonText}>A-</Text>
+              <Type size={16} color={Colors.light.text} />
             </TouchableOpacity>
             <TouchableOpacity 
               onPress={increaseFontSize}
               style={styles.fontSizeButton}
               hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
             >
-              <Text style={styles.fontSizeButtonText}>A+</Text>
+              <Type size={24} color={Colors.light.text} />
             </TouchableOpacity>
           </View>
         ),
@@ -233,10 +233,10 @@ const styles = StyleSheet.create({
   },
   navFontSizeControls: {
     flexDirection: 'row',
-    alignItems: 'center',
-    gap: 16,
+    alignItems: 'flex-end',
+    gap: 8,
     marginRight: 12,
-    paddingRight: 4,
+    paddingRight: 2,
   },
   prayerCard: {
     backgroundColor: 'rgba(255, 255, 255, 0.7)',

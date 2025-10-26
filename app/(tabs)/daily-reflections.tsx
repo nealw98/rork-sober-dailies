@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { Platform, TouchableOpacity, View, Text, StyleSheet } from 'react-native';
+import { Type } from 'lucide-react-native';
 import { Stack } from 'expo-router';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import ScreenContainer from '@/components/ScreenContainer';
@@ -37,7 +38,7 @@ export default function DailyReflectionsPage() {
                 style={styles.fontSizeButton}
                 hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
               >
-                <Text style={styles.fontSizeButtonText}>A-</Text>
+              <Type size={16} color={Colors.light.text} />
               </TouchableOpacity>
               
               <TouchableOpacity 
@@ -45,7 +46,7 @@ export default function DailyReflectionsPage() {
                 style={styles.fontSizeButton}
                 hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
               >
-                <Text style={styles.fontSizeButtonText}>A+</Text>
+              <Type size={24} color={Colors.light.text} />
               </TouchableOpacity>
             </View>
           ),
@@ -64,13 +65,16 @@ const styles = StyleSheet.create({
   fontSizeControls: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 16,
-    marginRight: Platform.OS === 'android' ? 8 : 12,
-    paddingRight: 4,
+    gap: 8,
+    marginRight: Platform.OS === 'android' ? 12 : 16,
+    paddingRight: 2,
+    height: 44,
   },
   fontSizeButton: {
     padding: 4,
-    minWidth: 36,
+    minWidth: 28,
+    height: 44,
+    paddingBottom: 0,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -78,5 +82,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: Colors.light.text,
     fontWeight: '400',
+    lineHeight: 16,
   },
 });

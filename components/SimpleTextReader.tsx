@@ -8,7 +8,7 @@ import {
   SafeAreaView,
   Platform
 } from 'react-native';
-import { ChevronLeft } from 'lucide-react-native';
+import { ChevronLeft, Type } from 'lucide-react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import { LinearGradient } from 'expo-linear-gradient';
 import Colors from '@/constants/colors';
@@ -171,7 +171,7 @@ const SimpleTextReader = ({ content, title, onClose, indentParagraphs = false, s
             style={styles.fontSizeButton}
             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
           >
-            <Text style={styles.fontSizeButtonText}>A-</Text>
+            <Type size={16} color={Colors.light.text} />
           </TouchableOpacity>
           
           <TouchableOpacity 
@@ -179,7 +179,7 @@ const SimpleTextReader = ({ content, title, onClose, indentParagraphs = false, s
             style={styles.fontSizeButton}
             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
           >
-            <Text style={styles.fontSizeButtonText}>A+</Text>
+            <Type size={24} color={Colors.light.text} />
           </TouchableOpacity>
         </View>
       </View>
@@ -328,15 +328,18 @@ const styles = StyleSheet.create({
   fontSizeControls: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    gap: 8,
     position: 'absolute',
     right: Platform.OS === 'android' ? 8 : 16,
-    paddingRight: 4,
+    paddingRight: 2,
+    height: 44,
     zIndex: 1,
   },
   fontSizeButton: {
     padding: 4,
     minWidth: 32,
+    height: 44,
+    paddingBottom: 0,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -344,6 +347,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: Colors.light.text,
     fontWeight: '600',
+    lineHeight: 16,
   },
   content: {
     flex: 1

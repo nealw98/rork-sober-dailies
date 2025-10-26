@@ -32,6 +32,7 @@ import {
   List, 
   Bookmark as BookmarkIcon,
   Highlighter,
+  Type,
 } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
@@ -126,7 +127,8 @@ export function BigBookReader({ visible, initialChapterId, scrollToParagraphId, 
   const [highlightMode, setHighlightMode] = useState(false);
   const [showColorPicker, setShowColorPicker] = useState(false);
   const [showColorToast, setShowColorToast] = useState(false);
-  const [selectedColor, setSelectedColor] = useState<HighlightColor | null>(null);
+  // Default to yellow if user has not explicitly chosen a color
+  const [selectedColor, setSelectedColor] = useState<HighlightColor | null>(HighlightColor.YELLOW);
   const [pendingSentence, setPendingSentence] = useState<{
     paragraphId: string;
     sentenceIndex: number;
@@ -314,19 +316,16 @@ export function BigBookReader({ visible, initialChapterId, scrollToParagraphId, 
   const handleToggleHighlightMode = () => {
     console.log('[BigBookReader] Toggling highlight mode, current:', highlightMode);
     if (highlightMode) {
-      // Exiting highlight mode - reset
+      // Exit highlight mode but retain the last selected color
       setHighlightMode(false);
-      setSelectedColor(null);
       setPendingSentence(null);
-    } else {
-      // Simple tap when no color selected - do nothing (need long press to select color first)
-      if (!selectedColor) {
-        console.log('[BigBookReader] No color selected - long press to select color first');
-        return;
-      }
-      // Entering highlight mode with already selected color
-      setHighlightMode(true);
+      return;
     }
+    // Ensure a default color (yellow) is set when turning ON
+    if (!selectedColor) {
+      setSelectedColor(HighlightColor.YELLOW);
+    }
+    setHighlightMode(true);
   };
 
   const handleLongPressHighlightIcon = () => {
@@ -335,10 +334,8 @@ export function BigBookReader({ visible, initialChapterId, scrollToParagraphId, 
   };
 
   const handleCloseColorPicker = () => {
-    // Close color picker also exits highlight mode
-    setHighlightMode(false);
+    // Close color picker; retain the currently selected color
     setShowColorPicker(false);
-    setSelectedColor(null);
     setPendingSentence(null);
   };
 
@@ -397,9 +394,7 @@ export function BigBookReader({ visible, initialChapterId, scrollToParagraphId, 
     console.log('[BigBookReader] Color selected from toast:', color);
     setSelectedColor(color);
     setShowColorToast(false);
-    
-    // Auto-enable highlight mode when color is selected
-    setHighlightMode(true);
+    // Keep current highlightMode state unchanged; color persists for future toggles
   };
 
   const handleHighlightTap = useCallback(async (paragraphId: string, sentenceIndex: number) => {
@@ -502,7 +497,7 @@ export function BigBookReader({ visible, initialChapterId, scrollToParagraphId, 
               style={styles.headerFontSizeButton}
               hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
             >
-              <Text style={styles.fontSizeButtonText}>A-</Text>
+              <Type size={16} color={Colors.light.text} />
             </TouchableOpacity>
             
             <TouchableOpacity 
@@ -510,7 +505,7 @@ export function BigBookReader({ visible, initialChapterId, scrollToParagraphId, 
               style={styles.headerFontSizeButton}
               hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
             >
-              <Text style={styles.fontSizeButtonText}>A+</Text>
+              <Type size={24} color={Colors.light.text} />
             </TouchableOpacity>
           </View>
         </View>
@@ -543,8 +538,8 @@ export function BigBookReader({ visible, initialChapterId, scrollToParagraphId, 
             >
               <Highlighter 
                 size={18} 
-                color={selectedColor ? getColorForHighlighter(selectedColor) : Colors.light.tint} 
-                fill={highlightMode ? (selectedColor ? getColorForHighlighter(selectedColor) : Colors.light.tint) : 'transparent'}
+                color={getColorForHighlighter(selectedColor || HighlightColor.YELLOW)} 
+                fill={highlightMode ? getColorForHighlighter(selectedColor || HighlightColor.YELLOW) : 'transparent'}
               />
               <Text style={styles.headerActionText}>Highlight</Text>
             </TouchableOpacity>
@@ -778,19 +773,24 @@ const styles = StyleSheet.create({
   headerFontSizeControls: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    gap: 8,
     marginRight: 4,
+    height: 44,
   },
   headerFontSizeButton: {
     padding: 4,
     justifyContent: 'center',
     alignItems: 'center',
     minWidth: 32,
+    height: 44,
   },
   fontSizeButtonText: {
     fontSize: 16,
     color: Colors.light.text,
     fontWeight: '600',
+  },
+  fontSizeButtonTextLarge: {
+    fontSize: 24,
   },
   footer: {
     flexDirection: 'row',

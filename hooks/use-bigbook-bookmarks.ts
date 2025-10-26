@@ -178,8 +178,14 @@ export function useBigBookBookmarks(chapterId?: string): UseBigBookBookmarksRetu
    * Get bookmark for a specific page
    */
   const getBookmarkForPage = useCallback((pageNumber: number): BigBookBookmark | undefined => {
+    // Page numbers may repeat across chapters; prefer a bookmark that matches
+    // the current chapter if chapterId was provided
+    if (chapterId) {
+      const inChapter = bookmarks.find(b => b.pageNumber === pageNumber && b.chapterId === chapterId);
+      if (inChapter) return inChapter;
+    }
     return bookmarks.find(b => b.pageNumber === pageNumber);
-  }, [bookmarks]);
+  }, [bookmarks, chapterId]);
   
   /**
    * Clear all bookmarks

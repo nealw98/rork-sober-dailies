@@ -79,7 +79,7 @@ export const SPONSORS: SponsorConfig[] = [
   {
     id: "co-sign-sally",
     name: "Co-Sign Sally",
-    description: "Coming soon - I'll rationalize your bad ideas or dumb actions.",
+    description: "Coming soon - When you just want someone to agree with you.",
     avatar: null,
     isAvailable: false,
   },

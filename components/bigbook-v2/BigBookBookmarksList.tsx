@@ -13,7 +13,7 @@
  * - Delete bookmarks
  */
 
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   View,
   Text,
@@ -42,9 +42,16 @@ export function BigBookBookmarksList({
   onClose,
   onNavigateToBookmark,
 }: BigBookBookmarksListProps) {
-  const { bookmarks, deleteBookmark, updateBookmarkLabel, isLoading } = useBigBookBookmarks();
+  const { bookmarks, deleteBookmark, updateBookmarkLabel, isLoading, refresh } = useBigBookBookmarks();
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingText, setEditingText] = useState('');
+
+  // Ensure bookmarks are up-to-date whenever the modal becomes visible
+  useEffect(() => {
+    if (visible) {
+      refresh().catch(err => console.error('[BigBookBookmarksList] Refresh error:', err));
+    }
+  }, [visible, refresh]);
 
   // Sort bookmarks by creation date (newest first)
   const sortedBookmarks = useMemo(() => {

@@ -176,9 +176,9 @@ export function BigBookHighlightsList({
                         />
                         
                         <View style={styles.highlightContent}>
-                          {/* Highlighted Text */}
+                          {/* Highlighted Text (no quotes) */}
                           <Text style={styles.highlightText}>
-                            "{highlight.textSnapshot}"
+                            {highlight.textSnapshot}
                           </Text>
                           
                           {/* Note (if exists) */}
