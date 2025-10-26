@@ -11,6 +11,18 @@ import {
   GENTLE_GRACE_SYSTEM_PROMPT,
   GENTLE_GRACE_INITIAL_MESSAGE,
 } from "./gentle-grace";
+import {
+  COWBOY_PETE_SYSTEM_PROMPT,
+  COWBOY_PETE_INITIAL_MESSAGE,
+} from "./cowboy-pete";
+import {
+  CO_SIGN_SALLY_SYSTEM_PROMPT,
+  CO_SIGN_SALLY_INITIAL_MESSAGE,
+} from "./co-sign-sally";
+import {
+  FRESH_FREDDIE_SYSTEM_PROMPT,
+  FRESH_FREDDIE_INITIAL_MESSAGE,
+} from "./fresh-freddie";
 
 export interface SponsorConfig {
   id: SponsorType | string;
@@ -23,6 +35,8 @@ export interface SponsorConfig {
   placeholderText?: string;
   loadingText?: string;
   bubbleColor?: string;
+  isPremium?: boolean;
+  bubbleShadowColor?: string;
 }
 
 export const SPONSORS: SponsorConfig[] = [
@@ -63,26 +77,54 @@ export const SPONSORS: SponsorConfig[] = [
     bubbleColor: "#e8d4f0",
   },
   {
-    id: "momma-jo",
-    name: "Momma Jo",
-    description: "Coming soon - Southern fried guidance and down home truth.",
-    avatar: null,
-    isAvailable: false,
-  },
-  {
     id: "cowboy-pete",
     name: "Cowboy Pete",
-    description: "Coming soon - Straight shooting wisdom from a trail-worn cowboy.",
-    avatar: null,
-    isAvailable: false,
+    description: "Straight-shooting, trail-worn wisdom in a gentle Western drawl.",
+    avatar: require("@/assets/images/cowboy_pete.png"),
+    isAvailable: true,
+    isPremium: true,
+    systemPrompt: COWBOY_PETE_SYSTEM_PROMPT,
+    initialMessage: COWBOY_PETE_INITIAL_MESSAGE,
+    placeholderText: "Tell Pete what's kickin' up dust...",
+    loadingText: "Cowboy Pete is mullin' it over...",
+    bubbleColor: "#E0CABE",
   },
   {
     id: "co-sign-sally",
-    name: "Co-Sign Sally",
-    description: "Coming soon - When you just want someone to agree with you.",
-    avatar: null,
-    isAvailable: false,
+    name: "Co-Sign Sonia",
+    description: "Co-signs all your BS, then helps you clean it up.",
+    avatar: require("@/assets/images/Co-Sign_Sonia.png"),
+    isAvailable: true,
+    isPremium: true,
+    systemPrompt: CO_SIGN_SALLY_SYSTEM_PROMPT,
+    initialMessage: CO_SIGN_SALLY_INITIAL_MESSAGE,
+    placeholderText: "Tell Sonia your side of the story...",
+    loadingText: "Sonia is noddin' along...",
+    bubbleColor: "#FFD6E6",
   },
+  {
+    id: "fresh",
+    name: "Fresh Freddie",
+    description: "Upbeat, modern sponsor who speaks your language.",
+    avatar: require("@/assets/images/Fresh_Freddie.png"),
+    isAvailable: true,
+    systemPrompt: FRESH_FREDDIE_SYSTEM_PROMPT,
+    initialMessage: FRESH_FREDDIE_INITIAL_MESSAGE,
+    placeholderText: "Tell Freddie what's goin' on...",
+    loadingText: "Fresh Freddie is cookin' up a take...",
+    bubbleColor: "#CCFBF1", // soft tech teal
+    bubbleShadowColor: "rgba(16,185,129,0.45)", // emerald glow
+    isPremium: true,
+  },
+  // Momma Jo - Coming soon
+  // {
+  //   id: "momma-jo",
+  //   name: "Momma Jo",
+  //   description: "Coming soon - Southern fried guidance and down home truth.",
+  //   avatar: null,
+  //   isAvailable: false,
+  //   isPremium: true,
+  // },
 ];
 
 export const getSponsorById = (id: string): SponsorConfig | undefined => {

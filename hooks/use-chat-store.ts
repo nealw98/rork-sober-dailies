@@ -15,6 +15,18 @@ import {
   GENTLE_GRACE_SYSTEM_PROMPT, 
   GENTLE_GRACE_INITIAL_MESSAGE 
 } from "@/constants/gentle-grace";
+import {
+  COWBOY_PETE_SYSTEM_PROMPT,
+  COWBOY_PETE_INITIAL_MESSAGE,
+} from "@/constants/cowboy-pete";
+import {
+  CO_SIGN_SALLY_SYSTEM_PROMPT,
+  CO_SIGN_SALLY_INITIAL_MESSAGE,
+} from "@/constants/co-sign-sally";
+import {
+  FRESH_FREDDIE_SYSTEM_PROMPT,
+  FRESH_FREDDIE_INITIAL_MESSAGE,
+} from "@/constants/fresh-freddie";
 
 
 
@@ -100,6 +112,15 @@ function convertToAPIMessages(chatMessages: ChatMessage[], sponsorType: SponsorT
     case "grace":
       systemPrompt = GENTLE_GRACE_SYSTEM_PROMPT;
       break;
+    case "cowboy-pete":
+      systemPrompt = COWBOY_PETE_SYSTEM_PROMPT;
+      break;
+    case "co-sign-sally":
+      systemPrompt = CO_SIGN_SALLY_SYSTEM_PROMPT;
+      break;
+    case "fresh":
+      systemPrompt = FRESH_FREDDIE_SYSTEM_PROMPT;
+      break;
     default:
       systemPrompt = STEADY_EDDIE_SYSTEM_PROMPT;
   }
@@ -130,6 +151,9 @@ export const [ChatStoreProvider, useChatStore] = createContextHook(() => {
   const [saltyMessages, setSaltyMessages] = useState<ChatMessage[]>([SALTY_SAM_INITIAL_MESSAGE]);
   const [supportiveMessages, setSupportiveMessages] = useState<ChatMessage[]>([STEADY_EDDIE_INITIAL_MESSAGE]);
   const [graceMessages, setGraceMessages] = useState<ChatMessage[]>([GENTLE_GRACE_INITIAL_MESSAGE]);
+  const [cowboyMessages, setCowboyMessages] = useState<ChatMessage[]>([COWBOY_PETE_INITIAL_MESSAGE]);
+  const [sallyMessages, setSallyMessages] = useState<ChatMessage[]>([CO_SIGN_SALLY_INITIAL_MESSAGE]);
+  const [freshMessages, setFreshMessages] = useState<ChatMessage[]>([FRESH_FREDDIE_INITIAL_MESSAGE]);
   const [isLoading, setIsLoading] = useState<boolean>(false);
 
   // Get current messages based on selected sponsor
@@ -138,6 +162,9 @@ export const [ChatStoreProvider, useChatStore] = createContextHook(() => {
       case "salty": return saltyMessages;
       case "supportive": return supportiveMessages;
       case "grace": return graceMessages;
+      case "cowboy-pete": return cowboyMessages;
+      case "co-sign-sally": return sallyMessages;
+      case "fresh": return freshMessages;
       default: return saltyMessages;
     }
   })();
@@ -154,6 +181,15 @@ export const [ChatStoreProvider, useChatStore] = createContextHook(() => {
       case "grace":
         setGraceMessages(newMessages);
         break;
+      case "cowboy-pete":
+        setCowboyMessages(newMessages);
+        break;
+      case "co-sign-sally":
+        setSallyMessages(newMessages);
+        break;
+      case "fresh":
+        setFreshMessages(newMessages);
+        break;
     }
   };
 
@@ -165,11 +201,17 @@ export const [ChatStoreProvider, useChatStore] = createContextHook(() => {
           storedSaltyMessages, 
           storedSupportiveMessages, 
           storedGraceMessages,
+          storedCowboyMessages,
+          storedSallyMessages,
+          storedFreshMessages,
           storedSponsorType
         ] = await Promise.all([
           AsyncStorage.getItem("aa-chat-messages-salty"),
           AsyncStorage.getItem("aa-chat-messages-supportive"),
           AsyncStorage.getItem("aa-chat-messages-grace"),
+          AsyncStorage.getItem("aa-chat-messages-cowboy"),
+          AsyncStorage.getItem("aa-chat-messages-sally"),
+          AsyncStorage.getItem("aa-chat-messages-fresh"),
           AsyncStorage.getItem("aa-chat-sponsor-type")
         ]);
         
@@ -242,6 +284,63 @@ export const [ChatStoreProvider, useChatStore] = createContextHook(() => {
             setGraceMessages([GENTLE_GRACE_INITIAL_MESSAGE]);
           }
         }
+
+        if (storedCowboyMessages) {
+          try {
+            const parsed = JSON.parse(storedCowboyMessages);
+            if (Array.isArray(parsed)) {
+              if (parsed.length === 0 || parsed[0].id !== "welcome-cowboy") {
+                setCowboyMessages([COWBOY_PETE_INITIAL_MESSAGE, ...parsed]);
+              } else {
+                setCowboyMessages([COWBOY_PETE_INITIAL_MESSAGE, ...parsed.slice(1)]);
+              }
+            } else {
+              console.warn('[Chat Store] Invalid cowboy messages format, using defaults');
+              setCowboyMessages([COWBOY_PETE_INITIAL_MESSAGE]);
+            }
+          } catch (error) {
+            console.error('[Chat Store] Failed to parse cowboy messages:', error);
+            setCowboyMessages([COWBOY_PETE_INITIAL_MESSAGE]);
+          }
+        }
+
+        if (storedSallyMessages) {
+          try {
+            const parsed = JSON.parse(storedSallyMessages);
+            if (Array.isArray(parsed)) {
+              if (parsed.length === 0 || parsed[0].id !== "welcome-sally") {
+                setSallyMessages([CO_SIGN_SALLY_INITIAL_MESSAGE, ...parsed]);
+              } else {
+                setSallyMessages([CO_SIGN_SALLY_INITIAL_MESSAGE, ...parsed.slice(1)]);
+              }
+            } else {
+              console.warn('[Chat Store] Invalid sally messages format, using defaults');
+              setSallyMessages([CO_SIGN_SALLY_INITIAL_MESSAGE]);
+            }
+          } catch (error) {
+            console.error('[Chat Store] Failed to parse sally messages:', error);
+            setSallyMessages([CO_SIGN_SALLY_INITIAL_MESSAGE]);
+          }
+        }
+
+        if (storedFreshMessages) {
+          try {
+            const parsed = JSON.parse(storedFreshMessages);
+            if (Array.isArray(parsed)) {
+              if (parsed.length === 0 || parsed[0].id !== "welcome-fresh") {
+                setFreshMessages([FRESH_FREDDIE_INITIAL_MESSAGE, ...parsed]);
+              } else {
+                setFreshMessages([FRESH_FREDDIE_INITIAL_MESSAGE, ...parsed.slice(1)]);
+              }
+            } else {
+              console.warn('[Chat Store] Invalid fresh messages format, using defaults');
+              setFreshMessages([FRESH_FREDDIE_INITIAL_MESSAGE]);
+            }
+          } catch (error) {
+            console.error('[Chat Store] Failed to parse fresh messages:', error);
+            setFreshMessages([FRESH_FREDDIE_INITIAL_MESSAGE]);
+          }
+        }
       } catch (error) {
         console.error("Error loading messages:", error);
       }
@@ -293,6 +392,48 @@ export const [ChatStoreProvider, useChatStore] = createContextHook(() => {
     }
   }, [graceMessages]);
 
+  useEffect(() => {
+    const saveMessages = async () => {
+      try {
+        await AsyncStorage.setItem("aa-chat-messages-cowboy", JSON.stringify(cowboyMessages));
+      } catch (error) {
+        console.error("Error saving Cowboy Pete messages:", error);
+      }
+    };
+    
+    if (cowboyMessages.length > 0) {
+      saveMessages();
+    }
+  }, [cowboyMessages]);
+
+  useEffect(() => {
+    const saveMessages = async () => {
+      try {
+        await AsyncStorage.setItem("aa-chat-messages-sally", JSON.stringify(sallyMessages));
+      } catch (error) {
+        console.error("Error saving Co-Sign Sally messages:", error);
+      }
+    };
+    
+    if (sallyMessages.length > 0) {
+      saveMessages();
+    }
+  }, [sallyMessages]);
+
+  useEffect(() => {
+    const saveMessages = async () => {
+      try {
+        await AsyncStorage.setItem("aa-chat-messages-fresh", JSON.stringify(freshMessages));
+      } catch (error) {
+        console.error("Error saving Fresh Freddie messages:", error);
+      }
+    };
+    
+    if (freshMessages.length > 0) {
+      saveMessages();
+    }
+  }, [freshMessages]);
+
   // Save sponsor type preference
   useEffect(() => {
     const saveSponsorType = async () => {
@@ -315,6 +456,9 @@ export const [ChatStoreProvider, useChatStore] = createContextHook(() => {
       case "salty": return saltyMessages;
       case "supportive": return supportiveMessages;
       case "grace": return graceMessages;
+      case "cowboy-pete": return cowboyMessages;
+      case "co-sign-sally": return sallyMessages;
+      case "fresh": return freshMessages;
       default: return supportiveMessages;
     }
   };
@@ -445,6 +589,18 @@ export const [ChatStoreProvider, useChatStore] = createContextHook(() => {
         case "grace":
           await AsyncStorage.removeItem("aa-chat-messages-grace");
           setGraceMessages([GENTLE_GRACE_INITIAL_MESSAGE]);
+          break;
+        case "cowboy-pete":
+          await AsyncStorage.removeItem("aa-chat-messages-cowboy");
+          setCowboyMessages([COWBOY_PETE_INITIAL_MESSAGE]);
+          break;
+        case "co-sign-sally":
+          await AsyncStorage.removeItem("aa-chat-messages-sally");
+          setSallyMessages([CO_SIGN_SALLY_INITIAL_MESSAGE]);
+          break;
+        case "fresh":
+          await AsyncStorage.removeItem("aa-chat-messages-fresh");
+          setFreshMessages([FRESH_FREDDIE_INITIAL_MESSAGE]);
           break;
       }
     } catch (error) {

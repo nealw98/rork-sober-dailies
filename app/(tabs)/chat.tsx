@@ -10,7 +10,7 @@ import {
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
-import { ChevronLeft } from "lucide-react-native";
+import { ChevronLeft, Gem } from "lucide-react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Colors from "@/constants/colors";
 import { adjustFontWeight } from "@/constants/fonts";
@@ -23,10 +23,25 @@ export default function ChatScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const [comingSoonVisible, setComingSoonVisible] = useState(false);
+  const [selectedPremiumId, setSelectedPremiumId] = useState<string | null>(null);
+  const [modalMode, setModalMode] = useState<'premium' | 'pickAnother'>('premium');
 
   const handleSponsorSelect = (sponsorId: string) => {
-    // Route available sponsors to chat; locked sponsors open coming-soon modal
     const sponsor = SPONSORS.find(s => s.id === sponsorId);
+    const isPremiumGate = sponsorId === 'co-sign-sally' || sponsorId === 'cowboy-pete' || sponsorId === 'fresh';
+    const isDeployed = !!(sponsor && sponsor.isAvailable);
+    if (!isDeployed) {
+      setModalMode('pickAnother');
+      setSelectedPremiumId(sponsorId);
+      setComingSoonVisible(true);
+      return;
+    }
+    if (isPremiumGate) {
+      setModalMode('premium');
+      setSelectedPremiumId(sponsorId);
+      setComingSoonVisible(true);
+      return;
+    }
     if (sponsor && sponsor.isAvailable) {
       router.push(`/sponsor-chat?sponsor=${sponsorId}`);
     } else {
@@ -85,18 +100,25 @@ export default function ChatScreen() {
                     <Image source={sponsor.avatar} style={styles.avatar} />
                   ) : (
                     <View style={styles.avatarLocked}>
-                      <Text style={styles.lockEmoji}>🔒</Text>
+                      <Text style={styles.lockEmoji}>🚧</Text>
                     </View>
                   )}
                   <View style={styles.textContent}>
-                    <Text
-                      style={[
-                        styles.sponsorName,
-                        !sponsor.isAvailable && styles.textDisabled,
-                      ]}
-                    >
-                      {sponsor.name}
-                    </Text>
+                    <View style={styles.nameRow}>
+                      <Text
+                        style={[
+                          styles.sponsorName,
+                          !sponsor.isAvailable && styles.textDisabled,
+                        ]}
+                      >
+                        {sponsor.name}
+                      </Text>
+                      {sponsor.isPremium && (
+                        <View style={styles.premiumBadgeNameRight}>
+                          <Gem size={18} color={Colors.light.tint} />
+                        </View>
+                      )}
+                    </View>
                     <Text
                       style={[
                         styles.sponsorDescription,
@@ -113,7 +135,19 @@ export default function ChatScreen() {
         </LinearGradient>
         <PremiumComingSoonModal
           visible={comingSoonVisible}
-          onClose={() => setComingSoonVisible(false)}
+          mode={modalMode}
+          onClose={() => {
+            const id = selectedPremiumId;
+            const currentMode = modalMode;
+            setComingSoonVisible(false);
+            if (!id) return;
+            if (currentMode === 'pickAnother') {
+              // stay on list
+            } else if (id === 'co-sign-sally' || id === 'cowboy-pete' || id === 'fresh') {
+              router.push(`/sponsor-chat?sponsor=${id}`);
+            }
+            setSelectedPremiumId(null);
+          }}
         />
       </ScreenContainer>
     </>
@@ -204,17 +238,22 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
   },
-  lockEmoji: {
-    fontSize: 32,
-  },
   textContent: {
     flex: 1,
+  },
+  nameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
   },
   sponsorName: {
     fontSize: 20,
     fontWeight: adjustFontWeight("600", true),
     color: Colors.light.text,
     marginBottom: 6,
+  },
+  premiumBadgeNameRight: {
+    marginLeft: 8,
   },
   sponsorDescription: {
     fontSize: 14,

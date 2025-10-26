@@ -32,10 +32,14 @@ interface ChatInterfaceProps {
 
 const ChatBubble = ({ 
   message, 
-  bubbleColor 
+  bubbleColor,
+  bubbleShadowColor,
+  sponsorType,
 }: { 
   message: ChatMessage;
   bubbleColor?: string;
+  bubbleShadowColor?: string;
+  sponsorType: SponsorType;
 }) => {
   const isUser = message.sender === "user";
 
@@ -82,6 +86,8 @@ const ChatBubble = ({
     }
   };
   
+  const isFresh = sponsorType === 'fresh' && !isUser;
+
   return (
     <View
       style={[
@@ -93,14 +99,14 @@ const ChatBubble = ({
       <TouchableOpacity
         style={[
           styles.bubble,
-          getBotBubbleStyle(),
+          isFresh ? styles.freshBubbleBase : getBotBubbleStyle(),
         ]}
         onPressIn={handlePressIn}
         onPressOut={handlePressOut}
         activeOpacity={0.7}
       >
         {isUser ? (
-          <Text style={styles.messageText}>{message.text}</Text>
+          <Text style={styles.userMessageText}>{message.text}</Text>
         ) : (
           <ChatMarkdownRenderer content={message.text} style={styles.messageText} />
         )}
@@ -169,6 +175,12 @@ export default function ChatInterface({
         return "SteadyEddie";
       case "grace":
         return "GentleGrace";
+      case "cowboy-pete":
+        return "CowboyPete";
+      case "co-sign-sally":
+        return "CoSignSally";
+      case "fresh":
+        return "FreshFreddie";
       default:
         return "Unknown";
     }
@@ -184,6 +196,7 @@ export default function ChatInterface({
   const placeholderText = sponsorConfig?.placeholderText || "Type your message...";
   const loadingText = sponsorConfig?.loadingText || "Thinking...";
   const bubbleColor = sponsorConfig?.bubbleColor;
+  const bubbleShadowColor = sponsorConfig?.bubbleShadowColor;
 
   return (
     <KeyboardAvoidingView
@@ -203,7 +216,7 @@ export default function ChatInterface({
           ref={flatListRef}
           data={messages}
           keyExtractor={(item) => item.id}
-          renderItem={({ item }) => <ChatBubble message={item} bubbleColor={bubbleColor} />}
+          renderItem={({ item }) => <ChatBubble message={item} bubbleColor={bubbleColor} bubbleShadowColor={bubbleShadowColor} sponsorType={sponsorType} />}
           contentContainerStyle={styles.chatContainer}
           showsVerticalScrollIndicator={false}
           testID="chat-message-list"
@@ -236,7 +249,7 @@ export default function ChatInterface({
         <TouchableOpacity
           style={[
             styles.sendButton,
-            !inputText.trim() && styles.sendButtonDisabled,
+            (!inputText.trim() || isLoading) && styles.sendButtonDisabled,
           ]}
           onPress={handleSend}
           disabled={!inputText.trim() || isLoading}
@@ -244,7 +257,7 @@ export default function ChatInterface({
         >
           <Send
             size={20}
-            color={!inputText.trim() || isLoading ? Colors.light.muted : "#fff"}
+            color="#fff"
           />
         </TouchableOpacity>
       </View>
@@ -266,7 +279,7 @@ const styles = StyleSheet.create({
   },
   messagesWrapper: {
     flex: 1,
-    backgroundColor: Colors.light.background,
+    backgroundColor: '#fff',
     borderRadius: 16,
     margin: 8,
     marginTop: 4,
@@ -301,7 +314,7 @@ const styles = StyleSheet.create({
     padding: 12,
     borderRadius: 18,
     minWidth: 60,
-    // Level 2: Interactive Cards (High depth)
+    // Shared neutral shadow for all bubbles
     shadowColor: '#000',
     shadowOffset: {
       width: 0,
@@ -311,8 +324,14 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 6,
   },
+  freshBubbleBase: {
+    backgroundColor: '#CCFBF1',
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: '#14B8A6',
+  },
   userBubble: {
-    backgroundColor: "#b8d9f0", // Even darker blue for better contrast
+    backgroundColor: "#BFDBFE",
     borderBottomRightRadius: 4,
   },
   supportiveBubble: {
@@ -329,7 +348,13 @@ const styles = StyleSheet.create({
   },
   messageText: {
     fontSize: 16,
-    color: "#333333",
+    color: "#1E293B",
+    lineHeight: 22,
+    fontWeight: adjustFontWeight("400"),
+  },
+  userMessageText: {
+    fontSize: 16,
+    color: "#1E293B",
     lineHeight: 22,
     fontWeight: adjustFontWeight("400"),
   },
@@ -384,12 +409,21 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: Colors.light.tint,
+    backgroundColor: '#007AFF',
     justifyContent: "center",
     alignItems: "center",
     marginLeft: 8,
+    // Match input field shadow (subtle)
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 3,
+    },
+    shadowOpacity: 0.15,
+    shadowRadius: 6,
+    elevation: 3,
   },
   sendButtonDisabled: {
-    backgroundColor: Colors.light.divider,
+    backgroundColor: '#C7C7CC',
   },
 });

@@ -9,14 +9,16 @@ import {
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import Colors from '@/constants/colors';
+import { Gem } from 'lucide-react-native';
 import { adjustFontWeight } from '@/constants/fonts';
 
 interface PremiumComingSoonModalProps {
   visible: boolean;
   onClose: () => void;
+  mode?: 'premium' | 'pickAnother';
 }
 
-export function PremiumComingSoonModal({ visible, onClose }: PremiumComingSoonModalProps) {
+export function PremiumComingSoonModal({ visible, onClose, mode = 'premium' }: PremiumComingSoonModalProps) {
   if (!visible) return null;
 
   return (
@@ -37,9 +39,20 @@ export function PremiumComingSoonModal({ visible, onClose }: PremiumComingSoonMo
           />
 
           <View style={styles.content}>
-            <Text style={styles.title}>🔒 Premium Sponsor</Text>
+            <View style={styles.premiumIconWrap}>
+              {mode === 'premium' ? (
+                <Gem size={28} color={Colors.light.tint} />
+              ) : (
+                <Text style={styles.constructionEmoji}>🚧</Text>
+              )}
+            </View>
+            <Text style={styles.title}>
+              {mode === 'premium' ? 'Premium Sponsor' : 'Under Construction'}
+            </Text>
             <Text style={styles.subtitle}>
-              Additional AI Sponsors will be available as part of our premium features and are still in development.
+              {mode === 'premium'
+                ? 'Additional AI Sponsors will be available as part of our premium features and are still in development.'
+                : "This sponsor isn't available yet. Please pick another one for now."}
             </Text>
 
             <View style={styles.infoBox}>
@@ -112,6 +125,10 @@ const styles = StyleSheet.create({
     color: Colors.light.text,
     textAlign: 'center',
     marginBottom: 10,
+  },
+  premiumIconWrap: {
+    alignItems: 'center',
+    marginBottom: 6,
   },
   subtitle: {
     fontSize: 15,

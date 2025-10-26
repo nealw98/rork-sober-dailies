@@ -19,7 +19,7 @@ export const bigBookData: BigBookCategory[] = [
   {
     id: "forewords",
     title: "Forward & Doctor's Opinion",
-    description: "Introduction and historical context of the Big Book",
+    description: "", // Commented out: "Introduction and historical context of the Big Book"
     sections: [
       {
         id: "foreword-first",
@@ -38,7 +38,7 @@ export const bigBookData: BigBookCategory[] = [
   {
     id: "main-chapters",
     title: "Main Chapters",
-    description: "The core text describing the AA recovery program",
+    description: "", // Commented out: "The core text describing the AA recovery program"
     sections: [
       {
         id: "chapter-1",
@@ -111,7 +111,7 @@ export const bigBookData: BigBookCategory[] = [
   {
     id: "appendices",
     title: "Appendices",
-    description: "Additional resources and perspectives",
+    description: "", // Commented out: "Additional resources and perspectives"
     sections: [
       {
         id: "appendix-1",
