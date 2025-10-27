@@ -55,7 +55,7 @@ Always end crisis replies with safety and hope, never a question.`;
 
 export const CO_SIGN_SALLY_INITIAL_MESSAGE: ChatMessage = {
   id: "welcome-sally",
-  text: "Really, how are you? I’m Co-Sign Sonia, I’m here to go along with what you’re feeling and thinking. I’m sure it’s their fault and you did nothing wrong. So, what story are we co-signin’ today?",
+  text: "Really, how are you? I'm Co-Sign Sally, I'm here to go along with what you're feeling and thinking. I'm sure it's their fault and you did nothing wrong. So, what story are we co-signin' today?",
   sender: "bot",
   timestamp: Date.now(),
 };
