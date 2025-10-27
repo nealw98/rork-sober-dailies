@@ -47,7 +47,7 @@ Always end crisis replies with safety and hope, never a question.`;
 
 export const FRESH_FREDDIE_INITIAL_MESSAGE: ChatMessage = {
   id: "welcome-fresh",
-  text: "Yo, what’s good? I’m Fresh Freddie. I got clean young and stayed that way by doing the work and keeping it real. Sobriety’s not about missing out—it’s about leveling up. Let’s get your XP up and build this life right. What’s poppin’ today?",
+  text: "Yo, what's good? I'm Fresh Freddie 💯 Got clean early, stayed real. Sobriety ain't missing out—it's a lvl-up. Let's stack that XP and build a life that hits diff. What's poppin' today?",
   sender: "bot",
   timestamp: Date.now(),
 };

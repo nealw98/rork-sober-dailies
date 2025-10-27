@@ -16,8 +16,11 @@ import Colors from "@/constants/colors";
 import { adjustFontWeight } from "@/constants/fonts";
 import { SPONSORS } from "@/constants/sponsors";
 import ScreenContainer from "@/components/ScreenContainer";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { PremiumComingSoonModal } from "@/components/PremiumComingSoonModal";
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
+const PREMIUM_UNLOCKED_KEY = '@premium_sponsors_unlocked';
 
 export default function ChatScreen() {
   const router = useRouter();
@@ -25,18 +28,45 @@ export default function ChatScreen() {
   const [comingSoonVisible, setComingSoonVisible] = useState(false);
   const [selectedPremiumId, setSelectedPremiumId] = useState<string | null>(null);
   const [modalMode, setModalMode] = useState<'premium' | 'pickAnother'>('premium');
+  const [premiumUnlocked, setPremiumUnlocked] = useState(false);
+
+  // Load premium unlock status from storage on mount
+  useEffect(() => {
+    loadPremiumUnlockStatus();
+  }, []);
+
+  const loadPremiumUnlockStatus = async () => {
+    try {
+      const stored = await AsyncStorage.getItem(PREMIUM_UNLOCKED_KEY);
+      if (stored) {
+        setPremiumUnlocked(JSON.parse(stored) === true);
+      }
+    } catch (error) {
+      console.error('Failed to load premium unlock status:', error);
+    }
+  };
+
+  const markAllPremiumAsUnlocked = async () => {
+    try {
+      setPremiumUnlocked(true);
+      await AsyncStorage.setItem(PREMIUM_UNLOCKED_KEY, JSON.stringify(true));
+    } catch (error) {
+      console.error('Failed to save premium unlock status:', error);
+    }
+  };
 
   const handleSponsorSelect = (sponsorId: string) => {
     const sponsor = SPONSORS.find(s => s.id === sponsorId);
-    const isPremiumGate = sponsorId === 'co-sign-sally' || sponsorId === 'cowboy-pete' || sponsorId === 'fresh';
+    const isPremiumSponsor = sponsor?.isPremium;
     const isDeployed = !!(sponsor && sponsor.isAvailable);
+    
     if (!isDeployed) {
       setModalMode('pickAnother');
       setSelectedPremiumId(sponsorId);
       setComingSoonVisible(true);
       return;
     }
-    if (isPremiumGate) {
+    if (isPremiumSponsor && !premiumUnlocked) {
       setModalMode('premium');
       setSelectedPremiumId(sponsorId);
       setComingSoonVisible(true);
@@ -50,7 +80,7 @@ export default function ChatScreen() {
   };
 
   const handleBack = () => {
-    router.push("/(tabs)/home");
+    router.push("/(tabs)");
   };
 
   return (
@@ -85,52 +115,62 @@ export default function ChatScreen() {
             contentContainerStyle={styles.scrollContent}
             showsVerticalScrollIndicator={false}
           >
-            {SPONSORS.map((sponsor) => (
-              <TouchableOpacity
-                key={sponsor.id}
-                style={[
-                  styles.card,
-                  !sponsor.isAvailable && styles.cardDisabled,
-                ]}
-                onPress={() => handleSponsorSelect(sponsor.id)}
-                activeOpacity={0.7}
-              >
-                <View style={styles.cardContent}>
-                  {sponsor.isAvailable && sponsor.avatar ? (
-                    <Image source={sponsor.avatar} style={styles.avatar} />
-                  ) : (
-                    <View style={styles.avatarLocked}>
-                      <Text style={styles.lockEmoji}>🚧</Text>
-                    </View>
-                  )}
-                  <View style={styles.textContent}>
-                    <View style={styles.nameRow}>
+            {SPONSORS.map((sponsor) => {
+              const isLocked = sponsor.isPremium && !premiumUnlocked;
+              return (
+                <TouchableOpacity
+                  key={sponsor.id}
+                  style={[
+                    styles.card,
+                    !sponsor.isAvailable && styles.cardDisabled,
+                    isLocked && styles.cardLocked,
+                  ]}
+                  onPress={() => handleSponsorSelect(sponsor.id)}
+                  activeOpacity={0.7}
+                >
+                  <View style={styles.cardContent}>
+                    {sponsor.isAvailable && sponsor.avatar ? (
+                      <Image 
+                        source={sponsor.avatar} 
+                        style={[
+                          styles.avatar,
+                          isLocked && styles.avatarGrayed
+                        ]} 
+                      />
+                    ) : (
+                      <View style={styles.avatarLocked}>
+                        <Text style={styles.lockEmoji}>🚧</Text>
+                      </View>
+                    )}
+                    <View style={styles.textContent}>
+                      <View style={styles.nameRow}>
+                        <Text
+                          style={[
+                            styles.sponsorName,
+                            !sponsor.isAvailable && styles.textDisabled,
+                          ]}
+                        >
+                          {sponsor.name}
+                        </Text>
+                        {sponsor.isPremium && (
+                          <View style={styles.premiumBadgeNameRight}>
+                            <Gem size={18} color={Colors.light.tint} />
+                          </View>
+                        )}
+                      </View>
                       <Text
                         style={[
-                          styles.sponsorName,
+                          styles.sponsorDescription,
                           !sponsor.isAvailable && styles.textDisabled,
                         ]}
                       >
-                        {sponsor.name}
+                        {sponsor.description}
                       </Text>
-                      {sponsor.isPremium && (
-                        <View style={styles.premiumBadgeNameRight}>
-                          <Gem size={18} color={Colors.light.tint} />
-                        </View>
-                      )}
                     </View>
-                    <Text
-                      style={[
-                        styles.sponsorDescription,
-                        !sponsor.isAvailable && styles.textDisabled,
-                      ]}
-                    >
-                      {sponsor.description}
-                    </Text>
                   </View>
-                </View>
-              </TouchableOpacity>
-            ))}
+                </TouchableOpacity>
+              );
+            })}
           </ScrollView>
         </LinearGradient>
         <PremiumComingSoonModal
@@ -143,7 +183,9 @@ export default function ChatScreen() {
             if (!id) return;
             if (currentMode === 'pickAnother') {
               // stay on list
-            } else if (id === 'co-sign-sally' || id === 'cowboy-pete' || id === 'fresh') {
+            } else {
+              // Unlock all premium sponsors
+              markAllPremiumAsUnlocked();
               router.push(`/sponsor-chat?sponsor=${id}`);
             }
             setSelectedPremiumId(null);
@@ -166,6 +208,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     padding: Platform.OS === "android" ? 4 : 8,
+    alignSelf: "flex-start", // Prevent button from stretching across the header
   },
   backText: {
     fontSize: 16,
@@ -219,6 +262,9 @@ const styles = StyleSheet.create({
     opacity: 0.6,
     backgroundColor: "#f5f5f5",
   },
+  cardLocked: {
+    opacity: 0.65,
+  },
   cardContent: {
     flexDirection: "row",
     alignItems: "center",
@@ -228,6 +274,9 @@ const styles = StyleSheet.create({
     height: 64,
     borderRadius: 32,
     marginRight: 16,
+  },
+  avatarGrayed: {
+    opacity: 0.5,
   },
   avatarLocked: {
     width: 64,

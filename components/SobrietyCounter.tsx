@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { StyleSheet, View, Text, TouchableOpacity, Modal, TextInput, Alert } from 'react-native';
+import { StyleSheet, View, Text, TouchableOpacity, Modal, TextInput, Alert, Keyboard, TouchableWithoutFeedback } from 'react-native';
 import { Calendar, X, Edit3 } from 'lucide-react-native';
 import { useSobriety } from '@/hooks/useSobrietyStore';
 import { formatStoredDateForDisplay, parseLocalDate, formatLocalDate } from '@/lib/dateUtils';
@@ -70,7 +70,8 @@ const SobrietyCounter = () => {
       return;
     }
 
-    dateInputRef.current?.blur();
+    // Dismiss keyboard using Keyboard API (more reliable than blur)
+    Keyboard.dismiss();
 
     const [month, day, year] = dateInput.split('/').map(Number);
     const dateString = `${year}-${month.toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`;
@@ -117,7 +118,8 @@ const SobrietyCounter = () => {
       return;
     }
 
-    dateInputRef.current?.blur();
+    // Dismiss keyboard using Keyboard API
+    Keyboard.dismiss();
 
     const [month, day, year] = dateInput.split('/').map(Number);
     const dateString = `${year}-${month.toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`;
@@ -187,55 +189,57 @@ const SobrietyCounter = () => {
             animationType="slide"
             onRequestClose={handleCancel}
           >
-            <View style={styles.datePickerOverlay}>
-              <View style={styles.datePickerContent}>
-                <Text style={styles.datePickerTitle}>Enter your sobriety date</Text>
-                
-                <TextInput
-                  ref={dateInputRef}
-                  style={[
-                    styles.dateInput,
-                    !isValidDate(dateInput) && dateInput.length === 10 && styles.dateInputError
-                  ]}
-                  value={dateInput}
-                  onChangeText={handleDateInputChange}
-                  onSubmitEditing={handleConfirmDate}
-                  placeholder="mm/dd/yyyy"
-                  placeholderTextColor={Colors.light.muted}
-                  maxLength={10}
-                  keyboardType="numeric"
-                  autoFocus={true}
-                />
-                
-                {!isValidDate(dateInput) && dateInput.length === 10 && (
-                  <Text style={styles.errorText}>Please enter a valid date</Text>
-                )}
-                
-                <View style={styles.datePickerButtons}>
-                  <TouchableOpacity 
-                    style={[styles.datePickerButton, styles.cancelButton]}
-                    onPress={handleCancel}
-                  >
-                    <Text style={styles.cancelButtonText}>Cancel</Text>
-                  </TouchableOpacity>
+            <TouchableWithoutFeedback>
+              <View style={styles.datePickerOverlay}>
+                <View style={styles.datePickerContent}>
+                  <Text style={styles.datePickerTitle}>Enter your sobriety date</Text>
                   
-                  <TouchableOpacity 
+                  <TextInput
+                    ref={dateInputRef}
                     style={[
-                      styles.datePickerButton, 
-                      styles.confirmDateButton,
-                      (!dateInput || dateInput.length < 10 || !isValidDate(dateInput)) && styles.disabledButton
+                      styles.dateInput,
+                      !isValidDate(dateInput) && dateInput.length === 10 && styles.dateInputError
                     ]}
-                    onPress={handleConfirmDate}
-                    disabled={!dateInput || dateInput.length < 10 || !isValidDate(dateInput)}
-                  >
-                    <Text style={[
-                      styles.confirmDateButtonText,
-                      (!dateInput || dateInput.length < 10 || !isValidDate(dateInput)) && styles.disabledButtonText
-                    ]}>OK</Text>
-                  </TouchableOpacity>
+                    value={dateInput}
+                    onChangeText={handleDateInputChange}
+                    onSubmitEditing={handleConfirmDate}
+                    placeholder="mm/dd/yyyy"
+                    placeholderTextColor={Colors.light.muted}
+                    maxLength={10}
+                    keyboardType="numeric"
+                    autoFocus={true}
+                  />
+                  
+                  {!isValidDate(dateInput) && dateInput.length === 10 && (
+                    <Text style={styles.errorText}>Please enter a valid date</Text>
+                  )}
+                  
+                  <View style={styles.datePickerButtons}>
+                    <TouchableOpacity 
+                      style={[styles.datePickerButton, styles.cancelButton]}
+                      onPress={handleCancel}
+                    >
+                      <Text style={styles.cancelButtonText}>Cancel</Text>
+                    </TouchableOpacity>
+                    
+                    <TouchableOpacity 
+                      style={[
+                        styles.datePickerButton, 
+                        styles.confirmDateButton,
+                        (!dateInput || dateInput.length < 10 || !isValidDate(dateInput)) && styles.disabledButton
+                      ]}
+                      onPress={handleConfirmDate}
+                      disabled={!dateInput || dateInput.length < 10 || !isValidDate(dateInput)}
+                    >
+                      <Text style={[
+                        styles.confirmDateButtonText,
+                        (!dateInput || dateInput.length < 10 || !isValidDate(dateInput)) && styles.disabledButtonText
+                      ]}>OK</Text>
+                    </TouchableOpacity>
+                  </View>
                 </View>
               </View>
-            </View>
+            </TouchableWithoutFeedback>
           </Modal>
         )}
       </>
@@ -267,55 +271,57 @@ const SobrietyCounter = () => {
             animationType="slide"
             onRequestClose={handleCancel}
           >
-            <View style={styles.datePickerOverlay}>
-              <View style={styles.datePickerContent}>
-                <Text style={styles.datePickerTitle}>Enter your sobriety date</Text>
-                
-                <TextInput
-                  ref={dateInputRef}
-                  style={[
-                    styles.dateInput,
-                    !isValidDate(dateInput) && dateInput.length === 10 && styles.dateInputError
-                  ]}
-                  value={dateInput}
-                  onChangeText={handleDateInputChange}
-                  onSubmitEditing={handleConfirmDate}
-                  placeholder="mm/dd/yyyy"
-                  placeholderTextColor={Colors.light.muted}
-                  maxLength={10}
-                  keyboardType="numeric"
-                  autoFocus={true}
-                />
-                
-                {!isValidDate(dateInput) && dateInput.length === 10 && (
-                  <Text style={styles.errorText}>Please enter a valid date</Text>
-                )}
-                
-                <View style={styles.datePickerButtons}>
-                  <TouchableOpacity 
-                    style={[styles.datePickerButton, styles.cancelButton]}
-                    onPress={handleCancel}
-                  >
-                    <Text style={styles.cancelButtonText}>Cancel</Text>
-                  </TouchableOpacity>
+            <TouchableWithoutFeedback>
+              <View style={styles.datePickerOverlay}>
+                <View style={styles.datePickerContent}>
+                  <Text style={styles.datePickerTitle}>Enter your sobriety date</Text>
                   
-                  <TouchableOpacity 
+                  <TextInput
+                    ref={dateInputRef}
                     style={[
-                      styles.datePickerButton, 
-                      styles.confirmDateButton,
-                      (!dateInput || dateInput.length < 10 || !isValidDate(dateInput)) && styles.disabledButton
+                      styles.dateInput,
+                      !isValidDate(dateInput) && dateInput.length === 10 && styles.dateInputError
                     ]}
-                    onPress={handleConfirmDate}
-                    disabled={!dateInput || dateInput.length < 10 || !isValidDate(dateInput)}
-                  >
-                    <Text style={[
-                      styles.confirmDateButtonText,
-                      (!dateInput || dateInput.length < 10 || !isValidDate(dateInput)) && styles.disabledButtonText
-                    ]}>OK</Text>
-                  </TouchableOpacity>
+                    value={dateInput}
+                    onChangeText={handleDateInputChange}
+                    onSubmitEditing={handleConfirmDate}
+                    placeholder="mm/dd/yyyy"
+                    placeholderTextColor={Colors.light.muted}
+                    maxLength={10}
+                    keyboardType="numeric"
+                    autoFocus={true}
+                  />
+                  
+                  {!isValidDate(dateInput) && dateInput.length === 10 && (
+                    <Text style={styles.errorText}>Please enter a valid date</Text>
+                  )}
+                  
+                  <View style={styles.datePickerButtons}>
+                    <TouchableOpacity 
+                      style={[styles.datePickerButton, styles.cancelButton]}
+                      onPress={handleCancel}
+                    >
+                      <Text style={styles.cancelButtonText}>Cancel</Text>
+                    </TouchableOpacity>
+                    
+                    <TouchableOpacity 
+                      style={[
+                        styles.datePickerButton, 
+                        styles.confirmDateButton,
+                        (!dateInput || dateInput.length < 10 || !isValidDate(dateInput)) && styles.disabledButton
+                      ]}
+                      onPress={handleConfirmDate}
+                      disabled={!dateInput || dateInput.length < 10 || !isValidDate(dateInput)}
+                    >
+                      <Text style={[
+                        styles.confirmDateButtonText,
+                        (!dateInput || dateInput.length < 10 || !isValidDate(dateInput)) && styles.disabledButtonText
+                      ]}>OK</Text>
+                    </TouchableOpacity>
+                  </View>
                 </View>
               </View>
-            </View>
+            </TouchableWithoutFeedback>
           </Modal>
         )}
       </View>
@@ -351,55 +357,57 @@ const SobrietyCounter = () => {
             animationType="slide"
             onRequestClose={handleCancelEdit}
           >
-            <View style={styles.datePickerOverlay}>
-              <View style={styles.datePickerContent}>
-                <Text style={styles.datePickerTitle}>Edit your sobriety date</Text>
-                
-                <TextInput
-                  ref={dateInputRef}
-                  style={[
-                    styles.dateInput,
-                    !isValidDate(dateInput) && dateInput.length === 10 && styles.dateInputError
-                  ]}
-                  value={dateInput}
-                  onChangeText={handleDateInputChange}
-                  onSubmitEditing={handleConfirmEditDate}
-                  placeholder="mm/dd/yyyy"
-                  placeholderTextColor={Colors.light.muted}
-                  maxLength={10}
-                  keyboardType="numeric"
-                  autoFocus={true}
-                />
-                
-                {!isValidDate(dateInput) && dateInput.length === 10 && (
-                  <Text style={styles.errorText}>Please enter a valid date</Text>
-                )}
-                
-                <View style={styles.datePickerButtons}>
-                  <TouchableOpacity 
-                    style={[styles.datePickerButton, styles.cancelButton]}
-                    onPress={handleCancelEdit}
-                  >
-                    <Text style={styles.cancelButtonText}>Cancel</Text>
-                  </TouchableOpacity>
+            <TouchableWithoutFeedback>
+              <View style={styles.datePickerOverlay}>
+                <View style={styles.datePickerContent}>
+                  <Text style={styles.datePickerTitle}>Edit your sobriety date</Text>
                   
-                  <TouchableOpacity 
+                  <TextInput
+                    ref={dateInputRef}
                     style={[
-                      styles.datePickerButton, 
-                      styles.confirmDateButton,
-                      (!dateInput || dateInput.length < 10 || !isValidDate(dateInput)) && styles.disabledButton
+                      styles.dateInput,
+                      !isValidDate(dateInput) && dateInput.length === 10 && styles.dateInputError
                     ]}
-                    onPress={handleConfirmEditDate}
-                    disabled={!dateInput || dateInput.length < 10 || !isValidDate(dateInput)}
-                  >
-                    <Text style={[
-                      styles.confirmDateButtonText,
-                      (!dateInput || dateInput.length < 10 || !isValidDate(dateInput)) && styles.disabledButtonText
-                    ]}>OK</Text>
-                  </TouchableOpacity>
+                    value={dateInput}
+                    onChangeText={handleDateInputChange}
+                    onSubmitEditing={handleConfirmEditDate}
+                    placeholder="mm/dd/yyyy"
+                    placeholderTextColor={Colors.light.muted}
+                    maxLength={10}
+                    keyboardType="numeric"
+                    autoFocus={true}
+                  />
+                  
+                  {!isValidDate(dateInput) && dateInput.length === 10 && (
+                    <Text style={styles.errorText}>Please enter a valid date</Text>
+                  )}
+                  
+                  <View style={styles.datePickerButtons}>
+                    <TouchableOpacity 
+                      style={[styles.datePickerButton, styles.cancelButton]}
+                      onPress={handleCancelEdit}
+                    >
+                      <Text style={styles.cancelButtonText}>Cancel</Text>
+                    </TouchableOpacity>
+                    
+                    <TouchableOpacity 
+                      style={[
+                        styles.datePickerButton, 
+                        styles.confirmDateButton,
+                        (!dateInput || dateInput.length < 10 || !isValidDate(dateInput)) && styles.disabledButton
+                      ]}
+                      onPress={handleConfirmEditDate}
+                      disabled={!dateInput || dateInput.length < 10 || !isValidDate(dateInput)}
+                    >
+                      <Text style={[
+                        styles.confirmDateButtonText,
+                        (!dateInput || dateInput.length < 10 || !isValidDate(dateInput)) && styles.disabledButtonText
+                      ]}>OK</Text>
+                    </TouchableOpacity>
+                  </View>
                 </View>
               </View>
-            </View>
+            </TouchableWithoutFeedback>
           </Modal>
         )}
       </>

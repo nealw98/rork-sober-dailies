@@ -47,7 +47,7 @@ export function PremiumComingSoonModal({ visible, onClose, mode = 'premium' }: P
               )}
             </View>
             <Text style={styles.title}>
-              {mode === 'premium' ? 'Premium Sponsor' : 'Under Construction'}
+              {mode === 'premium' ? 'Premium Sponsors' : 'Under Construction'}
             </Text>
             <Text style={styles.subtitle}>
               {mode === 'premium'
@@ -57,7 +57,9 @@ export function PremiumComingSoonModal({ visible, onClose, mode = 'premium' }: P
 
             <View style={styles.infoBox}>
               <Text style={styles.infoText}>
-                These specialized sponsors will offer unique perspectives and personalities tailored to different recovery styles.
+                {mode === 'premium'
+                  ? 'These specialized sponsors offer unique perspectives and personalities tailored to different recovery styles.'
+                  : 'These specialized sponsors will offer unique perspectives and personalities tailored to different recovery styles.'}
               </Text>
             </View>
 
@@ -72,7 +74,9 @@ export function PremiumComingSoonModal({ visible, onClose, mode = 'premium' }: P
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 0 }}
               />
-              <Text style={styles.primaryButtonText}>Got It</Text>
+              <Text style={styles.primaryButtonText}>
+                {mode === 'premium' ? 'Unlock All' : 'Got It'}
+              </Text>
             </TouchableOpacity>
           </View>
         </View>
