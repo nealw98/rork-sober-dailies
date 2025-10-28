@@ -46,7 +46,7 @@ export const chapter_9: BigBookChapter = {
       chapterId: 'chapter-9',
       pageNumber: 123,
       order: 5,
-      content: 'Suppose we tell you some of the obstacles a family will meet; suppose we suggest how they may be avoided - even converted to good use for others.  The family of an alcoholic longs for the return of happiness and security.  They remember when father was romantic, thoughtful and successful.  Today\'s life is measured against that of other years and, when it falls short, the family may be unhappy.',
+      content: 'Suppose we tell you some of the obstacles a family will meet; suppose we suggest how they may be avoided⸺even converted to good use for others.  The family of an alcoholic longs for the return of happiness and security.  They remember when father was romantic, thoughtful and successful.  Today\'s life is measured against that of other years and, when it falls short, the family may be unhappy.',
     },
     {
       id: 'chapter-9-p6',
@@ -277,7 +277,7 @@ export const chapter_9: BigBookChapter = {
       chapterId: 'chapter-9',
       pageNumber: 131,
       order: 38,
-      content: 'Drinking isolates most homes from the outside world.  Father may have laid aside for years all normal activities - clubs, civic duties, sports.  When he renews interest in such things, a feeling of jealousy may arise.  The family may feel they hold a mortgage on dad, so big that no equity should be left for outsiders.  Instead of developing new channels of activity for themselves, mother and children demand that he stay home and make up the deficiency.',
+      content: 'Drinking isolates most homes from the outside world.  Father may have laid aside for years all normal activities⸺clubs, civic duties, sports.  When he renews interest in such things, a feeling of jealousy may arise.  The family may feel they hold a mortgage on dad, so big that no equity should be left for outsiders.  Instead of developing new channels of activity for themselves, mother and children demand that he stay home and make up the deficiency.',
     },
     {
       id: 'chapter-9-p39',
@@ -396,7 +396,7 @@ export const chapter_9: BigBookChapter = {
       chapterId: 'chapter-9',
       pageNumber: 135,
       order: 55,
-      content: 'Of course our friend was wrong - dead wrong.  He had to painfully admit that and mend his spiritual fences.  Though he is now a most effective member of Alcoholics Anonymous, he still smokes and drinks coffee, but neither his wife nor anyone else stands in judgment.  She sees she was wrong to make a burning issue out of such a matter when his more serious ailments were being rapidly cured.',
+      content: 'Of course our friend was wrong⸺dead wrong.  He had to painfully admit that and mend his spiritual fences.  Though he is now a most effective member of Alcoholics Anonymous, he still smokes and drinks coffee, but neither his wife nor anyone else stands in judgment.  She sees she was wrong to make a burning issue out of such a matter when his more serious ailments were being rapidly cured.',
     },
     {
       id: 'chapter-9-p56',
@@ -410,7 +410,7 @@ export const chapter_9: BigBookChapter = {
       chapterId: 'chapter-9',
       pageNumber: 135,
       order: 57,
-      content: 'First Things First Live and Let Live Easy Does It.',
+      content: '_First Things First_\n_Live and Let Live_\n_Easy Does It._',
     },
   ],
 };

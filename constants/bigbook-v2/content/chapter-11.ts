@@ -18,7 +18,7 @@ export const chapter_11: BigBookChapter = {
       chapterId: 'chapter-11',
       pageNumber: 151,
       order: 1,
-      content: 'For most normal folks, drinking means conviviality, companionship and colorful imagination.  It means release from care, boredom and worry.  It is joyous intimacy with friends and a feeling that life is good.  But not so with us in those last days of heavy drinking.  The old pleasures were gone.  They were but memories.  Never could we recapture the great moments of the past.  There was an insistent yearning to enjoy life as we once did and a heartbreaking obsession that some new miracle of control would enable us to do it.  There was always one more attempt - and one more failure.',
+      content: 'For most normal folks, drinking means conviviality, companionship and colorful imagination.  It means release from care, boredom and worry.  It is joyous intimacy with friends and a feeling that life is good.  But not so with us in those last days of heavy drinking.  The old pleasures were gone.  They were but memories.  Never could we recapture the great moments of the past.  There was an insistent yearning to enjoy life as we once did and a heartbreaking obsession that some new miracle of control would enable us to do it.  There was always one more attempt⸺and one more failure.',
     },
     {
       id: 'chapter-11-p2',
@@ -109,14 +109,14 @@ export const chapter_11: BigBookChapter = {
       chapterId: 'chapter-11',
       pageNumber: 154,
       order: 14,
-      content: 'Of course he couldn\'t drink, but why not sit hopefully at a table, a bottle of ginger ale before him?  After all, had he not been sober six months now?  Perhaps he could handle, say, three drinks - no more!  Fear gripped him.  He was on thin ice.  Again it was the old, insidious insanity - that first drink.  With a shiver, he turned away and walked down the lobby to the church directory.  Music and gay chatter still floated to him from the bar.',
+      content: 'Of course he couldn\'t drink, but why not sit hopefully at a table, a bottle of ginger ale before him?  After all, had he not been sober six months now?  Perhaps he could handle, say, three drinks⸺no more!  Fear gripped him.  He was on thin ice.  Again it was the old, insidious insanity - that first drink.  With a shiver, he turned away and walked down the lobby to the church directory.  Music and gay chatter still floated to him from the bar.',
     },
     {
       id: 'chapter-11-p15',
       chapterId: 'chapter-11',
       pageNumber: 154,
       order: 15,
-      content: 'But what about his responsibilities - his family and the men who would die because they would not know how to get well, ah - yes, those other alcoholics?  There must be many such in this town.  He would phone a clergyman.  His sanity returned and he thanked',
+      content: 'But what about his responsibilities⸺his family and the men who would die because they would not know how to get well, ah⸺yes, those other alcoholics?  There must be many such in this town.  He would phone a clergyman.  His sanity returned and he thanked',
     },
     {
       id: 'chapter-11-p16',
@@ -291,7 +291,7 @@ export const chapter_11: BigBookChapter = {
       chapterId: 'chapter-11',
       pageNumber: 161,
       order: 40,
-      content: 'wife would leave elated by the thought of what they could now do for some stricken acquaintance and his family.  They knew they had a host of new friends; it seemed they had known these strangers always.  They had seen miracles, and one was to come to them.  They had visioned the Great Reality - their loving and All Powerful Creator.',
+      content: 'wife would leave elated by the thought of what they could now do for some stricken acquaintance and his family.  They knew they had a host of new friends; it seemed they had known these strangers always.  They had seen miracles, and one was to come to them.  They had visioned the Great Reality⸺their loving and All Powerful Creator.',
     },
     {
       id: 'chapter-11-p41',

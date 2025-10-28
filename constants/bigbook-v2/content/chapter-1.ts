@@ -39,7 +39,7 @@ export const chapter_1: BigBookChapter = {
       chapterId: 'chapter-1',
       pageNumber: 1,
       order: 4,
-      content: 'Ominous warning - which I failed to heed.',
+      content: 'Ominous warning⸺which I failed to heed.',
     },
     {
       id: 'chapter-1-p5',
@@ -305,7 +305,7 @@ export const chapter_1: BigBookChapter = {
       chapterId: 'chapter-1',
       pageNumber: 9,
       order: 42,
-      content: 'He had come to pass his experience along to me - if',
+      content: 'He had come to pass his experience along to me⸺if',
     },
     {
       id: 'chapter-1-p43',
@@ -347,7 +347,7 @@ export const chapter_1: BigBookChapter = {
       chapterId: 'chapter-1',
       pageNumber: 11,
       order: 48,
-      content: 'To Christ I conceded the certainty of a great man, not too closely followed by those who claimed Him.  His moral teaching - most excellent.  For myself, I had adopted those parts which seemed convenient and not too difficult; the rest I disregarded.',
+      content: 'To Christ I conceded the certainty of a great man, not too closely followed by those who claimed Him.  His moral teaching⸺most excellent.  For myself, I had adopted those parts which seemed convenient and not too difficult; the rest I disregarded.',
     },
     {
       id: 'chapter-1-p49',

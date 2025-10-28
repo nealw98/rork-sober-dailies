@@ -18,7 +18,7 @@ export const chapter_7: BigBookChapter = {
       chapterId: 'chapter-7',
       pageNumber: 89,
       order: 1,
-      content: 'Practical experience shows that nothing will so much insure immunity from drinking as intensive work with other alcoholics.  It works when other activities fail.  This is our twelfth suggestion: Carry this message to other alcoholics!  You can help when no one else can.  You can secure their confidence when others fail.  Remember they are very ill.',
+      content: 'Practical experience shows that nothing will so much insure immunity from drinking as intensive work with other alcoholics.  It works when other activities fail.  This is our _twelfth suggestion:_ Carry this message to other alcoholics!  You can help when no one else can.  You can secure their confidence when others fail.  Remember they are very ill.',
     },
     {
       id: 'chapter-7-p2',
@@ -123,7 +123,7 @@ export const chapter_7: BigBookChapter = {
       chapterId: 'chapter-7',
       pageNumber: 93,
       order: 16,
-      content: 'admitted his condition, he has become very curious to know how you got well.  Let him ask you that question, if he will.  Tell him exactly what happened to you.  Stress the spiritual feature freely.  If the man be agnostic or atheist, make it emphatic that he does not have to agree with your conception of God.  He can choose any conception he likes, provided it makes sense to him.  The main thing is that he be willing to believe in a Power greater than himself and that he live by spiritual principles.',
+      content: 'admitted his condition, he has become very curious to know how you got well.  Let him ask you that question, if he will.  _Tell him exactly what happened to you_.  Stress the spiritual feature freely.  If the man be agnostic or atheist, make it emphatic that _he does not have to agree with your conception of God_.  He can choose any conception he likes, provided it makes sense to him.  _The main thing is that he be willing to believe in a Power greater than himself and that he live by spiritual principles._',
     },
     {
       id: 'chapter-7-p17',
@@ -424,7 +424,7 @@ export const chapter_7: BigBookChapter = {
       chapterId: 'chapter-7',
       pageNumber: 103,
       order: 59,
-      content: 'After all, our problems were of our own making.  Bottles were only a symbol.  Besides, we have stopped fighting anybody or anything.  We have to!',
+      content: '_After all, our problems were of our own making._  _Bottles were only a symbol._  _Besides, we have stopped fighting anybody or anything._  _We have to!_',
     },
   ],
 };
