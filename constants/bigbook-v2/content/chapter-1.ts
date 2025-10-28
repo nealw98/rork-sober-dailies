@@ -263,7 +263,7 @@ export const chapter_1: BigBookChapter = {
       chapterId: 'chapter-1',
       pageNumber: 9,
       order: 36,
-      content: 'come over.  He was sober.  It was years since I could remember his coming to New York in that condition.  I was amazed.  Rumor had it that he had been committed for alcoholic insanity.  I wondered how he had escaped.  Of course he would have dinner, and then I could drink openly with him.  Unmindful of his welfare, I thought only of recapturing the spirit of other days.  There was that time we had chartered an airplane to complete a jag!  His coming was an oasis in this dreary desert of futility.  The very thing - an oasis!  Drinkers are like that.',
+      content: 'come over.  _He was sober_.  It was years since I could remember his coming to New York in that condition.  I was amazed.  Rumor had it that he had been committed for alcoholic insanity.  I wondered how he had escaped.  Of course he would have dinner, and then I could drink openly with him.  Unmindful of his welfare, I thought only of recapturing the spirit of other days.  There was that time we had chartered an airplane to complete a jag!  His coming was an oasis in this dreary desert of futility.  The very thing - an oasis!  Drinkers are like that.',
     },
     {
       id: 'chapter-1-p37',
@@ -403,14 +403,14 @@ export const chapter_1: BigBookChapter = {
       chapterId: 'chapter-1',
       pageNumber: 12,
       order: 56,
-      content: 'My friend suggested what then seemed a novel idea.  He said, "Why don\'t you choose your own conception of God?" That statement hit me hard.  It melted the icy intellectual mountain in whose shadow I had lived and shivered many years.  I stood in the sunlight at last.',
+      content: 'My friend suggested what then seemed a novel idea.  He said, _"Why don\'t you choose your own conception of God?"_ That statement hit me hard.  It melted the icy intellectual mountain in whose shadow I had lived and shivered many years.  I stood in the sunlight at last.',
     },
     {
       id: 'chapter-1-p57',
       chapterId: 'chapter-1',
       pageNumber: 12,
       order: 57,
-      content: 'It was only a matter of being willing to believe in a Power greater than myself.  Nothing more was required of me to make my beginning.  I saw that growth could start from that point.  Upon a foundation of complete willingness I might build what I saw in my friend.  Would I have it?  Of course I would!',
+      content: '_It was only a matter of being willing to believe in a Power greater than myself._  _Nothing more was required of me to make my beginning._  I saw that growth could start from that point.  Upon a foundation of complete willingness I might build what I saw in my friend.  Would I have it?  Of course I would!',
     },
     {
       id: 'chapter-1-p58',

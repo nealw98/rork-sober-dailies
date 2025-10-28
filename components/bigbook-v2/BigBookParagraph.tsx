@@ -91,7 +91,8 @@ function parseMarkdownItalics(text: string, key: string | number): React.ReactNo
   if (!text) return text;
 
   const parts: Array<{ text: string; italic: boolean }> = [];
-  const italicRegex = /\*([^*]+)\*/g;
+  // Support both asterisks and underscores for italics
+  const italicRegex = /(\*([^*]+)\*|_([^_]+)_)/g;
   let lastIndex = 0;
   let match: RegExpExecArray | null;
 
@@ -99,7 +100,8 @@ function parseMarkdownItalics(text: string, key: string | number): React.ReactNo
     if (match.index > lastIndex) {
       parts.push({ text: text.slice(lastIndex, match.index), italic: false });
     }
-    parts.push({ text: match[1], italic: true });
+    // match[2] is the content from asterisks, match[3] is from underscores
+    parts.push({ text: match[2] || match[3], italic: true });
     lastIndex = match.index + match[0].length;
   }
   if (lastIndex < text.length) {
@@ -225,6 +227,33 @@ export function BigBookParagraph({
   // Parse paragraph into sentences (preserves markdown for later parsing)
   const sentences = useMemo(() => parseSentences(paragraph.content), [paragraph.content]);
 
+  // Check if this is a numbered list item (starts with number followed by period)
+  const numberedListMatch = useMemo(() => {
+    const match = paragraph.content.match(/^(\d{1,2}\.\s)(.+)$/s);
+    if (match) {
+      return {
+        number: match[1],
+        text: match[2],
+      };
+    }
+    return null;
+  }, [paragraph.content]);
+
+  // Check if this is a lettered list item (starts with (a), (b), (c), etc.)
+  const letteredListMatch = useMemo(() => {
+    const match = paragraph.content.match(/^(\([a-z]\)\s)(.+)$/s);
+    if (match) {
+      return {
+        letter: match[1],
+        text: match[2],
+      };
+    }
+    return null;
+  }, [paragraph.content]);
+
+  const isNumberedListItem = !!numberedListMatch;
+  const isLetteredListItem = !!letteredListMatch;
+
   // Check if this is a verse/poem (contains newlines but not a table)
   const isVerse = paragraph.content.includes('\n') && !isMarkdownTable(paragraph.content);
 
@@ -308,9 +337,51 @@ export function BigBookParagraph({
               </View>
             ))}
           </View>
+        ) : isNumberedListItem && numberedListMatch ? (
+          /* Render Numbered List with Hanging Indent */
+          <View style={styles.numberedListContainer}>
+            <Text style={[
+              styles.numberedListNumber,
+              paragraph.isItalic && { fontStyle: 'italic' },
+              { fontSize: fontSize, lineHeight: fontSize * 1.625 }
+            ]}>
+              {numberedListMatch.number}
+            </Text>
+            <Text style={[
+              styles.numberedListText,
+              paragraph.isItalic && { fontStyle: 'italic' },
+              { fontSize: fontSize, lineHeight: fontSize * 1.625 }
+            ]}>
+              {numberedListMatch.text}
+            </Text>
+          </View>
+        ) : isLetteredListItem && letteredListMatch ? (
+          /* Render Lettered List with Hanging Indent */
+          <View style={styles.letteredListContainer}>
+            <Text style={[
+              styles.letteredListLetter,
+              paragraph.isItalic && { fontStyle: 'italic' },
+              { fontSize: fontSize, lineHeight: fontSize * 1.625 }
+            ]}>
+              {letteredListMatch.letter}
+            </Text>
+            <Text style={[
+              styles.letteredListText,
+              paragraph.isItalic && { fontStyle: 'italic' },
+              { fontSize: fontSize, lineHeight: fontSize * 1.625 }
+            ]}>
+              {letteredListMatch.text}
+            </Text>
+          </View>
         ) : (
           /* Render Normal Text */
-          <Text style={[styles.paragraphText, isVerse && styles.verseText, { fontSize: fontSize, lineHeight: fontSize * 1.625 }]}>
+          <View style={isNumberedListItem && styles.numberedListContainer}>
+            <Text style={[
+              styles.paragraphText, 
+              isVerse && styles.verseText, 
+              paragraph.isItalic && { fontStyle: 'italic' },
+              { fontSize: fontSize, lineHeight: fontSize * 1.625 }
+            ]}>
             {sentences.map((sentence, index) => {
             const highlight = highlightMap.get(index);
             const isHighlighted = !!highlight;
@@ -346,6 +417,7 @@ export function BigBookParagraph({
             }
           })}
         </Text>
+          </View>
         )}
       </View>
     </View>
@@ -388,6 +460,37 @@ const styles = StyleSheet.create({
   verseText: {
     marginLeft: 24,
     fontStyle: 'italic',
+  },
+  numberedListContainer: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+  },
+  numberedListNumber: {
+    width: 32,
+    flexShrink: 0,
+    color: Colors.light.text,
+    fontWeight: adjustFontWeight('400'),
+  },
+  numberedListText: {
+    flex: 1,
+    color: Colors.light.text,
+    fontWeight: adjustFontWeight('400'),
+  },
+  letteredListContainer: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    paddingLeft: 16,
+  },
+  letteredListLetter: {
+    width: 32,
+    flexShrink: 0,
+    color: Colors.light.text,
+    fontWeight: adjustFontWeight('400'),
+  },
+  letteredListText: {
+    flex: 1,
+    color: Colors.light.text,
+    fontWeight: adjustFontWeight('400'),
   },
   sentence: {
     // Inherit from parent paragraphText

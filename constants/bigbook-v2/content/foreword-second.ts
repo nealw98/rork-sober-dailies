@@ -16,7 +16,7 @@ export const foreword_second: BigBookChapter = {
       chapterId: 'foreword-second',
       pageNumber: 15,
       order: 1,
-      content: '--- *Page xv* ---',
+      content: '—- *Page xv* —-',
     },
     {
       id: 'foreword-second-p2',
@@ -114,7 +114,7 @@ export const foreword_second: BigBookChapter = {
       chapterId: 'foreword-second',
       pageNumber: 19,
       order: 15,
-      content: 'In the spring of 1940, John D. Rockefeller, Jr. gave a dinner for many of his friends to which he invited A.A. members to tell their stories. News of this got on the world wires; inquiries poured in again and many people went to the bookstores to get the book "Alcoholics Anonymous." By March 1941 the membership had shot up to 2,000. Then Jack Alexander wrote a feature article in the "Saturday Evening Post" and placed such a compelling picture of A.A. before the general public that alcoholics in need of help really deluged us. By the close of 1941, A.A. numbered 8,000 members. The mushrooming process was in full swing, A.A. had become a national institution.',
+      content: 'In the spring of 1940, John D. Rockefeller, Jr. gave a dinner for many of his friends to which he invited A.A. members to tell their stories. News of this got on the world wires; inquiries poured in again and many people went to the bookstores to get the book "Alcoholics Anonymous." By March 1941 the membership had shot up to 2,000. Then Jack Alexander wrote a feature article in the _Saturday Evening Post_ and placed such a compelling picture of A.A. before the general public that alcoholics in need of help really deluged us. By the close of 1941, A.A. numbered 8,000 members. The mushrooming process was in full swing, A.A. had become a national institution.',
     },
     {
       id: 'foreword-second-p16',
@@ -177,7 +177,7 @@ export const foreword_second: BigBookChapter = {
       chapterId: 'foreword-second',
       pageNumber: 21,
       order: 24,
-      content: '--- *Page xxii* ---',
+      content: '—- *Page xxii* —-',
     },
     {
       id: 'foreword-second-p25',

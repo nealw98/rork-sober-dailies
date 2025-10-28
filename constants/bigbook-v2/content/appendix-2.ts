@@ -72,14 +72,14 @@ export const appendix_2: BigBookChapter = {
       chapterId: 'appendix-2',
       pageNumber: 569,
       order: 9,
-      content: '"There is a principle which is a bar against all information, which is proof against all arguments and which cannot fail to keep a man in everlasting ignorance--that principle is contempt prior to investigation."',
+      content: '"There is a principle which is a bar against all information, which is proof against all arguments and which cannot fail to keep a man in everlasting ignorance—that principle is contempt prior to investigation."',
     },
     {
       id: 'appendix-2-p10',
       chapterId: 'appendix-2',
       pageNumber: 569,
       order: 10,
-      content: '--HERBERT SPENCER',
+      content: '—HERBERT SPENCER',
     }
   ],
 };

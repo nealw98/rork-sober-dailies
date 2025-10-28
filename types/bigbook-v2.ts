@@ -19,6 +19,7 @@ export interface BigBookParagraph {
   pageNumber: number;      // Actual Big Book page number
   content: string;         // Raw paragraph text
   order: number;           // Sequential order within chapter
+  isItalic?: boolean;      // True if entire paragraph should be italic
 }
 
 export enum HighlightColor {

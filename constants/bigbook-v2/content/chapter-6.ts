@@ -18,7 +18,7 @@ export const chapter_6: BigBookChapter = {
       chapterId: 'chapter-6',
       pageNumber: 72,
       order: 1,
-      content: 'Having made our personal inventory, what shall we do about it?  We have been trying to get a new attitude, a new relationship with our Creator, and to discover the obstacles in our path.  We have admitted certain defects; we have ascertained in a rough way what the trouble is; we have put our finger on the weak items in our personal inventory.  Now these are about to be cast out.  This requires action on our part, which, when completed, will mean that we have admitted to God, to ourselves, and to another human being, the exact nature of our defects.  This brings us to the Fifth Step in the program of recovery mentioned in the preceding chapter.',
+      content: 'Having made our personal inventory, what shall we do about it?  We have been trying to get a new attitude, a new relationship with our Creator, and to discover the obstacles in our path.  We have admitted certain defects; we have ascertained in a rough way what the trouble is; we have put our finger on the weak items in our personal inventory.  Now these are about to be cast out.  This requires action on our part, which, when completed, will mean that we have admitted to God, to ourselves, and to another human being, the exact nature of our defects.  This brings us to _the Fifth Step_ in the program of recovery mentioned in the preceding chapter.',
     },
     {
       id: 'chapter-6-p2',
@@ -32,7 +32,7 @@ export const chapter_6: BigBookChapter = {
       chapterId: 'chapter-6',
       pageNumber: 73,
       order: 3,
-      content: 'invariably they got drunk.  Having persevered with the rest of the program, they wondered why they fell.  We think the reason is that they never completed their housecleaning.  They took inventory all right, but hung on to some of the worst items in stock.  They only thought they had lost their egoism and fear; they only thought they had humbled themselves.  But they had not learned enough of humility, fearlessness and honesty, in the sense we find it necessary, until they told someone else all their life story.',
+      content: 'invariably they got drunk.  Having persevered with the rest of the program, they wondered why they fell.  We think the reason is that they never completed their housecleaning.  They took inventory all right, but hung on to some of the worst items in stock.  They only _thought_ they had lost their egoism and fear; they only _thought_ they had humbled themselves.  But they had not learned enough of humility, fearlessness and honesty, in the sense we find it necessary, until they told someone else all their life story.',
     },
     {
       id: 'chapter-6-p4',
@@ -46,7 +46,7 @@ export const chapter_6: BigBookChapter = {
       chapterId: 'chapter-6',
       pageNumber: 73,
       order: 5,
-      content: 'The inconsistency is made worse by the things he does on his sprees.  Coming to his senses, he is revolted at certain episodes he vaguely remembers.  These memories are a nightmare.  He trembles to think someone might have observed him.  As fast as he can, he pushes these memories far inside himself.  He hopes they will never see the light of day.  He is under constant fear and tension - that makes for more drinking.',
+      content: 'The inconsistency is made worse by the things he does on his sprees.  Coming to his senses, he is revolted at certain episodes he vaguely remembers.  These memories are a nightmare.  He trembles to think someone might have observed him.  As fast as he can, he pushes these memories far inside himself.  He hopes they will never see the light of day.  He is under constant fear and tension⸺that makes for more drinking.',
     },
     {
       id: 'chapter-6-p6',
@@ -116,21 +116,21 @@ export const chapter_6: BigBookChapter = {
       chapterId: 'chapter-6',
       pageNumber: 76,
       order: 15,
-      content: 'If we can answer to our satisfaction, we then look at Step Six.  We have emphasized willingness as being indispensable.  Are we now ready to let God remove from us all the things which we have admitted are objectionable?  Can He now take them all - every one?  If we still cling to something we will not let go, we ask God to help us be willing.',
+      content: 'If we can answer to our satisfaction, we then look at _Step Six_.  We have emphasized willingness as being indispensable.  Are we now ready to let God remove from us all the things which we have admitted are objectionable?  Can He now take them all⸺every one?  If we still cling to something we will not let go, we ask God to help us be willing.',
     },
     {
       id: 'chapter-6-p16',
       chapterId: 'chapter-6',
       pageNumber: 76,
       order: 16,
-      content: 'When ready, we say something like this: "My Creator, I am now willing that you should have all of me, good and bad.  I pray that you now remove from me every single defect of character which stands in the way of my usefulness to you and my fellows.  Grant me strength, as I go out from here, to do your bidding.  Amen." We have then completed Step Seven.',
+      content: 'When ready, we say something like this: "My Creator, I am now willing that you should have all of me, good and bad.  I pray that you now remove from me every single defect of character which stands in the way of my usefulness to you and my fellows.  Grant me strength, as I go out from here, to do your bidding.  Amen." We have then completed _Step Seven._',
     },
     {
       id: 'chapter-6-p17',
       chapterId: 'chapter-6',
       pageNumber: 76,
       order: 17,
-      content: 'Now we need more action, without which we find that "Faith without works is dead." Let\'s look at Steps Eight and Nine.  We have a list of all persons we have harmed and to whom we are willing to make amends.  We made it when we took inventory.  We subjected ourselves to a drastic self-appraisal.  Now we go out to our fellows and repair the damage done in the past.  We attempt to sweep away the debris which has accumulated out of our effort to live on self-will and run the show ourselves.  If we haven\'t the will to do this, we ask until it comes.  Remember it was agreed at the beginning we would go to any lengths for victory over alcohol.',
+      content: 'Now we need more action, without which we find that "Faith without works is dead." Let\'s look at _Steps Eight and Nine._  We have a list of all persons we have harmed and to whom we are willing to make amends.  We made it when we took inventory.  We subjected ourselves to a drastic self-appraisal.  Now we go out to our fellows and repair the damage done in the past.  We attempt to sweep away the debris which has accumulated out of our effort to live on self-will and run the show ourselves.  If we haven\'t the will to do this, we ask until it comes.  Remember it was agreed at the beginning _we would go to any lengths for victory over alcohol._',
     },
     {
       id: 'chapter-6-p18',
@@ -305,7 +305,7 @@ export const chapter_6: BigBookChapter = {
       chapterId: 'chapter-6',
       pageNumber: 83,
       order: 42,
-      content: 'The spiritual life is not a theory.  We have to live it.  Unless one\'s family expresses a desire to live upon spiritual principles we think we ought not to urge them.  We should not talk incessantly to them about spiritual matters.  They will change in time.  Our behavior will convince them more than our words.  We must remember that ten or twenty years of drunkenness would make a skeptic out of anyone.',
+      content: 'The spiritual life is not a theory.  _We have to live it._  Unless one\'s family expresses a desire to live upon spiritual principles we think we ought not to urge them.  We should not talk incessantly to them about spiritual matters.  They will change in time.  Our behavior will convince them more than our words.  We must remember that ten or twenty years of drunkenness would make a skeptic out of anyone.',
     },
     {
       id: 'chapter-6-p43',
@@ -375,7 +375,7 @@ export const chapter_6: BigBookChapter = {
       chapterId: 'chapter-6',
       pageNumber: 85,
       order: 52,
-      content: 'Step Eleven suggests prayer and meditation.  We shouldn\'t be shy on this matter of prayer.  Better men',
+      content: '_Step Eleven_ suggests prayer and meditation.  We shouldn\'t be shy on this matter of prayer.  Better men',
     },
     {
       id: 'chapter-6-p53',
@@ -459,7 +459,7 @@ export const chapter_6: BigBookChapter = {
       chapterId: 'chapter-6',
       pageNumber: 88,
       order: 64,
-      content: 'But this is not all.  There is action and more action. "Faith without works is dead." The next chapter is entirely devoted to Step Twelve.',
+      content: 'But this is not all.  There is action and more action. "Faith without works is dead." The next chapter is entirely devoted to _Step Twelve._',
     },
   ],
 };
