@@ -214,7 +214,7 @@ export const chapter_5: BigBookChapter = {
       chapterId: 'chapter-5',
       pageNumber: 61,
       order: 29,
-      content: 'Our actor is self-centered⸺ego-centric, as people like to call it nowadays.  He is like the retired business man who lolls in the Florida sunshine in the winter complaining of the sad state of the nation; the minister who sighs over the sins of the twentieth century; politicians and reformers who are sure all would be Utopia',
+      content: 'Our actor is self-centered—ego-centric, as people like to call it nowadays.  He is like the retired business man who lolls in the Florida sunshine in the winter complaining of the sad state of the nation; the minister who sighs over the sins of the twentieth century; politicians and reformers who are sure all would be Utopia',
     },
     {
       id: 'chapter-5-p30',
@@ -228,7 +228,7 @@ export const chapter_5: BigBookChapter = {
       chapterId: 'chapter-5',
       pageNumber: 62,
       order: 31,
-      content: 'Selfishness⸺self-centeredness!  That, we think, is the root of our troubles.  Driven by a hundred forms of fear, self-delusion, self-seeking, and self-pity, we step on the toes of our fellows and they retaliate.  Sometimes they hurt us, seemingly without provocation, but we invariably find that at some time in the past we have made decisions based on self which later placed us in a position to be hurt.',
+      content: 'Selfishness—self-centeredness!  That, we think, is the root of our troubles.  Driven by a hundred forms of fear, self-delusion, self-seeking, and self-pity, we step on the toes of our fellows and they retaliate.  Sometimes they hurt us, seemingly without provocation, but we invariably find that at some time in the past we have made decisions based on self which later placed us in a position to be hurt.',
     },
     {
       id: 'chapter-5-p32',
@@ -256,7 +256,7 @@ export const chapter_5: BigBookChapter = {
       chapterId: 'chapter-5',
       pageNumber: 63,
       order: 35,
-      content: 'We were now at Step Three.  Many of us said to our Maker, _as we understood Him:_ "God, I offer myself to Thee⸺to build with me and to do with me as Thou wilt.  Relieve me of the bondage of self, that I may better do Thy will.  Take away my difficulties, that victory over them may bear witness to those I would help of Thy Power, Thy Love, and Thy Way of life.  May I do Thy will always!" We thought well before taking this step making sure we were ready; that we could at last abandon ourselves utterly to Him.',
+      content: 'We were now at Step Three.  Many of us said to our Maker, _as we understood Him:_ "God, I offer myself to Thee—to build with me and to do with me as Thou wilt.  Relieve me of the bondage of self, that I may better do Thy will.  Take away my difficulties, that victory over them may bear witness to those I would help of Thy Power, Thy Love, and Thy Way of life.  May I do Thy will always!" We thought well before taking this step making sure we were ready; that we could at last abandon ourselves utterly to Him.',
     },
     {
       id: 'chapter-5-p36',

@@ -25,7 +25,7 @@ export const chapter_6: BigBookChapter = {
       chapterId: 'chapter-6',
       pageNumber: 72,
       order: 2,
-      content: 'This is perhaps difficult⸺especially discussing our defects with another person.  We think we have done well enough in admitting these things to ourselves.  There is doubt about that.  In actual practice, we usually find a solitary self-appraisal insufficient.  Many of us thought it necessary to go much further.  We will be more reconciled to discussing ourselves with another person when we see good reasons why we should do so.  The best reason first: If we skip this vital step, we may not overcome drinking.  Time after time newcomers have tried to keep to themselves certain facts about their lives.  Trying to avoid this humbling experience, they have turned to easier methods.  Almost',
+      content: 'This is perhaps difficult—especially discussing our defects with another person.  We think we have done well enough in admitting these things to ourselves.  There is doubt about that.  In actual practice, we usually find a solitary self-appraisal insufficient.  Many of us thought it necessary to go much further.  We will be more reconciled to discussing ourselves with another person when we see good reasons why we should do so.  The best reason first: If we skip this vital step, we may not overcome drinking.  Time after time newcomers have tried to keep to themselves certain facts about their lives.  Trying to avoid this humbling experience, they have turned to easier methods.  Almost',
     },
     {
       id: 'chapter-6-p3',
@@ -46,7 +46,7 @@ export const chapter_6: BigBookChapter = {
       chapterId: 'chapter-6',
       pageNumber: 73,
       order: 5,
-      content: 'The inconsistency is made worse by the things he does on his sprees.  Coming to his senses, he is revolted at certain episodes he vaguely remembers.  These memories are a nightmare.  He trembles to think someone might have observed him.  As fast as he can, he pushes these memories far inside himself.  He hopes they will never see the light of day.  He is under constant fear and tension⸺that makes for more drinking.',
+      content: 'The inconsistency is made worse by the things he does on his sprees.  Coming to his senses, he is revolted at certain episodes he vaguely remembers.  These memories are a nightmare.  He trembles to think someone might have observed him.  As fast as he can, he pushes these memories far inside himself.  He hopes they will never see the light of day.  He is under constant fear and tension—that makes for more drinking.',
     },
     {
       id: 'chapter-6-p6',
@@ -116,7 +116,7 @@ export const chapter_6: BigBookChapter = {
       chapterId: 'chapter-6',
       pageNumber: 76,
       order: 15,
-      content: 'If we can answer to our satisfaction, we then look at _Step Six_.  We have emphasized willingness as being indispensable.  Are we now ready to let God remove from us all the things which we have admitted are objectionable?  Can He now take them all⸺every one?  If we still cling to something we will not let go, we ask God to help us be willing.',
+      content: 'If we can answer to our satisfaction, we then look at _Step Six_.  We have emphasized willingness as being indispensable.  Are we now ready to let God remove from us all the things which we have admitted are objectionable?  Can He now take them all—every one?  If we still cling to something we will not let go, we ask God to help us be willing.',
     },
     {
       id: 'chapter-6-p16',
@@ -333,7 +333,7 @@ export const chapter_6: BigBookChapter = {
       chapterId: 'chapter-6',
       pageNumber: 84,
       order: 46,
-      content: 'Are these extravagant promises?  We think not.  They are being fulfilled among us⸺sometimes quickly, sometimes slowly.  They will always materialize if we work for them.',
+      content: 'Are these extravagant promises?  We think not.  They are being fulfilled among us—sometimes quickly, sometimes slowly.  They will always materialize if we work for them.',
     },
     {
       id: 'chapter-6-p47',
@@ -347,7 +347,7 @@ export const chapter_6: BigBookChapter = {
       chapterId: 'chapter-6',
       pageNumber: 84,
       order: 48,
-      content: 'And we have ceased fighting anything or anyone⸺even alcohol.  For by this time sanity will have returned.  We will seldom be interested in liquor.  If tempted, we recoil from it as from a hot flame.  We',
+      content: 'And we have ceased fighting anything or anyone—even alcohol.  For by this time sanity will have returned.  We will seldom be interested in liquor.  If tempted, we recoil from it as from a hot flame.  We',
     },
     {
       id: 'chapter-6-p49',
@@ -445,7 +445,7 @@ export const chapter_6: BigBookChapter = {
       chapterId: 'chapter-6',
       pageNumber: 88,
       order: 62,
-      content: 'It works⸺it really does.',
+      content: 'It works—it really does.',
     },
     {
       id: 'chapter-6-p63',

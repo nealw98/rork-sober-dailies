@@ -32,21 +32,21 @@ export const chapter_10: BigBookChapter = {
       chapterId: 'chapter-10',
       pageNumber: 136,
       order: 3,
-      content: 'I was at one time assistant manager of a corporation department employing sixty-six hundred men.  One day my secretary came in saying that Mr. B⸺ insisted on speaking with me.  I told her to say that I was not interested.  I had warned him several times that he had but one more chance.  Not long afterward he had called me from Hartford on two successive days, so drunk he could hardly speak.  I told him he was through - finally and forever.',
+      content: 'I was at one time assistant manager of a corporation department employing sixty-six hundred men.  One day my secretary came in saying that Mr. B— insisted on speaking with me.  I told her to say that I was not interested.  I had warned him several times that he had but one more chance.  Not long afterward he had called me from Hartford on two successive days, so drunk he could hardly speak.  I told him he was through - finally and forever.',
     },
     {
       id: 'chapter-10-p4',
       chapterId: 'chapter-10',
       pageNumber: 136,
       order: 4,
-      content: 'My secretary returned to say that it was not Mr. B⸺ on the phone; it was Mr. B⸺\'s brother, and he wished to give me a message.  I still expected a plea for clemency, but these words came through the receiver: "I just wanted to tell you Paul jumped from a hotel window in Hartford last Saturday.  He left us a note saying you were the best boss he ever had, and that you were not to blame in any way." Another time, as I opened a letter which lay on my',
+      content: 'My secretary returned to say that it was not Mr. B— on the phone; it was Mr. B—\'s brother, and he wished to give me a message.  I still expected a plea for clemency, but these words came through the receiver: "I just wanted to tell you Paul jumped from a hotel window in Hartford last Saturday.  He left us a note saying you were the best boss he ever had, and that you were not to blame in any way." Another time, as I opened a letter which lay on my',
     },
     {
       id: 'chapter-10-p5',
       chapterId: 'chapter-10',
       pageNumber: 137,
       order: 5,
-      content: 'desk, a newspaper clipping fell out.  It was the obituary of one of the best salesmen I ever had.  After two weeks of drinking, he had placed his toe on the trigger of a loaded shotgun⸺the barrel was in his mouth.  I had discharged him for drinking six weeks before.',
+      content: 'desk, a newspaper clipping fell out.  It was the obituary of one of the best salesmen I ever had.  After two weeks of drinking, he had placed his toe on the trigger of a loaded shotgun—the barrel was in his mouth.  I had discharged him for drinking six weeks before.',
     },
     {
       id: 'chapter-10-p6',
@@ -193,7 +193,7 @@ export const chapter_10: BigBookChapter = {
       chapterId: 'chapter-10',
       pageNumber: 142,
       order: 26,
-      content: 'Next he can be assured that you do not intend to lecture, moralize, or condemn; that if this was done formerly, it was because of misunderstanding.  If possible express a lack of hard feeling toward him.  At this point, it might be well to explain alcoholism, the illness.  Say that you believe he is a gravely ill person, with this qualification⸺being perhaps fatally ill, does he want to get well?  You ask, because many alcoholics, being warped and drugged, do not want to quit.  But does he?  Will he take every necessary step, submit to anything to get well, to stop drinking forever?',
+      content: 'Next he can be assured that you do not intend to lecture, moralize, or condemn; that if this was done formerly, it was because of misunderstanding.  If possible express a lack of hard feeling toward him.  At this point, it might be well to explain alcoholism, the illness.  Say that you believe he is a gravely ill person, with this qualification—being perhaps fatally ill, does he want to get well?  You ask, because many alcoholics, being warped and drugged, do not want to quit.  But does he?  Will he take every necessary step, submit to anything to get well, to stop drinking forever?',
     },
     {
       id: 'chapter-10-p27',
@@ -333,7 +333,7 @@ export const chapter_10: BigBookChapter = {
       chapterId: 'chapter-10',
       pageNumber: 146,
       order: 46,
-      content: 'After your man has gone along without drinking for a few months, you may be able to make use of his services with other employees who are giving you the alcoholic run-around⸺provided, of course, they are willing to have a third party in the picture.  An alcoholic who has recovered, but holds a relatively unimportant job, can talk to a man with a better position.  Being on a radically different basis of life, he will never take advantage of the situation.',
+      content: 'After your man has gone along without drinking for a few months, you may be able to make use of his services with other employees who are giving you the alcoholic run-around—provided, of course, they are willing to have a third party in the picture.  An alcoholic who has recovered, but holds a relatively unimportant job, can talk to a man with a better position.  Being on a radically different basis of life, he will never take advantage of the situation.',
     },
     {
       id: 'chapter-10-p47',
@@ -403,7 +403,7 @@ export const chapter_10: BigBookChapter = {
       chapterId: 'chapter-10',
       pageNumber: 149,
       order: 56,
-      content: 'any alcoholic problem." This same company spends millions for research every year.  Their cost of production is figured to a fine decimal point.  They have recreational facilities.  There is company insurance.  There is a real interest, both humanitarian and business, in the well-being of employees.  But alcoholism⸺well, they just don\'t believe they have it.',
+      content: 'any alcoholic problem." This same company spends millions for research every year.  Their cost of production is figured to a fine decimal point.  They have recreational facilities.  There is company insurance.  There is a real interest, both humanitarian and business, in the well-being of employees.  But alcoholism—well, they just don\'t believe they have it.',
     },
     {
       id: 'chapter-10-p57',

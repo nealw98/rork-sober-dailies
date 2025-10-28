@@ -25,7 +25,7 @@ export const chapter_8: BigBookChapter = {
       chapterId: 'chapter-8',
       pageNumber: 104,
       order: 2,
-      content: 'But for every man who drinks others are involved⸺the wife who trembles in fear of the next debauch; the mother and father who see their son wasting away.',
+      content: 'But for every man who drinks others are involved—the wife who trembles in fear of the next debauch; the mother and father who see their son wasting away.',
     },
     {
       id: 'chapter-8-p3',
@@ -102,14 +102,14 @@ export const chapter_8: BigBookChapter = {
       chapterId: 'chapter-8',
       pageNumber: 106,
       order: 13,
-      content: 'The bill collectors, the sheriffs, the angry taxi drivers, the policemen, the bums, the pals, and even the ladies they sometimes brought home⸺our husbands thought we were so inhospitable. "Joykiller, nag, wet blanket"⸺that\'s what they said.  Next day they would be themselves again and we would forgive and try to forget.',
+      content: 'The bill collectors, the sheriffs, the angry taxi drivers, the policemen, the bums, the pals, and even the ladies they sometimes brought home—our husbands thought we were so inhospitable. "Joykiller, nag, wet blanket"—that\'s what they said.  Next day they would be themselves again and we would forgive and try to forget.',
     },
     {
       id: 'chapter-8-p14',
       chapterId: 'chapter-8',
       pageNumber: 106,
       order: 14,
-      content: 'We have tried to hold the love of our children for their father.  We have told small tots that father was sick, which was much nearer the truth than we realized.  They struck the children, kicked out door panels, smashed treasured crockery, and ripped the keys out of pianos.  In the midst of such pandemonium they may have rushed out threatening to live with the other woman forever.  In desperation, we have even got tight ourselves⸺the drunk to end all drunks.  The unexpected result was that our husbands seemed to like it.',
+      content: 'We have tried to hold the love of our children for their father.  We have told small tots that father was sick, which was much nearer the truth than we realized.  They struck the children, kicked out door panels, smashed treasured crockery, and ripped the keys out of pianos.  In the midst of such pandemonium they may have rushed out threatening to live with the other woman forever.  In desperation, we have even got tight ourselves—the drunk to end all drunks.  The unexpected result was that our husbands seemed to like it.',
     },
     {
       id: 'chapter-8-p15',
@@ -123,7 +123,7 @@ export const chapter_8: BigBookChapter = {
       chapterId: 'chapter-8',
       pageNumber: 106,
       order: 16,
-      content: 'We began to ask medical advice as the sprees got closer together.  The alarming physical and mental symptoms, the deepening pall of remorse, depression and inferiority that settled down on our loved ones⸺',
+      content: 'We began to ask medical advice as the sprees got closer together.  The alarming physical and mental symptoms, the deepening pall of remorse, depression and inferiority that settled down on our loved ones—',
     },
     {
       id: 'chapter-8-p17',
@@ -249,7 +249,7 @@ export const chapter_8: BigBookChapter = {
       chapterId: 'chapter-8',
       pageNumber: 111,
       order: 34,
-      content: 'Our next thought is that you should never tell him what he must do about his drinking.  If he gets the idea that you are a nag or killjoy, your chance of accomplishing anything useful may be zero.  He will use that as an excuse to drink more.  He will tell you he is misunderstood.  This may lead to lonely evenings for you.  He may seek someone else to console him⸺not always another man.',
+      content: 'Our next thought is that you should never tell him what he must do about his drinking.  If he gets the idea that you are a nag or killjoy, your chance of accomplishing anything useful may be zero.  He will use that as an excuse to drink more.  He will tell you he is misunderstood.  This may lead to lonely evenings for you.  He may seek someone else to console him—not always another man.',
     },
     {
       id: 'chapter-8-p35',
@@ -543,7 +543,7 @@ export const chapter_8: BigBookChapter = {
       chapterId: 'chapter-8',
       pageNumber: 121,
       order: 76,
-      content: 'So to you out there - who may soon be with us⸺we say "Good luck and God bless you!"',
+      content: 'So to you out there - who may soon be with us—we say "Good luck and God bless you!"',
     },
   ],
 };
