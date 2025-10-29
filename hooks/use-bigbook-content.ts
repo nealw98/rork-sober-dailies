@@ -157,23 +157,16 @@ export function useBigBookContent(): UseBigBookContentReturn {
   /**
    * Navigate to a specific page number
    * Returns the chapter and paragraph that contains that page
-   * Prioritizes regular (Arabic numeral) pages over Roman numeral pages
+   * Only searches main content (excludes Roman numeral front matter)
    */
   const goToPage = useCallback((pageNumber: number): { chapterId: string; paragraphId: string } | null => {
-    // First, try to find in regular chapters (without Roman numerals)
-    let chapterMeta = bigBookChapterMetadata.find(
+    // Only search regular chapters (exclude Roman numerals front matter)
+    const chapterMeta = bigBookChapterMetadata.find(
       meta => !meta.useRomanNumerals && pageNumber >= meta.pageRange[0] && pageNumber <= meta.pageRange[1]
     );
     
-    // If not found, try front matter with Roman numerals
     if (!chapterMeta) {
-      chapterMeta = bigBookChapterMetadata.find(
-        meta => meta.useRomanNumerals && pageNumber >= meta.pageRange[0] && pageNumber <= meta.pageRange[1]
-      );
-    }
-    
-    if (!chapterMeta) {
-      console.error('[useBigBookContent] Page not found:', pageNumber);
+      console.error('[useBigBookContent] Page not found in main content:', pageNumber);
       return null;
     }
     
