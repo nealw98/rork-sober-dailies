@@ -147,6 +147,8 @@ export function BigBookChapterList({ onSelectChapter, showToggle, onToggle, togg
     } else {
       console.error('[BigBookChapterList] goToPage returned null');
     }
+    
+    return result;
   };
   
   // Handle search result selection

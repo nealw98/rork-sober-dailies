@@ -157,16 +157,18 @@ export function useBigBookContent(): UseBigBookContentReturn {
   /**
    * Navigate to a specific page number
    * Returns the chapter and paragraph that contains that page
-   * Only searches main content (excludes Roman numeral front matter)
+   * Only searches main content (chapters 1-11 and appendices)
+   * Excludes Roman numeral front matter
    */
   const goToPage = useCallback((pageNumber: number): { chapterId: string; paragraphId: string } | null => {
-    // Only search regular chapters (exclude Roman numerals front matter)
+    // Only search regular chapters and appendices (exclude Roman numerals front matter)
+    // This includes: pages 1-164 (chapters) and 565-579 (appendices)
     const chapterMeta = bigBookChapterMetadata.find(
       meta => !meta.useRomanNumerals && pageNumber >= meta.pageRange[0] && pageNumber <= meta.pageRange[1]
     );
     
     if (!chapterMeta) {
-      console.error('[useBigBookContent] Page not found in main content:', pageNumber);
+      console.error('[useBigBookContent] Page not found (valid ranges: 1-164, 565-579):', pageNumber);
       return null;
     }
     

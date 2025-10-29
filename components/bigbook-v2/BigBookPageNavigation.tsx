@@ -29,7 +29,7 @@ import { adjustFontWeight } from '@/constants/fonts';
 interface BigBookPageNavigationProps {
   visible: boolean;
   onClose: () => void;
-  onNavigateToPage: (pageNumber: number) => void;
+  onNavigateToPage: (pageNumber: number) => { chapterId: string; paragraphId: string } | null;
 }
 
 export function BigBookPageNavigation({
@@ -67,17 +67,19 @@ export function BigBookPageNavigation({
       return;
     }
     
-    if (page > 164) {
-      console.log('[BigBookPageNavigation] - Page too high');
-      setError('Page number must be 164 or less');
-      return;
-    }
-    
     console.log('[BigBookPageNavigation] - Validation passed, calling onNavigateToPage');
     console.log('[BigBookPageNavigation] - onNavigateToPage type:', typeof onNavigateToPage);
     
     try {
-      onNavigateToPage(page);
+      const result = onNavigateToPage(page);
+      console.log('[BigBookPageNavigation] - onNavigateToPage result:', result);
+      
+      if (result === null) {
+        // Page not found in content
+        setError('Page not found. Valid pages: 1-164 or 565-579');
+        return;
+      }
+      
       console.log('[BigBookPageNavigation] - onNavigateToPage called successfully');
       setPageInput('');
       setError('');
@@ -85,6 +87,7 @@ export function BigBookPageNavigation({
       console.log('[BigBookPageNavigation] - Modal closing');
     } catch (error) {
       console.error('[BigBookPageNavigation] Error calling onNavigateToPage:', error);
+      setError('Error navigating to page');
     }
   };
 
@@ -135,7 +138,7 @@ export function BigBookPageNavigation({
           <View style={styles.content}>
             {/* Page Input */}
             <View style={styles.inputSection}>
-              <Text style={styles.inputLabel}>Page Number (1-164)</Text>
+              <Text style={styles.inputLabel}>Enter Page Number</Text>
               <TextInput
                 style={styles.input}
                 value={pageInput}
