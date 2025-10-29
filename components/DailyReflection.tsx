@@ -11,6 +11,10 @@ import { getReflectionForDate } from "@/constants/reflections";
 import { Reflection } from "@/types";
 import { adjustFontWeight } from "@/constants/fonts";
 
+interface DailyReflectionProps {
+  fontSize?: number;
+}
+
 // Helper to check if two dates are the same day
 const isSameDay = (date1: Date, date2: Date): boolean => {
   return date1.getFullYear() === date2.getFullYear() &&
@@ -80,7 +84,7 @@ const generateCalendarDays = (date: Date) => {
   return days;
 };
 
-export default function DailyReflection() {
+export default function DailyReflection({ fontSize = 16 }: DailyReflectionProps) {
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [reflection, setReflection] = useState<Reflection | null>(null);
 
@@ -416,16 +420,16 @@ export default function DailyReflection() {
           
           <View style={styles.divider} />
           
-          <Text style={styles.reflectionText}>{reflection.reflection}</Text>
+          <Text style={[styles.reflectionText, { fontSize, lineHeight: fontSize * 1.375 }]}>{reflection.reflection}</Text>
           
           <View style={styles.divider} />
           
           <Text style={styles.thoughtTitle}>Meditation:</Text>
-          <Text style={styles.thought}>{reflection.thought}</Text>
+          <Text style={[styles.thought, { fontSize, lineHeight: fontSize * 1.375 }]}>{reflection.thought}</Text>
         </View>
 
         <View style={styles.copyrightContainer}>
-          <Text style={styles.copyrightText}>
+          <Text style={[styles.copyrightText, { fontSize: fontSize * 0.75 }]}>
             Copyright © 1990 by Alcoholics Anonymous World Services, Inc. All rights reserved.
           </Text>
         </View>

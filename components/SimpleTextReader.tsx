@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useMemo } from 'react';
 import { 
   StyleSheet, 
   ScrollView, 
@@ -9,6 +9,8 @@ import {
   Platform
 } from 'react-native';
 import { ChevronLeft } from 'lucide-react-native';
+import { Gesture, GestureDetector } from 'react-native-gesture-handler';
+import { LinearGradient } from 'expo-linear-gradient';
 import Colors from '@/constants/colors';
 import { adjustFontWeight } from '@/constants/fonts';
 
@@ -21,6 +23,26 @@ interface SimpleTextReaderProps {
 }
 
 const SimpleTextReader = ({ content, title, onClose, indentParagraphs = false, source }: SimpleTextReaderProps) => {
+  // Font size state (replacing pinch-to-zoom)
+  const [fontSize, setFontSize] = useState(16);
+  const baseFontSize = 16;
+  
+  const increaseFontSize = () => {
+    setFontSize(prev => Math.min(prev + 2, 28));
+  };
+  
+  const decreaseFontSize = () => {
+    setFontSize(prev => Math.max(prev - 2, 12));
+  };
+  
+  // Double-tap to reset to default font size
+  const doubleTapGesture = useMemo(() => Gesture.Tap()
+    .numberOfTaps(2)
+    .onStart(() => {
+      setFontSize(baseFontSize);
+    })
+    .runOnJS(true), [baseFontSize]);
+
   // Helper function to parse inline markdown (italic, bold)
   const parseMarkdown = (text: string) => {
     const parts: Array<{ text: string; italic?: boolean; bold?: boolean }> = [];
@@ -141,13 +163,42 @@ const SimpleTextReader = ({ content, title, onClose, indentParagraphs = false, s
           <Text style={styles.backText}>Back</Text>
         </TouchableOpacity>
         <Text style={styles.headerTitle}>{title}</Text>
+        
+        {/* Font Size Controls */}
+        <View style={styles.fontSizeControls}>
+          <TouchableOpacity 
+            onPress={decreaseFontSize}
+            style={styles.fontSizeButton}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          >
+            <Text style={styles.fontSizeButtonText}>A-</Text>
+          </TouchableOpacity>
+          
+          <TouchableOpacity 
+            onPress={increaseFontSize}
+            style={styles.fontSizeButton}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          >
+            <Text style={styles.fontSizeButtonText}>A+</Text>
+          </TouchableOpacity>
+        </View>
       </View>
       
-      <ScrollView 
-        style={styles.content} 
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.contentContainer}
-      >
+      <View style={{ flex: 1 }}>
+        <LinearGradient
+          colors={Colors.gradients.mainThreeColor}
+          style={styles.backgroundGradient}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          locations={[0, 1]}
+          pointerEvents="none"
+        />
+        <GestureDetector gesture={doubleTapGesture}>
+          <ScrollView 
+            style={styles.content} 
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={styles.contentContainer}
+          >
         {(() => {
           let lastWasBlank = true;
           const lines = content.split('\n');
@@ -219,15 +270,17 @@ const SimpleTextReader = ({ content, title, onClose, indentParagraphs = false, s
             const textToRender = prefix + trimmed;
             return (
               <View key={idx}>
-                {renderMarkdownText(textToRender, isKnownHeading ? styles.headingText : styles.textContent)}
+                {renderMarkdownText(textToRender, isKnownHeading ? [styles.headingText, { fontSize }] : [styles.textContent, { fontSize, lineHeight: fontSize * 1.375 }])}
               </View>
             );
           });
         })()}
         {source ? (
-          <Text style={styles.sourceText}>{source}</Text>
+          <Text style={[styles.sourceText, { fontSize: fontSize * 0.875 }]}>{source}</Text>
         ) : null}
-      </ScrollView>
+        </ScrollView>
+        </GestureDetector>
+      </View>
     </SafeAreaView>
   );
 };
@@ -265,6 +318,33 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: adjustFontWeight('600'),
     color: Colors.light.text
+  },
+  fontSizeControls: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    position: 'absolute',
+    right: Platform.OS === 'android' ? 8 : 16,
+    paddingRight: 4,
+    zIndex: 1,
+  },
+  fontSizeButton: {
+    padding: 4,
+    minWidth: 32,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  fontSizeButtonText: {
+    fontSize: 16,
+    color: Colors.light.text,
+    fontWeight: '600',
+  },
+  backgroundGradient: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    top: 0,
+    bottom: 0,
   },
   content: {
     flex: 1
