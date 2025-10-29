@@ -168,14 +168,14 @@ export function useBigBookContent(): UseBigBookContentReturn {
     );
     
     if (!chapterMeta) {
-      console.error('[useBigBookContent] Page not found (valid ranges: 1-164, 565-579):', pageNumber);
+      console.log('[useBigBookContent] Page not found:', pageNumber);
       return null;
     }
     
     // Load the chapter
     const chapter = bigBookContent[chapterMeta.id];
     if (!chapter) {
-      console.error('[useBigBookContent] Chapter content not found:', chapterMeta.id);
+      console.log('[useBigBookContent] Chapter content not found:', chapterMeta.id);
       return null;
     }
     
@@ -183,7 +183,7 @@ export function useBigBookContent(): UseBigBookContentReturn {
     const paragraph = chapter.paragraphs.find(p => p.pageNumber === pageNumber);
     
     if (!paragraph) {
-      console.error('[useBigBookContent] No paragraph found on page:', pageNumber);
+      console.log('[useBigBookContent] No paragraph found on page:', pageNumber);
       return null;
     }
     

@@ -145,7 +145,7 @@ export function BigBookChapterList({ onSelectChapter, showToggle, onToggle, togg
     if (result) {
       onSelectChapter(result.chapterId, result.paragraphId);
     } else {
-      console.error('[BigBookChapterList] goToPage returned null');
+      console.log('[BigBookChapterList] Page not found:', pageNumber);
     }
     
     return result;
