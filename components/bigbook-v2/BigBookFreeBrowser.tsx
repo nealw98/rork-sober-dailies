@@ -35,6 +35,7 @@ import { IS_TESTFLIGHT_PREVIEW } from '@/constants/featureFlags';
 import { enableBigBookTestflightBypass } from '@/lib/bigbook-access';
 
 const SUBSCRIPTION_MODAL_KEY = '@sober_dailies:bigbook_subscription_modal_shown';
+const SUBSCRIPTION_ACCEPTED_KEY = '@sober_dailies:bigbook_subscription_accepted';
 
 const SectionItem = ({ 
   section, 
@@ -190,6 +191,12 @@ function BigBookFreeBrowserContent({ showToggle, onToggle, toggleLabel }: BigBoo
 
   const handleSubscribe = async () => {
     await handleSubscriptionModalDismiss();
+    // Mark that user has accepted the subscription offer
+    try {
+      await AsyncStorage.setItem(SUBSCRIPTION_ACCEPTED_KEY, 'true');
+    } catch (error) {
+      console.error('[BigBookFreeBrowser] Error saving subscription accepted state:', error);
+    }
     if (IS_TESTFLIGHT_PREVIEW) {
       enableBigBookTestflightBypass();
     } else {
@@ -201,9 +208,26 @@ function BigBookFreeBrowserContent({ showToggle, onToggle, toggleLabel }: BigBoo
     await handleSubscriptionModalDismiss();
   };
 
-  const handleUpgradeBanner = () => {
-    // Open the subscription modal instead of navigating to store
-    setSubscriptionModalVisible(true);
+  const handleUpgradeBanner = async () => {
+    // Check if user has already accepted the subscription offer
+    try {
+      const hasAccepted = await AsyncStorage.getItem(SUBSCRIPTION_ACCEPTED_KEY);
+      if (hasAccepted) {
+        // User already accepted, go directly to store/premium
+        if (IS_TESTFLIGHT_PREVIEW) {
+          enableBigBookTestflightBypass();
+        } else {
+          router.push('/(tabs)/store');
+        }
+      } else {
+        // First time or user clicked "Not Now" before, show modal
+        setSubscriptionModalVisible(true);
+      }
+    } catch (error) {
+      console.error('[BigBookFreeBrowser] Error checking subscription accepted state:', error);
+      // On error, show modal to be safe
+      setSubscriptionModalVisible(true);
+    }
   };
 
   //
