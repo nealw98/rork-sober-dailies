@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { StyleSheet, Text, View, ScrollView, TouchableOpacity, Modal, Platform, Share, AppState } from "react-native";
 import { ChevronLeft, ChevronRight, Calendar, Upload } from "lucide-react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -93,17 +93,37 @@ export default function DailyReflection({ fontSize = 16 }: DailyReflectionProps)
   const [calendarDays, setCalendarDays] = useState<any[]>([]);
   const [calendarDate, setCalendarDate] = useState<Date>(new Date());
   const [isLoading, setIsLoading] = useState<boolean>(true);
+  
+  // Track the last date we showed when the component was focused
+  const lastShownDateRef = useRef<Date>(new Date());
 
   // Check if date has changed when screen comes into focus
+  // Only reset to today if we were showing today and the day rolled over
   useFocusEffect(
     useCallback(() => {
       const today = new Date();
-      // Only update if we're currently showing today's date but it's now a different day
-      if (!isSameDay(selectedDate, today)) {
-        console.log('Day has changed, updating to today:', today.toDateString());
-        setSelectedDate(today);
+      
+      // Only auto-update to today if:
+      // 1. The last date we showed was yesterday (meaning the day rolled over)
+      // 2. We're not currently browsing other dates
+      if (isSameDay(lastShownDateRef.current, today)) {
+        // User is already on today, no change needed
+        return;
       }
-    }, [selectedDate])
+      
+      // Check if exactly one day has passed since last shown date
+      const daysSinceLastShown = Math.floor(
+        (today.getTime() - lastShownDateRef.current.getTime()) / (1000 * 60 * 60 * 24)
+      );
+      
+      // Only auto-advance if it was yesterday and is now today (natural day rollover)
+      if (daysSinceLastShown === 1) {
+        console.log('Day has changed from yesterday to today, updating:', today.toDateString());
+        setSelectedDate(today);
+        lastShownDateRef.current = today;
+      }
+      // If more than 1 day has passed or user was browsing other dates, don't auto-update
+    }, [])
   );
 
   useEffect(() => {
@@ -163,6 +183,7 @@ export default function DailyReflection({ fontSize = 16 }: DailyReflectionProps)
       newDate.setDate(newDate.getDate() + 1);
     }
     setSelectedDate(newDate);
+    lastShownDateRef.current = newDate; // Update the ref when user navigates
   };
 
   const handleDateChange = (event: any, date?: Date) => {
@@ -171,6 +192,7 @@ export default function DailyReflection({ fontSize = 16 }: DailyReflectionProps)
     }
     if (date) {
       setSelectedDate(date);
+      lastShownDateRef.current = date; // Update the ref when date changes
       if (Platform.OS === 'ios') {
         setShowDatePicker(false);
       }
@@ -198,6 +220,7 @@ export default function DailyReflection({ fontSize = 16 }: DailyReflectionProps)
 
   const selectCalendarDay = (date: Date) => {
     setSelectedDate(date);
+    lastShownDateRef.current = date; // Update the ref when user picks a date
     closeDatePicker();
   };
 
