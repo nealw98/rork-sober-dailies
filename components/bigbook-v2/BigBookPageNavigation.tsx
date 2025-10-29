@@ -76,7 +76,7 @@ export function BigBookPageNavigation({
       
       if (result === null) {
         // Page not found in content
-        setError('Page not found. Valid pages: 1-164 or 565-579');
+        setError('Page not found');
         return;
       }
       
