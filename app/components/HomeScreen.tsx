@@ -125,16 +125,11 @@ const HomeScreen = () => {
         </View>
 
         {/* Support the Developer Section */}
-        <View style={styles.sectionContainerSupport}>
-        <Text style={styles.sectionTitle}>Support the Developer</Text>
-        <Text style={styles.sectionSubtitle}>Learn about the app and show your support</Text>
-        
-        <TouchableOpacity style={styles.card} onPress={() => router.push('/about-support')}>
-          <Text style={styles.cardTitle}>Support the Developer</Text>
-          <Text style={styles.cardDescription}>Learn more about the app and contribute to its development.</Text>
+        <TouchableOpacity style={styles.sectionContainerSupport} onPress={() => router.push('/about-support')}>
+          <Text style={styles.sectionTitle}>Support the Developer</Text>
+          <Text style={styles.sectionSubtitle}>Learn about the app and show your support</Text>
           <Text style={styles.cardButton}>Go to Support the Developer</Text>
         </TouchableOpacity>
-        </View>
       </ScrollView>
       </SafeAreaView>
     </LinearGradient>
