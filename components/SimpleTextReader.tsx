@@ -10,7 +10,6 @@ import {
 } from 'react-native';
 import { ChevronLeft, Type } from 'lucide-react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
-import { LinearGradient } from 'expo-linear-gradient';
 import Colors from '@/constants/colors';
 import { adjustFontWeight } from '@/constants/fonts';
 
@@ -184,15 +183,7 @@ const SimpleTextReader = ({ content, title, onClose, indentParagraphs = false, s
         </View>
       </View>
       
-      <View style={{ flex: 1 }}>
-        <LinearGradient
-          colors={Colors.gradients.mainThreeColor}
-          style={styles.backgroundGradient}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          locations={[0, 1]}
-          pointerEvents="none"
-        />
+      <View style={{ flex: 1, backgroundColor: 'white' }}>
         <GestureDetector gesture={doubleTapGesture}>
           <ScrollView 
             style={styles.content} 
@@ -338,13 +329,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: Colors.light.text,
     fontWeight: '600',
-  },
-  backgroundGradient: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    top: 0,
-    bottom: 0,
   },
   content: {
     flex: 1
