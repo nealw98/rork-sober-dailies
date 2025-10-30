@@ -117,6 +117,7 @@ export default function EveningReview() {
   const [reflectionKind, setReflectionKind] = useState('');
   const [reflectionBetter, setReflectionBetter] = useState('');
   const [reflectionOthers, setReflectionOthers] = useState('');
+  const [reflectionWell, setReflectionWell] = useState('');
 
   // Always call hooks in the same order
   const eveningReviewStore = useEveningReviewStore();
@@ -161,9 +162,10 @@ export default function EveningReview() {
     { key: 'reflectionResentful', label: 'Was I resentful, selfish, dishonest, or afraid?', value: reflectionResentful, setValue: setReflectionResentful },
     { key: 'reflectionApology', label: 'Do I owe an apology?', value: reflectionApology, setValue: setReflectionApology },
     { key: 'reflectionShared', label: 'Did I keep something to myself that should be shared with another?', value: reflectionShared, setValue: setReflectionShared },
-    { key: 'reflectionKind', label: 'Was I kind and loving toward all?', value: reflectionKind, setValue: setReflectionKind },
-    { key: 'reflectionBetter', label: 'What could I have done better?', value: reflectionBetter, setValue: setReflectionBetter },
     { key: 'reflectionOthers', label: 'Was I thinking of myself most of the time, or of what I could do for others?', value: reflectionOthers, setValue: setReflectionOthers },
+    { key: 'reflectionKind', label: 'Was I kind and loving toward all?', value: reflectionKind, setValue: setReflectionKind },
+    { key: 'reflectionWell', label: 'What have I done well today?', value: reflectionWell, setValue: setReflectionWell },
+    { key: 'reflectionBetter', label: 'What could I have done better?', value: reflectionBetter, setValue: setReflectionBetter },
   ];
 
   const handleStartNew = () => {
@@ -176,9 +178,10 @@ export default function EveningReview() {
     setReflectionResentful('');
     setReflectionApology('');
     setReflectionShared('');
-    setReflectionKind('');
-    setReflectionBetter('');
     setReflectionOthers('');
+    setReflectionKind('');
+    setReflectionWell('');
+    setReflectionBetter('');
     setShowConfirmation(false);
   };
 
@@ -200,9 +203,10 @@ export default function EveningReview() {
         setReflectionResentful(data.reflectionResentful || '');
         setReflectionApology(data.reflectionApology || '');
         setReflectionShared(data.reflectionShared || '');
-        setReflectionKind(data.reflectionKind || '');
-        setReflectionBetter(data.reflectionBetter || '');
         setReflectionOthers(data.reflectionOthers || '');
+        setReflectionKind(data.reflectionKind || '');
+        setReflectionWell(data.reflectionWell || '');
+        setReflectionBetter(data.reflectionBetter || '');
       } else {
         // Legacy format - convert to new format
         setStayedSober(true); // Assume sober if they're doing the review
@@ -300,9 +304,10 @@ export default function EveningReview() {
       reflectionResentful,
       reflectionApology,
       reflectionShared,
-      reflectionKind,
-      reflectionBetter,
       reflectionOthers,
+      reflectionKind,
+      reflectionWell,
+      reflectionBetter,
       // Legacy fields for compatibility
       resentfulFlag: '',
       resentfulNote: '',
