@@ -241,77 +241,25 @@ function BigBookBrowserContent({}: BigBookBrowserContentProps) {
       chapterId: result.chapterInfo.id
     });
     
-    if (Platform.OS === 'android') {
-      // Android: Load entire chapter content with all search term instances highlighted
-      const chapterId = result.chapterInfo.id;
-      const chapterSection = bigBookData
-        .flatMap(cat => cat.sections)
-        .find(sec => sec.id === chapterId);
-      
-      if (chapterSection) {
-        console.log('🔍 Android: Loading entire chapter:', chapterSection.title);
-        
-        // Get the chapter content
-        const chapterContent = markdownContent[chapterId];
-        
-        if (chapterContent) {
-          // Find all occurrences of the search term in the chapter
-          const escapedTerm = searchQuery.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-          const regex = new RegExp(`\\b${escapedTerm}\\b`, 'gi');
-          const matches: { index: number, length: number }[] = [];
-          let match;
-          
-          while ((match = regex.exec(chapterContent)) !== null) {
-            matches.push({ index: match.index, length: match[0].length });
-          }
-          
-          console.log(`🔍 Android: Found ${matches.length} matches in chapter`);
-          
-          // Find the first match in the chapter
-          const firstMatchPosition = matches.length > 0 ? matches[0].index : 0;
-          
-          setCurrentMarkdown({
-            content: chapterContent,
-            title: chapterSection.title,
-            id: chapterId,
-            initialScrollPosition: 0,
-            targetPageNumber: String(result.pageNumber),
-            searchHighlight: {
-              query: searchQuery,
-              position: 0, // Start from beginning, don't auto-scroll
-              length: searchQuery.length,
-              matchContext: result.matchContext
-            } as ExtendedSearchHighlight
-          });
-          setMarkdownReaderVisible(true);
-        } else {
-          console.log('❌ Android: Chapter content not found for:', chapterId);
+    // Use the same navigation logic for both iOS and Android
+    const navigationResult = navigateToPageWithHighlight(result.pageNumber, searchQuery);
+    if (navigationResult && navigationResult.success) {
+      setCurrentMarkdown({
+        content: navigationResult.content,
+        // Use the chapter title instead of 'Big Book - Page XX'
+        title: result.title,
+        id: result.chapterInfo.id, // Use the actual chapter ID for Android page navigation
+        initialScrollPosition: navigationResult.scrollPosition || 0,
+        targetPageNumber: navigationResult.targetPageMarker || String(result.pageNumber),
+        searchHighlight: {
+          query: searchQuery,
+          position: 0,
+          length: searchQuery.length
         }
-      } else {
-        console.log('❌ Android: Chapter not found for:', chapterId);
-      }
+      });
+      setMarkdownReaderVisible(true);
     } else {
-      // iOS: Keep existing behavior
-      // Pass the Roman numeral string or Arabic number directly
-      const navigationResult = navigateToPageWithHighlight(result.pageNumber, searchQuery);
-      if (navigationResult && navigationResult.success) {
-        setCurrentMarkdown({
-          content: navigationResult.content,
-          // Use the chapter title instead of 'Big Book - Page XX'
-          title: result.title,
-          id: 'search-navigation',
-          initialScrollPosition: navigationResult.scrollPosition || 0,
-          targetPageNumber: navigationResult.targetPageMarker || String(result.pageNumber),
-          searchHighlight: {
-            query: searchQuery,
-            position: 0,
-            length: searchQuery.length
-          }
-        });
-        setMarkdownReaderVisible(true);
-      } else {
-        console.log('❌ Navigation failed for page:', result.pageNumber);
-      }
+      console.log('❌ Navigation failed for page:', result.pageNumber);
     }
     // Don't hide search results - let user navigate back to them
     // setShowingSearchResults(false);
