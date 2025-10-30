@@ -8,7 +8,7 @@ import {
   SafeAreaView,
   Platform
 } from 'react-native';
-import { ChevronLeft } from 'lucide-react-native';
+import { ChevronLeft, Type } from 'lucide-react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import { LinearGradient } from 'expo-linear-gradient';
 import Colors from '@/constants/colors';
@@ -171,7 +171,7 @@ const SimpleTextReader = ({ content, title, onClose, indentParagraphs = false, s
             style={styles.fontSizeButton}
             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
           >
-            <Text style={styles.fontSizeButtonText}>A-</Text>
+            <Type size={16} color={Colors.light.text} />
           </TouchableOpacity>
           
           <TouchableOpacity 
@@ -179,7 +179,7 @@ const SimpleTextReader = ({ content, title, onClose, indentParagraphs = false, s
             style={styles.fontSizeButton}
             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
           >
-            <Text style={styles.fontSizeButtonText}>A+</Text>
+            <Type size={24} color={Colors.light.text} />
           </TouchableOpacity>
         </View>
       </View>

@@ -415,8 +415,8 @@ export default function DailyReflection({ fontSize = 16 }: DailyReflectionProps)
           </View>
           
           <Text style={styles.title}>{reflection.title}</Text>
-          <Text style={styles.quote}>"{reflection.quote}"</Text>
-          <Text style={styles.source}>{reflection.source}</Text>
+          <Text style={[styles.quote, { fontSize, lineHeight: fontSize * 1.375 }]}>"{reflection.quote}"</Text>
+          <Text style={[styles.source, { fontSize: fontSize * 0.75 }]}>{reflection.source}</Text>
           
           <View style={styles.divider} />
           
