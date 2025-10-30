@@ -390,7 +390,6 @@ const AboutSupportScreen = () => {
           <View style={styles.supportCard}>
             <Text style={styles.supportCardTitle}>Support Sober Dailies</Text>
             <Text style={styles.supportCardText}>
-              Your contribution helps keep Sober Dailies running smoothly and available for everyone.
               These are one-time voluntary support options. No extra content is unlocked.
             </Text>
 
@@ -587,7 +586,7 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: '#555',
     lineHeight: 22,
-    textAlign: 'left',
+    textAlign: 'center',
   },
   buttonSpacer: {
     height: 20,
