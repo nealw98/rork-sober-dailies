@@ -124,13 +124,17 @@ const HomeScreen = () => {
         </TouchableOpacity>
         </View>
 
-        {/* Support the App Button */}
-        <TouchableOpacity 
-          style={styles.supportButton}
-          onPress={() => router.push('/about-support')}
-        >
-          <Text style={styles.supportButtonText}>About and Support</Text>
+        {/* Support the Developer Section */}
+        <View style={styles.sectionContainerSupport}>
+        <Text style={styles.sectionTitle}>Support the Developer</Text>
+        <Text style={styles.sectionSubtitle}>Learn about the app and show your support</Text>
+        
+        <TouchableOpacity style={styles.card} onPress={() => router.push('/about-support')}>
+          <Text style={styles.cardTitle}>Support the Developer</Text>
+          <Text style={styles.cardDescription}>Learn more about the app and contribute to its development.</Text>
+          <Text style={styles.cardButton}>Go to Support the Developer</Text>
         </TouchableOpacity>
+        </View>
       </ScrollView>
       </SafeAreaView>
     </LinearGradient>
@@ -250,6 +254,14 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     marginHorizontal: 16,
   },
+  sectionContainerSupport: {
+    paddingHorizontal: 16,
+    marginBottom: 30,
+    backgroundColor: '#C8E6C9', // Soft green for support section
+    paddingVertical: 20,
+    borderRadius: 16,
+    marginHorizontal: 16,
+  },
   sectionTitle: {
     fontSize: 22,
     fontWeight: 'bold',
@@ -296,26 +308,6 @@ const styles = StyleSheet.create({
     paddingVertical: 20,
     borderRadius: 16,
     marginHorizontal: 16,
-  },
-  supportButton: {
-    backgroundColor: '#4A90E2',
-    borderRadius: 12,
-    padding: 16,
-    marginHorizontal: 16,
-    marginTop: 20,
-    marginBottom: 30,
-    alignItems: 'center',
-    elevation: 4,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.2,
-    shadowRadius: 7,
-  },
-  supportButtonText: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: 'white',
-    textAlign: 'center',
   },
 });
 

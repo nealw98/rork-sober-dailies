@@ -374,7 +374,19 @@ const AboutSupportScreen = () => {
       <View style={styles.contentContainer}>
         <ScrollView contentContainerStyle={[styles.scrollContent, { paddingTop: 20, paddingBottom: insets.bottom + 96 }]}>
 
-          {/* Support Card */}
+          {/* About Card - TOP SECTION */}
+          <View style={styles.aboutCard}>
+            <Text style={styles.aboutCardTitle}>About the App</Text>
+            <Text style={styles.aboutCardText}>
+              Hi friends,{"\n\n"}
+               I created Sober Dailies because I wanted a simple way to stay consistent with my recovery practices. I needed something that would guide me through my daily habits and bring all the tools I used into one app. I'm grateful to share it with anyone who finds it helpful.{"\n\n"}
+              Your contribution is completely voluntary, but it truly helps. It goes toward covering my development costs, keeping the app running smoothly, and funding future updates and improvements. My goal is to keep the core features free for anyone who wants to use them.{"\n\n"}
+              Whether or not you contribute, I'm just glad you're here and that the app supports your journey.{"\n\n"}
+              — Neal
+            </Text>
+          </View>
+
+          {/* Support Card - MIDDLE SECTION */}
           <View style={styles.supportCard}>
             <Text style={styles.supportCardTitle}>Support Sober Dailies</Text>
             <Text style={styles.supportCardText}>
@@ -431,35 +443,12 @@ const AboutSupportScreen = () => {
               </>
             )}
 
-            {/* Privacy Policy and Terms Links */}
-            <View style={styles.legalLinksContainer}>
-              <TouchableOpacity onPress={handlePrivacyPress}>
-                <Text style={styles.legalLink}>Privacy Policy</Text>
-              </TouchableOpacity>
-              <Text style={styles.legalSeparator}>·</Text>
-              <TouchableOpacity onPress={handleTermsPress}>
-                <Text style={styles.legalLink}>Terms</Text>
-              </TouchableOpacity>
-            </View>
-
             {errorMessage ? (
               <Text style={styles.inlineError}>{errorMessage}</Text>
             ) : null}
           </View>
 
-          {/* About Card */}
-          <View style={styles.aboutCard}>
-            <Text style={styles.aboutCardTitle}>About the App</Text>
-            <Text style={styles.aboutCardText}>
-              Hi friends,{"\n\n"}
-               I created Sober Dailies because I wanted a simple way to stay consistent with my recovery practices. I needed something that would guide me through my daily habits and bring all the tools I used into one app. I'm grateful to share it with anyone who finds it helpful.{"\n\n"}
-              Your contribution is completely voluntary, but it truly helps. It goes toward covering my development costs, keeping the app running smoothly, and funding future updates and improvements. My goal is to keep the core features free for anyone who wants to use them.{"\n\n"}
-              Whether or not you contribute, I'm just glad you're here and that the app supports your journey.{"\n\n"}
-              — Neal
-            </Text>
-          </View>
-
-          {/* Rate / Share actions (below about section) */}
+          {/* Rate / Share actions and legal links - BOTTOM SECTION */}
           <View style={styles.actionsRow}>
             <TouchableOpacity style={styles.actionPill} onPress={handleRateAppPress}>
               <Star size={16} color={'white'} style={styles.pillIcon} />
@@ -468,6 +457,17 @@ const AboutSupportScreen = () => {
             <TouchableOpacity style={styles.actionPill} onPress={handleSharePress}>
               <Share2 size={16} color={'white'} style={styles.pillIcon} />
               <Text style={styles.actionPillText}>Share</Text>
+            </TouchableOpacity>
+          </View>
+
+          {/* Privacy Policy and Terms Links */}
+          <View style={styles.legalLinksContainer}>
+            <TouchableOpacity onPress={handlePrivacyPress}>
+              <Text style={styles.legalLink}>Privacy Policy</Text>
+            </TouchableOpacity>
+            <Text style={styles.legalSeparator}>·</Text>
+            <TouchableOpacity onPress={handleTermsPress}>
+              <Text style={styles.legalLink}>Terms</Text>
             </TouchableOpacity>
           </View>
         </ScrollView>
