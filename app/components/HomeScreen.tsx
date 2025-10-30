@@ -126,9 +126,9 @@ const HomeScreen = () => {
 
         {/* Support the Developer Section */}
         <View style={styles.sectionContainerSupport}>
-          <Text style={styles.sectionTitle}>Support the Developer</Text>
+          <Text style={styles.sectionTitle}>Enjoying Sober Dailies?</Text>
           <TouchableOpacity style={styles.card} onPress={() => router.push('/about-support')}>
-            <Text style={styles.cardTitle}>Show Your Support</Text>
+            <Text style={styles.cardTitle}>Support the Developer</Text>
             <Text style={styles.cardDescription}>Contribute to the app's development</Text>
             <Text style={styles.cardButton}>Go to Support the Developer</Text>
           </TouchableOpacity>
