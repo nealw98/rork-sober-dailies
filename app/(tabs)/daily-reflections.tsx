@@ -11,9 +11,10 @@ import { adjustFontWeight } from '@/constants/fonts';
 export default function DailyReflectionsPage() {
   const [fontSize, setFontSize] = useState(16);
   const baseFontSize = 16;
+  const maxFontSize = Platform.OS === 'android' ? 34 : 30;
   
   const increaseFontSize = () => {
-    setFontSize(prev => Math.min(prev + 2, 28));
+    setFontSize(prev => Math.min(prev + 2, maxFontSize));
   };
   
   const decreaseFontSize = () => {

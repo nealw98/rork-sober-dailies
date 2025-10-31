@@ -176,14 +176,16 @@ export default function DailyReflection({ fontSize = 16 }: DailyReflectionProps)
   };
 
   const navigateDate = (direction: 'prev' | 'next') => {
-    const newDate = new Date(selectedDate);
-    if (direction === 'prev') {
-      newDate.setDate(newDate.getDate() - 1);
-    } else {
-      newDate.setDate(newDate.getDate() + 1);
-    }
-    setSelectedDate(newDate);
-    lastShownDateRef.current = newDate; // Update the ref when user navigates
+    setSelectedDate(prevDate => {
+      const updatedDate = new Date(prevDate);
+      if (direction === 'prev') {
+        updatedDate.setDate(updatedDate.getDate() - 1);
+      } else {
+        updatedDate.setDate(updatedDate.getDate() + 1);
+      }
+      lastShownDateRef.current = updatedDate; // Update the ref when user navigates
+      return updatedDate;
+    });
   };
 
   const handleDateChange = (event: any, date?: Date) => {
@@ -209,13 +211,15 @@ export default function DailyReflection({ fontSize = 16 }: DailyReflectionProps)
   };
 
   const changeCalendarMonth = (direction: 'prev' | 'next') => {
-    const newDate = new Date(calendarDate);
-    if (direction === 'prev') {
-      newDate.setMonth(newDate.getMonth() - 1);
-    } else {
-      newDate.setMonth(newDate.getMonth() + 1);
-    }
-    setCalendarDate(newDate);
+    setCalendarDate(prevDate => {
+      const updatedDate = new Date(prevDate);
+      if (direction === 'prev') {
+        updatedDate.setMonth(updatedDate.getMonth() - 1);
+      } else {
+        updatedDate.setMonth(updatedDate.getMonth() + 1);
+      }
+      return updatedDate;
+    });
   };
 
   const selectCalendarDay = (date: Date) => {

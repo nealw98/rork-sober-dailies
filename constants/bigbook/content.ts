@@ -1975,7 +1975,8 @@ export const allMarkdownContent = markdownContent;
 
 // FlatList page parsing for Android
 export interface PageItem {
-  pageNumber: number;
+  pageNumber: string;
+  pageNumberNumeric: number;
   content: string;
   isPageMarker: boolean;
 }
@@ -1985,37 +1986,80 @@ export interface ChapterPages {
 }
 
 // Parse markdown content into pages for FlatList (Android)
+const PAGE_MARKER_REGEX = /\*— Page ([^—]+) —\*/i;
+
+const toNumericPage = (label: string): number => {
+  const trimmed = label.trim();
+  if (/^\d+$/.test(trimmed)) {
+    return parseInt(trimmed, 10);
+  }
+
+  const romanValues: Record<string, number> = {
+    i: 1,
+    v: 5,
+    x: 10,
+    l: 50,
+    c: 100,
+    d: 500,
+    m: 1000,
+  };
+
+  let result = 0;
+  let previous = 0;
+  for (let i = trimmed.length - 1; i >= 0; i--) {
+    const current = romanValues[trimmed[i].toLowerCase()];
+    if (!current) {
+      continue;
+    }
+
+    if (current < previous) {
+      result -= current;
+    } else {
+      result += current;
+      previous = current;
+    }
+  }
+
+  return result > 0 ? result : 0;
+};
+
 export const parseContentToPages = (): ChapterPages => {
   const chapterPages: ChapterPages = {};
   
   Object.entries(markdownContent).forEach(([chapterId, content]) => {
     const pages: PageItem[] = [];
     const lines = content.split('\n');
-    let currentPage = 0;
+    let currentPageLabel: string | null = null;
+    let currentPageNumeric = 0;
     let currentContent: string[] = [];
     
-    lines.forEach((line, index) => {
+    lines.forEach((line) => {
       // Check for page markers
-      const pageMatch = line.match(/\*— Page (\d+) —\*/);
+      const pageMatch = line.match(PAGE_MARKER_REGEX);
       if (pageMatch) {
+        const label = pageMatch[1].trim();
+        const numeric = toNumericPage(label);
+
         // Save previous page content if exists
-        if (currentPage > 0 && currentContent.length > 0) {
+        if (currentPageLabel && currentContent.length > 0) {
           pages.push({
-            pageNumber: currentPage,
+            pageNumber: currentPageLabel,
+            pageNumberNumeric: currentPageNumeric,
             content: currentContent.join('\n'),
             isPageMarker: false
           });
         }
-        
-        // Add page marker
-        currentPage = parseInt(pageMatch[1], 10);
+
+        currentPageLabel = label;
+        currentPageNumeric = numeric;
+
         pages.push({
-          pageNumber: currentPage,
+          pageNumber: label,
+          pageNumberNumeric: numeric,
           content: line,
           isPageMarker: true
         });
-        
-        // Reset content for this page
+
         currentContent = [];
       } else {
         // Add line to current page content
@@ -2024,9 +2068,10 @@ export const parseContentToPages = (): ChapterPages => {
     });
     
     // Add final page content
-    if (currentPage > 0 && currentContent.length > 0) {
+    if (currentPageLabel && currentContent.length > 0) {
       pages.push({
-        pageNumber: currentPage,
+        pageNumber: currentPageLabel,
+        pageNumberNumeric: currentPageNumeric,
         content: currentContent.join('\n'),
         isPageMarker: false
       });
@@ -2035,13 +2080,23 @@ export const parseContentToPages = (): ChapterPages => {
     // If no page markers found, create single page
     if (pages.length === 0) {
       pages.push({
-        pageNumber: 1,
+        pageNumber: '1',
+        pageNumberNumeric: 1,
         content: content,
         isPageMarker: false
       });
     }
     
-    chapterPages[chapterId] = pages;
+    // Ensure any page marker without captured label (fallback)
+    const normalizedPages = pages.map(page => {
+      if (!page.pageNumberNumeric || page.pageNumberNumeric <= 0) {
+        const numeric = toNumericPage(page.pageNumber);
+        return { ...page, pageNumberNumeric: numeric > 0 ? numeric : 1 };
+      }
+      return page;
+    });
+    
+    chapterPages[chapterId] = normalizedPages;
   });
   
   return chapterPages;
@@ -2056,5 +2111,5 @@ export const getChapterPages = (chapterId: string): PageItem[] => {
 // Find page index by page number
 export const findPageIndex = (chapterId: string, targetPage: number): number => {
   const pages = getChapterPages(chapterId);
-  return pages.findIndex(page => page.pageNumber === targetPage);
+  return pages.findIndex(page => page.pageNumberNumeric === targetPage);
 };

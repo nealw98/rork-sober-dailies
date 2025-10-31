@@ -94,12 +94,7 @@ const BigBookSearchResults: React.FC<BigBookSearchResultsProps> = ({
         {isExpanded && (
           <View style={styles.snippetsContainer}>
             {group.results.map((result, index) => (
-              <TouchableOpacity
-                key={`${result.id}-${index}`}
-                style={styles.snippetItem}
-                onPress={() => onResultPress(result)}
-                activeOpacity={0.7}
-              >
+              <View key={`${result.id}-${index}`} style={styles.snippetItem}>
                 <Text style={styles.snippetPageNumber}>p. {result.pageNumber}</Text>
                 <Text style={styles.snippetText}>
                   {result.matchContext.before && `...${result.matchContext.before}`}
@@ -108,7 +103,7 @@ const BigBookSearchResults: React.FC<BigBookSearchResultsProps> = ({
                   </Text>
                   {result.matchContext.after && `${result.matchContext.after}...`}
                 </Text>
-              </TouchableOpacity>
+              </View>
             ))}
           </View>
         )}

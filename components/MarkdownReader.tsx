@@ -23,21 +23,30 @@ import { useLastPageStore } from '@/hooks/use-last-page-store';
 
 // Convert Roman numerals to Arabic numbers
 const romanToArabic = (roman: string): number => {
+  if (!roman) return 0;
+  const trimmed = roman.trim();
+  if (/^\d+$/.test(trimmed)) {
+    return parseInt(trimmed, 10);
+  }
+
   const romanMap: { [key: string]: number } = {
     'i': 1, 'v': 5, 'x': 10, 'l': 50, 'c': 100, 'd': 500, 'm': 1000
   };
   
   let result = 0;
-  const lowerRoman = roman.toLowerCase();
+  let previous = 0;
+  const lowerRoman = trimmed.toLowerCase();
   
-  for (let i = 0; i < lowerRoman.length; i++) {
+  for (let i = lowerRoman.length - 1; i >= 0; i--) {
     const current = romanMap[lowerRoman[i]];
-    const next = romanMap[lowerRoman[i + 1]];
-    
-    if (next && current < next) {
+    if (!current) {
+      continue;
+    }
+    if (current < previous) {
       result -= current;
     } else {
       result += current;
+      previous = current;
     }
   }
   
@@ -267,15 +276,16 @@ const MarkdownReader = ({
 
   // Extract page numbers for ref tracking - Updated for new format
   const pageNumbers = React.useMemo(() => {
-    const matches = cleanContent.match(/\*— Page (\d+|\w+) —\*/g) || [];
+    const matches = cleanContent.match(/\*— Page ([^—]+) —\*/g) || [];
     return matches.map(match => {
-      const pageMatch = match.match(/\*— Page (\d+|\w+) —\*/);
+      const pageMatch = match.match(/\*— Page ([^—]+) —\*/);
       if (pageMatch) {
         const pageStr = pageMatch[1];
-        return isNaN(parseInt(pageStr, 10)) ? -1 : parseInt(pageStr, 10); // Handle Roman numerals
+        const pageNum = romanToArabic(pageStr);
+        return pageNum > 0 ? pageNum : null;
       }
       return null;
-    }).filter((num): num is number => num !== null && num > 0);
+    }).filter((num): num is number => num !== null);
   }, [cleanContent]);
 
   // Prepare FlatList data for Android
@@ -302,13 +312,13 @@ const MarkdownReader = ({
 
   // Extract page numbers - now only used for the "Go to Page" button validation
   const pageAnchors = React.useMemo(() => {
-    const regex = /\*— Page (\d+|\w+) —\*/g;
+    const regex = /\*— Page ([^—]+) —\*/g;
     const anchors: { pageNumber: number; position: number }[] = [];
     let match;
     
     while ((match = regex.exec(cleanContent)) !== null) {
       const pageStr = match[1];
-      const pageNum = isNaN(parseInt(pageStr, 10)) ? -1 : parseInt(pageStr, 10);
+      const pageNum = romanToArabic(pageStr);
       if (pageNum > 0) {
         anchors.push({
           pageNumber: pageNum,
@@ -510,8 +520,10 @@ const MarkdownReader = ({
         }
       } else if (targetPageNumber && flatListRef.current) {
         // Regular page navigation for Android
-        const targetIndex = findPageIndex(sectionId, parseInt(targetPageNumber, 10));
-        if (targetIndex >= 0) {
+        const numericTarget = romanToArabic(String(targetPageNumber));
+        if (numericTarget > 0) {
+          const targetIndex = findPageIndex(sectionId, numericTarget);
+          if (targetIndex >= 0) {
           console.log(`📍 Android: Scrolling to page ${targetPageNumber} at index ${targetIndex}`);
           try {
             console.log(`📍 Android: Scrolling to page ${targetPageNumber} at index ${targetIndex}`);
@@ -538,6 +550,7 @@ const MarkdownReader = ({
             console.log('🚨 Android: Error in scrollToIndex:', error);
           }
           return;
+        }
         }
       }
     }

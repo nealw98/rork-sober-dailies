@@ -856,7 +856,7 @@ export default function GratitudeListScreen() {
               style={styles.primaryButton}
               onPress={() => setShowSavedEntries(true)}
             >
-              <Text style={styles.primaryButtonText} numberOfLines={1}>Saved Lists</Text>
+              <Text style={styles.primaryButtonText} numberOfLines={1}>History</Text>
             </TouchableOpacity>
           </View>
         </ScrollView>

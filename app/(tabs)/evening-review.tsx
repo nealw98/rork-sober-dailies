@@ -407,7 +407,7 @@ export default function EveningReview() {
               style={styles.primaryButton}
               onPress={() => setShowSavedReviews(true)}
             >
-              <Text style={styles.primaryButtonText} numberOfLines={1}>Saved Reviews</Text>
+              <Text style={styles.primaryButtonText} numberOfLines={1}>History</Text>
             </TouchableOpacity>
           </View>
         </ScrollView>
