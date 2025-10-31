@@ -55,7 +55,13 @@ export function configurePurchases(): void {
     return;
   }
   console.log('[RevenueCat] Configuring with API key for', Platform.OS);
-  Purchases.setLogLevel(Purchases.LOG_LEVEL.DEBUG); // Use DEBUG for more detailed logs
+  if (typeof Purchases.setLogLevel === 'function') {
+    try {
+      Purchases.setLogLevel(Purchases.LOG_LEVEL.DEBUG); // Use DEBUG for more detailed logs
+    } catch (error) {
+      console.log('[RevenueCat] Failed to set log level:', error);
+    }
+  }
   Purchases.configure({ apiKey });
   console.log('[RevenueCat] Configuration complete.');
 }
