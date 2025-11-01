@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback, useRef } from "react";
-import { StyleSheet, Text, View, ScrollView, TouchableOpacity, Modal, Platform, Share, AppState } from "react-native";
+import { StyleSheet, Text, View, ScrollView, TouchableOpacity, Modal, Platform, Share } from "react-native";
 import { ChevronLeft, ChevronRight, Calendar, Upload } from "lucide-react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import DateTimePicker from '@react-native-community/datetimepicker';
@@ -97,33 +97,18 @@ export default function DailyReflection({ fontSize = 16 }: DailyReflectionProps)
   // Track the last date we showed when the component was focused
   const lastShownDateRef = useRef<Date>(new Date());
 
-  // Check if date has changed when screen comes into focus
-  // Only reset to today if we were showing today and the day rolled over
+  // When the screen gains focus, ensure we default back to today's reading if needed
   useFocusEffect(
     useCallback(() => {
       const today = new Date();
-      
-      // Only auto-update to today if:
-      // 1. The last date we showed was yesterday (meaning the day rolled over)
-      // 2. We're not currently browsing other dates
-      if (isSameDay(lastShownDateRef.current, today)) {
-        // User is already on today, no change needed
-        return;
-      }
-      
-      // Check if exactly one day has passed since last shown date
-      const daysSinceLastShown = Math.floor(
-        (today.getTime() - lastShownDateRef.current.getTime()) / (1000 * 60 * 60 * 24)
-      );
-      
-      // Only auto-advance if it was yesterday and is now today (natural day rollover)
-      if (daysSinceLastShown === 1) {
-        console.log('Day has changed from yesterday to today, updating:', today.toDateString());
+      if (!isSameDay(selectedDate, today)) {
         setSelectedDate(today);
+        setCalendarDate(today);
         lastShownDateRef.current = today;
+      } else {
+        lastShownDateRef.current = selectedDate;
       }
-      // If more than 1 day has passed or user was browsing other dates, don't auto-update
-    }, [])
+    }, [selectedDate])
   );
 
   useEffect(() => {

@@ -163,20 +163,6 @@ const MarkdownReader = ({
   // FlatList data for Android
   const [flatListData, setFlatListData] = useState<ExtendedPageItem[]>([]);
   
-  // Helper function to calculate item layout for FlatList
-  const getItemLayout = useCallback((data: any, index: number) => {
-    // Use an average height estimation for items
-    const AVERAGE_ITEM_HEIGHT = 150; // Adjust based on your content
-    return {
-      length: AVERAGE_ITEM_HEIGHT,
-      offset: AVERAGE_ITEM_HEIGHT * index,
-      index,
-    };
-  }, []);
-
-
-
-
   // Page tracking function for last page feature
   const trackCurrentPage = useCallback((scrollY: number) => {
     let currentPage: number | null = null;
@@ -621,7 +607,6 @@ const MarkdownReader = ({
             contentContainerStyle={styles.contentContainer}
             showsVerticalScrollIndicator={false}
             keyExtractor={(item, index) => `${item.pageNumber}-${index}`}
-            getItemLayout={getItemLayout}
             initialNumToRender={20}
             maxToRenderPerBatch={10}
             windowSize={10}
