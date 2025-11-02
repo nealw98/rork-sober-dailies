@@ -62,8 +62,16 @@ export function configurePurchases(): void {
       console.log('[RevenueCat] Failed to set log level:', error);
     }
   }
-  Purchases.configure({ apiKey });
-  console.log('[RevenueCat] Configuration complete.');
+  try {
+    if (typeof Purchases.configure === 'function') {
+      Purchases.configure({ apiKey });
+      console.log('[RevenueCat] Configuration complete.');
+    } else {
+      console.log('[RevenueCat] Purchases.configure is not a function. Module may not be fully initialized.');
+    }
+  } catch (error) {
+    console.log('[RevenueCat] Failed to configure:', error);
+  }
 }
 
 export async function getCustomerInfoSafe(): Promise<PurchasesNamespace.CustomerInfo | null> {

@@ -23,30 +23,21 @@ import { useLastPageStore } from '@/hooks/use-last-page-store';
 
 // Convert Roman numerals to Arabic numbers
 const romanToArabic = (roman: string): number => {
-  if (!roman) return 0;
-  const trimmed = roman.trim();
-  if (/^\d+$/.test(trimmed)) {
-    return parseInt(trimmed, 10);
-  }
-
   const romanMap: { [key: string]: number } = {
     'i': 1, 'v': 5, 'x': 10, 'l': 50, 'c': 100, 'd': 500, 'm': 1000
   };
   
   let result = 0;
-  let previous = 0;
-  const lowerRoman = trimmed.toLowerCase();
+  const lowerRoman = roman.toLowerCase();
   
-  for (let i = lowerRoman.length - 1; i >= 0; i--) {
+  for (let i = 0; i < lowerRoman.length; i++) {
     const current = romanMap[lowerRoman[i]];
-    if (!current) {
-      continue;
-    }
-    if (current < previous) {
+    const next = romanMap[lowerRoman[i + 1]];
+    
+    if (next && current < next) {
       result -= current;
     } else {
       result += current;
-      previous = current;
     }
   }
   
@@ -162,7 +153,10 @@ const MarkdownReader = ({
   
   // FlatList data for Android
   const [flatListData, setFlatListData] = useState<ExtendedPageItem[]>([]);
-  
+
+
+
+
   // Page tracking function for last page feature
   const trackCurrentPage = useCallback((scrollY: number) => {
     let currentPage: number | null = null;
@@ -262,49 +256,55 @@ const MarkdownReader = ({
 
   // Extract page numbers for ref tracking - Updated for new format
   const pageNumbers = React.useMemo(() => {
-    const matches = cleanContent.match(/\*— Page ([^—]+) —\*/g) || [];
+    const matches = cleanContent.match(/\*— Page (\d+|\w+) —\*/g) || [];
     return matches.map(match => {
-      const pageMatch = match.match(/\*— Page ([^—]+) —\*/);
+      const pageMatch = match.match(/\*— Page (\d+|\w+) —\*/);
       if (pageMatch) {
         const pageStr = pageMatch[1];
-        const pageNum = romanToArabic(pageStr);
-        return pageNum > 0 ? pageNum : null;
+        return isNaN(parseInt(pageStr, 10)) ? -1 : parseInt(pageStr, 10); // Handle Roman numerals
       }
       return null;
-    }).filter((num): num is number => num !== null);
+    }).filter((num): num is number => num !== null && num > 0);
   }, [cleanContent]);
 
   // Prepare FlatList data for Android
+  // Use FlatList for ALL sections on Android to avoid ScrollView-in-Modal touch issues
   useEffect(() => {
     if (Platform.OS === 'android') {
-      console.log('🔍 Android: Preparing FlatList data for section:', sectionId);
+      console.log(`📖 [MarkdownReader] Android: Preparing FlatList data for section: ${sectionId}`);
       const pages = getChapterPages(sectionId);
-      console.log('🔍 Android: Got pages:', pages.length, 'pages');
-      
-      // Calculate start position for each page item in the original content
+      console.log(`📖 [MarkdownReader] Android: Got ${pages.length} page items for ${sectionId}`);
+      console.log(`📖 [MarkdownReader] Android: Page numbers: ${pages.map(p => p.pageNumber).join(', ')}`);
       let currentPosition = 0;
       const pagesWithPositions: ExtendedPageItem[] = pages.map(page => {
         const extendedPage = { ...page, startPosition: currentPosition };
-        // Update position for next item
         if (page.content) {
           currentPosition += page.content.length;
         }
         return extendedPage;
       });
-      
       setFlatListData(pagesWithPositions);
+      console.log(`📖 [MarkdownReader] Android: Set FlatList data with ${pagesWithPositions.length} items`);
     }
   }, [sectionId]);
 
+  // Only use ScrollView on iOS - Android always uses FlatList
+  const renderWithScrollView = Platform.OS !== 'android';
+  
+  // Debug logging
+  useEffect(() => {
+    console.log(`📖 [MarkdownReader] Rendering: platform=${Platform.OS}, useScrollView=${renderWithScrollView}, flatListItems=${flatListData.length}, section=${sectionId}`);
+  }, [renderWithScrollView, flatListData.length, sectionId]);
+
   // Extract page numbers - now only used for the "Go to Page" button validation
   const pageAnchors = React.useMemo(() => {
-    const regex = /\*— Page ([^—]+) —\*/g;
+    const regex = /\*— Page (\d+|\w+) —\*/g;
     const anchors: { pageNumber: number; position: number }[] = [];
     let match;
     
     while ((match = regex.exec(cleanContent)) !== null) {
       const pageStr = match[1];
-      const pageNum = romanToArabic(pageStr);
+      const pageNum = isNaN(parseInt(pageStr, 10)) ? -1 : parseInt(pageStr, 10);
       if (pageNum > 0) {
         anchors.push({
           pageNumber: pageNum,
@@ -506,10 +506,8 @@ const MarkdownReader = ({
         }
       } else if (targetPageNumber && flatListRef.current) {
         // Regular page navigation for Android
-        const numericTarget = romanToArabic(String(targetPageNumber));
-        if (numericTarget > 0) {
-          const targetIndex = findPageIndex(sectionId, numericTarget);
-          if (targetIndex >= 0) {
+        const targetIndex = findPageIndex(sectionId, parseInt(targetPageNumber, 10));
+        if (targetIndex >= 0) {
           console.log(`📍 Android: Scrolling to page ${targetPageNumber} at index ${targetIndex}`);
           try {
             console.log(`📍 Android: Scrolling to page ${targetPageNumber} at index ${targetIndex}`);
@@ -536,7 +534,6 @@ const MarkdownReader = ({
             console.log('🚨 Android: Error in scrollToIndex:', error);
           }
           return;
-        }
         }
       }
     }
@@ -597,78 +594,10 @@ const MarkdownReader = ({
         <View style={styles.headerSpacer} />
       </View>
       
-      {Platform.OS === 'android' ? (
-        // Android: Use FlatList for reliable scrolling
-        flatListData && flatListData.length > 0 ? (
-          <FlatList
-            ref={flatListRef}
-            data={flatListData}
-            style={styles.content}
-            contentContainerStyle={styles.contentContainer}
-            showsVerticalScrollIndicator={false}
-            keyExtractor={(item, index) => `${item.pageNumber}-${index}`}
-            initialNumToRender={20}
-            maxToRenderPerBatch={10}
-            windowSize={10}
-            removeClippedSubviews={false}
-            renderItem={({ item }) => (
-              <View style={styles.pageItem}>
-                {item.isPageMarker ? (
-                  <Text style={styles.pageMarker}>— Page {item.pageNumber} —</Text>
-                ) : (
-                  <CustomTextRenderer 
-                    content={item.content}
-                    searchTerm={searchHighlight?.query}
-                    style={styles.textContent}
-                    onPageRef={(pageNumber, ref) => {
-                      if (ref) {
-                        pageRefs.current[`page-${pageNumber}`] = ref;
-                      }
-                    }}
-                    getScrollViewNode={() => null}
-                    onPageLayout={(pageNumber, y) => {
-                      pageYPositions.current[`page-${pageNumber}`] = y;
-                    }}
-                  />
-                )}
-              </View>
-            )}
-          />
-        ) : (
-          // Fallback to ScrollView if FlatList data not ready
-          <ScrollView 
-            ref={scrollViewRef}
-            style={styles.content} 
-            showsVerticalScrollIndicator={false}
-            contentContainerStyle={styles.contentContainer}
-            onScroll={(e: any) => {
-              const scrollY = e.nativeEvent.contentOffset.y;
-              currentOffsetYRef.current = scrollY;
-              trackCurrentPage(scrollY);
-            }}
-            scrollEventThrottle={16}
-          >
-            <CustomTextRenderer 
-              content={cleanContent}
-              searchTerm={searchHighlight?.query}
-              style={styles.textContent}
-              onPageRef={(pageNumber, ref) => {
-                if (ref) {
-                  pageRefs.current[`page-${pageNumber}`] = ref;
-                }
-              }}
-              getScrollViewNode={() => scrollViewRef.current?.getInnerViewNode?.()}
-              onPageLayout={(pageNumber, y) => {
-                pageYPositions.current[`page-${pageNumber}`] = y;
-              }}
-            />
-          </ScrollView>
-        )
-      ) : (
-        // iOS: Use existing ScrollView approach
-        <ScrollView 
+      {renderWithScrollView ? (
+        <ScrollView
           ref={scrollViewRef}
-          style={styles.content} 
+          style={styles.content}
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.contentContainer}
           onScroll={(e: any) => {
@@ -678,7 +607,7 @@ const MarkdownReader = ({
           }}
           scrollEventThrottle={16}
         >
-          <CustomTextRenderer 
+          <CustomTextRenderer
             content={cleanContent}
             searchTerm={searchHighlight?.query}
             style={styles.textContent}
@@ -693,6 +622,41 @@ const MarkdownReader = ({
             }}
           />
         </ScrollView>
+      ) : (
+        <FlatList
+          ref={flatListRef}
+          data={flatListData}
+          style={styles.content}
+          contentContainerStyle={styles.contentContainer}
+          showsVerticalScrollIndicator={false}
+          keyExtractor={(item, index) => `${item.pageNumber}-${index}`}
+          initialNumToRender={20}
+          maxToRenderPerBatch={10}
+          windowSize={10}
+          removeClippedSubviews={false}
+          renderItem={({ item }) => (
+            <View style={styles.pageItem}>
+              {item.isPageMarker ? (
+                <Text style={styles.pageMarker}>— Page {item.pageNumber} —</Text>
+              ) : (
+                <CustomTextRenderer 
+                  content={item.content}
+                  searchTerm={searchHighlight?.query}
+                  style={styles.textContent}
+                  onPageRef={(pageNumber, ref) => {
+                    if (ref) {
+                      pageRefs.current[`page-${pageNumber}`] = ref;
+                    }
+                  }}
+                  getScrollViewNode={() => null}
+                  onPageLayout={(pageNumber, y) => {
+                    pageYPositions.current[`page-${pageNumber}`] = y;
+                  }}
+                />
+              )}
+            </View>
+          )}
+        />
       )}
     </SafeAreaView>
   );

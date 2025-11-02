@@ -1,7 +1,8 @@
 import React, { useState, useMemo } from 'react';
 import { 
   StyleSheet, 
-  ScrollView, 
+  ScrollView,
+  FlatList,
   View, 
   Text, 
   TouchableOpacity, 
@@ -185,16 +186,96 @@ const SimpleTextReader = ({ content, title, onClose, indentParagraphs = false, s
       </View>
       
       <View style={{ flex: 1, backgroundColor: 'white' }}>
-        <GestureDetector gesture={doubleTapGesture}>
+        {Platform.OS === 'android' ? (
+          <FlatList
+            data={content.split('\n').map((line, index) => ({ line, index }))}
+            keyExtractor={(item) => `line-${item.index}`}
+            style={styles.content}
+            contentContainerStyle={styles.contentContainer}
+            showsVerticalScrollIndicator={false}
+            onLayout={() => console.log(`📝 [SimpleTextReader] Android FlatList rendered for: ${title}, lines: ${content.split('\n').length}`)}
+            renderItem={({ item }) => {
+              const trimmed = item.line.trim();
+              // Detect numbered list like "1. Text..."
+              const numbered = trimmed.match(/^(\d+)\.\s+(.*)$/);
+              // Detect lettered list like "(a) Text..."
+              const lettered = trimmed.match(/^\(([a-zA-Z])\)\s+(.*)$/);
+              // Detect bullet list like "* Text..." or "- Text..."
+              const bulleted = trimmed.match(/^[*-]\s+(.*)$/);
+              const isKnownHeading = (
+                trimmed === 'Opening' ||
+                trimmed === 'Preamble' ||
+                trimmed === 'Readings' ||
+                trimmed === 'Introductions & Newcomers' ||
+                trimmed === 'Announcements' ||
+                trimmed === 'Meeting Format' ||
+                trimmed === 'Discussion / Speaker' ||
+                trimmed === 'Seventh Tradition' ||
+                trimmed === 'Closing' ||
+                trimmed === 'Anonymity Statement'
+              );
+              
+              if (trimmed.length === 0) {
+                return <Text key={`empty-${item.index}`} style={styles.textContent}>{'\u00A0'}</Text>;
+              }
+              
+              // Render numbered list item
+              if (numbered && !isKnownHeading) {
+                const label = `${numbered[1]}.`;
+                const text = numbered[2];
+                const labelWidth = Math.max(22, 16 + numbered[1].length * 8);
+                return (
+                  <View key={`numbered-${item.index}`} style={styles.numberRow}>
+                    <Text style={[styles.numberLabel, { width: labelWidth }]}>{label}</Text>
+                    {renderMarkdownText(text, styles.numberText)}
+                  </View>
+                );
+              }
+              
+              // Render lettered list item
+              if (lettered && !isKnownHeading) {
+                const label = `(${lettered[1].toLowerCase()})`;
+                const text = lettered[2];
+                return (
+                  <View key={`lettered-${item.index}`} style={styles.numberRow}>
+                    <Text style={[styles.numberLabel, { width: 32 }]}>{label}</Text>
+                    {renderMarkdownText(text, styles.numberText)}
+                  </View>
+                );
+              }
+              
+              // Render bulleted list item
+              if (bulleted && !isKnownHeading) {
+                const label = '\u2022';
+                const text = bulleted[1];
+                return (
+                  <View key={`bullet-${item.index}`} style={styles.numberRow}>
+                    <Text style={[styles.numberLabel, { width: 22 }]}>{label}</Text>
+                    {renderMarkdownText(text, styles.numberText)}
+                  </View>
+                );
+              }
+              
+              return (
+                <View key={`text-${item.index}`}>
+                  {renderMarkdownText(trimmed, isKnownHeading ? [styles.headingText, { fontSize }] : [styles.textContent, { fontSize, lineHeight: fontSize * 1.375 }])}
+                </View>
+              );
+            }}
+            ListFooterComponent={source ? (
+              <Text style={[styles.sourceText, { fontSize: fontSize * 0.875 }]}>{source}</Text>
+            ) : null}
+          />
+        ) : (
           <ScrollView 
             style={styles.content} 
             showsVerticalScrollIndicator={false}
             contentContainerStyle={styles.contentContainer}
           >
-        {(() => {
-          let lastWasBlank = true;
-          const lines = content.split('\n');
-          return lines.map((line, idx) => {
+          {(() => {
+            let lastWasBlank = true;
+            const lines = content.split('\n');
+            return lines.map((line, idx) => {
             const trimmed = line.trim();
             // Detect numbered list like "1. Text..."
             const numbered = trimmed.match(/^(\d+)\.\s+(.*)$/);
@@ -266,12 +347,12 @@ const SimpleTextReader = ({ content, title, onClose, indentParagraphs = false, s
               </View>
             );
           });
-        })()}
-        {source ? (
-          <Text style={[styles.sourceText, { fontSize: fontSize * 0.875 }]}>{source}</Text>
-        ) : null}
-        </ScrollView>
-        </GestureDetector>
+          })()}
+          {source ? (
+            <Text style={[styles.sourceText, { fontSize: fontSize * 0.875 }]}>{source}</Text>
+          ) : null}
+          </ScrollView>
+        )}
       </View>
     </SafeAreaView>
   );

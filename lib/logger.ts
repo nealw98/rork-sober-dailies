@@ -26,8 +26,20 @@ class InAppLogger {
     this.initialized = true;
 
     (['log', 'info', 'warn', 'error'] as LogLevel[]).forEach((level) => {
-      // Save original
-      this.original[level] = console[level]?.bind(console) ?? console.log.bind(console);
+      // Save original - safely handle if console[level] doesn't exist
+      try {
+        if (console[level] && typeof console[level] === 'function') {
+          this.original[level] = console[level].bind(console);
+        } else if (console.log && typeof console.log === 'function') {
+          this.original[level] = console.log.bind(console);
+        } else {
+          // Fallback to no-op if no console methods available
+          this.original[level] = () => {};
+        }
+      } catch (e) {
+        // If binding fails, use no-op
+        this.original[level] = () => {};
+      }
 
       // Override
       console[level] = ((...args: any[]) => {
@@ -54,8 +66,12 @@ class InAppLogger {
         } finally {
           // Always forward to original console
           try {
-            this.original[level]?.(...args);
-          } catch {}
+            if (this.original && this.original[level] && typeof this.original[level] === 'function') {
+              this.original[level].apply(this.original, args);
+            }
+          } catch (e) {
+            // Silently fail if console forwarding doesn't work
+          }
         }
       }) as any;
     });
