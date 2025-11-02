@@ -288,8 +288,10 @@ const MarkdownReader = ({
     }
   }, [sectionId]);
 
-  // Only use ScrollView on iOS - Android always uses FlatList
-  const renderWithScrollView = Platform.OS !== 'android';
+  // Use ScrollView on iOS always
+  // On Android: use FlatList only when data is ready (flatListData.length > 0)
+  // This prevents rendering before the useEffect populates the data
+  const renderWithScrollView = Platform.OS === 'ios' || (Platform.OS === 'android' && flatListData.length === 0);
   
   // Debug logging
   useEffect(() => {
