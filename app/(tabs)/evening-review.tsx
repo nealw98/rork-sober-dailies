@@ -17,10 +17,11 @@ import {
 import * as Clipboard from 'expo-clipboard';
 import ScreenContainer from "@/components/ScreenContainer";
 import { LinearGradient } from 'expo-linear-gradient';
-import { CheckCircle, Circle, Calendar, Share as ShareIcon, Save, Folder, RotateCcw, Check } from 'lucide-react-native';
+import { CheckCircle, Circle, Calendar, Share as ShareIcon, Save, Folder, Check, RotateCcw } from 'lucide-react-native';
 import { useEveningReviewStore } from '@/hooks/use-evening-review-store';
 import SavedEveningReviews from '@/components/SavedEveningReviews';
 import AnimatedEveningReviewMessage from '@/components/AnimatedEveningReviewMessage';
+import { ReviewCompleteModal } from '@/components/ReviewCompleteModal';
 import Colors from '@/constants/colors';
 import { adjustFontWeight } from '@/constants/fonts';
 
@@ -432,89 +433,12 @@ export default function EveningReview() {
            inventoryQuestions.some(question => question.value.trim() !== '');
   };
 
-  // Show completion screen if review is completed, unless we're editing
-  if (showConfirmation || (isCompleted && !isEditing)) {
-    return (
-      <ScreenContainer style={styles.container}>
-        <LinearGradient
-          colors={[Colors.light.chatBubbleUser, Colors.light.chatBubbleBot]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={styles.gradient}
-        />
-        
-        <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-          <View style={styles.header}>
-            <Text style={styles.title}>Review Complete</Text>
-            <Text style={styles.subtitle}>{formatDateDisplay(today)}</Text>
-          </View>
+  const handleViewSavedReviews = () => {
+    setShowConfirmation(false);
+    setShowSavedReviews(true);
+  };
 
-          <View style={styles.card}>
-            <Text style={styles.confirmationText}>
-              Thanks for checking in. You&apos;re doing the work — one day at a time.
-            </Text>
-          </View>
-
-          <View style={styles.card}>
-            <View style={styles.cardHeader}>
-              <Calendar color={Colors.light.tint} size={20} />
-              <Text style={styles.cardTitle}>This Week&apos;s Progress</Text>
-            </View>
-            
-            <View style={styles.weeklyProgress}>
-              {weeklyProgress.map((day, index) => (
-                <View key={index} style={styles.dayContainer}>
-                  <Text style={styles.dayName}>{day.dayName}</Text>
-                  <View style={[
-                    styles.dayCircle,
-                    day.completed && !day.isFuture && styles.dayCircleCompleted,
-                    day.isToday && !day.completed && styles.dayCircleToday,
-                    day.isFuture && styles.dayCircleFuture
-                  ]}>
-                    {day.completed && !day.isFuture && (
-                      <CheckCircle color="white" size={16} />
-                    )}
-                  </View>
-                </View>
-              ))}
-            </View>
-            
-            {weeklyStreak > 0 ? (
-              <AnimatedEveningReviewMessage
-                weeklyStreak={weeklyStreak}
-                visible={true}
-              />
-            ) : (
-              <Text style={styles.streakText}>
-                Start your streak today! 🌱
-              </Text>
-            )}
-          </View>
-
-          <Text style={styles.privacyText}>
-            Your responses are saved only on your device. Nothing is uploaded or shared.
-          </Text>
-
-          <View style={styles.buttonContainer}>
-            <TouchableOpacity style={styles.primaryButton} onPress={handleEditReview}>
-              <Text style={styles.primaryButtonText} numberOfLines={1}>Go Back</Text>
-            </TouchableOpacity>
-            <TouchableOpacity 
-              style={styles.primaryButton}
-              onPress={() => setShowSavedReviews(true)}
-            >
-              <Text style={styles.primaryButtonText} numberOfLines={1}>History</Text>
-            </TouchableOpacity>
-          </View>
-        </ScrollView>
-        <SavedEveningReviews 
-          visible={showSavedReviews}
-          onClose={() => setShowSavedReviews(false)}
-        />
-      </ScreenContainer>
-    );
-  }
-
+  // Main form render
   return (
     <ScreenContainer style={styles.container}>
       <LinearGradient
@@ -679,6 +603,12 @@ export default function EveningReview() {
       <SavedEveningReviews 
         visible={showSavedReviews}
         onClose={() => setShowSavedReviews(false)}
+      />
+
+      {/* Completion Modal */}
+      <ReviewCompleteModal
+        visible={showConfirmation || (isCompleted && !isEditing)}
+        onClose={handleEditReview}
       />
     </ScreenContainer>
   );
