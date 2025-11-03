@@ -289,9 +289,8 @@ const MarkdownReader = ({
   }, [sectionId]);
 
   // Use ScrollView on iOS always
-  // On Android: use FlatList only when data is ready (flatListData.length > 0)
-  // This prevents rendering before the useEffect populates the data
-  const renderWithScrollView = Platform.OS === 'ios' || (Platform.OS === 'android' && flatListData.length === 0);
+  // On Android: always use FlatList to avoid Modal touch issues
+  const renderWithScrollView = Platform.OS === 'ios';
   
   // Debug logging
   useEffect(() => {
@@ -585,6 +584,20 @@ const MarkdownReader = ({
       }, 100);
     }
   }, [targetPageNumber, initialScrollPosition, searchHighlight]);
+  // Prepare FlatList data synchronously for Android (like SimpleTextReader does)
+  const flatListDataSync = React.useMemo(() => {
+    if (Platform.OS !== 'android') return [];
+    const pages = getChapterPages(sectionId);
+    let currentPosition = 0;
+    return pages.map(page => {
+      const extendedPage = { ...page, startPosition: currentPosition };
+      if (page.content) {
+        currentPosition += page.content.length;
+      }
+      return extendedPage;
+    });
+  }, [sectionId]);
+
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
@@ -596,7 +609,7 @@ const MarkdownReader = ({
         <View style={styles.headerSpacer} />
       </View>
       
-      {renderWithScrollView ? (
+      {Platform.OS === 'ios' ? (
         <ScrollView
           ref={scrollViewRef}
           style={styles.content}
@@ -627,6 +640,124 @@ const MarkdownReader = ({
       ) : (
         <FlatList
           ref={flatListRef}
+          data={flatListDataSync}
+          style={styles.content}
+          contentContainerStyle={styles.contentContainer}
+          showsVerticalScrollIndicator={false}
+          keyExtractor={(item, index) => `${item.pageNumber}-${index}`}
+          initialNumToRender={20}
+          maxToRenderPerBatch={10}
+          windowSize={10}
+          removeClippedSubviews={false}
+          scrollEnabled={true}
+          nestedScrollEnabled={true}
+          keyboardShouldPersistTaps="handled"
+          renderItem={({ item }) => (
+            <View style={styles.pageItem}>
+              {item.isPageMarker ? (
+                <Text style={styles.pageMarker}>— Page {item.pageNumber} —</Text>
+              ) : (
+                <CustomTextRenderer 
+                  content={item.content}
+                  searchTerm={searchHighlight?.query}
+                  style={styles.textContent}
+                  onPageRef={(pageNumber, ref) => {
+                    if (ref) {
+                      pageRefs.current[`page-${pageNumber}`] = ref;
+                    }
+                  }}
+                  getScrollViewNode={() => null}
+                  onPageLayout={(pageNumber, y) => {
+                    pageYPositions.current[`page-${pageNumber}`] = y;
+                  }}
+                />
+              )}
+            </View>
+          )}
+        />
+      )}
+    </SafeAreaView>
+  );
+};
+
+const MarkdownReaderOLD = ({
+  content,
+  title,
+  onClose,
+  sectionId,
+  searchQuery = '',
+  searchHighlight,
+  initialScrollPosition,
+  targetPageNumber
+}: MarkdownReaderProps) => {
+  const scrollViewRef = useRef<ScrollView>(null);
+  const flatListRef = useRef<FlatList>(null);
+
+  // Clean content by removing any HTML that might have been added
+  const cleanContent = React.useMemo(() => {
+    return content
+      .replace(/<div[^>]*data-page[^>]*>.*?<\/div>/g, '')
+      .replace(/<div[^>]*>/g, '')
+      .replace(/<\/div>/g, '')
+      .trim();
+  }, [content]);
+
+  // Prepare FlatList data for Android
+  // Use FlatList for ALL sections on Android to avoid ScrollView-in-Modal touch issues
+  useEffect(() => {
+    if (Platform.OS === 'android') {
+      console.log(`📖 [MarkdownReader] Android: Preparing FlatList data for section: ${sectionId}`);
+      const pages = getChapterPages(sectionId);
+      console.log(`📖 [MarkdownReader] Android: Got ${pages.length} page items for ${sectionId}`);
+      console.log(`📖 [MarkdownReader] Android: Page numbers: ${pages.map(p => p.pageNumber).join(', ')}`);
+      let currentPosition = 0;
+      const pagesWithPositions: ExtendedPageItem[] = pages.map(page => {
+        const extendedPage = { ...page, startPosition: currentPosition };
+        if (page.content) {
+          currentPosition += page.content.length;
+        }
+        return extendedPage;
+      });
+      setFlatListData(pagesWithPositions);
+      console.log(`📖 [MarkdownReader] Android: Set FlatList data with ${pagesWithPositions.length} items`);
+    }
+  }, [sectionId]);
+
+  // Use ScrollView on iOS always
+  // On Android: always use FlatList to avoid Modal touch issues
+  const renderWithScrollView = Platform.OS === 'ios';
+  
+  // Debug logging
+  useEffect(() => {
+    console.log(`📖 [MarkdownReader] Rendering: platform=${Platform.OS}, useScrollView=${renderWithScrollView}, flatListItems=${flatListData.length}, section=${sectionId}`);
+  }, [renderWithScrollView, flatListData.length, sectionId]);
+
+  return null;
+};
+
+const MarkdownReaderFULL_OLD = ({}: any) => {
+  return (
+    <SafeAreaView style={styles.container}>
+      <View style={styles.header}>
+        <TouchableOpacity onPress={() => {}} style={styles.backButton}>
+          <ChevronLeft size={24} color={Colors.light.tint} />
+          <Text style={styles.backText}>Back</Text>
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>Title</Text>
+        <View style={styles.headerSpacer} />
+      </View>
+      
+      {false ? (
+        <ScrollView
+          style={styles.content}
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={styles.contentContainer}
+        >
+          <Text>Old ScrollView</Text>
+        </ScrollView>
+      ) : (
+        <FlatList
+          ref={flatListRef}
           data={flatListData}
           style={styles.content}
           contentContainerStyle={styles.contentContainer}
@@ -636,6 +767,9 @@ const MarkdownReader = ({
           maxToRenderPerBatch={10}
           windowSize={10}
           removeClippedSubviews={false}
+          scrollEnabled={true}
+          nestedScrollEnabled={true}
+          keyboardShouldPersistTaps="handled"
           renderItem={({ item }) => (
             <View style={styles.pageItem}>
               {item.isPageMarker ? (
