@@ -607,7 +607,7 @@ export default function EveningReview() {
 
       {/* Completion Modal */}
       <ReviewCompleteModal
-        visible={showConfirmation || (isCompleted && !isEditing)}
+        visible={showConfirmation}
         onClose={handleEditReview}
       />
     </ScreenContainer>
