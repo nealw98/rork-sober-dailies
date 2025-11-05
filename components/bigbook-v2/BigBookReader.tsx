@@ -103,6 +103,7 @@ export function BigBookReader({ visible, initialChapterId, scrollToParagraphId, 
   const scrollViewRef = useRef<ScrollView>(null);
   const paragraphRefs = useRef<Map<string, View>>(new Map());
   const paragraphPositions = useRef<Map<string, { y: number; height: number; pageNumber: number }>>(new Map());
+  const activeScrollTargetRef = useRef<string | null>(scrollToParagraphId || null);
   
   // Bookmark management
   const { 
@@ -194,6 +195,8 @@ export function BigBookReader({ visible, initialChapterId, scrollToParagraphId, 
 
   // Scroll to specific paragraph
   const scrollToParagraph = useCallback((paragraphId: string) => {
+    if (!paragraphId) return;
+    activeScrollTargetRef.current = paragraphId;
     const paragraphView = paragraphRefs.current.get(paragraphId);
     
     if (paragraphView && scrollViewRef.current) {
@@ -222,12 +225,26 @@ export function BigBookReader({ visible, initialChapterId, scrollToParagraphId, 
   useEffect(() => {
     if (scrollToParagraphId && currentChapter) {
       console.log('[BigBookReader] Scrolling to paragraph on mount:', scrollToParagraphId);
+      activeScrollTargetRef.current = scrollToParagraphId;
       // Wait for render
       setTimeout(() => {
         scrollToParagraph(scrollToParagraphId);
       }, 200);
     }
   }, [scrollToParagraphId, currentChapter, scrollToParagraph]);
+
+  // When font size changes, keep the active highlighted paragraph in view
+  useEffect(() => {
+    if (!visible) return;
+    const targetParagraphId = activeScrollTargetRef.current;
+    if (!targetParagraphId) return;
+
+    const timeout = setTimeout(() => {
+      scrollToParagraph(targetParagraphId);
+    }, 250);
+
+    return () => clearTimeout(timeout);
+  }, [fontSize, visible, scrollToParagraph]);
 
   // Track current page number based on scroll position
   const handleScroll = useCallback((event: any) => {

@@ -54,10 +54,22 @@ export function configurePurchases(): void {
     console.log('[RevenueCat] API key missing for platform', Platform.OS);
     return;
   }
-  console.log('[RevenueCat] Configuring with API key for', Platform.OS);
-  Purchases.setLogLevel(Purchases.LOG_LEVEL.DEBUG); // Use DEBUG for more detailed logs
-  Purchases.configure({ apiKey });
-  console.log('[RevenueCat] Configuration complete.');
+  try {
+    console.log('[RevenueCat] Configuring with API key for', Platform.OS);
+    if (typeof Purchases.setLogLevel === 'function' && Purchases.LOG_LEVEL?.DEBUG) {
+      Purchases.setLogLevel(Purchases.LOG_LEVEL.DEBUG);
+    } else {
+      console.log('[RevenueCat] setLogLevel not available; continuing without adjusting log level.');
+    }
+    if (typeof Purchases.configure === 'function') {
+      Purchases.configure({ apiKey });
+      console.log('[RevenueCat] Configuration complete.');
+    } else {
+      console.log('[RevenueCat] Purchases.configure unavailable; skipping configuration.');
+    }
+  } catch (error) {
+    console.log('[RevenueCat] Failed to configure purchases module:', error);
+  }
 }
 
 export async function getCustomerInfoSafe(): Promise<PurchasesNamespace.CustomerInfo | null> {

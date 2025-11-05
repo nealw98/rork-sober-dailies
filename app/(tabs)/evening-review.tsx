@@ -17,7 +17,8 @@ import {
 import * as Clipboard from 'expo-clipboard';
 import ScreenContainer from "@/components/ScreenContainer";
 import { LinearGradient } from 'expo-linear-gradient';
-import { CheckCircle, Circle, Calendar, Share as ShareIcon, Save, Folder, Check, RotateCcw } from 'lucide-react-native';
+import { CheckCircle, Circle, Calendar, Check } from 'lucide-react-native';
+import Feather from '@expo/vector-icons/Feather';
 import { useEveningReviewStore } from '@/hooks/use-evening-review-store';
 import SavedEveningReviews from '@/components/SavedEveningReviews';
 import AnimatedEveningReviewMessage from '@/components/AnimatedEveningReviewMessage';
@@ -471,7 +472,7 @@ export default function EveningReview() {
               activeOpacity={0.6}
               style={styles.actionButton}
             >
-              <Save color="#007AFF" size={18} />
+              <Feather name="save" size={18} color={Colors.light.tint} style={styles.actionButtonIcon} />
               <Text style={styles.actionButtonText}>Save</Text>
             </TouchableOpacity>
             
@@ -484,7 +485,7 @@ export default function EveningReview() {
               activeOpacity={0.6}
               style={styles.actionButton}
             >
-              <ShareIcon color="#007AFF" size={18} />
+              <Feather name="share-2" size={18} color={Colors.light.tint} style={styles.actionButtonIcon} />
               <Text style={styles.actionButtonText}>Share</Text>
             </TouchableOpacity>
             
@@ -497,7 +498,7 @@ export default function EveningReview() {
               activeOpacity={0.6}
               style={styles.actionButton}
             >
-              <Folder color="#007AFF" size={18} />
+              <Feather name="folder" size={18} color={Colors.light.tint} style={styles.actionButtonIcon} />
               <Text style={styles.actionButtonText}>History</Text>
             </TouchableOpacity>
             
@@ -510,7 +511,7 @@ export default function EveningReview() {
               activeOpacity={0.6}
               style={styles.actionButton}
             >
-              <RotateCcw color="#007AFF" size={18} />
+              <Feather name="rotate-ccw" size={18} color={Colors.light.tint} style={styles.actionButtonIcon} />
               <Text style={styles.actionButtonText}>Reset</Text>
             </TouchableOpacity>
           </View>
@@ -611,6 +612,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
+  },
+  actionButtonIcon: {
+    marginRight: 2,
   },
   actionButtonText: {
     fontSize: 14,

@@ -7,6 +7,11 @@ import { useRouter } from 'expo-router';
 import SobrietyCounter from '@/components/SobrietyCounter';
 import { formatDateDisplay } from '@/utils/dateUtils';
 import Colors from '@/constants/colors';
+import Entypo from '@expo/vector-icons/Entypo';
+import FontAwesome6 from '@expo/vector-icons/FontAwesome6';
+import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
+import Ionicons from '@expo/vector-icons/Ionicons';
+import FontAwesome from '@expo/vector-icons/FontAwesome';
 
 
 const HomeScreen = () => {
@@ -60,22 +65,34 @@ const HomeScreen = () => {
         <Text style={styles.sectionTitle}>Morning Routine</Text>
         <Text style={styles.sectionSubtitle}>Start your day with intention and spiritual focus.</Text>
         
-        <TouchableOpacity style={styles.card} onPress={() => router.push('/(tabs)/prayers')}>
-          <Text style={styles.cardTitle}>Morning Prayer</Text>
+        <TouchableOpacity style={styles.card} onPress={() => router.push('/(tabs)/prayers?prayer=morning')}>
+          <View style={styles.cardHeader}>
+            <View style={styles.cardIconWrapper}>
+              <FontAwesome6 name="hands-praying" size={20} color={Colors.light.tint} solid={true} />
+            </View>
+            <Text style={styles.cardTitle}>Morning Prayer</Text>
+          </View>
           <Text style={styles.cardDescription}>Invite your higher power to help you through the day.</Text>
-          <Text style={styles.cardButton}>Go to Morning Prayer</Text>
         </TouchableOpacity>
 
         <TouchableOpacity style={styles.card} onPress={() => router.push('/(tabs)/gratitude')}>
-          <Text style={styles.cardTitle}>Daily Gratitude</Text>
+          <View style={styles.cardHeader}>
+            <View style={styles.cardIconWrapper}>
+              <FontAwesome6 name="face-smile" size={20} color={Colors.light.tint} solid={true} />
+            </View>
+            <Text style={styles.cardTitle}>Daily Gratitude</Text>
+          </View>
           <Text style={styles.cardDescription}>Start your day with gratitude and stay in the solution.</Text>
-          <Text style={styles.cardButton}>Go to Gratitude</Text>
         </TouchableOpacity>
 
         <TouchableOpacity style={styles.card} onPress={() => router.push('/(tabs)/literature')}>
-          <Text style={styles.cardTitle}>Literature</Text>
+          <View style={styles.cardHeader}>
+            <View style={styles.cardIconWrapper}>
+              <FontAwesome name="book" size={20} color={Colors.light.tint} />
+            </View>
+            <Text style={styles.cardTitle}>Literature</Text>
+          </View>
           <Text style={styles.cardDescription}>Read something out of the literature every day.</Text>
-          <Text style={styles.cardButton}>Go to Literature</Text>
         </TouchableOpacity>
 
       </View>
@@ -86,23 +103,35 @@ const HomeScreen = () => {
         <Text style={styles.sectionSubtitle}>Stay connected and mindful during your daily activities.</Text>
         
         <TouchableOpacity style={styles.card} onPress={() => router.push('/(tabs)/chat')}>
-          <Text style={styles.cardTitle}>AI Sponsor</Text>
+          <View style={styles.cardHeader}>
+            <View style={styles.cardIconWrapper}>
+              <MaterialCommunityIcons name="robot-happy" size={22} color={Colors.light.tint} />
+            </View>
+            <Text style={styles.cardTitle}>AI Sponsor</Text>
+          </View>
           <Text style={styles.cardDescription}>Talk with an AI sponsor when you need guidance.</Text>
-          <Text style={styles.cardButton}>Go to AI Sponsor</Text>
         </TouchableOpacity>
 
 
 
         <TouchableOpacity style={styles.card} onPress={() => router.push('/(tabs)/prayers')}>
-          <Text style={styles.cardTitle}>Prayers</Text>
+          <View style={styles.cardHeader}>
+            <View style={styles.cardIconWrapper}>
+              <FontAwesome6 name="hands-praying" size={20} color={Colors.light.tint} solid={true} />
+            </View>
+            <Text style={styles.cardTitle}>Prayers</Text>
+          </View>
           <Text style={styles.cardDescription}>Connect with your Higher Power throughout the day.</Text>
-          <Text style={styles.cardButton}>Go to Prayer</Text>
         </TouchableOpacity>
 
         <TouchableOpacity style={styles.card} onPress={() => router.push('/inventory')}>
-          <Text style={styles.cardTitle}>Spot Check Inventory</Text>
+          <View style={styles.cardHeader}>
+            <View style={styles.cardIconWrapper}>
+              <Ionicons name="checkbox" size={22} color={Colors.light.tint} />
+            </View>
+            <Text style={styles.cardTitle}>Spot Check Inventory</Text>
+          </View>
           <Text style={styles.cardDescription}>When disturbed ask yourself: Are you on the beam or off the beam?</Text>
-          <Text style={styles.cardButton}>Go to Spot Check Inventory</Text>
         </TouchableOpacity>
       </View>
 
@@ -112,27 +141,37 @@ const HomeScreen = () => {
         <Text style={styles.sectionSubtitle}>Reflect and close your day with peace.</Text>
         
         <TouchableOpacity style={styles.card} onPress={() => router.push('/(tabs)/evening-review')}>
-          <Text style={styles.cardTitle}>Nightly Review</Text>
+          <View style={styles.cardHeader}>
+            <View style={styles.cardIconWrapper}>
+              <Ionicons name="moon" size={20} color={Colors.light.tint} />
+            </View>
+            <Text style={styles.cardTitle}>Nightly Review</Text>
+          </View>
           <Text style={styles.cardDescription}>Reflect on your day and practice Step 10.</Text>
-          <Text style={styles.cardButton}>Go to Nightly Review</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.card} onPress={() => router.push('/(tabs)/prayers')}>
-          <Text style={styles.cardTitle}>Evening Prayer</Text>
+        <TouchableOpacity style={styles.card} onPress={() => router.push('/(tabs)/prayers?prayer=evening')}>
+          <View style={styles.cardHeader}>
+            <View style={styles.cardIconWrapper}>
+              <FontAwesome6 name="hands-praying" size={20} color={Colors.light.tint} solid={true} />
+            </View>
+            <Text style={styles.cardTitle}>Evening Prayer</Text>
+          </View>
           <Text style={styles.cardDescription}>End your day with gratitude and humility.</Text>
-          <Text style={styles.cardButton}>Go to Evening Prayer</Text>
         </TouchableOpacity>
         </View>
 
         {/* Support the Developer Section */}
         <View style={styles.sectionContainerSupport}>
-        <Text style={styles.sectionTitle}>Support the Developer</Text>
-        <Text style={styles.sectionSubtitle}>Learn about the app and show your support</Text>
-        
+        <Text style={styles.sectionTitle}>Enjoying Sober Dailies?</Text>
         <TouchableOpacity style={styles.card} onPress={() => router.push('/about-support')}>
-          <Text style={styles.cardTitle}>Support the Developer</Text>
-          <Text style={styles.cardDescription}>Learn more about the app and contribute to its development.</Text>
-          <Text style={styles.cardButton}>Go to Support the Developer</Text>
+          <View style={styles.cardHeader}>
+            <View style={styles.cardIconWrapper}>
+              <FontAwesome name="heart" size={20} color={Colors.light.tint} />
+            </View>
+            <Text style={styles.cardTitle}>Support the Developer</Text>
+          </View>
+          <Text style={styles.cardDescription}>Make a difference with a one-time contribution</Text>
         </TouchableOpacity>
         </View>
       </ScrollView>
@@ -285,21 +324,30 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.25,
     shadowRadius: 12,
   },
+  cardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  cardIconWrapper: {
+    width: 36,
+    height: 36,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+    backgroundColor: '#F0F4FF',
+  },
   cardTitle: {
     fontSize: 18,
     fontWeight: 'bold',
     color: Colors.light.text,
-    marginBottom: 8,
+    marginBottom: 0,
   },
   cardDescription: {
     fontSize: 14,
     color: Colors.light.muted,
     marginBottom: 12,
-  },
-  cardButton: {
-    fontSize: 14,
-    color: Colors.light.tint,
-    fontWeight: 'bold',
   },
   sectionContainerTransparent: {
     paddingHorizontal: 16,

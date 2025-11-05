@@ -14,7 +14,8 @@ import {
 } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import * as Clipboard from 'expo-clipboard';
-import { Heart, Share as ShareIcon, Save, Folder, CheckCircle, Calendar, Trash2, RotateCcw } from 'lucide-react-native';
+import { Trash2 } from 'lucide-react-native';
+import Feather from '@expo/vector-icons/Feather';
 import AnimatedWeeklyProgressMessage from '@/components/AnimatedWeeklyProgressMessage';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useGratitudeStore } from '@/hooks/use-gratitude-store';
@@ -185,6 +186,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
+  },
+  actionButtonIcon: {
+    marginRight: 2,
   },
   actionButtonText: {
     fontSize: 14,
@@ -888,7 +892,7 @@ export default function GratitudeListScreen() {
               activeOpacity={0.6}
               style={styles.actionButton}
             >
-              <Save color="#007AFF" size={18} />
+              <Feather name="save" size={18} color={Colors.light.tint} style={styles.actionButtonIcon} />
               <Text style={styles.actionButtonText}>Save</Text>
             </TouchableOpacity>
             
@@ -901,7 +905,7 @@ export default function GratitudeListScreen() {
               activeOpacity={0.6}
               style={styles.actionButton}
             >
-              <ShareIcon color="#007AFF" size={18} />
+              <Feather name="share-2" size={18} color={Colors.light.tint} style={styles.actionButtonIcon} />
               <Text style={styles.actionButtonText}>Share</Text>
             </TouchableOpacity>
             
@@ -914,7 +918,7 @@ export default function GratitudeListScreen() {
               activeOpacity={0.6}
               style={styles.actionButton}
             >
-              <Folder color="#007AFF" size={18} />
+              <Feather name="folder" size={18} color={Colors.light.tint} style={styles.actionButtonIcon} />
               <Text style={styles.actionButtonText}>History</Text>
             </TouchableOpacity>
             
@@ -927,7 +931,7 @@ export default function GratitudeListScreen() {
               activeOpacity={0.6}
               style={styles.actionButton}
             >
-              <RotateCcw color="#007AFF" size={18} />
+              <Feather name="rotate-ccw" size={18} color={Colors.light.tint} style={styles.actionButtonIcon} />
               <Text style={styles.actionButtonText}>Reset</Text>
             </TouchableOpacity>
           </View>

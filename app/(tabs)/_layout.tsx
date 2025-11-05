@@ -1,8 +1,12 @@
 import { Tabs, router, Stack, usePathname } from "expo-router";
-import { Home, MessageCircle, Smile, Moon, ChevronLeft, BookOpen, CheckSquare } from "lucide-react-native";
 import React from "react";
 import { Text, View, StyleSheet, Platform, TouchableOpacity, StatusBar } from "react-native";
 import SunIcon from "@/components/SunIcon";
+import Entypo from '@expo/vector-icons/Entypo';
+import FontAwesome6 from '@expo/vector-icons/FontAwesome6';
+import Ionicons from '@expo/vector-icons/Ionicons';
+import FontAwesome from '@expo/vector-icons/FontAwesome';
+import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 
 import Colors from "@/constants/colors";
 import { adjustFontWeight, getScreenPadding } from "@/constants/fonts";
@@ -28,11 +32,35 @@ const styles = StyleSheet.create({
   tabIcon: {
     ...(Platform.OS === 'android' ? { marginTop: 2 } : {})
   },
+  iconWrapper: {
+    width: 42,
+    height: 32,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  iconWrapperActive: {
+    backgroundColor: '#FFFFFF',
+  },
+  iconWrapperInactive: {
+    backgroundColor: '#F0F4FF',
+  },
+  iconOutlined: {
+    opacity: 0.65,
+  },
+  iconSolid: {
+    opacity: 1,
+  },
   backButton: {
     flexDirection: 'row',
     alignItems: 'center',
     padding: Platform.OS === 'android' ? 4 : 8,
     marginLeft: Platform.OS === 'android' ? 0 : 4
+  },
+  backEmoji: {
+    fontSize: 20,
+    marginRight: 6,
+    color: Colors.light.tint,
   },
   backText: {
     fontSize: 16,
@@ -81,9 +109,30 @@ const BackButton = () => {
       onPress={handleBackPress}
       testID="back-button"
     >
-      <ChevronLeft color={Colors.light.tint} size={20} />
+      <Text style={styles.backEmoji}>←</Text>
       <Text style={styles.backText}>Back</Text>
     </TouchableOpacity>
+  );
+};
+
+const createTabIcon = (
+  IconComponent: any,
+  iconName: string,
+  iconSize = 20,
+  extraProps: Record<string, any> = {}
+) => ({ focused }: { color: string; size: number; focused: boolean }) => {
+  const wrapperStyle = focused ? styles.iconWrapperActive : styles.iconWrapperInactive;
+  const iconColor = Colors.light.tint;
+  return (
+    <View style={[styles.iconWrapper, wrapperStyle]}>
+      <IconComponent
+        name={iconName}
+        size={iconSize}
+        color={iconColor}
+        {...extraProps}
+        style={focused ? styles.iconSolid : styles.iconOutlined}
+      />
+    </View>
   );
 };
 
@@ -92,17 +141,20 @@ export default function TabLayout() {
     <Tabs
       screenOptions={{
         tabBarActiveTintColor: Colors.light.tint,
+        tabBarInactiveTintColor: '#E2E8F0',
         headerShown: true,
         headerTitleAlign: 'center',
         headerLeft: ({ canGoBack }) => canGoBack ? <BackButton /> : null,
         tabBarHideOnKeyboard: Platform.OS === 'android' ? true : undefined,
+        tabBarShowLabel: false,
         tabBarStyle: {
-          backgroundColor: "#f8f9fa",
-          height: Platform.OS === 'android' ? 75 : 88,
-          paddingBottom: Platform.OS === 'android' ? 8 : 0,
-          paddingTop: Platform.OS === 'android' ? 2 : 0,
-          paddingHorizontal: Platform.OS === 'android' ? 4 : 0,
+          backgroundColor: "#FFFFFF",
+          height: Platform.OS === 'android' ? 64 : 72,
+          paddingBottom: Platform.OS === 'android' ? 10 : 16,
+          paddingTop: Platform.OS === 'android' ? 6 : 10,
+          paddingHorizontal: Platform.OS === 'android' ? 4 : 12,
           display: 'flex', // Always show tab bar
+          borderTopColor: '#E4E7EC',
         },
         headerStyle: {
           backgroundColor: "#f8f9fa",
@@ -110,11 +162,6 @@ export default function TabLayout() {
         headerStatusBarHeight: Platform.OS === 'android' ? StatusBar.currentHeight : undefined,
         headerTitleStyle: {
           fontWeight: adjustFontWeight("600", true),
-        },
-        tabBarLabelStyle: {
-          fontSize: 10,
-          fontWeight: '500',
-          marginTop: Platform.OS === 'android' ? 2 : 0,
         },
         tabBarIconStyle: {
           marginTop: Platform.OS === 'android' ? 4 : 0,
@@ -134,7 +181,7 @@ export default function TabLayout() {
               </Text>
             </View>
           ),
-          tabBarIcon: ({ color }) => <Home color={color} size={22} style={styles.tabIcon} />,
+          tabBarIcon: createTabIcon(Entypo, 'home', 20),
         }}
       />
 
@@ -144,7 +191,7 @@ export default function TabLayout() {
           title: "Gratitude",
           headerTitle: '',
           headerLeft: () => <BackButton />,
-          tabBarIcon: ({ color }) => <Smile color={color} size={22} style={styles.tabIcon} />,
+          tabBarIcon: createTabIcon(FontAwesome6, 'face-smile', 18, { solid: true }),
         }}
       />
       <Tabs.Screen
@@ -155,7 +202,7 @@ export default function TabLayout() {
           headerLeft: () => <BackButton />,
           // Android-only: hide tab bar when keyboard is open on the chat screen
           tabBarHideOnKeyboard: Platform.OS === 'android' ? true : undefined,
-          tabBarIcon: ({ color }) => <MessageCircle color={color} size={22} style={styles.tabIcon} />,
+          tabBarIcon: createTabIcon(MaterialCommunityIcons, 'robot-happy', 22),
         }}
       />
       <Tabs.Screen
@@ -164,7 +211,16 @@ export default function TabLayout() {
           title: "Spot Check",
           headerTitle: '',
           headerLeft: () => <BackButton />,
-          tabBarIcon: ({ color }) => <CheckSquare color={color} size={22} style={styles.tabIcon} />,
+          tabBarIcon: createTabIcon(Ionicons, 'checkbox', 22),
+        }}
+      />
+      <Tabs.Screen
+        name="prayers"
+        options={{
+          title: "Prayers",
+          headerTitle: '',
+          headerLeft: () => <BackButton />,
+          tabBarIcon: createTabIcon(FontAwesome6, 'hands-praying', 20),
         }}
       />
       <Tabs.Screen
@@ -173,16 +229,7 @@ export default function TabLayout() {
           title: "Literature",
           headerTitle: '',
           headerLeft: () => <BackButton />,
-          tabBarIcon: ({ color }) => <BookOpen color={color} size={22} style={styles.tabIcon} />,
-        }}
-      />
-      <Tabs.Screen
-        name="prayers"
-        options={{
-          href: null, // Hide from tab bar
-          headerShown: true,
-          headerTitle: '',
-          headerLeft: () => <BackButton />,
+          tabBarIcon: createTabIcon(FontAwesome, 'book', 20),
         }}
       />
       <Tabs.Screen
@@ -191,7 +238,7 @@ export default function TabLayout() {
           title: "Review",
           headerTitle: '',
           headerLeft: () => <BackButton />,
-          tabBarIcon: ({ color }) => <Moon color={color} size={22} style={styles.tabIcon} />,
+          tabBarIcon: createTabIcon(Ionicons, 'moon', 20),
         }}
       />
 
