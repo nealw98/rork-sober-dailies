@@ -23,6 +23,7 @@ import { useEveningReviewStore } from '@/hooks/use-evening-review-store';
 import SavedEveningReviews from '@/components/SavedEveningReviews';
 import AnimatedEveningReviewMessage from '@/components/AnimatedEveningReviewMessage';
 import { ReviewCompleteModal } from '@/components/ReviewCompleteModal';
+import { maybeAskForReview } from '@/lib/reviewPrompt';
 import Colors from '@/constants/colors';
 import { adjustFontWeight } from '@/constants/fonts';
 
@@ -231,6 +232,10 @@ export default function EveningReview() {
     // Force show the form instead of completion screen
     setShowConfirmation(false);
     setIsEditing(true);
+
+    maybeAskForReview('eveningReview').catch((error) =>
+      console.warn('[reviewPrompt] Evening review trigger failed', error),
+    );
   };
 
   const handleShare = async () => {

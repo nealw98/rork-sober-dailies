@@ -10,6 +10,7 @@ import Colors from "@/constants/colors";
 import { getReflectionForDate } from "@/constants/reflections";
 import { Reflection } from "@/types";
 import { adjustFontWeight } from "@/constants/fonts";
+import { recordDailyReflectionDay } from "@/lib/reviewPrompt";
 
 interface DailyReflectionProps {
   fontSize?: number;
@@ -128,6 +129,12 @@ export default function DailyReflection({ fontSize = 16 }: DailyReflectionProps)
 
   useEffect(() => {
     updateReflection(selectedDate);
+  }, [selectedDate]);
+
+  useEffect(() => {
+    recordDailyReflectionDay(selectedDate).catch((error) => {
+      console.warn('[reviewPrompt] Failed to record daily reflection day', error);
+    });
   }, [selectedDate]);
 
   useEffect(() => {
