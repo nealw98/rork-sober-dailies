@@ -15,6 +15,7 @@ import {
   GENTLE_GRACE_SYSTEM_PROMPT, 
   GENTLE_GRACE_INITIAL_MESSAGE 
 } from "@/constants/gentle-grace";
+import { addAIResponses, maybeAskForReview } from "@/lib/reviewPrompt";
 
 
 
@@ -335,6 +336,12 @@ export const [ChatStoreProvider, useChatStore] = createContextHook(() => {
         const finalMessages = [...currentMessages, crisisResponse];
         setMessages(finalMessages);
         setIsLoading(false);
+
+        void addAIResponses(1)
+          .then(() => maybeAskForReview('aiSponsor'))
+          .catch((error) =>
+            console.warn('[reviewPrompt] AI sponsor trigger failed', error),
+          );
       }, waitTime);
       
       return;
@@ -356,6 +363,12 @@ export const [ChatStoreProvider, useChatStore] = createContextHook(() => {
       };
       
       setMessages([...updatedMessages, botResponse]);
+
+      void addAIResponses(1)
+        .then(() => maybeAskForReview('aiSponsor'))
+        .catch((error) =>
+          console.warn('[reviewPrompt] AI sponsor trigger failed', error),
+        );
     } catch (error) {
       console.error("Error sending message:", error);
       
@@ -382,6 +395,12 @@ export const [ChatStoreProvider, useChatStore] = createContextHook(() => {
       };
       
       setMessages([...updatedMessages, errorResponse]);
+
+      void addAIResponses(1)
+        .then(() => maybeAskForReview('aiSponsor'))
+        .catch((error) =>
+          console.warn('[reviewPrompt] AI sponsor trigger failed', error),
+        );
     } finally {
       setIsLoading(false);
     }

@@ -18,6 +18,7 @@ import OTASnackbar from "@/components/OTASnackbar";
 import { configurePurchases } from "@/lib/purchases";
 import { Logger } from "@/lib/logger";
 import { initUsageLogger } from "@/lib/usageLogger";
+import { recordAppOpen } from "@/lib/reviewPrompt";
 import { useExpoRouterTracking } from "@/hooks/useExpoRouterTracking";
 import { SessionProvider } from "@/hooks/useSessionContext";
 import { useSobrietyBirthday } from "@/hooks/useSobrietyBirthday";
@@ -112,6 +113,10 @@ function RootLayoutNav() {
 
     // Initialize usage logger
     initUsageLogger();
+
+    recordAppOpen().catch((error) => {
+      console.warn('[reviewPrompt] Failed to record app open from root layout', error);
+    });
 
     
     // Log OTA diagnostics with safe fallback

@@ -23,6 +23,7 @@ import { adjustFontWeight } from '@/constants/fonts';
 import ScreenContainer from '@/components/ScreenContainer';
 import SavedGratitudeEntries from '@/components/SavedGratitudeEntries';
 import { GratitudeCompleteModal } from '@/components/GratitudeCompleteModal';
+import { maybeAskForReview } from '@/lib/reviewPrompt';
 
 // 25 inspirational gratitude quotes for daily rotation
 const GRATITUDE_QUOTES = [
@@ -740,6 +741,10 @@ export default function GratitudeListScreen() {
     // Uncomplete today to show the form
     uncompleteToday();
     setShowConfirmation(false);
+
+    maybeAskForReview('gratitude').catch((error) =>
+      console.warn('[reviewPrompt] Gratitude trigger failed', error),
+    );
   };
 
 
