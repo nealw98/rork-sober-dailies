@@ -186,11 +186,9 @@ const HomeScreen = () => {
         </TouchableOpacity>
         </View>
 
-        {__DEV__ && (
-          <TouchableOpacity style={styles.debugButton} onPress={handleTestReviewPrompt}>
-            <Text style={styles.debugButtonText}>Test Review Prompt</Text>
-          </TouchableOpacity>
-        )}
+<TouchableOpacity style={styles.debugButton} onPress={handleTestReviewPrompt}>
+  <Text style={styles.debugButtonText}>Test Review Prompt</Text>
+</TouchableOpacity>
       </ScrollView>
       </SafeAreaView>
     </LinearGradient>

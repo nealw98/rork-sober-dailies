@@ -12,11 +12,11 @@ const STORAGE_KEYS = {
   LITERATURE_MINUTES: 'reviewPrompt:literatureMinutes',
 } as const;
 
-const MIN_USAGE_DAYS = 1;
+const MIN_USAGE_DAYS = 7;
 const MIN_DAILY_REFLECTION_DAYS = 5;
 const MIN_LITERATURE_MINUTES = 10;
 const MIN_AI_RESPONSES = 6;
-const COOLDOWN_MS = 0; // Disabled for testing
+const COOLDOWN_MS = 90 * 24 * 60 * 60 * 1000; // 90 days
 
 const STORAGE_SEPARATOR = ',';
 
