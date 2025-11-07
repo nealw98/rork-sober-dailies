@@ -19,23 +19,88 @@ import * as Clipboard from 'expo-clipboard';
 import { LinearGradient } from 'expo-linear-gradient';
 import Colors from "@/constants/colors";
 import { useChatStore } from "@/hooks/use-chat-store";
-import { featureUse } from "@/lib/usageLogger";
+import { featureUse, getAnonymousId } from "@/lib/usageLogger";
+import { supabase } from "@/lib/supabase";
 import { ChatMessage, SponsorType } from "@/types";
 import { adjustFontWeight } from "@/constants/fonts";
 import { CustomTextRenderer } from "./CustomTextRenderer";
 import { ChatMarkdownRenderer } from "./ChatMarkdownRenderer";
+
+const DAILY_SPONSOR_LIMIT = 50;
+const MONTHLY_SPONSOR_LIMIT = 200;
+
+type LimitCheckResult =
+  | { allowed: true }
+  | { allowed: false; reason: "daily" | "monthly"; count: number }
+  | { allowed: false; error: string };
+
+const checkSponsorMessageLimits = async (): Promise<LimitCheckResult> => {
+  try {
+    const anonymousId = await getAnonymousId();
+
+    const now = new Date();
+    const todayUtc = now.toISOString().split("T")[0];
+    const startOfMonthUtc = new Date(
+      Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1, 0, 0, 0)
+    ).toISOString();
+
+    const [dailyResult, monthlyResult] = await Promise.all([
+      supabase
+        .from("usage_events")
+        .select("id", { head: true, count: "exact" })
+        .eq("anonymous_id", anonymousId)
+        .eq("event", "feature_use")
+        .ilike("feature", "SponsorMessage\\_%")
+        .eq("day_utc", todayUtc),
+      supabase
+        .from("usage_events")
+        .select("id", { head: true, count: "exact" })
+        .eq("anonymous_id", anonymousId)
+        .eq("event", "feature_use")
+        .ilike("feature", "SponsorMessage\\_%")
+        .gte("ts", startOfMonthUtc),
+    ]);
+
+    if (dailyResult.error) {
+      throw dailyResult.error;
+    }
+    if (monthlyResult.error) {
+      throw monthlyResult.error;
+    }
+
+    const dailyCount = dailyResult.count ?? 0;
+    const monthlyCount = monthlyResult.count ?? 0;
+
+    if (dailyCount >= DAILY_SPONSOR_LIMIT) {
+      return { allowed: false, reason: "daily", count: dailyCount };
+    }
+
+    if (monthlyCount >= MONTHLY_SPONSOR_LIMIT) {
+      return { allowed: false, reason: "monthly", count: monthlyCount };
+    }
+
+    return { allowed: true };
+  } catch (error) {
+    console.error("[Chat] Failed to check AI Sponsor usage limits:", error);
+    return {
+      allowed: false,
+      error:
+        "We couldn't verify your AI Sponsor usage limits. Please try again shortly.",
+    };
+  }
+};
 
 interface ChatInterfaceProps {
   sponsorType: SponsorType;
   onSponsorChange?: (type: SponsorType) => void;
 }
 
-const ChatBubble = ({ 
-  message, 
+const ChatBubble = ({
+  message,
   bubbleColor,
   bubbleShadowColor,
   sponsorType,
-}: { 
+}: {
   message: ChatMessage;
   bubbleColor?: string;
   bubbleShadowColor?: string;
@@ -50,6 +115,12 @@ const ChatBubble = ({
     }
     return styles.supportiveBubble;
   };
+
+  const bubbleStyle = [
+    styles.bubble,
+    isFresh ? styles.freshBubbleBase : getBotBubbleStyle(),
+    bubbleShadowColor ? { shadowColor: bubbleShadowColor } : null,
+  ];
 
   const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -97,10 +168,7 @@ const ChatBubble = ({
       testID={`chat-bubble-${message.id}`}
     >
       <TouchableOpacity
-        style={[
-          styles.bubble,
-          isFresh ? styles.freshBubbleBase : getBotBubbleStyle(),
-        ]}
+        style={bubbleStyle}
         onPressIn={handlePressIn}
         onPressOut={handlePressOut}
         activeOpacity={0.7}
@@ -121,17 +189,86 @@ const ChatBubble = ({
   );
 };
 
+const SponsorToggle = ({
+  sponsorType,
+  onChange,
+}: {
+  sponsorType: SponsorType;
+  onChange: (type: SponsorType) => void;
+}) => {
+  return (
+    <View style={styles.sponsorToggleContainer}>
+      <TouchableOpacity
+        style={[
+          styles.sponsorButton,
+          sponsorType === "supportive" && styles.sponsorButtonActive,
+        ]}
+        onPress={() => onChange("supportive")}
+        testID="supportive-sponsor-button"
+      >
+        <Text
+          style={[
+            styles.sponsorButtonText,
+            sponsorType === "supportive" && styles.sponsorButtonTextActive,
+          ]}
+        >
+          Steady Eddie
+        </Text>
+      </TouchableOpacity>
+
+      <TouchableOpacity
+        style={[
+          styles.sponsorButton,
+          sponsorType === "salty" && styles.sponsorButtonActive,
+        ]}
+        onPress={() => onChange("salty")}
+        testID="salty-sponsor-button"
+      >
+        <Text
+          style={[
+            styles.sponsorButtonText,
+            sponsorType === "salty" && styles.sponsorButtonTextActive,
+          ]}
+        >
+          Salty Sam
+        </Text>
+      </TouchableOpacity>
+
+      <TouchableOpacity
+        style={[
+          styles.sponsorButton,
+          sponsorType === "grace" && styles.sponsorButtonActive,
+        ]}
+        onPress={() => onChange("grace")}
+        testID="grace-sponsor-button"
+      >
+        <Text
+          style={[
+            styles.sponsorButtonText,
+            sponsorType === "grace" && styles.sponsorButtonTextActive,
+          ]}
+          numberOfLines={1}
+          ellipsizeMode="tail"
+        >
+          Gentle Grace
+        </Text>
+      </TouchableOpacity>
+    </View>
+  );
+};
+
 export default function ChatInterface({ 
   sponsorType: propSponsorType,
   onSponsorChange,
 }: ChatInterfaceProps) {
   const { messages, isLoading, sendMessage, clearChat, sponsorType: storeSponsorType, changeSponsor } = useChatStore();
   const [inputText, setInputText] = useState<string>("");
+  const [isCheckingLimits, setIsCheckingLimits] = useState(false);
   const flatListRef = useRef<FlatList>(null);
   const insets = useSafeAreaInsets();
   
   // Always use the prop sponsor type and sync to store immediately
-  const sponsorType = propSponsorType;
+  const sponsorType = propSponsorType ?? storeSponsorType;
   
   // Sync prop to store on mount and whenever it changes
   useEffect(() => {
@@ -150,16 +287,50 @@ export default function ChatInterface({
     }
   }, [messages]);
 
-  const handleSend = () => {
-    if (inputText.trim() === "") return;
-    
-    // Log sponsor message usage
+  const handleSend = async () => {
+    if (inputText.trim() === "" || isLoading || isCheckingLimits) return;
+
+    setIsCheckingLimits(true);
+    let limitResult: LimitCheckResult | undefined;
+    try {
+      limitResult = await checkSponsorMessageLimits();
+    } finally {
+      setIsCheckingLimits(false);
+    }
+
+    if (!limitResult || !limitResult.allowed) {
+      if (limitResult && "reason" in limitResult) {
+        const title =
+          limitResult.reason === "daily"
+            ? "Daily Limit Reached"
+            : "Monthly Limit Reached";
+        const message =
+          limitResult.reason === "daily"
+            ? `You've reached the daily limit of ${DAILY_SPONSOR_LIMIT} AI Sponsor messages. Please check back tomorrow.`
+            : `You've reached the monthly limit of ${MONTHLY_SPONSOR_LIMIT} AI Sponsor messages. Please check back next month.`;
+        Alert.alert(title, message);
+      } else {
+        Alert.alert(
+          "Usage Limit Check Failed",
+          limitResult?.error ??
+            "We couldn't verify your AI Sponsor usage limits. Please try again shortly."
+        );
+      }
+      return;
+    }
+
     const sponsorName = getSponsorDisplayName(sponsorType);
     featureUse(`SponsorMessage_${sponsorName}`, 'Chat');
-    
-    sendMessage(inputText);
+
+    const textToSend = inputText;
     setInputText("");
-    Keyboard.dismiss(); // Dismiss keyboard after sending
+    Keyboard.dismiss();
+    void sendMessage(textToSend);
+  };
+
+  const handleSponsorChange = (type: SponsorType) => {
+    changeSponsor(type);
+    onSponsorChange?.(type);
   };
 
   const handleClearChat = () => {
@@ -198,11 +369,13 @@ export default function ChatInterface({
   const bubbleColor = sponsorConfig?.bubbleColor;
   const bubbleShadowColor = sponsorConfig?.bubbleShadowColor;
 
+  const isSendDisabled = !inputText.trim() || isLoading || isCheckingLimits;
+
   return (
     <KeyboardAvoidingView
       style={styles.container}
       behavior={Platform.OS === "ios" ? "padding" : undefined}
-      keyboardVerticalOffset={Platform.OS === "ios" ? 88 : 0}
+      keyboardVerticalOffset={Platform.OS === "ios" ? 120 : 0}
     >
       <LinearGradient
         colors={Colors.gradients.mainThreeColor}
@@ -210,19 +383,44 @@ export default function ChatInterface({
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
       />
-      
+
+      <View style={styles.headerContainer}>
+        <Text style={styles.headerTitle}>AI Sponsors</Text>
+        <Text style={styles.headerSubtitle}>
+          Select a sponsor that fits your style
+        </Text>
+      </View>
+
+      <View style={styles.topContainer}>
+        <SponsorToggle sponsorType={sponsorType} onChange={handleSponsorChange} />
+        <TouchableOpacity
+          style={styles.clearButton}
+          onPress={handleClearChat}
+          testID="clear-chat-button"
+        >
+          <RotateCcw size={18} color={Colors.light.muted} />
+        </TouchableOpacity>
+      </View>
+
       <View style={styles.messagesWrapper}>
         <FlatList
           ref={flatListRef}
           data={messages}
           keyExtractor={(item) => item.id}
-          renderItem={({ item }) => <ChatBubble message={item} bubbleColor={bubbleColor} bubbleShadowColor={bubbleShadowColor} sponsorType={sponsorType} />}
+          renderItem={({ item }) => (
+            <ChatBubble
+              message={item}
+              bubbleColor={bubbleColor}
+              bubbleShadowColor={bubbleShadowColor}
+              sponsorType={sponsorType}
+            />
+          )}
           contentContainerStyle={styles.chatContainer}
           showsVerticalScrollIndicator={false}
           testID="chat-message-list"
           keyboardShouldPersistTaps="handled"
         />
-        
+
         {isLoading && (
           <View style={styles.loadingContainer}>
             <ActivityIndicator size="small" color={Colors.light.tint} />
@@ -230,34 +428,36 @@ export default function ChatInterface({
           </View>
         )}
       </View>
-      
-      <View style={[styles.inputContainer, { paddingBottom: insets.bottom || 8 }]}>
+
+      <View
+        style={[
+          styles.inputContainer,
+          { paddingBottom: Math.max(insets.bottom, 12) },
+        ]}
+      >
         <TextInput
           style={styles.input}
           value={inputText}
           onChangeText={setInputText}
           placeholder={placeholderText}
           placeholderTextColor={Colors.light.muted}
-          multiline={true}
+          multiline
           maxLength={500}
           returnKeyType="done"
-          blurOnSubmit={true}
+          blurOnSubmit
           textAlignVertical="top"
           textBreakStrategy="simple"
           testID="chat-input"
         />
         <TouchableOpacity
-          style={[
-            styles.sendButton,
-            (!inputText.trim() || isLoading) && styles.sendButtonDisabled,
-          ]}
+          style={[styles.sendButton, isSendDisabled && styles.sendButtonDisabled]}
           onPress={handleSend}
-          disabled={!inputText.trim() || isLoading}
+          disabled={isSendDisabled}
           testID="send-button"
         >
           <Send
             size={20}
-            color="#fff"
+            color={isSendDisabled ? Colors.light.muted : "#fff"}
           />
         </TouchableOpacity>
       </View>
@@ -271,22 +471,46 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.light.background,
   },
   backgroundGradient: {
-    position: 'absolute',
+    position: "absolute",
     top: 0,
     left: 0,
     right: 0,
     bottom: 0,
   },
+  headerContainer: {
+    paddingHorizontal: 16,
+    paddingTop: 12,
+    paddingBottom: 8,
+    alignItems: "center",
+  },
+  headerTitle: {
+    fontSize: 28,
+    fontWeight: adjustFontWeight("700", true),
+    color: Colors.light.text,
+    marginBottom: 8,
+    textAlign: "center",
+  },
+  headerSubtitle: {
+    fontSize: 12,
+    fontStyle: "italic" as const,
+    fontWeight: adjustFontWeight("400"),
+    color: Colors.light.muted,
+  },
+  topContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 16,
+    marginBottom: 8,
+    backgroundColor: "transparent",
+  },
   messagesWrapper: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: Colors.light.background,
     borderRadius: 16,
-    margin: 8,
-    marginTop: 4,
+    margin: 12,
     marginBottom: 0,
-    overflow: 'hidden',
-    // Level 3: Content Cards (Medium depth)
-    shadowColor: '#000',
+    overflow: "hidden",
+    shadowColor: "#000",
     shadowOffset: {
       width: 0,
       height: 4,
@@ -295,9 +519,50 @@ const styles = StyleSheet.create({
     shadowRadius: 6,
     elevation: 4,
   },
+  clearButton: {
+    padding: 12,
+    marginRight: 4,
+  },
+  sponsorToggleContainer: {
+    flex: 1,
+    flexDirection: "row",
+    padding: 8,
+  },
+  sponsorButton: {
+    flex: 1,
+    paddingVertical: 8,
+    paddingHorizontal: 4,
+    borderRadius: 20,
+    alignItems: "center",
+    marginHorizontal: 2,
+    backgroundColor: Colors.light.cardBackground,
+    borderWidth: 1,
+    borderColor: Colors.light.divider,
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 6,
+    },
+    shadowOpacity: 0.18,
+    shadowRadius: 8,
+    elevation: 6,
+  },
+  sponsorButtonActive: {
+    backgroundColor: Colors.light.tint,
+    borderColor: Colors.light.tint,
+  },
+  sponsorButtonText: {
+    fontSize: 13,
+    fontWeight: adjustFontWeight("500"),
+    color: Colors.light.muted,
+    flexShrink: 1,
+  },
+  sponsorButtonTextActive: {
+    color: "#fff",
+  },
   chatContainer: {
     padding: 16,
-    paddingBottom: Platform.OS === 'android' ? 16 : 20,
+    paddingBottom: Platform.OS === "android" ? 16 : 20,
   },
   bubbleContainer: {
     marginBottom: 12,
@@ -314,8 +579,7 @@ const styles = StyleSheet.create({
     padding: 12,
     borderRadius: 18,
     minWidth: 60,
-    // Shared neutral shadow for all bubbles
-    shadowColor: '#000',
+    shadowColor: "#000",
     shadowOffset: {
       width: 0,
       height: 6,
@@ -325,25 +589,25 @@ const styles = StyleSheet.create({
     elevation: 6,
   },
   freshBubbleBase: {
-    backgroundColor: '#CCFBF1',
+    backgroundColor: "#CCFBF1",
     borderRadius: 18,
     borderWidth: 1,
-    borderColor: '#14B8A6',
+    borderColor: "#14B8A6",
   },
   userBubble: {
     backgroundColor: "#BFDBFE",
     borderBottomRightRadius: 4,
   },
   supportiveBubble: {
-    backgroundColor: "#e8f8e8", // Light green for Eddie (supportive sponsor)
+    backgroundColor: "#e8f8e8",
     borderBottomLeftRadius: 4,
   },
   graceBubble: {
-    backgroundColor: "#e8d4f0", // Darker lavender for better contrast
+    backgroundColor: "#e8d4f0",
     borderBottomLeftRadius: 4,
   },
   saltyBubble: {
-    backgroundColor: "#fff0d4", // Darker amber for better contrast
+    backgroundColor: "#fff0d4",
     borderBottomLeftRadius: 4,
   },
   messageText: {
@@ -377,26 +641,26 @@ const styles = StyleSheet.create({
   },
   inputContainer: {
     flexDirection: "row",
-    paddingHorizontal: 8,
-    paddingTop: 8,
-    paddingBottom: 8,
-    backgroundColor: 'transparent',
+    padding: 12,
+    backgroundColor: "transparent",
+    ...(Platform.OS === "android" && {
+      paddingBottom: 8,
+    }),
   },
   input: {
     flex: 1,
-    backgroundColor: '#FAFAFA',
+    backgroundColor: "#FAFAFA",
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: 'rgba(0, 0, 0, 0.05)',
+    borderColor: "rgba(0, 0, 0, 0.05)",
     paddingHorizontal: 16,
     paddingVertical: 10,
     fontSize: 16,
     color: Colors.light.text,
     minHeight: 44,
     maxHeight: 120,
-    textAlignVertical: 'top',
-    // Soft drop shadow for subtle lift
-    shadowColor: '#000',
+    textAlignVertical: "top",
+    shadowColor: "#000",
     shadowOffset: {
       width: 0,
       height: 3,
@@ -409,12 +673,11 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: '#007AFF',
+    backgroundColor: Colors.light.tint,
     justifyContent: "center",
     alignItems: "center",
     marginLeft: 8,
-    // Match input field shadow (subtle)
-    shadowColor: '#000',
+    shadowColor: "#000",
     shadowOffset: {
       width: 0,
       height: 3,
@@ -424,6 +687,6 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
   sendButtonDisabled: {
-    backgroundColor: '#C7C7CC',
+    backgroundColor: Colors.light.divider,
   },
 });
