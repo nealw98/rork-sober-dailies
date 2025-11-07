@@ -389,7 +389,10 @@ export default function ChatInterface({
           testID="chat-input"
         />
         <TouchableOpacity
-          style={[styles.sendButton, isSendDisabled && styles.sendButtonDisabled]}
+          style={[
+            styles.sendButton,
+            isSendDisabled && styles.sendButtonDisabled,
+          ]}
           onPress={handleSend}
           disabled={isSendDisabled}
           testID="send-button"
