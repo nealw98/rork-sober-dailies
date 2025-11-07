@@ -23,6 +23,7 @@ import { useExpoRouterTracking } from "@/hooks/useExpoRouterTracking";
 import { SessionProvider } from "@/hooks/useSessionContext";
 import { useSobrietyBirthday } from "@/hooks/useSobrietyBirthday";
 import SobrietyBirthdayModal from "@/components/SobrietyBirthdayModal";
+import { ReviewPromptModalHost } from "@/components/ReviewPromptModalHost";
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync().catch(() => {
@@ -264,6 +265,7 @@ export default function RootLayout() {
                 <GestureHandlerRootView style={{ flex: 1 }}>
                   <ErrorBoundary>
                     <RootLayoutNav />
+                    <ReviewPromptModalHost />
                   </ErrorBoundary>
                 </GestureHandlerRootView>
               </EveningReviewProvider>

@@ -19,11 +19,76 @@ import * as Clipboard from 'expo-clipboard';
 import { LinearGradient } from 'expo-linear-gradient';
 import Colors from "@/constants/colors";
 import { useChatStore } from "@/hooks/use-chat-store";
-import { featureUse } from "@/lib/usageLogger";
+import { featureUse, getAnonymousId } from "@/lib/usageLogger";
+import { supabase } from "@/lib/supabase";
 import { ChatMessage, SponsorType } from "@/types";
 import { adjustFontWeight } from "@/constants/fonts";
 import { CustomTextRenderer } from "./CustomTextRenderer";
 import { ChatMarkdownRenderer } from "./ChatMarkdownRenderer";
+
+const DAILY_SPONSOR_LIMIT = 50;
+const MONTHLY_SPONSOR_LIMIT = 200;
+
+type LimitCheckResult =
+  | { allowed: true }
+  | { allowed: false; reason: "daily" | "monthly"; count: number }
+  | { allowed: false; error: string };
+
+const checkSponsorMessageLimits = async (): Promise<LimitCheckResult> => {
+  try {
+    const anonymousId = await getAnonymousId();
+
+    const now = new Date();
+    const todayUtc = now.toISOString().split("T")[0];
+    const startOfMonthUtc = new Date(
+      Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1, 0, 0, 0)
+    ).toISOString();
+
+    const [dailyResult, monthlyResult] = await Promise.all([
+      supabase
+        .from("usage_events")
+        .select("id", { head: true, count: "exact" })
+        .eq("anonymous_id", anonymousId)
+        .eq("event", "feature_use")
+        .ilike("feature", "SponsorMessage\\_%")
+        .eq("day_utc", todayUtc),
+      supabase
+        .from("usage_events")
+        .select("id", { head: true, count: "exact" })
+        .eq("anonymous_id", anonymousId)
+        .eq("event", "feature_use")
+        .ilike("feature", "SponsorMessage\\_%")
+        .gte("ts", startOfMonthUtc),
+    ]);
+
+    if (dailyResult.error) {
+      throw dailyResult.error;
+    }
+    if (monthlyResult.error) {
+      throw monthlyResult.error;
+    }
+
+    const dailyCount = dailyResult.count ?? 0;
+    const monthlyCount = monthlyResult.count ?? 0;
+
+    if (dailyCount >= DAILY_SPONSOR_LIMIT) {
+      return { allowed: false, reason: "daily", count: dailyCount };
+    }
+
+    if (monthlyCount >= MONTHLY_SPONSOR_LIMIT) {
+      return { allowed: false, reason: "monthly", count: monthlyCount };
+    }
+
+    return { allowed: true };
+  } catch (error) {
+    console.error("[Chat] Failed to check AI Sponsor usage limits:", error);
+    return {
+      allowed: false,
+      error:
+        "We couldn't verify your AI Sponsor usage limits. Please try again shortly.",
+    };
+  }
+};
 
 const ChatBubble = ({ message }: { message: ChatMessage }) => {
   const isUser = message.sender === "user";
@@ -184,6 +249,7 @@ const SponsorToggle = ({
 export default function ChatInterface() {
   const { messages, isLoading, sendMessage, clearChat, sponsorType, changeSponsor } = useChatStore();
   const [inputText, setInputText] = useState<string>("");
+  const [isCheckingLimits, setIsCheckingLimits] = useState(false);
   const flatListRef = useRef<FlatList>(null);
   const insets = useSafeAreaInsets();
 
@@ -196,16 +262,45 @@ export default function ChatInterface() {
     }
   }, [messages]);
 
-  const handleSend = () => {
-    if (inputText.trim() === "") return;
-    
-    // Log sponsor message usage
+  const handleSend = async () => {
+    if (inputText.trim() === "" || isLoading || isCheckingLimits) return;
+
+    setIsCheckingLimits(true);
+    let limitResult: LimitCheckResult | undefined;
+    try {
+      limitResult = await checkSponsorMessageLimits();
+    } finally {
+      setIsCheckingLimits(false);
+    }
+
+    if (!limitResult || !limitResult.allowed) {
+      if (limitResult && "reason" in limitResult) {
+        const title =
+          limitResult.reason === "daily"
+            ? "Daily Limit Reached"
+            : "Monthly Limit Reached";
+        const message =
+          limitResult.reason === "daily"
+            ? `You've reached the daily limit of ${DAILY_SPONSOR_LIMIT} AI Sponsor messages. Please check back tomorrow.`
+            : `You've reached the monthly limit of ${MONTHLY_SPONSOR_LIMIT} AI Sponsor messages. Please check back next month.`;
+        Alert.alert(title, message);
+      } else {
+        Alert.alert(
+          "Usage Limit Check Failed",
+          limitResult?.error ??
+            "We couldn't verify your AI Sponsor usage limits. Please try again shortly."
+        );
+      }
+      return;
+    }
+
     const sponsorName = getSponsorDisplayName(sponsorType);
     featureUse(`SponsorMessage_${sponsorName}`, 'Chat');
-    
-    sendMessage(inputText);
+
+    const textToSend = inputText;
     setInputText("");
-    Keyboard.dismiss(); // Dismiss keyboard after sending
+    Keyboard.dismiss();
+    void sendMessage(textToSend);
   };
 
   const handleClearChat = () => {
@@ -253,6 +348,8 @@ export default function ChatInterface() {
         return "Thinking...";
     }
   };
+
+  const isSendDisabled = !inputText.trim() || isLoading || isCheckingLimits;
 
   return (
     <KeyboardAvoidingView
@@ -324,15 +421,15 @@ export default function ChatInterface() {
         <TouchableOpacity
           style={[
             styles.sendButton,
-            !inputText.trim() && styles.sendButtonDisabled,
+            isSendDisabled && styles.sendButtonDisabled,
           ]}
           onPress={handleSend}
-          disabled={!inputText.trim() || isLoading}
+          disabled={isSendDisabled}
           testID="send-button"
         >
           <Send
             size={20}
-            color={!inputText.trim() || isLoading ? Colors.light.muted : "#fff"}
+            color={isSendDisabled ? Colors.light.muted : "#fff"}
           />
         </TouchableOpacity>
       </View>

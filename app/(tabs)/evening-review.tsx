@@ -101,6 +101,7 @@ const AnimatedCheckbox = ({ checked, onPress, children }: {
 
 export default function EveningReview() {
   const [showConfirmation, setShowConfirmation] = useState(false);
+  const [shouldTriggerReviewOnDismiss, setShouldTriggerReviewOnDismiss] = useState(false);
   const [showSavedReviews, setShowSavedReviews] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
 
@@ -232,9 +233,12 @@ export default function EveningReview() {
     setShowConfirmation(false);
     setIsEditing(true);
 
-    maybeAskForReview('eveningReview').catch((error) =>
-      console.warn('[reviewPrompt] Evening review trigger failed', error),
-    );
+    if (shouldTriggerReviewOnDismiss) {
+      setShouldTriggerReviewOnDismiss(false);
+      maybeAskForReview('eveningReview').catch((error) =>
+        console.warn('[reviewPrompt] Evening review trigger failed', error),
+      );
+    }
   };
 
   const handleShare = async () => {
@@ -431,6 +435,7 @@ export default function EveningReview() {
     // Set showConfirmation to true to show the completed screen with saved message
     setShowConfirmation(true);
     setIsEditing(false);
+    setShouldTriggerReviewOnDismiss(true);
   };
 
   const canSave = () => {

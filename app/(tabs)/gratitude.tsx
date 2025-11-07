@@ -574,6 +574,7 @@ export default function GratitudeListScreen() {
   const [editingValue, setEditingValue] = useState<string>('');
   const [inputValue, setInputValue] = useState('');
   const [showConfirmation, setShowConfirmation] = useState(false);
+  const [shouldTriggerReviewOnDismiss, setShouldTriggerReviewOnDismiss] = useState(false);
   const [showSavedEntries, setShowSavedEntries] = useState(false);
   const [dailyQuote] = useState(() => getDailyQuote());
   const inputRef = useRef<TextInput>(null);
@@ -727,6 +728,7 @@ export default function GratitudeListScreen() {
     setGratitudeItems([]);
     setInputValue('');
     setShowConfirmation(false);
+    setShouldTriggerReviewOnDismiss(false);
   };
 
   const handleEditGratitude = () => {
@@ -742,9 +744,12 @@ export default function GratitudeListScreen() {
     uncompleteToday();
     setShowConfirmation(false);
 
-    maybeAskForReview('gratitude').catch((error) =>
-      console.warn('[reviewPrompt] Gratitude trigger failed', error),
-    );
+    if (shouldTriggerReviewOnDismiss) {
+      setShouldTriggerReviewOnDismiss(false);
+      maybeAskForReview('gratitude').catch((error) => {
+        console.warn('[reviewPrompt] Gratitude trigger failed', error);
+      });
+    }
   };
 
 
@@ -841,6 +846,7 @@ export default function GratitudeListScreen() {
     
     // Show completion modal
     setShowConfirmation(true);
+    setShouldTriggerReviewOnDismiss(true);
   };
 
   const canSave = () => {
