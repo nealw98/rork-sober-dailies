@@ -23,27 +23,35 @@ const STORAGE_SEPARATOR = ',';
 const toDayKey = (date: Date) => date.toISOString().split('T')[0];
 
 let storeReviewModule: typeof ExpoStoreReviewModule | null | undefined;
+let storeReviewPromise: Promise<typeof ExpoStoreReviewModule | null> | null = null;
 
 async function getStoreReviewModule(): Promise<typeof ExpoStoreReviewModule | null> {
   if (storeReviewModule !== undefined) {
     return storeReviewModule;
   }
 
-  try {
-    storeReviewModule = await import('expo-store-review');
+  if (!storeReviewPromise) {
+    storeReviewPromise = (async () => {
+      try {
+        if (!(NativeModules as Record<string, unknown>).ExpoStoreReview) {
+          console.warn('[reviewPrompt] expo-store-review native module missing from this build');
+          storeReviewModule = null;
+          return null;
+        }
 
-    if (!(NativeModules as Record<string, unknown>).ExpoStoreReview) {
-      console.warn('[reviewPrompt] expo-store-review native module missing from this build');
-      storeReviewModule = null;
-      return null;
-    }
+        const mod = await import('expo-store-review');
 
-    return storeReviewModule;
-  } catch (error) {
-    console.warn('[reviewPrompt] expo-store-review module not available', error);
-    storeReviewModule = null;
-    return null;
+        storeReviewModule = mod;
+        return mod;
+      } catch (error) {
+        console.warn('[reviewPrompt] expo-store-review module not available', error);
+        storeReviewModule = null;
+        return null;
+      }
+    })();
   }
+
+  return storeReviewPromise;
 }
 
 async function getStringSet(key: string): Promise<Set<string>> {
