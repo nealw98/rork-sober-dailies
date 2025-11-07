@@ -12,11 +12,11 @@ const STORAGE_KEYS = {
   LITERATURE_MINUTES: 'reviewPrompt:literatureMinutes',
 } as const;
 
-const MIN_USAGE_DAYS = 7;
-const MIN_DAILY_REFLECTION_DAYS = 5;
-const MIN_LITERATURE_MINUTES = 10;
+const MIN_USAGE_DAYS = 0;
+const MIN_DAILY_REFLECTION_DAYS = 0;
+const MIN_LITERATURE_MINUTES = 0;
 const MIN_AI_RESPONSES = 6;
-const COOLDOWN_MS = 90 * 24 * 60 * 60 * 1000; // 90 days
+const COOLDOWN_MS = 0;
 
 const STORAGE_SEPARATOR = ',';
 
@@ -140,11 +140,17 @@ async function ensureDailyReflectionDayRecorded(dayKey: string): Promise<void> {
 }
 
 async function hasUsageThreshold(): Promise<boolean> {
+  if (MIN_USAGE_DAYS <= 0) {
+    return true;
+  }
   const daysUsed = await getStringSet(STORAGE_KEYS.DAYS_USED);
   return daysUsed.size >= MIN_USAGE_DAYS;
 }
 
 async function hasReadingThreshold(): Promise<boolean> {
+  if (MIN_DAILY_REFLECTION_DAYS <= 0 && MIN_LITERATURE_MINUTES <= 0) {
+    return true;
+  }
   const reflectionDays = await getStringSet(STORAGE_KEYS.DAILY_REFLECTION_DAYS);
   if (reflectionDays.size >= MIN_DAILY_REFLECTION_DAYS) {
     return true;
@@ -154,6 +160,9 @@ async function hasReadingThreshold(): Promise<boolean> {
 }
 
 async function hasCooldownExpired(): Promise<boolean> {
+  if (COOLDOWN_MS <= 0) {
+    return true;
+  }
   const lastPrompt = await getLastPromptTimestamp();
   if (!lastPrompt) return true;
   return Date.now() - lastPrompt >= COOLDOWN_MS;
@@ -182,7 +191,9 @@ async function presentStoreReview(): Promise<boolean> {
 
   try {
     const hasAction = await StoreReview.hasAction();
-    if (!hasAction) return false;
+    if (!hasAction) {
+      console.warn('[reviewPrompt] StoreReview.hasAction returned false, attempting anyway for testing');
+    }
 
     await StoreReview.requestReview();
     await setLastPromptTimestamp(new Date());
@@ -274,7 +285,7 @@ export async function requestReviewDebug(): Promise<boolean> {
   try {
     const hasAction = await StoreReview.hasAction();
     if (!hasAction) {
-      return false;
+      console.warn('[reviewPrompt] Debug prompt: StoreReview.hasAction returned false, requesting anyway');
     }
     await StoreReview.requestReview();
     return true;
