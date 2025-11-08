@@ -2,7 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { NativeModules } from 'react-native';
 import type * as ExpoStoreReviewModule from 'expo-store-review';
 
-export type ReviewTrigger = 'gratitude' | 'eveningReview' | 'spotCheck' | 'aiSponsor';
+export type ReviewTrigger = 'gratitude' | 'eveningReview' | 'aiSponsor';
 
 const STORAGE_KEYS = {
   DAYS_USED: 'reviewPrompt:daysUsed',
@@ -10,23 +10,13 @@ const STORAGE_KEYS = {
   AI_RESPONSE_COUNT: 'reviewPrompt:aiResponseCount',
   DAILY_REFLECTION_DAYS: 'reviewPrompt:dailyReflectionDays',
   LITERATURE_MINUTES: 'reviewPrompt:literatureMinutes',
-  TRIGGER_COUNTS: 'reviewPrompt:triggerCounts',
 } as const;
 
-type TriggerCounts = Partial<Record<ReviewTrigger, number>>;
-
-const REVIEW_TRIGGERS: readonly ReviewTrigger[] = [
-  'gratitude',
-  'eveningReview',
-  'spotCheck',
-  'aiSponsor',
-] as const;
-
-const MIN_USAGE_DAYS = 7;
+const MIN_USAGE_DAYS = 0;
 const MIN_DAILY_REFLECTION_DAYS = 0;
 const MIN_LITERATURE_MINUTES = 0;
 const MIN_AI_RESPONSES = 5;
-const COOLDOWN_MS = 90 * 24 * 60 * 60 * 1000; // 90 days
+const COOLDOWN_MS = 0;
 
 const STORAGE_SEPARATOR = ',';
 
@@ -122,50 +112,6 @@ async function setNumber(key: string, value: number): Promise<void> {
   }
 }
 
-function isReviewTrigger(value: string): value is ReviewTrigger {
-  return (REVIEW_TRIGGERS as readonly string[]).includes(value);
-}
-
-async function getTriggerCounts(): Promise<TriggerCounts> {
-  try {
-    const raw = await AsyncStorage.getItem(STORAGE_KEYS.TRIGGER_COUNTS);
-    if (!raw) return {};
-    const parsed = JSON.parse(raw);
-    if (!parsed || typeof parsed !== 'object') {
-      return {};
-    }
-
-    const result: TriggerCounts = {};
-    for (const key of Object.keys(parsed)) {
-      if (isReviewTrigger(key)) {
-        const value = Number((parsed as Record<string, unknown>)[key]);
-        if (Number.isFinite(value)) {
-          result[key] = value;
-        }
-      }
-    }
-    return result;
-  } catch (error) {
-    console.warn('[reviewPrompt] Failed to read trigger counts', error);
-    return {};
-  }
-}
-
-async function incrementTriggerCount(trigger: ReviewTrigger): Promise<number> {
-  const counts = await getTriggerCounts();
-  const nextValue = (counts[trigger] ?? 0) + 1;
-  counts[trigger] = nextValue;
-
-  try {
-    await AsyncStorage.setItem(STORAGE_KEYS.TRIGGER_COUNTS, JSON.stringify(counts));
-  } catch (error) {
-    console.warn('[reviewPrompt] Failed to persist trigger count', error);
-  }
-
-  console.log('[reviewPrompt] incrementTriggerCount', trigger, '->', nextValue);
-  return nextValue;
-}
-
 async function getLastPromptTimestamp(): Promise<number | null> {
   try {
     const raw = await AsyncStorage.getItem(STORAGE_KEYS.LAST_PROMPT);
@@ -242,9 +188,7 @@ async function incrementAIResponses(by: number): Promise<number> {
 
 function meetsTriggerSpecificRequirement(trigger: ReviewTrigger, aiResponses: number): boolean {
   if (trigger === 'aiSponsor') {
-    const ok =
-      aiResponses >= MIN_AI_RESPONSES &&
-      aiResponses % MIN_AI_RESPONSES === 0;
+    const ok = aiResponses >= MIN_AI_RESPONSES;
     console.log('[reviewPrompt] aiSponsor requirement', { aiResponses, ok });
     return ok;
   }
@@ -328,11 +272,6 @@ export async function addAIResponses(count: number): Promise<number> {
 export async function maybeAskForReview(trigger: ReviewTrigger): Promise<boolean> {
   try {
     console.log('[reviewPrompt] maybeAskForReview start', trigger);
-    const attempt = await incrementTriggerCount(trigger);
-    if (attempt % 5 !== 0) {
-      console.log('[reviewPrompt] Trigger', trigger, 'count', attempt, '- waiting for next milestone');
-      return false;
-    }
 
     const [usageOk, readingOk, cooldownOk, aiResponses] = await Promise.all([
       hasUsageThreshold(),
