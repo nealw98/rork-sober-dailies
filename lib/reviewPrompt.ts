@@ -2,8 +2,6 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { NativeModules } from 'react-native';
 import type * as ExpoStoreReviewModule from 'expo-store-review';
 
-import { showInAppReviewPrompt, type InAppReviewReason } from './reviewPromptBridge';
-
 export type ReviewTrigger = 'gratitude' | 'eveningReview' | 'spotCheck' | 'aiSponsor';
 
 const STORAGE_KEYS = {
@@ -252,69 +250,29 @@ function meetsTriggerSpecificRequirement(trigger: ReviewTrigger, aiResponses: nu
   return true;
 }
 
-async function presentStoreReview(
-  trigger: ReviewTrigger,
-  reason: InAppReviewReason,
-  overrideMessage?: string,
-): Promise<boolean> {
-  console.log('[reviewPrompt] presentStoreReview start', { trigger, reason, overrideMessage });
-  const showFallback = async () => {
-    console.log('[reviewPrompt] presenting fallback modal');
-    const accepted = await showInAppReviewPrompt({ trigger, reason, overrideMessage });
-    console.log('[reviewPrompt] fallback modal result', accepted);
-    if (accepted && reason !== 'debug') {
-      await setLastPromptTimestamp(new Date());
-    }
-    return accepted;
-  };
-
-  const requestNativeReview = async () => {
-    const StoreReview = await getStoreReviewModule();
-    if (!StoreReview) {
-      console.log('[reviewPrompt] native module unavailable');
-      return false;
-    }
-
-    try {
-      const hasAction = await StoreReview.hasAction();
-      if (!hasAction) {
-        console.warn('[reviewPrompt] StoreReview.hasAction returned false, attempting anyway');
-      }
-
-      console.log('[reviewPrompt] invoking StoreReview.requestReview');
-      await StoreReview.requestReview();
-      await setLastPromptTimestamp(new Date());
-      return true;
-    } catch (error) {
-      console.warn('[reviewPrompt] Unable to present store review prompt', error);
-      return false;
-    }
-  };
-
-  if (reason === 'debug') {
-    console.log('[reviewPrompt] reason=debug -> fallback only');
-    return showFallback();
+async function presentStoreReview(trigger: ReviewTrigger): Promise<boolean> {
+  console.log('[reviewPrompt] presentStoreReview start', { trigger });
+  const StoreReview = await getStoreReviewModule();
+  if (!StoreReview) {
+    console.warn('[reviewPrompt] StoreReview module unavailable');
+    return false;
   }
 
-  if (reason === 'fallback') {
-    const accepted = await showFallback();
-    if (!accepted) {
-      console.log('[reviewPrompt] fallback declined, skipping native prompt');
+  try {
+    const hasAction = await StoreReview.hasAction();
+    if (!hasAction) {
+      console.warn('[reviewPrompt] StoreReview.hasAction returned false, skipping prompt');
       return false;
     }
 
-    const nativeShown = await requestNativeReview();
-    console.log('[reviewPrompt] native prompt attempted after fallback', nativeShown);
-    return nativeShown || true;
-  }
-
-  const nativeShown = await requestNativeReview();
-  console.log('[reviewPrompt] native prompt result (non-fallback)', nativeShown);
-  if (nativeShown) {
+    console.log('[reviewPrompt] invoking StoreReview.requestReview');
+    await StoreReview.requestReview();
+    await setLastPromptTimestamp(new Date());
     return true;
+  } catch (error) {
+    console.warn('[reviewPrompt] Unable to present store review prompt', error);
+    return false;
   }
-
-  return showFallback();
 }
 
 export async function recordAppOpen(date: Date = new Date()): Promise<void> {
@@ -393,7 +351,7 @@ export async function maybeAskForReview(trigger: ReviewTrigger): Promise<boolean
       return false;
     }
 
-    const result = await presentStoreReview(trigger, 'fallback');
+    const result = await presentStoreReview(trigger);
     console.log('[reviewPrompt] presentStoreReview result', result);
     return result;
   } catch (error) {
@@ -403,9 +361,25 @@ export async function maybeAskForReview(trigger: ReviewTrigger): Promise<boolean
 }
 
 export async function requestReviewDebug(): Promise<boolean> {
-  const message =
-    'Thanks for testing the review prompt! Tap “Rate Sober Dailies” to simulate the native sheet.';
   console.log('[reviewPrompt] requestReviewDebug invoked');
-  return presentStoreReview('gratitude', 'debug', message);
+  const StoreReview = await getStoreReviewModule();
+  if (!StoreReview) {
+    console.warn('[reviewPrompt] requestReviewDebug: StoreReview module unavailable');
+    return false;
+  }
+
+  try {
+    const hasAction = await StoreReview.hasAction();
+    if (!hasAction) {
+      console.warn('[reviewPrompt] requestReviewDebug: hasAction returned false');
+      return false;
+    }
+
+    await StoreReview.requestReview();
+    return true;
+  } catch (error) {
+    console.warn('[reviewPrompt] requestReviewDebug failed', error);
+    return false;
+  }
 }
 
