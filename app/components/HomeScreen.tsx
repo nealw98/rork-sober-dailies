@@ -268,7 +268,7 @@ const styles = StyleSheet.create({
   sectionContainerMorning: {
     paddingHorizontal: 16,
     marginBottom: 30,
-    backgroundColor: '#FFF9E6', // Opaque soft yellow (was rgba(255, 248, 220, 0.8))
+    backgroundColor: '#FFE8B5', // Warm but softer yellow
     paddingVertical: 20,
     borderRadius: 16,
     marginHorizontal: 16,
@@ -276,7 +276,7 @@ const styles = StyleSheet.create({
   sectionContainerDay: {
     paddingHorizontal: 16,
     marginBottom: 30,
-    backgroundColor: '#B3D9F2', // Darker opaque soft blue (was #D4EBF7)
+    backgroundColor: '#8BC6EC', // Richer soft blue
     paddingVertical: 20,
     borderRadius: 16,
     marginHorizontal: 16,
@@ -284,7 +284,7 @@ const styles = StyleSheet.create({
   sectionContainerEvening: {
     paddingHorizontal: 16,
     marginBottom: 30,
-    backgroundColor: '#E9D5F5', // Opaque soft purple (was rgba(147, 51, 234, 0.3))
+    backgroundColor: '#D1B4EB', // Deeper soft purple
     paddingVertical: 20,
     borderRadius: 16,
     marginHorizontal: 16,
@@ -292,7 +292,7 @@ const styles = StyleSheet.create({
   sectionContainerSupport: {
     paddingHorizontal: 16,
     marginBottom: 30,
-    backgroundColor: '#C8E6C9', // Soft green for support section
+    backgroundColor: '#A5D6A7', // Deeper soft green
     paddingVertical: 20,
     borderRadius: 16,
     marginHorizontal: 16,
