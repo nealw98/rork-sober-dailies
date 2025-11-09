@@ -1,5 +1,5 @@
 import React from 'react';
-import { StyleSheet, View, Text, ScrollView, TouchableOpacity, Linking, Alert } from 'react-native';
+import { StyleSheet, View, Text, ScrollView, TouchableOpacity, Linking } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -12,27 +12,12 @@ import FontAwesome6 from '@expo/vector-icons/FontAwesome6';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import FontAwesome from '@expo/vector-icons/FontAwesome';
-import { requestReviewDebug } from '@/lib/reviewPrompt';
-
-
 const HomeScreen = () => {
   const router = useRouter();
 
 
   const today = new Date();
   const formattedDate = formatDateDisplay(today);
-
-  const handleTestReviewPrompt = async () => {
-    try {
-      const shown = await requestReviewDebug();
-      if (!shown) {
-        Alert.alert('Review Prompt', 'Native review prompt is not available on this device.');
-      }
-    } catch (error) {
-      console.warn('[reviewPrompt] Test prompt failed', error);
-      Alert.alert('Review Prompt', 'Unable to show the review prompt.');
-    }
-  };
 
   return (
     <LinearGradient
@@ -185,10 +170,6 @@ const HomeScreen = () => {
           <Text style={styles.cardDescription}>Make a difference with a one-time contribution</Text>
         </TouchableOpacity>
         </View>
-
-<TouchableOpacity style={styles.debugButton} onPress={handleTestReviewPrompt}>
-  <Text style={styles.debugButtonText}>Test Review Prompt</Text>
-</TouchableOpacity>
       </ScrollView>
       </SafeAreaView>
     </LinearGradient>
@@ -371,20 +352,6 @@ const styles = StyleSheet.create({
     paddingVertical: 20,
     borderRadius: 16,
     marginHorizontal: 16,
-  },
-  debugButton: {
-    marginHorizontal: 16,
-    marginBottom: 24,
-    paddingVertical: 14,
-    borderRadius: 12,
-    backgroundColor: '#1E40AF',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  debugButtonText: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: '600',
   },
 });
 

@@ -2,7 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { NativeModules } from 'react-native';
 import type * as ExpoStoreReviewModule from 'expo-store-review';
 
-export type ReviewTrigger = 'gratitude' | 'eveningReview' | 'aiSponsor';
+export type ReviewTrigger = 'gratitude' | 'eveningReview' | 'aiSponsor' | 'spotCheck';
 
 const STORAGE_KEYS = {
   DAYS_USED: 'reviewPrompt:daysUsed',
