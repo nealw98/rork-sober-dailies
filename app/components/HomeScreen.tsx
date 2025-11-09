@@ -268,7 +268,7 @@ const styles = StyleSheet.create({
   sectionContainerMorning: {
     paddingHorizontal: 16,
     marginBottom: 30,
-    backgroundColor: '#FFE8B5', // Warm but softer yellow
+    backgroundColor: '#FFD8A8', // Gentle soft orange
     paddingVertical: 20,
     borderRadius: 16,
     marginHorizontal: 16,

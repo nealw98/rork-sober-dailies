@@ -1,3 +1,4 @@
+import "@/lib/androidFontPatch";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Stack, router } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";

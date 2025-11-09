@@ -37,6 +37,7 @@
     "expo-splash-screen": "~0.30.10",
     "expo-sqlite": "~15.2.14",
     "expo-status-bar": "~2.2.3",
+    "expo-store-review": "8.1.5",
     "expo-symbols": "~0.4.5",
     "expo-system-ui": "~5.0.11",
     "expo-updates": "~0.28.17",
@@ -50,7 +51,6 @@
     "react-native-gesture-handler": "~2.24.0",
     "react-native-markdown-display": "^7.0.2",
     "react-native-modal-datetime-picker": "^18.0.0",
-    "react-native-purchases": "9.5.3",
     "react-native-reanimated": "^3.19.1",
     "react-native-safe-area-context": "5.4.0",
     "react-native-screens": "~4.11.1",
@@ -58,8 +58,7 @@
     "react-native-toast-message": "^2.3.3",
     "react-native-web": "^0.20.0",
     "react-native-webview": "13.13.5",
-    "zustand": "^5.0.2",
-    "expo-store-review": "8.1.5"
+    "zustand": "^5.0.2"
   },
   "devDependencies": {
     "@babel/core": "^7.28.3",

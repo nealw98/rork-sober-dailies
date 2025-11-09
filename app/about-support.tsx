@@ -24,17 +24,12 @@ import Colors from '@/constants/colors';
 import { Star, Share2, ChevronLeft } from 'lucide-react-native';
 import { Logger } from '@/lib/logger';
 import * as Clipboard from 'expo-clipboard';
-import type { PurchasesPackage } from 'react-native-purchases';
-
-let Purchases: any = null;
-try {
-  const { NativeModules } = require('react-native');
-  if (NativeModules && NativeModules.RNPurchases) {
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    const mod = require('react-native-purchases');
-    Purchases = (mod && mod.default) ? mod.default : mod;
-  }
-} catch {}
+import {
+  fetchPackages,
+  purchasePackage,
+  purchasesAvailable,
+  type PurchasesPackage,
+} from '@/lib/purchases';
 
 const AboutSupportScreen = () => {
   // Silence verbose logs in production to avoid any UI jank
@@ -59,30 +54,19 @@ const AboutSupportScreen = () => {
       log(`[Offerings] Starting to load offerings (attempt ${retryCount + 1}) at ${new Date().toISOString()}`);
       
       try {
-        if (!Purchases) {
-          console.log('[Offerings] RevenueCat not available');
+        if (!purchasesAvailable) {
+          console.log('[Offerings] Purchases disabled for this build');
           if (mounted) {
-            setErrorMessage('RevenueCat not available in this environment');
+            setErrorMessage('In-app purchases are temporarily unavailable.');
             setIsLoadingOfferings(false);
           }
           return;
         }
-        
+
         const offeringsStartTime = Date.now();
-        const offs: any = await Purchases.getOfferings();
+        const allPkgs = await fetchPackages();
         const offeringsTime = Date.now() - offeringsStartTime;
-        log(`[Offerings] getOfferings() took ${offeringsTime}ms`);
-        
-        const current = offs?.current;
-        
-        // Validate offering identifier (warn but continue if not tips_only_1_9)
-        if (current?.identifier !== 'tips_only_1_9') {
-          console.warn(`[Offerings] Expected offering 'tips_only_1_9' but got '${current?.identifier}'. Continuing anyway.`);
-          log(`[Offerings] Using offering: ${current?.identifier}`);
-        }
-        
-        const allPkgs = current?.availablePackages ?? [];
-        log(`[Offerings] Found ${allPkgs.length} total packages in '${current?.identifier}' offering`);
+        log(`[Offerings] fetchPackages() took ${offeringsTime}ms and returned ${allPkgs.length} packages`);
         log('[Offerings] All packages:', allPkgs.map((p: any) => ({ 
           pkgId: p.identifier, 
           storeId: p.storeProduct?.identifier, 
@@ -135,7 +119,7 @@ const AboutSupportScreen = () => {
         ));
         
         const totalTime = Date.now() - loadStartTime;
-        log(`[Offerings] Successfully loaded offerings in ${totalTime}ms`);
+        log(`[Offerings] Successfully processed packages in ${totalTime}ms`);
         
         if (mounted) {
           setPackagesById(byId);
@@ -191,6 +175,11 @@ const AboutSupportScreen = () => {
       return;
     }
     
+    if (!purchasesAvailable) {
+      setErrorMessage('In-app purchases are temporarily unavailable.');
+      return;
+    }
+
     log(`[Purchase] Looking for tier: ${tierId} in packagesById:`, Object.keys(packagesById));
     const pkg = packagesById[tierId];
     
@@ -216,7 +205,7 @@ const AboutSupportScreen = () => {
       }, 1500);
 
       try {
-        await Purchases.purchasePackage(pkg);
+        await purchasePackage(pkg);
       } finally {
         clearTimeout(hideTimer);
       }
