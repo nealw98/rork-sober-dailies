@@ -24,11 +24,12 @@ interface SimpleTextReaderProps {
 
 const SimpleTextReader = ({ content, title, onClose, indentParagraphs = false, source }: SimpleTextReaderProps) => {
   // Font size state (replacing pinch-to-zoom)
-  const [fontSize, setFontSize] = useState(16);
-  const baseFontSize = 16;
+  const [fontSize, setFontSize] = useState(18);
+  const baseFontSize = 18;
+  const maxFontSize = Platform.OS === 'android' ? 34 : 30;
   
   const increaseFontSize = () => {
-    setFontSize(prev => Math.min(prev + 2, 28));
+    setFontSize(prev => Math.min(prev + 2, maxFontSize));
   };
   
   const decreaseFontSize = () => {
@@ -356,8 +357,8 @@ const styles = StyleSheet.create({
     padding: 20
   },
   textContent: {
-    fontSize: 16,
-    lineHeight: 22,
+    fontSize: 18,
+    lineHeight: 28,
     color: Colors.light.text,
   },
   italicText: {
@@ -367,8 +368,8 @@ const styles = StyleSheet.create({
     fontWeight: adjustFontWeight('700'),
   },
   headingText: {
-    fontSize: 16,
-    lineHeight: 22,
+    fontSize: 18,
+    lineHeight: 28,
     color: Colors.light.text,
     fontWeight: adjustFontWeight('700')
   },
@@ -379,15 +380,15 @@ const styles = StyleSheet.create({
   numberLabel: {
     textAlign: 'right',
     marginRight: 8,
-    fontSize: 16,
-    lineHeight: 22,
+    fontSize: 18,
+    lineHeight: 28,
     color: Colors.light.text,
     fontWeight: adjustFontWeight('600')
   },
   numberText: {
     flex: 1,
-    fontSize: 16,
-    lineHeight: 22,
+    fontSize: 18,
+    lineHeight: 28,
     color: Colors.light.text,
   },
   sourceText: {

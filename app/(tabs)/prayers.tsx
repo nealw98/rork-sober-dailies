@@ -5,6 +5,7 @@ import {
   Text,
   ScrollView,
   TouchableOpacity,
+  Platform,
 } from "react-native";
 import { ChevronDown, ChevronRight, Type } from "lucide-react-native";
 import { LinearGradient } from 'expo-linear-gradient';
@@ -22,14 +23,19 @@ export default function PrayersScreen() {
   const scrollViewRef = useRef<ScrollView>(null);
   const prayerRefs = useRef<{ [key: number]: View | null }>({});
   const prayerPositions = useRef<{ [key: number]: number }>({});
-
-  // Font size controls (match SimpleTextReader behavior)
-  const [fontSize, setFontSize] = useState(16);
-  const baseFontSize = 16;
-
-  const increaseFontSize = () => setFontSize(prev => Math.min(prev + 2, 28));
-  const decreaseFontSize = () => setFontSize(prev => Math.max(prev - 2, 12));
-
+  
+  const [fontSize, setFontSize] = useState(18);
+  const baseFontSize = 18;
+  const maxFontSize = Platform.OS === 'android' ? 34 : 30;
+  
+  const increaseFontSize = () => {
+    setFontSize(prev => Math.min(prev + 2, maxFontSize));
+  };
+  
+  const decreaseFontSize = () => {
+    setFontSize(prev => Math.max(prev - 2, 12));
+  };
+  
   // Double-tap anywhere in the content to reset font size
   const doubleTapGesture = useMemo(() => Gesture.Tap()
     .numberOfTaps(2)
