@@ -85,7 +85,7 @@ const generateCalendarDays = (date: Date) => {
   return days;
 };
 
-export default function DailyReflection({ fontSize = 16 }: DailyReflectionProps) {
+export default function DailyReflection({ fontSize = 18 }: DailyReflectionProps) {
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [reflection, setReflection] = useState<Reflection | null>(null);
 
