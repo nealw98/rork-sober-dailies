@@ -268,7 +268,7 @@ const styles = StyleSheet.create({
   sectionContainerMorning: {
     paddingHorizontal: 16,
     marginBottom: 30,
-    backgroundColor: '#FBC4AB', // Peach tone
+    backgroundColor: '#FBECA2', // Softer golden yellow
     paddingVertical: 20,
     borderRadius: 16,
     marginHorizontal: 16,

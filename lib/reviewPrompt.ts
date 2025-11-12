@@ -24,10 +24,11 @@ const REVIEW_TRIGGERS: readonly ReviewTrigger[] = [
   'aiSponsor',
 ] as const;
 
+// TODO: TESTING MODE - Set back to production values before release
 const MIN_USAGE_DAYS = 0;
 const MIN_DAILY_REFLECTION_DAYS = 0;
 const MIN_LITERATURE_MINUTES = 0;
-const MIN_AI_RESPONSES = 0;
+const MIN_AI_RESPONSES = 5;
 const COOLDOWN_MS = 0;
 
 const STORAGE_SEPARATOR = ',';
