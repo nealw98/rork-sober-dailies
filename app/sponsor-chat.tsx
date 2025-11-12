@@ -1,14 +1,13 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState } from "react";
 import {
   StyleSheet,
   View,
   Text,
   TouchableOpacity,
-  Image,
   Platform,
 } from "react-native";
 import { useRouter, useLocalSearchParams, Stack } from "expo-router";
-import { ChevronLeft, ChevronDown, RotateCcw } from "lucide-react-native";
+import { ChevronLeft, RotateCcw } from "lucide-react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import ChatInterface from "@/components/ChatInterface";
 import SponsorDropdown from "@/components/SponsorDropdown";
@@ -29,7 +28,6 @@ function SponsorChatContent({ initialSponsor }: { initialSponsor: string }) {
     y: 0,
     width: 0,
   });
-  const headerRef = useRef<View>(null);
 
   const sponsor = getSponsorById(currentSponsorId);
 
@@ -37,15 +35,9 @@ function SponsorChatContent({ initialSponsor }: { initialSponsor: string }) {
     router.push("/(tabs)/chat");
   };
 
-  const handleHeaderPress = () => {
-    headerRef.current?.measureInWindow((x, y, width, height) => {
-      setDropdownPosition({
-        x: 16,
-        y: y + height + 4,
-        width: width - 32,
-      });
-      setDropdownVisible(true);
-    });
+  const handleSponsorPress = (position: { x: number; y: number; width: number }) => {
+    setDropdownPosition(position);
+    setDropdownVisible(true);
   };
 
   const handleSponsorChange = (sponsorId: string) => {
@@ -82,20 +74,6 @@ function SponsorChatContent({ initialSponsor }: { initialSponsor: string }) {
           <Text style={styles.backText}>Back</Text>
         </TouchableOpacity>
 
-        {/* Sponsor Header - Tappable */}
-        <TouchableOpacity
-          ref={headerRef}
-          style={styles.sponsorHeader}
-          onPress={handleHeaderPress}
-          activeOpacity={0.7}
-        >
-          <Image source={sponsor.avatar} style={styles.headerAvatar} />
-          <Text style={styles.headerName} numberOfLines={1}>
-            {sponsor.name}
-          </Text>
-          <ChevronDown color={Colors.light.text} size={20} />
-        </TouchableOpacity>
-
         {/* Refresh Button */}
         <TouchableOpacity
           style={styles.refreshButton}
@@ -109,7 +87,7 @@ function SponsorChatContent({ initialSponsor }: { initialSponsor: string }) {
       {/* Chat Interface */}
       <ChatInterface
         sponsorType={currentSponsorId as SponsorType}
-        onSponsorChange={handleSponsorChange}
+        onSponsorPress={handleSponsorPress}
       />
 
       {/* Dropdown */}
@@ -146,6 +124,7 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: "row",
     alignItems: "center",
+    justifyContent: "space-between",
     paddingHorizontal: 8,
     paddingVertical: 8,
     backgroundColor: "#f8f9fa",
@@ -162,28 +141,9 @@ const styles = StyleSheet.create({
     color: Colors.light.tint,
     fontWeight: '400',
   },
-  sponsorHeader: {
-    flex: 1,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-  },
-  headerAvatar: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    marginRight: 8,
-  },
-  headerName: {
-    fontSize: 16,
-    fontWeight: adjustFontWeight("600", true),
-    color: Colors.light.text,
-    marginRight: 4,
-  },
   refreshButton: {
-    padding: 8,
+    padding: Platform.OS === "android" ? 6 : 10,
+    borderRadius: 16,
   },
   errorContainer: {
     flex: 1,

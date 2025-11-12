@@ -11,10 +11,11 @@ import {
   ActivityIndicator,
   Keyboard,
   Alert,
+  Image,
 } from "react-native";
 import * as Haptics from 'expo-haptics';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Send, RotateCcw } from "lucide-react-native";
+import { Send, ChevronDown } from "lucide-react-native";
 import * as Clipboard from 'expo-clipboard';
 import { LinearGradient } from 'expo-linear-gradient';
 import Colors from "@/constants/colors";
@@ -92,7 +93,7 @@ const checkSponsorMessageLimits = async (): Promise<LimitCheckResult> => {
 
 interface ChatInterfaceProps {
   sponsorType: SponsorType;
-  onSponsorChange?: (type: SponsorType) => void;
+  onSponsorPress?: (position: { x: number; y: number; width: number }) => void;
 }
 
 const ChatBubble = ({
@@ -116,6 +117,7 @@ const ChatBubble = ({
     return styles.supportiveBubble;
   };
 
+  const isFresh = sponsorType === 'fresh' && !isUser;
   const bubbleStyle = [
     styles.bubble,
     isFresh ? styles.freshBubbleBase : getBotBubbleStyle(),
@@ -157,8 +159,6 @@ const ChatBubble = ({
     }
   };
   
-  const isFresh = sponsorType === 'fresh' && !isUser;
-
   return (
     <View
       style={[
@@ -189,82 +189,15 @@ const ChatBubble = ({
   );
 };
 
-const SponsorToggle = ({
-  sponsorType,
-  onChange,
-}: {
-  sponsorType: SponsorType;
-  onChange: (type: SponsorType) => void;
-}) => {
-  return (
-    <View style={styles.sponsorToggleContainer}>
-      <TouchableOpacity
-        style={[
-          styles.sponsorButton,
-          sponsorType === "supportive" && styles.sponsorButtonActive,
-        ]}
-        onPress={() => onChange("supportive")}
-        testID="supportive-sponsor-button"
-      >
-        <Text
-          style={[
-            styles.sponsorButtonText,
-            sponsorType === "supportive" && styles.sponsorButtonTextActive,
-          ]}
-        >
-          Steady Eddie
-        </Text>
-      </TouchableOpacity>
-
-      <TouchableOpacity
-        style={[
-          styles.sponsorButton,
-          sponsorType === "salty" && styles.sponsorButtonActive,
-        ]}
-        onPress={() => onChange("salty")}
-        testID="salty-sponsor-button"
-      >
-        <Text
-          style={[
-            styles.sponsorButtonText,
-            sponsorType === "salty" && styles.sponsorButtonTextActive,
-          ]}
-        >
-          Salty Sam
-        </Text>
-      </TouchableOpacity>
-
-      <TouchableOpacity
-        style={[
-          styles.sponsorButton,
-          sponsorType === "grace" && styles.sponsorButtonActive,
-        ]}
-        onPress={() => onChange("grace")}
-        testID="grace-sponsor-button"
-      >
-        <Text
-          style={[
-            styles.sponsorButtonText,
-            sponsorType === "grace" && styles.sponsorButtonTextActive,
-          ]}
-          numberOfLines={1}
-          ellipsizeMode="tail"
-        >
-          Gentle Grace
-        </Text>
-      </TouchableOpacity>
-    </View>
-  );
-};
-
 export default function ChatInterface({ 
   sponsorType: propSponsorType,
-  onSponsorChange,
+  onSponsorPress,
 }: ChatInterfaceProps) {
-  const { messages, isLoading, sendMessage, clearChat, sponsorType: storeSponsorType, changeSponsor } = useChatStore();
+  const { messages, isLoading, sendMessage, sponsorType: storeSponsorType, changeSponsor } = useChatStore();
   const [inputText, setInputText] = useState<string>("");
   const [isCheckingLimits, setIsCheckingLimits] = useState(false);
   const flatListRef = useRef<FlatList>(null);
+  const selectorRef = useRef<TouchableOpacity | null>(null);
   const insets = useSafeAreaInsets();
   
   // Always use the prop sponsor type and sync to store immediately
@@ -328,15 +261,6 @@ export default function ChatInterface({
     void sendMessage(textToSend);
   };
 
-  const handleSponsorChange = (type: SponsorType) => {
-    changeSponsor(type);
-    onSponsorChange?.(type);
-  };
-
-  const handleClearChat = () => {
-    clearChat();
-  };
-
   // Helper function to get sponsor display name for logging
   const getSponsorDisplayName = (type: SponsorType): string => {
     switch (type) {
@@ -371,6 +295,15 @@ export default function ChatInterface({
 
   const isSendDisabled = !inputText.trim() || isLoading || isCheckingLimits;
 
+  const handleSponsorSelectorPress = () => {
+    if (!onSponsorPress || !selectorRef.current) {
+      return;
+    }
+    selectorRef.current.measureInWindow((x = 0, y = 0, width = 0, height = 0) => {
+      onSponsorPress({ x, y: y + height + 4, width });
+    });
+  };
+
   return (
     <KeyboardAvoidingView
       style={styles.container}
@@ -383,25 +316,31 @@ export default function ChatInterface({
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
       />
-
-      <View style={styles.headerContainer}>
-        <Text style={styles.headerTitle}>AI Sponsors</Text>
-        <Text style={styles.headerSubtitle}>
-          Select a sponsor that fits your style
-        </Text>
-      </View>
-
-      <View style={styles.topContainer}>
-        <SponsorToggle sponsorType={sponsorType} onChange={handleSponsorChange} />
+      <View style={styles.selectorContainer}>
         <TouchableOpacity
-          style={styles.clearButton}
-          onPress={handleClearChat}
-          testID="clear-chat-button"
+          ref={selectorRef}
+          style={styles.selectorCard}
+          onPress={handleSponsorSelectorPress}
+          activeOpacity={0.75}
         >
-          <RotateCcw size={18} color={Colors.light.muted} />
+          {sponsorConfig?.avatar ? (
+            <Image source={sponsorConfig.avatar} style={styles.selectorAvatar} />
+          ) : (
+            <View style={styles.selectorAvatarPlaceholder}>
+              <Text style={styles.selectorAvatarInitial}>
+                {sponsorConfig?.name?.charAt(0) ?? "?"}
+              </Text>
+            </View>
+          )}
+          <View style={styles.selectorTextWrapper}>
+            <Text style={styles.selectorName} numberOfLines={1}>
+              {sponsorConfig?.name ?? "Sponsor"}
+            </Text>
+            <Text style={styles.selectorHint}>Tap to switch sponsors</Text>
+          </View>
+          <ChevronDown color={Colors.light.text} size={20} />
         </TouchableOpacity>
       </View>
-
       <View style={styles.messagesWrapper}>
         <FlatList
           ref={flatListRef}
@@ -420,7 +359,7 @@ export default function ChatInterface({
           testID="chat-message-list"
           keyboardShouldPersistTaps="handled"
         />
-
+        
         {isLoading && (
           <View style={styles.loadingContainer}>
             <ActivityIndicator size="small" color={Colors.light.tint} />
@@ -428,7 +367,7 @@ export default function ChatInterface({
           </View>
         )}
       </View>
-
+      
       <View
         style={[
           styles.inputContainer,
@@ -477,37 +416,62 @@ const styles = StyleSheet.create({
     right: 0,
     bottom: 0,
   },
-  headerContainer: {
+  selectorContainer: {
     paddingHorizontal: 16,
-    paddingTop: 12,
-    paddingBottom: 8,
-    alignItems: "center",
+    paddingTop: 32,
+    paddingBottom: 0,
   },
-  headerTitle: {
-    fontSize: 28,
-    fontWeight: adjustFontWeight("700", true),
-    color: Colors.light.text,
-    marginBottom: 8,
-    textAlign: "center",
-  },
-  headerSubtitle: {
-    fontSize: 12,
-    fontStyle: "italic" as const,
-    fontWeight: adjustFontWeight("400"),
-    color: Colors.light.muted,
-  },
-  topContainer: {
+  selectorCard: {
     flexDirection: "row",
     alignItems: "center",
-    paddingHorizontal: 16,
-    marginBottom: 8,
-    backgroundColor: "transparent",
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    backgroundColor: "#ffffff",
+    borderRadius: 18,
+    gap: 10,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.16,
+    shadowRadius: 14,
+    elevation: 6,
+  },
+  selectorAvatar: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+  },
+  selectorAvatarPlaceholder: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "#f0f4ff",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  selectorAvatarInitial: {
+    fontSize: 18,
+    fontWeight: adjustFontWeight("600"),
+    color: Colors.light.tint,
+  },
+  selectorTextWrapper: {
+    flex: 1,
+  },
+  selectorName: {
+    fontSize: 18,
+    fontWeight: adjustFontWeight("600", true),
+    color: Colors.light.text,
+  },
+  selectorHint: {
+    fontSize: 12,
+    color: Colors.light.muted,
+    marginTop: 2,
   },
   messagesWrapper: {
     flex: 1,
     backgroundColor: Colors.light.background,
     borderRadius: 16,
-    margin: 12,
+    marginHorizontal: 16,
+    marginTop: 28,
     marginBottom: 0,
     overflow: "hidden",
     shadowColor: "#000",
@@ -518,47 +482,6 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.12,
     shadowRadius: 6,
     elevation: 4,
-  },
-  clearButton: {
-    padding: 12,
-    marginRight: 4,
-  },
-  sponsorToggleContainer: {
-    flex: 1,
-    flexDirection: "row",
-    padding: 8,
-  },
-  sponsorButton: {
-    flex: 1,
-    paddingVertical: 8,
-    paddingHorizontal: 4,
-    borderRadius: 20,
-    alignItems: "center",
-    marginHorizontal: 2,
-    backgroundColor: Colors.light.cardBackground,
-    borderWidth: 1,
-    borderColor: Colors.light.divider,
-    shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
-      height: 6,
-    },
-    shadowOpacity: 0.18,
-    shadowRadius: 8,
-    elevation: 6,
-  },
-  sponsorButtonActive: {
-    backgroundColor: Colors.light.tint,
-    borderColor: Colors.light.tint,
-  },
-  sponsorButtonText: {
-    fontSize: 13,
-    fontWeight: adjustFontWeight("500"),
-    color: Colors.light.muted,
-    flexShrink: 1,
-  },
-  sponsorButtonTextActive: {
-    color: "#fff",
   },
   chatContainer: {
     padding: 16,
