@@ -4,7 +4,7 @@ import type * as ExpoStoreReviewModule from 'expo-store-review';
 
 import { showInAppReviewPrompt, type InAppReviewReason } from './reviewPromptBridge';
 
-export type ReviewTrigger = 'gratitude' | 'eveningReview' | 'spotCheck' | 'aiSponsor';
+export type ReviewTrigger = 'gratitude' | 'eveningReview' | 'spotCheck' | 'aiSponsor' | 'dailyReflection' | 'literature';
 
 const STORAGE_KEYS = {
   DAYS_USED: 'reviewPrompt:daysUsed',
@@ -22,12 +22,14 @@ const REVIEW_TRIGGERS: readonly ReviewTrigger[] = [
   'eveningReview',
   'spotCheck',
   'aiSponsor',
+  'dailyReflection',
+  'literature',
 ] as const;
 
 // TODO: TESTING MODE - Set back to production values before release
 const MIN_USAGE_DAYS = 0;
-const MIN_DAILY_REFLECTION_DAYS = 0;
-const MIN_LITERATURE_MINUTES = 0;
+const MIN_DAILY_REFLECTION_DAYS = 0;  // Trigger on every navigation away
+const MIN_LITERATURE_MINUTES = 0;      // Trigger on every navigation away
 const MIN_AI_RESPONSES = 5;
 const COOLDOWN_MS = 0;
 
@@ -243,13 +245,31 @@ async function incrementAIResponses(by: number): Promise<number> {
   return updated;
 }
 
-function meetsTriggerSpecificRequirement(trigger: ReviewTrigger, aiResponses: number): boolean {
+function meetsTriggerSpecificRequirement(
+  trigger: ReviewTrigger,
+  aiResponses: number,
+  reflectionDays: number,
+  literatureMinutes: number,
+): boolean {
   if (trigger === 'aiSponsor') {
     const ok = aiResponses >= MIN_AI_RESPONSES;
     console.log('[reviewPrompt] aiSponsor requirement', { aiResponses, ok });
     return ok;
   }
-  // Other triggers do not have additional per-trigger requirements.
+
+  if (trigger === 'dailyReflection') {
+    const ok = reflectionDays >= MIN_DAILY_REFLECTION_DAYS;
+    console.log('[reviewPrompt] dailyReflection requirement', { reflectionDays, ok });
+    return ok;
+  }
+
+  if (trigger === 'literature') {
+    const ok = literatureMinutes >= MIN_LITERATURE_MINUTES;
+    console.log('[reviewPrompt] literature requirement', { literatureMinutes, ok });
+    return ok;
+  }
+
+  // gratitude, eveningReview, spotCheck have no additional requirements
   return true;
 }
 
@@ -375,11 +395,13 @@ export async function maybeAskForReview(trigger: ReviewTrigger): Promise<boolean
       return false;
     }
 
-    const [usageOk, readingOk, cooldownOk, aiResponses] = await Promise.all([
+    const [usageOk, readingOk, cooldownOk, aiResponses, reflectionDays, literatureMinutes] = await Promise.all([
       hasUsageThreshold(),
       hasReadingThreshold(),
       hasCooldownExpired(),
       getNumber(STORAGE_KEYS.AI_RESPONSE_COUNT),
+      getStringSet(STORAGE_KEYS.DAILY_REFLECTION_DAYS).then((set) => set.size),
+      getNumber(STORAGE_KEYS.LITERATURE_MINUTES),
     ]);
 
     console.log('[reviewPrompt] gate results', { usageOk, readingOk, cooldownOk, aiResponses });
@@ -389,8 +411,8 @@ export async function maybeAskForReview(trigger: ReviewTrigger): Promise<boolean
       return false;
     }
 
-    if (!meetsTriggerSpecificRequirement(trigger, aiResponses)) {
-      console.log('[reviewPrompt] trigger specific requirement failed', trigger, aiResponses);
+    if (!meetsTriggerSpecificRequirement(trigger, aiResponses, reflectionDays, literatureMinutes)) {
+      console.log('[reviewPrompt] trigger specific requirement failed', trigger);
       return false;
     }
 
@@ -408,5 +430,13 @@ export async function requestReviewDebug(): Promise<boolean> {
     'Thanks for testing the review prompt! Tap “Rate Sober Dailies” to simulate the native sheet.';
   console.log('[reviewPrompt] requestReviewDebug invoked');
   return presentStoreReview('gratitude', 'debug', message);
+}
+
+export async function maybeAskForReviewFromDailyReflection(): Promise<boolean> {
+  return maybeAskForReview('dailyReflection');
+}
+
+export async function maybeAskForReviewFromLiterature(): Promise<boolean> {
+  return maybeAskForReview('literature');
 }
 
