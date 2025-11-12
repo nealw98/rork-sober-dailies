@@ -1,3 +1,4 @@
+import React, { useCallback } from "react";
 import { StyleSheet, View, Text, TouchableOpacity } from "react-native";
 import { router } from "expo-router";
 import { Book, BookOpen, FileText, ChevronRight } from "lucide-react-native";
@@ -6,6 +7,8 @@ import ScreenContainer from "@/components/ScreenContainer";
 import Colors from "@/constants/colors";
 import { adjustFontWeight } from "@/constants/fonts";
 import { useReadingSession } from "@/hooks/useReadingSession";
+import { useFocusEffect } from "expo-router";
+import { maybeAskForReviewFromLiterature } from "@/lib/reviewPrompt";
 
 interface LiteratureOption {
   id: string;
@@ -37,6 +40,16 @@ const literatureOptions: LiteratureOption[] = [
 
 export default function LiteratureScreen() {
   useReadingSession('literature');
+
+  useFocusEffect(
+    useCallback(() => {
+      return () => {
+        maybeAskForReviewFromLiterature().catch((error) => {
+          console.warn('[reviewPrompt] Literature review prompt failed', error);
+        });
+      };
+    }, [])
+  );
 
   // Add direct navigation buttons for debugging
   const handleDirectNavigation = (screenName: string) => {

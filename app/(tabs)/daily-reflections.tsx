@@ -1,11 +1,13 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import { Platform, TouchableOpacity, View, Text, StyleSheet } from 'react-native';
 import { Type } from 'lucide-react-native';
 import { Stack } from 'expo-router';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
+import { useFocusEffect } from 'expo-router';
 import ScreenContainer from '@/components/ScreenContainer';
 import DailyReflection from '@/components/DailyReflection';
 import Colors from '@/constants/colors';
+import { maybeAskForReviewFromDailyReflection } from '@/lib/reviewPrompt';
 
 export default function DailyReflectionsPage() {
   const [fontSize, setFontSize] = useState(18);
@@ -27,6 +29,16 @@ export default function DailyReflectionsPage() {
       setFontSize(baseFontSize);
     })
     .runOnJS(true), [baseFontSize]);
+
+  useFocusEffect(
+    useCallback(() => {
+      return () => {
+        maybeAskForReviewFromDailyReflection().catch((error) => {
+          console.warn('[reviewPrompt] Daily Reflection review prompt failed', error);
+        });
+      };
+    }, [])
+  );
 
   return (
     <>
