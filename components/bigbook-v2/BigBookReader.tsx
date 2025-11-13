@@ -139,8 +139,8 @@ export function BigBookReader({ visible, initialChapterId, scrollToParagraphId, 
   const [editingHighlight, setEditingHighlight] = useState<BigBookHighlight | null>(null);
 
   // Font size state (replacing pinch-to-zoom)
-  const [fontSize, setFontSize] = useState(16);
-  const baseFontSize = 16;
+  const [fontSize, setFontSize] = useState(18);
+  const baseFontSize = 18;
   
   const increaseFontSize = useCallback(() => {
     setFontSize(prev => Math.min(prev + 2, 28));

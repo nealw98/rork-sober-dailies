@@ -1,6 +1,7 @@
 import { installedBefore } from './first-install-tracker';
 import { getCustomerInfoSafe } from './purchases';
 import { IS_TESTFLIGHT_PREVIEW } from '@/constants/featureFlags';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 /**
  * Big Book Reader Access Control
@@ -13,16 +14,24 @@ import { IS_TESTFLIGHT_PREVIEW } from '@/constants/featureFlags';
 
 // Session-only TestFlight bypass state and listeners
 let bypassPaywallForSession = false;
+let bypassInitialized = false;
+const BIG_BOOK_BYPASS_KEY = '@sober_dailies:bigbook_premium_unlocked';
 const bypassListeners: Array<() => void> = [];
 
 export function enableBigBookTestflightBypass() {
   if (!IS_TESTFLIGHT_PREVIEW) return;
   bypassPaywallForSession = true;
+  AsyncStorage.setItem(BIG_BOOK_BYPASS_KEY, 'true').catch((error) =>
+    console.error('[BigBookAccess] Failed to persist bypass state:', error)
+  );
   bypassListeners.forEach(fn => fn());
 }
 
 export function disableBigBookTestflightBypass() {
   bypassPaywallForSession = false;
+  AsyncStorage.removeItem(BIG_BOOK_BYPASS_KEY).catch((error) =>
+    console.error('[BigBookAccess] Failed to clear bypass state:', error)
+  );
   bypassListeners.forEach(fn => fn());
 }
 
@@ -38,6 +47,20 @@ export function isBigBookBypassEnabled() {
   return bypassPaywallForSession;
 }
 
+export async function loadBigBookBypassState() {
+  if (bypassInitialized) {
+    return;
+  }
+  try {
+    const stored = await AsyncStorage.getItem(BIG_BOOK_BYPASS_KEY);
+    bypassPaywallForSession = stored === 'true';
+  } catch (error) {
+    console.error('[BigBookAccess] Failed to load bypass state:', error);
+  } finally {
+    bypassInitialized = true;
+  }
+}
+
 // Set to future date (TEMPORARY - for testing both versions)
 // This will be the cutoff date for grandfathering early adopters
 // TODO: Change back to actual launch date before production
@@ -50,6 +73,7 @@ export const BIG_BOOK_LAUNCH_DATE = new Date('2026-01-01T00:00:00.000Z');
  */
 export async function hasBigBookAccess(): Promise<boolean> {
   try {
+    await loadBigBookBypassState();
     // TestFlight session bypass
     if (IS_TESTFLIGHT_PREVIEW && bypassPaywallForSession) {
       console.log('[BigBookAccess] TestFlight bypass enabled');
