@@ -2,8 +2,6 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { NativeModules } from 'react-native';
 import type * as ExpoStoreReviewModule from 'expo-store-review';
 
-import { showInAppReviewPrompt, type InAppReviewReason } from './reviewPromptBridge';
-
 export type ReviewTrigger = 'gratitude' | 'eveningReview' | 'spotCheck' | 'aiSponsor' | 'dailyReflection' | 'literature';
 
 const STORAGE_KEYS = {
@@ -26,12 +24,15 @@ const REVIEW_TRIGGERS: readonly ReviewTrigger[] = [
   'literature',
 ] as const;
 
-// TODO: TESTING MODE - Set back to production values before release
+// TODO: TESTING MODE - Set to production values before release:
+// MIN_USAGE_DAYS = 7
+// COOLDOWN_MS = 1000 * 60 * 60 * 24 * 90 (90 days)
 const MIN_USAGE_DAYS = 0;
-const MIN_DAILY_REFLECTION_DAYS = 0;  // Trigger on every navigation away
-const MIN_LITERATURE_MINUTES = 0;      // Trigger on every navigation away
+const MIN_DAILY_REFLECTION_DAYS = 5;
+const MIN_LITERATURE_MINUTES = 10;
 const MIN_AI_RESPONSES = 5;
-const COOLDOWN_MS = 0;
+const MIN_TRIGGER_COUNT = 5;
+const COOLDOWN_MS = 0; // Disabled for testing
 
 const STORAGE_SEPARATOR = ',';
 
@@ -171,6 +172,20 @@ async function incrementTriggerCount(trigger: ReviewTrigger): Promise<number> {
   return nextValue;
 }
 
+async function resetAllTriggerCounters(): Promise<void> {
+  try {
+    await AsyncStorage.setItem(STORAGE_KEYS.TRIGGER_COUNTS, JSON.stringify({}));
+  } catch (error) {
+    console.warn('[reviewPrompt] Failed to reset trigger counts', error);
+  }
+
+  await Promise.all([
+    setNumber(STORAGE_KEYS.AI_RESPONSE_COUNT, 0),
+    saveStringSet(STORAGE_KEYS.DAILY_REFLECTION_DAYS, new Set<string>()),
+    setNumber(STORAGE_KEYS.LITERATURE_MINUTES, 0),
+  ]);
+}
+
 async function getLastPromptTimestamp(): Promise<number | null> {
   try {
     const raw = await AsyncStorage.getItem(STORAGE_KEYS.LAST_PROMPT);
@@ -191,6 +206,13 @@ async function setLastPromptTimestamp(date: Date): Promise<void> {
   } catch (error) {
     console.warn('[reviewPrompt] Failed to persist last prompt timestamp', error);
   }
+}
+
+async function recordPromptShown(): Promise<void> {
+  await Promise.all([
+    setLastPromptTimestamp(new Date()),
+    resetAllTriggerCounters(),
+  ]);
 }
 
 async function ensureUsageDayRecorded(dayKey: string): Promise<void> {
@@ -217,18 +239,6 @@ async function hasUsageThreshold(): Promise<boolean> {
   return daysUsed.size >= MIN_USAGE_DAYS;
 }
 
-async function hasReadingThreshold(): Promise<boolean> {
-  if (MIN_DAILY_REFLECTION_DAYS <= 0 && MIN_LITERATURE_MINUTES <= 0) {
-    return true;
-  }
-  const reflectionDays = await getStringSet(STORAGE_KEYS.DAILY_REFLECTION_DAYS);
-  if (reflectionDays.size >= MIN_DAILY_REFLECTION_DAYS) {
-    return true;
-  }
-  const literatureMinutes = await getNumber(STORAGE_KEYS.LITERATURE_MINUTES);
-  return literatureMinutes >= MIN_LITERATURE_MINUTES;
-}
-
 async function hasCooldownExpired(): Promise<boolean> {
   if (COOLDOWN_MS <= 0) {
     return true;
@@ -247,95 +257,72 @@ async function incrementAIResponses(by: number): Promise<number> {
 
 function meetsTriggerSpecificRequirement(
   trigger: ReviewTrigger,
+  attemptCount: number,
   aiResponses: number,
   reflectionDays: number,
   literatureMinutes: number,
 ): boolean {
   if (trigger === 'aiSponsor') {
-    const ok = aiResponses >= MIN_AI_RESPONSES;
-    console.log('[reviewPrompt] aiSponsor requirement', { aiResponses, ok });
+    const ok =
+      attemptCount >= MIN_TRIGGER_COUNT && aiResponses >= MIN_AI_RESPONSES;
+    console.log('[reviewPrompt] aiSponsor requirement', {
+      attemptCount,
+      aiResponses,
+      ok,
+    });
     return ok;
   }
 
   if (trigger === 'dailyReflection') {
     const ok = reflectionDays >= MIN_DAILY_REFLECTION_DAYS;
-    console.log('[reviewPrompt] dailyReflection requirement', { reflectionDays, ok });
+    console.log('[reviewPrompt] dailyReflection requirement', {
+      reflectionDays,
+      ok,
+    });
     return ok;
   }
 
   if (trigger === 'literature') {
     const ok = literatureMinutes >= MIN_LITERATURE_MINUTES;
-    console.log('[reviewPrompt] literature requirement', { literatureMinutes, ok });
+    console.log('[reviewPrompt] literature requirement', {
+      literatureMinutes,
+      ok,
+    });
     return ok;
   }
 
-  // gratitude, eveningReview, spotCheck have no additional requirements
-  return true;
+  const ok = attemptCount >= MIN_TRIGGER_COUNT;
+  console.log('[reviewPrompt] default trigger requirement', {
+    trigger,
+    attemptCount,
+    ok,
+  });
+  return ok;
 }
 
-async function presentStoreReview(
-  trigger: ReviewTrigger,
-  reason: InAppReviewReason,
-  overrideMessage?: string,
-): Promise<boolean> {
-  console.log('[reviewPrompt] presentStoreReview start', { trigger, reason, overrideMessage });
-  const showFallback = async () => {
-    console.log('[reviewPrompt] presenting fallback modal');
-    const accepted = await showInAppReviewPrompt({ trigger, reason, overrideMessage });
-    console.log('[reviewPrompt] fallback modal result', accepted);
-    if (accepted && reason !== 'debug') {
-      await setLastPromptTimestamp(new Date());
-    }
-    return accepted;
-  };
-
-  const requestNativeReview = async () => {
-    const StoreReview = await getStoreReviewModule();
-    if (!StoreReview) {
-      console.log('[reviewPrompt] native module unavailable');
-      return false;
-    }
-
-    try {
-      const hasAction = await StoreReview.hasAction();
-      if (!hasAction) {
-        console.warn('[reviewPrompt] StoreReview.hasAction returned false, attempting anyway');
-      }
-
-      console.log('[reviewPrompt] invoking StoreReview.requestReview');
-      await StoreReview.requestReview();
-      await setLastPromptTimestamp(new Date());
-      return true;
-    } catch (error) {
-      console.warn('[reviewPrompt] Unable to present store review prompt', error);
-      return false;
-    }
-  };
-
-  if (reason === 'debug') {
-    console.log('[reviewPrompt] reason=debug -> fallback only');
-    return showFallback();
+async function presentStoreReview(trigger: ReviewTrigger): Promise<boolean> {
+  console.log('[reviewPrompt] presentStoreReview start', { trigger });
+  const StoreReview = await getStoreReviewModule();
+  if (!StoreReview) {
+    console.log('[reviewPrompt] native module unavailable');
+    return false;
   }
 
-  if (reason === 'fallback') {
-    const accepted = await showFallback();
-    if (!accepted) {
-      console.log('[reviewPrompt] fallback declined, skipping native prompt');
+  try {
+    const hasAction = await StoreReview.hasAction();
+    if (!hasAction) {
+      console.warn('[reviewPrompt] StoreReview.hasAction returned false');
       return false;
     }
 
-    const nativeShown = await requestNativeReview();
-    console.log('[reviewPrompt] native prompt attempted after fallback', nativeShown);
-    return nativeShown || true;
-  }
-
-  const nativeShown = await requestNativeReview();
-  console.log('[reviewPrompt] native prompt result (non-fallback)', nativeShown);
-  if (nativeShown) {
+    console.log('[reviewPrompt] invoking StoreReview.requestReview');
+    await StoreReview.requestReview();
+    await recordPromptShown();
     return true;
+  } catch (error) {
+    console.warn('[reviewPrompt] Unable to present store review prompt', error);
+    return false;
   }
-
-  return showFallback();
 }
 
 export async function recordAppOpen(date: Date = new Date()): Promise<void> {
@@ -390,33 +377,27 @@ export async function maybeAskForReview(trigger: ReviewTrigger): Promise<boolean
   try {
     console.log('[reviewPrompt] maybeAskForReview start', trigger);
     const attempt = await incrementTriggerCount(trigger);
-    if (attempt % 5 !== 0) {
-      console.log('[reviewPrompt] Trigger', trigger, 'count', attempt, '- waiting for next milestone');
-      return false;
-    }
-
-    const [usageOk, readingOk, cooldownOk, aiResponses, reflectionDays, literatureMinutes] = await Promise.all([
+    const [usageOk, cooldownOk, aiResponses, reflectionDays, literatureMinutes] = await Promise.all([
       hasUsageThreshold(),
-      hasReadingThreshold(),
       hasCooldownExpired(),
       getNumber(STORAGE_KEYS.AI_RESPONSE_COUNT),
       getStringSet(STORAGE_KEYS.DAILY_REFLECTION_DAYS).then((set) => set.size),
       getNumber(STORAGE_KEYS.LITERATURE_MINUTES),
     ]);
 
-    console.log('[reviewPrompt] gate results', { usageOk, readingOk, cooldownOk, aiResponses });
+    console.log('[reviewPrompt] gate results', { usageOk, cooldownOk, aiResponses });
 
-    if (!usageOk || !readingOk || !cooldownOk) {
-      console.log('[reviewPrompt] gating failed', { usageOk, readingOk, cooldownOk });
+    if (!usageOk || !cooldownOk) {
+      console.log('[reviewPrompt] gating failed', { usageOk, cooldownOk });
       return false;
     }
 
-    if (!meetsTriggerSpecificRequirement(trigger, aiResponses, reflectionDays, literatureMinutes)) {
+    if (!meetsTriggerSpecificRequirement(trigger, attempt, aiResponses, reflectionDays, literatureMinutes)) {
       console.log('[reviewPrompt] trigger specific requirement failed', trigger);
       return false;
     }
 
-    const result = await presentStoreReview(trigger, 'fallback');
+    const result = await presentStoreReview(trigger);
     console.log('[reviewPrompt] presentStoreReview result', result);
     return result;
   } catch (error) {
@@ -426,10 +407,8 @@ export async function maybeAskForReview(trigger: ReviewTrigger): Promise<boolean
 }
 
 export async function requestReviewDebug(): Promise<boolean> {
-  const message =
-    'Thanks for testing the review prompt! Tap “Rate Sober Dailies” to simulate the native sheet.';
   console.log('[reviewPrompt] requestReviewDebug invoked');
-  return presentStoreReview('gratitude', 'debug', message);
+  return presentStoreReview('gratitude');
 }
 
 export async function maybeAskForReviewFromDailyReflection(): Promise<boolean> {

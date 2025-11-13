@@ -59,19 +59,21 @@ function ChapterSection({ title, description, chapters, onSelectChapter, default
   return (
     <View style={styles.sectionContainer}>
       <TouchableOpacity
-        style={styles.sectionHeader}
+        style={styles.sectionHeaderWrapper}
         onPress={() => setExpanded(!expanded)}
-        activeOpacity={0.7}
+        activeOpacity={0.85}
       >
-        <View style={styles.sectionInfo}>
-          <Text style={styles.sectionTitle}>{title}</Text>
-          <Text style={styles.sectionDescription}>{description}</Text>
+        <View style={styles.sectionHeaderSolid}>
+          <View style={styles.sectionInfo}>
+            <Text style={styles.sectionTitle}>{title}</Text>
+            <Text style={styles.sectionDescription}>{description}</Text>
+          </View>
+          {expanded ? (
+            <ChevronDown size={20} color="#E6FFFA" />
+          ) : (
+            <ChevronRight size={20} color="#E6FFFA" />
+          )}
         </View>
-        {expanded ? (
-          <ChevronDown size={20} color={Colors.light.muted} />
-        ) : (
-          <ChevronRight size={20} color={Colors.light.muted} />
-        )}
       </TouchableOpacity>
       
       {expanded && (
@@ -157,11 +159,10 @@ export function BigBookChapterList({ onSelectChapter }: BigBookChapterListProps)
   return (
     <View style={styles.container}>
       <LinearGradient
-        colors={['rgba(74, 144, 226, 0.3)', 'rgba(92, 184, 92, 0.1)']}
+        colors={Colors.gradients.mainThreeColor}
         style={styles.backgroundGradient}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
-        locations={[0, 1]}
         pointerEvents="none"
       />
       
@@ -215,9 +216,7 @@ export function BigBookChapterList({ onSelectChapter }: BigBookChapterListProps)
           contentContainerStyle={styles.scrollViewContent}
         >
           {/* Header - Title with optional toggle - Now scrolls with content */}
-          <View style={styles.header}>
-            <Text style={styles.title}>Alcoholics Anonymous</Text>
-          </View>
+          <View style={styles.header} />
           <ChapterSection
             title="Forewords and Preface"
             description="Includes The Doctor's Opinion"
@@ -317,24 +316,26 @@ const styles = StyleSheet.create({
     marginBottom: 8,
     alignItems: 'center',
   },
-  title: {
-    fontSize: 28,
-    fontWeight: adjustFontWeight('bold', true),
-    color: Colors.light.text,
-    marginBottom: 8,
-    textAlign: 'center',
-  },
   sectionContainer: {
     marginBottom: 16,
   },
-  sectionHeader: {
+  sectionHeaderWrapper: {
+    borderRadius: 10,
+    overflow: 'hidden',
+    marginBottom: 8,
+    shadowColor: '#03202B',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.32,
+    shadowRadius: 18,
+    elevation: 12,
+  },
+  sectionHeaderSolid: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingVertical: 12,
     paddingHorizontal: 16,
-    backgroundColor: Colors.light.cardBackground,
-    borderRadius: 8,
+    backgroundColor: '#19a0b8',
   },
   sectionInfo: {
     flex: 1,
@@ -343,18 +344,18 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 18,
     fontWeight: adjustFontWeight('600'),
-    color: Colors.light.text,
+    color: '#E6FFFA',
     marginBottom: 4,
   },
   sectionDescription: {
     fontSize: 14,
-    color: Colors.light.muted,
+    color: 'rgba(214, 245, 239, 0.9)',
   },
   chaptersContainer: {
     marginTop: 0,
-    backgroundColor: 'rgba(255, 255, 255, 0.4)',
-    borderTopWidth: 1,
-    borderTopColor: Colors.light.divider,
+    backgroundColor: 'transparent',
+    borderTopWidth: 0,
+    borderRadius: 12,
   },
   chapterItem: {
     flexDirection: 'row',
@@ -362,9 +363,17 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingVertical: 12,
     paddingHorizontal: 16,
-    backgroundColor: 'transparent',
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.light.divider,
+    backgroundColor: 'rgba(255, 255, 255, 0.28)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.45)',
+    borderRadius: 12,
+    marginHorizontal: 8,
+    marginTop: 8,
+    shadowColor: '#041A25',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.26,
+    shadowRadius: 14,
+    elevation: 9,
   },
   chapterInfo: {
     flex: 1,
