@@ -22,6 +22,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { IS_TESTFLIGHT_PREVIEW } from "@/constants/featureFlags";
 
 const PREMIUM_UNLOCKED_KEY = '@premium_sponsors_unlocked';
+let premiumUnlockedForSession = false;
 
 export default function ChatScreen() {
   const router = useRouter();
@@ -39,8 +40,7 @@ export default function ChatScreen() {
   const loadPremiumUnlockStatus = async () => {
     try {
       if (IS_TESTFLIGHT_PREVIEW) {
-        await AsyncStorage.removeItem(PREMIUM_UNLOCKED_KEY);
-        setPremiumUnlocked(false);
+        setPremiumUnlocked(premiumUnlockedForSession);
         return;
       }
       const stored = await AsyncStorage.getItem(PREMIUM_UNLOCKED_KEY);
@@ -55,6 +55,10 @@ export default function ChatScreen() {
   const markAllPremiumAsUnlocked = async () => {
     try {
       setPremiumUnlocked(true);
+      if (IS_TESTFLIGHT_PREVIEW) {
+        premiumUnlockedForSession = true;
+        return;
+      }
       if (!IS_TESTFLIGHT_PREVIEW) {
         await AsyncStorage.setItem(PREMIUM_UNLOCKED_KEY, JSON.stringify(true));
       }
