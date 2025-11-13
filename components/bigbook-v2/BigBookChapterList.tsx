@@ -78,27 +78,26 @@ function ChapterSection({ title, description, chapters, onSelectChapter, default
       
       {expanded && (
         <View style={styles.chaptersContainer}>
-          {chapters.map((chapter) => (
-            <TouchableOpacity
-              key={chapter.id}
-              style={styles.chapterItem}
-              onPress={() => onSelectChapter(chapter.id)}
-              activeOpacity={0.7}
-            >
-              <View style={styles.chapterInfo}>
-                <View style={styles.chapterTitleRow}>
-                  <Text style={styles.chapterTitle}>{chapter.title}</Text>
-                  <Text style={styles.chapterPages}>
-                    pp. {formatPageNumber(chapter.pageRange[0], chapter.useRomanNumerals || false)}-{formatPageNumber(chapter.pageRange[1], chapter.useRomanNumerals || false)}
-                  </Text>
-                </View>
-                {chapter.description && (
-                  <Text style={styles.chapterDescription}>{chapter.description}</Text>
-                )}
-              </View>
-              <FileText size={20} color={Colors.light.muted} />
-            </TouchableOpacity>
-          ))}
+      {chapters.map((chapter) => (
+        <TouchableOpacity
+          key={chapter.id}
+          style={styles.chapterItem}
+          onPress={() => onSelectChapter(chapter.id)}
+          activeOpacity={0.7}
+        >
+          <View style={styles.chapterInfo}>
+            <View style={styles.chapterTitleRow}>
+              <Text style={styles.chapterTitle}>{chapter.title}</Text>
+              <Text style={styles.chapterPages}>
+                pp. {formatPageNumber(chapter.pageRange[0], chapter.useRomanNumerals || false)}-{formatPageNumber(chapter.pageRange[1], chapter.useRomanNumerals || false)}
+              </Text>
+            </View>
+            {chapter.description && (
+              <Text style={styles.chapterDescription}>{chapter.description}</Text>
+            )}
+          </View>
+        </TouchableOpacity>
+      ))}
         </View>
       )}
     </View>
@@ -170,44 +169,52 @@ export function BigBookChapterList({ onSelectChapter }: BigBookChapterListProps)
         {/* Action Row - Fixed at top */}
         <View style={styles.actionRow}>
           {/* Go to Page */}
-          <TouchableOpacity
-            onPress={() => setShowPageNavigation(true)}
-            activeOpacity={0.6}
-            style={styles.actionButton}
-          >
-            <Hash size={18} color="#007AFF" />
-            <Text style={styles.actionButtonText}>Page</Text>
-          </TouchableOpacity>
+          <View style={styles.actionButtonElevationWrapper}>
+            <TouchableOpacity
+              onPress={() => setShowPageNavigation(true)}
+              activeOpacity={0.8}
+              style={styles.actionButton}
+            >
+              <Hash size={18} color="#19a0b8" />
+              <Text style={styles.actionButtonText}>Page</Text>
+            </TouchableOpacity>
+          </View>
           
           {/* Search */}
-          <TouchableOpacity
-            onPress={() => setShowSearch(true)}
-            activeOpacity={0.6}
-            style={styles.actionButton}
-          >
-            <SearchIcon size={18} color="#007AFF" />
-            <Text style={styles.actionButtonText}>Search</Text>
-          </TouchableOpacity>
+          <View style={styles.actionButtonElevationWrapper}>
+            <TouchableOpacity
+              onPress={() => setShowSearch(true)}
+              activeOpacity={0.8}
+              style={styles.actionButton}
+            >
+              <SearchIcon size={18} color="#19a0b8" />
+              <Text style={styles.actionButtonText}>Search</Text>
+            </TouchableOpacity>
+          </View>
           
           {/* Highlights */}
-          <TouchableOpacity
-            onPress={() => setShowHighlightsList(true)}
-            activeOpacity={0.6}
-            style={styles.actionButton}
-          >
-            <Highlighter size={18} color="#007AFF" />
-            <Text style={styles.actionButtonText}>Highlights</Text>
-          </TouchableOpacity>
+          <View style={styles.actionButtonElevationWrapper}>
+            <TouchableOpacity
+              onPress={() => setShowHighlightsList(true)}
+              activeOpacity={0.8}
+              style={styles.actionButton}
+            >
+              <Highlighter size={18} color="#19a0b8" />
+              <Text style={styles.actionButtonText}>Highlights</Text>
+            </TouchableOpacity>
+          </View>
           
           {/* Bookmarks */}
-          <TouchableOpacity
-            onPress={() => setShowBookmarksList(true)}
-            activeOpacity={0.6}
-            style={styles.actionButton}
-          >
-            <BookmarkIcon size={18} color="#007AFF" />
-            <Text style={styles.actionButtonText}>Bookmarks</Text>
-          </TouchableOpacity>
+          <View style={styles.actionButtonElevationWrapper}>
+            <TouchableOpacity
+              onPress={() => setShowBookmarksList(true)}
+              activeOpacity={0.8}
+              style={styles.actionButton}
+            >
+              <BookmarkIcon size={18} color="#19a0b8" />
+              <Text style={styles.actionButtonText}>Bookmarks</Text>
+            </TouchableOpacity>
+          </View>
         </View>
         
         <ScrollView 
@@ -299,10 +306,24 @@ const styles = StyleSheet.create({
     flexDirection: 'column',
     alignItems: 'center',
     gap: 6,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    borderRadius: 12,
+    backgroundColor: 'rgba(255, 255, 255, 0.28)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.45)',
+    shadowColor: '#041A25',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.24,
+    shadowRadius: 10,
+  },
+  actionButtonElevationWrapper: {
+    elevation: 6,
+    borderRadius: 12,
   },
   actionButtonText: {
     fontSize: 14,
-    color: '#007AFF',
+    color: '#19a0b8',
     fontWeight: '500',
   },
   scrollView: {
@@ -336,6 +357,8 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     paddingHorizontal: 16,
     backgroundColor: '#19a0b8',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.6)',
   },
   sectionInfo: {
     flex: 1,
@@ -370,10 +393,10 @@ const styles = StyleSheet.create({
     marginHorizontal: 8,
     marginTop: 8,
     shadowColor: '#041A25',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.26,
-    shadowRadius: 14,
-    elevation: 9,
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.32,
+    shadowRadius: 18,
+    elevation: 13,
   },
   chapterInfo: {
     flex: 1,
@@ -398,7 +421,7 @@ const styles = StyleSheet.create({
   },
   chapterPages: {
     fontSize: 13,
-    color: Colors.light.muted,
+    color: '#19a0b8',
     marginLeft: 8,
   },
 });
