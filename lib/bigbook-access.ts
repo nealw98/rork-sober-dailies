@@ -55,6 +55,12 @@ export async function hasBigBookAccess(): Promise<boolean> {
       console.log('[BigBookAccess] TestFlight bypass enabled');
       return true;
     }
+
+    // In TestFlight preview builds, default to locked state until user unlocks via bypass.
+    if (IS_TESTFLIGHT_PREVIEW && !bypassPaywallForSession) {
+      console.log('[BigBookAccess] TestFlight preview default locked state');
+      return false;
+    }
     
     // Check 1: Is user grandfathered? (installed before launch)
     const isGrandfathered = await installedBefore(BIG_BOOK_LAUNCH_DATE);

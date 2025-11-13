@@ -6,8 +6,8 @@
  * - BigBookChapterList with modal Reader (has access)
  */
 
-import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ActivityIndicator } from 'react-native';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { View, Text, StyleSheet, ActivityIndicator, TouchableOpacity } from 'react-native';
 import { hasBigBookAccess, onBigBookBypassChange, isBigBookBypassEnabled } from '@/lib/bigbook-access';
 import { IS_TESTFLIGHT_PREVIEW } from '@/constants/featureFlags';
 import BigBookFreeBrowser from './BigBookFreeBrowser';
@@ -15,6 +15,7 @@ import { BigBookChapterList } from './BigBookChapterList';
 import { BigBookReader } from './BigBookReader';
 import { BigBookHighlightsProvider } from '@/hooks/use-bigbook-highlights';
 import Colors from '@/constants/colors';
+import { useNavigation } from 'expo-router';
 
 export function BigBookMain() {
   const [hasAccess, setHasAccess] = useState<boolean | null>(null);
@@ -23,6 +24,8 @@ export function BigBookMain() {
   const [scrollToParagraphId, setScrollToParagraphId] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState<string | null>(null);
   const [showReaderModal, setShowReaderModal] = useState(false);
+  const navigation = useNavigation();
+  const previousHasAccess = useRef<boolean | null>(null);
 
   // Check access on mount
   useEffect(() => {
@@ -68,6 +71,59 @@ export function BigBookMain() {
     return unsubscribe;
   }, []);
 
+  useEffect(() => {
+    if (previousHasAccess.current === false && hasAccess) {
+      setForceShowFree(false);
+    }
+    previousHasAccess.current = hasAccess;
+  }, [hasAccess]);
+
+  // Determine which view to show
+  const shouldShowFree = !hasAccess || forceShowFree;
+
+  const handleShowFree = useCallback(() => {
+    setForceShowFree(true);
+  }, []);
+
+  const handleShowPremium = useCallback(() => {
+    setForceShowFree(false);
+  }, []);
+
+  useEffect(() => {
+    if (hasAccess === null) {
+      return;
+    }
+
+    const showGoToFreeButton = hasAccess && !shouldShowFree;
+    const showGoToPremiumButton = hasAccess && shouldShowFree;
+    navigation.setOptions({
+      headerRight: showGoToFreeButton
+        ? () => (
+            <TouchableOpacity
+              style={styles.headerFreeButton}
+              onPress={handleShowFree}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.headerFreeButtonText}>Go to Free</Text>
+            </TouchableOpacity>
+          )
+        : showGoToPremiumButton
+        ? () => (
+            <TouchableOpacity
+              style={styles.headerFreeButton}
+              onPress={handleShowPremium}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.headerFreeButtonText}>Go to Premium</Text>
+            </TouchableOpacity>
+          )
+        : undefined,
+    });
+    return () => {
+      navigation.setOptions({ headerRight: undefined });
+    };
+  }, [navigation, shouldShowFree, hasAccess, handleShowFree, handleShowPremium]);
+
   // Show loading state while checking access
   if (hasAccess === null) {
     return (
@@ -78,22 +134,16 @@ export function BigBookMain() {
     );
   }
 
-  // Determine which view to show
-  const shouldShowFree = !hasAccess || forceShowFree;
-
   // Render the appropriate view
   return (
     <View style={{ flex: 1 }}>
       {/* Show free or premium version */}
       {shouldShowFree ? (
-        <BigBookFreeBrowser />
+        <BigBookFreeBrowser isPremiumUnlocked={!!hasAccess} />
       ) : (
         <BigBookHighlightsProvider>
           <BigBookChapterList
             onSelectChapter={handleSelectChapter}
-            showToggle
-            onToggle={() => setForceShowFree(true)}
-            toggleLabel="Show Free Version"
           />
           
           {/* Reader Modal */}
@@ -123,6 +173,20 @@ const styles = StyleSheet.create({
     marginTop: 16,
     fontSize: 16,
     color: Colors.light.muted,
+  },
+  headerFreeButton: {
+    marginRight: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: Colors.light.tint,
+    backgroundColor: 'rgba(255, 255, 255, 0.85)',
+  },
+  headerFreeButtonText: {
+    color: Colors.light.tint,
+    fontSize: 14,
+    fontWeight: '600',
   },
 });
 

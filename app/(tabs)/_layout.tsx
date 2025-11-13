@@ -40,13 +40,13 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   iconWrapperActive: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: Colors.light.tint,
   },
   iconWrapperInactive: {
     backgroundColor: '#F0F4FF',
   },
   iconOutlined: {
-    opacity: 0.65,
+    opacity: 1,
   },
   iconSolid: {
     opacity: 1,
@@ -122,7 +122,7 @@ const createTabIcon = (
   extraProps: Record<string, any> = {}
 ) => ({ focused }: { color: string; size: number; focused: boolean }) => {
   const wrapperStyle = focused ? styles.iconWrapperActive : styles.iconWrapperInactive;
-  const iconColor = Colors.light.tint;
+  const iconColor = focused ? '#FFFFFF' : '#2F5EA6';
   return (
     <View style={[styles.iconWrapper, wrapperStyle]}>
       <IconComponent
@@ -202,7 +202,7 @@ export default function TabLayout() {
           headerLeft: () => <BackButton />,
           // Android-only: hide tab bar when keyboard is open on the chat screen
           tabBarHideOnKeyboard: Platform.OS === 'android' ? true : undefined,
-          tabBarIcon: createTabIcon(MaterialCommunityIcons, 'robot-happy', 22),
+          tabBarIcon: createTabIcon(MaterialCommunityIcons, 'human-greeting-variant', 22),
         }}
       />
       <Tabs.Screen
@@ -211,7 +211,7 @@ export default function TabLayout() {
           title: "Spot Check",
           headerTitle: '',
           headerLeft: () => <BackButton />,
-          tabBarIcon: createTabIcon(Ionicons, 'checkbox', 22),
+          tabBarIcon: createTabIcon(MaterialCommunityIcons, 'emoticon-angry', 22),
         }}
       />
       <Tabs.Screen

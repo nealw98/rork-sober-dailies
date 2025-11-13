@@ -101,7 +101,7 @@ const HomeScreen = () => {
         <TouchableOpacity style={styles.card} onPress={() => router.push('/(tabs)/chat')}>
           <View style={styles.cardHeader}>
             <View style={styles.cardIconWrapper}>
-              <MaterialCommunityIcons name="robot-happy" size={22} color={Colors.light.tint} />
+              <MaterialCommunityIcons name="human-greeting-variant" size={22} color={Colors.light.tint} />
             </View>
             <Text style={styles.cardTitle}>AI Sponsor</Text>
           </View>
@@ -123,7 +123,7 @@ const HomeScreen = () => {
         <TouchableOpacity style={styles.card} onPress={() => router.push('/inventory')}>
           <View style={styles.cardHeader}>
             <View style={styles.cardIconWrapper}>
-              <Ionicons name="checkbox" size={22} color={Colors.light.tint} />
+              <MaterialCommunityIcons name="emoticon-angry" size={24} color={Colors.light.tint} />
             </View>
             <Text style={styles.cardTitle}>Spot Check Inventory</Text>
           </View>

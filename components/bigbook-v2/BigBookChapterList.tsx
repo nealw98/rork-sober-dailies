@@ -17,8 +17,8 @@ import {
   Text,
   StyleSheet,
   ScrollView,
-  TouchableOpacity,
   Platform,
+  TouchableOpacity,
 } from 'react-native';
 import { 
   ChevronDown, 
@@ -43,9 +43,6 @@ import { BigBookSearchModal } from './BigBookSearchModal';
 
 interface BigBookChapterListProps {
   onSelectChapter: (chapterId: string, scrollToParagraphId?: string, searchTerm?: string) => void;
-  showToggle?: boolean;
-  onToggle?: () => void;
-  toggleLabel?: string;
 }
 
 interface SectionProps {
@@ -106,7 +103,7 @@ function ChapterSection({ title, description, chapters, onSelectChapter, default
   );
 }
 
-export function BigBookChapterList({ onSelectChapter, showToggle, onToggle, toggleLabel }: BigBookChapterListProps) {
+export function BigBookChapterList({ onSelectChapter }: BigBookChapterListProps) {
   const frontMatter = getFrontMatter();
   const mainChapters = getMainChapters();
   const appendices = getAppendices();
@@ -219,20 +216,7 @@ export function BigBookChapterList({ onSelectChapter, showToggle, onToggle, togg
         >
           {/* Header - Title with optional toggle - Now scrolls with content */}
           <View style={styles.header}>
-            {/* Title */}
-            {Platform.OS !== 'android' && (
-              <Text style={styles.title}>Alcoholics Anonymous</Text>
-            )}
-            
-            {/* TEMPORARY: Toggle button for testing */}
-            {showToggle && onToggle && toggleLabel && (
-              <TouchableOpacity
-                style={styles.toggleButton}
-                onPress={onToggle}
-              >
-                <Text style={styles.toggleButtonText}>{toggleLabel}</Text>
-              </TouchableOpacity>
-            )}
+            <Text style={styles.title}>Alcoholics Anonymous</Text>
           </View>
           <ChapterSection
             title="Forewords and Preface"
@@ -339,22 +323,6 @@ const styles = StyleSheet.create({
     color: Colors.light.text,
     marginBottom: 8,
     textAlign: 'center',
-  },
-  toggleButton: {
-    backgroundColor: Colors.light.tint,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 8,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-    elevation: 5,
-  },
-  toggleButtonText: {
-    color: '#fff',
-    fontSize: 14,
-    fontWeight: '600',
   },
   sectionContainer: {
     marginBottom: 16,

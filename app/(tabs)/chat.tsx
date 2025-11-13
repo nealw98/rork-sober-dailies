@@ -19,6 +19,7 @@ import ScreenContainer from "@/components/ScreenContainer";
 import { useState, useEffect } from "react";
 import { PremiumComingSoonModal } from "@/components/PremiumComingSoonModal";
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { IS_TESTFLIGHT_PREVIEW } from "@/constants/featureFlags";
 
 const PREMIUM_UNLOCKED_KEY = '@premium_sponsors_unlocked';
 
@@ -37,6 +38,11 @@ export default function ChatScreen() {
 
   const loadPremiumUnlockStatus = async () => {
     try {
+      if (IS_TESTFLIGHT_PREVIEW) {
+        await AsyncStorage.removeItem(PREMIUM_UNLOCKED_KEY);
+        setPremiumUnlocked(false);
+        return;
+      }
       const stored = await AsyncStorage.getItem(PREMIUM_UNLOCKED_KEY);
       if (stored) {
         setPremiumUnlocked(JSON.parse(stored) === true);
@@ -49,7 +55,9 @@ export default function ChatScreen() {
   const markAllPremiumAsUnlocked = async () => {
     try {
       setPremiumUnlocked(true);
-      await AsyncStorage.setItem(PREMIUM_UNLOCKED_KEY, JSON.stringify(true));
+      if (!IS_TESTFLIGHT_PREVIEW) {
+        await AsyncStorage.setItem(PREMIUM_UNLOCKED_KEY, JSON.stringify(true));
+      }
     } catch (error) {
       console.error('Failed to save premium unlock status:', error);
     }
@@ -152,7 +160,7 @@ export default function ChatScreen() {
                         >
                           {sponsor.name}
                         </Text>
-                        {sponsor.isPremium && (
+                        {sponsor.isPremium && isLocked && (
                           <View style={styles.premiumBadgeNameRight}>
                             <Gem size={18} color={Colors.light.tint} />
                           </View>

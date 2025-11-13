@@ -5,7 +5,7 @@
  * Similar to TwelveAndTwelveBrowser for consistent UX.
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useCallback } from 'react';
 import { Platform } from 'react-native';
 import {
   StyleSheet,
@@ -33,6 +33,7 @@ import PDFViewer from '@/components/PDFViewer';
 import { BigBookSubscriptionModal } from './BigBookSubscriptionModal';
 import { IS_TESTFLIGHT_PREVIEW } from '@/constants/featureFlags';
 import { enableBigBookTestflightBypass } from '@/lib/bigbook-access';
+import { useFocusEffect } from 'expo-router';
 
 const SUBSCRIPTION_MODAL_KEY = '@sober_dailies:bigbook_subscription_modal_shown';
 const SUBSCRIPTION_ACCEPTED_KEY = '@sober_dailies:bigbook_subscription_accepted';
@@ -154,17 +155,20 @@ interface BigBookFreeBrowserContentProps {
   showToggle?: boolean;
   onToggle?: () => void;
   toggleLabel?: string;
+  isPremiumUnlocked?: boolean;
 }
 
-function BigBookFreeBrowserContent({ showToggle, onToggle, toggleLabel }: BigBookFreeBrowserContentProps) {
+function BigBookFreeBrowserContent({ showToggle, onToggle, toggleLabel, isPremiumUnlocked = false }: BigBookFreeBrowserContentProps) {
   const [pdfViewerVisible, setPdfViewerVisible] = useState<boolean>(false);
   const [currentPdf, setCurrentPdf] = useState<{ url: string; title: string } | null>(null);
   const [subscriptionModalVisible, setSubscriptionModalVisible] = useState<boolean>(false);
 
-  // Check if we should show subscription modal on first visit
-  useEffect(() => {
-    checkSubscriptionModal();
-  }, []);
+  useFocusEffect(
+    useCallback(() => {
+      checkSubscriptionModal();
+      return () => {};
+    }, [])
+  );
 
   // Removed safety timeout now that modal is stable
 
@@ -277,7 +281,7 @@ function BigBookFreeBrowserContent({ showToggle, onToggle, toggleLabel }: BigBoo
           </View>
           
           {/* Upgrade Banner */}
-          <UpgradeBanner onPress={handleUpgradeBanner} />
+          {!isPremiumUnlocked && <UpgradeBanner onPress={handleUpgradeBanner} />}
           
           {/* Main Chapters - Expanded by default */}
           {bigBookFreeData.map((category) => (
@@ -325,10 +329,25 @@ function BigBookFreeBrowserContent({ showToggle, onToggle, toggleLabel }: BigBoo
   );
 }
 
-export default function BigBookFreeBrowser({ showToggle, onToggle, toggleLabel }: { showToggle?: boolean; onToggle?: () => void; toggleLabel?: string }) {
+export default function BigBookFreeBrowser({
+  showToggle,
+  onToggle,
+  toggleLabel,
+  isPremiumUnlocked,
+}: {
+  showToggle?: boolean;
+  onToggle?: () => void;
+  toggleLabel?: string;
+  isPremiumUnlocked?: boolean;
+}) {
   return (
     <BigBookStoreProvider>
-      <BigBookFreeBrowserContent showToggle={showToggle} onToggle={onToggle} toggleLabel={toggleLabel} />
+      <BigBookFreeBrowserContent
+        showToggle={showToggle}
+        onToggle={onToggle}
+        toggleLabel={toggleLabel}
+        isPremiumUnlocked={isPremiumUnlocked}
+      />
     </BigBookStoreProvider>
   );
 }
