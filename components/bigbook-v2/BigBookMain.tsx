@@ -19,7 +19,7 @@ import { useNavigation } from 'expo-router';
 
 export function BigBookMain() {
   const [hasAccess, setHasAccess] = useState<boolean | null>(null);
-  const [forceShowFree, setForceShowFree] = useState(IS_TESTFLIGHT_PREVIEW); // Default to free in TestFlight
+  const [forceShowFree, setForceShowFree] = useState(false); // Default to premium view when unlocked
   const [selectedChapterId, setSelectedChapterId] = useState<string | null>(null);
   const [scrollToParagraphId, setScrollToParagraphId] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState<string | null>(null);

@@ -220,6 +220,22 @@ export default function ChatInterface({
     }
   }, [messages]);
 
+  // Scroll to bottom when keyboard appears
+  useEffect(() => {
+    const keyboardDidShowListener = Keyboard.addListener(
+      'keyboardDidShow',
+      () => {
+        setTimeout(() => {
+          flatListRef.current?.scrollToEnd({ animated: true });
+        }, 100);
+      }
+    );
+
+    return () => {
+      keyboardDidShowListener.remove();
+    };
+  }, []);
+
   const handleSend = async () => {
     if (inputText.trim() === "" || isLoading || isCheckingLimits) return;
 
