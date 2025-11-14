@@ -63,7 +63,12 @@ function ChapterSection({ title, description, chapters, onSelectChapter, default
         onPress={() => setExpanded(!expanded)}
         activeOpacity={0.85}
       >
-        <View style={styles.sectionHeaderSolid}>
+        <LinearGradient
+          colors={['#2CC5D9', '#19a0b8']}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 0, y: 1 }}
+          style={styles.sectionHeaderGradient}
+        >
           <View style={styles.sectionInfo}>
             <Text style={styles.sectionTitle}>{title}</Text>
             <Text style={styles.sectionDescription}>{description}</Text>
@@ -73,7 +78,7 @@ function ChapterSection({ title, description, chapters, onSelectChapter, default
           ) : (
             <ChevronRight size={20} color="#E6FFFA" />
           )}
-        </View>
+        </LinearGradient>
       </TouchableOpacity>
       
       {expanded && (
@@ -309,7 +314,7 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     paddingHorizontal: 12,
     borderRadius: 12,
-    backgroundColor: 'rgba(255, 255, 255, 0.35)',
+    backgroundColor: 'rgba(255, 255, 255, 0.5)',
     borderWidth: Platform.OS === 'ios' ? 1 : 0,
     borderColor: 'rgba(255, 255, 255, 0.35)',
     shadowColor: '#02131B',
@@ -350,13 +355,12 @@ const styles = StyleSheet.create({
     shadowRadius: 22,
     elevation: 16,
   },
-  sectionHeaderSolid: {
+  sectionHeaderGradient: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingVertical: 12,
     paddingHorizontal: 16,
-    backgroundColor: '#19a0b8',
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.6)',
   },
@@ -386,7 +390,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingVertical: 12,
     paddingHorizontal: 16,
-    backgroundColor: 'rgba(255, 255, 255, 0.35)',
+    backgroundColor: 'rgba(255, 255, 255, 0.5)',
     borderWidth: Platform.OS === 'ios' ? 1 : 0,
     borderColor: 'rgba(255, 255, 255, 0.35)',
     borderRadius: 12,
