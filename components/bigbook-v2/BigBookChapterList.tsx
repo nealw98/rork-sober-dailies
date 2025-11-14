@@ -314,17 +314,22 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     paddingHorizontal: 12,
     borderRadius: 12,
-    backgroundColor: 'rgba(255, 255, 255, 0.5)',
-    borderWidth: Platform.OS === 'ios' ? 1 : 0,
-    borderColor: 'rgba(255, 255, 255, 0.35)',
+    backgroundColor: Platform.OS === 'android' ? 'rgba(255, 255, 255, 0.9)' : 'rgba(255, 255, 255, 0.5)',
+    borderWidth: 1,
+    borderColor: Platform.OS === 'android' ? 'rgba(255, 255, 255, 0.8)' : 'rgba(255, 255, 255, 0.35)',
     shadowColor: '#02131B',
     shadowOffset: { width: 0, height: 7 },
     shadowOpacity: Platform.OS === 'ios' ? 0.27 : 0,
     shadowRadius: Platform.OS === 'ios' ? 12 : 0,
   },
   actionButtonElevationWrapper: {
-    elevation: Platform.OS === 'android' ? 6 : 0,
     borderRadius: 12,
+    backgroundColor: 'transparent',
+    ...Platform.select({
+      android: {
+        elevation: 12,
+      },
+    }),
   },
   actionButtonText: {
     fontSize: 14,
@@ -394,9 +399,9 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingVertical: 12,
     paddingHorizontal: 16,
-    backgroundColor: 'rgba(255, 255, 255, 0.5)',
-    borderWidth: Platform.OS === 'ios' ? 1 : 0,
-    borderColor: 'rgba(255, 255, 255, 0.35)',
+    backgroundColor: Platform.OS === 'android' ? 'rgba(255, 255, 255, 0.9)' : 'rgba(255, 255, 255, 0.5)',
+    borderWidth: 1,
+    borderColor: Platform.OS === 'android' ? 'rgba(255, 255, 255, 0.8)' : 'rgba(255, 255, 255, 0.35)',
     borderRadius: 12,
     marginHorizontal: 8,
     marginTop: 8,
@@ -404,7 +409,11 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: Platform.OS === 'ios' ? 10 : 0 },
     shadowOpacity: Platform.OS === 'ios' ? 0.32 : 0,
     shadowRadius: Platform.OS === 'ios' ? 20 : 0,
-    elevation: Platform.OS === 'android' ? 10 : 0,
+    ...Platform.select({
+      android: {
+        elevation: 12,
+      },
+    }),
   },
   chapterInfo: {
     flex: 1,

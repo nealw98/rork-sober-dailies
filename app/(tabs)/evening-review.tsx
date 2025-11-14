@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useCallback } from 'react';
 import {
   View,
   Text,
@@ -14,6 +14,8 @@ import {
   Pressable,
   Easing
 } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Clipboard from 'expo-clipboard';
 import ScreenContainer from "@/components/ScreenContainer";
 import { LinearGradient } from 'expo-linear-gradient';
@@ -171,6 +173,53 @@ export default function EveningReview() {
     { key: 'reflectionWell', label: 'What have I done well today?', value: reflectionWell, setValue: setReflectionWell },
     { key: 'reflectionBetter', label: 'What could I have done better?', value: reflectionBetter, setValue: setReflectionBetter },
   ];
+
+  // Check for new day and reset form if needed
+  useFocusEffect(
+    useCallback(() => {
+      const checkAndResetForNewDay = async () => {
+        const LAST_VIEWED_KEY = 'evening_review_last_viewed_date';
+        const todayString = getTodayDateString();
+        
+        try {
+          const lastViewedDate = await AsyncStorage.getItem(LAST_VIEWED_KEY);
+          
+          console.log('[Evening Review] Checking for new day - Last viewed:', lastViewedDate, 'Today:', todayString);
+          
+          // If it's a new day, reset the form
+          if (lastViewedDate && lastViewedDate !== todayString) {
+            console.log('[Evening Review] New day detected - resetting form');
+            
+            // Clear all form state for new day
+            setStayedSober(false);
+            setPrayedOrMeditated(false);
+            setPracticedGratitude(false);
+            setReadAALiterature(false);
+            setTalkedToAlcoholic(false);
+            setDidSomethingForOthers(false);
+            setReflectionResentful('');
+            setReflectionApology('');
+            setReflectionShared('');
+            setReflectionOthers('');
+            setReflectionKind('');
+            setReflectionWell('');
+            setReflectionBetter('');
+            
+            // Reset completion state
+            setShowConfirmation(false);
+            setIsEditing(false);
+          }
+          
+          // Update last viewed date
+          await AsyncStorage.setItem(LAST_VIEWED_KEY, todayString);
+        } catch (error) {
+          console.error('[Evening Review] Error checking for new day:', error);
+        }
+      };
+      
+      checkAndResetForNewDay();
+    }, [])
+  );
 
   const handleStartNew = () => {
     setStayedSober(false);

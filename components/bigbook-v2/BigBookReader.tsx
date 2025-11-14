@@ -547,31 +547,37 @@ export function BigBookReader({ visible, initialChapterId, scrollToParagraphId, 
 
           {/* Right: Action Icons */}
           <View style={styles.headerActions}>
-            <TouchableOpacity 
-              onPress={handleToggleHighlightMode}
-              onLongPress={handleLongPressHighlightIcon}
-              delayLongPress={500}
-              style={styles.headerActionButton}
-            >
-              <Highlighter 
-                size={18} 
-                color={getColorForHighlighter(selectedColor || HighlightColor.YELLOW)} 
-                fill={highlightMode ? getColorForHighlighter(selectedColor || HighlightColor.YELLOW) : 'transparent'}
-              />
-              <Text style={styles.headerActionText}>Highlight</Text>
-            </TouchableOpacity>
+            <View style={styles.headerActionButtonWrapper}>
+              <TouchableOpacity 
+                onPress={handleToggleHighlightMode}
+                onLongPress={handleLongPressHighlightIcon}
+                delayLongPress={500}
+                activeOpacity={0.8}
+                style={styles.headerActionButton}
+              >
+                <Highlighter 
+                  size={18} 
+                  color={getColorForHighlighter(selectedColor || HighlightColor.YELLOW)}
+                  fill={highlightMode ? getColorForHighlighter(selectedColor || HighlightColor.YELLOW) : 'transparent'}
+                />
+                <Text style={styles.headerActionText}>Highlight</Text>
+              </TouchableOpacity>
+            </View>
 
-            <TouchableOpacity 
-              onPress={handleBookmarkPress} 
-              style={styles.headerActionButton}
-            >
-              <BookmarkIcon 
-                size={18} 
-                color={Colors.light.tint} 
-                fill={isCurrentPageBookmarked ? Colors.light.tint : 'transparent'}
-              />
-              <Text style={styles.headerActionText}>Bookmark</Text>
-            </TouchableOpacity>
+            <View style={styles.headerActionButtonWrapper}>
+              <TouchableOpacity 
+                onPress={handleBookmarkPress}
+                activeOpacity={0.8}
+                style={styles.headerActionButton}
+              >
+                <BookmarkIcon 
+                  size={18} 
+                  color="#19a0b8"
+                  fill={isCurrentPageBookmarked ? "#19a0b8" : 'transparent'}
+                />
+                <Text style={styles.headerActionText}>Bookmark</Text>
+              </TouchableOpacity>
+            </View>
           </View>
         </View>
       </View>
@@ -774,18 +780,36 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 12,
   },
+  headerActionButtonWrapper: {
+    borderRadius: 12,
+    backgroundColor: 'transparent',
+    ...Platform.select({
+      ios: {
+        shadowColor: '#02131B',
+        shadowOffset: { width: 0, height: 7 },
+        shadowOpacity: 0.27,
+        shadowRadius: 12,
+      },
+      android: {
+        elevation: 12,
+      },
+    }),
+  },
   headerActionButton: {
     flexDirection: 'row',
-    justifyContent: 'center',
     alignItems: 'center',
-    gap: 4,
-    paddingVertical: 6,
-    paddingHorizontal: 8,
+    gap: 6,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    borderRadius: 12,
+    backgroundColor: Platform.OS === 'android' ? 'rgba(255, 255, 255, 0.9)' : 'rgba(255, 255, 255, 0.5)',
+    borderWidth: 1,
+    borderColor: Platform.OS === 'android' ? 'rgba(255, 255, 255, 0.8)' : 'rgba(255, 255, 255, 0.35)',
   },
   headerActionText: {
     fontSize: 14,
-    color: Colors.light.tint,
-    fontWeight: '400',
+    color: '#19a0b8',
+    fontWeight: '500',
   },
   headerFontSizeControls: {
     flexDirection: 'row',

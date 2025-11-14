@@ -8,11 +8,9 @@ import {
   Modal,
   Alert,
   Platform,
-  Share
 } from 'react-native';
-import * as Clipboard from 'expo-clipboard';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Calendar, Share as ShareIcon, Trash2, X } from 'lucide-react-native';
+import { Calendar, Trash2, X } from 'lucide-react-native';
 import { useGratitudeStore } from '@/hooks/use-gratitude-store';
 import Colors from '@/constants/colors';
 import { adjustFontWeight } from '@/constants/fonts';
@@ -106,66 +104,6 @@ export default function SavedGratitudeEntries({ visible, onClose }: SavedGratitu
     );
   };
 
-  const handleShareEntry = async (entry: any) => {
-    console.log('=== SAVED ENTRY SHARE BUTTON PRESSED ===');
-    console.log('Entry to share:', entry.date);
-    console.log('Platform:', Platform.OS);
-    console.log('Share function available:', typeof Share.share);
-    
-    const { date, items } = entry;
-    const formattedDate = formatDateDisplay(date);
-
-    const gratitudeText = items
-      .map((item: string) => `${item}`)
-      .join('\n');
-
-    let shareMessage = `Today I'm grateful for:\n${gratitudeText}`;
-    
-    console.log('Share message prepared:', shareMessage.substring(0, 100) + '...');
-
-    try {
-      console.log('Attempting to share on platform:', Platform.OS);
-      
-      if (Platform.OS === 'web') {
-        console.log('Web platform detected, using clipboard');
-        await Clipboard.setStringAsync(shareMessage);
-        console.log('Clipboard write successful');
-        Alert.alert(
-          'Copied to Clipboard',
-          'Your gratitude list has been copied to the clipboard.',
-          [{ text: 'OK' }]
-        );
-      } else {
-        console.log('Mobile platform detected, using native Share API');
-        await Share.share({
-          message: shareMessage,
-          title: `Gratitude List - ${formattedDate}`
-        });
-        console.log('Share successful');
-      }
-    } catch (error) {
-      console.error('Error sharing gratitude list:', error);
-      try {
-        console.log('Attempting clipboard fallback');
-        await Clipboard.setStringAsync(shareMessage);
-        console.log('Clipboard fallback successful');
-        Alert.alert(
-          'Copied to Clipboard',
-          'Sharing failed, but your gratitude list has been copied to the clipboard.',
-          [{ text: 'OK' }]
-        );
-      } catch (clipboardError) {
-        console.error('Clipboard fallback failed:', clipboardError);
-        Alert.alert(
-          'Share Error',
-          'Unable to share your gratitude list. Please try again.',
-          [{ text: 'OK' }]
-        );
-      }
-    }
-    console.log('=== SAVED ENTRY SHARE FUNCTION COMPLETE ===');
-  };
-
   const renderEntryDetail = () => {
     if (!selectedEntry) return null;
 
@@ -206,32 +144,6 @@ export default function SavedGratitudeEntries({ visible, onClose }: SavedGratitu
             ))}
           </View>
           
-          {/* Action Buttons */}
-          <View style={styles.modalActions}>
-            <TouchableOpacity
-              style={styles.deleteButton}
-              onPress={() => {
-                setSelectedEntry(null);
-                handleDeleteEntry(selectedEntry.date);
-              }}
-            >
-              <Trash2 color="white" size={20} />
-              <Text style={styles.deleteButtonText}>Delete</Text>
-            </TouchableOpacity>
-            
-            <TouchableOpacity
-              style={styles.shareEntryButton}
-              onPress={() => {
-                console.log('Saved entry share TouchableOpacity onPress triggered');
-                handleShareEntry(selectedEntry);
-              }}
-              testID="saved-entry-share-button"
-              activeOpacity={0.7}
-            >
-              <ShareIcon color="white" size={20} />
-              <Text style={styles.shareEntryButtonText}>Share</Text>
-            </TouchableOpacity>
-          </View>
         </ScrollView>
       </View>
     );
@@ -330,6 +242,15 @@ export default function SavedGratitudeEntries({ visible, onClose }: SavedGratitu
                             {formatDateDisplay(entry.date)}
                           </Text>
                         </View>
+                        <TouchableOpacity
+                          style={styles.entryDeleteButton}
+                          onPress={() => handleDeleteEntry(entry.date)}
+                          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                          accessibilityLabel={`Delete gratitude list for ${formatDateDisplay(entry.date)}`}
+                          accessibilityRole="button"
+                        >
+                          <Trash2 size={18} color="#dc3545" />
+                        </TouchableOpacity>
                       </View>
                       
                       <View style={styles.entryPreview}>
@@ -425,6 +346,9 @@ const styles = StyleSheet.create({
 
   entryHeader: {
     marginBottom: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
   },
   entryDateContainer: {
     flex: 1,
@@ -447,6 +371,9 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: Colors.light.muted,
     fontStyle: 'italic',
+  },
+  entryDeleteButton: {
+    padding: 6,
   },
   entryDetailContainer: {
     flex: 1,
@@ -505,45 +432,5 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: Colors.light.text,
     lineHeight: 22,
-  },
-  modalActions: {
-    flexDirection: 'row',
-    gap: 12,
-    marginTop: 24,
-    paddingBottom: 24,
-  },
-  deleteButton: {
-    flex: 1,
-    backgroundColor: '#dc3545',
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderRadius: 25,
-    alignItems: 'center',
-    flexDirection: 'row',
-    justifyContent: 'center',
-    gap: 8,
-    height: 48,
-  },
-  deleteButtonText: {
-    color: 'white',
-    fontSize: 16,
-    fontWeight: adjustFontWeight('600'),
-  },
-  shareEntryButton: {
-    flex: 1,
-    backgroundColor: Colors.light.tint,
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderRadius: 25,
-    alignItems: 'center',
-    flexDirection: 'row',
-    justifyContent: 'center',
-    gap: 8,
-    height: 48,
-  },
-  shareEntryButtonText: {
-    color: 'white',
-    fontSize: 16,
-    fontWeight: adjustFontWeight('600'),
   },
 });

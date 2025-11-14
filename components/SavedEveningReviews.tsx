@@ -8,11 +8,9 @@ import {
   Modal,
   Alert,
   Platform,
-  Share
 } from 'react-native';
-import * as Clipboard from 'expo-clipboard';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Calendar, Share as ShareIcon, Trash2, X, Check } from 'lucide-react-native';
+import { Calendar, Trash2, X, Check } from 'lucide-react-native';
 import { useEveningReviewStore } from '@/hooks/use-evening-review-store';
 import Colors from '@/constants/colors';
 import { adjustFontWeight } from '@/constants/fonts';
@@ -106,122 +104,6 @@ export default function SavedEveningReviews({ visible, onClose }: SavedEveningRe
     );
   };
 
-  const handleShareEntry = async (entry: any) => {
-    const { date, data } = entry;
-    const formattedDate = formatDateDisplay(date);
-
-    const simpleDate = new Date(date).toLocaleDateString('en-US', {
-      month: 'long',
-      day: 'numeric'
-    });
-    
-            let shareMessage = `${simpleDate}\n\n`;
-
-    // Check if this is new format or legacy format
-    if (data.stayedSober !== undefined) {
-            // New format
-      shareMessage += 'Daily Actions:\n';
-      const dailyActions = [
-        { key: 'stayedSober', label: 'Stayed sober', checked: data.stayedSober },
-        { key: 'prayedOrMeditated', label: 'Prayed or meditated', checked: data.prayedOrMeditated },
-        { key: 'practicedGratitude', label: 'Practiced gratitude', checked: data.practicedGratitude },
-        { key: 'readAALiterature', label: 'Read AA literature', checked: data.readAALiterature },
-        { key: 'talkedToAlcoholic', label: 'Talked with another alcoholic', checked: data.talkedToAlcoholic },
-        { key: 'didSomethingForOthers', label: 'Did something for someone else', checked: data.didSomethingForOthers },
-      ];
-
-      dailyActions.forEach(action => {
-        const status = action.checked ? '✅ ' : '⬜ ';
-        shareMessage += `${status}${action.label}\n`;
-      });
-
-              // Inventory
-        shareMessage += '\n10th Step Inventory:\n';
-      const inventoryQuestions = [
-        { key: 'reflectionResentful', label: 'Was I resentful, selfish, dishonest, or afraid?', value: data.reflectionResentful },
-        { key: 'reflectionApology', label: 'Do I owe an apology?', value: data.reflectionApology },
-        { key: 'reflectionShared', label: 'Did I keep something to myself that should be shared with another?', value: data.reflectionShared },
-        { key: 'reflectionOthers', label: 'Was I thinking of myself most of the time, or of what I could do for others?', value: data.reflectionOthers },
-        { key: 'reflectionKind', label: 'Was I kind and loving toward all?', value: data.reflectionKind },
-        { key: 'reflectionWell', label: 'What have I done well today?', value: data.reflectionWell },
-        { key: 'reflectionBetter', label: 'What could I have done better?', value: data.reflectionBetter },
-      ];
-      
-      inventoryQuestions.forEach(question => {
-        if (question.value && question.value.trim()) {
-          shareMessage += `${question.label}\n${question.value}\n\n`;
-        }
-      });
-    } else {
-      // Legacy format
-      const answeredQuestions = [];
-      
-      if (data.resentfulFlag) {
-        const answer = data.resentfulFlag === 'yes' ? 'Yes' : 'No';
-        answeredQuestions.push(`Was I resentful today? ${answer}${data.resentfulFlag === 'yes' && data.resentfulNote ? ` - ${data.resentfulNote}` : ''}`);
-      }
-      if (data.selfishFlag) {
-        const answer = data.selfishFlag === 'yes' ? 'Yes' : 'No';
-        answeredQuestions.push(`Was I selfish and self-centered today? ${answer}${data.selfishFlag === 'yes' && data.selfishNote ? ` - ${data.selfishNote}` : ''}`);
-      }
-      if (data.fearfulFlag) {
-        const answer = data.fearfulFlag === 'yes' ? 'Yes' : 'No';
-        answeredQuestions.push(`Was I fearful or worrisome today? ${answer}${data.fearfulFlag === 'yes' && data.fearfulNote ? ` - ${data.fearfulNote}` : ''}`);
-      }
-      if (data.apologyFlag) {
-        const answer = data.apologyFlag === 'yes' ? 'Yes' : 'No';
-        answeredQuestions.push(`Do I owe anyone an apology? ${answer}${data.apologyFlag === 'yes' && data.apologyName ? ` - ${data.apologyName}` : ''}`);
-      }
-      if (data.kindnessFlag) {
-        const answer = data.kindnessFlag === 'yes' ? 'Yes' : 'No';
-        answeredQuestions.push(`Was I of service or kind to others today? ${answer}${data.kindnessFlag === 'yes' && data.kindnessNote ? ` - ${data.kindnessNote}` : ''}`);
-      }
-      if (data.prayerMeditationFlag) {
-        const answer = data.prayerMeditationFlag === 'yes' ? 'Yes' : 'No';
-        answeredQuestions.push(`Did I pray or meditate today? ${answer}`);
-      }
-      if (data.spiritualNote) {
-        answeredQuestions.push(`How was my spiritual condition today? ${data.spiritualNote}`);
-      }
-      
-      if (answeredQuestions.length > 0) {
-        shareMessage += answeredQuestions.join('\n\n') + '\n';
-      }
-    }
-
-    try {
-      if (Platform.OS === 'web') {
-        await Clipboard.setStringAsync(shareMessage);
-        Alert.alert(
-          'Copied to Clipboard',
-          'Your nightly review has been copied to the clipboard.',
-          [{ text: 'OK' }]
-        );
-      } else {
-        await Share.share({
-          message: shareMessage,
-          title: `Nightly Review - ${formattedDate}`
-        });
-      }
-    } catch (error) {
-              console.error('Error sharing nightly review:', error);
-      try {
-        await Clipboard.setStringAsync(shareMessage);
-        Alert.alert(
-          'Copied to Clipboard',
-          'Sharing failed, but your nightly review has been copied to the clipboard.',
-          [{ text: 'OK' }]
-        );
-      } catch {
-        Alert.alert(
-          'Share Error',
-          'Unable to share your nightly review. Please try again.',
-          [{ text: 'OK' }]
-        );
-      }
-    }
-  };
-
   const renderEntryDetail = () => {
     if (!selectedEntry) return null;
 
@@ -305,27 +187,6 @@ export default function SavedEveningReviews({ visible, onClose }: SavedEveningRe
               </View>
             </View>
             
-            {/* Action Buttons */}
-            <View style={styles.modalActions}>
-              <TouchableOpacity
-                style={styles.deleteButton}
-                onPress={() => {
-                  setSelectedEntry(null);
-                  handleDeleteEntry(selectedEntry.date);
-                }}
-              >
-                <Trash2 color="white" size={20} />
-                <Text style={styles.deleteButtonText}>Delete</Text>
-              </TouchableOpacity>
-              
-              <TouchableOpacity
-                style={styles.shareEntryButton}
-                onPress={() => handleShareEntry(selectedEntry)}
-              >
-                <ShareIcon color="white" size={20} />
-                <Text style={styles.shareEntryButtonText}>Share</Text>
-              </TouchableOpacity>
-            </View>
           </ScrollView>
         </View>
       );
@@ -421,27 +282,6 @@ export default function SavedEveningReviews({ visible, onClose }: SavedEveningRe
             ))}
           </View>
           
-          {/* Action Buttons */}
-          <View style={styles.modalActions}>
-            <TouchableOpacity
-              style={styles.deleteButton}
-              onPress={() => {
-                setSelectedEntry(null);
-                handleDeleteEntry(selectedEntry.date);
-              }}
-            >
-              <Trash2 color="white" size={20} />
-              <Text style={styles.deleteButtonText}>Delete</Text>
-            </TouchableOpacity>
-            
-            <TouchableOpacity
-              style={styles.shareEntryButton}
-              onPress={() => handleShareEntry(selectedEntry)}
-            >
-              <ShareIcon color="white" size={20} />
-              <Text style={styles.shareEntryButtonText}>Share</Text>
-            </TouchableOpacity>
-          </View>
         </ScrollView>
       </View>
     );
@@ -541,6 +381,15 @@ export default function SavedEveningReviews({ visible, onClose }: SavedEveningRe
                             {formatDateDisplay(entry.date)}
                           </Text>
                         </View>
+                        <TouchableOpacity
+                          style={styles.entryDeleteButton}
+                          onPress={() => handleDeleteEntry(entry.date)}
+                          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                          accessibilityLabel={`Delete nightly review for ${formatDateDisplay(entry.date)}`}
+                          accessibilityRole="button"
+                        >
+                          <Trash2 size={18} color="#dc3545" />
+                        </TouchableOpacity>
                       </View>
                       
                       <View style={styles.entryPreview}>
@@ -636,6 +485,9 @@ const styles = StyleSheet.create({
 
   entryHeader: {
     marginBottom: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
   },
   entryDateContainer: {
     flex: 1,
@@ -658,6 +510,9 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: Colors.light.muted,
     fontStyle: 'italic',
+  },
+  entryDeleteButton: {
+    padding: 6,
   },
   entryDetailContainer: {
     flex: 1,
@@ -735,46 +590,6 @@ const styles = StyleSheet.create({
     paddingLeft: 12,
     borderLeftWidth: 3,
     borderLeftColor: Colors.light.border,
-  },
-  modalActions: {
-    flexDirection: 'row',
-    gap: 12,
-    marginTop: 24,
-    paddingBottom: 24,
-  },
-  deleteButton: {
-    flex: 1,
-    backgroundColor: '#dc3545',
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderRadius: 25,
-    alignItems: 'center',
-    flexDirection: 'row',
-    justifyContent: 'center',
-    gap: 8,
-    height: 48,
-  },
-  deleteButtonText: {
-    color: 'white',
-    fontSize: 16,
-    fontWeight: adjustFontWeight('600'),
-  },
-  shareEntryButton: {
-    flex: 1,
-    backgroundColor: Colors.light.tint,
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderRadius: 25,
-    alignItems: 'center',
-    flexDirection: 'row',
-    justifyContent: 'center',
-    gap: 8,
-    height: 48,
-  },
-  shareEntryButtonText: {
-    color: 'white',
-    fontSize: 16,
-    fontWeight: adjustFontWeight('600'),
   },
   // New format styles
   sectionContainer: {

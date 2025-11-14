@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   View,
   Text,
@@ -12,6 +12,8 @@ import {
   Share,
   ScrollView
 } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Haptics from 'expo-haptics';
 import * as Clipboard from 'expo-clipboard';
 import { Trash2 } from 'lucide-react-native';
@@ -631,6 +633,44 @@ export default function GratitudeListScreen() {
     const todaysItems = getTodaysItems();
     setGratitudeItems(todaysItems);
   }, [getTodaysItems]);
+
+  // Check for new day and reset form if needed
+  useFocusEffect(
+    useCallback(() => {
+      const checkAndResetForNewDay = async () => {
+        const LAST_VIEWED_KEY = 'gratitude_last_viewed_date';
+        const todayString = getTodayDateString();
+        
+        try {
+          const lastViewedDate = await AsyncStorage.getItem(LAST_VIEWED_KEY);
+          
+          console.log('[Gratitude] Checking for new day - Last viewed:', lastViewedDate, 'Today:', todayString);
+          
+          // If it's a new day, reset the form
+          if (lastViewedDate && lastViewedDate !== todayString) {
+            console.log('[Gratitude] New day detected - resetting form');
+            
+            // Clear UI state for new day
+            setGratitudeItems([]);
+            setInputValue('');
+            setEditingIndex(null);
+            setEditingValue('');
+            
+            // Load today's items (if any were previously saved for today)
+            const todaysItems = getTodaysItems();
+            setGratitudeItems(todaysItems);
+          }
+          
+          // Update last viewed date
+          await AsyncStorage.setItem(LAST_VIEWED_KEY, todayString);
+        } catch (error) {
+          console.error('[Gratitude] Error checking for new day:', error);
+        }
+      };
+      
+      checkAndResetForNewDay();
+    }, [getTodaysItems])
+  );
 
   const handleReset = () => {
     if (gratitudeItems.length === 0 && inputValue.trim() === '') return;
