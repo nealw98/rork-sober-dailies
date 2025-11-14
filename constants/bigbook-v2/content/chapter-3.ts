@@ -193,7 +193,7 @@ export const chapter_3: BigBookChapter = {
       chapterId: 'chapter-3',
       pageNumber: 36,
       order: 26,
-      content: 'Thus started one more journey to the asylum for Jim.  Here was the threat of commitment, the loss of family and position, to say nothing of that intense mental and physical suffering which drinking always caused him.  _He had much knowledge about himself as an alcoholic.  Yet all reasons for not drinking were_',
+      content: 'Thus started one more journey to the asylum for Jim.  Here was the threat of commitment, the loss of family and position, to say nothing of that intense mental and physical suffering which drinking always caused him.  _He had much knowledge about himself as an alcoholic._  _Yet all reasons for not drinking were_',
     },
     {
       id: 'chapter-3-p26',

@@ -307,8 +307,8 @@ export default function ChatInterface({
   return (
     <KeyboardAvoidingView
       style={styles.container}
-      behavior={Platform.OS === "ios" ? "padding" : undefined}
-      keyboardVerticalOffset={Platform.OS === "ios" ? 120 : 0}
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
+      keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 0}
     >
       <LinearGradient
         colors={Colors.gradients.mainThreeColor}
@@ -475,7 +475,7 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     marginHorizontal: 16,
     marginTop: 28,
-    marginBottom: 0,
+    marginBottom: 8,
     overflow: "hidden",
     shadowColor: "#000",
     shadowOffset: {
