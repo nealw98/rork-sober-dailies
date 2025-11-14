@@ -64,7 +64,7 @@ function ChapterSection({ title, description, chapters, onSelectChapter, default
         activeOpacity={0.85}
       >
         <LinearGradient
-          colors={['#2CC5D9', '#19a0b8']}
+          colors={['#1B8FA3', '#147C72']}
           start={{ x: 0, y: 0 }}
           end={{ x: 0, y: 1 }}
           style={styles.sectionHeaderGradient}
@@ -363,6 +363,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.6)',
+    borderTopWidth: 2,
+    borderTopColor: 'rgba(255, 255, 255, 0.5)',
+    borderBottomWidth: 2,
+    borderBottomColor: 'rgba(0, 0, 0, 0.15)',
   },
   sectionInfo: {
     flex: 1,
