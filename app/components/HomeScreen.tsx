@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
-import { StyleSheet, View, Text, ScrollView, TouchableOpacity, Linking, Platform } from 'react-native';
+import { StyleSheet, View, Text, ScrollView, TouchableOpacity, Linking, Platform, Share, Alert } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { ChevronDown, ChevronRight } from 'lucide-react-native';
+import { ChevronDown, ChevronRight, Heart, Star, Share2 } from 'lucide-react-native';
 
 import { useRouter } from 'expo-router';
 import SobrietyCounter from '@/components/SobrietyCounter';
@@ -22,10 +22,44 @@ const HomeScreen = () => {
   const [morningExpanded, setMorningExpanded] = useState(true);
   const [dayExpanded, setDayExpanded] = useState(true);
   const [eveningExpanded, setEveningExpanded] = useState(true);
+  const [supportExpanded, setSupportExpanded] = useState(true);
 
 
   const today = new Date();
   const formattedDate = formatDateDisplay(today);
+
+  // Handler functions for support section
+  const handleRateAppPress = async () => {
+    try {
+      if (Platform.OS === 'ios') {
+        const appStoreId = '6749869819';
+        const url = `itms-apps://itunes.apple.com/app/id${appStoreId}?action=write-review`;
+        await Linking.openURL(url);
+      } else {
+        const packageName = 'com.nealwagner.soberdailies';
+        const url = `market://details?id=${packageName}`;
+        const fallback = `https://play.google.com/store/apps/details?id=${packageName}`;
+        const supported = await Linking.canOpenURL(url);
+        await Linking.openURL(supported ? url : fallback);
+      }
+    } catch (error) {
+      Alert.alert('Error', 'Unable to open the store page right now.');
+    }
+  };
+
+  const handleSharePress = async () => {
+    try {
+      const appStoreUrl = Platform.OS === 'ios' 
+        ? 'https://apps.apple.com/app/sober-dailies/id6738032000'
+        : 'https://play.google.com/store/apps/details?id=com.nealwagner.soberdailies';
+      
+      await Share.share({
+        message: 'Sober Dailies helps me stay sober one day at a time. Check it out: ' + appStoreUrl,
+      });
+    } catch (error) {
+      // no-op
+    }
+  };
 
   return (
     <LinearGradient
@@ -244,7 +278,11 @@ const HomeScreen = () => {
 
         {/* Support the Developer Section */}
         <View style={styles.sectionContainer}>
-          <View style={styles.sectionHeaderWrapper}>
+          <TouchableOpacity
+            style={styles.sectionHeaderWrapper}
+            onPress={() => setSupportExpanded(!supportExpanded)}
+            activeOpacity={0.85}
+          >
             <LinearGradient
               colors={['#E6F7F0', '#D6F3E8']}
               start={{ x: 0, y: 0 }}
@@ -253,21 +291,46 @@ const HomeScreen = () => {
             >
               <View style={styles.sectionInfo}>
                 <Text style={styles.sectionTitle}>Enjoying Sober Dailies?</Text>
+                <Text style={styles.sectionDescription}>Help spread the word</Text>
               </View>
+              {supportExpanded ? (
+                <ChevronDown size={20} color="#7f8c8d" />
+              ) : (
+                <ChevronRight size={20} color="#7f8c8d" />
+              )}
             </LinearGradient>
-          </View>
+          </TouchableOpacity>
           
-          <View style={styles.itemsContainer}>
-            <TouchableOpacity style={styles.itemCard} onPress={() => router.push('/about-support')}>
-              <View style={styles.cardHeader}>
-                <View style={styles.cardIconWrapper}>
-                  <FontAwesome name="heart" size={20} color={Colors.light.tint} />
+          {supportExpanded && (
+            <View style={styles.itemsContainer}>
+              <TouchableOpacity style={styles.compactCard} onPress={() => router.push('/about-support')}>
+                <View style={styles.cardHeader}>
+                  <View style={styles.cardIconWrapper}>
+                    <Heart size={20} color={Colors.light.tint} />
+                  </View>
+                  <Text style={styles.cardTitle}>Support the Developer</Text>
                 </View>
-                <Text style={styles.cardTitle}>Support the Developer</Text>
-              </View>
-              <Text style={styles.cardDescription}>Make a difference with a one-time contribution</Text>
-            </TouchableOpacity>
-          </View>
+              </TouchableOpacity>
+
+              <TouchableOpacity style={styles.compactCard} onPress={handleRateAppPress}>
+                <View style={styles.cardHeader}>
+                  <View style={styles.cardIconWrapper}>
+                    <Star size={20} color={Colors.light.tint} />
+                  </View>
+                  <Text style={styles.cardTitle}>Rate & Review</Text>
+                </View>
+              </TouchableOpacity>
+
+              <TouchableOpacity style={styles.compactCard} onPress={handleSharePress}>
+                <View style={styles.cardHeader}>
+                  <View style={styles.cardIconWrapper}>
+                    <Share2 size={20} color={Colors.light.tint} />
+                  </View>
+                  <Text style={styles.cardTitle}>Share the App</Text>
+                </View>
+              </TouchableOpacity>
+            </View>
+          )}
         </View>
       </ScrollView>
       </SafeAreaView>
@@ -411,6 +474,25 @@ const styles = StyleSheet.create({
   },
   itemCard: {
     paddingVertical: 12,
+    paddingHorizontal: 16,
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.8)',
+    borderRadius: 12,
+    marginHorizontal: 8,
+    marginTop: 8,
+    shadowColor: '#041A25',
+    shadowOffset: { width: 0, height: Platform.OS === 'ios' ? 10 : 0 },
+    shadowOpacity: Platform.OS === 'ios' ? 0.32 : 0,
+    shadowRadius: Platform.OS === 'ios' ? 20 : 0,
+    ...Platform.select({
+      android: {
+        elevation: 12,
+      },
+    }),
+  },
+  compactCard: {
+    paddingVertical: 10,
     paddingHorizontal: 16,
     backgroundColor: 'rgba(255, 255, 255, 0.9)',
     borderWidth: 1,

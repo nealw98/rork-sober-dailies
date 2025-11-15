@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { StyleSheet, View, Text, TouchableOpacity, Modal, TextInput, Alert, Keyboard, TouchableWithoutFeedback } from 'react-native';
+import { StyleSheet, View, Text, TouchableOpacity, Modal, TextInput, Alert, Keyboard, TouchableWithoutFeedback, Platform } from 'react-native';
 import { Calendar, X, Edit3 } from 'lucide-react-native';
 import { useSobriety } from '@/hooks/useSobrietyStore';
 import { formatStoredDateForDisplay, parseLocalDate, formatLocalDate } from '@/lib/dateUtils';
@@ -332,20 +332,22 @@ const SobrietyCounter = () => {
   if (sobrietyDate) {
     return (
       <>
-        <View style={styles.counterContainer}>
-          <Text style={styles.sobrietyText}>
-            {`You've been sober ${validDaysSober} ${validDaysSober === 1 ? 'day' : 'days'}`}
-          </Text>
-          <View style={styles.dateRow}>
-            <Text style={styles.sobrietyDateText}>
-              Since {formatStoredDateForDisplay(sobrietyDate)}
+        <View style={styles.counterElevationWrapper}>
+          <View style={styles.counterContainer}>
+            <Text style={styles.sobrietyText}>
+              {`You've been sober ${validDaysSober} ${validDaysSober === 1 ? 'day' : 'days'}`}
             </Text>
-            <TouchableOpacity 
-              style={styles.editButton}
-              onPress={handleEditDate}
-            >
-              <Edit3 size={14} color={Colors.light.tint} />
-            </TouchableOpacity>
+            <View style={styles.dateRow}>
+              <Text style={styles.sobrietyDateText}>
+                Since {formatStoredDateForDisplay(sobrietyDate)}
+              </Text>
+              <TouchableOpacity 
+                style={styles.editButton}
+                onPress={handleEditDate}
+              >
+                <Edit3 size={14} color={Colors.light.tint} />
+              </TouchableOpacity>
+            </View>
           </View>
         </View>
         
@@ -461,23 +463,31 @@ const styles = StyleSheet.create({
     color: Colors.light.muted,
   },
   // Counter display styles
+  counterElevationWrapper: {
+    marginHorizontal: 16,
+    marginBottom: 20,
+    borderRadius: 16,
+    backgroundColor: 'transparent',
+    ...Platform.select({
+      android: {
+        elevation: 12,
+      },
+    }),
+  },
   counterContainer: {
-    backgroundColor: 'rgba(255, 255, 255, 0.35)',
-    borderWidth: 1.5,
-    borderColor: 'rgba(255, 255, 255, 0.6)',
-    borderTopColor: 'rgba(255, 255, 255, 0.8)',
-    borderBottomColor: 'rgba(255, 255, 255, 0.3)',
+    backgroundColor: Platform.OS === 'android' ? 'rgba(255, 255, 255, 0.9)' : 'rgba(255, 255, 255, 0.35)',
+    borderWidth: Platform.OS === 'android' ? 1 : 1.5,
+    borderColor: Platform.OS === 'android' ? 'rgba(255, 255, 255, 0.8)' : 'rgba(255, 255, 255, 0.6)',
+    borderTopColor: Platform.OS === 'android' ? 'rgba(255, 255, 255, 0.8)' : 'rgba(255, 255, 255, 0.8)',
+    borderBottomColor: Platform.OS === 'android' ? 'rgba(255, 255, 255, 0.8)' : 'rgba(255, 255, 255, 0.3)',
     borderRadius: 16,
     paddingVertical: 20,
     paddingHorizontal: 24,
-    marginHorizontal: 16,
-    marginBottom: 20,
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 12,
-    elevation: 8,
+    shadowColor: '#02131B',
+    shadowOffset: { width: 0, height: 7 },
+    shadowOpacity: Platform.OS === 'ios' ? 0.27 : 0,
+    shadowRadius: Platform.OS === 'ios' ? 12 : 0,
   },
   sobrietyText: {
     fontSize: 18,
