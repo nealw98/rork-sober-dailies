@@ -10,7 +10,7 @@
     },
     "preview": {
       "distribution": "internal",
-      "channel": "dev",
+      "channel": "home-redesign-shelf",
       "android": {
         "buildType": "apk"
       }
