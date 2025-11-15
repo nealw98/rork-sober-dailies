@@ -268,7 +268,7 @@ const styles = StyleSheet.create({
   sectionContainerMorning: {
     paddingHorizontal: 16,
     marginBottom: 30,
-    backgroundColor: '#FEF3B8', // Gentle pastel yellow
+    backgroundColor: '#FFF9E6', // Softer pale yellow
     paddingVertical: 20,
     borderRadius: 16,
     marginHorizontal: 16,
@@ -276,7 +276,7 @@ const styles = StyleSheet.create({
   sectionContainerDay: {
     paddingHorizontal: 16,
     marginBottom: 30,
-    backgroundColor: '#8BC6EC', // Richer soft blue
+    backgroundColor: '#E6F3FF', // Softer pale blue
     paddingVertical: 20,
     borderRadius: 16,
     marginHorizontal: 16,
@@ -284,7 +284,7 @@ const styles = StyleSheet.create({
   sectionContainerEvening: {
     paddingHorizontal: 16,
     marginBottom: 30,
-    backgroundColor: '#D1B4EB', // Deeper soft purple
+    backgroundColor: '#F3E6FF', // Softer pale purple
     paddingVertical: 20,
     borderRadius: 16,
     marginHorizontal: 16,
@@ -292,7 +292,7 @@ const styles = StyleSheet.create({
   sectionContainerSupport: {
     paddingHorizontal: 16,
     marginBottom: 30,
-    backgroundColor: '#A5D6A7', // Deeper soft green
+    backgroundColor: '#E6F7F0', // Softer pale green
     paddingVertical: 20,
     borderRadius: 16,
     marginHorizontal: 16,
