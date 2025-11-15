@@ -80,7 +80,7 @@ const HomeScreen = () => {
             activeOpacity={0.85}
           >
             <LinearGradient
-              colors={['#1B8FA3', '#147C72']}
+              colors={['#FFF9E6', '#FFF3D6']}
               start={{ x: 0, y: 0 }}
               end={{ x: 0, y: 1 }}
               style={styles.sectionHeaderGradient}
@@ -90,9 +90,9 @@ const HomeScreen = () => {
                 <Text style={styles.sectionDescription}>Start your day with intention and spiritual focus.</Text>
               </View>
               {morningExpanded ? (
-                <ChevronDown size={20} color="#E6FFFA" />
+                <ChevronDown size={20} color="#7f8c8d" />
               ) : (
-                <ChevronRight size={20} color="#E6FFFA" />
+                <ChevronRight size={20} color="#7f8c8d" />
               )}
             </LinearGradient>
           </TouchableOpacity>
@@ -140,7 +140,7 @@ const HomeScreen = () => {
             activeOpacity={0.85}
           >
             <LinearGradient
-              colors={['#1B8FA3', '#147C72']}
+              colors={['#E6F3FF', '#D6EDFF']}
               start={{ x: 0, y: 0 }}
               end={{ x: 0, y: 1 }}
               style={styles.sectionHeaderGradient}
@@ -150,9 +150,9 @@ const HomeScreen = () => {
                 <Text style={styles.sectionDescription}>Stay connected and mindful during your daily activities.</Text>
               </View>
               {dayExpanded ? (
-                <ChevronDown size={20} color="#E6FFFA" />
+                <ChevronDown size={20} color="#7f8c8d" />
               ) : (
-                <ChevronRight size={20} color="#E6FFFA" />
+                <ChevronRight size={20} color="#7f8c8d" />
               )}
             </LinearGradient>
           </TouchableOpacity>
@@ -200,7 +200,7 @@ const HomeScreen = () => {
             activeOpacity={0.85}
           >
             <LinearGradient
-              colors={['#1B8FA3', '#147C72']}
+              colors={['#F3E6FF', '#EDD6FF']}
               start={{ x: 0, y: 0 }}
               end={{ x: 0, y: 1 }}
               style={styles.sectionHeaderGradient}
@@ -210,9 +210,9 @@ const HomeScreen = () => {
                 <Text style={styles.sectionDescription}>Reflect and close your day with peace.</Text>
               </View>
               {eveningExpanded ? (
-                <ChevronDown size={20} color="#E6FFFA" />
+                <ChevronDown size={20} color="#7f8c8d" />
               ) : (
-                <ChevronRight size={20} color="#E6FFFA" />
+                <ChevronRight size={20} color="#7f8c8d" />
               )}
             </LinearGradient>
           </TouchableOpacity>
@@ -246,7 +246,7 @@ const HomeScreen = () => {
         <View style={styles.sectionContainer}>
           <View style={styles.sectionHeaderWrapper}>
             <LinearGradient
-              colors={['#1B8FA3', '#147C72']}
+              colors={['#E6F7F0', '#D6F3E8']}
               start={{ x: 0, y: 0 }}
               end={{ x: 0, y: 1 }}
               style={styles.sectionHeaderGradient}
@@ -390,16 +390,16 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 18,
     fontWeight: adjustFontWeight('600'),
-    color: '#E6FFFA',
+    color: '#2c3e50',
     marginBottom: 4,
   },
   sectionDescription: {
     fontSize: 14,
-    color: 'rgba(214, 245, 239, 0.9)',
+    color: '#7f8c8d',
   },
   itemsContainer: {
     marginTop: 0,
-    backgroundColor: 'rgba(255, 255, 255, 0.65)',
+    backgroundColor: 'transparent',
     borderTopWidth: 0,
     borderTopLeftRadius: 0,
     borderTopRightRadius: 0,
