@@ -1,19 +1,27 @@
-import React from 'react';
-import { StyleSheet, View, Text, ScrollView, TouchableOpacity, Linking } from 'react-native';
+import React, { useState } from 'react';
+import { StyleSheet, View, Text, ScrollView, TouchableOpacity, Linking, Platform } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { ChevronDown, ChevronRight } from 'lucide-react-native';
 
 import { useRouter } from 'expo-router';
 import SobrietyCounter from '@/components/SobrietyCounter';
 import { formatDateDisplay } from '@/utils/dateUtils';
 import Colors from '@/constants/colors';
+import { adjustFontWeight } from '@/constants/fonts';
 import Entypo from '@expo/vector-icons/Entypo';
 import FontAwesome6 from '@expo/vector-icons/FontAwesome6';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import FontAwesome from '@expo/vector-icons/FontAwesome';
+
 const HomeScreen = () => {
   const router = useRouter();
+  
+  // State for collapsible sections
+  const [morningExpanded, setMorningExpanded] = useState(true);
+  const [dayExpanded, setDayExpanded] = useState(true);
+  const [eveningExpanded, setEveningExpanded] = useState(true);
 
 
   const today = new Date();
@@ -43,132 +51,223 @@ const HomeScreen = () => {
         </View>
 
         {/* Daily Reflection Button */}
-        <TouchableOpacity 
-          style={styles.dailyReflectionButton}
-          onPress={() => router.push('/daily-reflections')}
-        >
-          <Text style={styles.reflectionButtonTitle}>
-            Daily Reflection{"\n"}for {formattedDate.replace(/^\w+, /, '').replace(/, \d{4}$/, '')}
-          </Text>
-        </TouchableOpacity>
-
-        {/* Daily Practice Section */}
-        <View style={styles.dailyPracticeHeader}>
+        <View style={styles.dailyReflectionWrapper}>
+          <TouchableOpacity 
+            onPress={() => router.push('/daily-reflections')}
+            activeOpacity={0.85}
+          >
+            <LinearGradient
+              colors={['#1B8FA3', '#147C72']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 0, y: 1 }}
+              style={styles.dailyReflectionGradient}
+            >
+              <View style={styles.reflectionInfo}>
+                <Text style={styles.reflectionButtonTitle}>Daily Reflection</Text>
+                <Text style={styles.reflectionButtonSubtitle}>
+                  for {formattedDate.replace(/^\w+, /, '').replace(/, \d{4}$/, '')}
+                </Text>
+              </View>
+            </LinearGradient>
+          </TouchableOpacity>
         </View>
 
         {/* Morning Routine Section */}
-        <View style={styles.sectionContainerMorning}>
-        <Text style={styles.sectionTitle}>Morning Routine</Text>
-        <Text style={styles.sectionSubtitle}>Start your day with intention and spiritual focus.</Text>
-        
-        <TouchableOpacity style={styles.card} onPress={() => router.push('/(tabs)/prayers?prayer=morning')}>
-          <View style={styles.cardHeader}>
-            <View style={styles.cardIconWrapper}>
-              <FontAwesome6 name="hands-praying" size={20} color={Colors.light.tint} solid={true} />
-            </View>
-            <Text style={styles.cardTitle}>Morning Prayer</Text>
-          </View>
-          <Text style={styles.cardDescription}>Invite your higher power to help you through the day.</Text>
-        </TouchableOpacity>
+        <View style={styles.sectionContainer}>
+          <TouchableOpacity
+            style={styles.sectionHeaderWrapper}
+            onPress={() => setMorningExpanded(!morningExpanded)}
+            activeOpacity={0.85}
+          >
+            <LinearGradient
+              colors={['#1B8FA3', '#147C72']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 0, y: 1 }}
+              style={styles.sectionHeaderGradient}
+            >
+              <View style={styles.sectionInfo}>
+                <Text style={styles.sectionTitle}>Morning Routine</Text>
+                <Text style={styles.sectionDescription}>Start your day with intention and spiritual focus.</Text>
+              </View>
+              {morningExpanded ? (
+                <ChevronDown size={20} color="#E6FFFA" />
+              ) : (
+                <ChevronRight size={20} color="#E6FFFA" />
+              )}
+            </LinearGradient>
+          </TouchableOpacity>
+          
+          {morningExpanded && (
+            <View style={styles.itemsContainer}>
+              <TouchableOpacity style={styles.itemCard} onPress={() => router.push('/(tabs)/prayers?prayer=morning')}>
+                <View style={styles.cardHeader}>
+                  <View style={styles.cardIconWrapper}>
+                    <FontAwesome6 name="hands-praying" size={20} color={Colors.light.tint} solid={true} />
+                  </View>
+                  <Text style={styles.cardTitle}>Morning Prayer</Text>
+                </View>
+                <Text style={styles.cardDescription}>Invite your higher power to help you through the day.</Text>
+              </TouchableOpacity>
 
-        <TouchableOpacity style={styles.card} onPress={() => router.push('/(tabs)/gratitude')}>
-          <View style={styles.cardHeader}>
-            <View style={styles.cardIconWrapper}>
-              <FontAwesome6 name="face-smile" size={20} color={Colors.light.tint} solid={true} />
-            </View>
-            <Text style={styles.cardTitle}>Daily Gratitude</Text>
-          </View>
-          <Text style={styles.cardDescription}>Start your day with gratitude and stay in the solution.</Text>
-        </TouchableOpacity>
+              <TouchableOpacity style={styles.itemCard} onPress={() => router.push('/(tabs)/gratitude')}>
+                <View style={styles.cardHeader}>
+                  <View style={styles.cardIconWrapper}>
+                    <FontAwesome6 name="face-smile" size={20} color={Colors.light.tint} solid={true} />
+                  </View>
+                  <Text style={styles.cardTitle}>Daily Gratitude</Text>
+                </View>
+                <Text style={styles.cardDescription}>Start your day with gratitude and stay in the solution.</Text>
+              </TouchableOpacity>
 
-        <TouchableOpacity style={styles.card} onPress={() => router.push('/(tabs)/literature')}>
-          <View style={styles.cardHeader}>
-            <View style={styles.cardIconWrapper}>
-              <FontAwesome name="book" size={20} color={Colors.light.tint} />
+              <TouchableOpacity style={styles.itemCard} onPress={() => router.push('/(tabs)/literature')}>
+                <View style={styles.cardHeader}>
+                  <View style={styles.cardIconWrapper}>
+                    <FontAwesome name="book" size={20} color={Colors.light.tint} />
+                  </View>
+                  <Text style={styles.cardTitle}>Literature</Text>
+                </View>
+                <Text style={styles.cardDescription}>Read something out of the literature every day.</Text>
+              </TouchableOpacity>
             </View>
-            <Text style={styles.cardTitle}>Literature</Text>
-          </View>
-          <Text style={styles.cardDescription}>Read something out of the literature every day.</Text>
-        </TouchableOpacity>
-
-      </View>
+          )}
+        </View>
 
         {/* Throughout the Day Section */}
-        <View style={styles.sectionContainerDay}>
-        <Text style={styles.sectionTitle}>Throughout the Day</Text>
-        <Text style={styles.sectionSubtitle}>Stay connected and mindful during your daily activities.</Text>
-        
-        <TouchableOpacity style={styles.card} onPress={() => router.push('/(tabs)/chat')}>
-          <View style={styles.cardHeader}>
-            <View style={styles.cardIconWrapper}>
-              <MaterialCommunityIcons name="human-greeting-variant" size={22} color={Colors.light.tint} />
+        <View style={styles.sectionContainer}>
+          <TouchableOpacity
+            style={styles.sectionHeaderWrapper}
+            onPress={() => setDayExpanded(!dayExpanded)}
+            activeOpacity={0.85}
+          >
+            <LinearGradient
+              colors={['#1B8FA3', '#147C72']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 0, y: 1 }}
+              style={styles.sectionHeaderGradient}
+            >
+              <View style={styles.sectionInfo}>
+                <Text style={styles.sectionTitle}>Throughout the Day</Text>
+                <Text style={styles.sectionDescription}>Stay connected and mindful during your daily activities.</Text>
+              </View>
+              {dayExpanded ? (
+                <ChevronDown size={20} color="#E6FFFA" />
+              ) : (
+                <ChevronRight size={20} color="#E6FFFA" />
+              )}
+            </LinearGradient>
+          </TouchableOpacity>
+          
+          {dayExpanded && (
+            <View style={styles.itemsContainer}>
+              <TouchableOpacity style={styles.itemCard} onPress={() => router.push('/(tabs)/chat')}>
+                <View style={styles.cardHeader}>
+                  <View style={styles.cardIconWrapper}>
+                    <MaterialCommunityIcons name="human-greeting-variant" size={22} color={Colors.light.tint} />
+                  </View>
+                  <Text style={styles.cardTitle}>AI Sponsor</Text>
+                </View>
+                <Text style={styles.cardDescription}>Talk with an AI sponsor when you need guidance.</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity style={styles.itemCard} onPress={() => router.push('/(tabs)/prayers')}>
+                <View style={styles.cardHeader}>
+                  <View style={styles.cardIconWrapper}>
+                    <FontAwesome6 name="hands-praying" size={20} color={Colors.light.tint} solid={true} />
+                  </View>
+                  <Text style={styles.cardTitle}>Prayers</Text>
+                </View>
+                <Text style={styles.cardDescription}>Connect with your Higher Power throughout the day.</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity style={styles.itemCard} onPress={() => router.push('/inventory')}>
+                <View style={styles.cardHeader}>
+                  <View style={styles.cardIconWrapper}>
+                    <MaterialCommunityIcons name="emoticon-angry" size={24} color={Colors.light.tint} />
+                  </View>
+                  <Text style={styles.cardTitle}>Spot Check Inventory</Text>
+                </View>
+                <Text style={styles.cardDescription}>When disturbed ask yourself: Are you on the beam or off the beam?</Text>
+              </TouchableOpacity>
             </View>
-            <Text style={styles.cardTitle}>AI Sponsor</Text>
-          </View>
-          <Text style={styles.cardDescription}>Talk with an AI sponsor when you need guidance.</Text>
-        </TouchableOpacity>
-
-
-
-        <TouchableOpacity style={styles.card} onPress={() => router.push('/(tabs)/prayers')}>
-          <View style={styles.cardHeader}>
-            <View style={styles.cardIconWrapper}>
-              <FontAwesome6 name="hands-praying" size={20} color={Colors.light.tint} solid={true} />
-            </View>
-            <Text style={styles.cardTitle}>Prayers</Text>
-          </View>
-          <Text style={styles.cardDescription}>Connect with your Higher Power throughout the day.</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity style={styles.card} onPress={() => router.push('/inventory')}>
-          <View style={styles.cardHeader}>
-            <View style={styles.cardIconWrapper}>
-              <MaterialCommunityIcons name="emoticon-angry" size={24} color={Colors.light.tint} />
-            </View>
-            <Text style={styles.cardTitle}>Spot Check Inventory</Text>
-          </View>
-          <Text style={styles.cardDescription}>When disturbed ask yourself: Are you on the beam or off the beam?</Text>
-        </TouchableOpacity>
-      </View>
+          )}
+        </View>
 
         {/* Evening Routine Section */}
-        <View style={styles.sectionContainerEvening}>
-        <Text style={styles.sectionTitle}>Evening Routine</Text>
-        <Text style={styles.sectionSubtitle}>Reflect and close your day with peace.</Text>
-        
-        <TouchableOpacity style={styles.card} onPress={() => router.push('/(tabs)/evening-review')}>
-          <View style={styles.cardHeader}>
-            <View style={styles.cardIconWrapper}>
-              <Ionicons name="moon" size={20} color={Colors.light.tint} />
-            </View>
-            <Text style={styles.cardTitle}>Nightly Review</Text>
-          </View>
-          <Text style={styles.cardDescription}>Reflect on your day and practice Step 10.</Text>
-        </TouchableOpacity>
+        <View style={styles.sectionContainer}>
+          <TouchableOpacity
+            style={styles.sectionHeaderWrapper}
+            onPress={() => setEveningExpanded(!eveningExpanded)}
+            activeOpacity={0.85}
+          >
+            <LinearGradient
+              colors={['#1B8FA3', '#147C72']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 0, y: 1 }}
+              style={styles.sectionHeaderGradient}
+            >
+              <View style={styles.sectionInfo}>
+                <Text style={styles.sectionTitle}>Evening Routine</Text>
+                <Text style={styles.sectionDescription}>Reflect and close your day with peace.</Text>
+              </View>
+              {eveningExpanded ? (
+                <ChevronDown size={20} color="#E6FFFA" />
+              ) : (
+                <ChevronRight size={20} color="#E6FFFA" />
+              )}
+            </LinearGradient>
+          </TouchableOpacity>
+          
+          {eveningExpanded && (
+            <View style={styles.itemsContainer}>
+              <TouchableOpacity style={styles.itemCard} onPress={() => router.push('/(tabs)/evening-review')}>
+                <View style={styles.cardHeader}>
+                  <View style={styles.cardIconWrapper}>
+                    <Ionicons name="moon" size={20} color={Colors.light.tint} />
+                  </View>
+                  <Text style={styles.cardTitle}>Nightly Review</Text>
+                </View>
+                <Text style={styles.cardDescription}>Reflect on your day and practice Step 10.</Text>
+              </TouchableOpacity>
 
-        <TouchableOpacity style={styles.card} onPress={() => router.push('/(tabs)/prayers?prayer=evening')}>
-          <View style={styles.cardHeader}>
-            <View style={styles.cardIconWrapper}>
-              <FontAwesome6 name="hands-praying" size={20} color={Colors.light.tint} solid={true} />
+              <TouchableOpacity style={styles.itemCard} onPress={() => router.push('/(tabs)/prayers?prayer=evening')}>
+                <View style={styles.cardHeader}>
+                  <View style={styles.cardIconWrapper}>
+                    <FontAwesome6 name="hands-praying" size={20} color={Colors.light.tint} solid={true} />
+                  </View>
+                  <Text style={styles.cardTitle}>Evening Prayer</Text>
+                </View>
+                <Text style={styles.cardDescription}>End your day with gratitude and humility.</Text>
+              </TouchableOpacity>
             </View>
-            <Text style={styles.cardTitle}>Evening Prayer</Text>
-          </View>
-          <Text style={styles.cardDescription}>End your day with gratitude and humility.</Text>
-        </TouchableOpacity>
+          )}
         </View>
 
         {/* Support the Developer Section */}
-        <View style={styles.sectionContainerSupport}>
-        <Text style={styles.sectionTitle}>Enjoying Sober Dailies?</Text>
-        <TouchableOpacity style={styles.card} onPress={() => router.push('/about-support')}>
-          <View style={styles.cardHeader}>
-            <View style={styles.cardIconWrapper}>
-              <FontAwesome name="heart" size={20} color={Colors.light.tint} />
-            </View>
-            <Text style={styles.cardTitle}>Support the Developer</Text>
+        <View style={styles.sectionContainer}>
+          <View style={styles.sectionHeaderWrapper}>
+            <LinearGradient
+              colors={['#1B8FA3', '#147C72']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 0, y: 1 }}
+              style={styles.sectionHeaderGradient}
+            >
+              <View style={styles.sectionInfo}>
+                <Text style={styles.sectionTitle}>Enjoying Sober Dailies?</Text>
+              </View>
+            </LinearGradient>
           </View>
-          <Text style={styles.cardDescription}>Make a difference with a one-time contribution</Text>
-        </TouchableOpacity>
+          
+          <View style={styles.itemsContainer}>
+            <TouchableOpacity style={styles.itemCard} onPress={() => router.push('/about-support')}>
+              <View style={styles.cardHeader}>
+                <View style={styles.cardIconWrapper}>
+                  <FontAwesome name="heart" size={20} color={Colors.light.tint} />
+                </View>
+                <Text style={styles.cardTitle}>Support the Developer</Text>
+              </View>
+              <Text style={styles.cardDescription}>Make a difference with a one-time contribution</Text>
+            </TouchableOpacity>
+          </View>
         </View>
       </ScrollView>
       </SafeAreaView>
@@ -209,7 +308,7 @@ const styles = StyleSheet.create({
   heroTitle: {
     fontSize: 36,
     fontWeight: 'bold',
-    color: Colors.light.text,
+    color: '#1B8FA3',
     marginBottom: 4,
     marginTop: 8,
     letterSpacing: 1,
@@ -223,102 +322,111 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     lineHeight: 22,
   },
-  dailyReflectionButton: {
-    backgroundColor: '#4A90E2',
-    borderRadius: 16,
-    padding: 16,
+  dailyReflectionWrapper: {
+    borderRadius: 10,
+    overflow: 'hidden',
+    marginBottom: 8,
     marginHorizontal: 16,
-    marginBottom: 0,
-    alignItems: 'center',
-    elevation: 4,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.2,
-    shadowRadius: 7,
+    marginTop: 16,
+    shadowColor: '#03202B',
+    shadowOffset: { width: 0, height: 12 },
+    shadowOpacity: 0.38,
+    shadowRadius: 22,
+    elevation: 16,
+  },
+  dailyReflectionGradient: {
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.6)',
+    borderTopWidth: 2,
+    borderTopColor: 'rgba(255, 255, 255, 0.5)',
+    borderBottomWidth: 2,
+    borderBottomColor: 'rgba(0, 0, 0, 0.15)',
+  },
+  reflectionInfo: {
+    flex: 1,
   },
   reflectionButtonTitle: {
-    fontSize: 24,
+    fontSize: 18,
     fontWeight: '600',
-    color: 'white',
-    textAlign: 'center',
+    color: '#E6FFFA',
+    marginBottom: 4,
   },
   reflectionButtonSubtitle: {
-    fontSize: 16,
-    color: 'rgba(255, 255, 255, 0.9)',
-    textAlign: 'center',
-    fontWeight: '500',
+    fontSize: 14,
+    color: 'rgba(214, 245, 239, 0.9)',
   },
-  dailyPracticeHeader: {
+  sectionContainer: {
+    marginBottom: 16,
+    marginHorizontal: 16,
+  },
+  sectionHeaderWrapper: {
+    borderRadius: 10,
+    overflow: 'hidden',
+    shadowColor: '#03202B',
+    shadowOffset: { width: 0, height: 12 },
+    shadowOpacity: 0.38,
+    shadowRadius: 22,
+    elevation: 16,
+  },
+  sectionHeaderGradient: {
+    flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 30,
+    justifyContent: 'space-between',
+    paddingVertical: 12,
     paddingHorizontal: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.6)',
+    borderTopWidth: 2,
+    borderTopColor: 'rgba(255, 255, 255, 0.5)',
+    borderBottomWidth: 2,
+    borderBottomColor: 'rgba(0, 0, 0, 0.15)',
   },
-  dailyPracticeTitle: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: Colors.light.text,
-    marginBottom: 8,
-    textAlign: 'center',
-  },
-  dailyPracticeSubtitle: {
-    fontSize: 16,
-    color: Colors.light.muted,
-    textAlign: 'center',
-  },
-  sectionContainerMorning: {
-    paddingHorizontal: 16,
-    marginBottom: 30,
-    backgroundColor: '#FEF3B8', // Gentle pastel yellow
-    paddingVertical: 20,
-    borderRadius: 16,
-    marginHorizontal: 16,
-  },
-  sectionContainerDay: {
-    paddingHorizontal: 16,
-    marginBottom: 30,
-    backgroundColor: '#8BC6EC', // Richer soft blue
-    paddingVertical: 20,
-    borderRadius: 16,
-    marginHorizontal: 16,
-  },
-  sectionContainerEvening: {
-    paddingHorizontal: 16,
-    marginBottom: 30,
-    backgroundColor: '#D1B4EB', // Deeper soft purple
-    paddingVertical: 20,
-    borderRadius: 16,
-    marginHorizontal: 16,
-  },
-  sectionContainerSupport: {
-    paddingHorizontal: 16,
-    marginBottom: 30,
-    backgroundColor: '#A5D6A7', // Deeper soft green
-    paddingVertical: 20,
-    borderRadius: 16,
-    marginHorizontal: 16,
+  sectionInfo: {
+    flex: 1,
+    marginRight: 12,
   },
   sectionTitle: {
-    fontSize: 22,
-    fontWeight: 'bold',
-    color: Colors.light.text,
-    marginBottom: 10,
+    fontSize: 18,
+    fontWeight: adjustFontWeight('600'),
+    color: '#E6FFFA',
+    marginBottom: 4,
   },
-  sectionSubtitle: {
-    fontSize: 16,
-    color: Colors.light.muted,
-    marginBottom: 20,
+  sectionDescription: {
+    fontSize: 14,
+    color: 'rgba(214, 245, 239, 0.9)',
   },
-  card: {
-    backgroundColor: '#fff',
-    borderRadius: 10,
-    padding: 16,
-    marginBottom: 16,
-    // Level 1: Floating Elements (Highest depth)
-    elevation: 8,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.25,
-    shadowRadius: 12,
+  itemsContainer: {
+    marginTop: 0,
+    backgroundColor: 'rgba(255, 255, 255, 0.65)',
+    borderTopWidth: 0,
+    borderTopLeftRadius: 0,
+    borderTopRightRadius: 0,
+    borderBottomLeftRadius: 12,
+    borderBottomRightRadius: 12,
+    paddingTop: 8,
+    paddingHorizontal: 8,
+    paddingBottom: 16,
+  },
+  itemCard: {
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.8)',
+    borderRadius: 12,
+    marginHorizontal: 8,
+    marginTop: 8,
+    shadowColor: '#041A25',
+    shadowOffset: { width: 0, height: Platform.OS === 'ios' ? 10 : 0 },
+    shadowOpacity: Platform.OS === 'ios' ? 0.32 : 0,
+    shadowRadius: Platform.OS === 'ios' ? 20 : 0,
+    ...Platform.select({
+      android: {
+        elevation: 12,
+      },
+    }),
   },
   cardHeader: {
     flexDirection: 'row',
@@ -343,15 +451,7 @@ const styles = StyleSheet.create({
   cardDescription: {
     fontSize: 14,
     color: Colors.light.muted,
-    marginBottom: 12,
-  },
-  sectionContainerTransparent: {
-    paddingHorizontal: 16,
-    marginBottom: 30,
-    backgroundColor: 'transparent',
-    paddingVertical: 20,
-    borderRadius: 16,
-    marginHorizontal: 16,
+    marginBottom: 0,
   },
 });
 
