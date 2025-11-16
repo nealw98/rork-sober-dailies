@@ -1,5 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { NativeModules, Linking, Platform } from 'react-native';
+import { NativeModules } from 'react-native';
 import { NativeModulesProxy } from 'expo-modules-core';
 import type * as ExpoStoreReviewModule from 'expo-store-review';
 
@@ -28,17 +28,12 @@ const REVIEW_TRIGGERS: readonly ReviewTrigger[] = [
 // TODO: TESTING MODE - Set to production values before release:
 // MIN_USAGE_DAYS = 7
 // COOLDOWN_MS = 1000 * 60 * 60 * 24 * 90 (90 days)
-const MIN_USAGE_DAYS = 0;
+const MIN_USAGE_DAYS = 7;
 const MIN_DAILY_REFLECTION_DAYS = 5;
 const MIN_LITERATURE_MINUTES = 10;
 const MIN_AI_RESPONSES = 5;
 const MIN_TRIGGER_COUNT = 5;
-const COOLDOWN_MS = 0; // Disabled for testing
-
-const STORE_REVIEW_FALLBACK_URL =
-  Platform.OS === 'ios'
-    ? 'https://apps.apple.com/app/id6738032000?action=write-review'
-    : 'https://play.google.com/store/apps/details?id=com.nealwagner.soberdailies';
+const COOLDOWN_MS = 1000 * 60 * 60 * 24 * 90;
 
 const STORAGE_SEPARATOR = ',';
 
@@ -322,16 +317,6 @@ async function presentStoreReview(trigger: ReviewTrigger): Promise<boolean> {
     const hasAction = await StoreReview.hasAction();
     if (!hasAction) {
       console.warn('[reviewPrompt] StoreReview.hasAction returned false');
-      if (STORE_REVIEW_FALLBACK_URL) {
-        console.log('[reviewPrompt] opening fallback store review URL');
-        try {
-          await Linking.openURL(STORE_REVIEW_FALLBACK_URL);
-          await recordPromptShown();
-          return true;
-        } catch (error) {
-          console.warn('[reviewPrompt] unable to open fallback review URL', error);
-        }
-      }
       return false;
     }
 
