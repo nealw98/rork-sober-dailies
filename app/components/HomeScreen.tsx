@@ -1,5 +1,5 @@
 import React from 'react';
-import { StyleSheet, View, Text, ScrollView, TouchableOpacity, Linking } from 'react-native';
+import { StyleSheet, View, Text, ScrollView, TouchableOpacity, Linking, Alert, Share, Platform } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -18,6 +18,39 @@ const HomeScreen = () => {
 
   const today = new Date();
   const formattedDate = formatDateDisplay(today);
+
+  const handleRateAppPress = async () => {
+    try {
+      if (Platform.OS === 'ios') {
+        const appStoreId = '6749869819';
+        const url = `itms-apps://itunes.apple.com/app/id${appStoreId}?action=write-review`;
+        await Linking.openURL(url);
+      } else {
+        const packageName = 'com.nealwagner.soberdailies';
+        const url = `market://details?id=${packageName}`;
+        const fallback = `https://play.google.com/store/apps/details?id=${packageName}`;
+        const supported = await Linking.canOpenURL(url);
+        await Linking.openURL(supported ? url : fallback);
+      }
+    } catch (error) {
+      Alert.alert('Error', 'Unable to open the store page right now.');
+    }
+  };
+
+  const handleSharePress = async () => {
+    try {
+      const appStoreUrl =
+        Platform.OS === 'ios'
+          ? 'https://apps.apple.com/app/sober-dailies/id6738032000'
+          : 'https://play.google.com/store/apps/details?id=com.nealwagner.soberdailies';
+
+      await Share.share({
+        message: 'Sober Dailies helps me stay sober one day at a time. Check it out: ' + appStoreUrl,
+      });
+    } catch {
+      // no-op
+    }
+  };
 
   return (
     <LinearGradient
@@ -160,6 +193,24 @@ const HomeScreen = () => {
         {/* Support the Developer Section */}
         <View style={styles.sectionContainerSupport}>
         <Text style={styles.sectionTitle}>Enjoying Sober Dailies?</Text>
+        <TouchableOpacity style={styles.card} onPress={handleRateAppPress}>
+          <View style={styles.cardHeader}>
+            <View style={styles.cardIconWrapper}>
+              <FontAwesome name="star" size={20} color={Colors.light.tint} />
+            </View>
+            <Text style={styles.cardTitle}>Rate & Review</Text>
+          </View>
+          <Text style={styles.cardDescription}>Leave a review in the App Store or Play Store.</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.card} onPress={handleSharePress}>
+          <View style={styles.cardHeader}>
+            <View style={styles.cardIconWrapper}>
+              <FontAwesome name="share-alt" size={20} color={Colors.light.tint} />
+            </View>
+            <Text style={styles.cardTitle}>Share the App</Text>
+          </View>
+          <Text style={styles.cardDescription}>Invite a friend by sharing Sober Dailies.</Text>
+        </TouchableOpacity>
         <TouchableOpacity style={styles.card} onPress={() => router.push('/about-support')}>
           <View style={styles.cardHeader}>
             <View style={styles.cardIconWrapper}>
