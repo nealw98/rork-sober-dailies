@@ -1,5 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { NativeModules } from 'react-native';
+import { NativeModulesProxy } from 'expo-modules-core';
 import type * as ExpoStoreReviewModule from 'expo-store-review';
 
 export type ReviewTrigger = 'gratitude' | 'eveningReview' | 'spotCheck' | 'aiSponsor' | 'dailyReflection' | 'literature';
@@ -50,8 +51,12 @@ async function getStoreReviewModule(): Promise<typeof ExpoStoreReviewModule | nu
   if (!storeReviewPromise) {
     storeReviewPromise = (async () => {
       try {
-        if (!(NativeModules as Record<string, unknown>).ExpoStoreReview) {
-          console.warn('[reviewPrompt] StoreReview native module missing from NativeModules');
+        const nativeModule =
+          (NativeModulesProxy as Record<string, unknown>).ExpoStoreReview ??
+          (NativeModules as Record<string, unknown>).ExpoStoreReview;
+
+        if (!nativeModule) {
+          console.warn('[reviewPrompt] StoreReview native module missing from NativeModulesProxy');
           console.warn('[reviewPrompt] expo-store-review native module missing from this build');
           storeReviewModule = null;
           return null;
