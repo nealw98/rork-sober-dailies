@@ -2077,7 +2077,7 @@ PODS:
     - React-utils (= 0.79.6)
   - RNCAsyncStorage (2.1.2):
     - React-Core
-  - RNCPicker (2.11.2):
+  - RNCPicker (2.11.4):
     - React-Core
   - RNDateTimePicker (8.4.1):
     - React-Core
@@ -2105,8 +2105,7 @@ PODS:
     - ReactCommon/turbomodule/bridging
     - ReactCommon/turbomodule/core
     - Yoga
-    - React-Core
-  - RNReanimated (3.19.2):
+  - RNReanimated (3.19.3):
     - DoubleConversion
     - glog
     - hermes-engine
@@ -2129,10 +2128,10 @@ PODS:
     - ReactCodegen
     - ReactCommon/turbomodule/bridging
     - ReactCommon/turbomodule/core
-    - RNReanimated/reanimated (= 3.19.2)
-    - RNReanimated/worklets (= 3.19.2)
+    - RNReanimated/reanimated (= 3.19.3)
+    - RNReanimated/worklets (= 3.19.3)
     - Yoga
-  - RNReanimated/reanimated (3.19.2):
+  - RNReanimated/reanimated (3.19.3):
     - DoubleConversion
     - glog
     - hermes-engine
@@ -2155,9 +2154,9 @@ PODS:
     - ReactCodegen
     - ReactCommon/turbomodule/bridging
     - ReactCommon/turbomodule/core
-    - RNReanimated/reanimated/apple (= 3.19.2)
+    - RNReanimated/reanimated/apple (= 3.19.3)
     - Yoga
-  - RNReanimated/reanimated/apple (3.19.2):
+  - RNReanimated/reanimated/apple (3.19.3):
     - DoubleConversion
     - glog
     - hermes-engine
@@ -2181,7 +2180,7 @@ PODS:
     - ReactCommon/turbomodule/bridging
     - ReactCommon/turbomodule/core
     - Yoga
-  - RNReanimated/worklets (3.19.2):
+  - RNReanimated/worklets (3.19.3):
     - DoubleConversion
     - glog
     - hermes-engine
@@ -2204,9 +2203,9 @@ PODS:
     - ReactCodegen
     - ReactCommon/turbomodule/bridging
     - ReactCommon/turbomodule/core
-    - RNReanimated/worklets/apple (= 3.19.2)
+    - RNReanimated/worklets/apple (= 3.19.3)
     - Yoga
-  - RNReanimated/worklets/apple (3.19.2):
+  - RNReanimated/worklets/apple (3.19.3):
     - DoubleConversion
     - glog
     - hermes-engine
@@ -2623,7 +2622,6 @@ EXTERNAL SOURCES:
     :path: "../node_modules/@react-native-community/datetimepicker"
   RNGestureHandler:
     :path: "../node_modules/react-native-gesture-handler"
-    :path: "../node_modules/react-native-purchases"
   RNReanimated:
     :path: "../node_modules/react-native-reanimated"
   RNScreens:
@@ -2745,10 +2743,10 @@ SPEC CHECKSUMS:
   ReactCodegen: 06cf663b23a161f42a2e14087269753f422885c0
   ReactCommon: 44c86ec3ace664c0f33b7a2ac89aced8304ef25e
   RNCAsyncStorage: b9f5f78da5d16a853fe3dc22e8268d932fc45a83
-  RNCPicker: c53e35f4f41ad354cb176e8355a525c4c22de5b6
+  RNCPicker: 7de564dce1f90b53e386a24001aafc3578233dfe
   RNDateTimePicker: 60f9e986d61e42169a2716c1b51f1f93dfa82665
   RNGestureHandler: ce4a87dba81030b374d7f1993c4376f5c230da2e
-  RNReanimated: 691d5958827d44c59941069733d2fbb2be1739d5
+  RNReanimated: 036f2def55c6029708f0e3f07e843fdecaf83f83
   RNScreens: 62fdbbc4c984150b34c36f095c6ba2510ca9b6a5
   RNSVG: ab84f2de7dd4f2c86d01825b8a65e0ef712fc36b
   SDWebImage: 16309af6d214ba3f77a7c6f6fdda888cb313a50a

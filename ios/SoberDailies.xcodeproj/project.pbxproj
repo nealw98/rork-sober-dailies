@@ -8,28 +8,28 @@
 
 /* Begin PBXBuildFile section */
 		13B07FBF1A68108700A75B9A /* Images.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 13B07FB51A68108700A75B9A /* Images.xcassets */; };
+		2B1CBC07CA65B125A7E20443 /* ExpoModulesProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 98C97811C1556FEE1AF18594 /* ExpoModulesProvider.swift */; };
 		3E461D99554A48A4959DE609 /* SplashScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = AA286B85B6C04FC6940260E9 /* SplashScreen.storyboard */; };
-		9F3B43AAD75A0DB12A397B55 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 3B13F3811A4871940B257368 /* PrivacyInfo.xcprivacy */; };
+		47BC0648212109EFA2F633D6 /* libPods-SoberDailies.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 147B6BB523EB70B39D629B70 /* libPods-SoberDailies.a */; };
+		B12A88352E7B2DB3788E8CE2 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = A142F274567447CBC12246D3 /* PrivacyInfo.xcprivacy */; };
 		BB2F792D24A3F905000567C9 /* Expo.plist in Resources */ = {isa = PBXBuildFile; fileRef = BB2F792C24A3F905000567C9 /* Expo.plist */; };
-		D913F5F89757B170AECF0AC8 /* ExpoModulesProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9137E8196312F554F0BDB900 /* ExpoModulesProvider.swift */; };
 		F11748422D0307B40044C1D9 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = F11748412D0307B40044C1D9 /* AppDelegate.swift */; };
-		F41B3D28B2C654F31A6F66C9 /* libPods-SoberDailies.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 04F41A9148B61D9BD769D9F1 /* libPods-SoberDailies.a */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
-		04F41A9148B61D9BD769D9F1 /* libPods-SoberDailies.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libPods-SoberDailies.a"; sourceTree = BUILT_PRODUCTS_DIR; };
 		13B07F961A680F5B00A75B9A /* SoberDailies.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = SoberDailies.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		13B07FB51A68108700A75B9A /* Images.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; name = Images.xcassets; path = SoberDailies/Images.xcassets; sourceTree = "<group>"; };
 		13B07FB61A68108700A75B9A /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; name = Info.plist; path = SoberDailies/Info.plist; sourceTree = "<group>"; };
-		3B13F3811A4871940B257368 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; includeInIndex = 1; name = PrivacyInfo.xcprivacy; path = SoberDailies/PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
-		9137E8196312F554F0BDB900 /* ExpoModulesProvider.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = ExpoModulesProvider.swift; path = "Pods/Target Support Files/Pods-SoberDailies/ExpoModulesProvider.swift"; sourceTree = "<group>"; };
-		95BDA43496506471CE10D8DB /* Pods-SoberDailies.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-SoberDailies.release.xcconfig"; path = "Target Support Files/Pods-SoberDailies/Pods-SoberDailies.release.xcconfig"; sourceTree = "<group>"; };
+		147B6BB523EB70B39D629B70 /* libPods-SoberDailies.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libPods-SoberDailies.a"; sourceTree = BUILT_PRODUCTS_DIR; };
+		5C45B897CF732B1884FE50DE /* Pods-SoberDailies.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-SoberDailies.release.xcconfig"; path = "Target Support Files/Pods-SoberDailies/Pods-SoberDailies.release.xcconfig"; sourceTree = "<group>"; };
+		98C97811C1556FEE1AF18594 /* ExpoModulesProvider.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = ExpoModulesProvider.swift; path = "Pods/Target Support Files/Pods-SoberDailies/ExpoModulesProvider.swift"; sourceTree = "<group>"; };
+		A142F274567447CBC12246D3 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; includeInIndex = 1; name = PrivacyInfo.xcprivacy; path = SoberDailies/PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		AA286B85B6C04FC6940260E9 /* SplashScreen.storyboard */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.storyboard; name = SplashScreen.storyboard; path = SoberDailies/SplashScreen.storyboard; sourceTree = "<group>"; };
 		BB2F792C24A3F905000567C9 /* Expo.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = Expo.plist; sourceTree = "<group>"; };
-		C7AD1A5E27A56FBBB1A7C01D /* Pods-SoberDailies.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-SoberDailies.debug.xcconfig"; path = "Target Support Files/Pods-SoberDailies/Pods-SoberDailies.debug.xcconfig"; sourceTree = "<group>"; };
 		ED297162215061F000B7C4FE /* JavaScriptCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = JavaScriptCore.framework; path = System/Library/Frameworks/JavaScriptCore.framework; sourceTree = SDKROOT; };
 		F11748412D0307B40044C1D9 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = AppDelegate.swift; path = SoberDailies/AppDelegate.swift; sourceTree = "<group>"; };
 		F11748442D0722820044C1D9 /* SoberDailies-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = "SoberDailies-Bridging-Header.h"; path = "SoberDailies/SoberDailies-Bridging-Header.h"; sourceTree = "<group>"; };
+		F8E1E2350CDECEA636E5D6F7 /* Pods-SoberDailies.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-SoberDailies.debug.xcconfig"; path = "Target Support Files/Pods-SoberDailies/Pods-SoberDailies.debug.xcconfig"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -37,7 +37,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				F41B3D28B2C654F31A6F66C9 /* libPods-SoberDailies.a in Frameworks */,
+				47BC0648212109EFA2F633D6 /* libPods-SoberDailies.a in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -53,7 +53,7 @@
 				13B07FB51A68108700A75B9A /* Images.xcassets */,
 				13B07FB61A68108700A75B9A /* Info.plist */,
 				AA286B85B6C04FC6940260E9 /* SplashScreen.storyboard */,
-				3B13F3811A4871940B257368 /* PrivacyInfo.xcprivacy */,
+				A142F274567447CBC12246D3 /* PrivacyInfo.xcprivacy */,
 			);
 			name = SoberDailies;
 			sourceTree = "<group>";
@@ -62,23 +62,15 @@
 			isa = PBXGroup;
 			children = (
 				ED297162215061F000B7C4FE /* JavaScriptCore.framework */,
-				04F41A9148B61D9BD769D9F1 /* libPods-SoberDailies.a */,
+				147B6BB523EB70B39D629B70 /* libPods-SoberDailies.a */,
 			);
 			name = Frameworks;
 			sourceTree = "<group>";
 		};
-		65F71C4724B9978155E7D059 /* ExpoModulesProviders */ = {
+		33E4D464512ACCBF7BC0B114 /* SoberDailies */ = {
 			isa = PBXGroup;
 			children = (
-				71416F96AA045766331FD2EA /* SoberDailies */,
-			);
-			name = ExpoModulesProviders;
-			sourceTree = "<group>";
-		};
-		71416F96AA045766331FD2EA /* SoberDailies */ = {
-			isa = PBXGroup;
-			children = (
-				9137E8196312F554F0BDB900 /* ExpoModulesProvider.swift */,
+				98C97811C1556FEE1AF18594 /* ExpoModulesProvider.swift */,
 			);
 			name = SoberDailies;
 			sourceTree = "<group>";
@@ -97,8 +89,8 @@
 				832341AE1AAA6A7D00B99B32 /* Libraries */,
 				83CBBA001A601CBA00E9B192 /* Products */,
 				2D16E6871FA4F8E400B85C8A /* Frameworks */,
-				A7AC5544B4F31A51737B5F6E /* Pods */,
-				65F71C4724B9978155E7D059 /* ExpoModulesProviders */,
+				84A51DF3D39739B7688806D5 /* Pods */,
+				A0AA188E568942ADE28D3A1E /* ExpoModulesProviders */,
 			);
 			indentWidth = 2;
 			sourceTree = "<group>";
@@ -113,14 +105,22 @@
 			name = Products;
 			sourceTree = "<group>";
 		};
-		A7AC5544B4F31A51737B5F6E /* Pods */ = {
+		84A51DF3D39739B7688806D5 /* Pods */ = {
 			isa = PBXGroup;
 			children = (
-				C7AD1A5E27A56FBBB1A7C01D /* Pods-SoberDailies.debug.xcconfig */,
-				95BDA43496506471CE10D8DB /* Pods-SoberDailies.release.xcconfig */,
+				F8E1E2350CDECEA636E5D6F7 /* Pods-SoberDailies.debug.xcconfig */,
+				5C45B897CF732B1884FE50DE /* Pods-SoberDailies.release.xcconfig */,
 			);
 			name = Pods;
 			path = Pods;
+			sourceTree = "<group>";
+		};
+		A0AA188E568942ADE28D3A1E /* ExpoModulesProviders */ = {
+			isa = PBXGroup;
+			children = (
+				33E4D464512ACCBF7BC0B114 /* SoberDailies */,
+			);
+			name = ExpoModulesProviders;
 			sourceTree = "<group>";
 		};
 		BB2F792B24A3F905000567C9 /* Supporting */ = {
@@ -140,13 +140,13 @@
 			buildConfigurationList = 13B07F931A680F5B00A75B9A /* Build configuration list for PBXNativeTarget "SoberDailies" */;
 			buildPhases = (
 				08A4A3CD28434E44B6B9DE2E /* [CP] Check Pods Manifest.lock */,
-				81BD8E356C535EF47E1D5BF1 /* [Expo] Configure project */,
+				A14590FCBAB3D827422E949F /* [Expo] Configure project */,
 				13B07F871A680F5B00A75B9A /* Sources */,
 				13B07F8C1A680F5B00A75B9A /* Frameworks */,
 				13B07F8E1A680F5B00A75B9A /* Resources */,
 				00DD1BFF1BD5951E006B06BC /* Bundle React Native code and images */,
 				800E24972A6A228C8D4807E9 /* [CP] Copy Pods Resources */,
-				13F7014D11CE44714F9C2C6B /* [CP] Embed Pods Frameworks */,
+				6BF812AE398B7F3C053DF782 /* [CP] Embed Pods Frameworks */,
 			);
 			buildRules = (
 			);
@@ -196,7 +196,7 @@
 				BB2F792D24A3F905000567C9 /* Expo.plist in Resources */,
 				13B07FBF1A68108700A75B9A /* Images.xcassets in Resources */,
 				3E461D99554A48A4959DE609 /* SplashScreen.storyboard in Resources */,
-				9F3B43AAD75A0DB12A397B55 /* PrivacyInfo.xcprivacy in Resources */,
+				B12A88352E7B2DB3788E8CE2 /* PrivacyInfo.xcprivacy in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -240,7 +240,7 @@
 			shellScript = "diff \"${PODS_PODFILE_DIR_PATH}/Podfile.lock\" \"${PODS_ROOT}/Manifest.lock\" > /dev/null\nif [ $? != 0 ] ; then\n    # print error to STDERR\n    echo \"error: The sandbox is not in sync with the Podfile.lock. Run 'pod install' or update your CocoaPods installation.\" >&2\n    exit 1\nfi\n# This output is used by Xcode 'outputs' to avoid re-running this script phase.\necho \"SUCCESS\" > \"${SCRIPT_OUTPUT_FILE_0}\"\n";
 			showEnvVarsInLog = 0;
 		};
-		13F7014D11CE44714F9C2C6B /* [CP] Embed Pods Frameworks */ = {
+		6BF812AE398B7F3C053DF782 /* [CP] Embed Pods Frameworks */ = {
 			isa = PBXShellScriptBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -270,14 +270,12 @@
 				"${PODS_CONFIGURATION_BUILD_DIR}/EXUpdates/EXUpdates.bundle",
 				"${PODS_CONFIGURATION_BUILD_DIR}/ExpoFileSystem/ExpoFileSystem_privacy.bundle",
 				"${PODS_CONFIGURATION_BUILD_DIR}/ExpoSystemUI/ExpoSystemUI_privacy.bundle",
-				"${PODS_CONFIGURATION_BUILD_DIR}/PurchasesHybridCommon/PurchasesHybridCommon.bundle",
 				"${PODS_CONFIGURATION_BUILD_DIR}/RCT-Folly/RCT-Folly_privacy.bundle",
 				"${PODS_CONFIGURATION_BUILD_DIR}/RNCAsyncStorage/RNCAsyncStorage_resources.bundle",
 				"${PODS_CONFIGURATION_BUILD_DIR}/RNSVG/RNSVGFilters.bundle",
 				"${PODS_CONFIGURATION_BUILD_DIR}/ReachabilitySwift/ReachabilitySwift.bundle",
 				"${PODS_CONFIGURATION_BUILD_DIR}/React-Core/React-Core_privacy.bundle",
 				"${PODS_CONFIGURATION_BUILD_DIR}/React-cxxreact/React-cxxreact_privacy.bundle",
-				"${PODS_CONFIGURATION_BUILD_DIR}/RevenueCat/RevenueCat.bundle",
 				"${PODS_CONFIGURATION_BUILD_DIR}/SDWebImage/SDWebImage.bundle",
 				"${PODS_CONFIGURATION_BUILD_DIR}/boost/boost_privacy.bundle",
 				"${PODS_CONFIGURATION_BUILD_DIR}/expo-dev-launcher/EXDevLauncher.bundle",
@@ -291,14 +289,12 @@
 				"${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/EXUpdates.bundle",
 				"${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/ExpoFileSystem_privacy.bundle",
 				"${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/ExpoSystemUI_privacy.bundle",
-				"${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/PurchasesHybridCommon.bundle",
 				"${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/RCT-Folly_privacy.bundle",
 				"${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/RNCAsyncStorage_resources.bundle",
 				"${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/RNSVGFilters.bundle",
 				"${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/ReachabilitySwift.bundle",
 				"${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/React-Core_privacy.bundle",
 				"${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/React-cxxreact_privacy.bundle",
-				"${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/RevenueCat.bundle",
 				"${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/SDWebImage.bundle",
 				"${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/boost_privacy.bundle",
 				"${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/EXDevLauncher.bundle",
@@ -310,7 +306,7 @@
 			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-SoberDailies/Pods-SoberDailies-resources.sh\"\n";
 			showEnvVarsInLog = 0;
 		};
-		81BD8E356C535EF47E1D5BF1 /* [Expo] Configure project */ = {
+		A14590FCBAB3D827422E949F /* [Expo] Configure project */ = {
 			isa = PBXShellScriptBuildPhase;
 			alwaysOutOfDate = 1;
 			buildActionMask = 2147483647;
@@ -337,7 +333,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				F11748422D0307B40044C1D9 /* AppDelegate.swift in Sources */,
-				D913F5F89757B170AECF0AC8 /* ExpoModulesProvider.swift in Sources */,
+				2B1CBC07CA65B125A7E20443 /* ExpoModulesProvider.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -346,12 +342,12 @@
 /* Begin XCBuildConfiguration section */
 		13B07F941A680F5B00A75B9A /* Debug */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = C7AD1A5E27A56FBBB1A7C01D /* Pods-SoberDailies.debug.xcconfig */;
+			baseConfigurationReference = F8E1E2350CDECEA636E5D6F7 /* Pods-SoberDailies.debug.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_ENTITLEMENTS = SoberDailies/SoberDailies.entitlements;
-				CURRENT_PROJECT_VERSION = 100;
+				CURRENT_PROJECT_VERSION = 1;
 				ENABLE_BITCODE = NO;
 				GCC_PREPROCESSOR_DEFINITIONS = (
 					"$(inherited)",
@@ -363,7 +359,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 2.0.0;
+				MARKETING_VERSION = 1.0;
 				OTHER_LDFLAGS = (
 					"$(inherited)",
 					"-ObjC",
@@ -382,19 +378,19 @@
 		};
 		13B07F951A680F5B00A75B9A /* Release */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = 95BDA43496506471CE10D8DB /* Pods-SoberDailies.release.xcconfig */;
+			baseConfigurationReference = 5C45B897CF732B1884FE50DE /* Pods-SoberDailies.release.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_ENTITLEMENTS = SoberDailies/SoberDailies.entitlements;
-				CURRENT_PROJECT_VERSION = 100;
+				CURRENT_PROJECT_VERSION = 1;
 				INFOPLIST_FILE = SoberDailies/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 15.1;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 2.0.0;
+				MARKETING_VERSION = 1.0;
 				OTHER_LDFLAGS = (
 					"$(inherited)",
 					"-ObjC",
