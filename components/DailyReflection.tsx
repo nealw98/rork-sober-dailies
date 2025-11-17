@@ -428,9 +428,12 @@ export default function DailyReflection({ fontSize = 18 }: DailyReflectionProps)
             <View style={styles.divider} />
             
             <Text style={[styles.reflectionText, { fontSize: fontSize, lineHeight: fontSize * 1.375 }]}>{reflection.reflection}</Text>
-            
-            <View style={styles.divider} />
-            
+          </View>
+        </View>
+
+        {/* Meditation Card */}
+        <View style={[styles.card, styles.meditationCard]}>
+          <View>
             <Text style={[styles.thoughtTitle, { fontSize: fontSize }]}>Meditation:</Text>
             <Text style={[styles.thought, { fontSize: fontSize, lineHeight: fontSize * 1.375 }]}>{reflection.thought}</Text>
           </View>
@@ -775,5 +778,8 @@ const styles = StyleSheet.create({
     color: Colors.light.muted,
     fontWeight: adjustFontWeight('500'),
     fontSize: 16,
+  },
+  meditationCard: {
+    paddingTop: 24, // Override reduced padding for meditation card
   },
 });
