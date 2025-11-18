@@ -9,24 +9,24 @@
 /* Begin PBXBuildFile section */
 		13B07FBF1A68108700A75B9A /* Images.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 13B07FB51A68108700A75B9A /* Images.xcassets */; };
 		3E461D99554A48A4959DE609 /* SplashScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = AA286B85B6C04FC6940260E9 /* SplashScreen.storyboard */; };
-		9F3B43AAD75A0DB12A397B55 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 3B13F3811A4871940B257368 /* PrivacyInfo.xcprivacy */; };
 		BB2F792D24A3F905000567C9 /* Expo.plist in Resources */ = {isa = PBXBuildFile; fileRef = BB2F792C24A3F905000567C9 /* Expo.plist */; };
-		D913F5F89757B170AECF0AC8 /* ExpoModulesProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9137E8196312F554F0BDB900 /* ExpoModulesProvider.swift */; };
+		E4AFCBAB6B25E7B4A1522870 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 5AB398365D387032B4C5F2FE /* PrivacyInfo.xcprivacy */; };
 		F11748422D0307B40044C1D9 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = F11748412D0307B40044C1D9 /* AppDelegate.swift */; };
-		F41B3D28B2C654F31A6F66C9 /* libPods-SoberDailies.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 04F41A9148B61D9BD769D9F1 /* libPods-SoberDailies.a */; };
+		F661FA53ABD5B49649741D2B /* ExpoModulesProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 50487AB0EF2EF5B2ABFA0664 /* ExpoModulesProvider.swift */; };
+		FC312D3B0F0BD46EED8DD612 /* libPods-SoberDailies.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 1C90F98B8988461AFF1DB1F2 /* libPods-SoberDailies.a */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
-		04F41A9148B61D9BD769D9F1 /* libPods-SoberDailies.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libPods-SoberDailies.a"; sourceTree = BUILT_PRODUCTS_DIR; };
 		13B07F961A680F5B00A75B9A /* SoberDailies.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = SoberDailies.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		13B07FB51A68108700A75B9A /* Images.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; name = Images.xcassets; path = SoberDailies/Images.xcassets; sourceTree = "<group>"; };
 		13B07FB61A68108700A75B9A /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; name = Info.plist; path = SoberDailies/Info.plist; sourceTree = "<group>"; };
-		3B13F3811A4871940B257368 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; includeInIndex = 1; name = PrivacyInfo.xcprivacy; path = SoberDailies/PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
-		9137E8196312F554F0BDB900 /* ExpoModulesProvider.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = ExpoModulesProvider.swift; path = "Pods/Target Support Files/Pods-SoberDailies/ExpoModulesProvider.swift"; sourceTree = "<group>"; };
-		95BDA43496506471CE10D8DB /* Pods-SoberDailies.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-SoberDailies.release.xcconfig"; path = "Target Support Files/Pods-SoberDailies/Pods-SoberDailies.release.xcconfig"; sourceTree = "<group>"; };
+		1C90F98B8988461AFF1DB1F2 /* libPods-SoberDailies.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libPods-SoberDailies.a"; sourceTree = BUILT_PRODUCTS_DIR; };
+		2EB8095103E7379E09F7033C /* Pods-SoberDailies.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-SoberDailies.release.xcconfig"; path = "Target Support Files/Pods-SoberDailies/Pods-SoberDailies.release.xcconfig"; sourceTree = "<group>"; };
+		50487AB0EF2EF5B2ABFA0664 /* ExpoModulesProvider.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = ExpoModulesProvider.swift; path = "Pods/Target Support Files/Pods-SoberDailies/ExpoModulesProvider.swift"; sourceTree = "<group>"; };
+		5AB398365D387032B4C5F2FE /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; includeInIndex = 1; name = PrivacyInfo.xcprivacy; path = SoberDailies/PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
+		85DE22756D97883B014EA4E0 /* Pods-SoberDailies.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-SoberDailies.debug.xcconfig"; path = "Target Support Files/Pods-SoberDailies/Pods-SoberDailies.debug.xcconfig"; sourceTree = "<group>"; };
 		AA286B85B6C04FC6940260E9 /* SplashScreen.storyboard */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.storyboard; name = SplashScreen.storyboard; path = SoberDailies/SplashScreen.storyboard; sourceTree = "<group>"; };
 		BB2F792C24A3F905000567C9 /* Expo.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = Expo.plist; sourceTree = "<group>"; };
-		C7AD1A5E27A56FBBB1A7C01D /* Pods-SoberDailies.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-SoberDailies.debug.xcconfig"; path = "Target Support Files/Pods-SoberDailies/Pods-SoberDailies.debug.xcconfig"; sourceTree = "<group>"; };
 		ED297162215061F000B7C4FE /* JavaScriptCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = JavaScriptCore.framework; path = System/Library/Frameworks/JavaScriptCore.framework; sourceTree = SDKROOT; };
 		F11748412D0307B40044C1D9 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = AppDelegate.swift; path = SoberDailies/AppDelegate.swift; sourceTree = "<group>"; };
 		F11748442D0722820044C1D9 /* SoberDailies-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = "SoberDailies-Bridging-Header.h"; path = "SoberDailies/SoberDailies-Bridging-Header.h"; sourceTree = "<group>"; };
@@ -37,13 +37,21 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				F41B3D28B2C654F31A6F66C9 /* libPods-SoberDailies.a in Frameworks */,
+				FC312D3B0F0BD46EED8DD612 /* libPods-SoberDailies.a in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		0F1594B44E059049F9A6ADE5 /* ExpoModulesProviders */ = {
+			isa = PBXGroup;
+			children = (
+				903A84F0CA24FDA3727A30E1 /* SoberDailies */,
+			);
+			name = ExpoModulesProviders;
+			sourceTree = "<group>";
+		};
 		13B07FAE1A68108700A75B9A /* SoberDailies */ = {
 			isa = PBXGroup;
 			children = (
@@ -53,7 +61,7 @@
 				13B07FB51A68108700A75B9A /* Images.xcassets */,
 				13B07FB61A68108700A75B9A /* Info.plist */,
 				AA286B85B6C04FC6940260E9 /* SplashScreen.storyboard */,
-				3B13F3811A4871940B257368 /* PrivacyInfo.xcprivacy */,
+				5AB398365D387032B4C5F2FE /* PrivacyInfo.xcprivacy */,
 			);
 			name = SoberDailies;
 			sourceTree = "<group>";
@@ -62,25 +70,9 @@
 			isa = PBXGroup;
 			children = (
 				ED297162215061F000B7C4FE /* JavaScriptCore.framework */,
-				04F41A9148B61D9BD769D9F1 /* libPods-SoberDailies.a */,
+				1C90F98B8988461AFF1DB1F2 /* libPods-SoberDailies.a */,
 			);
 			name = Frameworks;
-			sourceTree = "<group>";
-		};
-		65F71C4724B9978155E7D059 /* ExpoModulesProviders */ = {
-			isa = PBXGroup;
-			children = (
-				71416F96AA045766331FD2EA /* SoberDailies */,
-			);
-			name = ExpoModulesProviders;
-			sourceTree = "<group>";
-		};
-		71416F96AA045766331FD2EA /* SoberDailies */ = {
-			isa = PBXGroup;
-			children = (
-				9137E8196312F554F0BDB900 /* ExpoModulesProvider.swift */,
-			);
-			name = SoberDailies;
 			sourceTree = "<group>";
 		};
 		832341AE1AAA6A7D00B99B32 /* Libraries */ = {
@@ -97,8 +89,8 @@
 				832341AE1AAA6A7D00B99B32 /* Libraries */,
 				83CBBA001A601CBA00E9B192 /* Products */,
 				2D16E6871FA4F8E400B85C8A /* Frameworks */,
-				A7AC5544B4F31A51737B5F6E /* Pods */,
-				65F71C4724B9978155E7D059 /* ExpoModulesProviders */,
+				A98C65F0ECBD7EAE7A56E252 /* Pods */,
+				0F1594B44E059049F9A6ADE5 /* ExpoModulesProviders */,
 			);
 			indentWidth = 2;
 			sourceTree = "<group>";
@@ -113,11 +105,19 @@
 			name = Products;
 			sourceTree = "<group>";
 		};
-		A7AC5544B4F31A51737B5F6E /* Pods */ = {
+		903A84F0CA24FDA3727A30E1 /* SoberDailies */ = {
 			isa = PBXGroup;
 			children = (
-				C7AD1A5E27A56FBBB1A7C01D /* Pods-SoberDailies.debug.xcconfig */,
-				95BDA43496506471CE10D8DB /* Pods-SoberDailies.release.xcconfig */,
+				50487AB0EF2EF5B2ABFA0664 /* ExpoModulesProvider.swift */,
+			);
+			name = SoberDailies;
+			sourceTree = "<group>";
+		};
+		A98C65F0ECBD7EAE7A56E252 /* Pods */ = {
+			isa = PBXGroup;
+			children = (
+				85DE22756D97883B014EA4E0 /* Pods-SoberDailies.debug.xcconfig */,
+				2EB8095103E7379E09F7033C /* Pods-SoberDailies.release.xcconfig */,
 			);
 			name = Pods;
 			path = Pods;
@@ -140,13 +140,13 @@
 			buildConfigurationList = 13B07F931A680F5B00A75B9A /* Build configuration list for PBXNativeTarget "SoberDailies" */;
 			buildPhases = (
 				08A4A3CD28434E44B6B9DE2E /* [CP] Check Pods Manifest.lock */,
-				81BD8E356C535EF47E1D5BF1 /* [Expo] Configure project */,
+				BBFE0BB649B825DFAE05479B /* [Expo] Configure project */,
 				13B07F871A680F5B00A75B9A /* Sources */,
 				13B07F8C1A680F5B00A75B9A /* Frameworks */,
 				13B07F8E1A680F5B00A75B9A /* Resources */,
 				00DD1BFF1BD5951E006B06BC /* Bundle React Native code and images */,
 				800E24972A6A228C8D4807E9 /* [CP] Copy Pods Resources */,
-				13F7014D11CE44714F9C2C6B /* [CP] Embed Pods Frameworks */,
+				DE924C1E945C19DCF180F58B /* [CP] Embed Pods Frameworks */,
 			);
 			buildRules = (
 			);
@@ -196,7 +196,7 @@
 				BB2F792D24A3F905000567C9 /* Expo.plist in Resources */,
 				13B07FBF1A68108700A75B9A /* Images.xcassets in Resources */,
 				3E461D99554A48A4959DE609 /* SplashScreen.storyboard in Resources */,
-				9F3B43AAD75A0DB12A397B55 /* PrivacyInfo.xcprivacy in Resources */,
+				E4AFCBAB6B25E7B4A1522870 /* PrivacyInfo.xcprivacy in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -238,24 +238,6 @@
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
 			shellScript = "diff \"${PODS_PODFILE_DIR_PATH}/Podfile.lock\" \"${PODS_ROOT}/Manifest.lock\" > /dev/null\nif [ $? != 0 ] ; then\n    # print error to STDERR\n    echo \"error: The sandbox is not in sync with the Podfile.lock. Run 'pod install' or update your CocoaPods installation.\" >&2\n    exit 1\nfi\n# This output is used by Xcode 'outputs' to avoid re-running this script phase.\necho \"SUCCESS\" > \"${SCRIPT_OUTPUT_FILE_0}\"\n";
-			showEnvVarsInLog = 0;
-		};
-		13F7014D11CE44714F9C2C6B /* [CP] Embed Pods Frameworks */ = {
-			isa = PBXShellScriptBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			inputPaths = (
-				"${PODS_ROOT}/Target Support Files/Pods-SoberDailies/Pods-SoberDailies-frameworks.sh",
-				"${PODS_XCFRAMEWORKS_BUILD_DIR}/hermes-engine/Pre-built/hermes.framework/hermes",
-			);
-			name = "[CP] Embed Pods Frameworks";
-			outputPaths = (
-				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/hermes.framework",
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-			shellPath = /bin/sh;
-			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-SoberDailies/Pods-SoberDailies-frameworks.sh\"\n";
 			showEnvVarsInLog = 0;
 		};
 		800E24972A6A228C8D4807E9 /* [CP] Copy Pods Resources */ = {
@@ -310,7 +292,7 @@
 			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-SoberDailies/Pods-SoberDailies-resources.sh\"\n";
 			showEnvVarsInLog = 0;
 		};
-		81BD8E356C535EF47E1D5BF1 /* [Expo] Configure project */ = {
+		BBFE0BB649B825DFAE05479B /* [Expo] Configure project */ = {
 			isa = PBXShellScriptBuildPhase;
 			alwaysOutOfDate = 1;
 			buildActionMask = 2147483647;
@@ -329,6 +311,24 @@
 			shellPath = /bin/sh;
 			shellScript = "# This script configures Expo modules and generates the modules provider file.\nbash -l -c \"./Pods/Target\\ Support\\ Files/Pods-SoberDailies/expo-configure-project.sh\"\n";
 		};
+		DE924C1E945C19DCF180F58B /* [CP] Embed Pods Frameworks */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputPaths = (
+				"${PODS_ROOT}/Target Support Files/Pods-SoberDailies/Pods-SoberDailies-frameworks.sh",
+				"${PODS_XCFRAMEWORKS_BUILD_DIR}/hermes-engine/Pre-built/hermes.framework/hermes",
+			);
+			name = "[CP] Embed Pods Frameworks";
+			outputPaths = (
+				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/hermes.framework",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-SoberDailies/Pods-SoberDailies-frameworks.sh\"\n";
+			showEnvVarsInLog = 0;
+		};
 /* End PBXShellScriptBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
@@ -337,7 +337,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				F11748422D0307B40044C1D9 /* AppDelegate.swift in Sources */,
-				D913F5F89757B170AECF0AC8 /* ExpoModulesProvider.swift in Sources */,
+				F661FA53ABD5B49649741D2B /* ExpoModulesProvider.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -346,12 +346,12 @@
 /* Begin XCBuildConfiguration section */
 		13B07F941A680F5B00A75B9A /* Debug */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = C7AD1A5E27A56FBBB1A7C01D /* Pods-SoberDailies.debug.xcconfig */;
+			baseConfigurationReference = 85DE22756D97883B014EA4E0 /* Pods-SoberDailies.debug.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_ENTITLEMENTS = SoberDailies/SoberDailies.entitlements;
-                CURRENT_PROJECT_VERSION = 97;
+				CURRENT_PROJECT_VERSION = 1;
 				ENABLE_BITCODE = NO;
 				GCC_PREPROCESSOR_DEFINITIONS = (
 					"$(inherited)",
@@ -363,7 +363,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.9.1;
+				MARKETING_VERSION = 1.0;
 				OTHER_LDFLAGS = (
 					"$(inherited)",
 					"-ObjC",
@@ -382,19 +382,19 @@
 		};
 		13B07F951A680F5B00A75B9A /* Release */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = 95BDA43496506471CE10D8DB /* Pods-SoberDailies.release.xcconfig */;
+			baseConfigurationReference = 2EB8095103E7379E09F7033C /* Pods-SoberDailies.release.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_ENTITLEMENTS = SoberDailies/SoberDailies.entitlements;
-                CURRENT_PROJECT_VERSION = 97;
+				CURRENT_PROJECT_VERSION = 1;
 				INFOPLIST_FILE = SoberDailies/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 15.1;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.9.1;
+				MARKETING_VERSION = 1.0;
 				OTHER_LDFLAGS = (
 					"$(inherited)",
 					"-ObjC",
