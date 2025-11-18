@@ -7,7 +7,8 @@
     "start-web": "bunx rork start -p slb0yphh4l03b7fd78jn4 --web --tunnel",
     "start-web-dev": "DEBUG=expo* bunx rork start -p slb0yphh4l03b7fd78jn4 --web --tunnel",
     "android": "expo run:android",
-    "ios": "expo run:ios"
+    "ios": "expo run:ios",
+    "eas-build-pre-install": "bash ./scripts/eas-pre-install.sh"
   },
   "dependencies": {
     "@expo/react-native-action-sheet": "^4.1.1",
