@@ -31,5 +31,10 @@ if ! install_with_sudo && ! install_without_sudo; then
 fi
 
 GEM_BIN_DIR="$(ruby -e 'print Gem.user_dir')/bin"
-echo "Adding $GEM_BIN_DIR to PATH via BASH_ENV"
-echo "export PATH=\"$GEM_BIN_DIR:$PATH\"" >> "$BASH_ENV"
+echo "Adding $GEM_BIN_DIR to PATH"
+
+if [ -n "${BASH_ENV:-}" ]; then
+  echo "export PATH=\"$GEM_BIN_DIR:$PATH\"" >> "$BASH_ENV"
+else
+  export PATH="$GEM_BIN_DIR:$PATH"
+fi
