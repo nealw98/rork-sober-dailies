@@ -24,6 +24,7 @@ import AnimatedEveningReviewMessage from '@/components/AnimatedEveningReviewMess
 import { ReviewCompleteModal } from '@/components/ReviewCompleteModal';
 import Colors from '@/constants/colors';
 import { adjustFontWeight } from '@/constants/fonts';
+import { maybeAskForReview } from '@/lib/reviewPrompt';
 
 const formatDateDisplay = (date: Date): string => {
   return date.toLocaleDateString('en-US', {
@@ -100,6 +101,7 @@ const AnimatedCheckbox = ({ checked, onPress, children }: {
 
 export default function EveningReview() {
   const [showConfirmation, setShowConfirmation] = useState(false);
+  const [shouldTriggerReviewOnDismiss, setShouldTriggerReviewOnDismiss] = useState(false);
   const [showSavedReviews, setShowSavedReviews] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
 
@@ -230,6 +232,13 @@ export default function EveningReview() {
     // Force show the form instead of completion screen
     setShowConfirmation(false);
     setIsEditing(true);
+
+    if (shouldTriggerReviewOnDismiss) {
+      setShouldTriggerReviewOnDismiss(false);
+      maybeAskForReview('eveningReview').catch((error) =>
+        console.warn('[reviewPrompt] Evening review trigger failed', error),
+      );
+    }
   };
 
   const handleShare = async () => {
@@ -426,6 +435,7 @@ export default function EveningReview() {
     // Set showConfirmation to true to show the completed screen with saved message
     setShowConfirmation(true);
     setIsEditing(false);
+    setShouldTriggerReviewOnDismiss(true);
   };
 
   const canSave = () => {
@@ -607,7 +617,7 @@ export default function EveningReview() {
 
       {/* Completion Modal */}
       <ReviewCompleteModal
-        visible={showConfirmation || (isCompleted && !isEditing)}
+        visible={showConfirmation}
         onClose={handleEditReview}
       />
     </ScreenContainer>

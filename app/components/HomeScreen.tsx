@@ -1,5 +1,5 @@
 import React from 'react';
-import { StyleSheet, View, Text, ScrollView, TouchableOpacity, Linking } from 'react-native';
+import { StyleSheet, View, Text, ScrollView, TouchableOpacity, Linking, Alert, Share, Platform } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -7,6 +7,12 @@ import { useRouter } from 'expo-router';
 import SobrietyCounter from '@/components/SobrietyCounter';
 import { formatDateDisplay } from '@/utils/dateUtils';
 import Colors from '@/constants/colors';
+import Entypo from '@expo/vector-icons/Entypo';
+import FontAwesome6 from '@expo/vector-icons/FontAwesome6';
+import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
+import Ionicons from '@expo/vector-icons/Ionicons';
+import FontAwesome from '@expo/vector-icons/FontAwesome';
+import { maybeAskForReview } from '@/lib/reviewPrompt';
 
 
 const HomeScreen = () => {
@@ -16,6 +22,49 @@ const HomeScreen = () => {
   const today = new Date();
   const formattedDate = formatDateDisplay(today);
 
+  const handleRateAppPress = async () => {
+    try {
+      // First, try the native in-app review prompt via the shared reviewPrompt system
+      try {
+        const didShowNativePrompt = await maybeAskForReview('manualRate');
+        if (didShowNativePrompt) {
+          return;
+        }
+      } catch (error) {
+        console.warn('[home] Native review prompt failed, falling back to store URL', error);
+      }
+
+      // Fallback: open the appropriate store rating page
+      if (Platform.OS === 'ios') {
+        const appStoreId = '6749869819';
+        const url = `itms-apps://itunes.apple.com/app/id${appStoreId}?action=write-review`;
+        await Linking.openURL(url);
+      } else {
+        const packageName = 'com.nealwagner.soberdailies';
+        const url = `market://details?id=${packageName}`;
+        const fallback = `https://play.google.com/store/apps/details?id=${packageName}`;
+        const supported = await Linking.canOpenURL(url);
+        await Linking.openURL(supported ? url : fallback);
+      }
+    } catch (error) {
+      Alert.alert('Error', 'Unable to open the store page right now.');
+    }
+  };
+
+  const handleSharePress = async () => {
+    try {
+      const appStoreUrl =
+        Platform.OS === 'ios'
+          ? 'https://apps.apple.com/app/sober-dailies/id6738032000'
+          : 'https://play.google.com/store/apps/details?id=com.nealwagner.soberdailies';
+
+      await Share.share({
+        message: 'Sober Dailies helps me stay sober one day at a time. Check it out: ' + appStoreUrl,
+      });
+    } catch {
+      // no-op
+    }
+  };
 
 
   return (
@@ -61,21 +110,33 @@ const HomeScreen = () => {
         <Text style={styles.sectionSubtitle}>Start your day with intention and spiritual focus.</Text>
         
         <TouchableOpacity style={styles.card} onPress={() => router.push('/(tabs)/prayers?prayer=morning')}>
-          <Text style={styles.cardTitle}>Morning Prayer</Text>
+          <View style={styles.cardHeader}>
+            <View style={styles.cardIconWrapper}>
+              <FontAwesome6 name="hands-praying" size={20} color={Colors.light.tint} solid={true} />
+            </View>
+            <Text style={styles.cardTitle}>Morning Prayer</Text>
+          </View>
           <Text style={styles.cardDescription}>Invite your higher power to help you through the day.</Text>
-          <Text style={styles.cardButton}>Go to Morning Prayer</Text>
         </TouchableOpacity>
 
         <TouchableOpacity style={styles.card} onPress={() => router.push('/(tabs)/gratitude')}>
-          <Text style={styles.cardTitle}>Daily Gratitude</Text>
+          <View style={styles.cardHeader}>
+            <View style={styles.cardIconWrapper}>
+              <FontAwesome6 name="face-smile" size={20} color={Colors.light.tint} solid={true} />
+            </View>
+            <Text style={styles.cardTitle}>Daily Gratitude</Text>
+          </View>
           <Text style={styles.cardDescription}>Start your day with gratitude and stay in the solution.</Text>
-          <Text style={styles.cardButton}>Go to Gratitude</Text>
         </TouchableOpacity>
 
         <TouchableOpacity style={styles.card} onPress={() => router.push('/(tabs)/literature')}>
-          <Text style={styles.cardTitle}>Literature</Text>
+          <View style={styles.cardHeader}>
+            <View style={styles.cardIconWrapper}>
+              <FontAwesome name="book" size={20} color={Colors.light.tint} />
+            </View>
+            <Text style={styles.cardTitle}>Literature</Text>
+          </View>
           <Text style={styles.cardDescription}>Read something out of the literature every day.</Text>
-          <Text style={styles.cardButton}>Go to Literature</Text>
         </TouchableOpacity>
 
       </View>
@@ -86,23 +147,35 @@ const HomeScreen = () => {
         <Text style={styles.sectionSubtitle}>Stay connected and mindful during your daily activities.</Text>
         
         <TouchableOpacity style={styles.card} onPress={() => router.push('/(tabs)/chat')}>
-          <Text style={styles.cardTitle}>AI Sponsor</Text>
+          <View style={styles.cardHeader}>
+            <View style={styles.cardIconWrapper}>
+              <MaterialCommunityIcons name="human-greeting-variant" size={22} color={Colors.light.tint} />
+            </View>
+            <Text style={styles.cardTitle}>AI Sponsor</Text>
+          </View>
           <Text style={styles.cardDescription}>Talk with an AI sponsor when you need guidance.</Text>
-          <Text style={styles.cardButton}>Go to Chat</Text>
         </TouchableOpacity>
 
 
 
         <TouchableOpacity style={styles.card} onPress={() => router.push('/(tabs)/prayers')}>
-          <Text style={styles.cardTitle}>Prayers</Text>
+          <View style={styles.cardHeader}>
+            <View style={styles.cardIconWrapper}>
+              <FontAwesome6 name="hands-praying" size={20} color={Colors.light.tint} solid={true} />
+            </View>
+            <Text style={styles.cardTitle}>Prayers</Text>
+          </View>
           <Text style={styles.cardDescription}>Connect with your Higher Power throughout the day.</Text>
-          <Text style={styles.cardButton}>Go to Prayer</Text>
         </TouchableOpacity>
 
         <TouchableOpacity style={styles.card} onPress={() => router.push('/inventory')}>
-          <Text style={styles.cardTitle}>Spot Check Inventory</Text>
+          <View style={styles.cardHeader}>
+            <View style={styles.cardIconWrapper}>
+              <MaterialCommunityIcons name="emoticon-angry" size={24} color={Colors.light.tint} />
+            </View>
+            <Text style={styles.cardTitle}>Spot Check Inventory</Text>
+          </View>
           <Text style={styles.cardDescription}>When disturbed ask yourself: Are you on the beam or off the beam?</Text>
-          <Text style={styles.cardButton}>Go to Spot Check Inventory</Text>
         </TouchableOpacity>
       </View>
 
@@ -112,26 +185,56 @@ const HomeScreen = () => {
         <Text style={styles.sectionSubtitle}>Reflect and close your day with peace.</Text>
         
         <TouchableOpacity style={styles.card} onPress={() => router.push('/(tabs)/evening-review')}>
-          <Text style={styles.cardTitle}>Nightly Review</Text>
+          <View style={styles.cardHeader}>
+            <View style={styles.cardIconWrapper}>
+              <Ionicons name="moon" size={20} color={Colors.light.tint} />
+            </View>
+            <Text style={styles.cardTitle}>Nightly Review</Text>
+          </View>
           <Text style={styles.cardDescription}>Reflect on your day and practice Step 10.</Text>
-          <Text style={styles.cardButton}>Go to Nightly Review</Text>
         </TouchableOpacity>
 
         <TouchableOpacity style={styles.card} onPress={() => router.push('/(tabs)/prayers?prayer=evening')}>
-          <Text style={styles.cardTitle}>Evening Prayer</Text>
+          <View style={styles.cardHeader}>
+            <View style={styles.cardIconWrapper}>
+              <FontAwesome6 name="hands-praying" size={20} color={Colors.light.tint} solid={true} />
+            </View>
+            <Text style={styles.cardTitle}>Evening Prayer</Text>
+          </View>
           <Text style={styles.cardDescription}>End your day with gratitude and humility.</Text>
-          <Text style={styles.cardButton}>Go to Evening Prayer</Text>
         </TouchableOpacity>
         </View>
 
         {/* Support the Developer Section */}
         <View style={styles.sectionContainerSupport}>
-          <Text style={styles.sectionTitle}>Enjoying Sober Dailies?</Text>
-          <TouchableOpacity style={styles.card} onPress={() => router.push('/about-support')}>
+        <Text style={styles.sectionTitle}>Enjoying Sober Dailies?</Text>
+        <TouchableOpacity style={styles.card} onPress={handleRateAppPress}>
+          <View style={styles.cardHeader}>
+            <View style={styles.cardIconWrapper}>
+              <FontAwesome name="star" size={20} color={Colors.light.tint} />
+            </View>
+            <Text style={styles.cardTitle}>Rate & Review</Text>
+          </View>
+          <Text style={styles.cardDescription}>Leave a review in the App Store or Play Store.</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.card} onPress={handleSharePress}>
+          <View style={styles.cardHeader}>
+            <View style={styles.cardIconWrapper}>
+              <FontAwesome name="share-alt" size={20} color={Colors.light.tint} />
+            </View>
+            <Text style={styles.cardTitle}>Share the App</Text>
+          </View>
+          <Text style={styles.cardDescription}>Invite a friend by sharing Sober Dailies.</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.card} onPress={() => router.push('/about-support')}>
+          <View style={styles.cardHeader}>
+            <View style={styles.cardIconWrapper}>
+              <FontAwesome name="heart" size={20} color={Colors.light.tint} />
+            </View>
             <Text style={styles.cardTitle}>Support the Developer</Text>
-            <Text style={styles.cardDescription}>Make a difference with a one-time contribution</Text>
-            <Text style={styles.cardButton}>Go to Support the Developer</Text>
-          </TouchableOpacity>
+          </View>
+          <Text style={styles.cardDescription}>Make a difference with a one-time contribution</Text>
+        </TouchableOpacity>
         </View>
       </ScrollView>
       </SafeAreaView>
@@ -283,21 +386,30 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.25,
     shadowRadius: 12,
   },
+  cardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  cardIconWrapper: {
+    width: 36,
+    height: 36,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+    backgroundColor: '#F0F4FF',
+  },
   cardTitle: {
     fontSize: 18,
     fontWeight: 'bold',
     color: Colors.light.text,
-    marginBottom: 8,
+    marginBottom: 0,
   },
   cardDescription: {
     fontSize: 14,
     color: Colors.light.muted,
     marginBottom: 12,
-  },
-  cardButton: {
-    fontSize: 14,
-    color: Colors.light.tint,
-    fontWeight: 'bold',
   },
   sectionContainerTransparent: {
     paddingHorizontal: 16,

@@ -10,6 +10,7 @@ import Colors from "@/constants/colors";
 import { getReflectionForDate } from "@/constants/reflections";
 import { Reflection } from "@/types";
 import { adjustFontWeight } from "@/constants/fonts";
+import { recordDailyReflectionDay } from "@/lib/reviewPrompt";
 
 interface DailyReflectionProps {
   fontSize?: number;
@@ -84,7 +85,7 @@ const generateCalendarDays = (date: Date) => {
   return days;
 };
 
-export default function DailyReflection({ fontSize = 16 }: DailyReflectionProps) {
+export default function DailyReflection({ fontSize = 18 }: DailyReflectionProps) {
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [reflection, setReflection] = useState<Reflection | null>(null);
 
@@ -97,22 +98,22 @@ export default function DailyReflection({ fontSize = 16 }: DailyReflectionProps)
   // Track the last date we showed when the component was focused
   const lastShownDateRef = useRef<Date>(new Date());
 
-  // When the screen gains focus, ensure we default back to today's reading if needed
+  // Preserve user's selection; do not reset to today on focus
   useFocusEffect(
     useCallback(() => {
-      const today = new Date();
-      if (!isSameDay(selectedDate, today)) {
-        setSelectedDate(today);
-        setCalendarDate(today);
-        lastShownDateRef.current = today;
-      } else {
-        lastShownDateRef.current = selectedDate;
-      }
+      lastShownDateRef.current = selectedDate;
+      return () => {};
     }, [selectedDate])
   );
 
   useEffect(() => {
     updateReflection(selectedDate);
+  }, [selectedDate]);
+
+  useEffect(() => {
+    recordDailyReflectionDay(selectedDate).catch((error) => {
+      console.warn('[reviewPrompt] Failed to record daily reflection day', error);
+    });
   }, [selectedDate]);
 
   useEffect(() => {
@@ -175,7 +176,9 @@ export default function DailyReflection({ fontSize = 16 }: DailyReflectionProps)
 
   const handleDateChange = (event: any, date?: Date) => {
     if (Platform.OS === 'android') {
+      // Close regardless, but only apply when user confirms selection
       setShowDatePicker(false);
+      if (event?.type !== 'set') return;
     }
     if (date) {
       setSelectedDate(date);

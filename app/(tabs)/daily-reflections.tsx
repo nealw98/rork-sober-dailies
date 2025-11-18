@@ -9,8 +9,8 @@ import Colors from '@/constants/colors';
 import { adjustFontWeight } from '@/constants/fonts';
 
 export default function DailyReflectionsPage() {
-  const [fontSize, setFontSize] = useState(16);
-  const baseFontSize = 16;
+  const [fontSize, setFontSize] = useState(18);
+  const baseFontSize = 18;
   const maxFontSize = Platform.OS === 'android' ? 34 : 30;
   
   const increaseFontSize = () => {

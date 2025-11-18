@@ -25,8 +25,8 @@ export default function PrayersScreen() {
   const prayerRefs = useRef<{ [key: number]: View | null }>({});
   const prayerPositions = useRef<{ [key: number]: number }>({});
   
-  const [fontSize, setFontSize] = useState(16);
-  const baseFontSize = 16;
+  const [fontSize, setFontSize] = useState(18);
+  const baseFontSize = 18;
   const maxFontSize = Platform.OS === 'android' ? 34 : 30;
   
   const increaseFontSize = () => {

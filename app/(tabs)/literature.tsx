@@ -5,6 +5,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import ScreenContainer from "@/components/ScreenContainer";
 import Colors from "@/constants/colors";
 import { adjustFontWeight } from "@/constants/fonts";
+import { useReadingSession } from "@/hooks/useReadingSession";
 
 interface LiteratureOption {
   id: string;
@@ -35,6 +36,8 @@ const literatureOptions: LiteratureOption[] = [
 ];
 
 export default function LiteratureScreen() {
+  useReadingSession('literature');
+
   // Add direct navigation buttons for debugging
   const handleDirectNavigation = (screenName: string) => {
     console.log(`🔵 Literature: Direct navigation to ${screenName}`);

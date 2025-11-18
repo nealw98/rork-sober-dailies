@@ -25,6 +25,7 @@ import { Star, Share2, ChevronLeft } from 'lucide-react-native';
 import { Logger } from '@/lib/logger';
 import * as Clipboard from 'expo-clipboard';
 import type { PurchasesPackage } from 'react-native-purchases';
+import { maybeAskForReview } from '@/lib/reviewPrompt';
 
 let Purchases: any = null;
 try {
@@ -259,6 +260,17 @@ const AboutSupportScreen = () => {
 
   const handleRateAppPress = async () => {
     try {
+      // First, try the native in-app review prompt via the shared reviewPrompt system
+      try {
+        const didShowNativePrompt = await maybeAskForReview('manualRate');
+        if (didShowNativePrompt) {
+          return;
+        }
+      } catch (error) {
+        console.warn('[about-support] Native review prompt failed, falling back to store URL', error);
+      }
+
+      // Fallback: open the appropriate store rating page
       if (Platform.OS === 'ios') {
         // Apple ID from App Store Connect (ascAppId in eas.json)
         const appStoreId = '6749869819';

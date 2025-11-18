@@ -884,8 +884,8 @@ const styles = StyleSheet.create({
     borderRadius: 2,
   },
   textContent: {
-    fontSize: 16,
-    lineHeight: 24,
+    fontSize: 18,
+    lineHeight: 18 * 1.375,
     color: Colors.light.text,
     ...(Platform.OS === 'android' && {
       fontWeight: '500',
@@ -910,11 +910,11 @@ const styles = StyleSheet.create({
 const markdownStyles = {
   body: {
     color: Colors.light.text,
-    fontSize: 16,
-    lineHeight: 24
+    fontSize: 18,
+    lineHeight: 18 * 1.375,
   } as TextStyle,
   heading1: {
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: adjustFontWeight('bold'),
     color: Colors.light.text,
     marginBottom: 24,
@@ -922,15 +922,15 @@ const markdownStyles = {
     textAlign: 'center'
   } as TextStyle,
   heading2: {
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: adjustFontWeight('600'),
     color: Colors.light.text,
     marginVertical: 16
   } as TextStyle,
   paragraph: {
     marginVertical: 12,
-    fontSize: 16,
-    lineHeight: 24
+    fontSize: 18,
+    lineHeight: 18 * 1.375,
   } as TextStyle,
   hr: {
     marginVertical: 24,
@@ -939,7 +939,7 @@ const markdownStyles = {
   pageNumber: {
     fontStyle: 'italic',
     color: Colors.light.muted,
-    fontSize: 16,
+    fontSize: 18,
     textAlign: 'center'
   } as TextStyle,
   em: {
