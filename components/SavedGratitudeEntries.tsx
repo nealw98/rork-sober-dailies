@@ -311,7 +311,7 @@ export default function SavedGratitudeEntries({ visible, onClose }: SavedGratitu
                           accessibilityLabel="Delete saved gratitude list"
                           accessibilityRole="button"
                         >
-                          <Trash2 color={Colors.light.muted} size={18} />
+                          <Trash2 color="#dc3545" size={18} />
                         </TouchableOpacity>
                       </View>
                       

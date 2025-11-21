@@ -173,7 +173,7 @@ const HomeScreen = () => {
             </View>
             <Text style={styles.cardTitle}>Spot Check Inventory</Text>
           </View>
-          <Text style={styles.cardDescription}>When disturbed ask yourself: Are you on the beam or off the beam?</Text>
+          <Text style={styles.cardDescription}>A quick review when you're "off the beam."</Text>
         </TouchableOpacity>
       </View>
 
