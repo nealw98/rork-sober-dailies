@@ -9,7 +9,6 @@ import {
   Alert,
   Linking,
   Platform,
-  Share,
   ActivityIndicator,
   Modal,
   StatusBar,
@@ -21,11 +20,10 @@ import { Stack, router } from 'expo-router';
 import { adjustFontWeight } from '@/constants/fonts';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Colors from '@/constants/colors';
-import { Star, Share2, ChevronLeft } from 'lucide-react-native';
+import { ChevronLeft } from 'lucide-react-native';
 import { Logger } from '@/lib/logger';
 import * as Clipboard from 'expo-clipboard';
 import type { PurchasesPackage } from 'react-native-purchases';
-import { maybeAskForReview } from '@/lib/reviewPrompt';
 
 let Purchases: any = null;
 try {
@@ -258,51 +256,6 @@ const AboutSupportScreen = () => {
     Linking.openURL('https://soberdailies.com/support');
   };
 
-  const handleRateAppPress = async () => {
-    try {
-      // First, try the native in-app review prompt via the shared reviewPrompt system
-      try {
-        const didShowNativePrompt = await maybeAskForReview('manualRate');
-        if (didShowNativePrompt) {
-          return;
-        }
-      } catch (error) {
-        console.warn('[about-support] Native review prompt failed, falling back to store URL', error);
-      }
-
-      // Fallback: open the appropriate store rating page
-      if (Platform.OS === 'ios') {
-        // Apple ID from App Store Connect (ascAppId in eas.json)
-        const appStoreId = '6749869819';
-        const url = `itms-apps://itunes.apple.com/app/id${appStoreId}?action=write-review`;
-        await Linking.openURL(url);
-      } else {
-        const packageName = 'com.nealwagner.soberdailies';
-        const url = `market://details?id=${packageName}`;
-        const fallback = `https://play.google.com/store/apps/details?id=${packageName}`;
-        const supported = await Linking.canOpenURL(url);
-        await Linking.openURL(supported ? url : fallback);
-      }
-    } catch (error) {
-      Alert.alert('Error', 'Unable to open the store page right now.');
-    }
-  };
-
-  const handleSharePress = async () => {
-    try {
-      const appStoreUrl = Platform.OS === 'ios' 
-        ? 'https://apps.apple.com/app/sober-dailies/id6738032000'
-        : 'https://play.google.com/store/apps/details?id=com.nealwagner.soberdailies';
-      
-      await Share.share({
-        message:
-          'Sober Dailies helps me stay sober one day at a time. Check it out: ' + appStoreUrl,
-      });
-    } catch (error) {
-      // no-op
-    }
-  };
-
   const toggleLogs = () => setLogsVisible((v) => !v);
   const copyLogs = async () => {
     try {
@@ -386,19 +339,7 @@ const AboutSupportScreen = () => {
       <View style={styles.contentContainer}>
         <ScrollView contentContainerStyle={[styles.scrollContent, { paddingTop: 20, paddingBottom: insets.bottom + 96 }]}>
 
-          {/* About Card - TOP SECTION */}
-          <View style={styles.aboutCard}>
-            <Text style={styles.aboutCardTitle}>About the App</Text>
-            <Text style={styles.aboutCardText}>
-              Hi friends,{"\n\n"}
-               I created Sober Dailies because I wanted a simple way to stay consistent with my recovery practices. I needed something that would guide me through my daily habits and bring all the tools I used into one app. I'm grateful to share it with anyone who finds it helpful.{"\n\n"}
-              Your contribution is completely voluntary, but it truly helps. It goes toward covering my development costs, keeping the app running smoothly, and funding future updates and improvements. My goal is to keep the core features free for anyone who wants to use them.{"\n\n"}
-              Whether or not you contribute, I'm just glad you're here and that the app supports your journey.{"\n\n"}
-              — Neal
-            </Text>
-          </View>
-
-          {/* Support Card - MIDDLE SECTION */}
+          {/* Support Card - TOP SECTION */}
           <View style={styles.supportCard}>
             <Text style={styles.supportCardTitle}>Support Sober Dailies</Text>
             <Text style={styles.supportCardText}>
@@ -459,16 +400,16 @@ const AboutSupportScreen = () => {
             ) : null}
           </View>
 
-          {/* Rate / Share actions and legal links - BOTTOM SECTION */}
-          <View style={styles.actionsRow}>
-            <TouchableOpacity style={styles.actionPill} onPress={handleRateAppPress}>
-              <Star size={16} color={'white'} style={styles.pillIcon} />
-              <Text style={styles.actionPillText}>Rate the App</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.actionPill} onPress={handleSharePress}>
-              <Share2 size={16} color={'white'} style={styles.pillIcon} />
-              <Text style={styles.actionPillText}>Share</Text>
-            </TouchableOpacity>
+          {/* About Card - BOTTOM SECTION */}
+          <View style={styles.aboutCard}>
+            <Text style={styles.aboutCardTitle}>About the App</Text>
+            <Text style={styles.aboutCardText}>
+              Hi friends,{"\n\n"}
+               I created Sober Dailies because I wanted a simple way to stay consistent with my recovery practices. I needed something that would guide me through my daily habits and bring all the tools I used into one app. I'm grateful to share it with anyone who finds it helpful.{"\n\n"}
+              Your contribution is completely voluntary, but it truly helps. It goes toward covering my development costs, keeping the app running smoothly, and funding future updates and improvements. My goal is to keep the core features free for anyone who wants to use them.{"\n\n"}
+              Whether or not you contribute, I'm just glad you're here and that the app supports your journey.{"\n\n"}
+              — Neal
+            </Text>
           </View>
 
           {/* Privacy Policy and Terms Links */}
