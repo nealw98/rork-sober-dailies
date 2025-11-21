@@ -650,7 +650,7 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   actionButtonText: {
-    fontSize: 14,
+    fontSize: 15,
     color: '#007AFF',
     fontWeight: '500',
   },
@@ -671,14 +671,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   title: {
-    fontSize: 28,
+    fontSize: 30,
     fontWeight: adjustFontWeight('700', true),
     color: Colors.light.text,
     marginBottom: 8,
     textAlign: 'center',
   },
   description: {
-    fontSize: 14,
+    fontSize: 15,
     color: Colors.light.muted,
     textAlign: 'center',
   },
@@ -698,7 +698,7 @@ const styles = StyleSheet.create({
     elevation: 6,
   },
   dateText: {
-    fontSize: 18,
+    fontSize: 19,
     fontWeight: adjustFontWeight('600', true),
     color: Colors.light.tint,
     textAlign: 'center',
@@ -734,13 +734,13 @@ const styles = StyleSheet.create({
     elevation: 6,
   },
   sectionTitle: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: adjustFontWeight('600', true),
     color: Colors.light.text,
     marginBottom: 16,
   },
   inventoryDescription: {
-    fontSize: 12,
+    fontSize: 13,
     color: Colors.light.muted,
     marginBottom: 16,
     fontStyle: 'italic',
@@ -788,7 +788,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   checkboxText: {
-    fontSize: 15,
+    fontSize: 16,
     color: Colors.light.text,
     textAlign: 'left',
   },
@@ -800,7 +800,7 @@ const styles = StyleSheet.create({
     padding: 4,
   },
   questionText: {
-    fontSize: 15,
+    fontSize: 16,
     color: Colors.light.text,
     marginBottom: 8,
     lineHeight: 20,
@@ -812,7 +812,7 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(255, 255, 255, 0.35)',
     borderRadius: 8,
     backgroundColor: '#fff',
-    fontSize: 15,
+    fontSize: 16,
     color: Colors.light.text,
     minHeight: 80,
     textAlignVertical: 'top',
@@ -850,7 +850,7 @@ const styles = StyleSheet.create({
   },
   saveButtonText: {
     color: 'white',
-    fontSize: 16,
+    fontSize: 17,
     fontWeight: adjustFontWeight('600'),
   },
   shareButton: {
@@ -871,7 +871,7 @@ const styles = StyleSheet.create({
   },
   shareButtonText: {
     color: 'white',
-    fontSize: 16,
+    fontSize: 17,
     fontWeight: adjustFontWeight('600'),
   },
   secondaryButton: {
@@ -891,11 +891,11 @@ const styles = StyleSheet.create({
   },
   secondaryButtonText: {
     color: Colors.light.tint,
-    fontSize: 16,
+    fontSize: 17,
     fontWeight: adjustFontWeight('500'),
   },
   privacyText: {
-    fontSize: 12,
+    fontSize: 13,
     color: Colors.light.muted,
     textAlign: 'center',
     marginBottom: 24,
@@ -907,13 +907,13 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   cardTitle: {
-    fontSize: 18,
+    fontSize: 19,
     fontWeight: adjustFontWeight('600', true),
     color: Colors.light.tint,
     marginLeft: 8,
   },
   confirmationText: {
-    fontSize: 16,
+    fontSize: 17,
     color: Colors.light.text,
     textAlign: 'center',
     lineHeight: 22,
@@ -927,7 +927,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   dayName: {
-    fontSize: 12,
+    fontSize: 13,
     color: Colors.light.muted,
     marginBottom: 8,
   },
@@ -954,7 +954,7 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(108, 117, 125, 0.2)',
   },
   streakText: {
-    fontSize: 14,
+    fontSize: 15,
     color: Colors.light.muted,
     textAlign: 'center',
   },
@@ -976,7 +976,7 @@ const styles = StyleSheet.create({
   },
   outlineButtonText: {
     color: Colors.light.tint,
-    fontSize: 16,
+    fontSize: 17,
     fontWeight: adjustFontWeight('500'),
   },
   primaryButton: {
@@ -991,7 +991,7 @@ const styles = StyleSheet.create({
   },
   primaryButtonText: {
     color: 'white',
-    fontSize: 16,
+    fontSize: 17,
     fontWeight: adjustFontWeight('600'),
   },
   shareButtonSolid: {
@@ -1007,17 +1007,17 @@ const styles = StyleSheet.create({
   },
   shareButtonSolidText: {
     color: 'white',
-    fontSize: 16,
+    fontSize: 17,
     fontWeight: adjustFontWeight('500'),
   },
   subtitle: {
-    fontSize: 16,
+    fontSize: 17,
     color: Colors.light.tint,
     marginBottom: 8,
     textAlign: 'center',
   },
   savedMessage: {
-    fontSize: 16,
+    fontSize: 17,
     color: '#28a745',
     marginTop: 8,
     textAlign: 'center',

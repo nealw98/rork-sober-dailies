@@ -114,7 +114,7 @@ const HomeScreen = () => {
             </View>
             <Text style={styles.cardTitle}>Morning Prayer</Text>
           </View>
-          {/* <Text style={styles.cardDescription}>Invite your higher power to help you through the day.</Text> */}
+          <Text style={styles.cardDescription}>Invite your higher power to help you through the day.</Text>
         </TouchableOpacity>
 
         <TouchableOpacity style={styles.card} onPress={() => router.push('/(tabs)/gratitude')}>
@@ -124,7 +124,7 @@ const HomeScreen = () => {
             </View>
             <Text style={styles.cardTitle}>Daily Gratitude</Text>
           </View>
-          {/* <Text style={styles.cardDescription}>Start your day with gratitude and stay in the solution.</Text> */}
+          <Text style={styles.cardDescription}>Start your day with gratitude and stay in the solution.</Text>
         </TouchableOpacity>
 
         <TouchableOpacity style={styles.card} onPress={() => router.push('/(tabs)/literature')}>
@@ -134,7 +134,7 @@ const HomeScreen = () => {
             </View>
             <Text style={styles.cardTitle}>Literature</Text>
           </View>
-          {/* <Text style={styles.cardDescription}>Read something out of the literature every day.</Text> */}
+          <Text style={styles.cardDescription}>Read something out of the literature every day.</Text>
         </TouchableOpacity>
 
       </View>
@@ -151,7 +151,7 @@ const HomeScreen = () => {
             </View>
             <Text style={styles.cardTitle}>AI Sponsor</Text>
           </View>
-          {/* <Text style={styles.cardDescription}>Talk with an AI sponsor when you need guidance.</Text> */}
+          <Text style={styles.cardDescription}>Talk with an AI sponsor when you need guidance.</Text>
         </TouchableOpacity>
 
 
@@ -163,7 +163,7 @@ const HomeScreen = () => {
             </View>
             <Text style={styles.cardTitle}>Prayers</Text>
           </View>
-          {/* <Text style={styles.cardDescription}>Connect with your Higher Power throughout the day.</Text> */}
+          <Text style={styles.cardDescription}>Connect with your Higher Power throughout the day.</Text>
         </TouchableOpacity>
 
         <TouchableOpacity style={styles.card} onPress={() => router.push('/inventory')}>
@@ -173,7 +173,7 @@ const HomeScreen = () => {
             </View>
             <Text style={styles.cardTitle}>Spot Check Inventory</Text>
           </View>
-          {/* <Text style={styles.cardDescription}>A quick review when you're "off the beam."</Text> */}
+          <Text style={styles.cardDescription}>A quick review when you're "off the beam."</Text>
         </TouchableOpacity>
       </View>
 
@@ -189,7 +189,7 @@ const HomeScreen = () => {
             </View>
             <Text style={styles.cardTitle}>Nightly Review</Text>
           </View>
-          {/* <Text style={styles.cardDescription}>Reflect on your day and practice Step 10.</Text> */}
+          <Text style={styles.cardDescription}>Reflect on your day and practice Step 10.</Text>
         </TouchableOpacity>
 
         <TouchableOpacity style={styles.card} onPress={() => router.push('/(tabs)/prayers?prayer=evening')}>
@@ -199,7 +199,7 @@ const HomeScreen = () => {
             </View>
             <Text style={styles.cardTitle}>Evening Prayer</Text>
           </View>
-          {/* <Text style={styles.cardDescription}>End your day with gratitude and humility.</Text> */}
+          <Text style={styles.cardDescription}>End your day with gratitude and humility.</Text>
         </TouchableOpacity>
         </View>
 
@@ -213,7 +213,7 @@ const HomeScreen = () => {
             </View>
             <Text style={styles.cardTitle}>Rate & Review</Text>
           </View>
-          {/* <Text style={styles.cardDescription}>Leave a review in the App Store or Play Store.</Text> */}
+          <Text style={styles.cardDescription}>Leave a review in the App Store or Play Store.</Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.card} onPress={handleSharePress}>
           <View style={styles.cardHeader}>
@@ -222,7 +222,7 @@ const HomeScreen = () => {
             </View>
             <Text style={styles.cardTitle}>Share the App</Text>
           </View>
-          {/* <Text style={styles.cardDescription}>Invite a friend by sharing Sober Dailies.</Text> */}
+          <Text style={styles.cardDescription}>Invite a friend by sharing Sober Dailies.</Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.card} onPress={() => router.push('/about-support')}>
           <View style={styles.cardHeader}>
@@ -231,7 +231,7 @@ const HomeScreen = () => {
             </View>
             <Text style={styles.cardTitle}>Support the Developer</Text>
           </View>
-          {/* <Text style={styles.cardDescription}>Make a difference with a one-time contribution</Text> */}
+          <Text style={styles.cardDescription}>Make a difference with a one-time contribution</Text>
         </TouchableOpacity>
         </View>
 
@@ -341,7 +341,7 @@ const styles = StyleSheet.create({
   sectionContainerDay: {
     paddingHorizontal: 16,
     marginBottom: 30,
-    backgroundColor: '#F0F6FF', // Slightly softer pale blue
+    backgroundColor: '#E6F3FF', // Softer pale blue (matches paywall-feature)
     paddingVertical: 20,
     borderRadius: 16,
     marginHorizontal: 16,
