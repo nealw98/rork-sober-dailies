@@ -34,13 +34,13 @@ const REVIEW_TRIGGERS: readonly ReviewTrigger[] = [
 ] as const;
 
 // Gating thresholds for when to show the in-app review prompt
-// NOTE: kept at 0/0 while testing on device; raise before release.
-const MIN_USAGE_DAYS = 0;
+const MIN_USAGE_DAYS = 7;
 const MIN_DAILY_REFLECTION_DAYS = 5;
 const MIN_LITERATURE_MINUTES = 10;
 const MIN_AI_RESPONSES = 5;
 const MIN_TRIGGER_COUNT = 5;
-const COOLDOWN_MS = 0;
+// 90-day cooldown between prompts
+const COOLDOWN_MS = 90 * 24 * 60 * 60 * 1000;
 
 const STORAGE_SEPARATOR = ',';
 
