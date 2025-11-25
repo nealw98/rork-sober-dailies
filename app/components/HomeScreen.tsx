@@ -12,7 +12,7 @@ import FontAwesome6 from '@expo/vector-icons/FontAwesome6';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import FontAwesome from '@expo/vector-icons/FontAwesome';
-import { maybeAskForReview } from '@/lib/reviewPrompt';
+import { requestReviewNow } from '@/lib/reviewPrompt';
 
 const HomeScreen = () => {
   const router = useRouter();
@@ -23,12 +23,15 @@ const HomeScreen = () => {
 
   const handleRateAppPress = async () => {
     try {
-      // First, try the native in-app review prompt via the shared reviewPrompt system
+      // For manual button presses, try to show the native in-app review dialog
+      // immediately, bypassing all gating logic
       try {
-        const didShowNativePrompt = await maybeAskForReview('manualRate');
+        const didShowNativePrompt = await requestReviewNow();
         if (didShowNativePrompt) {
+          console.log('[home] Successfully showed native review prompt');
           return;
         }
+        console.log('[home] Native review prompt not available, falling back to store URL');
       } catch (error) {
         console.warn('[home] Native review prompt failed, falling back to store URL', error);
       }

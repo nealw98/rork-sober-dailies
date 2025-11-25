@@ -426,4 +426,37 @@ export async function maybeAskForReviewFromLiterature(): Promise<boolean> {
   return maybeAskForReview('literature');
 }
 
+/**
+ * Request an in-app review immediately, bypassing all gating logic.
+ * Use this for manual "Rate & Review" button presses where the user
+ * explicitly wants to leave a review.
+ * 
+ * @returns true if the native review dialog was shown, false otherwise
+ */
+export async function requestReviewNow(): Promise<boolean> {
+  console.log('[reviewPrompt] requestReviewNow - bypassing all gates');
+  const StoreReview = await getStoreReviewModule();
+  if (!StoreReview) {
+    console.log('[reviewPrompt] native module unavailable');
+    return false;
+  }
+
+  try {
+    const hasAction = await StoreReview.hasAction();
+    if (!hasAction) {
+      console.warn('[reviewPrompt] StoreReview.hasAction returned false');
+      return false;
+    }
+
+    console.log('[reviewPrompt] invoking StoreReview.requestReview immediately');
+    await StoreReview.requestReview();
+    // Note: We intentionally do NOT call recordPromptShown() here
+    // because this is a manual request, not an automatic prompt
+    return true;
+  } catch (error) {
+    console.warn('[reviewPrompt] Unable to present store review prompt', error);
+    return false;
+  }
+}
+
 
