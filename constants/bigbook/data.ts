@@ -11,6 +11,8 @@ export interface BigBookSection {
   id: string;
   title: string;
   url: string;
+  pdfUrl?: string; // PDF URL for Android platform
+  markdownTitle?: string; // Title to use when displaying markdown content (for iOS)
   pages?: string;
   description?: string;
 }
@@ -22,16 +24,46 @@ export const bigBookData: BigBookCategory[] = [
     description: "Introduction and historical context of the Big Book",
     sections: [
       {
+        id: "preface",
+        title: "Preface",
+        pages: "xi-xii",
+        url: "",
+        pdfUrl: "https://www.aa.org/sites/default/files/2021-11/en_bigbook_preface.pdf"
+      },
+      {
         id: "foreword-first",
         title: "Foreword to First Edition",
         pages: "xiii-xiv",
-        url: ""
+        url: "",
+        pdfUrl: "https://www.aa.org/sites/default/files/2021-11/en_bigbook_forewordfirstedition.pdf"
+      },
+      {
+        id: "foreword-second",
+        title: "Foreword to Second Edition",
+        pages: "xv-xvii",
+        url: "",
+        pdfUrl: "https://www.aa.org/sites/default/files/2021-11/en_bigbook_forewordsecondedition.pdf"
+      },
+      {
+        id: "foreword-third",
+        title: "Foreword to Third Edition",
+        pages: "xviii-xx",
+        url: "",
+        pdfUrl: "https://www.aa.org/sites/default/files/2021-11/en_bigbook_forewordthirdedition.pdf"
+      },
+      {
+        id: "foreword-fourth",
+        title: "Foreword to Fourth Edition",
+        pages: "xxi-xxii",
+        url: "",
+        pdfUrl: "https://www.aa.org/sites/default/files/2021-11/en_bigbook_forewordfourthedition.pdf"
       },
       {
         id: "doctors-opinion",
         title: "The Doctor's Opinion",
         pages: "xxiii-xxx",
-        url: ""
+        url: "",
+        pdfUrl: "https://www.aa.org/sites/default/files/2021-11/en_bigbook_foreworddoctorsopinion.pdf"
       }
     ]
   },
@@ -115,9 +147,53 @@ export const bigBookData: BigBookCategory[] = [
     sections: [
       {
         id: "appendix-1",
-        title: "Spiritual Experience",
+        title: "I. The A.A. Tradition",
+        markdownTitle: "Spiritual Experience", // iOS markdown content is actually Spiritual Experience
+        pages: "561-566",
+        url: "",
+        pdfUrl: "https://www.aa.org/sites/default/files/2021-11/en_bigbook_appendicei.pdf"
+      },
+      {
+        id: "appendix-2",
+        title: "II. Spiritual Experience",
         pages: "567-568",
-        url: ""
+        url: "",
+        pdfUrl: "https://www.aa.org/sites/default/files/2021-11/en_bigbook_appendiceii.pdf"
+      },
+      {
+        id: "appendix-3",
+        title: "III. The Medical View on A.A.",
+        pages: "569-570",
+        url: "",
+        pdfUrl: "https://www.aa.org/sites/default/files/2021-11/en_bigbook_appendiceiii.pdf"
+      },
+      {
+        id: "appendix-4",
+        title: "IV. The Lasker Award",
+        pages: "571",
+        url: "",
+        pdfUrl: "https://www.aa.org/sites/default/files/2021-11/en_bigbook_appendiceiv.pdf"
+      },
+      {
+        id: "appendix-5",
+        title: "V. The Religious View on A.A.",
+        pages: "572",
+        url: "",
+        pdfUrl: "https://www.aa.org/sites/default/files/2021-11/en_bigbook_appendicev.pdf"
+      },
+      {
+        id: "appendix-6",
+        title: "VI. How to Get in Touch with A.A.",
+        pages: "573",
+        url: "",
+        pdfUrl: "https://www.aa.org/sites/default/files/2021-11/en_bigbook_appendicevi.pdf"
+      },
+      {
+        id: "appendix-7",
+        title: "VII. Twelve Concepts (Short Form)",
+        pages: "574-575",
+        url: "",
+        pdfUrl: "https://www.aa.org/sites/default/files/2021-11/en_bigbook_appendicevii_.pdf"
       }
     ]
   }

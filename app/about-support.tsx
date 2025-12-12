@@ -9,7 +9,6 @@ import {
   Alert,
   Linking,
   Platform,
-  Share,
   ActivityIndicator,
   Modal,
   StatusBar,
@@ -21,10 +20,11 @@ import { Stack, router } from 'expo-router';
 import { adjustFontWeight } from '@/constants/fonts';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Colors from '@/constants/colors';
-import { Star, Share2, ChevronLeft } from 'lucide-react-native';
+import { ChevronLeft } from 'lucide-react-native';
 import { Logger } from '@/lib/logger';
 import * as Clipboard from 'expo-clipboard';
-import type { Offerings, PurchasesPackage } from 'react-native-purchases';
+import type { PurchasesPackage } from 'react-native-purchases';
+
 let Purchases: any = null;
 try {
   const { NativeModules } = require('react-native');
@@ -39,19 +39,12 @@ const AboutSupportScreen = () => {
   // Silence verbose logs in production to avoid any UI jank
   const log = __DEV__ ? console.log : (..._args: any[]) => {};
   const [purchasingId, setPurchasingId] = useState<string | null>(null);
-  const [connecting, setConnecting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [packagesById, setPackagesById] = useState<Record<string, PurchasesPackage>>({});
   const [isLoadingOfferings, setIsLoadingOfferings] = useState(true);
-  const [isPurchaseInProgress, setIsPurchaseInProgress] = useState(false);
   const [logsVisible, setLogsVisible] = useState(false);
   const [logsText, setLogsText] = useState('');
   const insets = useSafeAreaInsets();
-
-  const productIds = useMemo(() => ({
-    1.99: Platform.select({ ios: 'monthly_support', android: 'monthly_support' }),
-    19.99: Platform.select({ ios: 'yearly_support', android: 'yearly_support' }),
-  }), []);
 
   // Preload offerings/prices on mount so purchase can be immediate
   useEffect(() => {
@@ -75,105 +68,70 @@ const AboutSupportScreen = () => {
         }
         
         const offeringsStartTime = Date.now();
-        const offs: Offerings = await Purchases.getOfferings();
+        const offs: any = await Purchases.getOfferings();
         const offeringsTime = Date.now() - offeringsStartTime;
         log(`[Offerings] getOfferings() took ${offeringsTime}ms`);
         
         const current = offs?.current;
+        
+        // Validate offering identifier (warn but continue if not tips_only_1_9)
+        if (current?.identifier !== 'tips_only_1_9') {
+          console.warn(`[Offerings] Expected offering 'tips_only_1_9' but got '${current?.identifier}'. Continuing anyway.`);
+          log(`[Offerings] Using offering: ${current?.identifier}`);
+        }
+        
         const allPkgs = current?.availablePackages ?? [];
-        log(`[Offerings] Found ${allPkgs.length} total packages`);
-        log('[Offerings] All packages:', allPkgs.map((p: any) => ({ pkgId: p.identifier, storeId: p.storeProduct?.identifier, price: p.storeProduct?.price })));
-
-        // Look for our specific subscription products
-        const wanted = new Set(['monthly_support', 'yearly_support']);
-        
-        // Also map RevenueCat default package IDs to our products
-        const rcPackageMap: Record<string, string> = {
-          '$rc_monthly': 'monthly_support',
-          '$rc_annual': 'yearly_support'
-        };
-        
-        // Log all packages for debugging
-        log('[Offerings] All packages with details:', allPkgs.map((p: any) => ({
-          pkgId: p.identifier,
-          storeId: p.storeProduct?.identifier,
-          price: p.storeProduct?.price,
-          priceString: p.storeProduct?.priceString
+        log(`[Offerings] Found ${allPkgs.length} total packages in '${current?.identifier}' offering`);
+        log('[Offerings] All packages:', allPkgs.map((p: any) => ({ 
+          pkgId: p.identifier, 
+          storeId: p.storeProduct?.identifier, 
+          price: p.storeProduct?.price 
         })));
+
+        // Look for tier1, tier2, tier3 packages (case-insensitive)
+        const wantedTiers = new Set(['tier1', 'tier2', 'tier3', 'Tier1', 'Tier2', 'Tier3']);
         
-        // First try to filter by store product identifier (the App Store product ID)
-        let filtered: PurchasesPackage[] = allPkgs.filter((p: any) => 
-          p.storeProduct && wanted.has(p.storeProduct.identifier)
+        // Filter packages by identifier - accept any that match tier pattern
+        const filtered: PurchasesPackage[] = allPkgs.filter((p: any) => 
+          wantedTiers.has(p.identifier) || 
+          /^tier[123]$/i.test(p.identifier) ||
+          p.identifier?.startsWith('$rc_') // Also accept RevenueCat default package IDs
         );
-        let usingFallback = false;
-        // If we didn't find any products by identifier, try to match by package identifier
-        if (filtered.length === 0 && allPkgs.length > 0) {
-          log('[Offerings] No products found by store identifier, trying package identifier');
-          filtered = allPkgs.filter((p: any) => wanted.has(p.identifier));
-          
-          if (filtered.length > 0) {
-            log('[Offerings] Found products by package identifier:', filtered.map((p: any) => p.identifier));
-            usingFallback = true;
-          }
-        }
         
-        // Android fallback: Try RevenueCat's default package identifiers
-        if (filtered.length === 0 && allPkgs.length > 0) {
-          log('[Offerings] Trying RevenueCat default package IDs ($rc_monthly, $rc_annual)');
-          filtered = allPkgs.filter((p: any) => p.identifier in rcPackageMap);
-          
-          if (filtered.length > 0) {
-            log('[Offerings] Found products by RevenueCat package ID:', filtered.map((p: any) => p.identifier));
-            usingFallback = true;
-          }
-        }
-        
-        // If we still don't have any products, fall back to using the first two by price
-        if (filtered.length === 0 && allPkgs.length > 0) {
-          usingFallback = true;
-          filtered = [...allPkgs].sort((a: any, b: any) => (a.storeProduct?.price ?? 0) - (b.storeProduct?.price ?? 0)).slice(0, 2);
-          log('[Offerings] Fallback mapping by price rank due to missing monthly_support/yearly_support identifiers');
-        }
-        log(`[Offerings] Filtered to ${filtered.length} wanted packages:`, filtered.map((p: any) => `${p.identifier}:${p.storeProduct?.identifier}`));
+        log(`[Offerings] Filtered to ${filtered.length} tier packages:`, 
+          filtered.map((p: any) => `${p.identifier}:${p.storeProduct?.identifier}`));
 
         const byId: Record<string, PurchasesPackage> = {};
         
-        // Map packages by both package ID and store product ID when available
+        // Map packages by tier identifier (normalized to lowercase)
+        // Accept packages even if they don't have storeProduct yet (for testing)
         filtered.forEach((p: any) => {
-          // Always map by package ID
-          if (p.identifier) {
-            if (p.identifier === 'monthly_support' || p.identifier === 'yearly_support') {
-              byId[p.identifier] = p;
-              log(`[Offerings] Mapped package by identifier: ${p.identifier}`);
-            }
-            // Map RevenueCat default package IDs to our expected keys
-            else if (p.identifier in rcPackageMap) {
-              const mappedKey = rcPackageMap[p.identifier];
-              byId[mappedKey] = p;
-              log(`[Offerings] Mapped RevenueCat package ${p.identifier} to ${mappedKey}`);
-            }
-          }
+          const normalizedId = p.identifier.toLowerCase();
           
-          // Also map by store product ID if available
-          if (p.storeProduct && p.storeProduct.identifier) {
-            byId[p.storeProduct.identifier] = p;
-            log(`[Offerings] Mapped package by store identifier: ${p.storeProduct.identifier}`);
+          // Map tier1, tier2, tier3 (any case)
+          if (normalizedId === 'tier1' || normalizedId === 'tier2' || normalizedId === 'tier3') {
+            byId[normalizedId] = p;
+            log(`[Offerings] Mapped package: ${normalizedId} -> ${p.storeProduct?.identifier || 'no storeProduct yet'}`);
+          }
+          // Map RevenueCat default package IDs if present
+          else if (normalizedId === '$rc_monthly' && !byId['tier1']) {
+            byId['tier1'] = p;
+            log(`[Offerings] Mapped $rc_monthly to tier1`);
+          }
+          else if (normalizedId === '$rc_six_month' && !byId['tier2']) {
+            byId['tier2'] = p;
+            log(`[Offerings] Mapped $rc_six_month to tier2`);
+          }
+          else if (normalizedId === '$rc_annual' && !byId['tier3']) {
+            byId['tier3'] = p;
+            log(`[Offerings] Mapped $rc_annual to tier3`);
           }
         });
         
-        // If we still don't have the required keys, use fallback mapping
-        if (!byId['monthly_support'] || !byId['yearly_support']) {
-          log('[Offerings] Missing required keys, using fallback mapping');
-          const keys = ['monthly_support', 'yearly_support'];
-          filtered.forEach((p: any, idx: number) => { 
-            if (idx < keys.length) {
-              byId[keys[idx]] = p;
-              log(`[Offerings] Fallback mapped ${keys[idx]} to ${p.identifier}`);
-            }
-          });
-        }
-        
         log('[Offerings] Final package mapping:', Object.keys(byId));
+        log('[Offerings] Packages available:', Object.entries(byId).map(([id, pkg]) => 
+          `${id}: ${(pkg as any).storeProduct?.identifier || 'pending'}`
+        ));
         
         const totalTime = Date.now() - loadStartTime;
         log(`[Offerings] Successfully loaded offerings in ${totalTime}ms`);
@@ -198,7 +156,7 @@ const AboutSupportScreen = () => {
             }, retryDelay);
           } else {
             log('[Offerings] Max retries reached, giving up');
-            setErrorMessage('Unable to load store products. Please check your connection and try again.');
+            setErrorMessage('Unable to load products. Please check your connection and try again.');
             setIsLoadingOfferings(false);
           }
         }
@@ -219,75 +177,34 @@ const AboutSupportScreen = () => {
     return () => unsub();
   }, [logsVisible]);
 
-  // Maintain compatibility: we still track a connecting flag, but UI will only show 'Connecting...'
-  useEffect(() => {
-    if (!purchasingId) {
-      setConnecting(false);
-      return;
-    }
-    const t = setTimeout(() => setConnecting(true), 2000);
-    return () => {
-      clearTimeout(t);
-      setConnecting(false);
-    };
-  }, [purchasingId]);
-
-  const handleTipPress = async (amount: number) => {
+  const handleTierPress = async (tierId: string) => {
     const startTime = Date.now();
-    log(`[Purchase] Starting purchase flow for ${amount} at ${new Date().toISOString()}`);
+    log(`[Purchase] Starting purchase flow for ${tierId} at ${new Date().toISOString()}`);
 
     // Immediate haptic feedback to acknowledge tap
     try { await Haptics.selectionAsync(); } catch {}
     
-    const productId = (productIds as any)[amount];
-    if (!productId) {
-      console.log('[Purchase] No product ID found for amount:', amount);
-      return;
-    }
-    
     if (isLoadingOfferings) {
       console.log('[Purchase] Offerings still loading, blocking purchase');
-      setErrorMessage('Loading store products...');
+      setErrorMessage('Loading products...');
       return;
     }
     
-    log(`[Purchase] Looking for product ID: ${productId} in packagesById:`, Object.keys(packagesById));
-    let pkg = packagesById[productId];
+    log(`[Purchase] Looking for tier: ${tierId} in packagesById:`, Object.keys(packagesById));
+    const pkg = packagesById[tierId];
+    
     if (!pkg) {
-      console.log(`[Purchase] Package not found for productId: ${productId}. Available packages:`, 
-        Object.entries(packagesById).map(([id, p]) => ({ 
-          id, 
-          pkgId: p.identifier, 
-          storeId: p.storeProduct?.identifier,
-          price: p.storeProduct?.price 
-        }))
-      );
-      
-      // Fallback: choose closest by price
-      const all = Object.values(packagesById);
-      if (all.length > 0) {
-        const target = amount;
-        pkg = all.reduce((best: any, cur: any) => {
-          const b = Math.abs((best?.storeProduct?.price ?? Infinity) - target);
-          const c = Math.abs((cur?.storeProduct?.price ?? Infinity) - target);
-          return c < b ? cur : best;
-        }, all[0]);
-        log('[Purchase] Using fallback package selection by price. Selected', pkg?.identifier, pkg?.storeProduct?.identifier, pkg?.storeProduct?.price);
-      }
-    }
-    if (!pkg) {
-      console.log('[Purchase] Package not found for productId:', productId);
+      console.log(`[Purchase] Package not found for tier: ${tierId}`);
       setErrorMessage('Product not available. Please try again or check your connection.');
       return;
     }
     
     try {
       setErrorMessage(null);
-      setPurchasingId(productId);
-      setIsPurchaseInProgress(true);
+      setPurchasingId(tierId);
       
       const purchaseStartTime = Date.now();
-      log(`[Purchase] Preparing purchasePackage for ${productId} at ${new Date().toISOString()}`);
+      log(`[Purchase] Preparing purchasePackage for ${tierId} at ${new Date().toISOString()}`);
 
       // Allow UI to render first, then invoke purchase in next tick
       await Promise.resolve();
@@ -295,7 +212,6 @@ const AboutSupportScreen = () => {
       // Hide the in-button message shortly after invoking StoreKit so it disappears when the sheet appears
       const hideTimer = setTimeout(() => {
         setPurchasingId(null);
-        setIsPurchaseInProgress(false);
       }, 1500);
 
       try {
@@ -309,7 +225,7 @@ const AboutSupportScreen = () => {
       const purchaseTime = purchaseEndTime - purchaseStartTime;
       
       log(`[Purchase] Success! Total time: ${totalTime}ms, Purchase time: ${purchaseTime}ms`);
-      // Success: silent
+      Alert.alert('Thank you!', 'Your support helps keep Sober Dailies running smoothly.');
     } catch (e: any) {
       const errorTime = Date.now();
       const totalTime = errorTime - startTime;
@@ -322,7 +238,6 @@ const AboutSupportScreen = () => {
       setErrorMessage(e?.message ?? 'Purchase failed. Please try again.');
     } finally {
       setPurchasingId(null);
-      setIsPurchaseInProgress(false);
     }
   };
 
@@ -341,71 +256,6 @@ const AboutSupportScreen = () => {
     Linking.openURL('https://soberdailies.com/support');
   };
 
-  const handleContactPress = () => {
-    Linking.openURL('mailto:support@soberdailies.com');
-  };
-
-  const handleRestorePurchases = async () => {
-    try {
-      if (!Purchases) {
-        setErrorMessage('RevenueCat not available in this environment');
-        return;
-      }
-      
-      setErrorMessage(null);
-      console.log('[Restore] Starting restore purchases');
-      
-      const customerInfo = await Purchases.restorePurchases();
-      console.log('[Restore] Restore completed successfully');
-      
-      // Check if user has any active subscriptions
-      const hasActiveSubscription = Object.keys(customerInfo.entitlements.active).length > 0;
-      
-      if (hasActiveSubscription) {
-        Alert.alert('Success', 'Your purchases have been restored successfully!');
-      } else {
-        Alert.alert('No Purchases Found', 'No previous purchases were found to restore.');
-      }
-    } catch (error: any) {
-      console.log('[Restore] Error:', error?.message);
-      setErrorMessage(error?.message ?? 'Failed to restore purchases. Please try again.');
-    }
-  };
-
-  const handleRateAppPress = async () => {
-    try {
-      if (Platform.OS === 'ios') {
-        // Apple ID from App Store Connect (ascAppId in eas.json)
-        const appStoreId = '6749869819';
-        const url = `itms-apps://itunes.apple.com/app/id${appStoreId}?action=write-review`;
-        await Linking.openURL(url);
-      } else {
-        const packageName = 'com.nealwagner.soberdailies';
-        const url = `market://details?id=${packageName}`;
-        const fallback = `https://play.google.com/store/apps/details?id=${packageName}`;
-        const supported = await Linking.canOpenURL(url);
-        await Linking.openURL(supported ? url : fallback);
-      }
-    } catch (error) {
-      Alert.alert('Error', 'Unable to open the store page right now.');
-    }
-  };
-
-  const handleSharePress = async () => {
-    try {
-      const appStoreUrl = Platform.OS === 'ios' 
-        ? 'https://apps.apple.com/app/sober-dailies/id6738032000'
-        : 'https://play.google.com/store/apps/details?id=com.nealwagner.soberdailies';
-      
-      await Share.share({
-        message:
-          'Sober Dailies helps me stay sober one day at a time. Check it out: ' + appStoreUrl,
-      });
-    } catch (error) {
-      // no-op
-    }
-  };
-
   const toggleLogs = () => setLogsVisible((v) => !v);
   const copyLogs = async () => {
     try {
@@ -421,10 +271,10 @@ const AboutSupportScreen = () => {
     try {
       const Updates = await import('expo-updates');
       console.log('[OTA] manualCheck start');
-      const result = await Updates.checkForUpdateAsync({ requestHeaders: { 'expo-channel-name': 'production' } as any });
+      const result = await Updates.checkForUpdateAsync();
       console.log('[OTA] manualCheck result', result);
       if (result.isAvailable) {
-        const fetched = await Updates.fetchUpdateAsync({ requestHeaders: { 'expo-channel-name': 'production' } as any });
+        const fetched = await Updates.fetchUpdateAsync();
         console.log('[OTA] manualFetch result', fetched);
         Alert.alert('Update downloaded', 'Close and reopen the app to apply the update.');
       } else {
@@ -442,9 +292,20 @@ const AboutSupportScreen = () => {
     } catch {}
   };
 
-    const appVersion = Constants.expoConfig?.version ?? '—';
-    const iosBuild = Constants.expoConfig?.ios?.buildNumber ?? undefined;
-    const androidVersionCode = Constants.expoConfig?.android?.versionCode ?? undefined;
+  const appVersion = Constants.expoConfig?.version ?? '—';
+  const iosBuild = Constants.expoConfig?.ios?.buildNumber ?? undefined;
+  const androidVersionCode = Constants.expoConfig?.android?.versionCode ?? undefined;
+
+  // Get tier packages with fallback labels
+  const tier1Pkg = packagesById['tier1'];
+  const tier2Pkg = packagesById['tier2'];
+  const tier3Pkg = packagesById['tier3'];
+  
+  const tier1Label = (tier1Pkg as any)?.storeProduct?.priceString || '$4.99';
+  const tier2Label = (tier2Pkg as any)?.storeProduct?.priceString || '$9.99';
+  const tier3Label = (tier3Pkg as any)?.storeProduct?.priceString || '$19.99';
+  
+  const areProductsAvailable = !isLoadingOfferings && (tier1Pkg || tier2Pkg || tier3Pkg);
 
   return (
     <>
@@ -478,98 +339,87 @@ const AboutSupportScreen = () => {
       <View style={styles.contentContainer}>
         <ScrollView contentContainerStyle={[styles.scrollContent, { paddingTop: 20, paddingBottom: insets.bottom + 96 }]}>
 
-          {/* Support Card */}
+          {/* Support Card - TOP SECTION */}
           <View style={styles.supportCard}>
             <Text style={styles.supportCardTitle}>Support Sober Dailies</Text>
             <Text style={styles.supportCardText}>
-              Supporting the app helps me keep it running smoothly and add new features.
-            </Text>
-            
-            <View style={styles.bulletContainer}>
-              <View style={styles.bulletRow}>
-                <Text style={styles.bullet}>•</Text>
-                <Text style={styles.bulletContent}>
-                  <Text style={styles.boldText}>Monthly Support:</Text> $1.99/month. Auto-renews monthly. Cancel anytime.
-                </Text>
-              </View>
-              <View style={styles.bulletRow}>
-                <Text style={styles.bullet}>•</Text>
-                <Text style={styles.bulletContent}>
-                  <Text style={styles.boldText}>Yearly Support:</Text> $19.99/year. Auto-renews yearly. Cancel anytime.
-                </Text>
-              </View>
-            </View>
-            
-            <Text style={styles.supportCardText}>
-              Subscriptions renew automatically unless cancelled at least 24 hours before the end of the current period. Manage or cancel in your App Store account settings.
+              These are one-time voluntary support options. No extra content is unlocked.
             </Text>
 
             <View style={styles.buttonSpacer} />
-            <TouchableOpacity
-              style={styles.subscriptionButton}
-              onPress={() => handleTipPress(19.99)}
-              disabled={purchasingId === 'yearly_support'}
-            >
-              {purchasingId === 'yearly_support' ? (
-                <Text style={styles.subscriptionButtonText}>Connecting...</Text>
-              ) : (
-                <Text style={styles.subscriptionButtonText}>$1.99/Month</Text>
-              )}
-            </TouchableOpacity>
+            
+            {isLoadingOfferings ? (
+              <View style={styles.loadingContainer}>
+                <ActivityIndicator color="#4A90E2" />
+                <Text style={styles.loadingText}>Loading products…</Text>
+              </View>
+            ) : !areProductsAvailable ? (
+              <Text style={styles.unavailableText}>Support options unavailable right now.</Text>
+            ) : (
+              <>
+                <TouchableOpacity
+                  style={[styles.tierButton, !tier1Pkg && styles.tierButtonDisabled]}
+                  onPress={() => tier1Pkg && handleTierPress('tier1')}
+                  disabled={!tier1Pkg || purchasingId === 'tier1'}
+                >
+                  {purchasingId === 'tier1' ? (
+                    <ActivityIndicator color="#F5F5F5" />
+                  ) : (
+                    <Text style={styles.tierButtonText}>{tier1Label} – Supporter</Text>
+                  )}
+                </TouchableOpacity>
 
-            <TouchableOpacity
-              style={styles.subscriptionButton}
-              onPress={() => handleTipPress(1.99)}
-              disabled={purchasingId === 'monthly_support'}
-            >
-              {purchasingId === 'monthly_support' ? (
-                <Text style={styles.subscriptionButtonText}>Connecting...</Text>
-              ) : (
-                <Text style={styles.subscriptionButtonText}>$19.99/Year</Text>
-              )}
-            </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.tierButton, !tier2Pkg && styles.tierButtonDisabled]}
+                  onPress={() => tier2Pkg && handleTierPress('tier2')}
+                  disabled={!tier2Pkg || purchasingId === 'tier2'}
+                >
+                  {purchasingId === 'tier2' ? (
+                    <ActivityIndicator color="#F5F5F5" />
+                  ) : (
+                    <Text style={styles.tierButtonText}>{tier2Label} – Sustainer</Text>
+                  )}
+                </TouchableOpacity>
 
-            <TouchableOpacity style={styles.restoreButton} onPress={handleRestorePurchases}>
-              <Text style={styles.restoreButtonText}>Restore Purchases</Text>
-            </TouchableOpacity>
-
-            {/* Privacy Policy and Terms Links */}
-            <View style={styles.restoreLegalLinksContainer}>
-              <TouchableOpacity onPress={handlePrivacyPress}>
-                <Text style={styles.legalLink}>Privacy Policy</Text>
-              </TouchableOpacity>
-              <Text style={styles.legalSeparator}>·</Text>
-              <TouchableOpacity onPress={handleTermsPress}>
-                <Text style={styles.legalLink}>Terms</Text>
-              </TouchableOpacity>
-            </View>
+                <TouchableOpacity
+                  style={[styles.tierButton, !tier3Pkg && styles.tierButtonDisabled]}
+                  onPress={() => tier3Pkg && handleTierPress('tier3')}
+                  disabled={!tier3Pkg || purchasingId === 'tier3'}
+                >
+                  {purchasingId === 'tier3' ? (
+                    <ActivityIndicator color="#F5F5F5" />
+                  ) : (
+                    <Text style={styles.tierButtonText}>{tier3Label} – Champion</Text>
+                  )}
+                </TouchableOpacity>
+              </>
+            )}
 
             {errorMessage ? (
               <Text style={styles.inlineError}>{errorMessage}</Text>
             ) : null}
           </View>
 
-          {/* About Card */}
+          {/* About Card - BOTTOM SECTION */}
           <View style={styles.aboutCard}>
             <Text style={styles.aboutCardTitle}>About the App</Text>
             <Text style={styles.aboutCardText}>
               Hi friends,{"\n\n"}
                I created Sober Dailies because I wanted a simple way to stay consistent with my recovery practices. I needed something that would guide me through my daily habits and bring all the tools I used into one app. I'm grateful to share it with anyone who finds it helpful.{"\n\n"}
               Your contribution is completely voluntary, but it truly helps. It goes toward covering my development costs, keeping the app running smoothly, and funding future updates and improvements. My goal is to keep the core features free for anyone who wants to use them.{"\n\n"}
-              Whether or not you subscribe, I'm just glad you're here and that the app supports your journey.{"\n\n"}
+              Whether or not you contribute, I'm just glad you're here and that the app supports your journey.{"\n\n"}
               — Neal
             </Text>
           </View>
 
-          {/* Rate / Share actions (below about section) */}
-          <View style={styles.actionsRow}>
-            <TouchableOpacity style={styles.actionPill} onPress={handleRateAppPress}>
-              <Star size={16} color={'white'} style={styles.pillIcon} />
-              <Text style={styles.actionPillText}>Rate the App</Text>
+          {/* Privacy Policy and Terms Links */}
+          <View style={styles.legalLinksContainer}>
+            <TouchableOpacity onPress={handlePrivacyPress}>
+              <Text style={styles.legalLink}>Privacy Policy</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.actionPill} onPress={handleSharePress}>
-              <Share2 size={16} color={'white'} style={styles.pillIcon} />
-              <Text style={styles.actionPillText}>Share</Text>
+            <Text style={styles.legalSeparator}>·</Text>
+            <TouchableOpacity onPress={handleTermsPress}>
+              <Text style={styles.legalLink}>Terms</Text>
             </TouchableOpacity>
           </View>
         </ScrollView>
@@ -669,17 +519,6 @@ const styles = StyleSheet.create({
     top: 0,
     bottom: 0,
   },
-  nameText: {
-    marginTop: 12,
-    fontSize: 18,
-    fontWeight: adjustFontWeight('700'),
-    color: '#222',
-  },
-  taglineText: {
-    marginTop: 4,
-    fontSize: 14,
-    color: '#556',
-  },
   supportCard: {
     backgroundColor: 'rgba(255, 255, 255, 0.9)',
     borderRadius: 12,
@@ -700,35 +539,28 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: '#555',
     lineHeight: 22,
-    textAlign: 'left',
-  },
-  boldText: {
-    fontWeight: adjustFontWeight('600'),
-  },
-  bulletContainer: {
-    marginVertical: 8,
-  },
-  bulletRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    marginBottom: 4,
-  },
-  bullet: {
-    fontSize: 15,
-    color: '#555',
-    marginRight: 8,
-    lineHeight: 22,
-  },
-  bulletContent: {
-    flex: 1,
-    fontSize: 15,
-    color: '#555',
-    lineHeight: 22,
+    textAlign: 'center',
   },
   buttonSpacer: {
     height: 20,
   },
-  subscriptionButton: {
+  loadingContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 24,
+  },
+  loadingText: {
+    fontSize: 14,
+    color: '#6b7280',
+    marginTop: 8,
+  },
+  unavailableText: {
+    fontSize: 14,
+    color: '#6b7280',
+    textAlign: 'center',
+    paddingVertical: 16,
+  },
+  tierButton: {
     backgroundColor: '#4A90E2',
     borderRadius: 12,
     paddingVertical: 16,
@@ -742,36 +574,20 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 4 },
     elevation: 5,
   },
-  subscriptionButtonText: {
+  tierButtonDisabled: {
+    backgroundColor: '#9ca3af',
+    opacity: 0.6,
+  },
+  tierButtonText: {
     fontSize: 18,
     fontWeight: adjustFontWeight('600'),
     color: '#F5F5F5',
-  },
-  restoreButton: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 12,
-    paddingHorizontal: 24,
-    marginBottom: 4,
-  },
-  restoreButtonText: {
-    fontSize: 16,
-    color: '#4A90E2',
-    fontWeight: adjustFontWeight('500'),
-    textDecorationLine: 'underline',
   },
   legalLinksContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     marginTop: 16,
-    marginBottom: 8,
-    paddingHorizontal: 24,
-  },
-  restoreLegalLinksContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
     marginBottom: 8,
     paddingHorizontal: 24,
   },
@@ -786,11 +602,6 @@ const styles = StyleSheet.create({
     color: '#999',
     marginHorizontal: 12,
     fontWeight: adjustFontWeight('400'),
-  },
-  supportSubtext: {
-    fontSize: 12,
-    color: '#6c757d',
-    marginTop: 2,
   },
   aboutCard: {
     backgroundColor: 'rgba(255, 255, 255, 0.9)',
@@ -872,18 +683,10 @@ const styles = StyleSheet.create({
     fontWeight: adjustFontWeight('400'),
     textDecorationLine: 'underline',
   },
-  footerSeparator: {
-    fontSize: 13,
-    color: '#6c757d',
-    marginHorizontal: 16,
-    fontWeight: adjustFontWeight('400'),
-  },
   versionTextCentered: {
     fontSize: 12,
     color: '#98a2b3',
     marginTop: 12,
-  },
-  footerDivider: {
   },
 });
 

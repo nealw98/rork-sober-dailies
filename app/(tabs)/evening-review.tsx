@@ -17,10 +17,12 @@ import {
 import * as Clipboard from 'expo-clipboard';
 import ScreenContainer from "@/components/ScreenContainer";
 import { LinearGradient } from 'expo-linear-gradient';
-import { CheckCircle, Circle, Calendar, Share as ShareIcon, Save, Archive, Check } from 'lucide-react-native';
+import { CheckCircle, Circle, Calendar, Share as ShareIcon, Save, Folder, Check, RotateCcw } from 'lucide-react-native';
 import { useEveningReviewStore } from '@/hooks/use-evening-review-store';
 import SavedEveningReviews from '@/components/SavedEveningReviews';
 import AnimatedEveningReviewMessage from '@/components/AnimatedEveningReviewMessage';
+import { ReviewCompleteModal } from '@/components/ReviewCompleteModal';
+import { maybeAskForReview } from '@/lib/reviewPrompt';
 import Colors from '@/constants/colors';
 import { adjustFontWeight } from '@/constants/fonts';
 
@@ -99,6 +101,7 @@ const AnimatedCheckbox = ({ checked, onPress, children }: {
 
 export default function EveningReview() {
   const [showConfirmation, setShowConfirmation] = useState(false);
+  const [shouldTriggerReviewOnDismiss, setShouldTriggerReviewOnDismiss] = useState(false);
   const [showSavedReviews, setShowSavedReviews] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
 
@@ -117,6 +120,7 @@ export default function EveningReview() {
   const [reflectionKind, setReflectionKind] = useState('');
   const [reflectionBetter, setReflectionBetter] = useState('');
   const [reflectionOthers, setReflectionOthers] = useState('');
+  const [reflectionWell, setReflectionWell] = useState('');
 
   // Always call hooks in the same order
   const eveningReviewStore = useEveningReviewStore();
@@ -161,9 +165,10 @@ export default function EveningReview() {
     { key: 'reflectionResentful', label: 'Was I resentful, selfish, dishonest, or afraid?', value: reflectionResentful, setValue: setReflectionResentful },
     { key: 'reflectionApology', label: 'Do I owe an apology?', value: reflectionApology, setValue: setReflectionApology },
     { key: 'reflectionShared', label: 'Did I keep something to myself that should be shared with another?', value: reflectionShared, setValue: setReflectionShared },
-    { key: 'reflectionKind', label: 'Was I kind and loving toward all?', value: reflectionKind, setValue: setReflectionKind },
-    { key: 'reflectionBetter', label: 'What could I have done better?', value: reflectionBetter, setValue: setReflectionBetter },
     { key: 'reflectionOthers', label: 'Was I thinking of myself most of the time, or of what I could do for others?', value: reflectionOthers, setValue: setReflectionOthers },
+    { key: 'reflectionKind', label: 'Was I kind and loving toward all?', value: reflectionKind, setValue: setReflectionKind },
+    { key: 'reflectionWell', label: 'What have I done well today?', value: reflectionWell, setValue: setReflectionWell },
+    { key: 'reflectionBetter', label: 'What could I have done better?', value: reflectionBetter, setValue: setReflectionBetter },
   ];
 
   const handleStartNew = () => {
@@ -176,9 +181,10 @@ export default function EveningReview() {
     setReflectionResentful('');
     setReflectionApology('');
     setReflectionShared('');
-    setReflectionKind('');
-    setReflectionBetter('');
     setReflectionOthers('');
+    setReflectionKind('');
+    setReflectionWell('');
+    setReflectionBetter('');
     setShowConfirmation(false);
   };
 
@@ -200,9 +206,10 @@ export default function EveningReview() {
         setReflectionResentful(data.reflectionResentful || '');
         setReflectionApology(data.reflectionApology || '');
         setReflectionShared(data.reflectionShared || '');
-        setReflectionKind(data.reflectionKind || '');
-        setReflectionBetter(data.reflectionBetter || '');
         setReflectionOthers(data.reflectionOthers || '');
+        setReflectionKind(data.reflectionKind || '');
+        setReflectionWell(data.reflectionWell || '');
+        setReflectionBetter(data.reflectionBetter || '');
       } else {
         // Legacy format - convert to new format
         setStayedSober(true); // Assume sober if they're doing the review
@@ -225,6 +232,13 @@ export default function EveningReview() {
     // Force show the form instead of completion screen
     setShowConfirmation(false);
     setIsEditing(true);
+
+    if (shouldTriggerReviewOnDismiss) {
+      setShouldTriggerReviewOnDismiss(false);
+      maybeAskForReview('eveningReview').catch((error) =>
+        console.warn('[reviewPrompt] Evening review trigger failed', error),
+      );
+    }
   };
 
   const handleShare = async () => {
@@ -287,8 +301,104 @@ export default function EveningReview() {
       }
     }
   };
+  const handleReset = () => {
+    const hasContent = dailyActions.some(a => a.checked) || 
+                      inventoryQuestions.some(q => q.value.trim() !== '');
+    
+    if (!hasContent) return;
+    
+    // Check if there are unsaved changes by comparing current state with saved entry
+    const todayString = getTodayDateString();
+    const savedEntry = getSavedEntry(todayString);
+    
+    let hasUnsavedChanges = false;
+    
+    if (savedEntry) {
+      const data = savedEntry.data;
+      // Compare current state with saved state
+      hasUnsavedChanges = 
+        stayedSober !== data.stayedSober ||
+        prayedOrMeditated !== data.prayedOrMeditated ||
+        practicedGratitude !== data.practicedGratitude ||
+        readAALiterature !== data.readAALiterature ||
+        talkedToAlcoholic !== data.talkedToAlcoholic ||
+        didSomethingForOthers !== data.didSomethingForOthers ||
+        reflectionResentful !== (data.reflectionResentful || '') ||
+        reflectionApology !== (data.reflectionApology || '') ||
+        reflectionShared !== (data.reflectionShared || '') ||
+        reflectionOthers !== (data.reflectionOthers || '') ||
+        reflectionKind !== (data.reflectionKind || '') ||
+        reflectionWell !== (data.reflectionWell || '') ||
+        reflectionBetter !== (data.reflectionBetter || '');
+    } else {
+      // No saved entry, so any content means unsaved changes
+      hasUnsavedChanges = hasContent;
+    }
+    
+    console.log('[Evening Review] handleReset - hasUnsavedChanges:', hasUnsavedChanges, 'hasContent:', hasContent);
+    
+    // Only show warning if there are unsaved changes
+    if (hasUnsavedChanges) {
+      Alert.alert(
+        'Reset Nightly Review',
+        'You have unsaved changes. Are you sure you want to clear your current review?',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          {
+            text: 'Reset',
+            style: 'destructive',
+            onPress: () => {
+              // Reset all state
+              setStayedSober(false);
+              setPrayedOrMeditated(false);
+              setPracticedGratitude(false);
+              setReadAALiterature(false);
+              setTalkedToAlcoholic(false);
+              setDidSomethingForOthers(false);
+              setReflectionResentful('');
+              setReflectionApology('');
+              setReflectionShared('');
+              setReflectionOthers('');
+              setReflectionKind('');
+              setReflectionWell('');
+              setReflectionBetter('');
+            }
+          }
+        ]
+      );
+    } else {
+      // No unsaved changes, just reset without warning
+      console.log('[Evening Review] Resetting without alert - no unsaved changes');
+      setStayedSober(false);
+      setPrayedOrMeditated(false);
+      setPracticedGratitude(false);
+      setReadAALiterature(false);
+      setTalkedToAlcoholic(false);
+      setDidSomethingForOthers(false);
+      setReflectionResentful('');
+      setReflectionApology('');
+      setReflectionShared('');
+      setReflectionOthers('');
+      setReflectionKind('');
+      setReflectionWell('');
+      setReflectionBetter('');
+    }
+  };
 
   const handleSaveEntry = () => {
+    // Check if there's any content to save
+    const hasActions = dailyActions.some(action => action.checked);
+    const hasInventory = inventoryQuestions.some(question => question.value.trim() !== '');
+    
+    if (!hasActions && !hasInventory) {
+      Alert.alert(
+        'Save Nightly Review',
+        'Please complete at least one daily action or inventory question before saving.',
+        [{ text: 'OK' }]
+      );
+      return;
+    }
+    
     const detailedEntry = {
       // New format fields
       stayedSober,
@@ -300,9 +410,10 @@ export default function EveningReview() {
       reflectionResentful,
       reflectionApology,
       reflectionShared,
-      reflectionKind,
-      reflectionBetter,
       reflectionOthers,
+      reflectionKind,
+      reflectionWell,
+      reflectionBetter,
       // Legacy fields for compatibility
       resentfulFlag: '',
       resentfulNote: '',
@@ -324,6 +435,7 @@ export default function EveningReview() {
     // Set showConfirmation to true to show the completed screen with saved message
     setShowConfirmation(true);
     setIsEditing(false);
+    setShouldTriggerReviewOnDismiss(true);
   };
 
   const canSave = () => {
@@ -331,89 +443,12 @@ export default function EveningReview() {
            inventoryQuestions.some(question => question.value.trim() !== '');
   };
 
-  // Show completion screen if review is completed, unless we're editing
-  if (showConfirmation || (isCompleted && !isEditing)) {
-    return (
-      <ScreenContainer style={styles.container}>
-        <LinearGradient
-          colors={[Colors.light.chatBubbleUser, Colors.light.chatBubbleBot]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={styles.gradient}
-        />
-        
-        <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-          <View style={styles.header}>
-            <Text style={styles.title}>Review Complete</Text>
-            <Text style={styles.subtitle}>{formatDateDisplay(today)}</Text>
-          </View>
+  const handleViewSavedReviews = () => {
+    setShowConfirmation(false);
+    setShowSavedReviews(true);
+  };
 
-          <View style={styles.card}>
-            <Text style={styles.confirmationText}>
-              Thanks for checking in. You&apos;re doing the work — one day at a time.
-            </Text>
-          </View>
-
-          <View style={styles.card}>
-            <View style={styles.cardHeader}>
-              <Calendar color={Colors.light.tint} size={20} />
-              <Text style={styles.cardTitle}>This Week&apos;s Progress</Text>
-            </View>
-            
-            <View style={styles.weeklyProgress}>
-              {weeklyProgress.map((day, index) => (
-                <View key={index} style={styles.dayContainer}>
-                  <Text style={styles.dayName}>{day.dayName}</Text>
-                  <View style={[
-                    styles.dayCircle,
-                    day.completed && !day.isFuture && styles.dayCircleCompleted,
-                    day.isToday && !day.completed && styles.dayCircleToday,
-                    day.isFuture && styles.dayCircleFuture
-                  ]}>
-                    {day.completed && !day.isFuture && (
-                      <CheckCircle color="white" size={16} />
-                    )}
-                  </View>
-                </View>
-              ))}
-            </View>
-            
-            {weeklyStreak > 0 ? (
-              <AnimatedEveningReviewMessage
-                weeklyStreak={weeklyStreak}
-                visible={true}
-              />
-            ) : (
-              <Text style={styles.streakText}>
-                Start your streak today! 🌱
-              </Text>
-            )}
-          </View>
-
-          <Text style={styles.privacyText}>
-            Your responses are saved only on your device. Nothing is uploaded or shared.
-          </Text>
-
-          <View style={styles.buttonContainer}>
-            <TouchableOpacity style={styles.primaryButton} onPress={handleEditReview}>
-              <Text style={styles.primaryButtonText} numberOfLines={1}>Go Back</Text>
-            </TouchableOpacity>
-            <TouchableOpacity 
-              style={styles.primaryButton}
-              onPress={() => setShowSavedReviews(true)}
-            >
-              <Text style={styles.primaryButtonText} numberOfLines={1}>Saved Reviews</Text>
-            </TouchableOpacity>
-          </View>
-        </ScrollView>
-        <SavedEveningReviews 
-          visible={showSavedReviews}
-          onClose={() => setShowSavedReviews(false)}
-        />
-      </ScreenContainer>
-    );
-  }
-
+  // Main form render
   return (
     <ScreenContainer style={styles.container}>
       <LinearGradient
@@ -434,6 +469,61 @@ export default function EveningReview() {
           keyboardShouldPersistTaps="handled"
           contentContainerStyle={styles.scrollContent}
         >
+          {/* Action Row - Above Title */}
+          <View style={styles.actionRow}>
+            {/* Save */}
+            <TouchableOpacity 
+              onPress={handleSaveEntry}
+              accessible={true}
+              accessibilityLabel="Save nightly review"
+              accessibilityRole="button"
+              activeOpacity={0.6}
+              style={styles.actionButton}
+            >
+              <Save color="#007AFF" size={18} />
+              <Text style={styles.actionButtonText}>Save</Text>
+            </TouchableOpacity>
+            
+            {/* Share */}
+            <TouchableOpacity 
+              onPress={handleShare}
+              accessible={true}
+              accessibilityLabel="Share nightly review"
+              accessibilityRole="button"
+              activeOpacity={0.6}
+              style={styles.actionButton}
+            >
+              <ShareIcon color="#007AFF" size={18} />
+              <Text style={styles.actionButtonText}>Share</Text>
+            </TouchableOpacity>
+            
+            {/* History */}
+            <TouchableOpacity 
+              onPress={() => setShowSavedReviews(true)}
+              accessible={true}
+              accessibilityLabel="View saved reviews"
+              accessibilityRole="button"
+              activeOpacity={0.6}
+              style={styles.actionButton}
+            >
+              <Folder color="#007AFF" size={18} />
+              <Text style={styles.actionButtonText}>History</Text>
+            </TouchableOpacity>
+            
+            {/* Reset */}
+            <TouchableOpacity 
+              onPress={handleReset}
+              accessible={true}
+              accessibilityLabel="Reset nightly review"
+              accessibilityRole="button"
+              activeOpacity={0.6}
+              style={styles.actionButton}
+            >
+              <RotateCcw color="#007AFF" size={18} />
+              <Text style={styles.actionButtonText}>Reset</Text>
+            </TouchableOpacity>
+          </View>
+          
           <View style={styles.header}>
             <Text style={styles.title}>Nightly Review</Text>
             <Text style={styles.description}>
@@ -524,6 +614,12 @@ export default function EveningReview() {
         visible={showSavedReviews}
         onClose={() => setShowSavedReviews(false)}
       />
+
+      {/* Completion Modal */}
+      <ReviewCompleteModal
+        visible={showConfirmation}
+        onClose={handleEditReview}
+      />
     </ScreenContainer>
   );
 }
@@ -538,6 +634,25 @@ const styles = StyleSheet.create({
   },
   container: {
     flex: 1,
+  },
+  actionRow: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 20,
+    paddingTop: 4,
+    paddingBottom: 12,
+    marginBottom: 8,
+  },
+  actionButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  actionButtonText: {
+    fontSize: 15,
+    color: '#007AFF',
+    fontWeight: '500',
   },
   gradient: {
     position: 'absolute',
@@ -556,14 +671,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   title: {
-    fontSize: 28,
+    fontSize: 30,
     fontWeight: adjustFontWeight('700', true),
     color: Colors.light.text,
     marginBottom: 8,
     textAlign: 'center',
   },
   description: {
-    fontSize: 14,
+    fontSize: 15,
     color: Colors.light.muted,
     textAlign: 'center',
   },
@@ -583,7 +698,7 @@ const styles = StyleSheet.create({
     elevation: 6,
   },
   dateText: {
-    fontSize: 18,
+    fontSize: 19,
     fontWeight: adjustFontWeight('600', true),
     color: Colors.light.tint,
     textAlign: 'center',
@@ -619,13 +734,13 @@ const styles = StyleSheet.create({
     elevation: 6,
   },
   sectionTitle: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: adjustFontWeight('600', true),
     color: Colors.light.text,
     marginBottom: 16,
   },
   inventoryDescription: {
-    fontSize: 12,
+    fontSize: 13,
     color: Colors.light.muted,
     marginBottom: 16,
     fontStyle: 'italic',
@@ -673,7 +788,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   checkboxText: {
-    fontSize: 15,
+    fontSize: 16,
     color: Colors.light.text,
     textAlign: 'left',
   },
@@ -685,7 +800,7 @@ const styles = StyleSheet.create({
     padding: 4,
   },
   questionText: {
-    fontSize: 15,
+    fontSize: 16,
     color: Colors.light.text,
     marginBottom: 8,
     lineHeight: 20,
@@ -697,7 +812,7 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(255, 255, 255, 0.35)',
     borderRadius: 8,
     backgroundColor: '#fff',
-    fontSize: 15,
+    fontSize: 16,
     color: Colors.light.text,
     minHeight: 80,
     textAlignVertical: 'top',
@@ -735,7 +850,7 @@ const styles = StyleSheet.create({
   },
   saveButtonText: {
     color: 'white',
-    fontSize: 16,
+    fontSize: 17,
     fontWeight: adjustFontWeight('600'),
   },
   shareButton: {
@@ -756,7 +871,7 @@ const styles = StyleSheet.create({
   },
   shareButtonText: {
     color: 'white',
-    fontSize: 16,
+    fontSize: 17,
     fontWeight: adjustFontWeight('600'),
   },
   secondaryButton: {
@@ -776,11 +891,11 @@ const styles = StyleSheet.create({
   },
   secondaryButtonText: {
     color: Colors.light.tint,
-    fontSize: 16,
+    fontSize: 17,
     fontWeight: adjustFontWeight('500'),
   },
   privacyText: {
-    fontSize: 12,
+    fontSize: 13,
     color: Colors.light.muted,
     textAlign: 'center',
     marginBottom: 24,
@@ -792,13 +907,13 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   cardTitle: {
-    fontSize: 18,
+    fontSize: 19,
     fontWeight: adjustFontWeight('600', true),
     color: Colors.light.tint,
     marginLeft: 8,
   },
   confirmationText: {
-    fontSize: 16,
+    fontSize: 17,
     color: Colors.light.text,
     textAlign: 'center',
     lineHeight: 22,
@@ -812,7 +927,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   dayName: {
-    fontSize: 12,
+    fontSize: 13,
     color: Colors.light.muted,
     marginBottom: 8,
   },
@@ -839,7 +954,7 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(108, 117, 125, 0.2)',
   },
   streakText: {
-    fontSize: 14,
+    fontSize: 15,
     color: Colors.light.muted,
     textAlign: 'center',
   },
@@ -861,7 +976,7 @@ const styles = StyleSheet.create({
   },
   outlineButtonText: {
     color: Colors.light.tint,
-    fontSize: 16,
+    fontSize: 17,
     fontWeight: adjustFontWeight('500'),
   },
   primaryButton: {
@@ -876,7 +991,7 @@ const styles = StyleSheet.create({
   },
   primaryButtonText: {
     color: 'white',
-    fontSize: 16,
+    fontSize: 17,
     fontWeight: adjustFontWeight('600'),
   },
   shareButtonSolid: {
@@ -892,17 +1007,17 @@ const styles = StyleSheet.create({
   },
   shareButtonSolidText: {
     color: 'white',
-    fontSize: 16,
+    fontSize: 17,
     fontWeight: adjustFontWeight('500'),
   },
   subtitle: {
-    fontSize: 16,
+    fontSize: 17,
     color: Colors.light.tint,
     marginBottom: 8,
     textAlign: 'center',
   },
   savedMessage: {
-    fontSize: 16,
+    fontSize: 17,
     color: '#28a745',
     marginTop: 8,
     textAlign: 'center',

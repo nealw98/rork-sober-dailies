@@ -2,7 +2,7 @@
   "expo": {
     "name": "Sober Dailies",
     "slug": "sober-dailies",
-        "version": "1.8.12",
+        "version": "1.9.1",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "myapp",
@@ -16,7 +16,7 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.nealwagner.soberdailies",
-        "buildNumber": "73",
+        "buildNumber": "97",
       "icon": "./assets/images/icon.png",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
@@ -25,7 +25,7 @@
     },
     "android": {
       "package": "com.nealwagner.soberdailies",
-      "versionCode": 85,
+      "versionCode": 97,
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon-foreground.png",
         "backgroundImage": "./assets/images/adaptive-icon-background.png",
@@ -36,7 +36,7 @@
         "android.permission.VIBRATE"
       ]
     },
-    "runtimeVersion": "1.8.12",
+    "runtimeVersion": "1.9.1",
     "extra": {
       "eas": {
         "projectId": "651e2e43-404d-47e3-94ac-695b4febd27a"
@@ -66,7 +66,7 @@
             "imageWidth": 300
           },
           "android": {
-            "image": "./assets/images/splash-android-icon.png",
+            "image": "./assets/images/splash-android-icon2.png",
             "backgroundColor": "#061D4A"
           }
         }

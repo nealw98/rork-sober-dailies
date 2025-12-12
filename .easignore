@@ -1,0 +1,12 @@
+# Exclude native projects from upload so EAS uses managed prebuild
+/ios
+/android
+
+# Common large outputs
+/dist
+/web-build
+
+# Local caches and editor junk
+.expo/
+*.log
+

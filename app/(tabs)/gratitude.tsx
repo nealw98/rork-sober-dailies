@@ -14,7 +14,7 @@ import {
 } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import * as Clipboard from 'expo-clipboard';
-import { Heart, Share as ShareIcon, Save, Archive, CheckCircle, Calendar, Trash2 } from 'lucide-react-native';
+import { Heart, Share as ShareIcon, Save, Folder, CheckCircle, Calendar, Trash2, RotateCcw } from 'lucide-react-native';
 import AnimatedWeeklyProgressMessage from '@/components/AnimatedWeeklyProgressMessage';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useGratitudeStore } from '@/hooks/use-gratitude-store';
@@ -22,6 +22,8 @@ import Colors from '@/constants/colors';
 import { adjustFontWeight } from '@/constants/fonts';
 import ScreenContainer from '@/components/ScreenContainer';
 import SavedGratitudeEntries from '@/components/SavedGratitudeEntries';
+import { GratitudeCompleteModal } from '@/components/GratitudeCompleteModal';
+import { maybeAskForReview } from '@/lib/reviewPrompt';
 
 // 25 inspirational gratitude quotes for daily rotation
 const GRATITUDE_QUOTES = [
@@ -170,6 +172,25 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingHorizontal: 16,
     paddingTop: 24,
+  },
+  actionRow: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 20,
+    paddingTop: 4,
+    paddingBottom: 12,
+    marginBottom: 8,
+  },
+  actionButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  actionButtonText: {
+    fontSize: 14,
+    color: '#007AFF',
+    fontWeight: '500',
   },
   header: {
     marginBottom: 24,
@@ -553,6 +574,7 @@ export default function GratitudeListScreen() {
   const [editingValue, setEditingValue] = useState<string>('');
   const [inputValue, setInputValue] = useState('');
   const [showConfirmation, setShowConfirmation] = useState(false);
+  const [shouldTriggerReviewOnDismiss, setShouldTriggerReviewOnDismiss] = useState(false);
   const [showSavedEntries, setShowSavedEntries] = useState(false);
   const [dailyQuote] = useState(() => getDailyQuote());
   const inputRef = useRef<TextInput>(null);
@@ -606,6 +628,59 @@ export default function GratitudeListScreen() {
     setGratitudeItems(todaysItems);
   }, [getTodaysItems]);
 
+  const handleReset = () => {
+    if (gratitudeItems.length === 0 && inputValue.trim() === '') return;
+    
+    // Check if there are unsaved changes by comparing current items with saved entry
+    const todayString = getTodayDateString();
+    const savedEntry = getSavedEntry(todayString);
+    const savedItems = savedEntry?.items || [];
+    
+    // Determine if there are unsaved changes:
+    // - Items in UI differ from saved items
+    // - Or there's text in the input field
+    const hasUnsavedChanges = 
+      inputValue.trim() !== '' ||
+      gratitudeItems.length !== savedItems.length ||
+      gratitudeItems.some((item, index) => item !== savedItems[index]);
+    
+    console.log('[Gratitude] handleReset - hasUnsavedChanges:', hasUnsavedChanges, 'gratitudeItems:', gratitudeItems.length, 'savedItems:', savedItems.length);
+    
+    // Only show warning if there are unsaved changes
+    if (hasUnsavedChanges) {
+      Alert.alert(
+        'Reset Gratitude List',
+        'You have unsaved changes. Are you sure you want to clear your current gratitude list?',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          {
+            text: 'Reset',
+            style: 'destructive',
+            onPress: () => {
+              // Clear UI state
+              setGratitudeItems([]);
+              setInputValue('');
+              setEditingIndex(null);
+              setEditingValue('');
+              // Clear storage - this actually removes the items
+              updateItemsForToday([]);
+            }
+          }
+        ]
+      );
+    } else {
+      // No unsaved changes, just reset without warning
+      console.log('[Gratitude] Resetting without alert - no unsaved changes');
+      // Clear UI state
+      setGratitudeItems([]);
+      setInputValue('');
+      setEditingIndex(null);
+      setEditingValue('');
+      // Clear storage - this actually removes the items
+      updateItemsForToday([]);
+    }
+  };
+
   const handleAddGratitude = () => {
     if (inputValue.trim()) {
       const newItems = [...gratitudeItems, inputValue.trim()];
@@ -653,6 +728,7 @@ export default function GratitudeListScreen() {
     setGratitudeItems([]);
     setInputValue('');
     setShowConfirmation(false);
+    setShouldTriggerReviewOnDismiss(false);
   };
 
   const handleEditGratitude = () => {
@@ -667,8 +743,14 @@ export default function GratitudeListScreen() {
     // Uncomplete today to show the form
     uncompleteToday();
     setShowConfirmation(false);
-  };
 
+    if (shouldTriggerReviewOnDismiss) {
+      setShouldTriggerReviewOnDismiss(false);
+      maybeAskForReview('gratitude').catch((error) => {
+        console.warn('[reviewPrompt] Gratitude trigger failed', error);
+      });
+    }
+  };
 
 
 
@@ -762,8 +844,9 @@ export default function GratitudeListScreen() {
     saveDetailedEntry(gratitudeItems);
     completeToday(gratitudeItems);
     
-    // Set showConfirmation to true to show the completed screen with saved message
+    // Show completion modal
     setShowConfirmation(true);
+    setShouldTriggerReviewOnDismiss(true);
   };
 
   const canSave = () => {
@@ -777,98 +860,12 @@ export default function GratitudeListScreen() {
     }
   };
 
+  const handleViewSavedLists = () => {
+    setShowConfirmation(false);
+    setShowSavedEntries(true);
+  };
 
-
-  // Show completion state if completed
-  if (showConfirmation || isCompleted) {
-    return (
-      <ScreenContainer style={styles.container}>
-        <LinearGradient
-          colors={[Colors.light.chatBubbleUser, Colors.light.chatBubbleBot]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={styles.gradient}
-        />
-        
-        <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-          {/* Header */}
-          <View style={styles.header}>
-            <CheckCircle color={Colors.light.tint} size={32} />
-            <Text style={styles.title}>Gratitude Complete</Text>
-            <Text style={styles.subtitle}>{formatDateDisplay(today)}</Text>
-          </View>
-
-
-
-          {/* Weekly Progress */}
-          <View style={styles.card}>
-            <View style={styles.cardHeader}>
-              <Calendar color={Colors.light.tint} size={20} />
-              <Text style={styles.cardTitle}>This Week&apos;s Progress</Text>
-            </View>
-            
-            <View style={styles.weeklyProgress}>
-              {weeklyProgress.map((day, index) => {
-                console.log('Rendering day:', day.date, 'completed:', day.completed, 'isToday:', day.isToday, 'isFuture:', day.isFuture);
-                
-                return (
-                  <View key={index} style={styles.dayContainer}>
-                    <Text style={styles.dayName}>{day.dayName}</Text>
-                    <View style={[
-                      styles.dayCircle,
-                      day.completed && !day.isFuture && styles.dayCircleCompleted,
-                      day.isToday && !day.completed && styles.dayCircleToday,
-                      day.isFuture && styles.dayCircleFuture
-                    ]}>
-                      {day.completed && !day.isFuture && (
-                        <CheckCircle color="white" size={16} />
-                      )}
-                    </View>
-                  </View>
-                );
-              })}
-            </View>
-            
-            <View style={styles.streakContainer}>
-              {weeklyStreak > 0 ? (
-                <AnimatedWeeklyProgressMessage
-                  weeklyStreak={weeklyStreak}
-                  visible={true}
-                />
-              ) : (
-                <Text style={styles.streakMotivation}>
-                  Start your streak today! 🌱
-                </Text>
-              )}
-            </View>
-          </View>
-
-          {/* Privacy Notice */}
-          <Text style={styles.privacyText}>
-            Your gratitude lists are saved only on your device. Nothing is uploaded or shared.
-          </Text>
-
-          <View style={styles.buttonContainer}>
-            <TouchableOpacity style={styles.primaryButton} onPress={handleEditGratitude}>
-              <Text style={styles.primaryButtonText} numberOfLines={1}>Go Back</Text>
-            </TouchableOpacity>
-            <TouchableOpacity 
-              style={styles.primaryButton}
-              onPress={() => setShowSavedEntries(true)}
-            >
-              <Text style={styles.primaryButtonText} numberOfLines={1}>Saved Lists</Text>
-            </TouchableOpacity>
-          </View>
-        </ScrollView>
-        <SavedGratitudeEntries 
-          visible={showSavedEntries}
-          onClose={() => setShowSavedEntries(false)}
-        />
-        
-      </ScreenContainer>
-    );
-  }
-
+  // Main form render
   return (
     <ScreenContainer style={styles.container}>
       
@@ -890,9 +887,63 @@ export default function GratitudeListScreen() {
           keyboardShouldPersistTaps="handled"
           contentContainerStyle={styles.scrollContent}
         >
-          {/* Header */}
+          {/* Action Row - Above Title */}
+          <View style={styles.actionRow}>
+            {/* Save */}
+            <TouchableOpacity 
+              onPress={handleSaveEntry}
+              accessible={true}
+              accessibilityLabel="Save gratitude list"
+              accessibilityRole="button"
+              activeOpacity={0.6}
+              style={styles.actionButton}
+            >
+              <Save color="#007AFF" size={18} />
+              <Text style={styles.actionButtonText}>Save</Text>
+            </TouchableOpacity>
+            
+            {/* Share */}
+            <TouchableOpacity 
+              onPress={handleShare}
+              accessible={true}
+              accessibilityLabel="Share gratitude list"
+              accessibilityRole="button"
+              activeOpacity={0.6}
+              style={styles.actionButton}
+            >
+              <ShareIcon color="#007AFF" size={18} />
+              <Text style={styles.actionButtonText}>Share</Text>
+            </TouchableOpacity>
+            
+            {/* History */}
+            <TouchableOpacity 
+              onPress={() => setShowSavedEntries(true)}
+              accessible={true}
+              accessibilityLabel="View saved lists"
+              accessibilityRole="button"
+              activeOpacity={0.6}
+              style={styles.actionButton}
+            >
+              <Folder color="#007AFF" size={18} />
+              <Text style={styles.actionButtonText}>History</Text>
+            </TouchableOpacity>
+            
+            {/* Reset */}
+            <TouchableOpacity 
+              onPress={handleReset}
+              accessible={true}
+              accessibilityLabel="Reset gratitude list"
+              accessibilityRole="button"
+              activeOpacity={0.6}
+              style={styles.actionButton}
+            >
+              <RotateCcw color="#007AFF" size={18} />
+              <Text style={styles.actionButtonText}>Reset</Text>
+            </TouchableOpacity>
+          </View>
+          
+          {/* Header - Title Only */}
           <View style={styles.header}>
-            <Heart color={Colors.light.tint} size={32} />
             <Text style={styles.title}>Gratitude List</Text>
           </View>
 
@@ -908,7 +959,7 @@ export default function GratitudeListScreen() {
             <Text style={styles.cardTitle}>{formatDateDisplay(today)}</Text>
             
             <View style={styles.gratitudeContainer}>
-              <Text style={styles.inputLabel}>Today I&apos;m grateful for:</Text>
+              <Text style={styles.inputLabel}>Today I'm grateful for:</Text>
               
               <View style={styles.inputContainer}>
                 <TextInput
@@ -973,33 +1024,6 @@ export default function GratitudeListScreen() {
             </View>
           </View>
 
-          {/* Action Buttons */}
-          <View style={styles.actionButtons}>
-            <TouchableOpacity 
-              style={[
-                styles.saveButton,
-                !canSave() && styles.saveButtonDisabled
-              ]} 
-              onPress={handleSaveEntry}
-              disabled={!canSave()}
-            >
-              <Save size={20} color="white" />
-              <Text style={styles.saveButtonText}>Save</Text>
-            </TouchableOpacity>
-            <TouchableOpacity 
-              style={[
-                styles.shareButton,
-                !canSave() && styles.shareButtonDisabled
-              ]}
-              onPress={handleShare}
-              disabled={!canSave()}
-            >
-              <ShareIcon size={20} color="white" />
-              <Text style={styles.shareButtonText}>Share</Text>
-            </TouchableOpacity>
-          </View>
-          
-
           {/* Privacy Notice */}
           <Text style={styles.privacyText}>
             Your gratitude lists are saved only on your device. Nothing is uploaded or shared.
@@ -1010,6 +1034,12 @@ export default function GratitudeListScreen() {
       <SavedGratitudeEntries 
         visible={showSavedEntries}
         onClose={() => setShowSavedEntries(false)}
+      />
+
+      {/* Completion Modal */}
+      <GratitudeCompleteModal
+        visible={showConfirmation || isCompleted}
+        onClose={handleEditGratitude}
       />
     </ScreenContainer>
   );

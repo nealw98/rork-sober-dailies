@@ -1,14 +1,17 @@
-import React, { useState, useEffect, useRef, useCallback } from "react";
+import React, { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import {
   StyleSheet,
   View,
   Text,
   ScrollView,
   TouchableOpacity,
+  Platform,
 } from "react-native";
-import { ChevronDown, ChevronRight } from "lucide-react-native";
+import { ChevronDown, ChevronRight, Type } from "lucide-react-native";
 import { LinearGradient } from 'expo-linear-gradient';
 import { useLocalSearchParams, useFocusEffect } from 'expo-router';
+import { Stack } from 'expo-router';
+import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 
 import Colors from "@/constants/colors";
 import { aaPrayers } from "@/constants/prayers";
@@ -21,6 +24,26 @@ export default function PrayersScreen() {
   const scrollViewRef = useRef<ScrollView>(null);
   const prayerRefs = useRef<{ [key: number]: View | null }>({});
   const prayerPositions = useRef<{ [key: number]: number }>({});
+  
+  const [fontSize, setFontSize] = useState(18);
+  const baseFontSize = 18;
+  const maxFontSize = Platform.OS === 'android' ? 34 : 30;
+  
+  const increaseFontSize = () => {
+    setFontSize(prev => Math.min(prev + 2, maxFontSize));
+  };
+  
+  const decreaseFontSize = () => {
+    setFontSize(prev => Math.max(prev - 2, 12));
+  };
+  
+  // Double-tap to reset to default font size
+  const doubleTapGesture = useMemo(() => Gesture.Tap()
+    .numberOfTaps(2)
+    .onStart(() => {
+      setFontSize(baseFontSize);
+    })
+    .runOnJS(true), [baseFontSize]);
 
   // Track if we came from a deep link or tab navigation
   const isFromDeepLink = useRef(false);
@@ -76,19 +99,44 @@ export default function PrayersScreen() {
 
   return (
     <ScreenContainer style={styles.container}>
+      <Stack.Screen
+        options={{
+          title: 'Prayers',
+          headerRight: () => (
+            <View style={styles.fontSizeControls}>
+              <TouchableOpacity 
+                onPress={decreaseFontSize}
+                style={styles.fontSizeButton}
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              >
+                <Type size={16} color={Colors.light.text} />
+              </TouchableOpacity>
+              
+              <TouchableOpacity 
+                onPress={increaseFontSize}
+                style={styles.fontSizeButton}
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              >
+                <Type size={24} color={Colors.light.text} />
+              </TouchableOpacity>
+            </View>
+          ),
+        }}
+      />
       <LinearGradient
-        colors={['rgba(74, 144, 226, 0.3)', 'rgba(92, 184, 92, 0.1)']}
+        colors={Colors.gradients.mainThreeColor}
         style={styles.backgroundGradient}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
-        locations={[0, 1]}
+        locations={[0, 0.5, 1]}
       />
       
-      <ScrollView 
-        ref={scrollViewRef}
-        style={styles.scrollContainer} 
-        contentContainerStyle={styles.contentContainer}
-      >
+      <GestureDetector gesture={doubleTapGesture}>
+        <ScrollView 
+          ref={scrollViewRef}
+          style={styles.scrollContainer} 
+          contentContainerStyle={styles.contentContainer}
+        >
         <View style={styles.header}>
           <Text style={styles.title}>AA Prayers</Text>
           <Text style={styles.subtitle}>Essential prayers for recovery and reflection</Text>
@@ -122,23 +170,24 @@ export default function PrayersScreen() {
               <View style={styles.prayerContent}>
                 {prayer.title === "Morning Prayer" ? (
                   <View>
-                    <Text style={[styles.prayerText, styles.italicText]}>As I begin this day, I ask my Higher Power:</Text>
-                    <Text style={styles.prayerText}>{prayer.content.split('As I begin this day, I ask my Higher Power:')[1]}</Text>
+                    <Text style={[styles.prayerText, styles.italicText, { fontSize, lineHeight: fontSize * 1.375 }]}>As I begin this day, I ask my Higher Power:</Text>
+                    <Text style={[styles.prayerText, { fontSize, lineHeight: fontSize * 1.375 }]}>{prayer.content.split('As I begin this day, I ask my Higher Power:')[1]}</Text>
                   </View>
                 ) : prayer.title === "Evening Prayer" ? (
                   <View>
-                    <Text style={[styles.prayerText, styles.italicText]}>As this day closes,</Text>
-                    <Text style={styles.prayerText}>{prayer.content.split('As this day closes,')[1]}</Text>
+                    <Text style={[styles.prayerText, styles.italicText, { fontSize, lineHeight: fontSize * 1.375 }]}>As this day closes,</Text>
+                    <Text style={[styles.prayerText, { fontSize, lineHeight: fontSize * 1.375 }]}>{prayer.content.split('As this day closes,')[1]}</Text>
                   </View>
                 ) : (
-                  <Text style={styles.prayerText}>{prayer.content}</Text>
+                  <Text style={[styles.prayerText, { fontSize, lineHeight: fontSize * 1.375 }]}>{prayer.content}</Text>
                 )}
-                {prayer.source && <Text style={styles.prayerSource}>— {prayer.source}</Text>}
+                {prayer.source && <Text style={[styles.prayerSource, { fontSize: fontSize * 0.75 }]}>— {prayer.source}</Text>}
               </View>
             )}
           </View>
         ))}
       </ScrollView>
+      </GestureDetector>
     </ScreenContainer>
   );
 }
@@ -147,6 +196,22 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: Colors.light.background,
+  },
+  fontSizeControls: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginRight: Platform.OS === 'android' ? 12 : 16,
+    paddingRight: 2,
+    height: 44,
+  },
+  fontSizeButton: {
+    padding: 4,
+    minWidth: 28,
+    height: 44,
+    paddingBottom: 0,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   backgroundGradient: {
     position: 'absolute',

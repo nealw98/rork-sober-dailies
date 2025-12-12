@@ -111,7 +111,7 @@ export default function GratitudeList() {
               style={styles.primaryButton}
               onPress={() => setShowSavedGratitude(true)}
             >
-              <Text style={styles.primaryButtonText}>View Saved Lists</Text>
+              <Text style={styles.primaryButtonText}>History</Text>
             </TouchableOpacity>
           </View>
         </ScrollView>

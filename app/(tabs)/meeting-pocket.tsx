@@ -1,9 +1,11 @@
 import { StyleSheet, Platform } from "react-native";
 import MeetingPocketBrowser from "@/components/MeetingPocketBrowser";
 import ScreenContainer from "@/components/ScreenContainer";
+import { useReadingSession } from "@/hooks/useReadingSession";
 
 export default function MeetingPocketScreen() {
   console.log('🟢 MeetingPocketScreen: Component rendering');
+  useReadingSession('literature');
   
   return (
     <ScreenContainer noPadding style={styles.container}>

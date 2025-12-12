@@ -55,9 +55,23 @@ export function configurePurchases(): void {
     return;
   }
   console.log('[RevenueCat] Configuring with API key for', Platform.OS);
-  Purchases.setLogLevel(Purchases.LOG_LEVEL.DEBUG); // Use DEBUG for more detailed logs
-  Purchases.configure({ apiKey });
-  console.log('[RevenueCat] Configuration complete.');
+  if (typeof Purchases.setLogLevel === 'function') {
+    try {
+      Purchases.setLogLevel(Purchases.LOG_LEVEL.DEBUG); // Use DEBUG for more detailed logs
+    } catch (error) {
+      console.log('[RevenueCat] Failed to set log level:', error);
+    }
+  }
+  try {
+    if (typeof Purchases.configure === 'function') {
+      Purchases.configure({ apiKey });
+      console.log('[RevenueCat] Configuration complete.');
+    } else {
+      console.log('[RevenueCat] Purchases.configure is not a function. Module may not be fully initialized.');
+    }
+  } catch (error) {
+    console.log('[RevenueCat] Failed to configure:', error);
+  }
 }
 
 export async function getCustomerInfoSafe(): Promise<PurchasesNamespace.CustomerInfo | null> {

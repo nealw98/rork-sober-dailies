@@ -1,5 +1,5 @@
-import { useEffect, useState, useCallback } from "react";
-import { StyleSheet, Text, View, ScrollView, TouchableOpacity, Modal, Platform, Share, AppState } from "react-native";
+import { useEffect, useState, useCallback, useRef } from "react";
+import { StyleSheet, Text, View, ScrollView, TouchableOpacity, Modal, Platform, Share } from "react-native";
 import { ChevronLeft, ChevronRight, Calendar, Upload } from "lucide-react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import DateTimePicker from '@react-native-community/datetimepicker';
@@ -10,6 +10,11 @@ import Colors from "@/constants/colors";
 import { getReflectionForDate } from "@/constants/reflections";
 import { Reflection } from "@/types";
 import { adjustFontWeight } from "@/constants/fonts";
+import { recordDailyReflectionDay } from "@/lib/reviewPrompt";
+
+interface DailyReflectionProps {
+  fontSize?: number;
+}
 
 // Helper to check if two dates are the same day
 const isSameDay = (date1: Date, date2: Date): boolean => {
@@ -80,7 +85,7 @@ const generateCalendarDays = (date: Date) => {
   return days;
 };
 
-export default function DailyReflection() {
+export default function DailyReflection({ fontSize = 18 }: DailyReflectionProps) {
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [reflection, setReflection] = useState<Reflection | null>(null);
 
@@ -89,21 +94,26 @@ export default function DailyReflection() {
   const [calendarDays, setCalendarDays] = useState<any[]>([]);
   const [calendarDate, setCalendarDate] = useState<Date>(new Date());
   const [isLoading, setIsLoading] = useState<boolean>(true);
+  
+  // Track the last date we showed when the component was focused
+  const lastShownDateRef = useRef<Date>(new Date());
 
-  // Check if date has changed when screen comes into focus
+  // Preserve user's selection; do not reset to today on focus
   useFocusEffect(
     useCallback(() => {
-      const today = new Date();
-      // Only update if we're currently showing today's date but it's now a different day
-      if (!isSameDay(selectedDate, today)) {
-        console.log('Day has changed, updating to today:', today.toDateString());
-        setSelectedDate(today);
-      }
-    }, [selectedDate])
+      lastShownDateRef.current = selectedDate;
+      return () => {};
+    }, [])
   );
 
   useEffect(() => {
     updateReflection(selectedDate);
+  }, [selectedDate]);
+
+  useEffect(() => {
+    recordDailyReflectionDay(selectedDate).catch((error) => {
+      console.warn('[reviewPrompt] Failed to record daily reflection day', error);
+    });
   }, [selectedDate]);
 
   useEffect(() => {
@@ -152,21 +162,27 @@ export default function DailyReflection() {
   };
 
   const navigateDate = (direction: 'prev' | 'next') => {
-    const newDate = new Date(selectedDate);
-    if (direction === 'prev') {
-      newDate.setDate(newDate.getDate() - 1);
-    } else {
-      newDate.setDate(newDate.getDate() + 1);
-    }
-    setSelectedDate(newDate);
+    setSelectedDate(prevDate => {
+      const updatedDate = new Date(prevDate);
+      if (direction === 'prev') {
+        updatedDate.setDate(updatedDate.getDate() - 1);
+      } else {
+        updatedDate.setDate(updatedDate.getDate() + 1);
+      }
+      lastShownDateRef.current = updatedDate; // Update the ref when user navigates
+      return updatedDate;
+    });
   };
 
   const handleDateChange = (event: any, date?: Date) => {
     if (Platform.OS === 'android') {
+      // Close regardless, but only apply when user confirms selection
       setShowDatePicker(false);
+      if (event?.type !== 'set') return;
     }
     if (date) {
       setSelectedDate(date);
+      lastShownDateRef.current = date; // Update the ref when date changes
       if (Platform.OS === 'ios') {
         setShowDatePicker(false);
       }
@@ -183,17 +199,20 @@ export default function DailyReflection() {
   };
 
   const changeCalendarMonth = (direction: 'prev' | 'next') => {
-    const newDate = new Date(calendarDate);
-    if (direction === 'prev') {
-      newDate.setMonth(newDate.getMonth() - 1);
-    } else {
-      newDate.setMonth(newDate.getMonth() + 1);
-    }
-    setCalendarDate(newDate);
+    setCalendarDate(prevDate => {
+      const updatedDate = new Date(prevDate);
+      if (direction === 'prev') {
+        updatedDate.setMonth(updatedDate.getMonth() - 1);
+      } else {
+        updatedDate.setMonth(updatedDate.getMonth() + 1);
+      }
+      return updatedDate;
+    });
   };
 
   const selectCalendarDay = (date: Date) => {
     setSelectedDate(date);
+    lastShownDateRef.current = date; // Update the ref when user picks a date
     closeDatePicker();
   };
 
@@ -324,7 +343,7 @@ export default function DailyReflection() {
   return (
     <View style={styles.container}>
       <LinearGradient
-        colors={['rgba(74, 144, 226, 0.3)', 'rgba(78, 205, 196, 0.2)', 'rgba(92, 184, 92, 0.1)']}
+        colors={Colors.gradients.mainThreeColor}
         style={styles.backgroundGradient}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
@@ -388,21 +407,21 @@ export default function DailyReflection() {
           </View>
           
           <Text style={styles.title}>{reflection.title}</Text>
-          <Text style={styles.quote}>"{reflection.quote}"</Text>
-          <Text style={styles.source}>{reflection.source}</Text>
+          <Text style={[styles.quote, { fontSize, lineHeight: fontSize * 1.375 }]}>"{reflection.quote}"</Text>
+          <Text style={[styles.source, { fontSize: fontSize * 0.75 }]}>{reflection.source}</Text>
           
           <View style={styles.divider} />
           
-          <Text style={styles.reflectionText}>{reflection.reflection}</Text>
+          <Text style={[styles.reflectionText, { fontSize, lineHeight: fontSize * 1.375 }]}>{reflection.reflection}</Text>
           
           <View style={styles.divider} />
           
           <Text style={styles.thoughtTitle}>Meditation:</Text>
-          <Text style={styles.thought}>{reflection.thought}</Text>
+          <Text style={[styles.thought, { fontSize, lineHeight: fontSize * 1.375 }]}>{reflection.thought}</Text>
         </View>
 
         <View style={styles.copyrightContainer}>
-          <Text style={styles.copyrightText}>
+          <Text style={[styles.copyrightText, { fontSize: fontSize * 0.75 }]}>
             Copyright © 1990 by Alcoholics Anonymous World Services, Inc. All rights reserved.
           </Text>
         </View>

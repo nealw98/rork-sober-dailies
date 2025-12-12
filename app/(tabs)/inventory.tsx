@@ -14,13 +14,14 @@ import {
   Modal
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { RotateCcw, Share as ShareIcon, Save as SaveIcon, Clock, Trash2, X, HelpCircle, Calendar } from 'lucide-react-native';
+import { RotateCcw, Share as ShareIcon, Save as SaveIcon, Folder, Trash2, X, Calendar } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Colors from '@/constants/colors';
 import { adjustFontWeight } from '@/constants/fonts';
 import ScreenContainer from '@/components/ScreenContainer';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
+import { maybeAskForReview } from '@/lib/reviewPrompt';
 
 const INVENTORY_STORAGE_KEY = 'spot_check_inventories';
 const INSTRUCTIONS_SHOWN_KEY = 'spot_check_instructions_shown';
@@ -581,6 +582,19 @@ const Inventory = () => {
 
   // Define handler functions before useLayoutEffect to avoid stale closures
   const handleSave = useCallback(async () => {
+    // Check if there's any content to save
+    const hasSelections = Object.values(selections).some(val => val !== 'none');
+    const hasSituation = situation.trim().length > 0;
+    
+    if (!hasSelections && !hasSituation) {
+      Alert.alert(
+        'Save Spot Check',
+        'Please add a situation or make at least one selection before saving.',
+        [{ text: 'OK' }]
+      );
+      return;
+    }
+    
     dismissKeyboard(); // Hide keyboard when saving
     try {
       const stored = await AsyncStorage.getItem(INVENTORY_STORAGE_KEY);
@@ -600,6 +614,8 @@ const Inventory = () => {
       setHasUnsavedChanges(false);
       
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+
+      await maybeAskForReview('spotCheck');
     } catch (error) {
       console.error('Error saving spot check:', error);
       Alert.alert('Error', 'Failed to save spot check.');
@@ -659,67 +675,63 @@ const Inventory = () => {
   }, [situation, selections, dismissKeyboard]);
 
   const handleReset = useCallback(() => {
-    dismissKeyboard(); // Hide keyboard when resetting
-    setSelections({});
-    setSituation('');
-    setCurrentRecord(null);
-    setHasUnsavedChanges(false);
-  }, [dismissKeyboard]);
+    // Check if there's any content before showing the alert
+    const hasAnyContent = situation.trim() !== '' || Object.keys(selections).length > 0;
+    
+    if (!hasAnyContent) return;
+    
+    // Only show warning if there are unsaved changes
+    if (hasUnsavedChanges) {
+      Alert.alert(
+        'Reset Spot Check',
+        'You have unsaved changes. Are you sure you want to clear your current spot check?',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          {
+            text: 'Reset',
+            style: 'destructive',
+            onPress: () => {
+              dismissKeyboard(); // Hide keyboard when resetting
+              setSelections({});
+              setSituation('');
+              setCurrentRecord(null);
+              setHasUnsavedChanges(false);
+            }
+          }
+        ]
+      );
+    } else {
+      // Already saved, just reset without warning
+      dismissKeyboard();
+      setSelections({});
+      setSituation('');
+      setCurrentRecord(null);
+      setHasUnsavedChanges(false);
+    }
+  }, [situation, selections, hasUnsavedChanges, dismissKeyboard]);
 
-  // Add header icons (Save, Share, History, Reset)
+  // Add Help button to header
   useLayoutEffect(() => {
     navigation.setOptions({
       headerRight: () => (
-        <View style={{ flexDirection: 'row', gap: 16, paddingRight: 16 }}>
-          {hasContent && (
-            <TouchableOpacity 
-              onPress={handleSave}
-              accessible={true}
-              accessibilityLabel="Save spot check"
-              accessibilityRole="button"
-            >
-              <SaveIcon color={Colors.light.tint} size={20} />
-            </TouchableOpacity>
-          )}
-          <TouchableOpacity 
-            onPress={handleShare}
-            accessible={true}
-            accessibilityLabel="Share spot check"
-            accessibilityRole="button"
-          >
-            <ShareIcon color={Colors.light.tint} size={20} />
-          </TouchableOpacity>
-          <TouchableOpacity 
-            onPress={() => {
-              dismissKeyboard(); // Hide keyboard when opening history
-              setShowHistory(true);
-            }}
-            accessible={true}
-            accessibilityLabel="View history"
-            accessibilityRole="button"
-          >
-            <Clock color={Colors.light.tint} size={20} />
-          </TouchableOpacity>
-          <TouchableOpacity 
-            onPress={handleShowHelp}
-            accessible={true}
-            accessibilityLabel="Show instructions"
-            accessibilityRole="button"
-          >
-            <HelpCircle size={20} color={Colors.light.tint} />
-          </TouchableOpacity>
-          <TouchableOpacity 
-            onPress={handleReset}
-            accessible={true}
-            accessibilityLabel="Reset all selections"
-            accessibilityRole="button"
-          >
-            <RotateCcw size={20} color={Colors.light.tint} />
-          </TouchableOpacity>
-        </View>
+        <TouchableOpacity 
+          onPress={handleShowHelp}
+          accessible={true}
+          accessibilityLabel="Show help"
+          accessibilityRole="button"
+          style={{ paddingRight: 16 }}
+        >
+          <Text style={{ 
+            fontSize: 16, 
+            color: Colors.light.tint,
+            fontWeight: '400'
+          }}>
+            Help
+          </Text>
+        </TouchableOpacity>
       ),
     });
-  }, [navigation, hasUnsavedChanges, hasContent, handleSave, handleShare, handleReset, handleShowHelp, dismissKeyboard]);
+  }, [navigation, handleShowHelp]);
 
   const handlePressLookFor = (pairId: string) => {
     dismissKeyboard(); // Hide keyboard when selecting traits
@@ -769,13 +781,71 @@ const Inventory = () => {
   return (
     <ScreenContainer style={styles.container} noPadding>
       <LinearGradient
-        colors={['rgba(74, 144, 226, 0.3)', 'rgba(78, 205, 196, 0.2)', 'rgba(92, 184, 92, 0.1)']}
+        colors={Colors.gradients.mainThreeColor}
         style={styles.gradientContainer}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
       >
         <ScrollView contentContainerStyle={styles.scrollContent}>
           <View style={styles.contentContainer}>
+            {/* Action Row - Above Title */}
+            <View style={styles.actionRow}>
+              {/* Save */}
+              <TouchableOpacity 
+                onPress={handleSave}
+                accessible={true}
+                accessibilityLabel="Save spot check"
+                accessibilityRole="button"
+                activeOpacity={0.6}
+                style={styles.actionButton}
+              >
+                <SaveIcon color="#007AFF" size={18} />
+                <Text style={styles.actionButtonText}>Save</Text>
+              </TouchableOpacity>
+              
+              {/* Share */}
+              <TouchableOpacity 
+                onPress={handleShare}
+                accessible={true}
+                accessibilityLabel="Share spot check"
+                accessibilityRole="button"
+                activeOpacity={0.6}
+                style={styles.actionButton}
+              >
+                <ShareIcon color="#007AFF" size={18} />
+                <Text style={styles.actionButtonText}>Share</Text>
+              </TouchableOpacity>
+              
+              {/* History */}
+              <TouchableOpacity 
+                onPress={() => {
+                  dismissKeyboard();
+                  setShowHistory(true);
+                }}
+                accessible={true}
+                accessibilityLabel="View history"
+                accessibilityRole="button"
+                activeOpacity={0.6}
+                style={styles.actionButton}
+              >
+                <Folder color="#007AFF" size={18} />
+                <Text style={styles.actionButtonText}>History</Text>
+              </TouchableOpacity>
+              
+              {/* Reset */}
+              <TouchableOpacity 
+                onPress={handleReset}
+                accessible={true}
+                accessibilityLabel="Reset all selections"
+                accessibilityRole="button"
+                activeOpacity={0.6}
+                style={styles.actionButton}
+              >
+                <RotateCcw color="#007AFF" size={18} />
+                <Text style={styles.actionButtonText}>Reset</Text>
+              </TouchableOpacity>
+            </View>
+            
             <Text style={styles.title}>Spot Check Inventory</Text>
             
             {/* Saved Timestamp - always reserve space */}
@@ -856,15 +926,34 @@ const styles = StyleSheet.create({
   contentContainer: {
     flex: 1,
   },
+  actionRow: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 20,
+    paddingTop: 4,
+    paddingBottom: 12,
+    marginBottom: 8,
+  },
+  actionButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  actionButtonText: {
+    fontSize: 15,
+    color: '#007AFF',
+    fontWeight: '500',
+  },
   title: {
-    fontSize: 28,
+    fontSize: 30,
     fontWeight: 'bold',
     color: Colors.light.text,
     textAlign: 'center',
     marginBottom: 16,
   },
   savedTimestamp: {
-    fontSize: 14,
+    fontSize: 15,
     color: Colors.light.tint,
     fontWeight: 'bold',
     textAlign: 'center',
@@ -874,7 +963,7 @@ const styles = StyleSheet.create({
     marginBottom: 28,
   },
   situationLabel: {
-    fontSize: 18,
+    fontSize: 22,
     fontWeight: '600',
     color: Colors.light.text,
     marginBottom: 8,
@@ -883,7 +972,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     borderRadius: 12,
     padding: 16,
-    fontSize: 16,
+    fontSize: 18,
     color: Colors.light.text,
     minHeight: 80,
     textAlignVertical: 'top',
@@ -907,13 +996,13 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   headerLeft: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: '600',
     color: Colors.light.text,
     textAlign: 'left',
   },
   headerRight: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: '600',
     color: Colors.light.text,
     textAlign: 'right',
@@ -960,19 +1049,19 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   lookForText: {
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: '400',
     color: Colors.light.text,
     textAlign: 'left',
   },
   arrow: {
-    fontSize: 18,
+    fontSize: 20,
     color: Colors.light.text,
     marginHorizontal: 12,
     fontWeight: 'normal',
   },
   striveForText: {
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: '400',
     color: Colors.light.text,
     textAlign: 'right',
@@ -1054,13 +1143,13 @@ const styles = StyleSheet.create({
     padding: 4,
   },
   historyItemDate: {
-    fontSize: 16,
+    fontSize: 17,
     fontWeight: adjustFontWeight('600', true),
     color: Colors.light.tint,
     flex: 1,
   },
   historyItemSituation: {
-    fontSize: 14,
+    fontSize: 15,
     color: '#666',
     fontStyle: 'italic',
     marginBottom: 6,
@@ -1069,16 +1158,16 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   historyItemTraitsText: {
-    fontSize: 13,
+    fontSize: 14,
     lineHeight: 18,
   },
   historyItemTraitRed: {
-    fontSize: 13,
+    fontSize: 14,
     color: '#dc3545',
     fontWeight: '500',
   },
   historyItemTraitGreen: {
-    fontSize: 13,
+    fontSize: 14,
     color: '#28a745',
     fontWeight: '500',
   },
@@ -1089,14 +1178,14 @@ const styles = StyleSheet.create({
     paddingVertical: 80,
   },
   emptyTitle: {
-    fontSize: 20,
+    fontSize: 22,
     fontWeight: adjustFontWeight('600', true),
     color: Colors.light.text,
     marginTop: 16,
     marginBottom: 8,
   },
   emptyDescription: {
-    fontSize: 16,
+    fontSize: 17,
     color: Colors.light.muted,
     textAlign: 'center',
     lineHeight: 22,
@@ -1142,7 +1231,7 @@ const styles = StyleSheet.create({
     borderBottomColor: '#eee',
   },
   instructionsTitle: {
-    fontSize: 22,
+    fontSize: 24,
     fontWeight: '800',
     color: Colors.light.text,
     flex: 1,
@@ -1156,7 +1245,7 @@ const styles = StyleSheet.create({
     paddingTop: 16,
   },
   instructionsIntro: {
-    fontSize: 16,
+    fontSize: 17,
     fontWeight: '400',
     color: Colors.light.text,
     marginBottom: 16,
@@ -1165,7 +1254,7 @@ const styles = StyleSheet.create({
     marginBottom: 14,
   },
   instructionText: {
-    fontSize: 15,
+    fontSize: 16,
     lineHeight: 22,
     color: Colors.light.text,
   },
@@ -1176,7 +1265,7 @@ const styles = StyleSheet.create({
     borderTopColor: '#eee',
   },
   instructionsFooterText: {
-    fontSize: 15,
+    fontSize: 16,
     lineHeight: 22,
     color: Colors.light.tint,
     textAlign: 'center',
@@ -1190,7 +1279,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   instructionsButtonText: {
-    fontSize: 16,
+    fontSize: 17,
     fontWeight: '600',
     color: '#fff',
   },

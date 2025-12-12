@@ -5,6 +5,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import ScreenContainer from "@/components/ScreenContainer";
 import Colors from "@/constants/colors";
 import { adjustFontWeight } from "@/constants/fonts";
+import { useReadingSession } from "@/hooks/useReadingSession";
 
 interface LiteratureOption {
   id: string;
@@ -35,6 +36,8 @@ const literatureOptions: LiteratureOption[] = [
 ];
 
 export default function LiteratureScreen() {
+  useReadingSession('literature');
+
   // Add direct navigation buttons for debugging
   const handleDirectNavigation = (screenName: string) => {
     console.log(`🔵 Literature: Direct navigation to ${screenName}`);
@@ -99,11 +102,11 @@ export default function LiteratureScreen() {
   return (
     <ScreenContainer style={styles.container}>
       <LinearGradient
-        colors={['rgba(74, 144, 226, 0.3)', 'rgba(92, 184, 92, 0.1)']}
+        colors={Colors.gradients.mainThreeColor}
         style={styles.backgroundGradient}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
-        locations={[0, 1]}
+        locations={[0, 0.5, 1]}
       />
       
       <View style={styles.content}>

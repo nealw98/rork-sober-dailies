@@ -54,8 +54,13 @@ const SectionItem = ({ section, categoryId, onOpenContent }: {
 }) => {
   const { addToRecent } = useBigBookStore();
 
+  // Use markdownTitle on iOS when markdown content exists, otherwise use regular title
+  const displayTitle = (Platform.OS === 'ios' && allMarkdownContent[section.id] && section.markdownTitle) 
+    ? section.markdownTitle 
+    : section.title;
+
   const handlePress = () => {
-    addToRecent(section.id, section.title, section.url);
+    addToRecent(section.id, displayTitle, section.url);
     onOpenContent(section);
   };
 
@@ -67,13 +72,15 @@ const SectionItem = ({ section, categoryId, onOpenContent }: {
       activeOpacity={0.7}
     >
       <View style={styles.sectionInfo}>
-        <Text style={styles.sectionTitle}>{section.title}</Text>
+        <Text style={styles.sectionTitle}>{displayTitle}</Text>
         {section.description && (
           <Text style={styles.sectionDescription}>{section.description}</Text>
         )}
       </View>
       <View style={styles.sectionIcons}>
-        {allMarkdownContent[section.id] ? (
+        {(Platform.OS === 'android' && section.pdfUrl) ? (
+          <ExternalLink size={20} color={Colors.light.muted} />
+        ) : allMarkdownContent[section.id] ? (
           <FileText size={20} color={Colors.light.muted} />
         ) : (
           <ExternalLink size={20} color={Colors.light.muted} />
@@ -128,6 +135,28 @@ interface BigBookBrowserContentProps {}
 
 function BigBookBrowserContent({}: BigBookBrowserContentProps) {
   // Component is rendering normally
+  
+  // Filter sections based on platform - iOS only shows sections with markdown content
+  // Also customize titles for Android
+  const filteredBigBookData = React.useMemo(() => {
+    if (Platform.OS === 'ios') {
+      return bigBookData.map(category => ({
+        ...category,
+        sections: category.sections.filter(section => allMarkdownContent[section.id])
+      })).filter(category => category.sections.length > 0);
+    }
+    // Android: Update the forewords section title and description
+    return bigBookData.map(category => {
+      if (category.id === 'forewords') {
+        return {
+          ...category,
+          title: 'Preface and Forwards',
+          description: "Includes the Doctor's Opinion"
+        };
+      }
+      return category;
+    });
+  }, []);
   
   const [pdfViewerVisible, setPdfViewerVisible] = useState(false);
   const [currentPdf, setCurrentPdf] = useState("");
@@ -193,15 +222,30 @@ function BigBookBrowserContent({}: BigBookBrowserContentProps) {
       id: section.id,
       title: section.title,
       hasContent: !!allMarkdownContent[section.id],
-      contentLength: allMarkdownContent[section.id]?.length || 0
+      contentLength: allMarkdownContent[section.id]?.length || 0,
+      hasPdfUrl: !!section.pdfUrl,
+      platform: Platform.OS
     });
+    
+    // On Android, use PDF viewer for sections with pdfUrl (intro chapters and appendices)
+    if (Platform.OS === 'android' && section.pdfUrl) {
+      console.log('✅ Android: Opening PDF for:', section.id);
+      setCurrentPdf(section.pdfUrl);
+      setPdfViewerVisible(true);
+      return;
+    }
     
     // Check if we have markdown content for this section
     if (allMarkdownContent[section.id]) {
       console.log('✅ Opening markdown content for:', section.id);
+      // Use markdownTitle if available (for iOS), otherwise use regular title
+      const displayTitle = (Platform.OS === 'ios' && section.markdownTitle) 
+        ? section.markdownTitle 
+        : section.title;
+      
       setCurrentMarkdown({
         content: allMarkdownContent[section.id],
-        title: section.title,
+        title: displayTitle,
         id: section.id,
         pages: section.pages
       });
@@ -365,20 +409,18 @@ function BigBookBrowserContent({}: BigBookBrowserContentProps) {
   return (
     <View style={styles.container}>
       <LinearGradient
-        colors={['rgba(74, 144, 226, 0.3)', 'rgba(92, 184, 92, 0.1)']}
+        colors={Colors.gradients.mainThreeColor}
         style={styles.backgroundGradient}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
-        locations={[0, 1]}
+        locations={[0, 0.5, 1]}
         pointerEvents="none"
       />
       
       <View style={styles.content}>
         <View style={styles.mainContent}>
           <View style={styles.header}>
-            {Platform.OS !== 'android' && (
-              <Text style={styles.title}>Alcoholics Anonymous</Text>
-            )}
+            <Text style={styles.title}>Alcoholics Anonymous</Text>
             <Text style={styles.subtitle}>The basic textbook for the AA program.</Text>
           </View>
           
@@ -414,7 +456,7 @@ function BigBookBrowserContent({}: BigBookBrowserContentProps) {
             />
           ) : (
             <ScrollView style={styles.scrollView}>
-              {bigBookData.map((category) => (
+              {filteredBigBookData.map((category) => (
                 <CategorySection
                   key={category.id}
                   category={category}

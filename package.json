@@ -1,7 +1,7 @@
 {
   "name": "sober-dailies-fresh",
   "main": "expo-router/entry",
-  "version": "1.0.0",
+  "version": "1.9.1",
   "scripts": {
     "start": "bunx rork start -p slb0yphh4l03b7fd78jn4 --tunnel",
     "start-web": "bunx rork start -p slb0yphh4l03b7fd78jn4 --web --tunnel",
@@ -37,6 +37,7 @@
     "expo-splash-screen": "~0.30.10",
     "expo-sqlite": "~15.2.14",
     "expo-status-bar": "~2.2.3",
+    "expo-store-review": "~8.1.5",
     "expo-symbols": "~0.4.5",
     "expo-system-ui": "~5.0.11",
     "expo-updates": "~0.28.17",
@@ -58,6 +59,7 @@
     "react-native-toast-message": "^2.3.3",
     "react-native-web": "^0.20.0",
     "react-native-webview": "13.13.5",
+    "yaml": "^2.8.1",
     "zustand": "^5.0.2"
   },
   "devDependencies": {

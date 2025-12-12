@@ -275,34 +275,18 @@ const MarkdownReader = ({
       const pages = getChapterPages(sectionId);
       console.log(`📖 [MarkdownReader] Android: Got ${pages.length} page items for ${sectionId}`);
       console.log(`📖 [MarkdownReader] Android: Page numbers: ${pages.map(p => p.pageNumber).join(', ')}`);
-      
-      let pagesWithPositions: ExtendedPageItem[];
-      
-      if (pages.length === 0) {
-        // No page markers found - treat entire content as a single item
-        console.log(`📖 [MarkdownReader] Android: No pages found, using entire content as single item`);
-        pagesWithPositions = [{
-          pageNumber: '',
-          content: cleanContent,
-          isPageMarker: false,
-          startPosition: 0
-        }];
-      } else {
-        // Pages found - use normal pagination
-        let currentPosition = 0;
-        pagesWithPositions = pages.map(page => {
-          const extendedPage = { ...page, startPosition: currentPosition };
-          if (page.content) {
-            currentPosition += page.content.length;
-          }
-          return extendedPage;
-        });
-      }
-      
+      let currentPosition = 0;
+      const pagesWithPositions: ExtendedPageItem[] = pages.map(page => {
+        const extendedPage = { ...page, startPosition: currentPosition };
+        if (page.content) {
+          currentPosition += page.content.length;
+        }
+        return extendedPage;
+      });
       setFlatListData(pagesWithPositions);
       console.log(`📖 [MarkdownReader] Android: Set FlatList data with ${pagesWithPositions.length} items`);
     }
-  }, [sectionId, cleanContent]);
+  }, [sectionId]);
 
   // Use ScrollView on iOS always
   // On Android: always use FlatList to avoid Modal touch issues
@@ -625,50 +609,49 @@ const MarkdownReader = ({
         <View style={styles.headerSpacer} />
       </View>
       
-      <View style={{ flex: 1 }}>
-        {Platform.OS === 'ios' ? (
-          <ScrollView
-            ref={scrollViewRef}
-            style={styles.content}
-            showsVerticalScrollIndicator={false}
-            contentContainerStyle={styles.contentContainer}
-            onScroll={(e: any) => {
-              const scrollY = e.nativeEvent.contentOffset.y;
-              currentOffsetYRef.current = scrollY;
-              trackCurrentPage(scrollY);
+      {Platform.OS === 'ios' ? (
+        <ScrollView
+          ref={scrollViewRef}
+          style={styles.content}
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={styles.contentContainer}
+          onScroll={(e: any) => {
+            const scrollY = e.nativeEvent.contentOffset.y;
+            currentOffsetYRef.current = scrollY;
+            trackCurrentPage(scrollY);
+          }}
+          scrollEventThrottle={16}
+        >
+          <CustomTextRenderer
+            content={cleanContent}
+            searchTerm={searchHighlight?.query}
+            style={styles.textContent}
+            onPageRef={(pageNumber, ref) => {
+              if (ref) {
+                pageRefs.current[`page-${pageNumber}`] = ref;
+              }
             }}
-            scrollEventThrottle={16}
-          >
-            <CustomTextRenderer
-              content={cleanContent}
-              searchTerm={searchHighlight?.query}
-              style={styles.textContent}
-              onPageRef={(pageNumber, ref) => {
-                if (ref) {
-                  pageRefs.current[`page-${pageNumber}`] = ref;
-                }
-              }}
-              getScrollViewNode={() => scrollViewRef.current?.getInnerViewNode?.()}
-              onPageLayout={(pageNumber, y) => {
-                pageYPositions.current[`page-${pageNumber}`] = y;
-              }}
-            />
-          </ScrollView>
-        ) : (
-          <FlatList
-            ref={flatListRef}
-            data={flatListDataSync}
-            style={styles.content}
-            contentContainerStyle={styles.contentContainer}
-            showsVerticalScrollIndicator={false}
-            keyExtractor={(item, index) => `${item.pageNumber}-${index}`}
-            initialNumToRender={20}
-            maxToRenderPerBatch={10}
-            windowSize={10}
-            removeClippedSubviews={false}
-            scrollEnabled={true}
-            nestedScrollEnabled={true}
-            keyboardShouldPersistTaps="handled"
+            getScrollViewNode={() => scrollViewRef.current?.getInnerViewNode?.()}
+            onPageLayout={(pageNumber, y) => {
+              pageYPositions.current[`page-${pageNumber}`] = y;
+            }}
+          />
+        </ScrollView>
+      ) : (
+        <FlatList
+          ref={flatListRef}
+          data={flatListDataSync}
+          style={styles.content}
+          contentContainerStyle={styles.contentContainer}
+          showsVerticalScrollIndicator={false}
+          keyExtractor={(item, index) => `${item.pageNumber}-${index}`}
+          initialNumToRender={20}
+          maxToRenderPerBatch={10}
+          windowSize={10}
+          removeClippedSubviews={false}
+          scrollEnabled={true}
+          nestedScrollEnabled={true}
+          keyboardShouldPersistTaps="handled"
           renderItem={({ item }) => (
             <View style={styles.pageItem}>
               {item.isPageMarker ? (
@@ -693,7 +676,6 @@ const MarkdownReader = ({
           )}
         />
       )}
-      </View>
     </SafeAreaView>
   );
 };
@@ -884,8 +866,8 @@ const styles = StyleSheet.create({
     borderRadius: 2,
   },
   textContent: {
-    fontSize: 18,
-    lineHeight: 28,
+    fontSize: 16,
+    lineHeight: 24,
     color: Colors.light.text,
     ...(Platform.OS === 'android' && {
       fontWeight: '500',
@@ -897,8 +879,8 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   pageMarker: {
-    fontSize: 18,
-    lineHeight: 28,
+    fontSize: 16,
+    lineHeight: 24,
     fontWeight: adjustFontWeight('600'),
     color: Colors.light.muted,
     textAlign: 'center',
@@ -910,11 +892,11 @@ const styles = StyleSheet.create({
 const markdownStyles = {
   body: {
     color: Colors.light.text,
-    fontSize: 18,
-    lineHeight: 28
+    fontSize: 16,
+    lineHeight: 24
   } as TextStyle,
   heading1: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: adjustFontWeight('bold'),
     color: Colors.light.text,
     marginBottom: 24,
@@ -922,15 +904,15 @@ const markdownStyles = {
     textAlign: 'center'
   } as TextStyle,
   heading2: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: adjustFontWeight('600'),
     color: Colors.light.text,
     marginVertical: 16
   } as TextStyle,
   paragraph: {
     marginVertical: 12,
-    fontSize: 18,
-    lineHeight: 28
+    fontSize: 16,
+    lineHeight: 24
   } as TextStyle,
   hr: {
     marginVertical: 24,

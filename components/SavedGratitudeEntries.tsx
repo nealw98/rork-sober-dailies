@@ -206,32 +206,6 @@ export default function SavedGratitudeEntries({ visible, onClose }: SavedGratitu
             ))}
           </View>
           
-          {/* Action Buttons */}
-          <View style={styles.modalActions}>
-            <TouchableOpacity
-              style={styles.deleteButton}
-              onPress={() => {
-                setSelectedEntry(null);
-                handleDeleteEntry(selectedEntry.date);
-              }}
-            >
-              <Trash2 color="white" size={20} />
-              <Text style={styles.deleteButtonText}>Delete</Text>
-            </TouchableOpacity>
-            
-            <TouchableOpacity
-              style={styles.shareEntryButton}
-              onPress={() => {
-                console.log('Saved entry share TouchableOpacity onPress triggered');
-                handleShareEntry(selectedEntry);
-              }}
-              testID="saved-entry-share-button"
-              activeOpacity={0.7}
-            >
-              <ShareIcon color="white" size={20} />
-              <Text style={styles.shareEntryButtonText}>Share</Text>
-            </TouchableOpacity>
-          </View>
         </ScrollView>
       </View>
     );
@@ -330,6 +304,15 @@ export default function SavedGratitudeEntries({ visible, onClose }: SavedGratitu
                             {formatDateDisplay(entry.date)}
                           </Text>
                         </View>
+                        <TouchableOpacity
+                          style={styles.entryDeleteButton}
+                          onPress={(event) => handleDeleteEntry(entry.date, event)}
+                          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                          accessibilityLabel="Delete saved gratitude list"
+                          accessibilityRole="button"
+                        >
+                          <Trash2 color="#dc3545" size={18} />
+                        </TouchableOpacity>
                       </View>
                       
                       <View style={styles.entryPreview}>
@@ -425,6 +408,8 @@ const styles = StyleSheet.create({
 
   entryHeader: {
     marginBottom: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   entryDateContainer: {
     flex: 1,
@@ -438,6 +423,10 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: Colors.light.muted,
     marginTop: 2,
+  },
+  entryDeleteButton: {
+    padding: 4,
+    marginLeft: 8,
   },
 
   entryPreview: {

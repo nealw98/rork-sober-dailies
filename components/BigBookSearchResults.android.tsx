@@ -70,7 +70,7 @@ const BigBookSearchResults: React.FC<BigBookSearchResultsProps> = ({
             onPress={() => handleOpenChapter(group.chapterId)}
             activeOpacity={0.7}
           >
-            <Text style={styles.openButtonText}>Open</Text>
+            <Text style={styles.openButtonText}>Open Chapter</Text>
           </TouchableOpacity>
         </View>
 
@@ -159,7 +159,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 6,
     borderRadius: 6,
-    minWidth: 60,
+    minWidth: 100,
     alignItems: 'center',
   },
   openButtonText: {
