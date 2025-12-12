@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback, useMemo } from "react";
+import React, { useEffect, useRef, useCallback, useMemo, useState } from "react";
 import {
   StyleSheet,
   View,
@@ -7,7 +7,7 @@ import {
   TouchableOpacity,
   Platform,
 } from "react-native";
-import { ChevronDown, ChevronRight, Type } from "lucide-react-native";
+import { ChevronDown, ChevronRight } from "lucide-react-native";
 import { LinearGradient } from 'expo-linear-gradient';
 import { useLocalSearchParams, useFocusEffect } from 'expo-router';
 import { Stack } from 'expo-router';
@@ -17,6 +17,8 @@ import Colors from "@/constants/colors";
 import { aaPrayers } from "@/constants/prayers";
 import { adjustFontWeight } from "@/constants/fonts";
 import ScreenContainer from "@/components/ScreenContainer";
+import { useTextSettings } from "@/hooks/use-text-settings";
+import TextSettingsButton from "@/components/TextSettingsButton";
 
 export default function PrayersScreen() {
   const { prayer } = useLocalSearchParams();
@@ -25,25 +27,15 @@ export default function PrayersScreen() {
   const prayerRefs = useRef<{ [key: number]: View | null }>({});
   const prayerPositions = useRef<{ [key: number]: number }>({});
   
-  const [fontSize, setFontSize] = useState(18);
-  const baseFontSize = 18;
-  const maxFontSize = Platform.OS === 'android' ? 34 : 30;
-  
-  const increaseFontSize = () => {
-    setFontSize(prev => Math.min(prev + 2, maxFontSize));
-  };
-  
-  const decreaseFontSize = () => {
-    setFontSize(prev => Math.max(prev - 2, 12));
-  };
+  const { fontSize, lineHeight, resetDefaults } = useTextSettings();
   
   // Double-tap to reset to default font size
   const doubleTapGesture = useMemo(() => Gesture.Tap()
     .numberOfTaps(2)
     .onStart(() => {
-      setFontSize(baseFontSize);
+      resetDefaults();
     })
-    .runOnJS(true), [baseFontSize]);
+    .runOnJS(true), [resetDefaults]);
 
   // Track if we came from a deep link or tab navigation
   const isFromDeepLink = useRef(false);
@@ -103,23 +95,7 @@ export default function PrayersScreen() {
         options={{
           title: 'Prayers',
           headerRight: () => (
-            <View style={styles.fontSizeControls}>
-              <TouchableOpacity 
-                onPress={decreaseFontSize}
-                style={styles.fontSizeButton}
-                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-              >
-                <Type size={16} color={Colors.light.text} />
-              </TouchableOpacity>
-              
-              <TouchableOpacity 
-                onPress={increaseFontSize}
-                style={styles.fontSizeButton}
-                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-              >
-                <Type size={24} color={Colors.light.text} />
-              </TouchableOpacity>
-            </View>
+            <TextSettingsButton compact />
           ),
         }}
       />
@@ -179,7 +155,7 @@ export default function PrayersScreen() {
                     <Text style={[styles.prayerText, { fontSize, lineHeight: fontSize * 1.375 }]}>{prayer.content.split('As this day closes,')[1]}</Text>
                   </View>
                 ) : (
-                  <Text style={[styles.prayerText, { fontSize, lineHeight: fontSize * 1.375 }]}>{prayer.content}</Text>
+          <Text style={[styles.prayerText, { fontSize, lineHeight }]}>{prayer.content}</Text>
                 )}
                 {prayer.source && <Text style={[styles.prayerSource, { fontSize: fontSize * 0.75 }]}>— {prayer.source}</Text>}
               </View>

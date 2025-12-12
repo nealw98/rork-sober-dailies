@@ -20,6 +20,7 @@ import { adjustFontWeight } from '@/constants/fonts';
 import { CustomTextRenderer } from './CustomTextRenderer';
 import { getChapterPages, findPageIndex, PageItem } from '@/constants/bigbook/content';
 import { useLastPageStore } from '@/hooks/use-last-page-store';
+import { useTextSettings } from '@/hooks/use-text-settings';
 
 // Convert Roman numerals to Arabic numbers
 const romanToArabic = (roman: string): number => {
@@ -95,6 +96,7 @@ const MarkdownReader = ({
   initialScrollPosition,
   targetPageNumber
 }: MarkdownReaderProps) => {
+  const { fontSize, lineHeight } = useTextSettings();
   const scrollViewRef = useRef<ScrollView>(null);
   const pageRefs = useRef<{ [pageNumber: string]: View | null }>({});
   const pageYPositions = useRef<{ [pageNumber: string]: number }>({});
@@ -622,7 +624,7 @@ const MarkdownReader = ({
           <Text style={styles.backText}>Back</Text>
         </TouchableOpacity>
         <Text style={styles.headerTitle}>{title}</Text>
-        <View style={styles.headerSpacer} />
+        <View style={styles.headerControls} />
       </View>
       
       <View style={{ flex: 1 }}>
@@ -642,7 +644,7 @@ const MarkdownReader = ({
             <CustomTextRenderer
               content={cleanContent}
               searchTerm={searchHighlight?.query}
-              style={styles.textContent}
+              style={[styles.textContent, { fontSize, lineHeight }]}
               onPageRef={(pageNumber, ref) => {
                 if (ref) {
                   pageRefs.current[`page-${pageNumber}`] = ref;
@@ -677,7 +679,7 @@ const MarkdownReader = ({
                 <CustomTextRenderer 
                   content={item.content}
                   searchTerm={searchHighlight?.query}
-                  style={styles.textContent}
+                  style={[styles.textContent, { fontSize, lineHeight }]}
                   onPageRef={(pageNumber, ref) => {
                     if (ref) {
                       pageRefs.current[`page-${pageNumber}`] = ref;

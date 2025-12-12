@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback, useRef } from "react";
 import { StyleSheet, Text, View, ScrollView, TouchableOpacity, Modal, Platform, Share } from "react-native";
-import { ChevronLeft, ChevronRight, Calendar, Upload } from "lucide-react-native";
+import { ChevronLeft, ChevronRight, Calendar, Upload, Bookmark, BookmarkCheck } from "lucide-react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -11,9 +11,13 @@ import { getReflectionForDate } from "@/constants/reflections";
 import { Reflection } from "@/types";
 import { adjustFontWeight } from "@/constants/fonts";
 import { recordDailyReflectionDay } from "@/lib/reviewPrompt";
+import { useDailyReflectionBookmarks } from "@/hooks/use-daily-reflection-bookmarks";
 
 interface DailyReflectionProps {
   fontSize?: number;
+  lineHeight?: number;
+  jumpToDate?: Date | null;
+  onJumpApplied?: () => void;
 }
 
 // Helper to check if two dates are the same day
@@ -85,9 +89,19 @@ const generateCalendarDays = (date: Date) => {
   return days;
 };
 
-export default function DailyReflection({ fontSize = 18 }: DailyReflectionProps) {
+export default function DailyReflection({ fontSize = 18, lineHeight, jumpToDate = null, onJumpApplied }: DailyReflectionProps) {
+  const effectiveLineHeight = lineHeight ?? fontSize * 1.375;
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [reflection, setReflection] = useState<Reflection | null>(null);
+  const { toggleBookmark, isBookmarked } = useDailyReflectionBookmarks();
+  const formatDateKey = (date: Date) => {
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, "0");
+    const d = String(date.getDate()).padStart(2, "0");
+    return `${y}-${m}-${d}`;
+  };
+  const dateKey = formatDateKey(selectedDate);
+  const bookmarked = isBookmarked(dateKey);
 
   const [showDatePicker, setShowDatePicker] = useState<boolean>(false);
   const [dateString, setDateString] = useState<string>("");
@@ -109,6 +123,14 @@ export default function DailyReflection({ fontSize = 18 }: DailyReflectionProps)
   useEffect(() => {
     updateReflection(selectedDate);
   }, [selectedDate]);
+
+  // Apply external jump requests
+  useEffect(() => {
+    if (jumpToDate) {
+      setSelectedDate(jumpToDate);
+      onJumpApplied?.();
+    }
+  }, [jumpToDate, onJumpApplied]);
 
   useEffect(() => {
     recordDailyReflectionDay(selectedDate).catch((error) => {
@@ -159,6 +181,20 @@ export default function DailyReflection({ fontSize = 18 }: DailyReflectionProps)
     } catch (error) {
       console.error('Error sharing reflection:', error);
     }
+  };
+
+  const toggleBookmarkForDay = () => {
+    if (!reflection || !dateString) return;
+    toggleBookmark({
+      id: dateKey,
+      displayDate: dateString,
+      title: reflection.title,
+      quote: reflection.quote,
+      source: reflection.source,
+      reflection: reflection.reflection,
+      thought: reflection.thought,
+      timestamp: Date.now(),
+    });
   };
 
   const navigateDate = (direction: 'prev' | 'next') => {
@@ -362,6 +398,19 @@ export default function DailyReflection({ fontSize = 18 }: DailyReflectionProps)
             >
               <Upload size={22} color={Colors.light.muted} />
             </TouchableOpacity>
+            <TouchableOpacity
+              onPress={toggleBookmarkForDay}
+              style={styles.actionButton}
+              testID="bookmark-button"
+              activeOpacity={0.7}
+              hitSlop={{ top: 15, bottom: 15, left: 15, right: 15 }}
+            >
+              {bookmarked ? (
+                <BookmarkCheck size={22} color={Colors.light.muted} fill={Colors.light.muted} />
+              ) : (
+                <Bookmark size={22} color={Colors.light.muted} />
+              )}
+            </TouchableOpacity>
 
           </View>
         </View>
@@ -407,17 +456,17 @@ export default function DailyReflection({ fontSize = 18 }: DailyReflectionProps)
           </View>
           
           <Text style={styles.title}>{reflection.title}</Text>
-          <Text style={[styles.quote, { fontSize, lineHeight: fontSize * 1.375 }]}>"{reflection.quote}"</Text>
+          <Text style={[styles.quote, { fontSize, lineHeight: effectiveLineHeight }]}>"{reflection.quote}"</Text>
           <Text style={[styles.source, { fontSize: fontSize * 0.75 }]}>{reflection.source}</Text>
           
           <View style={styles.divider} />
           
-          <Text style={[styles.reflectionText, { fontSize, lineHeight: fontSize * 1.375 }]}>{reflection.reflection}</Text>
+          <Text style={[styles.reflectionText, { fontSize, lineHeight: effectiveLineHeight }]}>{reflection.reflection}</Text>
           
           <View style={styles.divider} />
           
           <Text style={styles.thoughtTitle}>Meditation:</Text>
-          <Text style={[styles.thought, { fontSize, lineHeight: fontSize * 1.375 }]}>{reflection.thought}</Text>
+          <Text style={[styles.thought, { fontSize, lineHeight: effectiveLineHeight }]}>{reflection.thought}</Text>
         </View>
 
         <View style={styles.copyrightContainer}>

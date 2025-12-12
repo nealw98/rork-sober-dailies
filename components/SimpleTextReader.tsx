@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useMemo } from 'react';
 import { 
   StyleSheet, 
   ScrollView,
@@ -9,10 +9,11 @@ import {
   SafeAreaView,
   Platform
 } from 'react-native';
-import { ChevronLeft, Type } from 'lucide-react-native';
+import { ChevronLeft } from 'lucide-react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Colors from '@/constants/colors';
 import { adjustFontWeight } from '@/constants/fonts';
+import { useTextSettings } from '@/hooks/use-text-settings';
 
 interface SimpleTextReaderProps {
   content: string;
@@ -23,26 +24,15 @@ interface SimpleTextReaderProps {
 }
 
 const SimpleTextReader = ({ content, title, onClose, indentParagraphs = false, source }: SimpleTextReaderProps) => {
-  // Font size state (replacing pinch-to-zoom)
-  const [fontSize, setFontSize] = useState(18);
-    const baseFontSize = 18;
-  const maxFontSize = Platform.OS === 'android' ? 34 : 30;
-  
-  const increaseFontSize = () => {
-    setFontSize(prev => Math.min(prev + 2, maxFontSize));
-  };
-  
-  const decreaseFontSize = () => {
-    setFontSize(prev => Math.max(prev - 2, 12));
-  };
+  const { fontSize, lineHeight, resetDefaults } = useTextSettings();
   
   // Double-tap to reset to default font size
   const doubleTapGesture = useMemo(() => Gesture.Tap()
     .numberOfTaps(2)
     .onStart(() => {
-      setFontSize(baseFontSize);
+      resetDefaults();
     })
-    .runOnJS(true), [baseFontSize]);
+    .runOnJS(true), [resetDefaults]);
 
   // Helper function to parse inline markdown (italic, bold)
   const parseMarkdown = (text: string) => {
@@ -164,25 +154,7 @@ const SimpleTextReader = ({ content, title, onClose, indentParagraphs = false, s
           <Text style={styles.backText}>Back</Text>
         </TouchableOpacity>
         <Text style={styles.headerTitle}>{title}</Text>
-        
-        {/* Font Size Controls */}
-        <View style={styles.fontSizeControls}>
-          <TouchableOpacity 
-            onPress={decreaseFontSize}
-            style={styles.fontSizeButton}
-            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-          >
-            <Type size={16} color={Colors.light.text} />
-          </TouchableOpacity>
-          
-          <TouchableOpacity 
-            onPress={increaseFontSize}
-            style={styles.fontSizeButton}
-            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-          >
-            <Type size={24} color={Colors.light.text} />
-          </TouchableOpacity>
-        </View>
+
       </View>
       
       <View style={{ flex: 1, backgroundColor: 'white' }}>
@@ -258,7 +230,7 @@ const SimpleTextReader = ({ content, title, onClose, indentParagraphs = false, s
               
               return (
                 <View key={`text-${item.index}`}>
-                  {renderMarkdownText(trimmed, isKnownHeading ? [styles.headingText, { fontSize }] : [styles.textContent, { fontSize, lineHeight: fontSize * 1.375 }])}
+                  {renderMarkdownText(trimmed, isKnownHeading ? [styles.headingText, { fontSize }] : [styles.textContent, { fontSize, lineHeight }])}
                 </View>
               );
             }}
@@ -343,7 +315,7 @@ const SimpleTextReader = ({ content, title, onClose, indentParagraphs = false, s
             const textToRender = prefix + trimmed;
             return (
               <View key={idx}>
-                {renderMarkdownText(textToRender, isKnownHeading ? [styles.headingText, { fontSize }] : [styles.textContent, { fontSize, lineHeight: fontSize * 1.375 }])}
+                {renderMarkdownText(textToRender, isKnownHeading ? [styles.headingText, { fontSize }] : [styles.textContent, { fontSize, lineHeight }])}
               </View>
             );
           });

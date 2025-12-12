@@ -29,7 +29,7 @@ const literatureOptions: LiteratureOption[] = [
   },
   {
     id: "meeting-pocket",
-    title: "AA Meeting Format",
+    title: "AA Meeting Readings",
     description: "Quick access to the core AA readings used in meetings.",
     route: "/meeting-pocket"
   }

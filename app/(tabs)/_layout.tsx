@@ -10,6 +10,7 @@ import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 
 import Colors from "@/constants/colors";
 import { adjustFontWeight, getScreenPadding } from "@/constants/fonts";
+import { TextSettingsProvider } from "@/hooks/use-text-settings";
 
 const styles = StyleSheet.create({
   headerTitleContainer: {
@@ -134,8 +135,9 @@ const createTabIcon = (
 
 export default function TabLayout() {
   return (
-    <Tabs
-      screenOptions={{
+    <TextSettingsProvider>
+      <Tabs
+        screenOptions={{
         tabBarActiveTintColor: Colors.light.tint,
         tabBarInactiveTintColor: '#E2E8F0',
         headerShown: true,
@@ -165,8 +167,8 @@ export default function TabLayout() {
           marginTop: Platform.OS === 'android' ? 4 : 0,
         },
         lazy: false, // Pre-load all tabs to ensure tab bar is always available
-      }}
-    >
+        }}
+      >
       <Tabs.Screen
         name="index"
         options={{
@@ -315,5 +317,6 @@ export default function TabLayout() {
       />
 
     </Tabs>
+    </TextSettingsProvider>
   );
 }
