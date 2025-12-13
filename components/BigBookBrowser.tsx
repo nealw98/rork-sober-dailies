@@ -79,9 +79,7 @@ const SectionItem = ({ section, categoryId, onOpenContent }: {
         )}
       </View>
       <View style={styles.sectionIcons}>
-        {(Platform.OS === 'android' && section.pdfUrl) ? (
-          <ExternalLink size={20} color={Colors.light.muted} />
-        ) : allMarkdownContent[section.id] ? (
+        {allMarkdownContent[section.id] ? (
           <FileText size={20} color={Colors.light.muted} />
         ) : (
           <ExternalLink size={20} color={Colors.light.muted} />
@@ -227,14 +225,6 @@ function BigBookBrowserContent({}: BigBookBrowserContentProps) {
       hasPdfUrl: !!section.pdfUrl,
       platform: Platform.OS
     });
-    
-    // On Android, use PDF viewer for sections with pdfUrl (intro chapters and appendices)
-    if (Platform.OS === 'android' && section.pdfUrl) {
-      console.log('✅ Android: Opening PDF for:', section.id);
-      setCurrentPdf(section.pdfUrl);
-      setPdfViewerVisible(true);
-      return;
-    }
     
     // Check if we have markdown content for this section
     if (allMarkdownContent[section.id]) {

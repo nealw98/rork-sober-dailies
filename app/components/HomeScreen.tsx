@@ -1,5 +1,5 @@
-import React from 'react';
-import { StyleSheet, View, Text, ScrollView, TouchableOpacity, Linking, Alert, Share, Platform } from 'react-native';
+import React, { useRef } from 'react';
+import { StyleSheet, View, Text, ScrollView, TouchableOpacity, Linking, Alert, Share, Platform, Animated } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -13,6 +13,42 @@ import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import FontAwesome from '@expo/vector-icons/FontAwesome';
 import { requestReviewNow } from '@/lib/reviewPrompt';
+
+// Animated Card Component for micro-interactions
+const AnimatedCard: React.FC<{ onPress: () => void; children: React.ReactNode }> = ({ onPress, children }) => {
+  const scaleAnim = useRef(new Animated.Value(1)).current;
+
+  const handlePressIn = () => {
+    Animated.spring(scaleAnim, {
+      toValue: 0.97,
+      useNativeDriver: true,
+      speed: 50,
+      bounciness: 0,
+    }).start();
+  };
+
+  const handlePressOut = () => {
+    Animated.spring(scaleAnim, {
+      toValue: 1,
+      useNativeDriver: true,
+      speed: 50,
+      bounciness: 4,
+    }).start();
+  };
+
+  return (
+    <TouchableOpacity
+      onPress={onPress}
+      onPressIn={handlePressIn}
+      onPressOut={handlePressOut}
+      activeOpacity={1}
+    >
+      <Animated.View style={[styles.card, { transform: [{ scale: scaleAnim }] }]}>
+        {children}
+      </Animated.View>
+    </TouchableOpacity>
+  );
+};
 
 const HomeScreen = () => {
   const router = useRouter();
@@ -77,16 +113,7 @@ const HomeScreen = () => {
     >
       <SafeAreaView style={styles.safeArea}>
       <ScrollView contentContainerStyle={styles.scrollContent}>
-        {/* Hero Section */}
-        <View style={styles.heroSection}>
-          <Text style={styles.heroTitle}>Sober Dailies</Text>
-          <Text style={styles.heroSubtitle}>
-            Do these daily. Stay sober.
-          </Text>
-          
-        </View>
-
-        {/* Sobriety Counter - centered between subtitle and daily reflection */}
+        {/* Sobriety Counter - Hero at top */}
         <View style={styles.sobrietyCounterContainer}>
           <SobrietyCounter />
         </View>
@@ -110,7 +137,7 @@ const HomeScreen = () => {
         <Text style={styles.sectionTitle}>Morning Routine</Text>
         <Text style={styles.sectionSubtitle}>Start your day with intention and spiritual focus.</Text>
         
-        <TouchableOpacity style={styles.card} onPress={() => router.push('/(tabs)/prayers?prayer=morning')}>
+        <AnimatedCard onPress={() => router.push('/(tabs)/prayers?prayer=morning')}>
           <View style={styles.cardHeader}>
             <View style={styles.cardIconWrapper}>
               <FontAwesome6 name="hands-praying" size={20} color={Colors.light.tint} solid={true} />
@@ -118,9 +145,9 @@ const HomeScreen = () => {
             <Text style={styles.cardTitle}>Morning Prayer</Text>
           </View>
           <Text style={styles.cardDescription}>Invite your higher power to help you through the day.</Text>
-        </TouchableOpacity>
+        </AnimatedCard>
 
-        <TouchableOpacity style={styles.card} onPress={() => router.push('/(tabs)/gratitude')}>
+        <AnimatedCard onPress={() => router.push('/(tabs)/gratitude')}>
           <View style={styles.cardHeader}>
             <View style={styles.cardIconWrapper}>
               <FontAwesome6 name="face-smile" size={20} color={Colors.light.tint} solid={true} />
@@ -128,9 +155,9 @@ const HomeScreen = () => {
             <Text style={styles.cardTitle}>Daily Gratitude</Text>
           </View>
           <Text style={styles.cardDescription}>Start your day with gratitude and stay in the solution.</Text>
-        </TouchableOpacity>
+        </AnimatedCard>
 
-        <TouchableOpacity style={styles.card} onPress={() => router.push('/(tabs)/literature')}>
+        <AnimatedCard onPress={() => router.push('/(tabs)/literature')}>
           <View style={styles.cardHeader}>
             <View style={styles.cardIconWrapper}>
               <FontAwesome name="book" size={20} color={Colors.light.tint} />
@@ -138,7 +165,7 @@ const HomeScreen = () => {
             <Text style={styles.cardTitle}>Literature</Text>
           </View>
           <Text style={styles.cardDescription}>Read something out of the literature every day.</Text>
-        </TouchableOpacity>
+        </AnimatedCard>
 
       </View>
 
@@ -147,7 +174,7 @@ const HomeScreen = () => {
         <Text style={styles.sectionTitle}>Throughout the Day</Text>
         <Text style={styles.sectionSubtitle}>Stay connected and mindful during your daily activities.</Text>
         
-        <TouchableOpacity style={styles.card} onPress={() => router.push('/(tabs)/chat')}>
+        <AnimatedCard onPress={() => router.push('/(tabs)/chat')}>
           <View style={styles.cardHeader}>
             <View style={styles.cardIconWrapper}>
               <MaterialCommunityIcons name="human-greeting-variant" size={22} color={Colors.light.tint} />
@@ -155,11 +182,11 @@ const HomeScreen = () => {
             <Text style={styles.cardTitle}>AI Sponsor</Text>
           </View>
           <Text style={styles.cardDescription}>Talk with an AI sponsor when you need guidance.</Text>
-        </TouchableOpacity>
+        </AnimatedCard>
 
 
 
-        <TouchableOpacity style={styles.card} onPress={() => router.push('/(tabs)/prayers')}>
+        <AnimatedCard onPress={() => router.push('/(tabs)/prayers')}>
           <View style={styles.cardHeader}>
             <View style={styles.cardIconWrapper}>
               <FontAwesome6 name="hands-praying" size={20} color={Colors.light.tint} solid={true} />
@@ -167,9 +194,9 @@ const HomeScreen = () => {
             <Text style={styles.cardTitle}>Prayers</Text>
           </View>
           <Text style={styles.cardDescription}>Connect with your Higher Power throughout the day.</Text>
-        </TouchableOpacity>
+        </AnimatedCard>
 
-        <TouchableOpacity style={styles.card} onPress={() => router.push('/inventory')}>
+        <AnimatedCard onPress={() => router.push('/inventory')}>
           <View style={styles.cardHeader}>
             <View style={styles.cardIconWrapper}>
               <MaterialCommunityIcons name="emoticon-angry" size={24} color={Colors.light.tint} />
@@ -177,7 +204,7 @@ const HomeScreen = () => {
             <Text style={styles.cardTitle}>Spot Check Inventory</Text>
           </View>
           <Text style={styles.cardDescription}>A quick review when you're "off the beam."</Text>
-        </TouchableOpacity>
+        </AnimatedCard>
       </View>
 
         {/* Evening Routine Section */}
@@ -185,7 +212,7 @@ const HomeScreen = () => {
         <Text style={styles.sectionTitle}>Evening Routine</Text>
         <Text style={styles.sectionSubtitle}>Reflect and close your day with peace.</Text>
         
-        <TouchableOpacity style={styles.card} onPress={() => router.push('/(tabs)/evening-review')}>
+        <AnimatedCard onPress={() => router.push('/(tabs)/evening-review')}>
           <View style={styles.cardHeader}>
             <View style={styles.cardIconWrapper}>
               <Ionicons name="moon" size={20} color={Colors.light.tint} />
@@ -193,9 +220,9 @@ const HomeScreen = () => {
             <Text style={styles.cardTitle}>Nightly Review</Text>
           </View>
           <Text style={styles.cardDescription}>Reflect on your day and practice Step 10.</Text>
-        </TouchableOpacity>
+        </AnimatedCard>
 
-        <TouchableOpacity style={styles.card} onPress={() => router.push('/(tabs)/prayers?prayer=evening')}>
+        <AnimatedCard onPress={() => router.push('/(tabs)/prayers?prayer=evening')}>
           <View style={styles.cardHeader}>
             <View style={styles.cardIconWrapper}>
               <FontAwesome6 name="hands-praying" size={20} color={Colors.light.tint} solid={true} />
@@ -203,13 +230,13 @@ const HomeScreen = () => {
             <Text style={styles.cardTitle}>Evening Prayer</Text>
           </View>
           <Text style={styles.cardDescription}>End your day with gratitude and humility.</Text>
-        </TouchableOpacity>
+        </AnimatedCard>
         </View>
 
         {/* Support the Developer Section */}
         <View style={styles.sectionContainerSupport}>
         <Text style={styles.sectionTitle}>Enjoying Sober Dailies?</Text>
-        <TouchableOpacity style={styles.card} onPress={handleRateAppPress}>
+        <AnimatedCard onPress={handleRateAppPress}>
           <View style={styles.cardHeader}>
             <View style={styles.cardIconWrapper}>
               <FontAwesome name="star" size={20} color={Colors.light.tint} />
@@ -217,8 +244,8 @@ const HomeScreen = () => {
             <Text style={styles.cardTitle}>Rate & Review</Text>
           </View>
           <Text style={styles.cardDescription}>Leave a review in the App Store or Play Store.</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.card} onPress={handleSharePress}>
+        </AnimatedCard>
+        <AnimatedCard onPress={handleSharePress}>
           <View style={styles.cardHeader}>
             <View style={styles.cardIconWrapper}>
               <FontAwesome name="share-alt" size={20} color={Colors.light.tint} />
@@ -226,8 +253,8 @@ const HomeScreen = () => {
             <Text style={styles.cardTitle}>Share the App</Text>
           </View>
           <Text style={styles.cardDescription}>Invite a friend by sharing Sober Dailies.</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.card} onPress={() => router.push('/about-support')}>
+        </AnimatedCard>
+        <AnimatedCard onPress={() => router.push('/about-support')}>
           <View style={styles.cardHeader}>
             <View style={styles.cardIconWrapper}>
               <FontAwesome name="heart" size={20} color={Colors.light.tint} />
@@ -235,7 +262,7 @@ const HomeScreen = () => {
             <Text style={styles.cardTitle}>Support the Developer</Text>
           </View>
           <Text style={styles.cardDescription}>Make a difference with a one-time contribution</Text>
-        </TouchableOpacity>
+        </AnimatedCard>
         </View>
 
       </ScrollView>
@@ -269,10 +296,13 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   sobrietyCounterContainer: {
-    marginTop: 24,
-    marginBottom: 4,
+    marginTop: 8,
+    marginBottom: 32,
     width: '100%',
     alignItems: 'center',
+    paddingTop: 24,
+    paddingBottom: 28,
+    paddingHorizontal: 20,
   },
   heroTitle: {
     fontSize: 36,

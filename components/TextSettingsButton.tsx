@@ -118,22 +118,21 @@ const styles = StyleSheet.create({
   trigger: {
     backgroundColor: "transparent",
     paddingHorizontal: 6,
-    paddingVertical: Platform.OS === "android" ? 6 : 8,
+    paddingVertical: 8,
     borderWidth: 0,
-    alignSelf: "flex-end",
-    marginRight: Platform.OS === "ios" ? 16 : 10,
-    marginTop: Platform.OS === "android" ? 0 : -2,
-    marginBottom: 0,
+    marginRight: Platform.OS === "ios" ? 16 : 12,
+    alignItems: "center",
+    justifyContent: "center",
   },
   triggerCompact: {
     paddingHorizontal: 4,
-    paddingVertical: Platform.OS === "android" ? 4 : 6,
+    paddingVertical: 8,
   },
   triggerText: {
     fontSize: 20,
     fontWeight: adjustFontWeight("400"),
     color: Colors.light.tint,
-    lineHeight: 24,
+    lineHeight: 20,
   },
   overlay: {
     flex: 1,

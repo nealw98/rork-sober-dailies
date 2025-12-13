@@ -7,6 +7,7 @@ import FontAwesome6 from "@expo/vector-icons/FontAwesome6";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
+import { ChevronLeft } from "lucide-react-native";
 
 import Colors from "@/constants/colors";
 import { adjustFontWeight, getScreenPadding } from "@/constants/fonts";
@@ -55,14 +56,15 @@ const styles = StyleSheet.create({
   backButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: Platform.OS === 'android' ? 4 : 8,
-    marginLeft: Platform.OS === 'android' ? 0 : 4
+    padding: 8,
+    marginLeft: Platform.OS === 'android' ? 4 : 8,
+    gap: 4,
   },
   backText: {
-    fontSize: 16,
+    fontSize: 17,
     color: Colors.light.tint,
-    marginLeft: 4,
     fontWeight: '400',
+    lineHeight: 20,
   },
 
 });
@@ -106,7 +108,7 @@ const BackButton = () => {
       onPress={handleBackPress}
       testID="back-button"
     >
-      <Text style={{ fontSize: 20, marginRight: 6, color: Colors.light.tint }}>←</Text>
+      <ChevronLeft size={20} color={Colors.light.tint} />
       <Text style={styles.backText}>Back</Text>
     </TouchableOpacity>
   );
