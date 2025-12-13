@@ -47,9 +47,12 @@ const TextSettingsModal = ({
           onPress={(e) => e.stopPropagation()}
         >
           <View style={styles.modalHeader}>
-            <Text style={styles.modalTitle}>Text size</Text>
             <TouchableOpacity onPress={resetDefaults} hitSlop={12}>
               <Text style={styles.resetText}>Reset</Text>
+            </TouchableOpacity>
+            <Text style={styles.modalTitle}>Text size</Text>
+            <TouchableOpacity onPress={onClose} hitSlop={12}>
+              <Text style={styles.resetText}>Done</Text>
             </TouchableOpacity>
           </View>
 
@@ -85,10 +88,6 @@ const TextSettingsModal = ({
               <Text style={styles.buttonLabel}>Larger</Text>
             </TouchableOpacity>
           </View>
-
-          <TouchableOpacity onPress={onClose} style={styles.closeButton} hitSlop={12}>
-            <Text style={styles.closeText}>Close</Text>
-          </TouchableOpacity>
         </TouchableOpacity>
       </TouchableOpacity>
     </Modal>

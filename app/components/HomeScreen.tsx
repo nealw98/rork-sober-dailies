@@ -297,7 +297,7 @@ const styles = StyleSheet.create({
   },
   sobrietyCounterContainer: {
     marginTop: 8,
-    marginBottom: 32,
+    marginBottom: 8,
     width: '100%',
     alignItems: 'center',
     paddingTop: 24,

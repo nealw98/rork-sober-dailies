@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
-import { StyleSheet, View, Text, TouchableOpacity, Modal, TextInput, Alert, Keyboard, Animated } from 'react-native';
+import { StyleSheet, View, Text, TouchableOpacity, Modal, TextInput, Alert, Keyboard, Animated, Platform } from 'react-native';
 import { Calendar, X, Edit3 } from 'lucide-react-native';
+import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { useSobriety } from '@/hooks/useSobrietyStore';
 import { formatStoredDateForDisplay, parseLocalDate, formatLocalDate } from '@/lib/dateUtils';
 import Colors from '@/constants/colors';
@@ -22,30 +23,24 @@ const SobrietyCounter = () => {
   const [currentView, setCurrentView] = useState<number>(0);
   const fadeAnim = useState(new Animated.Value(1))[0];
 
-  // Carousel animation effect - cycles every 4 seconds
-  useEffect(() => {
-    if (!sobrietyDate) return;
-
-    const interval = setInterval(() => {
-      // Fade out
+  // Manual toggle function with animation
+  const handleToggleView = () => {
+    // Fade out
+    Animated.timing(fadeAnim, {
+      toValue: 0,
+      duration: 200,
+      useNativeDriver: true,
+    }).start(() => {
+      // Switch view
+      setCurrentView((prev) => (prev === 0 ? 1 : 0));
+      // Fade in
       Animated.timing(fadeAnim, {
-        toValue: 0,
-        duration: 400,
+        toValue: 1,
+        duration: 200,
         useNativeDriver: true,
-      }).start(() => {
-        // Switch view
-        setCurrentView((prev) => (prev === 0 ? 1 : 0));
-        // Fade in
-        Animated.timing(fadeAnim, {
-          toValue: 1,
-          duration: 400,
-          useNativeDriver: true,
-        }).start();
-      });
-    }, 4000);
-
-    return () => clearInterval(interval);
-  }, [sobrietyDate]); // Removed fadeAnim from dependencies
+      }).start();
+    });
+  };
 
   // Auto-format input as user types: mm/dd/yyyy
   const formatDateInput = (text: string) => {
@@ -361,10 +356,18 @@ const SobrietyCounter = () => {
   if (sobrietyDate) {
     return (
       <>
-        <View style={styles.counterContainer}>
-          <Text style={styles.headerText}>You've been sober for</Text>
-          
-          <Animated.View style={[styles.carouselContainer, { opacity: fadeAnim }]}>
+        <View style={styles.counterWrapper}>
+          <TouchableOpacity 
+            style={styles.counterContainer}
+            onPress={handleToggleView}
+            activeOpacity={0.7}
+          >
+            <View style={styles.tapIndicator}>
+              <MaterialIcons name="touch-app" size={22} color={Colors.light.tint} style={{ opacity: 0.5 }} />
+            </View>
+            <Text style={styles.headerText}>You've been sober for</Text>
+              
+              <Animated.View style={[styles.carouselContainer, { opacity: fadeAnim }]}>
             {currentView === 0 ? (
               // View 1: Years breakdown
               <>
@@ -420,6 +423,7 @@ const SobrietyCounter = () => {
               <Edit3 size={14} color={Colors.light.tint} />
             </TouchableOpacity>
           </View>
+        </TouchableOpacity>
         </View>
         
         {/* Edit Date Modal */}
@@ -530,10 +534,35 @@ const styles = StyleSheet.create({
     color: Colors.light.muted,
   },
   // Counter display styles
+  counterWrapper: {
+    alignSelf: 'center',
+    marginHorizontal: 20,
+    marginBottom: 8,
+    marginTop: 8,
+  },
   counterContainer: {
-    marginHorizontal: 16,
-    marginBottom: 0,
+    width: 340,
+    minHeight: 180,
     alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    borderRadius: 24,
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderWidth: 0.5,
+    borderColor: 'rgba(255, 255, 255, 0.5)',
+  },
+  tapIndicator: {
+    position: 'absolute',
+    top: 16,
+    right: 16,
+  },
+  headerText: {
+    fontSize: 16,
+    color: Colors.light.muted,
+    fontWeight: '400',
+    textAlign: 'center',
+    marginBottom: 8,
   },
   carouselContainer: {
     height: 80,
@@ -541,20 +570,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     width: '100%',
   },
-  headerText: {
-    fontSize: 18,
-    color: Colors.light.text,
-    fontWeight: '400',
-    textAlign: 'center',
-    marginBottom: 8,
-  },
   yearsText: {
-    fontSize: 42,
+    fontSize: 34,
     color: Colors.light.text,
     fontWeight: '700',
     textAlign: 'center',
     marginBottom: 4,
-    lineHeight: 48,
+    lineHeight: 40,
     flexWrap: 'wrap',
     paddingHorizontal: 16,
   },
@@ -622,8 +644,8 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   sobrietyDateText: {
-    fontSize: 16,
-    color: Colors.light.muted,
+    fontSize: 18,
+    color: Colors.light.text,
     textAlign: 'center',
     fontWeight: '500',
   },
@@ -783,5 +805,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default SobrietyCounter;
 export default SobrietyCounter;
