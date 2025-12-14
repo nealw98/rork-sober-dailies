@@ -297,11 +297,11 @@ const styles = StyleSheet.create({
   },
   sobrietyCounterContainer: {
     marginTop: 8,
-    marginBottom: 8,
+    marginBottom: 32,
     width: '100%',
     alignItems: 'center',
-    paddingTop: 24,
-    paddingBottom: 28,
+    paddingTop: 32,
+    paddingBottom: 12,
     paddingHorizontal: 20,
   },
   heroTitle: {

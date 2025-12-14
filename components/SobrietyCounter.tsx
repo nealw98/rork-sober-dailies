@@ -1,12 +1,12 @@
 import React, { useEffect, useState } from 'react';
-import { StyleSheet, View, Text, TouchableOpacity, Modal, TextInput, Alert, Keyboard, Animated, Platform } from 'react-native';
+import { StyleSheet, View, Text, TouchableOpacity, Modal, TextInput, Alert, Keyboard, useWindowDimensions } from 'react-native';
 import { Calendar, X, Edit3 } from 'lucide-react-native';
-import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { useSobriety } from '@/hooks/useSobrietyStore';
 import { formatStoredDateForDisplay, parseLocalDate, formatLocalDate } from '@/lib/dateUtils';
 import Colors from '@/constants/colors';
 
 const SobrietyCounter = () => {
+  const { width } = useWindowDimensions();
   const { 
     sobrietyDate, 
     shouldShowPrompt, 
@@ -20,27 +20,6 @@ const SobrietyCounter = () => {
   const [showDatePicker, setShowDatePicker] = useState<boolean>(false);
   const [dateInput, setDateInput] = useState<string>('');
   const [showEditModal, setShowEditModal] = useState<boolean>(false);
-  const [currentView, setCurrentView] = useState<number>(0);
-  const fadeAnim = useState(new Animated.Value(1))[0];
-
-  // Manual toggle function with animation
-  const handleToggleView = () => {
-    // Fade out
-    Animated.timing(fadeAnim, {
-      toValue: 0,
-      duration: 200,
-      useNativeDriver: true,
-    }).start(() => {
-      // Switch view
-      setCurrentView((prev) => (prev === 0 ? 1 : 0));
-      // Fade in
-      Animated.timing(fadeAnim, {
-        toValue: 1,
-        duration: 200,
-        useNativeDriver: true,
-      }).start();
-    });
-  };
 
   // Auto-format input as user types: mm/dd/yyyy
   const formatDateInput = (text: string) => {
@@ -157,16 +136,78 @@ const SobrietyCounter = () => {
   const daysSober = calculateDaysSober();
   const validDaysSober = typeof daysSober === 'number' && !isNaN(daysSober) ? daysSober : 0;
 
-  // Calculate years, months, and remaining days
-  const calculateBreakdown = (totalDays: number) => {
-    const years = Math.floor(totalDays / 365.25);
-    const remainingAfterYears = totalDays - (years * 365.25);
-    const months = Math.floor(remainingAfterYears / 30.44);
-    const days = Math.floor(remainingAfterYears - (months * 30.44));
+  // Calculate years, months, and remaining days using proper date arithmetic
+  const calculateBreakdown = (startDateString: string | null) => {
+    if (!startDateString) {
+      return { years: 0, months: 0, days: 0 };
+    }
+    
+    const startDate = parseLocalDate(startDateString);
+    const today = new Date();
+    
+    let years = today.getFullYear() - startDate.getFullYear();
+    let months = today.getMonth() - startDate.getMonth();
+    let days = today.getDate() - startDate.getDate();
+    
+    // Adjust if days are negative
+    if (days < 0) {
+      months -= 1;
+      // Get the last day of the previous month
+      const lastMonth = new Date(today.getFullYear(), today.getMonth(), 0);
+      days += lastMonth.getDate();
+    }
+    
+    // Adjust if months are negative
+    if (months < 0) {
+      years -= 1;
+      months += 12;
+    }
+    
     return { years, months, days };
   };
 
-  const breakdown = calculateBreakdown(validDaysSober);
+  const breakdown = calculateBreakdown(sobrietyDate);
+
+  // Calculate responsive font size based on content length and screen width
+  const getResponsiveFontSize = () => {
+    if (!sobrietyDate) return 32;
+    
+    // Build the full text string to measure
+    let fullText = '';
+    if (breakdown.years > 0) {
+      fullText = `${breakdown.years} ${breakdown.years === 1 ? 'year' : 'years'}`;
+      if (breakdown.months > 0) {
+        fullText += ` • ${breakdown.months} ${breakdown.months === 1 ? 'month' : 'months'}`;
+      }
+      if (breakdown.days > 0) {
+        fullText += ` • ${breakdown.days} ${breakdown.days === 1 ? 'day' : 'days'}`;
+      }
+    } else if (breakdown.months > 0) {
+      fullText = `${breakdown.months} ${breakdown.months === 1 ? 'month' : 'months'}`;
+      if (breakdown.days > 0) {
+        fullText += ` • ${breakdown.days} ${breakdown.days === 1 ? 'day' : 'days'}`;
+      }
+    } else {
+      fullText = `${breakdown.days} ${breakdown.days === 1 ? 'day' : 'days'}`;
+    }
+    
+    // More accurate character width estimation for bold text (0.55 works better)
+    const availableWidth = width - 60; // Less conservative padding
+    const textLength = fullText.length;
+    
+    // Start with 32px and scale down if needed
+    let fontSize = 32;
+    let estimatedWidth = textLength * fontSize * 0.55;
+    
+    if (estimatedWidth > availableWidth) {
+      fontSize = Math.floor(availableWidth / (textLength * 0.55));
+      fontSize = Math.max(fontSize, 20); // Don't go below 20px
+    }
+    
+    return fontSize;
+  };
+
+  const dynamicFontSize = getResponsiveFontSize();
 
   // Show prompt modal for first-time users
   if (shouldShowPrompt()) {
@@ -357,73 +398,64 @@ const SobrietyCounter = () => {
     return (
       <>
         <View style={styles.counterWrapper}>
-          <TouchableOpacity 
-            style={styles.counterContainer}
-            onPress={handleToggleView}
-            activeOpacity={0.7}
-          >
-            <View style={styles.tapIndicator}>
-              <MaterialIcons name="touch-app" size={22} color={Colors.light.tint} style={{ opacity: 0.5 }} />
-            </View>
-            <Text style={styles.headerText}>You've been sober for</Text>
-              
-              <Animated.View style={[styles.carouselContainer, { opacity: fadeAnim }]}>
-            {currentView === 0 ? (
-              // View 1: Years breakdown
-              <>
-                {breakdown.years > 0 ? (
-                  <>
-                    <Text style={styles.yearsText}>
-                      {breakdown.years} {breakdown.years === 1 ? 'year' : 'years'}
-                    </Text>
-                    {(breakdown.months > 0 || breakdown.days > 0) && (
-                      <Text style={styles.monthsDaysText}>
-                        {[
-                          breakdown.months > 0 ? `${breakdown.months} ${breakdown.months === 1 ? 'month' : 'months'}` : null,
-                          breakdown.days > 0 ? `${breakdown.days} ${breakdown.days === 1 ? 'day' : 'days'}` : null,
-                        ].filter(Boolean).join(' and ')}
-                      </Text>
-                    )}
-                  </>
-                ) : breakdown.months > 0 ? (
-                  // If no years but has months: months = big, days = small
-                  <>
-                    <Text style={styles.yearsText}>
-                      {breakdown.months} {breakdown.months === 1 ? 'month' : 'months'}
-                    </Text>
-                    {breakdown.days > 0 && (
-                      <Text style={styles.monthsDaysText}>
-                        {breakdown.days} {breakdown.days === 1 ? 'day' : 'days'}
-                      </Text>
-                    )}
-                  </>
-                ) : (
-                  // Only days: days = big
-                  <Text style={styles.yearsText}>
-                    {breakdown.days} {breakdown.days === 1 ? 'day' : 'days'}
-                  </Text>
-                )}
-              </>
-            ) : (
-              // View 2: Total days
-              <Text style={styles.yearsText}>
-                {validDaysSober.toLocaleString()} {validDaysSober === 1 ? 'day' : 'days'}
-              </Text>
-            )}
-          </Animated.View>
           
-          <View style={styles.dateRow}>
-            <Text style={styles.sobrietyDateText}>
-              Since {formatStoredDateForDisplay(sobrietyDate)}
+          {/* Display breakdown: Years, months, days */}
+          {breakdown.years > 0 ? (
+            <>
+              <Text style={[styles.yearsText, { fontSize: dynamicFontSize, lineHeight: dynamicFontSize + 6 }]}>
+                {[
+                  `${breakdown.years} ${breakdown.years === 1 ? 'year' : 'years'}`,
+                  breakdown.months > 0 ? `${breakdown.months} ${breakdown.months === 1 ? 'month' : 'months'}` : null,
+                  breakdown.days > 0 ? `${breakdown.days} ${breakdown.days === 1 ? 'day' : 'days'}` : null,
+                ].filter(Boolean).join(' • ')}
+              </Text>
+            </>
+          ) : breakdown.months > 0 ? (
+            // If no years but has months: months and days on one line
+            <>
+              <Text style={[styles.yearsText, { fontSize: dynamicFontSize, lineHeight: dynamicFontSize + 6 }]}>
+                {[
+                  `${breakdown.months} ${breakdown.months === 1 ? 'month' : 'months'}`,
+                  breakdown.days > 0 ? `${breakdown.days} ${breakdown.days === 1 ? 'day' : 'days'}` : null,
+                ].filter(Boolean).join(' • ')}
+              </Text>
+            </>
+          ) : (
+            // Only days: days = big
+            <Text style={[styles.yearsText, { fontSize: dynamicFontSize, lineHeight: dynamicFontSize + 6 }]}>
+              {breakdown.days} {breakdown.days === 1 ? 'day' : 'days'}
             </Text>
-            <TouchableOpacity 
-              style={styles.editButton}
-              onPress={handleEditDate}
-            >
-              <Edit3 size={14} color={Colors.light.tint} />
-            </TouchableOpacity>
-          </View>
-        </TouchableOpacity>
+          )}
+          
+          {/* Combined total days and date line - only show if person has at least one month */}
+          {(breakdown.years > 0 || breakdown.months > 0) && (
+            <View style={styles.dateRow}>
+              <Text style={styles.totalDaysText}>
+                or {validDaysSober.toLocaleString()} {validDaysSober === 1 ? 'day' : 'days'} • Since {formatStoredDateForDisplay(sobrietyDate)}
+              </Text>
+              <TouchableOpacity 
+                style={styles.editButton}
+                onPress={handleEditDate}
+              >
+                <Edit3 size={16} color={Colors.light.tint} />
+              </TouchableOpacity>
+            </View>
+          )}
+          
+          {/* If less than a month, just show the date with edit button */}
+          {breakdown.years === 0 && breakdown.months === 0 && (
+            <View style={styles.dateRow}>
+              <Text style={styles.sobrietyDateText}>
+                Since {formatStoredDateForDisplay(sobrietyDate)}
+              </Text>
+              <TouchableOpacity 
+                style={styles.editButton}
+                onPress={handleEditDate}
+              >
+                <Edit3 size={16} color={Colors.light.tint} />
+              </TouchableOpacity>
+            </View>
+          )}
         </View>
         
         {/* Edit Date Modal */}
@@ -535,27 +567,10 @@ const styles = StyleSheet.create({
   },
   // Counter display styles
   counterWrapper: {
-    alignSelf: 'center',
+    alignItems: 'center',
     marginHorizontal: 20,
     marginBottom: 8,
     marginTop: 8,
-  },
-  counterContainer: {
-    width: 340,
-    minHeight: 180,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    borderRadius: 24,
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-    borderWidth: 0.5,
-    borderColor: 'rgba(255, 255, 255, 0.5)',
-  },
-  tapIndicator: {
-    position: 'absolute',
-    top: 16,
-    right: 16,
   },
   headerText: {
     fontSize: 16,
@@ -564,43 +579,26 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginBottom: 8,
   },
-  carouselContainer: {
-    height: 80,
-    justifyContent: 'center',
-    alignItems: 'center',
-    width: '100%',
-  },
   yearsText: {
-    fontSize: 34,
-    color: Colors.light.text,
-    fontWeight: '700',
-    textAlign: 'center',
-    marginBottom: 4,
-    lineHeight: 40,
-    flexWrap: 'wrap',
-    paddingHorizontal: 16,
-  },
-  monthsDaysText: {
-    fontSize: 20,
-    color: Colors.light.text,
-    fontWeight: '600',
-    textAlign: 'center',
-    marginBottom: 8,
-  },
-  breakdownText: {
-    fontSize: 20,
-    color: Colors.light.text,
-    fontWeight: '700',
-    textAlign: 'center',
-    marginBottom: 6,
-    lineHeight: 26,
-  },
-  totalDaysText: {
     fontSize: 28,
     color: Colors.light.text,
+    fontWeight: '700',
+    textAlign: 'center',
+    marginBottom: 2,
+    lineHeight: 34,
+  },
+  monthsDaysText: {
+    fontSize: 22,
+    color: Colors.light.text,
     fontWeight: '600',
     textAlign: 'center',
-    marginBottom: 12,
+    marginBottom: 6,
+  },
+  totalDaysText: {
+    fontSize: 15,
+    color: Colors.light.text,
+    fontWeight: '500',
+    textAlign: 'center',
   },
   largeDaysText: {
     fontSize: 56,
@@ -644,7 +642,7 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   sobrietyDateText: {
-    fontSize: 18,
+    fontSize: 16,
     color: Colors.light.text,
     textAlign: 'center',
     fontWeight: '500',
