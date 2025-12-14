@@ -46,8 +46,8 @@ export function calculateDaysBetween(startDateString: string, endDate: Date = ne
   // Calculate the difference in milliseconds
   const diffTime = endDateLocal.getTime() - startDateLocal.getTime();
   
-  // Convert to days and ensure we get a whole number
-  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+  // Convert to days and round to nearest whole number
+  const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
   
   console.log('calculateDaysBetween debug:', {
     startDateString,
