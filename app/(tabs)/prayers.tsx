@@ -7,7 +7,7 @@ import {
   TouchableOpacity,
   Platform,
 } from "react-native";
-import { ChevronDown, ChevronRight, Type } from "lucide-react-native";
+import { ChevronDown, ChevronRight } from "lucide-react-native";
 import { LinearGradient } from 'expo-linear-gradient';
 import { Stack, useLocalSearchParams, useFocusEffect } from 'expo-router';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
@@ -16,6 +16,8 @@ import Colors from "@/constants/colors";
 import { aaPrayers } from "@/constants/prayers";
 import { adjustFontWeight } from "@/constants/fonts";
 import ScreenContainer from "@/components/ScreenContainer";
+import { useTextSettings } from "@/hooks/use-text-settings";
+import TextSettingsButton from "@/components/TextSettingsButton";
 
 export default function PrayersScreen() {
   const { prayer } = useLocalSearchParams();
@@ -24,25 +26,15 @@ export default function PrayersScreen() {
   const prayerRefs = useRef<{ [key: number]: View | null }>({});
   const prayerPositions = useRef<{ [key: number]: number }>({});
   
-  const [fontSize, setFontSize] = useState(18);
-  const baseFontSize = 18;
-  const maxFontSize = Platform.OS === 'android' ? 34 : 30;
-  
-  const increaseFontSize = () => {
-    setFontSize(prev => Math.min(prev + 2, maxFontSize));
-  };
-  
-  const decreaseFontSize = () => {
-    setFontSize(prev => Math.max(prev - 2, 12));
-  };
+  const { fontSize, lineHeight, resetDefaults } = useTextSettings();
   
   // Double-tap anywhere in the content to reset font size
   const doubleTapGesture = useMemo(() => Gesture.Tap()
     .numberOfTaps(2)
     .onStart(() => {
-      setFontSize(baseFontSize);
+      resetDefaults();
     })
-    .runOnJS(true), [baseFontSize]);
+    .runOnJS(true), [resetDefaults]);
 
   // Track if we came from a deep link or tab navigation
   const isFromDeepLink = useRef(false);
@@ -100,24 +92,7 @@ export default function PrayersScreen() {
     <>
     <Stack.Screen 
       options={{
-        headerRight: () => (
-          <View style={styles.navFontSizeControls}>
-            <TouchableOpacity 
-              onPress={decreaseFontSize}
-              style={styles.fontSizeButton}
-              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-            >
-              <Type size={16} color={Colors.light.text} />
-            </TouchableOpacity>
-            <TouchableOpacity 
-              onPress={increaseFontSize}
-              style={styles.fontSizeButton}
-              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-            >
-              <Type size={24} color={Colors.light.text} />
-            </TouchableOpacity>
-          </View>
-        ),
+        headerRight: () => <TextSettingsButton />,
       }}
     />
     <ScreenContainer style={styles.container}>

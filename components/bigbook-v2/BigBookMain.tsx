@@ -16,6 +16,7 @@ import { BigBookReader } from './BigBookReader';
 import { BigBookHighlightsProvider } from '@/hooks/use-bigbook-highlights';
 import Colors from '@/constants/colors';
 import { useNavigation } from 'expo-router';
+import TextSettingsButton from '@/components/TextSettingsButton';
 
 export function BigBookMain() {
   const [hasAccess, setHasAccess] = useState<boolean | null>(null);
@@ -99,25 +100,31 @@ export function BigBookMain() {
     navigation.setOptions({
       headerRight: showGoToFreeButton
         ? () => (
-            <TouchableOpacity
-              style={styles.headerFreeButton}
-              onPress={handleShowFree}
-              activeOpacity={0.7}
-            >
-              <Text style={styles.headerFreeButtonText}>Go to Free</Text>
-            </TouchableOpacity>
+            <View style={styles.headerActions}>
+              <TouchableOpacity
+                style={styles.headerFreeButton}
+                onPress={handleShowFree}
+                activeOpacity={0.7}
+              >
+                <Text style={styles.headerFreeButtonText}>Go to Free</Text>
+              </TouchableOpacity>
+              <TextSettingsButton compact />
+            </View>
           )
         : showGoToPremiumButton
         ? () => (
-            <TouchableOpacity
-              style={styles.headerFreeButton}
-              onPress={handleShowPremium}
-              activeOpacity={0.7}
-            >
-              <Text style={styles.headerFreeButtonText}>Go to Premium</Text>
-            </TouchableOpacity>
+            <View style={styles.headerActions}>
+              <TouchableOpacity
+                style={styles.headerFreeButton}
+                onPress={handleShowPremium}
+                activeOpacity={0.7}
+              >
+                <Text style={styles.headerFreeButtonText}>Go to Premium</Text>
+              </TouchableOpacity>
+              <TextSettingsButton compact />
+            </View>
           )
-        : undefined,
+        : () => <TextSettingsButton compact />,
     });
     return () => {
       navigation.setOptions({ headerRight: undefined });
@@ -174,8 +181,12 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: Colors.light.muted,
   },
+  headerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
   headerFreeButton: {
-    marginRight: 12,
     paddingHorizontal: 14,
     paddingVertical: 6,
     borderRadius: 8,

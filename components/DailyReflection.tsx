@@ -14,6 +14,9 @@ import { recordDailyReflectionDay } from "@/lib/reviewPrompt";
 
 interface DailyReflectionProps {
   fontSize?: number;
+  lineHeight?: number;
+  jumpToDate?: Date | null;
+  onJumpApplied?: () => void;
 }
 
 // Helper to check if two dates are the same day
@@ -85,7 +88,12 @@ const generateCalendarDays = (date: Date) => {
   return days;
 };
 
-export default function DailyReflection({ fontSize = 18 }: DailyReflectionProps) {
+export default function DailyReflection({ 
+  fontSize = 18, 
+  lineHeight = 18 * 1.375,
+  jumpToDate = null,
+  onJumpApplied
+}: DailyReflectionProps) {
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [reflection, setReflection] = useState<Reflection | null>(null);
 
@@ -142,6 +150,16 @@ export default function DailyReflection({ fontSize = 18 }: DailyReflectionProps)
       setCalendarDays(generateCalendarDays(calendarDate));
     }
   }, [showDatePicker, calendarDate]);
+
+  // Handle jumpToDate prop for navigating to saved reflections
+  useEffect(() => {
+    if (jumpToDate) {
+      setSelectedDate(jumpToDate);
+      if (onJumpApplied) {
+        onJumpApplied();
+      }
+    }
+  }, [jumpToDate, onJumpApplied]);
 
   const updateReflection = async (date: Date) => {
     setIsLoading(true);
@@ -422,12 +440,12 @@ export default function DailyReflection({ fontSize = 18 }: DailyReflectionProps)
             </View>
             
             <Text style={[styles.title, { fontSize: fontSize * 1.125 }]}>{reflection.title}</Text>
-            <Text style={[styles.quote, { fontSize: fontSize, lineHeight: fontSize * 1.375 }]}>"{reflection.quote}"</Text>
+            <Text style={[styles.quote, { fontSize: fontSize, lineHeight: lineHeight }]}>"{reflection.quote}"</Text>
             <Text style={[styles.source, { fontSize: fontSize * 0.75 }]}>{reflection.source}</Text>
             
             <View style={styles.divider} />
             
-            <Text style={[styles.reflectionText, { fontSize: fontSize, lineHeight: fontSize * 1.375 }]}>{reflection.reflection}</Text>
+            <Text style={[styles.reflectionText, { fontSize: fontSize, lineHeight: lineHeight }]}>{reflection.reflection}</Text>
           </View>
         </View>
 
@@ -435,7 +453,7 @@ export default function DailyReflection({ fontSize = 18 }: DailyReflectionProps)
         <View style={[styles.card, styles.meditationCard]}>
           <View>
             <Text style={[styles.thoughtTitle, { fontSize: fontSize }]}>Meditation:</Text>
-            <Text style={[styles.thought, { fontSize: fontSize, lineHeight: fontSize * 1.375 }]}>{reflection.thought}</Text>
+            <Text style={[styles.thought, { fontSize: fontSize, lineHeight: lineHeight }]}>{reflection.thought}</Text>
           </View>
         </View>
 

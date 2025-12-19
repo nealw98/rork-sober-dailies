@@ -1,34 +1,35 @@
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useMemo, useState, useCallback } from 'react';
 import { Platform, TouchableOpacity, View, Text, StyleSheet } from 'react-native';
-import { Type } from 'lucide-react-native';
 import { Stack } from 'expo-router';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
+import { Bookmark } from 'lucide-react-native';
 import { useFocusEffect } from 'expo-router';
 import ScreenContainer from '@/components/ScreenContainer';
 import DailyReflection from '@/components/DailyReflection';
 import Colors from '@/constants/colors';
+import { adjustFontWeight } from '@/constants/fonts';
+import { useTextSettings } from '@/hooks/use-text-settings';
+import TextSettingsButton from '@/components/TextSettingsButton';
+import SavedReflectionsModal from '@/components/SavedReflectionsModal';
+import { useDailyReflectionBookmarks } from '@/hooks/use-daily-reflection-bookmarks';
 import { maybeAskForReviewFromDailyReflection } from '@/lib/reviewPrompt';
 
 export default function DailyReflectionsPage() {
-  const [fontSize, setFontSize] = useState(18);
-  const baseFontSize = 18;
-  const maxFontSize = Platform.OS === 'android' ? 34 : 30;
-  
-  const increaseFontSize = () => {
-    setFontSize(prev => Math.min(prev + 2, maxFontSize));
-  };
-  
-  const decreaseFontSize = () => {
-    setFontSize(prev => Math.max(prev - 2, 12));
+  const { fontSize, lineHeight, resetDefaults } = useTextSettings();
+  const [showSaved, setShowSaved] = useState(false);
+  const [jumpToDate, setJumpToDate] = useState<Date | null>(null);
+  const parseDateKey = (id: string) => {
+    const [y, m, d] = id.split("-").map(Number);
+    return new Date(y, (m || 1) - 1, d || 1);
   };
   
   // Double-tap to reset to default font size
   const doubleTapGesture = useMemo(() => Gesture.Tap()
     .numberOfTaps(2)
     .onStart(() => {
-      setFontSize(baseFontSize);
+      resetDefaults();
     })
-    .runOnJS(true), [baseFontSize]);
+    .runOnJS(true), [resetDefaults]);
 
   useFocusEffect(
     useCallback(() => {
@@ -41,40 +42,62 @@ export default function DailyReflectionsPage() {
   );
 
   return (
-    <>
-      <Stack.Screen 
+    <ScreenContainer noPadding>
+      <Stack.Screen
         options={{
+          title: 'Daily Reflections',
           headerRight: () => (
-            <View style={styles.fontSizeControls}>
-              <TouchableOpacity 
-                onPress={decreaseFontSize}
-                style={styles.fontSizeButton}
+            <View style={styles.headerActions}>
+              <TouchableOpacity
+                onPress={() => setShowSaved(true)}
+                style={styles.savedButton}
                 hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
               >
-              <Type size={16} color={Colors.light.text} />
+                <Bookmark size={18} color={Colors.light.tint} />
+                <Text style={styles.savedText}>Saved</Text>
               </TouchableOpacity>
-              
-              <TouchableOpacity 
-                onPress={increaseFontSize}
-                style={styles.fontSizeButton}
-                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-              >
-              <Type size={24} color={Colors.light.text} />
-              </TouchableOpacity>
+              <TextSettingsButton compact />
             </View>
           ),
         }}
       />
       <GestureDetector gesture={doubleTapGesture}>
-        <ScreenContainer noPadding>
-          <DailyReflection fontSize={fontSize} />
-        </ScreenContainer>
+        <DailyReflection
+          fontSize={fontSize}
+          lineHeight={lineHeight}
+          jumpToDate={jumpToDate}
+          onJumpApplied={() => setJumpToDate(null)}
+        />
       </GestureDetector>
-    </>
+      <SavedReflectionsModal
+        visible={showSaved}
+        onClose={() => setShowSaved(false)}
+        onSelect={(id) => {
+          setJumpToDate(parseDateKey(id));
+        }}
+      />
+    </ScreenContainer>
   );
 }
 
 const styles = StyleSheet.create({
+  headerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  savedButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingVertical: Platform.OS === 'android' ? 4 : 6,
+    paddingHorizontal: 4,
+  },
+  savedText: {
+    fontSize: 14,
+    color: Colors.light.tint,
+    fontWeight: adjustFontWeight('600'),
+  },
   fontSizeControls: {
     flexDirection: 'row',
     alignItems: 'center',

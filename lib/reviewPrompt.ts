@@ -416,6 +416,37 @@ export async function requestReviewDebug(): Promise<boolean> {
   return presentStoreReview('gratitude');
 }
 
+export async function requestReviewNow(): Promise<boolean> {
+  console.log('[reviewPrompt] requestReviewNow - bypassing all gates');
+  const StoreReview = await getStoreReviewModule();
+  if (!StoreReview) {
+    console.log('[reviewPrompt] native module unavailable - StoreReview module not loaded');
+    return false;
+  }
+
+  try {
+    console.log('[reviewPrompt] checking if review action is available...');
+    const hasAction = await StoreReview.hasAction();
+    console.log('[reviewPrompt] StoreReview.hasAction result:', hasAction);
+    
+    if (!hasAction) {
+      console.warn('[reviewPrompt] StoreReview.hasAction returned false - native dialog not available');
+      console.warn('[reviewPrompt] This can happen if: app not from store, quota exceeded, or device restrictions');
+      return false;
+    }
+
+    console.log('[reviewPrompt] invoking StoreReview.requestReview immediately');
+    await StoreReview.requestReview();
+    console.log('[reviewPrompt] StoreReview.requestReview completed successfully');
+    // Note: We intentionally do NOT call recordPromptShown() here
+    // because this is a manual request, not an automatic prompt
+    return true;
+  } catch (error) {
+    console.warn('[reviewPrompt] Unable to present store review prompt', error);
+    return false;
+  }
+}
+
 export async function maybeAskForReviewFromDailyReflection(): Promise<boolean> {
   return maybeAskForReview('dailyReflection');
 }

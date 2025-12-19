@@ -1,11 +1,12 @@
 import React, { useEffect, useState } from 'react';
-import { StyleSheet, View, Text, TouchableOpacity, Modal, TextInput, Alert, Keyboard, TouchableWithoutFeedback } from 'react-native';
+import { StyleSheet, View, Text, TouchableOpacity, Modal, TextInput, Alert, Keyboard, useWindowDimensions } from 'react-native';
 import { Calendar, X, Edit3 } from 'lucide-react-native';
 import { useSobriety } from '@/hooks/useSobrietyStore';
 import { formatStoredDateForDisplay, parseLocalDate, formatLocalDate } from '@/lib/dateUtils';
 import Colors from '@/constants/colors';
 
 const SobrietyCounter = () => {
+  const { width } = useWindowDimensions();
   const { 
     sobrietyDate, 
     shouldShowPrompt, 
@@ -19,7 +20,6 @@ const SobrietyCounter = () => {
   const [showDatePicker, setShowDatePicker] = useState<boolean>(false);
   const [dateInput, setDateInput] = useState<string>('');
   const [showEditModal, setShowEditModal] = useState<boolean>(false);
-  const dateInputRef = React.useRef<TextInput>(null);
 
   // Auto-format input as user types: mm/dd/yyyy
   const formatDateInput = (text: string) => {
@@ -69,13 +69,13 @@ const SobrietyCounter = () => {
       Alert.alert('Invalid Date', 'Please enter a valid date in MM/DD/YYYY format that is not in the future.');
       return;
     }
-
-    // Dismiss keyboard using Keyboard API (more reliable than blur)
+    
+    // Dismiss keyboard first
     Keyboard.dismiss();
-
+    
     const [month, day, year] = dateInput.split('/').map(Number);
     const dateString = `${year}-${month.toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`;
-
+    
     setSobrietyDate(dateString);
     setShowDatePicker(false);
     setDateInput('');
@@ -117,13 +117,13 @@ const SobrietyCounter = () => {
       Alert.alert('Invalid Date', 'Please enter a valid date in MM/DD/YYYY format that is not in the future.');
       return;
     }
-
-    // Dismiss keyboard using Keyboard API
+    
+    // Dismiss keyboard first
     Keyboard.dismiss();
-
+    
     const [month, day, year] = dateInput.split('/').map(Number);
     const dateString = `${year}-${month.toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`;
-
+    
     setSobrietyDate(dateString);
     setShowEditModal(false);
     setDateInput('');
@@ -135,6 +135,79 @@ const SobrietyCounter = () => {
 
   const daysSober = calculateDaysSober();
   const validDaysSober = typeof daysSober === 'number' && !isNaN(daysSober) ? daysSober : 0;
+
+  // Calculate years, months, and remaining days using proper date arithmetic
+  const calculateBreakdown = (startDateString: string | null) => {
+    if (!startDateString) {
+      return { years: 0, months: 0, days: 0 };
+    }
+    
+    const startDate = parseLocalDate(startDateString);
+    const today = new Date();
+    
+    let years = today.getFullYear() - startDate.getFullYear();
+    let months = today.getMonth() - startDate.getMonth();
+    let days = today.getDate() - startDate.getDate();
+    
+    // Adjust if days are negative
+    if (days < 0) {
+      months -= 1;
+      // Get the last day of the previous month
+      const lastMonth = new Date(today.getFullYear(), today.getMonth(), 0);
+      days += lastMonth.getDate();
+    }
+    
+    // Adjust if months are negative
+    if (months < 0) {
+      years -= 1;
+      months += 12;
+    }
+    
+    return { years, months, days };
+  };
+
+  const breakdown = calculateBreakdown(sobrietyDate);
+
+  // Calculate responsive font size based on content length and screen width
+  const getResponsiveFontSize = () => {
+    if (!sobrietyDate) return 32;
+    
+    // Build the full text string to measure
+    let fullText = '';
+    if (breakdown.years > 0) {
+      fullText = `${breakdown.years} ${breakdown.years === 1 ? 'year' : 'years'}`;
+      if (breakdown.months > 0) {
+        fullText += ` • ${breakdown.months} ${breakdown.months === 1 ? 'month' : 'months'}`;
+      }
+      if (breakdown.days > 0) {
+        fullText += ` • ${breakdown.days} ${breakdown.days === 1 ? 'day' : 'days'}`;
+      }
+    } else if (breakdown.months > 0) {
+      fullText = `${breakdown.months} ${breakdown.months === 1 ? 'month' : 'months'}`;
+      if (breakdown.days > 0) {
+        fullText += ` • ${breakdown.days} ${breakdown.days === 1 ? 'day' : 'days'}`;
+      }
+    } else {
+      fullText = `${breakdown.days} ${breakdown.days === 1 ? 'day' : 'days'}`;
+    }
+    
+    // More accurate character width estimation for bold text (0.55 works better)
+    const availableWidth = width - 60; // Less conservative padding
+    const textLength = fullText.length;
+    
+    // Start with 32px and scale down if needed
+    let fontSize = 32;
+    let estimatedWidth = textLength * fontSize * 0.55;
+    
+    if (estimatedWidth > availableWidth) {
+      fontSize = Math.floor(availableWidth / (textLength * 0.55));
+      fontSize = Math.max(fontSize, 20); // Don't go below 20px
+    }
+    
+    return fontSize;
+  };
+
+  const dynamicFontSize = getResponsiveFontSize();
 
   // Show prompt modal for first-time users
   if (shouldShowPrompt()) {
@@ -189,57 +262,53 @@ const SobrietyCounter = () => {
             animationType="slide"
             onRequestClose={handleCancel}
           >
-            <TouchableWithoutFeedback>
-              <View style={styles.datePickerOverlay}>
-                <View style={styles.datePickerContent}>
-                  <Text style={styles.datePickerTitle}>Enter your sobriety date</Text>
+            <View style={styles.datePickerOverlay}>
+              <View style={styles.datePickerContent}>
+                <Text style={styles.datePickerTitle}>Enter your sobriety date</Text>
+                
+                <TextInput
+                  style={[
+                    styles.dateInput,
+                    !isValidDate(dateInput) && dateInput.length === 10 && styles.dateInputError
+                  ]}
+                  value={dateInput}
+                  onChangeText={handleDateInputChange}
+                  placeholder="mm/dd/yyyy"
+                  placeholderTextColor={Colors.light.muted}
+                  maxLength={10}
+                  keyboardType="numeric"
+                  autoFocus={true}
+                />
+                
+                {!isValidDate(dateInput) && dateInput.length === 10 && (
+                  <Text style={styles.errorText}>Please enter a valid date</Text>
+                )}
+                
+                <View style={styles.datePickerButtons}>
+                  <TouchableOpacity 
+                    style={[styles.datePickerButton, styles.cancelButton]}
+                    onPress={handleCancel}
+                  >
+                    <Text style={styles.cancelButtonText}>Cancel</Text>
+                  </TouchableOpacity>
                   
-                  <TextInput
-                    ref={dateInputRef}
+                  <TouchableOpacity 
                     style={[
-                      styles.dateInput,
-                      !isValidDate(dateInput) && dateInput.length === 10 && styles.dateInputError
+                      styles.datePickerButton, 
+                      styles.confirmDateButton,
+                      (!dateInput || dateInput.length < 10 || !isValidDate(dateInput)) && styles.disabledButton
                     ]}
-                    value={dateInput}
-                    onChangeText={handleDateInputChange}
-                    onSubmitEditing={handleConfirmDate}
-                    placeholder="mm/dd/yyyy"
-                    placeholderTextColor={Colors.light.muted}
-                    maxLength={10}
-                    keyboardType="numeric"
-                    autoFocus={true}
-                  />
-                  
-                  {!isValidDate(dateInput) && dateInput.length === 10 && (
-                    <Text style={styles.errorText}>Please enter a valid date</Text>
-                  )}
-                  
-                  <View style={styles.datePickerButtons}>
-                    <TouchableOpacity 
-                      style={[styles.datePickerButton, styles.cancelButton]}
-                      onPress={handleCancel}
-                    >
-                      <Text style={styles.cancelButtonText}>Cancel</Text>
-                    </TouchableOpacity>
-                    
-                    <TouchableOpacity 
-                      style={[
-                        styles.datePickerButton, 
-                        styles.confirmDateButton,
-                        (!dateInput || dateInput.length < 10 || !isValidDate(dateInput)) && styles.disabledButton
-                      ]}
-                      onPress={handleConfirmDate}
-                      disabled={!dateInput || dateInput.length < 10 || !isValidDate(dateInput)}
-                    >
-                      <Text style={[
-                        styles.confirmDateButtonText,
-                        (!dateInput || dateInput.length < 10 || !isValidDate(dateInput)) && styles.disabledButtonText
-                      ]}>OK</Text>
-                    </TouchableOpacity>
-                  </View>
+                    onPress={handleConfirmDate}
+                    disabled={!dateInput || dateInput.length < 10 || !isValidDate(dateInput)}
+                  >
+                    <Text style={[
+                      styles.confirmDateButtonText,
+                      (!dateInput || dateInput.length < 10 || !isValidDate(dateInput)) && styles.disabledButtonText
+                    ]}>OK</Text>
+                  </TouchableOpacity>
                 </View>
               </View>
-            </TouchableWithoutFeedback>
+            </View>
           </Modal>
         )}
       </>
@@ -271,57 +340,53 @@ const SobrietyCounter = () => {
             animationType="slide"
             onRequestClose={handleCancel}
           >
-            <TouchableWithoutFeedback>
-              <View style={styles.datePickerOverlay}>
-                <View style={styles.datePickerContent}>
-                  <Text style={styles.datePickerTitle}>Enter your sobriety date</Text>
+            <View style={styles.datePickerOverlay}>
+              <View style={styles.datePickerContent}>
+                <Text style={styles.datePickerTitle}>Enter your sobriety date</Text>
+                
+                <TextInput
+                  style={[
+                    styles.dateInput,
+                    !isValidDate(dateInput) && dateInput.length === 10 && styles.dateInputError
+                  ]}
+                  value={dateInput}
+                  onChangeText={handleDateInputChange}
+                  placeholder="mm/dd/yyyy"
+                  placeholderTextColor={Colors.light.muted}
+                  maxLength={10}
+                  keyboardType="numeric"
+                  autoFocus={true}
+                />
+                
+                {!isValidDate(dateInput) && dateInput.length === 10 && (
+                  <Text style={styles.errorText}>Please enter a valid date</Text>
+                )}
+                
+                <View style={styles.datePickerButtons}>
+                  <TouchableOpacity 
+                    style={[styles.datePickerButton, styles.cancelButton]}
+                    onPress={handleCancel}
+                  >
+                    <Text style={styles.cancelButtonText}>Cancel</Text>
+                  </TouchableOpacity>
                   
-                  <TextInput
-                    ref={dateInputRef}
+                  <TouchableOpacity 
                     style={[
-                      styles.dateInput,
-                      !isValidDate(dateInput) && dateInput.length === 10 && styles.dateInputError
+                      styles.datePickerButton, 
+                      styles.confirmDateButton,
+                      (!dateInput || dateInput.length < 10 || !isValidDate(dateInput)) && styles.disabledButton
                     ]}
-                    value={dateInput}
-                    onChangeText={handleDateInputChange}
-                    onSubmitEditing={handleConfirmDate}
-                    placeholder="mm/dd/yyyy"
-                    placeholderTextColor={Colors.light.muted}
-                    maxLength={10}
-                    keyboardType="numeric"
-                    autoFocus={true}
-                  />
-                  
-                  {!isValidDate(dateInput) && dateInput.length === 10 && (
-                    <Text style={styles.errorText}>Please enter a valid date</Text>
-                  )}
-                  
-                  <View style={styles.datePickerButtons}>
-                    <TouchableOpacity 
-                      style={[styles.datePickerButton, styles.cancelButton]}
-                      onPress={handleCancel}
-                    >
-                      <Text style={styles.cancelButtonText}>Cancel</Text>
-                    </TouchableOpacity>
-                    
-                    <TouchableOpacity 
-                      style={[
-                        styles.datePickerButton, 
-                        styles.confirmDateButton,
-                        (!dateInput || dateInput.length < 10 || !isValidDate(dateInput)) && styles.disabledButton
-                      ]}
-                      onPress={handleConfirmDate}
-                      disabled={!dateInput || dateInput.length < 10 || !isValidDate(dateInput)}
-                    >
-                      <Text style={[
-                        styles.confirmDateButtonText,
-                        (!dateInput || dateInput.length < 10 || !isValidDate(dateInput)) && styles.disabledButtonText
-                      ]}>OK</Text>
-                    </TouchableOpacity>
-                  </View>
+                    onPress={handleConfirmDate}
+                    disabled={!dateInput || dateInput.length < 10 || !isValidDate(dateInput)}
+                  >
+                    <Text style={[
+                      styles.confirmDateButtonText,
+                      (!dateInput || dateInput.length < 10 || !isValidDate(dateInput)) && styles.disabledButtonText
+                    ]}>OK</Text>
+                  </TouchableOpacity>
                 </View>
               </View>
-            </TouchableWithoutFeedback>
+            </View>
           </Modal>
         )}
       </View>
@@ -332,21 +397,65 @@ const SobrietyCounter = () => {
   if (sobrietyDate) {
     return (
       <>
-        <View style={styles.counterContainer}>
-          <Text style={styles.sobrietyText}>
-            {`You've been sober ${validDaysSober} ${validDaysSober === 1 ? 'day' : 'days'}`}
-          </Text>
-          <View style={styles.dateRow}>
-            <Text style={styles.sobrietyDateText}>
-              Since {formatStoredDateForDisplay(sobrietyDate)}
+        <View style={styles.counterWrapper}>
+          
+          {/* Display breakdown: Years, months, days */}
+          {breakdown.years > 0 ? (
+            <>
+              <Text style={[styles.yearsText, { fontSize: dynamicFontSize, lineHeight: dynamicFontSize + 6 }]}>
+                {[
+                  `${breakdown.years} ${breakdown.years === 1 ? 'year' : 'years'}`,
+                  breakdown.months > 0 ? `${breakdown.months} ${breakdown.months === 1 ? 'month' : 'months'}` : null,
+                  breakdown.days > 0 ? `${breakdown.days} ${breakdown.days === 1 ? 'day' : 'days'}` : null,
+                ].filter(Boolean).join(' • ')}
+              </Text>
+            </>
+          ) : breakdown.months > 0 ? (
+            // If no years but has months: months and days on one line
+            <>
+              <Text style={[styles.yearsText, { fontSize: dynamicFontSize, lineHeight: dynamicFontSize + 6 }]}>
+                {[
+                  `${breakdown.months} ${breakdown.months === 1 ? 'month' : 'months'}`,
+                  breakdown.days > 0 ? `${breakdown.days} ${breakdown.days === 1 ? 'day' : 'days'}` : null,
+                ].filter(Boolean).join(' • ')}
+              </Text>
+            </>
+          ) : (
+            // Only days: days = big
+            <Text style={[styles.yearsText, { fontSize: dynamicFontSize, lineHeight: dynamicFontSize + 6 }]}>
+              {breakdown.days} {breakdown.days === 1 ? 'day' : 'days'}
             </Text>
-            <TouchableOpacity 
-              style={styles.editButton}
-              onPress={handleEditDate}
-            >
-              <Edit3 size={14} color={Colors.light.tint} />
-            </TouchableOpacity>
-          </View>
+          )}
+          
+          {/* Combined total days and date line - only show if person has at least one month */}
+          {(breakdown.years > 0 || breakdown.months > 0) && (
+            <View style={styles.dateRow}>
+              <Text style={styles.totalDaysText}>
+                or {validDaysSober.toLocaleString()} {validDaysSober === 1 ? 'day' : 'days'} • Since {formatStoredDateForDisplay(sobrietyDate)}
+              </Text>
+              <TouchableOpacity 
+                style={styles.editButton}
+                onPress={handleEditDate}
+              >
+                <Edit3 size={16} color={Colors.light.tint} />
+              </TouchableOpacity>
+            </View>
+          )}
+          
+          {/* If less than a month, just show the date with edit button */}
+          {breakdown.years === 0 && breakdown.months === 0 && (
+            <View style={styles.dateRow}>
+              <Text style={styles.sobrietyDateText}>
+                Since {formatStoredDateForDisplay(sobrietyDate)}
+              </Text>
+              <TouchableOpacity 
+                style={styles.editButton}
+                onPress={handleEditDate}
+              >
+                <Edit3 size={16} color={Colors.light.tint} />
+              </TouchableOpacity>
+            </View>
+          )}
         </View>
         
         {/* Edit Date Modal */}
@@ -357,57 +466,53 @@ const SobrietyCounter = () => {
             animationType="slide"
             onRequestClose={handleCancelEdit}
           >
-            <TouchableWithoutFeedback>
-              <View style={styles.datePickerOverlay}>
-                <View style={styles.datePickerContent}>
-                  <Text style={styles.datePickerTitle}>Edit your sobriety date</Text>
+            <View style={styles.datePickerOverlay}>
+              <View style={styles.datePickerContent}>
+                <Text style={styles.datePickerTitle}>Edit your sobriety date</Text>
+                
+                <TextInput
+                  style={[
+                    styles.dateInput,
+                    !isValidDate(dateInput) && dateInput.length === 10 && styles.dateInputError
+                  ]}
+                  value={dateInput}
+                  onChangeText={handleDateInputChange}
+                  placeholder="mm/dd/yyyy"
+                  placeholderTextColor={Colors.light.muted}
+                  maxLength={10}
+                  keyboardType="numeric"
+                  autoFocus={true}
+                />
+                
+                {!isValidDate(dateInput) && dateInput.length === 10 && (
+                  <Text style={styles.errorText}>Please enter a valid date</Text>
+                )}
+                
+                <View style={styles.datePickerButtons}>
+                  <TouchableOpacity 
+                    style={[styles.datePickerButton, styles.cancelButton]}
+                    onPress={handleCancelEdit}
+                  >
+                    <Text style={styles.cancelButtonText}>Cancel</Text>
+                  </TouchableOpacity>
                   
-                  <TextInput
-                    ref={dateInputRef}
+                  <TouchableOpacity 
                     style={[
-                      styles.dateInput,
-                      !isValidDate(dateInput) && dateInput.length === 10 && styles.dateInputError
+                      styles.datePickerButton, 
+                      styles.confirmDateButton,
+                      (!dateInput || dateInput.length < 10 || !isValidDate(dateInput)) && styles.disabledButton
                     ]}
-                    value={dateInput}
-                    onChangeText={handleDateInputChange}
-                    onSubmitEditing={handleConfirmEditDate}
-                    placeholder="mm/dd/yyyy"
-                    placeholderTextColor={Colors.light.muted}
-                    maxLength={10}
-                    keyboardType="numeric"
-                    autoFocus={true}
-                  />
-                  
-                  {!isValidDate(dateInput) && dateInput.length === 10 && (
-                    <Text style={styles.errorText}>Please enter a valid date</Text>
-                  )}
-                  
-                  <View style={styles.datePickerButtons}>
-                    <TouchableOpacity 
-                      style={[styles.datePickerButton, styles.cancelButton]}
-                      onPress={handleCancelEdit}
-                    >
-                      <Text style={styles.cancelButtonText}>Cancel</Text>
-                    </TouchableOpacity>
-                    
-                    <TouchableOpacity 
-                      style={[
-                        styles.datePickerButton, 
-                        styles.confirmDateButton,
-                        (!dateInput || dateInput.length < 10 || !isValidDate(dateInput)) && styles.disabledButton
-                      ]}
-                      onPress={handleConfirmEditDate}
-                      disabled={!dateInput || dateInput.length < 10 || !isValidDate(dateInput)}
-                    >
-                      <Text style={[
-                        styles.confirmDateButtonText,
-                        (!dateInput || dateInput.length < 10 || !isValidDate(dateInput)) && styles.disabledButtonText
-                      ]}>OK</Text>
-                    </TouchableOpacity>
-                  </View>
+                    onPress={handleConfirmEditDate}
+                    disabled={!dateInput || dateInput.length < 10 || !isValidDate(dateInput)}
+                  >
+                    <Text style={[
+                      styles.confirmDateButtonText,
+                      (!dateInput || dateInput.length < 10 || !isValidDate(dateInput)) && styles.disabledButtonText
+                    ]}>OK</Text>
+                  </TouchableOpacity>
                 </View>
               </View>
-            </TouchableWithoutFeedback>
+            </View>
           </Modal>
         )}
       </>
@@ -461,28 +566,86 @@ const styles = StyleSheet.create({
     color: Colors.light.muted,
   },
   // Counter display styles
-  counterContainer: {
-    marginHorizontal: 16,
-    marginBottom: 20,
+  counterWrapper: {
     alignItems: 'center',
+    marginHorizontal: 20,
+    marginBottom: 8,
+    marginTop: 8,
   },
-  sobrietyText: {
-    fontSize: 18,
+  headerText: {
+    fontSize: 16,
+    color: Colors.light.muted,
+    fontWeight: '400',
+    textAlign: 'center',
+    marginBottom: 8,
+  },
+  yearsText: {
+    fontSize: 28,
+    color: Colors.light.text,
+    fontWeight: '700',
+    textAlign: 'center',
+    marginBottom: 2,
+    lineHeight: 34,
+  },
+  monthsDaysText: {
+    fontSize: 22,
     color: Colors.light.text,
     fontWeight: '600',
     textAlign: 'center',
+    marginBottom: 6,
+  },
+  totalDaysText: {
+    fontSize: 15,
+    color: Colors.light.text,
+    fontWeight: '500',
+    textAlign: 'center',
+  },
+  largeDaysText: {
+    fontSize: 56,
+    color: Colors.light.text,
+    fontWeight: '700',
+    textAlign: 'center',
     marginBottom: 4,
+    lineHeight: 64,
+  },
+  daysLabelText: {
+    fontSize: 24,
+    color: Colors.light.text,
+    fontWeight: '600',
+    textAlign: 'center',
+    textTransform: 'uppercase',
+    letterSpacing: 2,
+    marginBottom: 12,
+  },
+  sobrietyText: {
+    fontSize: 48,
+    color: Colors.light.text,
+    fontWeight: '700',
+    textAlign: 'center',
+    marginBottom: 8,
+    lineHeight: 56,
+  },
+  dayLabel: {
+    fontSize: 20,
+    color: Colors.light.text,
+    fontWeight: '600',
+    textAlign: 'center',
+    marginBottom: 12,
+    letterSpacing: 1,
+    textTransform: 'uppercase',
   },
   dateRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
+    marginTop: 4,
   },
   sobrietyDateText: {
     fontSize: 16,
-    color: Colors.light.muted,
+    color: Colors.light.text,
     textAlign: 'center',
+    fontWeight: '500',
   },
   modalOverlay: {
     flex: 1,

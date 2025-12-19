@@ -11,6 +11,8 @@ import { GratitudeProvider } from "@/hooks/use-gratitude-store";
 import { OnboardingProvider, useOnboarding } from "@/hooks/useOnboardingStore";
 import { SobrietyProvider } from "@/hooks/useSobrietyStore";
 import { EveningReviewProvider } from "@/hooks/use-evening-review-store";
+import { TextSettingsProvider } from "@/hooks/use-text-settings";
+import { DailyReflectionBookmarksProvider } from "@/hooks/use-daily-reflection-bookmarks";
 import { useOTAUpdates } from "@/hooks/useOTAUpdates";
 import { adjustFontWeight } from "@/constants/fonts";
 import Colors from "@/constants/colors";
@@ -269,20 +271,24 @@ export default function RootLayout() {
   return (
     <QueryClientProvider client={queryClient}>
       <SessionProvider>
-        <OnboardingProvider>
-          <GratitudeProvider>
-            <SobrietyProvider>
-              <EveningReviewProvider>
-                <GestureHandlerRootView style={{ flex: 1 }}>
-                  <ErrorBoundary>
-                    <RootLayoutNav />
-                    <ReviewPromptModalHost />
-                  </ErrorBoundary>
-                </GestureHandlerRootView>
-              </EveningReviewProvider>
-            </SobrietyProvider>
-          </GratitudeProvider>
-        </OnboardingProvider>
+        <TextSettingsProvider>
+          <DailyReflectionBookmarksProvider>
+            <OnboardingProvider>
+              <GratitudeProvider>
+                <SobrietyProvider>
+                  <EveningReviewProvider>
+                    <GestureHandlerRootView style={{ flex: 1 }}>
+                      <ErrorBoundary>
+                        <RootLayoutNav />
+                        <ReviewPromptModalHost />
+                      </ErrorBoundary>
+                    </GestureHandlerRootView>
+                  </EveningReviewProvider>
+                </SobrietyProvider>
+              </GratitudeProvider>
+            </OnboardingProvider>
+          </DailyReflectionBookmarksProvider>
+        </TextSettingsProvider>
       </SessionProvider>
     </QueryClientProvider>
   );
