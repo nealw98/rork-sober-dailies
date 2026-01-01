@@ -42,7 +42,7 @@ export const SPONSORS: SponsorConfig[] = [
   {
     id: "supportive",
     name: "Steady Eddie",
-    description: "Solid wisdom and steady support, day after day.",
+    description: "Solid wisdom and steady support",
     avatar: require("@/assets/images/Steady_Eddie.png"),
     isAvailable: true,
     systemPrompt: STEADY_EDDIE_SYSTEM_PROMPT,
@@ -54,7 +54,7 @@ export const SPONSORS: SponsorConfig[] = [
   {
     id: "salty",
     name: "Salty Sam",
-    description: "Direct and no-nonsense. Tells it like it is.",
+    description: "Direct and no-nonsense",
     avatar: require("@/assets/images/Salty_Sam.png"),
     isAvailable: true,
     systemPrompt: SALTY_SAM_SYSTEM_PROMPT,
@@ -66,7 +66,7 @@ export const SPONSORS: SponsorConfig[] = [
   {
     id: "grace",
     name: "Gentle Grace",
-    description: "Compassionate, uplifting, and deeply encouraging.",
+    description: "Compassionate and encouraging",
     avatar: require("@/assets/images/Gentle_Grace.png"),
     isAvailable: true,
     systemPrompt: GENTLE_GRACE_SYSTEM_PROMPT,
@@ -78,7 +78,7 @@ export const SPONSORS: SponsorConfig[] = [
   {
     id: "cowboy-pete",
     name: "Cowboy Pete",
-    description: "Straight-shooting, trail-worn wisdom in a gentle Western drawl.",
+    description: "Western wisdom in a gentle drawl",
     avatar: require("@/assets/images/cowboy_pete.png"),
     isAvailable: true,
     systemPrompt: COWBOY_PETE_SYSTEM_PROMPT,
@@ -90,7 +90,7 @@ export const SPONSORS: SponsorConfig[] = [
   {
     id: "co-sign-sally",
     name: "Co-Sign Sally",
-    description: "She'll back your story—then bill you for the denial.",
+    description: "Wry humor and sarcastic truth",
     avatar: require("@/assets/images/new_co-sign_sally.png"),
     isAvailable: true,
     systemPrompt: CO_SIGN_SALLY_SYSTEM_PROMPT,
@@ -102,7 +102,7 @@ export const SPONSORS: SponsorConfig[] = [
   {
     id: "fresh",
     name: "Fresh Freddie",
-    description: "Upbeat, modern sponsor who speaks your language.",
+    description: "Upbeat zoomer energy",
     avatar: require("@/assets/images/brown_fresh_freddie.png"),
     isAvailable: true,
     systemPrompt: FRESH_FREDDIE_SYSTEM_PROMPT,
