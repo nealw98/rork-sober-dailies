@@ -24,16 +24,28 @@ import { ChevronLeft } from 'lucide-react-native';
 import { Logger } from '@/lib/logger';
 import * as Clipboard from 'expo-clipboard';
 import type { PurchasesPackage } from 'react-native-purchases';
+import { NativeModules } from 'react-native';
 
-let Purchases: any = null;
-try {
-  const { NativeModules } = require('react-native');
-  if (NativeModules && NativeModules.RNPurchases) {
+// Lazy-load RevenueCat to avoid NativeEventEmitter crash in Expo Go/simulators without native module
+let _purchasesModule: any = null;
+function getPurchases(): any {
+  if (_purchasesModule !== null) return _purchasesModule;
+  try {
+    // Check if the native module is actually available and functional
+    if (!NativeModules?.RNPurchases) {
+      _purchasesModule = false; // Mark as unavailable
+      return null;
+    }
     // eslint-disable-next-line @typescript-eslint/no-var-requires
     const mod = require('react-native-purchases');
-    Purchases = (mod && mod.default) ? mod.default : mod;
+    _purchasesModule = (mod && mod.default) ? mod.default : mod;
+    return _purchasesModule;
+  } catch (e) {
+    console.log('[RevenueCat] Failed to load:', e);
+    _purchasesModule = false; // Mark as unavailable
+    return null;
   }
-} catch {}
+}
 
 const AboutSupportScreen = () => {
   // Silence verbose logs in production to avoid any UI jank
@@ -58,6 +70,7 @@ const AboutSupportScreen = () => {
       log(`[Offerings] Starting to load offerings (attempt ${retryCount + 1}) at ${new Date().toISOString()}`);
       
       try {
+        const Purchases = getPurchases();
         if (!Purchases) {
           console.log('[Offerings] RevenueCat not available');
           if (mounted) {
@@ -215,6 +228,10 @@ const AboutSupportScreen = () => {
       }, 1500);
 
       try {
+        const Purchases = getPurchases();
+        if (!Purchases) {
+          throw new Error('RevenueCat not available');
+        }
         await Purchases.purchasePackage(pkg);
       } finally {
         clearTimeout(hideTimer);
