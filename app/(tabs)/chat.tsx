@@ -8,6 +8,7 @@ import {
   TouchableOpacity,
   Image,
 } from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { ChevronLeft } from "lucide-react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -52,10 +53,15 @@ export default function ChatScreen() {
           </TouchableOpacity>
         </View>
 
-        {/* Solid blue title block */}
-        <View style={styles.titleSection}>
+        {/* Gradient title block */}
+        <LinearGradient
+          colors={['#5A82AB', '#6B9CA3', '#7FB3A3']}
+          style={styles.titleSection}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+        >
           <Text style={styles.headerTitle}>Choose Your Sponsor</Text>
-        </View>
+        </LinearGradient>
 
         {/* Off-white background content area */}
         <View style={styles.container}>
@@ -132,7 +138,6 @@ const styles = StyleSheet.create({
     fontWeight: '400',
   },
   titleSection: {
-    backgroundColor: "#40C9C9",
     paddingVertical: 24,
     paddingHorizontal: 20,
     alignItems: "center",
