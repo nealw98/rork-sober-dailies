@@ -59,9 +59,6 @@ export default function ChatScreen() {
         >
           <View style={styles.header}>
             <Text style={styles.headerTitle}>Choose Your Sponsor</Text>
-            <Text style={styles.headerSubtitle}>
-              Select a sponsor that fits your style
-            </Text>
           </View>
 
           <ScrollView
@@ -151,13 +148,6 @@ const styles = StyleSheet.create({
     fontSize: 28,
     fontWeight: adjustFontWeight("700", true),
     color: Colors.light.text,
-    marginBottom: 6,
-    textAlign: "center",
-  },
-  headerSubtitle: {
-    fontSize: 15,
-    fontWeight: adjustFontWeight("400"),
-    color: Colors.light.muted,
     textAlign: "center",
   },
   scrollView: {
