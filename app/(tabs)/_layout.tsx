@@ -208,15 +208,6 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="inventory"
-        options={{
-          title: "Spot Check",
-          headerTitle: '',
-          headerLeft: () => <BackButton />,
-          tabBarIcon: createTabIcon(MaterialCommunityIcons, 'emoticon-angry', 22),
-        }}
-      />
-      <Tabs.Screen
         name="prayers"
         options={{
           title: "Prayers",
