@@ -566,20 +566,9 @@ const styles = StyleSheet.create({
     padding: 8,
   },
   card: {
-    backgroundColor: 'rgba(255, 255, 255, 0.9)', // Increased opacity for better depth
-    borderRadius: 16,
-    padding: 24,
-    paddingTop: 8, // Reduced top padding for navigation
+    paddingHorizontal: 8,
+    paddingTop: 8,
     marginBottom: 16,
-    // Level 3: Content Cards (Medium depth)
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 6,
-    },
-    shadowOpacity: 0.2,
-    shadowRadius: 10,
-    elevation: 6,
   },
   cardNavigationContainer: {
     flexDirection: "row",
@@ -591,9 +580,9 @@ const styles = StyleSheet.create({
   cardNavButton: {
     flexDirection: "row",
     alignItems: "center",
-    padding: 4,
-    borderRadius: 6,
-    backgroundColor: 'rgba(255, 255, 255, 0.3)',
+    padding: 6,
+    borderRadius: 8,
+    backgroundColor: 'rgba(255, 255, 255, 0.5)',
   },
   cardNavText: {
     fontSize: 14,
@@ -602,9 +591,9 @@ const styles = StyleSheet.create({
     marginHorizontal: 2,
   },
   cardDateButton: {
-    padding: 6,
-    borderRadius: 6,
-    backgroundColor: 'rgba(255, 255, 255, 0.3)',
+    padding: 8,
+    borderRadius: 8,
+    backgroundColor: 'rgba(255, 255, 255, 0.5)',
   },
   cardHeader: {
     alignItems: "center",
