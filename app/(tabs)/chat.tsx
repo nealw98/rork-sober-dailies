@@ -1,5 +1,5 @@
 import React from "react";
-import { StyleSheet, Platform } from "react-native";
+import { StyleSheet, Platform, Dimensions } from "react-native";
 import { Stack } from "expo-router";
 import {
   View,
@@ -16,6 +16,11 @@ import Colors from "@/constants/colors";
 import { adjustFontWeight } from "@/constants/fonts";
 import { SPONSORS } from "@/constants/sponsors";
 import ScreenContainer from "@/components/ScreenContainer";
+
+const { width: screenWidth } = Dimensions.get("window");
+const CARD_GAP = 12;
+const GRID_PADDING = 16;
+const CARD_WIDTH = (screenWidth - GRID_PADDING * 2 - CARD_GAP) / 2;
 
 export default function ChatScreen() {
   const router = useRouter();
@@ -64,18 +69,18 @@ export default function ChatScreen() {
             contentContainerStyle={styles.scrollContent}
             showsVerticalScrollIndicator={false}
           >
-            {SPONSORS.map((sponsor) => (
-              <TouchableOpacity
-                key={sponsor.id}
-                style={[
-                  styles.card,
-                  !sponsor.isAvailable && styles.cardDisabled,
-                ]}
-                onPress={() => handleSponsorSelect(sponsor.id)}
-                activeOpacity={0.7}
-                disabled={!sponsor.isAvailable}
-              >
-                <View style={styles.cardContent}>
+            <View style={styles.grid}>
+              {SPONSORS.map((sponsor) => (
+                <TouchableOpacity
+                  key={sponsor.id}
+                  style={[
+                    styles.card,
+                    !sponsor.isAvailable && styles.cardDisabled,
+                  ]}
+                  onPress={() => handleSponsorSelect(sponsor.id)}
+                  activeOpacity={0.7}
+                  disabled={!sponsor.isAvailable}
+                >
                   {sponsor.isAvailable && sponsor.avatar ? (
                     <Image 
                       source={sponsor.avatar} 
@@ -86,27 +91,27 @@ export default function ChatScreen() {
                       <Text style={styles.lockEmoji}>🚧</Text>
                     </View>
                   )}
-                  <View style={styles.textContent}>
-                    <Text
-                      style={[
-                        styles.sponsorName,
-                        !sponsor.isAvailable && styles.textDisabled,
-                      ]}
-                    >
-                      {sponsor.name}
-                    </Text>
-                    <Text
-                      style={[
-                        styles.sponsorDescription,
-                        !sponsor.isAvailable && styles.textDisabled,
-                      ]}
-                    >
-                      {sponsor.description}
-                    </Text>
-                  </View>
-                </View>
-              </TouchableOpacity>
-            ))}
+                  <Text
+                    style={[
+                      styles.sponsorName,
+                      !sponsor.isAvailable && styles.textDisabled,
+                    ]}
+                    numberOfLines={1}
+                  >
+                    {sponsor.name}
+                  </Text>
+                  <Text
+                    style={[
+                      styles.sponsorDescription,
+                      !sponsor.isAvailable && styles.textDisabled,
+                    ]}
+                    numberOfLines={2}
+                  >
+                    {sponsor.description}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
           </ScrollView>
         </LinearGradient>
       </ScreenContainer>
@@ -137,20 +142,20 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   header: {
-    paddingTop: 40,
-    paddingBottom: 24,
+    paddingTop: 24,
+    paddingBottom: 16,
     paddingHorizontal: 24,
     alignItems: "center",
   },
   headerTitle: {
-    fontSize: 32,
+    fontSize: 28,
     fontWeight: adjustFontWeight("700", true),
     color: Colors.light.text,
-    marginBottom: 8,
+    marginBottom: 6,
     textAlign: "center",
   },
   headerSubtitle: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: adjustFontWeight("400"),
     color: Colors.light.muted,
     textAlign: "center",
@@ -159,14 +164,21 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
-    padding: 16,
+    paddingHorizontal: GRID_PADDING,
     paddingBottom: 32,
   },
+  grid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "space-between",
+  },
   card: {
+    width: CARD_WIDTH,
     backgroundColor: "#fff",
     borderRadius: 16,
-    padding: 20,
-    marginBottom: 16,
+    padding: 16,
+    marginBottom: CARD_GAP,
+    alignItems: "center",
     shadowColor: "#000",
     shadowOffset: {
       width: 0,
@@ -180,42 +192,37 @@ const styles = StyleSheet.create({
     opacity: 0.6,
     backgroundColor: "#f5f5f5",
   },
-  cardContent: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
   avatar: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    marginRight: 16,
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    marginBottom: 12,
   },
   avatarLocked: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    marginRight: 16,
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    marginBottom: 12,
     backgroundColor: Colors.light.divider,
     justifyContent: "center",
     alignItems: "center",
   },
   lockEmoji: {
-    fontSize: 24,
-  },
-  textContent: {
-    flex: 1,
+    fontSize: 28,
   },
   sponsorName: {
-    fontSize: 20,
+    fontSize: 17,
     fontWeight: adjustFontWeight("600", true),
     color: Colors.light.text,
-    marginBottom: 6,
+    marginBottom: 4,
+    textAlign: "center",
   },
   sponsorDescription: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: adjustFontWeight("400"),
     color: Colors.light.muted,
-    lineHeight: 20,
+    lineHeight: 18,
+    textAlign: "center",
   },
   textDisabled: {
     color: Colors.light.muted,
