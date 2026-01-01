@@ -5,7 +5,6 @@ import {
   Text,
   ScrollView,
   TouchableOpacity,
-  Platform,
 } from "react-native";
 import { ChevronDown, ChevronRight } from "lucide-react-native";
 import { LinearGradient } from 'expo-linear-gradient';
@@ -90,7 +89,7 @@ export default function PrayersScreen() {
   };
 
   return (
-    <ScreenContainer style={styles.container}>
+    <ScreenContainer style={styles.container} noPadding>
       <Stack.Screen
         options={{
           title: 'Prayers',
@@ -99,29 +98,29 @@ export default function PrayersScreen() {
           ),
         }}
       />
+      
+      {/* Gradient header block */}
       <LinearGradient
-        colors={Colors.gradients.mainThreeColor}
-        style={styles.backgroundGradient}
+        colors={['#5A82AB', '#6B9CA3', '#7FB3A3']}
+        style={styles.headerBlock}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
-        locations={[0, 0.5, 1]}
-      />
+      >
+        <Text style={styles.headerTitle}>AA Prayers</Text>
+        <Text style={styles.headerSubtitle}>Essential prayers for recovery and reflection</Text>
+      </LinearGradient>
       
+      {/* Off-white content area */}
       <GestureDetector gesture={doubleTapGesture}>
         <ScrollView 
           ref={scrollViewRef}
           style={styles.scrollContainer} 
           contentContainerStyle={styles.contentContainer}
         >
-        <View style={styles.header}>
-          <Text style={styles.title}>AA Prayers</Text>
-          <Text style={styles.subtitle}>Essential prayers for recovery and reflection</Text>
-        </View>
-        
         {aaPrayers.map((prayer, index) => (
           <View 
             key={index} 
-            style={styles.prayerCard}
+            style={styles.prayerItem}
             ref={(ref) => { prayerRefs.current[index] = ref; }}
             onLayout={(event) => {
               const { y } = event.nativeEvent.layout;
@@ -136,9 +135,9 @@ export default function PrayersScreen() {
             >
               <Text style={styles.prayerTitle}>{prayer.title}</Text>
               {expandedPrayer === index ? (
-                <ChevronDown size={20} color={Colors.light.muted} />
+                <ChevronDown size={20} color="#666" />
               ) : (
-                <ChevronRight size={20} color={Colors.light.muted} />
+                <ChevronRight size={20} color="#666" />
               )}
             </TouchableOpacity>
             
@@ -155,7 +154,7 @@ export default function PrayersScreen() {
                     <Text style={[styles.prayerText, { fontSize, lineHeight: fontSize * 1.375 }]}>{prayer.content.split('As this day closes,')[1]}</Text>
                   </View>
                 ) : (
-          <Text style={[styles.prayerText, { fontSize, lineHeight }]}>{prayer.content}</Text>
+                  <Text style={[styles.prayerText, { fontSize, lineHeight }]}>{prayer.content}</Text>
                 )}
                 {prayer.source && <Text style={[styles.prayerSource, { fontSize: fontSize * 0.75 }]}>— {prayer.source}</Text>}
               </View>
@@ -171,30 +170,26 @@ export default function PrayersScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.light.background,
+    backgroundColor: '#f5f6f8',
   },
-  fontSizeControls: {
-    flexDirection: 'row',
+  headerBlock: {
+    paddingTop: 20,
+    paddingBottom: 24,
+    paddingHorizontal: 20,
     alignItems: 'center',
-    gap: 8,
-    marginRight: Platform.OS === 'android' ? 12 : 16,
-    paddingRight: 2,
-    height: 44,
   },
-  fontSizeButton: {
-    padding: 4,
-    minWidth: 28,
-    height: 44,
-    paddingBottom: 0,
-    alignItems: 'center',
-    justifyContent: 'center',
+  headerTitle: {
+    fontSize: 28,
+    fontStyle: 'italic',
+    fontWeight: adjustFontWeight('400'),
+    color: '#fff',
+    marginBottom: 8,
+    textAlign: 'center',
   },
-  backgroundGradient: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
+  headerSubtitle: {
+    fontSize: 14,
+    color: 'rgba(255,255,255,0.85)',
+    textAlign: 'center',
   },
   scrollContainer: {
     flex: 1,
@@ -203,57 +198,29 @@ const styles = StyleSheet.create({
     padding: 16,
     paddingBottom: 40,
   },
-  header: {
-    marginBottom: 24,
-  },
-  title: {
-    fontSize: 28,
-    fontWeight: adjustFontWeight("bold", true),
-    color: Colors.light.text,
-    marginBottom: 8,
-    textAlign: "center",
-  },
-  subtitle: {
-    fontSize: 14,
-    color: Colors.light.muted,
-    textAlign: "center",
-    marginBottom: 8,
-  },
-  prayerCard: {
-    backgroundColor: 'rgba(255, 255, 255, 0.7)',
-    borderRadius: 16,
-    marginBottom: 16,
-    overflow: "hidden",
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.3)',
-    // Level 3: Content Cards (Medium depth)
-    shadowColor: 'rgba(0, 0, 0, 0.1)',
-    shadowOffset: {
-      width: 0,
-      height: 4,
-    },
-    shadowOpacity: 1,
-    shadowRadius: 8,
-    elevation: 4,
+  prayerItem: {
+    borderBottomWidth: 1,
+    borderBottomColor: '#e0e0e0',
   },
   prayerHeader: {
     flexDirection: "row",
     alignItems: "center",
-    padding: 16,
+    paddingVertical: 16,
+    paddingHorizontal: 8,
     justifyContent: "space-between",
   },
   prayerTitle: {
     fontSize: 18,
     fontWeight: adjustFontWeight("600", true),
-    color: Colors.light.text,
+    color: '#000',
   },
   prayerContent: {
-    padding: 16,
-    paddingTop: 0,
+    paddingHorizontal: 8,
+    paddingBottom: 16,
   },
   prayerText: {
     fontSize: 16,
-    color: Colors.light.text,
+    color: '#000',
     lineHeight: 22,
     marginBottom: 16,
   },
@@ -262,19 +229,8 @@ const styles = StyleSheet.create({
   },
   prayerSource: {
     fontSize: 12,
-    color: Colors.light.muted,
+    color: '#555',
     textAlign: "right",
     fontStyle: "italic",
-  },
-  copyrightContainer: {
-    marginTop: 24,
-    paddingHorizontal: 16,
-    paddingBottom: 16,
-  },
-  copyrightText: {
-    fontSize: 12,
-    color: Colors.light.muted,
-    textAlign: "center",
-    lineHeight: 16,
   },
 });
