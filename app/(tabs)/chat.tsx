@@ -132,7 +132,7 @@ const styles = StyleSheet.create({
     fontWeight: '400',
   },
   titleSection: {
-    backgroundColor: "#3AAFA9",
+    backgroundColor: "#40C9C9",
     paddingVertical: 24,
     paddingHorizontal: 20,
     alignItems: "center",
