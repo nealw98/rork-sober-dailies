@@ -11,10 +11,11 @@ import {
   ActivityIndicator,
   Keyboard,
   Alert,
+  Image,
 } from "react-native";
 import * as Haptics from 'expo-haptics';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Send, RotateCcw } from "lucide-react-native";
+import { Send, ChevronDown } from "lucide-react-native";
 import * as Clipboard from 'expo-clipboard';
 import { LinearGradient } from 'expo-linear-gradient';
 import Colors from "@/constants/colors";
@@ -90,25 +91,38 @@ const checkSponsorMessageLimits = async (): Promise<LimitCheckResult> => {
   }
 };
 
-const ChatBubble = ({ message }: { message: ChatMessage }) => {
+interface ChatInterfaceProps {
+  sponsorType: SponsorType;
+  onSponsorPress?: (position: { x: number; y: number; width: number }) => void;
+}
+
+const ChatBubble = ({
+  message,
+  bubbleColor,
+  bubbleShadowColor,
+  sponsorType,
+}: {
+  message: ChatMessage;
+  bubbleColor?: string;
+  bubbleShadowColor?: string;
+  sponsorType: SponsorType;
+}) => {
   const isUser = message.sender === "user";
-  const { sponsorType } = useChatStore();
-  
-  // Get the appropriate bubble style based on sponsor type
+
   const getBotBubbleStyle = () => {
     if (isUser) return styles.userBubble;
-    
-    switch (sponsorType) {
-      case "supportive":
-        return styles.supportiveBubble;
-      case "grace":
-        return styles.graceBubble;
-      case "salty":
-        return styles.saltyBubble;
-      default:
-        return styles.supportiveBubble;
+    if (bubbleColor) {
+      return { backgroundColor: bubbleColor };
     }
+    return styles.supportiveBubble;
   };
+
+  const isFresh = sponsorType === 'fresh' && !isUser;
+  const bubbleStyle = [
+    styles.bubble,
+    isFresh ? styles.freshBubbleBase : getBotBubbleStyle(),
+    bubbleShadowColor ? { shadowColor: bubbleShadowColor } : null,
+  ];
 
   const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -154,16 +168,13 @@ const ChatBubble = ({ message }: { message: ChatMessage }) => {
       testID={`chat-bubble-${message.id}`}
     >
       <TouchableOpacity
-        style={[
-          styles.bubble,
-          getBotBubbleStyle(),
-        ]}
+        style={bubbleStyle}
         onPressIn={handlePressIn}
         onPressOut={handlePressOut}
         activeOpacity={0.7}
       >
         {isUser ? (
-          <Text style={styles.messageText}>{message.text}</Text>
+          <Text style={styles.userMessageText}>{message.text}</Text>
         ) : (
           <ChatMarkdownRenderer content={message.text} style={styles.messageText} />
         )}
@@ -178,80 +189,27 @@ const ChatBubble = ({ message }: { message: ChatMessage }) => {
   );
 };
 
-const SponsorToggle = ({ 
-  sponsorType, 
-  onChange 
-}: { 
-  sponsorType: SponsorType; 
-  onChange: (type: SponsorType) => void;
-}) => {
-  return (
-    <View style={styles.sponsorToggleContainer}>
-      <TouchableOpacity
-        style={[
-          styles.sponsorButton,
-          sponsorType === "supportive" && styles.sponsorButtonActive
-        ]}
-        onPress={() => onChange("supportive")}
-        testID="supportive-sponsor-button"
-      >
-        <Text 
-          style={[
-            styles.sponsorButtonText,
-            sponsorType === "supportive" && styles.sponsorButtonTextActive
-          ]}
-        >
-          Steady Eddie
-        </Text>
-      </TouchableOpacity>
-      
-      <TouchableOpacity
-        style={[
-          styles.sponsorButton,
-          sponsorType === "salty" && styles.sponsorButtonActive
-        ]}
-        onPress={() => onChange("salty")}
-        testID="salty-sponsor-button"
-      >
-        <Text 
-          style={[
-            styles.sponsorButtonText,
-            sponsorType === "salty" && styles.sponsorButtonTextActive
-          ]}
-        >
-          Salty Sam
-        </Text>
-      </TouchableOpacity>
-      
-      <TouchableOpacity
-        style={[
-          styles.sponsorButton,
-          sponsorType === "grace" && styles.sponsorButtonActive
-        ]}
-        onPress={() => onChange("grace")}
-        testID="grace-sponsor-button"
-      >
-        <Text 
-          style={[
-            styles.sponsorButtonText,
-            sponsorType === "grace" && styles.sponsorButtonTextActive
-          ]}
-          numberOfLines={1}
-          ellipsizeMode="tail"
-        >
-          Gentle Grace
-        </Text>
-      </TouchableOpacity>
-    </View>
-  );
-};
-
-export default function ChatInterface() {
-  const { messages, isLoading, sendMessage, clearChat, sponsorType, changeSponsor } = useChatStore();
+export default function ChatInterface({ 
+  sponsorType: propSponsorType,
+  onSponsorPress,
+}: ChatInterfaceProps) {
+  const { messages, isLoading, sendMessage, sponsorType: storeSponsorType, changeSponsor } = useChatStore();
   const [inputText, setInputText] = useState<string>("");
   const [isCheckingLimits, setIsCheckingLimits] = useState(false);
   const flatListRef = useRef<FlatList>(null);
+  const selectorRef = useRef<TouchableOpacity | null>(null);
   const insets = useSafeAreaInsets();
+  
+  // Always use the prop sponsor type and sync to store immediately
+  const sponsorType = propSponsorType ?? storeSponsorType;
+  
+  // Sync prop to store on mount and whenever it changes
+  useEffect(() => {
+    if (propSponsorType && propSponsorType !== storeSponsorType) {
+      console.log('[ChatInterface] Syncing sponsor:', propSponsorType, 'store was:', storeSponsorType);
+      changeSponsor(propSponsorType);
+    }
+  }, [propSponsorType, storeSponsorType, changeSponsor]);
 
   // Scroll to bottom when messages change
   useEffect(() => {
@@ -261,6 +219,22 @@ export default function ChatInterface() {
       }, 100);
     }
   }, [messages]);
+
+  // Scroll to bottom when keyboard appears
+  useEffect(() => {
+    const keyboardDidShowListener = Keyboard.addListener(
+      'keyboardDidShow',
+      () => {
+        setTimeout(() => {
+          flatListRef.current?.scrollToEnd({ animated: true });
+        }, 100);
+      }
+    );
+
+    return () => {
+      keyboardDidShowListener.remove();
+    };
+  }, []);
 
   const handleSend = async () => {
     if (inputText.trim() === "" || isLoading || isCheckingLimits) return;
@@ -303,10 +277,6 @@ export default function ChatInterface() {
     void sendMessage(textToSend);
   };
 
-  const handleClearChat = () => {
-    clearChat();
-  };
-
   // Helper function to get sponsor display name for logging
   const getSponsorDisplayName = (type: SponsorType): string => {
     switch (type) {
@@ -316,46 +286,45 @@ export default function ChatInterface() {
         return "SteadyEddie";
       case "grace":
         return "GentleGrace";
+      case "cowboy-pete":
+        return "CowboyPete";
+      case "co-sign-sally":
+        return "CoSignSally";
+      case "fresh":
+        return "FreshFreddie";
       default:
         return "Unknown";
     }
   };
 
-  // Get placeholder text based on sponsor type
-  const getPlaceholderText = () => {
-    switch (sponsorType) {
-      case "salty":
-        return "Tell Sam what's got you sideways...";
-      case "supportive":
-        return "Tell Eddie what's on your mind...";
-      case "grace":
-        return "Tell Grace what's in your heart...";
-      default:
-        return "Type your message...";
-    }
+  // Get sponsor config
+  const getSponsorConfig = () => {
+    const { getSponsorById } = require("@/constants/sponsors");
+    return getSponsorById(sponsorType);
   };
 
-  // Get loading text based on sponsor type
-  const getLoadingText = () => {
-    switch (sponsorType) {
-      case "salty":
-        return "Salty Sam is thinking...";
-      case "supportive":
-        return "Steady Eddie is thinking...";
-      case "grace":
-        return "Gentle Grace is channeling wisdom...";
-      default:
-        return "Thinking...";
-    }
-  };
+  const sponsorConfig = getSponsorConfig();
+  const placeholderText = sponsorConfig?.placeholderText || "Type your message...";
+  const loadingText = sponsorConfig?.loadingText || "Thinking...";
+  const bubbleColor = sponsorConfig?.bubbleColor;
+  const bubbleShadowColor = sponsorConfig?.bubbleShadowColor;
 
   const isSendDisabled = !inputText.trim() || isLoading || isCheckingLimits;
+
+  const handleSponsorSelectorPress = () => {
+    if (!onSponsorPress || !selectorRef.current) {
+      return;
+    }
+    selectorRef.current.measureInWindow((x = 0, y = 0, width = 0, height = 0) => {
+      onSponsorPress({ x, y: y + height + 4, width });
+    });
+  };
 
   return (
     <KeyboardAvoidingView
       style={styles.container}
-      behavior={Platform.OS === "ios" ? "padding" : undefined}
-      keyboardVerticalOffset={Platform.OS === "ios" ? 120 : 0}
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
+      keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 0}
     >
       <LinearGradient
         colors={Colors.gradients.mainThreeColor}
@@ -363,32 +332,44 @@ export default function ChatInterface() {
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
       />
-      
-      <View style={styles.headerContainer}>
-        <Text style={styles.headerTitle}>AI Sponsors</Text>
-        <Text style={styles.headerSubtitle}>Select a sponsor that fits your style</Text>
-      </View>
-      
-      <View style={styles.topContainer}>
-        <SponsorToggle 
-          sponsorType={sponsorType} 
-          onChange={changeSponsor}
-        />
+      <View style={styles.selectorContainer}>
         <TouchableOpacity
-          style={styles.clearButton}
-          onPress={handleClearChat}
-          testID="clear-chat-button"
+          ref={selectorRef}
+          style={styles.selectorCard}
+          onPress={handleSponsorSelectorPress}
+          activeOpacity={0.75}
         >
-          <RotateCcw size={18} color={Colors.light.muted} />
+          {sponsorConfig?.avatar ? (
+            <Image source={sponsorConfig.avatar} style={styles.selectorAvatar} />
+          ) : (
+            <View style={styles.selectorAvatarPlaceholder}>
+              <Text style={styles.selectorAvatarInitial}>
+                {sponsorConfig?.name?.charAt(0) ?? "?"}
+              </Text>
+            </View>
+          )}
+          <View style={styles.selectorTextWrapper}>
+            <Text style={styles.selectorName} numberOfLines={1}>
+              {sponsorConfig?.name ?? "Sponsor"}
+            </Text>
+            <Text style={styles.selectorHint}>Tap to switch sponsors</Text>
+          </View>
+          <ChevronDown color={Colors.light.text} size={20} />
         </TouchableOpacity>
       </View>
-      
       <View style={styles.messagesWrapper}>
         <FlatList
           ref={flatListRef}
           data={messages}
           keyExtractor={(item) => item.id}
-          renderItem={({ item }) => <ChatBubble message={item} />}
+          renderItem={({ item }) => (
+            <ChatBubble
+              message={item}
+              bubbleColor={bubbleColor}
+              bubbleShadowColor={bubbleShadowColor}
+              sponsorType={sponsorType}
+            />
+          )}
           contentContainerStyle={styles.chatContainer}
           showsVerticalScrollIndicator={false}
           testID="chat-message-list"
@@ -398,22 +379,27 @@ export default function ChatInterface() {
         {isLoading && (
           <View style={styles.loadingContainer}>
             <ActivityIndicator size="small" color={Colors.light.tint} />
-            <Text style={styles.loadingText}>{getLoadingText()}</Text>
+            <Text style={styles.loadingText}>{loadingText}</Text>
           </View>
         )}
       </View>
       
-      <View style={[styles.inputContainer, { paddingBottom: Math.max(insets.bottom, 12) }]}>
+      <View
+        style={[
+          styles.inputContainer,
+          { paddingBottom: Math.max(insets.bottom, 12) },
+        ]}
+      >
         <TextInput
           style={styles.input}
           value={inputText}
           onChangeText={setInputText}
-          placeholder={getPlaceholderText()}
+          placeholder={placeholderText}
           placeholderTextColor={Colors.light.muted}
-          multiline={true}
+          multiline
           maxLength={500}
           returnKeyType="done"
-          blurOnSubmit={true}
+          blurOnSubmit
           textAlignVertical="top"
           textBreakStrategy="simple"
           testID="chat-input"
@@ -443,45 +429,71 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.light.background,
   },
   backgroundGradient: {
-    position: 'absolute',
+    position: "absolute",
     top: 0,
     left: 0,
     right: 0,
     bottom: 0,
   },
-  headerContainer: {
+  selectorContainer: {
     paddingHorizontal: 16,
-    paddingTop: 12,
-    paddingBottom: 8,
-    alignItems: "center",
+    paddingTop: 32,
+    paddingBottom: 0,
   },
-  headerTitle: {
-    fontSize: 28,
-    fontWeight: adjustFontWeight("700", true),
-    color: Colors.light.text,
-    marginBottom: 8,
-    textAlign: 'center',
-  },
-  headerSubtitle: {
-    fontSize: 12,
-    fontStyle: "italic" as const,
-    fontWeight: adjustFontWeight("400"),
-    color: Colors.light.muted,
-  },
-  topContainer: {
+  selectorCard: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: 'transparent',
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    backgroundColor: "#ffffff",
+    borderRadius: 18,
+    gap: 10,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.16,
+    shadowRadius: 14,
+    elevation: 6,
+  },
+  selectorAvatar: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+  },
+  selectorAvatarPlaceholder: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "#f0f4ff",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  selectorAvatarInitial: {
+    fontSize: 18,
+    fontWeight: adjustFontWeight("600"),
+    color: Colors.light.tint,
+  },
+  selectorTextWrapper: {
+    flex: 1,
+  },
+  selectorName: {
+    fontSize: 18,
+    fontWeight: adjustFontWeight("600", true),
+    color: Colors.light.text,
+  },
+  selectorHint: {
+    fontSize: 12,
+    color: Colors.light.muted,
+    marginTop: 2,
   },
   messagesWrapper: {
     flex: 1,
     backgroundColor: Colors.light.background,
     borderRadius: 16,
-    margin: 12,
-    marginBottom: 0,
-    overflow: 'hidden',
-    // Level 3: Content Cards (Medium depth)
-    shadowColor: '#000',
+    marginHorizontal: 16,
+    marginTop: 28,
+    marginBottom: 8,
+    overflow: "hidden",
+    shadowColor: "#000",
     shadowOffset: {
       width: 0,
       height: 4,
@@ -490,51 +502,9 @@ const styles = StyleSheet.create({
     shadowRadius: 6,
     elevation: 4,
   },
-  clearButton: {
-    padding: 12,
-    marginRight: 4,
-  },
-  sponsorToggleContainer: {
-    flex: 1,
-    flexDirection: "row",
-    padding: 8,
-  },
-  sponsorButton: {
-    flex: 1,
-    paddingVertical: 8,
-    paddingHorizontal: 4,
-    borderRadius: 20,
-    alignItems: "center",
-    marginHorizontal: 2,
-    backgroundColor: Colors.light.cardBackground,
-    borderWidth: 1,
-    borderColor: Colors.light.divider,
-    // Level 2: Interactive Cards (High depth)
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 6,
-    },
-    shadowOpacity: 0.18,
-    shadowRadius: 8,
-    elevation: 6,
-  },
-  sponsorButtonActive: {
-    backgroundColor: Colors.light.tint,
-    borderColor: Colors.light.tint,
-  },
-  sponsorButtonText: {
-    fontSize: 13,
-    fontWeight: adjustFontWeight("500"),
-    color: Colors.light.muted,
-    flexShrink: 1,
-  },
-  sponsorButtonTextActive: {
-    color: "#fff",
-  },
   chatContainer: {
     padding: 16,
-    paddingBottom: Platform.OS === 'android' ? 16 : 20,
+    paddingBottom: Platform.OS === "android" ? 16 : 20,
   },
   bubbleContainer: {
     marginBottom: 12,
@@ -551,8 +521,7 @@ const styles = StyleSheet.create({
     padding: 12,
     borderRadius: 18,
     minWidth: 60,
-    // Level 2: Interactive Cards (High depth)
-    shadowColor: '#000',
+    shadowColor: "#000",
     shadowOffset: {
       width: 0,
       height: 6,
@@ -561,25 +530,37 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 6,
   },
+  freshBubbleBase: {
+    backgroundColor: "#CCFBF1",
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: "#14B8A6",
+  },
   userBubble: {
-    backgroundColor: "#b8d9f0", // Even darker blue for better contrast
+    backgroundColor: "#BFDBFE",
     borderBottomRightRadius: 4,
   },
   supportiveBubble: {
-    backgroundColor: "#e8f8e8", // Light green for Eddie (supportive sponsor)
+    backgroundColor: "#e8f8e8",
     borderBottomLeftRadius: 4,
   },
   graceBubble: {
-    backgroundColor: "#e8d4f0", // Darker lavender for better contrast
+    backgroundColor: "#e8d4f0",
     borderBottomLeftRadius: 4,
   },
   saltyBubble: {
-    backgroundColor: "#fff0d4", // Darker amber for better contrast
+    backgroundColor: "#fff0d4",
     borderBottomLeftRadius: 4,
   },
   messageText: {
     fontSize: 16,
-    color: "#333333",
+    color: "#1E293B",
+    lineHeight: 22,
+    fontWeight: adjustFontWeight("400"),
+  },
+  userMessageText: {
+    fontSize: 16,
+    color: "#1E293B",
     lineHeight: 22,
     fontWeight: adjustFontWeight("400"),
   },
@@ -603,26 +584,25 @@ const styles = StyleSheet.create({
   inputContainer: {
     flexDirection: "row",
     padding: 12,
-    backgroundColor: 'transparent',
-    ...(Platform.OS === 'android' && {
-      paddingBottom: Platform.OS === 'android' ? 8 : 12,
+    backgroundColor: "transparent",
+    ...(Platform.OS === "android" && {
+      paddingBottom: 8,
     }),
   },
   input: {
     flex: 1,
-    backgroundColor: '#FAFAFA',
+    backgroundColor: "#FAFAFA",
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: 'rgba(0, 0, 0, 0.05)',
+    borderColor: "rgba(0, 0, 0, 0.05)",
     paddingHorizontal: 16,
     paddingVertical: 10,
     fontSize: 16,
     color: Colors.light.text,
     minHeight: 44,
     maxHeight: 120,
-    textAlignVertical: 'top',
-    // Soft drop shadow for subtle lift
-    shadowColor: '#000',
+    textAlignVertical: "top",
+    shadowColor: "#000",
     shadowOffset: {
       width: 0,
       height: 3,
@@ -639,6 +619,14 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     marginLeft: 8,
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 3,
+    },
+    shadowOpacity: 0.15,
+    shadowRadius: 6,
+    elevation: 3,
   },
   sendButtonDisabled: {
     backgroundColor: Colors.light.divider,

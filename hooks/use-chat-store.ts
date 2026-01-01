@@ -15,6 +15,18 @@ import {
   GENTLE_GRACE_SYSTEM_PROMPT, 
   GENTLE_GRACE_INITIAL_MESSAGE 
 } from "@/constants/gentle-grace";
+import {
+  COWBOY_PETE_SYSTEM_PROMPT,
+  COWBOY_PETE_INITIAL_MESSAGE,
+} from "@/constants/cowboy-pete";
+import {
+  CO_SIGN_SALLY_SYSTEM_PROMPT,
+  CO_SIGN_SALLY_INITIAL_MESSAGE,
+} from "@/constants/co-sign-sally";
+import {
+  FRESH_FREDDIE_SYSTEM_PROMPT,
+  FRESH_FREDDIE_INITIAL_MESSAGE,
+} from "@/constants/fresh-freddie";
 import { addAIResponses, maybeAskForReview } from "@/lib/reviewPrompt";
 
 
@@ -28,29 +40,61 @@ interface APIMessage {
 // Function to call the AI API
 async function callAI(messages: APIMessage[]): Promise<string> {
   try {
-    console.log('AI API Request:', { messages: messages.length, firstMessage: messages[0]?.role });
+    console.log('=== AI API REQUEST ===');
+    console.log('Message Count:', messages.length);
+    console.log('Full Messages:', JSON.stringify(messages, null, 2));
+    
+    const requestBody = { messages };
+    console.log('Request Body:', JSON.stringify(requestBody, null, 2));
+    console.log('Request Body Size (bytes):', JSON.stringify(requestBody).length);
     
     const response = await fetch('https://toolkit.rork.com/text/llm/', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ messages }),
+      body: JSON.stringify(requestBody),
     });
 
-    console.log('AI API Response Status:', response.status);
+    console.log('=== AI API RESPONSE ===');
+    console.log('Status Code:', response.status);
+    console.log('Status Text:', response.statusText);
+    console.log('Headers:', JSON.stringify(Object.fromEntries(response.headers.entries()), null, 2));
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('AI API Error Response:', errorText);
+      console.error('=== AI API ERROR ===');
+      console.error('Status:', response.status);
+      console.error('Response Body:', errorText);
+      
+      // Try to parse as JSON for more details
+      try {
+        const errorJson = JSON.parse(errorText);
+        console.error('Parsed Error JSON:', JSON.stringify(errorJson, null, 2));
+      } catch (e) {
+        console.error('Error response is not JSON');
+      }
+      
       throw new Error(`API request failed: ${response.status} - ${errorText}`);
     }
 
-    const data = await response.json();
-    console.log('AI API Success:', { hasCompletion: !!data.completion });
+    const responseText = await response.text();
+    console.log('Response Text:', responseText);
+    
+    const data = JSON.parse(responseText);
+    console.log('=== AI API SUCCESS ===');
+    console.log('Response Data:', JSON.stringify(data, null, 2));
+    console.log('Has Completion:', !!data.completion);
+    console.log('Completion Length:', data.completion?.length || 0);
+    
     return data.completion || "Sorry, I'm having trouble right now. Try again in a minute.";
   } catch (error) {
-    console.error('AI API Error:', error);
+    console.error('=== AI API EXCEPTION ===');
+    console.error('Error Type:', error?.constructor?.name);
+    console.error('Error Message:', error?.message);
+    console.error('Full Error:', JSON.stringify(error, Object.getOwnPropertyNames(error), 2));
+    console.error('Stack:', error?.stack);
+    
     return "I'm having trouble connecting right now. Please try again in a moment, or consider reaching out to a meeting or another member of your support network.";
   }
 }
@@ -69,9 +113,20 @@ function convertToAPIMessages(chatMessages: ChatMessage[], sponsorType: SponsorT
     case "grace":
       systemPrompt = GENTLE_GRACE_SYSTEM_PROMPT;
       break;
+    case "cowboy-pete":
+      systemPrompt = COWBOY_PETE_SYSTEM_PROMPT;
+      break;
+    case "co-sign-sally":
+      systemPrompt = CO_SIGN_SALLY_SYSTEM_PROMPT;
+      break;
+    case "fresh":
+      systemPrompt = FRESH_FREDDIE_SYSTEM_PROMPT;
+      break;
     default:
       systemPrompt = STEADY_EDDIE_SYSTEM_PROMPT;
   }
+
+  console.log('Using FULL system prompt, length:', systemPrompt.length);
 
   const apiMessages: APIMessage[] = [];
 
@@ -80,7 +135,8 @@ function convertToAPIMessages(chatMessages: ChatMessage[], sponsorType: SponsorT
   
   conversationMessages.forEach((msg, index) => {
     if (msg.sender === 'user') {
-      // For the first user message, prepend the system prompt
+      // For the first user message only, prepend the FULL system prompt
+      // Rork API doesn't accept 'system' role, so we include it in the first user message
       const content = index === 0 ? `${systemPrompt}\n\nUser: ${msg.text}` : msg.text;
       apiMessages.push({ role: 'user', content });
     } else if (msg.sender === 'bot') {
@@ -96,6 +152,9 @@ export const [ChatStoreProvider, useChatStore] = createContextHook(() => {
   const [saltyMessages, setSaltyMessages] = useState<ChatMessage[]>([SALTY_SAM_INITIAL_MESSAGE]);
   const [supportiveMessages, setSupportiveMessages] = useState<ChatMessage[]>([STEADY_EDDIE_INITIAL_MESSAGE]);
   const [graceMessages, setGraceMessages] = useState<ChatMessage[]>([GENTLE_GRACE_INITIAL_MESSAGE]);
+  const [cowboyMessages, setCowboyMessages] = useState<ChatMessage[]>([COWBOY_PETE_INITIAL_MESSAGE]);
+  const [sallyMessages, setSallyMessages] = useState<ChatMessage[]>([CO_SIGN_SALLY_INITIAL_MESSAGE]);
+  const [freshMessages, setFreshMessages] = useState<ChatMessage[]>([FRESH_FREDDIE_INITIAL_MESSAGE]);
   const [isLoading, setIsLoading] = useState<boolean>(false);
 
   // Get current messages based on selected sponsor
@@ -104,6 +163,9 @@ export const [ChatStoreProvider, useChatStore] = createContextHook(() => {
       case "salty": return saltyMessages;
       case "supportive": return supportiveMessages;
       case "grace": return graceMessages;
+      case "cowboy-pete": return cowboyMessages;
+      case "co-sign-sally": return sallyMessages;
+      case "fresh": return freshMessages;
       default: return saltyMessages;
     }
   })();
@@ -120,6 +182,15 @@ export const [ChatStoreProvider, useChatStore] = createContextHook(() => {
       case "grace":
         setGraceMessages(newMessages);
         break;
+      case "cowboy-pete":
+        setCowboyMessages(newMessages);
+        break;
+      case "co-sign-sally":
+        setSallyMessages(newMessages);
+        break;
+      case "fresh":
+        setFreshMessages(newMessages);
+        break;
     }
   };
 
@@ -131,11 +202,17 @@ export const [ChatStoreProvider, useChatStore] = createContextHook(() => {
           storedSaltyMessages, 
           storedSupportiveMessages, 
           storedGraceMessages,
+          storedCowboyMessages,
+          storedSallyMessages,
+          storedFreshMessages,
           storedSponsorType
         ] = await Promise.all([
           AsyncStorage.getItem("aa-chat-messages-salty"),
           AsyncStorage.getItem("aa-chat-messages-supportive"),
           AsyncStorage.getItem("aa-chat-messages-grace"),
+          AsyncStorage.getItem("aa-chat-messages-cowboy"),
+          AsyncStorage.getItem("aa-chat-messages-sally"),
+          AsyncStorage.getItem("aa-chat-messages-fresh"),
           AsyncStorage.getItem("aa-chat-sponsor-type")
         ]);
         
@@ -208,6 +285,63 @@ export const [ChatStoreProvider, useChatStore] = createContextHook(() => {
             setGraceMessages([GENTLE_GRACE_INITIAL_MESSAGE]);
           }
         }
+
+        if (storedCowboyMessages) {
+          try {
+            const parsed = JSON.parse(storedCowboyMessages);
+            if (Array.isArray(parsed)) {
+              if (parsed.length === 0 || parsed[0].id !== "welcome-cowboy") {
+                setCowboyMessages([COWBOY_PETE_INITIAL_MESSAGE, ...parsed]);
+              } else {
+                setCowboyMessages([COWBOY_PETE_INITIAL_MESSAGE, ...parsed.slice(1)]);
+              }
+            } else {
+              console.warn('[Chat Store] Invalid cowboy messages format, using defaults');
+              setCowboyMessages([COWBOY_PETE_INITIAL_MESSAGE]);
+            }
+          } catch (error) {
+            console.error('[Chat Store] Failed to parse cowboy messages:', error);
+            setCowboyMessages([COWBOY_PETE_INITIAL_MESSAGE]);
+          }
+        }
+
+        if (storedSallyMessages) {
+          try {
+            const parsed = JSON.parse(storedSallyMessages);
+            if (Array.isArray(parsed)) {
+              if (parsed.length === 0 || parsed[0].id !== "welcome-sally") {
+                setSallyMessages([CO_SIGN_SALLY_INITIAL_MESSAGE, ...parsed]);
+              } else {
+                setSallyMessages([CO_SIGN_SALLY_INITIAL_MESSAGE, ...parsed.slice(1)]);
+              }
+            } else {
+              console.warn('[Chat Store] Invalid sally messages format, using defaults');
+              setSallyMessages([CO_SIGN_SALLY_INITIAL_MESSAGE]);
+            }
+          } catch (error) {
+            console.error('[Chat Store] Failed to parse sally messages:', error);
+            setSallyMessages([CO_SIGN_SALLY_INITIAL_MESSAGE]);
+          }
+        }
+
+        if (storedFreshMessages) {
+          try {
+            const parsed = JSON.parse(storedFreshMessages);
+            if (Array.isArray(parsed)) {
+              if (parsed.length === 0 || parsed[0].id !== "welcome-fresh") {
+                setFreshMessages([FRESH_FREDDIE_INITIAL_MESSAGE, ...parsed]);
+              } else {
+                setFreshMessages([FRESH_FREDDIE_INITIAL_MESSAGE, ...parsed.slice(1)]);
+              }
+            } else {
+              console.warn('[Chat Store] Invalid fresh messages format, using defaults');
+              setFreshMessages([FRESH_FREDDIE_INITIAL_MESSAGE]);
+            }
+          } catch (error) {
+            console.error('[Chat Store] Failed to parse fresh messages:', error);
+            setFreshMessages([FRESH_FREDDIE_INITIAL_MESSAGE]);
+          }
+        }
       } catch (error) {
         console.error("Error loading messages:", error);
       }
@@ -259,6 +393,48 @@ export const [ChatStoreProvider, useChatStore] = createContextHook(() => {
     }
   }, [graceMessages]);
 
+  useEffect(() => {
+    const saveMessages = async () => {
+      try {
+        await AsyncStorage.setItem("aa-chat-messages-cowboy", JSON.stringify(cowboyMessages));
+      } catch (error) {
+        console.error("Error saving Cowboy Pete messages:", error);
+      }
+    };
+    
+    if (cowboyMessages.length > 0) {
+      saveMessages();
+    }
+  }, [cowboyMessages]);
+
+  useEffect(() => {
+    const saveMessages = async () => {
+      try {
+        await AsyncStorage.setItem("aa-chat-messages-sally", JSON.stringify(sallyMessages));
+      } catch (error) {
+        console.error("Error saving Co-Sign Sally messages:", error);
+      }
+    };
+    
+    if (sallyMessages.length > 0) {
+      saveMessages();
+    }
+  }, [sallyMessages]);
+
+  useEffect(() => {
+    const saveMessages = async () => {
+      try {
+        await AsyncStorage.setItem("aa-chat-messages-fresh", JSON.stringify(freshMessages));
+      } catch (error) {
+        console.error("Error saving Fresh Freddie messages:", error);
+      }
+    };
+    
+    if (freshMessages.length > 0) {
+      saveMessages();
+    }
+  }, [freshMessages]);
+
   // Save sponsor type preference
   useEffect(() => {
     const saveSponsorType = async () => {
@@ -274,6 +450,18 @@ export const [ChatStoreProvider, useChatStore] = createContextHook(() => {
 
   const changeSponsor = (type: SponsorType) => {
     setSponsorType(type);
+  };
+
+  const getSponsorMessages = (type: SponsorType): ChatMessage[] => {
+    switch (type) {
+      case "salty": return saltyMessages;
+      case "supportive": return supportiveMessages;
+      case "grace": return graceMessages;
+      case "cowboy-pete": return cowboyMessages;
+      case "co-sign-sally": return sallyMessages;
+      case "fresh": return freshMessages;
+      default: return supportiveMessages;
+    }
   };
 
   const sendMessage = async (text: string) => {
@@ -421,6 +609,18 @@ export const [ChatStoreProvider, useChatStore] = createContextHook(() => {
           await AsyncStorage.removeItem("aa-chat-messages-grace");
           setGraceMessages([GENTLE_GRACE_INITIAL_MESSAGE]);
           break;
+        case "cowboy-pete":
+          await AsyncStorage.removeItem("aa-chat-messages-cowboy");
+          setCowboyMessages([COWBOY_PETE_INITIAL_MESSAGE]);
+          break;
+        case "co-sign-sally":
+          await AsyncStorage.removeItem("aa-chat-messages-sally");
+          setSallyMessages([CO_SIGN_SALLY_INITIAL_MESSAGE]);
+          break;
+        case "fresh":
+          await AsyncStorage.removeItem("aa-chat-messages-fresh");
+          setFreshMessages([FRESH_FREDDIE_INITIAL_MESSAGE]);
+          break;
       }
     } catch (error) {
       console.error("Error clearing chat:", error);
@@ -434,5 +634,6 @@ export const [ChatStoreProvider, useChatStore] = createContextHook(() => {
     clearChat,
     sponsorType,
     changeSponsor,
+    getSponsorMessages,
   };
 });

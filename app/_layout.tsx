@@ -224,6 +224,12 @@ function RootLayoutNav() {
             headerShown: true,
           }} 
         />
+        <Stack.Screen 
+          name="sponsor-chat" 
+          options={{ 
+            headerShown: false,
+          }} 
+        />
         
       </Stack>
         <OTASnackbar visible={showSnackbar} onDismiss={dismissSnackbar} onRestart={restartApp} />
