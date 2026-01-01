@@ -19,7 +19,7 @@ import ScreenContainer from "@/components/ScreenContainer";
 
 const { width: screenWidth } = Dimensions.get("window");
 const CARD_GAP = 12;
-const GRID_PADDING = 16;
+const GRID_PADDING = 20;
 const CARD_WIDTH = (screenWidth - GRID_PADDING * 2 - CARD_GAP) / 2;
 
 export default function ChatScreen() {
@@ -41,7 +41,8 @@ export default function ChatScreen() {
     <>
       <Stack.Screen options={{ headerShown: false }} />
       <ScreenContainer noPadding={true}>
-        <View style={[styles.whiteHeader, { paddingTop: insets.top }]}>
+        {/* Header with back button */}
+        <View style={[styles.topHeader, { paddingTop: insets.top }]}>
           <TouchableOpacity
             style={styles.backButton}
             onPress={handleBack}
@@ -51,16 +52,20 @@ export default function ChatScreen() {
             <Text style={styles.backText}>Back</Text>
           </TouchableOpacity>
         </View>
-        <LinearGradient
-          colors={Colors.gradients.mainThreeColor}
-          style={styles.container}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-        >
-          <View style={styles.header}>
-            <Text style={styles.headerTitle}>Choose Your Sponsor</Text>
-          </View>
 
+        {/* Title section with gradient accent bar */}
+        <View style={styles.titleSection}>
+          <LinearGradient
+            colors={['#4A90E2', '#50C878', '#4A90E2']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+            style={styles.gradientAccent}
+          />
+          <Text style={styles.headerTitle}>Choose Your Sponsor</Text>
+        </View>
+
+        {/* White background content area */}
+        <View style={styles.container}>
           <ScrollView
             style={styles.scrollView}
             contentContainerStyle={styles.scrollContent}
@@ -110,17 +115,15 @@ export default function ChatScreen() {
               ))}
             </View>
           </ScrollView>
-        </LinearGradient>
+        </View>
       </ScreenContainer>
     </>
   );
 }
 
 const styles = StyleSheet.create({
-  whiteHeader: {
+  topHeader: {
     backgroundColor: "#fff",
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.light.divider,
     paddingHorizontal: 8,
     paddingVertical: 8,
   },
@@ -135,26 +138,34 @@ const styles = StyleSheet.create({
     color: Colors.light.tint,
     fontWeight: '400',
   },
-  container: {
-    flex: 1,
-  },
-  header: {
-    paddingTop: 24,
-    paddingBottom: 16,
-    paddingHorizontal: 24,
+  titleSection: {
+    backgroundColor: "#fff",
+    paddingBottom: 20,
     alignItems: "center",
   },
+  gradientAccent: {
+    width: 60,
+    height: 4,
+    borderRadius: 2,
+    marginBottom: 16,
+  },
   headerTitle: {
-    fontSize: 28,
+    fontSize: 26,
     fontWeight: adjustFontWeight("700", true),
     color: Colors.light.text,
     textAlign: "center",
+    letterSpacing: -0.5,
+  },
+  container: {
+    flex: 1,
+    backgroundColor: "#fff",
   },
   scrollView: {
     flex: 1,
   },
   scrollContent: {
     paddingHorizontal: GRID_PADDING,
+    paddingTop: 8,
     paddingBottom: 32,
   },
   grid: {
@@ -164,7 +175,7 @@ const styles = StyleSheet.create({
   },
   card: {
     width: CARD_WIDTH,
-    padding: 16,
+    padding: 12,
     marginBottom: CARD_GAP + 8,
     alignItems: "center",
   },
@@ -172,20 +183,20 @@ const styles = StyleSheet.create({
     opacity: 0.6,
   },
   avatar: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
+    width: 88,
+    height: 88,
+    borderRadius: 44,
     marginBottom: 12,
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.15,
     shadowRadius: 6,
     elevation: 4,
   },
   avatarLocked: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
+    width: 88,
+    height: 88,
+    borderRadius: 44,
     marginBottom: 12,
     backgroundColor: Colors.light.divider,
     justifyContent: "center",
@@ -195,7 +206,7 @@ const styles = StyleSheet.create({
     fontSize: 28,
   },
   sponsorName: {
-    fontSize: 17,
+    fontSize: 16,
     fontWeight: adjustFontWeight("600", true),
     color: Colors.light.text,
     marginBottom: 4,
