@@ -29,10 +29,11 @@ import { NativeModules } from 'react-native';
 // Lazy-load RevenueCat to avoid NativeEventEmitter crash in Expo Go/simulators without native module
 let _purchasesModule: any = null;
 function getPurchases(): any {
-  if (_purchasesModule !== null) return _purchasesModule;
+  if (_purchasesModule !== null) return _purchasesModule === false ? null : _purchasesModule;
   try {
     // Check if the native module is actually available and functional
-    if (!NativeModules?.RNPurchases) {
+    const nativeModule = NativeModules?.RNPurchases;
+    if (!nativeModule || typeof nativeModule.setupPurchases !== 'function') {
       _purchasesModule = false; // Mark as unavailable
       return null;
     }

@@ -21,9 +21,13 @@ let purchasesModule: typeof PurchasesNamespace | null = null;
 
 function getPurchasesSafe(): typeof PurchasesNamespace | null {
   if (purchasesModule) return purchasesModule;
+  if (purchasesModule === false) return null; // Previously failed, don't retry
   try {
-    if (!NativeModules || !('RNPurchases' in NativeModules)) {
-      console.log('[RevenueCat] RNPurchases not found in NativeModules.');
+    // Check if the native module is actually available and functional
+    const nativeModule = NativeModules?.RNPurchases;
+    if (!nativeModule || typeof nativeModule.setupPurchases !== 'function') {
+      console.log('[RevenueCat] RNPurchases not available or not functional.');
+      purchasesModule = false as any; // Mark as unavailable
       return null;
     }
     console.log('[RevenueCat] RNPurchases found in NativeModules. Requiring module...');
@@ -32,6 +36,7 @@ function getPurchasesSafe(): typeof PurchasesNamespace | null {
     const mod = require('react-native-purchases');
     if (!mod) {
       console.log('[RevenueCat] require("react-native-purchases") returned null or undefined.');
+      purchasesModule = false as any;
       return null;
     }
     purchasesModule = (mod && mod.default) ? mod.default : mod;
@@ -39,6 +44,7 @@ function getPurchasesSafe(): typeof PurchasesNamespace | null {
     return purchasesModule;
   } catch (error) {
     console.log('[RevenueCat] Error requiring "react-native-purchases":', error);
+    purchasesModule = false as any;
     return null;
   }
 }
