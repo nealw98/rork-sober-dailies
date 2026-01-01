@@ -382,9 +382,9 @@ export default function DailyReflection({ fontSize = 18, lineHeight, jumpToDate 
 
   return (
     <View style={styles.container}>
-      {/* Gradient header block */}
+      {/* Gradient header block - darker version for better contrast */}
       <LinearGradient
-        colors={Colors.gradients.mainThreeColor}
+        colors={['#7BA3CC', '#8CBDC4', '#A8D4C4']}
         style={styles.headerBlock}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
