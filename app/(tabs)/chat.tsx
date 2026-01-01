@@ -8,7 +8,6 @@ import {
   TouchableOpacity,
   Image,
 } from "react-native";
-import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { ChevronLeft } from "lucide-react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -53,18 +52,12 @@ export default function ChatScreen() {
           </TouchableOpacity>
         </View>
 
-        {/* Title section with gradient accent bar */}
+        {/* Solid blue title block */}
         <View style={styles.titleSection}>
-          <LinearGradient
-            colors={['#4A90E2', '#50C878', '#4A90E2']}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 0 }}
-            style={styles.gradientAccent}
-          />
           <Text style={styles.headerTitle}>Choose Your Sponsor</Text>
         </View>
 
-        {/* White background content area */}
+        {/* Off-white background content area */}
         <View style={styles.container}>
           <ScrollView
             style={styles.scrollView}
@@ -139,26 +132,21 @@ const styles = StyleSheet.create({
     fontWeight: '400',
   },
   titleSection: {
-    backgroundColor: "#fff",
-    paddingBottom: 20,
+    backgroundColor: "#4A90E2",
+    paddingVertical: 24,
+    paddingHorizontal: 20,
     alignItems: "center",
   },
-  gradientAccent: {
-    width: 60,
-    height: 4,
-    borderRadius: 2,
-    marginBottom: 16,
-  },
   headerTitle: {
-    fontSize: 26,
+    fontSize: 24,
     fontWeight: adjustFontWeight("700", true),
-    color: Colors.light.text,
+    color: "#fff",
     textAlign: "center",
-    letterSpacing: -0.5,
+    letterSpacing: -0.3,
   },
   container: {
     flex: 1,
-    backgroundColor: "#fff",
+    backgroundColor: "#f5f6f8",
   },
   scrollView: {
     flex: 1,
