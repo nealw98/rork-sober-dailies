@@ -4,6 +4,7 @@ import { ChevronLeft, ChevronRight, Calendar, Upload, Bookmark, BookmarkCheck } 
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useFocusEffect } from 'expo-router';
+import { LinearGradient } from 'expo-linear-gradient';
 
 import Colors from "@/constants/colors";
 import { getReflectionForDate } from "@/constants/reflections";
@@ -381,8 +382,13 @@ export default function DailyReflection({ fontSize = 18, lineHeight, jumpToDate 
 
   return (
     <View style={styles.container}>
-      {/* Solid color header block */}
-      <View style={styles.headerBlock}>
+      {/* Gradient header block */}
+      <LinearGradient
+        colors={Colors.gradients.mainThreeColor}
+        style={styles.headerBlock}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+      >
         <Text style={styles.headerTitle}>Daily Reflections</Text>
         
         {/* Calendar-style date picker with navigation */}
@@ -419,7 +425,7 @@ export default function DailyReflection({ fontSize = 18, lineHeight, jumpToDate 
             <ChevronRight size={28} color="rgba(255,255,255,0.7)" />
           </TouchableOpacity>
         </View>
-      </View>
+      </LinearGradient>
       
       {/* Off-white content area */}
       <ScrollView style={styles.scrollContainer} contentContainerStyle={styles.contentContainer}>
@@ -519,7 +525,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#f5f6f8',
   },
   headerBlock: {
-    backgroundColor: '#40C9C9',
     paddingTop: 20,
     paddingBottom: 24,
     paddingHorizontal: 20,
@@ -568,7 +573,7 @@ const styles = StyleSheet.create({
   calendarDay: {
     fontSize: 28,
     fontWeight: adjustFontWeight('300'),
-    color: '#40C9C9',
+    color: Colors.light.tint,
   },
   scrollContainer: {
     flex: 1,
