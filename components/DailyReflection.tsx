@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback, useRef } from "react";
 import { StyleSheet, Text, View, ScrollView, TouchableOpacity, Modal, Platform, Share } from "react-native";
-import { ChevronLeft, ChevronRight, Calendar, Upload, Bookmark, BookmarkCheck } from "lucide-react-native";
+import { ChevronLeft, ChevronRight, Calendar, Upload, Bookmark, BookmarkCheck, List, X, Trash2 } from "lucide-react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useFocusEffect } from 'expo-router';
@@ -93,7 +93,7 @@ export default function DailyReflection({ fontSize = 18, lineHeight, jumpToDate 
   const effectiveLineHeight = lineHeight ?? fontSize * 1.375;
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [reflection, setReflection] = useState<Reflection | null>(null);
-  const { toggleBookmark, isBookmarked } = useDailyReflectionBookmarks();
+  const { toggleBookmark, isBookmarked, bookmarks, removeBookmark } = useDailyReflectionBookmarks();
   const formatDateKey = (date: Date) => {
     const y = date.getFullYear();
     const m = String(date.getMonth() + 1).padStart(2, "0");
@@ -104,6 +104,7 @@ export default function DailyReflection({ fontSize = 18, lineHeight, jumpToDate 
   const bookmarked = isBookmarked(dateKey);
 
   const [showDatePicker, setShowDatePicker] = useState<boolean>(false);
+  const [showBookmarks, setShowBookmarks] = useState<boolean>(false);
   const [dateString, setDateString] = useState<string>("");
   const [calendarDays, setCalendarDays] = useState<any[]>([]);
   const [calendarDate, setCalendarDate] = useState<Date>(new Date());
@@ -431,28 +432,42 @@ export default function DailyReflection({ fontSize = 18, lineHeight, jumpToDate 
       <ScrollView style={styles.scrollContainer} contentContainerStyle={styles.contentContainer}>
         {/* Action buttons row */}
         <View style={styles.actionRow}>
+          {/* Left side - bookmarks list */}
           <TouchableOpacity
-            onPress={toggleBookmarkForDay}
+            onPress={() => setShowBookmarks(true)}
             style={styles.actionButton}
-            testID="bookmark-button"
+            testID="bookmarks-list-button"
             activeOpacity={0.7}
             hitSlop={{ top: 15, bottom: 15, left: 15, right: 15 }}
           >
-            {bookmarked ? (
-              <BookmarkCheck size={22} color={Colors.light.muted} fill={Colors.light.muted} />
-            ) : (
-              <Bookmark size={22} color={Colors.light.muted} />
-            )}
+            <List size={22} color={Colors.light.muted} />
           </TouchableOpacity>
-          <TouchableOpacity 
-            onPress={shareReflection} 
-            style={styles.actionButton} 
-            testID="share-button"
-            activeOpacity={0.7}
-            hitSlop={{ top: 15, bottom: 15, left: 15, right: 15 }}
-          >
-            <Upload size={22} color={Colors.light.muted} />
-          </TouchableOpacity>
+          
+          {/* Right side - bookmark and share */}
+          <View style={styles.rightActions}>
+            <TouchableOpacity
+              onPress={toggleBookmarkForDay}
+              style={styles.actionButton}
+              testID="bookmark-button"
+              activeOpacity={0.7}
+              hitSlop={{ top: 15, bottom: 15, left: 15, right: 15 }}
+            >
+              {bookmarked ? (
+                <BookmarkCheck size={22} color={Colors.light.muted} fill={Colors.light.muted} />
+              ) : (
+                <Bookmark size={22} color={Colors.light.muted} />
+              )}
+            </TouchableOpacity>
+            <TouchableOpacity 
+              onPress={shareReflection} 
+              style={styles.actionButton} 
+              testID="share-button"
+              activeOpacity={0.7}
+              hitSlop={{ top: 15, bottom: 15, left: 15, right: 15 }}
+            >
+              <Upload size={22} color={Colors.light.muted} />
+            </TouchableOpacity>
+          </View>
         </View>
         
         <View style={styles.card}>
@@ -514,6 +529,63 @@ export default function DailyReflection({ fontSize = 18, lineHeight, jumpToDate 
             </TouchableOpacity>
           </View>
         </TouchableOpacity>
+      </Modal>
+
+      {/* Bookmarks List Modal */}
+      <Modal
+        visible={showBookmarks}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={() => setShowBookmarks(false)}
+      >
+        <View style={styles.bookmarksModalOverlay}>
+          <View style={styles.bookmarksModalContent}>
+            <View style={styles.bookmarksModalHeader}>
+              <Text style={styles.bookmarksModalTitle}>Saved Reflections</Text>
+              <TouchableOpacity
+                onPress={() => setShowBookmarks(false)}
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              >
+                <X size={24} color="#000" />
+              </TouchableOpacity>
+            </View>
+            <ScrollView style={styles.bookmarksList}>
+              {bookmarks.length === 0 ? (
+                <View style={styles.emptyBookmarks}>
+                  <Bookmark size={40} color={Colors.light.muted} />
+                  <Text style={styles.emptyBookmarksText}>No saved reflections yet</Text>
+                  <Text style={styles.emptyBookmarksSubtext}>Tap the bookmark icon to save a reflection</Text>
+                </View>
+              ) : (
+                bookmarks.map((bookmark) => (
+                  <TouchableOpacity
+                    key={bookmark.id}
+                    style={styles.bookmarkItem}
+                    onPress={() => {
+                      const [year, month, day] = bookmark.id.split('-').map(Number);
+                      const date = new Date(year, month - 1, day);
+                      setSelectedDate(date);
+                      setShowBookmarks(false);
+                    }}
+                    activeOpacity={0.7}
+                  >
+                    <View style={styles.bookmarkItemContent}>
+                      <Text style={styles.bookmarkItemDate}>{bookmark.displayDate}</Text>
+                      <Text style={styles.bookmarkItemTitle} numberOfLines={1}>{bookmark.title}</Text>
+                    </View>
+                    <TouchableOpacity
+                      onPress={() => removeBookmark(bookmark.id)}
+                      style={styles.bookmarkDeleteButton}
+                      hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                    >
+                      <Trash2 size={18} color={Colors.light.muted} />
+                    </TouchableOpacity>
+                  </TouchableOpacity>
+                ))
+              )}
+            </ScrollView>
+          </View>
+        </View>
       </Modal>
     </View>
   );
@@ -592,10 +664,14 @@ const styles = StyleSheet.create({
   },
   actionRow: {
     flexDirection: 'row',
-    justifyContent: 'flex-end',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  rightActions: {
+    flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    marginBottom: 8,
   },
   actionButton: {
     padding: 8,
@@ -797,5 +873,72 @@ const styles = StyleSheet.create({
     color: Colors.light.muted,
     fontWeight: adjustFontWeight('500'),
     fontSize: 16,
+  },
+  // Bookmarks Modal styles
+  bookmarksModalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'flex-end',
+  },
+  bookmarksModalContent: {
+    backgroundColor: '#fff',
+    borderTopLeftRadius: 16,
+    borderTopRightRadius: 16,
+    maxHeight: '70%',
+    paddingBottom: Platform.OS === 'ios' ? 34 : 16,
+  },
+  bookmarksModalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#e9ecef',
+  },
+  bookmarksModalTitle: {
+    fontSize: 18,
+    fontWeight: adjustFontWeight('600', true),
+    color: '#000',
+  },
+  bookmarksList: {
+    paddingHorizontal: 16,
+  },
+  emptyBookmarks: {
+    alignItems: 'center',
+    paddingVertical: 48,
+  },
+  emptyBookmarksText: {
+    fontSize: 16,
+    fontWeight: adjustFontWeight('500'),
+    color: '#000',
+    marginTop: 16,
+  },
+  emptyBookmarksSubtext: {
+    fontSize: 14,
+    color: '#666',
+    marginTop: 4,
+  },
+  bookmarkItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f0f0f0',
+  },
+  bookmarkItemContent: {
+    flex: 1,
+  },
+  bookmarkItemDate: {
+    fontSize: 12,
+    color: '#666',
+    marginBottom: 2,
+  },
+  bookmarkItemTitle: {
+    fontSize: 16,
+    fontWeight: adjustFontWeight('500'),
+    color: '#000',
+  },
+  bookmarkDeleteButton: {
+    padding: 8,
   },
 });
