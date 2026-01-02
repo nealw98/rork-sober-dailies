@@ -14,7 +14,7 @@ import {
 } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import * as Clipboard from 'expo-clipboard';
-import { Heart, Share as ShareIcon, Save, Folder, CheckCircle, Calendar, Trash2, RotateCcw, ChevronLeft } from 'lucide-react-native';
+import { Heart, Share as ShareIcon, Save, List, CheckCircle, Calendar, Trash2, RotateCcw, ChevronLeft } from 'lucide-react-native';
 import AnimatedWeeklyProgressMessage from '@/components/AnimatedWeeklyProgressMessage';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Stack, useRouter } from 'expo-router';
@@ -659,6 +659,18 @@ export default function GratitudeListScreen() {
       {/* Action Row - Below header */}
       <View style={styles.actionRow}>
         <TouchableOpacity 
+          onPress={() => setShowSavedEntries(true)}
+          accessible={true}
+          accessibilityLabel="View saved lists"
+          accessibilityRole="button"
+          activeOpacity={0.6}
+          style={styles.actionButton}
+        >
+          <List color="#666" size={18} />
+          <Text style={styles.actionButtonText}>History</Text>
+        </TouchableOpacity>
+        
+        <TouchableOpacity 
           onPress={handleSaveEntry}
           accessible={true}
           accessibilityLabel="Save gratitude list"
@@ -680,18 +692,6 @@ export default function GratitudeListScreen() {
         >
           <ShareIcon color="#666" size={18} />
           <Text style={styles.actionButtonText}>Share</Text>
-        </TouchableOpacity>
-        
-        <TouchableOpacity 
-          onPress={() => setShowSavedEntries(true)}
-          accessible={true}
-          accessibilityLabel="View saved lists"
-          accessibilityRole="button"
-          activeOpacity={0.6}
-          style={styles.actionButton}
-        >
-          <Folder color="#666" size={18} />
-          <Text style={styles.actionButtonText}>History</Text>
         </TouchableOpacity>
         
         <TouchableOpacity 

@@ -480,6 +480,19 @@ export default function EveningReview() {
 
       {/* Action Row - Below header */}
       <View style={styles.actionRow}>
+        {/* History */}
+        <TouchableOpacity 
+          onPress={() => setShowSavedReviews(true)}
+          accessible={true}
+          accessibilityLabel="View saved reviews"
+          accessibilityRole="button"
+          activeOpacity={0.6}
+          style={styles.actionButton}
+        >
+          <List color="#666" size={18} />
+          <Text style={styles.actionButtonText}>History</Text>
+        </TouchableOpacity>
+        
         {/* Save */}
         <TouchableOpacity 
           onPress={handleSaveEntry}
@@ -504,19 +517,6 @@ export default function EveningReview() {
         >
           <ShareIcon color="#666" size={18} />
           <Text style={styles.actionButtonText}>Share</Text>
-        </TouchableOpacity>
-        
-        {/* History */}
-        <TouchableOpacity 
-          onPress={() => setShowSavedReviews(true)}
-          accessible={true}
-          accessibilityLabel="View saved reviews"
-          accessibilityRole="button"
-          activeOpacity={0.6}
-          style={styles.actionButton}
-        >
-          <List color="#666" size={18} />
-          <Text style={styles.actionButtonText}>History</Text>
         </TouchableOpacity>
         
         {/* Reset */}
