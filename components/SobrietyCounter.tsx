@@ -398,6 +398,7 @@ const SobrietyCounter = () => {
     return (
       <>
         <View style={styles.counterWrapper}>
+          <Text style={styles.headerLabel}>You've been sober for:</Text>
           
           {/* Display breakdown: Years, months, days */}
           {breakdown.years > 0 ? (
@@ -427,35 +428,18 @@ const SobrietyCounter = () => {
             </Text>
           )}
           
-          {/* Combined total days and date line - only show if person has at least one month */}
-          {(breakdown.years > 0 || breakdown.months > 0) && (
-            <View style={styles.dateRow}>
-              <Text style={styles.totalDaysText}>
-                or {validDaysSober.toLocaleString()} {validDaysSober === 1 ? 'day' : 'days'} • Since {formatStoredDateForDisplay(sobrietyDate)}
-              </Text>
-              <TouchableOpacity 
-                style={styles.editButton}
-                onPress={handleEditDate}
-              >
-                <Edit3 size={16} color="rgba(255,255,255,0.8)" />
-              </TouchableOpacity>
-            </View>
-          )}
-          
-          {/* If less than a month, just show the date with edit button */}
-          {breakdown.years === 0 && breakdown.months === 0 && (
-            <View style={styles.dateRow}>
-              <Text style={styles.sobrietyDateText}>
-                Since {formatStoredDateForDisplay(sobrietyDate)}
-              </Text>
-              <TouchableOpacity 
-                style={styles.editButton}
-                onPress={handleEditDate}
-              >
-                <Edit3 size={16} color="rgba(255,255,255,0.8)" />
-              </TouchableOpacity>
-            </View>
-          )}
+          {/* Simple date line with edit button */}
+          <View style={styles.dateRow}>
+            <Text style={styles.sobrietyDateText}>
+              Since {formatStoredDateForDisplay(sobrietyDate)}
+            </Text>
+            <TouchableOpacity 
+              style={styles.editButton}
+              onPress={handleEditDate}
+            >
+              <Edit3 size={16} color="rgba(255,255,255,0.8)" />
+            </TouchableOpacity>
+          </View>
         </View>
         
         {/* Edit Date Modal */}
@@ -569,8 +553,15 @@ const styles = StyleSheet.create({
   counterWrapper: {
     alignItems: 'center',
     marginHorizontal: 20,
-    marginBottom: 8,
+    marginBottom: 0,
     marginTop: 8,
+  },
+  headerLabel: {
+    fontSize: 20,
+    color: 'rgba(255,255,255,0.9)',
+    fontWeight: '600',
+    textAlign: 'center',
+    marginBottom: 4,
   },
   headerText: {
     fontSize: 16,
@@ -639,7 +630,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    marginTop: 4,
+    marginTop: 2,
   },
   sobrietyDateText: {
     fontSize: 16,
