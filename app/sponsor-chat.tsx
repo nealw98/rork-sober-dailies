@@ -86,21 +86,20 @@ const checkSponsorMessageLimits = async (): Promise<LimitCheckResult> => {
 const ChatBubble = ({
   message,
   bubbleColor,
-  bubbleShadowColor,
   sponsorType,
 }: {
   message: ChatMessage;
   bubbleColor?: string;
-  bubbleShadowColor?: string;
   sponsorType: SponsorType;
 }) => {
-  const isUser = message.role === "user";
+  const isUser = message.sender === "user";
   const sponsor = getSponsorById(sponsorType);
+  const messageText = message.text;
 
   const handleLongPress = async () => {
     try {
       await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-      await Clipboard.setStringAsync(message.content);
+      await Clipboard.setStringAsync(messageText);
       Alert.alert("Copied", "Message copied to clipboard");
     } catch {
       // ignore
@@ -121,7 +120,7 @@ const ChatBubble = ({
         <Image source={sponsor.avatar} style={styles.bubbleAvatar} />
       )}
       <View style={styles.bubbleContent}>
-        <ChatMarkdownRenderer content={message.content} isUser={isUser} />
+        <ChatMarkdownRenderer content={messageText} isUser={isUser} />
       </View>
     </TouchableOpacity>
   );
@@ -140,14 +139,26 @@ function SponsorChatContent({ initialSponsor }: { initialSponsor: string }) {
   const bubbleColor = sponsor?.bubbleColor;
   const placeholderText = sponsor?.placeholderText ?? "Type a message...";
   const loadingText = sponsor?.loadingText ?? "Thinking...";
+  
+  // Build display messages - prepend initial message if exists
+  const displayMessages = React.useMemo(() => {
+    if (sponsor?.initialMessage) {
+      // Check if initial message is already in messages
+      const hasInitial = messages.some(m => m.id === sponsor.initialMessage?.id);
+      if (!hasInitial) {
+        return [sponsor.initialMessage, ...messages];
+      }
+    }
+    return messages;
+  }, [messages, sponsor?.initialMessage]);
 
   useEffect(() => {
-    if (messages.length > 0) {
+    if (displayMessages.length > 0) {
       setTimeout(() => {
         flatListRef.current?.scrollToEnd({ animated: true });
       }, 100);
     }
-  }, [messages]);
+  }, [displayMessages]);
 
   const handleBack = () => {
     router.push("/(tabs)/chat");
@@ -230,7 +241,7 @@ function SponsorChatContent({ initialSponsor }: { initialSponsor: string }) {
           </TouchableOpacity>
         </View>
         
-        {/* Avatar and Name */}
+        {/* Avatar and Name - horizontal */}
         <View style={styles.sponsorInfo}>
           {sponsor.avatar && (
             <Image source={sponsor.avatar} style={styles.headerAvatar} />
@@ -248,7 +259,7 @@ function SponsorChatContent({ initialSponsor }: { initialSponsor: string }) {
         <View style={styles.messagesWrapper}>
           <FlatList
             ref={flatListRef}
-            data={messages}
+            data={displayMessages}
             keyExtractor={(item) => item.id}
             renderItem={({ item }) => (
               <ChatBubble
@@ -324,14 +335,14 @@ const styles = StyleSheet.create({
     backgroundColor: '#f5f6f8',
   },
   headerBlock: {
-    paddingBottom: 20,
+    paddingBottom: 24,
     paddingHorizontal: 16,
   },
   headerTopRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: 8,
   },
   backButton: {
     flexDirection: 'row',
@@ -352,22 +363,23 @@ const styles = StyleSheet.create({
     borderRadius: 16,
   },
   sponsorInfo: {
+    flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    justifyContent: 'center',
+    gap: 12,
   },
   headerAvatar: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     borderWidth: 2,
     borderColor: 'rgba(255,255,255,0.5)',
   },
   headerTitle: {
-    fontSize: 24,
+    fontSize: 28,
     fontStyle: 'italic',
     fontWeight: adjustFontWeight('400'),
     color: '#fff',
-    textAlign: 'center',
   },
   chatArea: {
     flex: 1,
