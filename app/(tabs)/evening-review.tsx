@@ -14,10 +14,12 @@ import {
   Pressable,
   Easing
 } from 'react-native';
+import { router, Stack } from 'expo-router';
 import * as Clipboard from 'expo-clipboard';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import ScreenContainer from "@/components/ScreenContainer";
 import { LinearGradient } from 'expo-linear-gradient';
-import { CheckCircle, Circle, Calendar, Share as ShareIcon, Save, Folder, Check, RotateCcw } from 'lucide-react-native';
+import { ChevronLeft, Share as ShareIcon, Save, Folder, Check, RotateCcw } from 'lucide-react-native';
 import { useEveningReviewStore } from '@/hooks/use-evening-review-store';
 import SavedEveningReviews from '@/components/SavedEveningReviews';
 import AnimatedEveningReviewMessage from '@/components/AnimatedEveningReviewMessage';
@@ -100,6 +102,7 @@ const AnimatedCheckbox = ({ checked, onPress, children }: {
 };
 
 export default function EveningReview() {
+  const insets = useSafeAreaInsets();
   const [showConfirmation, setShowConfirmation] = useState(false);
   const [shouldTriggerReviewOnDismiss, setShouldTriggerReviewOnDismiss] = useState(false);
   const [showSavedReviews, setShowSavedReviews] = useState(false);
@@ -450,13 +453,85 @@ export default function EveningReview() {
 
   // Main form render
   return (
-    <ScreenContainer style={styles.container}>
+    <ScreenContainer style={styles.container} noPadding>
+      <Stack.Screen options={{ headerShown: false }} />
+      
+      {/* Gradient header block */}
       <LinearGradient
-        colors={[Colors.light.chatBubbleUser, Colors.light.chatBubbleBot]}
+        colors={['#5A82AB', '#6B9CA3', '#7FB3A3']}
+        style={[styles.headerBlock, { paddingTop: insets.top + 8 }]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
-        style={styles.gradient}
-      />
+      >
+        {/* Top row with back button */}
+        <View style={styles.headerTopRow}>
+          <TouchableOpacity 
+            onPress={() => router.back()} 
+            style={styles.backButton}
+            activeOpacity={0.7}
+          >
+            <ChevronLeft size={24} color="#fff" />
+            <Text style={styles.backButtonText}>Back</Text>
+          </TouchableOpacity>
+          <View style={{ width: 60 }} />
+        </View>
+        <Text style={styles.headerTitle}>Nightly Review</Text>
+      </LinearGradient>
+
+      {/* Action Row - Below header */}
+      <View style={styles.actionRow}>
+        {/* Save */}
+        <TouchableOpacity 
+          onPress={handleSaveEntry}
+          accessible={true}
+          accessibilityLabel="Save nightly review"
+          accessibilityRole="button"
+          activeOpacity={0.6}
+          style={styles.actionButton}
+        >
+          <Save color="#666" size={18} />
+          <Text style={styles.actionButtonText}>Save</Text>
+        </TouchableOpacity>
+        
+        {/* Share */}
+        <TouchableOpacity 
+          onPress={handleShare}
+          accessible={true}
+          accessibilityLabel="Share nightly review"
+          accessibilityRole="button"
+          activeOpacity={0.6}
+          style={styles.actionButton}
+        >
+          <ShareIcon color="#666" size={18} />
+          <Text style={styles.actionButtonText}>Share</Text>
+        </TouchableOpacity>
+        
+        {/* History */}
+        <TouchableOpacity 
+          onPress={() => setShowSavedReviews(true)}
+          accessible={true}
+          accessibilityLabel="View saved reviews"
+          accessibilityRole="button"
+          activeOpacity={0.6}
+          style={styles.actionButton}
+        >
+          <Folder color="#666" size={18} />
+          <Text style={styles.actionButtonText}>History</Text>
+        </TouchableOpacity>
+        
+        {/* Reset */}
+        <TouchableOpacity 
+          onPress={handleReset}
+          accessible={true}
+          accessibilityLabel="Reset nightly review"
+          accessibilityRole="button"
+          activeOpacity={0.6}
+          style={styles.actionButton}
+        >
+          <RotateCcw color="#666" size={18} />
+          <Text style={styles.actionButtonText}>Reset</Text>
+        </TouchableOpacity>
+      </View>
       
       <KeyboardAvoidingView 
         style={styles.keyboardAvoidingView}
@@ -469,74 +544,11 @@ export default function EveningReview() {
           keyboardShouldPersistTaps="handled"
           contentContainerStyle={styles.scrollContent}
         >
-          {/* Action Row - Above Title */}
-          <View style={styles.actionRow}>
-            {/* Save */}
-            <TouchableOpacity 
-              onPress={handleSaveEntry}
-              accessible={true}
-              accessibilityLabel="Save nightly review"
-              accessibilityRole="button"
-              activeOpacity={0.6}
-              style={styles.actionButton}
-            >
-              <Save color="#007AFF" size={18} />
-              <Text style={styles.actionButtonText}>Save</Text>
-            </TouchableOpacity>
-            
-            {/* Share */}
-            <TouchableOpacity 
-              onPress={handleShare}
-              accessible={true}
-              accessibilityLabel="Share nightly review"
-              accessibilityRole="button"
-              activeOpacity={0.6}
-              style={styles.actionButton}
-            >
-              <ShareIcon color="#007AFF" size={18} />
-              <Text style={styles.actionButtonText}>Share</Text>
-            </TouchableOpacity>
-            
-            {/* History */}
-            <TouchableOpacity 
-              onPress={() => setShowSavedReviews(true)}
-              accessible={true}
-              accessibilityLabel="View saved reviews"
-              accessibilityRole="button"
-              activeOpacity={0.6}
-              style={styles.actionButton}
-            >
-              <Folder color="#007AFF" size={18} />
-              <Text style={styles.actionButtonText}>History</Text>
-            </TouchableOpacity>
-            
-            {/* Reset */}
-            <TouchableOpacity 
-              onPress={handleReset}
-              accessible={true}
-              accessibilityLabel="Reset nightly review"
-              accessibilityRole="button"
-              activeOpacity={0.6}
-              style={styles.actionButton}
-            >
-              <RotateCcw color="#007AFF" size={18} />
-              <Text style={styles.actionButtonText}>Reset</Text>
-            </TouchableOpacity>
-          </View>
-          
-          <View style={styles.header}>
-            <Text style={styles.title}>Nightly Review</Text>
-            <Text style={styles.description}>
-              Nightly inventory based on AA&apos;s &apos;When We Retire at Night&apos; guidance
-            </Text>
-          </View>
-
-          <View style={styles.dateCard}>
-            <Text style={styles.dateText}>{formatDateDisplay(today)}</Text>
-          </View>
+          {/* Date */}
+          <Text style={styles.dateText}>{formatDateDisplay(today)}</Text>
 
           {/* Daily Actions Section */}
-          <View style={styles.card}>
+          <View style={styles.section}>
             <Text style={styles.sectionTitle}>Daily Actions</Text>
             <View style={styles.dailyActionsContainer}>
               {dailyActions.map((action) => (
@@ -552,7 +564,7 @@ export default function EveningReview() {
           </View>
 
           {/* Inventory Section */}
-          <View style={styles.inventoryCard}>
+          <View style={styles.section}>
             <Text style={styles.sectionTitle}>10th Step Inventory</Text>
             <Text style={styles.inventoryDescription}>
               Based on AA&apos;s &apos;When We Retire at Night&apos; p. 86
@@ -567,7 +579,7 @@ export default function EveningReview() {
                     value={question.value}
                     onChangeText={question.setValue}
                     multiline
-                    placeholderTextColor={Colors.light.muted}
+                    placeholderTextColor="#999"
                     returnKeyType="done"
                     blurOnSubmit={true}
                   />
@@ -601,8 +613,6 @@ export default function EveningReview() {
               <Text style={styles.shareButtonText}>Share</Text>
             </TouchableOpacity>
           </View>
-          
-          
 
           <Text style={styles.privacyText}>
             Your responses are saved only on your device. Nothing is uploaded or shared.
@@ -625,24 +635,48 @@ export default function EveningReview() {
 }
 
 const styles = StyleSheet.create({
-  keyboardAvoidingView: {
-    flex: 1,
-  },
-  scrollContent: {
-    flexGrow: 1,
-    paddingBottom: 20,
-  },
   container: {
     flex: 1,
+    backgroundColor: '#f5f6f8',
+  },
+  headerBlock: {
+    paddingBottom: 24,
+    paddingHorizontal: 16,
+  },
+  headerTopRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  backButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    borderRadius: 16,
+  },
+  backButtonText: {
+    fontSize: 15,
+    color: '#fff',
+    fontWeight: '500',
+  },
+  headerTitle: {
+    fontSize: 28,
+    fontStyle: 'italic',
+    fontWeight: adjustFontWeight('400'),
+    color: '#fff',
+    textAlign: 'center',
   },
   actionRow: {
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
     gap: 20,
-    paddingTop: 4,
-    paddingBottom: 12,
-    marginBottom: 8,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#e0e0e0',
   },
   actionButton: {
     flexDirection: 'row',
@@ -650,98 +684,41 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   actionButtonText: {
-    fontSize: 15,
-    color: '#007AFF',
+    fontSize: 14,
+    color: '#666',
     fontWeight: '500',
   },
-  gradient: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    top: 0,
-    bottom: 0,
+  keyboardAvoidingView: {
+    flex: 1,
   },
   content: {
     flex: 1,
     paddingHorizontal: 16,
-    paddingTop: 24,
   },
-  header: {
-    marginBottom: 24,
-    alignItems: 'center',
-  },
-  title: {
-    fontSize: 30,
-    fontWeight: adjustFontWeight('700', true),
-    color: Colors.light.text,
-    marginBottom: 8,
-    textAlign: 'center',
-  },
-  description: {
-    fontSize: 15,
-    color: Colors.light.muted,
-    textAlign: 'center',
-  },
-  dateCard: {
-    backgroundColor: 'rgba(255, 255, 255, 0.9)',
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 16,
-    // Level 3: Content Cards (Medium depth)
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 6,
-    },
-    shadowOpacity: 0.2,
-    shadowRadius: 10,
-    elevation: 6,
+  scrollContent: {
+    flexGrow: 1,
+    paddingBottom: 40,
   },
   dateText: {
-    fontSize: 19,
+    fontSize: 18,
     fontWeight: adjustFontWeight('600', true),
-    color: Colors.light.tint,
+    color: '#000',
     textAlign: 'center',
-  },
-  card: {
-    backgroundColor: 'rgba(255, 255, 255, 0.9)',
-    borderRadius: 16,
-    padding: 20,
+    marginTop: 16,
     marginBottom: 16,
-    // Level 3: Content Cards (Medium depth)
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 6,
-    },
-    shadowOpacity: 0.2,
-    shadowRadius: 10,
-    elevation: 6,
   },
-  inventoryCard: {
-    backgroundColor: 'rgba(255, 255, 255, 0.9)',
-    borderRadius: 16,
-    padding: 20,
-    marginBottom: 16,
-    // Level 3: Content Cards (Medium depth)
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 6,
-    },
-    shadowOpacity: 0.2,
-    shadowRadius: 10,
-    elevation: 6,
+  section: {
+    marginBottom: 24,
   },
   sectionTitle: {
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: adjustFontWeight('600', true),
-    color: Colors.light.text,
-    marginBottom: 16,
+    color: '#000',
+    marginBottom: 12,
   },
   inventoryDescription: {
     fontSize: 13,
-    color: Colors.light.muted,
+    color: '#666',
     marginBottom: 16,
     fontStyle: 'italic',
   },
@@ -765,7 +742,7 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-start',
     padding: 12,
     borderRadius: 8,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    backgroundColor: 'rgba(30, 58, 95, 0.08)',
     alignSelf: 'stretch',
   },
   checkbox: {
@@ -773,14 +750,14 @@ const styles = StyleSheet.create({
     height: 20,
     borderRadius: 4,
     borderWidth: 2,
-    borderColor: '#000000',
+    borderColor: '#1E3A5F',
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 12,
   },
   checkboxChecked: {
-    backgroundColor: Colors.light.tint,
-    borderColor: Colors.light.tint,
+    backgroundColor: '#1E3A5F',
+    borderColor: '#1E3A5F',
   },
   textContainer: {
     flex: 1,
@@ -789,47 +766,34 @@ const styles = StyleSheet.create({
   },
   checkboxText: {
     fontSize: 16,
-    color: Colors.light.text,
+    color: '#000',
     textAlign: 'left',
   },
   questionContainer: {
-    marginBottom: 12,
-    borderRadius: 8,
-    overflow: 'hidden',
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    padding: 4,
+    marginBottom: 8,
   },
   questionText: {
     fontSize: 16,
-    color: Colors.light.text,
+    color: '#000',
     marginBottom: 8,
-    lineHeight: 20,
+    lineHeight: 22,
   },
   inventoryTextInput: {
-    marginTop: 4,
     padding: 12,
-    borderWidth: 0.5,
-    borderColor: 'rgba(255, 255, 255, 0.35)',
+    borderWidth: 1,
+    borderColor: '#ddd',
     borderRadius: 8,
     backgroundColor: '#fff',
     fontSize: 16,
-    color: Colors.light.text,
+    color: '#000',
     minHeight: 80,
     textAlignVertical: 'top',
-    // Level 2.2: Interactive Cards (Softer depth)
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 3,
-    },
-    shadowOpacity: 0.12,
-    shadowRadius: 6,
-    elevation: 4,
   },
   actionButtons: {
     flexDirection: 'row',
     gap: 12,
-    marginHorizontal: 32,
+    marginHorizontal: 16,
+    marginTop: 8,
     marginBottom: 16,
   },
   saveButton: {
@@ -845,7 +809,7 @@ const styles = StyleSheet.create({
     height: 48,
   },
   saveButtonDisabled: {
-    backgroundColor: Colors.light.muted,
+    backgroundColor: '#ccc',
     opacity: 0.6,
   },
   saveButtonText: {
@@ -855,7 +819,7 @@ const styles = StyleSheet.create({
   },
   shareButton: {
     flex: 1,
-    backgroundColor: Colors.light.tint,
+    backgroundColor: '#1E3A5F',
     paddingVertical: 12,
     paddingHorizontal: 16,
     borderRadius: 25,
@@ -866,7 +830,7 @@ const styles = StyleSheet.create({
     height: 48,
   },
   shareButtonDisabled: {
-    backgroundColor: Colors.light.muted,
+    backgroundColor: '#ccc',
     opacity: 0.6,
   },
   shareButtonText: {
@@ -874,33 +838,13 @@ const styles = StyleSheet.create({
     fontSize: 17,
     fontWeight: adjustFontWeight('600'),
   },
-  secondaryButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 12,
-    paddingHorizontal: 24,
-    borderRadius: 25,
-    borderWidth: 1,
-    borderColor: Colors.light.tint,
-    backgroundColor: 'transparent',
-    marginHorizontal: 32,
-    marginBottom: 16,
-    gap: 8,
-    height: 48,
-  },
-  secondaryButtonText: {
-    color: Colors.light.tint,
-    fontSize: 17,
-    fontWeight: adjustFontWeight('500'),
-  },
   privacyText: {
     fontSize: 13,
-    color: Colors.light.muted,
+    color: '#999',
     textAlign: 'center',
     marginBottom: 24,
   },
-  // Completion screen styles
+  // Completion screen styles (kept for modal compatibility)
   cardHeader: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -909,12 +853,12 @@ const styles = StyleSheet.create({
   cardTitle: {
     fontSize: 19,
     fontWeight: adjustFontWeight('600', true),
-    color: Colors.light.tint,
+    color: '#1E3A5F',
     marginLeft: 8,
   },
   confirmationText: {
     fontSize: 17,
-    color: Colors.light.text,
+    color: '#000',
     textAlign: 'center',
     lineHeight: 22,
   },
@@ -928,7 +872,7 @@ const styles = StyleSheet.create({
   },
   dayName: {
     fontSize: 13,
-    color: Colors.light.muted,
+    color: '#999',
     marginBottom: 8,
   },
   dayCircle: {
@@ -942,11 +886,11 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(108, 117, 125, 0.2)',
   },
   dayCircleCompleted: {
-    backgroundColor: Colors.light.tint,
-    borderColor: Colors.light.tint,
+    backgroundColor: '#1E3A5F',
+    borderColor: '#1E3A5F',
   },
   dayCircleToday: {
-    borderColor: Colors.light.tint,
+    borderColor: '#1E3A5F',
     borderWidth: 3,
   },
   dayCircleFuture: {
@@ -955,7 +899,7 @@ const styles = StyleSheet.create({
   },
   streakText: {
     fontSize: 15,
-    color: Colors.light.muted,
+    color: '#999',
     textAlign: 'center',
   },
   buttonContainer: {
@@ -967,7 +911,7 @@ const styles = StyleSheet.create({
   },
   outlineButton: {
     borderWidth: 1,
-    borderColor: Colors.light.tint,
+    borderColor: '#1E3A5F',
     paddingVertical: 12,
     borderRadius: 25,
     alignItems: 'center',
@@ -975,12 +919,12 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   outlineButtonText: {
-    color: Colors.light.tint,
+    color: '#1E3A5F',
     fontSize: 17,
     fontWeight: adjustFontWeight('500'),
   },
   primaryButton: {
-    backgroundColor: Colors.light.tint,
+    backgroundColor: '#1E3A5F',
     paddingVertical: 14,
     paddingHorizontal: 16,
     borderRadius: 25,
@@ -995,7 +939,7 @@ const styles = StyleSheet.create({
     fontWeight: adjustFontWeight('600'),
   },
   shareButtonSolid: {
-    backgroundColor: Colors.light.tint,
+    backgroundColor: '#1E3A5F',
     paddingVertical: 12,
     borderRadius: 25,
     alignItems: 'center',
@@ -1012,7 +956,7 @@ const styles = StyleSheet.create({
   },
   subtitle: {
     fontSize: 17,
-    color: Colors.light.tint,
+    color: '#1E3A5F',
     marginBottom: 8,
     textAlign: 'center',
   },
@@ -1022,5 +966,25 @@ const styles = StyleSheet.create({
     marginTop: 8,
     textAlign: 'center',
     fontWeight: adjustFontWeight('600'),
+  },
+  secondaryButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: 25,
+    borderWidth: 1,
+    borderColor: '#1E3A5F',
+    backgroundColor: 'transparent',
+    marginHorizontal: 32,
+    marginBottom: 16,
+    gap: 8,
+    height: 48,
+  },
+  secondaryButtonText: {
+    color: '#1E3A5F',
+    fontSize: 17,
+    fontWeight: adjustFontWeight('500'),
   },
 });
