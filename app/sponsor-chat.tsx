@@ -160,7 +160,7 @@ function SponsorChatContent({ initialSponsor }: { initialSponsor: string }) {
   }, [messages]);
 
   const handleBack = () => {
-    router.push("/(tabs)/chat");
+    router.back();
   };
 
   const handleRefresh = () => {
