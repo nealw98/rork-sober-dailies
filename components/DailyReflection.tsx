@@ -410,82 +410,81 @@ export default function DailyReflection({ fontSize = 18, lineHeight, jumpToDate 
         <Text style={styles.headerTitle}>Daily Reflections</Text>
       </LinearGradient>
       
-      {/* Off-white content area */}
-      <ScrollView style={styles.scrollContainer} contentContainerStyle={styles.contentContainer}>
-        {/* Calendar-style date picker with navigation */}
-        <View style={styles.datePickerRow}>
+      {/* Action row below header - date nav + actions */}
+      <View style={styles.actionRow}>
+        {/* Left side - saved list */}
+        <TouchableOpacity
+          onPress={() => setShowBookmarks(true)}
+          style={styles.actionButton}
+          testID="bookmarks-list-button"
+          activeOpacity={0.7}
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+        >
+          <List size={18} color="#666" />
+          <Text style={styles.actionButtonText}>Saved</Text>
+        </TouchableOpacity>
+        
+        {/* Center - date navigation */}
+        <View style={styles.dateNavRow}>
           <TouchableOpacity 
             onPress={() => navigateDate('prev')} 
-            style={styles.navArrowButton}
+            style={styles.dateNavArrow}
             testID="prev-day-button"
             activeOpacity={0.7}
-            hitSlop={{ top: 15, bottom: 15, left: 15, right: 15 }}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
           >
-            <ChevronLeft size={28} color="#1E3A5F" />
+            <ChevronLeft size={20} color="#1E3A5F" />
           </TouchableOpacity>
           
           <TouchableOpacity 
             onPress={openDatePicker}
-            style={styles.calendarBox}
+            style={styles.dateTextButton}
             testID="calendar-button"
-            activeOpacity={0.8}
+            activeOpacity={0.7}
           >
-            <Text style={styles.calendarMonth}>{monthName}</Text>
-            <View style={styles.calendarDayBox}>
-              <Text style={styles.calendarDay}>{dayNumber}</Text>
-            </View>
+            <Text style={styles.dateText}>{monthName} {dayNumber}</Text>
           </TouchableOpacity>
           
           <TouchableOpacity 
             onPress={() => navigateDate('next')} 
-            style={styles.navArrowButton}
+            style={styles.dateNavArrow}
             testID="next-day-button"
             activeOpacity={0.7}
-            hitSlop={{ top: 15, bottom: 15, left: 15, right: 15 }}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
           >
-            <ChevronRight size={28} color="#1E3A5F" />
+            <ChevronRight size={20} color="#1E3A5F" />
           </TouchableOpacity>
         </View>
-
-        {/* Action buttons row */}
-        <View style={styles.actionRow}>
-          {/* Left side - bookmarks list */}
+        
+        {/* Right side - bookmark and share */}
+        <View style={styles.rightActions}>
           <TouchableOpacity
-            onPress={() => setShowBookmarks(true)}
+            onPress={toggleBookmarkForDay}
             style={styles.actionButton}
-            testID="bookmarks-list-button"
+            testID="bookmark-button"
             activeOpacity={0.7}
-            hitSlop={{ top: 15, bottom: 15, left: 15, right: 15 }}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
           >
-            <List size={22} color={Colors.light.muted} />
+            {bookmarked ? (
+              <BookmarkCheck size={18} color="#666" fill="#666" />
+            ) : (
+              <Bookmark size={18} color="#666" />
+            )}
           </TouchableOpacity>
-          
-          {/* Right side - bookmark and share */}
-          <View style={styles.rightActions}>
-            <TouchableOpacity
-              onPress={toggleBookmarkForDay}
-              style={styles.actionButton}
-              testID="bookmark-button"
-              activeOpacity={0.7}
-              hitSlop={{ top: 15, bottom: 15, left: 15, right: 15 }}
-            >
-              {bookmarked ? (
-                <BookmarkCheck size={22} color={Colors.light.muted} fill={Colors.light.muted} />
-              ) : (
-                <Bookmark size={22} color={Colors.light.muted} />
-              )}
-            </TouchableOpacity>
-            <TouchableOpacity 
-              onPress={shareReflection} 
-              style={styles.actionButton} 
-              testID="share-button"
-              activeOpacity={0.7}
-              hitSlop={{ top: 15, bottom: 15, left: 15, right: 15 }}
-            >
-              <Upload size={22} color={Colors.light.muted} />
-            </TouchableOpacity>
-          </View>
+          <TouchableOpacity 
+            onPress={shareReflection} 
+            style={styles.actionButton} 
+            testID="share-button"
+            activeOpacity={0.7}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          >
+            <Upload size={18} color="#666" />
+          </TouchableOpacity>
         </View>
+      </View>
+      
+      {/* Off-white content area */}
+      <ScrollView style={styles.scrollContainer} contentContainerStyle={styles.contentContainer}>
         
         <View style={styles.card}>
           <Text style={styles.title}>{reflection.title}</Text>
@@ -643,50 +642,46 @@ const styles = StyleSheet.create({
     color: '#fff',
     textAlign: 'center',
   },
-  datePickerRow: {
+  actionRow: {
     flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
-    justifyContent: 'center',
-    gap: 16,
-    paddingVertical: 16,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
     borderBottomWidth: 1,
     borderBottomColor: '#e0e0e0',
-    marginBottom: 8,
   },
-  navArrowButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: 'rgba(30, 58, 95, 0.15)',
+  actionButton: {
+    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
+    gap: 4,
   },
-  calendarBox: {
+  actionButtonText: {
+    fontSize: 14,
+    color: '#666',
+    fontWeight: '500',
+  },
+  dateNavRow: {
+    flexDirection: 'row',
     alignItems: 'center',
-    borderWidth: 2,
-    borderColor: '#1E3A5F',
-    borderRadius: 6,
-    overflow: 'hidden',
+    gap: 4,
   },
-  calendarMonth: {
-    fontSize: 11,
+  dateNavArrow: {
+    padding: 4,
+  },
+  dateTextButton: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+  },
+  dateText: {
+    fontSize: 16,
     fontWeight: adjustFontWeight('600'),
-    color: '#fff',
-    letterSpacing: 1,
-    backgroundColor: '#1E3A5F',
-    paddingVertical: 5,
-    paddingHorizontal: 14,
-    textAlign: 'center',
-  },
-  calendarDayBox: {
-    alignItems: 'center',
-    paddingVertical: 6,
-    paddingHorizontal: 14,
-  },
-  calendarDay: {
-    fontSize: 28,
-    fontWeight: adjustFontWeight('300'),
     color: '#1E3A5F',
+  },
+  rightActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
   },
   scrollContainer: {
     flex: 1,
@@ -702,20 +697,6 @@ const styles = StyleSheet.create({
   loadingText: {
     fontSize: 16,
     color: Colors.light.muted,
-  },
-  actionRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  rightActions: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  actionButton: {
-    padding: 8,
   },
   card: {
     paddingHorizontal: 8,
