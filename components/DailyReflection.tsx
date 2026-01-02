@@ -639,10 +639,8 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 28,
     fontStyle: 'italic',
-    textAlign: 'center',
     fontWeight: adjustFontWeight('400'),
     color: '#fff',
-    marginBottom: 20,
     textAlign: 'center',
   },
   datePickerRow: {
@@ -665,6 +663,10 @@ const styles = StyleSheet.create({
   },
   calendarBox: {
     alignItems: 'center',
+    borderWidth: 2,
+    borderColor: '#1E3A5F',
+    borderRadius: 6,
+    overflow: 'hidden',
   },
   calendarMonth: {
     fontSize: 11,
@@ -673,16 +675,16 @@ const styles = StyleSheet.create({
     letterSpacing: 1,
     backgroundColor: '#1E3A5F',
     paddingVertical: 5,
-    paddingHorizontal: 12,
-    borderRadius: 4,
+    paddingHorizontal: 14,
     textAlign: 'center',
-    marginBottom: 4,
   },
   calendarDayBox: {
     alignItems: 'center',
+    paddingVertical: 6,
+    paddingHorizontal: 14,
   },
   calendarDay: {
-    fontSize: 32,
+    fontSize: 28,
     fontWeight: adjustFontWeight('300'),
     color: '#1E3A5F',
   },
