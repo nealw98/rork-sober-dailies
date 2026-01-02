@@ -41,25 +41,25 @@ export default function ChatScreen() {
     <>
       <Stack.Screen options={{ headerShown: false }} />
       <ScreenContainer noPadding={true}>
-        {/* Header with back button */}
-        <View style={[styles.topHeader, { paddingTop: insets.top }]}>
-          <TouchableOpacity
-            style={styles.backButton}
-            onPress={handleBack}
-            activeOpacity={0.7}
-          >
-            <ChevronLeft color={Colors.light.tint} size={24} />
-            <Text style={styles.backText}>Back</Text>
-          </TouchableOpacity>
-        </View>
-
-        {/* Gradient title block */}
+        {/* Gradient header block with back button */}
         <LinearGradient
           colors={['#5A82AB', '#6B9CA3', '#7FB3A3']}
-          style={styles.titleSection}
+          style={[styles.headerBlock, { paddingTop: insets.top + 8 }]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
         >
+          {/* Top row with back button */}
+          <View style={styles.headerTopRow}>
+            <TouchableOpacity
+              style={styles.backButton}
+              onPress={handleBack}
+              activeOpacity={0.7}
+            >
+              <ChevronLeft color="#fff" size={20} />
+              <Text style={styles.backButtonText}>Back</Text>
+            </TouchableOpacity>
+            <View style={{ width: 60 }} />
+          </View>
           <Text style={styles.headerTitle}>Choose Your Sponsor</Text>
         </LinearGradient>
 
@@ -121,33 +121,35 @@ export default function ChatScreen() {
 }
 
 const styles = StyleSheet.create({
-  topHeader: {
-    backgroundColor: "#fff",
-    paddingHorizontal: 8,
-    paddingVertical: 8,
+  headerBlock: {
+    paddingBottom: 24,
+    paddingHorizontal: 16,
+  },
+  headerTopRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
   },
   backButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    padding: Platform.OS === "android" ? 4 : 8,
-    alignSelf: "flex-start",
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    borderRadius: 16,
   },
-  backText: {
-    fontSize: 16,
-    color: Colors.light.tint,
-    fontWeight: '400',
-  },
-  titleSection: {
-    paddingVertical: 24,
-    paddingHorizontal: 20,
-    alignItems: "center",
+  backButtonText: {
+    fontSize: 15,
+    color: '#fff',
+    fontWeight: '500',
   },
   headerTitle: {
-    fontSize: 24,
-    fontWeight: adjustFontWeight("700", true),
+    fontSize: 28,
+    fontStyle: 'italic',
+    fontWeight: adjustFontWeight("400"),
     color: "#fff",
     textAlign: "center",
-    letterSpacing: -0.3,
   },
   container: {
     flex: 1,
