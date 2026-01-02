@@ -8,7 +8,6 @@ import FontAwesome6 from '@expo/vector-icons/FontAwesome6';
 import Ionicons from '@expo/vector-icons/Ionicons';
 
 import SobrietyCounter from '@/components/SobrietyCounter';
-import { formatDateDisplay } from '@/utils/dateUtils';
 import Colors from '@/constants/colors';
 import { adjustFontWeight } from '@/constants/fonts';
 
@@ -16,10 +15,6 @@ const HomeScreen = () => {
   const router = useRouter();
   const insets = useSafeAreaInsets();
 
-  const today = new Date();
-  const formattedDate = formatDateDisplay(today);
-  // Format: "January 2" (without day of week and year)
-  const shortDate = formattedDate.replace(/^\w+, /, '').replace(/, \d{4}$/, '');
 
   return (
     <View style={styles.container}>
@@ -56,7 +51,6 @@ const HomeScreen = () => {
             <BookOpen color="#fff" size={28} />
             <View style={styles.heroButtonText}>
               <Text style={styles.heroButtonTitle}>Daily Reflection</Text>
-              <Text style={styles.heroButtonSubtitle}>for {shortDate}</Text>
             </View>
             <ChevronRight color="rgba(255,255,255,0.7)" size={24} />
           </LinearGradient>
@@ -76,8 +70,7 @@ const HomeScreen = () => {
           >
             <MessageCircle color="#fff" size={28} />
             <View style={styles.heroButtonText}>
-              <Text style={styles.heroButtonTitle}>Talk to Your Sponsor</Text>
-              <Text style={styles.heroButtonSubtitle}>Choose from 6 AI companions</Text>
+              <Text style={styles.heroButtonTitle}>AI Sponsor</Text>
             </View>
             <ChevronRight color="rgba(255,255,255,0.7)" size={24} />
           </LinearGradient>
@@ -98,7 +91,6 @@ const HomeScreen = () => {
             <Library color="#fff" size={28} />
             <View style={styles.heroButtonText}>
               <Text style={styles.heroButtonTitle}>AA Literature</Text>
-              <Text style={styles.heroButtonSubtitle}>Big Book & 12 Steps</Text>
             </View>
             <ChevronRight color="rgba(255,255,255,0.7)" size={24} />
           </LinearGradient>
@@ -219,11 +211,6 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: adjustFontWeight('600'),
     color: '#fff',
-  },
-  heroButtonSubtitle: {
-    fontSize: 14,
-    color: 'rgba(255,255,255,0.85)',
-    marginTop: 2,
   },
   divider: {
     height: 1,

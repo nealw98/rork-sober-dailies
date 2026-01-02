@@ -171,6 +171,7 @@ export default function TabLayout() {
         lazy: false, // Pre-load all tabs to ensure tab bar is always available
         }}
       >
+      {/* Main Tab: Home */}
       <Tabs.Screen
         name="index"
         options={{
@@ -187,75 +188,76 @@ export default function TabLayout() {
         }}
       />
 
+      {/* Tab 1: Daily Reflection - calendar icon */}
       <Tabs.Screen
-        name="gratitude"
+        name="daily-reflections"
         options={{
-          title: "Gratitude",
-          headerTitle: '',
-          headerLeft: () => <BackButton />,
-          tabBarIcon: createTabIcon(FontAwesome6, 'face-smile', 18, { solid: true }),
+          title: "Reflection",
+          headerShown: false,
+          tabBarIcon: createTabIcon(Ionicons, 'calendar', 20),
         }}
       />
+
+      {/* Tab 2: AI Sponsor - robot icon */}
       <Tabs.Screen
         name="chat"
         options={{
           title: "Sponsor",
-          headerTitle: '',
-          headerLeft: () => <BackButton />,
-          // Android-only: hide tab bar when keyboard is open on the chat screen
+          headerShown: false,
           tabBarHideOnKeyboard: Platform.OS === 'android' ? true : undefined,
-          tabBarIcon: createTabIcon(MaterialCommunityIcons, 'human-greeting-variant', 22),
+          tabBarIcon: createTabIcon(MaterialCommunityIcons, 'robot', 22),
+        }}
+      />
+
+      {/* Tab 3: Literature - book icon */}
+      <Tabs.Screen
+        name="literature"
+        options={{
+          title: "Literature",
+          headerShown: false,
+          tabBarIcon: createTabIcon(FontAwesome, 'book', 20),
+        }}
+      />
+
+      {/* Tab 4: Settings - gear icon */}
+      <Tabs.Screen
+        name="settings"
+        options={{
+          title: "Settings",
+          headerShown: false,
+          tabBarIcon: createTabIcon(Ionicons, 'settings-sharp', 20),
+        }}
+      />
+
+      {/* Hidden tabs - accessible from home but not in tab bar */}
+      <Tabs.Screen
+        name="gratitude"
+        options={{
+          href: null,
+          title: "Gratitude",
+          headerShown: false,
         }}
       />
       <Tabs.Screen
         name="prayers"
         options={{
+          href: null,
           title: "Prayers",
-          headerTitle: '',
-          headerLeft: () => <BackButton />,
-          tabBarIcon: createTabIcon(FontAwesome6, 'hands-praying', 20),
-        }}
-      />
-      <Tabs.Screen
-        name="literature"
-        options={{
-          title: "Literature",
-          headerTitle: '',
-          headerLeft: () => <BackButton />,
-          tabBarIcon: createTabIcon(FontAwesome, 'book', 20),
+          headerShown: false,
         }}
       />
       <Tabs.Screen
         name="evening-review"
         options={{
+          href: null,
           title: "Review",
-          headerTitle: '',
-          headerLeft: () => <BackButton />,
-          tabBarIcon: createTabIcon(Ionicons, 'moon', 20),
-        }}
-      />
-      <Tabs.Screen
-        name="settings"
-        options={{
-          title: "Settings",
-          headerTitle: '',
           headerShown: false,
-          tabBarIcon: createTabIcon(Ionicons, 'settings-sharp', 20),
         }}
       />
 
       {/* Stack screens that should maintain the tab bar */}
       <Tabs.Screen
         name="bigbook"
-        options={{
-          href: null, // Hide from tab bar
-          headerShown: true,
-          headerTitle: '',
-          headerLeft: () => <BackButton />,
-        }}
-      />
-      <Tabs.Screen
-        name="daily-reflections"
         options={{
           href: null, // Hide from tab bar
           headerShown: true,
