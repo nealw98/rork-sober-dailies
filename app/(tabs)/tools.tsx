@@ -2,7 +2,7 @@ import React from 'react';
 import { StyleSheet, View, Text, TouchableOpacity } from 'react-native';
 import { Stack, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Sun, Moon, ChevronLeft } from 'lucide-react-native';
+import { ChevronLeft, ChevronRight } from 'lucide-react-native';
 import FontAwesome6 from '@expo/vector-icons/FontAwesome6';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -12,10 +12,6 @@ import { adjustFontWeight } from '@/constants/fonts';
 export default function ToolsScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-
-  const handleNavigate = (route: string) => {
-    router.push(route as any);
-  };
 
   return (
     <View style={styles.container}>
@@ -43,57 +39,35 @@ export default function ToolsScreen() {
 
       {/* Content */}
       <View style={styles.content}>
-        {/* Morning Section */}
-        <View style={styles.routineSection}>
-          <View style={styles.sectionHeader}>
-            <Sun color="#1E3A5F" size={18} />
-            <Text style={styles.sectionTitle}>Morning</Text>
-          </View>
-          <View style={styles.tilesRow}>
-            <TouchableOpacity
-              style={styles.tile}
-              onPress={() => handleNavigate('/(tabs)/prayers?prayer=morning')}
-              activeOpacity={0.7}
-            >
-              <FontAwesome6 name="hands-praying" size={24} color="#5A82AB" solid />
-              <Text style={styles.tileLabel}>Prayer</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.tile}
-              onPress={() => handleNavigate('/(tabs)/gratitude')}
-              activeOpacity={0.7}
-            >
-              <FontAwesome6 name="face-smile" size={24} color="#5A82AB" solid />
-              <Text style={styles.tileLabel}>Gratitude</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
+        <TouchableOpacity
+          style={styles.menuItem}
+          onPress={() => router.push('/(tabs)/gratitude')}
+          activeOpacity={0.7}
+        >
+          <FontAwesome6 name="face-smile" size={22} color="#5A82AB" solid />
+          <Text style={styles.menuItemText}>Gratitude List</Text>
+          <ChevronRight size={20} color="#999" />
+        </TouchableOpacity>
 
-        {/* Evening Section */}
-        <View style={styles.routineSection}>
-          <View style={styles.sectionHeader}>
-            <Moon color="#1E3A5F" size={18} />
-            <Text style={styles.sectionTitle}>Evening</Text>
-          </View>
-          <View style={styles.tilesRow}>
-            <TouchableOpacity
-              style={styles.tile}
-              onPress={() => handleNavigate('/(tabs)/prayers?prayer=evening')}
-              activeOpacity={0.7}
-            >
-              <FontAwesome6 name="hands-praying" size={24} color="#5A82AB" solid />
-              <Text style={styles.tileLabel}>Prayer</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.tile}
-              onPress={() => handleNavigate('/(tabs)/evening-review')}
-              activeOpacity={0.7}
-            >
-              <Ionicons name="moon" size={24} color="#5A82AB" />
-              <Text style={styles.tileLabel}>Review</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
+        <TouchableOpacity
+          style={styles.menuItem}
+          onPress={() => router.push('/(tabs)/prayers')}
+          activeOpacity={0.7}
+        >
+          <FontAwesome6 name="hands-praying" size={22} color="#5A82AB" solid />
+          <Text style={styles.menuItemText}>Prayers</Text>
+          <ChevronRight size={20} color="#999" />
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={styles.menuItem}
+          onPress={() => router.push('/(tabs)/evening-review')}
+          activeOpacity={0.7}
+        >
+          <Ionicons name="moon" size={22} color="#5A82AB" />
+          <Text style={styles.menuItemText}>Nightly Review</Text>
+          <ChevronRight size={20} color="#999" />
+        </TouchableOpacity>
       </View>
     </View>
   );
@@ -135,40 +109,22 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
-    padding: 20,
+    paddingTop: 8,
   },
-  routineSection: {
-    marginBottom: 28,
-  },
-  sectionHeader: {
+  menuItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
-    marginBottom: 16,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: adjustFontWeight('600'),
-    color: '#1E3A5F',
-  },
-  tilesRow: {
-    flexDirection: 'row',
-    gap: 12,
-  },
-  tile: {
-    flex: 1,
     backgroundColor: '#fff',
-    borderRadius: 12,
-    paddingVertical: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: '#e8e8e8',
+    paddingVertical: 16,
+    paddingHorizontal: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: '#e8e8e8',
+    gap: 16,
   },
-  tileLabel: {
-    fontSize: 14,
+  menuItemText: {
+    flex: 1,
+    fontSize: 17,
     fontWeight: adjustFontWeight('500'),
     color: '#333',
-    marginTop: 8,
   },
 });
