@@ -36,65 +36,38 @@ const HomeScreen = () => {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {/* Hero Feature 1: Daily Reflection */}
-        <TouchableOpacity
-          style={styles.heroButton}
-          onPress={() => router.push('/daily-reflections')}
-          activeOpacity={0.8}
-        >
-          <LinearGradient
-            colors={['#5A82AB', '#6B9CA3', '#7FB3A3']}
-            style={styles.heroButtonGradient}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
+        {/* Feature List */}
+        <View style={styles.featureList}>
+          <TouchableOpacity
+            style={styles.featureItem}
+            onPress={() => router.push('/daily-reflections')}
+            activeOpacity={0.7}
           >
-            <BookOpen color="#fff" size={28} />
-            <View style={styles.heroButtonText}>
-              <Text style={styles.heroButtonTitle}>Daily Reflection</Text>
-            </View>
-            <ChevronRight color="rgba(255,255,255,0.7)" size={24} />
-          </LinearGradient>
-        </TouchableOpacity>
+            <BookOpen color="#5A82AB" size={24} />
+            <Text style={styles.featureItemText}>Daily Reflection</Text>
+            <ChevronRight color="#999" size={20} />
+          </TouchableOpacity>
 
-        {/* Hero Feature 2: AI Sponsor */}
-        <TouchableOpacity
-          style={styles.heroButton}
-          onPress={() => router.push('/(tabs)/chat')}
-          activeOpacity={0.8}
-        >
-          <LinearGradient
-            colors={['#5A82AB', '#6B9CA3', '#7FB3A3']}
-            style={styles.heroButtonGradient}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
+          <TouchableOpacity
+            style={styles.featureItem}
+            onPress={() => router.push('/(tabs)/chat')}
+            activeOpacity={0.7}
           >
-            <MessageCircle color="#fff" size={28} />
-            <View style={styles.heroButtonText}>
-              <Text style={styles.heroButtonTitle}>AI Sponsor</Text>
-            </View>
-            <ChevronRight color="rgba(255,255,255,0.7)" size={24} />
-          </LinearGradient>
-        </TouchableOpacity>
+            <MessageCircle color="#5A82AB" size={24} />
+            <Text style={styles.featureItemText}>AI Sponsor</Text>
+            <ChevronRight color="#999" size={20} />
+          </TouchableOpacity>
 
-        {/* Hero Feature 3: Literature */}
-        <TouchableOpacity
-          style={styles.heroButton}
-          onPress={() => router.push('/(tabs)/literature')}
-          activeOpacity={0.8}
-        >
-          <LinearGradient
-            colors={['#5A82AB', '#6B9CA3', '#7FB3A3']}
-            style={styles.heroButtonGradient}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
+          <TouchableOpacity
+            style={[styles.featureItem, styles.featureItemLast]}
+            onPress={() => router.push('/(tabs)/literature')}
+            activeOpacity={0.7}
           >
-            <Library color="#fff" size={28} />
-            <View style={styles.heroButtonText}>
-              <Text style={styles.heroButtonTitle}>AA Literature</Text>
-            </View>
-            <ChevronRight color="rgba(255,255,255,0.7)" size={24} />
-          </LinearGradient>
-        </TouchableOpacity>
+            <Library color="#5A82AB" size={24} />
+            <Text style={styles.featureItemText}>AA Literature</Text>
+            <ChevronRight color="#999" size={20} />
+          </TouchableOpacity>
+        </View>
 
         {/* Divider */}
         <View style={styles.divider} />
@@ -183,7 +156,7 @@ const styles = StyleSheet.create({
   },
   sobrietyCounterContainer: {
     alignItems: 'center',
-    paddingVertical: 16,
+    paddingVertical: 8,
   },
   scrollView: {
     flex: 1,
@@ -192,25 +165,28 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingTop: 20,
   },
-  heroButton: {
-    marginBottom: 12,
-    borderRadius: 16,
+  featureList: {
+    backgroundColor: '#fff',
+    borderRadius: 12,
     overflow: 'hidden',
   },
-  heroButtonGradient: {
+  featureItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 20,
-    paddingHorizontal: 20,
+    paddingVertical: 16,
+    paddingHorizontal: 16,
+    gap: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: '#e8e8e8',
   },
-  heroButtonText: {
+  featureItemLast: {
+    borderBottomWidth: 0,
+  },
+  featureItemText: {
     flex: 1,
-    marginLeft: 16,
-  },
-  heroButtonTitle: {
-    fontSize: 20,
-    fontWeight: adjustFontWeight('600'),
-    color: '#fff',
+    fontSize: 17,
+    fontWeight: adjustFontWeight('500'),
+    color: '#333',
   },
   divider: {
     height: 1,

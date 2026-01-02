@@ -1,6 +1,6 @@
-import React, { useEffect, useState } from 'react';
-import { StyleSheet, View, Text, TouchableOpacity, Modal, TextInput, Alert, Keyboard, useWindowDimensions } from 'react-native';
-import { Calendar, X, Edit3 } from 'lucide-react-native';
+import React, { useEffect, useState, useRef } from 'react';
+import { StyleSheet, View, Text, TouchableOpacity, Modal, TextInput, Alert, Keyboard, useWindowDimensions, Animated } from 'react-native';
+import { Calendar, X, Edit3, Pointer } from 'lucide-react-native';
 import { useSobriety } from '@/hooks/useSobrietyStore';
 import { formatStoredDateForDisplay, parseLocalDate, formatLocalDate } from '@/lib/dateUtils';
 import Colors from '@/constants/colors';
@@ -20,6 +20,40 @@ const SobrietyCounter = () => {
   const [showDatePicker, setShowDatePicker] = useState<boolean>(false);
   const [dateInput, setDateInput] = useState<string>('');
   const [showEditModal, setShowEditModal] = useState<boolean>(false);
+  const [showTotalDays, setShowTotalDays] = useState<boolean>(false);
+  const flipAnim = useRef(new Animated.Value(0)).current;
+
+  const handleToggleDisplay = () => {
+    // Animate flip
+    Animated.sequence([
+      Animated.timing(flipAnim, {
+        toValue: 0.5,
+        duration: 150,
+        useNativeDriver: true,
+      }),
+      Animated.timing(flipAnim, {
+        toValue: 1,
+        duration: 150,
+        useNativeDriver: true,
+      }),
+    ]).start(() => {
+      flipAnim.setValue(0);
+    });
+    
+    // Toggle after first half of animation
+    setTimeout(() => {
+      setShowTotalDays(!showTotalDays);
+    }, 150);
+  };
+
+  const flipInterpolate = flipAnim.interpolate({
+    inputRange: [0, 0.5, 1],
+    outputRange: ['0deg', '90deg', '0deg'],
+  });
+
+  const flipStyle = {
+    transform: [{ rotateY: flipInterpolate }],
+  };
 
   // Auto-format input as user types: mm/dd/yyyy
   const formatDateInput = (text: string) => {
@@ -400,33 +434,41 @@ const SobrietyCounter = () => {
         <View style={styles.counterWrapper}>
           <Text style={styles.headerLabel}>You've been sober for:</Text>
           
-          {/* Display breakdown: Years, months, days */}
-          {breakdown.years > 0 ? (
-            <>
-              <Text style={[styles.yearsText, { fontSize: dynamicFontSize, lineHeight: dynamicFontSize + 6 }]}>
-                {[
-                  `${breakdown.years} ${breakdown.years === 1 ? 'year' : 'years'}`,
-                  breakdown.months > 0 ? `${breakdown.months} ${breakdown.months === 1 ? 'month' : 'months'}` : null,
-                  breakdown.days > 0 ? `${breakdown.days} ${breakdown.days === 1 ? 'day' : 'days'}` : null,
-                ].filter(Boolean).join(' • ')}
-              </Text>
-            </>
-          ) : breakdown.months > 0 ? (
-            // If no years but has months: months and days on one line
-            <>
-              <Text style={[styles.yearsText, { fontSize: dynamicFontSize, lineHeight: dynamicFontSize + 6 }]}>
-                {[
-                  `${breakdown.months} ${breakdown.months === 1 ? 'month' : 'months'}`,
-                  breakdown.days > 0 ? `${breakdown.days} ${breakdown.days === 1 ? 'day' : 'days'}` : null,
-                ].filter(Boolean).join(' • ')}
-              </Text>
-            </>
-          ) : (
-            // Only days: days = big
-            <Text style={[styles.yearsText, { fontSize: dynamicFontSize, lineHeight: dynamicFontSize + 6 }]}>
-              {breakdown.days} {breakdown.days === 1 ? 'day' : 'days'}
-            </Text>
-          )}
+          {/* Tappable counter to toggle between breakdown and total days */}
+          <TouchableOpacity 
+            onPress={handleToggleDisplay}
+            activeOpacity={0.7}
+            style={styles.counterTouchable}
+          >
+            <View style={styles.counterRow}>
+              <Animated.View style={[styles.counterContent, flipStyle]}>
+                {showTotalDays ? (
+                  // Total days display
+                  <Text style={styles.totalDaysDisplay}>
+                    {validDaysSober.toLocaleString()} {validDaysSober === 1 ? 'day' : 'days'}
+                  </Text>
+                ) : (
+                  // Breakdown display - stacked
+                  <View style={styles.stackedCounter}>
+                    {breakdown.years > 0 && (
+                      <Text style={styles.stackedYears}>
+                        {breakdown.years} {breakdown.years === 1 ? 'year' : 'years'}
+                      </Text>
+                    )}
+                    {breakdown.months > 0 && (
+                      <Text style={styles.stackedMonths}>
+                        {breakdown.months} {breakdown.months === 1 ? 'month' : 'months'}
+                      </Text>
+                    )}
+                    <Text style={styles.stackedDays}>
+                      {breakdown.days} {breakdown.days === 1 ? 'day' : 'days'}
+                    </Text>
+                  </View>
+                )}
+              </Animated.View>
+              <Pointer size={14} color="rgba(255,255,255,0.6)" fill="rgba(255,255,255,0.6)" style={styles.pointerIcon} />
+            </View>
+          </TouchableOpacity>
           
           {/* Simple date line with edit button */}
           <View style={styles.dateRow}>
@@ -554,7 +596,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginHorizontal: 20,
     marginBottom: 0,
-    marginTop: 8,
+    marginTop: 0,
+    minHeight: 140,
+    justifyContent: 'space-between',
   },
   headerLabel: {
     fontSize: 20,
@@ -562,6 +606,49 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     textAlign: 'center',
     marginBottom: 4,
+  },
+  counterTouchable: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  counterRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  counterContent: {
+    alignItems: 'center',
+  },
+  pointerIcon: {
+    marginLeft: 8,
+  },
+  totalDaysDisplay: {
+    fontSize: 36,
+    color: '#fff',
+    fontWeight: '700',
+    textAlign: 'center',
+  },
+  stackedCounter: {
+    alignItems: 'center',
+  },
+  stackedYears: {
+    fontSize: 32,
+    color: '#fff',
+    fontWeight: '700',
+    textAlign: 'center',
+  },
+  stackedMonths: {
+    fontSize: 26,
+    color: 'rgba(255,255,255,0.9)',
+    fontWeight: '600',
+    textAlign: 'center',
+  },
+  stackedDays: {
+    fontSize: 22,
+    color: 'rgba(255,255,255,0.8)',
+    fontWeight: '500',
+    textAlign: 'center',
   },
   headerText: {
     fontSize: 16,
