@@ -414,36 +414,36 @@ export default function DailyReflection({ fontSize = 18, lineHeight, jumpToDate 
       <View style={styles.actionRow}>
         <TouchableOpacity
           onPress={() => setShowBookmarks(true)}
-          style={styles.actionIconButton}
+          style={styles.actionButton}
           testID="bookmarks-list-button"
-          activeOpacity={0.7}
-          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          activeOpacity={0.6}
         >
           <List size={18} color="#666" />
+          <Text style={styles.actionButtonText}>Saved</Text>
         </TouchableOpacity>
         
         <TouchableOpacity
           onPress={toggleBookmarkForDay}
-          style={styles.actionIconButton}
+          style={styles.actionButton}
           testID="bookmark-button"
-          activeOpacity={0.7}
-          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          activeOpacity={0.6}
         >
           {bookmarked ? (
             <BookmarkCheck size={18} color="#666" fill="#666" />
           ) : (
             <Bookmark size={18} color="#666" />
           )}
+          <Text style={styles.actionButtonText}>Favorite</Text>
         </TouchableOpacity>
         
         <TouchableOpacity 
           onPress={shareReflection} 
-          style={styles.actionIconButton} 
+          style={styles.actionButton} 
           testID="share-button"
-          activeOpacity={0.7}
-          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          activeOpacity={0.6}
         >
           <Upload size={18} color="#666" />
+          <Text style={styles.actionButtonText}>Share</Text>
         </TouchableOpacity>
       </View>
       
@@ -641,13 +641,20 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    gap: 24,
+    gap: 20,
     paddingVertical: 12,
     borderBottomWidth: 1,
     borderBottomColor: '#e0e0e0',
   },
-  actionIconButton: {
-    padding: 8,
+  actionButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  actionButtonText: {
+    fontSize: 14,
+    color: '#666',
+    fontWeight: '500',
   },
   dateNavRow: {
     flexDirection: 'row',
