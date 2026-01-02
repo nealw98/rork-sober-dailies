@@ -55,7 +55,7 @@ export default function ChatScreen() {
               onPress={handleBack}
               activeOpacity={0.7}
             >
-              <ChevronLeft color="#fff" size={20} />
+              <ChevronLeft size={24} color="#fff" />
               <Text style={styles.backButtonText}>Back</Text>
             </TouchableOpacity>
             <View style={{ width: 60 }} />
