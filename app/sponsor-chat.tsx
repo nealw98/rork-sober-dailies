@@ -120,7 +120,10 @@ const ChatBubble = ({
         <Image source={sponsor.avatar} style={styles.bubbleAvatar} />
       )}
       <View style={styles.bubbleContent}>
-        <ChatMarkdownRenderer content={messageText} isUser={isUser} />
+        <ChatMarkdownRenderer 
+          content={messageText} 
+          style={{ color: isUser ? '#fff' : '#333' }}
+        />
       </View>
     </TouchableOpacity>
   );
@@ -136,12 +139,14 @@ function SponsorChatContent({ initialSponsor }: { initialSponsor: string }) {
 
   // Sync sponsor type with store on mount
   useEffect(() => {
-    if (initialSponsor && initialSponsor !== sponsorType) {
-      changeSponsor(initialSponsor as SponsorType);
+    const targetSponsor = initialSponsor as SponsorType;
+    if (targetSponsor !== sponsorType) {
+      changeSponsor(targetSponsor);
     }
-  }, [initialSponsor]);
+  }, [initialSponsor, sponsorType, changeSponsor]);
 
-  const sponsor = getSponsorById(sponsorType);
+  // Use the initialSponsor directly for display (we know it's valid)
+  const sponsor = getSponsorById(initialSponsor as SponsorType);
   const bubbleColor = sponsor?.bubbleColor;
   const placeholderText = sponsor?.placeholderText ?? "Type a message...";
   const loadingText = sponsor?.loadingText ?? "Thinking...";
@@ -193,11 +198,11 @@ function SponsorChatContent({ initialSponsor }: { initialSponsor: string }) {
   };
 
   // Show loading while syncing sponsor
-  if (!sponsor || !sponsor.isAvailable || sponsorType !== initialSponsor) {
-    if (sponsorType !== initialSponsor) {
-      // Still syncing, show nothing
-      return null;
-    }
+  if (sponsorType !== initialSponsor) {
+    return null;
+  }
+
+  if (!sponsor || !sponsor.isAvailable) {
     return (
       <View style={styles.errorContainer}>
         <Text style={styles.errorText}>Sponsor not found</Text>
@@ -264,7 +269,7 @@ function SponsorChatContent({ initialSponsor }: { initialSponsor: string }) {
               <ChatBubble
                 message={item}
                 bubbleColor={bubbleColor}
-                sponsorType={sponsorType}
+                sponsorType={initialSponsor as SponsorType}
               />
             )}
             contentContainerStyle={styles.chatContainer}
