@@ -223,13 +223,16 @@ const styles = StyleSheet.create({
     lineHeight: 24,
     fontStyle: 'italic',
     textAlign: 'center',
-    marginBottom: 20,
+    marginTop: 16,
+    marginBottom: 28,
   },
   dateText: {
     fontSize: 18,
     fontWeight: adjustFontWeight('600', true),
     color: '#000',
-    marginBottom: 16,
+    textAlign: 'center',
+    marginTop: 8,
+    marginBottom: 8,
   },
   inputSection: {
     marginBottom: 16,
@@ -715,13 +718,13 @@ export default function GratitudeListScreen() {
           keyboardShouldPersistTaps="handled"
           contentContainerStyle={styles.scrollContent}
         >
+          {/* Date */}
+          <Text style={styles.dateText}>{formatDateDisplay(today)}</Text>
+
           {/* Daily Quote */}
           <Text style={styles.quoteText}>
             &ldquo;{dailyQuote}&rdquo;
           </Text>
-
-          {/* Date */}
-          <Text style={styles.dateText}>{formatDateDisplay(today)}</Text>
           
           {/* Gratitude Input */}
           <View style={styles.inputSection}>
