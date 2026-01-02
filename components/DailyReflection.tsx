@@ -449,7 +449,7 @@ export default function DailyReflection({ fontSize = 18, lineHeight, jumpToDate 
       
       {/* Off-white content area */}
       <ScrollView style={styles.scrollContainer} contentContainerStyle={styles.contentContainer}>
-        {/* Date navigation */}
+        {/* Date navigation - Compact Calendar Badge */}
         <View style={styles.dateNavRow}>
           <TouchableOpacity 
             onPress={() => navigateDate('prev')} 
@@ -458,16 +458,21 @@ export default function DailyReflection({ fontSize = 18, lineHeight, jumpToDate 
             activeOpacity={0.7}
             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
           >
-            <ChevronLeft size={20} color="#1E3A5F" />
+            <ChevronLeft size={18} color="#1E3A5F" />
           </TouchableOpacity>
           
           <TouchableOpacity 
             onPress={openDatePicker}
-            style={styles.dateTextButton}
+            style={styles.calendarBadge}
             testID="calendar-button"
             activeOpacity={0.7}
           >
-            <Text style={styles.dateText}>{monthName} {dayNumber}</Text>
+            <View style={styles.calendarBadgeHeader}>
+              <Text style={styles.calendarBadgeMonth}>{monthName.substring(0, 3).toUpperCase()}</Text>
+            </View>
+            <View style={styles.calendarBadgeBody}>
+              <Text style={styles.calendarBadgeDay}>{dayNumber}</Text>
+            </View>
           </TouchableOpacity>
           
           <TouchableOpacity 
@@ -477,7 +482,7 @@ export default function DailyReflection({ fontSize = 18, lineHeight, jumpToDate 
             activeOpacity={0.7}
             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
           >
-            <ChevronRight size={20} color="#1E3A5F" />
+            <ChevronRight size={18} color="#1E3A5F" />
           </TouchableOpacity>
         </View>
         
@@ -660,19 +665,40 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 8,
+    gap: 12,
     marginBottom: 16,
   },
   dateNavArrow: {
-    padding: 4,
+    padding: 6,
   },
-  dateTextButton: {
-    paddingHorizontal: 12,
-    paddingVertical: 4,
+  calendarBadge: {
+    borderWidth: 1,
+    borderColor: '#1E3A5F',
+    borderRadius: 4,
+    overflow: 'hidden',
+    minWidth: 44,
   },
-  dateText: {
-    fontSize: 16,
+  calendarBadgeHeader: {
+    backgroundColor: '#1E3A5F',
+    paddingVertical: 2,
+    paddingHorizontal: 8,
+    alignItems: 'center',
+  },
+  calendarBadgeMonth: {
+    fontSize: 9,
     fontWeight: adjustFontWeight('600'),
+    color: '#fff',
+    letterSpacing: 0.5,
+  },
+  calendarBadgeBody: {
+    backgroundColor: '#fff',
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+    alignItems: 'center',
+  },
+  calendarBadgeDay: {
+    fontSize: 18,
+    fontWeight: adjustFontWeight('500'),
     color: '#1E3A5F',
   },
   scrollContainer: {
