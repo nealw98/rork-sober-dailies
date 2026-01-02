@@ -147,16 +147,6 @@ const HomeScreen = () => {
           </View>
           <Text style={styles.cardDescription}>Connect with your Higher Power throughout the day.</Text>
         </AnimatedCard>
-
-        <AnimatedCard onPress={() => router.push('/inventory')}>
-          <View style={styles.cardHeader}>
-            <View style={styles.cardIconWrapper}>
-              <MaterialCommunityIcons name="emoticon-angry" size={24} color={Colors.light.tint} />
-            </View>
-            <Text style={styles.cardTitle}>Spot Check Inventory</Text>
-          </View>
-          <Text style={styles.cardDescription}>A quick review when you're "off the beam."</Text>
-        </AnimatedCard>
       </View>
 
         {/* Evening Routine Section */}
