@@ -387,7 +387,7 @@ export default function DailyReflection({ fontSize = 18, lineHeight, jumpToDate 
 
   return (
     <View style={styles.container}>
-      {/* Gradient header block - darker version for better contrast */}
+      {/* Gradient header block */}
       <LinearGradient
         colors={['#5A82AB', '#6B9CA3', '#7FB3A3']}
         style={[styles.headerBlock, { paddingTop: insets.top + 8 }]}
@@ -408,7 +408,10 @@ export default function DailyReflection({ fontSize = 18, lineHeight, jumpToDate 
         </View>
         
         <Text style={styles.headerTitle}>Daily Reflections</Text>
-        
+      </LinearGradient>
+      
+      {/* Off-white content area */}
+      <ScrollView style={styles.scrollContainer} contentContainerStyle={styles.contentContainer}>
         {/* Calendar-style date picker with navigation */}
         <View style={styles.datePickerRow}>
           <TouchableOpacity 
@@ -418,7 +421,7 @@ export default function DailyReflection({ fontSize = 18, lineHeight, jumpToDate 
             activeOpacity={0.7}
             hitSlop={{ top: 15, bottom: 15, left: 15, right: 15 }}
           >
-            <ChevronLeft size={28} color="rgba(255,255,255,0.7)" />
+            <ChevronLeft size={28} color="#666" />
           </TouchableOpacity>
           
           <TouchableOpacity 
@@ -440,13 +443,10 @@ export default function DailyReflection({ fontSize = 18, lineHeight, jumpToDate 
             activeOpacity={0.7}
             hitSlop={{ top: 15, bottom: 15, left: 15, right: 15 }}
           >
-            <ChevronRight size={28} color="rgba(255,255,255,0.7)" />
+            <ChevronRight size={28} color="#666" />
           </TouchableOpacity>
         </View>
-      </LinearGradient>
-      
-      {/* Off-white content area */}
-      <ScrollView style={styles.scrollContainer} contentContainerStyle={styles.contentContainer}>
+
         {/* Action buttons row */}
         <View style={styles.actionRow}>
           {/* Left side - bookmarks list */}
@@ -650,12 +650,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 16,
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#e0e0e0',
+    marginBottom: 8,
   },
   navArrowButton: {
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: 'rgba(255,255,255,0.2)',
+    backgroundColor: '#e8e9eb',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -665,7 +669,7 @@ const styles = StyleSheet.create({
   calendarMonth: {
     fontSize: 12,
     fontWeight: adjustFontWeight('600'),
-    color: '#fff',
+    color: '#666',
     letterSpacing: 1,
     marginBottom: 4,
   },
@@ -676,6 +680,8 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     minWidth: 60,
     alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#ddd',
   },
   calendarDay: {
     fontSize: 28,
