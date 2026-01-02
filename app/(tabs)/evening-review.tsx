@@ -566,9 +566,6 @@ export default function EveningReview() {
           {/* Inventory Section */}
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>10th Step Inventory</Text>
-            <Text style={styles.inventoryDescription}>
-              Based on AA&apos;s &apos;When We Retire at Night&apos; p. 86
-            </Text>
             <View style={styles.inventoryContainer}>
               {inventoryQuestions.map((question) => (
                 <View key={question.key} style={styles.questionContainer}>
@@ -715,12 +712,6 @@ const styles = StyleSheet.create({
     fontWeight: adjustFontWeight('600', true),
     color: '#000',
     marginBottom: 12,
-  },
-  inventoryDescription: {
-    fontSize: 13,
-    color: '#666',
-    marginBottom: 16,
-    fontStyle: 'italic',
   },
   dailyActionsContainer: {
     gap: 8,
