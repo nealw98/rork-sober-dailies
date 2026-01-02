@@ -129,36 +129,30 @@ const ChatBubble = ({
 function SponsorChatContent({ initialSponsor }: { initialSponsor: string }) {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { messages, isLoading, sendMessage, clearChat } = useChatStore();
+  const { messages, isLoading, sendMessage, clearChat, changeSponsor, sponsorType } = useChatStore();
   const [inputText, setInputText] = useState("");
   const [isCheckingLimits, setIsCheckingLimits] = useState(false);
   const flatListRef = useRef<FlatList>(null);
-  const sponsorType = initialSponsor as SponsorType;
+
+  // Sync sponsor type with store on mount
+  useEffect(() => {
+    if (initialSponsor && initialSponsor !== sponsorType) {
+      changeSponsor(initialSponsor as SponsorType);
+    }
+  }, [initialSponsor]);
 
   const sponsor = getSponsorById(sponsorType);
   const bubbleColor = sponsor?.bubbleColor;
   const placeholderText = sponsor?.placeholderText ?? "Type a message...";
   const loadingText = sponsor?.loadingText ?? "Thinking...";
-  
-  // Build display messages - prepend initial message if exists
-  const displayMessages = React.useMemo(() => {
-    if (sponsor?.initialMessage) {
-      // Check if initial message is already in messages
-      const hasInitial = messages.some(m => m.id === sponsor.initialMessage?.id);
-      if (!hasInitial) {
-        return [sponsor.initialMessage, ...messages];
-      }
-    }
-    return messages;
-  }, [messages, sponsor?.initialMessage]);
 
   useEffect(() => {
-    if (displayMessages.length > 0) {
+    if (messages.length > 0) {
       setTimeout(() => {
         flatListRef.current?.scrollToEnd({ animated: true });
       }, 100);
     }
-  }, [displayMessages]);
+  }, [messages]);
 
   const handleBack = () => {
     router.push("/(tabs)/chat");
@@ -198,7 +192,12 @@ function SponsorChatContent({ initialSponsor }: { initialSponsor: string }) {
     await sendMessage(trimmed);
   };
 
-  if (!sponsor || !sponsor.isAvailable) {
+  // Show loading while syncing sponsor
+  if (!sponsor || !sponsor.isAvailable || sponsorType !== initialSponsor) {
+    if (sponsorType !== initialSponsor) {
+      // Still syncing, show nothing
+      return null;
+    }
     return (
       <View style={styles.errorContainer}>
         <Text style={styles.errorText}>Sponsor not found</Text>
@@ -259,7 +258,7 @@ function SponsorChatContent({ initialSponsor }: { initialSponsor: string }) {
         <View style={styles.messagesWrapper}>
           <FlatList
             ref={flatListRef}
-            data={displayMessages}
+            data={messages}
             keyExtractor={(item) => item.id}
             renderItem={({ item }) => (
               <ChatBubble
