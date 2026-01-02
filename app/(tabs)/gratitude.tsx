@@ -151,36 +151,31 @@ function getMilestoneToastMessage(consecutiveDays: number): string {
 }
 
 const styles = StyleSheet.create({
-  keyboardAvoidingView: {
-    flex: 1,
-  },
-  scrollContent: {
-    flexGrow: 1,
-    paddingBottom: 20,
-  },
   container: {
     flex: 1,
+    backgroundColor: '#f5f6f8',
   },
-  gradient: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    top: 0,
-    bottom: 0,
+  headerBlock: {
+    paddingTop: 20,
+    paddingBottom: 24,
+    paddingHorizontal: 20,
+    alignItems: 'center',
   },
-  content: {
-    flex: 1,
-    paddingHorizontal: 16,
-    paddingTop: 24,
+  headerTitle: {
+    fontSize: 28,
+    fontStyle: 'italic',
+    fontWeight: adjustFontWeight('400'),
+    color: '#fff',
+    textAlign: 'center',
   },
   actionRow: {
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
     gap: 20,
-    paddingTop: 4,
-    paddingBottom: 12,
-    marginBottom: 8,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#e0e0e0',
   },
   actionButton: {
     flexDirection: 'row',
@@ -189,145 +184,41 @@ const styles = StyleSheet.create({
   },
   actionButtonText: {
     fontSize: 14,
-    color: '#007AFF',
+    color: '#666',
     fontWeight: '500',
   },
-  header: {
-    marginBottom: 24,
-    alignItems: 'center',
+  keyboardAvoidingView: {
+    flex: 1,
   },
-  title: {
-    fontSize: 28,
-    fontWeight: adjustFontWeight('700', true),
-    color: Colors.light.text,
-    marginBottom: 8,
-    textAlign: 'center',
+  scrollView: {
+    flex: 1,
   },
-  subtitle: {
-    fontSize: 16,
-    color: Colors.light.tint,
-    marginBottom: 8,
-    textAlign: 'center',
-  },
-  savedMessage: {
-    fontSize: 16,
-    color: '#28a745',
-    marginTop: 8,
-    textAlign: 'center',
-    fontWeight: adjustFontWeight('600'),
-  },
-  description: {
-    fontSize: 14,
-    color: Colors.light.muted,
-    textAlign: 'center',
-  },
-  card: {
-    backgroundColor: 'rgba(255, 255, 255, 0.9)',
-    borderRadius: 16,
+  scrollContent: {
+    flexGrow: 1,
     padding: 16,
-    marginBottom: 16,
-    // Level 3: Content Cards (Medium depth)
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 6,
-    },
-    shadowOpacity: 0.2,
-    shadowRadius: 10,
-    elevation: 6,
-  },
-  cardHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  cardTitle: {
-    fontSize: 18,
-    fontWeight: adjustFontWeight('600', true),
-    color: Colors.light.tint,
-    marginLeft: 8,
-  },
-  quoteCard: {
-    backgroundColor: 'rgba(255, 255, 255, 0.9)',
-    borderRadius: 16,
-    padding: 20,
-    marginBottom: 16,
-    // Level 3: Content Cards (Medium depth)
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 6,
-    },
-    shadowOpacity: 0.2,
-    shadowRadius: 10,
-    elevation: 6,
+    paddingBottom: 40,
   },
   quoteText: {
     fontSize: 16,
-    color: Colors.light.text,
+    color: '#000',
     lineHeight: 24,
     fontStyle: 'italic',
     textAlign: 'center',
+    marginBottom: 20,
   },
-  weeklyProgress: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+  dateText: {
+    fontSize: 18,
+    fontWeight: adjustFontWeight('600', true),
+    color: '#000',
     marginBottom: 16,
   },
-  dayContainer: {
-    alignItems: 'center',
-  },
-  dayName: {
-    fontSize: 12,
-    color: Colors.light.muted,
-    marginBottom: 8,
-  },
-  dayCircle: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#e9ecef',
-    borderWidth: 2,
-    borderColor: 'rgba(108, 117, 125, 0.2)',
-  },
-  dayCircleCompleted: {
-    backgroundColor: Colors.light.tint,
-    borderColor: Colors.light.tint,
-  },
-  dayCircleToday: {
-    borderColor: Colors.light.tint,
-    borderWidth: 3,
-  },
-  dayCircleFuture: {
-    backgroundColor: '#e9ecef',
-    borderColor: 'rgba(108, 117, 125, 0.2)',
-  },
-  streakContainer: {
-    alignItems: 'center',
-    marginTop: 8,
-  },
-  streakText: {
-    fontSize: 16,
-    color: Colors.light.tint,
-    textAlign: 'center',
-    fontWeight: adjustFontWeight('600'),
-    marginBottom: 4,
-  },
-  streakMotivation: {
-    fontSize: 14,
-    color: Colors.light.muted,
-    textAlign: 'center',
-    fontStyle: 'italic',
-  },
-  gratitudeContainer: {
-    marginTop: 16,
+  inputSection: {
+    marginBottom: 16,
   },
   inputLabel: {
     fontSize: 16,
     fontWeight: adjustFontWeight('500'),
-    color: Colors.light.text,
+    color: '#000',
     marginBottom: 12,
   },
   inputContainer: {
@@ -338,23 +229,14 @@ const styles = StyleSheet.create({
   textInput: {
     flex: 1,
     padding: 12,
-    borderWidth: 0.5,
-    borderColor: 'rgba(255, 255, 255, 0.35)',
+    borderWidth: 1,
+    borderColor: '#ddd',
     borderRadius: 8,
     backgroundColor: '#fff',
     fontSize: 16,
-    color: Colors.light.text,
+    color: '#000',
     minHeight: 40,
     textAlignVertical: 'top',
-    // Level 2.1: Interactive Cards (Medium-High depth)
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 4,
-    },
-    shadowOpacity: 0.15,
-    shadowRadius: 7,
-    elevation: 5,
   },
   addButton: {
     paddingHorizontal: 16,
@@ -363,18 +245,9 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
-    // Level 2: Interactive Cards (High depth)
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 6,
-    },
-    shadowOpacity: 0.18,
-    shadowRadius: 8,
-    elevation: 6,
   },
   addButtonDisabled: {
-    backgroundColor: Colors.light.muted,
+    backgroundColor: '#ccc',
     opacity: 0.6,
   },
   addButtonText: {
@@ -389,39 +262,26 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   gratitudeItem: {
-    padding: 12,
-    backgroundColor: '#fff',
-    borderRadius: 8,
-    borderWidth: 0.5,
-    borderColor: 'rgba(255, 255, 255, 0.35)',
-    marginBottom: 8,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#e0e0e0',
     flexDirection: 'row',
     alignItems: 'center',
-    // Level 2: Interactive Cards (High depth)
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 6,
-    },
-    shadowOpacity: 0.18,
-    shadowRadius: 8,
-    elevation: 6,
   },
   gratitudeItemEditInput: {
     padding: 12,
-    borderWidth: 0.5,
-    borderColor: 'rgba(255, 255, 255, 0.35)',
+    borderWidth: 1,
+    borderColor: '#ddd',
     borderRadius: 8,
     backgroundColor: '#fff',
     fontSize: 16,
-    color: Colors.light.text,
+    color: '#000',
     minHeight: 60,
     textAlignVertical: 'top',
-    // No shadows for edit input to avoid "box in box in box" effect
   },
   gratitudeItemText: {
     fontSize: 16,
-    color: Colors.light.text,
+    color: '#000',
     lineHeight: 22,
     flexShrink: 1,
   },
@@ -431,131 +291,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  actionButtons: {
-    flexDirection: 'row',
-    gap: 12,
-    marginHorizontal: 32,
-    marginBottom: 16,
-  },
-  saveButton: {
-    flex: 1,
-    backgroundColor: '#28a745',
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderRadius: 25,
-    alignItems: 'center',
-    flexDirection: 'row',
-    justifyContent: 'center',
-    gap: 8,
-    height: 48,
-  },
-  saveButtonDisabled: {
-    backgroundColor: Colors.light.muted,
-    opacity: 0.6,
-  },
-  saveButtonText: {
-    color: 'white',
-    fontSize: 16,
-    fontWeight: adjustFontWeight('600'),
-  },
-  shareButton: {
-    flex: 1,
-    backgroundColor: Colors.light.tint,
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderRadius: 25,
-    alignItems: 'center',
-    flexDirection: 'row',
-    justifyContent: 'center',
-    gap: 8,
-    height: 48,
-  },
-  shareButtonDisabled: {
-    backgroundColor: Colors.light.muted,
-    opacity: 0.6,
-  },
-  shareButtonText: {
-    color: 'white',
-    fontSize: 16,
-    fontWeight: adjustFontWeight('600'),
-  },
-  secondaryButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 12,
-    paddingHorizontal: 24,
-    borderRadius: 25,
-    borderWidth: 1,
-    borderColor: Colors.light.tint,
-    backgroundColor: 'transparent',
-    marginHorizontal: 32,
-    marginBottom: 16,
-    gap: 8,
-    height: 48,
-  },
-  secondaryButtonText: {
-    color: Colors.light.tint,
-    fontSize: 16,
-    fontWeight: adjustFontWeight('500'),
-  },
-  outlineButton: {
-    borderWidth: 1,
-    borderColor: Colors.light.tint,
-    paddingVertical: 12,
-    borderRadius: 25,
-    alignItems: 'center',
-    marginHorizontal: 32,
-    marginBottom: 16,
-  },
-  outlineButtonText: {
-    color: Colors.light.tint,
-    fontSize: 16,
-    fontWeight: adjustFontWeight('500'),
-  },
-  shareButtonSolid: {
-    backgroundColor: Colors.light.tint,
-    paddingVertical: 12,
-    borderRadius: 25,
-    alignItems: 'center',
-    marginHorizontal: 32,
-    marginBottom: 16,
-    flexDirection: 'row',
-    justifyContent: 'center',
-    gap: 8,
-  },
-  shareButtonSolidText: {
-    color: 'white',
-    fontSize: 16,
-    fontWeight: adjustFontWeight('500'),
-  },
-  primaryButton: {
-    backgroundColor: Colors.light.tint,
-    paddingVertical: 14,
-    paddingHorizontal: 16,
-    borderRadius: 25,
-    alignItems: 'center',
-    justifyContent: 'center',
-    flex: 1,
-    minHeight: 48,
-  },
-  primaryButtonText: {
-    color: 'white',
-    fontSize: 16,
-    fontWeight: adjustFontWeight('600'),
-  },
   privacyText: {
     fontSize: 12,
-    color: Colors.light.muted,
+    color: '#666',
     textAlign: 'center',
-    marginBottom: 24,
-  },
-  buttonContainer: {
-    flexDirection: 'row',
-    gap: 12,
-    marginBottom: 16,
-    marginHorizontal: 16,
-    justifyContent: 'space-between',
+    marginTop: 16,
   },
 });
 
@@ -867,14 +607,68 @@ export default function GratitudeListScreen() {
 
   // Main form render
   return (
-    <ScreenContainer style={styles.container}>
+    <ScreenContainer style={styles.container} noPadding>
       
+      {/* Gradient header block */}
       <LinearGradient
-        colors={[Colors.light.chatBubbleUser, Colors.light.chatBubbleBot]}
+        colors={['#5A82AB', '#6B9CA3', '#7FB3A3']}
+        style={styles.headerBlock}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
-        style={styles.gradient}
-      />
+      >
+        <Text style={styles.headerTitle}>Gratitude List</Text>
+      </LinearGradient>
+      
+      {/* Action Row - Below header */}
+      <View style={styles.actionRow}>
+        <TouchableOpacity 
+          onPress={handleSaveEntry}
+          accessible={true}
+          accessibilityLabel="Save gratitude list"
+          accessibilityRole="button"
+          activeOpacity={0.6}
+          style={styles.actionButton}
+        >
+          <Save color="#666" size={18} />
+          <Text style={styles.actionButtonText}>Save</Text>
+        </TouchableOpacity>
+        
+        <TouchableOpacity 
+          onPress={handleShare}
+          accessible={true}
+          accessibilityLabel="Share gratitude list"
+          accessibilityRole="button"
+          activeOpacity={0.6}
+          style={styles.actionButton}
+        >
+          <ShareIcon color="#666" size={18} />
+          <Text style={styles.actionButtonText}>Share</Text>
+        </TouchableOpacity>
+        
+        <TouchableOpacity 
+          onPress={() => setShowSavedEntries(true)}
+          accessible={true}
+          accessibilityLabel="View saved lists"
+          accessibilityRole="button"
+          activeOpacity={0.6}
+          style={styles.actionButton}
+        >
+          <Folder color="#666" size={18} />
+          <Text style={styles.actionButtonText}>History</Text>
+        </TouchableOpacity>
+        
+        <TouchableOpacity 
+          onPress={handleReset}
+          accessible={true}
+          accessibilityLabel="Reset gratitude list"
+          accessibilityRole="button"
+          activeOpacity={0.6}
+          style={styles.actionButton}
+        >
+          <RotateCcw color="#666" size={18} />
+          <Text style={styles.actionButtonText}>Reset</Text>
+        </TouchableOpacity>
+      </View>
       
       <KeyboardAvoidingView 
         style={styles.keyboardAvoidingView}
@@ -882,146 +676,83 @@ export default function GratitudeListScreen() {
         keyboardVerticalOffset={Platform.OS === "ios" ? 120 : 0}
       >
         <ScrollView 
-          style={styles.content} 
+          style={styles.scrollView} 
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
           contentContainerStyle={styles.scrollContent}
         >
-          {/* Action Row - Above Title */}
-          <View style={styles.actionRow}>
-            {/* Save */}
-            <TouchableOpacity 
-              onPress={handleSaveEntry}
-              accessible={true}
-              accessibilityLabel="Save gratitude list"
-              accessibilityRole="button"
-              activeOpacity={0.6}
-              style={styles.actionButton}
-            >
-              <Save color="#007AFF" size={18} />
-              <Text style={styles.actionButtonText}>Save</Text>
-            </TouchableOpacity>
-            
-            {/* Share */}
-            <TouchableOpacity 
-              onPress={handleShare}
-              accessible={true}
-              accessibilityLabel="Share gratitude list"
-              accessibilityRole="button"
-              activeOpacity={0.6}
-              style={styles.actionButton}
-            >
-              <ShareIcon color="#007AFF" size={18} />
-              <Text style={styles.actionButtonText}>Share</Text>
-            </TouchableOpacity>
-            
-            {/* History */}
-            <TouchableOpacity 
-              onPress={() => setShowSavedEntries(true)}
-              accessible={true}
-              accessibilityLabel="View saved lists"
-              accessibilityRole="button"
-              activeOpacity={0.6}
-              style={styles.actionButton}
-            >
-              <Folder color="#007AFF" size={18} />
-              <Text style={styles.actionButtonText}>History</Text>
-            </TouchableOpacity>
-            
-            {/* Reset */}
-            <TouchableOpacity 
-              onPress={handleReset}
-              accessible={true}
-              accessibilityLabel="Reset gratitude list"
-              accessibilityRole="button"
-              activeOpacity={0.6}
-              style={styles.actionButton}
-            >
-              <RotateCcw color="#007AFF" size={18} />
-              <Text style={styles.actionButtonText}>Reset</Text>
-            </TouchableOpacity>
-          </View>
-          
-          {/* Header - Title Only */}
-          <View style={styles.header}>
-            <Text style={styles.title}>Gratitude List</Text>
-          </View>
-
           {/* Daily Quote */}
-          <View style={styles.quoteCard}>
-            <Text style={styles.quoteText}>
-              &ldquo;{dailyQuote}&rdquo;
-            </Text>
-          </View>
+          <Text style={styles.quoteText}>
+            &ldquo;{dailyQuote}&rdquo;
+          </Text>
 
+          {/* Date */}
+          <Text style={styles.dateText}>{formatDateDisplay(today)}</Text>
+          
           {/* Gratitude Input */}
-          <View style={styles.card}>
-            <Text style={styles.cardTitle}>{formatDateDisplay(today)}</Text>
+          <View style={styles.inputSection}>
+            <Text style={styles.inputLabel}>Today I'm grateful for:</Text>
             
-            <View style={styles.gratitudeContainer}>
-              <Text style={styles.inputLabel}>Today I'm grateful for:</Text>
-              
-              <View style={styles.inputContainer}>
-                <TextInput
-                  ref={inputRef}
-                  style={styles.textInput}
-                  placeholder={gratitudeItems.length === 0 ? "e.g., My sobriety" : ""}
-                  placeholderTextColor={Colors.light.muted}
-                  value={inputValue}
-                  onChangeText={setInputValue}
-                  onKeyPress={handleKeyPress}
-                  onSubmitEditing={handleAddGratitude}
-                  returnKeyType="done"
-                  multiline
-                  blurOnSubmit={true}
-                />
-                <TouchableOpacity
-                  style={[
-                    styles.addButton,
-                    !inputValue.trim() && styles.addButtonDisabled
-                  ]}
-                  onPress={handleAddGratitude}
-                  disabled={!inputValue.trim()}
-                >
-                  <Text style={[
-                    styles.addButtonText,
-                    !inputValue.trim() && styles.addButtonTextDisabled
-                  ]}>Add</Text>
-                </TouchableOpacity>
-              </View>
-
-              {gratitudeItems.length > 0 && (
-                <View style={styles.itemsList}>
-                  {gratitudeItems.map((item, index) => (
-                    <View key={index} style={styles.gratitudeItem}>
-                      <View style={{ flex: 1 }}>
-                        {editingIndex === index ? (
-                          <TextInput
-                            style={styles.gratitudeItemEditInput}
-                            value={editingValue}
-                            onChangeText={setEditingValue}
-                            autoFocus
-                            blurOnSubmit={true}
-                            returnKeyType="done"
-                            onSubmitEditing={commitEdit}
-                            onBlur={commitEdit}
-                            multiline
-                            textAlignVertical="top"
-                          />
-                        ) : (
-                          <TouchableOpacity onPress={() => beginEdit(index)} activeOpacity={0.7}>
-                            <Text style={styles.gratitudeItemText}>{item}</Text>
-                          </TouchableOpacity>
-                        )}
-                      </View>
-                      <TouchableOpacity onPress={() => handleDelete(index)} style={styles.deleteButton}>
-                        <Trash2 size={16} color={Colors.light.muted} />
-                      </TouchableOpacity>
-                    </View>
-                  ))}
-                </View>
-              )}
+            <View style={styles.inputContainer}>
+              <TextInput
+                ref={inputRef}
+                style={styles.textInput}
+                placeholder={gratitudeItems.length === 0 ? "e.g., My sobriety" : ""}
+                placeholderTextColor="#999"
+                value={inputValue}
+                onChangeText={setInputValue}
+                onKeyPress={handleKeyPress}
+                onSubmitEditing={handleAddGratitude}
+                returnKeyType="done"
+                multiline
+                blurOnSubmit={true}
+              />
+              <TouchableOpacity
+                style={[
+                  styles.addButton,
+                  !inputValue.trim() && styles.addButtonDisabled
+                ]}
+                onPress={handleAddGratitude}
+                disabled={!inputValue.trim()}
+              >
+                <Text style={[
+                  styles.addButtonText,
+                  !inputValue.trim() && styles.addButtonTextDisabled
+                ]}>Add</Text>
+              </TouchableOpacity>
             </View>
+
+            {gratitudeItems.length > 0 && (
+              <View style={styles.itemsList}>
+                {gratitudeItems.map((item, index) => (
+                  <View key={index} style={styles.gratitudeItem}>
+                    <View style={{ flex: 1 }}>
+                      {editingIndex === index ? (
+                        <TextInput
+                          style={styles.gratitudeItemEditInput}
+                          value={editingValue}
+                          onChangeText={setEditingValue}
+                          autoFocus
+                          blurOnSubmit={true}
+                          returnKeyType="done"
+                          onSubmitEditing={commitEdit}
+                          onBlur={commitEdit}
+                          multiline
+                          textAlignVertical="top"
+                        />
+                      ) : (
+                        <TouchableOpacity onPress={() => beginEdit(index)} activeOpacity={0.7}>
+                          <Text style={styles.gratitudeItemText}>{item}</Text>
+                        </TouchableOpacity>
+                      )}
+                    </View>
+                    <TouchableOpacity onPress={() => handleDelete(index)} style={styles.deleteButton}>
+                      <Trash2 size={16} color="#999" />
+                    </TouchableOpacity>
+                  </View>
+                ))}
+              </View>
+            )}
           </View>
 
           {/* Privacy Notice */}
