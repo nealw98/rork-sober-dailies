@@ -5,7 +5,6 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { X, Sun, Moon } from 'lucide-react-native';
 import FontAwesome6 from '@expo/vector-icons/FontAwesome6';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { LinearGradient } from 'expo-linear-gradient';
 
 import { adjustFontWeight } from '@/constants/fonts';
 
@@ -60,30 +59,16 @@ export default function ToolsScreen() {
                   onPress={() => handleNavigate('/(tabs)/prayers?prayer=morning')}
                   activeOpacity={0.7}
                 >
-                  <LinearGradient
-                    colors={['#5A82AB', '#6B9CA3', '#7FB3A3']}
-                    style={styles.tileGradient}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 1 }}
-                  >
-                    <FontAwesome6 name="hands-praying" size={28} color="#fff" solid />
-                    <Text style={styles.tileLabel}>Prayer</Text>
-                  </LinearGradient>
+                  <FontAwesome6 name="hands-praying" size={24} color="#5A82AB" solid />
+                  <Text style={styles.tileLabel}>Prayer</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={styles.tile}
                   onPress={() => handleNavigate('/(tabs)/gratitude')}
                   activeOpacity={0.7}
                 >
-                  <LinearGradient
-                    colors={['#5A82AB', '#6B9CA3', '#7FB3A3']}
-                    style={styles.tileGradient}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 1 }}
-                  >
-                    <FontAwesome6 name="face-smile" size={28} color="#fff" solid />
-                    <Text style={styles.tileLabel}>Gratitude</Text>
-                  </LinearGradient>
+                  <FontAwesome6 name="face-smile" size={24} color="#5A82AB" solid />
+                  <Text style={styles.tileLabel}>Gratitude</Text>
                 </TouchableOpacity>
               </View>
             </View>
@@ -100,30 +85,16 @@ export default function ToolsScreen() {
                   onPress={() => handleNavigate('/(tabs)/prayers?prayer=evening')}
                   activeOpacity={0.7}
                 >
-                  <LinearGradient
-                    colors={['#5A82AB', '#6B9CA3', '#7FB3A3']}
-                    style={styles.tileGradient}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 1 }}
-                  >
-                    <FontAwesome6 name="hands-praying" size={28} color="#fff" solid />
-                    <Text style={styles.tileLabel}>Prayer</Text>
-                  </LinearGradient>
+                  <FontAwesome6 name="hands-praying" size={24} color="#5A82AB" solid />
+                  <Text style={styles.tileLabel}>Prayer</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={styles.tile}
                   onPress={() => handleNavigate('/(tabs)/evening-review')}
                   activeOpacity={0.7}
                 >
-                  <LinearGradient
-                    colors={['#5A82AB', '#6B9CA3', '#7FB3A3']}
-                    style={styles.tileGradient}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 1 }}
-                  >
-                    <Ionicons name="moon" size={28} color="#fff" />
-                    <Text style={styles.tileLabel}>Review</Text>
-                  </LinearGradient>
+                  <Ionicons name="moon" size={24} color="#5A82AB" />
+                  <Text style={styles.tileLabel}>Review</Text>
                 </TouchableOpacity>
               </View>
             </View>
@@ -178,23 +149,23 @@ const styles = StyleSheet.create({
   },
   tilesRow: {
     flexDirection: 'row',
-    gap: 16,
+    gap: 12,
   },
   tile: {
     flex: 1,
-    borderRadius: 16,
-    overflow: 'hidden',
-  },
-  tileGradient: {
-    paddingVertical: 32,
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    paddingVertical: 20,
     alignItems: 'center',
     justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: '#e8e8e8',
   },
   tileLabel: {
-    fontSize: 16,
-    fontWeight: adjustFontWeight('600'),
-    color: '#fff',
-    marginTop: 10,
+    fontSize: 14,
+    fontWeight: adjustFontWeight('500'),
+    color: '#333',
+    marginTop: 8,
   },
 });
 
