@@ -235,14 +235,6 @@ function SponsorChatContent({ initialSponsor }: { initialSponsor: string }) {
             <ChevronLeft size={24} color="#fff" />
             <Text style={styles.backButtonText}>Back</Text>
           </TouchableOpacity>
-          
-          <TouchableOpacity
-            style={styles.refreshButton}
-            onPress={handleRefresh}
-            activeOpacity={0.7}
-          >
-            <RotateCcw size={20} color="#fff" />
-          </TouchableOpacity>
         </View>
         
         {/* Avatar and Name - horizontal */}
@@ -253,6 +245,21 @@ function SponsorChatContent({ initialSponsor }: { initialSponsor: string }) {
           <Text style={styles.headerTitle}>{sponsor.name}</Text>
         </View>
       </LinearGradient>
+      
+      {/* Action row below header */}
+      <View style={styles.actionRow}>
+        <TouchableOpacity
+          onPress={handleRefresh}
+          accessible={true}
+          accessibilityLabel="Reset conversation"
+          accessibilityRole="button"
+          activeOpacity={0.6}
+          style={styles.actionButton}
+        >
+          <RotateCcw color="#666" size={18} />
+          <Text style={styles.actionButtonText}>Reset</Text>
+        </TouchableOpacity>
+      </View>
       
       {/* Chat area with off-white background */}
       <KeyboardAvoidingView
@@ -361,10 +368,24 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontWeight: '500',
   },
-  refreshButton: {
-    padding: 8,
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    borderRadius: 16,
+  actionRow: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    alignItems: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#e0e0e0',
+  },
+  actionButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  actionButtonText: {
+    fontSize: 14,
+    color: '#666',
+    fontWeight: '500',
   },
   sponsorInfo: {
     flexDirection: 'row',
