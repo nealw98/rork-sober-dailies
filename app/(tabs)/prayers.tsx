@@ -107,7 +107,6 @@ export default function PrayersScreen() {
         end={{ x: 1, y: 1 }}
       >
         <Text style={styles.headerTitle}>AA Prayers</Text>
-        <Text style={styles.headerSubtitle}>Essential prayers for recovery and reflection</Text>
       </LinearGradient>
       
       {/* Off-white content area */}
@@ -184,11 +183,6 @@ const styles = StyleSheet.create({
     fontWeight: adjustFontWeight('400'),
     color: '#fff',
     marginBottom: 8,
-    textAlign: 'center',
-  },
-  headerSubtitle: {
-    fontSize: 14,
-    color: 'rgba(255,255,255,0.85)',
     textAlign: 'center',
   },
   scrollContainer: {
