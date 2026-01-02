@@ -8,7 +8,6 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import Colors from "@/constants/colors";
-import TextSettingsButton from "@/components/TextSettingsButton";
 import { getReflectionForDate } from "@/constants/reflections";
 import { Reflection } from "@/types";
 import { adjustFontWeight } from "@/constants/fonts";
@@ -404,7 +403,7 @@ export default function DailyReflection({ fontSize = 18, lineHeight, jumpToDate 
             <ChevronLeft size={24} color="#fff" />
             <Text style={styles.backButtonText}>Back</Text>
           </TouchableOpacity>
-          <TextSettingsButton compact light />
+          <View style={{ width: 60 }} />
         </View>
         
         <Text style={styles.headerTitle}>Daily Reflections</Text>

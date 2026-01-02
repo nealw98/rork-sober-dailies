@@ -46,7 +46,6 @@ import ScreenContainer from "./ScreenContainer";
 import BigBookSearchBar from "./BigBookSearchBar";
 import BigBookSearchResults from "./BigBookSearchResults";
 import PageNumberInput from "./PageNumberInput";
-import TextSettingsButton from "./TextSettingsButton";
 
 const SectionItem = ({ section, categoryId, onOpenContent }: { 
   section: BigBookSection; 

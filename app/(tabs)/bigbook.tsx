@@ -4,7 +4,6 @@ import BigBookBrowser from "@/components/BigBookBrowser";
 import ScreenContainer from "@/components/ScreenContainer";
 import Colors from "@/constants/colors";
 import { useReadingSession } from "@/hooks/useReadingSession";
-import TextSettingsButton from "@/components/TextSettingsButton";
 
 export default function BigBookScreen() {
   console.log('🟢 BigBookScreen: Component rendering');
@@ -15,7 +14,6 @@ export default function BigBookScreen() {
       <Stack.Screen
         options={{
           headerTitle: "",
-          headerRight: () => <TextSettingsButton compact />,
         }}
       />
       <BigBookBrowser />

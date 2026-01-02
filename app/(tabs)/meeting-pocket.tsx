@@ -3,7 +3,6 @@ import { Stack } from "expo-router";
 import MeetingPocketBrowser from "@/components/MeetingPocketBrowser";
 import ScreenContainer from "@/components/ScreenContainer";
 import { useReadingSession } from "@/hooks/useReadingSession";
-import TextSettingsButton from "@/components/TextSettingsButton";
 
 export default function MeetingPocketScreen() {
   console.log('🟢 MeetingPocketScreen: Component rendering');
@@ -14,7 +13,6 @@ export default function MeetingPocketScreen() {
       <Stack.Screen
         options={{
           headerTitle: "",
-          headerRight: () => <TextSettingsButton compact />,
         }}
       />
       <MeetingPocketBrowser />

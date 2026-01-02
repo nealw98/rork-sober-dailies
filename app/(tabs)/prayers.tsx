@@ -18,7 +18,6 @@ import { aaPrayers } from "@/constants/prayers";
 import { adjustFontWeight } from "@/constants/fonts";
 import ScreenContainer from "@/components/ScreenContainer";
 import { useTextSettings } from "@/hooks/use-text-settings";
-import TextSettingsButton from "@/components/TextSettingsButton";
 
 export default function PrayersScreen() {
   const { prayer } = useLocalSearchParams();
@@ -112,7 +111,7 @@ export default function PrayersScreen() {
             <ChevronLeft size={24} color="#fff" />
             <Text style={styles.backButtonText}>Back</Text>
           </TouchableOpacity>
-          <TextSettingsButton compact light />
+          <View style={{ width: 60 }} />
         </View>
         <Text style={styles.headerTitle}>AA Prayers</Text>
       </LinearGradient>

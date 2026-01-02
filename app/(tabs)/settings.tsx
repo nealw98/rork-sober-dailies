@@ -1,15 +1,23 @@
-import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Platform, Linking, Share, ScrollView } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, Platform, Linking, Share, ScrollView, Modal } from 'react-native';
 import { router, Stack } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { ChevronLeft, ChevronRight, Star, Share2, Heart, Info } from 'lucide-react-native';
+import { ChevronLeft, ChevronRight, Star, Share2, Heart, Info, Type } from 'lucide-react-native';
 import { requestReviewNow } from '@/lib/reviewPrompt';
 import ScreenContainer from '@/components/ScreenContainer';
 import { adjustFontWeight } from '@/constants/fonts';
+import { useTextSettings } from '@/hooks/use-text-settings';
+import Colors from '@/constants/colors';
 
 export default function SettingsScreen() {
   const insets = useSafeAreaInsets();
+  const [showTextSettings, setShowTextSettings] = useState(false);
+  const { fontSize, setFontSize, resetDefaults, minFontSize, maxFontSize, lineHeight } = useTextSettings();
+  
+  const step = 2;
+  const increase = () => setFontSize(fontSize + step);
+  const decrease = () => setFontSize(fontSize - step);
 
   const handleRateAppPress = async () => {
     try {
@@ -80,8 +88,27 @@ export default function SettingsScreen() {
       
       {/* Content */}
       <ScrollView style={styles.content}>
+        {/* Appearance Section */}
+        <Text style={styles.sectionTitle}>Appearance</Text>
+        
+        <TouchableOpacity 
+          style={styles.menuItem}
+          onPress={() => setShowTextSettings(true)}
+          activeOpacity={0.7}
+        >
+          <View style={styles.menuItemIcon}>
+            <Type size={22} color="#1E3A5F" />
+          </View>
+          <View style={styles.menuItemText}>
+            <Text style={styles.menuItemTitle}>Text Size</Text>
+            <Text style={styles.menuItemDescription}>Adjust reading text size</Text>
+          </View>
+          <Text style={styles.menuItemValue}>{fontSize}</Text>
+          <ChevronRight size={20} color="#999" />
+        </TouchableOpacity>
+
         {/* Support Section */}
-        <Text style={styles.sectionTitle}>Support Sober Dailies</Text>
+        <Text style={[styles.sectionTitle, { marginTop: 24 }]}>Support Sober Dailies</Text>
         
         <TouchableOpacity 
           style={styles.menuItem}
@@ -146,6 +173,60 @@ export default function SettingsScreen() {
           <ChevronRight size={20} color="#999" />
         </TouchableOpacity>
       </ScrollView>
+      
+      {/* Text Size Modal */}
+      <Modal visible={showTextSettings} transparent animationType="fade" onRequestClose={() => setShowTextSettings(false)}>
+        <TouchableOpacity style={styles.overlay} activeOpacity={1} onPress={() => setShowTextSettings(false)}>
+          <TouchableOpacity
+            style={styles.modalCard}
+            activeOpacity={1}
+            onPress={(e) => e.stopPropagation()}
+          >
+            <View style={styles.modalHeader}>
+              <TouchableOpacity onPress={resetDefaults} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
+                <Text style={styles.resetText}>Reset</Text>
+              </TouchableOpacity>
+              <Text style={styles.modalTitle}>Text Size</Text>
+              <TouchableOpacity onPress={() => setShowTextSettings(false)} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
+                <Text style={styles.resetText}>Done</Text>
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.preview}>
+              <Text style={styles.previewLabel}>Preview</Text>
+              <Text
+                style={[
+                  styles.previewText,
+                  { fontSize, lineHeight, fontWeight: adjustFontWeight("500"), textAlign: "center" },
+                ]}
+              >
+                "Daily progress one day at a time."
+              </Text>
+              <Text style={styles.previewMeta}>{`Size ${fontSize}`}</Text>
+            </View>
+
+            <View style={styles.controls}>
+              <TouchableOpacity
+                style={[styles.circleButton, fontSize <= minFontSize && styles.circleButtonDisabled]}
+                onPress={decrease}
+                disabled={fontSize <= minFontSize}
+                hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+              >
+                <Text style={styles.buttonLabel}>Smaller</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.circleButton, fontSize >= maxFontSize && styles.circleButtonDisabled]}
+                onPress={increase}
+                disabled={fontSize >= maxFontSize}
+                hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+              >
+                <Text style={styles.buttonLabel}>Larger</Text>
+              </TouchableOpacity>
+            </View>
+          </TouchableOpacity>
+        </TouchableOpacity>
+      </Modal>
     </ScreenContainer>
   );
 }
@@ -230,6 +311,101 @@ const styles = StyleSheet.create({
   menuItemDescription: {
     fontSize: 13,
     color: '#666',
+  },
+  menuItemValue: {
+    fontSize: 15,
+    color: '#666',
+    marginRight: 4,
+  },
+  // Modal styles
+  overlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.35)",
+    justifyContent: "center",
+    paddingHorizontal: 24,
+  },
+  modalCard: {
+    backgroundColor: Colors.light.background,
+    borderRadius: 16,
+    padding: 16,
+    gap: 12,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  modalHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: adjustFontWeight("700"),
+    color: Colors.light.text,
+  },
+  resetText: {
+    color: Colors.light.tint,
+    fontSize: 14,
+    fontWeight: adjustFontWeight("600"),
+  },
+  preview: {
+    backgroundColor: Colors.light.cardBackground,
+    borderRadius: 12,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: Colors.light.divider,
+    gap: 6,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 6,
+    elevation: 3,
+  },
+  previewLabel: {
+    color: Colors.light.muted,
+    fontSize: 12,
+    fontWeight: adjustFontWeight("600"),
+  },
+  previewText: {
+    color: Colors.light.text,
+  },
+  previewMeta: {
+    fontSize: 12,
+    color: Colors.light.muted,
+    marginTop: 2,
+    textAlign: "center",
+  },
+  controls: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+  },
+  circleButton: {
+    flex: 1,
+    flexDirection: "column",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 14,
+    borderRadius: 12,
+    backgroundColor: Colors.light.cardBackground,
+    borderWidth: 1,
+    borderColor: Colors.light.divider,
+    gap: 10,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 6,
+    elevation: 3,
+  },
+  circleButtonDisabled: {
+    opacity: 0.5,
+  },
+  buttonLabel: {
+    fontSize: 15,
+    fontWeight: adjustFontWeight("600"),
+    color: Colors.light.text,
   },
 });
 
