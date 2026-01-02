@@ -234,6 +234,15 @@ export default function TabLayout() {
           tabBarIcon: createTabIcon(Ionicons, 'moon', 20),
         }}
       />
+      <Tabs.Screen
+        name="settings"
+        options={{
+          title: "Settings",
+          headerTitle: '',
+          headerShown: false,
+          tabBarIcon: createTabIcon(Ionicons, 'settings-sharp', 20),
+        }}
+      />
 
       {/* Stack screens that should maintain the tab bar */}
       <Tabs.Screen

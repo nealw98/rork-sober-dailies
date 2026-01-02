@@ -1,5 +1,5 @@
 import React, { useRef } from 'react';
-import { StyleSheet, View, Text, ScrollView, TouchableOpacity, Linking, Alert, Share, Platform, Animated } from 'react-native';
+import { StyleSheet, View, Text, ScrollView, TouchableOpacity, Animated } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -11,8 +11,6 @@ import Entypo from '@expo/vector-icons/Entypo';
 import FontAwesome6 from '@expo/vector-icons/FontAwesome6';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import FontAwesome from '@expo/vector-icons/FontAwesome';
-import { requestReviewNow } from '@/lib/reviewPrompt';
 
 // Animated Card Component for micro-interactions
 const AnimatedCard: React.FC<{ onPress: () => void; children: React.ReactNode }> = ({ onPress, children }) => {
@@ -56,53 +54,6 @@ const HomeScreen = () => {
 
   const today = new Date();
   const formattedDate = formatDateDisplay(today);
-
-  const handleRateAppPress = async () => {
-    try {
-      // For manual button presses, try to show the native in-app review dialog
-      // immediately, bypassing all gating logic
-      try {
-        const didShowNativePrompt = await requestReviewNow();
-        if (didShowNativePrompt) {
-          console.log('[home] Successfully showed native review prompt');
-          return;
-        }
-        console.log('[home] Native review prompt not available, falling back to store URL');
-      } catch (error) {
-        console.warn('[home] Native review prompt failed, falling back to store URL', error);
-      }
-
-      // Fallback: open the appropriate store rating page
-      if (Platform.OS === 'ios') {
-        const appStoreId = '6749869819';
-        const url = `itms-apps://itunes.apple.com/app/id${appStoreId}?action=write-review`;
-        await Linking.openURL(url);
-      } else {
-        const packageName = 'com.nealwagner.soberdailies';
-        const url = `market://details?id=${packageName}`;
-        const fallback = `https://play.google.com/store/apps/details?id=${packageName}`;
-        const supported = await Linking.canOpenURL(url);
-        await Linking.openURL(supported ? url : fallback);
-      }
-    } catch (error) {
-      Alert.alert('Error', 'Unable to open the store page right now.');
-    }
-  };
-
-  const handleSharePress = async () => {
-    try {
-      const appStoreUrl =
-        Platform.OS === 'ios'
-          ? 'https://apps.apple.com/app/sober-dailies/id6738032000'
-          : 'https://play.google.com/store/apps/details?id=com.nealwagner.soberdailies';
-
-      await Share.share({
-        message: 'Sober Dailies helps me stay sober one day at a time. Check it out: ' + appStoreUrl,
-      });
-    } catch {
-      // no-op
-    }
-  };
 
   return (
     <LinearGradient
@@ -233,38 +184,6 @@ const HomeScreen = () => {
         </AnimatedCard>
         </View>
 
-        {/* Support the Developer Section */}
-        <View style={styles.sectionContainerSupport}>
-        <Text style={styles.sectionTitle}>Enjoying Sober Dailies?</Text>
-        <AnimatedCard onPress={handleRateAppPress}>
-          <View style={styles.cardHeader}>
-            <View style={styles.cardIconWrapper}>
-              <FontAwesome name="star" size={20} color={Colors.light.tint} />
-            </View>
-            <Text style={styles.cardTitle}>Rate & Review</Text>
-          </View>
-          <Text style={styles.cardDescription}>Leave a review in the App Store or Play Store.</Text>
-        </AnimatedCard>
-        <AnimatedCard onPress={handleSharePress}>
-          <View style={styles.cardHeader}>
-            <View style={styles.cardIconWrapper}>
-              <FontAwesome name="share-alt" size={20} color={Colors.light.tint} />
-            </View>
-            <Text style={styles.cardTitle}>Share the App</Text>
-          </View>
-          <Text style={styles.cardDescription}>Invite a friend by sharing Sober Dailies.</Text>
-        </AnimatedCard>
-        <AnimatedCard onPress={() => router.push('/about-support')}>
-          <View style={styles.cardHeader}>
-            <View style={styles.cardIconWrapper}>
-              <FontAwesome name="heart" size={20} color={Colors.light.tint} />
-            </View>
-            <Text style={styles.cardTitle}>Support the Developer</Text>
-          </View>
-          <Text style={styles.cardDescription}>Make a difference with a one-time contribution</Text>
-        </AnimatedCard>
-        </View>
-
       </ScrollView>
       </SafeAreaView>
     </LinearGradient>
@@ -383,14 +302,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     marginBottom: 30,
     backgroundColor: '#F8EEFF', // Slightly softer pale purple
-    paddingVertical: 20,
-    borderRadius: 16,
-    marginHorizontal: 16,
-  },
-  sectionContainerSupport: {
-    paddingHorizontal: 16,
-    marginBottom: 30,
-    backgroundColor: '#F0FBF6', // Slightly softer pale green
     paddingVertical: 20,
     borderRadius: 16,
     marginHorizontal: 16,
