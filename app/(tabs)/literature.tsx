@@ -1,7 +1,8 @@
 import { StyleSheet, View, Text, TouchableOpacity } from "react-native";
-import { router } from "expo-router";
-import { Book, BookOpen, FileText, ChevronRight } from "lucide-react-native";
+import { router, Stack } from "expo-router";
+import { BookOpen, FileText, ChevronRight, ChevronLeft } from "lucide-react-native";
 import { LinearGradient } from 'expo-linear-gradient';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import ScreenContainer from "@/components/ScreenContainer";
 import Colors from "@/constants/colors";
 import { adjustFontWeight } from "@/constants/fonts";
@@ -37,127 +38,65 @@ const literatureOptions: LiteratureOption[] = [
 
 export default function LiteratureScreen() {
   useReadingSession('literature');
+  const insets = useSafeAreaInsets();
 
-  // Add direct navigation buttons for debugging
-  const handleDirectNavigation = (screenName: string) => {
-    console.log(`🔵 Literature: Direct navigation to ${screenName}`);
-    try {
-      router.push(screenName);
-      console.log(`🔵 Literature: Direct navigation to ${screenName} completed`);
-    } catch (error) {
-      console.error(`🔴 Literature: Direct navigation error for ${screenName}:`, error);
-    }
-  };
   const handleOptionPress = (route: string) => {
-    console.log('🔵 Literature: handleOptionPress called with route:', route);
-    try {
-      // Log the current navigation state before navigating (guarded)
-      if (typeof (router as any).getState === 'function') {
-        const currentState = (router as any).getState();
-        console.log('🧭 Navigation: Current state before navigation:', JSON.stringify({
-          routes: currentState.routes.map((r: any) => ({ 
-            name: r.name,
-            path: r.path,
-            params: r.params
-          })),
-          index: currentState.index,
-          key: currentState.key,
-          stale: currentState.stale,
-          type: currentState.type
-        }, null, 2));
-      } else {
-        console.log('🧭 Navigation: router.getState is not available in this environment');
-      }
-      
-      // Get current route name for logging
-      const currentRouteName = currentState.routes[currentState.index]?.name || 'unknown';
-      console.log(`🧭 Navigation: Navigating from "${currentRouteName}" to "${route}"`);
-      
-      console.log('🔵 Literature: About to call router.push');
-      // Use push for navigation since navigate is not available
-      router.push(route as any);
-      console.log('🔵 Literature: router.push completed successfully');
-      
-      // Log the state after navigation (on next tick, guarded)
-      setTimeout(() => {
-        try {
-          if (typeof (router as any).getState === 'function') {
-            const newState = (router as any).getState();
-            const newRouteName = newState.routes[newState.index]?.name || 'unknown';
-            console.log(`🧭 Navigation: Now on "${newRouteName}" after navigation to ${route}`);
-            // Log the current route name after navigation
-            console.log(`🧭 Navigation: Route navigation complete. Current route: ${newRouteName}`);
-          } else {
-            console.log('🧭 Navigation: router.getState is not available after navigation');
-          }
-        } catch (err) {
-          console.error('🧭 Navigation: Error getting state after navigation:', err);
-        }
-      }, 100);
-    } catch (error) {
-      console.error('🔴 Literature: Error in router.push:', error);
-    }
+    router.push(route as any);
   };
 
   return (
-    <ScreenContainer style={styles.container}>
+    <ScreenContainer style={styles.container} noPadding>
+      <Stack.Screen options={{ headerShown: false }} />
+      
+      {/* Gradient header block */}
       <LinearGradient
-        colors={Colors.gradients.mainThreeColor}
-        style={styles.backgroundGradient}
+        colors={['#5A82AB', '#6B9CA3', '#7FB3A3']}
+        style={[styles.headerBlock, { paddingTop: insets.top + 8 }]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
-        locations={[0, 0.5, 1]}
-      />
-      
-      <View style={styles.content}>
-        <View style={styles.mainContent}>
-          <Text style={styles.title}>AA Literature</Text>
-          <Text style={styles.subtitle}>
-            Access the foundational texts of Alcoholics Anonymous
-          </Text>
-          
-          {/* Debug navigation removed */}
-          
-          <View style={styles.optionsContainer}>
-            {literatureOptions.map((option) => (
-              <TouchableOpacity
-                key={option.id}
-                style={styles.optionCard}
-                onPress={() => {
-                  console.log('🔵 Literature: TouchableOpacity pressed for:', option.id, option.route);
-                  try {
-                    console.log('🔵 Literature: typeof router.push =', typeof (router as any).push);
-                    (router as any).push(option.route);
-                    console.log('🔵 Literature: router.push returned without throwing for', option.route);
-                  } catch (err) {
-                    console.error('🔴 Literature: router.push threw for', option.route, err);
-                  }
-                }}
-                onPressIn={() => console.log('🔵 Literature: TouchableOpacity onPressIn for:', option.id)}
-                onPressOut={() => console.log('🔵 Literature: TouchableOpacity onPressOut for:', option.id)}
-                activeOpacity={0.7}
-                testID={`literature-option-${option.id}`}
-              >
-                <View style={styles.optionContent}>
-                  <View style={styles.optionIcon}>
-                    {option.id === "bigbook" || option.id === "twelve-and-twelve" ? (
-                      <BookOpen size={24} color={Colors.light.tint} />
-                    ) : (
-                      <FileText size={24} color={Colors.light.tint} />
-                    )}
-                  </View>
-                  <View style={styles.optionText}>
-                    <Text style={styles.optionTitle}>{option.title}</Text>
-                    <Text style={styles.optionDescription}>{option.description}</Text>
-                  </View>
-                  <ChevronRight size={20} color={Colors.light.muted} />
-                </View>
-              </TouchableOpacity>
-            ))}
-          </View>
+      >
+        {/* Top row with back button */}
+        <View style={styles.headerTopRow}>
+          <TouchableOpacity 
+            onPress={() => router.back()} 
+            style={styles.backButton}
+            activeOpacity={0.7}
+          >
+            <ChevronLeft size={24} color="#fff" />
+            <Text style={styles.backButtonText}>Back</Text>
+          </TouchableOpacity>
+          <View style={{ width: 60 }} />
         </View>
-        
-
+        <Text style={styles.headerTitle}>AA Literature</Text>
+      </LinearGradient>
+      
+      {/* Off-white content area */}
+      <View style={styles.content}>
+        {literatureOptions.map((option, index) => (
+          <TouchableOpacity
+            key={option.id}
+            style={[
+              styles.optionItem,
+              index === literatureOptions.length - 1 && styles.optionItemLast
+            ]}
+            onPress={() => handleOptionPress(option.route)}
+            activeOpacity={0.7}
+            testID={`literature-option-${option.id}`}
+          >
+            <View style={styles.optionIcon}>
+              {option.id === "bigbook" || option.id === "twelve-and-twelve" ? (
+                <BookOpen size={24} color="#1E3A5F" />
+              ) : (
+                <FileText size={24} color="#1E3A5F" />
+              )}
+            </View>
+            <View style={styles.optionText}>
+              <Text style={styles.optionTitle}>{option.title}</Text>
+              <Text style={styles.optionDescription}>{option.description}</Text>
+            </View>
+            <ChevronRight size={20} color="#999" />
+          </TouchableOpacity>
+        ))}
       </View>
     </ScreenContainer>
   );
@@ -166,67 +105,59 @@ export default function LiteratureScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.light.background,
+    backgroundColor: '#f5f6f8',
   },
-  backgroundGradient: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
+  headerBlock: {
+    paddingBottom: 24,
+    paddingHorizontal: 16,
+  },
+  headerTopRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  backButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    borderRadius: 16,
+  },
+  backButtonText: {
+    fontSize: 15,
+    color: '#fff',
+    fontWeight: '500',
+  },
+  headerTitle: {
+    fontSize: 28,
+    fontStyle: 'italic',
+    fontWeight: adjustFontWeight('400'),
+    color: '#fff',
+    textAlign: 'center',
   },
   content: {
     flex: 1,
-    paddingHorizontal: 20,
-    paddingTop: 20,
-    paddingBottom: 20,
+    paddingHorizontal: 16,
+    paddingTop: 16,
   },
-  mainContent: {
-    flex: 1,
-  },
-  title: {
-    fontSize: 28,
-    fontWeight: adjustFontWeight('bold', true),
-    color: Colors.light.text,
-    textAlign: 'center',
-    marginBottom: 8,
-  },
-  subtitle: {
-    fontSize: 14,
-    color: Colors.light.muted,
-    textAlign: 'center',
-    marginBottom: 24,
-  },
-  
-  optionsContainer: {
-    gap: 16,
-  },
-  optionCard: {
-    backgroundColor: 'rgba(255, 255, 255, 0.7)',
-    borderRadius: 12,
-    padding: 20,
-    borderWidth: 1,
-    // Level 3: Content Cards (Medium depth)
-    shadowColor: 'rgba(0, 0, 0, 0.1)',
-    shadowOffset: {
-      width: 0,
-      height: 4,
-    },
-    shadowOpacity: 1,
-    shadowRadius: 8,
-    elevation: 4,
-    borderColor: 'rgba(255, 255, 255, 0.3)',
-  },
-  optionContent: {
+  optionItem: {
     flexDirection: 'row',
     alignItems: 'center',
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#e0e0e0',
     gap: 16,
+  },
+  optionItemLast: {
+    borderBottomWidth: 0,
   },
   optionIcon: {
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: `${Colors.light.tint}15`,
+    backgroundColor: 'rgba(30, 58, 95, 0.1)',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -234,14 +165,14 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   optionTitle: {
-    fontSize: 18,
+    fontSize: 17,
     fontWeight: adjustFontWeight('600', true),
-    color: Colors.light.text,
+    color: '#000',
+    marginBottom: 2,
   },
   optionDescription: {
     fontSize: 14,
-    color: Colors.light.muted,
+    color: '#666',
     lineHeight: 20,
   },
-  
 });
