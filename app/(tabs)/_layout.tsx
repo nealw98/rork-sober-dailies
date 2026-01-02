@@ -219,7 +219,17 @@ export default function TabLayout() {
         }}
       />
 
-      {/* Tab 4: Settings - gear icon */}
+      {/* Tab 4: Tools - wrench icon */}
+      <Tabs.Screen
+        name="tools"
+        options={{
+          title: "Tools",
+          headerShown: false,
+          tabBarIcon: createTabIcon(Ionicons, 'build', 20),
+        }}
+      />
+
+      {/* Tab 5: Settings - gear icon */}
       <Tabs.Screen
         name="settings"
         options={{
