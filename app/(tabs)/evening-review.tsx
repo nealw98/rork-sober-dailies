@@ -585,32 +585,6 @@ export default function EveningReview() {
             </View>
           </View>
 
-          {/* Action Buttons */}
-          <View style={styles.actionButtons}>
-            <TouchableOpacity 
-              style={[
-                styles.saveButton,
-                !canSave() && styles.saveButtonDisabled
-              ]} 
-              onPress={handleSaveEntry}
-              disabled={!canSave()}
-            >
-              <Save size={20} color="white" />
-              <Text style={styles.saveButtonText}>Save</Text>
-            </TouchableOpacity>
-            <TouchableOpacity 
-              style={[
-                styles.shareButton,
-                !canSave() && styles.shareButtonDisabled
-              ]}
-              onPress={handleShare}
-              disabled={!canSave()}
-            >
-              <ShareIcon size={20} color="white" />
-              <Text style={styles.shareButtonText}>Share</Text>
-            </TouchableOpacity>
-          </View>
-
           <Text style={styles.privacyText}>
             Your responses are saved only on your device. Nothing is uploaded or shared.
           </Text>
