@@ -1,11 +1,9 @@
 import React, { useMemo } from 'react';
-import { StyleSheet, View } from 'react-native';
 import { Stack } from 'expo-router';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import ScreenContainer from '@/components/ScreenContainer';
 import DailyReflection from '@/components/DailyReflection';
 import { useTextSettings } from '@/hooks/use-text-settings';
-import TextSettingsButton from '@/components/TextSettingsButton';
 import { DailyReflectionBookmarksProvider } from '@/hooks/use-daily-reflection-bookmarks';
 
 export default function DailyReflectionsPage() {
@@ -22,16 +20,7 @@ export default function DailyReflectionsPage() {
   return (
     <DailyReflectionBookmarksProvider>
       <ScreenContainer noPadding>
-        <Stack.Screen
-          options={{
-            title: 'Daily Reflections',
-            headerRight: () => (
-              <View style={styles.headerActions}>
-                <TextSettingsButton compact />
-              </View>
-            ),
-          }}
-        />
+        <Stack.Screen options={{ headerShown: false }} />
         <GestureDetector gesture={doubleTapGesture}>
           <DailyReflection
             fontSize={fontSize}
@@ -42,11 +31,3 @@ export default function DailyReflectionsPage() {
     </DailyReflectionBookmarksProvider>
   );
 }
-
-const styles = StyleSheet.create({
-  headerActions: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-});

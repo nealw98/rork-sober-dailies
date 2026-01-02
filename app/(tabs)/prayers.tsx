@@ -6,11 +6,12 @@ import {
   ScrollView,
   TouchableOpacity,
 } from "react-native";
-import { ChevronDown, ChevronRight } from "lucide-react-native";
+import { ChevronDown, ChevronRight, ChevronLeft } from "lucide-react-native";
 import { LinearGradient } from 'expo-linear-gradient';
-import { useLocalSearchParams, useFocusEffect } from 'expo-router';
+import { useLocalSearchParams, useFocusEffect, useRouter } from 'expo-router';
 import { Stack } from 'expo-router';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import Colors from "@/constants/colors";
 import { aaPrayers } from "@/constants/prayers";
@@ -25,6 +26,8 @@ export default function PrayersScreen() {
   const scrollViewRef = useRef<ScrollView>(null);
   const prayerRefs = useRef<{ [key: number]: View | null }>({});
   const prayerPositions = useRef<{ [key: number]: number }>({});
+  const router = useRouter();
+  const insets = useSafeAreaInsets();
   
   const { fontSize, lineHeight, resetDefaults } = useTextSettings();
   
@@ -90,22 +93,27 @@ export default function PrayersScreen() {
 
   return (
     <ScreenContainer style={styles.container} noPadding>
-      <Stack.Screen
-        options={{
-          title: 'Prayers',
-          headerRight: () => (
-            <TextSettingsButton compact />
-          ),
-        }}
-      />
+      <Stack.Screen options={{ headerShown: false }} />
       
       {/* Gradient header block */}
       <LinearGradient
         colors={['#5A82AB', '#6B9CA3', '#7FB3A3']}
-        style={styles.headerBlock}
+        style={[styles.headerBlock, { paddingTop: insets.top + 8 }]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
       >
+        {/* Top row with back button and text settings */}
+        <View style={styles.headerTopRow}>
+          <TouchableOpacity 
+            onPress={() => router.back()} 
+            style={styles.backButton}
+            activeOpacity={0.7}
+          >
+            <ChevronLeft size={24} color="#fff" />
+            <Text style={styles.backButtonText}>Back</Text>
+          </TouchableOpacity>
+          <TextSettingsButton compact light />
+        </View>
         <Text style={styles.headerTitle}>AA Prayers</Text>
       </LinearGradient>
       
@@ -172,17 +180,30 @@ const styles = StyleSheet.create({
     backgroundColor: '#f5f6f8',
   },
   headerBlock: {
-    paddingTop: 20,
     paddingBottom: 24,
-    paddingHorizontal: 20,
+    paddingHorizontal: 16,
+  },
+  headerTopRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
+    marginBottom: 8,
+  },
+  backButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 4,
+  },
+  backButtonText: {
+    fontSize: 17,
+    color: '#fff',
+    fontWeight: '400',
   },
   headerTitle: {
     fontSize: 28,
     fontStyle: 'italic',
     fontWeight: adjustFontWeight('400'),
     color: '#fff',
-    marginBottom: 8,
     textAlign: 'center',
   },
   scrollContainer: {

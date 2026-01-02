@@ -15,6 +15,7 @@ import { adjustFontWeight } from "@/constants/fonts";
 
 type TextSettingsButtonProps = {
   compact?: boolean;
+  light?: boolean;
 };
 
 const TextSettingsModal = ({
@@ -94,7 +95,7 @@ const TextSettingsModal = ({
   );
 };
 
-const TextSettingsButton = ({ compact = false }: TextSettingsButtonProps) => {
+const TextSettingsButton = ({ compact = false, light = false }: TextSettingsButtonProps) => {
   const [open, setOpen] = useState(false);
 
   return (
@@ -104,7 +105,7 @@ const TextSettingsButton = ({ compact = false }: TextSettingsButtonProps) => {
         style={[styles.trigger, compact && styles.triggerCompact]}
         hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
       >
-        <Text style={styles.triggerText}>Aa</Text>
+        <Text style={[styles.triggerText, light && styles.triggerTextLight]}>Aa</Text>
       </TouchableOpacity>
       <TextSettingsModal visible={open} onClose={() => setOpen(false)} />
     </>
@@ -132,6 +133,9 @@ const styles = StyleSheet.create({
     fontWeight: adjustFontWeight("400"),
     color: Colors.light.tint,
     lineHeight: 20,
+  },
+  triggerTextLight: {
+    color: '#fff',
   },
   overlay: {
     flex: 1,

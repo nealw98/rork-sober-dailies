@@ -3,10 +3,12 @@ import { StyleSheet, Text, View, ScrollView, TouchableOpacity, Modal, Platform, 
 import { ChevronLeft, ChevronRight, Calendar, Upload, Bookmark, BookmarkCheck, List, X, Trash2 } from "lucide-react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import DateTimePicker from '@react-native-community/datetimepicker';
-import { useFocusEffect } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import Colors from "@/constants/colors";
+import TextSettingsButton from "@/components/TextSettingsButton";
 import { getReflectionForDate } from "@/constants/reflections";
 import { Reflection } from "@/types";
 import { adjustFontWeight } from "@/constants/fonts";
@@ -94,6 +96,8 @@ export default function DailyReflection({ fontSize = 18, lineHeight, jumpToDate 
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [reflection, setReflection] = useState<Reflection | null>(null);
   const { toggleBookmark, isBookmarked, bookmarks, removeBookmark } = useDailyReflectionBookmarks();
+  const router = useRouter();
+  const insets = useSafeAreaInsets();
   const formatDateKey = (date: Date) => {
     const y = date.getFullYear();
     const m = String(date.getMonth() + 1).padStart(2, "0");
@@ -386,10 +390,23 @@ export default function DailyReflection({ fontSize = 18, lineHeight, jumpToDate 
       {/* Gradient header block - darker version for better contrast */}
       <LinearGradient
         colors={['#5A82AB', '#6B9CA3', '#7FB3A3']}
-        style={styles.headerBlock}
+        style={[styles.headerBlock, { paddingTop: insets.top + 8 }]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
       >
+        {/* Top row with back button and text settings */}
+        <View style={styles.headerTopRow}>
+          <TouchableOpacity 
+            onPress={() => router.back()} 
+            style={styles.backButton}
+            activeOpacity={0.7}
+          >
+            <ChevronLeft size={24} color="#fff" />
+            <Text style={styles.backButtonText}>Back</Text>
+          </TouchableOpacity>
+          <TextSettingsButton compact light />
+        </View>
+        
         <Text style={styles.headerTitle}>Daily Reflections</Text>
         
         {/* Calendar-style date picker with navigation */}
@@ -597,14 +614,29 @@ const styles = StyleSheet.create({
     backgroundColor: '#f5f6f8',
   },
   headerBlock: {
-    paddingTop: 20,
     paddingBottom: 24,
-    paddingHorizontal: 20,
+    paddingHorizontal: 16,
+  },
+  headerTopRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
+    marginBottom: 8,
+  },
+  backButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 4,
+  },
+  backButtonText: {
+    fontSize: 17,
+    color: '#fff',
+    fontWeight: '400',
   },
   headerTitle: {
     fontSize: 28,
     fontStyle: 'italic',
+    textAlign: 'center',
     fontWeight: adjustFontWeight('400'),
     color: '#fff',
     marginBottom: 20,

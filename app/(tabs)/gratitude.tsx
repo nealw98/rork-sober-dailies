@@ -14,9 +14,11 @@ import {
 } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import * as Clipboard from 'expo-clipboard';
-import { Heart, Share as ShareIcon, Save, Folder, CheckCircle, Calendar, Trash2, RotateCcw } from 'lucide-react-native';
+import { Heart, Share as ShareIcon, Save, Folder, CheckCircle, Calendar, Trash2, RotateCcw, ChevronLeft } from 'lucide-react-native';
 import AnimatedWeeklyProgressMessage from '@/components/AnimatedWeeklyProgressMessage';
 import { LinearGradient } from 'expo-linear-gradient';
+import { Stack, useRouter } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useGratitudeStore } from '@/hooks/use-gratitude-store';
 import Colors from '@/constants/colors';
 import { adjustFontWeight } from '@/constants/fonts';
@@ -156,10 +158,24 @@ const styles = StyleSheet.create({
     backgroundColor: '#f5f6f8',
   },
   headerBlock: {
-    paddingTop: 20,
     paddingBottom: 24,
-    paddingHorizontal: 20,
+    paddingHorizontal: 16,
+  },
+  headerTopRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
+    marginBottom: 8,
+  },
+  backButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 4,
+  },
+  backButtonText: {
+    fontSize: 17,
+    color: '#fff',
+    fontWeight: '400',
   },
   headerTitle: {
     fontSize: 28,
@@ -318,6 +334,8 @@ export default function GratitudeListScreen() {
   const [showSavedEntries, setShowSavedEntries] = useState(false);
   const [dailyQuote] = useState(() => getDailyQuote());
   const inputRef = useRef<TextInput>(null);
+  const router = useRouter();
+  const insets = useSafeAreaInsets();
   
   // Always call hooks in the same order
   const gratitudeStore = useGratitudeStore();
@@ -608,14 +626,27 @@ export default function GratitudeListScreen() {
   // Main form render
   return (
     <ScreenContainer style={styles.container} noPadding>
+      <Stack.Screen options={{ headerShown: false }} />
       
       {/* Gradient header block */}
       <LinearGradient
         colors={['#5A82AB', '#6B9CA3', '#7FB3A3']}
-        style={styles.headerBlock}
+        style={[styles.headerBlock, { paddingTop: insets.top + 8 }]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
       >
+        {/* Top row with back button */}
+        <View style={styles.headerTopRow}>
+          <TouchableOpacity 
+            onPress={() => router.back()} 
+            style={styles.backButton}
+            activeOpacity={0.7}
+          >
+            <ChevronLeft size={24} color="#fff" />
+            <Text style={styles.backButtonText}>Back</Text>
+          </TouchableOpacity>
+          <View style={{ width: 60 }} />
+        </View>
         <Text style={styles.headerTitle}>Gratitude List</Text>
       </LinearGradient>
       
