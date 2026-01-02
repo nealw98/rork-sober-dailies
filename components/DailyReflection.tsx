@@ -421,7 +421,7 @@ export default function DailyReflection({ fontSize = 18, lineHeight, jumpToDate 
             activeOpacity={0.7}
             hitSlop={{ top: 15, bottom: 15, left: 15, right: 15 }}
           >
-            <ChevronLeft size={28} color="#666" />
+            <ChevronLeft size={28} color="#1E3A5F" />
           </TouchableOpacity>
           
           <TouchableOpacity 
@@ -443,7 +443,7 @@ export default function DailyReflection({ fontSize = 18, lineHeight, jumpToDate 
             activeOpacity={0.7}
             hitSlop={{ top: 15, bottom: 15, left: 15, right: 15 }}
           >
-            <ChevronRight size={28} color="#666" />
+            <ChevronRight size={28} color="#1E3A5F" />
           </TouchableOpacity>
         </View>
 
@@ -659,39 +659,32 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: '#e8e9eb',
+    backgroundColor: 'rgba(30, 58, 95, 0.15)',
     alignItems: 'center',
     justifyContent: 'center',
   },
   calendarBox: {
     alignItems: 'center',
-    borderWidth: 2,
-    borderColor: '#5A82AB',
-    borderRadius: 8,
-    overflow: 'hidden',
   },
   calendarMonth: {
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: adjustFontWeight('600'),
     color: '#fff',
     letterSpacing: 1,
-    backgroundColor: '#5A82AB',
-    paddingVertical: 4,
-    paddingHorizontal: 16,
-    width: '100%',
+    backgroundColor: '#1E3A5F',
+    paddingVertical: 5,
+    paddingHorizontal: 12,
+    borderRadius: 4,
     textAlign: 'center',
+    marginBottom: 4,
   },
   calendarDayBox: {
-    backgroundColor: '#fff',
-    paddingHorizontal: 20,
-    paddingVertical: 8,
-    minWidth: 60,
     alignItems: 'center',
   },
   calendarDay: {
-    fontSize: 28,
+    fontSize: 32,
     fontWeight: adjustFontWeight('300'),
-    color: '#5A82AB',
+    color: '#1E3A5F',
   },
   scrollContainer: {
     flex: 1,
