@@ -410,21 +410,46 @@ export default function DailyReflection({ fontSize = 18, lineHeight, jumpToDate 
         <Text style={styles.headerTitle}>Daily Reflections</Text>
       </LinearGradient>
       
-      {/* Action row below header - date nav + actions */}
+      {/* Action row below header */}
       <View style={styles.actionRow}>
-        {/* Left side - saved list */}
         <TouchableOpacity
           onPress={() => setShowBookmarks(true)}
-          style={styles.actionButton}
+          style={styles.actionIconButton}
           testID="bookmarks-list-button"
           activeOpacity={0.7}
           hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
         >
           <List size={18} color="#666" />
-          <Text style={styles.actionButtonText}>Saved</Text>
         </TouchableOpacity>
         
-        {/* Center - date navigation */}
+        <TouchableOpacity
+          onPress={toggleBookmarkForDay}
+          style={styles.actionIconButton}
+          testID="bookmark-button"
+          activeOpacity={0.7}
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+        >
+          {bookmarked ? (
+            <BookmarkCheck size={18} color="#666" fill="#666" />
+          ) : (
+            <Bookmark size={18} color="#666" />
+          )}
+        </TouchableOpacity>
+        
+        <TouchableOpacity 
+          onPress={shareReflection} 
+          style={styles.actionIconButton} 
+          testID="share-button"
+          activeOpacity={0.7}
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+        >
+          <Upload size={18} color="#666" />
+        </TouchableOpacity>
+      </View>
+      
+      {/* Off-white content area */}
+      <ScrollView style={styles.scrollContainer} contentContainerStyle={styles.contentContainer}>
+        {/* Date navigation */}
         <View style={styles.dateNavRow}>
           <TouchableOpacity 
             onPress={() => navigateDate('prev')} 
@@ -455,36 +480,6 @@ export default function DailyReflection({ fontSize = 18, lineHeight, jumpToDate 
             <ChevronRight size={20} color="#1E3A5F" />
           </TouchableOpacity>
         </View>
-        
-        {/* Right side - bookmark and share */}
-        <View style={styles.rightActions}>
-          <TouchableOpacity
-            onPress={toggleBookmarkForDay}
-            style={styles.actionButton}
-            testID="bookmark-button"
-            activeOpacity={0.7}
-            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-          >
-            {bookmarked ? (
-              <BookmarkCheck size={18} color="#666" fill="#666" />
-            ) : (
-              <Bookmark size={18} color="#666" />
-            )}
-          </TouchableOpacity>
-          <TouchableOpacity 
-            onPress={shareReflection} 
-            style={styles.actionButton} 
-            testID="share-button"
-            activeOpacity={0.7}
-            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-          >
-            <Upload size={18} color="#666" />
-          </TouchableOpacity>
-        </View>
-      </View>
-      
-      {/* Off-white content area */}
-      <ScrollView style={styles.scrollContainer} contentContainerStyle={styles.contentContainer}>
         
         <View style={styles.card}>
           <Text style={styles.title}>{reflection.title}</Text>
@@ -644,44 +639,34 @@ const styles = StyleSheet.create({
   },
   actionRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    justifyContent: 'center',
     alignItems: 'center',
+    gap: 24,
     paddingVertical: 12,
-    paddingHorizontal: 16,
     borderBottomWidth: 1,
     borderBottomColor: '#e0e0e0',
   },
-  actionButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  actionButtonText: {
-    fontSize: 14,
-    color: '#666',
-    fontWeight: '500',
+  actionIconButton: {
+    padding: 8,
   },
   dateNavRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    justifyContent: 'center',
+    gap: 8,
+    marginBottom: 16,
   },
   dateNavArrow: {
     padding: 4,
   },
   dateTextButton: {
-    paddingHorizontal: 8,
+    paddingHorizontal: 12,
     paddingVertical: 4,
   },
   dateText: {
     fontSize: 16,
     fontWeight: adjustFontWeight('600'),
     color: '#1E3A5F',
-  },
-  rightActions: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
   },
   scrollContainer: {
     flex: 1,
