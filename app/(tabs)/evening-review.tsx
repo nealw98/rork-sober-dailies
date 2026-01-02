@@ -19,7 +19,7 @@ import * as Clipboard from 'expo-clipboard';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import ScreenContainer from "@/components/ScreenContainer";
 import { LinearGradient } from 'expo-linear-gradient';
-import { ChevronLeft, Share as ShareIcon, Save, Folder, Check, RotateCcw } from 'lucide-react-native';
+import { ChevronLeft, Share as ShareIcon, Save, List, Check, RotateCcw } from 'lucide-react-native';
 import { useEveningReviewStore } from '@/hooks/use-evening-review-store';
 import SavedEveningReviews from '@/components/SavedEveningReviews';
 import AnimatedEveningReviewMessage from '@/components/AnimatedEveningReviewMessage';
@@ -515,7 +515,7 @@ export default function EveningReview() {
           activeOpacity={0.6}
           style={styles.actionButton}
         >
-          <Folder color="#666" size={18} />
+          <List color="#666" size={18} />
           <Text style={styles.actionButtonText}>History</Text>
         </TouchableOpacity>
         
