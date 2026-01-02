@@ -666,7 +666,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 12,
-    marginBottom: 16,
+    marginBottom: 24,
   },
   dateNavArrow: {
     padding: 6,
