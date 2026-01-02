@@ -626,12 +626,15 @@ const styles = StyleSheet.create({
   backButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 4,
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    borderRadius: 16,
   },
   backButtonText: {
-    fontSize: 17,
+    fontSize: 15,
     color: '#fff',
-    fontWeight: '400',
+    fontWeight: '500',
   },
   headerTitle: {
     fontSize: 28,
