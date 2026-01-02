@@ -437,7 +437,7 @@ const SobrietyCounter = () => {
                 style={styles.editButton}
                 onPress={handleEditDate}
               >
-                <Edit3 size={16} color={Colors.light.tint} />
+                <Edit3 size={16} color="rgba(255,255,255,0.8)" />
               </TouchableOpacity>
             </View>
           )}
@@ -452,7 +452,7 @@ const SobrietyCounter = () => {
                 style={styles.editButton}
                 onPress={handleEditDate}
               >
-                <Edit3 size={16} color={Colors.light.tint} />
+                <Edit3 size={16} color="rgba(255,255,255,0.8)" />
               </TouchableOpacity>
             </View>
           )}
@@ -581,7 +581,7 @@ const styles = StyleSheet.create({
   },
   yearsText: {
     fontSize: 28,
-    color: Colors.light.text,
+    color: '#fff',
     fontWeight: '700',
     textAlign: 'center',
     marginBottom: 2,
@@ -596,7 +596,7 @@ const styles = StyleSheet.create({
   },
   totalDaysText: {
     fontSize: 15,
-    color: Colors.light.text,
+    color: 'rgba(255,255,255,0.9)',
     fontWeight: '500',
     textAlign: 'center',
   },
@@ -643,7 +643,7 @@ const styles = StyleSheet.create({
   },
   sobrietyDateText: {
     fontSize: 16,
-    color: Colors.light.text,
+    color: 'rgba(255,255,255,0.9)',
     textAlign: 'center',
     fontWeight: '500',
   },
