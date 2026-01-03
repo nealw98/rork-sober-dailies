@@ -89,7 +89,7 @@ const HomeScreen = () => {
             activeOpacity={0.8}
           >
             <Text style={styles.routineEmoji}>🙏</Text>
-            <Text style={styles.routineTitle}>Prayer</Text>
+            <Text style={styles.routineTitle}>Morning Prayer</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
@@ -98,7 +98,7 @@ const HomeScreen = () => {
             activeOpacity={0.8}
           >
             <Text style={styles.routineEmoji}>😊</Text>
-            <Text style={styles.routineTitle}>Gratitude</Text>
+            <Text style={styles.routineTitle}>Gratitude List</Text>
           </TouchableOpacity>
         </View>
 
@@ -111,7 +111,7 @@ const HomeScreen = () => {
             activeOpacity={0.8}
           >
             <Text style={styles.routineEmoji}>🙏</Text>
-            <Text style={styles.routineTitle}>Prayer</Text>
+            <Text style={styles.routineTitle}>Evening Prayer</Text>
           </TouchableOpacity>
 
           <TouchableOpacity

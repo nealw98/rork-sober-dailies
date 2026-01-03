@@ -23,7 +23,7 @@ const literatureOptions: LiteratureOption[] = [
     description: "The basic textbook for the AA program.",
     route: "/bigbook",
     emoji: "📖",
-    backgroundColor: "#a0c0e8",
+    backgroundColor: "#a8c8e8",
   },
   {
     id: "twelve-and-twelve",
@@ -31,7 +31,7 @@ const literatureOptions: LiteratureOption[] = [
     description: "In-depth exploration of the Steps and Traditions",
     route: "/twelve-and-twelve",
     emoji: "📚",
-    backgroundColor: "#a0cfcf",
+    backgroundColor: "#a8dbd8",
   },
   {
     id: "meeting-pocket",
@@ -39,7 +39,7 @@ const literatureOptions: LiteratureOption[] = [
     description: "Quick access to the core AA readings used in meetings.",
     route: "/meeting-pocket",
     emoji: "📋",
-    backgroundColor: "#a8d8a8",
+    backgroundColor: "#b8e0b8",
   }
 ];
 
@@ -57,7 +57,7 @@ export default function LiteratureScreen() {
       
       {/* Gradient header block */}
       <LinearGradient
-        colors={['#5A82AB', '#6B9CA3', '#7FB3A3']}
+        colors={['#4A6FA5', '#3D8B8B', '#45A08A']}
         style={[styles.headerBlock, { paddingTop: insets.top + 8 }]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}

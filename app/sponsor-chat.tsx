@@ -221,7 +221,7 @@ function SponsorChatContent({ initialSponsor }: { initialSponsor: string }) {
       
       {/* Gradient header with avatar and sponsor name */}
       <LinearGradient
-        colors={['#5A82AB', '#6B9CA3', '#7FB3A3']}
+        colors={['#4A6FA5', '#3D8B8B', '#45A08A']}
         style={[styles.headerBlock, { paddingTop: insets.top + 8 }]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}

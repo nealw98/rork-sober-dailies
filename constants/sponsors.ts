@@ -51,7 +51,7 @@ export const SPONSORS: SponsorConfig[] = [
     placeholderText: "Tell Eddie what's on your mind...",
     loadingText: "Steady Eddie is thinking...",
     bubbleColor: "#e8f8e8",
-    tileColor: "#c8e8c8",
+    tileColor: "#a8d8a8",
   },
   {
     id: "salty",
