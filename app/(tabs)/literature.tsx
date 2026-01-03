@@ -1,10 +1,9 @@
 import { StyleSheet, View, Text, TouchableOpacity } from "react-native";
 import { router, Stack } from "expo-router";
-import { BookOpen, FileText, ChevronRight, ChevronLeft } from "lucide-react-native";
+import { ChevronLeft } from "lucide-react-native";
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import ScreenContainer from "@/components/ScreenContainer";
-import Colors from "@/constants/colors";
 import { adjustFontWeight } from "@/constants/fonts";
 import { useReadingSession } from "@/hooks/useReadingSession";
 
@@ -13,6 +12,8 @@ interface LiteratureOption {
   title: string;
   description: string;
   route: string;
+  emoji: string;
+  backgroundColor: string;
 }
 
 const literatureOptions: LiteratureOption[] = [
@@ -20,19 +21,25 @@ const literatureOptions: LiteratureOption[] = [
     id: "bigbook",
     title: "Alcoholics Anonymous",
     description: "The basic textbook for the AA program.",
-    route: "/bigbook"
+    route: "/bigbook",
+    emoji: "📖",
+    backgroundColor: "#a0c0e8",
   },
   {
     id: "twelve-and-twelve",
     title: "Twelve Steps and Twelve Traditions",
     description: "In-depth exploration of the Steps and Traditions",
-    route: "/twelve-and-twelve"
+    route: "/twelve-and-twelve",
+    emoji: "📚",
+    backgroundColor: "#a0cfcf",
   },
   {
     id: "meeting-pocket",
     title: "AA Meeting Readings",
     description: "Quick access to the core AA readings used in meetings.",
-    route: "/meeting-pocket"
+    route: "/meeting-pocket",
+    emoji: "📋",
+    backgroundColor: "#a8d8a8",
   }
 ];
 
@@ -63,7 +70,6 @@ export default function LiteratureScreen() {
             activeOpacity={0.7}
           >
             <ChevronLeft size={24} color="#fff" />
-            <Text style={styles.backButtonText}>Back</Text>
           </TouchableOpacity>
           <View style={{ width: 60 }} />
         </View>
@@ -72,29 +78,17 @@ export default function LiteratureScreen() {
       
       {/* Off-white content area */}
       <View style={styles.content}>
-        {literatureOptions.map((option, index) => (
+        {literatureOptions.map((option) => (
           <TouchableOpacity
             key={option.id}
-            style={[
-              styles.optionItem,
-              index === literatureOptions.length - 1 && styles.optionItemLast
-            ]}
+            style={[styles.tile, { backgroundColor: option.backgroundColor }]}
             onPress={() => handleOptionPress(option.route)}
-            activeOpacity={0.7}
+            activeOpacity={0.8}
             testID={`literature-option-${option.id}`}
           >
-            <View style={styles.optionIcon}>
-              {option.id === "bigbook" || option.id === "twelve-and-twelve" ? (
-                <BookOpen size={24} color="#1E3A5F" />
-              ) : (
-                <FileText size={24} color="#1E3A5F" />
-              )}
-            </View>
-            <View style={styles.optionText}>
-              <Text style={styles.optionTitle}>{option.title}</Text>
-              <Text style={styles.optionDescription}>{option.description}</Text>
-            </View>
-            <ChevronRight size={20} color="#999" />
+            <Text style={styles.tileEmoji}>{option.emoji}</Text>
+            <Text style={styles.tileTitle}>{option.title}</Text>
+            <Text style={styles.tileDescription}>{option.description}</Text>
           </TouchableOpacity>
         ))}
       </View>
@@ -105,17 +99,17 @@ export default function LiteratureScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f6f8',
+    backgroundColor: '#fff',
   },
   headerBlock: {
-    paddingBottom: 24,
+    paddingBottom: 16,
     paddingHorizontal: 16,
   },
   headerTopRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 8,
+    marginBottom: 16,
   },
   backButton: {
     flexDirection: 'row',
@@ -125,54 +119,35 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.2)',
     borderRadius: 16,
   },
-  backButtonText: {
-    fontSize: 15,
-    color: '#fff',
-    fontWeight: '500',
-  },
   headerTitle: {
-    fontSize: 28,
-    fontStyle: 'italic',
+    fontSize: 32,
     fontWeight: adjustFontWeight('400'),
     color: '#fff',
     textAlign: 'center',
   },
   content: {
     flex: 1,
-    paddingHorizontal: 16,
-    paddingTop: 16,
+    paddingHorizontal: 20,
+    paddingTop: 20,
+    gap: 12,
   },
-  optionItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#e0e0e0',
-    gap: 16,
+  tile: {
+    borderRadius: 16,
+    padding: 20,
   },
-  optionItemLast: {
-    borderBottomWidth: 0,
+  tileEmoji: {
+    fontSize: 28,
+    marginBottom: 8,
   },
-  optionIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: 'rgba(30, 58, 95, 0.1)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  optionText: {
-    flex: 1,
-  },
-  optionTitle: {
-    fontSize: 17,
-    fontWeight: adjustFontWeight('600', true),
+  tileTitle: {
+    fontSize: 20,
+    fontWeight: adjustFontWeight('600'),
     color: '#000',
-    marginBottom: 2,
+    marginBottom: 4,
   },
-  optionDescription: {
+  tileDescription: {
     fontSize: 14,
-    color: '#666',
+    color: '#333',
     lineHeight: 20,
   },
 });

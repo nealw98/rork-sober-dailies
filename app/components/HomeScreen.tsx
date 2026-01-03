@@ -194,12 +194,12 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   heroTitle: {
-    fontSize: 16,
+    fontSize: 20,
     fontWeight: adjustFontWeight('600'),
     color: '#fff',
   },
   heroSubtitle: {
-    fontSize: 12,
+    fontSize: 16,
     color: 'rgba(255,255,255,0.8)',
     marginTop: 4,
   },
@@ -236,7 +236,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   routineTitle: {
-    fontSize: 16,
+    fontSize: 20,
     fontWeight: adjustFontWeight('600'),
     color: '#3d5a6a',
   },

@@ -140,7 +140,7 @@ const createOutlineTabIcon = (
   filledName: string,
   iconSize = 22
 ) => ({ focused }: { color: string; size: number; focused: boolean }) => {
-  const iconColor = focused ? Colors.light.tint : '#8E8E93';
+  const iconColor = focused ? '#3D8B8B' : '#8E8E93';
   const iconName = focused ? filledName : outlineName;
   return (
     <Ionicons
@@ -156,7 +156,7 @@ export default function TabLayout() {
     <TextSettingsProvider>
       <Tabs
         screenOptions={{
-        tabBarActiveTintColor: Colors.light.tint,
+        tabBarActiveTintColor: '#3D8B8B',
         tabBarInactiveTintColor: '#8E8E93',
         headerShown: true,
         headerTitleAlign: 'center',

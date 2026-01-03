@@ -18,9 +18,9 @@ import { SPONSORS } from "@/constants/sponsors";
 import ScreenContainer from "@/components/ScreenContainer";
 
 const { width: screenWidth } = Dimensions.get("window");
-const CARD_GAP = 12;
+const TILE_GAP = 12;
 const GRID_PADDING = 20;
-const CARD_WIDTH = (screenWidth - GRID_PADDING * 2 - CARD_GAP) / 2;
+const TILE_WIDTH = (screenWidth - GRID_PADDING * 2 - TILE_GAP) / 2;
 
 export default function ChatScreen() {
   const router = useRouter();
@@ -56,7 +56,6 @@ export default function ChatScreen() {
               activeOpacity={0.7}
             >
               <ChevronLeft size={24} color="#fff" />
-              <Text style={styles.backButtonText}>Back</Text>
             </TouchableOpacity>
             <View style={{ width: 60 }} />
           </View>
@@ -75,8 +74,9 @@ export default function ChatScreen() {
                 <TouchableOpacity
                   key={sponsor.id}
                   style={[
-                    styles.card,
-                    !sponsor.isAvailable && styles.cardDisabled,
+                    styles.tile,
+                    sponsor.tileColor && { backgroundColor: sponsor.tileColor },
+                    !sponsor.isAvailable && styles.tileDisabled,
                   ]}
                   onPress={() => handleSponsorSelect(sponsor.id)}
                   activeOpacity={0.7}
@@ -122,14 +122,14 @@ export default function ChatScreen() {
 
 const styles = StyleSheet.create({
   headerBlock: {
-    paddingBottom: 24,
+    paddingBottom: 16,
     paddingHorizontal: 16,
   },
   headerTopRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 8,
+    marginBottom: 16,
   },
   backButton: {
     flexDirection: 'row',
@@ -145,22 +145,21 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   headerTitle: {
-    fontSize: 28,
-    fontStyle: 'italic',
+    fontSize: 32,
     fontWeight: adjustFontWeight("400"),
     color: "#fff",
     textAlign: "center",
   },
   container: {
     flex: 1,
-    backgroundColor: "#f5f6f8",
+    backgroundColor: "#fff",
   },
   scrollView: {
     flex: 1,
   },
   scrollContent: {
     paddingHorizontal: GRID_PADDING,
-    paddingTop: 8,
+    paddingTop: 20,
     paddingBottom: 32,
   },
   grid: {
@@ -168,50 +167,47 @@ const styles = StyleSheet.create({
     flexWrap: "wrap",
     justifyContent: "space-between",
   },
-  card: {
-    width: CARD_WIDTH,
-    padding: 12,
-    marginBottom: CARD_GAP + 8,
+  tile: {
+    width: TILE_WIDTH,
+    backgroundColor: 'rgba(61, 139, 139, 0.15)',
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: TILE_GAP,
     alignItems: "center",
   },
-  cardDisabled: {
+  tileDisabled: {
     opacity: 0.6,
   },
   avatar: {
-    width: 88,
-    height: 88,
-    borderRadius: 44,
+    width: 72,
+    height: 72,
+    borderRadius: 36,
     marginBottom: 12,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.15,
-    shadowRadius: 6,
-    elevation: 4,
   },
   avatarLocked: {
-    width: 88,
-    height: 88,
-    borderRadius: 44,
+    width: 72,
+    height: 72,
+    borderRadius: 36,
     marginBottom: 12,
     backgroundColor: Colors.light.divider,
     justifyContent: "center",
     alignItems: "center",
   },
   lockEmoji: {
-    fontSize: 28,
+    fontSize: 24,
   },
   sponsorName: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: adjustFontWeight("600", true),
-    color: Colors.light.text,
+    color: '#000',
     marginBottom: 4,
     textAlign: "center",
   },
   sponsorDescription: {
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: adjustFontWeight("400"),
-    color: Colors.light.muted,
-    lineHeight: 18,
+    color: '#333',
+    lineHeight: 16,
     textAlign: "center",
   },
   textDisabled: {

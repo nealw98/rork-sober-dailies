@@ -2,12 +2,46 @@ import React from 'react';
 import { StyleSheet, View, Text, TouchableOpacity } from 'react-native';
 import { Stack, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { ChevronLeft, ChevronRight } from 'lucide-react-native';
-import FontAwesome6 from '@expo/vector-icons/FontAwesome6';
-import Ionicons from '@expo/vector-icons/Ionicons';
+import { ChevronLeft } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 
 import { adjustFontWeight } from '@/constants/fonts';
+
+interface ToolOption {
+  id: string;
+  title: string;
+  description: string;
+  route: string;
+  emoji: string;
+  backgroundColor: string;
+}
+
+const toolOptions: ToolOption[] = [
+  {
+    id: "gratitude",
+    title: "Gratitude List",
+    description: "Count your blessings and cultivate thankfulness.",
+    route: "/(tabs)/gratitude",
+    emoji: "😊",
+    backgroundColor: "#c8a0d8",
+  },
+  {
+    id: "prayers",
+    title: "Prayers",
+    description: "Essential prayers for recovery and reflection.",
+    route: "/(tabs)/prayers",
+    emoji: "🙏",
+    backgroundColor: "#f5b8cc",
+  },
+  {
+    id: "evening-review",
+    title: "Nightly Review",
+    description: "Reflect on your day with a 10th Step inventory.",
+    route: "/(tabs)/evening-review",
+    emoji: "🌙",
+    backgroundColor: "#a8ebe0",
+  }
+];
 
 export default function ToolsScreen() {
   const router = useRouter();
@@ -31,7 +65,6 @@ export default function ToolsScreen() {
             activeOpacity={0.7}
           >
             <ChevronLeft size={24} color="#fff" />
-            <Text style={styles.backButtonText}>Back</Text>
           </TouchableOpacity>
         </View>
         <Text style={styles.headerTitle}>Daily Tools</Text>
@@ -39,35 +72,18 @@ export default function ToolsScreen() {
 
       {/* Content */}
       <View style={styles.content}>
-        <TouchableOpacity
-          style={styles.menuItem}
-          onPress={() => router.push('/(tabs)/gratitude')}
-          activeOpacity={0.7}
-        >
-          <FontAwesome6 name="face-smile" size={22} color="#5A82AB" solid />
-          <Text style={styles.menuItemText}>Gratitude List</Text>
-          <ChevronRight size={20} color="#999" />
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={styles.menuItem}
-          onPress={() => router.push('/(tabs)/prayers')}
-          activeOpacity={0.7}
-        >
-          <FontAwesome6 name="hands-praying" size={22} color="#5A82AB" solid />
-          <Text style={styles.menuItemText}>Prayers</Text>
-          <ChevronRight size={20} color="#999" />
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={styles.menuItem}
-          onPress={() => router.push('/(tabs)/evening-review')}
-          activeOpacity={0.7}
-        >
-          <Ionicons name="moon" size={22} color="#5A82AB" />
-          <Text style={styles.menuItemText}>Nightly Review</Text>
-          <ChevronRight size={20} color="#999" />
-        </TouchableOpacity>
+        {toolOptions.map((option) => (
+          <TouchableOpacity
+            key={option.id}
+            style={[styles.tile, { backgroundColor: option.backgroundColor }]}
+            onPress={() => router.push(option.route as any)}
+            activeOpacity={0.8}
+          >
+            <Text style={styles.tileEmoji}>{option.emoji}</Text>
+            <Text style={styles.tileTitle}>{option.title}</Text>
+            <Text style={styles.tileDescription}>{option.description}</Text>
+          </TouchableOpacity>
+        ))}
       </View>
     </View>
   );
@@ -76,16 +92,16 @@ export default function ToolsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f6f8',
+    backgroundColor: '#fff',
   },
   headerBlock: {
-    paddingBottom: 20,
+    paddingBottom: 16,
     paddingHorizontal: 16,
   },
   headerTopRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: 16,
   },
   backButton: {
     flexDirection: 'row',
@@ -95,36 +111,35 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.2)',
     borderRadius: 16,
   },
-  backButtonText: {
-    fontSize: 15,
-    color: '#fff',
-    fontWeight: '500',
-  },
   headerTitle: {
-    fontSize: 28,
-    fontStyle: 'italic',
+    fontSize: 32,
     fontWeight: adjustFontWeight('400'),
     color: '#fff',
     textAlign: 'center',
   },
   content: {
     flex: 1,
-    paddingTop: 8,
-  },
-  menuItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#fff',
-    paddingVertical: 16,
     paddingHorizontal: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: '#e8e8e8',
-    gap: 16,
+    paddingTop: 20,
+    gap: 12,
   },
-  menuItemText: {
-    flex: 1,
-    fontSize: 17,
-    fontWeight: adjustFontWeight('500'),
+  tile: {
+    borderRadius: 16,
+    padding: 20,
+  },
+  tileEmoji: {
+    fontSize: 28,
+    marginBottom: 8,
+  },
+  tileTitle: {
+    fontSize: 20,
+    fontWeight: adjustFontWeight('600'),
+    color: '#000',
+    marginBottom: 4,
+  },
+  tileDescription: {
+    fontSize: 14,
     color: '#333',
+    lineHeight: 20,
   },
 });

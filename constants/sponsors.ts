@@ -36,6 +36,7 @@ export interface SponsorConfig {
   loadingText?: string;
   bubbleColor?: string;
   bubbleShadowColor?: string;
+  tileColor?: string;
 }
 
 export const SPONSORS: SponsorConfig[] = [
@@ -50,6 +51,7 @@ export const SPONSORS: SponsorConfig[] = [
     placeholderText: "Tell Eddie what's on your mind...",
     loadingText: "Steady Eddie is thinking...",
     bubbleColor: "#e8f8e8",
+    tileColor: "#c8e8c8",
   },
   {
     id: "salty",
@@ -62,6 +64,7 @@ export const SPONSORS: SponsorConfig[] = [
     placeholderText: "Tell Sam what's got you sideways...",
     loadingText: "Salty Sam is thinking...",
     bubbleColor: "#fff0d4",
+    tileColor: "#f5dba8",
   },
   {
     id: "grace",
@@ -74,6 +77,7 @@ export const SPONSORS: SponsorConfig[] = [
     placeholderText: "Tell Grace what's in your heart...",
     loadingText: "Gentle Grace is channeling wisdom...",
     bubbleColor: "#e8d4f0",
+    tileColor: "#d8b8e8",
   },
   {
     id: "cowboy-pete",
@@ -86,6 +90,7 @@ export const SPONSORS: SponsorConfig[] = [
     placeholderText: "Tell Pete what's kickin' up dust...",
     loadingText: "Cowboy Pete is mullin' it over...",
     bubbleColor: "#E0CABE",
+    tileColor: "#c9b09e",
   },
   {
     id: "co-sign-sally",
@@ -98,6 +103,7 @@ export const SPONSORS: SponsorConfig[] = [
     placeholderText: "Tell Sally your side of the story...",
     loadingText: "Sally is noddin' along...",
     bubbleColor: "#FFD6E6",
+    tileColor: "#f5b8cc",
   },
   {
     id: "fresh",
@@ -111,6 +117,7 @@ export const SPONSORS: SponsorConfig[] = [
     loadingText: "Fresh Freddie is cookin' up a take...",
     bubbleColor: "#CCFBF1",
     bubbleShadowColor: "rgba(16,185,129,0.45)",
+    tileColor: "#a8ebe0",
   },
 ];
 

@@ -285,7 +285,7 @@ export default function DailyReflection({ fontSize = 18, lineHeight, jumpToDate 
             activeOpacity={0.7}
             hitSlop={{ top: 15, bottom: 15, left: 15, right: 15 }}
           >
-            <ChevronLeft size={24} color={Colors.light.tint} />
+            <ChevronLeft size={24} color="#3D8B8B" />
           </TouchableOpacity>
           <Text style={styles.calendarMonthYear}>{monthYear}</Text>
           <TouchableOpacity 
@@ -294,7 +294,7 @@ export default function DailyReflection({ fontSize = 18, lineHeight, jumpToDate 
             activeOpacity={0.7}
             hitSlop={{ top: 15, bottom: 15, left: 15, right: 15 }}
           >
-            <ChevronRight size={24} color={Colors.light.tint} />
+            <ChevronRight size={24} color="#3D8B8B" />
           </TouchableOpacity>
         </View>
         
@@ -401,7 +401,6 @@ export default function DailyReflection({ fontSize = 18, lineHeight, jumpToDate 
             activeOpacity={0.7}
           >
             <ChevronLeft size={24} color="#fff" />
-            <Text style={styles.backButtonText}>Back</Text>
           </TouchableOpacity>
           <View style={{ width: 60 }} />
         </View>
@@ -409,80 +408,82 @@ export default function DailyReflection({ fontSize = 18, lineHeight, jumpToDate 
         <Text style={styles.headerTitle}>Daily Reflections</Text>
       </LinearGradient>
       
-      {/* Action row below header */}
-      <View style={styles.actionRow}>
-        <TouchableOpacity
-          onPress={() => setShowBookmarks(true)}
-          style={styles.actionButton}
-          testID="bookmarks-list-button"
-          activeOpacity={0.6}
-        >
-          <List size={18} color="#666" />
-          <Text style={styles.actionButtonText}>Saved</Text>
-        </TouchableOpacity>
-        
-        <TouchableOpacity
-          onPress={toggleBookmarkForDay}
-          style={styles.actionButton}
-          testID="bookmark-button"
-          activeOpacity={0.6}
-        >
-          {bookmarked ? (
-            <BookmarkCheck size={18} color="#666" fill="#666" />
-          ) : (
-            <Bookmark size={18} color="#666" />
-          )}
-          <Text style={styles.actionButtonText}>Favorite</Text>
-        </TouchableOpacity>
-        
-        <TouchableOpacity 
-          onPress={shareReflection} 
-          style={styles.actionButton} 
-          testID="share-button"
-          activeOpacity={0.6}
-        >
-          <Upload size={18} color="#666" />
-          <Text style={styles.actionButtonText}>Share</Text>
-        </TouchableOpacity>
-      </View>
-      
       {/* Off-white content area */}
       <ScrollView style={styles.scrollContainer} contentContainerStyle={styles.contentContainer}>
-        {/* Date navigation - Compact Calendar Badge */}
-        <View style={styles.dateNavRow}>
-          <TouchableOpacity 
-            onPress={() => navigateDate('prev')} 
-            style={styles.dateNavArrow}
-            testID="prev-day-button"
-            activeOpacity={0.7}
-            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-          >
-            <ChevronLeft size={18} color="#1E3A5F" />
-          </TouchableOpacity>
-          
-          <TouchableOpacity 
-            onPress={openDatePicker}
-            style={styles.calendarBadge}
-            testID="calendar-button"
-            activeOpacity={0.7}
-          >
-            <View style={styles.calendarBadgeHeader}>
-              <Text style={styles.calendarBadgeMonth}>{monthName.substring(0, 3).toUpperCase()}</Text>
-            </View>
-            <View style={styles.calendarBadgeBody}>
-              <Text style={styles.calendarBadgeDay}>{dayNumber}</Text>
-            </View>
-          </TouchableOpacity>
-          
-          <TouchableOpacity 
-            onPress={() => navigateDate('next')} 
-            style={styles.dateNavArrow}
-            testID="next-day-button"
-            activeOpacity={0.7}
-            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-          >
-            <ChevronRight size={18} color="#1E3A5F" />
-          </TouchableOpacity>
+        {/* Navigation tile - actions and date picker */}
+        <View style={styles.navTile}>
+          {/* Action icons */}
+          <View style={styles.inlineActionRow}>
+            <TouchableOpacity
+              onPress={() => setShowBookmarks(true)}
+              style={styles.inlineActionButton}
+              testID="bookmarks-list-button"
+              activeOpacity={0.6}
+            >
+              <List size={20} color="#000" />
+            </TouchableOpacity>
+            
+            <TouchableOpacity
+              onPress={toggleBookmarkForDay}
+              style={styles.inlineActionButton}
+              testID="bookmark-button"
+              activeOpacity={0.6}
+            >
+            {bookmarked ? (
+              <BookmarkCheck size={20} color="#000" fill="#000" />
+            ) : (
+              <Bookmark size={20} color="#000" />
+            )}
+            </TouchableOpacity>
+            
+            <TouchableOpacity 
+              onPress={shareReflection} 
+              style={styles.inlineActionButton}
+              testID="share-button"
+              activeOpacity={0.6}
+            >
+              <Upload size={20} color="#000" />
+            </TouchableOpacity>
+          </View>
+
+          <View style={styles.tileDivider} />
+
+          {/* Date navigation - Compact Calendar Badge */}
+          <View style={styles.dateNavRow}>
+            <TouchableOpacity 
+              onPress={() => navigateDate('prev')} 
+              style={styles.dateNavArrow}
+              testID="prev-day-button"
+              activeOpacity={0.7}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            >
+              <ChevronLeft size={18} color="#000" />
+            </TouchableOpacity>
+            
+            <TouchableOpacity 
+              onPress={openDatePicker}
+              style={styles.calendarBadge}
+              testID="calendar-button"
+              activeOpacity={0.7}
+            >
+              <View style={styles.calendarBadgeHeader}>
+                <Text style={styles.calendarBadgeMonth}>{monthName.substring(0, 3).toUpperCase()}</Text>
+              </View>
+              <View style={styles.calendarBadgeBody}>
+                <Text style={styles.calendarBadgeDay}>{dayNumber}</Text>
+              </View>
+            </TouchableOpacity>
+            
+            <TouchableOpacity 
+              onPress={() => navigateDate('next')} 
+              style={styles.dateNavArrow}
+              testID="next-day-button"
+              activeOpacity={0.7}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            >
+              <ChevronRight size={18} color="#000" />
+            </TouchableOpacity>
+          </View>
         </View>
         
         <View style={styles.card}>
@@ -496,8 +497,10 @@ export default function DailyReflection({ fontSize = 18, lineHeight, jumpToDate 
           
           <View style={styles.divider} />
           
-          <Text style={styles.thoughtTitle}>Meditation:</Text>
-          <Text style={[styles.thought, { fontSize, lineHeight: effectiveLineHeight }]}>{reflection.thought}</Text>
+          <View style={styles.meditationTile}>
+            <Text style={styles.thoughtTitle}>Meditation:</Text>
+            <Text style={[styles.thought, { fontSize, lineHeight: effectiveLineHeight }]}>{reflection.thought}</Text>
+          </View>
         </View>
 
         <View style={styles.copyrightContainer}>
@@ -609,17 +612,17 @@ export default function DailyReflection({ fontSize = 18, lineHeight, jumpToDate 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f6f8',
+    backgroundColor: '#fff',
   },
   headerBlock: {
-    paddingBottom: 24,
+    paddingBottom: 16,
     paddingHorizontal: 16,
   },
   headerTopRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 8,
+    marginBottom: 16,
   },
   backButton: {
     flexDirection: 'row',
@@ -635,8 +638,7 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   headerTitle: {
-    fontSize: 28,
-    fontStyle: 'italic',
+    fontSize: 32,
     fontWeight: adjustFontWeight('400'),
     color: '#fff',
     textAlign: 'center',
@@ -655,6 +657,26 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 6,
   },
+  navTile: {
+    backgroundColor: '#b8dfdf',
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 16,
+  },
+  tileDivider: {
+    height: 1,
+    backgroundColor: 'rgba(61, 139, 139, 0.2)',
+    marginVertical: 12,
+  },
+  inlineActionRow: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 24,
+  },
+  inlineActionButton: {
+    padding: 8,
+  },
   actionButtonText: {
     fontSize: 14,
     color: '#666',
@@ -665,20 +687,19 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 12,
-    marginBottom: 24,
   },
   dateNavArrow: {
     padding: 6,
   },
   calendarBadge: {
     borderWidth: 1,
-    borderColor: '#1E3A5F',
+    borderColor: '#000',
     borderRadius: 4,
     overflow: 'hidden',
     minWidth: 44,
   },
   calendarBadgeHeader: {
-    backgroundColor: '#1E3A5F',
+    backgroundColor: '#000',
     paddingVertical: 2,
     paddingHorizontal: 8,
     alignItems: 'center',
@@ -690,7 +711,7 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
   },
   calendarBadgeBody: {
-    backgroundColor: '#fff',
+    backgroundColor: 'transparent',
     paddingVertical: 4,
     paddingHorizontal: 8,
     alignItems: 'center',
@@ -698,7 +719,7 @@ const styles = StyleSheet.create({
   calendarBadgeDay: {
     fontSize: 18,
     fontWeight: adjustFontWeight('500'),
-    color: '#1E3A5F',
+    color: '#000',
   },
   scrollContainer: {
     flex: 1,
@@ -720,12 +741,13 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   title: {
-    fontSize: 18,
+    fontSize: 32,
     fontWeight: adjustFontWeight("600", true),
     color: '#000',
-    marginBottom: 16,
+    marginTop: 16,
+    marginBottom: 20,
     textAlign: "center",
-    letterSpacing: 0.5,
+    letterSpacing: -0.5,
   },
   quote: {
     fontSize: 16,
@@ -751,6 +773,12 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#000',
     lineHeight: 22,
+  },
+  meditationTile: {
+    backgroundColor: 'rgba(61, 139, 139, 0.25)',
+    borderRadius: 16,
+    padding: 16,
+    marginTop: 8,
   },
   thoughtTitle: {
     fontSize: 16,
@@ -862,7 +890,7 @@ const styles = StyleSheet.create({
     color: Colors.light.muted,
   },
   selectedDay: {
-    backgroundColor: Colors.light.tint,
+    backgroundColor: '#3D8B8B',
     borderRadius: 20,
   },
   selectedDayText: {
@@ -871,15 +899,15 @@ const styles = StyleSheet.create({
   },
   todayDay: {
     borderWidth: 2,
-    borderColor: Colors.light.tint,
+    borderColor: '#3D8B8B',
     borderRadius: 20,
   },
   todayText: {
-    color: Colors.light.tint,
+    color: '#3D8B8B',
     fontWeight: adjustFontWeight('600'),
   },
   todaySelectedDay: {
-    backgroundColor: Colors.light.tint,
+    backgroundColor: '#3D8B8B',
     borderRadius: 20,
     borderWidth: 2,
     borderColor: 'white',
@@ -904,7 +932,7 @@ const styles = StyleSheet.create({
     minWidth: 100,
   },
   todayButtonText: {
-    color: Colors.light.tint,
+    color: '#3D8B8B',
     fontWeight: adjustFontWeight('600'),
     fontSize: 16,
   },

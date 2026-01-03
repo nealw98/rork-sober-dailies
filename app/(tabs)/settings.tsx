@@ -79,7 +79,6 @@ export default function SettingsScreen() {
             activeOpacity={0.7}
           >
             <ChevronLeft size={24} color="#fff" />
-            <Text style={styles.backButtonText}>Back</Text>
           </TouchableOpacity>
           <View style={{ width: 60 }} />
         </View>
@@ -237,14 +236,14 @@ const styles = StyleSheet.create({
     backgroundColor: '#f5f6f8',
   },
   headerBlock: {
-    paddingBottom: 24,
+    paddingBottom: 16,
     paddingHorizontal: 16,
   },
   headerTopRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 8,
+    marginBottom: 16,
   },
   backButton: {
     flexDirection: 'row',
@@ -260,8 +259,7 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   headerTitle: {
-    fontSize: 28,
-    fontStyle: 'italic',
+    fontSize: 32,
     fontWeight: adjustFontWeight('400'),
     color: '#fff',
     textAlign: 'center',
