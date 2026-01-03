@@ -1,6 +1,6 @@
-import React, { useEffect, useState, useRef } from 'react';
-import { StyleSheet, View, Text, TouchableOpacity, Modal, TextInput, Alert, Keyboard, useWindowDimensions, Animated } from 'react-native';
-import { Calendar, X, Edit3, Pointer } from 'lucide-react-native';
+import React, { useEffect, useState } from 'react';
+import { StyleSheet, View, Text, TouchableOpacity, Modal, TextInput, Alert, Keyboard, useWindowDimensions } from 'react-native';
+import { Calendar, X, Edit3 } from 'lucide-react-native';
 import { useSobriety } from '@/hooks/useSobrietyStore';
 import { formatStoredDateForDisplay, parseLocalDate, formatLocalDate } from '@/lib/dateUtils';
 import Colors from '@/constants/colors';
@@ -21,32 +21,7 @@ const SobrietyCounter = () => {
   const [dateInput, setDateInput] = useState<string>('');
   const [showEditModal, setShowEditModal] = useState<boolean>(false);
   const [showTotalDays, setShowTotalDays] = useState<boolean>(false);
-  const flipAnim = useRef(new Animated.Value(0)).current;
 
-  const handleToggleDisplay = () => {
-    // Animate flip - full 180 degree rotation
-    Animated.timing(flipAnim, {
-      toValue: 1,
-      duration: 400,
-      useNativeDriver: true,
-    }).start(() => {
-      flipAnim.setValue(0);
-    });
-    
-    // Toggle at midpoint of animation
-    setTimeout(() => {
-      setShowTotalDays(!showTotalDays);
-    }, 200);
-  };
-
-  const flipInterpolate = flipAnim.interpolate({
-    inputRange: [0, 0.5, 1],
-    outputRange: ['0deg', '90deg', '180deg'],
-  });
-
-  const flipStyle = {
-    transform: [{ rotateY: flipInterpolate }],
-  };
 
   // Auto-format input as user types: mm/dd/yyyy
   const formatDateInput = (text: string) => {
@@ -425,53 +400,10 @@ const SobrietyCounter = () => {
     return (
       <>
         <View style={styles.counterWrapper}>
-          <Text style={styles.headerLabel}>You've been sober for:</Text>
-          
-          {/* Tappable counter to toggle between breakdown and total days */}
-          <TouchableOpacity 
-            onPress={handleToggleDisplay}
-            activeOpacity={0.7}
-            style={styles.counterTouchable}
-          >
-            <View style={styles.counterRow}>
-              <Animated.View style={[styles.counterBox, flipStyle]}>
-                {showTotalDays ? (
-                  // Total days display - stacked
-                  <View style={styles.totalDaysContainer}>
-                    <Text style={styles.totalDaysNumber}>
-                      {validDaysSober.toLocaleString()}
-                    </Text>
-                    <Text style={styles.totalDaysLabel}>
-                      {validDaysSober === 1 ? 'day' : 'days'}
-                    </Text>
-                  </View>
-                ) : (
-                  // Breakdown display - stacked
-                  <View style={styles.stackedCounter}>
-                    {breakdown.years > 0 && (
-                      <Text style={styles.stackedYears}>
-                        {breakdown.years} {breakdown.years === 1 ? 'year' : 'years'}
-                      </Text>
-                    )}
-                    {breakdown.months > 0 && (
-                      <Text style={styles.stackedMonths}>
-                        {breakdown.months} {breakdown.months === 1 ? 'month' : 'months'}
-                      </Text>
-                    )}
-                    <Text style={styles.stackedDays}>
-                      {breakdown.days} {breakdown.days === 1 ? 'day' : 'days'}
-                    </Text>
-                  </View>
-                )}
-              </Animated.View>
-            </View>
-            <Pointer size={16} color="rgba(255,255,255,0.7)" fill="rgba(255,255,255,0.7)" style={styles.pointerIcon} />
-          </TouchableOpacity>
-          
-          {/* Simple date line with edit button */}
+          {/* Top: Sober since date with edit */}
           <View style={styles.dateRow}>
             <Text style={styles.sobrietyDateText}>
-              Since {formatStoredDateForDisplay(sobrietyDate)}
+              Sober since {formatStoredDateForDisplay(sobrietyDate)}
             </Text>
             <TouchableOpacity 
               style={styles.editButton}
@@ -480,6 +412,44 @@ const SobrietyCounter = () => {
               <Edit3 size={16} color="rgba(255,255,255,0.8)" />
             </TouchableOpacity>
           </View>
+          
+          {/* Tappable counter to toggle between breakdown and total days */}
+          <TouchableOpacity 
+            onPress={() => setShowTotalDays(!showTotalDays)}
+            activeOpacity={0.7}
+            style={styles.counterTouchable}
+          >
+            <View style={styles.counterBox}>
+              {showTotalDays ? (
+                // Total days display - stacked
+                <View style={styles.totalDaysContainer}>
+                  <Text style={styles.totalDaysNumber}>
+                    {validDaysSober.toLocaleString()}
+                  </Text>
+                  <Text style={styles.totalDaysLabel}>
+                    {validDaysSober === 1 ? 'day' : 'days'}
+                  </Text>
+                </View>
+              ) : (
+                // Breakdown display - stacked
+                <View style={styles.stackedCounter}>
+                  {breakdown.years > 0 && (
+                    <Text style={styles.stackedYears}>
+                      {breakdown.years} {breakdown.years === 1 ? 'year' : 'years'}
+                    </Text>
+                  )}
+                  {breakdown.months > 0 && (
+                    <Text style={styles.stackedMonths}>
+                      {breakdown.months} {breakdown.months === 1 ? 'month' : 'months'}
+                    </Text>
+                  )}
+                  <Text style={styles.stackedDays}>
+                    {breakdown.days} {breakdown.days === 1 ? 'day' : 'days'}
+                  </Text>
+                </View>
+              )}
+            </View>
+          </TouchableOpacity>
         </View>
         
         {/* Edit Date Modal */}
@@ -610,23 +580,24 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  counterRow: {
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
   counterBox: {
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 2,
-    borderColor: 'rgba(255,255,255,0.5)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.3)',
     borderRadius: 16,
-    paddingVertical: 16,
+    paddingTop: 8,
+    paddingBottom: 12,
     paddingHorizontal: 24,
-    minWidth: 200,
-    minHeight: 100,
+    width: 220,
+    height: 110,
+    marginTop: 8,
+    backgroundColor: 'rgba(255,255,255,0.1)',
   },
   pointerIcon: {
-    marginTop: 8,
+    position: 'absolute',
+    top: 6,
+    right: 8,
   },
   totalDaysContainer: {
     alignItems: 'center',

@@ -1,145 +1,131 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { StyleSheet, View, Text, ScrollView, TouchableOpacity } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import { ChevronRight, Calendar, MessageCircle, Library, Sun, Moon, Settings } from 'lucide-react-native';
-import FontAwesome6 from '@expo/vector-icons/FontAwesome6';
-import Ionicons from '@expo/vector-icons/Ionicons';
 
 import SobrietyCounter from '@/components/SobrietyCounter';
-import Colors from '@/constants/colors';
 import { adjustFontWeight } from '@/constants/fonts';
+import { getTodaysReflection } from '@/constants/reflections';
+import { Reflection } from '@/types';
 
 const HomeScreen = () => {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const [todaysReflection, setTodaysReflection] = useState<Reflection | null>(null);
 
+  useEffect(() => {
+    getTodaysReflection().then(setTodaysReflection).catch(console.error);
+  }, []);
+
+  // Format today's date
+  const today = new Date();
+  const dateDisplay = today.toLocaleDateString('en-US', { 
+    month: 'short', 
+    day: 'numeric' 
+  });
 
   return (
     <View style={styles.container}>
       {/* Gradient Header with Sobriety Counter */}
       <LinearGradient
-        colors={['#5A82AB', '#6B9CA3', '#7FB3A3']}
+        colors={['#4A6FA5', '#3D8B8B', '#45A08A']}
         style={[styles.headerGradient, { paddingTop: insets.top + 16 }]}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
+        start={{ x: 0.1, y: 0 }}
+        end={{ x: 0.9, y: 1 }}
       >
         <View style={styles.sobrietyCounterContainer}>
           <SobrietyCounter />
         </View>
       </LinearGradient>
 
-      {/* Off-white Content Area */}
+      {/* Bento Grid Content Area */}
       <ScrollView 
         style={styles.scrollView} 
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {/* Feature List */}
-        <View style={styles.featureList}>
-          <TouchableOpacity
-            style={styles.featureItem}
-            onPress={() => router.push('/daily-reflections')}
-            activeOpacity={0.7}
-          >
-            <Calendar color="#5A82AB" size={24} />
-            <Text style={styles.featureItemText}>Daily Reflection</Text>
-            <ChevronRight color="#999" size={20} />
-          </TouchableOpacity>
+        {/* Hero Tiles */}
+        {/* Daily Reflection - Full Width */}
+        <TouchableOpacity
+          style={[styles.heroTile, styles.dailyReflectionTile]}
+          onPress={() => router.push('/daily-reflections')}
+          activeOpacity={0.8}
+        >
+          <Text style={styles.heroEmoji}>📅</Text>
+          <Text style={styles.heroTitle}>Daily Reflection</Text>
+          <Text style={styles.heroSubtitle}>
+            {dateDisplay} — {todaysReflection?.title || 'Loading...'}
+          </Text>
+        </TouchableOpacity>
 
+        {/* AI Sponsor & Literature - Side by Side */}
+        <View style={styles.heroRow}>
           <TouchableOpacity
-            style={styles.featureItem}
+            style={[styles.heroTile, styles.heroTileHalf, styles.aiSponsorTile]}
             onPress={() => router.push('/(tabs)/chat')}
-            activeOpacity={0.7}
+            activeOpacity={0.8}
           >
-            <MessageCircle color="#5A82AB" size={24} />
-            <Text style={styles.featureItemText}>AI Sponsor</Text>
-            <ChevronRight color="#999" size={20} />
+            <Text style={styles.heroEmoji}>💬</Text>
+            <Text style={styles.heroTitle}>AI Sponsor</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
-            style={[styles.featureItem, styles.featureItemLast]}
+            style={[styles.heroTile, styles.heroTileHalf, styles.literatureTile]}
             onPress={() => router.push('/(tabs)/literature')}
-            activeOpacity={0.7}
+            activeOpacity={0.8}
           >
-            <Library color="#5A82AB" size={24} />
-            <Text style={styles.featureItemText}>AA Literature</Text>
-            <ChevronRight color="#999" size={20} />
+            <Text style={styles.heroEmoji}>📖</Text>
+            <Text style={styles.heroTitle}>Literature</Text>
           </TouchableOpacity>
         </View>
 
-        {/* Divider */}
-        <View style={styles.divider} />
-
         {/* Morning Section */}
-        <View style={styles.routineSection}>
-          <View style={styles.sectionHeader}>
-            <Sun color="#1E3A5F" size={18} />
-            <Text style={styles.sectionTitle}>Morning</Text>
-          </View>
-          <View style={styles.tilesRow}>
-            <TouchableOpacity
-              style={styles.tile}
-              onPress={() => router.push('/(tabs)/prayers?prayer=morning')}
-              activeOpacity={0.7}
-            >
-              <FontAwesome6 name="hands-praying" size={24} color="#5A82AB" solid />
-              <Text style={styles.tileLabel}>Prayer</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.tile}
-              onPress={() => router.push('/(tabs)/gratitude')}
-              activeOpacity={0.7}
-            >
-              <FontAwesome6 name="face-smile" size={24} color="#5A82AB" solid />
-              <Text style={styles.tileLabel}>Gratitude</Text>
-            </TouchableOpacity>
-          </View>
+        <Text style={styles.sectionLabel}>Morning</Text>
+        <View style={styles.routineRow}>
+          <TouchableOpacity
+            style={[styles.routineTile, styles.routineTileHalf]}
+            onPress={() => router.push('/(tabs)/prayers?prayer=morning')}
+            activeOpacity={0.8}
+          >
+            <Text style={styles.routineEmoji}>🙏</Text>
+            <Text style={styles.routineTitle}>Prayer</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.routineTile, styles.routineTileHalf]}
+            onPress={() => router.push('/(tabs)/gratitude')}
+            activeOpacity={0.8}
+          >
+            <Text style={styles.routineEmoji}>😊</Text>
+            <Text style={styles.routineTitle}>Gratitude</Text>
+          </TouchableOpacity>
         </View>
 
         {/* Evening Section */}
-        <View style={styles.routineSection}>
-          <View style={styles.sectionHeader}>
-            <Moon color="#1E3A5F" size={18} />
-            <Text style={styles.sectionTitle}>Evening</Text>
-          </View>
-          <View style={styles.tilesRow}>
-            <TouchableOpacity
-              style={styles.tile}
-              onPress={() => router.push('/(tabs)/prayers?prayer=evening')}
-              activeOpacity={0.7}
-            >
-              <FontAwesome6 name="hands-praying" size={24} color="#5A82AB" solid />
-              <Text style={styles.tileLabel}>Prayer</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.tile}
-              onPress={() => router.push('/(tabs)/evening-review')}
-              activeOpacity={0.7}
-            >
-              <Ionicons name="moon" size={24} color="#5A82AB" />
-              <Text style={styles.tileLabel}>Review</Text>
-            </TouchableOpacity>
-          </View>
+        <Text style={styles.sectionLabel}>Evening</Text>
+        <View style={styles.routineRow}>
+          <TouchableOpacity
+            style={[styles.routineTile, styles.routineTileHalf]}
+            onPress={() => router.push('/(tabs)/prayers?prayer=evening')}
+            activeOpacity={0.8}
+          >
+            <Text style={styles.routineEmoji}>🙏</Text>
+            <Text style={styles.routineTitle}>Prayer</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.routineTile, styles.routineTileHalf]}
+            onPress={() => router.push('/(tabs)/evening-review')}
+            activeOpacity={0.8}
+          >
+            <Text style={styles.routineEmoji}>🌙</Text>
+            <Text style={styles.routineTitle}>Nightly Review</Text>
+          </TouchableOpacity>
         </View>
 
-        {/* Divider */}
-        <View style={styles.divider} />
-
-        {/* Settings Link */}
-        <TouchableOpacity
-          style={styles.settingsLink}
-          onPress={() => router.push('/(tabs)/settings')}
-          activeOpacity={0.7}
-        >
-          <Settings color="#666" size={20} />
-          <Text style={styles.settingsText}>Settings</Text>
-          <ChevronRight color="#999" size={20} />
-        </TouchableOpacity>
-
         {/* Bottom padding */}
-        <View style={{ height: insets.bottom + 20 }} />
+        <View style={{ height: 20 }} />
       </ScrollView>
     </View>
   );
@@ -162,81 +148,97 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
-    paddingHorizontal: 16,
+    paddingHorizontal: 20,
     paddingTop: 20,
   },
-  featureList: {
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    overflow: 'hidden',
-  },
-  featureItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 16,
-    paddingHorizontal: 16,
-    gap: 14,
-    borderBottomWidth: 1,
-    borderBottomColor: '#e8e8e8',
-  },
-  featureItemLast: {
-    borderBottomWidth: 0,
-  },
-  featureItemText: {
-    flex: 1,
-    fontSize: 17,
-    fontWeight: adjustFontWeight('500'),
-    color: '#333',
-  },
-  divider: {
-    height: 1,
-    backgroundColor: '#e0e0e0',
-    marginVertical: 20,
-  },
-  routineSection: {
-    marginBottom: 20,
-  },
-  sectionHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
+  
+  // Hero Tiles
+  heroTile: {
+    borderRadius: 16,
+    padding: 20,
     marginBottom: 12,
   },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: adjustFontWeight('600'),
-    color: '#1E3A5F',
+  heroTileHalf: {
+    flex: 1,
   },
-  tilesRow: {
+  heroRow: {
     flexDirection: 'row',
     gap: 12,
   },
-  tile: {
-    flex: 1,
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    paddingVertical: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: '#e8e8e8',
+  dailyReflectionTile: {
+    backgroundColor: '#4A68B5',
+    shadowColor: '#4A68B5',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 6,
   },
-  tileLabel: {
-    fontSize: 14,
-    fontWeight: adjustFontWeight('500'),
-    color: '#333',
-    marginTop: 8,
+  aiSponsorTile: {
+    backgroundColor: '#3D8B8B',
+    shadowColor: '#3D8B8B',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 6,
   },
-  settingsLink: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 16,
-    gap: 12,
+  literatureTile: {
+    backgroundColor: '#4AA06A',
+    shadowColor: '#4AA06A',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 6,
   },
-  settingsText: {
-    flex: 1,
+  heroEmoji: {
+    fontSize: 24,
+    marginBottom: 8,
+  },
+  heroTitle: {
     fontSize: 16,
-    color: '#666',
+    fontWeight: adjustFontWeight('600'),
+    color: '#fff',
+  },
+  heroSubtitle: {
+    fontSize: 12,
+    color: 'rgba(255,255,255,0.8)',
+    marginTop: 4,
+  },
+
+  // Section Labels
+  sectionLabel: {
+    fontSize: 11,
+    fontWeight: adjustFontWeight('600'),
+    color: '#6b7c8a',
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+    marginTop: 16,
+    marginBottom: 8,
+  },
+
+  // Routine Tiles
+  routineRow: {
+    flexDirection: 'row',
+    gap: 12,
+    marginBottom: 12,
+  },
+  routineTile: {
+    backgroundColor: '#fff',
+    borderRadius: 16,
+    padding: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(74, 111, 165, 0.12)',
+  },
+  routineTileHalf: {
+    flex: 1,
+  },
+  routineEmoji: {
+    fontSize: 24,
+    marginBottom: 8,
+  },
+  routineTitle: {
+    fontSize: 16,
+    fontWeight: adjustFontWeight('600'),
+    color: '#3d5a6a',
   },
 });
 

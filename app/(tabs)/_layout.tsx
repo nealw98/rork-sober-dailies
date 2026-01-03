@@ -135,27 +135,45 @@ const createTabIcon = (
   );
 };
 
+const createOutlineTabIcon = (
+  outlineName: string,
+  filledName: string,
+  iconSize = 22
+) => ({ focused }: { color: string; size: number; focused: boolean }) => {
+  const iconColor = focused ? Colors.light.tint : '#8E8E93';
+  const iconName = focused ? filledName : outlineName;
+  return (
+    <Ionicons
+      name={iconName as any}
+      size={iconSize}
+      color={iconColor}
+    />
+  );
+};
+
 export default function TabLayout() {
   return (
     <TextSettingsProvider>
       <Tabs
         screenOptions={{
         tabBarActiveTintColor: Colors.light.tint,
-        tabBarInactiveTintColor: '#E2E8F0',
+        tabBarInactiveTintColor: '#8E8E93',
         headerShown: true,
-        headerBackTitle: "",
-
         headerTitleAlign: 'center',
         headerLeft: ({ canGoBack }) => canGoBack ? <BackButton /> : null,
         tabBarHideOnKeyboard: Platform.OS === 'android' ? true : undefined,
-        tabBarShowLabel: false,
+        tabBarShowLabel: true,
+        tabBarLabelStyle: {
+          fontSize: 10,
+          fontWeight: '500',
+          marginTop: 2,
+        },
         tabBarStyle: {
           backgroundColor: "#FFFFFF",
-          height: Platform.OS === 'android' ? 64 : 72,
-          paddingBottom: Platform.OS === 'android' ? 10 : 16,
-          paddingTop: Platform.OS === 'android' ? 6 : 10,
-          paddingHorizontal: Platform.OS === 'android' ? 4 : 12,
-          display: 'flex', // Always show tab bar
+          height: Platform.OS === 'android' ? 60 : 84,
+          paddingBottom: Platform.OS === 'android' ? 8 : 28,
+          paddingTop: 8,
+          borderTopWidth: 1,
           borderTopColor: '#E4E7EC',
         },
         headerStyle: {
@@ -166,7 +184,7 @@ export default function TabLayout() {
           fontWeight: adjustFontWeight("600", true),
         },
         tabBarIconStyle: {
-          marginTop: Platform.OS === 'android' ? 4 : 0,
+          marginTop: 0,
         },
         lazy: false, // Pre-load all tabs to ensure tab bar is always available
         }}
@@ -184,58 +202,58 @@ export default function TabLayout() {
               </Text>
             </View>
           ),
-          tabBarIcon: createTabIcon(Entypo, 'home', 20),
+          tabBarIcon: createOutlineTabIcon('home-outline', 'home'),
         }}
       />
 
-      {/* Tab 1: Daily Reflection - calendar icon */}
+      {/* Tab 1: Daily Reflection */}
       <Tabs.Screen
         name="daily-reflections"
         options={{
           title: "Reflection",
           headerShown: false,
-          tabBarIcon: createTabIcon(Ionicons, 'calendar', 20),
+          tabBarIcon: createOutlineTabIcon('calendar-outline', 'calendar'),
         }}
       />
 
-      {/* Tab 2: AI Sponsor - robot icon */}
+      {/* Tab 2: AI Sponsor */}
       <Tabs.Screen
         name="chat"
         options={{
           title: "Sponsor",
           headerShown: false,
           tabBarHideOnKeyboard: Platform.OS === 'android' ? true : undefined,
-          tabBarIcon: createTabIcon(Ionicons, 'chatbubble', 20),
+          tabBarIcon: createOutlineTabIcon('chatbubble-outline', 'chatbubble'),
         }}
       />
 
-      {/* Tab 3: Literature - book icon */}
+      {/* Tab 3: Literature */}
       <Tabs.Screen
         name="literature"
         options={{
           title: "Literature",
           headerShown: false,
-          tabBarIcon: createTabIcon(Ionicons, 'library', 20),
+          tabBarIcon: createOutlineTabIcon('book-outline', 'book'),
         }}
       />
 
-      {/* Tab 4: Tools - wrench icon */}
+      {/* Tab 4: Tools */}
       <Tabs.Screen
         name="tools"
         options={{
           title: "Tools",
           headerShown: false,
-          tabBarIcon: createTabIcon(Ionicons, 'build', 20),
+          tabBarIcon: createOutlineTabIcon('construct-outline', 'construct'),
         }}
       />
 
-      {/* Tab 5: Settings - gear icon */}
+      {/* Tab 5: Settings */}
       <Tabs.Screen
         name="settings"
         options={{
           title: "Settings",
           headerShown: false,
-          tabBarIcon: createTabIcon(Ionicons, 'settings-sharp', 20),
+          tabBarIcon: createOutlineTabIcon('settings-outline', 'settings'),
         }}
       />
 
