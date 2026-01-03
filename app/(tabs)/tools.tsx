@@ -23,7 +23,7 @@ const toolOptions: ToolOption[] = [
     description: "Count your blessings and cultivate thankfulness.",
     route: "/(tabs)/gratitude",
     emoji: "😊",
-    backgroundColor: "#c8a0d8",
+    backgroundColor: "#a8d8a8",
   },
   {
     id: "prayers",
@@ -39,7 +39,7 @@ const toolOptions: ToolOption[] = [
     description: "Reflect on your day with a 10th Step inventory.",
     route: "/(tabs)/evening-review",
     emoji: "🌙",
-    backgroundColor: "#a8ebe0",
+    backgroundColor: "#d8b8e8",
   }
 ];
 

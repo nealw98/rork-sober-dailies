@@ -23,7 +23,7 @@ const literatureOptions: LiteratureOption[] = [
     description: "The basic textbook for the AA program.",
     route: "/bigbook",
     emoji: "📖",
-    backgroundColor: "#a8c8e8",
+    backgroundColor: "#8ab0d8",
   },
   {
     id: "twelve-and-twelve",
@@ -31,7 +31,7 @@ const literatureOptions: LiteratureOption[] = [
     description: "In-depth exploration of the Steps and Traditions",
     route: "/twelve-and-twelve",
     emoji: "📚",
-    backgroundColor: "#a8dbd8",
+    backgroundColor: "#88c8c8",
   },
   {
     id: "meeting-pocket",
@@ -39,7 +39,7 @@ const literatureOptions: LiteratureOption[] = [
     description: "Quick access to the core AA readings used in meetings.",
     route: "/meeting-pocket",
     emoji: "📋",
-    backgroundColor: "#b8e0b8",
+    backgroundColor: "#98c898",
   }
 ];
 

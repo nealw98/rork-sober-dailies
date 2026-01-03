@@ -553,9 +553,9 @@ const styles = StyleSheet.create({
     borderBottomLeftRadius: 4,
   },
   messageText: {
-    fontSize: 16,
+    fontSize: 18,
     color: "#1E293B",
-    lineHeight: 22,
+    lineHeight: 24,
     fontWeight: adjustFontWeight("400"),
   },
   userMessageText: {

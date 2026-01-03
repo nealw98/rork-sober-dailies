@@ -236,7 +236,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   routineTitle: {
-    fontSize: 20,
+    fontSize: 19,
     fontWeight: adjustFontWeight('600'),
     color: '#3d5a6a',
   },

@@ -122,7 +122,7 @@ const ChatBubble = ({
       <View style={styles.bubbleContent}>
         <ChatMarkdownRenderer 
           content={messageText} 
-          style={{ color: isUser ? '#fff' : '#333' }}
+          style={{ color: isUser ? '#fff' : '#333', fontSize: 18 }}
         />
       </View>
     </TouchableOpacity>
