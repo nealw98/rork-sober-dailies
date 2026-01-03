@@ -3,7 +3,7 @@ import { StyleSheet, View, Text, ScrollView, TouchableOpacity } from 'react-nati
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import { ChevronRight, BookOpen, MessageCircle, Library, Sun, Moon, Settings } from 'lucide-react-native';
+import { ChevronRight, Calendar, MessageCircle, Library, Sun, Moon, Settings } from 'lucide-react-native';
 import FontAwesome6 from '@expo/vector-icons/FontAwesome6';
 import Ionicons from '@expo/vector-icons/Ionicons';
 
@@ -43,7 +43,7 @@ const HomeScreen = () => {
             onPress={() => router.push('/daily-reflections')}
             activeOpacity={0.7}
           >
-            <BookOpen color="#5A82AB" size={24} />
+            <Calendar color="#5A82AB" size={24} />
             <Text style={styles.featureItemText}>Daily Reflection</Text>
             <ChevronRight color="#999" size={20} />
           </TouchableOpacity>

@@ -205,7 +205,7 @@ export default function TabLayout() {
           title: "Sponsor",
           headerShown: false,
           tabBarHideOnKeyboard: Platform.OS === 'android' ? true : undefined,
-          tabBarIcon: createTabIcon(MaterialCommunityIcons, 'robot', 22),
+          tabBarIcon: createTabIcon(Ionicons, 'chatbubble', 20),
         }}
       />
 
@@ -215,7 +215,7 @@ export default function TabLayout() {
         options={{
           title: "Literature",
           headerShown: false,
-          tabBarIcon: createTabIcon(FontAwesome, 'book', 20),
+          tabBarIcon: createTabIcon(Ionicons, 'library', 20),
         }}
       />
 
