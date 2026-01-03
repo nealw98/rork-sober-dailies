@@ -443,10 +443,15 @@ const SobrietyCounter = () => {
             <View style={styles.counterRow}>
               <Animated.View style={[styles.counterContent, flipStyle]}>
                 {showTotalDays ? (
-                  // Total days display
-                  <Text style={styles.totalDaysDisplay}>
-                    {validDaysSober.toLocaleString()} {validDaysSober === 1 ? 'day' : 'days'}
-                  </Text>
+                  // Total days display - stacked
+                  <View style={styles.totalDaysContainer}>
+                    <Text style={styles.totalDaysNumber}>
+                      {validDaysSober.toLocaleString()}
+                    </Text>
+                    <Text style={styles.totalDaysLabel}>
+                      {validDaysSober === 1 ? 'day' : 'days'}
+                    </Text>
+                  </View>
                 ) : (
                   // Breakdown display - stacked
                   <View style={styles.stackedCounter}>
@@ -623,10 +628,19 @@ const styles = StyleSheet.create({
   pointerIcon: {
     marginLeft: 8,
   },
-  totalDaysDisplay: {
-    fontSize: 36,
+  totalDaysContainer: {
+    alignItems: 'center',
+  },
+  totalDaysNumber: {
+    fontSize: 48,
     color: '#fff',
     fontWeight: '700',
+    textAlign: 'center',
+  },
+  totalDaysLabel: {
+    fontSize: 22,
+    color: 'rgba(255,255,255,0.85)',
+    fontWeight: '500',
     textAlign: 'center',
   },
   stackedCounter: {
