@@ -24,31 +24,24 @@ const SobrietyCounter = () => {
   const flipAnim = useRef(new Animated.Value(0)).current;
 
   const handleToggleDisplay = () => {
-    // Animate flip
-    Animated.sequence([
-      Animated.timing(flipAnim, {
-        toValue: 0.5,
-        duration: 150,
-        useNativeDriver: true,
-      }),
-      Animated.timing(flipAnim, {
-        toValue: 1,
-        duration: 150,
-        useNativeDriver: true,
-      }),
-    ]).start(() => {
+    // Animate flip - full 180 degree rotation
+    Animated.timing(flipAnim, {
+      toValue: 1,
+      duration: 400,
+      useNativeDriver: true,
+    }).start(() => {
       flipAnim.setValue(0);
     });
     
-    // Toggle after first half of animation
+    // Toggle at midpoint of animation
     setTimeout(() => {
       setShowTotalDays(!showTotalDays);
-    }, 150);
+    }, 200);
   };
 
   const flipInterpolate = flipAnim.interpolate({
     inputRange: [0, 0.5, 1],
-    outputRange: ['0deg', '90deg', '0deg'],
+    outputRange: ['0deg', '90deg', '180deg'],
   });
 
   const flipStyle = {
@@ -441,7 +434,7 @@ const SobrietyCounter = () => {
             style={styles.counterTouchable}
           >
             <View style={styles.counterRow}>
-              <Animated.View style={[styles.counterContent, flipStyle]}>
+              <Animated.View style={[styles.counterBox, flipStyle]}>
                 {showTotalDays ? (
                   // Total days display - stacked
                   <View style={styles.totalDaysContainer}>
@@ -471,8 +464,8 @@ const SobrietyCounter = () => {
                   </View>
                 )}
               </Animated.View>
-              <Pointer size={14} color="rgba(255,255,255,0.6)" fill="rgba(255,255,255,0.6)" style={styles.pointerIcon} />
             </View>
+            <Pointer size={16} color="rgba(255,255,255,0.7)" fill="rgba(255,255,255,0.7)" style={styles.pointerIcon} />
           </TouchableOpacity>
           
           {/* Simple date line with edit button */}
@@ -618,15 +611,22 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   counterRow: {
-    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  counterContent: {
+  counterBox: {
     alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
+    borderColor: 'rgba(255,255,255,0.5)',
+    borderRadius: 16,
+    paddingVertical: 16,
+    paddingHorizontal: 24,
+    minWidth: 200,
+    minHeight: 100,
   },
   pointerIcon: {
-    marginLeft: 8,
+    marginTop: 8,
   },
   totalDaysContainer: {
     alignItems: 'center',
@@ -638,9 +638,9 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   totalDaysLabel: {
-    fontSize: 22,
-    color: 'rgba(255,255,255,0.85)',
-    fontWeight: '500',
+    fontSize: 28,
+    color: 'rgba(255,255,255,0.9)',
+    fontWeight: '600',
     textAlign: 'center',
   },
   stackedCounter: {
