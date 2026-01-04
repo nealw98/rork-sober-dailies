@@ -33,6 +33,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import Colors from '@/constants/colors';
 import { adjustFontWeight } from '@/constants/fonts';
+import { useTextSettings } from '@/hooks/use-text-settings';
 import { BigBookChapterMeta } from '@/types/bigbook-v2';
 import { getMainChapters, getFrontMatter, getAppendices } from '@/constants/bigbook-v2/metadata';
 import { useBigBookContent } from '@/hooks/use-bigbook-content';
@@ -54,6 +55,7 @@ interface SectionProps {
   title: string;
   chapters: BigBookChapterMeta[];
   onSelectChapter: (chapterId: string) => void;
+  fontSize: number;
 }
 
 // Helper to remove chapter numbers from titles (e.g., "1. Bill's Story" -> "Bill's Story")
@@ -61,7 +63,7 @@ function removeChapterNumber(title: string): string {
   return title.replace(/^\d+\.\s*/, '');
 }
 
-function ChapterSection({ title, chapters, onSelectChapter }: SectionProps) {
+function ChapterSection({ title, chapters, onSelectChapter, fontSize }: SectionProps) {
   return (
     <View style={styles.sectionContainer}>
       <Text style={styles.sectionLabel}>{title}</Text>
@@ -77,7 +79,7 @@ function ChapterSection({ title, chapters, onSelectChapter }: SectionProps) {
             onPress={() => onSelectChapter(chapter.id)}
             activeOpacity={0.7}
           >
-            <Text style={styles.rowTitle}>{removeChapterNumber(chapter.title)}</Text>
+            <Text style={[styles.rowTitle, { fontSize }]}>{removeChapterNumber(chapter.title)}</Text>
             <View style={styles.rowRight}>
               <Text style={styles.pageNumber}>
                 pp. {formatPageNumber(chapter.pageRange[0], chapter.useRomanNumerals || false)}-{formatPageNumber(chapter.pageRange[1], chapter.useRomanNumerals || false)}
@@ -94,6 +96,7 @@ function ChapterSection({ title, chapters, onSelectChapter }: SectionProps) {
 export function BigBookChapterList({ onSelectChapter, onBack, isReaderOpen }: BigBookChapterListProps) {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const { fontSize } = useTextSettings();
   const frontMatter = getFrontMatter();
   const mainChapters = getMainChapters();
   const appendices = getAppendices();
@@ -238,18 +241,21 @@ export function BigBookChapterList({ onSelectChapter, onBack, isReaderOpen }: Bi
           title="Forewords and Preface"
           chapters={frontMatter}
           onSelectChapter={onSelectChapter}
+          fontSize={fontSize}
         />
         
         <ChapterSection
           title="Main Chapters"
           chapters={mainChapters}
           onSelectChapter={onSelectChapter}
+          fontSize={fontSize}
         />
         
         <ChapterSection
           title="Appendices"
           chapters={appendices}
           onSelectChapter={onSelectChapter}
+          fontSize={fontSize}
         />
       </ScrollView>
       

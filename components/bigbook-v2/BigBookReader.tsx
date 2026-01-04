@@ -38,6 +38,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Colors from '@/constants/colors';
 import { adjustFontWeight } from '@/constants/fonts';
+import { useTextSettings } from '@/hooks/use-text-settings';
 import { useBigBookContent } from '@/hooks/use-bigbook-content';
 import { useBigBookBookmarks } from '@/hooks/use-bigbook-bookmarks';
 import { useBigBookHighlights } from '@/hooks/use-bigbook-highlights';
@@ -117,25 +118,24 @@ export function BigBookReader({ visible, initialChapterId, scrollToParagraphId, 
   const [showHighlightEditMenu, setShowHighlightEditMenu] = useState(false);
   const [editingHighlight, setEditingHighlight] = useState<BigBookHighlight | null>(null);
 
-  // Font size state (replacing pinch-to-zoom)
-  const [fontSize, setFontSize] = useState(18);
-  const baseFontSize = 18;
+  // Use global text settings
+  const { fontSize, setFontSize, minFontSize, maxFontSize, defaultFontSize } = useTextSettings();
   
   const increaseFontSize = useCallback(() => {
-    setFontSize(prev => Math.min(prev + 2, 28));
-  }, []);
+    setFontSize(Math.min(fontSize + 2, maxFontSize));
+  }, [fontSize, maxFontSize, setFontSize]);
   
   const decreaseFontSize = useCallback(() => {
-    setFontSize(prev => Math.max(prev - 2, 12));
-  }, []);
+    setFontSize(Math.max(fontSize - 2, minFontSize));
+  }, [fontSize, minFontSize, setFontSize]);
   
   // Double-tap to reset to default font size
   const doubleTapGesture = useMemo(() => Gesture.Tap()
     .numberOfTaps(2)
     .onStart(() => {
-      setFontSize(baseFontSize);
+      setFontSize(defaultFontSize);
     })
-    .runOnJS(true), [baseFontSize]);
+    .runOnJS(true), [defaultFontSize, setFontSize]);
 
   // Load initial chapter
   useEffect(() => {

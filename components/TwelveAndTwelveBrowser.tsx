@@ -17,6 +17,7 @@ import { twelveAndTwelveData } from "@/constants/twelve-and-twelve";
 import { BigBookStoreProvider, useBigBookStore } from "@/hooks/use-bigbook-store";
 import { TwelveAndTwelveCategory, BigBookSection } from "@/types/bigbook";
 import { adjustFontWeight } from "@/constants/fonts";
+import { useTextSettings } from "@/hooks/use-text-settings";
 
 import PDFViewer from "@/components/PDFViewer";
 
@@ -24,9 +25,10 @@ interface SectionProps {
   title: string;
   sections: BigBookSection[];
   onOpenPDF: (url: string, title: string) => void;
+  fontSize: number;
 }
 
-function CategorySection({ title, sections, onOpenPDF }: SectionProps) {
+function CategorySection({ title, sections, onOpenPDF, fontSize }: SectionProps) {
   const { addToRecent } = useBigBookStore();
 
   const handlePress = (section: BigBookSection) => {
@@ -49,7 +51,7 @@ function CategorySection({ title, sections, onOpenPDF }: SectionProps) {
             onPress={() => handlePress(section)}
             activeOpacity={0.7}
           >
-            <Text style={styles.rowTitle}>{section.title}</Text>
+            <Text style={[styles.rowTitle, { fontSize }]}>{section.title}</Text>
             <View style={styles.rowRight}>
               {section.pageNumber && (
                 <Text style={styles.pageNumber}>{section.pageNumber}</Text>
@@ -66,6 +68,7 @@ function CategorySection({ title, sections, onOpenPDF }: SectionProps) {
 function TwelveAndTwelveBrowserContent() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const { fontSize } = useTextSettings();
   const [pdfViewerVisible, setPdfViewerVisible] = useState<boolean>(false);
   const [currentPdf, setCurrentPdf] = useState<{ url: string; title: string } | null>(null);
 
@@ -135,7 +138,8 @@ function TwelveAndTwelveBrowserContent() {
             key={category.id} 
             title={category.title}
             sections={category.sections}
-            onOpenPDF={handleOpenPDF} 
+            onOpenPDF={handleOpenPDF}
+            fontSize={fontSize}
           />
         ))}
         

@@ -203,7 +203,7 @@ export default function SettingsScreen() {
           onPress={handleRateAppPress}
           activeOpacity={0.7}
         >
-          <Text style={styles.menuItemTitle}>Rate & Review</Text>
+          <Text style={[styles.menuItemTitle, { fontSize }]}>Rate & Review</Text>
           <ChevronRight size={18} color="#a0a0a0" />
         </TouchableOpacity>
         
@@ -212,7 +212,7 @@ export default function SettingsScreen() {
           onPress={handleSharePress}
           activeOpacity={0.7}
         >
-          <Text style={styles.menuItemTitle}>Share the App</Text>
+          <Text style={[styles.menuItemTitle, { fontSize }]}>Share the App</Text>
           <ChevronRight size={18} color="#a0a0a0" />
         </TouchableOpacity>
         
@@ -221,7 +221,7 @@ export default function SettingsScreen() {
           onPress={() => router.push('/about-support')}
           activeOpacity={0.7}
         >
-          <Text style={styles.menuItemTitle}>Support the Developer</Text>
+          <Text style={[styles.menuItemTitle, { fontSize }]}>Support the Developer</Text>
           <ChevronRight size={18} color="#a0a0a0" />
         </TouchableOpacity>
 
@@ -233,7 +233,7 @@ export default function SettingsScreen() {
           onPress={() => router.push('/about-support')}
           activeOpacity={0.7}
         >
-          <Text style={styles.menuItemTitle}>About Sober Dailies</Text>
+          <Text style={[styles.menuItemTitle, { fontSize }]}>About Sober Dailies</Text>
           <ChevronRight size={18} color="#a0a0a0" />
         </TouchableOpacity>
       </ScrollView>

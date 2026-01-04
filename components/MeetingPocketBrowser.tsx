@@ -17,6 +17,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import Colors from "@/constants/colors";
 import { adjustFontWeight } from "@/constants/fonts";
+import { useTextSettings } from "@/hooks/use-text-settings";
 import SimpleTextReader from "./SimpleTextReader";
 
 interface MeetingReading {
@@ -73,6 +74,7 @@ const meetingReadings: MeetingReading[] = [
 function MeetingPocketBrowserContent() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const { fontSize } = useTextSettings();
   const [textReaderVisible, setTextReaderVisible] = useState(false);
   const [currentReading, setCurrentReading] = useState<MeetingReading | null>(null);
 
@@ -122,7 +124,7 @@ function MeetingPocketBrowserContent() {
               onPress={() => handleOpenContent(reading)}
               activeOpacity={0.7}
             >
-              <Text style={styles.rowTitle}>{reading.title}</Text>
+              <Text style={[styles.rowTitle, { fontSize }]}>{reading.title}</Text>
               <ChevronRight size={18} color="#a0a0a0" />
             </TouchableOpacity>
           ))}
