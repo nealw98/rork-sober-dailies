@@ -197,17 +197,17 @@ const styles = StyleSheet.create({
     fontSize: 24,
   },
   sponsorName: {
-    fontSize: 15,
+    fontSize: 22,
     fontWeight: adjustFontWeight("600", true),
     color: '#000',
     marginBottom: 4,
     textAlign: "center",
   },
   sponsorDescription: {
-    fontSize: 12,
+    fontSize: 14,
     fontWeight: adjustFontWeight("400"),
     color: '#333',
-    lineHeight: 16,
+    lineHeight: 18,
     textAlign: "center",
   },
   textDisabled: {

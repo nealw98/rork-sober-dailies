@@ -197,7 +197,8 @@ export default function ChatInterface({
   onSponsorPress,
 }: ChatInterfaceProps) {
   const { messages, isLoading, sendMessage, sponsorType: storeSponsorType, changeSponsor } = useChatStore();
-  const { fontSize } = useTextSettings();
+  const textSettings = useTextSettings();
+  const fontSize = textSettings?.fontSize ?? 18;
   const [inputText, setInputText] = useState<string>("");
   const [isCheckingLimits, setIsCheckingLimits] = useState(false);
   const flatListRef = useRef<FlatList>(null);

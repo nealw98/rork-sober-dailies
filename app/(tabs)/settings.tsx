@@ -1,6 +1,7 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Platform, Linking, Share, ScrollView, Modal, SafeAreaView, Alert } from 'react-native';
-import { router, Stack, usePathname, useNavigation } from 'expo-router';
+import { router, Stack } from 'expo-router';
+import { getPreviousRoute } from '@/lib/previousRoute';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ChevronLeft, ChevronRight } from 'lucide-react-native';
@@ -13,7 +14,6 @@ import { Logger } from '@/lib/logger';
 
 export default function SettingsScreen() {
   const insets = useSafeAreaInsets();
-  const navigation = useNavigation();
   const { fontSize, setFontSize, minFontSize, maxFontSize } = useTextSettings();
   const [logsVisible, setLogsVisible] = useState(false);
   const [logsText, setLogsText] = useState('');
@@ -23,13 +23,9 @@ export default function SettingsScreen() {
   const decrease = () => setFontSize(fontSize - step);
 
   const handleBack = () => {
-    // Check if we can actually go back in the navigation stack
-    if (navigation.canGoBack()) {
-      navigation.goBack();
-    } else {
-      // If accessed directly via tab, go to home
-      router.push('/');
-    }
+    // Navigate to the previous route (tracked globally)
+    const previousRoute = getPreviousRoute();
+    router.push(previousRoute as any);
   };
 
   // Version info

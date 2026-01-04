@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { usePathname } from 'expo-router';
 import { usageLogger } from '@/lib/usageLogger';
+import { setPreviousRoute } from '@/lib/previousRoute';
 
 // Hook to track screen changes in Expo Router
 export const useExpoRouterTracking = () => {
@@ -10,6 +11,9 @@ export const useExpoRouterTracking = () => {
 
   useEffect(() => {
     if (pathname) {
+      // Track previous route for back navigation
+      setPreviousRoute(pathname);
+      
       // Convert pathname to screen name
       const screenName = getScreenNameFromPathname(pathname);
       console.log('[ScreenTracking] Pathname changed:', pathname, '-> Screen:', screenName);

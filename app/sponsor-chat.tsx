@@ -135,7 +135,8 @@ const ChatBubble = ({
 function SponsorChatContent({ initialSponsor }: { initialSponsor: string }) {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { fontSize } = useTextSettings();
+  const textSettings = useTextSettings();
+  const fontSize = textSettings?.fontSize ?? 18;
   const { messages, isLoading, sendMessage, clearChat, changeSponsor, sponsorType } = useChatStore();
   const [inputText, setInputText] = useState("");
   const [isCheckingLimits, setIsCheckingLimits] = useState(false);
