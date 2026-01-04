@@ -23,6 +23,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { 
   ChevronLeft,
+  ChevronRight,
   Hash,
   Bookmark as BookmarkIcon,
   Highlighter,
@@ -48,7 +49,6 @@ interface BigBookChapterListProps {
 
 interface SectionProps {
   title: string;
-  description: string;
   chapters: BigBookChapterMeta[];
   onSelectChapter: (chapterId: string) => void;
 }
@@ -58,39 +58,30 @@ function removeChapterNumber(title: string): string {
   return title.replace(/^\d+\.\s*/, '');
 }
 
-function ChapterSection({ title, description, chapters, onSelectChapter }: SectionProps) {
-  // Group chapters into pairs for 2-column layout
-  const chapterPairs: BigBookChapterMeta[][] = [];
-  for (let i = 0; i < chapters.length; i += 2) {
-    chapterPairs.push(chapters.slice(i, i + 2));
-  }
-
+function ChapterSection({ title, chapters, onSelectChapter }: SectionProps) {
   return (
     <View style={styles.sectionContainer}>
-      {/* Section Header - Simple label style like home page */}
       <Text style={styles.sectionLabel}>{title}</Text>
       
-      <View style={styles.chaptersContainer}>
-        {chapterPairs.map((pair, pairIndex) => (
-          <View key={pairIndex} style={styles.chapterRow}>
-            {pair.map((chapter) => (
-              <TouchableOpacity
-                key={chapter.id}
-                style={styles.chapterTile}
-                onPress={() => onSelectChapter(chapter.id)}
-                activeOpacity={0.7}
-              >
-                <Text style={styles.chapterTitle} numberOfLines={2}>
-                  {removeChapterNumber(chapter.title)}
-                </Text>
-                <Text style={styles.chapterPages}>
-                  pp. {formatPageNumber(chapter.pageRange[0], chapter.useRomanNumerals || false)}-{formatPageNumber(chapter.pageRange[1], chapter.useRomanNumerals || false)}
-                </Text>
-              </TouchableOpacity>
-            ))}
-            {/* Add empty space if odd number of chapters */}
-            {pair.length === 1 && <View style={styles.chapterTilePlaceholder} />}
-          </View>
+      <View style={styles.listContainer}>
+        {chapters.map((chapter, index) => (
+          <TouchableOpacity
+            key={chapter.id}
+            style={[
+              styles.listRow,
+              index === chapters.length - 1 && styles.listRowLast
+            ]}
+            onPress={() => onSelectChapter(chapter.id)}
+            activeOpacity={0.7}
+          >
+            <Text style={styles.rowTitle}>{removeChapterNumber(chapter.title)}</Text>
+            <View style={styles.rowRight}>
+              <Text style={styles.pageNumber}>
+                pp. {formatPageNumber(chapter.pageRange[0], chapter.useRomanNumerals || false)}-{formatPageNumber(chapter.pageRange[1], chapter.useRomanNumerals || false)}
+              </Text>
+              <ChevronRight size={18} color="#a0a0a0" />
+            </View>
+          </TouchableOpacity>
         ))}
       </View>
     </View>
@@ -116,7 +107,7 @@ export function BigBookChapterList({ onSelectChapter, onBack }: BigBookChapterLi
     if (onBack) {
       onBack();
     } else {
-      router.back();
+      router.push('/literature');
     }
   };
   
@@ -222,26 +213,23 @@ export function BigBookChapterList({ onSelectChapter, onBack }: BigBookChapterLi
         contentContainerStyle={styles.scrollViewContent}
       >
         <ChapterSection
-            title="Forewords and Preface"
-            description="Includes The Doctor's Opinion"
-            chapters={frontMatter}
-            onSelectChapter={onSelectChapter}
-          />
-          
-          <ChapterSection
-            title="Main Chapters"
-            description="The first 164 pages - the basic text of AA"
-            chapters={mainChapters}
-            onSelectChapter={onSelectChapter}
-          />
-          
-          <ChapterSection
-            title="Appendices"
-            description="Additional resources and information"
-            chapters={appendices}
-            onSelectChapter={onSelectChapter}
-          />
-        </ScrollView>
+          title="Forewords and Preface"
+          chapters={frontMatter}
+          onSelectChapter={onSelectChapter}
+        />
+        
+        <ChapterSection
+          title="Main Chapters"
+          chapters={mainChapters}
+          onSelectChapter={onSelectChapter}
+        />
+        
+        <ChapterSection
+          title="Appendices"
+          chapters={appendices}
+          onSelectChapter={onSelectChapter}
+        />
+      </ScrollView>
       
       {/* Book-Level Navigation Modals */}
       <BigBookHighlightsList
@@ -326,12 +314,12 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollViewContent: {
-    paddingHorizontal: 20,
+    paddingHorizontal: 16,
     paddingTop: 16,
     paddingBottom: 20,
   },
   sectionContainer: {
-    marginBottom: 16,
+    marginBottom: 24,
   },
   sectionLabel: {
     fontSize: 11,
@@ -340,37 +328,35 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
     letterSpacing: 1,
     marginBottom: 8,
+    marginLeft: 4,
   },
-  chaptersContainer: {
-    marginBottom: 8,
+  listContainer: {
   },
-  chapterRow: {
+  listRow: {
     flexDirection: 'row',
-    gap: 12,
-    marginBottom: 12,
-  },
-  chapterTile: {
-    flex: 1,
-    backgroundColor: '#fff',
-    borderRadius: 16,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: 'rgba(74, 111, 165, 0.12)',
-    minHeight: 80,
+    alignItems: 'center',
     justifyContent: 'space-between',
+    paddingVertical: 16,
+    paddingHorizontal: 4,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(0, 0, 0, 0.08)',
   },
-  chapterTilePlaceholder: {
+  listRowLast: {
+    borderBottomWidth: 0,
+  },
+  rowTitle: {
+    fontSize: 16,
+    fontWeight: adjustFontWeight('500'),
+    color: '#2d3748',
     flex: 1,
   },
-  chapterTitle: {
-    fontSize: 14,
-    fontWeight: adjustFontWeight('600'),
-    color: '#3d5a6a',
-    lineHeight: 18,
+  rowRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
   },
-  chapterPages: {
-    fontSize: 11,
-    color: '#6b7c8a',
-    marginTop: 8,
+  pageNumber: {
+    fontSize: 13,
+    color: '#a0a0a0',
   },
 });

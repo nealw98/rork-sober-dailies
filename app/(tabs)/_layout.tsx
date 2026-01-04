@@ -294,7 +294,7 @@ export default function TabLayout() {
         name="twelve-and-twelve"
         options={{
           href: null, // Hide from tab bar
-          headerShown: true,
+          headerShown: false,
           headerTitle: '',
           headerLeft: () => <BackButton />,
         }}
@@ -303,9 +303,7 @@ export default function TabLayout() {
         name="meeting-pocket"
         options={{
           href: null, // Hide from tab bar
-          headerShown: true,
-          headerTitle: '',
-          headerLeft: () => <BackButton />,
+          headerShown: false,
         }}
       />
       <Tabs.Screen

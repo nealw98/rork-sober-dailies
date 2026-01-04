@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from "react";
-import { Platform } from "react-native";
 import {
   StyleSheet,
   View,
@@ -8,12 +7,10 @@ import {
   TouchableOpacity,
   Modal,
 } from "react-native";
-import {
-  ChevronDown,
-  ChevronRight,
-  ExternalLink,
-} from "lucide-react-native";
+import { ChevronLeft, ChevronRight } from "lucide-react-native";
 import { LinearGradient } from 'expo-linear-gradient';
+import { useRouter } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import Colors from "@/constants/colors";
 import { twelveAndTwelveData } from "@/constants/twelve-and-twelve";
@@ -23,75 +20,58 @@ import { adjustFontWeight } from "@/constants/fonts";
 
 import PDFViewer from "@/components/PDFViewer";
 
+interface SectionProps {
+  title: string;
+  sections: BigBookSection[];
+  onOpenPDF: (url: string, title: string) => void;
+}
 
-
-
-
-
-const SectionItem = ({ section, categoryId, onOpenPDF }: { section: BigBookSection; categoryId: string; onOpenPDF: (url: string, title: string) => void }) => {
+function CategorySection({ title, sections, onOpenPDF }: SectionProps) {
   const { addToRecent } = useBigBookStore();
 
-  const handlePress = () => {
+  const handlePress = (section: BigBookSection) => {
     addToRecent(section.id, section.title, section.url);
     onOpenPDF(section.url, section.title);
   };
 
   return (
-    <TouchableOpacity style={styles.sectionItem} onPress={handlePress} testID={`section-${section.id}`}>
-      <View style={styles.sectionInfo}>
-        <Text style={styles.sectionTitle}>{section.title}</Text>
-        {section.description && <Text style={styles.sectionDescription}>{section.description}</Text>}
-      </View>
-      <ExternalLink size={16} color={Colors.light.muted} />
-    </TouchableOpacity>
-  );
-};
-
-const CategorySection = ({ category, onOpenPDF }: { category: TwelveAndTwelveCategory; onOpenPDF: (url: string, title: string) => void }) => {
-  const [expanded, setExpanded] = useState<boolean>(false);
-
-  return (
-    <View style={styles.categoryContainer}>
-      <TouchableOpacity
-        style={styles.categoryHeader}
-        onPress={() => setExpanded(!expanded)}
-        testID={`category-${category.id}`}
-        activeOpacity={0.7}
-      >
-        <View style={styles.categoryInfo}>
-          <Text style={styles.categoryTitle}>{category.title}</Text>
-          <Text style={styles.categoryDescription}>{category.description}</Text>
-        </View>
-        {expanded ? (
-          <ChevronDown size={20} color={Colors.light.muted} />
-        ) : (
-          <ChevronRight size={20} color={Colors.light.muted} />
-        )}
-      </TouchableOpacity>
+    <View style={styles.sectionContainer}>
+      <Text style={styles.sectionLabel}>{title}</Text>
       
-      {expanded && (
-        <View style={styles.sectionsContainer}>
-          {category.sections.map((section) => (
-            <SectionItem key={section.id} section={section} categoryId={category.id} onOpenPDF={onOpenPDF} />
-          ))}
-        </View>
-      )}
+      <View style={styles.listContainer}>
+        {sections.map((section, index) => (
+          <TouchableOpacity
+            key={section.id}
+            style={[
+              styles.listRow,
+              index === sections.length - 1 && styles.listRowLast
+            ]}
+            onPress={() => handlePress(section)}
+            activeOpacity={0.7}
+          >
+            <Text style={styles.rowTitle}>{section.title}</Text>
+            <View style={styles.rowRight}>
+              {section.pageNumber && (
+                <Text style={styles.pageNumber}>{section.pageNumber}</Text>
+              )}
+              <ChevronRight size={18} color="#a0a0a0" />
+            </View>
+          </TouchableOpacity>
+        ))}
+      </View>
     </View>
   );
-};
-
-
-
-
+}
 
 function TwelveAndTwelveBrowserContent() {
+  const router = useRouter();
+  const insets = useSafeAreaInsets();
   const [pdfViewerVisible, setPdfViewerVisible] = useState<boolean>(false);
   const [currentPdf, setCurrentPdf] = useState<{ url: string; title: string } | null>(null);
 
   // Preload PDFs for better performance
   useEffect(() => {
     const preloadPDFs = async () => {
-      // Preload the most commonly accessed PDFs (Steps 1-3, Traditions 1-3)
       const commonPDFs = [
         'https://www.aa.org/sites/default/files/2022-01/en_step1.pdf',
         'https://www.aa.org/sites/default/files/2022-01/en_step2.pdf',
@@ -101,24 +81,18 @@ function TwelveAndTwelveBrowserContent() {
         'https://www.aa.org/sites/default/files/2022-01/en_tradition3.pdf',
       ];
 
-      // Use fetch to preload PDFs in the background
       commonPDFs.forEach(url => {
-        fetch(url, { method: 'HEAD' }).catch(() => {
-          // Silently fail - this is just for preloading
-        });
+        fetch(url, { method: 'HEAD' }).catch(() => {});
       });
     };
 
-    // Delay preloading to not interfere with initial render
     const timer = setTimeout(preloadPDFs, 2000);
     return () => clearTimeout(timer);
   }, []);
 
   const handleOpenPDF = (url: string, title: string) => {
-    console.log('TwelveAndTwelve handleOpenPDF called with:', { url, title });
     setCurrentPdf({ url, title });
     setPdfViewerVisible(true);
-    console.log('TwelveAndTwelve PDF viewer should now be visible:', true);
   };
 
   const handleClosePDF = () => {
@@ -126,37 +100,49 @@ function TwelveAndTwelveBrowserContent() {
     setCurrentPdf(null);
   };
 
+  const handleBack = () => {
+    router.push('/literature');
+  };
+
   return (
     <View style={styles.container}>
+      {/* Gradient Header */}
       <LinearGradient
-        colors={Colors.gradients.mainThreeColor}
-        style={styles.backgroundGradient}
+        colors={['#4A6FA5', '#3D8B8B', '#45A08A']}
+        style={[styles.headerBlock, { paddingTop: insets.top + 8 }]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
-        locations={[0, 0.5, 1]}
-      />
+      >
+        <View style={styles.headerTopRow}>
+          <TouchableOpacity 
+            style={styles.backButton} 
+            onPress={handleBack}
+            activeOpacity={0.7}
+          >
+            <ChevronLeft size={24} color="#fff" />
+          </TouchableOpacity>
+        </View>
+        <Text style={styles.headerTitle}>Twelve Steps & Twelve Traditions</Text>
+      </LinearGradient>
       
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        <View>
-          <View style={styles.header}>
-            {Platform.OS !== 'android' && (
-              <Text style={styles.title}>Twelve Steps and Twelve Traditions</Text>
-            )}
-            <Text style={styles.subtitle}>A detailed exploration of the AA program</Text>
-            <Text style={styles.description}>
-              Tap any section to open the official PDF from AA World Services.
-            </Text>
-          </View>
-          
-          {twelveAndTwelveData.map((category) => (
-            <CategorySection key={category.id} category={category} onOpenPDF={handleOpenPDF} />
-          ))}
-          
-          <View style={styles.copyrightContainer}>
-            <Text style={styles.copyrightText}>
-              Copyright © 1990 by Alcoholics Anonymous World Services, Inc. All rights reserved.
-            </Text>
-          </View>
+      <ScrollView 
+        style={styles.content} 
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.contentContainer}
+      >
+        {twelveAndTwelveData.map((category) => (
+          <CategorySection 
+            key={category.id} 
+            title={category.title}
+            sections={category.sections}
+            onOpenPDF={handleOpenPDF} 
+          />
+        ))}
+        
+        <View style={styles.copyrightContainer}>
+          <Text style={styles.copyrightText}>
+            Copyright © 1990 by Alcoholics Anonymous World Services, Inc. All rights reserved.
+          </Text>
         </View>
       </ScrollView>
       
@@ -189,110 +175,81 @@ export default function TwelveAndTwelveBrowser() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.light.background,
+    backgroundColor: '#f5f6f8',
   },
-  backgroundGradient: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
+  headerBlock: {
+    paddingHorizontal: 20,
+    paddingBottom: 16,
   },
-
+  headerTopRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  backButton: {
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    borderRadius: 20,
+    padding: 8,
+  },
+  headerTitle: {
+    fontSize: 32,
+    fontWeight: adjustFontWeight('400'),
+    color: '#fff',
+  },
   content: {
     flex: 1,
   },
-  header: {
-    padding: 20,
-    marginBottom: 16,
-  },
-  title: {
-    fontSize: 28,
-    fontWeight: adjustFontWeight("bold", true),
-    color: Colors.light.text,
-    marginBottom: 4,
-    textAlign: "center",
-  },
-  subtitle: {
-    fontSize: 16,
-    color: Colors.light.muted,
-    marginBottom: 8,
-    textAlign: "center",
-  },
-  description: {
-    fontSize: 14,
-    color: Colors.light.muted,
-    lineHeight: 20,
-    textAlign: "center",
-  },
-  categoryContainer: {
-    marginBottom: 16,
-    backgroundColor: 'rgba(255, 255, 255, 0.6)',
-    borderRadius: 16,
-    overflow: "hidden",
-    marginHorizontal: 16,
-  },
-  categoryHeader: {
-    flexDirection: "row",
-    alignItems: "center",
+  contentContainer: {
     padding: 16,
-    justifyContent: "space-between",
   },
-  categoryInfo: {
-    flex: 1,
+  sectionContainer: {
+    marginBottom: 24,
   },
-  categoryTitle: {
-    fontSize: 18,
-    fontWeight: adjustFontWeight("600", true),
-    color: Colors.light.text,
-    marginBottom: 2,
+  sectionLabel: {
+    fontSize: 11,
+    fontWeight: adjustFontWeight('600'),
+    color: '#6b7c8a',
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+    marginBottom: 8,
+    marginLeft: 4,
   },
-  categoryDescription: {
-    fontSize: 14,
-    color: Colors.light.muted,
+  listContainer: {
   },
-  sectionsContainer: {
-    backgroundColor: 'rgba(255, 255, 255, 0.4)',
-    borderTopWidth: 1,
-    borderTopColor: Colors.light.divider,
-  },
-  sectionItem: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingLeft: 16,
-    paddingRight: 16,
-    paddingVertical: 12,
+  listRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 16,
+    paddingHorizontal: 4,
     borderBottomWidth: 1,
-    borderBottomColor: Colors.light.divider,
+    borderBottomColor: 'rgba(0, 0, 0, 0.08)',
   },
-  sectionContent: {
-    flex: 1,
-    flexDirection: "row",
-    alignItems: "center",
+  listRowLast: {
+    borderBottomWidth: 0,
   },
-  sectionInfo: {
-    flex: 1,
-  },
-  sectionTitle: {
+  rowTitle: {
     fontSize: 16,
-    fontWeight: adjustFontWeight("600"),
-    color: Colors.light.text,
-    marginBottom: 2,
+    fontWeight: adjustFontWeight('500'),
+    color: '#2d3748',
+    flex: 1,
   },
-  sectionDescription: {
-    fontSize: 14,
-    color: Colors.light.muted,
-    lineHeight: 16,
+  rowRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
   },
-
+  pageNumber: {
+    fontSize: 13,
+    color: '#a0a0a0',
+  },
   copyrightContainer: {
-    marginTop: 24,
-    paddingHorizontal: 16,
-    paddingBottom: 16,
+    marginTop: 8,
+    paddingBottom: 32,
   },
   copyrightText: {
     fontSize: 12,
-    color: Colors.light.muted,
+    color: '#6b7c8a',
     textAlign: "center",
     lineHeight: 16,
   },

@@ -4,6 +4,7 @@ export interface BigBookSection {
   url: string;
   pages?: string;
   description?: string;
+  pageNumber?: string;
 }
 
 export interface BigBookCategory {

@@ -1,5 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
-import { Platform } from "react-native";
+import React, { useState, useCallback } from "react";
 import {
   StyleSheet,
   View,
@@ -9,15 +8,16 @@ import {
   Modal,
 } from "react-native";
 import {
-  FileText,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react-native";
 import { LinearGradient } from 'expo-linear-gradient';
+import { useRouter } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import Colors from "@/constants/colors";
 import { adjustFontWeight } from "@/constants/fonts";
 import SimpleTextReader from "./SimpleTextReader";
-import ScreenContainer from "./ScreenContainer";
-import { meetingReadings as importedMeetingReadings } from "@/constants/meeting-readings";
 
 interface MeetingReading {
   id: string;
@@ -70,78 +70,68 @@ const meetingReadings: MeetingReading[] = [
   }
 ];
 
-const ReadingItem = ({ reading, onOpenContent }: { 
-  reading: MeetingReading; 
-  onOpenContent: (reading: MeetingReading) => void 
-}) => {
-  return (
-    <TouchableOpacity
-      style={styles.readingItem}
-      onPress={() => onOpenContent(reading)}
-      testID={`reading-${reading.id}`}
-      activeOpacity={0.7}
-    >
-      <View style={styles.readingInfo}>
-        <Text style={styles.readingTitle}>{reading.title}</Text>
-      </View>
-      <View style={styles.readingIcons}>
-        <FileText size={20} color={Colors.light.muted} />
-      </View>
-    </TouchableOpacity>
-  );
-};
-
 function MeetingPocketBrowserContent() {
+  const router = useRouter();
+  const insets = useSafeAreaInsets();
   const [textReaderVisible, setTextReaderVisible] = useState(false);
   const [currentReading, setCurrentReading] = useState<MeetingReading | null>(null);
 
   const handleOpenContent = useCallback((reading: MeetingReading) => {
-    console.log('🔍 handleOpenContent called with reading:', {
-      id: reading.id,
-      title: reading.title,
-      contentLength: reading.content.length
-    });
-    
     setCurrentReading(reading);
     setTextReaderVisible(true);
   }, []);
 
+  const handleBack = () => {
+    router.push('/literature');
+  };
+
   return (
     <View style={styles.container}>
+      {/* Gradient Header */}
       <LinearGradient
-        colors={Colors.gradients.mainThreeColor}
-        style={styles.backgroundGradient}
+        colors={['#4A6FA5', '#3D8B8B', '#45A08A']}
+        style={[styles.headerBlock, { paddingTop: insets.top + 8 }]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
-        locations={[0, 0.5, 1]}
-        pointerEvents="none"
-      />
-      
-      <View style={styles.content}>
-        <View style={styles.mainContent}>
-          <View style={styles.header}>
-            <Text style={styles.title}>AA Meeting in Your Pocket</Text>
-            <Text style={styles.subtitle}>Quick access to the core AA readings used in meetings.</Text>
-          </View>
-          
-          <ScrollView style={styles.scrollView}>
-            {meetingReadings.map((reading) => (
-              <ReadingItem 
-                key={reading.id} 
-                reading={reading} 
-                onOpenContent={handleOpenContent} 
-              />
-            ))}
-          </ScrollView>
+      >
+        <View style={styles.headerTopRow}>
+          <TouchableOpacity 
+            style={styles.backButton} 
+            onPress={handleBack}
+            activeOpacity={0.7}
+          >
+            <ChevronLeft size={24} color="#fff" />
+          </TouchableOpacity>
         </View>
-      </View>
+        <Text style={styles.headerTitle}>AA Meeting Readings</Text>
+      </LinearGradient>
+      
+      <ScrollView 
+        style={styles.content} 
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.contentContainer}
+      >
+        <View style={styles.listContainer}>
+          {meetingReadings.map((reading, index) => (
+            <TouchableOpacity
+              key={reading.id}
+              style={[
+                styles.listRow,
+                index === meetingReadings.length - 1 && styles.listRowLast
+              ]}
+              onPress={() => handleOpenContent(reading)}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.rowTitle}>{reading.title}</Text>
+              <ChevronRight size={18} color="#a0a0a0" />
+            </TouchableOpacity>
+          ))}
+        </View>
+      </ScrollView>
 
       <Modal
         visible={textReaderVisible}
-        onRequestClose={() => {
-          console.log('Text Reader Modal onRequestClose called');
-          setTextReaderVisible(false);
-        }}
+        onRequestClose={() => setTextReaderVisible(false)}
         animationType="slide"
         transparent={false}
       >
@@ -151,10 +141,7 @@ function MeetingPocketBrowserContent() {
             title={currentReading.title}
             source={currentReading.source}
             indentParagraphs={currentReading.id !== 'generic-format'}
-            onClose={() => {
-              console.log('Text Reader onClose called');
-              setTextReaderVisible(false);
-            }}
+            onClose={() => setTextReaderVisible(false)}
           />
         )}
       </Modal>
@@ -163,84 +150,57 @@ function MeetingPocketBrowserContent() {
 }
 
 export default function MeetingPocketBrowser() {
-  console.log('🟢 MeetingPocketBrowser: Main wrapper component rendering');
   return <MeetingPocketBrowserContent />;
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.light.background,
+    backgroundColor: '#f5f6f8',
   },
-  backgroundGradient: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
+  headerBlock: {
+    paddingHorizontal: 20,
+    paddingBottom: 16,
+  },
+  headerTopRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  backButton: {
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    borderRadius: 20,
+    padding: 8,
+  },
+  headerTitle: {
+    fontSize: 32,
+    fontWeight: adjustFontWeight('400'),
+    color: '#fff',
   },
   content: {
     flex: 1,
-    paddingHorizontal: 20,
-    paddingTop: 20,
-    paddingBottom: 20,
   },
-  mainContent: {
-    flex: 1,
+  contentContainer: {
+    padding: 16,
   },
-  header: {
-    padding: 20,
-    marginBottom: 4,
+  listContainer: {
   },
-  title: {
-    fontSize: 28,
-    fontWeight: adjustFontWeight("bold", true),
-    color: Colors.light.text,
-    marginBottom: 4,
-    textAlign: "center",
-  },
-  subtitle: {
-    fontSize: 16,
-    color: Colors.light.muted,
-    textAlign: "center",
-    lineHeight: 22,
-  },
-  scrollView: {
-    flex: 1,
-  },
-  readingItem: {
-    backgroundColor: Colors.light.cardBackground,
-    borderRadius: 12,
-    padding: 20,
-    marginBottom: 12,
+  listRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 3.84,
-    elevation: 5,
+    paddingVertical: 16,
+    paddingHorizontal: 4,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(0, 0, 0, 0.08)',
   },
-  readingInfo: {
+  listRowLast: {
+    borderBottomWidth: 0,
+  },
+  rowTitle: {
+    fontSize: 16,
+    fontWeight: adjustFontWeight('500'),
+    color: '#2d3748',
     flex: 1,
-  },
-  readingTitle: {
-    fontSize: 18,
-    fontWeight: adjustFontWeight('600'),
-    color: Colors.light.text,
-    marginBottom: 2,
-  },
-  readingSource: {
-    fontSize: 12,
-    color: Colors.light.muted,
-    fontStyle: 'italic',
-  },
-  readingIcons: {
-    flexDirection: 'row',
-    alignItems: 'center',
   },
 });
