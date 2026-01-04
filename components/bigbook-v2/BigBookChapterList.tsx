@@ -11,7 +11,7 @@
  * - Search (for finding chapters)
  */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -20,7 +20,7 @@ import {
   Platform,
   TouchableOpacity,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { 
   ChevronLeft,
   ChevronRight,
@@ -36,7 +36,9 @@ import { adjustFontWeight } from '@/constants/fonts';
 import { BigBookChapterMeta } from '@/types/bigbook-v2';
 import { getMainChapters, getFrontMatter, getAppendices } from '@/constants/bigbook-v2/metadata';
 import { useBigBookContent } from '@/hooks/use-bigbook-content';
+import { useBigBookHighlights } from '@/hooks/use-bigbook-highlights';
 import { formatPageNumber } from '@/lib/bigbook-page-utils';
+import { getBigBookStorage } from '@/lib/bigbook-storage';
 import { BigBookHighlightsList } from './BigBookHighlightsList';
 import { BigBookBookmarksList } from './BigBookBookmarksList';
 import { BigBookPageNavigation } from './BigBookPageNavigation';
@@ -90,9 +92,26 @@ function ChapterSection({ title, chapters, onSelectChapter }: SectionProps) {
 
 export function BigBookChapterList({ onSelectChapter, onBack }: BigBookChapterListProps) {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const frontMatter = getFrontMatter();
   const mainChapters = getMainChapters();
   const appendices = getAppendices();
+  
+  // Get highlights from context
+  const { highlights } = useBigBookHighlights();
+  const hasHighlights = highlights.length > 0;
+  
+  // Load bookmarks count directly from storage (since there's no provider)
+  const [bookmarksCount, setBookmarksCount] = useState(0);
+  useEffect(() => {
+    const loadBookmarksCount = async () => {
+      const storage = getBigBookStorage();
+      const allBookmarks = await storage.getAllBookmarks();
+      setBookmarksCount(allBookmarks.length);
+    };
+    loadBookmarksCount();
+  }, [showBookmarksList]); // Refresh when bookmarks modal closes
+  const hasBookmarks = bookmarksCount > 0;
   
   // State for modals
   const [showHighlightsList, setShowHighlightsList] = useState(false);
@@ -149,13 +168,13 @@ export function BigBookChapterList({ onSelectChapter, onBack }: BigBookChapterLi
   };
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
+    <View style={styles.container}>
       {/* Gradient Header Block */}
       <LinearGradient
         colors={['#4A6FA5', '#3D8B8B', '#45A08A']}
         start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 0 }}
-        style={styles.headerBlock}
+        end={{ x: 1, y: 1 }}
+        style={[styles.headerBlock, { paddingTop: insets.top + 8 }]}
       >
         <View style={styles.headerTopRow}>
           <TouchableOpacity 
@@ -175,7 +194,7 @@ export function BigBookChapterList({ onSelectChapter, onBack }: BigBookChapterLi
           activeOpacity={0.8}
           style={styles.actionButton}
         >
-          <Hash size={18} color="#666" />
+          <Hash size={18} color="#3D8B8B" />
           <Text style={styles.actionButtonText}>Page</Text>
         </TouchableOpacity>
         
@@ -184,7 +203,7 @@ export function BigBookChapterList({ onSelectChapter, onBack }: BigBookChapterLi
           activeOpacity={0.8}
           style={styles.actionButton}
         >
-          <SearchIcon size={18} color="#666" />
+          <SearchIcon size={18} color="#3D8B8B" />
           <Text style={styles.actionButtonText}>Search</Text>
         </TouchableOpacity>
         
@@ -193,7 +212,7 @@ export function BigBookChapterList({ onSelectChapter, onBack }: BigBookChapterLi
           activeOpacity={0.8}
           style={styles.actionButton}
         >
-          <Highlighter size={18} color="#666" />
+          <Highlighter size={18} color="#3D8B8B" fill={hasHighlights ? "#3D8B8B" : "none"} />
           <Text style={styles.actionButtonText}>Highlights</Text>
         </TouchableOpacity>
         
@@ -202,7 +221,7 @@ export function BigBookChapterList({ onSelectChapter, onBack }: BigBookChapterLi
           activeOpacity={0.8}
           style={styles.actionButton}
         >
-          <BookmarkIcon size={18} color="#666" />
+          <BookmarkIcon size={18} color="#3D8B8B" fill={hasBookmarks ? "#3D8B8B" : "none"} />
           <Text style={styles.actionButtonText}>Bookmarks</Text>
         </TouchableOpacity>
       </View>
@@ -255,7 +274,7 @@ export function BigBookChapterList({ onSelectChapter, onBack }: BigBookChapterLi
         onClose={() => setShowSearch(false)}
         onNavigateToResult={handleSearchResultSelect}
       />
-    </SafeAreaView>
+    </View>
   );
 }
 
@@ -266,7 +285,6 @@ const styles = StyleSheet.create({
   },
   headerBlock: {
     paddingHorizontal: 20,
-    paddingTop: 16,
     paddingBottom: 16,
   },
   headerTopRow: {
@@ -307,7 +325,7 @@ const styles = StyleSheet.create({
   },
   actionButtonText: {
     fontSize: 12,
-    color: '#666',
+    color: '#3D8B8B',
     fontWeight: '500',
   },
   scrollView: {

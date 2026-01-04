@@ -420,7 +420,7 @@ export default function DailyReflection({ fontSize = 18, lineHeight, jumpToDate 
           {bookmarked ? (
             <BookmarkCheck size={18} color="#3D8B8B" fill="#3D8B8B" />
           ) : (
-            <Bookmark size={18} color="#666" />
+            <Bookmark size={18} color="#3D8B8B" />
           )}
           </TouchableOpacity>
           
@@ -430,7 +430,7 @@ export default function DailyReflection({ fontSize = 18, lineHeight, jumpToDate 
             testID="bookmarks-list-button"
             activeOpacity={0.6}
           >
-            <List size={18} color="#666" />
+            <List size={18} color="#3D8B8B" />
           </TouchableOpacity>
         </View>
         
@@ -440,7 +440,7 @@ export default function DailyReflection({ fontSize = 18, lineHeight, jumpToDate 
           testID="share-button"
           activeOpacity={0.6}
         >
-          <Upload size={18} color="#666" />
+          <Upload size={18} color="#3D8B8B" />
         </TouchableOpacity>
       </View>
 
@@ -667,7 +667,7 @@ const styles = StyleSheet.create({
   },
   actionButtonText: {
     fontSize: 14,
-    color: '#666',
+    color: '#3D8B8B',
     fontWeight: '500',
   },
   dateNavRow: {

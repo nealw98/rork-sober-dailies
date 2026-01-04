@@ -5,12 +5,12 @@ import {
   FlatList,
   View, 
   Text, 
-  TouchableOpacity, 
-  SafeAreaView,
+  TouchableOpacity,
   Platform
 } from 'react-native';
 import { ChevronLeft } from 'lucide-react-native';
-import { Gesture, GestureDetector } from 'react-native-gesture-handler';
+import { LinearGradient } from 'expo-linear-gradient';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Colors from '@/constants/colors';
 import { adjustFontWeight } from '@/constants/fonts';
 import { useTextSettings } from '@/hooks/use-text-settings';
@@ -24,15 +24,8 @@ interface SimpleTextReaderProps {
 }
 
 const SimpleTextReader = ({ content, title, onClose, indentParagraphs = false, source }: SimpleTextReaderProps) => {
+  const insets = useSafeAreaInsets();
   const { fontSize, lineHeight, resetDefaults } = useTextSettings();
-  
-  // Double-tap to reset to default font size
-  const doubleTapGesture = useMemo(() => Gesture.Tap()
-    .numberOfTaps(2)
-    .onStart(() => {
-      resetDefaults();
-    })
-    .runOnJS(true), [resetDefaults]);
 
   // Helper function to parse inline markdown (italic, bold)
   const parseMarkdown = (text: string) => {
@@ -143,21 +136,27 @@ const SimpleTextReader = ({ content, title, onClose, indentParagraphs = false, s
   };
 
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
-        <TouchableOpacity 
-          style={styles.backButton} 
-          onPress={onClose}
-          activeOpacity={0.7}
-        >
-          <ChevronLeft color={Colors.light.tint} size={24} />
-          <Text style={styles.backText}>Back</Text>
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>{title}</Text>
-
-      </View>
+    <View style={styles.container}>
+      {/* Gradient Header */}
+      <LinearGradient
+        colors={['#4A6FA5', '#3D8B8B', '#45A08A']}
+        style={[styles.headerBlock, { paddingTop: insets.top + 8 }]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+      >
+        <View style={styles.headerTopRow}>
+          <TouchableOpacity 
+            style={styles.backButton} 
+            onPress={onClose}
+            activeOpacity={0.7}
+          >
+            <ChevronLeft size={24} color="#fff" />
+          </TouchableOpacity>
+        </View>
+        <Text style={styles.headerTitle} numberOfLines={2}>{title}</Text>
+      </LinearGradient>
       
-      <View style={{ flex: 1, backgroundColor: 'white' }}>
+      <View style={styles.contentWrapper}>
         {Platform.OS === 'android' ? (
           <FlatList
             data={content.split('\n').map((line, index) => ({ line, index }))}
@@ -165,7 +164,6 @@ const SimpleTextReader = ({ content, title, onClose, indentParagraphs = false, s
             style={styles.content}
             contentContainerStyle={styles.contentContainer}
             showsVerticalScrollIndicator={false}
-            onLayout={() => console.log(`📝 [SimpleTextReader] Android FlatList rendered for: ${title}, lines: ${content.split('\n').length}`)}
             renderItem={({ item }) => {
               const trimmed = item.line.trim();
               // Detect numbered list like "1. Text..."
@@ -326,74 +324,48 @@ const SimpleTextReader = ({ content, title, onClose, indentParagraphs = false, s
           </ScrollView>
         )}
       </View>
-    </SafeAreaView>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.light.background
+    backgroundColor: '#f5f6f8',
   },
-  header: {
+  headerBlock: {
+    paddingHorizontal: 20,
+    paddingBottom: 16,
+  },
+  headerTopRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: Platform.OS === 'android' ? 6 : 16,
-    paddingHorizontal: Platform.OS === 'android' ? 8 : 16,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.light.divider,
-    backgroundColor: Colors.light.cardBackground
+    marginBottom: 16,
   },
   backButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    position: 'absolute',
-    left: Platform.OS === 'android' ? 8 : 16,
-    zIndex: 1
-  },
-  backText: {
-    color: Colors.light.tint,
-    fontSize: 14,
-    marginLeft: 4,
-    fontWeight: adjustFontWeight('500')
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    borderRadius: 20,
+    padding: 8,
   },
   headerTitle: {
+    fontSize: 32,
+    fontWeight: adjustFontWeight('400'),
+    color: '#fff',
+  },
+  contentWrapper: {
     flex: 1,
-    textAlign: 'center',
-    fontSize: 16,
-    fontWeight: adjustFontWeight('600'),
-    color: Colors.light.text
-  },
-  fontSizeControls: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    position: 'absolute',
-    right: Platform.OS === 'android' ? 8 : 16,
-    paddingRight: 4,
-    zIndex: 1,
-  },
-  fontSizeButton: {
-    padding: 4,
-    minWidth: 32,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  fontSizeButtonText: {
-    fontSize: 16,
-    color: Colors.light.text,
-    fontWeight: '600',
+    backgroundColor: '#fff',
   },
   content: {
-    flex: 1
+    flex: 1,
   },
   contentContainer: {
-    padding: 20
+    padding: 20,
   },
   textContent: {
     fontSize: 18,
     lineHeight: 28,
-    color: Colors.light.text,
+    color: '#2d3748',
   },
   italicText: {
     fontStyle: 'italic',
@@ -404,8 +376,8 @@ const styles = StyleSheet.create({
   headingText: {
     fontSize: 18,
     lineHeight: 28,
-    color: Colors.light.text,
-    fontWeight: adjustFontWeight('700')
+    color: '#2d3748',
+    fontWeight: adjustFontWeight('700'),
   },
   numberRow: {
     flexDirection: 'row',
@@ -416,21 +388,21 @@ const styles = StyleSheet.create({
     marginRight: 8,
     fontSize: 18,
     lineHeight: 28,
-    color: Colors.light.text,
-    fontWeight: adjustFontWeight('600')
+    color: '#2d3748',
+    fontWeight: adjustFontWeight('600'),
   },
   numberText: {
     flex: 1,
     fontSize: 18,
     lineHeight: 28,
-    color: Colors.light.text,
+    color: '#2d3748',
   },
   sourceText: {
     marginTop: 16,
     fontSize: 12,
-    color: Colors.light.muted,
-    fontStyle: 'italic'
-  }
+    color: '#6b7c8a',
+    fontStyle: 'italic',
+  },
 });
 
 export default SimpleTextReader;

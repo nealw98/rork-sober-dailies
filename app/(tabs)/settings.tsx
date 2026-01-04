@@ -1,23 +1,92 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Platform, Linking, Share, ScrollView, Modal } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, Platform, Linking, Share, ScrollView, Modal, SafeAreaView, Alert } from 'react-native';
 import { router, Stack } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { ChevronLeft, ChevronRight, Star, Share2, Heart, Info, Type } from 'lucide-react-native';
+import { ChevronLeft, ChevronRight } from 'lucide-react-native';
+import Constants from 'expo-constants';
+import * as Clipboard from 'expo-clipboard';
 import { requestReviewNow } from '@/lib/reviewPrompt';
-import ScreenContainer from '@/components/ScreenContainer';
 import { adjustFontWeight } from '@/constants/fonts';
 import { useTextSettings } from '@/hooks/use-text-settings';
-import Colors from '@/constants/colors';
+import { Logger } from '@/lib/logger';
 
 export default function SettingsScreen() {
   const insets = useSafeAreaInsets();
-  const [showTextSettings, setShowTextSettings] = useState(false);
-  const { fontSize, setFontSize, resetDefaults, minFontSize, maxFontSize, lineHeight } = useTextSettings();
+  const { fontSize, setFontSize, minFontSize, maxFontSize } = useTextSettings();
+  const [logsVisible, setLogsVisible] = useState(false);
+  const [logsText, setLogsText] = useState('');
   
   const step = 2;
   const increase = () => setFontSize(fontSize + step);
   const decrease = () => setFontSize(fontSize - step);
+
+  // Version info
+  const appVersion = Constants.expoConfig?.version ?? '—';
+  const iosBuild = Constants.expoConfig?.ios?.buildNumber ?? undefined;
+  const androidVersionCode = Constants.expoConfig?.android?.versionCode ?? undefined;
+
+  // Update in-app logs when viewer is open
+  useEffect(() => {
+    if (!logsVisible) return;
+    setLogsText(Logger.toClipboardText());
+    const unsub = Logger.subscribe(() => {
+      setLogsText(Logger.toClipboardText());
+    });
+    return () => unsub();
+  }, [logsVisible]);
+
+  const toggleLogs = () => setLogsVisible((v) => !v);
+  
+  const copyLogs = async () => {
+    try {
+      await Clipboard.setStringAsync(Logger.toClipboardText());
+      Alert.alert('Copied', 'Logs copied to clipboard');
+    } catch {}
+  };
+  
+  const clearLogs = () => {
+    Logger.clear();
+    setLogsText('');
+  };
+  
+  const checkForOta = async () => {
+    try {
+      const Updates = await import('expo-updates');
+      console.log('[OTA] manualCheck start');
+      const result = await Updates.checkForUpdateAsync();
+      console.log('[OTA] manualCheck result', result);
+      if (result.isAvailable) {
+        const fetched = await Updates.fetchUpdateAsync();
+        console.log('[OTA] manualFetch result', fetched);
+        Alert.alert('Update downloaded', 'Close and reopen the app to apply the update.');
+      } else {
+        Alert.alert('Up to date', 'No update available.');
+      }
+    } catch (e: any) {
+      console.log('[OTA] manual error', e?.message || String(e));
+      Alert.alert('Update error', e?.message || 'Unknown error');
+    }
+  };
+  
+  const reloadApp = async () => {
+    try {
+      const Updates = await import('expo-updates');
+      await Updates.reloadAsync();
+    } catch {}
+  };
+
+  const handlePrivacyPress = () => {
+    Linking.openURL('https://soberdailies.com/privacy');
+  };
+
+  const handleTermsPress = () => {
+    Linking.openURL('https://www.apple.com/legal/internet-services/itunes/dev/stdeula/');
+  };
+
+  const handleSupportPress = () => {
+    Linking.openURL('https://soberdailies.com/support');
+  };
 
   const handleRateAppPress = async () => {
     try {
@@ -62,8 +131,8 @@ export default function SettingsScreen() {
   };
 
   return (
-    <ScreenContainer style={styles.container} noPadding>
-      <Stack.Screen options={{ headerShown: false }} />
+    <View style={styles.container}>
+      <Stack.Screen options={{ headerShown: false, tabBarStyle: { display: 'none' } }} />
       
       {/* Gradient header block */}
       <LinearGradient
@@ -86,25 +155,45 @@ export default function SettingsScreen() {
       </LinearGradient>
       
       {/* Content */}
-      <ScrollView style={styles.content}>
+      <ScrollView style={styles.content} contentContainerStyle={{ paddingBottom: 24 }}>
         {/* Appearance Section */}
-        <Text style={styles.sectionTitle}>Appearance</Text>
+        <Text style={styles.sectionTitle}>Text Size</Text>
         
-        <TouchableOpacity 
-          style={styles.menuItem}
-          onPress={() => setShowTextSettings(true)}
-          activeOpacity={0.7}
-        >
-          <View style={styles.menuItemIcon}>
-            <Type size={22} color="#1E3A5F" />
+        {/* Text Size Controls - Inline */}
+        <View style={styles.textSizeSection}>
+          {/* Preview */}
+          <View style={styles.preview}>
+            <Text
+              style={[
+                styles.previewText,
+                { fontSize, lineHeight: fontSize * 1.5, fontWeight: adjustFontWeight("500") },
+              ]}
+            >
+              "Daily progress one day at a time."
+            </Text>
           </View>
-          <View style={styles.menuItemText}>
-            <Text style={styles.menuItemTitle}>Text Size</Text>
-            <Text style={styles.menuItemDescription}>Adjust reading text size</Text>
+          
+          {/* Controls */}
+          <View style={styles.controls}>
+            <TouchableOpacity
+              style={[styles.sizeButton, fontSize <= minFontSize && styles.sizeButtonDisabled]}
+              onPress={decrease}
+              disabled={fontSize <= minFontSize}
+              activeOpacity={0.7}
+            >
+              <Text style={[styles.sizeButtonText, fontSize <= minFontSize && styles.sizeButtonTextDisabled]}>−</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.sizeButton, fontSize >= maxFontSize && styles.sizeButtonDisabled]}
+              onPress={increase}
+              disabled={fontSize >= maxFontSize}
+              activeOpacity={0.7}
+            >
+              <Text style={[styles.sizeButtonText, fontSize >= maxFontSize && styles.sizeButtonTextDisabled]}>+</Text>
+            </TouchableOpacity>
           </View>
-          <Text style={styles.menuItemValue}>{fontSize}</Text>
-          <ChevronRight size={20} color="#999" />
-        </TouchableOpacity>
+        </View>
 
         {/* Support Section */}
         <Text style={[styles.sectionTitle, { marginTop: 24 }]}>Support Sober Dailies</Text>
@@ -114,14 +203,8 @@ export default function SettingsScreen() {
           onPress={handleRateAppPress}
           activeOpacity={0.7}
         >
-          <View style={styles.menuItemIcon}>
-            <Star size={22} color="#1E3A5F" />
-          </View>
-          <View style={styles.menuItemText}>
-            <Text style={styles.menuItemTitle}>Rate & Review</Text>
-            <Text style={styles.menuItemDescription}>Leave a review in the App Store or Play Store</Text>
-          </View>
-          <ChevronRight size={20} color="#999" />
+          <Text style={styles.menuItemTitle}>Rate & Review</Text>
+          <ChevronRight size={18} color="#a0a0a0" />
         </TouchableOpacity>
         
         <TouchableOpacity 
@@ -129,14 +212,8 @@ export default function SettingsScreen() {
           onPress={handleSharePress}
           activeOpacity={0.7}
         >
-          <View style={styles.menuItemIcon}>
-            <Share2 size={22} color="#1E3A5F" />
-          </View>
-          <View style={styles.menuItemText}>
-            <Text style={styles.menuItemTitle}>Share the App</Text>
-            <Text style={styles.menuItemDescription}>Invite a friend by sharing Sober Dailies</Text>
-          </View>
-          <ChevronRight size={20} color="#999" />
+          <Text style={styles.menuItemTitle}>Share the App</Text>
+          <ChevronRight size={18} color="#a0a0a0" />
         </TouchableOpacity>
         
         <TouchableOpacity 
@@ -144,14 +221,8 @@ export default function SettingsScreen() {
           onPress={() => router.push('/about-support')}
           activeOpacity={0.7}
         >
-          <View style={styles.menuItemIcon}>
-            <Heart size={22} color="#1E3A5F" />
-          </View>
-          <View style={styles.menuItemText}>
-            <Text style={styles.menuItemTitle}>Support the Developer</Text>
-            <Text style={styles.menuItemDescription}>Make a difference with a one-time contribution</Text>
-          </View>
-          <ChevronRight size={20} color="#999" />
+          <Text style={styles.menuItemTitle}>Support the Developer</Text>
+          <ChevronRight size={18} color="#a0a0a0" />
         </TouchableOpacity>
 
         {/* About Section */}
@@ -162,71 +233,72 @@ export default function SettingsScreen() {
           onPress={() => router.push('/about-support')}
           activeOpacity={0.7}
         >
-          <View style={styles.menuItemIcon}>
-            <Info size={22} color="#1E3A5F" />
-          </View>
-          <View style={styles.menuItemText}>
-            <Text style={styles.menuItemTitle}>About Sober Dailies</Text>
-            <Text style={styles.menuItemDescription}>Version info and acknowledgments</Text>
-          </View>
-          <ChevronRight size={20} color="#999" />
+          <Text style={styles.menuItemTitle}>About Sober Dailies</Text>
+          <ChevronRight size={18} color="#a0a0a0" />
         </TouchableOpacity>
       </ScrollView>
-      
-      {/* Text Size Modal */}
-      <Modal visible={showTextSettings} transparent animationType="fade" onRequestClose={() => setShowTextSettings(false)}>
-        <TouchableOpacity style={styles.overlay} activeOpacity={1} onPress={() => setShowTextSettings(false)}>
-          <TouchableOpacity
-            style={styles.modalCard}
-            activeOpacity={1}
-            onPress={(e) => e.stopPropagation()}
-          >
-            <View style={styles.modalHeader}>
-              <TouchableOpacity onPress={resetDefaults} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
-                <Text style={styles.resetText}>Reset</Text>
-              </TouchableOpacity>
-              <Text style={styles.modalTitle}>Text Size</Text>
-              <TouchableOpacity onPress={() => setShowTextSettings(false)} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
-                <Text style={styles.resetText}>Done</Text>
-              </TouchableOpacity>
-            </View>
 
-            <View style={styles.preview}>
-              <Text style={styles.previewLabel}>Preview</Text>
-              <Text
-                style={[
-                  styles.previewText,
-                  { fontSize, lineHeight, fontWeight: adjustFontWeight("500"), textAlign: "center" },
-                ]}
-              >
-                "Daily progress one day at a time."
-              </Text>
-              <Text style={styles.previewMeta}>{`Size ${fontSize}`}</Text>
-            </View>
-
-            <View style={styles.controls}>
-              <TouchableOpacity
-                style={[styles.circleButton, fontSize <= minFontSize && styles.circleButtonDisabled]}
-                onPress={decrease}
-                disabled={fontSize <= minFontSize}
-                hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
-              >
-                <Text style={styles.buttonLabel}>Smaller</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={[styles.circleButton, fontSize >= maxFontSize && styles.circleButtonDisabled]}
-                onPress={increase}
-                disabled={fontSize >= maxFontSize}
-                hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
-              >
-                <Text style={styles.buttonLabel}>Larger</Text>
-              </TouchableOpacity>
-            </View>
-          </TouchableOpacity>
+      {/* Legal Links - above footer */}
+      <View style={styles.legalLinksContainer}>
+        <TouchableOpacity onPress={handlePrivacyPress}>
+          <Text style={styles.legalLink}>Privacy</Text>
         </TouchableOpacity>
+        <Text style={styles.legalSeparator}>·</Text>
+        <TouchableOpacity onPress={handleTermsPress}>
+          <Text style={styles.legalLink}>Terms</Text>
+        </TouchableOpacity>
+        <Text style={styles.legalSeparator}>·</Text>
+        <TouchableOpacity onPress={handleSupportPress}>
+          <Text style={styles.legalLink}>Support</Text>
+        </TouchableOpacity>
+      </View>
+
+      {/* Footer with version */}
+      <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, 16) }]}>
+        <TouchableOpacity 
+          onLongPress={toggleLogs} 
+          activeOpacity={0.6}
+        >
+          <Text style={styles.versionText}>
+            Version {appVersion}
+            {Platform.OS === 'ios' && iosBuild ? ` (${iosBuild})` : ''}
+            {Platform.OS === 'android' && androidVersionCode ? ` (${androidVersionCode})` : ''}
+          </Text>
+        </TouchableOpacity>
+      </View>
+
+      {/* Hidden in-app log viewer modal (QA screen) */}
+      <Modal visible={logsVisible} animationType="slide" onRequestClose={toggleLogs}>
+        <SafeAreaView style={styles.logsContainer}>
+          <View style={styles.logsHeader}>
+            <TouchableOpacity onPress={toggleLogs}>
+              <Text style={styles.logsHeaderButton}>Close</Text>
+            </TouchableOpacity>
+            <View style={styles.logsHeaderRight}>
+              <TouchableOpacity onPress={copyLogs} style={{ marginRight: 16 }}>
+                <Text style={styles.logsHeaderButton}>Copy</Text>
+              </TouchableOpacity>
+              <TouchableOpacity onPress={clearLogs}>
+                <Text style={styles.logsHeaderButton}>Clear</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+          <ScrollView contentContainerStyle={styles.logsScrollContent} style={{ flex: 1 }}>
+            <Text style={styles.logsText}>
+              {logsText || 'No logs yet.'}
+            </Text>
+          </ScrollView>
+          <View style={styles.logsFooter}>
+            <TouchableOpacity onPress={checkForOta}>
+              <Text style={styles.logsHeaderButton}>Check for Update</Text>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={reloadApp}>
+              <Text style={styles.logsHeaderButton}>Restart Now</Text>
+            </TouchableOpacity>
+          </View>
+        </SafeAreaView>
       </Modal>
-    </ScreenContainer>
+    </View>
   );
 }
 
@@ -253,11 +325,6 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.2)',
     borderRadius: 16,
   },
-  backButtonText: {
-    fontSize: 15,
-    color: '#fff',
-    fontWeight: '500',
-  },
   headerTitle: {
     fontSize: 32,
     fontWeight: adjustFontWeight('400'),
@@ -270,140 +337,130 @@ const styles = StyleSheet.create({
     paddingTop: 16,
   },
   sectionTitle: {
-    fontSize: 13,
+    fontSize: 11,
     fontWeight: adjustFontWeight('600'),
-    color: '#666',
+    color: '#6b7c8a',
     textTransform: 'uppercase',
-    letterSpacing: 0.5,
+    letterSpacing: 1,
     marginBottom: 8,
     marginLeft: 4,
+  },
+  textSizeSection: {
+    marginBottom: 8,
+    gap: 16,
+  },
+  preview: {
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    padding: 16,
+    alignItems: 'center',
+  },
+  previewText: {
+    color: '#2d3748',
+    textAlign: 'center',
+  },
+  controls: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 16,
+  },
+  sizeButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: '#3D8B8B',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  sizeButtonDisabled: {
+    backgroundColor: '#e0e0e0',
+  },
+  sizeButtonText: {
+    fontSize: 24,
+    fontWeight: adjustFontWeight('600'),
+    color: '#fff',
+  },
+  sizeButtonTextDisabled: {
+    color: '#a0a0a0',
   },
   menuItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 14,
+    justifyContent: 'space-between',
+    paddingVertical: 16,
+    paddingHorizontal: 4,
     borderBottomWidth: 1,
-    borderBottomColor: '#e0e0e0',
-    gap: 12,
+    borderBottomColor: 'rgba(0, 0, 0, 0.08)',
   },
   menuItemLast: {
     borderBottomWidth: 0,
   },
-  menuItemIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: 'rgba(30, 58, 95, 0.1)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  menuItemText: {
-    flex: 1,
-  },
   menuItemTitle: {
     fontSize: 16,
     fontWeight: adjustFontWeight('500'),
-    color: '#000',
-    marginBottom: 2,
-  },
-  menuItemDescription: {
-    fontSize: 13,
-    color: '#666',
-  },
-  menuItemValue: {
-    fontSize: 15,
-    color: '#666',
-    marginRight: 4,
-  },
-  // Modal styles
-  overlay: {
+    color: '#2d3748',
     flex: 1,
-    backgroundColor: "rgba(0,0,0,0.35)",
-    justifyContent: "center",
-    paddingHorizontal: 24,
   },
-  modalCard: {
-    backgroundColor: Colors.light.background,
-    borderRadius: 16,
-    padding: 16,
-    gap: 12,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 8,
-    elevation: 8,
+  legalLinksContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 12,
+    backgroundColor: '#f5f6f8',
   },
-  modalHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-  },
-  modalTitle: {
-    fontSize: 18,
-    fontWeight: adjustFontWeight("700"),
-    color: Colors.light.text,
-  },
-  resetText: {
-    color: Colors.light.tint,
+  legalLink: {
     fontSize: 14,
-    fontWeight: adjustFontWeight("600"),
+    color: '#3D8B8B',
+    fontWeight: adjustFontWeight('500'),
   },
-  preview: {
-    backgroundColor: Colors.light.cardBackground,
-    borderRadius: 12,
-    padding: 12,
-    borderWidth: 1,
-    borderColor: Colors.light.divider,
-    gap: 6,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 6,
-    elevation: 3,
+  legalSeparator: {
+    fontSize: 14,
+    color: '#a0a0a0',
+    marginHorizontal: 12,
   },
-  previewLabel: {
-    color: Colors.light.muted,
+  footer: {
+    alignItems: 'center',
+    paddingVertical: 12,
+    backgroundColor: '#fff',
+    borderTopWidth: 1,
+    borderTopColor: '#E4E7EC',
+  },
+  versionText: {
     fontSize: 12,
-    fontWeight: adjustFontWeight("600"),
+    color: '#a0a0a0',
   },
-  previewText: {
-    color: Colors.light.text,
-  },
-  previewMeta: {
-    fontSize: 12,
-    color: Colors.light.muted,
-    marginTop: 2,
-    textAlign: "center",
-  },
-  controls: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-  },
-  circleButton: {
+  logsContainer: {
     flex: 1,
-    flexDirection: "column",
-    alignItems: "center",
-    justifyContent: "center",
-    paddingVertical: 14,
-    borderRadius: 12,
-    backgroundColor: Colors.light.cardBackground,
-    borderWidth: 1,
-    borderColor: Colors.light.divider,
-    gap: 10,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 6,
-    elevation: 3,
+    backgroundColor: '#0b1220',
   },
-  circleButtonDisabled: {
-    opacity: 0.5,
+  logsHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
   },
-  buttonLabel: {
-    fontSize: 15,
-    fontWeight: adjustFontWeight("600"),
-    color: Colors.light.text,
+  logsHeaderRight: {
+    flexDirection: 'row',
+  },
+  logsHeaderButton: {
+    color: 'white',
+    fontSize: 16,
+  },
+  logsScrollContent: {
+    paddingHorizontal: 12,
+    paddingBottom: 24,
+  },
+  logsText: {
+    color: '#c7d2fe',
+    fontFamily: Platform.select({ ios: 'Menlo', android: 'monospace' }),
+    fontSize: 12,
+    lineHeight: 18,
+  },
+  logsFooter: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    padding: 12,
   },
 });
-

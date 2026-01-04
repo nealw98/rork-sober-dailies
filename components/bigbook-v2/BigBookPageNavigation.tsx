@@ -22,7 +22,6 @@ import {
   ScrollView,
 } from 'react-native';
 import { X } from 'lucide-react-native';
-import { LinearGradient } from 'expo-linear-gradient';
 import Colors from '@/constants/colors';
 import { adjustFontWeight } from '@/constants/fonts';
 
@@ -117,18 +116,13 @@ export function BigBookPageNavigation({
         activeOpacity={1}
         onPress={(e) => e.stopPropagation()}
       >
-        {/* Gradient Header */}
-        <LinearGradient
-          colors={['#4A6FA5', '#3D8B8B', '#45A08A']}
-          style={styles.header}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 0 }}
-        >
+        {/* Teal Header */}
+        <View style={styles.header}>
           <Text style={styles.headerTitle}>Go to Page</Text>
           <TouchableOpacity onPress={handleClose} style={styles.closeButton}>
             <X size={24} color="#fff" />
           </TouchableOpacity>
-        </LinearGradient>
+        </View>
 
           {/* Content - Simplified without ScrollView */}
           <View style={styles.content}>
@@ -185,7 +179,7 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   container: {
-    borderRadius: 12,
+    borderRadius: 20,
     width: '100%',
     maxWidth: 400,
     maxHeight: '80%',
@@ -198,8 +192,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 16,
     paddingVertical: 16,
-    borderTopLeftRadius: 16,
-    borderTopRightRadius: 16,
+    backgroundColor: '#3D8B8B',
   },
   headerTitle: {
     fontSize: 20,

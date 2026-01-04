@@ -488,7 +488,7 @@ export default function EveningReview() {
           activeOpacity={0.6}
           style={styles.actionButton}
         >
-          <List color="#666" size={18} />
+          <List color="#3D8B8B" size={18} />
           <Text style={styles.actionButtonText}>History</Text>
         </TouchableOpacity>
         
@@ -501,7 +501,7 @@ export default function EveningReview() {
           activeOpacity={0.6}
           style={styles.actionButton}
         >
-          <Save color="#666" size={18} />
+          <Save color="#3D8B8B" size={18} />
           <Text style={styles.actionButtonText}>Save</Text>
         </TouchableOpacity>
         
@@ -514,7 +514,7 @@ export default function EveningReview() {
           activeOpacity={0.6}
           style={styles.actionButton}
         >
-          <ShareIcon color="#666" size={18} />
+          <ShareIcon color="#3D8B8B" size={18} />
           <Text style={styles.actionButtonText}>Share</Text>
         </TouchableOpacity>
         
@@ -527,7 +527,7 @@ export default function EveningReview() {
           activeOpacity={0.6}
           style={styles.actionButton}
         >
-          <RotateCcw color="#666" size={18} />
+          <RotateCcw color="#3D8B8B" size={18} />
           <Text style={styles.actionButtonText}>Reset</Text>
         </TouchableOpacity>
       </View>
@@ -654,7 +654,7 @@ const styles = StyleSheet.create({
   },
   actionButtonText: {
     fontSize: 14,
-    color: '#666',
+    color: '#3D8B8B',
     fontWeight: '500',
   },
   keyboardAvoidingView: {

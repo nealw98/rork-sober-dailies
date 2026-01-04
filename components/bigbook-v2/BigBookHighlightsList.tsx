@@ -23,11 +23,9 @@ import {
   Modal,
 } from 'react-native';
 import { X, Trash2 } from 'lucide-react-native';
-import { LinearGradient } from 'expo-linear-gradient';
 import Colors from '@/constants/colors';
 import { adjustFontWeight } from '@/constants/fonts';
 import { useBigBookHighlights } from '@/hooks/use-bigbook-highlights';
-import { HighlightColor } from '@/types/bigbook-v2';
 import { getChapterMeta } from '@/constants/bigbook-v2/metadata';
 
 interface BigBookHighlightsListProps {
@@ -36,20 +34,6 @@ interface BigBookHighlightsListProps {
   onNavigateToHighlight: (chapterId: string, paragraphId: string) => void;
 }
 
-// Map highlight colors to display colors
-const HIGHLIGHT_COLORS: Record<HighlightColor, string> = {
-  [HighlightColor.YELLOW]: '#FEF08A',
-  [HighlightColor.GREEN]: '#BBF7D0',
-  [HighlightColor.BLUE]: '#BFDBFE',
-  [HighlightColor.PINK]: '#FBCFE8',
-};
-
-const COLOR_NAMES: Record<HighlightColor, string> = {
-  [HighlightColor.YELLOW]: 'Yellow',
-  [HighlightColor.GREEN]: 'Green',
-  [HighlightColor.BLUE]: 'Blue',
-  [HighlightColor.PINK]: 'Pink',
-};
 
 export function BigBookHighlightsList({
   visible,
@@ -105,18 +89,13 @@ export function BigBookHighlightsList({
       onRequestClose={onClose}
     >
       <View style={styles.container}>
-        {/* Gradient Header */}
-        <LinearGradient
-          colors={['#4A6FA5', '#3D8B8B', '#45A08A']}
-          style={styles.header}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 0 }}
-        >
+        {/* Teal Header */}
+        <View style={styles.header}>
           <Text style={styles.headerTitle}>My Highlights</Text>
           <TouchableOpacity onPress={onClose} style={styles.closeButton}>
             <X size={24} color="#fff" />
           </TouchableOpacity>
-        </LinearGradient>
+        </View>
 
         {/* Content */}
         <ScrollView style={styles.content} contentContainerStyle={styles.contentContainer}>
@@ -164,12 +143,7 @@ export function BigBookHighlightsList({
                           activeOpacity={0.7}
                         >
                         {/* Color Indicator */}
-                        <View
-                          style={[
-                            styles.colorIndicator,
-                            { backgroundColor: HIGHLIGHT_COLORS[highlight.color] }
-                          ]}
-                        />
+                        <View style={styles.colorIndicator} />
                         
                         <View style={styles.highlightContent}>
                           {/* Highlighted Text (no quotes) */}
@@ -188,7 +162,7 @@ export function BigBookHighlightsList({
                           {/* Metadata */}
                           <View style={styles.metadata}>
                             <Text style={styles.metadataText}>
-                              {COLOR_NAMES[highlight.color]} • {new Date(highlight.createdAt).toLocaleDateString()}
+                              {new Date(highlight.createdAt).toLocaleDateString()}
                             </Text>
                           </View>
                         </View>
@@ -226,6 +200,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 16,
     paddingVertical: 16,
+    backgroundColor: '#3D8B8B',
   },
   headerTitle: {
     fontSize: 20,
@@ -284,7 +259,7 @@ const styles = StyleSheet.create({
   chapterTitle: {
     fontSize: 16,
     fontWeight: adjustFontWeight('600'),
-    color: Colors.light.tint,
+    color: '#3D8B8B',
     marginBottom: 12,
   },
   highlightItem: {
@@ -300,6 +275,7 @@ const styles = StyleSheet.create({
     width: 4,
     borderRadius: 2,
     marginRight: 12,
+    backgroundColor: '#3D8B8B',
   },
   highlightContent: {
     flex: 1,

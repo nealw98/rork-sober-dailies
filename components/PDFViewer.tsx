@@ -4,13 +4,14 @@ import {
   View,
   Text,
   TouchableOpacity,
-  SafeAreaView,
   Platform,
   Alert,
   ActivityIndicator,
 } from 'react-native';
 import { WebView } from 'react-native-webview';
-import { X, ArrowLeft, RefreshCw } from 'lucide-react-native';
+import { ChevronLeft, RefreshCw } from 'lucide-react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Colors from '@/constants/colors';
 import { adjustFontWeight } from '@/constants/fonts';
 
@@ -22,6 +23,7 @@ interface PDFViewerProps {
 
 export default function PDFViewer({ url, title, onClose }: PDFViewerProps) {
   console.log('PDFViewer rendered with URL:', url);
+  const insets = useSafeAreaInsets();
   const [hasError, setHasError] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   
@@ -42,38 +44,37 @@ export default function PDFViewer({ url, title, onClose }: PDFViewerProps) {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
-        <TouchableOpacity 
-          style={styles.backButton} 
-          onPress={onClose}
-          testID="pdf-close-button"
-        >
-          <ArrowLeft size={20} color={Colors.light.text} />
-          <Text style={styles.backText}>Back</Text>
-        </TouchableOpacity>
-        
-        <Text style={styles.title} numberOfLines={1}>{title}</Text>
-        
-        <View style={styles.headerActions}>
+    <View style={styles.container}>
+      {/* Gradient Header */}
+      <LinearGradient
+        colors={['#4A6FA5', '#3D8B8B', '#45A08A']}
+        style={[styles.headerBlock, { paddingTop: insets.top + 8 }]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+      >
+        <View style={styles.headerTopRow}>
+          <TouchableOpacity 
+            style={styles.backButton} 
+            onPress={onClose}
+            activeOpacity={0.7}
+            testID="pdf-close-button"
+          >
+            <ChevronLeft size={24} color="#fff" />
+          </TouchableOpacity>
+          
           {hasError && (
             <TouchableOpacity 
               style={styles.retryButton} 
               onPress={handleRetry}
+              activeOpacity={0.7}
               testID="pdf-retry-button"
             >
-              <RefreshCw size={18} color={Colors.light.text} />
+              <RefreshCw size={20} color="#fff" />
             </TouchableOpacity>
           )}
-          <TouchableOpacity 
-            style={styles.closeButton} 
-            onPress={onClose}
-            testID="pdf-x-button"
-          >
-            <X size={20} color={Colors.light.text} />
-          </TouchableOpacity>
         </View>
-      </View>
+        <Text style={styles.headerTitle} numberOfLines={2}>{title}</Text>
+      </LinearGradient>
       
       {hasError ? (
         <View style={styles.errorContainer}>
@@ -82,7 +83,7 @@ export default function PDFViewer({ url, title, onClose }: PDFViewerProps) {
             The PDF couldn&apos;t be loaded. This might be due to network issues or the PDF being temporarily unavailable.
           </Text>
           <TouchableOpacity style={styles.retryButtonLarge} onPress={handleRetry}>
-            <RefreshCw size={20} color={Colors.light.background} />
+            <RefreshCw size={20} color="#fff" />
             <Text style={styles.retryButtonText}>Try Again</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.openExternalButton} onPress={() => {
@@ -108,7 +109,7 @@ export default function PDFViewer({ url, title, onClose }: PDFViewerProps) {
           startInLoadingState={true}
           renderLoading={() => (
             <View style={styles.loadingContainer}>
-              <ActivityIndicator size="large" color={Colors.light.tint} />
+              <ActivityIndicator size="large" color="#3D8B8B" />
               <Text style={styles.loadingText}>Loading PDF...</Text>
             </View>
           )}
@@ -161,58 +162,43 @@ export default function PDFViewer({ url, title, onClose }: PDFViewerProps) {
           contentInsetAdjustmentBehavior="never"
         />
       )}
-    </SafeAreaView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.light.background,
+    backgroundColor: '#f5f6f8',
   },
-  header: {
+  headerBlock: {
+    paddingHorizontal: 20,
+    paddingBottom: 16,
+  },
+  headerTopRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    backgroundColor: Colors.light.cardBackground,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.light.divider,
+    marginBottom: 16,
   },
   backButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 8,
-    paddingRight: 8,
-  },
-  backText: {
-    fontSize: 14,
-    color: Colors.light.text,
-    marginLeft: 4,
-    fontWeight: adjustFontWeight('500'),
-  },
-  title: {
-    flex: 1,
-    fontSize: 16,
-    fontWeight: adjustFontWeight('600'),
-    color: Colors.light.text,
-    textAlign: 'center',
-    marginHorizontal: 16,
-  },
-  headerActions: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    borderRadius: 20,
+    padding: 8,
   },
   retryButton: {
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    borderRadius: 20,
     padding: 8,
-    marginRight: 4,
   },
-  closeButton: {
-    padding: 8,
+  headerTitle: {
+    fontSize: 32,
+    fontWeight: adjustFontWeight('400'),
+    color: '#fff',
   },
   webview: {
     flex: 1,
+    backgroundColor: '#fff',
   },
   loadingContainer: {
     position: 'absolute',
@@ -222,11 +208,11 @@ const styles = StyleSheet.create({
     bottom: 0,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: Colors.light.background,
+    backgroundColor: '#f5f6f8',
   },
   loadingText: {
     fontSize: 16,
-    color: Colors.light.muted,
+    color: '#6b7c8a',
     fontWeight: adjustFontWeight('500'),
     marginTop: 12,
   },
@@ -235,17 +221,18 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     padding: 32,
+    backgroundColor: '#f5f6f8',
   },
   errorTitle: {
     fontSize: 20,
     fontWeight: adjustFontWeight('600'),
-    color: Colors.light.text,
+    color: '#2d3748',
     marginBottom: 12,
     textAlign: 'center',
   },
   errorMessage: {
     fontSize: 16,
-    color: Colors.light.muted,
+    color: '#6b7c8a',
     textAlign: 'center',
     lineHeight: 24,
     marginBottom: 24,
@@ -253,14 +240,14 @@ const styles = StyleSheet.create({
   retryButtonLarge: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: Colors.light.tint,
+    backgroundColor: '#3D8B8B',
     paddingHorizontal: 24,
     paddingVertical: 12,
     borderRadius: 8,
     marginBottom: 16,
   },
   retryButtonText: {
-    color: Colors.light.background,
+    color: '#fff',
     fontSize: 16,
     fontWeight: adjustFontWeight('600'),
     marginLeft: 8,
@@ -270,7 +257,7 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
   },
   openExternalText: {
-    color: Colors.light.tint,
+    color: '#3D8B8B',
     fontSize: 16,
     fontWeight: adjustFontWeight('500'),
     textDecorationLine: 'underline',

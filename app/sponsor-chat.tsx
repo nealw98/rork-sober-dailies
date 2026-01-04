@@ -255,7 +255,7 @@ function SponsorChatContent({ initialSponsor }: { initialSponsor: string }) {
           activeOpacity={0.6}
           style={styles.actionButton}
         >
-          <RotateCcw color="#666" size={18} />
+          <RotateCcw color="#3D8B8B" size={18} />
           <Text style={styles.actionButtonText}>Reset</Text>
         </TouchableOpacity>
       </View>
@@ -383,7 +383,7 @@ const styles = StyleSheet.create({
   },
   actionButtonText: {
     fontSize: 14,
-    color: '#666',
+    color: '#3D8B8B',
     fontWeight: '500',
   },
   sponsorInfo: {

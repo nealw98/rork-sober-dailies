@@ -25,7 +25,6 @@ import {
   Keyboard,
 } from 'react-native';
 import { X, Trash2 } from 'lucide-react-native';
-import { LinearGradient } from 'expo-linear-gradient';
 import Colors from '@/constants/colors';
 import { adjustFontWeight } from '@/constants/fonts';
 import { useBigBookBookmarks } from '@/hooks/use-bigbook-bookmarks';
@@ -99,18 +98,13 @@ export function BigBookBookmarksList({
       onRequestClose={onClose}
     >
       <View style={styles.container}>
-        {/* Gradient Header */}
-        <LinearGradient
-          colors={['#4A6FA5', '#3D8B8B', '#45A08A']}
-          style={styles.header}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 0 }}
-        >
+        {/* Teal Header */}
+        <View style={styles.header}>
           <Text style={styles.headerTitle}>My Bookmarks</Text>
           <TouchableOpacity onPress={onClose} style={styles.closeButton}>
             <X size={24} color="#fff" />
           </TouchableOpacity>
-        </LinearGradient>
+        </View>
 
         {/* Content */}
         <ScrollView style={styles.content} contentContainerStyle={styles.contentContainer}>
@@ -215,6 +209,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 16,
     paddingVertical: 16,
+    backgroundColor: '#3D8B8B',
   },
   headerTitle: {
     fontSize: 20,
@@ -284,7 +279,7 @@ const styles = StyleSheet.create({
     top: 0,
     bottom: 0,
     width: 4,
-    backgroundColor: Colors.light.tint,
+    backgroundColor: '#3D8B8B',
   },
   bookmarkContent: {
     flex: 1,
@@ -299,7 +294,7 @@ const styles = StyleSheet.create({
   chapterTitle: {
     fontSize: 14,
     fontWeight: adjustFontWeight('600'),
-    color: Colors.light.tint,
+    color: '#3D8B8B',
     marginBottom: 2,
   },
   bookmarkLabel: {

@@ -23,7 +23,7 @@ const literatureOptions: LiteratureOption[] = [
     description: "The basic textbook for the AA program.",
     route: "/bigbook",
     emoji: "📖",
-    backgroundColor: "#8ab0d8",
+    backgroundColor: "#4A68B5",
   },
   {
     id: "twelve-and-twelve",
@@ -31,7 +31,7 @@ const literatureOptions: LiteratureOption[] = [
     description: "In-depth exploration of the Steps and Traditions",
     route: "/twelve-and-twelve",
     emoji: "📚",
-    backgroundColor: "#88c8c8",
+    backgroundColor: "#3D8B8B",
   },
   {
     id: "meeting-pocket",
@@ -39,7 +39,7 @@ const literatureOptions: LiteratureOption[] = [
     description: "Quick access to the core AA readings used in meetings.",
     route: "/meeting-pocket",
     emoji: "📋",
-    backgroundColor: "#98c898",
+    backgroundColor: "#4AA06A",
   }
 ];
 
@@ -128,8 +128,8 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
     paddingHorizontal: 20,
-    paddingTop: 20,
-    gap: 12,
+    paddingTop: 24,
+    gap: 24,
   },
   tile: {
     borderRadius: 16,
@@ -142,12 +142,12 @@ const styles = StyleSheet.create({
   tileTitle: {
     fontSize: 20,
     fontWeight: adjustFontWeight('600'),
-    color: '#000',
+    color: '#fff',
     marginBottom: 4,
   },
   tileDescription: {
     fontSize: 14,
-    color: '#333',
+    color: 'rgba(255, 255, 255, 0.9)',
     lineHeight: 20,
   },
 });

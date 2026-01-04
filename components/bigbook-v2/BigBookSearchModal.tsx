@@ -16,7 +16,6 @@ import {
   TextInput,
 } from 'react-native';
 import { X, Search as SearchIcon } from 'lucide-react-native';
-import { LinearGradient } from 'expo-linear-gradient';
 import Colors from '@/constants/colors';
 import { adjustFontWeight } from '@/constants/fonts';
 import { useBigBookContent, SearchResult } from '@/hooks/use-bigbook-content';
@@ -56,7 +55,7 @@ export function BigBookSearchModal({
   const handleResultPress = (result: SearchResult) => {
     // Close the modal to let the reader show
     onClose();
-    // Then navigate to the result
+    // Then navigate to the result with the search term for highlighting
     onNavigateToResult(result.chapterId, result.paragraphId, searchQuery.trim());
   };
 
@@ -69,32 +68,18 @@ export function BigBookSearchModal({
   return (
     <Modal
       visible={visible}
-      animationType="fade"
-      transparent={true}
+      animationType="slide"
+      presentationStyle="pageSheet"
       onRequestClose={handleDone}
     >
-      <TouchableOpacity 
-        style={styles.overlay} 
-        activeOpacity={1} 
-        onPress={handleDone}
-      >
-      <TouchableOpacity 
-        style={styles.container} 
-        activeOpacity={1}
-        onPress={(e) => e.stopPropagation()}
-      >
-        {/* Gradient Header */}
-        <LinearGradient
-          colors={['#4A6FA5', '#3D8B8B', '#45A08A']}
-          style={styles.header}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 0 }}
-        >
+      <View style={styles.container}>
+        {/* Teal Header */}
+        <View style={styles.header}>
           <Text style={styles.headerTitle}>Search Big Book</Text>
           <TouchableOpacity onPress={handleDone} style={styles.closeButton}>
             <X size={24} color="#fff" />
           </TouchableOpacity>
-        </LinearGradient>
+        </View>
 
         {/* Search Input */}
         <View style={styles.searchContainer}>
@@ -120,94 +105,79 @@ export function BigBookSearchModal({
         </View>
 
         {/* Content */}
-        <ScrollView style={styles.content} contentContainerStyle={styles.contentContainer} key={`search-${searchQuery}-${searchResults.length}`}>
-          {(() => {
-            if (searchQuery.length === 0) {
-              return (
-                // Empty State - No Search Yet
-                <View style={styles.emptyState}>
-                  <Text style={styles.emptyStateIcon}>🔍</Text>
-                  <Text style={styles.emptyStateTitle}>Search the Big Book</Text>
-                  <Text style={styles.emptyStateDescription}>
-                    Search across all chapters, stories, and appendices.
-                  </Text>
-                  <Text style={styles.emptyStateHint}>
-                    Enter a word or phrase to find passages.
-                  </Text>
-                </View>
-              );
-            } else if (searchResults.length === 0) {
-              return (
-                // Empty State - No Results
-                <View style={styles.emptyState}>
-                  <Text style={styles.emptyStateIcon}>📭</Text>
-                  <Text style={styles.emptyStateTitle}>No Results Found</Text>
-                  <Text style={styles.emptyStateDescription}>
-                    No matches found for "{searchQuery}"
-                  </Text>
-                  <Text style={styles.emptyStateHint}>
-                    Try different keywords or check your spelling.
-                  </Text>
-                </View>
-              );
-            } else {
-              return (
-                // Search Results
-                <>
-                  <Text style={styles.countText}>
-                    {searchResults.length} result{searchResults.length !== 1 ? 's' : ''}
-                  </Text>
+        <ScrollView style={styles.content} contentContainerStyle={styles.contentContainer}>
+          {searchQuery.length === 0 ? (
+            // Empty State - No Search Yet
+            <View style={styles.emptyState}>
+              <Text style={styles.emptyStateIcon}>🔍</Text>
+              <Text style={styles.emptyStateTitle}>Search the Big Book</Text>
+              <Text style={styles.emptyStateDescription}>
+                Search across all chapters, stories, and appendices.
+              </Text>
+              <Text style={styles.emptyStateHint}>
+                Enter a word or phrase to find passages.
+              </Text>
+            </View>
+          ) : searchResults.length === 0 ? (
+            // Empty State - No Results
+            <View style={styles.emptyState}>
+              <Text style={styles.emptyStateIcon}>📭</Text>
+              <Text style={styles.emptyStateTitle}>No Results Found</Text>
+              <Text style={styles.emptyStateDescription}>
+                No matches found for "{searchQuery}"
+              </Text>
+              <Text style={styles.emptyStateHint}>
+                Try different keywords or check your spelling.
+              </Text>
+            </View>
+          ) : (
+            // Search Results
+            <>
+              <Text style={styles.countText}>
+                {searchResults.length} result{searchResults.length !== 1 ? 's' : ''}
+              </Text>
 
-                  {searchResults.slice(0, 50).map((result, index) => (
-                    <TouchableOpacity
-                      key={result.paragraphId}
-                      style={styles.resultCard}
-                      onPress={() => handleResultPress(result)}
-                      activeOpacity={0.7}
-                    >
-                      {/* Chapter Title */}
-                      <Text style={styles.resultChapter}>{result.chapterTitle}</Text>
+              {searchResults.slice(0, 50).map((result) => (
+                <TouchableOpacity
+                  key={result.paragraphId}
+                  style={styles.resultCard}
+                  onPress={() => handleResultPress(result)}
+                  activeOpacity={0.7}
+                >
+                  {/* Teal Indicator */}
+                  <View style={styles.resultIndicator} />
+                  
+                  <View style={styles.resultContent}>
+                    {/* Chapter Title */}
+                    <Text style={styles.resultChapter}>{result.chapterTitle}</Text>
 
-                      {/* Text Preview with Highlight */}
-                      <Text style={styles.resultText} numberOfLines={2}>
-                        {result.matches[0]?.context.before}
-                        <Text style={styles.resultMatch}>
-                          {result.matches[0]?.context.match}
-                        </Text>
-                        {result.matches[0]?.context.after}
+                    {/* Text Preview with Highlight */}
+                    <Text style={styles.resultText} numberOfLines={2}>
+                      {result.matches[0]?.context.before}
+                      <Text style={styles.resultMatch}>
+                        {result.matches[0]?.context.match}
                       </Text>
+                      {result.matches[0]?.context.after}
+                    </Text>
 
-                      {/* Metadata */}
-                      <Text style={styles.resultMeta}>
-                        Page {result.paragraph.pageNumber} • {result.matches.length} match{result.matches.length !== 1 ? 'es' : ''}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
-                </>
-              );
-            }
-          })()}
+                    {/* Metadata */}
+                    <Text style={styles.resultMeta}>
+                      Page {result.paragraph.pageNumber} • {result.matches.length} match{result.matches.length !== 1 ? 'es' : ''}
+                    </Text>
+                  </View>
+                </TouchableOpacity>
+              ))}
+            </>
+          )}
         </ScrollView>
-      </TouchableOpacity>
-      </TouchableOpacity>
+      </View>
     </Modal>
   );
 }
 
 const styles = StyleSheet.create({
-  overlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 20,
-  },
   container: {
-    borderRadius: 12,
-    width: '100%',
-    maxWidth: 400,
-    maxHeight: '80%',
-    overflow: 'hidden',
+    flex: 1,
     backgroundColor: '#f5f6f8',
   },
   header: {
@@ -216,8 +186,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 16,
     paddingVertical: 16,
-    borderTopLeftRadius: 12,
-    borderTopRightRadius: 12,
+    backgroundColor: '#3D8B8B',
   },
   headerTitle: {
     fontSize: 20,
@@ -297,17 +266,31 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   resultCard: {
+    flexDirection: 'row',
     backgroundColor: Colors.light.cardBackground,
     borderRadius: 8,
     padding: 12,
     marginBottom: 12,
     borderWidth: 1,
     borderColor: Colors.light.border || '#E5E7EB',
+    overflow: 'hidden',
+  },
+  resultIndicator: {
+    position: 'absolute',
+    left: 0,
+    top: 0,
+    bottom: 0,
+    width: 4,
+    backgroundColor: '#3D8B8B',
+  },
+  resultContent: {
+    flex: 1,
+    paddingLeft: 8,
   },
   resultChapter: {
     fontSize: 12,
     fontWeight: adjustFontWeight('600'),
-    color: Colors.light.tint,
+    color: '#3D8B8B',
     marginBottom: 6,
   },
   resultText: {
@@ -324,4 +307,3 @@ const styles = StyleSheet.create({
     color: Colors.light.muted,
   },
 });
-

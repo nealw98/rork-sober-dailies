@@ -44,23 +44,13 @@ import { useBigBookHighlights } from '@/hooks/use-bigbook-highlights';
 import { getChapterMeta } from '@/constants/bigbook-v2/metadata';
 import { formatPageNumber } from '@/lib/bigbook-page-utils';
 import { BigBookParagraph } from './BigBookParagraph';
-import { BigBookBookmarkDialog } from './BigBookBookmarkDialog';
-import { HighlightColorPicker } from './HighlightColorPicker';
-import { HighlightColorToast } from './HighlightColorToast';
 import { HighlightEditMenu } from './HighlightEditMenu';
 import { SearchResult } from '@/hooks/use-bigbook-content';
 import { HighlightColor, BigBookHighlight } from '@/types/bigbook-v2';
 
-// Map highlight colors to icon colors
-function getColorForHighlighter(color: HighlightColor): string {
-  const colorMap: Record<HighlightColor, string> = {
-    [HighlightColor.YELLOW]: '#FBBF24', // Lighter Yellow
-    [HighlightColor.GREEN]: '#10B981', // Emerald
-    [HighlightColor.BLUE]: '#3B82F6', // Blue
-    [HighlightColor.PINK]: '#EC4899', // Pink
-  };
-  return colorMap[color];
-}
+// Fixed highlight color (yellow)
+const HIGHLIGHT_COLOR = HighlightColor.YELLOW;
+const HIGHLIGHT_ICON_COLOR = '#FBBF24';
 
 interface BigBookReaderProps {
   visible: boolean;
@@ -98,7 +88,6 @@ export function BigBookReader({ visible, initialChapterId, scrollToParagraphId, 
   const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [currentPageNumber, setCurrentPageNumber] = useState<number | null>(null);
-  const [showBookmarkDialog, setShowBookmarkDialog] = useState(false);
   
   const scrollViewRef = useRef<ScrollView>(null);
   const paragraphRefs = useRef<Map<string, View>>(new Map());
@@ -110,7 +99,6 @@ export function BigBookReader({ visible, initialChapterId, scrollToParagraphId, 
     bookmarks,
     addBookmark, 
     deleteBookmark, 
-    updateBookmarkLabel, 
     isPageBookmarked, 
     getBookmarkForPage,
     isLoading: bookmarksLoading 
@@ -124,17 +112,8 @@ export function BigBookReader({ visible, initialChapterId, scrollToParagraphId, 
     getHighlightById,
   } = useBigBookHighlights();
 
-  // Highlight mode state
+  // Highlight mode state (simplified - always uses yellow)
   const [highlightMode, setHighlightMode] = useState(false);
-  const [showColorPicker, setShowColorPicker] = useState(false);
-  const [showColorToast, setShowColorToast] = useState(false);
-  // Default to yellow if user has not explicitly chosen a color
-  const [selectedColor, setSelectedColor] = useState<HighlightColor | null>(HighlightColor.YELLOW);
-  const [pendingSentence, setPendingSentence] = useState<{
-    paragraphId: string;
-    sentenceIndex: number;
-    sentenceText: string;
-  } | null>(null);
   const [showHighlightEditMenu, setShowHighlightEditMenu] = useState(false);
   const [editingHighlight, setEditingHighlight] = useState<BigBookHighlight | null>(null);
 
@@ -288,91 +267,39 @@ export function BigBookReader({ visible, initialChapterId, scrollToParagraphId, 
     }
   }, [currentChapter]);
 
-  // Bookmark handlers
-  const handleBookmarkPress = () => {
-    if (!currentPageNumber || !currentChapterId) return;
-    setShowBookmarkDialog(true);
-  };
-
-  const handleSaveBookmark = async (label: string) => {
+  // Bookmark handler - simple toggle (no dialog)
+  const handleBookmarkPress = async () => {
     if (!currentPageNumber || !currentChapterId) return;
     
     try {
       const existingBookmark = getBookmarkForPage(currentPageNumber);
       
       if (existingBookmark) {
-        // Update existing bookmark
-        await updateBookmarkLabel(existingBookmark.id, label);
-      } else {
-        // Add new bookmark
-        await addBookmark(currentPageNumber, currentChapterId, label);
-      }
-    } catch (error) {
-      console.error('[BigBookReader] Error saving bookmark:', error);
-    }
-  };
-
-  const handleRemoveBookmark = async () => {
-    if (!currentPageNumber) return;
-    
-    try {
-      const existingBookmark = getBookmarkForPage(currentPageNumber);
-      if (existingBookmark) {
+        // Remove existing bookmark
         await deleteBookmark(existingBookmark.id);
+      } else {
+        // Add new bookmark (no label)
+        await addBookmark(currentPageNumber, currentChapterId, '');
       }
     } catch (error) {
-      console.error('[BigBookReader] Error removing bookmark:', error);
+      console.error('[BigBookReader] Error toggling bookmark:', error);
     }
   };
 
   // Check if current page is bookmarked
-  const currentPageBookmark = currentPageNumber ? getBookmarkForPage(currentPageNumber) : undefined;
   const isCurrentPageBookmarked = currentPageNumber ? isPageBookmarked(currentPageNumber) : false;
 
-  // Highlight handlers
+  // Highlight handlers (simplified - always uses yellow)
   const handleToggleHighlightMode = () => {
     console.log('[BigBookReader] Toggling highlight mode, current:', highlightMode);
-    if (highlightMode) {
-      // Exit highlight mode but retain the last selected color
-      setHighlightMode(false);
-      setPendingSentence(null);
-      return;
-    }
-    // Ensure a default color (yellow) is set when turning ON
-    if (!selectedColor) {
-      setSelectedColor(HighlightColor.YELLOW);
-    }
-    setHighlightMode(true);
+    setHighlightMode(!highlightMode);
   };
 
-  const handleLongPressHighlightIcon = () => {
-    console.log('[BigBookReader] Long press highlight icon - showing color toast');
-    setShowColorToast(true);
-  };
-
-  const handleCloseColorPicker = () => {
-    // Close color picker; retain the currently selected color
-    setShowColorPicker(false);
-    setPendingSentence(null);
-  };
-
-  const handleCloseColorToast = () => {
-    setShowColorToast(false);
-  };
-
-  const handleSentenceTap = useCallback((paragraphId: string, sentenceIndex: number, sentenceText: string) => {
+    const handleSentenceTap = useCallback((paragraphId: string, sentenceIndex: number, sentenceText: string) => {
     console.log('[BigBookReader] Sentence tapped:', { paragraphId, sentenceIndex, sentenceText });
-    
-    if (!selectedColor) {
-      // No color selected yet - store sentence and wait for color selection
-      setPendingSentence({ paragraphId, sentenceIndex, sentenceText });
-      setShowColorPicker(true);
-      return;
-    }
-
-    // Color already selected - create highlight immediately
-    createHighlight(paragraphId, sentenceIndex, sentenceText, selectedColor);
-  }, [selectedColor, currentChapterId]);
+    // Always use yellow for highlights
+    createHighlight(paragraphId, sentenceIndex, sentenceText, HIGHLIGHT_COLOR);
+  }, [currentChapterId]);
 
   const createHighlight = async (
     paragraphId: string,
@@ -386,32 +313,6 @@ export function BigBookReader({ visible, initialChapterId, scrollToParagraphId, 
     } catch (error) {
       console.error('[BigBookReader] Error creating highlight:', error);
     }
-  };
-
-  const handleColorSelect = (color: HighlightColor) => {
-    console.log('[BigBookReader] Color selected:', color);
-    setSelectedColor(color);
-    
-    // Close the color picker so user can see the text
-    setShowColorPicker(false);
-
-    // If there's a pending sentence, highlight it now
-    if (pendingSentence) {
-      createHighlight(
-        pendingSentence.paragraphId,
-        pendingSentence.sentenceIndex,
-        pendingSentence.sentenceText,
-        color
-      );
-      setPendingSentence(null);
-    }
-  };
-
-  const handleColorSelectFromToast = (color: HighlightColor) => {
-    console.log('[BigBookReader] Color selected from toast:', color);
-    setSelectedColor(color);
-    setShowColorToast(false);
-    // Keep current highlightMode state unchanged; color persists for future toggles
   };
 
   const handleHighlightTap = useCallback(async (paragraphId: string, sentenceIndex: number) => {
@@ -532,15 +433,13 @@ export function BigBookReader({ visible, initialChapterId, scrollToParagraphId, 
         <View style={styles.actionButtons}>
           <TouchableOpacity 
             onPress={handleToggleHighlightMode}
-            onLongPress={handleLongPressHighlightIcon}
-            delayLongPress={500}
             activeOpacity={0.8}
             style={styles.actionButton}
           >
             <Highlighter 
               size={18} 
-              color={highlightMode ? getColorForHighlighter(selectedColor || HighlightColor.YELLOW) : '#666'}
-              fill={highlightMode ? getColorForHighlighter(selectedColor || HighlightColor.YELLOW) : 'transparent'}
+              color="#3D8B8B"
+              fill={highlightMode ? "#3D8B8B" : 'transparent'}
             />
           </TouchableOpacity>
 
@@ -551,7 +450,7 @@ export function BigBookReader({ visible, initialChapterId, scrollToParagraphId, 
           >
             <BookmarkIcon 
               size={18} 
-              color={isCurrentPageBookmarked ? "#3D8B8B" : '#666'}
+              color="#3D8B8B"
               fill={isCurrentPageBookmarked ? "#3D8B8B" : 'transparent'}
             />
           </TouchableOpacity>
@@ -635,33 +534,7 @@ export function BigBookReader({ visible, initialChapterId, scrollToParagraphId, 
         </TouchableOpacity>
       </View>
 
-      {/* Bookmark Dialog */}
-      {currentChapter && currentPageNumber && (
-        <BigBookBookmarkDialog
-          visible={showBookmarkDialog}
-          onClose={() => setShowBookmarkDialog(false)}
-          pageNumber={currentPageNumber}
-          chapterTitle={currentChapter.title}
-          existingLabel={currentPageBookmark?.label}
-          isEditing={isCurrentPageBookmarked}
-          onSave={handleSaveBookmark}
-          onRemove={isCurrentPageBookmarked ? handleRemoveBookmark : undefined}
-        />
-      )}
 
-      {/* Highlight Color Picker */}
-      <HighlightColorPicker
-        visible={showColorPicker}
-        onSelectColor={handleColorSelect}
-        onClose={handleCloseColorPicker}
-      />
-
-      {/* Highlight Color Toast */}
-      <HighlightColorToast
-        visible={showColorToast}
-        onSelectColor={handleColorSelectFromToast}
-        onClose={handleCloseColorToast}
-      />
 
       {/* Highlight Edit Menu */}
       <HighlightEditMenu
@@ -721,7 +594,7 @@ const styles = StyleSheet.create({
   pageNumber: {
     fontSize: 14,
     fontWeight: adjustFontWeight('500'),
-    color: '#666',
+    color: '#3D8B8B',
   },
   actionButtons: {
     flexDirection: 'row',
