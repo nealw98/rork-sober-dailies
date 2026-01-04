@@ -25,6 +25,7 @@ import { adjustFontWeight } from "@/constants/fonts";
 import { useTextSettings } from "@/hooks/use-text-settings";
 import { SponsorType, ChatMessage } from "@/types";
 import { ChatMarkdownRenderer } from "@/components/ChatMarkdownRenderer";
+import { TypewriterText } from "@/components/TypewriterText";
 import { featureUse, getAnonymousId } from "@/lib/usageLogger";
 import { supabase } from "@/lib/supabase";
 
@@ -90,16 +91,24 @@ const ChatBubble = ({
   bubbleBorderColor,
   sponsorType,
   fontSize,
+  isFirstBotMessage,
+  isHistoricalMessage,
 }: {
   message: ChatMessage;
   bubbleColor?: string;
   bubbleBorderColor?: string;
   sponsorType: SponsorType;
   fontSize: number;
+  isFirstBotMessage?: boolean;
+  isHistoricalMessage?: boolean;
 }) => {
   const isUser = message.sender === "user";
   const sponsor = getSponsorById(sponsorType);
   const messageText = message.text;
+  const isFreddie = sponsorType === "fresh";
+  
+  // Only animate new Freddie bot messages (not historical ones loaded from storage)
+  const shouldAnimate = isFreddie && !isUser && !isHistoricalMessage;
 
   const handleLongPress = async () => {
     try {
@@ -109,6 +118,28 @@ const ChatBubble = ({
     } catch {
       // ignore
     }
+  };
+
+  // Render Freddie's bot messages with TypewriterText
+  const renderMessageContent = () => {
+    if (isFreddie && !isUser) {
+      return (
+        <TypewriterText
+          text={messageText}
+          isFirstMessage={isFirstBotMessage}
+          shouldAnimate={shouldAnimate}
+          style={{ color: '#333', fontSize }}
+        />
+      );
+    }
+    
+    // Default: use ChatMarkdownRenderer for all other sponsors
+    return (
+      <ChatMarkdownRenderer 
+        content={messageText} 
+        style={{ color: isUser ? '#fff' : '#333', fontSize }}
+      />
+    );
   };
   
   return (
@@ -126,10 +157,7 @@ const ChatBubble = ({
         <Image source={sponsor.avatar} style={styles.bubbleAvatar} />
       )}
       <View style={styles.bubbleContent}>
-        <ChatMarkdownRenderer 
-          content={messageText} 
-          style={{ color: isUser ? '#fff' : '#333', fontSize }}
-        />
+        {renderMessageContent()}
       </View>
     </TouchableOpacity>
   );
@@ -144,6 +172,18 @@ function SponsorChatContent({ initialSponsor }: { initialSponsor: string }) {
   const [inputText, setInputText] = useState("");
   const [isCheckingLimits, setIsCheckingLimits] = useState(false);
   const flatListRef = useRef<FlatList>(null);
+  
+  // Track messages that existed when component mounted (these should NOT animate)
+  const initialMessageIds = useRef<Set<string> | null>(null);
+  // Track if this is a fresh chat (only welcome message) vs returning to existing chat
+  const isFreshChat = useRef<boolean | null>(null);
+  
+  // On first render with messages, capture the initial state
+  if (initialMessageIds.current === null && messages.length > 0) {
+    initialMessageIds.current = new Set(messages.map(m => m.id));
+    // Fresh chat = only 1 message (the welcome message)
+    isFreshChat.current = messages.length === 1;
+  }
 
   // Sync sponsor type with store on mount
   useEffect(() => {
@@ -173,6 +213,9 @@ function SponsorChatContent({ initialSponsor }: { initialSponsor: string }) {
   };
 
   const handleRefresh = () => {
+    // Clear the initial message tracking so the new welcome message can animate
+    initialMessageIds.current = null;
+    isFreshChat.current = null;
     clearChat();
   };
 
@@ -245,11 +288,8 @@ function SponsorChatContent({ initialSponsor }: { initialSponsor: string }) {
           </TouchableOpacity>
         </View>
         
-        {/* Avatar and Name - horizontal */}
+        {/* Sponsor Name */}
         <View style={styles.sponsorInfo}>
-          {sponsor.avatar && (
-            <Image source={sponsor.avatar} style={styles.headerAvatar} />
-          )}
           <Text style={styles.headerTitle}>{sponsor.name}</Text>
         </View>
       </LinearGradient>
@@ -280,15 +320,24 @@ function SponsorChatContent({ initialSponsor }: { initialSponsor: string }) {
             ref={flatListRef}
             data={messages}
             keyExtractor={(item) => item.id}
-            renderItem={({ item }) => (
-              <ChatBubble
-                message={item}
-                bubbleColor={bubbleColor}
-                bubbleBorderColor={bubbleBorderColor}
-                sponsorType={initialSponsor as SponsorType}
-                fontSize={fontSize}
-              />
-            )}
+            renderItem={({ item, index }) => {
+              // First bot message is the welcome message (index 0, sender is bot)
+              const isFirstBotMessage = index === 0 && item.sender === "bot";
+              // Historical messages are those that existed when the component mounted
+              // If not a fresh chat, ALL messages including welcome are historical
+              const isHistoricalMessage = !isFreshChat.current || (initialMessageIds.current?.has(item.id) ?? false);
+              return (
+                <ChatBubble
+                  message={item}
+                  bubbleColor={bubbleColor}
+                  bubbleBorderColor={bubbleBorderColor}
+                  sponsorType={initialSponsor as SponsorType}
+                  fontSize={fontSize}
+                  isFirstBotMessage={isFirstBotMessage}
+                  isHistoricalMessage={isHistoricalMessage}
+                />
+              );
+            }}
             contentContainerStyle={styles.chatContainer}
             showsVerticalScrollIndicator={false}
             keyboardShouldPersistTaps="handled"
@@ -401,14 +450,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 12,
-  },
-  headerAvatar: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    borderWidth: 2,
-    borderColor: 'rgba(255,255,255,0.5)',
   },
   headerTitle: {
     fontSize: 32,
