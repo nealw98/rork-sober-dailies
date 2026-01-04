@@ -108,6 +108,7 @@ export function BigBookMain() {
         <BigBookHighlightsProvider>
           <BigBookChapterList
             onSelectChapter={handleSelectChapter}
+            isReaderOpen={showReaderModal}
           />
           
           {/* Reader Modal */}

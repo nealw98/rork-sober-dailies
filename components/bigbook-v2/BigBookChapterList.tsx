@@ -47,6 +47,7 @@ import { BigBookSearchModal } from './BigBookSearchModal';
 interface BigBookChapterListProps {
   onSelectChapter: (chapterId: string, scrollToParagraphId?: string, searchTerm?: string) => void;
   onBack?: () => void;
+  isReaderOpen?: boolean;
 }
 
 interface SectionProps {
@@ -90,7 +91,7 @@ function ChapterSection({ title, chapters, onSelectChapter }: SectionProps) {
   );
 }
 
-export function BigBookChapterList({ onSelectChapter, onBack }: BigBookChapterListProps) {
+export function BigBookChapterList({ onSelectChapter, onBack, isReaderOpen }: BigBookChapterListProps) {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const frontMatter = getFrontMatter();
@@ -101,21 +102,23 @@ export function BigBookChapterList({ onSelectChapter, onBack }: BigBookChapterLi
   const { highlights } = useBigBookHighlights();
   const hasHighlights = highlights.length > 0;
   
-  // Load bookmarks count directly from storage (since there's no provider)
-  const [bookmarksCount, setBookmarksCount] = useState(0);
-  useEffect(() => {
-    const loadBookmarksCount = async () => {
-      const storage = getBigBookStorage();
-      const allBookmarks = await storage.getAllBookmarks();
-      setBookmarksCount(allBookmarks.length);
-    };
-    loadBookmarksCount();
-  }, [showBookmarksList]); // Refresh when bookmarks modal closes
-  const hasBookmarks = bookmarksCount > 0;
-  
   // State for modals
   const [showHighlightsList, setShowHighlightsList] = useState(false);
   const [showBookmarksList, setShowBookmarksList] = useState(false);
+  
+  // Load bookmarks count directly from storage (since there's no provider)
+  const [bookmarksCount, setBookmarksCount] = useState(0);
+  const refreshBookmarksCount = async () => {
+    const storage = getBigBookStorage();
+    const allBookmarks = await storage.getAllBookmarks();
+    console.log('[BigBookChapterList] Loaded bookmarks count:', allBookmarks.length);
+    setBookmarksCount(allBookmarks.length);
+  };
+  useEffect(() => {
+    refreshBookmarksCount();
+  }, [showBookmarksList, isReaderOpen]); // Refresh when bookmarks modal closes OR reader closes
+  const hasBookmarks = bookmarksCount > 0;
+  console.log('[BigBookChapterList] hasBookmarks:', hasBookmarks, 'count:', bookmarksCount);
   const [showPageNavigation, setShowPageNavigation] = useState(false);
   const [showSearch, setShowSearch] = useState(false);
   
@@ -212,7 +215,7 @@ export function BigBookChapterList({ onSelectChapter, onBack }: BigBookChapterLi
           activeOpacity={0.8}
           style={styles.actionButton}
         >
-          <Highlighter size={18} color="#3D8B8B" fill={hasHighlights ? "#3D8B8B" : "none"} />
+          <Highlighter size={18} color="#3D8B8B" fill={hasHighlights ? "#3D8B8B" : "transparent"} />
           <Text style={styles.actionButtonText}>Highlights</Text>
         </TouchableOpacity>
         
@@ -221,7 +224,7 @@ export function BigBookChapterList({ onSelectChapter, onBack }: BigBookChapterLi
           activeOpacity={0.8}
           style={styles.actionButton}
         >
-          <BookmarkIcon size={18} color="#3D8B8B" fill={hasBookmarks ? "#3D8B8B" : "none"} />
+          <BookmarkIcon size={18} color="#3D8B8B" fill={hasBookmarks ? "#3D8B8B" : "transparent"} />
           <Text style={styles.actionButtonText}>Bookmarks</Text>
         </TouchableOpacity>
       </View>
@@ -261,6 +264,7 @@ export function BigBookChapterList({ onSelectChapter, onBack }: BigBookChapterLi
         visible={showBookmarksList}
         onClose={() => setShowBookmarksList(false)}
         onNavigateToBookmark={handleNavigateToBookmark}
+        onBookmarksChanged={refreshBookmarksCount}
       />
       
       <BigBookPageNavigation
@@ -365,7 +369,7 @@ const styles = StyleSheet.create({
   rowTitle: {
     fontSize: 16,
     fontWeight: adjustFontWeight('500'),
-    color: '#2d3748',
+    color: '#000',
     flex: 1,
   },
   rowRight: {

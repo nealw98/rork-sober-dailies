@@ -454,7 +454,7 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 16,
     lineHeight: 26,
-    color: Colors.light.text,
+    color: '#000',
     fontWeight: adjustFontWeight('400'),
   },
   verseText: {
@@ -468,12 +468,12 @@ const styles = StyleSheet.create({
   numberedListNumber: {
     width: 32,
     flexShrink: 0,
-    color: Colors.light.text,
+    color: '#000',
     fontWeight: adjustFontWeight('400'),
   },
   numberedListText: {
     flex: 1,
-    color: Colors.light.text,
+    color: '#000',
     fontWeight: adjustFontWeight('400'),
   },
   letteredListContainer: {
@@ -484,12 +484,12 @@ const styles = StyleSheet.create({
   letteredListLetter: {
     width: 32,
     flexShrink: 0,
-    color: Colors.light.text,
+    color: '#000',
     fontWeight: adjustFontWeight('400'),
   },
   letteredListText: {
     flex: 1,
-    color: Colors.light.text,
+    color: '#000',
     fontWeight: adjustFontWeight('400'),
   },
   sentence: {
@@ -523,11 +523,11 @@ const styles = StyleSheet.create({
   tableHeaderText: {
     fontSize: 14,
     fontWeight: adjustFontWeight('700'),
-    color: Colors.light.text,
+    color: '#000',
   },
   tableCellText: {
     fontSize: 14,
     lineHeight: 20,
-    color: Colors.light.text,
+    color: '#000',
   },
 });

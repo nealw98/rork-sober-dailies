@@ -514,7 +514,7 @@ export function BigBookReader({ visible, initialChapterId, scrollToParagraphId, 
           style={styles.footerNavButton}
           hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
         >
-          <ChevronLeft size={20} color={Colors.light.tint} />
+          <ChevronLeft size={20} color="#3D8B8B" />
           <Text style={styles.footerNavText}>Prev</Text>
         </TouchableOpacity>
 
@@ -530,7 +530,7 @@ export function BigBookReader({ visible, initialChapterId, scrollToParagraphId, 
           hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
         >
           <Text style={styles.footerNavText}>Next</Text>
-          <ChevronRight size={20} color={Colors.light.tint} />
+          <ChevronRight size={20} color="#3D8B8B" />
         </TouchableOpacity>
       </View>
 
@@ -594,7 +594,7 @@ const styles = StyleSheet.create({
   pageNumber: {
     fontSize: 14,
     fontWeight: adjustFontWeight('500'),
-    color: '#3D8B8B',
+    color: '#000',
   },
   actionButtons: {
     flexDirection: 'row',
@@ -642,7 +642,7 @@ const styles = StyleSheet.create({
   },
   footerNavText: {
     fontSize: 16,
-    color: Colors.light.tint,
+    color: '#3D8B8B',
     fontWeight: '400',
   },
   footerChapterNumber: {

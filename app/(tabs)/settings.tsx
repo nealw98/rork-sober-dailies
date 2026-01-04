@@ -399,7 +399,7 @@ const styles = StyleSheet.create({
   menuItemTitle: {
     fontSize: 16,
     fontWeight: adjustFontWeight('500'),
-    color: '#2d3748',
+    color: '#000',
     flex: 1,
   },
   legalLinksContainer: {

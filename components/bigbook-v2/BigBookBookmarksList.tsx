@@ -34,12 +34,14 @@ interface BigBookBookmarksListProps {
   visible: boolean;
   onClose: () => void;
   onNavigateToBookmark: (chapterId: string, pageNumber: number) => void;
+  onBookmarksChanged?: () => void;
 }
 
 export function BigBookBookmarksList({
   visible,
   onClose,
   onNavigateToBookmark,
+  onBookmarksChanged,
 }: BigBookBookmarksListProps) {
   const { bookmarks, deleteBookmark, updateBookmarkLabel, isLoading, refresh } = useBigBookBookmarks();
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -62,6 +64,8 @@ export function BigBookBookmarksList({
   const handleDelete = async (bookmarkId: string) => {
     try {
       await deleteBookmark(bookmarkId);
+      // Notify parent that bookmarks changed
+      onBookmarksChanged?.();
     } catch (error) {
       console.error('[BigBookBookmarksList] Error deleting bookmark:', error);
     }

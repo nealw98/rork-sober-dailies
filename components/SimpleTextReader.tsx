@@ -365,7 +365,7 @@ const styles = StyleSheet.create({
   textContent: {
     fontSize: 18,
     lineHeight: 28,
-    color: '#2d3748',
+    color: '#000',
   },
   italicText: {
     fontStyle: 'italic',
@@ -376,7 +376,7 @@ const styles = StyleSheet.create({
   headingText: {
     fontSize: 18,
     lineHeight: 28,
-    color: '#2d3748',
+    color: '#000',
     fontWeight: adjustFontWeight('700'),
   },
   numberRow: {
@@ -388,14 +388,14 @@ const styles = StyleSheet.create({
     marginRight: 8,
     fontSize: 18,
     lineHeight: 28,
-    color: '#2d3748',
+    color: '#000',
     fontWeight: adjustFontWeight('600'),
   },
   numberText: {
     flex: 1,
     fontSize: 18,
     lineHeight: 28,
-    color: '#2d3748',
+    color: '#000',
   },
   sourceText: {
     marginTop: 16,
