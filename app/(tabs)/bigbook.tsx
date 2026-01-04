@@ -1,22 +1,15 @@
-import { StyleSheet, Platform } from "react-native";
-import { Stack } from "expo-router";
-import BigBookBrowser from "@/components/BigBookBrowser";
+import { StyleSheet } from "react-native";
+import { BigBookMain } from "@/components/bigbook-v2/BigBookMain";
 import ScreenContainer from "@/components/ScreenContainer";
-import Colors from "@/constants/colors";
 import { useReadingSession } from "@/hooks/useReadingSession";
 
 export default function BigBookScreen() {
-  console.log('🟢 BigBookScreen: Component rendering');
-  useReadingSession('literature');
+  console.log('🟢 BigBookScreen: Component rendering with BigBookMain');
+  useReadingSession("literature");
   
   return (
     <ScreenContainer style={styles.container} noPadding>
-      <Stack.Screen
-        options={{
-          headerTitle: "",
-        }}
-      />
-      <BigBookBrowser />
+      <BigBookMain />
     </ScreenContainer>
   );
 }

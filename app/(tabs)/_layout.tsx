@@ -237,17 +237,16 @@ export default function TabLayout() {
         }}
       />
 
-      {/* Tab 4: Tools */}
+      {/* Tools - Hidden from tab bar (accessible from home page) */}
       <Tabs.Screen
         name="tools"
         options={{
-          title: "Tools",
+          href: null,
           headerShown: false,
-          tabBarIcon: createOutlineTabIcon('construct-outline', 'construct'),
         }}
       />
 
-      {/* Tab 5: Settings */}
+      {/* Tab 4: Settings */}
       <Tabs.Screen
         name="settings"
         options={{
@@ -288,9 +287,7 @@ export default function TabLayout() {
         name="bigbook"
         options={{
           href: null, // Hide from tab bar
-          headerShown: true,
-          headerTitle: '',
-          headerLeft: () => <BackButton />,
+          headerShown: false,
         }}
       />
       <Tabs.Screen

@@ -1,0 +1,376 @@
+/**
+ * Big Book Chapter List Component
+ * 
+ * Displays organized list of all Big Book chapters for navigation.
+ * Groups chapters into sections: Front Matter, Main Chapters, Appendices.
+ * 
+ * Phase 6 Refactor: Now includes BOOK-LEVEL navigation features:
+ * - Highlights list (all chapters)
+ * - Bookmarks list (all chapters)
+ * - Go to Page navigation
+ * - Search (for finding chapters)
+ */
+
+import React, { useState } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  Platform,
+  TouchableOpacity,
+} from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { 
+  ChevronLeft,
+  Hash,
+  Bookmark as BookmarkIcon,
+  Highlighter,
+  Search as SearchIcon,
+} from 'lucide-react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import { useRouter } from 'expo-router';
+import Colors from '@/constants/colors';
+import { adjustFontWeight } from '@/constants/fonts';
+import { BigBookChapterMeta } from '@/types/bigbook-v2';
+import { getMainChapters, getFrontMatter, getAppendices } from '@/constants/bigbook-v2/metadata';
+import { useBigBookContent } from '@/hooks/use-bigbook-content';
+import { formatPageNumber } from '@/lib/bigbook-page-utils';
+import { BigBookHighlightsList } from './BigBookHighlightsList';
+import { BigBookBookmarksList } from './BigBookBookmarksList';
+import { BigBookPageNavigation } from './BigBookPageNavigation';
+import { BigBookSearchModal } from './BigBookSearchModal';
+
+interface BigBookChapterListProps {
+  onSelectChapter: (chapterId: string, scrollToParagraphId?: string, searchTerm?: string) => void;
+  onBack?: () => void;
+}
+
+interface SectionProps {
+  title: string;
+  description: string;
+  chapters: BigBookChapterMeta[];
+  onSelectChapter: (chapterId: string) => void;
+}
+
+// Helper to remove chapter numbers from titles (e.g., "1. Bill's Story" -> "Bill's Story")
+function removeChapterNumber(title: string): string {
+  return title.replace(/^\d+\.\s*/, '');
+}
+
+function ChapterSection({ title, description, chapters, onSelectChapter }: SectionProps) {
+  // Group chapters into pairs for 2-column layout
+  const chapterPairs: BigBookChapterMeta[][] = [];
+  for (let i = 0; i < chapters.length; i += 2) {
+    chapterPairs.push(chapters.slice(i, i + 2));
+  }
+
+  return (
+    <View style={styles.sectionContainer}>
+      {/* Section Header - Simple label style like home page */}
+      <Text style={styles.sectionLabel}>{title}</Text>
+      
+      <View style={styles.chaptersContainer}>
+        {chapterPairs.map((pair, pairIndex) => (
+          <View key={pairIndex} style={styles.chapterRow}>
+            {pair.map((chapter) => (
+              <TouchableOpacity
+                key={chapter.id}
+                style={styles.chapterTile}
+                onPress={() => onSelectChapter(chapter.id)}
+                activeOpacity={0.7}
+              >
+                <Text style={styles.chapterTitle} numberOfLines={2}>
+                  {removeChapterNumber(chapter.title)}
+                </Text>
+                <Text style={styles.chapterPages}>
+                  pp. {formatPageNumber(chapter.pageRange[0], chapter.useRomanNumerals || false)}-{formatPageNumber(chapter.pageRange[1], chapter.useRomanNumerals || false)}
+                </Text>
+              </TouchableOpacity>
+            ))}
+            {/* Add empty space if odd number of chapters */}
+            {pair.length === 1 && <View style={styles.chapterTilePlaceholder} />}
+          </View>
+        ))}
+      </View>
+    </View>
+  );
+}
+
+export function BigBookChapterList({ onSelectChapter, onBack }: BigBookChapterListProps) {
+  const router = useRouter();
+  const frontMatter = getFrontMatter();
+  const mainChapters = getMainChapters();
+  const appendices = getAppendices();
+  
+  // State for modals
+  const [showHighlightsList, setShowHighlightsList] = useState(false);
+  const [showBookmarksList, setShowBookmarksList] = useState(false);
+  const [showPageNavigation, setShowPageNavigation] = useState(false);
+  const [showSearch, setShowSearch] = useState(false);
+  
+  // Get content helper for page navigation
+  const { goToPage } = useBigBookContent();
+  
+  const handleBack = () => {
+    if (onBack) {
+      onBack();
+    } else {
+      router.back();
+    }
+  };
+  
+  // Handle navigation from highlights list
+  const handleNavigateToHighlight = (chapterId: string, paragraphId: string) => {
+    console.log('[BigBookChapterList] Navigating to highlight:', { chapterId, paragraphId });
+    onSelectChapter(chapterId, paragraphId);
+  };
+  
+  // Handle navigation from bookmarks list (page-based)
+  const handleNavigateToBookmark = (chapterId: string, pageNumber: number) => {
+    console.log('[BigBookChapterList] Navigating to bookmark page:', { chapterId, pageNumber });
+    // Use goToPage to find first paragraph on that page
+    const result = goToPage(pageNumber);
+    if (result) {
+      onSelectChapter(result.chapterId, result.paragraphId);
+    }
+  };
+  
+  // Handle page navigation
+  const handleNavigateToPage = (pageNumber: number) => {
+    console.log('[BigBookChapterList] Navigating to page:', pageNumber);
+    const result = goToPage(pageNumber);
+    console.log('[BigBookChapterList] goToPage result:', result);
+    
+    if (result) {
+      onSelectChapter(result.chapterId, result.paragraphId);
+    } else {
+      console.log('[BigBookChapterList] Page not found:', pageNumber);
+    }
+    
+    return result;
+  };
+  
+  // Handle search result selection
+  const handleSearchResultSelect = (chapterId: string, paragraphId: string, searchTerm: string) => {
+    console.log('[BigBookChapterList] Navigating to search result:', { chapterId, paragraphId, searchTerm });
+    onSelectChapter(chapterId, paragraphId, searchTerm);
+  };
+
+  return (
+    <SafeAreaView style={styles.container} edges={['top']}>
+      {/* Gradient Header Block */}
+      <LinearGradient
+        colors={['#4A6FA5', '#3D8B8B', '#45A08A']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 0 }}
+        style={styles.headerBlock}
+      >
+        <View style={styles.headerTopRow}>
+          <TouchableOpacity 
+            onPress={handleBack}
+            style={styles.backButton}
+          >
+            <ChevronLeft size={24} color="#fff" />
+          </TouchableOpacity>
+        </View>
+        <Text style={styles.headerTitle}>Alcoholics Anonymous</Text>
+      </LinearGradient>
+      
+      {/* Action Row - Below header */}
+      <View style={styles.actionRow}>
+        <TouchableOpacity
+          onPress={() => setShowPageNavigation(true)}
+          activeOpacity={0.8}
+          style={styles.actionButton}
+        >
+          <Hash size={18} color="#666" />
+          <Text style={styles.actionButtonText}>Page</Text>
+        </TouchableOpacity>
+        
+        <TouchableOpacity
+          onPress={() => setShowSearch(true)}
+          activeOpacity={0.8}
+          style={styles.actionButton}
+        >
+          <SearchIcon size={18} color="#666" />
+          <Text style={styles.actionButtonText}>Search</Text>
+        </TouchableOpacity>
+        
+        <TouchableOpacity
+          onPress={() => setShowHighlightsList(true)}
+          activeOpacity={0.8}
+          style={styles.actionButton}
+        >
+          <Highlighter size={18} color="#666" />
+          <Text style={styles.actionButtonText}>Highlights</Text>
+        </TouchableOpacity>
+        
+        <TouchableOpacity
+          onPress={() => setShowBookmarksList(true)}
+          activeOpacity={0.8}
+          style={styles.actionButton}
+        >
+          <BookmarkIcon size={18} color="#666" />
+          <Text style={styles.actionButtonText}>Bookmarks</Text>
+        </TouchableOpacity>
+      </View>
+      
+      <ScrollView 
+        style={styles.scrollView}
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.scrollViewContent}
+      >
+        <ChapterSection
+            title="Forewords and Preface"
+            description="Includes The Doctor's Opinion"
+            chapters={frontMatter}
+            onSelectChapter={onSelectChapter}
+          />
+          
+          <ChapterSection
+            title="Main Chapters"
+            description="The first 164 pages - the basic text of AA"
+            chapters={mainChapters}
+            onSelectChapter={onSelectChapter}
+          />
+          
+          <ChapterSection
+            title="Appendices"
+            description="Additional resources and information"
+            chapters={appendices}
+            onSelectChapter={onSelectChapter}
+          />
+        </ScrollView>
+      
+      {/* Book-Level Navigation Modals */}
+      <BigBookHighlightsList
+        visible={showHighlightsList}
+        onClose={() => setShowHighlightsList(false)}
+        onNavigateToHighlight={handleNavigateToHighlight}
+      />
+      
+      <BigBookBookmarksList
+        visible={showBookmarksList}
+        onClose={() => setShowBookmarksList(false)}
+        onNavigateToBookmark={handleNavigateToBookmark}
+      />
+      
+      <BigBookPageNavigation
+        visible={showPageNavigation}
+        onClose={() => setShowPageNavigation(false)}
+        onNavigateToPage={handleNavigateToPage}
+      />
+      
+      <BigBookSearchModal
+        visible={showSearch}
+        onClose={() => setShowSearch(false)}
+        onNavigateToResult={handleSearchResultSelect}
+      />
+    </SafeAreaView>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#f5f6f8',
+  },
+  headerBlock: {
+    paddingHorizontal: 20,
+    paddingTop: 16,
+    paddingBottom: 16,
+  },
+  headerTopRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  backButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    borderRadius: 20,
+    paddingVertical: 6,
+    paddingHorizontal: 8,
+  },
+  headerTitle: {
+    fontSize: 32,
+    fontWeight: adjustFontWeight('400'),
+    color: '#fff',
+  },
+  actionRow: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 16,
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: '#e0e0e0',
+    backgroundColor: '#fff',
+  },
+  actionButton: {
+    flexDirection: 'column',
+    alignItems: 'center',
+    gap: 4,
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+  },
+  actionButtonText: {
+    fontSize: 12,
+    color: '#666',
+    fontWeight: '500',
+  },
+  scrollView: {
+    flex: 1,
+  },
+  scrollViewContent: {
+    paddingHorizontal: 20,
+    paddingTop: 16,
+    paddingBottom: 20,
+  },
+  sectionContainer: {
+    marginBottom: 16,
+  },
+  sectionLabel: {
+    fontSize: 11,
+    fontWeight: adjustFontWeight('600'),
+    color: '#6b7c8a',
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+    marginBottom: 8,
+  },
+  chaptersContainer: {
+    marginBottom: 8,
+  },
+  chapterRow: {
+    flexDirection: 'row',
+    gap: 12,
+    marginBottom: 12,
+  },
+  chapterTile: {
+    flex: 1,
+    backgroundColor: '#fff',
+    borderRadius: 16,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(74, 111, 165, 0.12)',
+    minHeight: 80,
+    justifyContent: 'space-between',
+  },
+  chapterTilePlaceholder: {
+    flex: 1,
+  },
+  chapterTitle: {
+    fontSize: 14,
+    fontWeight: adjustFontWeight('600'),
+    color: '#3d5a6a',
+    lineHeight: 18,
+  },
+  chapterPages: {
+    fontSize: 11,
+    color: '#6b7c8a',
+    marginTop: 8,
+  },
+});
