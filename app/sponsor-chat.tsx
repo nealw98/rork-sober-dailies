@@ -22,6 +22,7 @@ import { ChatStoreProvider, useChatStore } from "@/hooks/use-chat-store";
 import { getSponsorById, SPONSORS } from "@/constants/sponsors";
 import Colors from "@/constants/colors";
 import { adjustFontWeight } from "@/constants/fonts";
+import { useTextSettings } from "@/hooks/use-text-settings";
 import { SponsorType, ChatMessage } from "@/types";
 import { ChatMarkdownRenderer } from "@/components/ChatMarkdownRenderer";
 import { featureUse, getAnonymousId } from "@/lib/usageLogger";
@@ -87,10 +88,12 @@ const ChatBubble = ({
   message,
   bubbleColor,
   sponsorType,
+  fontSize,
 }: {
   message: ChatMessage;
   bubbleColor?: string;
   sponsorType: SponsorType;
+  fontSize: number;
 }) => {
   const isUser = message.sender === "user";
   const sponsor = getSponsorById(sponsorType);
@@ -122,7 +125,7 @@ const ChatBubble = ({
       <View style={styles.bubbleContent}>
         <ChatMarkdownRenderer 
           content={messageText} 
-          style={{ color: isUser ? '#fff' : '#333', fontSize: 18 }}
+          style={{ color: isUser ? '#fff' : '#333', fontSize }}
         />
       </View>
     </TouchableOpacity>
@@ -132,6 +135,7 @@ const ChatBubble = ({
 function SponsorChatContent({ initialSponsor }: { initialSponsor: string }) {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const { fontSize } = useTextSettings();
   const { messages, isLoading, sendMessage, clearChat, changeSponsor, sponsorType } = useChatStore();
   const [inputText, setInputText] = useState("");
   const [isCheckingLimits, setIsCheckingLimits] = useState(false);
@@ -276,6 +280,7 @@ function SponsorChatContent({ initialSponsor }: { initialSponsor: string }) {
                 message={item}
                 bubbleColor={bubbleColor}
                 sponsorType={initialSponsor as SponsorType}
+                fontSize={fontSize}
               />
             )}
             contentContainerStyle={styles.chatContainer}

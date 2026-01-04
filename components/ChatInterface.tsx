@@ -24,6 +24,7 @@ import { featureUse, getAnonymousId } from "@/lib/usageLogger";
 import { supabase } from "@/lib/supabase";
 import { ChatMessage, SponsorType } from "@/types";
 import { adjustFontWeight } from "@/constants/fonts";
+import { useTextSettings } from "@/hooks/use-text-settings";
 import { CustomTextRenderer } from "./CustomTextRenderer";
 import { ChatMarkdownRenderer } from "./ChatMarkdownRenderer";
 
@@ -101,11 +102,13 @@ const ChatBubble = ({
   bubbleColor,
   bubbleShadowColor,
   sponsorType,
+  fontSize,
 }: {
   message: ChatMessage;
   bubbleColor?: string;
   bubbleShadowColor?: string;
   sponsorType: SponsorType;
+  fontSize: number;
 }) => {
   const isUser = message.sender === "user";
 
@@ -174,9 +177,9 @@ const ChatBubble = ({
         activeOpacity={0.7}
       >
         {isUser ? (
-          <Text style={styles.userMessageText}>{message.text}</Text>
+          <Text style={[styles.userMessageText, { fontSize }]}>{message.text}</Text>
         ) : (
-          <ChatMarkdownRenderer content={message.text} style={styles.messageText} />
+          <ChatMarkdownRenderer content={message.text} style={[styles.messageText, { fontSize }]} />
         )}
       </TouchableOpacity>
       <Text style={styles.timestamp}>
@@ -194,6 +197,7 @@ export default function ChatInterface({
   onSponsorPress,
 }: ChatInterfaceProps) {
   const { messages, isLoading, sendMessage, sponsorType: storeSponsorType, changeSponsor } = useChatStore();
+  const { fontSize } = useTextSettings();
   const [inputText, setInputText] = useState<string>("");
   const [isCheckingLimits, setIsCheckingLimits] = useState(false);
   const flatListRef = useRef<FlatList>(null);
@@ -368,6 +372,7 @@ export default function ChatInterface({
               bubbleColor={bubbleColor}
               bubbleShadowColor={bubbleShadowColor}
               sponsorType={sponsorType}
+              fontSize={fontSize}
             />
           )}
           contentContainerStyle={styles.chatContainer}
