@@ -206,7 +206,7 @@ const styles = StyleSheet.create({
   sponsorDescription: {
     fontSize: 14,
     fontWeight: adjustFontWeight("400"),
-    color: '#333',
+    color: '#666',
     lineHeight: 18,
     textAlign: "center",
   },

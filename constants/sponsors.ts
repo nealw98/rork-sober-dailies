@@ -36,6 +36,7 @@ export interface SponsorConfig {
   loadingText?: string;
   bubbleColor?: string;
   bubbleShadowColor?: string;
+  bubbleBorderColor?: string;
   tileColor?: string;
 }
 

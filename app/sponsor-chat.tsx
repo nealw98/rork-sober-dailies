@@ -87,11 +87,13 @@ const checkSponsorMessageLimits = async (): Promise<LimitCheckResult> => {
 const ChatBubble = ({
   message,
   bubbleColor,
+  bubbleBorderColor,
   sponsorType,
   fontSize,
 }: {
   message: ChatMessage;
   bubbleColor?: string;
+  bubbleBorderColor?: string;
   sponsorType: SponsorType;
   fontSize: number;
 }) => {
@@ -108,7 +110,7 @@ const ChatBubble = ({
       // ignore
     }
   };
-
+  
   return (
     <TouchableOpacity
       onLongPress={handleLongPress}
@@ -117,6 +119,7 @@ const ChatBubble = ({
         styles.messageBubble,
         isUser ? styles.userBubble : styles.botBubble,
         !isUser && bubbleColor ? { backgroundColor: bubbleColor } : {},
+        !isUser && bubbleBorderColor ? { borderWidth: 2, borderColor: bubbleBorderColor } : {},
       ]}
     >
       {!isUser && sponsor?.avatar && (
@@ -153,6 +156,7 @@ function SponsorChatContent({ initialSponsor }: { initialSponsor: string }) {
   // Use the initialSponsor directly for display (we know it's valid)
   const sponsor = getSponsorById(initialSponsor as SponsorType);
   const bubbleColor = sponsor?.bubbleColor;
+  const bubbleBorderColor = sponsor?.bubbleBorderColor;
   const placeholderText = sponsor?.placeholderText ?? "Type a message...";
   const loadingText = sponsor?.loadingText ?? "Thinking...";
 
@@ -280,6 +284,7 @@ function SponsorChatContent({ initialSponsor }: { initialSponsor: string }) {
               <ChatBubble
                 message={item}
                 bubbleColor={bubbleColor}
+                bubbleBorderColor={bubbleBorderColor}
                 sponsorType={initialSponsor as SponsorType}
                 fontSize={fontSize}
               />
