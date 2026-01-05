@@ -69,7 +69,7 @@ export const SPONSORS: SponsorConfig[] = [
     placeholderText: "Tell Sam what's got you sideways...",
     loadingText: "Salty Sam is thinking...",
     bubbleColor: "#fff0d4",
-    tileColor: "#f5dba8",
+    tileColor: "#ffeca7",
   },
   {
     id: "grace",
@@ -134,8 +134,8 @@ export const SPONSORS: SponsorConfig[] = [
     initialMessage: MAMA_JO_INITIAL_MESSAGE,
     placeholderText: "Tell Mama Jo what's on your mind...",
     loadingText: "Mama Jo is fixin' to share some wisdom...",
-    bubbleColor: "#FDD8C4",
-    tileColor: "#E5A888",
+    bubbleColor: "#ffe1d3",
+    tileColor: "#ffba9b",
   },
 ];
 
