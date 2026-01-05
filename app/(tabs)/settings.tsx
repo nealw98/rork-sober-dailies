@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Platform, Linking, Share, ScrollView, Modal, SafeAreaView, Alert } from 'react-native';
 import { router, Stack } from 'expo-router';
-import { getPreviousRoute } from '@/lib/previousRoute';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ChevronLeft, ChevronRight } from 'lucide-react-native';
@@ -14,7 +13,7 @@ import { Logger } from '@/lib/logger';
 
 export default function SettingsScreen() {
   const insets = useSafeAreaInsets();
-  const { fontSize, setFontSize, minFontSize, maxFontSize } = useTextSettings();
+  const { fontSize, setFontSize, minFontSize, maxFontSize, resetDefaults, defaultFontSize } = useTextSettings();
   const [logsVisible, setLogsVisible] = useState(false);
   const [logsText, setLogsText] = useState('');
   
@@ -23,9 +22,7 @@ export default function SettingsScreen() {
   const decrease = () => setFontSize(fontSize - step);
 
   const handleBack = () => {
-    // Navigate to the previous route (tracked globally)
-    const previousRoute = getPreviousRoute();
-    router.push(previousRoute as any);
+    router.back();
   };
 
   // Version info
@@ -200,6 +197,17 @@ export default function SettingsScreen() {
               <Text style={[styles.sizeButtonText, fontSize >= maxFontSize && styles.sizeButtonTextDisabled]}>+</Text>
             </TouchableOpacity>
           </View>
+          
+          {/* Reset to Default */}
+          {fontSize !== defaultFontSize && (
+            <TouchableOpacity
+              style={styles.resetButton}
+              onPress={resetDefaults}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.resetButtonText}>Reset to Default</Text>
+            </TouchableOpacity>
+          )}
         </View>
 
         {/* Support Section */}
@@ -225,7 +233,7 @@ export default function SettingsScreen() {
         
         <TouchableOpacity 
           style={styles.menuItem}
-          onPress={() => router.push('/about-support')}
+          onPress={() => router.push('/support-developer')}
           activeOpacity={0.7}
         >
           <Text style={[styles.menuItemTitle, { fontSize }]}>Support the Developer</Text>
@@ -237,7 +245,7 @@ export default function SettingsScreen() {
         
         <TouchableOpacity 
           style={[styles.menuItem, styles.menuItemLast]}
-          onPress={() => router.push('/about-support')}
+          onPress={() => router.push('/about')}
           activeOpacity={0.7}
         >
           <Text style={[styles.menuItemTitle, { fontSize }]}>About Sober Dailies</Text>
@@ -390,6 +398,16 @@ const styles = StyleSheet.create({
   },
   sizeButtonTextDisabled: {
     color: '#a0a0a0',
+  },
+  resetButton: {
+    alignSelf: 'center',
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+  },
+  resetButtonText: {
+    fontSize: 14,
+    color: '#3D8B8B',
+    fontWeight: adjustFontWeight('500'),
   },
   menuItem: {
     flexDirection: 'row',
