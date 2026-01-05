@@ -257,6 +257,8 @@ const styles = StyleSheet.create({
   },
   tileHalf: {
     width: TILE_WIDTH,
+    height: TILE_WIDTH,
+    justifyContent: "center",
   },
   tileTextContainer: {
     flex: 1,

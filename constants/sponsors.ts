@@ -135,7 +135,7 @@ export const SPONSORS: SponsorConfig[] = [
     placeholderText: "Tell Mama Jo what's on your mind...",
     loadingText: "Mama Jo is fixin' to share some wisdom...",
     bubbleColor: "#FDD8C4",
-    tileColor: "#DF9A78",
+    tileColor: "#E5A888",
   },
 ];
 
