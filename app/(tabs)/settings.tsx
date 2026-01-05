@@ -398,7 +398,7 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     paddingHorizontal: 4,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(0, 0, 0, 0.08)',
+    borderBottomColor: 'rgba(61, 139, 139, 0.3)',
   },
   menuItemLast: {
     borderBottomWidth: 0,
