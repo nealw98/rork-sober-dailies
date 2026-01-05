@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useCallback, useMemo, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import {
   StyleSheet,
   View,
@@ -6,62 +6,28 @@ import {
   ScrollView,
   TouchableOpacity,
 } from "react-native";
-import { ChevronDown, ChevronRight, ChevronLeft } from "lucide-react-native";
+import { ChevronRight, ChevronLeft } from "lucide-react-native";
 import { LinearGradient } from 'expo-linear-gradient';
-import { useLocalSearchParams, useFocusEffect, useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Stack } from 'expo-router';
-import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import Colors from "@/constants/colors";
 import { aaPrayers } from "@/constants/prayers";
 import { adjustFontWeight } from "@/constants/fonts";
 import ScreenContainer from "@/components/ScreenContainer";
-import { useTextSettings } from "@/hooks/use-text-settings";
+import { PrayerReader } from "@/components/PrayerReader";
 
 export default function PrayersScreen() {
   const { prayer } = useLocalSearchParams();
-  const [expandedPrayer, setExpandedPrayer] = useState<number | null>(null);
-  const scrollViewRef = useRef<ScrollView>(null);
-  const prayerRefs = useRef<{ [key: number]: View | null }>({});
-  const prayerPositions = useRef<{ [key: number]: number }>({});
   const router = useRouter();
   const insets = useSafeAreaInsets();
   
-  const { fontSize, lineHeight, resetDefaults } = useTextSettings();
-  
-  // Double-tap to reset to default font size
-  const doubleTapGesture = useMemo(() => Gesture.Tap()
-    .numberOfTaps(2)
-    .onStart(() => {
-      resetDefaults();
-    })
-    .runOnJS(true), [resetDefaults]);
+  const [readerVisible, setReaderVisible] = useState(false);
+  const [selectedPrayerIndex, setSelectedPrayerIndex] = useState(0);
 
-  // Track if we came from a deep link or tab navigation
-  const isFromDeepLink = useRef(false);
-  
-  // Reset expanded prayer when screen comes into focus via tab navigation
-  useFocusEffect(
-    useCallback(() => {
-      // If we're not coming from a deep link, always reset to collapsed state
-      if (!isFromDeepLink.current) {
-        setExpandedPrayer(null);
-        // Scroll to top
-        setTimeout(() => {
-          scrollViewRef.current?.scrollTo({ y: 0, animated: true });
-        }, 100);
-      }
-      // Reset the deep link flag after handling
-      isFromDeepLink.current = false;
-    }, [])
-  );
-
+  // Handle deep link navigation (from Home screen tiles)
   useEffect(() => {
     if (prayer) {
-      // Mark that we came from a deep link
-      isFromDeepLink.current = true;
-      
       const prayerParam = prayer.toString().toLowerCase();
       const prayerIndex = aaPrayers.findIndex(p => {
         const title = p.title.toLowerCase();
@@ -70,25 +36,24 @@ export default function PrayersScreen() {
                (prayerParam === 'evening' && title.includes('evening'));
       });
       if (prayerIndex !== -1) {
-        setExpandedPrayer(prayerIndex);
-        // Scroll to the prayer after a short delay to ensure the component is rendered
-        setTimeout(() => {
-          scrollToPrayer(prayerIndex);
-        }, 100);
+        setSelectedPrayerIndex(prayerIndex);
+        setReaderVisible(true);
       }
-    } else {
-      // If no prayer parameter, ensure we're in collapsed state
-      isFromDeepLink.current = false;
-      setExpandedPrayer(null);
     }
   }, [prayer]);
 
-  const scrollToPrayer = (index: number) => {
-    const position = prayerPositions.current[index];
-    if (position !== undefined && scrollViewRef.current) {
-      scrollViewRef.current.scrollTo({ y: Math.max(0, position - 20), animated: true });
-    }
-  };
+  const handlePrayerPress = useCallback((index: number) => {
+    setSelectedPrayerIndex(index);
+    setReaderVisible(true);
+  }, []);
+
+  const handlePrayerChange = useCallback((index: number) => {
+    setSelectedPrayerIndex(index);
+  }, []);
+
+  const handleCloseReader = useCallback(() => {
+    setReaderVisible(false);
+  }, []);
 
   return (
     <ScreenContainer style={styles.container} noPadding>
@@ -101,7 +66,6 @@ export default function PrayersScreen() {
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
       >
-        {/* Top row with back button and text settings */}
         <View style={styles.headerTopRow}>
           <TouchableOpacity 
             onPress={() => router.back()} 
@@ -115,59 +79,37 @@ export default function PrayersScreen() {
         <Text style={styles.headerTitle}>AA Prayers</Text>
       </LinearGradient>
       
-      {/* Off-white content area */}
-      <GestureDetector gesture={doubleTapGesture}>
-        <ScrollView 
-          ref={scrollViewRef}
-          style={styles.scrollContainer} 
-          contentContainerStyle={styles.contentContainer}
-        >
-        {aaPrayers.map((prayer, index) => (
-          <View 
-            key={index} 
-            style={styles.prayerItem}
-            ref={(ref) => { prayerRefs.current[index] = ref; }}
-            onLayout={(event) => {
-              const { y } = event.nativeEvent.layout;
-              prayerPositions.current[index] = y;
-            }}
-          >
+      {/* Prayer List */}
+      <ScrollView 
+        style={styles.scrollContainer} 
+        contentContainerStyle={styles.contentContainer}
+        showsVerticalScrollIndicator={false}
+      >
+        <View style={styles.listContainer}>
+          {aaPrayers.map((prayerItem, index) => (
             <TouchableOpacity
-              style={styles.prayerHeader}
-              onPress={() => setExpandedPrayer(expandedPrayer === index ? null : index)}
-              testID={`prayer-${index}`}
+              key={index}
+              style={[
+                styles.listRow,
+                index === aaPrayers.length - 1 && styles.listRowLast
+              ]}
+              onPress={() => handlePrayerPress(index)}
               activeOpacity={0.7}
             >
-              <Text style={styles.prayerTitle}>{prayer.title}</Text>
-              {expandedPrayer === index ? (
-                <ChevronDown size={20} color="#666" />
-              ) : (
-                <ChevronRight size={20} color="#666" />
-              )}
+              <Text style={styles.rowTitle}>{prayerItem.title}</Text>
+              <ChevronRight size={18} color="#a0a0a0" />
             </TouchableOpacity>
-            
-            {expandedPrayer === index && (
-              <View style={styles.prayerContent}>
-                {prayer.title === "Morning Prayer" ? (
-                  <View>
-                    <Text style={[styles.prayerText, styles.italicText, { fontSize, lineHeight: fontSize * 1.375 }]}>As I begin this day, I ask my Higher Power:</Text>
-                    <Text style={[styles.prayerText, { fontSize, lineHeight: fontSize * 1.375 }]}>{prayer.content.split('As I begin this day, I ask my Higher Power:')[1]}</Text>
-                  </View>
-                ) : prayer.title === "Evening Prayer" ? (
-                  <View>
-                    <Text style={[styles.prayerText, styles.italicText, { fontSize, lineHeight: fontSize * 1.375 }]}>As this day closes,</Text>
-                    <Text style={[styles.prayerText, { fontSize, lineHeight: fontSize * 1.375 }]}>{prayer.content.split('As this day closes,')[1]}</Text>
-                  </View>
-                ) : (
-                  <Text style={[styles.prayerText, { fontSize, lineHeight }]}>{prayer.content}</Text>
-                )}
-                {prayer.source && <Text style={[styles.prayerSource, { fontSize: fontSize * 0.75 }]}>— {prayer.source}</Text>}
-              </View>
-            )}
-          </View>
-        ))}
+          ))}
+        </View>
       </ScrollView>
-      </GestureDetector>
+
+      {/* Prayer Reader Modal */}
+      <PrayerReader
+        visible={readerVisible}
+        prayerIndex={selectedPrayerIndex}
+        onClose={handleCloseReader}
+        onPrayerChange={handlePrayerChange}
+      />
     </ScreenContainer>
   );
 }
@@ -195,11 +137,6 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.2)',
     borderRadius: 16,
   },
-  backButtonText: {
-    fontSize: 15,
-    color: '#fff',
-    fontWeight: '500',
-  },
   headerTitle: {
     fontSize: 32,
     fontWeight: adjustFontWeight('400'),
@@ -213,39 +150,24 @@ const styles = StyleSheet.create({
     padding: 16,
     paddingBottom: 40,
   },
-  prayerItem: {
-    borderBottomWidth: 1,
-    borderBottomColor: '#e0e0e0',
+  listContainer: {
   },
-  prayerHeader: {
-    flexDirection: "row",
-    alignItems: "center",
+  listRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     paddingVertical: 16,
-    paddingHorizontal: 8,
-    justifyContent: "space-between",
+    paddingHorizontal: 4,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(61, 139, 139, 0.3)',
   },
-  prayerTitle: {
+  listRowLast: {
+    borderBottomWidth: 0,
+  },
+  rowTitle: {
     fontSize: 18,
-    fontWeight: adjustFontWeight("600", true),
+    fontWeight: adjustFontWeight('500'),
     color: '#000',
-  },
-  prayerContent: {
-    paddingHorizontal: 8,
-    paddingBottom: 16,
-  },
-  prayerText: {
-    fontSize: 16,
-    color: '#000',
-    lineHeight: 22,
-    marginBottom: 16,
-  },
-  italicText: {
-    fontStyle: 'italic',
-  },
-  prayerSource: {
-    fontSize: 12,
-    color: '#555',
-    textAlign: "right",
-    fontStyle: "italic",
+    flex: 1,
   },
 });
