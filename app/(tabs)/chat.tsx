@@ -1,5 +1,5 @@
 import React from "react";
-import { StyleSheet, Platform, Dimensions } from "react-native";
+import { StyleSheet, Dimensions } from "react-native";
 import { Stack } from "expo-router";
 import {
   View,
@@ -18,13 +18,20 @@ import { SPONSORS } from "@/constants/sponsors";
 import ScreenContainer from "@/components/ScreenContainer";
 
 const { width: screenWidth } = Dimensions.get("window");
-const TILE_GAP = 12;
+const TILE_GAP = 20;
 const GRID_PADDING = 20;
 const TILE_WIDTH = (screenWidth - GRID_PADDING * 2 - TILE_GAP) / 2;
+const FULL_WIDTH = screenWidth - GRID_PADDING * 2;
+
+// Only show these sponsors on the selection page
+const VISIBLE_SPONSOR_IDS = ["supportive", "salty", "grace"];
 
 export default function ChatScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+
+  // Filter to only visible sponsors
+  const visibleSponsors = SPONSORS.filter(s => VISIBLE_SPONSOR_IDS.includes(s.id));
 
   const handleSponsorSelect = (sponsorId: string) => {
     const sponsor = SPONSORS.find(s => s.id === sponsorId);
@@ -69,45 +76,59 @@ export default function ChatScreen() {
             contentContainerStyle={styles.scrollContent}
             showsVerticalScrollIndicator={false}
           >
-            <View style={styles.grid}>
-              {SPONSORS.map((sponsor) => (
+            {/* Eddie - Full Width Horizontal */}
+            {visibleSponsors.filter(s => s.id === "supportive").map((sponsor) => (
+              <TouchableOpacity
+                key={sponsor.id}
+                style={[
+                  styles.tile,
+                  styles.tileFullWidth,
+                  styles.tileHorizontal,
+                  sponsor.tileColor && { backgroundColor: sponsor.tileColor },
+                ]}
+                onPress={() => handleSponsorSelect(sponsor.id)}
+                activeOpacity={0.7}
+              >
+                {sponsor.avatar && (
+                  <Image 
+                    source={sponsor.avatar} 
+                    style={styles.avatarLarge}
+                  />
+                )}
+                <View style={styles.tileTextContainer}>
+                  <Text style={styles.sponsorNameLeft} numberOfLines={1}>
+                    {sponsor.name}
+                  </Text>
+                  <Text style={styles.sponsorDescriptionLeft} numberOfLines={2}>
+                    {sponsor.description}
+                  </Text>
+                </View>
+              </TouchableOpacity>
+            ))}
+
+            {/* Sam and Grace - Side by Side */}
+            <View style={styles.row}>
+              {visibleSponsors.filter(s => s.id === "salty" || s.id === "grace").map((sponsor) => (
                 <TouchableOpacity
                   key={sponsor.id}
                   style={[
                     styles.tile,
+                    styles.tileHalf,
                     sponsor.tileColor && { backgroundColor: sponsor.tileColor },
-                    !sponsor.isAvailable && styles.tileDisabled,
                   ]}
                   onPress={() => handleSponsorSelect(sponsor.id)}
                   activeOpacity={0.7}
-                  disabled={!sponsor.isAvailable}
                 >
-                  {sponsor.isAvailable && sponsor.avatar ? (
+                  {sponsor.avatar && (
                     <Image 
                       source={sponsor.avatar} 
                       style={styles.avatar}
                     />
-                  ) : (
-                    <View style={styles.avatarLocked}>
-                      <Text style={styles.lockEmoji}>🚧</Text>
-                    </View>
                   )}
-                  <Text
-                    style={[
-                      styles.sponsorName,
-                      !sponsor.isAvailable && styles.textDisabled,
-                    ]}
-                    numberOfLines={1}
-                  >
+                  <Text style={styles.sponsorName} numberOfLines={1}>
                     {sponsor.name}
                   </Text>
-                  <Text
-                    style={[
-                      styles.sponsorDescription,
-                      !sponsor.isAvailable && styles.textDisabled,
-                    ]}
-                    numberOfLines={2}
-                  >
+                  <Text style={styles.sponsorDescription} numberOfLines={2}>
                     {sponsor.description}
                   </Text>
                 </TouchableOpacity>
@@ -139,11 +160,6 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.2)',
     borderRadius: 16,
   },
-  backButtonText: {
-    fontSize: 15,
-    color: '#fff',
-    fontWeight: '500',
-  },
   headerTitle: {
     fontSize: 32,
     fontWeight: adjustFontWeight("400"),
@@ -162,21 +178,31 @@ const styles = StyleSheet.create({
     paddingTop: 20,
     paddingBottom: 32,
   },
-  grid: {
+  row: {
     flexDirection: "row",
-    flexWrap: "wrap",
     justifyContent: "space-between",
   },
   tile: {
-    width: TILE_WIDTH,
     backgroundColor: 'rgba(61, 139, 139, 0.15)',
     borderRadius: 16,
     padding: 16,
     marginBottom: TILE_GAP,
     alignItems: "center",
   },
-  tileDisabled: {
-    opacity: 0.6,
+  tileFullWidth: {
+    width: FULL_WIDTH,
+  },
+  tileHorizontal: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 20,
+  },
+  tileHalf: {
+    width: TILE_WIDTH,
+  },
+  tileTextContainer: {
+    flex: 1,
+    marginLeft: 16,
   },
   avatar: {
     width: 72,
@@ -184,17 +210,10 @@ const styles = StyleSheet.create({
     borderRadius: 36,
     marginBottom: 12,
   },
-  avatarLocked: {
-    width: 72,
-    height: 72,
-    borderRadius: 36,
-    marginBottom: 12,
-    backgroundColor: Colors.light.divider,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  lockEmoji: {
-    fontSize: 24,
+  avatarLarge: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
   },
   sponsorName: {
     fontSize: 20,
@@ -203,6 +222,13 @@ const styles = StyleSheet.create({
     marginBottom: 4,
     textAlign: "center",
   },
+  sponsorNameLeft: {
+    fontSize: 22,
+    fontWeight: adjustFontWeight("600", true),
+    color: '#000',
+    marginBottom: 4,
+    textAlign: "left",
+  },
   sponsorDescription: {
     fontSize: 14,
     fontWeight: adjustFontWeight("400"),
@@ -210,7 +236,11 @@ const styles = StyleSheet.create({
     lineHeight: 18,
     textAlign: "center",
   },
-  textDisabled: {
-    color: Colors.light.muted,
+  sponsorDescriptionLeft: {
+    fontSize: 14,
+    fontWeight: adjustFontWeight("400"),
+    color: '#666',
+    lineHeight: 18,
+    textAlign: "left",
   },
 });

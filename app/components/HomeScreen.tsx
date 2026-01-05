@@ -156,14 +156,14 @@ const styles = StyleSheet.create({
   heroTile: {
     borderRadius: 16,
     padding: 20,
-    marginBottom: 12,
+    marginBottom: 20,
   },
   heroTileHalf: {
     flex: 1,
   },
   heroRow: {
     flexDirection: 'row',
-    gap: 12,
+    gap: 20,
   },
   dailyReflectionTile: {
     backgroundColor: '#4A68B5',
