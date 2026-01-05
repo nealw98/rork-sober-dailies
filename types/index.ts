@@ -28,4 +28,4 @@ export interface WeeklyProgressDay {
   isFuture: boolean;
 }
 
-export type SponsorType = "salty" | "supportive" | "grace" | "cowboy" | "cosign" | "fresh";
+export type SponsorType = "salty" | "supportive" | "grace" | "cowboy" | "cosign" | "fresh" | "mama-jo";

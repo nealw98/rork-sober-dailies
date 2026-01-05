@@ -27,6 +27,10 @@ import {
   FRESH_FREDDIE_SYSTEM_PROMPT,
   FRESH_FREDDIE_INITIAL_MESSAGE,
 } from "@/constants/fresh-freddie";
+import {
+  MAMA_JO_SYSTEM_PROMPT,
+  MAMA_JO_INITIAL_MESSAGE,
+} from "@/constants/mama-jo";
 import { addAIResponses, maybeAskForReview } from "@/lib/reviewPrompt";
 
 
@@ -122,6 +126,9 @@ function convertToAPIMessages(chatMessages: ChatMessage[], sponsorType: SponsorT
     case "fresh":
       systemPrompt = FRESH_FREDDIE_SYSTEM_PROMPT;
       break;
+    case "mama-jo":
+      systemPrompt = MAMA_JO_SYSTEM_PROMPT;
+      break;
     default:
       systemPrompt = STEADY_EDDIE_SYSTEM_PROMPT;
   }
@@ -155,6 +162,7 @@ export const [ChatStoreProvider, useChatStore] = createContextHook(() => {
   const [cowboyMessages, setCowboyMessages] = useState<ChatMessage[]>([COWBOY_PETE_INITIAL_MESSAGE]);
   const [sallyMessages, setSallyMessages] = useState<ChatMessage[]>([CO_SIGN_SALLY_INITIAL_MESSAGE]);
   const [freshMessages, setFreshMessages] = useState<ChatMessage[]>([FRESH_FREDDIE_INITIAL_MESSAGE]);
+  const [mamaJoMessages, setMamaJoMessages] = useState<ChatMessage[]>([MAMA_JO_INITIAL_MESSAGE]);
   const [isLoading, setIsLoading] = useState<boolean>(false);
 
   // Get current messages based on selected sponsor
@@ -166,6 +174,7 @@ export const [ChatStoreProvider, useChatStore] = createContextHook(() => {
       case "cowboy-pete": return cowboyMessages;
       case "co-sign-sally": return sallyMessages;
       case "fresh": return freshMessages;
+      case "mama-jo": return mamaJoMessages;
       default: return saltyMessages;
     }
   })();
@@ -191,6 +200,9 @@ export const [ChatStoreProvider, useChatStore] = createContextHook(() => {
       case "fresh":
         setFreshMessages(newMessages);
         break;
+      case "mama-jo":
+        setMamaJoMessages(newMessages);
+        break;
     }
   };
 
@@ -205,6 +217,7 @@ export const [ChatStoreProvider, useChatStore] = createContextHook(() => {
           storedCowboyMessages,
           storedSallyMessages,
           storedFreshMessages,
+          storedMamaJoMessages,
           storedSponsorType
         ] = await Promise.all([
           AsyncStorage.getItem("aa-chat-messages-salty"),
@@ -213,6 +226,7 @@ export const [ChatStoreProvider, useChatStore] = createContextHook(() => {
           AsyncStorage.getItem("aa-chat-messages-cowboy"),
           AsyncStorage.getItem("aa-chat-messages-sally"),
           AsyncStorage.getItem("aa-chat-messages-fresh"),
+          AsyncStorage.getItem("aa-chat-messages-mama-jo"),
           AsyncStorage.getItem("aa-chat-sponsor-type")
         ]);
         
@@ -342,6 +356,25 @@ export const [ChatStoreProvider, useChatStore] = createContextHook(() => {
             setFreshMessages([FRESH_FREDDIE_INITIAL_MESSAGE]);
           }
         }
+
+        if (storedMamaJoMessages) {
+          try {
+            const parsed = JSON.parse(storedMamaJoMessages);
+            if (Array.isArray(parsed)) {
+              if (parsed.length === 0 || parsed[0].id !== "welcome-mama-jo") {
+                setMamaJoMessages([MAMA_JO_INITIAL_MESSAGE, ...parsed]);
+              } else {
+                setMamaJoMessages([MAMA_JO_INITIAL_MESSAGE, ...parsed.slice(1)]);
+              }
+            } else {
+              console.warn('[Chat Store] Invalid mama-jo messages format, using defaults');
+              setMamaJoMessages([MAMA_JO_INITIAL_MESSAGE]);
+            }
+          } catch (error) {
+            console.error('[Chat Store] Failed to parse mama-jo messages:', error);
+            setMamaJoMessages([MAMA_JO_INITIAL_MESSAGE]);
+          }
+        }
       } catch (error) {
         console.error("Error loading messages:", error);
       }
@@ -435,6 +468,20 @@ export const [ChatStoreProvider, useChatStore] = createContextHook(() => {
     }
   }, [freshMessages]);
 
+  useEffect(() => {
+    const saveMessages = async () => {
+      try {
+        await AsyncStorage.setItem("aa-chat-messages-mama-jo", JSON.stringify(mamaJoMessages));
+      } catch (error) {
+        console.error("Error saving Mama Jo messages:", error);
+      }
+    };
+    
+    if (mamaJoMessages.length > 0) {
+      saveMessages();
+    }
+  }, [mamaJoMessages]);
+
   // Save sponsor type preference
   useEffect(() => {
     const saveSponsorType = async () => {
@@ -460,6 +507,7 @@ export const [ChatStoreProvider, useChatStore] = createContextHook(() => {
       case "cowboy-pete": return cowboyMessages;
       case "co-sign-sally": return sallyMessages;
       case "fresh": return freshMessages;
+      case "mama-jo": return mamaJoMessages;
       default: return supportiveMessages;
     }
   };
@@ -620,6 +668,10 @@ export const [ChatStoreProvider, useChatStore] = createContextHook(() => {
         case "fresh":
           await AsyncStorage.removeItem("aa-chat-messages-fresh");
           setFreshMessages([FRESH_FREDDIE_INITIAL_MESSAGE]);
+          break;
+        case "mama-jo":
+          await AsyncStorage.removeItem("aa-chat-messages-mama-jo");
+          setMamaJoMessages([MAMA_JO_INITIAL_MESSAGE]);
           break;
       }
     } catch (error) {

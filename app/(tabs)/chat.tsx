@@ -24,7 +24,7 @@ const TILE_WIDTH = (screenWidth - GRID_PADDING * 2 - TILE_GAP) / 2;
 const FULL_WIDTH = screenWidth - GRID_PADDING * 2;
 
 // Only show these sponsors on the selection page
-const VISIBLE_SPONSOR_IDS = ["supportive", "salty", "grace"];
+const VISIBLE_SPONSOR_IDS = ["supportive", "salty", "grace", "cowboy-pete", "co-sign-sally", "fresh", "mama-jo"];
 
 export default function ChatScreen() {
   const router = useRouter();
@@ -76,7 +76,7 @@ export default function ChatScreen() {
             contentContainerStyle={styles.scrollContent}
             showsVerticalScrollIndicator={false}
           >
-            {/* Eddie - Full Width Horizontal */}
+            {/* Eddie - Full Width */}
             {visibleSponsors.filter(s => s.id === "supportive").map((sponsor) => (
               <TouchableOpacity
                 key={sponsor.id}
@@ -106,9 +106,67 @@ export default function ChatScreen() {
               </TouchableOpacity>
             ))}
 
-            {/* Sam and Grace - Side by Side */}
+            {/* Row 2: Sam and Grace */}
             <View style={styles.row}>
               {visibleSponsors.filter(s => s.id === "salty" || s.id === "grace").map((sponsor) => (
+                <TouchableOpacity
+                  key={sponsor.id}
+                  style={[
+                    styles.tile,
+                    styles.tileHalf,
+                    sponsor.tileColor && { backgroundColor: sponsor.tileColor },
+                  ]}
+                  onPress={() => handleSponsorSelect(sponsor.id)}
+                  activeOpacity={0.7}
+                >
+                  {sponsor.avatar && (
+                    <Image 
+                      source={sponsor.avatar} 
+                      style={styles.avatar}
+                    />
+                  )}
+                  <Text style={styles.sponsorName} numberOfLines={1}>
+                    {sponsor.name}
+                  </Text>
+                  <Text style={styles.sponsorDescription} numberOfLines={2}>
+                    {sponsor.description}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+
+            {/* Row 3: Pete and Sally */}
+            <View style={styles.row}>
+              {visibleSponsors.filter(s => s.id === "cowboy-pete" || s.id === "co-sign-sally").map((sponsor) => (
+                <TouchableOpacity
+                  key={sponsor.id}
+                  style={[
+                    styles.tile,
+                    styles.tileHalf,
+                    sponsor.tileColor && { backgroundColor: sponsor.tileColor },
+                  ]}
+                  onPress={() => handleSponsorSelect(sponsor.id)}
+                  activeOpacity={0.7}
+                >
+                  {sponsor.avatar && (
+                    <Image 
+                      source={sponsor.avatar} 
+                      style={styles.avatar}
+                    />
+                  )}
+                  <Text style={styles.sponsorName} numberOfLines={1}>
+                    {sponsor.name}
+                  </Text>
+                  <Text style={styles.sponsorDescription} numberOfLines={2}>
+                    {sponsor.description}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+
+            {/* Row 4: Mama Jo and Freddie */}
+            <View style={styles.row}>
+              {visibleSponsors.filter(s => s.id === "mama-jo" || s.id === "fresh").map((sponsor) => (
                 <TouchableOpacity
                   key={sponsor.id}
                   style={[
@@ -232,14 +290,14 @@ const styles = StyleSheet.create({
   sponsorDescription: {
     fontSize: 14,
     fontWeight: adjustFontWeight("400"),
-    color: '#666',
+    color: '#000',
     lineHeight: 18,
     textAlign: "center",
   },
   sponsorDescriptionLeft: {
     fontSize: 14,
     fontWeight: adjustFontWeight("400"),
-    color: '#666',
+    color: '#000',
     lineHeight: 18,
     textAlign: "left",
   },

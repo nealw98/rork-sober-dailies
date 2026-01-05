@@ -23,6 +23,10 @@ import {
   FRESH_FREDDIE_SYSTEM_PROMPT,
   FRESH_FREDDIE_INITIAL_MESSAGE,
 } from "./fresh-freddie";
+import {
+  MAMA_JO_SYSTEM_PROMPT,
+  MAMA_JO_INITIAL_MESSAGE,
+} from "./mama-jo";
 
 export interface SponsorConfig {
   id: SponsorType | string;
@@ -51,7 +55,7 @@ export const SPONSORS: SponsorConfig[] = [
     initialMessage: STEADY_EDDIE_INITIAL_MESSAGE,
     placeholderText: "Tell Eddie what's on your mind...",
     loadingText: "Steady Eddie is thinking...",
-    bubbleColor: "#e8f8e8",
+    bubbleColor: "#d0e8d0",
     tileColor: "#a8d8a8",
   },
   {
@@ -119,6 +123,19 @@ export const SPONSORS: SponsorConfig[] = [
     bubbleColor: "#CCFBF1",
     bubbleShadowColor: "rgba(16,185,129,0.45)",
     tileColor: "#a8ebe0",
+  },
+  {
+    id: "mama-jo",
+    name: "Mama Jo",
+    description: "Warm Southern wisdom and firm love",
+    avatar: require("@/assets/images/Mama_Jo.png"),
+    isAvailable: true,
+    systemPrompt: MAMA_JO_SYSTEM_PROMPT,
+    initialMessage: MAMA_JO_INITIAL_MESSAGE,
+    placeholderText: "Tell Mama Jo what's on your mind...",
+    loadingText: "Mama Jo is fixin' to share some wisdom...",
+    bubbleColor: "#FDD8C4",
+    tileColor: "#DF9A78",
   },
 ];
 
