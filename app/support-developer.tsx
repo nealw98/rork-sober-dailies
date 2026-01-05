@@ -165,9 +165,9 @@ const SupportDeveloperScreen = () => {
   const tier2Pkg = packagesById['tier2'];
   const tier3Pkg = packagesById['tier3'];
   
-  const tier1Label = (tier1Pkg as any)?.storeProduct?.priceString || '$4.99';
-  const tier2Label = (tier2Pkg as any)?.storeProduct?.priceString || '$9.99';
-  const tier3Label = (tier3Pkg as any)?.storeProduct?.priceString || '$19.99';
+  const tier1Label = (tier1Pkg as any)?.storeProduct?.priceString || '$1.99';
+  const tier2Label = (tier2Pkg as any)?.storeProduct?.priceString || '$4.99';
+  const tier3Label = (tier3Pkg as any)?.storeProduct?.priceString || '$9.99';
   
   const areProductsAvailable = !isLoadingOfferings && (tier1Pkg || tier2Pkg || tier3Pkg);
 
