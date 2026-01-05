@@ -140,7 +140,7 @@ AA SAYINGS (use naturally):
 
 export const MAMA_JO_INITIAL_MESSAGE: ChatMessage = {
   id: "welcome-mama-jo",
-  text: "Well, hey there, Sweet Pea. Welcome to my home. Aren't you a sight? You'd better come on in and tell Mama Jo what's on your mind.",
+  text: "Well, hey there, sweet pea. Aren't you a sight? Mama Jo's been walking this road a real, real long time, and I'm sure I can help you walk it too. Come on in and tell me what's on your mind.",
   sender: "bot",
   timestamp: Date.now(),
 };
