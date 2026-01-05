@@ -192,7 +192,7 @@ const SupportDeveloperScreen = () => {
             </TouchableOpacity>
             <View style={{ width: 60 }} />
           </View>
-          <Text style={styles.headerTitle}>Support the Developer</Text>
+          <Text style={styles.headerTitle}>Support the App</Text>
         </LinearGradient>
 
         {/* Content */}
@@ -222,7 +222,7 @@ const SupportDeveloperScreen = () => {
                 {purchasingId === 'tier1' ? (
                   <ActivityIndicator color="#fff" />
                 ) : (
-                  <Text style={styles.tierButtonText}>{tier1Label} – Supporter</Text>
+                  <Text style={styles.tierButtonText}>{tier1Label}</Text>
                 )}
               </TouchableOpacity>
 
@@ -235,7 +235,7 @@ const SupportDeveloperScreen = () => {
                 {purchasingId === 'tier2' ? (
                   <ActivityIndicator color="#fff" />
                 ) : (
-                  <Text style={styles.tierButtonText}>{tier2Label} – Sustainer</Text>
+                  <Text style={styles.tierButtonText}>{tier2Label}</Text>
                 )}
               </TouchableOpacity>
 
@@ -248,7 +248,7 @@ const SupportDeveloperScreen = () => {
                 {purchasingId === 'tier3' ? (
                   <ActivityIndicator color="#fff" />
                 ) : (
-                  <Text style={styles.tierButtonText}>{tier3Label} – Champion</Text>
+                  <Text style={styles.tierButtonText}>{tier3Label}</Text>
                 )}
               </TouchableOpacity>
             </View>
@@ -300,9 +300,9 @@ const styles = StyleSheet.create({
     paddingTop: 24,
   },
   descriptionText: {
-    fontSize: 16,
+    fontSize: 18,
     color: '#555',
-    lineHeight: 24,
+    lineHeight: 28,
     textAlign: 'center',
     marginBottom: 32,
   },
