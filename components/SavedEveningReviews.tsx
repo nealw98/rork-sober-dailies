@@ -11,8 +11,7 @@ import {
   Share
 } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
-import { LinearGradient } from 'expo-linear-gradient';
-import { Calendar, Share as ShareIcon, Trash2, X, Check, ChevronLeft } from 'lucide-react-native';
+import { Calendar, Share as ShareIcon, Trash2, X, Check } from 'lucide-react-native';
 import { useEveningReviewStore } from '@/hooks/use-evening-review-store';
 import Colors from '@/constants/colors';
 import { adjustFontWeight } from '@/constants/fonts';
@@ -249,28 +248,20 @@ export default function SavedEveningReviews({ visible, onClose }: SavedEveningRe
 
       return (
         <View style={styles.entryDetailContainer}>
-          {/* Gradient Header */}
-          <LinearGradient
-            colors={['#4A6FA5', '#3D8B8B', '#45A08A']}
-            style={styles.headerGradient}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-          >
-            <View style={styles.entryDetailHeader}>
-              <TouchableOpacity
-                style={styles.backButton}
-                onPress={() => {
-                  console.log('Going back to list');
-                  setSelectedEntry(null);
-                }}
-                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-              >
-                <ChevronLeft color="#fff" size={24} />
-              </TouchableOpacity>
-              <Text style={styles.modalTitle}>Nightly Review</Text>
-              <View style={styles.headerSpacer} />
-            </View>
-          </LinearGradient>
+          {/* Teal Header */}
+          <View style={styles.entryDetailHeader}>
+            <Text style={styles.modalTitle}>Nightly Review</Text>
+            <TouchableOpacity
+              style={styles.closeButton}
+              onPress={() => {
+                console.log('Going back to list');
+                setSelectedEntry(null);
+              }}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            >
+              <X color="#fff" size={24} />
+            </TouchableOpacity>
+          </View>
 
           <ScrollView style={styles.entryDetailContent}>
             <Text style={styles.entryDate}>{formatDateDisplay(date)}</Text>
@@ -351,28 +342,20 @@ export default function SavedEveningReviews({ visible, onClose }: SavedEveningRe
 
     return (
       <View style={styles.entryDetailContainer}>
-        {/* Gradient Header */}
-        <LinearGradient
-          colors={['#4A6FA5', '#3D8B8B', '#45A08A']}
-          style={styles.headerGradient}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-        >
-          <View style={styles.entryDetailHeader}>
-            <TouchableOpacity
-              style={styles.backButton}
-              onPress={() => {
-                console.log('Going back to list');
-                setSelectedEntry(null);
-              }}
-              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-            >
-              <ChevronLeft color="#fff" size={24} />
-            </TouchableOpacity>
-            <Text style={styles.modalTitle}>Nightly Review</Text>
-            <View style={styles.headerSpacer} />
-          </View>
-        </LinearGradient>
+        {/* Teal Header */}
+        <View style={styles.entryDetailHeader}>
+          <Text style={styles.modalTitle}>Nightly Review</Text>
+          <TouchableOpacity
+            style={styles.closeButton}
+            onPress={() => {
+              console.log('Going back to list');
+              setSelectedEntry(null);
+            }}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          >
+            <X color="#fff" size={24} />
+          </TouchableOpacity>
+        </View>
 
         <ScrollView style={styles.entryDetailContent}>
           <Text style={styles.entryDate}>{formatDateDisplay(date)}</Text>
@@ -445,21 +428,13 @@ export default function SavedEveningReviews({ visible, onClose }: SavedEveningRe
           renderEntryDetail()
         ) : (
           <>
-            {/* Gradient Header */}
-            <LinearGradient
-              colors={['#4A6FA5', '#3D8B8B', '#45A08A']}
-              style={styles.headerGradient}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-            >
-              <View style={styles.header}>
-                <TouchableOpacity style={styles.closeButton} onPress={onClose}>
-                  <ChevronLeft color="#fff" size={24} />
-                </TouchableOpacity>
-                <Text style={styles.title}>Saved Reviews</Text>
-                <View style={styles.placeholder} />
-              </View>
-            </LinearGradient>
+            {/* Teal Header */}
+            <View style={styles.header}>
+              <Text style={styles.title}>Saved Reviews</Text>
+              <TouchableOpacity style={styles.closeButton} onPress={onClose}>
+                <X color="#fff" size={24} />
+              </TouchableOpacity>
+            </View>
 
             <ScrollView 
               style={styles.content}
@@ -543,27 +518,20 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#f5f6f8',
   },
-  headerGradient: {
-    paddingTop: 16,
-    paddingBottom: 16,
-  },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 16,
+    paddingVertical: 16,
+    backgroundColor: '#3D8B8B',
   },
   closeButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 6,
-    paddingHorizontal: 10,
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    borderRadius: 16,
+    padding: 8,
   },
   title: {
-    fontSize: 20,
-    fontWeight: adjustFontWeight('600', true),
+    fontSize: 24,
+    fontWeight: adjustFontWeight('400'),
     color: '#fff',
   },
   placeholder: {
@@ -650,18 +618,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 16,
-  },
-  backButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 6,
-    paddingHorizontal: 10,
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    borderRadius: 16,
+    paddingVertical: 16,
+    backgroundColor: '#3D8B8B',
   },
   modalTitle: {
-    fontSize: 20,
-    fontWeight: adjustFontWeight('600', true),
+    fontSize: 24,
+    fontWeight: adjustFontWeight('400'),
     color: '#fff',
   },
   headerSpacer: {

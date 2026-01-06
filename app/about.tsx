@@ -6,11 +6,10 @@ import {
   TouchableOpacity,
   ScrollView,
 } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
 import { Stack, router } from 'expo-router';
 import { adjustFontWeight } from '@/constants/fonts';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { ChevronLeft } from 'lucide-react-native';
+import { X } from 'lucide-react-native';
 
 const AboutScreen = () => {
   const insets = useSafeAreaInsets();
@@ -19,25 +18,13 @@ const AboutScreen = () => {
     <>
       <Stack.Screen options={{ headerShown: false }} />
       <View style={styles.container}>
-        {/* Gradient Header */}
-        <LinearGradient
-          colors={['#4A6FA5', '#3D8B8B', '#45A08A']}
-          style={[styles.headerBlock, { paddingTop: insets.top + 8 }]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-        >
-          <View style={styles.headerTopRow}>
-            <TouchableOpacity 
-              onPress={() => router.back()} 
-              style={styles.backButton}
-              activeOpacity={0.7}
-            >
-              <ChevronLeft size={24} color="#fff" />
-            </TouchableOpacity>
-            <View style={{ width: 60 }} />
-          </View>
+        {/* Teal Header */}
+        <View style={styles.header}>
           <Text style={styles.headerTitle}>About Sober Dailies</Text>
-        </LinearGradient>
+          <TouchableOpacity onPress={() => router.back()} style={styles.closeButton}>
+            <X size={24} color="#fff" />
+          </TouchableOpacity>
+        </View>
 
         {/* Content */}
         <ScrollView 
@@ -63,29 +50,21 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#f5f6f8',
   },
-  headerBlock: {
-    paddingBottom: 16,
-    paddingHorizontal: 16,
-  },
-  headerTopRow: {
+  header: {
     flexDirection: 'row',
+    alignItems: 'center',
     justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  backButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 6,
-    paddingHorizontal: 10,
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    borderRadius: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+    backgroundColor: '#3D8B8B',
   },
   headerTitle: {
-    fontSize: 32,
+    fontSize: 24,
     fontWeight: adjustFontWeight('400'),
     color: '#fff',
-    textAlign: 'center',
+  },
+  closeButton: {
+    padding: 8,
   },
   content: {
     flex: 1,

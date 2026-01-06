@@ -230,6 +230,20 @@ function RootLayoutNav() {
             headerShown: false,
           }} 
         />
+        <Stack.Screen 
+          name="about" 
+          options={{ 
+            presentation: 'modal',
+            headerShown: false,
+          }} 
+        />
+        <Stack.Screen 
+          name="support-developer" 
+          options={{ 
+            presentation: 'modal',
+            headerShown: false,
+          }} 
+        />
         
       </Stack>
         <OTASnackbar visible={showSnackbar} onDismiss={dismissSnackbar} onRestart={restartApp} />

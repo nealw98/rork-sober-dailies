@@ -216,8 +216,8 @@ const styles = StyleSheet.create({
     backgroundColor: '#3D8B8B',
   },
   headerTitle: {
-    fontSize: 20,
-    fontWeight: adjustFontWeight('600'),
+    fontSize: 24,
+    fontWeight: adjustFontWeight('400'),
     color: '#fff',
   },
   closeButton: {
