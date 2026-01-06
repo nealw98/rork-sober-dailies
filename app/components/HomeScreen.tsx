@@ -134,7 +134,6 @@ const HomeScreen = () => {
           >
             <Text style={styles.routineEmoji}>📝</Text>
             <Text style={styles.routineTitle}>Spot Check Inventory</Text>
-            <Text style={styles.routineSubtitle}>A quick review when you're "off the beam"</Text>
           </TouchableOpacity>
         </View>
 
