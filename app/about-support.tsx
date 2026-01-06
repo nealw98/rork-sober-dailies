@@ -423,9 +423,12 @@ const AboutSupportScreen = () => {
             <Text style={styles.aboutCardTitle}>About the App</Text>
             <Text style={styles.aboutCardText}>
               Hi friends,{"\n\n"}
-               I created Sober Dailies because I wanted a simple way to stay consistent with my recovery practices. I needed something that would guide me through my daily habits and bring all the tools I used into one app. I'm grateful to share it with anyone who finds it helpful.{"\n\n"}
-              Your contribution is completely voluntary, but it truly helps. It goes toward covering my development costs, keeping the app running smoothly, and funding future updates and improvements. My goal is to keep the core features free for anyone who wants to use them.{"\n\n"}
-              Whether or not you contribute, I'm just glad you're here and that the app supports your journey.{"\n\n"}
+              I'm Neal, and I've been sober for 19 years working the AA program.{"\n\n"}
+              I built Sober Dailies because I know what it takes to stay consistent with daily recovery practices. After nearly two decades of morning readings, inventories, and nightly reviews, I wanted to bring all those tools together in one simple app.{"\n\n"}
+              Over the years, I've met so many different personalities in the rooms—sponsors who all carry the same message but deliver it in their own unique style. Some are tough love, some are gentle, some make you laugh. I wanted to capture that experience with the AI Sponsors. The program doesn't change, but the voice delivering it can match your style.{"\n\n"}
+              This is the companion I wish I'd had when I got sober—and the one I use today.{"\n\n"}
+              Right now, all features are free. Voluntary contributions help cover operating costs—especially the AI—and keep it that way.{"\n\n"}
+              Thanks for being here.{"\n\n"}
               — Neal
             </Text>
           </View>
@@ -639,7 +642,7 @@ const styles = StyleSheet.create({
   },
   aboutCardText: {
     fontSize: 15,
-    color: '#555',
+    color: '#000',
     lineHeight: 22,
     textAlign: 'left',
   },

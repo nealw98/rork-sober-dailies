@@ -207,7 +207,9 @@ export default function StoreScreen() {
           </TouchableOpacity>
         )}
 
-        <Text style={styles.disclaimer}>Subscriptions are optional and help support app development.</Text>
+        <Text style={styles.disclaimer}>
+          Voluntary contributions are the only way I can keep the app free—hosting, AI, and maintenance all need to be covered. Without them I’d have to lock the tools behind a paywall.
+        </Text>
 
         {errorMessage ? (
           <Text style={styles.inlineError}>{errorMessage}</Text>
@@ -228,8 +230,8 @@ export default function StoreScreen() {
         headerBackTitleVisible: false
       }} />
       <ScrollView contentContainerStyle={styles.container}>
-      <Text style={styles.header}>Support Sober Dailies</Text>
-      <Text style={styles.subheader}>Choose a subscription plan</Text>
+      <Text style={styles.header}>Keep Sober Dailies free</Text>
+      <Text style={styles.subheader}>Choose a voluntary contribution to cover hosting, AI, and maintenance</Text>
       {content}
       <Text style={styles.legal}>Processed by Apple. Support: support@soberdailies.com</Text>
     </ScrollView>
@@ -250,8 +252,8 @@ function friendlyTitle(id: string) {
 
 const styles = StyleSheet.create({
   container: { padding: 20 },
-  header: { fontSize: 22, fontWeight: "800", textAlign: "center", color: "#0f172a" },
-  subheader: { fontSize: 14, textAlign: "center", color: "#475569", marginTop: 6, marginBottom: 12 },
+  header: { fontSize: 22, fontWeight: "800", textAlign: "center", color: "#000" },
+  subheader: { fontSize: 14, textAlign: "center", color: "#000", marginTop: 6, marginBottom: 12 },
   list: { gap: 12 },
   contributionButton: {
     backgroundColor: "#2f6fec",
@@ -264,7 +266,7 @@ const styles = StyleSheet.create({
   contributionText: { color: "#fff", fontSize: 16, fontWeight: "700" },
   statusText: { color: "#fff", fontSize: 14, fontWeight: "600", marginTop: 6 },
   statusSubtext: { color: "#e5e7eb", fontSize: 12, marginTop: 2 },
-  disclaimer: { textAlign: "center", color: "#6b7280", marginTop: 8, marginBottom: 8, fontSize: 14, fontStyle: "italic" },
+  disclaimer: { textAlign: "center", color: "#000", marginTop: 8, marginBottom: 8, fontSize: 14, fontStyle: "italic" },
   inlineError: { textAlign: "center", color: "#b91c1c", marginBottom: 8, fontSize: 12 },
   restoreButton: {
     borderWidth: 1,

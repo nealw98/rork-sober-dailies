@@ -236,7 +236,7 @@ export default function SettingsScreen() {
           onPress={() => router.push('/support-developer')}
           activeOpacity={0.7}
         >
-          <Text style={[styles.menuItemTitle, { fontSize }]}>Support the App</Text>
+          <Text style={[styles.menuItemTitle, { fontSize }]}>Keep it free</Text>
           <ChevronRight size={18} color="#a0a0a0" />
         </TouchableOpacity>
 

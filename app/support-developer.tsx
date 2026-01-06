@@ -192,7 +192,7 @@ const SupportDeveloperScreen = () => {
             </TouchableOpacity>
             <View style={{ width: 60 }} />
           </View>
-          <Text style={styles.headerTitle}>Support the App</Text>
+          <Text style={styles.headerTitle}>Keep Sober Dailies Free</Text>
         </LinearGradient>
 
         {/* Content */}
@@ -201,7 +201,7 @@ const SupportDeveloperScreen = () => {
           contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + 40 }]}
         >
           <Text style={styles.descriptionText}>
-            These are one-time voluntary support options. No extra content is unlocked.
+            These are voluntary one-time gifts. They don’t unlock new content—the funds cover hosting, AI, and the time it takes to keep the app running for everyone.
           </Text>
 
           {isLoadingOfferings ? (
@@ -301,7 +301,7 @@ const styles = StyleSheet.create({
   },
   descriptionText: {
     fontSize: 18,
-    color: '#555',
+    color: '#000',
     lineHeight: 28,
     textAlign: 'center',
     marginBottom: 32,
