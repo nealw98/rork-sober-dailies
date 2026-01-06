@@ -297,8 +297,10 @@ export default function ChatInterface({
         return "CoSignSally";
       case "fresh":
         return "FreshFreddie";
+      case "mama-jo":
+        return "MamaJo";
       default:
-        return "Unknown";
+        return type;
     }
   };
 

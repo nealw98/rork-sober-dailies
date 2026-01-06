@@ -216,14 +216,19 @@ const styles = StyleSheet.create({
     padding: 16,
     paddingBottom: 40,
   },
+  quoteTile: {
+    backgroundColor: 'rgba(61, 139, 139, 0.25)',
+    borderRadius: 16,
+    padding: 16,
+    marginTop: 16,
+    marginBottom: 28,
+  },
   quoteText: {
     fontSize: 16,
     color: '#000',
     lineHeight: 24,
     fontStyle: 'italic',
     textAlign: 'center',
-    marginTop: 16,
-    marginBottom: 28,
   },
   dateText: {
     fontSize: 18,
@@ -720,9 +725,11 @@ export default function GratitudeListScreen() {
           <Text style={styles.dateText}>{formatDateDisplay(today)}</Text>
 
           {/* Daily Quote */}
-          <Text style={styles.quoteText}>
-            &ldquo;{dailyQuote}&rdquo;
-          </Text>
+          <View style={styles.quoteTile}>
+            <Text style={styles.quoteText}>
+              &ldquo;{dailyQuote}&rdquo;
+            </Text>
+          </View>
           
           {/* Gratitude Input */}
           <View style={styles.inputSection}>

@@ -245,8 +245,30 @@ function SponsorChatContent({ initialSponsor }: { initialSponsor: string }) {
     }
 
     setInputText("");
-    featureUse(`SponsorMessage_${sponsorType}`);
+    featureUse(`SponsorMessage_${getSponsorDisplayName(sponsorType)}`);
     await sendMessage(trimmed);
+  };
+
+  // Helper function to get sponsor display name for logging
+  const getSponsorDisplayName = (type: SponsorType): string => {
+    switch (type) {
+      case "salty":
+        return "SaltySam";
+      case "supportive":
+        return "SteadyEddie";
+      case "grace":
+        return "GentleGrace";
+      case "cowboy-pete":
+        return "CowboyPete";
+      case "co-sign-sally":
+        return "CoSignSally";
+      case "fresh":
+        return "FreshFreddie";
+      case "mama-jo":
+        return "MamaJo";
+      default:
+        return type;
+    }
   };
 
   // Show loading while syncing sponsor

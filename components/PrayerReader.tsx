@@ -83,11 +83,11 @@ export function PrayerReader({ visible, prayerIndex, onClose, onPrayerChange }: 
     if (currentPrayer.title === "Morning Prayer") {
       return (
         <View>
-          <Text style={[styles.prayerText, styles.italicText, { fontSize, lineHeight: fontSize * 1.5 }]}>
+          <Text style={[styles.prayerText, styles.italicText, styles.introMargin, { fontSize, lineHeight: fontSize * 1.5 }]}>
             As I begin this day, I ask my Higher Power:
           </Text>
           <Text style={[styles.prayerText, { fontSize, lineHeight: fontSize * 1.5 }]}>
-            {currentPrayer.content.split('As I begin this day, I ask my Higher Power:')[1]}
+            {currentPrayer.content.split('As I begin this day, I ask my Higher Power:')[1]?.trim()}
           </Text>
         </View>
       );
@@ -96,11 +96,11 @@ export function PrayerReader({ visible, prayerIndex, onClose, onPrayerChange }: 
     if (currentPrayer.title === "Evening Prayer") {
       return (
         <View>
-          <Text style={[styles.prayerText, styles.italicText, { fontSize, lineHeight: fontSize * 1.5 }]}>
+          <Text style={[styles.prayerText, styles.italicText, styles.introMargin, { fontSize, lineHeight: fontSize * 1.5 }]}>
             As this day closes,
           </Text>
           <Text style={[styles.prayerText, { fontSize, lineHeight: fontSize * 1.5 }]}>
-            {currentPrayer.content.split('As this day closes,')[1]}
+            {currentPrayer.content.split('As this day closes,')[1]?.trim()}
           </Text>
         </View>
       );
@@ -241,6 +241,9 @@ const styles = StyleSheet.create({
   },
   italicText: {
     fontStyle: 'italic',
+  },
+  introMargin: {
+    marginBottom: 20,
   },
   prayerSource: {
     fontSize: 14,
