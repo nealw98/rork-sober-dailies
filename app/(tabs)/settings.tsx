@@ -1,21 +1,28 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Platform, Linking, Share, ScrollView, Modal, SafeAreaView, Alert } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Platform, Linking, Share, ScrollView, Modal, SafeAreaView, Alert, TextInput, ActivityIndicator, KeyboardAvoidingView } from 'react-native';
 import { router, Stack } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { ChevronLeft, ChevronRight } from 'lucide-react-native';
+import { ChevronLeft, ChevronRight, X } from 'lucide-react-native';
 import Constants from 'expo-constants';
 import * as Clipboard from 'expo-clipboard';
 import { requestReviewNow } from '@/lib/reviewPrompt';
 import { adjustFontWeight } from '@/constants/fonts';
 import { useTextSettings } from '@/hooks/use-text-settings';
 import { Logger } from '@/lib/logger';
+import { submitFeedback } from '@/lib/feedback';
 
 export default function SettingsScreen() {
   const insets = useSafeAreaInsets();
   const { fontSize, setFontSize, minFontSize, maxFontSize, resetDefaults, defaultFontSize } = useTextSettings();
   const [logsVisible, setLogsVisible] = useState(false);
   const [logsText, setLogsText] = useState('');
+  
+  // Feedback modal state
+  const [feedbackVisible, setFeedbackVisible] = useState(false);
+  const [feedbackText, setFeedbackText] = useState('');
+  const [contactInfo, setContactInfo] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
   
   const step = 2;
   const increase = () => setFontSize(fontSize + step);
@@ -134,6 +141,66 @@ export default function SettingsScreen() {
     }
   };
 
+  const handleFeedbackSubmit = async () => {
+    if (!feedbackText.trim()) {
+      Alert.alert('Please enter your feedback', 'Let us know what you think!');
+      return;
+    }
+
+    // Validate email if provided
+    if (contactInfo.trim()) {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(contactInfo.trim())) {
+        Alert.alert('Invalid email', 'Please enter a valid email address or leave it blank.');
+        return;
+      }
+    }
+
+    setIsSubmitting(true);
+    
+    const result = await submitFeedback({
+      feedbackText: feedbackText.trim(),
+      contactInfo: contactInfo.trim() || undefined,
+    });
+
+    setIsSubmitting(false);
+
+    if (result.success) {
+      Alert.alert(
+        'Thank you!',
+        'Your feedback has been submitted. We appreciate you taking the time to help improve Sober Dailies.',
+        [{ text: 'OK', onPress: () => {
+          setFeedbackVisible(false);
+          setFeedbackText('');
+          setContactInfo('');
+        }}]
+      );
+    } else {
+      Alert.alert('Error', result.error || 'Failed to submit feedback. Please try again.');
+    }
+  };
+
+  const handleFeedbackClose = () => {
+    if (feedbackText.trim()) {
+      Alert.alert(
+        'Discard feedback?',
+        'Your feedback will not be saved.',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          { text: 'Discard', style: 'destructive', onPress: () => {
+            setFeedbackVisible(false);
+            setFeedbackText('');
+            setContactInfo('');
+          }},
+        ]
+      );
+    } else {
+      setFeedbackVisible(false);
+      setFeedbackText('');
+      setContactInfo('');
+    }
+  };
+
   return (
     <View style={styles.container}>
       <Stack.Screen options={{ headerShown: false, tabBarStyle: { display: 'none' } }} />
@@ -239,6 +306,15 @@ export default function SettingsScreen() {
           <Text style={[styles.menuItemTitle, { fontSize }]}>Keep it free</Text>
           <ChevronRight size={18} color="#a0a0a0" />
         </TouchableOpacity>
+        
+        <TouchableOpacity 
+          style={styles.menuItem}
+          onPress={() => setFeedbackVisible(true)}
+          activeOpacity={0.7}
+        >
+          <Text style={[styles.menuItemTitle, { fontSize }]}>Send Feedback</Text>
+          <ChevronRight size={18} color="#a0a0a0" />
+        </TouchableOpacity>
 
         {/* About Section */}
         <Text style={[styles.sectionTitle, { marginTop: 24 }]}>About</Text>
@@ -312,6 +388,75 @@ export default function SettingsScreen() {
             </TouchableOpacity>
           </View>
         </SafeAreaView>
+      </Modal>
+
+      {/* Feedback Modal */}
+      <Modal
+        visible={feedbackVisible}
+        animationType="slide"
+        presentationStyle="pageSheet"
+        onRequestClose={handleFeedbackClose}
+      >
+        <KeyboardAvoidingView 
+          style={styles.feedbackContainer}
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        >
+          {/* Teal Header */}
+          <View style={styles.feedbackHeader}>
+            <Text style={styles.feedbackHeaderTitle}>Send Feedback</Text>
+            <TouchableOpacity onPress={handleFeedbackClose} style={styles.feedbackCloseButton}>
+              <X size={24} color="#fff" />
+            </TouchableOpacity>
+          </View>
+
+          <ScrollView 
+            style={styles.feedbackContent}
+            contentContainerStyle={styles.feedbackScrollContent}
+            keyboardShouldPersistTaps="handled"
+          >
+            <Text style={styles.feedbackLabel}>What's on your mind?</Text>
+            <TextInput
+              style={styles.feedbackInput}
+              value={feedbackText}
+              onChangeText={setFeedbackText}
+              placeholder="Share your thoughts, suggestions, or report an issue..."
+              placeholderTextColor="#999"
+              multiline
+              numberOfLines={6}
+              textAlignVertical="top"
+            />
+
+            <Text style={[styles.feedbackLabel, { marginTop: 20 }]}>
+              Contact info (optional)
+            </Text>
+            <TextInput
+              style={styles.feedbackContactInput}
+              value={contactInfo}
+              onChangeText={setContactInfo}
+              placeholder="Email if you'd like a response"
+              placeholderTextColor="#999"
+              keyboardType="email-address"
+              autoCapitalize="none"
+            />
+
+            <Text style={styles.feedbackNote}>
+              Your feedback is anonymous unless you provide contact info. We read every message!
+            </Text>
+
+            <TouchableOpacity
+              style={[styles.feedbackSubmitButton, isSubmitting && styles.feedbackSubmitButtonDisabled]}
+              onPress={handleFeedbackSubmit}
+              disabled={isSubmitting}
+              activeOpacity={0.8}
+            >
+              {isSubmitting ? (
+                <ActivityIndicator color="#fff" />
+              ) : (
+                <Text style={styles.feedbackSubmitButtonText}>Submit Feedback</Text>
+              )}
+            </TouchableOpacity>
+          </ScrollView>
+        </KeyboardAvoidingView>
       </Modal>
     </View>
   );
@@ -487,5 +632,80 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     padding: 12,
+  },
+  // Feedback Modal styles
+  feedbackContainer: {
+    flex: 1,
+    backgroundColor: '#f5f6f8',
+  },
+  feedbackHeader: {
+    backgroundColor: '#3D8B8B',
+    paddingVertical: 16,
+    paddingHorizontal: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  feedbackHeaderTitle: {
+    fontSize: 24,
+    fontWeight: adjustFontWeight('400'),
+    color: '#fff',
+  },
+  feedbackCloseButton: {
+    padding: 4,
+  },
+  feedbackContent: {
+    flex: 1,
+  },
+  feedbackScrollContent: {
+    padding: 20,
+    paddingBottom: 40,
+  },
+  feedbackLabel: {
+    fontSize: 16,
+    fontWeight: adjustFontWeight('600'),
+    color: '#2d3748',
+    marginBottom: 8,
+  },
+  feedbackInput: {
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    padding: 16,
+    fontSize: 16,
+    color: '#2d3748',
+    minHeight: 150,
+    borderWidth: 1,
+    borderColor: '#E4E7EC',
+  },
+  feedbackContactInput: {
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    padding: 16,
+    fontSize: 16,
+    color: '#2d3748',
+    borderWidth: 1,
+    borderColor: '#E4E7EC',
+  },
+  feedbackNote: {
+    fontSize: 13,
+    color: '#6b7c8a',
+    marginTop: 16,
+    marginBottom: 24,
+    textAlign: 'center',
+  },
+  feedbackSubmitButton: {
+    backgroundColor: '#3D8B8B',
+    borderRadius: 12,
+    paddingVertical: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  feedbackSubmitButtonDisabled: {
+    opacity: 0.7,
+  },
+  feedbackSubmitButtonText: {
+    fontSize: 16,
+    fontWeight: adjustFontWeight('600'),
+    color: '#fff',
   },
 });

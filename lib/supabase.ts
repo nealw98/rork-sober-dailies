@@ -75,6 +75,38 @@ export type Database = {
           updated_at?: string | null;
         };
       };
+      app_feedback: {
+        Row: {
+          id: string;
+          anonymous_id: string;
+          feedback_text: string;
+          contact_info: string | null;
+          app_version: string | null;
+          build_number: string | null;
+          platform: 'ios' | 'android' | 'web' | null;
+          created_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          anonymous_id: string;
+          feedback_text: string;
+          contact_info?: string | null;
+          app_version?: string | null;
+          build_number?: string | null;
+          platform?: 'ios' | 'android' | 'web' | null;
+          created_at?: string | null;
+        };
+        Update: {
+          id?: string;
+          anonymous_id?: string;
+          feedback_text?: string;
+          contact_info?: string | null;
+          app_version?: string | null;
+          build_number?: string | null;
+          platform?: 'ios' | 'android' | 'web' | null;
+          created_at?: string | null;
+        };
+      };
     };
   };
 };
