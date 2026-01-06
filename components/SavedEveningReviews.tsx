@@ -12,7 +12,7 @@ import {
 } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Calendar, Share as ShareIcon, Trash2, X, Check } from 'lucide-react-native';
+import { Calendar, Share as ShareIcon, Trash2, X, Check, ChevronLeft } from 'lucide-react-native';
 import { useEveningReviewStore } from '@/hooks/use-evening-review-store';
 import Colors from '@/constants/colors';
 import { adjustFontWeight } from '@/constants/fonts';
@@ -249,26 +249,28 @@ export default function SavedEveningReviews({ visible, onClose }: SavedEveningRe
 
       return (
         <View style={styles.entryDetailContainer}>
+          {/* Gradient Header */}
           <LinearGradient
-            colors={[Colors.light.chatBubbleUser, Colors.light.chatBubbleBot]}
+            colors={['#4A6FA5', '#3D8B8B', '#45A08A']}
+            style={styles.headerGradient}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
-            style={styles.gradient}
-          />
-          <View style={styles.entryDetailHeader}>
-            <TouchableOpacity
-              style={styles.backButton}
-              onPress={() => {
-                console.log('Going back to list');
-                setSelectedEntry(null);
-              }}
-              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-            >
-              <X color={Colors.light.text} size={24} />
-            </TouchableOpacity>
-            <Text style={styles.modalTitle}>Nightly Review</Text>
-            <View style={styles.headerSpacer} />
-          </View>
+          >
+            <View style={styles.entryDetailHeader}>
+              <TouchableOpacity
+                style={styles.backButton}
+                onPress={() => {
+                  console.log('Going back to list');
+                  setSelectedEntry(null);
+                }}
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              >
+                <ChevronLeft color="#fff" size={24} />
+              </TouchableOpacity>
+              <Text style={styles.modalTitle}>Nightly Review</Text>
+              <View style={styles.headerSpacer} />
+            </View>
+          </LinearGradient>
 
           <ScrollView style={styles.entryDetailContent}>
             <Text style={styles.entryDate}>{formatDateDisplay(date)}</Text>
@@ -349,20 +351,28 @@ export default function SavedEveningReviews({ visible, onClose }: SavedEveningRe
 
     return (
       <View style={styles.entryDetailContainer}>
-        <View style={styles.entryDetailHeader}>
-          <TouchableOpacity
-            style={styles.backButton}
-            onPress={() => {
-              console.log('Going back to list');
-              setSelectedEntry(null);
-            }}
-            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-          >
-            <X color={Colors.light.text} size={24} />
-          </TouchableOpacity>
-          <Text style={styles.modalTitle}>Nightly Review</Text>
-          <View style={styles.headerSpacer} />
-        </View>
+        {/* Gradient Header */}
+        <LinearGradient
+          colors={['#4A6FA5', '#3D8B8B', '#45A08A']}
+          style={styles.headerGradient}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+        >
+          <View style={styles.entryDetailHeader}>
+            <TouchableOpacity
+              style={styles.backButton}
+              onPress={() => {
+                console.log('Going back to list');
+                setSelectedEntry(null);
+              }}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            >
+              <ChevronLeft color="#fff" size={24} />
+            </TouchableOpacity>
+            <Text style={styles.modalTitle}>Nightly Review</Text>
+            <View style={styles.headerSpacer} />
+          </View>
+        </LinearGradient>
 
         <ScrollView style={styles.entryDetailContent}>
           <Text style={styles.entryDate}>{formatDateDisplay(date)}</Text>
@@ -431,23 +441,25 @@ export default function SavedEveningReviews({ visible, onClose }: SavedEveningRe
       }}
     >
       <View style={styles.container}>
-        <LinearGradient
-          colors={[Colors.light.chatBubbleUser, Colors.light.chatBubbleBot]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={styles.gradient}
-        />
         {selectedEntry ? (
           renderEntryDetail()
         ) : (
           <>
-            <View style={styles.header}>
-              <TouchableOpacity style={styles.closeButton} onPress={onClose}>
-                <X color={Colors.light.text} size={24} />
-              </TouchableOpacity>
-              <Text style={styles.title}>Saved Reviews</Text>
-              <View style={styles.placeholder} />
-            </View>
+            {/* Gradient Header */}
+            <LinearGradient
+              colors={['#4A6FA5', '#3D8B8B', '#45A08A']}
+              style={styles.headerGradient}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+            >
+              <View style={styles.header}>
+                <TouchableOpacity style={styles.closeButton} onPress={onClose}>
+                  <ChevronLeft color="#fff" size={24} />
+                </TouchableOpacity>
+                <Text style={styles.title}>Saved Reviews</Text>
+                <View style={styles.placeholder} />
+              </View>
+            </LinearGradient>
 
             <ScrollView 
               style={styles.content}
@@ -529,31 +541,30 @@ export default function SavedEveningReviews({ visible, onClose }: SavedEveningRe
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.light.background,
+    backgroundColor: '#f5f6f8',
   },
-  gradient: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    top: 0,
-    bottom: 0,
+  headerGradient: {
+    paddingTop: 16,
+    paddingBottom: 16,
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 16,
-    paddingVertical: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.light.border,
   },
   closeButton: {
-    padding: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    borderRadius: 16,
   },
   title: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: adjustFontWeight('600', true),
-    color: Colors.light.text,
+    color: '#fff',
   },
   placeholder: {
     width: 40,
@@ -632,24 +643,26 @@ const styles = StyleSheet.create({
   },
   entryDetailContainer: {
     flex: 1,
-    backgroundColor: Colors.light.background,
+    backgroundColor: '#f5f6f8',
   },
   entryDetailHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 16,
-    paddingVertical: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.light.border,
   },
   backButton: {
-    padding: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    borderRadius: 16,
   },
   modalTitle: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: adjustFontWeight('600', true),
-    color: Colors.light.text,
+    color: '#fff',
   },
   headerSpacer: {
     width: 40,

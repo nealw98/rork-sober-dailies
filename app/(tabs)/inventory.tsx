@@ -405,19 +405,21 @@ const SpotCheckHistorySheet: React.FC<{
       onRequestClose={onClose}
     >
       <View style={styles.historyContainer}>
+        {/* Gradient Header */}
         <LinearGradient
-          colors={[Colors.light.chatBubbleUser, Colors.light.chatBubbleBot]}
+          colors={['#4A6FA5', '#3D8B8B', '#45A08A']}
+          style={styles.historyHeaderGradient}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
-          style={styles.historyGradient}
-        />
-        <View style={styles.historyHeader}>
-          <TouchableOpacity style={styles.historyCloseButton} onPress={onClose}>
-            <X color={Colors.light.text} size={24} />
-          </TouchableOpacity>
-          <Text style={styles.historyTitle}>Previous Spot Checks</Text>
-          <View style={styles.historyPlaceholder} />
-        </View>
+        >
+          <View style={styles.historyHeader}>
+            <TouchableOpacity style={styles.historyCloseButton} onPress={onClose}>
+              <ChevronLeft color="#fff" size={24} />
+            </TouchableOpacity>
+            <Text style={styles.historyTitle}>Previous Spot Checks</Text>
+            <View style={styles.historyPlaceholder} />
+          </View>
+        </LinearGradient>
 
         <ScrollView style={styles.historyList} contentContainerStyle={styles.historyListContent}>
           {records.length === 0 ? (
@@ -1087,31 +1089,30 @@ const styles = StyleSheet.create({
   },
   historyContainer: {
     flex: 1,
-    backgroundColor: Colors.light.background,
+    backgroundColor: '#f5f6f8',
   },
-  historyGradient: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    top: 0,
-    bottom: 0,
+  historyHeaderGradient: {
+    paddingTop: 16,
+    paddingBottom: 16,
   },
   historyHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 16,
-    paddingVertical: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.light.border,
   },
   historyCloseButton: {
-    padding: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    borderRadius: 16,
   },
   historyTitle: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: adjustFontWeight('600', true),
-    color: Colors.light.text,
+    color: '#fff',
   },
   historyPlaceholder: {
     width: 40,
