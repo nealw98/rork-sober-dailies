@@ -281,6 +281,16 @@ export default function TabLayout() {
           headerShown: false,
         }}
       />
+      <Tabs.Screen
+        name="inventory"
+        options={{
+          href: null,
+          title: "Spot Check",
+          headerShown: true,
+          headerTitle: '',
+          headerLeft: () => <BackButton />,
+        }}
+      />
 
       {/* Stack screens that should maintain the tab bar */}
       <Tabs.Screen
