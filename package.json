@@ -1,7 +1,7 @@
 {
   "name": "sober-dailies-fresh",
   "main": "expo-router/entry",
-  "version": "1.9.2",
+  "version": "2.0.0",
   "scripts": {
     "start": "bunx rork start -p slb0yphh4l03b7fd78jn4 --tunnel",
     "start-web": "bunx rork start -p slb0yphh4l03b7fd78jn4 --web --tunnel",

@@ -124,6 +124,20 @@ const HomeScreen = () => {
           </TouchableOpacity>
         </View>
 
+        {/* Anytime Section */}
+        <Text style={styles.sectionLabel}>Anytime</Text>
+        <View style={styles.routineRow}>
+          <TouchableOpacity
+            style={[styles.routineTile, styles.routineTileFull]}
+            onPress={() => router.push('/(tabs)/inventory')}
+            activeOpacity={0.8}
+          >
+            <Text style={styles.routineEmoji}>📋</Text>
+            <Text style={styles.routineTitle}>Spot Check Inventory</Text>
+            <Text style={styles.routineSubtitle}>A quick review when you're "off the beam"</Text>
+          </TouchableOpacity>
+        </View>
+
         {/* Bottom padding */}
         <View style={{ height: 20 }} />
       </ScrollView>
@@ -231,6 +245,9 @@ const styles = StyleSheet.create({
   routineTileHalf: {
     flex: 1,
   },
+  routineTileFull: {
+    flex: 1,
+  },
   routineEmoji: {
     fontSize: 24,
     marginBottom: 8,
@@ -239,6 +256,11 @@ const styles = StyleSheet.create({
     fontSize: 19,
     fontWeight: adjustFontWeight('600'),
     color: '#3d5a6a',
+  },
+  routineSubtitle: {
+    fontSize: 14,
+    color: '#6b7c8a',
+    marginTop: 4,
   },
 });
 
