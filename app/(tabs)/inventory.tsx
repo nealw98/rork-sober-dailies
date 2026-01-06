@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useCallback, useLayoutEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { 
   StyleSheet, 
   View, 
@@ -13,14 +13,16 @@ import {
   Keyboard,
   Modal
 } from 'react-native';
+import { router, Stack } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
-import { RotateCcw, Share as ShareIcon, Save as SaveIcon, Folder, Trash2, X, Calendar } from 'lucide-react-native';
+import { ChevronLeft, RotateCcw, Share as ShareIcon, Save as SaveIcon, Folder, Trash2, X, Calendar, HelpCircle } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Colors from '@/constants/colors';
 import { adjustFontWeight } from '@/constants/fonts';
 import ScreenContainer from '@/components/ScreenContainer';
-import { useNavigation, useFocusEffect } from '@react-navigation/native';
+import { useFocusEffect } from '@react-navigation/native';
 import { maybeAskForReview } from '@/lib/reviewPrompt';
 
 const INVENTORY_STORAGE_KEY = 'spot_check_inventories';
@@ -510,6 +512,7 @@ const SpotCheckHistorySheet: React.FC<{
 };
 
 const Inventory = () => {
+  const insets = useSafeAreaInsets();
   const [selections, setSelections] = useState<{ [key: string]: SelectionState }>({});
   const [situation, setSituation] = useState('');
   const [currentRecord, setCurrentRecord] = useState<SpotCheckRecord | null>(null);
@@ -517,7 +520,6 @@ const Inventory = () => {
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [showInstructions, setShowInstructions] = useState(false);
   const [isFirstTimeInstructions, setIsFirstTimeInstructions] = useState(true);
-  const navigation = useNavigation();
 
   // Check if instructions have been shown before
   useFocusEffect(
@@ -710,29 +712,6 @@ const Inventory = () => {
     }
   }, [situation, selections, hasUnsavedChanges, dismissKeyboard]);
 
-  // Add Help button to header
-  useLayoutEffect(() => {
-    navigation.setOptions({
-      headerRight: () => (
-        <TouchableOpacity 
-          onPress={handleShowHelp}
-          accessible={true}
-          accessibilityLabel="Show help"
-          accessibilityRole="button"
-          style={{ paddingRight: 16 }}
-        >
-          <Text style={{ 
-            fontSize: 16, 
-            color: Colors.light.tint,
-            fontWeight: '400'
-          }}>
-            Help
-          </Text>
-        </TouchableOpacity>
-      ),
-    });
-  }, [navigation, handleShowHelp]);
-
   const handlePressLookFor = (pairId: string) => {
     dismissKeyboard(); // Hide keyboard when selecting traits
     setSelections(prev => {
@@ -780,118 +759,144 @@ const Inventory = () => {
 
   return (
     <ScreenContainer style={styles.container} noPadding>
+      <Stack.Screen options={{ headerShown: false }} />
+      
+      {/* Gradient header block */}
       <LinearGradient
-        colors={Colors.gradients.mainThreeColor}
-        style={styles.gradientContainer}
+        colors={['#4A6FA5', '#3D8B8B', '#45A08A']}
+        style={[styles.headerBlock, { paddingTop: insets.top + 8 }]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
       >
-        <ScrollView contentContainerStyle={styles.scrollContent}>
-          <View style={styles.contentContainer}>
-            {/* Action Row - Above Title */}
-            <View style={styles.actionRow}>
-              {/* Save */}
-              <TouchableOpacity 
-                onPress={handleSave}
-                accessible={true}
-                accessibilityLabel="Save spot check"
-                accessibilityRole="button"
-                activeOpacity={0.6}
-                style={styles.actionButton}
-              >
-                <SaveIcon color="#007AFF" size={18} />
-                <Text style={styles.actionButtonText}>Save</Text>
-              </TouchableOpacity>
-              
-              {/* Share */}
-              <TouchableOpacity 
-                onPress={handleShare}
-                accessible={true}
-                accessibilityLabel="Share spot check"
-                accessibilityRole="button"
-                activeOpacity={0.6}
-                style={styles.actionButton}
-              >
-                <ShareIcon color="#007AFF" size={18} />
-                <Text style={styles.actionButtonText}>Share</Text>
-              </TouchableOpacity>
-              
-              {/* History */}
-              <TouchableOpacity 
-                onPress={() => {
-                  dismissKeyboard();
-                  setShowHistory(true);
-                }}
-                accessible={true}
-                accessibilityLabel="View history"
-                accessibilityRole="button"
-                activeOpacity={0.6}
-                style={styles.actionButton}
-              >
-                <Folder color="#007AFF" size={18} />
-                <Text style={styles.actionButtonText}>History</Text>
-              </TouchableOpacity>
-              
-              {/* Reset */}
-              <TouchableOpacity 
-                onPress={handleReset}
-                accessible={true}
-                accessibilityLabel="Reset all selections"
-                accessibilityRole="button"
-                activeOpacity={0.6}
-                style={styles.actionButton}
-              >
-                <RotateCcw color="#007AFF" size={18} />
-                <Text style={styles.actionButtonText}>Reset</Text>
-              </TouchableOpacity>
-            </View>
-            
-            <Text style={styles.title}>Spot Check Inventory</Text>
-            
-            {/* Saved Timestamp - always reserve space */}
-            <Text style={styles.savedTimestamp}>
-              {currentRecord ? `Saved: ${formatSavedTimestamp()}` : ' '}
-            </Text>
-            
-            {/* Situation Input */}
-            <View style={styles.situationContainer}>
-              <Text style={styles.situationLabel}>What's disturbing you?</Text>
-              <TextInput
-                style={styles.situationInput}
-                value={situation}
-                onChangeText={handleSituationChange}
-                placeholder="Describe the situation"
-                placeholderTextColor={Colors.light.muted}
-                multiline={true}
-                numberOfLines={3}
-                textAlignVertical="top"
-                returnKeyType="done"
-                onSubmitEditing={dismissKeyboard}
-                blurOnSubmit={true}
-              />
-            </View>
-            
-            {/* Column Headers */}
-            <View style={styles.headerRow}>
-              <Text style={styles.headerLeft}>Watch For</Text>
-              <Text style={styles.headerRight}>Strive For</Text>
-            </View>
-
-            {/* Spot Check Cards */}
-            <View style={styles.cardsContainer}>
-              {spotCheckPairs.map((pair) => (
-                <SpotCheckPair
-                  key={pair.id}
-                  pair={pair}
-                  state={selections[pair.id] || 'none'}
-                  onPressLookFor={() => handlePressLookFor(pair.id)}
-                  onPressStriveFor={() => handlePressStriveFor(pair.id)}
-                />
-              ))}
-            </View>
-          </View>
-        </ScrollView>
+        {/* Top row with back button and help */}
+        <View style={styles.headerTopRow}>
+          <TouchableOpacity 
+            onPress={() => router.back()} 
+            style={styles.backButton}
+            activeOpacity={0.7}
+          >
+            <ChevronLeft size={24} color="#fff" />
+          </TouchableOpacity>
+          <TouchableOpacity 
+            onPress={handleShowHelp}
+            style={styles.helpButton}
+            activeOpacity={0.7}
+          >
+            <HelpCircle size={22} color="#fff" />
+          </TouchableOpacity>
+        </View>
+        <Text style={styles.headerTitle}>Spot Check Inventory</Text>
       </LinearGradient>
+
+      {/* Action Row - Below header */}
+      <View style={styles.actionRow}>
+        {/* History */}
+        <TouchableOpacity 
+          onPress={() => {
+            dismissKeyboard();
+            setShowHistory(true);
+          }}
+          accessible={true}
+          accessibilityLabel="View history"
+          accessibilityRole="button"
+          activeOpacity={0.6}
+          style={styles.actionButton}
+        >
+          <Folder color="#3D8B8B" size={18} />
+          <Text style={styles.actionButtonText}>History</Text>
+        </TouchableOpacity>
+        
+        {/* Save */}
+        <TouchableOpacity 
+          onPress={handleSave}
+          accessible={true}
+          accessibilityLabel="Save spot check"
+          accessibilityRole="button"
+          activeOpacity={0.6}
+          style={styles.actionButton}
+        >
+          <SaveIcon color="#3D8B8B" size={18} />
+          <Text style={styles.actionButtonText}>Save</Text>
+        </TouchableOpacity>
+        
+        {/* Share */}
+        <TouchableOpacity 
+          onPress={handleShare}
+          accessible={true}
+          accessibilityLabel="Share spot check"
+          accessibilityRole="button"
+          activeOpacity={0.6}
+          style={styles.actionButton}
+        >
+          <ShareIcon color="#3D8B8B" size={18} />
+          <Text style={styles.actionButtonText}>Share</Text>
+        </TouchableOpacity>
+        
+        {/* Reset */}
+        <TouchableOpacity 
+          onPress={handleReset}
+          accessible={true}
+          accessibilityLabel="Reset all selections"
+          accessibilityRole="button"
+          activeOpacity={0.6}
+          style={styles.actionButton}
+        >
+          <RotateCcw color="#3D8B8B" size={18} />
+          <Text style={styles.actionButtonText}>Reset</Text>
+        </TouchableOpacity>
+      </View>
+
+      {/* Content Area */}
+      <ScrollView 
+        style={styles.content}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+      >
+        {/* Saved Timestamp */}
+        {currentRecord && (
+          <Text style={styles.savedTimestamp}>
+            Saved: {formatSavedTimestamp()}
+          </Text>
+        )}
+        
+        {/* Situation Input */}
+        <View style={styles.situationContainer}>
+          <Text style={styles.situationLabel}>What's disturbing you?</Text>
+          <TextInput
+            style={styles.situationInput}
+            value={situation}
+            onChangeText={handleSituationChange}
+            placeholder="Describe the situation"
+            placeholderTextColor="#999"
+            multiline={true}
+            numberOfLines={3}
+            textAlignVertical="top"
+            returnKeyType="done"
+            onSubmitEditing={dismissKeyboard}
+            blurOnSubmit={true}
+          />
+        </View>
+        
+        {/* Column Headers */}
+        <View style={styles.columnHeaderRow}>
+          <Text style={styles.columnHeaderLeft}>Watch For</Text>
+          <Text style={styles.columnHeaderRight}>Strive For</Text>
+        </View>
+
+        {/* Spot Check Cards */}
+        <View style={styles.cardsContainer}>
+          {spotCheckPairs.map((pair) => (
+            <SpotCheckPair
+              key={pair.id}
+              pair={pair}
+              state={selections[pair.id] || 'none'}
+              onPressLookFor={() => handlePressLookFor(pair.id)}
+              onPressStriveFor={() => handlePressStriveFor(pair.id)}
+            />
+          ))}
+        </View>
+      </ScrollView>
       
       <SpotCheckHistorySheet
         visible={showHistory}
@@ -913,27 +918,49 @@ const Inventory = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: '#f5f6f8',
   },
-  gradientContainer: {
-    flex: 1,
-  },
-  scrollContent: {
-    flexGrow: 1,
-    paddingTop: 20,
+  headerBlock: {
+    paddingBottom: 16,
     paddingHorizontal: 16,
-    paddingBottom: 40,
   },
-  contentContainer: {
-    flex: 1,
+  headerTopRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  backButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    borderRadius: 16,
+  },
+  helpButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    borderRadius: 16,
+  },
+  headerTitle: {
+    fontSize: 32,
+    fontWeight: adjustFontWeight('400'),
+    color: '#fff',
+    textAlign: 'center',
   },
   actionRow: {
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
     gap: 20,
-    paddingTop: 4,
-    paddingBottom: 12,
-    marginBottom: 8,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#e0e0e0',
+    backgroundColor: '#fff',
   },
   actionButton: {
     flexDirection: 'row',
@@ -941,129 +968,113 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   actionButtonText: {
-    fontSize: 15,
-    color: '#007AFF',
+    fontSize: 14,
+    color: '#3D8B8B',
     fontWeight: '500',
   },
-  title: {
-    fontSize: 30,
-    fontWeight: 'bold',
-    color: Colors.light.text,
-    textAlign: 'center',
-    marginBottom: 16,
+  content: {
+    flex: 1,
+    paddingHorizontal: 16,
+  },
+  scrollContent: {
+    flexGrow: 1,
+    paddingBottom: 40,
   },
   savedTimestamp: {
-    fontSize: 15,
-    color: Colors.light.tint,
-    fontWeight: 'bold',
+    fontSize: 14,
+    color: '#3D8B8B',
+    fontWeight: '600',
     textAlign: 'center',
-    marginBottom: 16,
+    marginTop: 16,
+    marginBottom: 8,
   },
   situationContainer: {
-    marginBottom: 28,
+    marginTop: 16,
+    marginBottom: 24,
   },
   situationLabel: {
-    fontSize: 22,
-    fontWeight: '600',
-    color: Colors.light.text,
+    fontSize: 18,
+    fontWeight: adjustFontWeight('600', true),
+    color: '#000',
     marginBottom: 8,
   },
   situationInput: {
     backgroundColor: '#fff',
-    borderRadius: 12,
-    padding: 16,
-    fontSize: 18,
-    color: Colors.light.text,
+    borderRadius: 8,
+    padding: 12,
+    fontSize: 16,
+    color: '#000',
     minHeight: 80,
     textAlignVertical: 'top',
-    // Level 2: Interactive Cards (High depth)
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 6,
-    },
-    shadowOpacity: 0.18,
-    shadowRadius: 8,
-    elevation: 6,
+    borderWidth: 1,
+    borderColor: '#ddd',
   },
-  resetButton: {
-    paddingRight: 16,
-  },
-  headerRow: {
+  columnHeaderRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    paddingHorizontal: 24,
-    marginBottom: 16,
+    paddingHorizontal: 16,
+    marginBottom: 12,
   },
-  headerLeft: {
-    fontSize: 20,
-    fontWeight: '600',
-    color: Colors.light.text,
+  columnHeaderLeft: {
+    fontSize: 16,
+    fontWeight: adjustFontWeight('600', true),
+    color: '#000',
     textAlign: 'left',
   },
-  headerRight: {
-    fontSize: 20,
-    fontWeight: '600',
-    color: Colors.light.text,
+  columnHeaderRight: {
+    fontSize: 16,
+    fontWeight: adjustFontWeight('600', true),
+    color: '#000',
     textAlign: 'right',
   },
   cardsContainer: {
-    gap: 12,
+    gap: 8,
   },
   cardWrapper: {
-    borderRadius: 12,
-    backgroundColor: 'rgba(255, 255, 255, 0.8)',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 0.5 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 1,
+    borderRadius: 8,
+    backgroundColor: '#fff',
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
   },
   cardWrapperSelected: {
-    borderRadius: 12,
-    backgroundColor: 'rgba(255, 255, 255, 0.8)',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.18,
-    shadowRadius: 8,
-    elevation: 6,
+    borderRadius: 8,
+    backgroundColor: '#fff',
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
   },
   cardWrapperLevel2: {
-    borderRadius: 12,
-    backgroundColor: 'rgba(255, 255, 255, 0.8)',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.18,
-    shadowRadius: 8,
-    elevation: 6,
+    borderRadius: 8,
+    backgroundColor: '#fff',
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
   },
   card: {
-    borderRadius: 12,
-    padding: 16,
+    borderRadius: 8,
+    padding: 14,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    minHeight: 60,
+    minHeight: 52,
   },
   textButton: {
     flex: 1,
   },
   lookForText: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: '400',
-    color: Colors.light.text,
+    color: '#000',
     textAlign: 'left',
   },
   arrow: {
-    fontSize: 20,
-    color: Colors.light.text,
-    marginHorizontal: 12,
+    fontSize: 18,
+    color: '#666',
+    marginHorizontal: 10,
     fontWeight: 'normal',
   },
   striveForText: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: '400',
-    color: Colors.light.text,
+    color: '#000',
     textAlign: 'right',
   },
   selectedText: {
