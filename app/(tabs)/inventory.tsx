@@ -16,7 +16,7 @@ import {
 import { router, Stack } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
-import { ChevronLeft, RotateCcw, Share as ShareIcon, Save as SaveIcon, Folder, Trash2, X, Calendar, HelpCircle } from 'lucide-react-native';
+import { ChevronLeft, RotateCcw, Share as ShareIcon, Save as SaveIcon, List, Trash2, X, Calendar, HelpCircle } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Colors from '@/constants/colors';
@@ -802,7 +802,7 @@ const Inventory = () => {
           activeOpacity={0.6}
           style={styles.actionButton}
         >
-          <Folder color="#3D8B8B" size={18} />
+          <List color="#3D8B8B" size={18} />
           <Text style={styles.actionButtonText}>History</Text>
         </TouchableOpacity>
         
@@ -960,7 +960,6 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     borderBottomWidth: 1,
     borderBottomColor: '#e0e0e0',
-    backgroundColor: '#fff',
   },
   actionButton: {
     flexDirection: 'row',
