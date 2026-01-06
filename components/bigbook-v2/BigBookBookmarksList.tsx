@@ -28,7 +28,7 @@ import { X, Trash2 } from 'lucide-react-native';
 import Colors from '@/constants/colors';
 import { adjustFontWeight } from '@/constants/fonts';
 import { useBigBookBookmarks } from '@/hooks/use-bigbook-bookmarks';
-import { getChapterMeta } from '@/constants/bigbook-v2/metadata';
+import { getChapterMeta, bigBookChapterMetadata } from '@/constants/bigbook-v2/metadata';
 
 interface BigBookBookmarksListProps {
   visible: boolean;
@@ -54,11 +54,24 @@ export function BigBookBookmarksList({
     }
   }, [visible, refresh]);
 
-  // Sort bookmarks by creation date (newest first)
+  // Sort bookmarks by book order (chapter order, then page number)
   const sortedBookmarks = useMemo(() => {
-    return [...bookmarks].sort((a, b) => 
-      new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-    );
+    const chapterOrder = bigBookChapterMetadata.map(m => m.id);
+    return [...bookmarks].sort((a, b) => {
+      // First sort by chapter order in the book
+      const chapterIndexA = chapterOrder.indexOf(a.chapterId);
+      const chapterIndexB = chapterOrder.indexOf(b.chapterId);
+      
+      if (chapterIndexA !== chapterIndexB) {
+        // If not found, put at end
+        if (chapterIndexA === -1) return 1;
+        if (chapterIndexB === -1) return -1;
+        return chapterIndexA - chapterIndexB;
+      }
+      
+      // Within same chapter, sort by page number
+      return a.pageNumber - b.pageNumber;
+    });
   }, [bookmarks]);
 
   const handleDelete = async (bookmarkId: string) => {

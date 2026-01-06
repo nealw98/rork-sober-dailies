@@ -26,7 +26,8 @@ import { X, Trash2 } from 'lucide-react-native';
 import Colors from '@/constants/colors';
 import { adjustFontWeight } from '@/constants/fonts';
 import { useBigBookHighlights } from '@/hooks/use-bigbook-highlights';
-import { getChapterMeta } from '@/constants/bigbook-v2/metadata';
+import { getChapterMeta, bigBookChapterMetadata } from '@/constants/bigbook-v2/metadata';
+import { BigBookHighlight } from '@/types/bigbook-v2';
 
 interface BigBookHighlightsListProps {
   visible: boolean;
@@ -34,6 +35,16 @@ interface BigBookHighlightsListProps {
   onNavigateToHighlight: (chapterId: string, paragraphId: string) => void;
 }
 
+// A merged highlight group for display purposes
+interface MergedHighlight {
+  ids: string[];              // All highlight IDs in this group
+  paragraphId: string;
+  chapterId: string;
+  color: string;
+  combinedText: string;       // Combined text from all sentences
+  note?: string;              // Note from first highlight with a note
+  createdAt: number;          // Earliest createdAt
+}
 
 export function BigBookHighlightsList({
   visible,
@@ -42,26 +53,117 @@ export function BigBookHighlightsList({
 }: BigBookHighlightsListProps) {
   const { highlights, deleteHighlight, isLoading } = useBigBookHighlights();
 
-  // Group highlights by chapter
+  // Group highlights by chapter, then merge consecutive sentences within same paragraph
   const groupedHighlights = useMemo(() => {
-    const groups: Record<string, typeof highlights> = {};
+    const groups: Record<string, MergedHighlight[]> = {};
     
+    // First, group all highlights by chapter
+    const byChapter: Record<string, BigBookHighlight[]> = {};
     highlights.forEach(highlight => {
-      if (!groups[highlight.chapterId]) {
-        groups[highlight.chapterId] = [];
+      if (!byChapter[highlight.chapterId]) {
+        byChapter[highlight.chapterId] = [];
       }
-      groups[highlight.chapterId].push(highlight);
+      byChapter[highlight.chapterId].push(highlight);
+    });
+    
+    // For each chapter, merge consecutive highlights in same paragraph
+    Object.entries(byChapter).forEach(([chapterId, chapterHighlights]) => {
+      // Sort by paragraph, then by sentence index
+      const sorted = [...chapterHighlights].sort((a, b) => {
+        if (a.paragraphId !== b.paragraphId) {
+          return a.paragraphId.localeCompare(b.paragraphId);
+        }
+        return a.sentenceIndex - b.sentenceIndex;
+      });
+      
+      const merged: MergedHighlight[] = [];
+      let currentGroup: BigBookHighlight[] = [];
+      
+      sorted.forEach((highlight, index) => {
+        if (currentGroup.length === 0) {
+          // Start new group
+          currentGroup.push(highlight);
+        } else {
+          const lastInGroup = currentGroup[currentGroup.length - 1];
+          // Check if this highlight is consecutive (same paragraph, next sentence index, same color)
+          const isConsecutive = 
+            highlight.paragraphId === lastInGroup.paragraphId &&
+            highlight.sentenceIndex === lastInGroup.sentenceIndex + 1 &&
+            highlight.color === lastInGroup.color;
+          
+          if (isConsecutive) {
+            // Add to current group
+            currentGroup.push(highlight);
+          } else {
+            // Finalize current group and start new one
+            merged.push(createMergedHighlight(currentGroup));
+            currentGroup = [highlight];
+          }
+        }
+        
+        // If last item, finalize current group
+        if (index === sorted.length - 1 && currentGroup.length > 0) {
+          merged.push(createMergedHighlight(currentGroup));
+        }
+      });
+      
+      // Sort merged highlights by paragraph order (book position)
+      merged.sort((a, b) => {
+        // Sort by paragraph ID (which contains order info like chapter-1-p1, chapter-1-p2)
+        return a.paragraphId.localeCompare(b.paragraphId);
+      });
+      groups[chapterId] = merged;
     });
     
     return groups;
   }, [highlights]);
+  
+  // Get chapters sorted by book order
+  const sortedChapterIds = useMemo(() => {
+    const chapterOrder = bigBookChapterMetadata.map(m => m.id);
+    return Object.keys(groupedHighlights).sort((a, b) => {
+      const indexA = chapterOrder.indexOf(a);
+      const indexB = chapterOrder.indexOf(b);
+      // If not found in metadata, put at end
+      if (indexA === -1) return 1;
+      if (indexB === -1) return -1;
+      return indexA - indexB;
+    });
+  }, [groupedHighlights]);
+  
+  // Helper to create a merged highlight from a group of consecutive highlights
+  function createMergedHighlight(group: BigBookHighlight[]): MergedHighlight {
+    // Combine text with space between sentences
+    const combinedText = group.map(h => h.textSnapshot).join(' ');
+    // Find the first note
+    const note = group.find(h => h.note)?.note;
+    // Use earliest createdAt
+    const createdAt = Math.min(...group.map(h => h.createdAt));
+    
+    return {
+      ids: group.map(h => h.id),
+      paragraphId: group[0].paragraphId,
+      chapterId: group[0].chapterId,
+      color: group[0].color,
+      combinedText,
+      note,
+      createdAt,
+    };
+  }
+  
+  // Count total merged entries for display
+  const totalMergedCount = useMemo(() => {
+    return Object.values(groupedHighlights).reduce((sum, arr) => sum + arr.length, 0);
+  }, [groupedHighlights]);
 
-  const handleDelete = async (highlightId: string) => {
+  // Delete all highlights in a merged group
+  const handleDeleteMerged = async (ids: string[]) => {
     try {
-      console.log('[BigBookHighlightsList] Deleting highlight:', highlightId);
-      await deleteHighlight(highlightId);
+      console.log('[BigBookHighlightsList] Deleting merged highlights:', ids);
+      // Delete all highlights in the group
+      await Promise.all(ids.map(id => deleteHighlight(id)));
     } catch (error) {
-      console.error('[BigBookHighlightsList] Error deleting highlight:', error);
+      console.error('[BigBookHighlightsList] Error deleting highlights:', error);
     }
   };
 
@@ -99,7 +201,7 @@ export function BigBookHighlightsList({
 
         {/* Content */}
         <ScrollView style={styles.content} contentContainerStyle={styles.contentContainer}>
-          {highlights.length === 0 ? (
+          {totalMergedCount === 0 ? (
             // Empty State
             <View style={styles.emptyState}>
               <Text style={styles.emptyStateIcon}>✏️</Text>
@@ -115,30 +217,26 @@ export function BigBookHighlightsList({
             // Highlights List
             <>
               <Text style={styles.countText}>
-                {highlights.length} highlight{highlights.length !== 1 ? 's' : ''}
+                {totalMergedCount} highlight{totalMergedCount !== 1 ? 's' : ''}
               </Text>
               
-              {Object.entries(groupedHighlights).map(([chapterId, chapterHighlights]) => {
+              {sortedChapterIds.map(chapterId => {
+                const mergedHighlights = groupedHighlights[chapterId];
                 const chapterMeta = getChapterMeta(chapterId);
                 
                 return (
                   <View key={chapterId} style={styles.chapterGroup}>
                     <Text style={styles.chapterTitle}>{chapterMeta?.title || chapterId}</Text>
                     
-                    {chapterHighlights.map(highlight => {
-                      console.log('[BigBookHighlightsList] Rendering highlight:', {
-                        id: highlight.id,
-                        chapterId: highlight.chapterId,
-                        paragraphId: highlight.paragraphId,
-                      });
+                    {mergedHighlights.map(merged => {
+                      const key = merged.ids.join('-');
                       
                       return (
                         <TouchableOpacity
-                          key={highlight.id}
+                          key={key}
                           style={styles.highlightItem}
                           onPress={() => {
-                            console.log('[BigBookHighlightsList] TouchableOpacity pressed for highlight:', highlight.id);
-                            handleNavigate(highlight.chapterId, highlight.paragraphId);
+                            handleNavigate(merged.chapterId, merged.paragraphId);
                           }}
                           activeOpacity={0.7}
                         >
@@ -146,23 +244,23 @@ export function BigBookHighlightsList({
                         <View style={styles.colorIndicator} />
                         
                         <View style={styles.highlightContent}>
-                          {/* Highlighted Text (no quotes) */}
+                          {/* Highlighted Text (combined from consecutive sentences) */}
                           <Text style={styles.highlightText}>
-                            {highlight.textSnapshot}
+                            {merged.combinedText}
                           </Text>
                           
                           {/* Note (if exists) */}
-                          {highlight.note && (
+                          {merged.note && (
                             <View style={styles.noteContainer}>
                               <Text style={styles.noteLabel}>Note:</Text>
-                              <Text style={styles.noteText}>{highlight.note}</Text>
+                              <Text style={styles.noteText}>{merged.note}</Text>
                             </View>
                           )}
                           
                           {/* Metadata */}
                           <View style={styles.metadata}>
                             <Text style={styles.metadataText}>
-                              {new Date(highlight.createdAt).toLocaleDateString()}
+                              {new Date(merged.createdAt).toLocaleDateString()}
                             </Text>
                           </View>
                         </View>
@@ -170,7 +268,7 @@ export function BigBookHighlightsList({
                         {/* Delete Button */}
                         <TouchableOpacity
                           style={styles.deleteButton}
-                          onPress={() => handleDelete(highlight.id)}
+                          onPress={() => handleDeleteMerged(merged.ids)}
                           hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
                         >
                           <Trash2 size={18} color={Colors.light.muted} />
