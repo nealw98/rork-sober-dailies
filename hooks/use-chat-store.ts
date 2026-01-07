@@ -695,6 +695,7 @@ export const [ChatStoreProvider, useChatStore] = createContextHook(() => {
   return {
     messages,
     isLoading,
+    hasLoadedFromStorage,
     sendMessage,
     clearChat,
     sponsorType,
