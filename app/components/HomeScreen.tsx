@@ -84,21 +84,21 @@ const HomeScreen = () => {
         <Text style={styles.sectionLabel}>Morning</Text>
         <View style={styles.routineRow}>
           <TouchableOpacity
-            style={[styles.routineTile, styles.routineTileHalf]}
+            style={[styles.routineTile, styles.routineTileHalf, styles.morningPrayerTile]}
             onPress={() => router.push('/(tabs)/prayers?prayer=morning')}
             activeOpacity={0.8}
           >
             <Text style={styles.routineEmoji}>🙏</Text>
-            <Text style={styles.routineTitle}>Morning Prayer</Text>
+            <Text style={styles.routineTitleLight}>Morning Prayer</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
-            style={[styles.routineTile, styles.routineTileHalf]}
+            style={[styles.routineTile, styles.routineTileHalf, styles.gratitudeTile]}
             onPress={() => router.push('/(tabs)/gratitude')}
             activeOpacity={0.8}
           >
             <Text style={styles.routineEmoji}>😊</Text>
-            <Text style={styles.routineTitle}>Gratitude List</Text>
+            <Text style={styles.routineTitleLight}>Gratitude List</Text>
           </TouchableOpacity>
         </View>
 
@@ -106,21 +106,21 @@ const HomeScreen = () => {
         <Text style={styles.sectionLabel}>Evening</Text>
         <View style={styles.routineRow}>
           <TouchableOpacity
-            style={[styles.routineTile, styles.routineTileHalf]}
+            style={[styles.routineTile, styles.routineTileHalf, styles.eveningPrayerTile]}
             onPress={() => router.push('/(tabs)/prayers?prayer=evening')}
             activeOpacity={0.8}
           >
             <Text style={styles.routineEmoji}>🙏</Text>
-            <Text style={styles.routineTitle}>Evening Prayer</Text>
+            <Text style={styles.routineTitleLight}>Evening Prayer</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
-            style={[styles.routineTile, styles.routineTileHalf]}
+            style={[styles.routineTile, styles.routineTileHalf, styles.nightlyReviewTile]}
             onPress={() => router.push('/(tabs)/evening-review')}
             activeOpacity={0.8}
           >
             <Text style={styles.routineEmoji}>🌙</Text>
-            <Text style={styles.routineTitle}>Nightly Review</Text>
+            <Text style={styles.routineTitleLight}>Nightly Review</Text>
           </TouchableOpacity>
         </View>
 
@@ -128,12 +128,12 @@ const HomeScreen = () => {
         <Text style={styles.sectionLabel}>Anytime</Text>
         <View style={styles.routineRow}>
           <TouchableOpacity
-            style={[styles.routineTile, styles.routineTileFull]}
+            style={[styles.routineTile, styles.routineTileFull, styles.spotCheckTile]}
             onPress={() => router.push('/(tabs)/inventory')}
             activeOpacity={0.8}
           >
             <Text style={styles.routineEmoji}>📝</Text>
-            <Text style={styles.routineTitle}>Spot Check Inventory</Text>
+            <Text style={styles.routineTitleLight}>Spot Check Inventory</Text>
           </TouchableOpacity>
         </View>
 
@@ -247,6 +247,26 @@ const styles = StyleSheet.create({
   routineTileFull: {
     flex: 1,
   },
+  morningPrayerTile: {
+    backgroundColor: '#F5C341',
+    borderColor: '#E5B331',
+  },
+  gratitudeTile: {
+    backgroundColor: '#E8884A',
+    borderColor: '#D8783A',
+  },
+  eveningPrayerTile: {
+    backgroundColor: '#E88BA0',
+    borderColor: '#D87B90',
+  },
+  nightlyReviewTile: {
+    backgroundColor: '#9B7BC7',
+    borderColor: '#8B6BB7',
+  },
+  spotCheckTile: {
+    backgroundColor: '#5EC4B0',
+    borderColor: '#4EB4A0',
+  },
   routineEmoji: {
     fontSize: 24,
     marginBottom: 8,
@@ -255,6 +275,11 @@ const styles = StyleSheet.create({
     fontSize: 19,
     fontWeight: adjustFontWeight('600'),
     color: '#3d5a6a',
+  },
+  routineTitleLight: {
+    fontSize: 19,
+    fontWeight: adjustFontWeight('600'),
+    color: '#fff',
   },
   routineSubtitle: {
     fontSize: 14,

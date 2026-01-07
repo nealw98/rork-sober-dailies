@@ -13,6 +13,7 @@ interface UsageEvent {
   event: string;
   screen?: string;
   feature?: string;
+  duration_seconds?: number;
   session_id: string;
   anonymous_id: string | null;
   app_version?: string;
@@ -25,6 +26,7 @@ class UsageLogger {
   private eventQueue: UsageEvent[] = [];
   private isFlushing = false;
   private currentScreen: string | null = null;
+  private screenOpenTime: number | null = null;
   private lastEventTime: number = Date.now();
   private appState: AppStateStatus = 'active';
   private lastScreenLogged: string | null = null;
@@ -157,8 +159,13 @@ class UsageLogger {
       usageEvent.feature = props.feature;
     }
 
+    // Add duration if provided (for screen_close events)
+    if (props?.duration_seconds !== undefined) {
+      usageEvent.duration_seconds = props.duration_seconds;
+    }
+
     this.eventQueue.push(usageEvent);
-    console.log('[UsageLogger] Event queued:', event, 'screen:', props?.screen || this.currentScreen, 'queue size:', this.eventQueue.length);
+    console.log('[UsageLogger] Event queued:', event, 'screen:', props?.screen || this.currentScreen, 'duration:', props?.duration_seconds, 'queue size:', this.eventQueue.length);
 
     // Flush events in the background
     this.scheduleFlush();
@@ -230,13 +237,18 @@ class UsageLogger {
   // Screen tracking hooks
   onScreenFocus(screenName: string): void {
     if (this.currentScreen !== screenName) {
-      // Log screen close for previous screen
+      // Log screen close for previous screen with duration
       if (this.currentScreen && this.shouldLogScreenEvent(this.currentScreen, 'close')) {
-        this.logEvent('screen_close', { screen: this.currentScreen });
+        const duration = this.calculateScreenDuration();
+        this.logEvent('screen_close', { 
+          screen: this.currentScreen,
+          duration_seconds: duration
+        });
       }
 
-      // Update current screen
+      // Update current screen and record open time
       this.currentScreen = screenName;
+      this.screenOpenTime = Date.now();
 
       // Log screen open for new screen
       if (this.shouldLogScreenEvent(screenName, 'open')) {
@@ -248,10 +260,22 @@ class UsageLogger {
   onScreenBlur(screenName: string): void {
     if (this.currentScreen === screenName) {
       if (this.shouldLogScreenEvent(screenName, 'close')) {
-        this.logEvent('screen_close', { screen: screenName });
+        const duration = this.calculateScreenDuration();
+        this.logEvent('screen_close', { 
+          screen: screenName,
+          duration_seconds: duration
+        });
       }
       this.currentScreen = null;
+      this.screenOpenTime = null;
     }
+  }
+
+  // Calculate time spent on current screen in seconds
+  private calculateScreenDuration(): number | undefined {
+    if (!this.screenOpenTime) return undefined;
+    const durationMs = Date.now() - this.screenOpenTime;
+    return Math.round(durationMs / 1000);
   }
 
   // App state change handler
@@ -267,12 +291,15 @@ class UsageLogger {
           screen: this.currentScreen 
         });
         
-        // Also log screen close if we have a current screen
+        // Also log screen close if we have a current screen (with duration)
         if (this.currentScreen) {
+          const duration = this.calculateScreenDuration();
           this.logEvent('screen_close', {
             screen: this.currentScreen,
-            reason: 'app_background'
+            reason: 'app_background',
+            duration_seconds: duration
           });
+          this.screenOpenTime = null;
         }
       } else if (nextAppState === 'active' && previousAppState !== 'active') {
         // App coming back to foreground from background/inactive
@@ -296,6 +323,7 @@ class UsageLogger {
         
         // Also log screen open for the current screen with new session
         if (this.currentScreen && this.shouldLogScreenEvent(this.currentScreen, 'open')) {
+          this.screenOpenTime = Date.now(); // Reset timer for returning to screen
           this.logEvent('screen_open', {
             screen: this.currentScreen,
             reason: 'app_foreground'
