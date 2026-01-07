@@ -257,8 +257,18 @@ export function useBigBookContent(): UseBigBookContentReturn {
       });
     });
     
-    // Sort by relevance (highest first)
-    results.sort((a, b) => b.relevanceScore - a.relevanceScore);
+    // Sort by book order (chapter order, then paragraph order within chapter)
+    results.sort((a, b) => {
+      const aChapterIndex = bigBookChapterMetadata.findIndex(meta => meta.id === a.chapterId);
+      const bChapterIndex = bigBookChapterMetadata.findIndex(meta => meta.id === b.chapterId);
+      
+      if (aChapterIndex !== bChapterIndex) {
+        return aChapterIndex - bChapterIndex;
+      }
+      
+      // Same chapter, sort by paragraph order
+      return a.paragraph.order - b.paragraph.order;
+    });
     
     return results;
   }, []);
