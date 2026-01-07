@@ -164,6 +164,7 @@ export const [ChatStoreProvider, useChatStore] = createContextHook(() => {
   const [freshMessages, setFreshMessages] = useState<ChatMessage[]>([FRESH_FREDDIE_INITIAL_MESSAGE]);
   const [mamaJoMessages, setMamaJoMessages] = useState<ChatMessage[]>([MAMA_JO_INITIAL_MESSAGE]);
   const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [hasLoadedFromStorage, setHasLoadedFromStorage] = useState<boolean>(false);
 
   // Get current messages based on selected sponsor
   const messages = (() => {
@@ -375,16 +376,22 @@ export const [ChatStoreProvider, useChatStore] = createContextHook(() => {
             setMamaJoMessages([MAMA_JO_INITIAL_MESSAGE]);
           }
         }
+        
+        // Mark loading as complete to enable saving
+        setHasLoadedFromStorage(true);
       } catch (error) {
         console.error("Error loading messages:", error);
+        // Still mark as loaded so new messages can be saved
+        setHasLoadedFromStorage(true);
       }
     };
     
     loadData();
   }, []);
 
-  // Save messages to storage whenever they change
+  // Save messages to storage whenever they change (but only after initial load)
   useEffect(() => {
+    if (!hasLoadedFromStorage) return;
     const saveMessages = async () => {
       try {
         await AsyncStorage.setItem("aa-chat-messages-salty", JSON.stringify(saltyMessages));
@@ -396,9 +403,10 @@ export const [ChatStoreProvider, useChatStore] = createContextHook(() => {
     if (saltyMessages.length > 0) {
       saveMessages();
     }
-  }, [saltyMessages]);
+  }, [saltyMessages, hasLoadedFromStorage]);
 
   useEffect(() => {
+    if (!hasLoadedFromStorage) return;
     const saveMessages = async () => {
       try {
         await AsyncStorage.setItem("aa-chat-messages-supportive", JSON.stringify(supportiveMessages));
@@ -410,9 +418,10 @@ export const [ChatStoreProvider, useChatStore] = createContextHook(() => {
     if (supportiveMessages.length > 0) {
       saveMessages();
     }
-  }, [supportiveMessages]);
+  }, [supportiveMessages, hasLoadedFromStorage]);
 
   useEffect(() => {
+    if (!hasLoadedFromStorage) return;
     const saveMessages = async () => {
       try {
         await AsyncStorage.setItem("aa-chat-messages-grace", JSON.stringify(graceMessages));
@@ -424,9 +433,10 @@ export const [ChatStoreProvider, useChatStore] = createContextHook(() => {
     if (graceMessages.length > 0) {
       saveMessages();
     }
-  }, [graceMessages]);
+  }, [graceMessages, hasLoadedFromStorage]);
 
   useEffect(() => {
+    if (!hasLoadedFromStorage) return;
     const saveMessages = async () => {
       try {
         await AsyncStorage.setItem("aa-chat-messages-cowboy", JSON.stringify(cowboyMessages));
@@ -438,9 +448,10 @@ export const [ChatStoreProvider, useChatStore] = createContextHook(() => {
     if (cowboyMessages.length > 0) {
       saveMessages();
     }
-  }, [cowboyMessages]);
+  }, [cowboyMessages, hasLoadedFromStorage]);
 
   useEffect(() => {
+    if (!hasLoadedFromStorage) return;
     const saveMessages = async () => {
       try {
         await AsyncStorage.setItem("aa-chat-messages-sally", JSON.stringify(sallyMessages));
@@ -452,9 +463,10 @@ export const [ChatStoreProvider, useChatStore] = createContextHook(() => {
     if (sallyMessages.length > 0) {
       saveMessages();
     }
-  }, [sallyMessages]);
+  }, [sallyMessages, hasLoadedFromStorage]);
 
   useEffect(() => {
+    if (!hasLoadedFromStorage) return;
     const saveMessages = async () => {
       try {
         await AsyncStorage.setItem("aa-chat-messages-fresh", JSON.stringify(freshMessages));
@@ -466,9 +478,10 @@ export const [ChatStoreProvider, useChatStore] = createContextHook(() => {
     if (freshMessages.length > 0) {
       saveMessages();
     }
-  }, [freshMessages]);
+  }, [freshMessages, hasLoadedFromStorage]);
 
   useEffect(() => {
+    if (!hasLoadedFromStorage) return;
     const saveMessages = async () => {
       try {
         await AsyncStorage.setItem("aa-chat-messages-mama-jo", JSON.stringify(mamaJoMessages));
@@ -480,7 +493,7 @@ export const [ChatStoreProvider, useChatStore] = createContextHook(() => {
     if (mamaJoMessages.length > 0) {
       saveMessages();
     }
-  }, [mamaJoMessages]);
+  }, [mamaJoMessages, hasLoadedFromStorage]);
 
   // Save sponsor type preference
   useEffect(() => {

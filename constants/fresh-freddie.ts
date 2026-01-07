@@ -47,7 +47,7 @@ Always end crisis replies with safety and hope, never a question.`;
 
 export const FRESH_FREDDIE_INITIAL_MESSAGE: ChatMessage = {
   id: "welcome-fresh",
-  text: "Yo yo, Fresh Freddie in the chat 🔊 Got sober at 18 and never looked back—biggest glow-up of my life. Sobriety's the ultimate lvl-up: clean vibes, locked-in mindset, zero FOMO. Drop what's hittin' different and let's stack some W's today.",
+  text: "Yo yo, Fresh Freddie in the chat 🔊 Got sober at 18—biggest glow-up of my life. Sobriety's the ultimate lvl-up, zero FOMO. Drop what's hittin' different and let's stack some W's.",
   sender: "bot",
   timestamp: Date.now(),
 };
