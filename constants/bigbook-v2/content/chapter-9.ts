@@ -410,7 +410,7 @@ export const chapter_9: BigBookChapter = {
       chapterId: 'chapter-9',
       pageNumber: 135,
       order: 57,
-      content: '_First Things First_\n_Live and Let Live_\n_Easy Does It._',
+      content: '_First Things First_\n_Live and Let Live_\n_Easy Does It_.',
     },
   ],
 };

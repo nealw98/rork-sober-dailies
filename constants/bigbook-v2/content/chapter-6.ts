@@ -123,14 +123,14 @@ export const chapter_6: BigBookChapter = {
       chapterId: 'chapter-6',
       pageNumber: 76,
       order: 16,
-      content: 'When ready, we say something like this: "My Creator, I am now willing that you should have all of me, good and bad.  I pray that you now remove from me every single defect of character which stands in the way of my usefulness to you and my fellows.  Grant me strength, as I go out from here, to do your bidding.  Amen." We have then completed _Step Seven._',
+      content: 'When ready, we say something like this: "My Creator, I am now willing that you should have all of me, good and bad.  I pray that you now remove from me every single defect of character which stands in the way of my usefulness to you and my fellows.  Grant me strength, as I go out from here, to do your bidding.  Amen." We have then completed _Step Seven_.',
     },
     {
       id: 'chapter-6-p17',
       chapterId: 'chapter-6',
       pageNumber: 76,
       order: 17,
-      content: 'Now we need more action, without which we find that "Faith without works is dead." Let\'s look at _Steps Eight and Nine._  We have a list of all persons we have harmed and to whom we are willing to make amends.  We made it when we took inventory.  We subjected ourselves to a drastic self-appraisal.  Now we go out to our fellows and repair the damage done in the past.  We attempt to sweep away the debris which has accumulated out of our effort to live on self-will and run the show ourselves.  If we haven\'t the will to do this, we ask until it comes.  Remember it was agreed at the beginning _we would go to any lengths for victory over alcohol._',
+      content: 'Now we need more action, without which we find that "Faith without works is dead." Let\'s look at _Steps Eight and Nine_.  We have a list of all persons we have harmed and to whom we are willing to make amends.  We made it when we took inventory.  We subjected ourselves to a drastic self-appraisal.  Now we go out to our fellows and repair the damage done in the past.  We attempt to sweep away the debris which has accumulated out of our effort to live on self-will and run the show ourselves.  If we haven\'t the will to do this, we ask until it comes.  Remember it was agreed at the beginning _we would go to any lengths for victory over alcohol_.',
     },
     {
       id: 'chapter-6-p18',
@@ -305,7 +305,7 @@ export const chapter_6: BigBookChapter = {
       chapterId: 'chapter-6',
       pageNumber: 83,
       order: 42,
-      content: 'The spiritual life is not a theory.  _We have to live it._  Unless one\'s family expresses a desire to live upon spiritual principles we think we ought not to urge them.  We should not talk incessantly to them about spiritual matters.  They will change in time.  Our behavior will convince them more than our words.  We must remember that ten or twenty years of drunkenness would make a skeptic out of anyone.',
+      content: 'The spiritual life is not a theory.  _We have to live it_.  Unless one\'s family expresses a desire to live upon spiritual principles we think we ought not to urge them.  We should not talk incessantly to them about spiritual matters.  They will change in time.  Our behavior will convince them more than our words.  We must remember that ten or twenty years of drunkenness would make a skeptic out of anyone.',
     },
     {
       id: 'chapter-6-p43',
@@ -459,7 +459,7 @@ export const chapter_6: BigBookChapter = {
       chapterId: 'chapter-6',
       pageNumber: 88,
       order: 64,
-      content: 'But this is not all.  There is action and more action. "Faith without works is dead." The next chapter is entirely devoted to _Step Twelve._',
+      content: 'But this is not all.  There is action and more action. "Faith without works is dead." The next chapter is entirely devoted to _Step Twelve_.',
     },
   ],
 };

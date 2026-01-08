@@ -410,7 +410,7 @@ export const chapter_1: BigBookChapter = {
       chapterId: 'chapter-1',
       pageNumber: 12,
       order: 57,
-      content: '_It was only a matter of being willing to believe in a Power greater than myself._  _Nothing more was required of me to make my beginning._  I saw that growth could start from that point.  Upon a foundation of complete willingness I might build what I saw in my friend.  Would I have it?  Of course I would!',
+      content: '_It was only a matter of being willing to believe in a Power greater than myself_.  _Nothing more was required of me to make my beginning_.  I saw that growth could start from that point.  Upon a foundation of complete willingness I might build what I saw in my friend.  Would I have it?  Of course I would!',
     },
     {
       id: 'chapter-1-p58',

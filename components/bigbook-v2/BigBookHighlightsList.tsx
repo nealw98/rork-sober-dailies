@@ -27,13 +27,32 @@ import Colors from '@/constants/colors';
 import { adjustFontWeight } from '@/constants/fonts';
 import { useBigBookHighlights } from '@/hooks/use-bigbook-highlights';
 import { getChapterMeta, bigBookChapterMetadata } from '@/constants/bigbook-v2/metadata';
+import { bigBookContent } from '@/constants/bigbook-v2/content';
 import { BigBookHighlight } from '@/types/bigbook-v2';
 import { parseMarkdownItalics } from './markdownUtils';
+
+// Helper to get page number from paragraph ID
+function getPageNumber(paragraphId: string): number | null {
+  const chapterId = paragraphId.substring(0, paragraphId.lastIndexOf('-p'));
+  const chapter = bigBookContent[chapterId];
+  if (!chapter) return null;
+  const paragraph = chapter.paragraphs.find(p => p.id === paragraphId);
+  return paragraph?.pageNumber ?? null;
+}
+
+// Helper to get chapter title without the number prefix (e.g., "1. Bill's Story" -> "Bill's Story")
+function getChapterTitleWithoutNumber(chapterId: string): string {
+  const meta = getChapterMeta(chapterId);
+  if (!meta) return chapterId;
+  // Remove leading number and period (e.g., "1. ", "10. ")
+  return meta.title.replace(/^\d+\.\s*/, '');
+}
 
 interface BigBookHighlightsListProps {
   visible: boolean;
   onClose: () => void;
   onNavigateToHighlight: (chapterId: string, paragraphId: string) => void;
+  fontSize?: number;
 }
 
 // A merged highlight group for display purposes
@@ -51,6 +70,7 @@ export function BigBookHighlightsList({
   visible,
   onClose,
   onNavigateToHighlight,
+  fontSize = 18,
 }: BigBookHighlightsListProps) {
   const { highlights, deleteHighlight, isLoading } = useBigBookHighlights();
 
@@ -217,18 +237,11 @@ export function BigBookHighlightsList({
           ) : (
             // Highlights List
             <>
-              <Text style={styles.countText}>
-                {totalMergedCount} highlight{totalMergedCount !== 1 ? 's' : ''}
-              </Text>
-              
               {sortedChapterIds.map(chapterId => {
                 const mergedHighlights = groupedHighlights[chapterId];
-                const chapterMeta = getChapterMeta(chapterId);
                 
                 return (
                   <View key={chapterId} style={styles.chapterGroup}>
-                    <Text style={styles.chapterTitle}>{chapterMeta?.title || chapterId}</Text>
-                    
                     {mergedHighlights.map(merged => {
                       const key = merged.ids.join('-');
                       
@@ -245,8 +258,13 @@ export function BigBookHighlightsList({
                         <View style={styles.colorIndicator} />
                         
                         <View style={styles.highlightContent}>
+                          {/* Chapter and Page Info */}
+                          <Text style={[styles.chapterInfo, { fontSize }]}>
+                            {getChapterTitleWithoutNumber(merged.chapterId)} — Page {getPageNumber(merged.paragraphId) ?? '?'}
+                          </Text>
+                          
                           {/* Highlighted Text (combined from consecutive sentences) */}
-                          <Text style={styles.highlightText}>
+                          <Text style={[styles.highlightText, { fontSize, lineHeight: fontSize * 1.625 }]}>
                             {parseMarkdownItalics(merged.combinedText, merged.ids[0])}
                           </Text>
                           
@@ -346,20 +364,8 @@ const styles = StyleSheet.create({
     fontStyle: 'italic',
     lineHeight: 20,
   },
-  countText: {
-    fontSize: 14,
-    fontWeight: adjustFontWeight('600'),
-    color: Colors.light.muted,
-    marginBottom: 16,
-  },
   chapterGroup: {
-    marginBottom: 24,
-  },
-  chapterTitle: {
-    fontSize: 16,
-    fontWeight: adjustFontWeight('600'),
-    color: '#3D8B8B',
-    marginBottom: 12,
+    marginBottom: 8,
   },
   highlightItem: {
     flexDirection: 'row',
@@ -379,9 +385,12 @@ const styles = StyleSheet.create({
   highlightContent: {
     flex: 1,
   },
+  chapterInfo: {
+    fontWeight: adjustFontWeight('600'),
+    color: '#3D8B8B',
+    marginBottom: 6,
+  },
   highlightText: {
-    fontSize: 15,
-    lineHeight: 22,
     color: Colors.light.text,
     marginBottom: 8,
   },

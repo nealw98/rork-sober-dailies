@@ -30,11 +30,20 @@ import { adjustFontWeight } from '@/constants/fonts';
 import { useBigBookBookmarks } from '@/hooks/use-bigbook-bookmarks';
 import { getChapterMeta, bigBookChapterMetadata } from '@/constants/bigbook-v2/metadata';
 
+// Helper to get chapter title without the number prefix (e.g., "1. Bill's Story" -> "Bill's Story")
+function getChapterTitleWithoutNumber(chapterId: string): string {
+  const meta = getChapterMeta(chapterId);
+  if (!meta) return chapterId;
+  // Remove leading number and period (e.g., "1. ", "10. ")
+  return meta.title.replace(/^\d+\.\s*/, '');
+}
+
 interface BigBookBookmarksListProps {
   visible: boolean;
   onClose: () => void;
   onNavigateToBookmark: (chapterId: string, pageNumber: number) => void;
   onBookmarksChanged?: () => void;
+  fontSize?: number;
 }
 
 export function BigBookBookmarksList({
@@ -42,6 +51,7 @@ export function BigBookBookmarksList({
   onClose,
   onNavigateToBookmark,
   onBookmarksChanged,
+  fontSize = 18,
 }: BigBookBookmarksListProps) {
   const { bookmarks, deleteBookmark, updateBookmarkLabel, isLoading, refresh } = useBigBookBookmarks();
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -140,12 +150,7 @@ export function BigBookBookmarksList({
           ) : (
             // Bookmarks List
             <>
-              <Text style={styles.countText}>
-                {bookmarks.length} bookmark{bookmarks.length !== 1 ? 's' : ''}
-              </Text>
-              
               {sortedBookmarks.map(bookmark => {
-                const chapterMeta = getChapterMeta(bookmark.chapterId);
                 const isEditing = editingId === bookmark.id;
                 
                 return (
@@ -160,20 +165,15 @@ export function BigBookBookmarksList({
                     <View style={styles.bookmarkIndicator} />
                     
                     <View style={styles.bookmarkContent}>
-                      {/* Page Number - Small */}
-                      <Text style={styles.bookmarkPageNumber}>
-                        Page {bookmark.pageNumber}
-                      </Text>
-                      
-                      {/* Chapter Title - Blue */}
-                      <Text style={styles.chapterTitle}>
-                        {chapterMeta?.title || bookmark.chapterId}
+                      {/* Chapter Title and Page Number */}
+                      <Text style={[styles.chapterInfo, { fontSize }]}>
+                        {getChapterTitleWithoutNumber(bookmark.chapterId)} — Page {bookmark.pageNumber}
                       </Text>
                       
                       {/* Editable Label */}
                       {isEditing ? (
                         <TextInput
-                          style={styles.bookmarkLabelInput}
+                          style={[styles.bookmarkLabelInput, { fontSize }]}
                           value={editingText}
                           onChangeText={setEditingText}
                           onBlur={() => handleFinishEdit(bookmark.id)}
@@ -186,7 +186,7 @@ export function BigBookBookmarksList({
                       ) : (
                         bookmark.label && (
                           <TouchableOpacity onPress={() => handleStartEdit(bookmark.id, bookmark.label)}>
-                            <Text style={styles.bookmarkLabel}>
+                            <Text style={[styles.bookmarkLabel, { fontSize, lineHeight: fontSize * 1.625 }]}>
                               {bookmark.label}
                             </Text>
                           </TouchableOpacity>
@@ -273,12 +273,6 @@ const styles = StyleSheet.create({
     fontStyle: 'italic',
     lineHeight: 20,
   },
-  countText: {
-    fontSize: 14,
-    fontWeight: adjustFontWeight('600'),
-    color: Colors.light.muted,
-    marginBottom: 16,
-  },
   bookmarkItem: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -302,20 +296,12 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingLeft: 12,
   },
-  bookmarkPageNumber: {
-    fontSize: 15,
-    fontWeight: adjustFontWeight('400'),
-    color: Colors.light.muted,
-    marginBottom: 4,
-  },
-  chapterTitle: {
-    fontSize: 14,
+  chapterInfo: {
     fontWeight: adjustFontWeight('600'),
     color: '#3D8B8B',
-    marginBottom: 2,
+    marginBottom: 6,
   },
   bookmarkLabel: {
-    fontSize: 14,
     fontWeight: adjustFontWeight('400'),
     color: Colors.light.text,
     lineHeight: 18,

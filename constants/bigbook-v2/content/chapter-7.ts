@@ -123,7 +123,7 @@ export const chapter_7: BigBookChapter = {
       chapterId: 'chapter-7',
       pageNumber: 93,
       order: 16,
-      content: 'admitted his condition, he has become very curious to know how you got well.  Let him ask you that question, if he will.  _Tell him exactly what happened to you_.  Stress the spiritual feature freely.  If the man be agnostic or atheist, make it emphatic that _he does not have to agree with your conception of God_.  He can choose any conception he likes, provided it makes sense to him.  _The main thing is that he be willing to believe in a Power greater than himself and that he live by spiritual principles._',
+      content: 'admitted his condition, he has become very curious to know how you got well.  Let him ask you that question, if he will.  _Tell him exactly what happened to you_.  Stress the spiritual feature freely.  If the man be agnostic or atheist, make it emphatic that _he does not have to agree with your conception of God_.  He can choose any conception he likes, provided it makes sense to him.  _The main thing is that he be willing to believe in a Power greater than himself and that he live by spiritual principles_.',
     },
     {
       id: 'chapter-7-p17',
@@ -424,7 +424,7 @@ export const chapter_7: BigBookChapter = {
       chapterId: 'chapter-7',
       pageNumber: 103,
       order: 59,
-      content: '_After all, our problems were of our own making._  _Bottles were only a symbol._  _Besides, we have stopped fighting anybody or anything._  _We have to!_',
+      content: '_After all, our problems were of our own making_.  _Bottles were only a symbol_.  _Besides, we have stopped fighting anybody or anything_.  _We have to_!',
     },
   ],
 };

@@ -60,7 +60,7 @@ export const chapter_2: BigBookChapter = {
       chapterId: 'chapter-2',
       pageNumber: 18,
       order: 7,
-      content: '_But the ex-problem drinker who has found this solution, who is properly armed with facts about himself, can generally win the entire confidence of another alcoholic in a few hours._  _Until such an understanding is reached, little or nothing can be accomplished._',
+      content: '_But the ex-problem drinker who has found this solution, who is properly armed with facts about himself, can generally win the entire confidence of another alcoholic in a few hours_.  _Until such an understanding is reached, little or nothing can be accomplished_.',
     },
     {
       id: 'chapter-2-p8',
@@ -242,7 +242,7 @@ export const chapter_2: BigBookChapter = {
       chapterId: 'chapter-2',
       pageNumber: 24,
       order: 33,
-      content: '_The fact is that most alcoholics, for reasons yet obscure, have lost the power of choice in drink._  _Our  so-called will power becomes practically nonexistent._  _We are unable, at certain times, to bring into our consciousness with sufficient force the memory of the suffering and humiliation of even a week or a month ago._  _We are without defense against the first drink._',
+      content: '_The fact is that most alcoholics, for reasons yet obscure, have lost the power of choice in drink_.  _Our  so-called will power becomes practically nonexistent_.  _We are unable, at certain times, to bring into our consciousness with sufficient force the memory of the suffering and humiliation of even a week or a month ago_.  _We are without defense against the first drink_.',
     },
     {
       id: 'chapter-2-p34',
@@ -270,7 +270,7 @@ export const chapter_2: BigBookChapter = {
       chapterId: 'chapter-2',
       pageNumber: 25,
       order: 37,
-      content: '_There is a solution._  Almost none of us liked the self-searching, the leveling of our pride, the confession of shortcomings which the process requires for its successful consummation.  But we saw that it really worked in others, and we had come to believe in the hopelessness and futility of life as we had been living it.  When, therefore, we were approached by those in whom the problem had been solved, there was nothing left for us but to pick up the simple kit of spiritual tools laid at our feet.  We have found much of heaven and we have been rocketed into a fourth dimension of existence of which we had not even dreamed.',
+      content: '_There is a solution_.  Almost none of us liked the self-searching, the leveling of our pride, the confession of shortcomings which the process requires for its successful consummation.  But we saw that it really worked in others, and we had come to believe in the hopelessness and futility of life as we had been living it.  When, therefore, we were approached by those in whom the problem had been solved, there was nothing left for us but to pick up the simple kit of spiritual tools laid at our feet.  We have found much of heaven and we have been rocketed into a fourth dimension of existence of which we had not even dreamed.',
     },
     {
       id: 'chapter-2-p38',

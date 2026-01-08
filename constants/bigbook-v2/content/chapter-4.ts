@@ -53,7 +53,7 @@ export const chapter_4: BigBookChapter = {
       chapterId: 'chapter-4',
       pageNumber: 45,
       order: 6,
-      content: 'Lack of power, that was our dilemma.  We had to find a power by which we could live, and it had to be a _Power greater than ourselves._  Obviously.  But where and how were we to find this Power?',
+      content: 'Lack of power, that was our dilemma.  We had to find a power by which we could live, and it had to be a _Power greater than ourselves_.  Obviously.  But where and how were we to find this Power?',
     },
     {
       id: 'chapter-4-p7',

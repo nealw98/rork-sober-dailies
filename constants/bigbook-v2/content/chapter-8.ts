@@ -221,7 +221,7 @@ export const chapter_8: BigBookChapter = {
       chapterId: 'chapter-8',
       pageNumber: 110,
       order: 30,
-      content: '_he became worse.  His friends have slipped away, his home is a near-wreck and he cannot hold a position.  Maybe the doctor has been called in, and the weary round of sanitariums and hospitals has begun.  He admits he cannot drink like other people, but does not see why.  He clings to the notion that he will yet find a way to do so.  He may have come to the point where he desperately wants to stop but cannot.  His case presents additional questions which we shall try to answer for you.  You can be quite hopeful of a situation like this._',
+      content: '_he became worse.  His friends have slipped away, his home is a near-wreck and he cannot hold a position.  Maybe the doctor has been called in, and the weary round of sanitariums and hospitals has begun.  He admits he cannot drink like other people, but does not see why.  He clings to the notion that he will yet find a way to do so.  He may have come to the point where he desperately wants to stop but cannot.  His case presents additional questions which we shall try to answer for you.  You can be quite hopeful of a situation like this_.',
     },
     {
       id: 'chapter-8-p31',

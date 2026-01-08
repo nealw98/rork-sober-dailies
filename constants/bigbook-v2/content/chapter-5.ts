@@ -284,7 +284,7 @@ export const chapter_5: BigBookChapter = {
       chapterId: 'chapter-5',
       pageNumber: 64,
       order: 39,
-      content: 'Therefore, we started upon a personal inventory.  _This was Step Four._  A business which takes no regular inventory usually goes broke.  Taking a commercial  inventory is a fact-finding and a fact-facing process.  It is an effort to discover the truth about the stock-in-trade.  One object is to disclose damaged or unsalable goods, to get rid of them promptly and without regret.  If the owner of the business is to be successful, he cannot fool himself about values.',
+      content: 'Therefore, we started upon a personal inventory.  _This was Step Four_.  A business which takes no regular inventory usually goes broke.  Taking a commercial  inventory is a fact-finding and a fact-facing process.  It is an effort to discover the truth about the stock-in-trade.  One object is to disclose damaged or unsalable goods, to get rid of them promptly and without regret.  If the owner of the business is to be successful, he cannot fool himself about values.',
     },
     {
       id: 'chapter-5-p40',

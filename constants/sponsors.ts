@@ -95,7 +95,7 @@ export const SPONSORS: SponsorConfig[] = [
     placeholderText: "Tell Pete what's kickin' up dust...",
     loadingText: "Cowboy Pete is mullin' it over...",
     bubbleColor: "#E0CABE",
-    tileColor: "#A67C52", // Brown
+    tileColor: "#C4956B", // Brown (lighter for contrast)
   },
   {
     id: "co-sign-sally",
