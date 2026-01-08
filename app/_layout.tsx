@@ -15,7 +15,6 @@ import { adjustFontWeight } from "@/constants/fonts";
 import Colors from "@/constants/colors";
 import WelcomeScreen from "@/components/WelcomeScreen";
 import OTASnackbar from "@/components/OTASnackbar";
-import { configurePurchases } from "@/lib/purchases";
 import { Logger } from "@/lib/logger";
 import { initUsageLogger } from "@/lib/usageLogger";
 import { recordAppOpen } from "@/lib/reviewPrompt";
@@ -107,9 +106,8 @@ function RootLayoutNav() {
 
   // Initialize app services
   useEffect(() => {
-    // Initialize in-app logger and purchases
+    // Initialize in-app logger
     Logger.initialize();
-    configurePurchases();
 
     // Initialize usage logger
     initUsageLogger();
@@ -219,12 +217,6 @@ function RootLayoutNav() {
           }} 
         />
         <Stack.Screen 
-          name="about-support" 
-          options={{ 
-            headerShown: true,
-          }} 
-        />
-        <Stack.Screen 
           name="sponsor-chat" 
           options={{ 
             headerShown: false,
@@ -232,13 +224,6 @@ function RootLayoutNav() {
         />
         <Stack.Screen 
           name="about" 
-          options={{ 
-            presentation: 'modal',
-            headerShown: false,
-          }} 
-        />
-        <Stack.Screen 
-          name="support-developer" 
           options={{ 
             presentation: 'modal',
             headerShown: false,

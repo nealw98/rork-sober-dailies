@@ -300,15 +300,6 @@ export default function SettingsScreen() {
         
         <TouchableOpacity 
           style={styles.menuItem}
-          onPress={() => router.push('/support-developer')}
-          activeOpacity={0.7}
-        >
-          <Text style={[styles.menuItemTitle, { fontSize }]}>Keep it free</Text>
-          <ChevronRight size={18} color="#a0a0a0" />
-        </TouchableOpacity>
-        
-        <TouchableOpacity 
-          style={styles.menuItem}
           onPress={() => setFeedbackVisible(true)}
           activeOpacity={0.7}
         >

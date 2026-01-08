@@ -40,10 +40,6 @@
     "extra": {
       "eas": {
         "projectId": "651e2e43-404d-47e3-94ac-695b4febd27a"
-      },
-      "revenuecat": {
-        "iosPublicApiKey": "appl_TGcLtuYeuyFcsXfvzAIXVLMTuqC",
-        "androidPublicApiKey": "goog_WdCCGZVhipYmDJtCCGmxDycsqPx"
       }
     },
     "web": {

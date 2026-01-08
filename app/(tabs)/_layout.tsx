@@ -343,15 +343,6 @@ export default function TabLayout() {
           headerLeft: () => <BackButton />,
         }}
       />
-      <Tabs.Screen
-        name="store"
-        options={{
-          href: null, // Hide from tab bar
-          headerShown: true,
-          headerTitle: '',
-          headerLeft: () => <BackButton />,
-        }}
-      />
 
     </Tabs>
     </TextSettingsProvider>
