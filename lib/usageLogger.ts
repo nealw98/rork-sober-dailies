@@ -3,9 +3,6 @@ import { Platform } from 'react-native';
 import { AppState, AppStateStatus } from 'react-native';
 import { supabase } from './supabase';
 import Constants from 'expo-constants';
-import * as SecureStore from 'expo-secure-store';
-
-const ANONYMOUS_ID_KEY = 'sober_dailies_anonymous_id';
 
 interface UsageEvent {
   id?: string;
@@ -79,32 +76,20 @@ class UsageLogger {
         return this.anonymousId;
       }
 
-      // Try to get from SecureStore first (persists across reinstalls on iOS)
-      const secureId = await SecureStore.getItemAsync(ANONYMOUS_ID_KEY);
-      if (secureId) {
-        this.anonymousId = secureId;
-        console.log('[UsageLogger] Retrieved anonymous ID from SecureStore');
-        return secureId;
+      // Check AsyncStorage for existing anonymous ID
+      const existingId = await AsyncStorage.getItem('anonymous_id');
+      if (existingId) {
+        this.anonymousId = existingId;
+        console.log('[UsageLogger] Retrieved anonymous ID from AsyncStorage');
+        return existingId;
       }
 
-      // Check AsyncStorage for migration from existing users
-      const legacyId = await AsyncStorage.getItem('anonymous_id');
-      if (legacyId) {
-        // Migrate to SecureStore
-        await SecureStore.setItemAsync(ANONYMOUS_ID_KEY, legacyId);
-        this.anonymousId = legacyId;
-        console.log('[UsageLogger] Migrated anonymous ID to SecureStore:', legacyId);
-        return legacyId;
-      }
-
-      // Generate new anonymous ID and store in SecureStore
+      // Generate new anonymous ID and store in AsyncStorage
       const newId = this.generateSessionId(); // Reuse UUID generation logic
-      await SecureStore.setItemAsync(ANONYMOUS_ID_KEY, newId);
-      // Also store in AsyncStorage as backup
       await AsyncStorage.setItem('anonymous_id', newId);
       this.anonymousId = newId;
       
-      console.log('[UsageLogger] Generated new anonymous ID (SecureStore):', newId);
+      console.log('[UsageLogger] Generated new anonymous ID:', newId);
       return newId;
     } catch (error) {
       console.error('[UsageLogger] Failed to get/generate anonymous ID:', error);
