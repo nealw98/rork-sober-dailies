@@ -56,7 +56,7 @@ export const SPONSORS: SponsorConfig[] = [
     placeholderText: "Tell Eddie what's on your mind...",
     loadingText: "Steady Eddie is thinking...",
     bubbleColor: "#d0e8d0",
-    tileColor: "#a8d8a8",
+    tileColor: "#5FB35F", // Green - calm and steady
   },
   {
     id: "salty",
@@ -69,7 +69,7 @@ export const SPONSORS: SponsorConfig[] = [
     placeholderText: "Tell Sam what's got you sideways...",
     loadingText: "Salty Sam is thinking...",
     bubbleColor: "#fff0d4",
-    tileColor: "#ffeca7",
+    tileColor: "#F5C341", // Yellow
   },
   {
     id: "grace",
@@ -82,7 +82,7 @@ export const SPONSORS: SponsorConfig[] = [
     placeholderText: "Tell Grace what's in your heart...",
     loadingText: "Gentle Grace is channeling wisdom...",
     bubbleColor: "#e8d4f0",
-    tileColor: "#d8b8e8",
+    tileColor: "#9B7BC7", // Purple
   },
   {
     id: "cowboy-pete",
@@ -95,7 +95,7 @@ export const SPONSORS: SponsorConfig[] = [
     placeholderText: "Tell Pete what's kickin' up dust...",
     loadingText: "Cowboy Pete is mullin' it over...",
     bubbleColor: "#E0CABE",
-    tileColor: "#c9b09e",
+    tileColor: "#A67C52", // Brown
   },
   {
     id: "co-sign-sally",
@@ -108,7 +108,7 @@ export const SPONSORS: SponsorConfig[] = [
     placeholderText: "Tell Sally your side of the story...",
     loadingText: "Sally is noddin' along...",
     bubbleColor: "#FFD6E6",
-    tileColor: "#f5b8cc",
+    tileColor: "#E88BA0", // Pink
   },
   {
     id: "fresh",
@@ -122,7 +122,7 @@ export const SPONSORS: SponsorConfig[] = [
     loadingText: "Fresh Freddie is cookin' up a take...",
     bubbleColor: "#CCFBF1",
     bubbleShadowColor: "rgba(16,185,129,0.45)",
-    tileColor: "#a8ebe0",
+    tileColor: "#5EC4B0", // Teal
   },
   {
     id: "mama-jo",
@@ -135,7 +135,7 @@ export const SPONSORS: SponsorConfig[] = [
     placeholderText: "Tell Mama Jo what's on your mind...",
     loadingText: "Mama Jo is fixin' to share some wisdom...",
     bubbleColor: "#ffe1d3",
-    tileColor: "#ffba9b",
+    tileColor: "#E8884A", // Orange
   },
 ];
 

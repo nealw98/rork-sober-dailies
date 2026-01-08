@@ -279,7 +279,7 @@ const styles = StyleSheet.create({
   routineTitleLight: {
     fontSize: 19,
     fontWeight: adjustFontWeight('600'),
-    color: '#fff',
+    color: '#000',
   },
   routineSubtitle: {
     fontSize: 14,
