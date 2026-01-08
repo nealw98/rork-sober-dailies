@@ -19,6 +19,7 @@ import { X, Search as SearchIcon } from 'lucide-react-native';
 import Colors from '@/constants/colors';
 import { adjustFontWeight } from '@/constants/fonts';
 import { useBigBookContent, SearchResult } from '@/hooks/use-bigbook-content';
+import { parseMarkdownItalics } from './markdownUtils';
 
 interface BigBookSearchModalProps {
   visible: boolean;
@@ -153,11 +154,11 @@ export function BigBookSearchModal({
 
                     {/* Text Preview with Highlight */}
                     <Text style={styles.resultText} numberOfLines={2}>
-                      {result.matches[0]?.context.before}
+                      {parseMarkdownItalics(result.matches[0]?.context.before || '', `before-${result.paragraphId}`)}
                       <Text style={styles.resultMatch}>
                         {result.matches[0]?.context.match}
                       </Text>
-                      {result.matches[0]?.context.after}
+                      {parseMarkdownItalics(result.matches[0]?.context.after || '', `after-${result.paragraphId}`)}
                     </Text>
 
                     {/* Metadata */}

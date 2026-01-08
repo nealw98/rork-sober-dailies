@@ -28,6 +28,7 @@ import { adjustFontWeight } from '@/constants/fonts';
 import { useBigBookHighlights } from '@/hooks/use-bigbook-highlights';
 import { getChapterMeta, bigBookChapterMetadata } from '@/constants/bigbook-v2/metadata';
 import { BigBookHighlight } from '@/types/bigbook-v2';
+import { parseMarkdownItalics } from './markdownUtils';
 
 interface BigBookHighlightsListProps {
   visible: boolean;
@@ -246,7 +247,7 @@ export function BigBookHighlightsList({
                         <View style={styles.highlightContent}>
                           {/* Highlighted Text (combined from consecutive sentences) */}
                           <Text style={styles.highlightText}>
-                            {merged.combinedText}
+                            {parseMarkdownItalics(merged.combinedText, merged.ids[0])}
                           </Text>
                           
                           {/* Note (if exists) */}
