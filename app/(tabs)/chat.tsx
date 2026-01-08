@@ -21,6 +21,7 @@ const { width: screenWidth } = Dimensions.get("window");
 const TILE_GAP = 20;
 const GRID_PADDING = 20;
 const TILE_WIDTH = (screenWidth - GRID_PADDING * 2 - TILE_GAP) / 2;
+const TILE_HEIGHT = TILE_WIDTH * 0.85; // Shorter tiles
 const FULL_WIDTH = screenWidth - GRID_PADDING * 2;
 
 // Only show these sponsors on the selection page
@@ -201,14 +202,14 @@ export default function ChatScreen() {
 
 const styles = StyleSheet.create({
   headerBlock: {
-    paddingBottom: 16,
+    paddingBottom: 12,
     paddingHorizontal: 16,
   },
   headerTopRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 16,
+    marginBottom: 8,
   },
   backButton: {
     flexDirection: 'row',
@@ -219,7 +220,7 @@ const styles = StyleSheet.create({
     borderRadius: 16,
   },
   headerTitle: {
-    fontSize: 32,
+    fontSize: 26,
     fontWeight: adjustFontWeight("400"),
     color: "#fff",
     textAlign: "center",
@@ -233,8 +234,8 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     paddingHorizontal: GRID_PADDING,
-    paddingTop: 20,
-    paddingBottom: 32,
+    paddingTop: 12,
+    paddingBottom: 20,
   },
   row: {
     flexDirection: "row",
@@ -242,8 +243,8 @@ const styles = StyleSheet.create({
   },
   tile: {
     backgroundColor: 'rgba(61, 139, 139, 0.15)',
-    borderRadius: 16,
-    padding: 16,
+    borderRadius: 12,
+    padding: 12,
     marginBottom: TILE_GAP,
     alignItems: "center",
   },
@@ -253,11 +254,11 @@ const styles = StyleSheet.create({
   tileHorizontal: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 20,
+    padding: 12,
   },
   tileHalf: {
     width: TILE_WIDTH,
-    height: TILE_WIDTH,
+    height: TILE_HEIGHT,
     justifyContent: "center",
   },
   tileTextContainer: {
@@ -265,42 +266,42 @@ const styles = StyleSheet.create({
     marginLeft: 16,
   },
   avatar: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    marginBottom: 8,
+  },
+  avatarLarge: {
     width: 72,
     height: 72,
     borderRadius: 36,
-    marginBottom: 12,
-  },
-  avatarLarge: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
   },
   sponsorName: {
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: adjustFontWeight("600", true),
     color: '#000',
-    marginBottom: 4,
+    marginBottom: 2,
     textAlign: "center",
   },
   sponsorNameLeft: {
-    fontSize: 22,
+    fontSize: 20,
     fontWeight: adjustFontWeight("600", true),
     color: '#000',
-    marginBottom: 4,
+    marginBottom: 2,
     textAlign: "left",
   },
   sponsorDescription: {
-    fontSize: 14,
+    fontSize: 12,
     fontWeight: adjustFontWeight("400"),
     color: '#000',
-    lineHeight: 18,
+    lineHeight: 15,
     textAlign: "center",
   },
   sponsorDescriptionLeft: {
-    fontSize: 14,
+    fontSize: 12,
     fontWeight: adjustFontWeight("400"),
     color: '#000',
-    lineHeight: 18,
+    lineHeight: 15,
     textAlign: "left",
   },
 });
