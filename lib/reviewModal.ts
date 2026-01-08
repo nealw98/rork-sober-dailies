@@ -8,7 +8,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Linking, Platform } from 'react-native';
 
-const STORAGE_KEY = 'sd-review-modal-data';
+const STORAGE_KEY = 'sd-review-modal-data-v2';
 
 // App Store IDs
 const IOS_APP_ID = '6749869819'; // Sober Dailies App Store ID
