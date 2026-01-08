@@ -22,6 +22,8 @@ import { useExpoRouterTracking } from "@/hooks/useExpoRouterTracking";
 import { SessionProvider } from "@/hooks/useSessionContext";
 import { useSobrietyBirthday } from "@/hooks/useSobrietyBirthday";
 import SobrietyBirthdayModal from "@/components/SobrietyBirthdayModal";
+import EarlyAccessReviewModal from "@/components/EarlyAccessReviewModal";
+import { shouldShowReviewModal } from "@/lib/reviewModal";
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync().catch(() => {
@@ -53,9 +55,35 @@ function RootLayoutNav() {
   const { isOnboardingComplete, isLoading } = useOnboarding();
   const { showSnackbar, dismissSnackbar, restartApp } = useOTAUpdates();
   const { showBirthdayModal, closeBirthdayModal } = useSobrietyBirthday();
+  const [showReviewModal, setShowReviewModal] = useState(false);
 
   // Enable screen tracking for Expo Router
   useExpoRouterTracking();
+  
+  // Check if we should show the early access review modal
+  useEffect(() => {
+    let mounted = true;
+    const checkReviewModal = async () => {
+      try {
+        const shouldShow = await shouldShowReviewModal();
+        if (shouldShow && mounted) {
+          // Delay slightly to let the app settle
+          setTimeout(() => {
+            if (mounted) setShowReviewModal(true);
+          }, 2000);
+        }
+      } catch (error) {
+        console.error('[ReviewModal] Error checking modal:', error);
+      }
+    };
+    
+    // Only check after app is ready and onboarding is complete
+    if (isOnboardingComplete && !isLoading) {
+      checkReviewModal();
+    }
+    
+    return () => { mounted = false; };
+  }, [isOnboardingComplete, isLoading]);
 
   // Local state to prevent re-renders from affecting rendering logic
   const [appReady, setAppReady] = useState(false);
@@ -233,6 +261,7 @@ function RootLayoutNav() {
       </Stack>
         <OTASnackbar visible={showSnackbar} onDismiss={dismissSnackbar} onRestart={restartApp} />
         <SobrietyBirthdayModal visible={showBirthdayModal} onClose={closeBirthdayModal} />
+        <EarlyAccessReviewModal visible={showReviewModal} onClose={() => setShowReviewModal(false)} />
     </>
   );
 }
