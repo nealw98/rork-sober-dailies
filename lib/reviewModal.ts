@@ -11,7 +11,7 @@ import { Linking, Platform } from 'react-native';
 const STORAGE_KEY = 'sd-review-modal-data';
 
 // App Store IDs
-const IOS_APP_ID = '6504628576'; // Your App Store ID
+const IOS_APP_ID = '6749869819'; // Sober Dailies App Store ID
 const ANDROID_PACKAGE = 'com.nealwagner.soberdailies';
 
 interface ReviewModalData {
