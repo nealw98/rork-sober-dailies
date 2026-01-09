@@ -28,6 +28,7 @@ import { X, Trash2 } from 'lucide-react-native';
 import Colors from '@/constants/colors';
 import { adjustFontWeight } from '@/constants/fonts';
 import { useBigBookBookmarks } from '@/hooks/use-bigbook-bookmarks';
+import { useTextSettings } from '@/hooks/use-text-settings';
 import { getChapterMeta, bigBookChapterMetadata } from '@/constants/bigbook-v2/metadata';
 
 // Helper to get chapter title without the number prefix (e.g., "1. Bill's Story" -> "Bill's Story")
@@ -43,7 +44,6 @@ interface BigBookBookmarksListProps {
   onClose: () => void;
   onNavigateToBookmark: (chapterId: string, pageNumber: number) => void;
   onBookmarksChanged?: () => void;
-  fontSize?: number;
 }
 
 export function BigBookBookmarksList({
@@ -51,9 +51,9 @@ export function BigBookBookmarksList({
   onClose,
   onNavigateToBookmark,
   onBookmarksChanged,
-  fontSize = 18,
 }: BigBookBookmarksListProps) {
   const { bookmarks, deleteBookmark, updateBookmarkLabel, isLoading, refresh } = useBigBookBookmarks();
+  const { fontSize } = useTextSettings();
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingText, setEditingText] = useState('');
 

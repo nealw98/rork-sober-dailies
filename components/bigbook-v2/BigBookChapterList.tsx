@@ -264,7 +264,6 @@ export function BigBookChapterList({ onSelectChapter, onBack, isReaderOpen }: Bi
         visible={showHighlightsList}
         onClose={() => setShowHighlightsList(false)}
         onNavigateToHighlight={handleNavigateToHighlight}
-        fontSize={fontSize}
       />
       
       <BigBookBookmarksList
@@ -272,7 +271,6 @@ export function BigBookChapterList({ onSelectChapter, onBack, isReaderOpen }: Bi
         onClose={() => setShowBookmarksList(false)}
         onNavigateToBookmark={handleNavigateToBookmark}
         onBookmarksChanged={refreshBookmarksCount}
-        fontSize={fontSize}
       />
       
       <BigBookPageNavigation

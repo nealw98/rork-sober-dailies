@@ -26,6 +26,7 @@ import { X, Trash2 } from 'lucide-react-native';
 import Colors from '@/constants/colors';
 import { adjustFontWeight } from '@/constants/fonts';
 import { useBigBookHighlights } from '@/hooks/use-bigbook-highlights';
+import { useTextSettings } from '@/hooks/use-text-settings';
 import { getChapterMeta, bigBookChapterMetadata } from '@/constants/bigbook-v2/metadata';
 import { bigBookContent } from '@/constants/bigbook-v2/content';
 import { BigBookHighlight } from '@/types/bigbook-v2';
@@ -52,7 +53,6 @@ interface BigBookHighlightsListProps {
   visible: boolean;
   onClose: () => void;
   onNavigateToHighlight: (chapterId: string, paragraphId: string) => void;
-  fontSize?: number;
 }
 
 // A merged highlight group for display purposes
@@ -70,9 +70,9 @@ export function BigBookHighlightsList({
   visible,
   onClose,
   onNavigateToHighlight,
-  fontSize = 18,
 }: BigBookHighlightsListProps) {
   const { highlights, deleteHighlight, isLoading } = useBigBookHighlights();
+  const { fontSize } = useTextSettings();
 
   // Group highlights by chapter, then merge consecutive sentences within same paragraph
   const groupedHighlights = useMemo(() => {
