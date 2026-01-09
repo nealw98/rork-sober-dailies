@@ -6,7 +6,6 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ChevronLeft, ChevronRight, X } from 'lucide-react-native';
 import Constants from 'expo-constants';
 import * as Clipboard from 'expo-clipboard';
-import { requestReviewNow } from '@/lib/reviewPrompt';
 import { adjustFontWeight } from '@/constants/fonts';
 import { useTextSettings } from '@/hooks/use-text-settings';
 import { Logger } from '@/lib/logger';
@@ -101,17 +100,6 @@ export default function SettingsScreen() {
 
   const handleRateAppPress = async () => {
     try {
-      try {
-        const didShowNativePrompt = await requestReviewNow();
-        if (didShowNativePrompt) {
-          console.log('[settings] Successfully showed native review prompt');
-          return;
-        }
-        console.log('[settings] Native review prompt not available, falling back to store URL');
-      } catch (error) {
-        console.warn('[settings] Native review prompt failed, falling back to store URL', error);
-      }
-
       if (Platform.OS === 'ios') {
         const appStoreId = '6749869819';
         const url = `itms-apps://itunes.apple.com/app/id${appStoreId}?action=write-review`;

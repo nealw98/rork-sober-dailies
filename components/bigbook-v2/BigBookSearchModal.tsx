@@ -19,6 +19,7 @@ import { X, Search as SearchIcon } from 'lucide-react-native';
 import Colors from '@/constants/colors';
 import { adjustFontWeight } from '@/constants/fonts';
 import { useBigBookContent, SearchResult } from '@/hooks/use-bigbook-content';
+import { useTextSettings } from '@/hooks/use-text-settings';
 import { parseMarkdownItalics } from './markdownUtils';
 
 interface BigBookSearchModalProps {
@@ -35,6 +36,7 @@ export function BigBookSearchModal({
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
   const { searchContent } = useBigBookContent();
+  const { fontSize } = useTextSettings();
 
   const handleSearch = (query: string) => {
     setSearchQuery(query);
@@ -150,10 +152,10 @@ export function BigBookSearchModal({
                   
                   <View style={styles.resultContent}>
                     {/* Chapter Title */}
-                    <Text style={styles.resultChapter}>{result.chapterTitle}</Text>
+                    <Text style={[styles.resultChapter, { fontSize: fontSize - 2 }]}>{result.chapterTitle}</Text>
 
                     {/* Text Preview with Highlight */}
-                    <Text style={styles.resultText} numberOfLines={2}>
+                    <Text style={[styles.resultText, { fontSize, lineHeight: fontSize * 1.4 }]} numberOfLines={2}>
                       {parseMarkdownItalics(result.matches[0]?.context.before || '', `before-${result.paragraphId}`)}
                       <Text style={styles.resultMatch}>
                         {result.matches[0]?.context.match}
@@ -162,7 +164,7 @@ export function BigBookSearchModal({
                     </Text>
 
                     {/* Metadata */}
-                    <Text style={styles.resultMeta}>
+                    <Text style={[styles.resultMeta, { fontSize: fontSize - 4 }]}>
                       Page {result.paragraph.pageNumber} • {result.matches.length} match{result.matches.length !== 1 ? 'es' : ''}
                     </Text>
                   </View>
