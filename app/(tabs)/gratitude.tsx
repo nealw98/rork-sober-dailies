@@ -26,6 +26,7 @@ import ScreenContainer from '@/components/ScreenContainer';
 import SavedGratitudeEntries from '@/components/SavedGratitudeEntries';
 import { GratitudeCompleteModal } from '@/components/GratitudeCompleteModal';
 import { maybeAskForReview } from '@/lib/reviewPrompt';
+import { useTextSettings } from '@/hooks/use-text-settings';
 
 // 25 inspirational gratitude quotes for daily rotation
 const GRATITUDE_QUOTES = [
@@ -349,6 +350,7 @@ export default function GratitudeListScreen() {
   
   // Always call hooks in the same order
   const gratitudeStore = useGratitudeStore();
+  const { fontSize, lineHeight } = useTextSettings();
 
   // Add safety check to prevent destructuring undefined
   if (!gratitudeStore) {
@@ -726,19 +728,19 @@ export default function GratitudeListScreen() {
 
           {/* Daily Quote */}
           <View style={styles.quoteTile}>
-            <Text style={styles.quoteText}>
+            <Text style={[styles.quoteText, { fontSize, lineHeight }]}>
               &ldquo;{dailyQuote}&rdquo;
             </Text>
           </View>
           
           {/* Gratitude Input */}
           <View style={styles.inputSection}>
-            <Text style={styles.inputLabel}>Today I'm grateful for:</Text>
+            <Text style={[styles.inputLabel, { fontSize }]}>Today I'm grateful for:</Text>
             
             <View style={styles.inputContainer}>
               <TextInput
                 ref={inputRef}
-                style={styles.textInput}
+                style={[styles.textInput, { fontSize }]}
                 placeholder={gratitudeItems.length === 0 ? "e.g., My sobriety" : ""}
                 placeholderTextColor="#999"
                 value={inputValue}
@@ -771,7 +773,7 @@ export default function GratitudeListScreen() {
                     <View style={{ flex: 1 }}>
                       {editingIndex === index ? (
                         <TextInput
-                          style={styles.gratitudeItemEditInput}
+                          style={[styles.gratitudeItemEditInput, { fontSize }]}
                           value={editingValue}
                           onChangeText={setEditingValue}
                           autoFocus
@@ -784,7 +786,7 @@ export default function GratitudeListScreen() {
                         />
                       ) : (
                         <TouchableOpacity onPress={() => beginEdit(index)} activeOpacity={0.7}>
-                          <Text style={styles.gratitudeItemText}>{item}</Text>
+                          <Text style={[styles.gratitudeItemText, { fontSize, lineHeight }]}>{item}</Text>
                         </TouchableOpacity>
                       )}
                     </View>
