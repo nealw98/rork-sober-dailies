@@ -198,7 +198,7 @@ function highlightSearchTerm(text: string, searchTerm: string, key: string | num
   return parts.map((part, idx) => {
     if (part.isMatch) {
       return (
-        <Text key={`${key}-search-${idx}`} style={{ backgroundColor: '#CCFBF1' }}>
+        <Text key={`${key}-search-${idx}`} style={{ backgroundColor: '#5EEAD4' }}>
           {parseMarkdownItalics(part.text, `${key}-search-${idx}`)}
         </Text>
       );

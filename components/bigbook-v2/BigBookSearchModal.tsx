@@ -303,7 +303,7 @@ const styles = StyleSheet.create({
     marginBottom: 6,
   },
   resultMatch: {
-    backgroundColor: '#CCFBF1', // Freddie's teal bubble color
+    backgroundColor: '#5EEAD4', // Medium teal for visibility
   },
   resultMeta: {
     fontSize: 11,
