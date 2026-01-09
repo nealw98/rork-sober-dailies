@@ -35,7 +35,6 @@ const AboutScreen = () => {
             Hi friends,{"\n\n"}
             I built Sober Dailies because I know what it takes to stay consistent with daily recovery practices. After over two decades of morning readings, inventories, and nightly reviews, I wanted to bring all those tools together in one simple app.{"\n\n"}
             I created the AI Sponsors based on the different people I've met in the rooms over the years. They all share the same program foundation, but each speaks in a different voice—direct, gentle, or with a bit of humor. In my experience, it's often not the message that changes, but the way it's delivered, and that's what makes it finally land.{"\n\n"}
-            Give them a try. Their program messages are real, but then so are their personalities. 😉{"\n\n"}
             Thanks for being here.{"\n\n"}
             — Neal
           </Text>
