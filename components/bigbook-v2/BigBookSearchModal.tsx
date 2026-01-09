@@ -303,7 +303,7 @@ const styles = StyleSheet.create({
     marginBottom: 6,
   },
   resultMatch: {
-    backgroundColor: '#5EEAD4', // Medium teal for visibility
+    backgroundColor: '#C4B5FD', // Light purple for visibility
   },
   resultMeta: {
     fontSize: 11,
