@@ -24,8 +24,8 @@ import {
   Modal,
   Platform,
   BackHandler,
-  SafeAreaView,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { 
   ChevronLeft, 
   ChevronRight, 
@@ -71,6 +71,8 @@ export function BigBookReader({ visible, initialChapterId, scrollToParagraphId, 
     searchContent,
     goToPage,
   } = useBigBookContent();
+
+  const insets = useSafeAreaInsets();
 
   // Handle Android back button
   useEffect(() => {
@@ -367,12 +369,12 @@ export function BigBookReader({ visible, initialChapterId, scrollToParagraphId, 
         presentationStyle="fullScreen"
         onRequestClose={onClose}
       >
-        <SafeAreaView style={styles.container} edges={['top']}>
+        <View style={styles.container}>
           <LinearGradient
             colors={['#4A6FA5', '#3D8B8B', '#45A08A']}
             start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 0 }}
-            style={styles.headerBlock}
+            end={{ x: 1, y: 1 }}
+            style={[styles.headerBlock, { paddingTop: insets.top + 8 }]}
           >
             <View style={styles.headerTopRow}>
               <TouchableOpacity 
@@ -387,7 +389,7 @@ export function BigBookReader({ visible, initialChapterId, scrollToParagraphId, 
           <View style={styles.loadingContainer}>
             <Text style={styles.loadingText}>Loading chapter...</Text>
           </View>
-        </SafeAreaView>
+        </View>
       </Modal>
     );
   }
@@ -399,13 +401,13 @@ export function BigBookReader({ visible, initialChapterId, scrollToParagraphId, 
       presentationStyle="fullScreen"
       onRequestClose={onClose}
     >
-      <SafeAreaView style={styles.container} edges={['top']}>
+      <View style={styles.container}>
       {/* Gradient Header Block */}
       <LinearGradient
         colors={['#4A6FA5', '#3D8B8B', '#45A08A']}
         start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 0 }}
-        style={styles.headerBlock}
+        end={{ x: 1, y: 1 }}
+        style={[styles.headerBlock, { paddingTop: insets.top + 8 }]}
       >
         <View style={styles.headerTopRow}>
           <TouchableOpacity 
@@ -414,48 +416,46 @@ export function BigBookReader({ visible, initialChapterId, scrollToParagraphId, 
           >
             <ChevronLeft size={24} color="#fff" />
           </TouchableOpacity>
+          
+          {/* Action buttons in header */}
+          <View style={styles.headerActions}>
+            <TouchableOpacity 
+              onPress={handleToggleHighlightMode}
+              activeOpacity={0.8}
+              style={styles.headerActionButton}
+            >
+              <Highlighter 
+                size={20} 
+                color="#fff"
+                fill={highlightMode ? "#fff" : 'transparent'}
+              />
+            </TouchableOpacity>
+
+            <TouchableOpacity 
+              onPress={handleBookmarkPress}
+              activeOpacity={0.8}
+              style={styles.headerActionButton}
+            >
+              <BookmarkIcon 
+                size={20} 
+                color="#fff"
+                fill={isCurrentPageBookmarked ? "#fff" : 'transparent'}
+              />
+            </TouchableOpacity>
+          </View>
         </View>
         <Text style={styles.headerTitle} numberOfLines={2}>
           {currentChapter.title}
         </Text>
-      </LinearGradient>
-      
-      {/* Action Row - Below header */}
-      <View style={styles.actionRow}>
         {currentPageNumber && (
-          <Text style={styles.pageNumber}>
+          <Text style={styles.headerPageNumber}>
             Page {formatPageNumber(
               currentPageNumber, 
               getChapterMeta(currentChapterId)?.useRomanNumerals || false
             )}
           </Text>
         )}
-        <View style={styles.actionButtons}>
-          <TouchableOpacity 
-            onPress={handleToggleHighlightMode}
-            activeOpacity={0.8}
-            style={styles.actionButton}
-          >
-            <Highlighter 
-              size={18} 
-              color="#3D8B8B"
-              fill={highlightMode ? "#3D8B8B" : 'transparent'}
-            />
-          </TouchableOpacity>
-
-          <TouchableOpacity 
-            onPress={handleBookmarkPress}
-            activeOpacity={0.8}
-            style={styles.actionButton}
-          >
-            <BookmarkIcon 
-              size={18} 
-              color="#3D8B8B"
-              fill={isCurrentPageBookmarked ? "#3D8B8B" : 'transparent'}
-            />
-          </TouchableOpacity>
-        </View>
-      </View>
+      </LinearGradient>
 
 
       {/* Content */}
@@ -549,7 +549,7 @@ export function BigBookReader({ visible, initialChapterId, scrollToParagraphId, 
         }}
       />
 
-    </SafeAreaView>
+    </View>
   </Modal>
   );
 }
@@ -567,40 +567,34 @@ const styles = StyleSheet.create({
   headerTopRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
     marginBottom: 16,
   },
   backButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
     backgroundColor: 'rgba(255, 255, 255, 0.2)',
     borderRadius: 20,
-    paddingVertical: 6,
-    paddingHorizontal: 8,
+    padding: 8,
+  },
+  headerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  headerActionButton: {
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    borderRadius: 20,
+    padding: 8,
   },
   headerTitle: {
     fontSize: 32,
     fontWeight: adjustFontWeight('400'),
     color: '#fff',
   },
-  actionRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: 8,
-    paddingHorizontal: 20,
-    backgroundColor: '#fff',
-    borderBottomWidth: 1,
-    borderBottomColor: '#e0e0e0',
-  },
-  pageNumber: {
+  headerPageNumber: {
     fontSize: 14,
     fontWeight: adjustFontWeight('500'),
-    color: '#000',
-  },
-  actionButtons: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 16,
+    color: 'rgba(255, 255, 255, 0.8)',
+    marginTop: 8,
   },
   actionButton: {
     padding: 8,

@@ -264,7 +264,7 @@ export function BigBookHighlightsList({
                           </Text>
                           
                           {/* Highlighted Text (combined from consecutive sentences) */}
-                          <Text style={[styles.highlightText, { fontSize, lineHeight }]}>
+                          <Text style={[styles.highlightText, { fontSize, lineHeight }]} numberOfLines={3}>
                             {parseMarkdownItalics(merged.combinedText, merged.ids[0])}
                           </Text>
                           

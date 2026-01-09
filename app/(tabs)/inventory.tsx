@@ -26,7 +26,6 @@ import { useFocusEffect } from '@react-navigation/native';
 import { maybeAskForReview } from '@/lib/reviewPrompt';
 
 const INVENTORY_STORAGE_KEY = 'spot_check_inventories';
-const INSTRUCTIONS_SHOWN_KEY = 'spot_check_instructions_shown';
 
 // Spot check pairs: Watch For → Strive For
 const spotCheckPairs = [
@@ -118,8 +117,7 @@ const MarkdownText: React.FC<{ children: string; style?: any }> = ({ children, s
 const InstructionsModal: React.FC<{
   visible: boolean;
   onClose: () => void;
-  isFirstTime?: boolean;
-}> = ({ visible, onClose, isFirstTime = true }) => {
+}> = ({ visible, onClose }) => {
   return (
     <Modal
       visible={visible}
@@ -132,7 +130,7 @@ const InstructionsModal: React.FC<{
         <View style={styles.instructionsModal}>
           <View style={styles.instructionsHeader}>
             <Text style={styles.instructionsTitle}>
-              {isFirstTime ? 'Welcome to Spot Check Inventory' : 'How to Use Spot Check Inventory'}
+              How to Use Spot Check Inventory
             </Text>
             <TouchableOpacity onPress={onClose} style={styles.instructionsCloseButton}>
               <X size={24} color={Colors.light.text} />
@@ -140,55 +138,39 @@ const InstructionsModal: React.FC<{
           </View>
           
           <ScrollView style={styles.instructionsContent} showsVerticalScrollIndicator={false}>
-            {isFirstTime && (
-              <Text style={styles.instructionsIntro}>When you're disturbed or agitated:</Text>
-            )}
-            
             <View style={styles.instructionStep}>
               <MarkdownText style={styles.instructionText}>
-                {isFirstTime 
-                  ? '1. **Describe the situation** - What\'s bothering you?'
-                  : '1. Describe what\'s disturbing you'}
+                1. Describe what's disturbing you
               </MarkdownText>
             </View>
             
             <View style={styles.instructionStep}>
               <MarkdownText style={styles.instructionText}>
-                {isFirstTime
-                  ? '2. **Watch for** character defects at play. When you tap defects on the left, they\'ll turn red and highlight what to work toward on the right.'
-                  : '2. Tap character defects on the left (red)'}
+                2. Tap character defects on the left (red)
               </MarkdownText>
             </View>
             
             <View style={styles.instructionStep}>
               <MarkdownText style={styles.instructionText}>
-                {isFirstTime
-                  ? '3. **Celebrate** your progress. Mark positive traits you maintained (turn green)'
-                  : '3. See what to strive for on the right'}
+                3. See what to strive for on the right
               </MarkdownText>
             </View>
             
             <View style={styles.instructionStep}>
               <MarkdownText style={styles.instructionText}>
-                {isFirstTime
-                  ? '4. **Save** to track your emotional sobriety'
-                  : '4. Mark positives you maintained (green)'}
+                4. Mark positives you maintained (green)
               </MarkdownText>
             </View>
             
-            {!isFirstTime && (
-              <View style={styles.instructionStep}>
-                <MarkdownText style={styles.instructionText}>
-                  5. Save to track your progress
-                </MarkdownText>
-              </View>
-            )}
+            <View style={styles.instructionStep}>
+              <MarkdownText style={styles.instructionText}>
+                5. Save to track your progress
+              </MarkdownText>
+            </View>
             
             <View style={styles.instructionsFooter}>
               <MarkdownText style={styles.instructionsFooterText}>
-                {isFirstTime
-                  ? '*Watch For your defects. Strive For their opposites.*'
-                  : 'Watch For → Strive For'}
+                Watch For → Strive For
               </MarkdownText>
             </View>
           </ScrollView>
@@ -513,37 +495,10 @@ const Inventory = () => {
   const [showHistory, setShowHistory] = useState(false);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [showInstructions, setShowInstructions] = useState(false);
-  const [isFirstTimeInstructions, setIsFirstTimeInstructions] = useState(true);
 
-  // Check if instructions have been shown before
-  useFocusEffect(
-    useCallback(() => {
-      const checkInstructionsShown = async () => {
-        try {
-          const shown = await AsyncStorage.getItem(INSTRUCTIONS_SHOWN_KEY);
-          if (!shown) {
-            setIsFirstTimeInstructions(true);
-            setShowInstructions(true);
-          }
-        } catch (error) {
-          console.error('[Inventory] Error checking instructions shown:', error);
-        }
-      };
-      checkInstructionsShown();
-    }, [])
-  );
-
-  // Handler to close instructions and mark as shown (only for first time)
-  const handleCloseInstructions = async () => {
-    try {
-      if (isFirstTimeInstructions) {
-        await AsyncStorage.setItem(INSTRUCTIONS_SHOWN_KEY, 'true');
-      }
-      setShowInstructions(false);
-    } catch (error) {
-      console.error('[Inventory] Error saving instructions shown:', error);
-      setShowInstructions(false);
-    }
+  // Handler to close instructions
+  const handleCloseInstructions = () => {
+    setShowInstructions(false);
   };
 
   // Function to dismiss keyboard
@@ -554,7 +509,6 @@ const Inventory = () => {
   // Handler to show help instructions
   const handleShowHelp = useCallback(() => {
     dismissKeyboard();
-    setIsFirstTimeInstructions(false);
     setShowInstructions(true);
   }, [dismissKeyboard]);
 
@@ -903,7 +857,6 @@ const Inventory = () => {
       <InstructionsModal
         visible={showInstructions}
         onClose={handleCloseInstructions}
-        isFirstTime={isFirstTimeInstructions}
       />
     </ScreenContainer>
   );
