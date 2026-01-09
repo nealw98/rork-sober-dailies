@@ -303,7 +303,7 @@ const styles = StyleSheet.create({
     marginBottom: 6,
   },
   resultMatch: {
-    backgroundColor: '#FED7AA', // Pastel Orange highlight
+    backgroundColor: '#CCFBF1', // Freddie's teal bubble color
   },
   resultMeta: {
     fontSize: 11,
