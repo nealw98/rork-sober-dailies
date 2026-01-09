@@ -53,7 +53,7 @@ export function BigBookBookmarksList({
   onBookmarksChanged,
 }: BigBookBookmarksListProps) {
   const { bookmarks, deleteBookmark, updateBookmarkLabel, isLoading, refresh } = useBigBookBookmarks();
-  const { fontSize } = useTextSettings();
+  const { fontSize, lineHeight } = useTextSettings();
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingText, setEditingText] = useState('');
 
@@ -186,7 +186,7 @@ export function BigBookBookmarksList({
                       ) : (
                         bookmark.label && (
                           <TouchableOpacity onPress={() => handleStartEdit(bookmark.id, bookmark.label)}>
-                            <Text style={[styles.bookmarkLabel, { fontSize, lineHeight: fontSize * 1.625 }]}>
+                            <Text style={[styles.bookmarkLabel, { fontSize, lineHeight }]}>
                               {bookmark.label}
                             </Text>
                           </TouchableOpacity>

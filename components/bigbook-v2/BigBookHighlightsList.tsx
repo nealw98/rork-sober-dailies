@@ -72,7 +72,7 @@ export function BigBookHighlightsList({
   onNavigateToHighlight,
 }: BigBookHighlightsListProps) {
   const { highlights, deleteHighlight, isLoading } = useBigBookHighlights();
-  const { fontSize } = useTextSettings();
+  const { fontSize, lineHeight } = useTextSettings();
 
   // Group highlights by chapter, then merge consecutive sentences within same paragraph
   const groupedHighlights = useMemo(() => {
@@ -264,7 +264,7 @@ export function BigBookHighlightsList({
                           </Text>
                           
                           {/* Highlighted Text (combined from consecutive sentences) */}
-                          <Text style={[styles.highlightText, { fontSize, lineHeight: fontSize * 1.625 }]}>
+                          <Text style={[styles.highlightText, { fontSize, lineHeight }]}>
                             {parseMarkdownItalics(merged.combinedText, merged.ids[0])}
                           </Text>
                           

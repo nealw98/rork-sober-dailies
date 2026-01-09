@@ -22,6 +22,7 @@ interface BigBookParagraphProps {
   showPageNumber?: boolean;
   isPageBreak?: boolean;
   fontSize?: number;
+  lineHeight?: number;
   highlightMode?: boolean;
   searchTerm?: string;
   onSentenceTap?: (sentenceIndex: number, sentenceText: string) => void;
@@ -211,7 +212,8 @@ export function BigBookParagraph({
   paragraph, 
   showPageNumber = true,
   isPageBreak = false,
-  fontSize = 16,
+  fontSize = 18,
+  lineHeight = 27, // fontSize * 1.5 (industry standard)
   highlightMode = false,
   searchTerm,
   onSentenceTap,
@@ -343,14 +345,14 @@ export function BigBookParagraph({
             <Text style={[
               styles.numberedListNumber,
               paragraph.isItalic && { fontStyle: 'italic' },
-              { fontSize: fontSize, lineHeight: fontSize * 1.625 }
+              { fontSize: fontSize, lineHeight }
             ]}>
               {numberedListMatch.number}
             </Text>
             <Text style={[
               styles.numberedListText,
               paragraph.isItalic && { fontStyle: 'italic' },
-              { fontSize: fontSize, lineHeight: fontSize * 1.625 }
+              { fontSize: fontSize, lineHeight }
             ]}>
               {numberedListMatch.text}
             </Text>
@@ -361,14 +363,14 @@ export function BigBookParagraph({
             <Text style={[
               styles.letteredListLetter,
               paragraph.isItalic && { fontStyle: 'italic' },
-              { fontSize: fontSize, lineHeight: fontSize * 1.625 }
+              { fontSize: fontSize, lineHeight }
             ]}>
               {letteredListMatch.letter}
             </Text>
             <Text style={[
               styles.letteredListText,
               paragraph.isItalic && { fontStyle: 'italic' },
-              { fontSize: fontSize, lineHeight: fontSize * 1.625 }
+              { fontSize: fontSize, lineHeight }
             ]}>
               {letteredListMatch.text}
             </Text>
@@ -380,7 +382,7 @@ export function BigBookParagraph({
               styles.paragraphText, 
               isVerse && styles.verseText, 
               paragraph.isItalic && { fontStyle: 'italic' },
-              { fontSize: fontSize, lineHeight: fontSize * 1.625 }
+              { fontSize: fontSize, lineHeight }
             ]}>
             {sentences.map((sentence, index) => {
             const highlight = highlightMap.get(index);

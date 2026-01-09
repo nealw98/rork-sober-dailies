@@ -119,7 +119,7 @@ export function BigBookReader({ visible, initialChapterId, scrollToParagraphId, 
   const [editingHighlight, setEditingHighlight] = useState<BigBookHighlight | null>(null);
 
   // Use global text settings
-  const { fontSize, setFontSize, minFontSize, maxFontSize, defaultFontSize } = useTextSettings();
+  const { fontSize, lineHeight, setFontSize, minFontSize, maxFontSize, defaultFontSize } = useTextSettings();
   
   const increaseFontSize = useCallback(() => {
     setFontSize(Math.min(fontSize + 2, maxFontSize));
@@ -491,6 +491,7 @@ export function BigBookReader({ visible, initialChapterId, scrollToParagraphId, 
                       showPageNumber={false}
                       isPageBreak={isPageBreak}
                       fontSize={fontSize}
+                      lineHeight={lineHeight}
                       highlightMode={highlightMode}
                       searchTerm={searchTerm || undefined}
                       onSentenceTap={(sentenceIndex, sentenceText) => 

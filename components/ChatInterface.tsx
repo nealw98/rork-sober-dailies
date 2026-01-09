@@ -103,12 +103,14 @@ const ChatBubble = ({
   bubbleShadowColor,
   sponsorType,
   fontSize,
+  lineHeight,
 }: {
   message: ChatMessage;
   bubbleColor?: string;
   bubbleShadowColor?: string;
   sponsorType: SponsorType;
   fontSize: number;
+  lineHeight: number;
 }) => {
   const isUser = message.sender === "user";
 
@@ -177,9 +179,9 @@ const ChatBubble = ({
         activeOpacity={0.7}
       >
         {isUser ? (
-          <Text style={[styles.userMessageText, { fontSize }]}>{message.text}</Text>
+          <Text style={[styles.userMessageText, { fontSize, lineHeight }]}>{message.text}</Text>
         ) : (
-          <ChatMarkdownRenderer content={message.text} style={[styles.messageText, { fontSize }]} />
+          <ChatMarkdownRenderer content={message.text} style={[styles.messageText, { fontSize, lineHeight }]} />
         )}
       </TouchableOpacity>
       <Text style={styles.timestamp}>
@@ -199,6 +201,7 @@ export default function ChatInterface({
   const { messages, isLoading, sendMessage, sponsorType: storeSponsorType, changeSponsor } = useChatStore();
   const textSettings = useTextSettings();
   const fontSize = textSettings?.fontSize ?? 18;
+  const lineHeight = textSettings?.lineHeight ?? 27;
   const [inputText, setInputText] = useState<string>("");
   const [isCheckingLimits, setIsCheckingLimits] = useState(false);
   const flatListRef = useRef<FlatList>(null);
@@ -376,6 +379,7 @@ export default function ChatInterface({
               bubbleShadowColor={bubbleShadowColor}
               sponsorType={sponsorType}
               fontSize={fontSize}
+              lineHeight={lineHeight}
             />
           )}
           contentContainerStyle={styles.chatContainer}

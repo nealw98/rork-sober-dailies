@@ -91,7 +91,7 @@ const generateCalendarDays = (date: Date) => {
 };
 
 export default function DailyReflection({ fontSize = 18, lineHeight, jumpToDate = null, onJumpApplied }: DailyReflectionProps) {
-  const effectiveLineHeight = lineHeight ?? fontSize * 1.375;
+  const effectiveLineHeight = lineHeight ?? fontSize * 1.5; // Fallback to industry standard
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [reflection, setReflection] = useState<Reflection | null>(null);
   const { toggleBookmark, isBookmarked, bookmarks, removeBookmark } = useDailyReflectionBookmarks();

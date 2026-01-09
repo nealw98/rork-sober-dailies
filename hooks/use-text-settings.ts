@@ -5,7 +5,7 @@ import createContextHook from "@nkzw/create-context-hook";
 
 const STORAGE_KEY = "sd-text-settings-v1";
 const DEFAULT_FONT_SIZE = 18;
-const DEFAULT_LINE_HEIGHT_MULTIPLIER = 1.375;
+const DEFAULT_LINE_HEIGHT_MULTIPLIER = 1.5; // Industry standard for body text
 const MIN_FONT_SIZE = 12;
 const MAX_FONT_SIZE = Platform.OS === "android" ? 34 : 30;
 

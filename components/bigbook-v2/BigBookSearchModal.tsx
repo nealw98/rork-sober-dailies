@@ -36,7 +36,7 @@ export function BigBookSearchModal({
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
   const { searchContent } = useBigBookContent();
-  const { fontSize } = useTextSettings();
+  const { fontSize, lineHeight } = useTextSettings();
 
   const handleSearch = (query: string) => {
     setSearchQuery(query);
@@ -155,7 +155,7 @@ export function BigBookSearchModal({
                     <Text style={[styles.resultChapter, { fontSize: fontSize - 2 }]}>{result.chapterTitle}</Text>
 
                     {/* Text Preview with Highlight */}
-                    <Text style={[styles.resultText, { fontSize, lineHeight: fontSize * 1.4 }]} numberOfLines={2}>
+                    <Text style={[styles.resultText, { fontSize, lineHeight }]} numberOfLines={2}>
                       {parseMarkdownItalics(result.matches[0]?.context.before || '', `before-${result.paragraphId}`)}
                       <Text style={styles.resultMatch}>
                         {result.matches[0]?.context.match}

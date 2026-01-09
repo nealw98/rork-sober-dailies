@@ -35,7 +35,7 @@ interface PrayerReaderProps {
 
 export function PrayerReader({ visible, prayerIndex, onClose, onPrayerChange }: PrayerReaderProps) {
   const insets = useSafeAreaInsets();
-  const { fontSize, resetDefaults } = useTextSettings();
+  const { fontSize, lineHeight, resetDefaults } = useTextSettings();
   
   const currentPrayer = aaPrayers[prayerIndex];
   const hasPrevious = prayerIndex > 0;
@@ -83,10 +83,10 @@ export function PrayerReader({ visible, prayerIndex, onClose, onPrayerChange }: 
     if (currentPrayer.title === "Morning Prayer") {
       return (
         <View>
-          <Text style={[styles.prayerText, styles.italicText, styles.introMargin, { fontSize, lineHeight: fontSize * 1.5 }]}>
+          <Text style={[styles.prayerText, styles.italicText, styles.introMargin, { fontSize, lineHeight }]}>
             As I begin this day, I ask my Higher Power:
           </Text>
-          <Text style={[styles.prayerText, { fontSize, lineHeight: fontSize * 1.5 }]}>
+          <Text style={[styles.prayerText, { fontSize, lineHeight }]}>
             {currentPrayer.content.split('As I begin this day, I ask my Higher Power:')[1]?.trim()}
           </Text>
         </View>
@@ -96,10 +96,10 @@ export function PrayerReader({ visible, prayerIndex, onClose, onPrayerChange }: 
     if (currentPrayer.title === "Evening Prayer") {
       return (
         <View>
-          <Text style={[styles.prayerText, styles.italicText, styles.introMargin, { fontSize, lineHeight: fontSize * 1.5 }]}>
+          <Text style={[styles.prayerText, styles.italicText, styles.introMargin, { fontSize, lineHeight }]}>
             As this day closes,
           </Text>
-          <Text style={[styles.prayerText, { fontSize, lineHeight: fontSize * 1.5 }]}>
+          <Text style={[styles.prayerText, { fontSize, lineHeight }]}>
             {currentPrayer.content.split('As this day closes,')[1]?.trim()}
           </Text>
         </View>
@@ -107,7 +107,7 @@ export function PrayerReader({ visible, prayerIndex, onClose, onPrayerChange }: 
     }
 
     return (
-      <Text style={[styles.prayerText, { fontSize, lineHeight: fontSize * 1.5 }]}>
+      <Text style={[styles.prayerText, { fontSize, lineHeight }]}>
         {currentPrayer.content}
       </Text>
     );
