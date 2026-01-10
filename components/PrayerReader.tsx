@@ -7,15 +7,17 @@
  * - Prev/Next prayer navigation in footer
  */
 
-import React, { useCallback, useEffect } from 'react';
+import React, { useCallback, useEffect, useMemo } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   ScrollView,
+  FlatList,
   TouchableOpacity,
   Modal,
   BackHandler,
+  Platform,
 } from 'react-native';
 import { ChevronLeft, ChevronRight } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -66,7 +68,32 @@ export function PrayerReader({ visible, prayerIndex, onClose, onPrayerChange }: 
     }
   }, [hasNext, prayerIndex, onPrayerChange]);
 
-  // Render prayer content with special formatting for Morning/Evening prayers
+  // Build content lines for the prayer (for FlatList on Android)
+  const contentLines = useMemo(() => {
+    if (!currentPrayer) return [];
+    
+    const lines: Array<{ id: string; text: string; isItalic?: boolean; isSource?: boolean }> = [];
+    
+    if (currentPrayer.title === "Morning Prayer") {
+      lines.push({ id: 'intro', text: 'As I begin this day, I ask my Higher Power:', isItalic: true });
+      const rest = currentPrayer.content.split('As I begin this day, I ask my Higher Power:')[1]?.trim();
+      if (rest) lines.push({ id: 'body', text: rest });
+    } else if (currentPrayer.title === "Evening Prayer") {
+      lines.push({ id: 'intro', text: 'As this day closes,', isItalic: true });
+      const rest = currentPrayer.content.split('As this day closes,')[1]?.trim();
+      if (rest) lines.push({ id: 'body', text: rest });
+    } else {
+      lines.push({ id: 'body', text: currentPrayer.content });
+    }
+    
+    if (currentPrayer.source) {
+      lines.push({ id: 'source', text: `— ${currentPrayer.source}`, isSource: true });
+    }
+    
+    return lines;
+  }, [currentPrayer]);
+
+  // Render prayer content with special formatting for Morning/Evening prayers (iOS)
   const renderPrayerContent = () => {
     if (!currentPrayer) return null;
 
@@ -103,6 +130,27 @@ export function PrayerReader({ visible, prayerIndex, onClose, onPrayerChange }: 
     );
   };
 
+  // Render a single line for FlatList (Android)
+  const renderLine = useCallback(({ item }: { item: { id: string; text: string; isItalic?: boolean; isSource?: boolean } }) => {
+    if (item.isSource) {
+      return (
+        <Text style={[styles.prayerSource, { fontSize: fontSize * 0.75 }]}>
+          {item.text}
+        </Text>
+      );
+    }
+    return (
+      <Text style={[
+        styles.prayerText, 
+        item.isItalic && styles.italicText,
+        item.isItalic && styles.introMargin,
+        { fontSize, lineHeight }
+      ]}>
+        {item.text}
+      </Text>
+    );
+  }, [fontSize, lineHeight]);
+
   if (!currentPrayer) return null;
 
   return (
@@ -136,22 +184,36 @@ export function PrayerReader({ visible, prayerIndex, onClose, onPrayerChange }: 
         </LinearGradient>
 
         {/* Content */}
-        <ScrollView
-          key={`prayer-scroll-${prayerIndex}`}
-          style={styles.content}
-          contentContainerStyle={styles.contentContainer}
-          showsVerticalScrollIndicator={true}
-        >
-          <View>
-            {renderPrayerContent()}
-            
-            {currentPrayer.source && (
-              <Text style={[styles.prayerSource, { fontSize: fontSize * 0.75 }]}>
-                — {currentPrayer.source}
-              </Text>
-            )}
-          </View>
-        </ScrollView>
+        <View style={styles.contentWrapper}>
+          {Platform.OS === 'android' ? (
+            <FlatList
+              key={`prayer-list-${prayerIndex}`}
+              data={contentLines}
+              keyExtractor={(item) => item.id}
+              style={styles.content}
+              contentContainerStyle={styles.contentContainer}
+              showsVerticalScrollIndicator={true}
+              renderItem={renderLine}
+            />
+          ) : (
+            <ScrollView
+              key={`prayer-scroll-${prayerIndex}`}
+              style={styles.content}
+              contentContainerStyle={styles.contentContainer}
+              showsVerticalScrollIndicator={true}
+            >
+              <View>
+                {renderPrayerContent()}
+                
+                {currentPrayer.source && (
+                  <Text style={[styles.prayerSource, { fontSize: fontSize * 0.75 }]}>
+                    — {currentPrayer.source}
+                  </Text>
+                )}
+              </View>
+            </ScrollView>
+          )}
+        </View>
 
         {/* Footer with Prayer Navigation */}
         <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, 16) }]}>
@@ -220,15 +282,16 @@ const styles = StyleSheet.create({
     fontWeight: adjustFontWeight('400'),
     color: '#fff',
   },
+  contentWrapper: {
+    flex: 1,
+    backgroundColor: '#fff',
+  },
   content: {
     flex: 1,
-    flexGrow: 1,
-    flexShrink: 1,
   },
   contentContainer: {
     padding: 20,
     paddingBottom: 40,
-    flexGrow: 1,
   },
   prayerText: {
     fontSize: 18,
