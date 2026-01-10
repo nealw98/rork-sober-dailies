@@ -5,7 +5,7 @@ import ScreenContainer from '@/components/ScreenContainer';
 
 export default function Home() {
   return (
-    <ScreenContainer>
+    <ScreenContainer noPadding>
       <Stack.Screen options={{ headerShown: false }} />
       <HomeScreen />
     </ScreenContainer>

@@ -267,6 +267,9 @@ export default function RootLayout() {
             <SobrietyProvider>
               <EveningReviewProvider>
                 <GestureHandlerRootView style={{ flex: 1 }}>
+                  {Platform.OS === 'android' && (
+                    <StatusBar translucent backgroundColor="transparent" barStyle="light-content" />
+                  )}
                   <ErrorBoundary>
                     <RootLayoutNav />
                   </ErrorBoundary>

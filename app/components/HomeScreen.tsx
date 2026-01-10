@@ -151,11 +151,11 @@ const styles = StyleSheet.create({
   },
   headerGradient: {
     paddingBottom: 24,
-    paddingHorizontal: 20,
   },
   sobrietyCounterContainer: {
     alignItems: 'center',
     paddingVertical: 8,
+    paddingHorizontal: 20,
   },
   scrollView: {
     flex: 1,

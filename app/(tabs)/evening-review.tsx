@@ -27,6 +27,7 @@ import { ReviewCompleteModal } from '@/components/ReviewCompleteModal';
 import { maybeAskForReview } from '@/lib/reviewPrompt';
 import Colors from '@/constants/colors';
 import { adjustFontWeight } from '@/constants/fonts';
+import { useTextSettings } from '@/hooks/use-text-settings';
 
 const formatDateDisplay = (date: Date): string => {
   return date.toLocaleDateString('en-US', {
@@ -37,10 +38,11 @@ const formatDateDisplay = (date: Date): string => {
 };
 
 // Animated Checkbox Component
-const AnimatedCheckbox = ({ checked, onPress, children }: { 
+const AnimatedCheckbox = ({ checked, onPress, children, fontSize }: { 
   checked: boolean; 
   onPress: () => void; 
   children: React.ReactNode;
+  fontSize?: number;
 }) => {
   const scaleAnim = useRef(new Animated.Value(1)).current;
 
@@ -89,6 +91,7 @@ const AnimatedCheckbox = ({ checked, onPress, children }: {
                 styles.checkboxText,
                 {
                   transform: [{ scale: scaleAnim }],
+                  fontSize: fontSize || 16,
                 }
               ]}
             >
@@ -103,6 +106,7 @@ const AnimatedCheckbox = ({ checked, onPress, children }: {
 
 export default function EveningReview() {
   const insets = useSafeAreaInsets();
+  const { fontSize, lineHeight } = useTextSettings();
   const [showConfirmation, setShowConfirmation] = useState(false);
   const [shouldTriggerReviewOnDismiss, setShouldTriggerReviewOnDismiss] = useState(false);
   const [showSavedReviews, setShowSavedReviews] = useState(false);
@@ -555,6 +559,7 @@ export default function EveningReview() {
                   key={action.key}
                   checked={action.checked}
                   onPress={() => action.setChecked(!action.checked)}
+                  fontSize={fontSize}
                 >
                   {action.label}
                 </AnimatedCheckbox>
@@ -568,9 +573,9 @@ export default function EveningReview() {
             <View style={styles.inventoryContainer}>
               {inventoryQuestions.map((question) => (
                 <View key={question.key} style={styles.questionContainer}>
-                  <Text style={styles.questionText}>{question.label}</Text>
+                  <Text style={[styles.questionText, { fontSize, lineHeight }]}>{question.label}</Text>
                   <TextInput
-                    style={styles.inventoryTextInput}
+                    style={[styles.inventoryTextInput, { fontSize }]}
                     placeholder="Write your reflection here..."
                     value={question.value}
                     onChangeText={question.setValue}

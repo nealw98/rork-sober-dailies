@@ -24,6 +24,7 @@ import { adjustFontWeight } from '@/constants/fonts';
 import ScreenContainer from '@/components/ScreenContainer';
 import { useFocusEffect } from '@react-navigation/native';
 import { maybeAskForReview } from '@/lib/reviewPrompt';
+import { useTextSettings } from '@/hooks/use-text-settings';
 
 const INVENTORY_STORAGE_KEY = 'spot_check_inventories';
 
@@ -489,6 +490,7 @@ const SpotCheckHistorySheet: React.FC<{
 
 const Inventory = () => {
   const insets = useSafeAreaInsets();
+  const { fontSize, lineHeight } = useTextSettings();
   const [selections, setSelections] = useState<{ [key: string]: SelectionState }>({});
   const [situation, setSituation] = useState('');
   const [currentRecord, setCurrentRecord] = useState<SpotCheckRecord | null>(null);
@@ -810,9 +812,9 @@ const Inventory = () => {
         
         {/* Situation Input */}
         <View style={styles.situationContainer}>
-          <Text style={styles.situationLabel}>What's disturbing you?</Text>
+          <Text style={[styles.situationLabel, { fontSize }]}>What's disturbing you?</Text>
           <TextInput
-            style={styles.situationInput}
+            style={[styles.situationInput, { fontSize }]}
             value={situation}
             onChangeText={handleSituationChange}
             placeholder="Describe the situation"
@@ -1006,10 +1008,11 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   lookForText: {
-    fontSize: 16,
+    fontSize: Platform.OS === 'android' ? 17 : 18,
     fontWeight: '400',
     color: '#000',
     textAlign: 'left',
+    flexShrink: 1,
   },
   arrow: {
     fontSize: 18,
@@ -1018,10 +1021,11 @@ const styles = StyleSheet.create({
     fontWeight: 'normal',
   },
   striveForText: {
-    fontSize: 16,
+    fontSize: Platform.OS === 'android' ? 17 : 18,
     fontWeight: '400',
     color: '#000',
     textAlign: 'right',
+    flexShrink: 1,
   },
   selectedText: {
     fontWeight: 'bold',
