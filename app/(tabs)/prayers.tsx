@@ -105,13 +105,15 @@ export default function PrayersScreen() {
         </ScrollView>
       </ScreenContainer>
 
-      {/* Prayer Reader Modal - outside ScreenContainer for proper z-index */}
-      <PrayerReader
-        visible={readerVisible}
-        prayerIndex={selectedPrayerIndex}
-        onClose={handleCloseReader}
-        onPrayerChange={handlePrayerChange}
-      />
+      {/* Prayer Reader Modal - only render when visible (matching BigBookMain pattern) */}
+      {readerVisible && (
+        <PrayerReader
+          visible={readerVisible}
+          prayerIndex={selectedPrayerIndex}
+          onClose={handleCloseReader}
+          onPrayerChange={handlePrayerChange}
+        />
+      )}
     </>
   );
 }
