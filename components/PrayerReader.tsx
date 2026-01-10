@@ -161,6 +161,8 @@ export function PrayerReader({ visible, prayerIndex, onClose, onPrayerChange }: 
     <Modal
       visible={visible}
       animationType="slide"
+      presentationStyle="fullScreen"
+      transparent={false}
       onRequestClose={onClose}
     >
       <ModalWrapper style={styles.container}>
