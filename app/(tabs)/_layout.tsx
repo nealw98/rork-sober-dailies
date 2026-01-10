@@ -170,8 +170,8 @@ export default function TabLayout() {
         },
         tabBarStyle: {
           backgroundColor: "#FFFFFF",
-          height: Platform.OS === 'android' ? 60 : 84,
-          paddingBottom: Platform.OS === 'android' ? 8 : 28,
+          height: Platform.OS === 'android' ? 70 : 84,
+          paddingBottom: Platform.OS === 'android' ? 14 : 28,
           paddingTop: 8,
           borderTopWidth: 1,
           borderTopColor: '#E4E7EC',

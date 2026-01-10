@@ -150,11 +150,12 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
   },
   headerGradient: {
-    paddingBottom: 24,
+    paddingBottom: 16,
   },
   sobrietyCounterContainer: {
     alignItems: 'center',
-    paddingVertical: 8,
+    paddingTop: 8,
+    paddingBottom: 0,
     paddingHorizontal: 20,
   },
   scrollView: {

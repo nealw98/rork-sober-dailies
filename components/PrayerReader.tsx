@@ -146,21 +146,24 @@ export function PrayerReader({ visible, prayerIndex, onClose, onPrayerChange }: 
         </LinearGradient>
 
         {/* Content */}
-        <GestureDetector gesture={doubleTapGesture}>
-          <ScrollView
-            style={styles.content}
-            contentContainerStyle={styles.contentContainer}
-            showsVerticalScrollIndicator={true}
-          >
-            {renderPrayerContent()}
-            
-            {currentPrayer.source && (
-              <Text style={[styles.prayerSource, { fontSize: fontSize * 0.75 }]}>
-                — {currentPrayer.source}
-              </Text>
-            )}
-          </ScrollView>
-        </GestureDetector>
+        <ScrollView
+          style={styles.content}
+          contentContainerStyle={styles.contentContainer}
+          showsVerticalScrollIndicator={true}
+          nestedScrollEnabled={true}
+        >
+          <GestureDetector gesture={doubleTapGesture}>
+            <View>
+              {renderPrayerContent()}
+              
+              {currentPrayer.source && (
+                <Text style={[styles.prayerSource, { fontSize: fontSize * 0.75 }]}>
+                  — {currentPrayer.source}
+                </Text>
+              )}
+            </View>
+          </GestureDetector>
+        </ScrollView>
 
         {/* Footer with Prayer Navigation */}
         <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, 16) }]}>
@@ -232,7 +235,7 @@ const styles = StyleSheet.create({
   },
   contentContainer: {
     padding: 20,
-    paddingBottom: 40,
+    paddingBottom: 80,
   },
   prayerText: {
     fontSize: 18,

@@ -431,19 +431,26 @@ const SobrietyCounter = () => {
                   </Text>
                 </View>
               ) : (
-                // Breakdown display - stacked
+                // Breakdown display - stacked with dynamic font sizes
+                // Largest visible unit gets largest font, scaling down from there
                 <View style={styles.stackedCounter}>
                   {breakdown.years > 0 && (
-                    <Text style={styles.stackedYears}>
+                    <Text style={styles.stackedLarge}>
                       {breakdown.years} {breakdown.years === 1 ? 'year' : 'years'}
                     </Text>
                   )}
                   {breakdown.months > 0 && (
-                    <Text style={styles.stackedMonths}>
+                    <Text style={breakdown.years > 0 ? styles.stackedMedium : styles.stackedLarge}>
                       {breakdown.months} {breakdown.months === 1 ? 'month' : 'months'}
                     </Text>
                   )}
-                  <Text style={styles.stackedDays}>
+                  <Text style={
+                    breakdown.years > 0 
+                      ? styles.stackedSmall 
+                      : breakdown.months > 0 
+                        ? styles.stackedMedium 
+                        : styles.stackedLarge
+                  }>
                     {breakdown.days} {breakdown.days === 1 ? 'day' : 'days'}
                   </Text>
                 </View>
@@ -563,10 +570,8 @@ const styles = StyleSheet.create({
   counterWrapper: {
     alignItems: 'center',
     marginHorizontal: 20,
-    marginBottom: 0,
-    marginTop: 0,
-    minHeight: 140,
-    justifyContent: 'space-between',
+    height: 140,
+    flexDirection: 'column',
   },
   headerLabel: {
     fontSize: 20,
@@ -591,7 +596,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 28,
     width: 220,
     height: 110,
-    marginTop: 8,
+    marginTop: 14,
     backgroundColor: 'rgba(255,255,255,0.1)',
   },
   pointerIcon: {
@@ -617,19 +622,19 @@ const styles = StyleSheet.create({
   stackedCounter: {
     alignItems: 'center',
   },
-  stackedYears: {
+  stackedLarge: {
     fontSize: 26,
     color: '#fff',
     fontWeight: '700',
     textAlign: 'center',
   },
-  stackedMonths: {
+  stackedMedium: {
     fontSize: 21,
     color: 'rgba(255,255,255,0.9)',
     fontWeight: '600',
     textAlign: 'center',
   },
-  stackedDays: {
+  stackedSmall: {
     fontSize: 18,
     color: 'rgba(255,255,255,0.8)',
     fontWeight: '500',
@@ -702,7 +707,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    marginTop: 2,
+    marginTop: 0,
+    marginBottom: 0,
   },
   sobrietyDateText: {
     fontSize: 16,
