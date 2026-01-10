@@ -7,7 +7,7 @@
  * - Prev/Next prayer navigation in footer
  */
 
-import React, { useCallback, useMemo } from 'react';
+import React, { useCallback, useEffect } from 'react';
 import {
   View,
   Text,
@@ -19,12 +19,10 @@ import {
 } from 'react-native';
 import { ChevronLeft, ChevronRight } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { adjustFontWeight } from '@/constants/fonts';
 import { useTextSettings } from '@/hooks/use-text-settings';
 import { aaPrayers } from '@/constants/prayers';
-import { useEffect } from 'react';
 
 interface PrayerReaderProps {
   visible: boolean;
@@ -35,7 +33,7 @@ interface PrayerReaderProps {
 
 export function PrayerReader({ visible, prayerIndex, onClose, onPrayerChange }: PrayerReaderProps) {
   const insets = useSafeAreaInsets();
-  const { fontSize, lineHeight, resetDefaults } = useTextSettings();
+  const { fontSize, lineHeight } = useTextSettings();
   
   const currentPrayer = aaPrayers[prayerIndex];
   const hasPrevious = prayerIndex > 0;
@@ -55,14 +53,6 @@ export function PrayerReader({ visible, prayerIndex, onClose, onPrayerChange }: 
 
     return () => backHandler.remove();
   }, [visible, onClose]);
-
-  // Double-tap to reset to default font size
-  const doubleTapGesture = useMemo(() => Gesture.Tap()
-    .numberOfTaps(2)
-    .onStart(() => {
-      resetDefaults();
-    })
-    .runOnJS(true), [resetDefaults]);
 
   const goToPrevious = useCallback(() => {
     if (hasPrevious) {
@@ -147,22 +137,20 @@ export function PrayerReader({ visible, prayerIndex, onClose, onPrayerChange }: 
 
         {/* Content */}
         <ScrollView
+          key={`prayer-scroll-${prayerIndex}`}
           style={styles.content}
           contentContainerStyle={styles.contentContainer}
           showsVerticalScrollIndicator={true}
-          nestedScrollEnabled={true}
         >
-          <GestureDetector gesture={doubleTapGesture}>
-            <View>
-              {renderPrayerContent()}
-              
-              {currentPrayer.source && (
-                <Text style={[styles.prayerSource, { fontSize: fontSize * 0.75 }]}>
-                  — {currentPrayer.source}
-                </Text>
-              )}
-            </View>
-          </GestureDetector>
+          <View>
+            {renderPrayerContent()}
+            
+            {currentPrayer.source && (
+              <Text style={[styles.prayerSource, { fontSize: fontSize * 0.75 }]}>
+                — {currentPrayer.source}
+              </Text>
+            )}
+          </View>
         </ScrollView>
 
         {/* Footer with Prayer Navigation */}
