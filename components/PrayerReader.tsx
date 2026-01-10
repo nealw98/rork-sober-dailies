@@ -21,6 +21,7 @@ import {
 } from 'react-native';
 import { ChevronLeft, ChevronRight } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { adjustFontWeight } from '@/constants/fonts';
 import { useTextSettings } from '@/hooks/use-text-settings';
@@ -153,14 +154,16 @@ export function PrayerReader({ visible, prayerIndex, onClose, onPrayerChange }: 
 
   if (!currentPrayer) return null;
 
+  // Wrapper for Android to ensure gestures work inside Modal
+  const ModalWrapper = Platform.OS === 'android' ? GestureHandlerRootView : View;
+
   return (
     <Modal
       visible={visible}
       animationType="slide"
-      presentationStyle="fullScreen"
       onRequestClose={onClose}
     >
-      <View style={styles.container}>
+      <ModalWrapper style={styles.container}>
         {/* Gradient Header */}
         <LinearGradient
           colors={['#4A6FA5', '#3D8B8B', '#45A08A']}
@@ -247,7 +250,7 @@ export function PrayerReader({ visible, prayerIndex, onClose, onPrayerChange }: 
             <ChevronRight size={20} color={hasNext ? "#3D8B8B" : "#ccc"} />
           </TouchableOpacity>
         </View>
-      </View>
+      </ModalWrapper>
     </Modal>
   );
 }
