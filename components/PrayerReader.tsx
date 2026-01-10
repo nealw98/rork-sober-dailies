@@ -194,10 +194,12 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#f5f6f8',
+    flexDirection: 'column',
   },
   headerBlock: {
     paddingBottom: 16,
     paddingHorizontal: 16,
+    flexShrink: 0,
   },
   headerTopRow: {
     flexDirection: 'row',
@@ -220,10 +222,13 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
+    flexGrow: 1,
+    flexShrink: 1,
   },
   contentContainer: {
     padding: 20,
-    paddingBottom: 80,
+    paddingBottom: 40,
+    flexGrow: 1,
   },
   prayerText: {
     fontSize: 18,
@@ -252,6 +257,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     borderTopWidth: 1,
     borderTopColor: '#e0e0e0',
+    flexShrink: 0,
   },
   footerNavButton: {
     flexDirection: 'row',

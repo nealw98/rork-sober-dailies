@@ -56,61 +56,63 @@ export default function PrayersScreen() {
   }, []);
 
   return (
-    <ScreenContainer style={styles.container} noPadding>
-      <Stack.Screen options={{ headerShown: false }} />
-      
-      {/* Gradient header block */}
-      <LinearGradient
-        colors={['#4A6FA5', '#3D8B8B', '#45A08A']}
-        style={[styles.headerBlock, { paddingTop: insets.top + 8 }]}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-      >
-        <View style={styles.headerTopRow}>
-          <TouchableOpacity 
-            onPress={() => router.back()} 
-            style={styles.backButton}
-            activeOpacity={0.7}
-          >
-            <ChevronLeft size={24} color="#fff" />
-          </TouchableOpacity>
-          <View style={{ width: 60 }} />
-        </View>
-        <Text style={styles.headerTitle}>AA Prayers</Text>
-      </LinearGradient>
-      
-      {/* Prayer List */}
-      <ScrollView 
-        style={styles.scrollContainer} 
-        contentContainerStyle={styles.contentContainer}
-        showsVerticalScrollIndicator={false}
-      >
-        <View style={styles.listContainer}>
-          {aaPrayers.map((prayerItem, index) => (
-            <TouchableOpacity
-              key={index}
-              style={[
-                styles.listRow,
-                index === aaPrayers.length - 1 && styles.listRowLast
-              ]}
-              onPress={() => handlePrayerPress(index)}
+    <>
+      <ScreenContainer style={styles.container} noPadding>
+        <Stack.Screen options={{ headerShown: false }} />
+        
+        {/* Gradient header block */}
+        <LinearGradient
+          colors={['#4A6FA5', '#3D8B8B', '#45A08A']}
+          style={[styles.headerBlock, { paddingTop: insets.top + 8 }]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+        >
+          <View style={styles.headerTopRow}>
+            <TouchableOpacity 
+              onPress={() => router.back()} 
+              style={styles.backButton}
               activeOpacity={0.7}
             >
-              <Text style={styles.rowTitle}>{prayerItem.title}</Text>
-              <ChevronRight size={18} color="#a0a0a0" />
+              <ChevronLeft size={24} color="#fff" />
             </TouchableOpacity>
-          ))}
-        </View>
-      </ScrollView>
+            <View style={{ width: 60 }} />
+          </View>
+          <Text style={styles.headerTitle}>AA Prayers</Text>
+        </LinearGradient>
+        
+        {/* Prayer List */}
+        <ScrollView 
+          style={styles.scrollContainer} 
+          contentContainerStyle={styles.contentContainer}
+          showsVerticalScrollIndicator={false}
+        >
+          <View style={styles.listContainer}>
+            {aaPrayers.map((prayerItem, index) => (
+              <TouchableOpacity
+                key={index}
+                style={[
+                  styles.listRow,
+                  index === aaPrayers.length - 1 && styles.listRowLast
+                ]}
+                onPress={() => handlePrayerPress(index)}
+                activeOpacity={0.7}
+              >
+                <Text style={styles.rowTitle}>{prayerItem.title}</Text>
+                <ChevronRight size={18} color="#a0a0a0" />
+              </TouchableOpacity>
+            ))}
+          </View>
+        </ScrollView>
+      </ScreenContainer>
 
-      {/* Prayer Reader Modal */}
+      {/* Prayer Reader Modal - outside ScreenContainer for proper z-index */}
       <PrayerReader
         visible={readerVisible}
         prayerIndex={selectedPrayerIndex}
         onClose={handleCloseReader}
         onPrayerChange={handlePrayerChange}
       />
-    </ScreenContainer>
+    </>
   );
 }
 
