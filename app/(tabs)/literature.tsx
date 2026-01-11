@@ -20,26 +20,26 @@ const literatureOptions: LiteratureOption[] = [
   {
     id: "bigbook",
     title: "Alcoholics Anonymous",
-    description: "The basic textbook for the AA program.",
+    description: "",
     route: "/bigbook",
     emoji: "📖",
-    backgroundColor: "#F5C341", // Yellow (from Morning Prayer)
+    backgroundColor: "#8A65B5", // Purple
   },
   {
     id: "twelve-and-twelve",
     title: "Twelve Steps and Twelve Traditions",
-    description: "In-depth exploration of the Steps and Traditions",
+    description: "",
     route: "/twelve-and-twelve",
     emoji: "📚",
-    backgroundColor: "#E8884A", // Orange (from Gratitude)
+    backgroundColor: "#E8884A", // Orange
   },
   {
     id: "meeting-pocket",
     title: "AA Meeting Readings",
-    description: "Quick access to the core AA readings used in meetings.",
+    description: "",
     route: "/meeting-pocket",
     emoji: "📋",
-    backgroundColor: "#4AA898", // Teal (Fresh Freddie)
+    backgroundColor: "#4AA898", // Teal
   }
 ];
 
@@ -88,7 +88,7 @@ export default function LiteratureScreen() {
           >
             <Text style={styles.tileEmoji}>{option.emoji}</Text>
             <Text style={styles.tileTitle}>{option.title}</Text>
-            <Text style={styles.tileDescription}>{option.description}</Text>
+            {option.description ? <Text style={styles.tileDescription}>{option.description}</Text> : null}
           </TouchableOpacity>
         ))}
       </View>
