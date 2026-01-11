@@ -23,7 +23,7 @@ const literatureOptions: LiteratureOption[] = [
     description: "",
     route: "/bigbook",
     emoji: "📖",
-    backgroundColor: "#F5C341", // Yellow
+    backgroundColor: "#E5B530", // Darker yellow
   },
   {
     id: "twelve-and-twelve",
