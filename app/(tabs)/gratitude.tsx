@@ -705,7 +705,7 @@ export default function GratitudeListScreen() {
       <KeyboardAvoidingView 
         style={styles.keyboardAvoidingView}
         behavior={Platform.OS === "ios" ? "padding" : "height"}
-        keyboardVerticalOffset={Platform.OS === "ios" ? insets.top + 150 : 0}
+        keyboardVerticalOffset={0}
       >
         <ScrollView 
           style={styles.scrollView} 
