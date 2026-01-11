@@ -106,6 +106,7 @@ export default function EveningReview() {
   const insets = useSafeAreaInsets();
   const { fontSize, lineHeight } = useTextSettings();
   const scrollViewRef = useRef<ScrollView>(null);
+  const inputPositions = useRef<{ [key: string]: number }>({});
   const [showConfirmation, setShowConfirmation] = useState(false);
   const [showSavedReviews, setShowSavedReviews] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
@@ -559,7 +560,13 @@ export default function EveningReview() {
             <Text style={styles.sectionTitle}>10th Step Inventory</Text>
             <View style={styles.inventoryContainer}>
               {inventoryQuestions.map((question, index) => (
-                <View key={question.key} style={styles.questionContainer}>
+                <View 
+                  key={question.key} 
+                  style={styles.questionContainer}
+                  onLayout={(event) => {
+                    inputPositions.current[question.key] = event.nativeEvent.layout.y;
+                  }}
+                >
                   <Text style={[styles.questionText, { fontSize, lineHeight }]}>{question.label}</Text>
                   <TextInput
                     style={[styles.inventoryTextInput, { fontSize }]}
@@ -571,9 +578,16 @@ export default function EveningReview() {
                     returnKeyType="done"
                     blurOnSubmit={true}
                     onFocus={() => {
-                      // Scroll to show the input with some delay for keyboard animation
+                      // Scroll to show this specific input after keyboard animation
                       setTimeout(() => {
-                        scrollViewRef.current?.scrollToEnd({ animated: true });
+                        const yPosition = inputPositions.current[question.key];
+                        if (yPosition !== undefined && scrollViewRef.current) {
+                          // Scroll so the input is visible with some padding at top
+                          scrollViewRef.current.scrollTo({ 
+                            y: yPosition + 200, // Offset for header + section title
+                            animated: true 
+                          });
+                        }
                       }, 300);
                     }}
                   />
