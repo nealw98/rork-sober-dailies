@@ -23,7 +23,7 @@ const literatureOptions: LiteratureOption[] = [
     description: "",
     route: "/bigbook",
     emoji: "📖",
-    backgroundColor: "#A87852", // Pete's brown
+    backgroundColor: "#5FB35F", // Steady Eddie green
   },
   {
     id: "twelve-and-twelve",
@@ -31,7 +31,7 @@ const literatureOptions: LiteratureOption[] = [
     description: "",
     route: "/twelve-and-twelve",
     emoji: "📚",
-    backgroundColor: "#E8884A", // Orange
+    backgroundColor: "#4AA898", // Freddie teal
   },
   {
     id: "meeting-pocket",
