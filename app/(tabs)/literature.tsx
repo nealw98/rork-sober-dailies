@@ -38,7 +38,7 @@ const literatureOptions: LiteratureOption[] = [
     title: "AA Meeting Readings",
     description: "",
     route: "/meeting-pocket",
-    emoji: "📋",
+    emoji: "📄",
     backgroundColor: "#D5708A", // Pink
   }
 ];
