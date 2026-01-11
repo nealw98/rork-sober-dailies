@@ -31,7 +31,7 @@ const literatureOptions: LiteratureOption[] = [
     description: "",
     route: "/twelve-and-twelve",
     emoji: "📚",
-    backgroundColor: "#E8884A", // Orange
+    backgroundColor: "#D5708A", // Pink
   },
   {
     id: "meeting-pocket",
