@@ -7,7 +7,6 @@ import {
   FlatList,
   StyleSheet,
   Alert,
-  KeyboardAvoidingView,
   Platform,
   Share,
   ScrollView
@@ -702,16 +701,12 @@ export default function GratitudeListScreen() {
         </TouchableOpacity>
       </View>
       
-      <KeyboardAvoidingView 
-        style={styles.keyboardAvoidingView}
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
-        keyboardVerticalOffset={0}
-      >
         <ScrollView 
           style={styles.scrollView} 
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
           contentContainerStyle={styles.scrollContent}
+          automaticallyAdjustKeyboardInsets={true}
         >
           {/* Date */}
           <Text style={styles.dateText}>{formatDateDisplay(today)}</Text>
@@ -794,7 +789,6 @@ export default function GratitudeListScreen() {
             Your gratitude lists are saved only on your device. Nothing is uploaded or shared.
           </Text>
         </ScrollView>
-      </KeyboardAvoidingView>
       
       <SavedGratitudeEntries 
         visible={showSavedEntries}

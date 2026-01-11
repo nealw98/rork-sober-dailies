@@ -9,7 +9,6 @@ import {
   Alert,
   Platform,
   Share,
-  KeyboardAvoidingView,
   Animated,
   Pressable,
   Easing
@@ -526,17 +525,13 @@ export default function EveningReview() {
         </TouchableOpacity>
       </View>
       
-      <KeyboardAvoidingView 
-        style={styles.keyboardAvoidingView}
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
-        keyboardVerticalOffset={0}
+      <ScrollView 
+        style={styles.content} 
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+        contentContainerStyle={styles.scrollContent}
+        automaticallyAdjustKeyboardInsets={true}
       >
-        <ScrollView 
-          style={styles.content} 
-          showsVerticalScrollIndicator={false}
-          keyboardShouldPersistTaps="handled"
-          contentContainerStyle={styles.scrollContent}
-        >
           {/* Date */}
           <Text style={styles.dateText}>{formatDateDisplay(today)}</Text>
 
@@ -583,7 +578,6 @@ export default function EveningReview() {
             Your responses are saved only on your device. Nothing is uploaded or shared.
           </Text>
         </ScrollView>
-      </KeyboardAvoidingView>
       
       <SavedEveningReviews 
         visible={showSavedReviews}
