@@ -257,12 +257,12 @@ const styles = StyleSheet.create({
     borderColor: '#D8783A',
   },
   eveningPrayerTile: {
-    backgroundColor: '#E88BA0',
-    borderColor: '#D87B90',
+    backgroundColor: '#D5708A',
+    borderColor: '#C5607A',
   },
   nightlyReviewTile: {
-    backgroundColor: '#9B7BC7',
-    borderColor: '#8B6BB7',
+    backgroundColor: '#8A65B5',
+    borderColor: '#7A55A5',
   },
   spotCheckTile: {
     backgroundColor: '#5EC4B0',
