@@ -47,16 +47,18 @@ export function BigBookMain() {
     setScrollToParagraphId(scrollToId || null);
     setSearchTerm(search || null);
     setShowReaderModal(true);
-    
-    // Track reader opens for review prompt
-    recordLiteratureReaderOpen()
-      .then(() => maybeAskForReview('literature'))
-      .catch((error) => console.warn('[reviewPrompt] Literature trigger failed', error));
   };
   
   // Handle closing reader modal
   const handleCloseReader = () => {
     setShowReaderModal(false);
+    
+    // Track successful reading session and maybe ask for review
+    // Triggered on close = after they've (hopefully) enjoyed the content
+    recordLiteratureReaderOpen()
+      .then(() => maybeAskForReview('literature'))
+      .catch((error) => console.warn('[reviewPrompt] Literature trigger failed', error));
+    
     // Small delay before clearing state to allow modal animation to complete
     setTimeout(() => {
       setSelectedChapterId(null);
