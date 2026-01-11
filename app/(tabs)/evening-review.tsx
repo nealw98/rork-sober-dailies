@@ -24,7 +24,6 @@ import { useEveningReviewStore } from '@/hooks/use-evening-review-store';
 import SavedEveningReviews from '@/components/SavedEveningReviews';
 import AnimatedEveningReviewMessage from '@/components/AnimatedEveningReviewMessage';
 import { ReviewCompleteModal } from '@/components/ReviewCompleteModal';
-import { maybeAskForReview } from '@/lib/reviewPrompt';
 import Colors from '@/constants/colors';
 import { adjustFontWeight } from '@/constants/fonts';
 import { useTextSettings } from '@/hooks/use-text-settings';
@@ -108,7 +107,6 @@ export default function EveningReview() {
   const insets = useSafeAreaInsets();
   const { fontSize, lineHeight } = useTextSettings();
   const [showConfirmation, setShowConfirmation] = useState(false);
-  const [shouldTriggerReviewOnDismiss, setShouldTriggerReviewOnDismiss] = useState(false);
   const [showSavedReviews, setShowSavedReviews] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
 
@@ -239,13 +237,6 @@ export default function EveningReview() {
     // Force show the form instead of completion screen
     setShowConfirmation(false);
     setIsEditing(true);
-
-    if (shouldTriggerReviewOnDismiss) {
-      setShouldTriggerReviewOnDismiss(false);
-      maybeAskForReview('eveningReview').catch((error) =>
-        console.warn('[reviewPrompt] Evening review trigger failed', error),
-      );
-    }
   };
 
   const handleShare = async () => {
@@ -442,7 +433,6 @@ export default function EveningReview() {
     // Set showConfirmation to true to show the completed screen with saved message
     setShowConfirmation(true);
     setIsEditing(false);
-    setShouldTriggerReviewOnDismiss(true);
   };
 
   const canSave = () => {

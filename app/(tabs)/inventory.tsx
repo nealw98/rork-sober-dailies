@@ -23,7 +23,6 @@ import Colors from '@/constants/colors';
 import { adjustFontWeight } from '@/constants/fonts';
 import ScreenContainer from '@/components/ScreenContainer';
 import { useFocusEffect } from '@react-navigation/native';
-import { maybeAskForReview } from '@/lib/reviewPrompt';
 import { useTextSettings } from '@/hooks/use-text-settings';
 
 const INVENTORY_STORAGE_KEY = 'spot_check_inventories';
@@ -566,8 +565,6 @@ const Inventory = () => {
       setHasUnsavedChanges(false);
       
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-
-      await maybeAskForReview('spotCheck');
     } catch (error) {
       console.error('Error saving spot check:', error);
       Alert.alert('Error', 'Failed to save spot check.');

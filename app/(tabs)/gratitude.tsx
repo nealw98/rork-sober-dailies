@@ -25,7 +25,6 @@ import { adjustFontWeight } from '@/constants/fonts';
 import ScreenContainer from '@/components/ScreenContainer';
 import SavedGratitudeEntries from '@/components/SavedGratitudeEntries';
 import { GratitudeCompleteModal } from '@/components/GratitudeCompleteModal';
-import { maybeAskForReview } from '@/lib/reviewPrompt';
 import { useTextSettings } from '@/hooks/use-text-settings';
 
 // 25 inspirational gratitude quotes for daily rotation
@@ -341,7 +340,6 @@ export default function GratitudeListScreen() {
   const [editingValue, setEditingValue] = useState<string>('');
   const [inputValue, setInputValue] = useState('');
   const [showConfirmation, setShowConfirmation] = useState(false);
-  const [shouldTriggerReviewOnDismiss, setShouldTriggerReviewOnDismiss] = useState(false);
   const [showSavedEntries, setShowSavedEntries] = useState(false);
   const [dailyQuote] = useState(() => getDailyQuote());
   const inputRef = useRef<TextInput>(null);
@@ -513,13 +511,6 @@ export default function GratitudeListScreen() {
     // Uncomplete today to show the form
     uncompleteToday();
     setShowConfirmation(false);
-
-    if (shouldTriggerReviewOnDismiss) {
-      setShouldTriggerReviewOnDismiss(false);
-      maybeAskForReview('gratitude').catch((error) => {
-        console.warn('[reviewPrompt] Gratitude trigger failed', error);
-      });
-    }
   };
 
 
@@ -616,7 +607,6 @@ export default function GratitudeListScreen() {
     
     // Show completion modal
     setShowConfirmation(true);
-    setShouldTriggerReviewOnDismiss(true);
   };
 
   const canSave = () => {

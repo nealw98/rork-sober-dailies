@@ -3,11 +3,15 @@ import { NativeModules } from 'react-native';
 import { NativeModulesProxy } from 'expo-modules-core';
 import type * as ExpoStoreReviewModule from 'expo-store-review';
 
+/**
+ * Simplified Review Prompt System
+ * 
+ * Only triggers from the two highest-value features:
+ * - Daily Reflection: Most used feature
+ * - Literature Hub: Biggest differentiator, drives positive feelings
+ */
+
 export type ReviewTrigger =
-  | 'gratitude'
-  | 'eveningReview'
-  | 'spotCheck'
-  | 'aiSponsor'
   | 'dailyReflection'
   | 'literature'
   | 'manualRate';
@@ -15,34 +19,15 @@ export type ReviewTrigger =
 const STORAGE_KEYS = {
   DAYS_USED: 'reviewPrompt:daysUsed',
   LAST_PROMPT: 'reviewPrompt:lastPromptDate',
-  AI_RESPONSE_COUNT: 'reviewPrompt:aiResponseCount',
   DAILY_REFLECTION_DAYS: 'reviewPrompt:dailyReflectionDays',
   LITERATURE_MINUTES: 'reviewPrompt:literatureMinutes',
-  TRIGGER_COUNTS: 'reviewPrompt:triggerCounts',
 } as const;
 
-type TriggerCounts = Partial<Record<ReviewTrigger, number>>;
-
-const REVIEW_TRIGGERS: readonly ReviewTrigger[] = [
-  'gratitude',
-  'eveningReview',
-  'spotCheck',
-  'aiSponsor',
-  'dailyReflection',
-  'literature',
-  'manualRate',
-] as const;
-
-// Gating thresholds for when to show the in-app review prompt
-const MIN_USAGE_DAYS = 7;
-const MIN_DAILY_REFLECTION_DAYS = 5;
-const MIN_LITERATURE_MINUTES = 10;
-const MIN_AI_RESPONSES = 5;
-const MIN_TRIGGER_COUNT = 5;
-// 90-day cooldown between prompts
-const COOLDOWN_MS = 90 * 24 * 60 * 60 * 1000;
-
-const STORAGE_SEPARATOR = ',';
+// Gating thresholds
+const MIN_USAGE_DAYS = 7;           // Must use app for 7 days
+const MIN_DAILY_REFLECTION_DAYS = 5; // Must read 5 daily reflections
+const MIN_LITERATURE_MINUTES = 10;   // Must read literature for 10+ minutes
+const COOLDOWN_MS = 90 * 24 * 60 * 60 * 1000; // 90-day cooldown between prompts
 
 const toDayKey = (date: Date) => date.toISOString().split('T')[0];
 
@@ -51,7 +36,6 @@ let storeReviewPromise: Promise<typeof ExpoStoreReviewModule | null> | null = nu
 
 async function getStoreReviewModule(): Promise<typeof ExpoStoreReviewModule | null> {
   if (storeReviewModule !== undefined) {
-    console.log('[reviewPrompt] returning cached StoreReview module', !!storeReviewModule);
     return storeReviewModule;
   }
 
@@ -63,14 +47,12 @@ async function getStoreReviewModule(): Promise<typeof ExpoStoreReviewModule | nu
           (NativeModules as Record<string, unknown>).ExpoStoreReview;
 
         if (!nativeModule) {
-          console.warn('[reviewPrompt] StoreReview native module missing from NativeModulesProxy');
-          console.warn('[reviewPrompt] expo-store-review native module missing from this build');
+          console.warn('[reviewPrompt] expo-store-review native module missing');
           storeReviewModule = null;
           return null;
         }
 
         const mod = await import('expo-store-review');
-
         storeReviewModule = mod;
         console.log('[reviewPrompt] StoreReview module loaded');
         return mod;
@@ -85,29 +67,21 @@ async function getStoreReviewModule(): Promise<typeof ExpoStoreReviewModule | nu
   return storeReviewPromise;
 }
 
+// Storage helpers
 async function getStringSet(key: string): Promise<Set<string>> {
   try {
     const raw = await AsyncStorage.getItem(key);
     if (!raw) return new Set<string>();
-
-    // Prefer JSON array, but fall back to comma-separated string for resilience.
     try {
       const parsed = JSON.parse(raw);
       if (Array.isArray(parsed)) {
         return new Set(parsed.filter((item) => typeof item === 'string'));
       }
     } catch {
-      // noop – will try fallback below
+      // Fall back to comma-separated
     }
-
-    return new Set(
-      raw
-        .split(STORAGE_SEPARATOR)
-        .map((item) => item.trim())
-        .filter(Boolean),
-    );
-  } catch (error) {
-    console.warn('[reviewPrompt] Failed to read set for key', key, error);
+    return new Set(raw.split(',').map((item) => item.trim()).filter(Boolean));
+  } catch {
     return new Set<string>();
   }
 }
@@ -116,7 +90,7 @@ async function saveStringSet(key: string, values: Set<string>): Promise<void> {
   try {
     await AsyncStorage.setItem(key, JSON.stringify(Array.from(values)));
   } catch (error) {
-    console.warn('[reviewPrompt] Failed to persist set for key', key, error);
+    console.warn('[reviewPrompt] Failed to persist set', error);
   }
 }
 
@@ -126,8 +100,7 @@ async function getNumber(key: string): Promise<number> {
     if (!raw) return 0;
     const value = Number(raw);
     return Number.isFinite(value) ? value : 0;
-  } catch (error) {
-    console.warn('[reviewPrompt] Failed to read number for key', key, error);
+  } catch {
     return 0;
   }
 }
@@ -136,66 +109,8 @@ async function setNumber(key: string, value: number): Promise<void> {
   try {
     await AsyncStorage.setItem(key, String(value));
   } catch (error) {
-    console.warn('[reviewPrompt] Failed to persist number for key', key, error);
+    console.warn('[reviewPrompt] Failed to persist number', error);
   }
-}
-
-function isReviewTrigger(value: string): value is ReviewTrigger {
-  return (REVIEW_TRIGGERS as readonly string[]).includes(value);
-}
-
-async function getTriggerCounts(): Promise<TriggerCounts> {
-  try {
-    const raw = await AsyncStorage.getItem(STORAGE_KEYS.TRIGGER_COUNTS);
-    if (!raw) return {};
-    const parsed = JSON.parse(raw);
-    if (!parsed || typeof parsed !== 'object') {
-      return {};
-    }
-
-    const result: TriggerCounts = {};
-    for (const key of Object.keys(parsed)) {
-      if (isReviewTrigger(key)) {
-        const value = Number((parsed as Record<string, unknown>)[key]);
-        if (Number.isFinite(value)) {
-          result[key] = value;
-        }
-      }
-    }
-    return result;
-  } catch (error) {
-    console.warn('[reviewPrompt] Failed to read trigger counts', error);
-    return {};
-  }
-}
-
-async function incrementTriggerCount(trigger: ReviewTrigger): Promise<number> {
-  const counts = await getTriggerCounts();
-  const nextValue = (counts[trigger] ?? 0) + 1;
-  counts[trigger] = nextValue;
-
-  try {
-    await AsyncStorage.setItem(STORAGE_KEYS.TRIGGER_COUNTS, JSON.stringify(counts));
-  } catch (error) {
-    console.warn('[reviewPrompt] Failed to persist trigger count', error);
-  }
-
-  console.log('[reviewPrompt] incrementTriggerCount', trigger, '->', nextValue);
-  return nextValue;
-}
-
-async function resetAllTriggerCounters(): Promise<void> {
-  try {
-    await AsyncStorage.setItem(STORAGE_KEYS.TRIGGER_COUNTS, JSON.stringify({}));
-  } catch (error) {
-    console.warn('[reviewPrompt] Failed to reset trigger counts', error);
-  }
-
-  await Promise.all([
-    setNumber(STORAGE_KEYS.AI_RESPONSE_COUNT, 0),
-    saveStringSet(STORAGE_KEYS.DAILY_REFLECTION_DAYS, new Set<string>()),
-    setNumber(STORAGE_KEYS.LITERATURE_MINUTES, 0),
-  ]);
 }
 
 async function getLastPromptTimestamp(): Promise<number | null> {
@@ -206,8 +121,7 @@ async function getLastPromptTimestamp(): Promise<number | null> {
     if (Number.isFinite(timestamp)) return timestamp;
     const date = new Date(raw);
     return Number.isNaN(date.getTime()) ? null : date.getTime();
-  } catch (error) {
-    console.warn('[reviewPrompt] Failed to read last prompt timestamp', error);
+  } catch {
     return null;
   }
 }
@@ -221,99 +135,46 @@ async function setLastPromptTimestamp(date: Date): Promise<void> {
 }
 
 async function recordPromptShown(): Promise<void> {
+  await setLastPromptTimestamp(new Date());
+  // Reset counters after showing prompt
   await Promise.all([
-    setLastPromptTimestamp(new Date()),
-    resetAllTriggerCounters(),
+    saveStringSet(STORAGE_KEYS.DAILY_REFLECTION_DAYS, new Set<string>()),
+    setNumber(STORAGE_KEYS.LITERATURE_MINUTES, 0),
   ]);
 }
 
-async function ensureUsageDayRecorded(dayKey: string): Promise<void> {
-  const daysUsed = await getStringSet(STORAGE_KEYS.DAYS_USED);
-  if (!daysUsed.has(dayKey)) {
-    daysUsed.add(dayKey);
-    await saveStringSet(STORAGE_KEYS.DAYS_USED, daysUsed);
-  }
-}
-
-async function ensureDailyReflectionDayRecorded(dayKey: string): Promise<void> {
-  const reflectionDays = await getStringSet(STORAGE_KEYS.DAILY_REFLECTION_DAYS);
-  if (!reflectionDays.has(dayKey)) {
-    reflectionDays.add(dayKey);
-    await saveStringSet(STORAGE_KEYS.DAILY_REFLECTION_DAYS, reflectionDays);
-  }
-}
-
+// Gating checks
 async function hasUsageThreshold(): Promise<boolean> {
-  if (MIN_USAGE_DAYS <= 0) {
-    return true;
-  }
   const daysUsed = await getStringSet(STORAGE_KEYS.DAYS_USED);
   return daysUsed.size >= MIN_USAGE_DAYS;
 }
 
 async function hasCooldownExpired(): Promise<boolean> {
-  if (COOLDOWN_MS <= 0) {
-    return true;
-  }
   const lastPrompt = await getLastPromptTimestamp();
   if (!lastPrompt) return true;
   return Date.now() - lastPrompt >= COOLDOWN_MS;
 }
 
-async function incrementAIResponses(by: number): Promise<number> {
-  const current = await getNumber(STORAGE_KEYS.AI_RESPONSE_COUNT);
-  const updated = Math.max(0, current + by);
-  await setNumber(STORAGE_KEYS.AI_RESPONSE_COUNT, updated);
-  return updated;
-}
-
-function meetsTriggerSpecificRequirement(
-  trigger: ReviewTrigger,
-  attemptCount: number,
-  aiResponses: number,
-  reflectionDays: number,
-  literatureMinutes: number,
-): boolean {
-  if (trigger === 'aiSponsor') {
-    const ok =
-      attemptCount >= MIN_TRIGGER_COUNT && aiResponses >= MIN_AI_RESPONSES;
-    console.log('[reviewPrompt] aiSponsor requirement', {
-      attemptCount,
-      aiResponses,
-      ok,
-    });
-    return ok;
-  }
-
+async function meetsTriggerRequirement(trigger: ReviewTrigger): Promise<boolean> {
   if (trigger === 'dailyReflection') {
-    const ok = reflectionDays >= MIN_DAILY_REFLECTION_DAYS;
-    console.log('[reviewPrompt] dailyReflection requirement', {
-      reflectionDays,
-      ok,
-    });
+    const reflectionDays = await getStringSet(STORAGE_KEYS.DAILY_REFLECTION_DAYS);
+    const ok = reflectionDays.size >= MIN_DAILY_REFLECTION_DAYS;
+    console.log('[reviewPrompt] dailyReflection check:', reflectionDays.size, '/', MIN_DAILY_REFLECTION_DAYS, ok ? '✓' : '✗');
     return ok;
   }
 
   if (trigger === 'literature') {
-    const ok = literatureMinutes >= MIN_LITERATURE_MINUTES;
-    console.log('[reviewPrompt] literature requirement', {
-      literatureMinutes,
-      ok,
-    });
+    const minutes = await getNumber(STORAGE_KEYS.LITERATURE_MINUTES);
+    const ok = minutes >= MIN_LITERATURE_MINUTES;
+    console.log('[reviewPrompt] literature check:', minutes, '/', MIN_LITERATURE_MINUTES, 'min', ok ? '✓' : '✗');
     return ok;
   }
 
-  const ok = attemptCount >= MIN_TRIGGER_COUNT;
-  console.log('[reviewPrompt] default trigger requirement', {
-    trigger,
-    attemptCount,
-    ok,
-  });
-  return ok;
+  // manualRate always passes trigger requirement
+  return true;
 }
 
-async function presentStoreReview(trigger: ReviewTrigger): Promise<boolean> {
-  console.log('[reviewPrompt] presentStoreReview start', { trigger });
+async function presentStoreReview(): Promise<boolean> {
   const StoreReview = await getStoreReviewModule();
   if (!StoreReview) {
     console.log('[reviewPrompt] native module unavailable');
@@ -327,36 +188,55 @@ async function presentStoreReview(trigger: ReviewTrigger): Promise<boolean> {
       return false;
     }
 
-    console.log('[reviewPrompt] invoking StoreReview.requestReview');
+    console.log('[reviewPrompt] showing native review dialog');
     await StoreReview.requestReview();
     await recordPromptShown();
     return true;
   } catch (error) {
-    console.warn('[reviewPrompt] Unable to present store review prompt', error);
+    console.warn('[reviewPrompt] Unable to present store review', error);
     return false;
   }
 }
 
+// Public API
+
+/**
+ * Record that the app was opened today (for usage day counting)
+ */
 export async function recordAppOpen(date: Date = new Date()): Promise<void> {
   try {
-    await ensureUsageDayRecorded(toDayKey(date));
+    const daysUsed = await getStringSet(STORAGE_KEYS.DAYS_USED);
+    const dayKey = toDayKey(date);
+    if (!daysUsed.has(dayKey)) {
+      daysUsed.add(dayKey);
+      await saveStringSet(STORAGE_KEYS.DAYS_USED, daysUsed);
+    }
   } catch (error) {
     console.warn('[reviewPrompt] Failed to record app open', error);
   }
 }
 
+/**
+ * Record that user viewed the Daily Reflection today
+ */
 export async function recordDailyReflectionDay(date: Date = new Date()): Promise<void> {
   try {
-    await ensureDailyReflectionDayRecorded(toDayKey(date));
+    const reflectionDays = await getStringSet(STORAGE_KEYS.DAILY_REFLECTION_DAYS);
+    const dayKey = toDayKey(date);
+    if (!reflectionDays.has(dayKey)) {
+      reflectionDays.add(dayKey);
+      await saveStringSet(STORAGE_KEYS.DAILY_REFLECTION_DAYS, reflectionDays);
+      console.log('[reviewPrompt] Recorded daily reflection day:', dayKey, 'total:', reflectionDays.size);
+    }
   } catch (error) {
     console.warn('[reviewPrompt] Failed to record daily reflection day', error);
   }
 }
 
-export async function addReadingTime(
-  source: 'literature',
-  minutes: number,
-): Promise<number> {
+/**
+ * Add reading time for literature (in minutes)
+ */
+export async function addReadingTime(source: 'literature', minutes: number): Promise<number> {
   if (source !== 'literature' || !Number.isFinite(minutes) || minutes <= 0) {
     return getNumber(STORAGE_KEYS.LITERATURE_MINUTES);
   }
@@ -365,6 +245,7 @@ export async function addReadingTime(
     const current = await getNumber(STORAGE_KEYS.LITERATURE_MINUTES);
     const updated = current + minutes;
     await setNumber(STORAGE_KEYS.LITERATURE_MINUTES, updated);
+    console.log('[reviewPrompt] Added reading time:', minutes, 'min, total:', updated);
     return updated;
   } catch (error) {
     console.warn('[reviewPrompt] Failed to add reading time', error);
@@ -372,96 +253,80 @@ export async function addReadingTime(
   }
 }
 
-export async function addAIResponses(count: number): Promise<number> {
-  if (!Number.isFinite(count) || count <= 0) {
-    return getNumber(STORAGE_KEYS.AI_RESPONSE_COUNT);
-  }
-
-  try {
-    return await incrementAIResponses(count);
-  } catch (error) {
-    console.warn('[reviewPrompt] Failed to record AI responses', error);
-    return getNumber(STORAGE_KEYS.AI_RESPONSE_COUNT);
-  }
-}
-
+/**
+ * Check if review prompt should be shown after completing an activity.
+ * Only call from Daily Reflection or Literature features.
+ */
 export async function maybeAskForReview(trigger: ReviewTrigger): Promise<boolean> {
   try {
-    console.log('[reviewPrompt] maybeAskForReview start', trigger);
-    const attempt = await incrementTriggerCount(trigger);
-    const [usageOk, cooldownOk, aiResponses, reflectionDays, literatureMinutes] = await Promise.all([
+    console.log('[reviewPrompt] maybeAskForReview:', trigger);
+    
+    const [usageOk, cooldownOk] = await Promise.all([
       hasUsageThreshold(),
       hasCooldownExpired(),
-      getNumber(STORAGE_KEYS.AI_RESPONSE_COUNT),
-      getStringSet(STORAGE_KEYS.DAILY_REFLECTION_DAYS).then((set) => set.size),
-      getNumber(STORAGE_KEYS.LITERATURE_MINUTES),
     ]);
 
-    console.log('[reviewPrompt] gate results', { usageOk, cooldownOk, aiResponses });
-
-    if (!usageOk || !cooldownOk) {
-      console.log('[reviewPrompt] gating failed', { usageOk, cooldownOk });
+    if (!usageOk) {
+      console.log('[reviewPrompt] Usage threshold not met (need', MIN_USAGE_DAYS, 'days)');
       return false;
     }
 
-    if (!meetsTriggerSpecificRequirement(trigger, attempt, aiResponses, reflectionDays, literatureMinutes)) {
-      console.log('[reviewPrompt] trigger specific requirement failed', trigger);
+    if (!cooldownOk) {
+      console.log('[reviewPrompt] Still in cooldown period');
       return false;
     }
 
-    const result = await presentStoreReview(trigger);
-    console.log('[reviewPrompt] presentStoreReview result', result);
-    return result;
+    const triggerOk = await meetsTriggerRequirement(trigger);
+    if (!triggerOk) {
+      return false;
+    }
+
+    return await presentStoreReview();
   } catch (error) {
     console.warn('[reviewPrompt] Failed to evaluate review prompt', error);
     return false;
   }
 }
 
+/**
+ * Convenience wrapper for Daily Reflection trigger
+ */
 export async function maybeAskForReviewFromDailyReflection(): Promise<boolean> {
   return maybeAskForReview('dailyReflection');
 }
 
+/**
+ * Convenience wrapper for Literature trigger
+ */
 export async function maybeAskForReviewFromLiterature(): Promise<boolean> {
   return maybeAskForReview('literature');
 }
 
 /**
  * Request an in-app review immediately, bypassing all gating logic.
- * Use this for manual "Rate & Review" button presses where the user
- * explicitly wants to leave a review.
- * 
- * @returns true if the native review dialog was shown, false otherwise
+ * Use for manual "Rate & Review" button presses.
  */
 export async function requestReviewNow(): Promise<boolean> {
   console.log('[reviewPrompt] requestReviewNow - bypassing all gates');
   const StoreReview = await getStoreReviewModule();
   if (!StoreReview) {
-    console.log('[reviewPrompt] native module unavailable - StoreReview module not loaded');
+    console.log('[reviewPrompt] native module unavailable');
     return false;
   }
 
   try {
-    console.log('[reviewPrompt] checking if review action is available...');
     const hasAction = await StoreReview.hasAction();
-    console.log('[reviewPrompt] StoreReview.hasAction result:', hasAction);
-    
     if (!hasAction) {
-      console.warn('[reviewPrompt] StoreReview.hasAction returned false - native dialog not available');
-      console.warn('[reviewPrompt] This can happen if: app not from store, quota exceeded, or device restrictions');
+      console.warn('[reviewPrompt] StoreReview.hasAction returned false');
       return false;
     }
 
-    console.log('[reviewPrompt] invoking StoreReview.requestReview immediately');
+    console.log('[reviewPrompt] showing native review dialog (manual)');
     await StoreReview.requestReview();
-    console.log('[reviewPrompt] StoreReview.requestReview completed successfully');
-    // Note: We intentionally do NOT call recordPromptShown() here
-    // because this is a manual request, not an automatic prompt
+    // Don't record or reset counters for manual requests
     return true;
   } catch (error) {
-    console.warn('[reviewPrompt] Unable to present store review prompt', error);
+    console.warn('[reviewPrompt] Unable to present store review', error);
     return false;
   }
 }
-
-
