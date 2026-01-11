@@ -23,7 +23,7 @@ const literatureOptions: LiteratureOption[] = [
     description: "The basic textbook for the AA program.",
     route: "/bigbook",
     emoji: "📖",
-    backgroundColor: "#E8884A", // Orange (from Gratitude tile)
+    backgroundColor: "#F5C341", // Yellow (from Morning Prayer)
   },
   {
     id: "twelve-and-twelve",
@@ -31,7 +31,7 @@ const literatureOptions: LiteratureOption[] = [
     description: "In-depth exploration of the Steps and Traditions",
     route: "/twelve-and-twelve",
     emoji: "📚",
-    backgroundColor: "#D5708A", // Darker pink
+    backgroundColor: "#E8884A", // Orange (from Gratitude)
   },
   {
     id: "meeting-pocket",
@@ -39,7 +39,7 @@ const literatureOptions: LiteratureOption[] = [
     description: "Quick access to the core AA readings used in meetings.",
     route: "/meeting-pocket",
     emoji: "📋",
-    backgroundColor: "#8A65B5", // Darker purple
+    backgroundColor: "#4AA898", // Teal (Fresh Freddie)
   }
 ];
 
@@ -140,7 +140,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   tileTitle: {
-    fontSize: 20,
+    fontSize: 22,
     fontWeight: adjustFontWeight('600'),
     color: '#fff',
     marginBottom: 4,
