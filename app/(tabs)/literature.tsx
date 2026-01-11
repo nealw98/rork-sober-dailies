@@ -31,7 +31,7 @@ const literatureOptions: LiteratureOption[] = [
     description: "In-depth exploration of the Steps and Traditions",
     route: "/twelve-and-twelve",
     emoji: "📚",
-    backgroundColor: "#E88BA0", // Pink (from Evening Prayer tile)
+    backgroundColor: "#D5708A", // Darker pink
   },
   {
     id: "meeting-pocket",
@@ -39,7 +39,7 @@ const literatureOptions: LiteratureOption[] = [
     description: "Quick access to the core AA readings used in meetings.",
     route: "/meeting-pocket",
     emoji: "📋",
-    backgroundColor: "#9B7BC7", // Purple (from Nightly Review tile)
+    backgroundColor: "#8A65B5", // Darker purple
   }
 ];
 
