@@ -20,13 +20,13 @@ const STORAGE_KEYS = {
   DAYS_USED: 'reviewPrompt:daysUsed',
   LAST_PROMPT: 'reviewPrompt:lastPromptDate',
   DAILY_REFLECTION_DAYS: 'reviewPrompt:dailyReflectionDays',
-  LITERATURE_MINUTES: 'reviewPrompt:literatureMinutes',
+  LITERATURE_READER_OPENS: 'reviewPrompt:literatureReaderOpens',
 } as const;
 
 // Gating thresholds
-const MIN_USAGE_DAYS = 7;           // Must use app for 7 days
-const MIN_DAILY_REFLECTION_DAYS = 5; // Must read 5 daily reflections
-const MIN_LITERATURE_MINUTES = 10;   // Must read literature for 10+ minutes
+const MIN_USAGE_DAYS = 7;             // Must use app for 7 days
+const MIN_DAILY_REFLECTION_DAYS = 5;  // Must read 5 daily reflections
+const MIN_LITERATURE_READER_OPENS = 5; // Must open the Big Book reader 5 times
 const COOLDOWN_MS = 90 * 24 * 60 * 60 * 1000; // 90-day cooldown between prompts
 
 const toDayKey = (date: Date) => date.toISOString().split('T')[0];
@@ -139,7 +139,7 @@ async function recordPromptShown(): Promise<void> {
   // Reset counters after showing prompt
   await Promise.all([
     saveStringSet(STORAGE_KEYS.DAILY_REFLECTION_DAYS, new Set<string>()),
-    setNumber(STORAGE_KEYS.LITERATURE_MINUTES, 0),
+    setNumber(STORAGE_KEYS.LITERATURE_READER_OPENS, 0),
   ]);
 }
 
@@ -164,9 +164,9 @@ async function meetsTriggerRequirement(trigger: ReviewTrigger): Promise<boolean>
   }
 
   if (trigger === 'literature') {
-    const minutes = await getNumber(STORAGE_KEYS.LITERATURE_MINUTES);
-    const ok = minutes >= MIN_LITERATURE_MINUTES;
-    console.log('[reviewPrompt] literature check:', minutes, '/', MIN_LITERATURE_MINUTES, 'min', ok ? '✓' : '✗');
+    const readerOpens = await getNumber(STORAGE_KEYS.LITERATURE_READER_OPENS);
+    const ok = readerOpens >= MIN_LITERATURE_READER_OPENS;
+    console.log('[reviewPrompt] literature check:', readerOpens, '/', MIN_LITERATURE_READER_OPENS, 'opens', ok ? '✓' : '✗');
     return ok;
   }
 
@@ -234,22 +234,18 @@ export async function recordDailyReflectionDay(date: Date = new Date()): Promise
 }
 
 /**
- * Add reading time for literature (in minutes)
+ * Record that user opened the Big Book reader view
  */
-export async function addReadingTime(source: 'literature', minutes: number): Promise<number> {
-  if (source !== 'literature' || !Number.isFinite(minutes) || minutes <= 0) {
-    return getNumber(STORAGE_KEYS.LITERATURE_MINUTES);
-  }
-
+export async function recordLiteratureReaderOpen(): Promise<number> {
   try {
-    const current = await getNumber(STORAGE_KEYS.LITERATURE_MINUTES);
-    const updated = current + minutes;
-    await setNumber(STORAGE_KEYS.LITERATURE_MINUTES, updated);
-    console.log('[reviewPrompt] Added reading time:', minutes, 'min, total:', updated);
+    const current = await getNumber(STORAGE_KEYS.LITERATURE_READER_OPENS);
+    const updated = current + 1;
+    await setNumber(STORAGE_KEYS.LITERATURE_READER_OPENS, updated);
+    console.log('[reviewPrompt] Recorded literature reader open, total:', updated);
     return updated;
   } catch (error) {
-    console.warn('[reviewPrompt] Failed to add reading time', error);
-    return getNumber(STORAGE_KEYS.LITERATURE_MINUTES);
+    console.warn('[reviewPrompt] Failed to record literature reader open', error);
+    return getNumber(STORAGE_KEYS.LITERATURE_READER_OPENS);
   }
 }
 

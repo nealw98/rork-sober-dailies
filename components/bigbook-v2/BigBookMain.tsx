@@ -14,6 +14,7 @@ import BigBookFreeBrowser from './BigBookFreeBrowser';
 import { BigBookChapterList } from './BigBookChapterList';
 import { BigBookReader } from './BigBookReader';
 import { BigBookHighlightsProvider } from '@/hooks/use-bigbook-highlights';
+import { recordLiteratureReaderOpen, maybeAskForReview } from '@/lib/reviewPrompt';
 import Colors from '@/constants/colors';
 
 export function BigBookMain() {
@@ -46,6 +47,11 @@ export function BigBookMain() {
     setScrollToParagraphId(scrollToId || null);
     setSearchTerm(search || null);
     setShowReaderModal(true);
+    
+    // Track reader opens for review prompt
+    recordLiteratureReaderOpen()
+      .then(() => maybeAskForReview('literature'))
+      .catch((error) => console.warn('[reviewPrompt] Literature trigger failed', error));
   };
   
   // Handle closing reader modal
