@@ -265,8 +265,8 @@ const styles = StyleSheet.create({
     borderColor: '#7A55A5',
   },
   spotCheckTile: {
-    backgroundColor: '#5EC4B0',
-    borderColor: '#4EB4A0',
+    backgroundColor: '#4AA898',
+    borderColor: '#3A9888',
   },
   routineEmoji: {
     fontSize: 24,
