@@ -122,7 +122,7 @@ export const SPONSORS: SponsorConfig[] = [
     loadingText: "Fresh Freddie is cookin' up a take...",
     bubbleColor: "#CCFBF1",
     bubbleShadowColor: "rgba(16,185,129,0.45)",
-    tileColor: "#5EC4B0", // Teal
+    tileColor: "#4AA898", // Darker teal
   },
   {
     id: "mama-jo",
