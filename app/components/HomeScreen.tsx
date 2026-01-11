@@ -249,8 +249,8 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   morningPrayerTile: {
-    backgroundColor: '#F5C341',
-    borderColor: '#E5B331',
+    backgroundColor: '#E5B530',
+    borderColor: '#D5A520',
   },
   gratitudeTile: {
     backgroundColor: '#E8884A',

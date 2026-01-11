@@ -69,7 +69,7 @@ export const SPONSORS: SponsorConfig[] = [
     placeholderText: "Tell Sam what's got you sideways...",
     loadingText: "Salty Sam is thinking...",
     bubbleColor: "#fff0d4",
-    tileColor: "#F5C341", // Yellow
+    tileColor: "#E5B530", // Darker yellow
   },
   {
     id: "grace",
