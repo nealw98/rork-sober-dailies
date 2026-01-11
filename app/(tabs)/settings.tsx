@@ -118,7 +118,7 @@ export default function SettingsScreen() {
     try {
       const appStoreUrl =
         Platform.OS === 'ios'
-          ? 'https://apps.apple.com/app/sober-dailies/id6738032000'
+          ? 'https://apps.apple.com/app/sober-dailies/id6749869819'
           : 'https://play.google.com/store/apps/details?id=com.nealwagner.soberdailies';
 
       await Share.share({

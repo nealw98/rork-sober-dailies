@@ -655,7 +655,7 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     flexGrow: 1,
-    paddingBottom: 40,
+    paddingBottom: 120,
   },
   dateText: {
     fontSize: 18,
