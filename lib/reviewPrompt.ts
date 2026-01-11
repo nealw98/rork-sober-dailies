@@ -27,7 +27,7 @@ const STORAGE_KEYS = {
 const MIN_USAGE_DAYS = 7;             // Must use app for 7 days
 const MIN_DAILY_REFLECTION_DAYS = 5;  // Must read 5 daily reflections
 const MIN_LITERATURE_READER_OPENS = 5; // Must open the Big Book reader 5 times
-const COOLDOWN_MS = 90 * 24 * 60 * 60 * 1000; // 90-day cooldown between prompts
+const COOLDOWN_MS = 30 * 24 * 60 * 60 * 1000; // 30-day cooldown between prompts
 
 const toDayKey = (date: Date) => date.toISOString().split('T')[0];
 
