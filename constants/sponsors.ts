@@ -82,7 +82,7 @@ export const SPONSORS: SponsorConfig[] = [
     placeholderText: "Tell Grace what's in your heart...",
     loadingText: "Gentle Grace is channeling wisdom...",
     bubbleColor: "#e8d4f0",
-    tileColor: "#9B7BC7", // Purple
+    tileColor: "#8A65B5", // Darker purple
   },
   {
     id: "cowboy-pete",
@@ -108,7 +108,7 @@ export const SPONSORS: SponsorConfig[] = [
     placeholderText: "Tell Sally your side of the story...",
     loadingText: "Sally is noddin' along...",
     bubbleColor: "#FFD6E6",
-    tileColor: "#E88BA0", // Pink
+    tileColor: "#D5708A", // Darker pink
   },
   {
     id: "fresh",
