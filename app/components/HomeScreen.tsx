@@ -52,7 +52,7 @@ const HomeScreen = () => {
           activeOpacity={0.8}
         >
           <LinearGradient
-            colors={['#8AA8E5', '#4A68B5']}
+            colors={['#7098D5', '#4A68B5']}
             style={[styles.heroTile, styles.dailyReflectionTile]}
             start={{ x: 0.5, y: 0 }}
             end={{ x: 0.5, y: 1 }}
@@ -109,7 +109,7 @@ const HomeScreen = () => {
             style={styles.routineTileHalf}
           >
             <LinearGradient
-              colors={['#F5D560', '#E5B530']}
+              colors={['#F8E580', '#E5B530']}
               style={[styles.routineTile]}
               start={{ x: 0.5, y: 0 }}
               end={{ x: 0.5, y: 1 }}
