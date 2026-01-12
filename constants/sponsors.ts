@@ -56,7 +56,7 @@ export const SPONSORS: SponsorConfig[] = [
     placeholderText: "Tell Eddie what's on your mind...",
     loadingText: "Steady Eddie is thinking...",
     bubbleColor: "#d0e8d0",
-    tileColor: "#5FB35F", // Green - calm and steady
+    tileColor: "#a8d8a8",
   },
   {
     id: "salty",
@@ -69,7 +69,7 @@ export const SPONSORS: SponsorConfig[] = [
     placeholderText: "Tell Sam what's got you sideways...",
     loadingText: "Salty Sam is thinking...",
     bubbleColor: "#fff0d4",
-    tileColor: "#E5B530", // Darker yellow
+    tileColor: "#ffeca7",
   },
   {
     id: "grace",
@@ -82,7 +82,7 @@ export const SPONSORS: SponsorConfig[] = [
     placeholderText: "Tell Grace what's in your heart...",
     loadingText: "Gentle Grace is channeling wisdom...",
     bubbleColor: "#e8d4f0",
-    tileColor: "#8A65B5", // Darker purple
+    tileColor: "#d8b8e8",
   },
   {
     id: "cowboy-pete",
@@ -95,7 +95,7 @@ export const SPONSORS: SponsorConfig[] = [
     placeholderText: "Tell Pete what's kickin' up dust...",
     loadingText: "Cowboy Pete is mullin' it over...",
     bubbleColor: "#E0CABE",
-    tileColor: "#A87852", // Darker brown
+    tileColor: "#c9b09e",
   },
   {
     id: "co-sign-sally",
@@ -108,7 +108,7 @@ export const SPONSORS: SponsorConfig[] = [
     placeholderText: "Tell Sally your side of the story...",
     loadingText: "Sally is noddin' along...",
     bubbleColor: "#FFD6E6",
-    tileColor: "#D5708A", // Darker pink
+    tileColor: "#f5b8cc",
   },
   {
     id: "fresh",
@@ -122,7 +122,7 @@ export const SPONSORS: SponsorConfig[] = [
     loadingText: "Fresh Freddie is cookin' up a take...",
     bubbleColor: "#CCFBF1",
     bubbleShadowColor: "rgba(16,185,129,0.45)",
-    tileColor: "#4AA898", // Darker teal
+    tileColor: "#a8ebe0",
   },
   {
     id: "mama-jo",
@@ -135,7 +135,7 @@ export const SPONSORS: SponsorConfig[] = [
     placeholderText: "Tell Mama Jo what's on your mind...",
     loadingText: "Mama Jo is fixin' to share some wisdom...",
     bubbleColor: "#ffe1d3",
-    tileColor: "#E8884A", // Orange
+    tileColor: "#ffba9b",
   },
 ];
 
