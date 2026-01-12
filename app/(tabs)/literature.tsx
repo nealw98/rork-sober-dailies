@@ -13,7 +13,7 @@ interface LiteratureOption {
   description: string;
   route: string;
   emoji: string;
-  backgroundColor: string;
+  gradientColors: [string, string];
 }
 
 const literatureOptions: LiteratureOption[] = [
@@ -23,7 +23,7 @@ const literatureOptions: LiteratureOption[] = [
     description: "",
     route: "/bigbook",
     emoji: "📖",
-    backgroundColor: "#5FB35F", // Steady Eddie green
+    gradientColors: ["#6AC08A", "#4AA06A"], // Light to dark green (matches home Literature tile)
   },
   {
     id: "twelve-and-twelve",
@@ -31,7 +31,7 @@ const literatureOptions: LiteratureOption[] = [
     description: "",
     route: "/twelve-and-twelve",
     emoji: "📚",
-    backgroundColor: "#4AA898", // Freddie teal
+    gradientColors: ["#5DABAB", "#3D8B8B"], // Light to dark teal (matches home AI Sponsor tile)
   },
   {
     id: "meeting-pocket",
@@ -39,7 +39,7 @@ const literatureOptions: LiteratureOption[] = [
     description: "",
     route: "/meeting-pocket",
     emoji: "📄",
-    backgroundColor: "#8A65B5", // Purple
+    gradientColors: ["#AA85D5", "#8A65B5"], // Light to dark purple
   }
 ];
 
@@ -81,14 +81,20 @@ export default function LiteratureScreen() {
         {literatureOptions.map((option) => (
           <TouchableOpacity
             key={option.id}
-            style={[styles.tile, { backgroundColor: option.backgroundColor }]}
             onPress={() => handleOptionPress(option.route)}
             activeOpacity={0.8}
             testID={`literature-option-${option.id}`}
           >
-            <Text style={styles.tileEmoji}>{option.emoji}</Text>
-            <Text style={styles.tileTitle}>{option.title}</Text>
-            {option.description ? <Text style={styles.tileDescription}>{option.description}</Text> : null}
+            <LinearGradient
+              colors={option.gradientColors}
+              style={styles.tile}
+              start={{ x: 0.5, y: 0 }}
+              end={{ x: 0.5, y: 1 }}
+            >
+              <Text style={styles.tileEmoji}>{option.emoji}</Text>
+              <Text style={styles.tileTitle}>{option.title}</Text>
+              {option.description ? <Text style={styles.tileDescription}>{option.description}</Text> : null}
+            </LinearGradient>
           </TouchableOpacity>
         ))}
       </View>

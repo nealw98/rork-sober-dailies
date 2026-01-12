@@ -52,7 +52,7 @@ const HomeScreen = () => {
           activeOpacity={0.8}
         >
           <LinearGradient
-            colors={['#7098D5', '#4A68B5']}
+            colors={['#6A88D5', '#4A68B5']}
             style={[styles.heroTile, styles.dailyReflectionTile]}
             start={{ x: 0.5, y: 0 }}
             end={{ x: 0.5, y: 1 }}
@@ -73,7 +73,7 @@ const HomeScreen = () => {
             style={styles.heroTileHalf}
           >
             <LinearGradient
-              colors={['#7DCBCB', '#3D8B8B']}
+              colors={['#5DABAB', '#3D8B8B']}
               style={[styles.heroTile]}
               start={{ x: 0.5, y: 0 }}
               end={{ x: 0.5, y: 1 }}
@@ -89,7 +89,7 @@ const HomeScreen = () => {
             style={styles.heroTileHalf}
           >
             <LinearGradient
-              colors={['#8AD0AA', '#4AA06A']}
+              colors={['#6AC08A', '#4AA06A']}
               style={[styles.heroTile]}
               start={{ x: 0.5, y: 0 }}
               end={{ x: 0.5, y: 1 }}
