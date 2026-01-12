@@ -109,7 +109,7 @@ const HomeScreen = () => {
             style={styles.routineTileHalf}
           >
             <LinearGradient
-              colors={['#F8E580', '#E5B530']}
+              colors={['#F5D560', '#E5B530']}
               style={[styles.routineTile]}
               start={{ x: 0.5, y: 0 }}
               end={{ x: 0.5, y: 1 }}
