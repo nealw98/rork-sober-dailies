@@ -6,14 +6,12 @@ import {
   ScrollView,
   TouchableOpacity,
   Modal,
-  Platform,
 } from "react-native";
 import {
   ChevronLeft,
   ChevronRight,
 } from "lucide-react-native";
 import { LinearGradient } from 'expo-linear-gradient';
-import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -137,30 +135,16 @@ function MeetingPocketBrowserContent() {
         visible={textReaderVisible}
         onRequestClose={() => setTextReaderVisible(false)}
         animationType="slide"
-        transparent={false}
+        presentationStyle="fullScreen"
       >
-        {Platform.OS === 'android' ? (
-          <GestureHandlerRootView style={{ flex: 1 }}>
-            {currentReading && (
-              <SimpleTextReader
-                content={currentReading.content}
-                title={currentReading.title}
-                source={currentReading.source}
-                indentParagraphs={currentReading.id !== 'generic-format'}
-                onClose={() => setTextReaderVisible(false)}
-              />
-            )}
-          </GestureHandlerRootView>
-        ) : (
-          currentReading && (
-            <SimpleTextReader
-              content={currentReading.content}
-              title={currentReading.title}
-              source={currentReading.source}
-              indentParagraphs={currentReading.id !== 'generic-format'}
-              onClose={() => setTextReaderVisible(false)}
-            />
-          )
+        {currentReading && (
+          <SimpleTextReader
+            content={currentReading.content}
+            title={currentReading.title}
+            source={currentReading.source}
+            indentParagraphs={currentReading.id !== 'generic-format'}
+            onClose={() => setTextReaderVisible(false)}
+          />
         )}
       </Modal>
     </View>

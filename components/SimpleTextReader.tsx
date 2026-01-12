@@ -1,15 +1,33 @@
-import React, { useMemo } from 'react';
+/**
+ * Simple Text Reader Component
+ * 
+ * Full-screen reader for plain text content with:
+ * - Gradient header with title
+ * - Scrollable text with markdown formatting
+ * - Source attribution
+ * 
+ * Rebuilt to match BigBookReader architecture for reliable cross-platform scrolling.
+ */
+
+import React, { useRef, useCallback, useState, useEffect } from 'react';
 import { 
   StyleSheet, 
   ScrollView,
   View, 
   Text, 
   TouchableOpacity,
+  LayoutAnimation,
+  Platform,
+  UIManager,
 } from 'react-native';
-import { ChevronLeft } from 'lucide-react-native';
+
+// Enable LayoutAnimation on Android
+if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
+  UIManager.setLayoutAnimationEnabledExperimental(true);
+}
+import { ChevronLeft, Type } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import Colors from '@/constants/colors';
 import { adjustFontWeight } from '@/constants/fonts';
 import { useTextSettings } from '@/hooks/use-text-settings';
 
@@ -23,7 +41,33 @@ interface SimpleTextReaderProps {
 
 const SimpleTextReader = ({ content, title, onClose, indentParagraphs = false, source }: SimpleTextReaderProps) => {
   const insets = useSafeAreaInsets();
-  const { fontSize, lineHeight, resetDefaults } = useTextSettings();
+  const { fontSize, lineHeight, setFontSize, minFontSize, maxFontSize } = useTextSettings();
+  const scrollViewRef = useRef<ScrollView>(null);
+  
+  // Force layout recalculation on Android when component mounts
+  // This fixes an issue where initial layout is calculated incorrectly at large font sizes
+  const [layoutKey, setLayoutKey] = useState(0);
+  
+  useEffect(() => {
+    if (Platform.OS === 'android') {
+      // Trigger LayoutAnimation to force Android to recalculate layout
+      LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+      // Also increment key to force re-render of ScrollView
+      const timer = requestAnimationFrame(() => {
+        setLayoutKey(k => k + 1);
+      });
+      return () => cancelAnimationFrame(timer);
+    }
+  }, [content]); // Re-run when content changes (new reading selected)
+  
+  // Font size controls
+  const increaseFontSize = useCallback(() => {
+    setFontSize(Math.min(fontSize + 2, maxFontSize));
+  }, [fontSize, maxFontSize, setFontSize]);
+  
+  const decreaseFontSize = useCallback(() => {
+    setFontSize(Math.max(fontSize - 2, minFontSize));
+  }, [fontSize, minFontSize, setFontSize]);
 
   // Helper function to parse inline markdown (italic, bold)
   const parseMarkdown = (text: string) => {
@@ -138,9 +182,9 @@ const SimpleTextReader = ({ content, title, onClose, indentParagraphs = false, s
       {/* Gradient Header */}
       <LinearGradient
         colors={['#4A6FA5', '#3D8B8B', '#45A08A']}
-        style={[styles.headerBlock, { paddingTop: insets.top + 8 }]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
+        style={[styles.headerBlock, { paddingTop: insets.top + 8 }]}
       >
         <View style={styles.headerTopRow}>
           <TouchableOpacity 
@@ -154,92 +198,116 @@ const SimpleTextReader = ({ content, title, onClose, indentParagraphs = false, s
         <Text style={styles.headerTitle} numberOfLines={2}>{title}</Text>
       </LinearGradient>
       
-      <View style={styles.contentWrapper}>
+      {/* Action Row - matches BigBookReader structure */}
+      <View style={styles.actionRow}>
+        <View style={styles.actionButtons}>
+          <TouchableOpacity 
+            onPress={decreaseFontSize}
+            activeOpacity={0.8}
+            style={styles.actionButton}
+          >
+            <Text style={styles.fontSizeButtonText}>A-</Text>
+          </TouchableOpacity>
+          <Type size={18} color="#3D8B8B" />
+          <TouchableOpacity 
+            onPress={increaseFontSize}
+            activeOpacity={0.8}
+            style={styles.actionButton}
+          >
+            <Text style={[styles.fontSizeButtonText, styles.fontSizeButtonTextLarge]}>A+</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+      
+      {/* Content */}
+      <View style={styles.contentWrapper} collapsable={false}>
         <ScrollView 
-          key={`reader-scroll-${title}-${fontSize}-${lineHeight}`}
+          key={`text-scroll-${layoutKey}`}
+          ref={scrollViewRef}
           style={styles.content} 
-          showsVerticalScrollIndicator={false}
+          showsVerticalScrollIndicator={true}
           contentContainerStyle={styles.contentContainer}
+          nestedScrollEnabled={true}
         >
-          {(() => {
-            let lastWasBlank = true;
-            const lines = content.split('\n');
-            return lines.map((line, idx) => {
-            const trimmed = line.trim();
-            // Detect numbered list like "1. Text..."
-            const numbered = trimmed.match(/^(\d+)\.\s+(.*)$/);
-            // Detect lettered list like "(a) Text..."
-            const lettered = trimmed.match(/^\(([a-zA-Z])\)\s+(.*)$/);
-            // Detect bullet list like "* Text..." or "- Text..."
-            const bulleted = trimmed.match(/^[*-]\s+(.*)$/);
-            const isKnownHeading = (
-              trimmed === 'Opening' ||
-              trimmed === 'Preamble' ||
-              trimmed === 'Readings' ||
-              trimmed === 'Introductions & Newcomers' ||
-              trimmed === 'Announcements' ||
-              trimmed === 'Meeting Format' ||
-              trimmed === 'Discussion / Speaker' ||
-              trimmed === 'Seventh Tradition' ||
-              trimmed === 'Closing' ||
-              trimmed === 'Anonymity Statement'
-            );
-            if (trimmed.length === 0) {
-              lastWasBlank = true;
-              return <Text key={idx} style={styles.textContent}>{'\u00A0'}</Text>;
-            }
-            // Render numbered list item with hanging indent (no first-line indent)
-            if (numbered && !isKnownHeading) {
-              const label = `${numbered[1]}.`;
-              const text = numbered[2];
-              const labelWidth = Math.max(22, 16 + numbered[1].length * 8); // widen slightly for 2+ digits
+            {(() => {
+              let lastWasBlank = true;
+              const lines = content.split('\n');
+              return lines.map((line, idx) => {
+              const trimmed = line.trim();
+              // Detect numbered list like "1. Text..."
+              const numbered = trimmed.match(/^(\d+)\.\s+(.*)$/);
+              // Detect lettered list like "(a) Text..."
+              const lettered = trimmed.match(/^\(([a-zA-Z])\)\s+(.*)$/);
+              // Detect bullet list like "* Text..." or "- Text..."
+              const bulleted = trimmed.match(/^[*-]\s+(.*)$/);
+              const isKnownHeading = (
+                trimmed === 'Opening' ||
+                trimmed === 'Preamble' ||
+                trimmed === 'Readings' ||
+                trimmed === 'Introductions & Newcomers' ||
+                trimmed === 'Announcements' ||
+                trimmed === 'Meeting Format' ||
+                trimmed === 'Discussion / Speaker' ||
+                trimmed === 'Seventh Tradition' ||
+                trimmed === 'Closing' ||
+                trimmed === 'Anonymity Statement'
+              );
+              if (trimmed.length === 0) {
+                lastWasBlank = true;
+                return <Text key={idx} style={styles.textContent}>{'\u00A0'}</Text>;
+              }
+              // Render numbered list item with hanging indent (no first-line indent)
+              if (numbered && !isKnownHeading) {
+                const label = `${numbered[1]}.`;
+                const text = numbered[2];
+                const labelWidth = Math.max(22, 16 + numbered[1].length * 8); // widen slightly for 2+ digits
+                lastWasBlank = false;
+                return (
+                  <View key={idx} style={styles.numberRow}>
+                    <Text style={[styles.numberLabel, { width: labelWidth }]}>{label}</Text>
+                    {renderMarkdownText(text, styles.numberText)}
+                  </View>
+                );
+              }
+              // Render lettered list item with hanging indent (no first-line indent)
+              if (lettered && !isKnownHeading) {
+                const label = `(${lettered[1].toLowerCase()})`;
+                const text = lettered[2];
+                const labelWidth = 32; // accommodate "(a)"
+                lastWasBlank = false;
+                return (
+                  <View key={idx} style={styles.numberRow}>
+                    <Text style={[styles.numberLabel, { width: labelWidth }]}>{label}</Text>
+                    {renderMarkdownText(text, styles.numberText)}
+                  </View>
+                );
+              }
+              // Render bulleted list item with hanging indent (no first-line indent)
+              if (bulleted && !isKnownHeading) {
+                const label = '\u2022'; // bullet •
+                const text = bulleted[1];
+                const labelWidth = 22;
+                lastWasBlank = false;
+                return (
+                  <View key={idx} style={styles.numberRow}>
+                    <Text style={[styles.numberLabel, { width: labelWidth }]}>{label}</Text>
+                    {renderMarkdownText(text, styles.numberText)}
+                  </View>
+                );
+              }
+              const prefix = indentParagraphs && lastWasBlank && !isKnownHeading ? '\u2003' : '';
               lastWasBlank = false;
+              const textToRender = prefix + trimmed;
               return (
-                <View key={idx} style={styles.numberRow}>
-                  <Text style={[styles.numberLabel, { width: labelWidth }]}>{label}</Text>
-                  {renderMarkdownText(text, styles.numberText)}
+                <View key={idx}>
+                  {renderMarkdownText(textToRender, isKnownHeading ? [styles.headingText, { fontSize }] : [styles.textContent, { fontSize, lineHeight }])}
                 </View>
               );
-            }
-            // Render lettered list item with hanging indent (no first-line indent)
-            if (lettered && !isKnownHeading) {
-              const label = `(${lettered[1].toLowerCase()})`;
-              const text = lettered[2];
-              const labelWidth = 32; // accommodate "(a)"
-              lastWasBlank = false;
-              return (
-                <View key={idx} style={styles.numberRow}>
-                  <Text style={[styles.numberLabel, { width: labelWidth }]}>{label}</Text>
-                  {renderMarkdownText(text, styles.numberText)}
-                </View>
-              );
-            }
-            // Render bulleted list item with hanging indent (no first-line indent)
-            if (bulleted && !isKnownHeading) {
-              const label = '\u2022'; // bullet •
-              const text = bulleted[1];
-              const labelWidth = 22;
-              lastWasBlank = false;
-              return (
-                <View key={idx} style={styles.numberRow}>
-                  <Text style={[styles.numberLabel, { width: labelWidth }]}>{label}</Text>
-                  {renderMarkdownText(text, styles.numberText)}
-                </View>
-              );
-            }
-            const prefix = indentParagraphs && lastWasBlank && !isKnownHeading ? '\u2003' : '';
-            lastWasBlank = false;
-            const textToRender = prefix + trimmed;
-            return (
-              <View key={idx}>
-                {renderMarkdownText(textToRender, isKnownHeading ? [styles.headingText, { fontSize }] : [styles.textContent, { fontSize, lineHeight }])}
-              </View>
-            );
-          });
-          })()}
-        {source ? (
-          <Text style={[styles.sourceText, { fontSize: fontSize * 0.875 }]}>{source}</Text>
-        ) : null}
+            });
+            })()}
+          {source ? (
+            <Text style={[styles.sourceText, { fontSize: fontSize * 0.875 }]}>{source}</Text>
+          ) : null}
         </ScrollView>
       </View>
     </View>
@@ -249,7 +317,7 @@ const SimpleTextReader = ({ content, title, onClose, indentParagraphs = false, s
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f6f8',
+    backgroundColor: '#fff',
   },
   headerBlock: {
     paddingHorizontal: 20,
@@ -270,15 +338,45 @@ const styles = StyleSheet.create({
     fontWeight: adjustFontWeight('400'),
     color: '#fff',
   },
+  actionRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+    paddingVertical: 6,
+    paddingHorizontal: 16,
+    backgroundColor: '#fff',
+  },
+  actionButtons: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  actionButton: {
+    padding: 8,
+  },
+  fontSizeButtonText: {
+    fontSize: 16,
+    color: '#3D8B8B',
+    fontWeight: '600',
+  },
+  fontSizeButtonTextLarge: {
+    fontSize: 20,
+  },
   contentWrapper: {
     flex: 1,
+    flexGrow: 1,
+    flexShrink: 1,
+    flexBasis: 0, // Start from 0 and grow - helps Android respect constraints
+    minHeight: 0, // Critical for Android - allows flex to shrink below content size
+    overflow: 'hidden', // Ensures content doesn't push siblings off-screen
     backgroundColor: '#fff',
   },
   content: {
-    flex: 1,
+    // Removed flex: 1 - parent contentWrapper handles flex, ScrollView fills naturally
   },
   contentContainer: {
     padding: 20,
+    paddingBottom: 40,
   },
   textContent: {
     fontSize: 18,

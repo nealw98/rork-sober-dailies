@@ -5,9 +5,11 @@
  * - Prayer title in header
  * - Scrollable prayer text
  * - Prev/Next prayer navigation in footer
+ * 
+ * Rebuilt to match BigBookReader architecture for reliable cross-platform scrolling.
  */
 
-import React, { useCallback, useEffect } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -16,14 +18,21 @@ import {
   TouchableOpacity,
   Modal,
   BackHandler,
+  LayoutAnimation,
   Platform,
+  UIManager,
 } from 'react-native';
-import { ChevronLeft, ChevronRight } from 'lucide-react-native';
+
+// Enable LayoutAnimation on Android
+if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
+  UIManager.setLayoutAnimationEnabledExperimental(true);
+}
+import { ChevronLeft, ChevronRight, Type } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { adjustFontWeight } from '@/constants/fonts';
 import { useTextSettings } from '@/hooks/use-text-settings';
+import Colors from '@/constants/colors';
 import { aaPrayers } from '@/constants/prayers';
 
 interface PrayerReaderProps {
@@ -35,7 +44,33 @@ interface PrayerReaderProps {
 
 export function PrayerReader({ visible, prayerIndex, onClose, onPrayerChange }: PrayerReaderProps) {
   const insets = useSafeAreaInsets();
-  const { fontSize, lineHeight } = useTextSettings();
+  const { fontSize, lineHeight, setFontSize, minFontSize, maxFontSize } = useTextSettings();
+  const scrollViewRef = useRef<ScrollView>(null);
+  
+  // Force layout recalculation on Android when modal opens
+  // This fixes an issue where initial layout is calculated incorrectly at large font sizes
+  const [layoutKey, setLayoutKey] = useState(0);
+  
+  useEffect(() => {
+    if (visible && Platform.OS === 'android') {
+      // Trigger LayoutAnimation to force Android to recalculate layout
+      LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+      // Also increment key to force re-render of ScrollView
+      const timer = requestAnimationFrame(() => {
+        setLayoutKey(k => k + 1);
+      });
+      return () => cancelAnimationFrame(timer);
+    }
+  }, [visible, prayerIndex]);
+  
+  // Font size controls
+  const increaseFontSize = useCallback(() => {
+    setFontSize(Math.min(fontSize + 2, maxFontSize));
+  }, [fontSize, maxFontSize, setFontSize]);
+  
+  const decreaseFontSize = useCallback(() => {
+    setFontSize(Math.max(fontSize - 2, minFontSize));
+  }, [fontSize, minFontSize, setFontSize]);
   
   const currentPrayer = aaPrayers[prayerIndex];
   const hasPrevious = prayerIndex > 0;
@@ -56,6 +91,11 @@ export function PrayerReader({ visible, prayerIndex, onClose, onPrayerChange }: 
     return () => backHandler.remove();
   }, [visible, onClose]);
 
+  // Scroll to top when prayer changes
+  useEffect(() => {
+    scrollViewRef.current?.scrollTo({ y: 0, animated: false });
+  }, [prayerIndex]);
+
   const goToPrevious = useCallback(() => {
     if (hasPrevious) {
       onPrayerChange(prayerIndex - 1);
@@ -68,7 +108,7 @@ export function PrayerReader({ visible, prayerIndex, onClose, onPrayerChange }: 
     }
   }, [hasNext, prayerIndex, onPrayerChange]);
 
-  // Render prayer content with special formatting for Morning/Evening prayers (iOS)
+  // Render prayer content with special formatting for Morning/Evening prayers
   const renderPrayerContent = () => {
     if (!currentPrayer) return null;
 
@@ -107,24 +147,20 @@ export function PrayerReader({ visible, prayerIndex, onClose, onPrayerChange }: 
 
   if (!currentPrayer) return null;
 
-  // Wrapper for Android to ensure gestures work inside Modal
-  const ModalWrapper = Platform.OS === 'android' ? GestureHandlerRootView : View;
-
   return (
     <Modal
       visible={visible}
       animationType="slide"
       presentationStyle="fullScreen"
-      transparent={false}
       onRequestClose={onClose}
     >
-      <ModalWrapper style={styles.container}>
+      <View style={styles.container}>
         {/* Gradient Header */}
         <LinearGradient
           colors={['#4A6FA5', '#3D8B8B', '#45A08A']}
-          style={[styles.headerBlock, { paddingTop: insets.top + 8 }]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
+          style={[styles.headerBlock, { paddingTop: insets.top + 8 }]}
         >
           <View style={styles.headerTopRow}>
             <TouchableOpacity 
@@ -134,30 +170,50 @@ export function PrayerReader({ visible, prayerIndex, onClose, onPrayerChange }: 
             >
               <ChevronLeft size={24} color="#fff" />
             </TouchableOpacity>
-            <View style={{ width: 60 }} />
           </View>
           <Text style={styles.headerTitle} numberOfLines={2}>
             {currentPrayer.title}
           </Text>
         </LinearGradient>
 
+        {/* Action Row - matches BigBookReader structure */}
+        <View style={styles.actionRow}>
+          <View style={styles.actionButtons}>
+            <TouchableOpacity 
+              onPress={decreaseFontSize}
+              activeOpacity={0.8}
+              style={styles.actionButton}
+            >
+              <Text style={styles.fontSizeButtonText}>A-</Text>
+            </TouchableOpacity>
+            <Type size={18} color="#3D8B8B" />
+            <TouchableOpacity 
+              onPress={increaseFontSize}
+              activeOpacity={0.8}
+              style={styles.actionButton}
+            >
+              <Text style={[styles.fontSizeButtonText, styles.fontSizeButtonTextLarge]}>A+</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+
         {/* Content */}
-        <View style={styles.contentWrapper}>
+        <View style={styles.contentWrapper} collapsable={false}>
           <ScrollView
-            key={`prayer-scroll-${prayerIndex}-${fontSize}-${lineHeight}`}
+            key={`prayer-scroll-${layoutKey}`}
+            ref={scrollViewRef}
             style={styles.content}
             contentContainerStyle={styles.contentContainer}
             showsVerticalScrollIndicator={true}
+            nestedScrollEnabled={true}
           >
-            <View>
-              {renderPrayerContent()}
-              
-              {currentPrayer.source && (
-                <Text style={[styles.prayerSource, { fontSize: fontSize * 0.75 }]}>
-                  — {currentPrayer.source}
-                </Text>
-              )}
-            </View>
+            {renderPrayerContent()}
+            
+            {currentPrayer.source && (
+              <Text style={[styles.prayerSource, { fontSize: fontSize * 0.75 }]}>
+                — {currentPrayer.source}
+              </Text>
+            )}
           </ScrollView>
         </View>
 
@@ -193,7 +249,7 @@ export function PrayerReader({ visible, prayerIndex, onClose, onPrayerChange }: 
             <ChevronRight size={20} color={hasNext ? "#3D8B8B" : "#ccc"} />
           </TouchableOpacity>
         </View>
-      </ModalWrapper>
+      </View>
     </Modal>
   );
 }
@@ -201,39 +257,62 @@ export function PrayerReader({ visible, prayerIndex, onClose, onPrayerChange }: 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f6f8',
-    flexDirection: 'column',
+    backgroundColor: '#fff',
   },
   headerBlock: {
+    paddingHorizontal: 20,
     paddingBottom: 16,
-    paddingHorizontal: 16,
-    flexShrink: 0,
   },
   headerTopRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 16,
   },
   backButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 6,
-    paddingHorizontal: 10,
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    borderRadius: 16,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    borderRadius: 20,
+    padding: 8,
   },
   headerTitle: {
     fontSize: 32,
     fontWeight: adjustFontWeight('400'),
     color: '#fff',
   },
+  actionRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+    paddingVertical: 6,
+    paddingHorizontal: 16,
+    backgroundColor: '#fff',
+  },
+  actionButtons: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  actionButton: {
+    padding: 8,
+  },
+  fontSizeButtonText: {
+    fontSize: 16,
+    color: '#3D8B8B',
+    fontWeight: '600',
+  },
+  fontSizeButtonTextLarge: {
+    fontSize: 20,
+  },
   contentWrapper: {
     flex: 1,
+    flexGrow: 1,
+    flexShrink: 1,
+    flexBasis: 0, // Start from 0 and grow - helps Android respect constraints
+    minHeight: 0, // Critical for Android - allows flex to shrink below content size
+    overflow: 'hidden', // Ensures content doesn't push siblings off-screen
     backgroundColor: '#fff',
   },
   content: {
-    flex: 1,
+    // Removed flex: 1 - parent contentWrapper handles flex, ScrollView fills naturally
   },
   contentContainer: {
     padding: 20,
@@ -261,12 +340,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 16,
+    paddingHorizontal: 24,
     paddingTop: 12,
     backgroundColor: '#fff',
     borderTopWidth: 1,
     borderTopColor: '#e0e0e0',
-    flexShrink: 0,
   },
   footerNavButton: {
     flexDirection: 'row',
@@ -287,4 +365,3 @@ const styles = StyleSheet.create({
     color: '#ccc',
   },
 });
-
