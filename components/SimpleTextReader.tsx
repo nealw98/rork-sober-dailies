@@ -52,11 +52,11 @@ const SimpleTextReader = ({ content, title, onClose, indentParagraphs = false, s
     if (Platform.OS === 'android') {
       // Trigger LayoutAnimation to force Android to recalculate layout
       LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-      // Also increment key to force re-render of ScrollView
-      const timer = requestAnimationFrame(() => {
+      // Use setTimeout with small delay to ensure layout is complete before forcing re-render
+      const timer = setTimeout(() => {
         setLayoutKey(k => k + 1);
-      });
-      return () => cancelAnimationFrame(timer);
+      }, 50);
+      return () => clearTimeout(timer);
     }
   }, [content]); // Re-run when content changes (new reading selected)
   
@@ -260,12 +260,13 @@ const SimpleTextReader = ({ content, title, onClose, indentParagraphs = false, s
               if (numbered && !isKnownHeading) {
                 const label = `${numbered[1]}.`;
                 const text = numbered[2];
-                const labelWidth = Math.max(22, 16 + numbered[1].length * 8); // widen slightly for 2+ digits
+                // Scale label width with font size - base width + extra for 2+ digit numbers
+                const labelWidth = fontSize * 1.8 + (numbered[1].length > 1 ? fontSize * 0.6 : 0);
                 lastWasBlank = false;
                 return (
                   <View key={idx} style={styles.numberRow}>
-                    <Text style={[styles.numberLabel, { width: labelWidth }]}>{label}</Text>
-                    {renderMarkdownText(text, styles.numberText)}
+                    <Text style={[styles.numberLabel, { width: labelWidth, fontSize, lineHeight }]} numberOfLines={1}>{label}</Text>
+                    {renderMarkdownText(text, [styles.numberText, { fontSize, lineHeight }])}
                   </View>
                 );
               }
@@ -273,12 +274,13 @@ const SimpleTextReader = ({ content, title, onClose, indentParagraphs = false, s
               if (lettered && !isKnownHeading) {
                 const label = `(${lettered[1].toLowerCase()})`;
                 const text = lettered[2];
-                const labelWidth = 32; // accommodate "(a)"
+                // Scale label width with font size - "(a)" needs about 2.5x font size
+                const labelWidth = fontSize * 2.5;
                 lastWasBlank = false;
                 return (
                   <View key={idx} style={styles.numberRow}>
-                    <Text style={[styles.numberLabel, { width: labelWidth }]}>{label}</Text>
-                    {renderMarkdownText(text, styles.numberText)}
+                    <Text style={[styles.numberLabel, { width: labelWidth, fontSize, lineHeight }]} numberOfLines={1}>{label}</Text>
+                    {renderMarkdownText(text, [styles.numberText, { fontSize, lineHeight }])}
                   </View>
                 );
               }
@@ -286,12 +288,13 @@ const SimpleTextReader = ({ content, title, onClose, indentParagraphs = false, s
               if (bulleted && !isKnownHeading) {
                 const label = '\u2022'; // bullet •
                 const text = bulleted[1];
-                const labelWidth = 22;
+                // Scale label width with font size
+                const labelWidth = fontSize * 1.4;
                 lastWasBlank = false;
                 return (
                   <View key={idx} style={styles.numberRow}>
-                    <Text style={[styles.numberLabel, { width: labelWidth }]}>{label}</Text>
-                    {renderMarkdownText(text, styles.numberText)}
+                    <Text style={[styles.numberLabel, { width: labelWidth, fontSize, lineHeight }]} numberOfLines={1}>{label}</Text>
+                    {renderMarkdownText(text, [styles.numberText, { fontSize, lineHeight }])}
                   </View>
                 );
               }

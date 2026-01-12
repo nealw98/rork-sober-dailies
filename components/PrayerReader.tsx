@@ -55,11 +55,11 @@ export function PrayerReader({ visible, prayerIndex, onClose, onPrayerChange }: 
     if (visible && Platform.OS === 'android') {
       // Trigger LayoutAnimation to force Android to recalculate layout
       LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-      // Also increment key to force re-render of ScrollView
-      const timer = requestAnimationFrame(() => {
+      // Use setTimeout with small delay to ensure layout is complete before forcing re-render
+      const timer = setTimeout(() => {
         setLayoutKey(k => k + 1);
-      });
-      return () => cancelAnimationFrame(timer);
+      }, 50);
+      return () => clearTimeout(timer);
     }
   }, [visible, prayerIndex]);
   
