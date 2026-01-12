@@ -135,9 +135,9 @@ export default function ChatScreen() {
               ))}
             </View>
 
-            {/* Row 3: Pete and Sally */}
+            {/* Row 3: Pete and Mama Jo */}
             <View style={styles.row}>
-              {visibleSponsors.filter(s => s.id === "cowboy-pete" || s.id === "co-sign-sally").map((sponsor) => (
+              {visibleSponsors.filter(s => s.id === "cowboy-pete" || s.id === "mama-jo").map((sponsor) => (
                 <TouchableOpacity
                   key={sponsor.id}
                   style={[
@@ -164,9 +164,9 @@ export default function ChatScreen() {
               ))}
             </View>
 
-            {/* Row 4: Mama Jo and Freddie */}
+            {/* Row 4: Freddie and Sally */}
             <View style={styles.row}>
-              {visibleSponsors.filter(s => s.id === "mama-jo" || s.id === "fresh").map((sponsor) => (
+              {["fresh", "co-sign-sally"].map(id => visibleSponsors.find(s => s.id === id)).filter(Boolean).map((sponsor) => (
                 <TouchableOpacity
                   key={sponsor.id}
                   style={[
