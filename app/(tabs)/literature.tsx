@@ -23,7 +23,7 @@ const literatureOptions: LiteratureOption[] = [
     description: "",
     route: "/bigbook",
     emoji: "📖",
-    backgroundColor: "#5FB35F", // Steady Eddie green
+    backgroundColor: "#F5E6A3", // Pastel yellow
   },
   {
     id: "twelve-and-twelve",
@@ -31,7 +31,7 @@ const literatureOptions: LiteratureOption[] = [
     description: "",
     route: "/twelve-and-twelve",
     emoji: "📚",
-    backgroundColor: "#4AA898", // Freddie teal
+    backgroundColor: "#A8DADC", // Pastel teal
   },
   {
     id: "meeting-pocket",
@@ -39,7 +39,7 @@ const literatureOptions: LiteratureOption[] = [
     description: "",
     route: "/meeting-pocket",
     emoji: "📄",
-    backgroundColor: "#8A65B5", // Purple
+    backgroundColor: "#D4C4E8", // Pastel purple
   }
 ];
 
@@ -142,12 +142,12 @@ const styles = StyleSheet.create({
   tileTitle: {
     fontSize: 22,
     fontWeight: adjustFontWeight('600'),
-    color: '#fff',
+    color: '#000',
     marginBottom: 4,
   },
   tileDescription: {
     fontSize: 14,
-    color: 'rgba(255, 255, 255, 0.9)',
+    color: 'rgba(0, 0, 0, 0.7)',
     lineHeight: 20,
   },
 });
