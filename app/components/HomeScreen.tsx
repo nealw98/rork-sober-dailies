@@ -48,35 +48,55 @@ const HomeScreen = () => {
         {/* Hero Tiles */}
         {/* Daily Reflection - Full Width */}
         <TouchableOpacity
-          style={[styles.heroTile, styles.dailyReflectionTile]}
           onPress={() => router.push('/daily-reflections')}
           activeOpacity={0.8}
         >
-          <Text style={styles.heroEmoji}>📅</Text>
-          <Text style={styles.heroTitle}>Daily Reflection</Text>
-          <Text style={styles.heroSubtitle}>
-            {dateDisplay} — {todaysReflection?.title || 'Loading...'}
-          </Text>
+          <LinearGradient
+            colors={['#8AA8E5', '#4A68B5']}
+            style={[styles.heroTile, styles.dailyReflectionTile]}
+            start={{ x: 0.5, y: 0 }}
+            end={{ x: 0.5, y: 1 }}
+          >
+            <Text style={styles.heroEmoji}>📅</Text>
+            <Text style={styles.heroTitle}>Daily Reflection</Text>
+            <Text style={styles.heroSubtitle}>
+              {dateDisplay} — {todaysReflection?.title || 'Loading...'}
+            </Text>
+          </LinearGradient>
         </TouchableOpacity>
 
         {/* AI Sponsor & Literature - Side by Side */}
         <View style={styles.heroRow}>
           <TouchableOpacity
-            style={[styles.heroTile, styles.heroTileHalf, styles.aiSponsorTile]}
             onPress={() => router.push('/(tabs)/chat')}
             activeOpacity={0.8}
+            style={styles.heroTileHalf}
           >
-            <Text style={styles.heroEmoji}>💬</Text>
-            <Text style={styles.heroTitle}>AI Sponsor</Text>
+            <LinearGradient
+              colors={['#7DCBCB', '#3D8B8B']}
+              style={[styles.heroTile]}
+              start={{ x: 0.5, y: 0 }}
+              end={{ x: 0.5, y: 1 }}
+            >
+              <Text style={styles.heroEmoji}>💬</Text>
+              <Text style={styles.heroTitle}>AI Sponsor</Text>
+            </LinearGradient>
           </TouchableOpacity>
 
           <TouchableOpacity
-            style={[styles.heroTile, styles.heroTileHalf, styles.literatureTile]}
             onPress={() => router.push('/(tabs)/literature')}
             activeOpacity={0.8}
+            style={styles.heroTileHalf}
           >
-            <Text style={styles.heroEmoji}>📖</Text>
-            <Text style={styles.heroTitle}>Literature</Text>
+            <LinearGradient
+              colors={['#8AD0AA', '#4AA06A']}
+              style={[styles.heroTile]}
+              start={{ x: 0.5, y: 0 }}
+              end={{ x: 0.5, y: 1 }}
+            >
+              <Text style={styles.heroEmoji}>📖</Text>
+              <Text style={styles.heroTitle}>Literature</Text>
+            </LinearGradient>
           </TouchableOpacity>
         </View>
 
@@ -84,21 +104,35 @@ const HomeScreen = () => {
         <Text style={styles.sectionLabel}>Morning</Text>
         <View style={styles.routineRow}>
           <TouchableOpacity
-            style={[styles.routineTile, styles.routineTileHalf, styles.morningPrayerTile]}
             onPress={() => router.push('/(tabs)/prayers?prayer=morning')}
             activeOpacity={0.8}
+            style={styles.routineTileHalf}
           >
-            <Text style={styles.routineEmoji}>🙏</Text>
-            <Text style={styles.routineTitleLight}>Morning Prayer</Text>
+            <LinearGradient
+              colors={['#F5D560', '#E5B530']}
+              style={[styles.routineTile]}
+              start={{ x: 0.5, y: 0 }}
+              end={{ x: 0.5, y: 1 }}
+            >
+              <Text style={styles.routineEmoji}>🙏</Text>
+              <Text style={styles.routineTitleLight}>Morning Prayer</Text>
+            </LinearGradient>
           </TouchableOpacity>
 
           <TouchableOpacity
-            style={[styles.routineTile, styles.routineTileHalf, styles.gratitudeTile]}
             onPress={() => router.push('/(tabs)/gratitude')}
             activeOpacity={0.8}
+            style={styles.routineTileHalf}
           >
-            <Text style={styles.routineEmoji}>😊</Text>
-            <Text style={styles.routineTitleLight}>Gratitude List</Text>
+            <LinearGradient
+              colors={['#F8A870', '#E8884A']}
+              style={[styles.routineTile]}
+              start={{ x: 0.5, y: 0 }}
+              end={{ x: 0.5, y: 1 }}
+            >
+              <Text style={styles.routineEmoji}>😊</Text>
+              <Text style={styles.routineTitleLight}>Gratitude List</Text>
+            </LinearGradient>
           </TouchableOpacity>
         </View>
 
@@ -106,21 +140,35 @@ const HomeScreen = () => {
         <Text style={styles.sectionLabel}>Evening</Text>
         <View style={styles.routineRow}>
           <TouchableOpacity
-            style={[styles.routineTile, styles.routineTileHalf, styles.eveningPrayerTile]}
             onPress={() => router.push('/(tabs)/prayers?prayer=evening')}
             activeOpacity={0.8}
+            style={styles.routineTileHalf}
           >
-            <Text style={styles.routineEmoji}>🙏</Text>
-            <Text style={styles.routineTitleLight}>Evening Prayer</Text>
+            <LinearGradient
+              colors={['#E590AA', '#D5708A']}
+              style={[styles.routineTile]}
+              start={{ x: 0.5, y: 0 }}
+              end={{ x: 0.5, y: 1 }}
+            >
+              <Text style={styles.routineEmoji}>🙏</Text>
+              <Text style={styles.routineTitleLight}>Evening Prayer</Text>
+            </LinearGradient>
           </TouchableOpacity>
 
           <TouchableOpacity
-            style={[styles.routineTile, styles.routineTileHalf, styles.nightlyReviewTile]}
             onPress={() => router.push('/(tabs)/evening-review')}
             activeOpacity={0.8}
+            style={styles.routineTileHalf}
           >
-            <Text style={styles.routineEmoji}>🌙</Text>
-            <Text style={styles.routineTitleLight}>Nightly Review</Text>
+            <LinearGradient
+              colors={['#AA85D5', '#8A65B5']}
+              style={[styles.routineTile]}
+              start={{ x: 0.5, y: 0 }}
+              end={{ x: 0.5, y: 1 }}
+            >
+              <Text style={styles.routineEmoji}>🌙</Text>
+              <Text style={styles.routineTitleLight}>Nightly Review</Text>
+            </LinearGradient>
           </TouchableOpacity>
         </View>
 
@@ -128,12 +176,19 @@ const HomeScreen = () => {
         <Text style={styles.sectionLabel}>Anytime</Text>
         <View style={styles.routineRow}>
           <TouchableOpacity
-            style={[styles.routineTile, styles.routineTileFull, styles.spotCheckTile]}
             onPress={() => router.push('/(tabs)/inventory')}
             activeOpacity={0.8}
+            style={styles.routineTileFull}
           >
-            <Text style={styles.routineEmoji}>📝</Text>
-            <Text style={styles.routineTitleLight}>Spot Check Inventory</Text>
+            <LinearGradient
+              colors={['#6AC8B8', '#4AA898']}
+              style={[styles.routineTile]}
+              start={{ x: 0.5, y: 0 }}
+              end={{ x: 0.5, y: 1 }}
+            >
+              <Text style={styles.routineEmoji}>📝</Text>
+              <Text style={styles.routineTitleLight}>Spot Check Inventory</Text>
+            </LinearGradient>
           </TouchableOpacity>
         </View>
 
@@ -171,6 +226,11 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     padding: 20,
     marginBottom: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 6,
   },
   heroTileHalf: {
     flex: 1,
@@ -180,28 +240,13 @@ const styles = StyleSheet.create({
     gap: 20,
   },
   dailyReflectionTile: {
-    backgroundColor: '#4A68B5',
     shadowColor: '#4A68B5',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 6,
   },
   aiSponsorTile: {
-    backgroundColor: '#3D8B8B',
     shadowColor: '#3D8B8B',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 6,
   },
   literatureTile: {
-    backgroundColor: '#4AA06A',
     shadowColor: '#4AA06A',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 6,
   },
   heroEmoji: {
     fontSize: 24,
@@ -236,11 +281,8 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   routineTile: {
-    backgroundColor: '#fff',
     borderRadius: 16,
     padding: 20,
-    borderWidth: 1,
-    borderColor: 'rgba(74, 111, 165, 0.12)',
   },
   routineTileHalf: {
     flex: 1,
@@ -249,24 +291,19 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   morningPrayerTile: {
-    backgroundColor: '#E5B530',
-    borderColor: '#D5A520',
+    shadowColor: '#E5B530',
   },
   gratitudeTile: {
-    backgroundColor: '#E8884A',
-    borderColor: '#D8783A',
+    shadowColor: '#E8884A',
   },
   eveningPrayerTile: {
-    backgroundColor: '#D5708A',
-    borderColor: '#C5607A',
+    shadowColor: '#D5708A',
   },
   nightlyReviewTile: {
-    backgroundColor: '#8A65B5',
-    borderColor: '#7A55A5',
+    shadowColor: '#8A65B5',
   },
   spotCheckTile: {
-    backgroundColor: '#4AA898',
-    borderColor: '#3A9888',
+    shadowColor: '#4AA898',
   },
   routineEmoji: {
     fontSize: 24,
