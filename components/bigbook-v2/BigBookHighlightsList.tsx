@@ -138,7 +138,7 @@ export function BigBookHighlightsList({
     
     return groups;
   }, [highlights]);
-  
+
   // Get chapters sorted by book order
   const sortedChapterIds = useMemo(() => {
     const chapterOrder = bigBookChapterMetadata.map(m => m.id);
