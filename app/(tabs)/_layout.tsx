@@ -11,7 +11,6 @@ import { ChevronLeft } from "lucide-react-native";
 
 import Colors from "@/constants/colors";
 import { adjustFontWeight, getScreenPadding } from "@/constants/fonts";
-import { TextSettingsProvider } from "@/hooks/use-text-settings";
 
 const styles = StyleSheet.create({
   headerTitleContainer: {
@@ -153,7 +152,6 @@ const createOutlineTabIcon = (
 
 export default function TabLayout() {
   return (
-    <TextSettingsProvider>
       <Tabs
         screenOptions={{
         tabBarActiveTintColor: '#3D8B8B',
@@ -345,6 +343,5 @@ export default function TabLayout() {
       />
 
     </Tabs>
-    </TextSettingsProvider>
   );
 }

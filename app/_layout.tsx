@@ -10,6 +10,7 @@ import { GratitudeProvider } from "@/hooks/use-gratitude-store";
 import { OnboardingProvider, useOnboarding } from "@/hooks/useOnboardingStore";
 import { SobrietyProvider } from "@/hooks/useSobrietyStore";
 import { EveningReviewProvider } from "@/hooks/use-evening-review-store";
+import { TextSettingsProvider } from "@/hooks/use-text-settings";
 import { useOTAUpdates } from "@/hooks/useOTAUpdates";
 import { adjustFontWeight } from "@/constants/fonts";
 import Colors from "@/constants/colors";
@@ -263,20 +264,22 @@ export default function RootLayout() {
     <QueryClientProvider client={queryClient}>
       <SessionProvider>
         <OnboardingProvider>
-          <GratitudeProvider>
-            <SobrietyProvider>
-              <EveningReviewProvider>
-                <GestureHandlerRootView style={{ flex: 1 }}>
-                  {Platform.OS === 'android' && (
-                    <StatusBar translucent backgroundColor="transparent" barStyle="light-content" />
-                  )}
-                  <ErrorBoundary>
-                    <RootLayoutNav />
-                  </ErrorBoundary>
-                </GestureHandlerRootView>
-              </EveningReviewProvider>
-            </SobrietyProvider>
-          </GratitudeProvider>
+          <TextSettingsProvider>
+            <GratitudeProvider>
+              <SobrietyProvider>
+                <EveningReviewProvider>
+                  <GestureHandlerRootView style={{ flex: 1 }}>
+                    {Platform.OS === 'android' && (
+                      <StatusBar translucent backgroundColor="transparent" barStyle="light-content" />
+                    )}
+                    <ErrorBoundary>
+                      <RootLayoutNav />
+                    </ErrorBoundary>
+                  </GestureHandlerRootView>
+                </EveningReviewProvider>
+              </SobrietyProvider>
+            </GratitudeProvider>
+          </TextSettingsProvider>
         </OnboardingProvider>
       </SessionProvider>
     </QueryClientProvider>
