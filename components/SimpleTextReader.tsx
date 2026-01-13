@@ -9,7 +9,7 @@
  * Rebuilt to match BigBookReader architecture for reliable cross-platform scrolling.
  */
 
-import React, { useRef, useCallback, useState, useEffect } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import { 
   StyleSheet, 
   ScrollView,
@@ -25,7 +25,7 @@ import {
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
   UIManager.setLayoutAnimationEnabledExperimental(true);
 }
-import { ChevronLeft, Type } from 'lucide-react-native';
+import { ChevronLeft } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { adjustFontWeight } from '@/constants/fonts';
@@ -41,7 +41,7 @@ interface SimpleTextReaderProps {
 
 const SimpleTextReader = ({ content, title, onClose, indentParagraphs = false, source }: SimpleTextReaderProps) => {
   const insets = useSafeAreaInsets();
-  const { fontSize, lineHeight, setFontSize, minFontSize, maxFontSize } = useTextSettings();
+  const { fontSize, lineHeight } = useTextSettings();
   const scrollViewRef = useRef<ScrollView>(null);
   
   // Force layout recalculation on Android when component mounts
@@ -59,15 +59,6 @@ const SimpleTextReader = ({ content, title, onClose, indentParagraphs = false, s
       return () => clearTimeout(timer);
     }
   }, [content]); // Re-run when content changes (new reading selected)
-  
-  // Font size controls
-  const increaseFontSize = useCallback(() => {
-    setFontSize(Math.min(fontSize + 2, maxFontSize));
-  }, [fontSize, maxFontSize, setFontSize]);
-  
-  const decreaseFontSize = useCallback(() => {
-    setFontSize(Math.max(fontSize - 2, minFontSize));
-  }, [fontSize, minFontSize, setFontSize]);
 
   // Helper function to parse inline markdown (italic, bold)
   const parseMarkdown = (text: string) => {
@@ -198,27 +189,6 @@ const SimpleTextReader = ({ content, title, onClose, indentParagraphs = false, s
         <Text style={styles.headerTitle} numberOfLines={2}>{title}</Text>
       </LinearGradient>
       
-      {/* Action Row - matches BigBookReader structure */}
-      <View style={styles.actionRow}>
-        <View style={styles.actionButtons}>
-          <TouchableOpacity 
-            onPress={decreaseFontSize}
-            activeOpacity={0.8}
-            style={styles.actionButton}
-          >
-            <Text style={styles.fontSizeButtonText}>A-</Text>
-          </TouchableOpacity>
-          <Type size={18} color="#3D8B8B" />
-          <TouchableOpacity 
-            onPress={increaseFontSize}
-            activeOpacity={0.8}
-            style={styles.actionButton}
-          >
-            <Text style={[styles.fontSizeButtonText, styles.fontSizeButtonTextLarge]}>A+</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
-      
       {/* Content */}
       <View style={styles.contentWrapper} collapsable={false}>
         <ScrollView 
@@ -340,30 +310,6 @@ const styles = StyleSheet.create({
     fontSize: 32,
     fontWeight: adjustFontWeight('400'),
     color: '#fff',
-  },
-  actionRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'flex-end',
-    paddingVertical: 6,
-    paddingHorizontal: 16,
-    backgroundColor: '#fff',
-  },
-  actionButtons: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  actionButton: {
-    padding: 8,
-  },
-  fontSizeButtonText: {
-    fontSize: 16,
-    color: '#3D8B8B',
-    fontWeight: '600',
-  },
-  fontSizeButtonTextLarge: {
-    fontSize: 20,
   },
   contentWrapper: {
     flex: 1,

@@ -27,12 +27,11 @@ import {
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
   UIManager.setLayoutAnimationEnabledExperimental(true);
 }
-import { ChevronLeft, ChevronRight, Type } from 'lucide-react-native';
+import { ChevronLeft, ChevronRight } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { adjustFontWeight } from '@/constants/fonts';
 import { useTextSettings } from '@/hooks/use-text-settings';
-import Colors from '@/constants/colors';
 import { aaPrayers } from '@/constants/prayers';
 
 interface PrayerReaderProps {
@@ -44,7 +43,7 @@ interface PrayerReaderProps {
 
 export function PrayerReader({ visible, prayerIndex, onClose, onPrayerChange }: PrayerReaderProps) {
   const insets = useSafeAreaInsets();
-  const { fontSize, lineHeight, setFontSize, minFontSize, maxFontSize } = useTextSettings();
+  const { fontSize, lineHeight } = useTextSettings();
   const scrollViewRef = useRef<ScrollView>(null);
   
   // Force layout recalculation on Android when modal opens
@@ -62,15 +61,6 @@ export function PrayerReader({ visible, prayerIndex, onClose, onPrayerChange }: 
       return () => clearTimeout(timer);
     }
   }, [visible, prayerIndex]);
-  
-  // Font size controls
-  const increaseFontSize = useCallback(() => {
-    setFontSize(Math.min(fontSize + 2, maxFontSize));
-  }, [fontSize, maxFontSize, setFontSize]);
-  
-  const decreaseFontSize = useCallback(() => {
-    setFontSize(Math.max(fontSize - 2, minFontSize));
-  }, [fontSize, minFontSize, setFontSize]);
   
   const currentPrayer = aaPrayers[prayerIndex];
   const hasPrevious = prayerIndex > 0;
@@ -176,27 +166,6 @@ export function PrayerReader({ visible, prayerIndex, onClose, onPrayerChange }: 
           </Text>
         </LinearGradient>
 
-        {/* Action Row - matches BigBookReader structure */}
-        <View style={styles.actionRow}>
-          <View style={styles.actionButtons}>
-            <TouchableOpacity 
-              onPress={decreaseFontSize}
-              activeOpacity={0.8}
-              style={styles.actionButton}
-            >
-              <Text style={styles.fontSizeButtonText}>A-</Text>
-            </TouchableOpacity>
-            <Type size={18} color="#3D8B8B" />
-            <TouchableOpacity 
-              onPress={increaseFontSize}
-              activeOpacity={0.8}
-              style={styles.actionButton}
-            >
-              <Text style={[styles.fontSizeButtonText, styles.fontSizeButtonTextLarge]}>A+</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-
         {/* Content */}
         <View style={styles.contentWrapper} collapsable={false}>
           <ScrollView
@@ -277,30 +246,6 @@ const styles = StyleSheet.create({
     fontSize: 32,
     fontWeight: adjustFontWeight('400'),
     color: '#fff',
-  },
-  actionRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'flex-end',
-    paddingVertical: 6,
-    paddingHorizontal: 16,
-    backgroundColor: '#fff',
-  },
-  actionButtons: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  actionButton: {
-    padding: 8,
-  },
-  fontSizeButtonText: {
-    fontSize: 16,
-    color: '#3D8B8B',
-    fontWeight: '600',
-  },
-  fontSizeButtonTextLarge: {
-    fontSize: 20,
   },
   contentWrapper: {
     flex: 1,
