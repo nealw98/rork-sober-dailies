@@ -457,7 +457,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     lineHeight: 26,
     color: '#000',
-    fontWeight: adjustFontWeight('400'),
   },
   verseText: {
     marginLeft: 24,
@@ -471,12 +470,10 @@ const styles = StyleSheet.create({
     width: 32,
     flexShrink: 0,
     color: '#000',
-    fontWeight: adjustFontWeight('400'),
   },
   numberedListText: {
     flex: 1,
     color: '#000',
-    fontWeight: adjustFontWeight('400'),
   },
   letteredListContainer: {
     flexDirection: 'row',
@@ -487,12 +484,10 @@ const styles = StyleSheet.create({
     width: 32,
     flexShrink: 0,
     color: '#000',
-    fontWeight: adjustFontWeight('400'),
   },
   letteredListText: {
     flex: 1,
     color: '#000',
-    fontWeight: adjustFontWeight('400'),
   },
   sentence: {
     // Inherit from parent paragraphText

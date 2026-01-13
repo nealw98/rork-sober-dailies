@@ -23,11 +23,13 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { aaPrayers } from '@/constants/prayers';
 import { adjustFontWeight } from '@/constants/fonts';
 import { PrayerReader } from './PrayerReader';
+import { useTextSettings } from '@/hooks/use-text-settings';
 
 export function PrayersMain() {
   const { prayer } = useLocalSearchParams();
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const { fontSize } = useTextSettings();
   
   const [selectedPrayerIndex, setSelectedPrayerIndex] = useState<number | null>(null);
   const [showReaderModal, setShowReaderModal] = useState(false);
@@ -108,7 +110,7 @@ export function PrayersMain() {
               onPress={() => handleSelectPrayer(index)}
               activeOpacity={0.7}
             >
-              <Text style={styles.rowTitle}>{prayerItem.title}</Text>
+              <Text style={[styles.rowTitle, { fontSize }]}>{prayerItem.title}</Text>
               <ChevronRight size={18} color="#a0a0a0" />
             </TouchableOpacity>
           ))}

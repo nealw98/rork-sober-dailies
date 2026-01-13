@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from 'react';
-import { StyleSheet, View, Text, ScrollView, TouchableOpacity } from 'react-native';
+import React, { useEffect, useState, useRef, useCallback } from 'react';
+import { StyleSheet, View, Text, ScrollView, TouchableOpacity, AppState, AppStateStatus } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -9,18 +9,52 @@ import { adjustFontWeight } from '@/constants/fonts';
 import { getTodaysReflection } from '@/constants/reflections';
 import { Reflection } from '@/types';
 
+// Helper to check if two dates are the same day
+const isSameDay = (date1: Date, date2: Date): boolean => {
+  return date1.getFullYear() === date2.getFullYear() &&
+         date1.getMonth() === date2.getMonth() &&
+         date1.getDate() === date2.getDate();
+};
+
 const HomeScreen = () => {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const [todaysReflection, setTodaysReflection] = useState<Reflection | null>(null);
+  const [currentDate, setCurrentDate] = useState<Date>(new Date());
+  const lastDateRef = useRef<Date>(new Date());
 
-  useEffect(() => {
+  // Fetch today's reflection
+  const fetchReflection = useCallback(() => {
     getTodaysReflection().then(setTodaysReflection).catch(console.error);
   }, []);
 
+  useEffect(() => {
+    fetchReflection();
+  }, [fetchReflection]);
+
+  // Update date and reflection when app comes to foreground on a new day
+  useEffect(() => {
+    const handleAppStateChange = (nextAppState: AppStateStatus) => {
+      if (nextAppState === 'active') {
+        const today = new Date();
+        // If it's a new day, update the date and re-fetch reflection
+        if (!isSameDay(lastDateRef.current, today)) {
+          console.log('[HomeScreen] New day detected on foreground, updating date and reflection');
+          lastDateRef.current = today;
+          setCurrentDate(today);
+          fetchReflection();
+        }
+      }
+    };
+
+    const subscription = AppState.addEventListener('change', handleAppStateChange);
+    return () => {
+      subscription.remove();
+    };
+  }, [fetchReflection]);
+
   // Format today's date
-  const today = new Date();
-  const dateDisplay = today.toLocaleDateString('en-US', { 
+  const dateDisplay = currentDate.toLocaleDateString('en-US', { 
     month: 'short', 
     day: 'numeric' 
   });

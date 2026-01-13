@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback, useRef } from "react";
-import { StyleSheet, Text, View, ScrollView, TouchableOpacity, Modal, Platform, Share } from "react-native";
+import { StyleSheet, Text, View, ScrollView, TouchableOpacity, Modal, Platform, Share, AppState, AppStateStatus } from "react-native";
 import { ChevronLeft, ChevronRight, Calendar, Upload, Bookmark, BookmarkCheck, List, X, Trash2 } from "lucide-react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import DateTimePicker from '@react-native-community/datetimepicker';
@@ -123,6 +123,25 @@ export default function DailyReflection({ fontSize = 18, lineHeight, jumpToDate 
       return () => {};
     }, [])
   );
+
+  // Reset to today's date when app comes to foreground on a new day
+  useEffect(() => {
+    const handleAppStateChange = (nextAppState: AppStateStatus) => {
+      if (nextAppState === 'active') {
+        const today = new Date();
+        // If it's a new day, reset to today
+        if (!isSameDay(selectedDate, today)) {
+          console.log('[DailyReflection] New day detected on foreground, resetting to today');
+          setSelectedDate(today);
+        }
+      }
+    };
+
+    const subscription = AppState.addEventListener('change', handleAppStateChange);
+    return () => {
+      subscription.remove();
+    };
+  }, [selectedDate]);
 
   useEffect(() => {
     updateReflection(selectedDate);
