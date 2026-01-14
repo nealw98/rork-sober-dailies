@@ -106,6 +106,7 @@ export function BigBookReader({ visible, initialChapterId, scrollToParagraphId, 
   // Force layout recalculation on Android when chapter changes
   // This fixes an issue where initial layout is calculated incorrectly in some chapters
   const [layoutKey, setLayoutKey] = useState(0);
+  const [isLayoutReady, setIsLayoutReady] = useState(true);
   
   // Bookmark management
   const { 
@@ -156,8 +157,10 @@ export function BigBookReader({ visible, initialChapterId, scrollToParagraphId, 
 
   useEffect(() => {
     if (visible && Platform.OS === 'android') {
+      setIsLayoutReady(false);
       const timer = setTimeout(() => {
         setLayoutKey(k => k + 1);
+        setIsLayoutReady(true);
       }, 50);
       return () => clearTimeout(timer);
     }
@@ -479,7 +482,11 @@ export function BigBookReader({ visible, initialChapterId, scrollToParagraphId, 
       </View>
 
       {/* Content */}
-      <View style={styles.contentWrapper} collapsable={false}>
+      <View
+        style={[styles.contentWrapper, !isLayoutReady && styles.contentWrapperHidden]}
+        collapsable={false}
+        pointerEvents={isLayoutReady ? 'auto' : 'none'}
+      >
         <GestureDetector gesture={doubleTapGesture}>
           <ScrollView
             key={`bigbook-scroll-${layoutKey}`}
@@ -634,6 +641,9 @@ const styles = StyleSheet.create({
     minHeight: 0,
     overflow: 'hidden',
     backgroundColor: '#fff',
+  },
+  contentWrapperHidden: {
+    opacity: 0,
   },
   headerFontSizeButton: {
     padding: 4,
