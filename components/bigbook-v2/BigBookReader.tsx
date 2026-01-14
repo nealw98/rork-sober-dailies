@@ -24,6 +24,8 @@ import {
   Modal,
   Platform,
   BackHandler,
+  LayoutAnimation,
+  UIManager,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { 
@@ -48,6 +50,11 @@ import { BigBookParagraph } from './BigBookParagraph';
 import { HighlightEditMenu } from './HighlightEditMenu';
 import { SearchResult } from '@/hooks/use-bigbook-content';
 import { HighlightColor, BigBookHighlight } from '@/types/bigbook-v2';
+
+// Enable LayoutAnimation on Android
+if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
+  UIManager.setLayoutAnimationEnabledExperimental(true);
+}
 
 // Fixed highlight color (yellow)
 const HIGHLIGHT_COLOR = HighlightColor.YELLOW;
@@ -96,6 +103,10 @@ export function BigBookReader({ visible, initialChapterId, scrollToParagraphId, 
   const paragraphRefs = useRef<Map<string, View>>(new Map());
   const paragraphPositions = useRef<Map<string, { y: number; height: number; pageNumber: number }>>(new Map());
   const activeScrollTargetRef = useRef<string | null>(scrollToParagraphId || null);
+
+  // Force layout recalculation on Android when chapter changes
+  // This fixes an issue where initial layout is calculated incorrectly in some chapters
+  const [layoutKey, setLayoutKey] = useState(0);
   
   // Bookmark management
   const { 
@@ -143,6 +154,16 @@ export function BigBookReader({ visible, initialChapterId, scrollToParagraphId, 
   useEffect(() => {
     loadChapter(initialChapterId);
   }, [initialChapterId, loadChapter]);
+
+  useEffect(() => {
+    if (visible && Platform.OS === 'android') {
+      LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+      const timer = setTimeout(() => {
+        setLayoutKey(k => k + 1);
+      }, 50);
+      return () => clearTimeout(timer);
+    }
+  }, [visible, currentChapterId]);
 
   // Handle search
   const handleSearch = useCallback((query: string) => {
@@ -460,15 +481,17 @@ export function BigBookReader({ visible, initialChapterId, scrollToParagraphId, 
       </View>
 
       {/* Content */}
-      <View style={styles.contentWrapper}>
+      <View style={styles.contentWrapper} collapsable={false}>
         <GestureDetector gesture={doubleTapGesture}>
           <ScrollView
+            key={`bigbook-scroll-${layoutKey}`}
             ref={scrollViewRef}
             style={styles.content}
             contentContainerStyle={styles.contentContainer}
             showsVerticalScrollIndicator={true}
             onScroll={handleScroll}
             scrollEventThrottle={150}
+            nestedScrollEnabled={true}
           >
             {currentChapter.paragraphs.map((paragraph, index) => {
                 const previousParagraph = index > 0 ? currentChapter.paragraphs[index - 1] : null;
@@ -607,6 +630,11 @@ const styles = StyleSheet.create({
   },
   contentWrapper: {
     flex: 1,
+    flexGrow: 1,
+    flexShrink: 1,
+    flexBasis: 0,
+    minHeight: 0,
+    overflow: 'hidden',
     backgroundColor: '#fff',
   },
   headerFontSizeButton: {
