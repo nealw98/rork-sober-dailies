@@ -24,7 +24,6 @@ import {
   Modal,
   Platform,
   BackHandler,
-  LayoutAnimation,
   UIManager,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -157,7 +156,6 @@ export function BigBookReader({ visible, initialChapterId, scrollToParagraphId, 
 
   useEffect(() => {
     if (visible && Platform.OS === 'android') {
-      LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
       const timer = setTimeout(() => {
         setLayoutKey(k => k + 1);
       }, 50);
