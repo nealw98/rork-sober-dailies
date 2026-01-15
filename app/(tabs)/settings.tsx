@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Platform, Linking, Share, ScrollView, Modal, SafeAreaView, Alert, TextInput, ActivityIndicator, KeyboardAvoidingView } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Platform, Linking, ScrollView, Modal, SafeAreaView, Alert, TextInput, ActivityIndicator, KeyboardAvoidingView } from 'react-native';
 import { router, Stack } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -7,6 +7,7 @@ import { ChevronLeft, ChevronRight, X } from 'lucide-react-native';
 import Constants from 'expo-constants';
 import * as Clipboard from 'expo-clipboard';
 import { adjustFontWeight } from '@/constants/fonts';
+import { BETA_INVITE_URL } from '@/constants/betaInvite';
 import { useTextSettings } from '@/hooks/use-text-settings';
 import { Logger } from '@/lib/logger';
 import { submitFeedback } from '@/lib/feedback';
@@ -98,35 +99,8 @@ export default function SettingsScreen() {
     Linking.openURL('https://soberdailies.com/support');
   };
 
-  const handleRateAppPress = async () => {
-    try {
-      if (Platform.OS === 'ios') {
-        const appStoreId = '6749869819';
-        const url = `itms-apps://itunes.apple.com/app/id${appStoreId}?action=write-review`;
-        await Linking.openURL(url);
-      } else {
-        const packageName = 'com.nealwagner.soberdailies';
-        const url = `market://details?id=${packageName}`;
-        await Linking.openURL(url);
-      }
-    } catch (error) {
-      console.error('Error opening store for rating:', error);
-    }
-  };
-
-  const handleSharePress = async () => {
-    try {
-      const appStoreUrl =
-        Platform.OS === 'ios'
-          ? 'https://apps.apple.com/app/sober-dailies/id6749869819'
-          : 'https://play.google.com/store/apps/details?id=com.nealwagner.soberdailies';
-
-      await Share.share({
-        message: 'Sober Dailies helps me stay sober one day at a time. Check it out: ' + appStoreUrl,
-      });
-    } catch {
-      // no-op
-    }
+  const handleJoinBetaPress = () => {
+    Linking.openURL(BETA_INVITE_URL);
   };
 
   const handleFeedbackSubmit = async () => {
@@ -270,22 +244,13 @@ export default function SettingsScreen() {
         
         <TouchableOpacity 
           style={styles.menuItem}
-          onPress={handleRateAppPress}
+          onPress={handleJoinBetaPress}
           activeOpacity={0.7}
         >
-          <Text style={[styles.menuItemTitle, { fontSize }]}>Rate & Review</Text>
+          <Text style={[styles.menuItemTitle, { fontSize }]}>Join the 2.0 Beta</Text>
           <ChevronRight size={18} color="#a0a0a0" />
         </TouchableOpacity>
-        
-        <TouchableOpacity 
-          style={styles.menuItem}
-          onPress={handleSharePress}
-          activeOpacity={0.7}
-        >
-          <Text style={[styles.menuItemTitle, { fontSize }]}>Share the App</Text>
-          <ChevronRight size={18} color="#a0a0a0" />
-        </TouchableOpacity>
-        
+
         <TouchableOpacity 
           style={styles.menuItem}
           onPress={() => setFeedbackVisible(true)}
