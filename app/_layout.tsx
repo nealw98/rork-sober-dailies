@@ -18,6 +18,7 @@ import WelcomeScreen from "@/components/WelcomeScreen";
 import OTASnackbar from "@/components/OTASnackbar";
 import { Logger } from "@/lib/logger";
 import { initUsageLogger } from "@/lib/usageLogger";
+import { initFirebaseAnalytics } from "@/lib/firebaseAnalytics";
 import { recordAppOpen } from "@/lib/reviewPrompt";
 import { useExpoRouterTracking } from "@/hooks/useExpoRouterTracking";
 import { SessionProvider } from "@/hooks/useSessionContext";
@@ -110,8 +111,13 @@ function RootLayoutNav() {
     // Initialize in-app logger
     Logger.initialize();
 
-    // Initialize usage logger
+    // Initialize usage logger (Supabase analytics)
     initUsageLogger();
+
+    // Initialize Firebase analytics (non-blocking)
+    initFirebaseAnalytics().catch((error) => {
+      console.warn('[Firebase] Failed to initialize Firebase Analytics', error);
+    });
 
     recordAppOpen().catch((error) => {
       console.warn('[reviewPrompt] Failed to record app open from root layout', error);
