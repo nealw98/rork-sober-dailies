@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "702934193105",
+    "project_id": "sober-dailies-app",
+    "storage_bucket": "sober-dailies-app.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:702934193105:android:5a753838362aa7cb0846f0",
+        "android_client_info": {
+          "package_name": "com.nealwagner.soberdailies"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAkRRiyx_vifuH0V0MWF-bJ_FiYir3fc0U"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

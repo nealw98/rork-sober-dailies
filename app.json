@@ -102,7 +102,7 @@
         }
       ],
       "expo-secure-store",
-      "./plugins/withFirebaseAppDelegate"
+      "./plugins/withFirebaseConfig"
     ],
     "experiments": {
       "typedRoutes": true
