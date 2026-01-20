@@ -1,4 +1,5 @@
 import analytics from '@react-native-firebase/analytics';
+import app from '@react-native-firebase/app';
 import { Platform } from 'react-native';
 import Constants from 'expo-constants';
 
@@ -20,8 +21,22 @@ class FirebaseAnalyticsService {
 
   async initialize(): Promise<void> {
     try {
-      // Firebase is auto-initialized from GoogleService-Info.plist (iOS) or google-services.json (Android)
-      // Just enable analytics collection and use it directly
+      // Wait for Firebase to be initialized by the native layer
+      // React Native Firebase auto-initializes from config files, but it happens asynchronously
+      // We need to wait a moment for the native initialization to complete
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      // Verify Firebase app is available
+      const apps = app().apps;
+      if (apps.length === 0) {
+        console.warn('[Firebase Analytics] No Firebase apps found after waiting, analytics will be disabled');
+        this.isInitialized = false;
+        return;
+      }
+      
+      console.log('[Firebase Analytics] Firebase app found, initializing analytics');
+      
+      // Enable analytics collection
       await analytics().setAnalyticsCollectionEnabled(true);
       
       this.isInitialized = true;
