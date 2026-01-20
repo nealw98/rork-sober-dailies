@@ -1,110 +1,178 @@
-# Firebase Setup Instructions
+# Firebase Setup for Sober Dailies
 
-## Step 1: Download Config Files from Firebase Console
+## Overview
+Firebase Analytics is integrated alongside our existing Supabase analytics system to provide:
+- Industry-standard mobile analytics metrics
+- Firebase Console insights and automatic reporting
+- Cross-platform analytics infrastructure
 
-### iOS Configuration
-1. Go to [Firebase Console](https://console.firebase.google.com/)
-2. Select your project
-3. Go to Project Settings (gear icon)
-4. Scroll to "Your apps" section
-5. Click on your iOS app
-6. Click "Download GoogleService-Info.plist"
+## Configuration Files
 
-### Android Configuration
-1. Same Firebase Console → Project Settings
-2. Click on your Android app
-3. Click "Download google-services.json"
-
-## Step 2: Place Files in Project Root
-
-Copy both files to the project root directory:
+### Required Files (MUST be in project root)
 
 ```
-/Users/nealwagner/Projects/rork-sober-dailies/
-  ├── GoogleService-Info.plist  ← Put iOS file HERE
-  ├── google-services.json      ← Put Android file HERE
-  ├── package.json
-  ├── app.json
-  └── ...
+rork-sober-dailies/
+├── GoogleService-Info.plist    ← iOS config (from Firebase Console)
+├── google-services.json         ← Android config (from Firebase Console)
+├── app.json                     ← Points to these files
+└── ...
 ```
 
-**IMPORTANT:** Files must be in the root folder (same level as `package.json`), NOT in `ios/` or `android/` folders.
+⚠️ **CRITICAL**: These files MUST be in the **project root** (same folder as `app.json`), not in `ios/` or `android/` folders.
 
-## Step 3: Verify Bundle Identifiers Match
+### Why?
+- `expo prebuild --clean` wipes the `ios/` and `android/` folders completely
+- EAS builds regenerate native folders from scratch
+- Expo's `googleServicesFile` config automatically copies these files to the correct locations during prebuild
 
-### iOS - GoogleService-Info.plist
-Open the file and verify:
-```xml
-<key>BUNDLE_ID</key>
-<string>com.nealwagner.soberdailies</string>
-```
+## app.json Configuration
 
-Should match `app.json` → `expo.ios.bundleIdentifier`
-
-### Android - google-services.json
-Open the file and verify:
 ```json
-"package_name": "com.nealwagner.soberdailies.paid"
+{
+  "expo": {
+    "ios": {
+      "googleServicesFile": "./GoogleService-Info.plist"
+    },
+    "android": {
+      "googleServicesFile": "./google-services.json"
+    },
+    "plugins": [
+      "@react-native-firebase/app",
+      [
+        "expo-build-properties",
+        {
+          "ios": {
+            "useFrameworks": "static"
+          }
+        }
+      ]
+    ]
+  }
+}
 ```
 
-Should match `app.json` → `expo.android.package`
+### Key Points:
+1. **`googleServicesFile`**: Official Expo config - no custom plugins needed
+2. **`@react-native-firebase/app`**: Official React Native Firebase plugin
+3. **`useFrameworks: "static"`**: Required for React Native Firebase on iOS
 
-## Step 4: Build
+## Native Configuration (Automatic)
 
-Once files are in place, the custom Expo config plugin (`plugins/withFirebaseConfig.js`) will automatically:
-- Copy `GoogleService-Info.plist` to `ios/SoberDailies/` during prebuild
-- Copy `google-services.json` to `android/app/` during prebuild
-- Add Firebase initialization code to iOS AppDelegate
+### Android
+Expo automatically:
+- Copies `google-services.json` to `android/app/`
+- Applies the Google Services gradle plugin
+- Configures Firebase SDK dependencies
 
-### Test Locally
+### iOS
+Expo automatically:
+- Copies `GoogleService-Info.plist` to the Xcode project
+- Adds it to "Copy Bundle Resources"
+- Initializes Firebase in AppDelegate
+
+## Code Integration
+
+### Initialization
+Firebase is automatically initialized from the config files. Our code just enables analytics:
+
+```typescript
+// lib/firebaseAnalytics.ts
+import analytics from '@react-native-firebase/analytics';
+
+await analytics().setAnalyticsCollectionEnabled(true);
+await analytics().logEvent('my_event', { param: 'value' });
+```
+
+### Dual Analytics System
+We maintain BOTH analytics systems:
+
+- **Supabase** (`lib/usageLogger.ts`): Custom events, SQL queries, full control
+- **Firebase** (`lib/firebaseAnalytics.ts`): Standard metrics, Firebase Console
+
+The unified wrapper (`lib/analytics.ts`) logs to both simultaneously.
+
+## Testing
+
+### Debug Mode
+Enable Firebase DebugView for real-time event monitoring:
+
+**iOS Simulator:**
+```bash
+xcrun simctl spawn booted log config --mode "level:debug" --subsystem com.google.firebase.analytics
+```
+
+**Android Emulator:**
+```bash
+adb shell setprop debug.firebase.analytics.app com.nealwagner.soberdailies.paid
+```
+
+### Verify Events
+1. Open Firebase Console → Analytics → DebugView
+2. Select your test device
+3. Use the app - events should appear within seconds
+
+## Building
+
+### Local Development Build
 ```bash
 npx expo prebuild --clean
 npx expo run:ios
+# or
 npx expo run:android
 ```
 
-### Build with EAS
+### EAS Preview Build
 ```bash
 eas build --platform all --profile preview
 ```
 
-## What Happens
-
-The plugin runs during `expo prebuild` and:
-
-1. **iOS**: Copies `GoogleService-Info.plist` → `ios/SoberDailies/GoogleService-Info.plist`
-2. **Android**: Copies `google-services.json` → `android/app/google-services.json`
-3. **iOS**: Adds `[FIRApp configure];` to AppDelegate
-
-You should see these console messages during prebuild:
-```
-✅ Copied GoogleService-Info.plist to iOS project
-✅ Copied google-services.json to Android project
-```
+Expo will automatically:
+1. Run `expo prebuild`
+2. Copy config files to native projects
+3. Build with Firebase fully configured
 
 ## Troubleshooting
 
-### "GoogleService-Info.plist not found in project root"
-- Make sure the file is in the project root, not in `ios/` folder
-- Check filename exactly matches (case-sensitive)
+### "No Firebase App '[DEFAULT]' has been created"
+**Cause**: Config files missing from native build directories
+**Fix**: 
+1. Verify files are in project root (not `ios/` or `android/`)
+2. Check `app.json` has correct `googleServicesFile` paths
+3. Run `npx expo prebuild --clean`
 
-### "google-services.json not found in project root"  
-- Make sure the file is in the project root, not in `android/` folder
-- Check filename exactly matches (case-sensitive)
+### "TypeError: Object is not a function"
+**Cause**: Incorrect Firebase initialization code
+**Fix**: Don't call `firebase.initializeApp()` - React Native Firebase auto-initializes
 
-### Firebase still not initializing
-- Verify bundle IDs match between config files and app.json
-- Check that files were copied (look in `ios/SoberDailies/` and `android/app/` after prebuild)
-- Run prebuild with `--clean` flag to regenerate everything
+### Events Not Showing in Firebase Console
+**Cause**: Debug mode not enabled or wrong app identifier
+**Fix**: 
+1. Enable debug mode (see Testing section above)
+2. Verify bundle ID / package name matches Firebase project
+3. Wait 24-48 hours for production data (debug is instant)
 
-## Files Structure
+### Build Fails with "google-services.json missing"
+**Cause**: Files not in Git or EAS secrets
+**Fix**: 
+1. Commit config files to Git, OR
+2. Upload as EAS secrets (for private repos)
 
-```
-rork-sober-dailies/
-├── GoogleService-Info.plist        ← Add this file (iOS config)
-├── google-services.json            ← Add this file (Android config)
-├── plugins/
-│   └── withFirebaseConfig.js       ← Plugin that copies the files
-├── app.json                         ← References the plugin
-└── ...
-```
+## Git Considerations
+
+These files contain your Firebase API keys. Options:
+
+1. **Commit them** (recommended for mobile apps)
+   - Mobile API keys are safe to commit
+   - They're restricted by bundle ID/package name
+   - Simplest setup
+
+2. **Use EAS Secrets** (for sensitive projects)
+   - Add to `.gitignore`
+   - Upload via EAS CLI or Expo dashboard
+   - More complex setup
+
+## References
+
+- [Expo Firebase Setup](https://docs.expo.dev/guides/using-firebase/)
+- [React Native Firebase Docs](https://rnfirebase.io/)
+- [Firebase Analytics](https://firebase.google.com/docs/analytics)

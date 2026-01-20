@@ -18,6 +18,7 @@
       "bundleIdentifier": "com.nealwagner.soberdailies",
       "buildNumber": "113",
       "icon": "./assets/images/icon.png",
+      "googleServicesFile": "./GoogleService-Info.plist",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
       },
@@ -26,6 +27,7 @@
     "android": {
       "package": "com.nealwagner.soberdailies.paid",
       "versionCode": 113,
+      "googleServicesFile": "./google-services.json",
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon-foreground.png",
         "backgroundImage": "./assets/images/adaptive-icon-background.png",
