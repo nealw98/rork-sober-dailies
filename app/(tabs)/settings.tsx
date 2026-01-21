@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, TouchableOpacity, Platform, Linking, Share, Scr
 import { router, Stack } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { usePostHog } from 'posthog-react-native';
 import { ChevronLeft, ChevronRight, X } from 'lucide-react-native';
 import Constants from 'expo-constants';
 import * as Clipboard from 'expo-clipboard';
@@ -12,6 +13,7 @@ import { Logger } from '@/lib/logger';
 import { submitFeedback } from '@/lib/feedback';
 
 export default function SettingsScreen() {
+  const posthog = usePostHog();
   const insets = useSafeAreaInsets();
   const { fontSize, setFontSize, minFontSize, maxFontSize, resetDefaults, defaultFontSize } = useTextSettings();
   const [logsVisible, setLogsVisible] = useState(false);
@@ -22,10 +24,20 @@ export default function SettingsScreen() {
   const [feedbackText, setFeedbackText] = useState('');
   const [contactInfo, setContactInfo] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  useEffect(() => {
+    posthog?.screen('Settings');
+  }, [posthog]);
   
   const step = 2;
-  const increase = () => setFontSize(fontSize + step);
-  const decrease = () => setFontSize(fontSize - step);
+  const increase = () => {
+    setFontSize(fontSize + step);
+    posthog?.capture('settings_font_size_increase');
+  };
+  const decrease = () => {
+    setFontSize(fontSize - step);
+    posthog?.capture('settings_font_size_decrease');
+  };
 
   const handleBack = () => {
     router.back();

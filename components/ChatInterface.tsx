@@ -21,6 +21,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import Colors from "@/constants/colors";
 import { useChatStore } from "@/hooks/use-chat-store";
 import { featureUse, getAnonymousId } from "@/lib/usageLogger";
+import { usePostHog } from 'posthog-react-native';
 import { supabase } from "@/lib/supabase";
 import { ChatMessage, SponsorType } from "@/types";
 import { adjustFontWeight } from "@/constants/fonts";
@@ -198,6 +199,7 @@ export default function ChatInterface({
   sponsorType: propSponsorType,
   onSponsorPress,
 }: ChatInterfaceProps) {
+  const posthog = usePostHog();
   const { messages, isLoading, sendMessage, sponsorType: storeSponsorType, changeSponsor } = useChatStore();
   const textSettings = useTextSettings();
   const fontSize = textSettings?.fontSize ?? 18;
@@ -278,6 +280,12 @@ export default function ChatInterface({
 
     const sponsorName = getSponsorDisplayName(sponsorType);
     featureUse(`SponsorMessage_${sponsorName}`, 'Chat');
+
+    // TODO: Remove Supabase tracking after PostHog validation
+    posthog?.capture('feature_use', { 
+      feature: `SponsorMessage_${sponsorName}`, 
+      screen: 'Chat' 
+    });
 
     const textToSend = inputText;
     setInputText("");

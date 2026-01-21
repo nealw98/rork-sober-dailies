@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { StyleSheet, Dimensions } from "react-native";
 import { Stack } from "expo-router";
 import {
@@ -10,6 +10,7 @@ import {
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
+import { usePostHog } from 'posthog-react-native';
 import { ChevronLeft } from "lucide-react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Colors from "@/constants/colors";
@@ -27,8 +28,13 @@ const FULL_WIDTH = screenWidth - GRID_PADDING * 2;
 const VISIBLE_SPONSOR_IDS = ["supportive", "salty", "grace", "cowboy-pete", "co-sign-sally", "fresh", "mama-jo"];
 
 export default function ChatScreen() {
+  const posthog = usePostHog();
   const router = useRouter();
   const insets = useSafeAreaInsets();
+
+  useEffect(() => {
+    posthog?.screen('AI Sponsor Selection');
+  }, [posthog]);
 
   // Filter to only visible sponsors
   const visibleSponsors = SPONSORS.filter(s => VISIBLE_SPONSOR_IDS.includes(s.id));
@@ -36,6 +42,7 @@ export default function ChatScreen() {
   const handleSponsorSelect = (sponsorId: string) => {
     const sponsor = SPONSORS.find(s => s.id === sponsorId);
     if (sponsor && sponsor.isAvailable) {
+      posthog?.capture('sponsor_selected', { sponsor_id: sponsorId, sponsor_name: sponsor.name });
       router.push(`/sponsor-chat?sponsor=${sponsorId}`);
     }
   };

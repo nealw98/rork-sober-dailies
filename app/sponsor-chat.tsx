@@ -26,6 +26,7 @@ import { useTextSettings } from "@/hooks/use-text-settings";
 import { SponsorType, ChatMessage } from "@/types";
 import { ChatMarkdownRenderer } from "@/components/ChatMarkdownRenderer";
 import { featureUse, getAnonymousId } from "@/lib/usageLogger";
+import { usePostHog } from 'posthog-react-native';
 import { supabase } from "@/lib/supabase";
 
 const DAILY_SPONSOR_LIMIT = 50;
@@ -136,6 +137,7 @@ const ChatBubble = ({
 };
 
 function SponsorChatContent({ initialSponsor }: { initialSponsor: string }) {
+  const posthog = usePostHog();
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const textSettings = useTextSettings();
@@ -203,6 +205,12 @@ function SponsorChatContent({ initialSponsor }: { initialSponsor: string }) {
 
     setInputText("");
     featureUse(`SponsorMessage_${getSponsorDisplayName(sponsorType)}`);
+    
+    // TODO: Remove Supabase tracking after PostHog validation
+    posthog?.capture('feature_use', { 
+      feature: `SponsorMessage_${getSponsorDisplayName(sponsorType)}` 
+    });
+    
     await sendMessage(trimmed);
   };
 

@@ -1,5 +1,7 @@
 import { StyleSheet, View, Text, TouchableOpacity } from "react-native";
 import { router, Stack } from "expo-router";
+import { useEffect } from "react";
+import { usePostHog } from 'posthog-react-native';
 import { ChevronLeft } from "lucide-react-native";
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -44,10 +46,16 @@ const literatureOptions: LiteratureOption[] = [
 ];
 
 export default function LiteratureScreen() {
+  const posthog = usePostHog();
   useReadingSession('literature');
   const insets = useSafeAreaInsets();
 
-  const handleOptionPress = (route: string) => {
+  useEffect(() => {
+    posthog?.screen('Literature');
+  }, [posthog]);
+
+  const handleOptionPress = (route: string, literatureId: string) => {
+    posthog?.capture('literature_selected', { literature_id: literatureId });
     router.push(route as any);
   };
 
@@ -81,7 +89,7 @@ export default function LiteratureScreen() {
         {literatureOptions.map((option) => (
           <TouchableOpacity
             key={option.id}
-            onPress={() => handleOptionPress(option.route)}
+            onPress={() => handleOptionPress(option.route, option.id)}
             activeOpacity={0.8}
             testID={`literature-option-${option.id}`}
           >
