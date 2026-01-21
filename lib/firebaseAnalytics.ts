@@ -60,7 +60,7 @@ class FirebaseAnalyticsService {
       const firebaseEventName = this.sanitizeEventName(eventName);
       const firebaseParams = this.sanitizeParams(params);
 
-      await analytics().logEvent(firebaseEventName, firebaseParams);
+      await analytics().logEvent(firebaseEventName, firebaseParams ?? {});
       console.log('[Firebase Analytics] Event logged:', firebaseEventName, firebaseParams);
     } catch (error) {
       console.error('[Firebase Analytics] Failed to log event:', eventName, error);
