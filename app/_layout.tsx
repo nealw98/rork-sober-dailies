@@ -269,7 +269,11 @@ export default function RootLayout() {
           host: 'https://us.i.posthog.com',
           enableSessionReplay: true,
         }}
-        autocapture
+        autocapture={{
+          captureTouches: false, // Disable touch autocapture
+          captureLifecycleEvents: true, // Keep app open/close events
+          captureScreens: true // Keep screen navigation
+        }}
       >
         <SessionProvider>
           <OnboardingProvider>

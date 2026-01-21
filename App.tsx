@@ -10,7 +10,11 @@ export default function App() {
         host: 'https://us.i.posthog.com',
         enableSessionReplay: true,
       }}
-      autocapture
+      autocapture={{
+        captureTouches: false, // Disable touch autocapture
+        captureLifecycleEvents: true, // Keep app open/close events
+        captureScreens: true // Keep screen navigation
+      }}
     >
       <View style={styles.container}>
         <Text>Open up App.tsx to start working on your app!</Text>
