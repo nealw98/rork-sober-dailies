@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   View,
   Text,
@@ -16,6 +16,7 @@ import {
 import { router, Stack } from 'expo-router';
 import * as Clipboard from 'expo-clipboard';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { usePostHog } from 'posthog-react-native';
 import ScreenContainer from "@/components/ScreenContainer";
 import { LinearGradient } from 'expo-linear-gradient';
 import { ChevronLeft, Share as ShareIcon, Save, List, Check, RotateCcw } from 'lucide-react-native';
@@ -103,6 +104,7 @@ const AnimatedCheckbox = ({ checked, onPress, children, fontSize }: {
 };
 
 export default function EveningReview() {
+  const posthog = usePostHog();
   const insets = useSafeAreaInsets();
   const { fontSize, lineHeight } = useTextSettings();
   const scrollViewRef = useRef<ScrollView>(null);
@@ -176,6 +178,11 @@ export default function EveningReview() {
     { key: 'reflectionWell', label: 'What have I done well today?', value: reflectionWell, setValue: setReflectionWell },
     { key: 'reflectionBetter', label: 'What could I have done better?', value: reflectionBetter, setValue: setReflectionBetter },
   ];
+
+  // Track screen view
+  useEffect(() => {
+    posthog?.screen('Evening Review');
+  }, [posthog]);
 
   const handleStartNew = () => {
     setStayedSober(false);
@@ -397,6 +404,17 @@ export default function EveningReview() {
       );
       return;
     }
+    
+    // Count completed actions and inventory items
+    const actionsCount = dailyActions.filter(action => action.checked).length;
+    const inventoryCount = inventoryQuestions.filter(question => question.value.trim() !== '').length;
+    
+    // Track evening review completion
+    posthog?.capture('evening_review_completed', {
+      actions_completed: actionsCount,
+      inventory_items_completed: inventoryCount,
+      total_items: actionsCount + inventoryCount
+    });
     
     const detailedEntry = {
       // New format fields

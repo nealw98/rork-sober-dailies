@@ -19,6 +19,7 @@ import { ChevronRight, ChevronLeft } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { usePostHog } from 'posthog-react-native';
 
 import { aaPrayers } from '@/constants/prayers';
 import { adjustFontWeight } from '@/constants/fonts';
@@ -26,6 +27,7 @@ import { PrayerReader } from './PrayerReader';
 import { useTextSettings } from '@/hooks/use-text-settings';
 
 export function PrayersMain() {
+  const posthog = usePostHog();
   const { prayer } = useLocalSearchParams();
   const router = useRouter();
   const insets = useSafeAreaInsets();
@@ -53,9 +55,16 @@ export function PrayersMain() {
 
   // Handle prayer selection - open modal (matching BigBookMain pattern)
   const handleSelectPrayer = useCallback((index: number) => {
+    const selectedPrayer = aaPrayers[index];
+    
+    // Track prayer view
+    posthog?.capture('prayer_viewed', { 
+      prayer_title: selectedPrayer.title 
+    });
+    
     setSelectedPrayerIndex(index);
     setShowReaderModal(true);
-  }, []);
+  }, [posthog]);
 
   // Handle closing reader modal (matching BigBookMain pattern)
   const handleCloseReader = useCallback(() => {
