@@ -5,6 +5,7 @@ import React, { useEffect, useCallback, useState } from "react";
 import { Text, StyleSheet, TouchableOpacity, Platform, View, StatusBar } from 'react-native';
 import { ChevronLeft } from "lucide-react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
+import { PostHogProvider } from 'posthog-react-native';
 
 import { GratitudeProvider } from "@/hooks/use-gratitude-store";
 import { OnboardingProvider, useOnboarding } from "@/hooks/useOnboardingStore";
@@ -262,26 +263,35 @@ export default function RootLayout() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <SessionProvider>
-        <OnboardingProvider>
-          <TextSettingsProvider>
-            <GratitudeProvider>
-              <SobrietyProvider>
-                <EveningReviewProvider>
-                  <GestureHandlerRootView style={{ flex: 1 }}>
-                    {Platform.OS === 'android' && (
-                      <StatusBar translucent backgroundColor="transparent" barStyle="light-content" />
-                    )}
-                    <ErrorBoundary>
-                      <RootLayoutNav />
-                    </ErrorBoundary>
-                  </GestureHandlerRootView>
-                </EveningReviewProvider>
-              </SobrietyProvider>
-            </GratitudeProvider>
-          </TextSettingsProvider>
-        </OnboardingProvider>
-      </SessionProvider>
+      <PostHogProvider
+        apiKey="phc_rNmxplbqDdGgWftieyYPJoKJHRYpWT0QHdwiSFYMfI1"
+        options={{
+          host: 'https://us.i.posthog.com',
+          enableSessionReplay: true,
+        }}
+        autocapture
+      >
+        <SessionProvider>
+          <OnboardingProvider>
+            <TextSettingsProvider>
+              <GratitudeProvider>
+                <SobrietyProvider>
+                  <EveningReviewProvider>
+                    <GestureHandlerRootView style={{ flex: 1 }}>
+                      {Platform.OS === 'android' && (
+                        <StatusBar translucent backgroundColor="transparent" barStyle="light-content" />
+                      )}
+                      <ErrorBoundary>
+                        <RootLayoutNav />
+                      </ErrorBoundary>
+                    </GestureHandlerRootView>
+                  </EveningReviewProvider>
+                </SobrietyProvider>
+              </GratitudeProvider>
+            </TextSettingsProvider>
+          </OnboardingProvider>
+        </SessionProvider>
+      </PostHogProvider>
     </QueryClientProvider>
   );
 }
