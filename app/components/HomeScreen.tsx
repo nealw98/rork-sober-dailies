@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef, useCallback } from 'react';
-import { StyleSheet, View, Text, ScrollView, TouchableOpacity, AppState, AppStateStatus } from 'react-native';
+import { StyleSheet, View, Text, ScrollView, TouchableOpacity, AppState, AppStateStatus, Platform } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -165,7 +165,9 @@ const HomeScreen = () => {
               end={{ x: 0.5, y: 1 }}
             >
               <Text style={styles.routineEmoji}>😊</Text>
-              <Text style={styles.routineTitleLight}>Gratitude List</Text>
+              <Text style={styles.routineTitleLight}>
+                {Platform.OS === 'android' ? 'Gratitude\nList' : 'Gratitude List'}
+              </Text>
             </LinearGradient>
           </TouchableOpacity>
         </View>
