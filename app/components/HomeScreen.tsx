@@ -165,9 +165,7 @@ const HomeScreen = () => {
               end={{ x: 0.5, y: 1 }}
             >
               <Text style={styles.routineEmoji}>😊</Text>
-              <Text style={styles.routineTitleLight}>
-                {Platform.OS === 'android' ? 'Gratitude\nList' : 'Gratitude List'}
-              </Text>
+              <Text style={styles.routineTitleLight}>Gratitude List</Text>
             </LinearGradient>
           </TouchableOpacity>
         </View>
