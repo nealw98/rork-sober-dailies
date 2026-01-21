@@ -5,7 +5,9 @@ import React, { useEffect, useCallback, useState } from "react";
 import { Text, StyleSheet, TouchableOpacity, Platform, View, StatusBar } from 'react-native';
 import { ChevronLeft } from "lucide-react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
-import { PostHogProvider } from 'posthog-react-native';
+import { PostHogProvider, usePostHog } from 'posthog-react-native';
+import * as Application from 'expo-application';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import { GratitudeProvider } from "@/hooks/use-gratitude-store";
 import { OnboardingProvider, useOnboarding } from "@/hooks/useOnboardingStore";
@@ -24,6 +26,7 @@ import { useExpoRouterTracking } from "@/hooks/useExpoRouterTracking";
 import { SessionProvider } from "@/hooks/useSessionContext";
 import { useSobrietyBirthday } from "@/hooks/useSobrietyBirthday";
 import SobrietyBirthdayModal from "@/components/SobrietyBirthdayModal";
+import { getSobrietyMilestone } from "@/utils/sobriety";
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync().catch(() => {
@@ -31,6 +34,26 @@ SplashScreen.preventAutoHideAsync().catch(() => {
 });
 
 const queryClient = new QueryClient();
+
+/**
+ * Get a unique device identifier for PostHog tracking
+ * - iOS: Uses identifierForVendor (unique per app vendor, resets on reinstall)
+ * - Android: Uses ANDROID_ID (unique per device, persists across reinstalls)
+ */
+async function getDeviceId(): Promise<string | null> {
+  try {
+    if (Platform.OS === 'ios') {
+      const iosId = await Application.getIosIdForVendorAsync();
+      return iosId;
+    } else if (Platform.OS === 'android') {
+      return Application.androidId;
+    }
+    return null;
+  } catch (error) {
+    console.error('[PostHog] Failed to get device ID:', error);
+    return null;
+  }
+}
 
 // Global flag to track if splash screen has been hidden
 let splashHidden = false;
@@ -50,6 +73,77 @@ const hideSplashScreenSafely = async () => {
     console.log('🟢 SPLASH: Error hiding splash screen:', error);
   }
 };
+
+/**
+ * Component that identifies the user with PostHog using device ID
+ * and sobriety milestone (range only, not actual date)
+ * Must be a child of PostHogProvider to access usePostHog hook
+ */
+function PostHogIdentifier({ children }: { children: React.ReactNode }) {
+  const posthog = usePostHog();
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const identifyUser = async () => {
+      try {
+        // Get device ID
+        const deviceId = await getDeviceId();
+        
+        if (!deviceId) {
+          console.warn('[PostHog] No device ID available for identification');
+          return;
+        }
+
+        if (!isMounted || !posthog) {
+          return;
+        }
+
+        console.log('[PostHog] Identifying user with device ID:', deviceId);
+
+        // Get sobriety date from AsyncStorage
+        const sobrietyDataStr = await AsyncStorage.getItem('sobriety_data');
+        let sobrietyDate: string | null = null;
+        
+        if (sobrietyDataStr) {
+          try {
+            const sobrietyData = JSON.parse(sobrietyDataStr);
+            sobrietyDate = sobrietyData.sobrietyDate || null;
+          } catch (parseError) {
+            console.error('[PostHog] Error parsing sobriety data:', parseError);
+          }
+        }
+
+        // Calculate milestone range (NEVER send actual date)
+        const milestone = getSobrietyMilestone(sobrietyDate);
+        
+        console.log('[PostHog] Sobriety milestone:', milestone);
+
+        // Identify user with device ID and milestone as person property
+        posthog.identify(deviceId, {
+          sobriety_milestone: milestone,
+        });
+
+        // Register milestone as super property (included with every event)
+        posthog.register({
+          sobriety_milestone: milestone,
+        });
+
+        console.log('[PostHog] User identified with milestone super property');
+      } catch (error) {
+        console.error('[PostHog] Error during identification:', error);
+      }
+    };
+
+    identifyUser();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [posthog]);
+
+  return <>{children}</>;
+}
 
 function RootLayoutNav() {
   const { isOnboardingComplete, isLoading } = useOnboarding();
@@ -275,26 +369,28 @@ export default function RootLayout() {
           captureScreens: true // Keep screen navigation
         }}
       >
-        <SessionProvider>
-          <OnboardingProvider>
-            <TextSettingsProvider>
-              <GratitudeProvider>
-                <SobrietyProvider>
-                  <EveningReviewProvider>
-                    <GestureHandlerRootView style={{ flex: 1 }}>
-                      {Platform.OS === 'android' && (
-                        <StatusBar translucent backgroundColor="transparent" barStyle="light-content" />
-                      )}
-                      <ErrorBoundary>
-                        <RootLayoutNav />
-                      </ErrorBoundary>
-                    </GestureHandlerRootView>
-                  </EveningReviewProvider>
-                </SobrietyProvider>
-              </GratitudeProvider>
-            </TextSettingsProvider>
-          </OnboardingProvider>
-        </SessionProvider>
+        <PostHogIdentifier>
+          <SessionProvider>
+            <OnboardingProvider>
+              <TextSettingsProvider>
+                <GratitudeProvider>
+                  <SobrietyProvider>
+                    <EveningReviewProvider>
+                      <GestureHandlerRootView style={{ flex: 1 }}>
+                        {Platform.OS === 'android' && (
+                          <StatusBar translucent backgroundColor="transparent" barStyle="light-content" />
+                        )}
+                        <ErrorBoundary>
+                          <RootLayoutNav />
+                        </ErrorBoundary>
+                      </GestureHandlerRootView>
+                    </EveningReviewProvider>
+                  </SobrietyProvider>
+                </GratitudeProvider>
+              </TextSettingsProvider>
+            </OnboardingProvider>
+          </SessionProvider>
+        </PostHogIdentifier>
       </PostHogProvider>
     </QueryClientProvider>
   );

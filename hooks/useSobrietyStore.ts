@@ -77,6 +77,10 @@ export const [SobrietyProvider, useSobriety] = createContextHook(() => {
     
     // Sync to Supabase for community stats
     await syncSobrietyDate(date);
+
+    // Note: PostHog milestone will be updated on next app launch
+    // via PostHogIdentifier in _layout.tsx
+    console.log('[Sobriety] Date saved. PostHog milestone will sync on next app launch.');
   }, [saveData]);
 
   const dismissPrompt = useCallback(() => {
