@@ -409,8 +409,8 @@ export default function EveningReview() {
     const actionsCount = dailyActions.filter(action => action.checked).length;
     const inventoryCount = inventoryQuestions.filter(question => question.value.trim() !== '').length;
     
-    // Track evening review completion
-    posthog?.capture('evening_review_completed', {
+    // Track nightly review save
+    posthog?.capture('nightly_review_saved', {
       actions_completed: actionsCount,
       inventory_items_completed: inventoryCount,
       total_items: actionsCount + inventoryCount

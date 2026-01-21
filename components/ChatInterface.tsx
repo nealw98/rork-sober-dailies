@@ -282,9 +282,9 @@ export default function ChatInterface({
     featureUse(`SponsorMessage_${sponsorName}`, 'Chat');
 
     // TODO: Remove Supabase tracking after PostHog validation
-    posthog?.capture('feature_use', { 
-      feature: `SponsorMessage_${sponsorName}`, 
-      screen: 'Chat' 
+    posthog?.capture('sponsor_message_sent', { 
+      sponsor_name: sponsorName,
+      screen: 'Chat'
     });
 
     const textToSend = inputText;

@@ -207,8 +207,8 @@ function SponsorChatContent({ initialSponsor }: { initialSponsor: string }) {
     featureUse(`SponsorMessage_${getSponsorDisplayName(sponsorType)}`);
     
     // TODO: Remove Supabase tracking after PostHog validation
-    posthog?.capture('feature_use', { 
-      feature: `SponsorMessage_${getSponsorDisplayName(sponsorType)}` 
+    posthog?.capture('sponsor_message_sent', { 
+      sponsor_name: getSponsorDisplayName(sponsorType)
     });
     
     await sendMessage(trimmed);

@@ -55,7 +55,17 @@ export default function LiteratureScreen() {
   }, [posthog]);
 
   const handleOptionPress = (route: string, literatureId: string) => {
-    posthog?.capture('literature_selected', { literature_id: literatureId });
+    // Map literature ID to section name
+    const sectionMap: Record<string, string> = {
+      'bigbook': 'Big Book',
+      'twelve-and-twelve': '12 Steps & 12 Traditions',
+      'meeting-pocket': 'Meeting Guide'
+    };
+    
+    posthog?.capture('literature_selected', { 
+      literature_id: literatureId,
+      literature_section: sectionMap[literatureId] || literatureId
+    });
     router.push(route as any);
   };
 
