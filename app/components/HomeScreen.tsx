@@ -212,7 +212,7 @@ const HomeScreen = () => {
           <TouchableOpacity
             onPress={() => router.push('/(tabs)/prayers')}
             activeOpacity={0.8}
-            style={styles.routineTileFull}
+            style={styles.routineTileHalf}
           >
             <LinearGradient
               colors={['#6AC8B8', '#4AA898']}
@@ -224,13 +224,11 @@ const HomeScreen = () => {
               <Text style={styles.routineTitleLight}>Prayers</Text>
             </LinearGradient>
           </TouchableOpacity>
-        </View>
-        
-        <View style={styles.routineRow}>
+
           <TouchableOpacity
             onPress={() => router.push('/(tabs)/inventory')}
             activeOpacity={0.8}
-            style={styles.routineTileFull}
+            style={styles.routineTileHalf}
           >
             <LinearGradient
               colors={['#E0CABE', '#907565']}
