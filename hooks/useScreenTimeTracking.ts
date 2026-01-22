@@ -27,7 +27,7 @@ export function useScreenTimeTracking(screenName: string) {
     console.log(`[ScreenTime] ${screenName} opened at ${new Date(openTimestamp).toISOString()}`);
     
     posthog?.capture('screen_opened', {
-      screen_name: screenName,
+      $screen_name: screenName,
       timestamp: openTimestamp,
     });
 
@@ -45,13 +45,13 @@ export function useScreenTimeTracking(screenName: string) {
           // Only track if session was > 2 seconds
           if (duration >= 2) {
             posthog?.capture('screen_closed', {
-              screen_name: screenName,
+              $screen_name: screenName,
               timestamp: now,
               duration_seconds: duration,
             });
 
             posthog?.capture('screen_time_completed', {
-              screen_name: screenName,
+              $screen_name: screenName,
               duration_seconds: duration,
               open_timestamp: startTimeRef.current,
               close_timestamp: now,
@@ -73,7 +73,7 @@ export function useScreenTimeTracking(screenName: string) {
           console.log(`[ScreenTime] ${screenName} reopened from background at ${new Date(reopenTimestamp).toISOString()}`);
           
           posthog?.capture('screen_opened', {
-            screen_name: screenName,
+            $screen_name: screenName,
             timestamp: reopenTimestamp,
           });
         }
@@ -95,13 +95,13 @@ export function useScreenTimeTracking(screenName: string) {
         // Only track if session was > 2 seconds
         if (duration >= 2) {
           posthog?.capture('screen_closed', {
-            screen_name: screenName,
+            $screen_name: screenName,
             timestamp: closeTimestamp,
             duration_seconds: duration,
           });
 
           posthog?.capture('screen_time_completed', {
-            screen_name: screenName,
+            $screen_name: screenName,
             duration_seconds: duration,
             open_timestamp: startTimeRef.current,
             close_timestamp: closeTimestamp,
