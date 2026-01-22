@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useCallback } from "react";
 import { StyleSheet, Dimensions } from "react-native";
 import { Stack } from "expo-router";
 import {
@@ -11,6 +11,7 @@ import {
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { usePostHog } from 'posthog-react-native';
+import { useFocusEffect } from '@react-navigation/native';
 import { ChevronLeft } from "lucide-react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Colors from "@/constants/colors";
@@ -32,9 +33,11 @@ export default function ChatScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
 
-  useEffect(() => {
-    posthog?.screen('AI Sponsor Selection');
-  }, [posthog]);
+  useFocusEffect(
+    useCallback(() => {
+      posthog?.screen('AI Sponsor Selection');
+    }, [posthog])
+  );
 
   // Filter to only visible sponsors
   const visibleSponsors = SPONSORS.filter(s => VISIBLE_SPONSOR_IDS.includes(s.id));

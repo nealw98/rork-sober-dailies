@@ -1,7 +1,8 @@
 import { StyleSheet } from "react-native";
 import { Stack } from 'expo-router';
-import { useEffect } from 'react';
+import { useCallback } from 'react';
 import { usePostHog } from 'posthog-react-native';
+import { useFocusEffect } from '@react-navigation/native';
 import { PrayersMain } from "@/components/PrayersMain";
 import ScreenContainer from "@/components/ScreenContainer";
 import { useScreenTimeTracking } from "@/hooks/useScreenTimeTracking";
@@ -11,9 +12,11 @@ export default function PrayersScreen() {
 
   useScreenTimeTracking('Prayers');
 
-  useEffect(() => {
-    posthog?.screen('Prayers');
-  }, [posthog]);
+  useFocusEffect(
+    useCallback(() => {
+      posthog?.screen('Prayers');
+    }, [posthog])
+  );
 
   return (
     <ScreenContainer style={styles.container} noPadding>

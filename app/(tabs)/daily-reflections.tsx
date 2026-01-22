@@ -1,7 +1,8 @@
-import React, { useMemo, useEffect } from 'react';
+import React, { useMemo, useCallback } from 'react';
 import { Stack } from 'expo-router';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import { usePostHog } from 'posthog-react-native';
+import { useFocusEffect } from '@react-navigation/native';
 import ScreenContainer from '@/components/ScreenContainer';
 import DailyReflection from '@/components/DailyReflection';
 import { useTextSettings } from '@/hooks/use-text-settings';
@@ -14,9 +15,11 @@ export default function DailyReflectionsPage() {
   
   useScreenTimeTracking('Daily Reflections');
   
-  useEffect(() => {
-    posthog?.screen('Daily Reflection');
-  }, [posthog]);
+  useFocusEffect(
+    useCallback(() => {
+      posthog?.screen('Daily Reflection');
+    }, [posthog])
+  );
   
   // Double-tap to reset to default font size
   const doubleTapGesture = useMemo(() => Gesture.Tap()

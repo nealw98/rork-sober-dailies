@@ -1,7 +1,8 @@
 import { StyleSheet, View, Text, TouchableOpacity } from "react-native";
 import { router, Stack } from "expo-router";
-import { useEffect } from "react";
+import { useCallback } from "react";
 import { usePostHog } from 'posthog-react-native';
+import { useFocusEffect } from '@react-navigation/native';
 import { ChevronLeft } from "lucide-react-native";
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -50,9 +51,11 @@ export default function LiteratureScreen() {
   useReadingSession('literature');
   const insets = useSafeAreaInsets();
 
-  useEffect(() => {
-    posthog?.screen('Literature');
-  }, [posthog]);
+  useFocusEffect(
+    useCallback(() => {
+      posthog?.screen('Literature');
+    }, [posthog])
+  );
 
   const handleOptionPress = (route: string, literatureId: string) => {
     // Map literature ID to section name

@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -17,6 +17,7 @@ import { router, Stack } from 'expo-router';
 import * as Clipboard from 'expo-clipboard';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { usePostHog } from 'posthog-react-native';
+import { useFocusEffect } from '@react-navigation/native';
 import ScreenContainer from "@/components/ScreenContainer";
 import { LinearGradient } from 'expo-linear-gradient';
 import { ChevronLeft, Share as ShareIcon, Save, List, Check, RotateCcw } from 'lucide-react-native';
@@ -183,9 +184,11 @@ export default function EveningReview() {
   ];
 
   // Track screen view
-  useEffect(() => {
-    posthog?.screen('Evening Review');
-  }, [posthog]);
+  useFocusEffect(
+    useCallback(() => {
+      posthog?.screen('Evening Review');
+    }, [posthog])
+  );
 
   const handleStartNew = () => {
     setStayedSober(false);

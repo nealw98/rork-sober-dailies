@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   View,
   Text,
@@ -14,6 +14,7 @@ import {
 import * as Haptics from 'expo-haptics';
 import * as Clipboard from 'expo-clipboard';
 import { usePostHog } from 'posthog-react-native';
+import { useFocusEffect } from '@react-navigation/native';
 import { Heart, Share as ShareIcon, Save, List, CheckCircle, Calendar, Trash2, RotateCcw, ChevronLeft } from 'lucide-react-native';
 import AnimatedWeeklyProgressMessage from '@/components/AnimatedWeeklyProgressMessage';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -354,9 +355,11 @@ export default function GratitudeListScreen() {
   const gratitudeStore = useGratitudeStore();
   const { fontSize, lineHeight } = useTextSettings();
 
-  useEffect(() => {
-    posthog?.screen('Gratitude List');
-  }, [posthog]);
+  useFocusEffect(
+    useCallback(() => {
+      posthog?.screen('Gratitude List');
+    }, [posthog])
+  );
 
   // Add safety check to prevent destructuring undefined
   if (!gratitudeStore) {
