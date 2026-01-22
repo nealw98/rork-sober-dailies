@@ -157,6 +157,9 @@ function SponsorChatContent({ initialSponsor }: { initialSponsor: string }) {
 
   // Use the initialSponsor directly for display (we know it's valid)
   const sponsor = getSponsorById(initialSponsor as SponsorType);
+
+  // Track screen time with sponsor name
+  useScreenTimeTracking(sponsor ? sponsor.name : 'Unknown Sponsor');
   const bubbleColor = sponsor?.bubbleColor;
   const bubbleBorderColor = sponsor?.bubbleBorderColor;
   const placeholderText = sponsor?.placeholderText ?? "Type a message...";

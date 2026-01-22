@@ -1,14 +1,3 @@
-/**
- * Prayer Reader Component
- * 
- * Full-screen modal reader that displays prayer content with:
- * - Prayer title in header
- * - Scrollable prayer text
- * - Prev/Next prayer navigation in footer
- * 
- * Rebuilt to match BigBookReader architecture for reliable cross-platform scrolling.
- */
-
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   View,
@@ -33,6 +22,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { adjustFontWeight } from '@/constants/fonts';
 import { useTextSettings } from '@/hooks/use-text-settings';
 import { aaPrayers } from '@/constants/prayers';
+import { useScreenTimeTracking } from '@/hooks/useScreenTimeTracking';
 
 interface PrayerReaderProps {
   visible: boolean;
@@ -45,6 +35,25 @@ export function PrayerReader({ visible, prayerIndex, onClose, onPrayerChange }: 
   const insets = useSafeAreaInsets();
   const { fontSize, lineHeight } = useTextSettings();
   const scrollViewRef = useRef<ScrollView>(null);
+  
+  // Get current prayer for tracking
+  const currentPrayer = aaPrayers[prayerIndex];
+  const prayerTitle = currentPrayer?.title || 'Prayer';
+  
+  // Track screen time for individual prayers (only when visible)
+  // This creates a conditional hook that only tracks when the modal is visible
+  const [trackingScreen, setTrackingScreen] = useState<string | null>(null);
+  
+  useEffect(() => {
+    if (visible) {
+      setTrackingScreen(prayerTitle);
+    } else {
+      setTrackingScreen(null);
+    }
+  }, [visible, prayerTitle]);
+  
+  // Use the hook with the tracking screen
+  useScreenTimeTracking(trackingScreen || 'Prayer');
   
   // Force layout recalculation on Android when modal opens
   // This fixes an issue where initial layout is calculated incorrectly at large font sizes

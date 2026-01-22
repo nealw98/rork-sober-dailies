@@ -6,10 +6,13 @@ import ScreenContainer from '@/components/ScreenContainer';
 import DailyReflection from '@/components/DailyReflection';
 import { useTextSettings } from '@/hooks/use-text-settings';
 import { DailyReflectionBookmarksProvider } from '@/hooks/use-daily-reflection-bookmarks';
+import { useScreenTimeTracking } from '@/hooks/useScreenTimeTracking';
 
 export default function DailyReflectionsPage() {
   const posthog = usePostHog();
   const { fontSize, lineHeight, resetDefaults } = useTextSettings();
+  
+  useScreenTimeTracking('Daily Reflections');
   
   useEffect(() => {
     posthog?.screen('Daily Reflection');

@@ -27,6 +27,7 @@ import { ReviewCompleteModal } from '@/components/ReviewCompleteModal';
 import Colors from '@/constants/colors';
 import { adjustFontWeight } from '@/constants/fonts';
 import { useTextSettings } from '@/hooks/use-text-settings';
+import { useScreenTimeTracking } from '@/hooks/useScreenTimeTracking';
 
 const formatDateDisplay = (date: Date): string => {
   return date.toLocaleDateString('en-US', {
@@ -112,6 +113,8 @@ export default function EveningReview() {
   const [showConfirmation, setShowConfirmation] = useState(false);
   const [showSavedReviews, setShowSavedReviews] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
+
+  useScreenTimeTracking('Evening Review');
 
   // New Daily Actions state
   const [stayedSober, setStayedSober] = useState(false);

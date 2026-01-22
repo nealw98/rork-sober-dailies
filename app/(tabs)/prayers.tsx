@@ -4,9 +4,12 @@ import { useEffect } from 'react';
 import { usePostHog } from 'posthog-react-native';
 import { PrayersMain } from "@/components/PrayersMain";
 import ScreenContainer from "@/components/ScreenContainer";
+import { useScreenTimeTracking } from "@/hooks/useScreenTimeTracking";
 
 export default function PrayersScreen() {
   const posthog = usePostHog();
+
+  useScreenTimeTracking('Prayers');
 
   useEffect(() => {
     posthog?.screen('Prayers');

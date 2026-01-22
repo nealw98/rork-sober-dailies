@@ -24,6 +24,7 @@ import { adjustFontWeight } from '@/constants/fonts';
 import ScreenContainer from '@/components/ScreenContainer';
 import { useFocusEffect } from '@react-navigation/native';
 import { useTextSettings } from '@/hooks/use-text-settings';
+import { useScreenTimeTracking } from '@/hooks/useScreenTimeTracking';
 
 const INVENTORY_STORAGE_KEY = 'spot_check_inventories';
 
@@ -496,6 +497,8 @@ const Inventory = () => {
   const [showHistory, setShowHistory] = useState(false);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [showInstructions, setShowInstructions] = useState(false);
+
+  useScreenTimeTracking('Spot Check Inventory');
 
   // Handler to close instructions
   const handleCloseInstructions = () => {
