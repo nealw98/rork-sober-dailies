@@ -42,7 +42,11 @@ export default function ChatScreen() {
   const handleSponsorSelect = (sponsorId: string) => {
     const sponsor = SPONSORS.find(s => s.id === sponsorId);
     if (sponsor && sponsor.isAvailable) {
-      posthog?.capture('sponsor_selected', { sponsor_id: sponsorId, sponsor_name: sponsor.name });
+      posthog?.capture('sponsor_selected', { 
+        $screen_name: 'AI Sponsor',
+        sponsor_id: sponsorId, 
+        sponsor_name: sponsor.name 
+      });
       router.push(`/sponsor-chat?sponsor=${sponsorId}`);
     }
   };

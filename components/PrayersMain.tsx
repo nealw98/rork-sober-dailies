@@ -59,6 +59,7 @@ export function PrayersMain() {
     
     // Track prayer view
     posthog?.capture('prayer_viewed', { 
+      $screen_name: 'Prayers',
       prayer_title: selectedPrayer.title 
     });
     

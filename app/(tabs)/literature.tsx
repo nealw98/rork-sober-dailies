@@ -63,6 +63,7 @@ export default function LiteratureScreen() {
     };
     
     posthog?.capture('literature_selected', { 
+      $screen_name: 'Literature',
       literature_id: literatureId,
       literature_section: sectionMap[literatureId] || literatureId
     });

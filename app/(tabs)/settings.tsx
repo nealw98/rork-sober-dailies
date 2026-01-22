@@ -32,11 +32,15 @@ export default function SettingsScreen() {
   const step = 2;
   const increase = () => {
     setFontSize(fontSize + step);
-    posthog?.capture('settings_font_size_increase');
+    posthog?.capture('settings_font_size_increase', {
+      $screen_name: 'Settings'
+    });
   };
   const decrease = () => {
     setFontSize(fontSize - step);
-    posthog?.capture('settings_font_size_decrease');
+    posthog?.capture('settings_font_size_decrease', {
+      $screen_name: 'Settings'
+    });
   };
 
   const handleBack = () => {

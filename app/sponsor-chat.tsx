@@ -211,6 +211,7 @@ function SponsorChatContent({ initialSponsor }: { initialSponsor: string }) {
     
     // TODO: Remove Supabase tracking after PostHog validation
     posthog?.capture('sponsor_message_sent', { 
+      $screen_name: sponsor ? sponsor.name : 'Unknown Sponsor',
       sponsor_name: getSponsorDisplayName(sponsorType)
     });
     

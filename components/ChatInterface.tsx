@@ -283,6 +283,7 @@ export default function ChatInterface({
 
     // TODO: Remove Supabase tracking after PostHog validation
     posthog?.capture('sponsor_message_sent', { 
+      $screen_name: 'Chat',
       sponsor_name: sponsorName,
       screen: 'Chat'
     });

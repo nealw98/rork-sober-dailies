@@ -414,6 +414,7 @@ export default function EveningReview() {
     
     // Track nightly review save
     posthog?.capture('nightly_review_saved', {
+      $screen_name: 'Evening Review',
       actions_completed: actionsCount,
       inventory_items_completed: inventoryCount,
       total_items: actionsCount + inventoryCount

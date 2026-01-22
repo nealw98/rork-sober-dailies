@@ -23,7 +23,9 @@ export default function DailyReflectionsPage() {
     .numberOfTaps(2)
     .onStart(() => {
       resetDefaults();
-      posthog?.capture('daily_reflection_reset_font_size');
+      posthog?.capture('daily_reflection_reset_font_size', {
+        $screen_name: 'Daily Reflections'
+      });
     })
     .runOnJS(true), [resetDefaults, posthog]);
 

@@ -462,7 +462,10 @@ export default function GratitudeListScreen() {
       const newItems = [...gratitudeItems, inputValue.trim()];
       setGratitudeItems(newItems);
       addItemsToToday([inputValue.trim()]);
-      posthog?.capture('gratitude_item_added', { item_count: newItems.length });
+      posthog?.capture('gratitude_item_added', { 
+        $screen_name: 'Gratitude List',
+        item_count: newItems.length 
+      });
       setInputValue('');
       inputRef.current?.blur();
     }
@@ -614,7 +617,10 @@ export default function GratitudeListScreen() {
     saveDetailedEntry(gratitudeItems);
     completeToday(gratitudeItems);
     
-    posthog?.capture('gratitude_list_completed', { item_count: gratitudeItems.length });
+    posthog?.capture('gratitude_list_completed', { 
+      $screen_name: 'Gratitude List',
+      item_count: gratitudeItems.length 
+    });
     
     // Show completion modal
     setShowConfirmation(true);
