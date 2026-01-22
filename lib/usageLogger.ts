@@ -37,6 +37,8 @@ class UsageLogger {
   private lastScreenLogged: string | null = null;
   private lastScreenLogTime: number = 0;
   private posthog: PostHogInstance = null;
+  private sessionStartTime: number = Date.now(); // Track when session started
+  private lastBackgroundEventTime: number = 0; // Prevent duplicate background events
 
   constructor() {
     this.initializeSession();
@@ -54,19 +56,13 @@ class UsageLogger {
     try {
       // Always generate a new session ID on app launch
       this.sessionId = this.generateSessionId();
+      this.sessionStartTime = Date.now(); // Record session start time
       console.log('[UsageLogger] New session initialized on app launch:', this.sessionId);
       
-      // Log app launch event to Supabase
+      // Log app launch event to Supabase (NOT PostHog - user doesn't want Application Opened)
       this.logEvent('app_launch', { 
         platform: Platform.OS,
         app_version: Constants.expoConfig?.version 
-      });
-      
-      // Also send to PostHog if available
-      this.posthog?.capture('Application Opened', {
-        platform: Platform.OS,
-        app_version: Constants.expoConfig?.version,
-        session_id: this.sessionId
       });
       
       // Check daily streak on app launch (non-blocking)
@@ -304,16 +300,29 @@ class UsageLogger {
       this.appState = nextAppState;
 
       if (nextAppState === 'background' || nextAppState === 'inactive') {
+        // Prevent duplicate background events
+        const now = Date.now();
+        if (now - this.lastBackgroundEventTime < 1000) {
+          console.log('[UsageLogger] Skipping duplicate background event');
+          return;
+        }
+        this.lastBackgroundEventTime = now;
+        
+        // Calculate session duration
+        const sessionDuration = Math.floor((now - this.sessionStartTime) / 1000);
+        
         // App going to background - log app_background event to Supabase
         this.logEvent('app_background', { 
           platform: Platform.OS,
-          screen: this.currentScreen 
+          screen: this.currentScreen,
+          session_duration_seconds: sessionDuration
         });
         
-        // Also send to PostHog
+        // Also send to PostHog with session duration
         this.posthog?.capture('Application Backgrounded', {
           platform: Platform.OS,
-          screen: this.currentScreen,
+          $screen_name: this.currentScreen,
+          session_duration_seconds: sessionDuration,
           session_id: this.sessionId
         });
         
@@ -332,6 +341,7 @@ class UsageLogger {
         // Generate a new session ID for the new session
         const previousSessionId = this.sessionId;
         this.sessionId = this.generateSessionId();
+        this.sessionStartTime = Date.now(); // Reset session start time
         
         console.log('[UsageLogger] New session started on app foreground:', this.sessionId, 'Previous:', previousSessionId);
         
@@ -345,6 +355,7 @@ class UsageLogger {
         // Also send to PostHog
         this.posthog?.capture('Application Became Active', {
           platform: Platform.OS,
+          $screen_name: this.currentScreen,
           previous_session_id: previousSessionId,
           new_session_id: this.sessionId
         });
