@@ -237,7 +237,7 @@ const HomeScreen = () => {
               end={{ x: 0.5, y: 1 }}
             >
               <Text style={styles.routineEmoji}>📝</Text>
-              <Text style={styles.routineTitleLight}>Spot Check Inventory</Text>
+              <Text style={styles.routineTitleLight}>Spot Check</Text>
             </LinearGradient>
           </TouchableOpacity>
         </View>
