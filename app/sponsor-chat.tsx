@@ -159,7 +159,9 @@ function SponsorChatContent({ initialSponsor }: { initialSponsor: string }) {
   const sponsor = getSponsorById(initialSponsor as SponsorType);
 
   // Track screen time with sponsor name
-  useScreenTimeTracking(sponsor ? sponsor.name : 'Unknown Sponsor');
+  // TODO: Re-enable once useScreenTimeTracking hook is fixed
+  // useScreenTimeTracking(sponsor ? sponsor.name : 'Unknown Sponsor');
+  
   const bubbleColor = sponsor?.bubbleColor;
   const bubbleBorderColor = sponsor?.bubbleBorderColor;
   const placeholderText = sponsor?.placeholderText ?? "Type a message...";
