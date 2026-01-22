@@ -20,7 +20,7 @@ import Colors from "@/constants/colors";
 import WelcomeScreen from "@/components/WelcomeScreen";
 import OTASnackbar from "@/components/OTASnackbar";
 import { Logger } from "@/lib/logger";
-import { initUsageLogger } from "@/lib/usageLogger";
+import { initUsageLogger, setPostHogForUsageLogger } from "@/lib/usageLogger";
 import { recordAppOpen } from "@/lib/reviewPrompt";
 import { useExpoRouterTracking } from "@/hooks/useExpoRouterTracking";
 import { SessionProvider } from "@/hooks/useSessionContext";
@@ -87,6 +87,11 @@ function PostHogIdentifier({ children }: { children: React.ReactNode }) {
 
     const identifyUser = async () => {
       try {
+        // Register PostHog instance with usageLogger for dual tracking
+        if (posthog) {
+          setPostHogForUsageLogger(posthog);
+        }
+
         // Get device ID
         const deviceId = await getDeviceId();
         

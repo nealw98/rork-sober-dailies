@@ -20,6 +20,11 @@ interface UsageEvent {
   platform: string;
 }
 
+// PostHog type (avoiding direct import to prevent circular dependencies)
+type PostHogInstance = {
+  capture: (event: string, properties?: Record<string, any>) => void;
+} | null;
+
 class UsageLogger {
   private sessionId: string | null = null;
   private anonymousId: string | null = null;
@@ -31,11 +36,18 @@ class UsageLogger {
   private appState: AppStateStatus = 'active';
   private lastScreenLogged: string | null = null;
   private lastScreenLogTime: number = 0;
+  private posthog: PostHogInstance = null;
 
   constructor() {
     this.initializeSession();
     this.initializeAnonymousId();
     this.setupAppStateListener();
+  }
+
+  // Set PostHog instance for dual tracking
+  setPostHog(posthogInstance: PostHogInstance): void {
+    this.posthog = posthogInstance;
+    console.log('[UsageLogger] PostHog instance registered for dual tracking');
   }
 
   async initializeSession(): Promise<void> {
@@ -44,10 +56,17 @@ class UsageLogger {
       this.sessionId = this.generateSessionId();
       console.log('[UsageLogger] New session initialized on app launch:', this.sessionId);
       
-      // Log app launch event
+      // Log app launch event to Supabase
       this.logEvent('app_launch', { 
         platform: Platform.OS,
         app_version: Constants.expoConfig?.version 
+      });
+      
+      // Also send to PostHog if available
+      this.posthog?.capture('Application Opened', {
+        platform: Platform.OS,
+        app_version: Constants.expoConfig?.version,
+        session_id: this.sessionId
       });
       
       // Check daily streak on app launch (non-blocking)
@@ -285,10 +304,17 @@ class UsageLogger {
       this.appState = nextAppState;
 
       if (nextAppState === 'background' || nextAppState === 'inactive') {
-        // App going to background - log app_background event
+        // App going to background - log app_background event to Supabase
         this.logEvent('app_background', { 
           platform: Platform.OS,
           screen: this.currentScreen 
+        });
+        
+        // Also send to PostHog
+        this.posthog?.capture('Application Backgrounded', {
+          platform: Platform.OS,
+          screen: this.currentScreen,
+          session_id: this.sessionId
         });
         
         // Also log screen close if we have a current screen (with duration)
@@ -309,8 +335,15 @@ class UsageLogger {
         
         console.log('[UsageLogger] New session started on app foreground:', this.sessionId, 'Previous:', previousSessionId);
         
-        // Log app_foreground event with new session
+        // Log app_foreground event to Supabase with new session
         this.logEvent('app_foreground', { 
+          platform: Platform.OS,
+          previous_session_id: previousSessionId,
+          new_session_id: this.sessionId
+        });
+        
+        // Also send to PostHog
+        this.posthog?.capture('Application Became Active', {
           platform: Platform.OS,
           previous_session_id: previousSessionId,
           new_session_id: this.sessionId
@@ -404,6 +437,9 @@ export const usageLogger = new UsageLogger();
 
 // Export initialization function
 export const initUsageLogger = () => usageLogger;
+
+// Export function to set PostHog instance
+export const setPostHogForUsageLogger = (posthogInstance: any) => usageLogger.setPostHog(posthogInstance);
 
 // Export helper functions
 export const logEvent = (event: string, props?: Record<string, any>) => usageLogger.logEvent(event, props);
