@@ -71,7 +71,6 @@ export function PrayerReader({ visible, prayerIndex, onClose, onPrayerChange }: 
     }
   }, [visible, prayerIndex]);
   
-  const currentPrayer = aaPrayers[prayerIndex];
   const hasPrevious = prayerIndex > 0;
   const hasNext = prayerIndex < aaPrayers.length - 1;
   
