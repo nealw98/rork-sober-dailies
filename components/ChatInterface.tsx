@@ -42,7 +42,13 @@ const checkSponsorMessageLimits = async (): Promise<LimitCheckResult> => {
     const anonymousId = await getAnonymousId();
 
     const now = new Date();
-    const todayUtc = now.toISOString().split("T")[0];
+    
+    // Calculate start of today UTC
+    const startOfTodayUtc = new Date(
+      Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), 0, 0, 0)
+    ).toISOString();
+    
+    // Calculate start of this month UTC
     const startOfMonthUtc = new Date(
       Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1, 0, 0, 0)
     ).toISOString();
@@ -54,7 +60,7 @@ const checkSponsorMessageLimits = async (): Promise<LimitCheckResult> => {
         .eq("anonymous_id", anonymousId)
         .eq("event", "feature_use")
         .ilike("feature", "SponsorMessage\\_%")
-        .eq("day_utc", todayUtc),
+        .gte("ts", startOfTodayUtc),
       supabase
         .from("usage_events")
         .select("id", { head: true, count: "exact" })
