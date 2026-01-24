@@ -388,7 +388,7 @@ function SponsorChatContent({ initialSponsor }: { initialSponsor: string }) {
           ]}
         >
           <TextInput
-            style={styles.input}
+            style={[styles.input, { fontSize }]}
             value={inputText}
             onChangeText={setInputText}
             placeholder={placeholderText}
@@ -548,7 +548,7 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     paddingHorizontal: 16,
     paddingVertical: 10,
-    fontSize: 16,
+    // fontSize applied inline to match text settings
     maxHeight: 100,
     borderWidth: 1,
     borderColor: '#e0e0e0',
