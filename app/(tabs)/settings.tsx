@@ -378,7 +378,6 @@ export default function SettingsScreen() {
       {/* Footer with version */}
       <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, 16) }]}>
         <TouchableOpacity 
-          onPress={toggleDeveloperMode}
           onLongPress={toggleLogs}
           activeOpacity={0.6}
           delayLongPress={500}
@@ -426,6 +425,24 @@ export default function SettingsScreen() {
               <Text style={styles.logsInfoValue}>
                 {Platform.OS === 'ios' ? 'iOS' : 'Android'} {Platform.Version}
               </Text>
+            </View>
+          </View>
+
+          {/* Developer Mode Toggle */}
+          <View style={styles.logsDeveloperSection}>
+            <View style={styles.logsDeveloperToggle}>
+              <View>
+                <Text style={styles.logsDeveloperLabel}>Developer Mode</Text>
+                <Text style={styles.logsDeveloperSubtext}>
+                  Tag your activity as developer in analytics
+                </Text>
+              </View>
+              <Switch
+                value={isDeveloperMode}
+                onValueChange={toggleDeveloperMode}
+                trackColor={{ false: '#334155', true: '#60a5fa' }}
+                thumbColor={isDeveloperMode ? '#fff' : '#94a3b8'}
+              />
             </View>
           </View>
 
@@ -725,6 +742,30 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: adjustFontWeight('600'),
     color: '#f1f5f9',
+  },
+  logsDeveloperSection: {
+    paddingHorizontal: 16,
+    paddingBottom: 16,
+  },
+  logsDeveloperToggle: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    backgroundColor: '#1e293b',
+    padding: 16,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#334155',
+  },
+  logsDeveloperLabel: {
+    fontSize: 15,
+    fontWeight: adjustFontWeight('600'),
+    color: '#f1f5f9',
+    marginBottom: 4,
+  },
+  logsDeveloperSubtext: {
+    fontSize: 12,
+    color: '#94a3b8',
   },
   logsActionsRow: {
     flexDirection: 'row',
