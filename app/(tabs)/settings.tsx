@@ -56,15 +56,10 @@ export default function SettingsScreen() {
     try {
       await AsyncStorage.setItem(DEVELOPER_MODE_KEY, newValue.toString());
       
-      // Update PostHog user property
+      // Update PostHog user property (silently, no UI feedback)
       posthog?.setPersonProperties({
         is_developer: newValue
       });
-      
-      Alert.alert(
-        newValue ? 'Developer Mode Enabled' : 'Developer Mode Disabled',
-        newValue ? 'You now have access to debug tools.' : 'Debug tools are now hidden.'
-      );
     } catch (error) {
       console.error('[Settings] Failed to save developer mode:', error);
     }
@@ -365,24 +360,6 @@ export default function SettingsScreen() {
         </TouchableOpacity>
       </ScrollView>
 
-      {/* Developer Mode Section - only shown if developer mode is enabled */}
-      {isDeveloperMode && (
-        <>
-          <Text style={styles.sectionTitle}>Developer Tools</Text>
-          <TouchableOpacity 
-            style={styles.menuItem}
-            onPress={toggleLogs}
-            activeOpacity={0.7}
-          >
-            <View style={styles.menuItemContent}>
-              <Terminal size={20} color="#3D8B8B" style={{ marginRight: 12 }} />
-              <Text style={styles.menuItemText}>Debug Console</Text>
-            </View>
-            <ChevronRight size={20} color="#666" />
-          </TouchableOpacity>
-        </>
-      )}
-
       {/* Legal Links - above footer */}
       <View style={styles.legalLinksContainer}>
         <TouchableOpacity onPress={handlePrivacyPress}>
@@ -402,7 +379,7 @@ export default function SettingsScreen() {
       <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, 16) }]}>
         <TouchableOpacity 
           onPress={toggleDeveloperMode}
-          onLongPress={isDeveloperMode ? toggleLogs : undefined}
+          onLongPress={toggleLogs}
           activeOpacity={0.6}
           delayLongPress={500}
         >
@@ -410,7 +387,6 @@ export default function SettingsScreen() {
             Version {appVersion}
             {Platform.OS === 'ios' && iosBuild ? ` (${iosBuild})` : ''}
             {Platform.OS === 'android' && androidVersionCode ? ` (${androidVersionCode})` : ''}
-            {isDeveloperMode && ' 🔧'}
           </Text>
         </TouchableOpacity>
       </View>
