@@ -1,17 +1,20 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Platform, Linking, Share, ScrollView, Modal, SafeAreaView, Alert, TextInput, ActivityIndicator, KeyboardAvoidingView } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Platform, Linking, Share, ScrollView, Modal, SafeAreaView, Alert, TextInput, ActivityIndicator, KeyboardAvoidingView, Switch } from 'react-native';
 import { router, Stack } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { usePostHog } from 'posthog-react-native';
 import { useFocusEffect } from '@react-navigation/native';
-import { ChevronLeft, ChevronRight, X } from 'lucide-react-native';
+import { ChevronLeft, ChevronRight, X, Code2, Terminal, RefreshCw } from 'lucide-react-native';
 import Constants from 'expo-constants';
 import * as Clipboard from 'expo-clipboard';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { adjustFontWeight } from '@/constants/fonts';
 import { useTextSettings } from '@/hooks/use-text-settings';
 import { Logger } from '@/lib/logger';
 import { submitFeedback } from '@/lib/feedback';
+
+const DEVELOPER_MODE_KEY = 'developer_mode_enabled';
 
 export default function SettingsScreen() {
   const posthog = usePostHog();
@@ -19,6 +22,7 @@ export default function SettingsScreen() {
   const { fontSize, setFontSize, minFontSize, maxFontSize, resetDefaults, defaultFontSize } = useTextSettings();
   const [logsVisible, setLogsVisible] = useState(false);
   const [logsText, setLogsText] = useState('');
+  const [isDeveloperMode, setIsDeveloperMode] = useState(false);
   
   // Feedback modal state
   const [feedbackVisible, setFeedbackVisible] = useState(false);
@@ -26,12 +30,46 @@ export default function SettingsScreen() {
   const [contactInfo, setContactInfo] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // Load developer mode on mount
+  useEffect(() => {
+    const loadDeveloperMode = async () => {
+      try {
+        const value = await AsyncStorage.getItem(DEVELOPER_MODE_KEY);
+        setIsDeveloperMode(value === 'true');
+      } catch (error) {
+        console.error('[Settings] Failed to load developer mode:', error);
+      }
+    };
+    loadDeveloperMode();
+  }, []);
+
   useFocusEffect(
     useCallback(() => {
       posthog?.screen('Settings');
     }, [posthog])
   );
   
+  const toggleDeveloperMode = async () => {
+    const newValue = !isDeveloperMode;
+    setIsDeveloperMode(newValue);
+    
+    try {
+      await AsyncStorage.setItem(DEVELOPER_MODE_KEY, newValue.toString());
+      
+      // Update PostHog user property
+      posthog?.setPersonProperties({
+        is_developer: newValue
+      });
+      
+      Alert.alert(
+        newValue ? 'Developer Mode Enabled' : 'Developer Mode Disabled',
+        newValue ? 'You now have access to debug tools.' : 'Debug tools are now hidden.'
+      );
+    } catch (error) {
+      console.error('[Settings] Failed to save developer mode:', error);
+    }
+  };
+
   const step = 2;
   const increase = () => {
     setFontSize(fontSize + step);
@@ -327,6 +365,24 @@ export default function SettingsScreen() {
         </TouchableOpacity>
       </ScrollView>
 
+      {/* Developer Mode Section - only shown if developer mode is enabled */}
+      {isDeveloperMode && (
+        <>
+          <Text style={styles.sectionTitle}>Developer Tools</Text>
+          <TouchableOpacity 
+            style={styles.menuItem}
+            onPress={toggleLogs}
+            activeOpacity={0.7}
+          >
+            <View style={styles.menuItemContent}>
+              <Terminal size={20} color="#3D8B8B" style={{ marginRight: 12 }} />
+              <Text style={styles.menuItemText}>Debug Console</Text>
+            </View>
+            <ChevronRight size={20} color="#666" />
+          </TouchableOpacity>
+        </>
+      )}
+
       {/* Legal Links - above footer */}
       <View style={styles.legalLinksContainer}>
         <TouchableOpacity onPress={handlePrivacyPress}>
@@ -345,44 +401,90 @@ export default function SettingsScreen() {
       {/* Footer with version */}
       <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, 16) }]}>
         <TouchableOpacity 
-          onLongPress={toggleLogs} 
+          onPress={toggleDeveloperMode}
+          onLongPress={isDeveloperMode ? toggleLogs : undefined}
           activeOpacity={0.6}
+          delayLongPress={500}
         >
           <Text style={styles.versionText}>
             Version {appVersion}
             {Platform.OS === 'ios' && iosBuild ? ` (${iosBuild})` : ''}
             {Platform.OS === 'android' && androidVersionCode ? ` (${androidVersionCode})` : ''}
+            {isDeveloperMode && ' 🔧'}
           </Text>
         </TouchableOpacity>
       </View>
 
-      {/* Hidden in-app log viewer modal (QA screen) */}
+      {/* Improved Debug Console Modal (QA screen) */}
+      {/* Improved Debug Console Modal (QA screen) */}
       <Modal visible={logsVisible} animationType="slide" onRequestClose={toggleLogs}>
         <SafeAreaView style={styles.logsContainer}>
-          <View style={styles.logsHeader}>
-            <TouchableOpacity onPress={toggleLogs}>
-              <Text style={styles.logsHeaderButton}>Close</Text>
-            </TouchableOpacity>
-            <View style={styles.logsHeaderRight}>
-              <TouchableOpacity onPress={copyLogs} style={{ marginRight: 16 }}>
-                <Text style={styles.logsHeaderButton}>Copy</Text>
-              </TouchableOpacity>
-              <TouchableOpacity onPress={clearLogs}>
-                <Text style={styles.logsHeaderButton}>Clear</Text>
+          {/* Header with gradient */}
+          <LinearGradient
+            colors={['#1e293b', '#0f172a']}
+            style={styles.logsHeader}
+          >
+            <View style={styles.logsHeaderContent}>
+              <View style={styles.logsHeaderLeft}>
+                <Code2 size={24} color="#60a5fa" />
+                <Text style={styles.logsHeaderTitle}>Debug Console</Text>
+              </View>
+              <TouchableOpacity onPress={toggleLogs} style={styles.logsCloseButton}>
+                <X size={24} color="#94a3b8" />
               </TouchableOpacity>
             </View>
+          </LinearGradient>
+
+          {/* Info Cards */}
+          <View style={styles.logsInfoSection}>
+            <View style={styles.logsInfoCard}>
+              <Text style={styles.logsInfoLabel}>Version</Text>
+              <Text style={styles.logsInfoValue}>
+                {appVersion}
+                {Platform.OS === 'ios' && iosBuild ? ` (${iosBuild})` : ''}
+                {Platform.OS === 'android' && androidVersionCode ? ` (${androidVersionCode})` : ''}
+              </Text>
+            </View>
+            <View style={styles.logsInfoCard}>
+              <Text style={styles.logsInfoLabel}>Platform</Text>
+              <Text style={styles.logsInfoValue}>
+                {Platform.OS === 'ios' ? 'iOS' : 'Android'} {Platform.Version}
+              </Text>
+            </View>
           </View>
-          <ScrollView contentContainerStyle={styles.logsScrollContent} style={{ flex: 1 }}>
-            <Text style={styles.logsText}>
-              {logsText || 'No logs yet.'}
-            </Text>
-          </ScrollView>
-          <View style={styles.logsFooter}>
-            <TouchableOpacity onPress={checkForOta}>
-              <Text style={styles.logsHeaderButton}>Check for Update</Text>
+
+          {/* Action Buttons */}
+          <View style={styles.logsActionsRow}>
+            <TouchableOpacity onPress={copyLogs} style={styles.logsActionButton}>
+              <Text style={styles.logsActionButtonText}>Copy Logs</Text>
             </TouchableOpacity>
-            <TouchableOpacity onPress={reloadApp}>
-              <Text style={styles.logsHeaderButton}>Restart Now</Text>
+            <TouchableOpacity onPress={clearLogs} style={styles.logsActionButton}>
+              <Text style={styles.logsActionButtonText}>Clear Logs</Text>
+            </TouchableOpacity>
+          </View>
+
+          {/* Logs Display */}
+          <View style={styles.logsDisplayContainer}>
+            <Text style={styles.logsDisplayLabel}>Application Logs</Text>
+            <ScrollView 
+              style={styles.logsScrollView}
+              contentContainerStyle={styles.logsScrollContent}
+            >
+              <Text style={styles.logsText}>
+                {logsText || 'No logs yet. Logs will appear here as you use the app.'}
+              </Text>
+            </ScrollView>
+          </View>
+
+          {/* Footer Actions */}
+          <View style={styles.logsFooter}>
+            <TouchableOpacity onPress={checkForOta} style={styles.logsFooterButton}>
+              <RefreshCw size={18} color="#60a5fa" />
+              <Text style={styles.logsFooterButtonText}>Check for Update</Text>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={reloadApp} style={styles.logsFooterButton}>
+              <RefreshCw size={18} color="#60a5fa" />
+              <Text style={styles.logsFooterButtonText}>Restart App</Text>
             </TouchableOpacity>
           </View>
         </SafeAreaView>
@@ -600,36 +702,139 @@ const styles = StyleSheet.create({
   },
   logsContainer: {
     flex: 1,
-    backgroundColor: '#0b1220',
+    backgroundColor: '#0f172a',
   },
   logsHeader: {
+    paddingVertical: 16,
+    paddingHorizontal: 16,
+  },
+  logsHeaderContent: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
+  },
+  logsHeaderLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  logsHeaderTitle: {
+    fontSize: 20,
+    fontWeight: adjustFontWeight('600'),
+    color: '#f1f5f9',
+  },
+  logsCloseButton: {
+    padding: 4,
+  },
+  logsInfoSection: {
+    flexDirection: 'row',
+    paddingHorizontal: 16,
+    paddingBottom: 16,
+    gap: 12,
+  },
+  logsInfoCard: {
+    flex: 1,
+    backgroundColor: '#1e293b',
+    padding: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#334155',
+  },
+  logsInfoLabel: {
+    fontSize: 12,
+    color: '#94a3b8',
+    marginBottom: 4,
+  },
+  logsInfoValue: {
+    fontSize: 14,
+    fontWeight: adjustFontWeight('600'),
+    color: '#f1f5f9',
+  },
+  logsActionsRow: {
+    flexDirection: 'row',
+    paddingHorizontal: 16,
+    paddingBottom: 16,
+    gap: 12,
+  },
+  logsActionButton: {
+    flex: 1,
+    backgroundColor: '#1e293b',
+    paddingVertical: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#334155',
+  },
+  logsActionButtonText: {
+    color: '#60a5fa',
+    fontSize: 14,
+    fontWeight: adjustFontWeight('600'),
+  },
+  logsDisplayContainer: {
+    flex: 1,
+    marginHorizontal: 16,
+    marginBottom: 16,
+    backgroundColor: '#1e293b',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#334155',
+    overflow: 'hidden',
+  },
+  logsDisplayLabel: {
+    fontSize: 13,
+    fontWeight: adjustFontWeight('600'),
+    color: '#94a3b8',
+    paddingHorizontal: 16,
+    paddingTop: 12,
+    paddingBottom: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: '#334155',
+  },
+  logsScrollView: {
+    flex: 1,
   },
   logsHeaderRight: {
     flexDirection: 'row',
   },
   logsHeaderButton: {
-    color: 'white',
+    color: '#60a5fa',
     fontSize: 16,
+    fontWeight: adjustFontWeight('600'),
   },
   logsScrollContent: {
-    paddingHorizontal: 12,
-    paddingBottom: 24,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
   },
   logsText: {
-    color: '#c7d2fe',
+    color: '#cbd5e1',
     fontFamily: Platform.select({ ios: 'Menlo', android: 'monospace' }),
-    fontSize: 12,
-    lineHeight: 18,
+    fontSize: 11,
+    lineHeight: 16,
   },
   logsFooter: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    padding: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+    gap: 12,
+    borderTopWidth: 1,
+    borderTopColor: '#1e293b',
+  },
+  logsFooterButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: '#1e293b',
+    paddingVertical: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#334155',
+  },
+  logsFooterButtonText: {
+    color: '#60a5fa',
+    fontSize: 14,
+    fontWeight: adjustFontWeight('600'),
   },
   // Feedback Modal styles
   feedbackContainer: {
