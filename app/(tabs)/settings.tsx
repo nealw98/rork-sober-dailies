@@ -56,12 +56,20 @@ export default function SettingsScreen() {
     try {
       await AsyncStorage.setItem(DEVELOPER_MODE_KEY, newValue.toString());
       
-      // Update PostHog user property (silently, no UI feedback)
-      posthog?.setPersonProperties({
-        is_developer: newValue
-      });
+      // Update PostHog person properties using the correct method
+      if (posthog) {
+        posthog.capture('developer_mode_toggled', {
+          is_developer: newValue
+        });
+        
+        // Also set as a super property so it's included with all future events
+        posthog.register({
+          is_developer: newValue
+        });
+      }
     } catch (error) {
       console.error('[Settings] Failed to save developer mode:', error);
+      Alert.alert('Error', 'Failed to save developer mode setting');
     }
   };
 
