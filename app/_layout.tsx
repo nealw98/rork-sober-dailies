@@ -14,10 +14,12 @@ import { OnboardingProvider, useOnboarding } from "@/hooks/useOnboardingStore";
 import { SobrietyProvider } from "@/hooks/useSobrietyStore";
 import { EveningReviewProvider } from "@/hooks/use-evening-review-store";
 import { TextSettingsProvider } from "@/hooks/use-text-settings";
+import { SubscriptionProvider, useSubscription } from "@/hooks/useSubscription";
 import { useOTAUpdates } from "@/hooks/useOTAUpdates";
 import { adjustFontWeight } from "@/constants/fonts";
 import Colors from "@/constants/colors";
 import WelcomeScreen from "@/components/WelcomeScreen";
+import PaywallScreen from "@/components/PaywallScreen";
 import OTASnackbar from "@/components/OTASnackbar";
 import { Logger } from "@/lib/logger";
 import { initUsageLogger, setPostHogForUsageLogger } from "@/lib/usageLogger";
@@ -154,6 +156,7 @@ function RootLayoutNav() {
   const { isOnboardingComplete, isLoading } = useOnboarding();
   const { showSnackbar, dismissSnackbar, restartApp } = useOTAUpdates();
   const { showBirthdayModal, closeBirthdayModal } = useSobrietyBirthday();
+  const { isLoading: isSubscriptionLoading, isPremium } = useSubscription();
 
   // Enable screen tracking for Expo Router
   useExpoRouterTracking();
@@ -269,8 +272,13 @@ function RootLayoutNav() {
   }
 
   // Only show main app after consent is complete AND other initialization is done
-  if (!appReady || isLoading) {
+  if (!appReady || isLoading || isSubscriptionLoading) {
     return null; // Let splash screen remain visible
+  }
+
+  // Entire app is subscription-only after onboarding.
+  if (!isPremium) {
+    return <PaywallScreen />;
   }
 
   return (
@@ -376,24 +384,26 @@ export default function RootLayout() {
       >
         <PostHogIdentifier>
           <SessionProvider>
-            <OnboardingProvider>
-              <TextSettingsProvider>
-                <GratitudeProvider>
-                  <SobrietyProvider>
-                    <EveningReviewProvider>
-                      <GestureHandlerRootView style={{ flex: 1 }}>
-                        {Platform.OS === 'android' && (
-                          <StatusBar translucent backgroundColor="transparent" barStyle="light-content" />
-                        )}
-                        <ErrorBoundary>
-                          <RootLayoutNav />
-                        </ErrorBoundary>
-                      </GestureHandlerRootView>
-                    </EveningReviewProvider>
-                  </SobrietyProvider>
-                </GratitudeProvider>
-              </TextSettingsProvider>
-            </OnboardingProvider>
+            <SubscriptionProvider>
+              <OnboardingProvider>
+                <TextSettingsProvider>
+                  <GratitudeProvider>
+                    <SobrietyProvider>
+                      <EveningReviewProvider>
+                        <GestureHandlerRootView style={{ flex: 1 }}>
+                          {Platform.OS === 'android' && (
+                            <StatusBar translucent backgroundColor="transparent" barStyle="light-content" />
+                          )}
+                          <ErrorBoundary>
+                            <RootLayoutNav />
+                          </ErrorBoundary>
+                        </GestureHandlerRootView>
+                      </EveningReviewProvider>
+                    </SobrietyProvider>
+                  </GratitudeProvider>
+                </TextSettingsProvider>
+              </OnboardingProvider>
+            </SubscriptionProvider>
           </SessionProvider>
         </PostHogIdentifier>
       </PostHogProvider>

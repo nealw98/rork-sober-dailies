@@ -12,6 +12,7 @@ import * as Application from 'expo-application';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { adjustFontWeight } from '@/constants/fonts';
 import { useTextSettings } from '@/hooks/use-text-settings';
+import { useSubscription } from '@/hooks/useSubscription';
 import { Logger } from '@/lib/logger';
 import { submitFeedback } from '@/lib/feedback';
 
@@ -41,6 +42,7 @@ export default function SettingsScreen() {
   const posthog = usePostHog();
   const insets = useSafeAreaInsets();
   const { fontSize, setFontSize, minFontSize, maxFontSize, resetDefaults, defaultFontSize } = useTextSettings();
+  const { isPremium, isEntitled, isGrandfathered, restorePurchases, isLoading: isSubscriptionLoading } = useSubscription();
   const [logsVisible, setLogsVisible] = useState(false);
   const [logsText, setLogsText] = useState('');
   const [isDeveloperMode, setIsDeveloperMode] = useState(false);
@@ -187,6 +189,35 @@ export default function SettingsScreen() {
 
   const handleSupportPress = () => {
     Linking.openURL('https://soberdailies.com/support');
+  };
+  
+  const handleManageSubscriptionPress = async () => {
+    try {
+      if (Platform.OS === 'ios') {
+        // Apple subscriptions management
+        await Linking.openURL('https://apps.apple.com/account/subscriptions');
+      } else if (Platform.OS === 'android') {
+        const pkg = Constants.expoConfig?.android?.package ?? 'com.nealwagner.soberdailies.paid';
+        // Google Play subscriptions management
+        await Linking.openURL(`https://play.google.com/store/account/subscriptions?package=${pkg}`);
+      }
+    } catch {
+      Alert.alert('Error', 'Unable to open subscription management.');
+    }
+  };
+  
+  const handleRestorePurchasesPress = async () => {
+    try {
+      const info = await restorePurchases();
+      const entitled = !!info?.entitlements?.active?.premium;
+      if (entitled) {
+        Alert.alert('Restored', 'Your subscription has been restored.');
+      } else {
+        Alert.alert('No active subscription found', 'If you believe this is a mistake, please try again in a moment.');
+      }
+    } catch {
+      Alert.alert('Error', 'Unable to restore purchases right now.');
+    }
   };
 
   const handleRateAppPress = async () => {
@@ -356,6 +387,42 @@ export default function SettingsScreen() {
           )}
         </View>
 
+        {/* Subscription Section */}
+        <Text style={[styles.sectionTitle, { marginTop: 24 }]}>Subscription</Text>
+        
+        <View style={styles.subscriptionStatusRow}>
+          <Text style={[styles.subscriptionStatusLabel, { fontSize }]}>Status</Text>
+          <Text style={styles.subscriptionStatusValue}>
+            {isSubscriptionLoading
+              ? 'Checking…'
+              : isGrandfathered
+                ? 'Premium (Grandfathered)'
+                : isEntitled
+                  ? 'Premium (Active)'
+                  : isPremium
+                    ? 'Premium'
+                    : 'Not Active'}
+          </Text>
+        </View>
+        
+        <TouchableOpacity
+          style={styles.menuItem}
+          onPress={handleManageSubscriptionPress}
+          activeOpacity={0.7}
+        >
+          <Text style={[styles.menuItemTitle, { fontSize }]}>Manage Subscription</Text>
+          <ChevronRight size={18} color="#a0a0a0" />
+        </TouchableOpacity>
+        
+        <TouchableOpacity
+          style={styles.menuItem}
+          onPress={handleRestorePurchasesPress}
+          activeOpacity={0.7}
+        >
+          <Text style={[styles.menuItemTitle, { fontSize }]}>Restore Purchases</Text>
+          <ChevronRight size={18} color="#a0a0a0" />
+        </TouchableOpacity>
+        
         {/* Support Section */}
         <Text style={[styles.sectionTitle, { marginTop: 24 }]}>Support Sober Dailies</Text>
         
@@ -703,6 +770,24 @@ const styles = StyleSheet.create({
     fontWeight: adjustFontWeight('500'),
     color: '#000',
     flex: 1,
+  },
+  subscriptionStatusRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 14,
+    paddingHorizontal: 4,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(61, 139, 139, 0.3)',
+  },
+  subscriptionStatusLabel: {
+    fontWeight: adjustFontWeight('500'),
+    color: '#000',
+  },
+  subscriptionStatusValue: {
+    fontSize: 13,
+    fontWeight: adjustFontWeight('600'),
+    color: '#3D8B8B',
   },
   legalLinksContainer: {
     flexDirection: 'row',
