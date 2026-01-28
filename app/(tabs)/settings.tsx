@@ -194,6 +194,8 @@ export default function SettingsScreen() {
               // Clear grandfathered flags
               await SecureStore.deleteItemAsync('sober_dailies_grandfathered_premium');
               await SecureStore.deleteItemAsync('sober_dailies_grandfather_checked');
+              // Clear premium override (dev bypass)
+              await SecureStore.deleteItemAsync('sober_dailies_premium_override');
               // Clear onboarding
               await AsyncStorage.removeItem('sober_dailies_onboarding_complete');
               
