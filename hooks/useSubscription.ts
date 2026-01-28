@@ -23,6 +23,7 @@ const GRANDFATHER_EDGE_FUNCTION = 'check-grandfather';
 
 // SecureStore keys
 const GRANDFATHER_CHECKED_KEY = 'sober_dailies_grandfather_checked';
+const PREMIUM_OVERRIDE_KEY = 'sober_dailies_premium_override';
 
 // ============================================================================
 // REVENUECAT CONFIGURATION
@@ -197,6 +198,7 @@ export const [SubscriptionProvider, useSubscription] = createContextHook(() => {
 
   const [offerings, setOfferings] = useState<Offerings | null>(null);
   const [customerInfo, setCustomerInfo] = useState<CustomerInfo | null>(null);
+  const [isPremiumOverride, setIsPremiumOverride] = useState(false);
 
   // Check if user has the "premium" entitlement from RevenueCat
   // This includes both paid subscriptions AND grandfathered users (promotional entitlement)
@@ -205,8 +207,8 @@ export const [SubscriptionProvider, useSubscription] = createContextHook(() => {
     return !!customerInfo.entitlements.active?.[ENTITLEMENT_ID];
   }, [customerInfo]);
 
-  // User is premium if they have the entitlement OR on web (always free)
-  const isPremium = isEntitled || Platform.OS === 'web';
+  // User is premium if: entitled OR premium override (dev mode) OR on web
+  const isPremium = isEntitled || isPremiumOverride || Platform.OS === 'web';
 
   // Refresh subscription status from RevenueCat
   const refresh = useCallback(async () => {
@@ -313,6 +315,13 @@ export const [SubscriptionProvider, useSubscription] = createContextHook(() => {
 
     (async () => {
       try {
+        // Step 0: Check for developer premium override
+        const override = await SecureStore.getItemAsync(PREMIUM_OVERRIDE_KEY);
+        if (override === 'true') {
+          console.log('[Subscription] Premium override enabled (developer mode)');
+          if (!didCancel) setIsPremiumOverride(true);
+        }
+
         // Step 1: Check and grant grandfather entitlement if eligible
         // This calls the Edge Function which grants the entitlement in RevenueCat
         await checkAndGrantGrandfatherEntitlement();

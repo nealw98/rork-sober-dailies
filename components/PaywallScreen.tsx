@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -11,9 +11,14 @@ import {
   View,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as SecureStore from 'expo-secure-store';
 import { RefreshCw, MessageCircle, BookOpen, Sparkles, Check } from 'lucide-react-native';
 import { adjustFontWeight } from '@/constants/fonts';
 import { useSubscription } from '@/hooks/useSubscription';
+
+const DEVELOPER_MODE_KEY = 'sober_dailies_developer_mode';
+const PREMIUM_OVERRIDE_KEY = 'sober_dailies_premium_override';
 
 // ============================================================================
 // CONFIGURATION
@@ -73,6 +78,14 @@ export default function PaywallScreen() {
   const { offerings, isLoading, error, purchasePackage, restorePurchases, refresh } = useSubscription();
   const [isPurchasing, setIsPurchasing] = useState(false);
   const [isRestoring, setIsRestoring] = useState(false);
+  const [isDeveloperMode, setIsDeveloperMode] = useState(false);
+
+  // Check for developer mode on mount
+  useEffect(() => {
+    AsyncStorage.getItem(DEVELOPER_MODE_KEY).then((value) => {
+      setIsDeveloperMode(value === 'true');
+    });
+  }, []);
 
   // Get packages from the subscription offering
   const subscriptionOffering = offerings?.all?.[SUBSCRIPTION_OFFERING_ID] ?? offerings?.current;
@@ -289,18 +302,22 @@ export default function PaywallScreen() {
             <Text style={styles.link} onPress={openPrivacy}>Privacy Policy</Text>.
           </Text>
 
-          {/* Dev-only bypass button */}
-          {__DEV__ && (
+          {/* Dev/Developer Mode bypass button */}
+          {(__DEV__ || isDeveloperMode) && (
             <TouchableOpacity
               style={styles.devBypassButton}
-              onPress={() => {
-                // Simulate premium by setting grandfathered status
-                const SecureStore = require('expo-secure-store');
-                SecureStore.setItemAsync('sober_dailies_grandfathered_premium', 'true')
-                  .then(() => SecureStore.setItemAsync('sober_dailies_grandfather_checked', 'true'))
-                  .then(() => {
-                    Alert.alert('Dev Mode', 'Premium bypassed. Restart the app to continue.');
-                  });
+              onPress={async () => {
+                try {
+                  // Set premium override flag that useSubscription checks
+                  await SecureStore.setItemAsync(PREMIUM_OVERRIDE_KEY, 'true');
+                  Alert.alert(
+                    'Developer Mode',
+                    'Premium access enabled. Restart the app to continue.',
+                    [{ text: 'OK' }]
+                  );
+                } catch (e) {
+                  Alert.alert('Error', 'Failed to set premium override');
+                }
               }}
               activeOpacity={0.7}
             >
