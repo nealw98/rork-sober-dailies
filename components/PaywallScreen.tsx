@@ -11,9 +11,19 @@ import {
   View,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Crown, RefreshCw, ShieldCheck } from 'lucide-react-native';
+import { RefreshCw, MessageCircle, BookOpen, Sparkles, Check } from 'lucide-react-native';
 import { adjustFontWeight } from '@/constants/fonts';
 import { useSubscription } from '@/hooks/useSubscription';
+
+// ============================================================================
+// CONFIGURATION
+// ============================================================================
+
+const SUBSCRIPTION_OFFERING_ID = 'default';
+
+// ============================================================================
+// HELPERS
+// ============================================================================
 
 function formatPackageLabel(pkg: any): string {
   const type = String(pkg?.packageType || '').toUpperCase();
@@ -25,35 +35,89 @@ function formatPackageLabel(pkg: any): string {
 function formatPackagePriceLine(pkg: any): string {
   const price = pkg?.product?.priceString || pkg?.product?.price_string || '';
   const label = formatPackageLabel(pkg);
-  if (label === 'Yearly') return price ? `${price} / year` : 'Yearly';
-  if (label === 'Monthly') return price ? `${price} / month` : 'Monthly';
+  if (label === 'Yearly') return price ? `${price}/year` : 'Yearly';
+  if (label === 'Monthly') return price ? `${price}/month` : 'Monthly';
   return price || 'Continue';
 }
+
+function calculateSavingsPercentage(monthlyPkg: any, yearlyPkg: any): number | null {
+  try {
+    const monthlyPrice = monthlyPkg?.product?.price || 0;
+    const yearlyPrice = yearlyPkg?.product?.price || 0;
+    if (monthlyPrice <= 0 || yearlyPrice <= 0) return null;
+    const yearlyMonthlyEquivalent = yearlyPrice / 12;
+    const savings = ((monthlyPrice - yearlyMonthlyEquivalent) / monthlyPrice) * 100;
+    return savings > 0 ? Math.round(savings) : null;
+  } catch {
+    return null;
+  }
+}
+
+// ============================================================================
+// PREMIUM BENEFITS
+// ============================================================================
+
+const PREMIUM_BENEFITS = [
+  { icon: Sparkles, text: 'Daily reflections & gratitude journal' },
+  { icon: BookOpen, text: 'Enhanced Big Book reader' },
+  { icon: MessageCircle, text: 'AI Sponsor conversations' },
+  { icon: Sparkles, text: 'Daily prayers' },
+  { icon: Sparkles, text: 'Evening review & spot check inventory' },
+];
+
+// ============================================================================
+// PAYWALL SCREEN
+// ============================================================================
 
 export default function PaywallScreen() {
   const { offerings, isLoading, error, purchasePackage, restorePurchases, refresh } = useSubscription();
   const [isPurchasing, setIsPurchasing] = useState(false);
   const [isRestoring, setIsRestoring] = useState(false);
 
-  const availablePackages = offerings?.current?.availablePackages ?? [];
+  // Get packages from the subscription offering
+  const subscriptionOffering = offerings?.all?.[SUBSCRIPTION_OFFERING_ID] ?? offerings?.current;
+  const availablePackages = subscriptionOffering?.availablePackages ?? [];
 
-  const { monthlyPkg, yearlyPkg, otherPkgs } = useMemo(() => {
+  // Debug logging
+  if (offerings) {
+    console.log('[Paywall] All offering IDs:', Object.keys(offerings.all || {}));
+    console.log('[Paywall] Using offering:', subscriptionOffering?.identifier || 'none');
+  }
+
+  // Separate monthly and yearly packages
+  const { monthlyPkg, yearlyPkg, otherPkgs, savingsPercentage } = useMemo(() => {
     const pkgs = [...availablePackages];
+
+    console.log('[Paywall] Available packages:', pkgs.length);
+    pkgs.forEach((pkg, i) => {
+      console.log(`[Paywall] Package ${i}:`, {
+        identifier: pkg?.identifier,
+        packageType: pkg?.packageType,
+        productIdentifier: pkg?.product?.identifier,
+        priceString: pkg?.product?.priceString,
+      });
+    });
+
     const isYearly = (p: any) => {
-      const t = String(p?.packageType || '').toUpperCase();
-      const id = String(p?.product?.identifier || '').toLowerCase();
-      return t.includes('ANNUAL') || t.includes('YEAR') || id.includes('yearly_support') || id.includes(':yearly');
+      const packageType = String(p?.packageType || '').toUpperCase();
+      const identifier = String(p?.identifier || '').toLowerCase();
+      return packageType === 'ANNUAL' || packageType.includes('ANNUAL') || identifier === '$rc_annual';
     };
+
     const isMonthly = (p: any) => {
-      const t = String(p?.packageType || '').toUpperCase();
-      const id = String(p?.product?.identifier || '').toLowerCase();
-      return t.includes('MONTH') || id.includes('monthly_support') || id.includes(':monthly');
+      const packageType = String(p?.packageType || '').toUpperCase();
+      const identifier = String(p?.identifier || '').toLowerCase();
+      return packageType === 'MONTHLY' || packageType.includes('MONTH') || identifier === '$rc_monthly';
     };
 
     const yearly = pkgs.find(isYearly) || null;
     const monthly = pkgs.find(isMonthly) || null;
     const rest = pkgs.filter((p) => p !== yearly && p !== monthly);
-    return { monthlyPkg: monthly, yearlyPkg: yearly, otherPkgs: rest };
+    const savings = calculateSavingsPercentage(monthly, yearly);
+
+    console.log('[Paywall] Identified:', { yearly: yearly?.identifier, monthly: monthly?.identifier });
+
+    return { monthlyPkg: monthly, yearlyPkg: yearly, otherPkgs: rest, savingsPercentage: savings };
   }, [availablePackages]);
 
   const handleBuy = async (pkg: any) => {
@@ -72,59 +136,60 @@ export default function PaywallScreen() {
       const info = await restorePurchases();
       const entitled = !!info?.entitlements?.active?.premium;
       if (!entitled) {
-        Alert.alert('No active subscription found', 'If you believe this is a mistake, please try again in a moment.');
+        Alert.alert(
+          'No Active Subscription',
+          'We couldn\'t find an active subscription. If you believe this is a mistake, please try again.'
+        );
       }
     } finally {
       setIsRestoring(false);
     }
   };
 
-  const openTerms = async () => {
-    const url = 'https://www.apple.com/legal/internet-services/itunes/dev/stdeula/';
-    try {
-      await Linking.openURL(url);
-    } catch {
-      Alert.alert('Error', 'Unable to open Terms of Use.');
-    }
-  };
+  const openTerms = () => Linking.openURL('https://www.apple.com/legal/internet-services/itunes/dev/stdeula/');
+  const openPrivacy = () => Linking.openURL('https://soberdailies.com/privacy');
 
-  const openPrivacy = async () => {
-    const url = 'https://soberdailies.com/privacy';
-    try {
-      await Linking.openURL(url);
-    } catch {
-      Alert.alert('Error', 'Unable to open Privacy Policy.');
-    }
-  };
+  const isProcessing = isLoading || isPurchasing || isRestoring;
 
   return (
     <SafeAreaView style={styles.container}>
-      <LinearGradient colors={['#0f172a', '#0b3b3b', '#0f172a']} style={styles.gradient}>
-        <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+      <LinearGradient
+        colors={['#4A6FA5', '#3D8B8B', '#45A08A']}
+        style={styles.gradient}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+      >
+        <ScrollView 
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+        >
+          
+          {/* Header */}
           <View style={styles.header}>
-            <View style={styles.iconCircle}>
-              <Crown size={28} color="#fff" />
-            </View>
-            <Text style={styles.title}>Start your free 7-day trial</Text>
-            <Text style={styles.subtitle}>Full access to Sober Dailies. Cancel anytime.</Text>
+            <Text style={styles.title}>Try 7 Days Free</Text>
+            <Text style={styles.subtitle}>
+              Unlock all of Sober Dailies Premium
+            </Text>
           </View>
 
-          <View style={styles.benefits}>
-            <View style={styles.benefitRow}>
-              <ShieldCheck size={18} color="#cbd5e1" />
-              <Text style={styles.benefitText}>Everything included — reflections, chat, gratitude, and more.</Text>
-            </View>
-            <View style={styles.benefitRow}>
-              <ShieldCheck size={18} color="#cbd5e1" />
-              <Text style={styles.benefitText}>7-day free trial via App Store / Play Store.</Text>
-            </View>
-            <View style={styles.benefitRow}>
-              <ShieldCheck size={18} color="#cbd5e1" />
-              <Text style={styles.benefitText}>Restore purchases anytime.</Text>
-            </View>
+          {/* Benefits Card */}
+          <View style={styles.benefitsCard}>
+            <Text style={styles.benefitsTitle}>What's Included</Text>
+            {PREMIUM_BENEFITS.map((benefit, index) => {
+              const IconComponent = benefit.icon;
+              return (
+                <View key={index} style={styles.benefitRow}>
+                  <View style={styles.benefitCheck}>
+                    <Check size={14} color="#fff" />
+                  </View>
+                  <Text style={styles.benefitText}>{benefit.text}</Text>
+                </View>
+              );
+            })}
           </View>
 
-          {(isLoading || isPurchasing || isRestoring) && (
+          {/* Loading State */}
+          {isProcessing && (
             <View style={styles.loadingRow}>
               <ActivityIndicator color="#fff" />
               <Text style={styles.loadingText}>
@@ -133,152 +198,218 @@ export default function PaywallScreen() {
             </View>
           )}
 
+          {/* Error State */}
           {!!error && (
-            <View style={styles.errorBox}>
+            <View style={styles.errorCard}>
               <Text style={styles.errorText}>{error}</Text>
               <TouchableOpacity style={styles.retryButton} onPress={refresh} activeOpacity={0.8}>
-                <RefreshCw size={16} color="#fff" />
+                <RefreshCw size={16} color="#3D8B8B" />
                 <Text style={styles.retryButtonText}>Retry</Text>
               </TouchableOpacity>
             </View>
           )}
 
-          <View style={styles.buttons}>
+          {/* Subscription Options */}
+          <View style={styles.optionsContainer}>
+            
+            {/* Yearly Option */}
             {!!yearlyPkg && (
               <TouchableOpacity
-                style={[styles.primaryButton, (isLoading || isPurchasing || isRestoring) && styles.buttonDisabled]}
-                disabled={isLoading || isPurchasing || isRestoring}
+                style={[styles.optionCard, styles.optionPrimary, isProcessing && styles.optionDisabled]}
+                disabled={isProcessing}
                 onPress={() => handleBuy(yearlyPkg)}
                 activeOpacity={0.9}
               >
-                <Text style={styles.primaryButtonTitle}>Continue Yearly</Text>
-                <Text style={styles.primaryButtonSub}>{formatPackagePriceLine(yearlyPkg)} after trial</Text>
+                {savingsPercentage && (
+                  <View style={styles.savingsBadge}>
+                    <Text style={styles.savingsBadgeText}>Save {savingsPercentage}%</Text>
+                  </View>
+                )}
+                <View style={styles.optionHeader}>
+                  <Text style={styles.optionPrimaryLabel}>Premium Yearly</Text>
+                  <Text style={styles.optionPrimaryPrice}>{formatPackagePriceLine(yearlyPkg)}</Text>
+                </View>
+                <Text style={styles.optionTrialText}>7 days free, then billed annually</Text>
               </TouchableOpacity>
             )}
 
+            {/* Monthly Option */}
             {!!monthlyPkg && (
               <TouchableOpacity
-                style={[styles.secondaryButton, (isLoading || isPurchasing || isRestoring) && styles.buttonDisabled]}
-                disabled={isLoading || isPurchasing || isRestoring}
+                style={[styles.optionCard, styles.optionSecondary, isProcessing && styles.optionDisabled]}
+                disabled={isProcessing}
                 onPress={() => handleBuy(monthlyPkg)}
                 activeOpacity={0.9}
               >
-                <Text style={styles.secondaryButtonTitle}>Continue Monthly</Text>
-                <Text style={styles.secondaryButtonSub}>{formatPackagePriceLine(monthlyPkg)} after trial</Text>
+                <View style={styles.optionHeader}>
+                  <Text style={styles.optionSecondaryLabel}>Premium Monthly</Text>
+                  <Text style={styles.optionSecondaryPrice}>{formatPackagePriceLine(monthlyPkg)}</Text>
+                </View>
+                <Text style={styles.optionTrialTextSecondary}>7 days free, then billed monthly</Text>
               </TouchableOpacity>
             )}
 
-            {/* Fallback if RevenueCat offering doesn’t mark monthly/yearly as expected */}
+            {/* Fallback */}
             {!yearlyPkg && !monthlyPkg && otherPkgs.map((pkg: any) => (
               <TouchableOpacity
-                key={pkg?.identifier || pkg?.product?.identifier || Math.random().toString(16)}
-                style={[styles.secondaryButton, (isLoading || isPurchasing || isRestoring) && styles.buttonDisabled]}
-                disabled={isLoading || isPurchasing || isRestoring}
+                key={pkg?.identifier || Math.random().toString(16)}
+                style={[styles.optionCard, styles.optionSecondary, isProcessing && styles.optionDisabled]}
+                disabled={isProcessing}
                 onPress={() => handleBuy(pkg)}
                 activeOpacity={0.9}
               >
-                <Text style={styles.secondaryButtonTitle}>{formatPackageLabel(pkg)}</Text>
-                <Text style={styles.secondaryButtonSub}>{formatPackagePriceLine(pkg)} after trial</Text>
+                <View style={styles.optionHeader}>
+                  <Text style={styles.optionSecondaryLabel}>{formatPackageLabel(pkg)}</Text>
+                  <Text style={styles.optionSecondaryPrice}>{formatPackagePriceLine(pkg)}</Text>
+                </View>
               </TouchableOpacity>
             ))}
-
-            <TouchableOpacity
-              style={styles.restoreButton}
-              onPress={handleRestore}
-              disabled={isLoading || isPurchasing || isRestoring}
-              activeOpacity={0.8}
-            >
-              <Text style={styles.restoreButtonText}>Restore Purchases</Text>
-            </TouchableOpacity>
           </View>
 
+          {/* Restore */}
+          <TouchableOpacity
+            style={styles.restoreButton}
+            onPress={handleRestore}
+            disabled={isProcessing}
+            activeOpacity={0.7}
+          >
+            <Text style={styles.restoreButtonText}>Restore Purchases</Text>
+          </TouchableOpacity>
+
+          {/* Trial Info */}
+          <Text style={styles.trialInfo}>
+            No charge during your 7-day free trial.{'\n'}Cancel anytime in your device settings.
+          </Text>
+
+          {/* Legal */}
           <Text style={styles.legalText}>
             By continuing, you agree to our{' '}
-            <Text style={styles.link} onPress={openTerms}>Terms</Text>
+            <Text style={styles.link} onPress={openTerms}>Terms of Use</Text>
             {' '}and{' '}
-            <Text style={styles.link} onPress={openPrivacy}>Privacy Policy</Text>
-            .
+            <Text style={styles.link} onPress={openPrivacy}>Privacy Policy</Text>.
           </Text>
+
+          {/* Dev-only bypass button */}
+          {__DEV__ && (
+            <TouchableOpacity
+              style={styles.devBypassButton}
+              onPress={() => {
+                // Simulate premium by setting grandfathered status
+                const SecureStore = require('expo-secure-store');
+                SecureStore.setItemAsync('sober_dailies_grandfathered_premium', 'true')
+                  .then(() => SecureStore.setItemAsync('sober_dailies_grandfather_checked', 'true'))
+                  .then(() => {
+                    Alert.alert('Dev Mode', 'Premium bypassed. Restart the app to continue.');
+                  });
+              }}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.devBypassText}>🛠 DEV: Bypass Paywall</Text>
+            </TouchableOpacity>
+          )}
+
         </ScrollView>
       </LinearGradient>
     </SafeAreaView>
   );
 }
 
+// ============================================================================
+// STYLES
+// ============================================================================
+
 const styles = StyleSheet.create({
-  container: { flex: 1 },
-  gradient: { flex: 1 },
+  container: {
+    flex: 1,
+  },
+  gradient: {
+    flex: 1,
+  },
   scrollContent: {
     flexGrow: 1,
-    padding: 24,
     justifyContent: 'center',
+    padding: 24,
   },
+
+  // Header
   header: {
     alignItems: 'center',
-    marginBottom: 24,
-  },
-  iconCircle: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: 'rgba(255,255,255,0.15)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 16,
+    marginBottom: 28,
   },
   title: {
-    fontSize: 30,
+    fontSize: 32,
     fontWeight: adjustFontWeight('700', true),
     color: '#fff',
     textAlign: 'center',
-    marginBottom: 10,
+    marginBottom: 8,
   },
   subtitle: {
-    fontSize: 16,
-    fontWeight: adjustFontWeight('500', true),
-    color: 'rgba(255,255,255,0.85)',
+    fontSize: 17,
+    color: '#fff',
     textAlign: 'center',
-    lineHeight: 22,
+    opacity: 0.9,
   },
-  benefits: {
-    backgroundColor: 'rgba(255,255,255,0.08)',
-    borderRadius: 14,
-    padding: 16,
-    marginBottom: 18,
-    gap: 10,
+
+  // Benefits
+  benefitsCard: {
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    borderRadius: 16,
+    padding: 20,
+    marginBottom: 24,
   },
-  benefitRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 10 },
+  benefitsTitle: {
+    fontSize: 18,
+    fontWeight: adjustFontWeight('600', true),
+    color: '#fff',
+    marginBottom: 16,
+  },
+  benefitRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginBottom: 12,
+  },
+  benefitCheck: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: 'rgba(255, 255, 255, 0.25)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   benefitText: {
     flex: 1,
-    color: 'rgba(255,255,255,0.9)',
-    fontSize: 14,
-    lineHeight: 20,
+    fontSize: 16,
+    color: '#fff',
     fontWeight: adjustFontWeight('500', true),
   },
+
+  // Loading
   loadingRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 10,
-    marginBottom: 14,
+    marginBottom: 16,
   },
   loadingText: {
-    color: 'rgba(255,255,255,0.85)',
-    fontSize: 14,
+    color: '#fff',
+    fontSize: 15,
     fontWeight: adjustFontWeight('500', true),
   },
-  errorBox: {
-    backgroundColor: 'rgba(239, 68, 68, 0.18)',
+
+  // Error
+  errorCard: {
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
     borderRadius: 12,
-    padding: 14,
-    marginBottom: 14,
-    gap: 10,
+    padding: 16,
+    marginBottom: 16,
   },
   errorText: {
     color: '#fff',
     fontSize: 14,
     lineHeight: 20,
-    fontWeight: adjustFontWeight('500', true),
+    marginBottom: 12,
   },
   retryButton: {
     alignSelf: 'flex-start',
@@ -286,70 +417,112 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 8,
     paddingVertical: 10,
-    paddingHorizontal: 12,
-    borderRadius: 10,
-    backgroundColor: 'rgba(255,255,255,0.15)',
+    paddingHorizontal: 16,
+    borderRadius: 20,
+    backgroundColor: '#fff',
   },
   retryButtonText: {
-    color: '#fff',
+    color: '#3D8B8B',
     fontSize: 14,
     fontWeight: adjustFontWeight('600', true),
   },
-  buttons: { gap: 12 },
-  primaryButton: {
-    backgroundColor: '#22c55e',
-    borderRadius: 14,
-    paddingVertical: 14,
-    paddingHorizontal: 16,
+
+  // Options
+  optionsContainer: {
+    gap: 12,
+    marginBottom: 16,
   },
-  primaryButtonTitle: {
-    color: '#06210f',
-    fontSize: 16,
-    fontWeight: adjustFontWeight('700', true),
-    textAlign: 'center',
+  optionCard: {
+    borderRadius: 16,
+    padding: 20,
+    position: 'relative',
   },
-  primaryButtonSub: {
-    color: 'rgba(6, 33, 15, 0.85)',
-    fontSize: 13,
-    fontWeight: adjustFontWeight('600', true),
-    textAlign: 'center',
-    marginTop: 4,
+  optionPrimary: {
+    backgroundColor: '#fff',
   },
-  secondaryButton: {
-    backgroundColor: 'rgba(255,255,255,0.12)',
-    borderRadius: 14,
-    paddingVertical: 14,
-    paddingHorizontal: 16,
+  optionSecondary: {
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.18)',
+    borderColor: 'rgba(255, 255, 255, 0.3)',
   },
-  secondaryButtonTitle: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: adjustFontWeight('700', true),
-    textAlign: 'center',
+  optionDisabled: {
+    opacity: 0.5,
   },
-  secondaryButtonSub: {
-    color: 'rgba(255,255,255,0.75)',
-    fontSize: 13,
+  optionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
+  optionPrimaryLabel: {
+    fontSize: 18,
     fontWeight: adjustFontWeight('600', true),
-    textAlign: 'center',
-    marginTop: 4,
+    color: '#3D8B8B',
   },
+  optionPrimaryPrice: {
+    fontSize: 18,
+    fontWeight: adjustFontWeight('700', true),
+    color: '#3D8B8B',
+  },
+  optionTrialText: {
+    fontSize: 14,
+    color: '#666',
+    fontWeight: adjustFontWeight('400', true),
+  },
+  optionSecondaryLabel: {
+    fontSize: 17,
+    fontWeight: adjustFontWeight('600', true),
+    color: '#fff',
+  },
+  optionSecondaryPrice: {
+    fontSize: 17,
+    fontWeight: adjustFontWeight('700', true),
+    color: '#fff',
+  },
+  optionTrialTextSecondary: {
+    fontSize: 14,
+    color: 'rgba(255, 255, 255, 0.8)',
+    fontWeight: adjustFontWeight('400', true),
+  },
+  savingsBadge: {
+    position: 'absolute',
+    top: -10,
+    right: 16,
+    backgroundColor: '#F59E0B',
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderRadius: 10,
+  },
+  savingsBadgeText: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: adjustFontWeight('700', true),
+  },
+
+  // Restore
   restoreButton: {
-    paddingVertical: 12,
+    paddingVertical: 14,
     alignItems: 'center',
   },
   restoreButtonText: {
-    color: 'rgba(255,255,255,0.85)',
+    color: '#fff',
+    fontSize: 15,
+    fontWeight: adjustFontWeight('500', true),
     textDecorationLine: 'underline',
-    fontSize: 14,
-    fontWeight: adjustFontWeight('600', true),
   },
-  buttonDisabled: { opacity: 0.6 },
+
+  // Trial Info
+  trialInfo: {
+    color: 'rgba(255, 255, 255, 0.85)',
+    fontSize: 13,
+    textAlign: 'center',
+    lineHeight: 20,
+    marginBottom: 12,
+  },
+
+  // Legal
   legalText: {
-    marginTop: 18,
-    color: 'rgba(255,255,255,0.7)',
+    color: 'rgba(255, 255, 255, 0.7)',
     fontSize: 12,
     textAlign: 'center',
     lineHeight: 18,
@@ -357,7 +530,23 @@ const styles = StyleSheet.create({
   link: {
     color: '#fff',
     textDecorationLine: 'underline',
-    fontWeight: adjustFontWeight('700', true),
+    fontWeight: adjustFontWeight('500', true),
+  },
+
+  // Dev-only
+  devBypassButton: {
+    marginTop: 24,
+    backgroundColor: 'rgba(255, 0, 0, 0.3)',
+    borderRadius: 8,
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 0, 0, 0.5)',
+  },
+  devBypassText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: adjustFontWeight('600', true),
   },
 });
-

@@ -9,6 +9,7 @@ import { ChevronLeft, ChevronRight, X, Code2, Terminal, RefreshCw } from 'lucide
 import Constants from 'expo-constants';
 import * as Clipboard from 'expo-clipboard';
 import * as Application from 'expo-application';
+import * as SecureStore from 'expo-secure-store';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { adjustFontWeight } from '@/constants/fonts';
 import { useTextSettings } from '@/hooks/use-text-settings';
@@ -42,7 +43,7 @@ export default function SettingsScreen() {
   const posthog = usePostHog();
   const insets = useSafeAreaInsets();
   const { fontSize, setFontSize, minFontSize, maxFontSize, resetDefaults, defaultFontSize } = useTextSettings();
-  const { isPremium, isEntitled, isGrandfathered, restorePurchases, isLoading: isSubscriptionLoading } = useSubscription();
+  const { isPremium, isEntitled, restorePurchases, refresh: refreshSubscription, isLoading: isSubscriptionLoading } = useSubscription();
   const [logsVisible, setLogsVisible] = useState(false);
   const [logsText, setLogsText] = useState('');
   const [isDeveloperMode, setIsDeveloperMode] = useState(false);
@@ -177,6 +178,36 @@ export default function SettingsScreen() {
       const Updates = await import('expo-updates');
       await Updates.reloadAsync();
     } catch {}
+  };
+
+  const resetSubscriptionState = async () => {
+    Alert.alert(
+      'Reset Subscription State',
+      'This will clear your grandfathered status and onboarding. The app will show the welcome screen and paywall on next launch. Continue?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Reset',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              // Clear grandfathered flags
+              await SecureStore.deleteItemAsync('sober_dailies_grandfathered_premium');
+              await SecureStore.deleteItemAsync('sober_dailies_grandfather_checked');
+              // Clear onboarding
+              await AsyncStorage.removeItem('sober_dailies_onboarding_complete');
+              
+              Alert.alert('Reset Complete', 'Restart the app to see the new user flow.', [
+                { text: 'OK' }
+              ]);
+            } catch (error) {
+              Alert.alert('Error', 'Failed to reset subscription state.');
+              console.error('[Settings] Reset subscription state error:', error);
+            }
+          },
+        },
+      ]
+    );
   };
 
   const handlePrivacyPress = () => {
@@ -395,13 +426,9 @@ export default function SettingsScreen() {
           <Text style={styles.subscriptionStatusValue}>
             {isSubscriptionLoading
               ? 'Checking…'
-              : isGrandfathered
-                ? 'Premium (Grandfathered)'
-                : isEntitled
-                  ? 'Premium (Active)'
-                  : isPremium
-                    ? 'Premium'
-                    : 'Not Active'}
+              : isPremium
+                ? 'Subscribed'
+                : 'Not Active'}
           </Text>
         </View>
         
@@ -559,6 +586,13 @@ export default function SettingsScreen() {
             </TouchableOpacity>
             <TouchableOpacity onPress={clearLogs} style={styles.logsActionButton}>
               <Text style={styles.logsActionButtonText}>Clear Logs</Text>
+            </TouchableOpacity>
+          </View>
+
+          {/* Subscription Debug */}
+          <View style={styles.logsActionsRow}>
+            <TouchableOpacity onPress={resetSubscriptionState} style={[styles.logsActionButton, { backgroundColor: '#7f1d1d' }]}>
+              <Text style={styles.logsActionButtonText}>Reset Subscription State</Text>
             </TouchableOpacity>
           </View>
 
