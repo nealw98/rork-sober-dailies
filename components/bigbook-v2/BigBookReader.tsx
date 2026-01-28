@@ -442,18 +442,18 @@ export function BigBookReader({ visible, initialChapterId, scrollToParagraphId, 
         <Text style={styles.headerTitle} numberOfLines={2}>
           {currentChapter.title}
         </Text>
+      </LinearGradient>
+
+      {/* Action Row - Below header */}
+      <View style={styles.actionRow}>
         {currentPageNumber && (
-          <Text style={styles.headerPageNumber}>
+          <Text style={styles.actionRowPageNumber}>
             Page {formatPageNumber(
               currentPageNumber, 
               getChapterMeta(currentChapterId)?.useRomanNumerals || false
             )}
           </Text>
         )}
-      </LinearGradient>
-
-      {/* Action Row - Below header */}
-      <View style={styles.actionRow}>
         <View style={styles.actionButtons}>
           <TouchableOpacity 
             onPress={handleToggleHighlightMode}
@@ -608,19 +608,18 @@ const styles = StyleSheet.create({
     fontWeight: adjustFontWeight('400'),
     color: '#fff',
   },
-  headerPageNumber: {
-    fontSize: 14,
-    fontWeight: adjustFontWeight('500'),
-    color: 'rgba(255, 255, 255, 0.8)',
-    marginTop: 8,
-  },
   actionRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'flex-end',
+    justifyContent: 'space-between',
     paddingVertical: 6,
     paddingHorizontal: 16,
     backgroundColor: '#fff',
+  },
+  actionRowPageNumber: {
+    fontSize: 14,
+    fontWeight: adjustFontWeight('500'),
+    color: '#3D8B8B',
   },
   actionButtons: {
     flexDirection: 'row',
