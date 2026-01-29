@@ -20,6 +20,7 @@ import * as Haptics from 'expo-haptics';
 import * as Clipboard from 'expo-clipboard';
 import { ChatStoreProvider, useChatStore } from "@/hooks/use-chat-store";
 import { getSponsorById, SPONSORS } from "@/constants/sponsors";
+import { useScreenTimeTracking } from "@/hooks/useScreenTimeTracking";
 import Colors from "@/constants/colors";
 import { adjustFontWeight } from "@/constants/fonts";
 import { useTextSettings } from "@/hooks/use-text-settings";
@@ -164,49 +165,9 @@ function SponsorChatContent({ initialSponsor }: { initialSponsor: string }) {
   // Use the initialSponsor directly for display (we know it's valid)
   const sponsor = getSponsorById(initialSponsor as SponsorType);
 
-  // Track screen time with sponsor name - using simpler approach for this screen
+  // Track screen time with sponsor name - uses hook that properly handles app backgrounding
   const screenName = sponsor ? sponsor.name : 'Unknown Sponsor';
-  const startTimeRef = useRef<number | null>(null);
-  
-  useEffect(() => {
-    // Track screen open on mount
-    const openTimestamp = Date.now();
-    startTimeRef.current = openTimestamp;
-    
-    console.log(`[ScreenTime] ${screenName} opened at ${new Date(openTimestamp).toISOString()}`);
-    
-    posthog?.capture('screen_opened', {
-      $screen_name: screenName,
-      timestamp: openTimestamp,
-    });
-
-    // Track screen close on unmount
-    return () => {
-      if (startTimeRef.current) {
-        const closeTimestamp = Date.now();
-        const duration = Math.floor((closeTimestamp - startTimeRef.current) / 1000);
-        
-        console.log(`[ScreenTime] ${screenName} closed, duration: ${duration}s`);
-        
-        if (duration >= 2) {
-          posthog?.capture('screen_closed', {
-            $screen_name: screenName,
-            timestamp: closeTimestamp,
-            duration_seconds: duration,
-          });
-
-          posthog?.capture('screen_time_completed', {
-            $screen_name: screenName,
-            duration_seconds: duration,
-            open_timestamp: startTimeRef.current,
-            close_timestamp: closeTimestamp,
-          });
-        }
-        
-        startTimeRef.current = null;
-      }
-    };
-  }, [screenName, posthog]);
+  useScreenTimeTracking(screenName);
   
   const bubbleColor = sponsor?.bubbleColor;
   const bubbleBorderColor = sponsor?.bubbleBorderColor;
