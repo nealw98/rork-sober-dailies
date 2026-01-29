@@ -24,7 +24,7 @@
       "entitlements": {}
     },
     "android": {
-      "package": "com.nealwagner.soberdailies.paid",
+      "package": "com.nealwagner.soberdailies",
       "versionCode": 114,
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon-foreground.png",
