@@ -24,7 +24,7 @@ const PREMIUM_OVERRIDE_KEY = 'sober_dailies_premium_override';
 // CONFIGURATION
 // ============================================================================
 
-const SUBSCRIPTION_OFFERING_ID = 'default';
+// Use the current offering from RevenueCat (set as default in dashboard)
 
 // ============================================================================
 // HELPERS
@@ -87,14 +87,34 @@ export default function PaywallScreen() {
     });
   }, []);
 
-  // Get packages from the subscription offering
-  const subscriptionOffering = offerings?.all?.[SUBSCRIPTION_OFFERING_ID] ?? offerings?.current;
+  // Get packages from the 'default' offering (subscription products)
+  // IMPORTANT: Must use 'default' offering, NOT tips_only or legacy offerings
+  const defaultOffering = offerings?.all?.['default'];
+  const currentOffering = offerings?.current;
+  
+  // Prefer 'default' offering, but verify current isn't a tip jar
+  const subscriptionOffering = defaultOffering ?? 
+    (currentOffering?.identifier !== 'tips_only_1_9' && 
+     currentOffering?.identifier !== 'tips_only' &&
+     currentOffering?.identifier !== 'legacy_offerings' 
+      ? currentOffering 
+      : null);
+  
   const availablePackages = subscriptionOffering?.availablePackages ?? [];
 
   // Debug logging
   if (offerings) {
     console.log('[Paywall] All offering IDs:', Object.keys(offerings.all || {}));
-    console.log('[Paywall] Using offering:', subscriptionOffering?.identifier || 'none');
+    console.log('[Paywall] Current offering ID:', currentOffering?.identifier || 'none');
+    console.log('[Paywall] Default offering found:', !!defaultOffering);
+    console.log('[Paywall] Using offering:', subscriptionOffering?.identifier || 'NONE - NO VALID OFFERING');
+    console.log('[Paywall] Available packages count:', availablePackages.length);
+    
+    // Warn if we couldn't find the default offering
+    if (!defaultOffering) {
+      console.warn('[Paywall] WARNING: "default" offering not found in RevenueCat!');
+      console.warn('[Paywall] Available offerings:', Object.keys(offerings.all || {}));
+    }
   }
 
   // Separate monthly and yearly packages
