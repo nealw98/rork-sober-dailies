@@ -11,6 +11,7 @@ import * as Clipboard from 'expo-clipboard';
 import * as Application from 'expo-application';
 import * as SecureStore from 'expo-secure-store';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import Purchases from 'react-native-purchases';
 import { adjustFontWeight } from '@/constants/fonts';
 import { useTextSettings } from '@/hooks/use-text-settings';
 import { useSubscription } from '@/hooks/useSubscription';
@@ -183,11 +184,11 @@ export default function SettingsScreen() {
   const resetSubscriptionState = async () => {
     Alert.alert(
       'Reset Subscription State',
-      'This will clear your grandfathered status and onboarding. The app will show the welcome screen and paywall on next launch. Continue?',
+      'This will clear ALL user data including anonymous ID and RevenueCat user. The app will behave as a completely new install. Continue?',
       [
         { text: 'Cancel', style: 'cancel' },
         {
-          text: 'Reset',
+          text: 'Reset Everything',
           style: 'destructive',
           onPress: async () => {
             try {
@@ -196,12 +197,25 @@ export default function SettingsScreen() {
               await SecureStore.deleteItemAsync('sober_dailies_grandfather_checked');
               // Clear premium override (dev bypass)
               await SecureStore.deleteItemAsync('sober_dailies_premium_override');
+              // Clear anonymous ID (SecureStore and AsyncStorage)
+              await SecureStore.deleteItemAsync('sober_dailies_anonymous_id');
+              await AsyncStorage.removeItem('anonymous_id');
               // Clear onboarding
               await AsyncStorage.removeItem('sober_dailies_onboarding_complete');
               
-              Alert.alert('Reset Complete', 'Restart the app to see the new user flow.', [
-                { text: 'OK' }
-              ]);
+              // Logout from RevenueCat to get a new anonymous user ID
+              try {
+                await Purchases.logOut();
+                console.log('[Settings] RevenueCat user logged out');
+              } catch (rcError) {
+                console.warn('[Settings] RevenueCat logout failed (may not be configured):', rcError);
+              }
+              
+              Alert.alert(
+                'Reset Complete',
+                'All user data has been cleared. You MUST restart the app now for changes to take effect.',
+                [{ text: 'OK' }]
+              );
             } catch (error) {
               Alert.alert('Error', 'Failed to reset subscription state.');
               console.error('[Settings] Reset subscription state error:', error);
