@@ -7,7 +7,6 @@ import { ChevronLeft, ChevronRight, X } from 'lucide-react-native';
 import Constants from 'expo-constants';
 import * as Clipboard from 'expo-clipboard';
 import { adjustFontWeight } from '@/constants/fonts';
-import { BETA_INVITE_URL } from '@/constants/betaInvite';
 import { useTextSettings } from '@/hooks/use-text-settings';
 import { Logger } from '@/lib/logger';
 import { submitFeedback } from '@/lib/feedback';
@@ -97,10 +96,6 @@ export default function SettingsScreen() {
 
   const handleSupportPress = () => {
     Linking.openURL('https://soberdailies.com/support');
-  };
-
-  const handleJoinBetaPress = () => {
-    Linking.openURL(BETA_INVITE_URL);
   };
 
   const handleFeedbackSubmit = async () => {
@@ -241,15 +236,6 @@ export default function SettingsScreen() {
 
         {/* Support Section */}
         <Text style={[styles.sectionTitle, { marginTop: 24 }]}>Support Sober Dailies</Text>
-        
-        <TouchableOpacity 
-          style={styles.menuItem}
-          onPress={handleJoinBetaPress}
-          activeOpacity={0.7}
-        >
-          <Text style={[styles.menuItemTitle, { fontSize }]}>Join the 2.0 Beta</Text>
-          <ChevronRight size={18} color="#a0a0a0" />
-        </TouchableOpacity>
 
         <TouchableOpacity 
           style={styles.menuItem}

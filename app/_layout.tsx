@@ -2,7 +2,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Stack, router } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import React, { useEffect, useCallback, useState } from "react";
-import { Text, StyleSheet, TouchableOpacity, Platform, View, StatusBar, Linking } from 'react-native';
+import { Text, StyleSheet, TouchableOpacity, Platform, View, StatusBar } from 'react-native';
 import { ChevronLeft } from "lucide-react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 
@@ -23,9 +23,6 @@ import { useExpoRouterTracking } from "@/hooks/useExpoRouterTracking";
 import { SessionProvider } from "@/hooks/useSessionContext";
 import { useSobrietyBirthday } from "@/hooks/useSobrietyBirthday";
 import SobrietyBirthdayModal from "@/components/SobrietyBirthdayModal";
-import { useBetaInvite } from "@/hooks/useBetaInvite";
-import BetaInviteModal from "@/components/BetaInviteModal";
-import { BETA_INVITE_URL } from "@/constants/betaInvite";
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync().catch(() => {
@@ -57,7 +54,6 @@ function RootLayoutNav() {
   const { isOnboardingComplete, isLoading } = useOnboarding();
   const { showSnackbar, dismissSnackbar, restartApp } = useOTAUpdates();
   const { showBirthdayModal, closeBirthdayModal } = useSobrietyBirthday();
-  const { showBetaInvite, dismissBetaInvite, markBetaInviteCompleted } = useBetaInvite();
 
   // Enable screen tracking for Expo Router
   useExpoRouterTracking();
@@ -238,17 +234,6 @@ function RootLayoutNav() {
       </Stack>
         <OTASnackbar visible={showSnackbar} onDismiss={dismissSnackbar} onRestart={restartApp} />
         <SobrietyBirthdayModal visible={showBirthdayModal} onClose={closeBirthdayModal} />
-        <BetaInviteModal
-          visible={showBetaInvite}
-          onDismiss={dismissBetaInvite}
-          onJoin={async () => {
-            try {
-              await Linking.openURL(BETA_INVITE_URL);
-            } finally {
-              await markBetaInviteCompleted();
-            }
-          }}
-        />
     </>
   );
 }
