@@ -7,6 +7,7 @@
 // - Batch event processing (multiple events per request)
 // - IP geolocation via ip-api.com (free tier: 45 req/min)
 // - Updates both usage_events and user_profiles with location
+// - Safe two-step upsert for user_profiles (PATCH then POST)
 // - Caches geolocation per request to minimize API calls
 // - Health check endpoint for debugging
 //
@@ -53,11 +54,108 @@ interface GeoResult extends GeoLocation {
   geo_error?: string;
 }
 
+// Profile patch type - fields that can be updated (never includes created_at)
+interface ProfilePatch {
+  last_seen_at?: string;
+  city?: string | null;
+  region?: string | null;
+  country?: string | null;
+  updated_at?: string;
+}
+
 // Cache for geolocation lookups (per request)
 let geoCache: GeoResult | null = null;
 
 // Geo lookup timeout in milliseconds
 const GEO_TIMEOUT_MS = 3500;
+
+// Supabase REST helper
+const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+
+const rest = (path: string, init: RequestInit = {}) =>
+  fetch(`${supabaseUrl}/rest/v1${path}`, {
+    ...init,
+    headers: {
+      'Authorization': `Bearer ${serviceKey}`,
+      'apikey': serviceKey,
+      'Content-Type': 'application/json',
+      'Prefer': 'return=representation',
+      ...(init.headers || {}),
+    },
+  });
+
+/**
+ * Safe two-step upsert for user_profiles.
+ * 1. PATCH existing row (partial update, never sends created_at)
+ * 2. If no row exists, POST new row with created_at
+ * 
+ * This avoids violating NOT NULL(created_at) on upsert.
+ */
+async function upsertUserProfile(anonymousId: string, patch: ProfilePatch): Promise<{ action: string; error?: string }> {
+  // 1) PATCH existing row (only fields we want to change)
+  const patchRes = await rest(
+    `/user_profiles?anonymous_id=eq.${encodeURIComponent(anonymousId)}`,
+    {
+      method: 'PATCH',
+      body: JSON.stringify(patch),
+    }
+  );
+
+  if (patchRes.ok) {
+    const updated = await patchRes.json();
+    if (Array.isArray(updated) && updated.length > 0) {
+      return { action: 'patched' };
+    }
+    // PATCH returned 200 but no rows affected - user doesn't exist, try insert
+  } else {
+    // Log non-2xx responses
+    const body = await patchRes.text();
+    console.warn(`[log-usage-event] user_profiles PATCH failed for ${anonymousId}:`, patchRes.status, body);
+    
+    // If error is not 404 (no rows), don't try POST
+    if (patchRes.status >= 400 && patchRes.status !== 404) {
+      return { action: 'patch_error', error: `PATCH failed: ${patchRes.status} ${body}` };
+    }
+  }
+
+  // 2) POST create new row (include created_at and anonymous_id)
+  const nowIso = new Date().toISOString();
+  const insertBody = {
+    anonymous_id: anonymousId,
+    created_at: nowIso,
+    ...patch,
+  };
+
+  const postRes = await rest('/user_profiles', {
+    method: 'POST',
+    body: JSON.stringify(insertBody),
+  });
+
+  if (!postRes.ok) {
+    const body = await postRes.text();
+    console.error(`[log-usage-event] user_profiles POST failed for ${anonymousId}:`, postRes.status, body);
+    
+    // Check if it's a conflict (user was created between PATCH and POST)
+    if (postRes.status === 409) {
+      // Row was created by another request, try PATCH again
+      const retryRes = await rest(
+        `/user_profiles?anonymous_id=eq.${encodeURIComponent(anonymousId)}`,
+        {
+          method: 'PATCH',
+          body: JSON.stringify(patch),
+        }
+      );
+      if (retryRes.ok) {
+        return { action: 'patched_after_conflict' };
+      }
+    }
+    
+    return { action: 'insert_error', error: `POST failed: ${postRes.status} ${body}` };
+  }
+
+  return { action: 'inserted' };
+}
 
 /**
  * Look up geolocation from IP address using ip-api.com
@@ -226,7 +324,7 @@ serve(async (req: Request) => {
         timestamp: new Date().toISOString(),
         ip_detected: ip ? `${ip.substring(0, 3)}...` : 'none',
         ip_source: source,
-        version: '1.1.0'
+        version: '1.2.0'
       }),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
@@ -261,10 +359,8 @@ serve(async (req: Request) => {
     
     const geo = await getGeoLocation(clientIP, ipSource);
 
-    // Initialize Supabase client with service role key (bypasses RLS)
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+    // Initialize Supabase client with service role key for usage_events insert
+    const supabase = createClient(supabaseUrl, serviceKey);
 
     // Prepare events for insertion with location data and diagnostics
     const eventsToInsert = events.map(event => ({
@@ -304,28 +400,29 @@ serve(async (req: Request) => {
     console.log(`[log-usage-event] Inserted ${events.length} events`);
 
     // Update user_profiles with latest location for each unique anonymous_id
+    // Using safe two-step PATCH/POST to avoid NOT NULL violation on created_at
     const uniqueAnonymousIds = [...new Set(events.map(e => e.anonymous_id).filter(Boolean))];
+    const profileResults: { id: string; action: string; error?: string }[] = [];
     
     for (const anonymousId of uniqueAnonymousIds) {
       if (!anonymousId) continue;
 
-      const { error: upsertError } = await supabase
-        .from('user_profiles')
-        .upsert({
-          anonymous_id: anonymousId,
-          city: geo.city,
-          region: geo.region,
-          country: geo.country,
-          last_seen_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        }, {
-          onConflict: 'anonymous_id',
-          ignoreDuplicates: false,
-        });
+      // Build patch object (never includes created_at)
+      const patch: ProfilePatch = {
+        last_seen_at: new Date().toISOString(),
+        city: geo.city,
+        region: geo.region,
+        country: geo.country,
+        updated_at: new Date().toISOString(),
+      };
 
-      if (upsertError) {
-        // Log but don't fail - events were already inserted
-        console.warn(`[log-usage-event] Failed to update user_profiles for ${anonymousId}:`, upsertError);
+      try {
+        const result = await upsertUserProfile(anonymousId, patch);
+        profileResults.push({ id: anonymousId, ...result });
+        console.info(`[log-usage-event] user_profiles ${result.action} for ${anonymousId}`);
+      } catch (e) {
+        console.error(`[log-usage-event] Failed to upsert user_profiles for ${anonymousId}:`, e);
+        profileResults.push({ id: anonymousId, action: 'exception', error: e.message });
       }
     }
 
@@ -336,6 +433,7 @@ serve(async (req: Request) => {
         location: geo.country ? `${geo.city}, ${geo.region}, ${geo.country}` : null,
         ip_source: geo.ip_source,
         geo_status: geo.geo_status,
+        profiles_updated: profileResults.length,
       }),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
