@@ -19,6 +19,7 @@ import { adjustFontWeight } from "@/constants/fonts";
 import { SPONSORS } from "@/constants/sponsors";
 import ScreenContainer from "@/components/ScreenContainer";
 import { logEvent } from "@/lib/usageLogger";
+import { useScreenTimeTracking } from "@/hooks/useScreenTimeTracking";
 
 const { width: screenWidth } = Dimensions.get("window");
 const TILE_GAP = 20;
@@ -33,6 +34,8 @@ export default function ChatScreen() {
   const posthog = usePostHog();
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  
+  useScreenTimeTracking('AI Sponsor Selection');
 
   useFocusEffect(
     useCallback(() => {

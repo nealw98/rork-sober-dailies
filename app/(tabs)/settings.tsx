@@ -17,6 +17,7 @@ import { useTextSettings } from '@/hooks/use-text-settings';
 import { Logger } from '@/lib/logger';
 import { submitFeedback } from '@/lib/feedback';
 import { usageLogger } from '@/lib/usageLogger';
+import { useScreenTimeTracking } from '@/hooks/useScreenTimeTracking';
 
 const DEVELOPER_MODE_KEY = 'developer_mode_enabled';
 
@@ -44,6 +45,9 @@ export default function SettingsScreen() {
   const posthog = usePostHog();
   const insets = useSafeAreaInsets();
   const { fontSize, setFontSize, minFontSize, maxFontSize, resetDefaults, defaultFontSize } = useTextSettings();
+  
+  useScreenTimeTracking('Settings');
+  
   const [logsVisible, setLogsVisible] = useState(false);
   const [logsText, setLogsText] = useState('');
   const [isDeveloperMode, setIsDeveloperMode] = useState(false);

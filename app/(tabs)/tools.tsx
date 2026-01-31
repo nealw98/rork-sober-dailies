@@ -6,6 +6,7 @@ import { ChevronLeft } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 
 import { adjustFontWeight } from '@/constants/fonts';
+import { useScreenTimeTracking } from '@/hooks/useScreenTimeTracking';
 
 interface ToolOption {
   id: string;
@@ -46,6 +47,8 @@ const toolOptions: ToolOption[] = [
 export default function ToolsScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  
+  useScreenTimeTracking('Tools');
 
   return (
     <View style={styles.container}>

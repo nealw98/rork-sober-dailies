@@ -11,8 +11,6 @@ import {
   ActivityIndicator,
   Image,
   Alert,
-  AppState,
-  AppStateStatus,
 } from "react-native";
 import { useRouter, useLocalSearchParams, Stack } from "expo-router";
 import { ChevronLeft, RotateCcw, Send } from "lucide-react-native";
@@ -22,12 +20,13 @@ import * as Haptics from 'expo-haptics';
 import * as Clipboard from 'expo-clipboard';
 import { ChatStoreProvider, useChatStore } from "@/hooks/use-chat-store";
 import { getSponsorById, SPONSORS } from "@/constants/sponsors";
+import { useScreenTimeTracking } from "@/hooks/useScreenTimeTracking";
 import Colors from "@/constants/colors";
 import { adjustFontWeight } from "@/constants/fonts";
 import { useTextSettings } from "@/hooks/use-text-settings";
 import { SponsorType, ChatMessage } from "@/types";
 import { ChatMarkdownRenderer } from "@/components/ChatMarkdownRenderer";
-import { featureUse, getAnonymousId, logEvent, getCurrentSessionId } from "@/lib/usageLogger";
+import { featureUse, getAnonymousId } from "@/lib/usageLogger";
 import { usePostHog } from 'posthog-react-native';
 import { supabase } from "@/lib/supabase";
 
@@ -154,9 +153,6 @@ function SponsorChatContent({ initialSponsor }: { initialSponsor: string }) {
   const [inputText, setInputText] = useState("");
   const [isCheckingLimits, setIsCheckingLimits] = useState(false);
   const flatListRef = useRef<FlatList>(null);
-  
-  // Track screen open time for duration calculation
-  const screenOpenTimeRef = useRef<number>(Date.now());
 
   // Sync sponsor type with store on mount
   useEffect(() => {
@@ -170,65 +166,8 @@ function SponsorChatContent({ initialSponsor }: { initialSponsor: string }) {
   const sponsor = getSponsorById(initialSponsor as SponsorType);
   const screenName = sponsor?.name || 'Unknown Sponsor';
   
-  // Track screen time when app is backgrounded (especially for Android)
-  useEffect(() => {
-    const handleAppStateChange = (nextAppState: AppStateStatus) => {
-      if (nextAppState === 'background' || nextAppState === 'inactive') {
-        const now = Date.now();
-        const duration = Math.floor((now - screenOpenTimeRef.current) / 1000);
-        
-        console.log(`[SponsorChat] App backgrounded on ${screenName}, duration: ${duration}s`);
-        
-        // Only track if session was > 2 seconds
-        if (duration >= 2) {
-          const sessionId = getCurrentSessionId();
-          
-          // Send to PostHog
-          posthog?.capture('screen_closed', {
-            $screen_name: screenName,
-            timestamp: now,
-            duration_seconds: duration,
-            $session_id: sessionId,
-          });
-          
-          posthog?.capture('screen_time_completed', {
-            $screen_name: screenName,
-            duration_seconds: duration,
-            open_timestamp: screenOpenTimeRef.current,
-            close_timestamp: now,
-            $session_id: sessionId,
-          });
-          
-          // Send to Supabase
-          logEvent('screen_closed', {
-            screen: screenName,
-            duration_seconds: duration,
-            timestamp: now,
-          });
-          
-          logEvent('screen_time_completed', {
-            screen: screenName,
-            duration_seconds: duration,
-            open_timestamp: screenOpenTimeRef.current,
-            close_timestamp: now,
-          });
-        }
-        
-        // Reset the timer (will restart when app comes back to foreground)
-        screenOpenTimeRef.current = Date.now();
-      } else if (nextAppState === 'active') {
-        // App returning to foreground - reset the timer
-        screenOpenTimeRef.current = Date.now();
-        console.log(`[SponsorChat] App foregrounded on ${screenName}, timer reset`);
-      }
-    };
-    
-    const subscription = AppState.addEventListener('change', handleAppStateChange);
-    
-    return () => {
-      subscription.remove();
-    };
-  }, [screenName, posthog]);
+  // Track screen time with sponsor name
+  useScreenTimeTracking(screenName);
   
   const bubbleColor = sponsor?.bubbleColor;
   const bubbleBorderColor = sponsor?.bubbleBorderColor;

@@ -40,8 +40,6 @@ class UsageLogger {
   private screenOpenTime: number | null = null;
   private lastEventTime: number = Date.now();
   private appState: AppStateStatus = 'active';
-  private lastScreenLogged: string | null = null;
-  private lastScreenLogTime: number = 0;
   private posthog: PostHogInstance = null;
   private sessionStartTime: number = Date.now(); // Track when session started
   private lastBackgroundEventTime: number = 0; // Prevent duplicate background events
@@ -250,58 +248,19 @@ class UsageLogger {
     }
   }
 
-  // Debounced screen logging to prevent duplicates
-  private shouldLogScreenEvent(screenName: string, eventType: 'open' | 'close'): boolean {
-    const now = Date.now();
-    const timeSinceLastLog = now - this.lastScreenLogTime;
-    const isSameScreen = this.lastScreenLogged === screenName;
-    
-    // Allow screen events if:
-    // 1. It's been more than 1 second since last screen log, OR
-    // 2. It's a different screen, OR  
-    // 3. It's a screen_close event (always allow close events)
-    if (timeSinceLastLog > 1000 || !isSameScreen || eventType === 'close') {
-      this.lastScreenLogged = screenName;
-      this.lastScreenLogTime = now;
-      return true;
-    }
-    
-    console.log('[UsageLogger] Skipping duplicate screen event:', eventType, screenName, 'last logged:', timeSinceLastLog + 'ms ago');
-    return false;
-  }
-
-  // Screen tracking hooks
+  // Screen tracking - just tracks current screen for context in app events
+  // Screen open/close events are handled by useScreenTimeTracking hook per-screen
   onScreenFocus(screenName: string): void {
     if (this.currentScreen !== screenName) {
-      // Log screen close for previous screen with duration
-      if (this.currentScreen && this.shouldLogScreenEvent(this.currentScreen, 'close')) {
-        const duration = this.calculateScreenDuration();
-        this.logEvent('screen_close', { 
-          screen: this.currentScreen,
-          duration_seconds: duration
-        });
-      }
-
-      // Update current screen and record open time
+      // Update current screen (used for context in app_background events)
       this.currentScreen = screenName;
       this.screenOpenTime = Date.now();
-
-      // Log screen open for new screen
-      if (this.shouldLogScreenEvent(screenName, 'open')) {
-        this.logEvent('screen_open', { screen: screenName });
-      }
+      console.log('[UsageLogger] Screen focus:', screenName);
     }
   }
 
   onScreenBlur(screenName: string): void {
     if (this.currentScreen === screenName) {
-      if (this.shouldLogScreenEvent(screenName, 'close')) {
-        const duration = this.calculateScreenDuration();
-        this.logEvent('screen_close', { 
-          screen: screenName,
-          duration_seconds: duration
-        });
-      }
       this.currentScreen = null;
       this.screenOpenTime = null;
     }
@@ -347,16 +306,9 @@ class UsageLogger {
           session_id: this.sessionId
         });
         
-        // Also log screen close if we have a current screen (with duration)
-        if (this.currentScreen) {
-          const duration = this.calculateScreenDuration();
-          this.logEvent('screen_close', {
-            screen: this.currentScreen,
-            reason: 'app_background',
-            duration_seconds: duration
-          });
-          this.screenOpenTime = null;
-        }
+        // Note: screen_close events are handled by useScreenTimeTracking hook
+        // We just reset the screen time here
+        this.screenOpenTime = null;
       } else if (nextAppState === 'active' && previousAppState !== 'active') {
         // App coming back to foreground from background/inactive
         // Generate a new session ID for the new session
@@ -386,13 +338,10 @@ class UsageLogger {
           console.error('[UsageLogger] Daily streak check failed:', error);
         });
         
-        // Also log screen open for the current screen with new session
-        if (this.currentScreen && this.shouldLogScreenEvent(this.currentScreen, 'open')) {
-          this.screenOpenTime = Date.now(); // Reset timer for returning to screen
-          this.logEvent('screen_open', {
-            screen: this.currentScreen,
-            reason: 'app_foreground'
-          });
+        // Note: screen_opened events are handled by useScreenTimeTracking hook
+        // We just reset the screen time here
+        if (this.currentScreen) {
+          this.screenOpenTime = Date.now();
         }
       }
     });
