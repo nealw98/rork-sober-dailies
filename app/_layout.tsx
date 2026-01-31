@@ -6,7 +6,6 @@ import { Text, StyleSheet, TouchableOpacity, Platform, View, StatusBar } from 'r
 import { ChevronLeft } from "lucide-react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { PostHogProvider, usePostHog } from 'posthog-react-native';
-import * as Application from 'expo-application';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import { GratitudeProvider } from "@/hooks/use-gratitude-store";
@@ -22,7 +21,7 @@ import WelcomeScreen from "@/components/WelcomeScreen";
 import PaywallScreen from "@/components/PaywallScreen";
 import OTASnackbar from "@/components/OTASnackbar";
 import { Logger } from "@/lib/logger";
-import { initUsageLogger, setPostHogForUsageLogger } from "@/lib/usageLogger";
+import { initUsageLogger, setPostHogForUsageLogger, getAnonymousId } from "@/lib/usageLogger";
 import { recordAppOpen } from "@/lib/reviewPrompt";
 import { useExpoRouterTracking } from "@/hooks/useExpoRouterTracking";
 import { SessionProvider } from "@/hooks/useSessionContext";
@@ -37,25 +36,6 @@ SplashScreen.preventAutoHideAsync().catch(() => {
 
 const queryClient = new QueryClient();
 
-/**
- * Get a unique device identifier for PostHog tracking
- * - iOS: Uses identifierForVendor (unique per app vendor, resets on reinstall)
- * - Android: Uses ANDROID_ID (unique per device, persists across reinstalls)
- */
-async function getDeviceId(): Promise<string | null> {
-  try {
-    if (Platform.OS === 'ios') {
-      const iosId = await Application.getIosIdForVendorAsync();
-      return iosId;
-    } else if (Platform.OS === 'android') {
-      return Application.androidId;
-    }
-    return null;
-  } catch (error) {
-    console.error('[PostHog] Failed to get device ID:', error);
-    return null;
-  }
-}
 
 // Global flag to track if splash screen has been hidden
 let splashHidden = false;
@@ -77,9 +57,12 @@ const hideSplashScreenSafely = async () => {
 };
 
 /**
- * Component that identifies the user with PostHog using device ID
- * and sobriety milestone (range only, not actual date)
- * Must be a child of PostHogProvider to access usePostHog hook
+ * Component that identifies the user with PostHog using the same anonymous ID
+ * that Supabase uses (stored in SecureStore). This ensures consistent user
+ * tracking across both analytics systems.
+ * 
+ * Also sets sobriety milestone (range only, not actual date) as a user property.
+ * Must be a child of PostHogProvider to access usePostHog hook.
  */
 function PostHogIdentifier({ children }: { children: React.ReactNode }) {
   const posthog = usePostHog();
@@ -94,11 +77,12 @@ function PostHogIdentifier({ children }: { children: React.ReactNode }) {
           setPostHogForUsageLogger(posthog);
         }
 
-        // Get device ID
-        const deviceId = await getDeviceId();
+        // Get the same anonymous ID that Supabase uses (from SecureStore)
+        // This ensures consistent user tracking across both systems
+        const anonymousId = await getAnonymousId();
         
-        if (!deviceId) {
-          console.warn('[PostHog] No device ID available for identification');
+        if (!anonymousId) {
+          console.warn('[PostHog] No anonymous ID available for identification');
           return;
         }
 
@@ -106,7 +90,7 @@ function PostHogIdentifier({ children }: { children: React.ReactNode }) {
           return;
         }
 
-        console.log('[PostHog] Identifying user with device ID:', deviceId);
+        console.log('[PostHog] Identifying user with anonymous ID:', anonymousId);
 
         // Get sobriety date from AsyncStorage
         const sobrietyDataStr = await AsyncStorage.getItem('sobriety_data');
@@ -126,8 +110,8 @@ function PostHogIdentifier({ children }: { children: React.ReactNode }) {
         
         console.log('[PostHog] Sobriety milestone:', milestone);
 
-        // Identify user with device ID and milestone as person property
-        posthog.identify(deviceId, {
+        // Identify user with anonymous ID (same as Supabase) and milestone as person property
+        posthog.identify(anonymousId, {
           sobriety_milestone: milestone,
         });
 
@@ -136,7 +120,7 @@ function PostHogIdentifier({ children }: { children: React.ReactNode }) {
           sobriety_milestone: milestone,
         });
 
-        console.log('[PostHog] User identified with milestone super property');
+        console.log('[PostHog] User identified with shared anonymous ID and milestone');
       } catch (error) {
         console.error('[PostHog] Error during identification:', error);
       }

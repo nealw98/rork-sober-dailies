@@ -20,7 +20,6 @@ import * as Haptics from 'expo-haptics';
 import * as Clipboard from 'expo-clipboard';
 import { ChatStoreProvider, useChatStore } from "@/hooks/use-chat-store";
 import { getSponsorById, SPONSORS } from "@/constants/sponsors";
-import { useScreenTimeTracking } from "@/hooks/useScreenTimeTracking";
 import Colors from "@/constants/colors";
 import { adjustFontWeight } from "@/constants/fonts";
 import { useTextSettings } from "@/hooks/use-text-settings";
@@ -164,10 +163,6 @@ function SponsorChatContent({ initialSponsor }: { initialSponsor: string }) {
 
   // Use the initialSponsor directly for display (we know it's valid)
   const sponsor = getSponsorById(initialSponsor as SponsorType);
-
-  // Track screen time with sponsor name - uses hook that properly handles app backgrounding
-  const screenName = sponsor ? sponsor.name : 'Unknown Sponsor';
-  useScreenTimeTracking(screenName);
   
   const bubbleColor = sponsor?.bubbleColor;
   const bubbleBorderColor = sponsor?.bubbleBorderColor;
