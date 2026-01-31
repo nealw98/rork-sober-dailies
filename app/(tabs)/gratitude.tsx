@@ -27,7 +27,6 @@ import ScreenContainer from '@/components/ScreenContainer';
 import SavedGratitudeEntries from '@/components/SavedGratitudeEntries';
 import { GratitudeCompleteModal } from '@/components/GratitudeCompleteModal';
 import { useTextSettings } from '@/hooks/use-text-settings';
-import { useScreenTimeTracking } from '@/hooks/useScreenTimeTracking';
 
 // 25 inspirational gratitude quotes for daily rotation
 const GRATITUDE_QUOTES = [
@@ -348,7 +347,6 @@ export default function GratitudeListScreen() {
   const inputRef = useRef<TextInput>(null);
   const router = useRouter();
 
-  useScreenTimeTracking('Gratitude List');
   const insets = useSafeAreaInsets();
   
   // Always call hooks in the same order
