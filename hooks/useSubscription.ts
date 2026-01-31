@@ -17,12 +17,7 @@ import { usageLogger } from '@/lib/usageLogger';
 
 const ENTITLEMENT_ID = 'premium';
 
-// Supabase Edge Function URL for grandfather check
-// This will be: https://[project-ref].supabase.co/functions/v1/check-grandfather
-const GRANDFATHER_EDGE_FUNCTION = 'check-grandfather';
-
 // SecureStore keys
-const GRANDFATHER_CHECKED_KEY = 'sober_dailies_grandfather_checked';
 const PREMIUM_OVERRIDE_KEY = 'sober_dailies_premium_override';
 
 // ============================================================================
@@ -71,105 +66,49 @@ async function ensurePurchasesConfigured(): Promise<{ ok: true } | { ok: false; 
 // ============================================================================
 
 /**
- * Check if user should be grandfathered and grant entitlement via Edge Function.
+ * Check if user is grandfathered by querying the user_profiles table directly.
  * 
- * This function calls a Supabase Edge Function that:
- * 1. Checks user_profiles.is_grandfathered (computed column based on created_at)
- * 2. If eligible, grants promotional "premium" entitlement via RevenueCat REST API
- * 3. Records the grant in user_profiles.entitlement_granted_at
+ * The is_grandfathered column is a computed column in Supabase that returns true
+ * if the user's created_at is before February 4, 2026.
  * 
- * Error Handling (STRICT - no false positives):
- * - If Edge Function fails: do NOT grant (user must pay or retry later)
- * - If no Supabase record: do NOT grant (user is new)
- * - Only grant if is_grandfathered = true in database
+ * This check happens each time the app initializes subscriptions - no caching.
  * 
- * The result is cached in SecureStore so we only call the Edge Function once per device.
+ * @returns true if user is grandfathered, false otherwise
  */
-async function checkAndGrantGrandfatherEntitlement(): Promise<void> {
+async function checkGrandfatherStatus(): Promise<boolean> {
   try {
-    // Check if we've already done the grandfather check on this device
-    const alreadyChecked = await SecureStore.getItemAsync(GRANDFATHER_CHECKED_KEY);
-    if (alreadyChecked === 'true') {
-      console.log('[Subscription] Grandfather check already completed on this device');
-      return;
-    }
-
-    console.log('[Subscription] Performing grandfather check via Edge Function...');
-
     // Get the anonymous ID from usage logger
     const anonymousId = await usageLogger.getAnonymousId();
     if (!anonymousId) {
-      console.log('[Subscription] No anonymous ID available - skipping grandfather check');
-      await SecureStore.setItemAsync(GRANDFATHER_CHECKED_KEY, 'true');
-      return;
+      console.log('[Subscription] No anonymous ID available - not grandfathered');
+      return false;
     }
 
-    // Ensure RevenueCat is configured so we can get the app user ID
-    const configured = await ensurePurchasesConfigured();
-    if (!configured.ok) {
-      console.warn('[Subscription] RevenueCat not configured - skipping grandfather check');
-      // Don't cache this - try again next time
-      return;
-    }
+    console.log('[Subscription] Checking grandfather status for:', anonymousId);
 
-    // Get RevenueCat app user ID
-    let rcAppUserId: string;
-    try {
-      const customerInfo = await Purchases.getCustomerInfo();
-      rcAppUserId = customerInfo.originalAppUserId;
-      console.log('[Subscription] RevenueCat app user ID:', rcAppUserId);
-    } catch (e) {
-      console.warn('[Subscription] Failed to get RevenueCat customer info:', e);
-      // Don't cache - try again next time
-      return;
-    }
-
-    // Determine platform for RevenueCat API
-    const platform = Platform.OS === 'ios' ? 'ios' : 'android';
-
-    // Call the Edge Function
-    console.log('[Subscription] Calling Edge Function with:', {
-      anonymous_id: anonymousId,
-      rc_app_user_id: rcAppUserId,
-      platform,
-    });
-
-    const { data, error } = await supabase.functions.invoke(GRANDFATHER_EDGE_FUNCTION, {
-      body: {
-        anonymous_id: anonymousId,
-        rc_app_user_id: rcAppUserId,
-        platform,
-      },
-    });
+    // Query user_profiles table directly
+    const { data, error } = await supabase
+      .from('user_profiles')
+      .select('is_grandfathered')
+      .eq('anonymous_id', anonymousId)
+      .single();
 
     if (error) {
-      console.error('[Subscription] Edge Function error:', error);
-      // Don't cache on error - allow retry
-      return;
-    }
-
-    console.log('[Subscription] Edge Function response:', data);
-
-    if (data?.success) {
-      // Cache that we've completed the check
-      await SecureStore.setItemAsync(GRANDFATHER_CHECKED_KEY, 'true');
-      
-      if (data.grandfathered) {
-        console.log('[Subscription] User is grandfathered!', {
-          already_granted: data.already_granted,
-          message: data.message,
-        });
-      } else {
-        console.log('[Subscription] User is NOT grandfathered:', data.message);
+      // PGRST116 = no rows found, which means user doesn't exist in table
+      if (error.code === 'PGRST116') {
+        console.log('[Subscription] User not found in user_profiles - not grandfathered');
+        return false;
       }
-    } else {
-      console.warn('[Subscription] Edge Function returned failure:', data?.message);
-      // Don't cache on failure - allow retry
+      console.error('[Subscription] Error checking grandfather status:', error);
+      return false;
     }
 
+    const isGrandfathered = data?.is_grandfathered === true;
+    console.log('[Subscription] Grandfather status:', isGrandfathered);
+    return isGrandfathered;
   } catch (error) {
     console.error('[Subscription] Grandfather check error:', error);
-    // Don't cache on error - allow retry
+    return false;
   }
 }
 
@@ -182,6 +121,7 @@ export type SubscriptionState = {
   error: string | null;
 
   isEntitled: boolean;
+  isGrandfathered: boolean;
   isPremium: boolean;
 
   offerings: Offerings | null;
@@ -199,16 +139,16 @@ export const [SubscriptionProvider, useSubscription] = createContextHook(() => {
   const [offerings, setOfferings] = useState<Offerings | null>(null);
   const [customerInfo, setCustomerInfo] = useState<CustomerInfo | null>(null);
   const [isPremiumOverride, setIsPremiumOverride] = useState(false);
+  const [isGrandfathered, setIsGrandfathered] = useState(false);
 
-  // Check if user has the "premium" entitlement from RevenueCat
-  // This includes both paid subscriptions AND grandfathered users (promotional entitlement)
+  // Check if user has the "premium" entitlement from RevenueCat (paid subscriptions)
   const isEntitled = useMemo(() => {
     if (!customerInfo) return false;
     return !!customerInfo.entitlements.active?.[ENTITLEMENT_ID];
   }, [customerInfo]);
 
-  // User is premium if: entitled OR premium override (dev mode) OR on web
-  const isPremium = isEntitled || isPremiumOverride || Platform.OS === 'web';
+  // User is premium if: entitled (paid) OR grandfathered OR premium override (dev mode) OR on web
+  const isPremium = isEntitled || isGrandfathered || isPremiumOverride || Platform.OS === 'web';
 
   // Refresh subscription status from RevenueCat
   const refresh = useCallback(async () => {
@@ -322,12 +262,16 @@ export const [SubscriptionProvider, useSubscription] = createContextHook(() => {
           if (!didCancel) setIsPremiumOverride(true);
         }
 
-        // Step 1: Check and grant grandfather entitlement if eligible
-        // This calls the Edge Function which grants the entitlement in RevenueCat
-        await checkAndGrantGrandfatherEntitlement();
+        // Step 1: Check grandfather status directly from Supabase
+        const grandfathered = await checkGrandfatherStatus();
+        if (!didCancel) {
+          setIsGrandfathered(grandfathered);
+          if (grandfathered) {
+            console.log('[Subscription] User is grandfathered - unlocking premium features');
+          }
+        }
 
-        // Step 2: Refresh RevenueCat status
-        // If user was grandfathered, RevenueCat now has the entitlement
+        // Step 2: Refresh RevenueCat status for paid subscriptions
         await refresh();
       } finally {
         if (!didCancel) setIsLoading(false);
@@ -357,6 +301,7 @@ export const [SubscriptionProvider, useSubscription] = createContextHook(() => {
       error,
 
       isEntitled,
+      isGrandfathered,
       isPremium,
 
       offerings,
@@ -370,6 +315,7 @@ export const [SubscriptionProvider, useSubscription] = createContextHook(() => {
       isLoading,
       error,
       isEntitled,
+      isGrandfathered,
       isPremium,
       offerings,
       customerInfo,

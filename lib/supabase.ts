@@ -59,6 +59,7 @@ export type Database = {
           timezone: string | null;
           created_at: string | null;
           updated_at: string | null;
+          is_grandfathered: boolean; // Computed column: true if created_at < Feb 4, 2026
         };
         Insert: {
           anonymous_id: string;
@@ -66,6 +67,7 @@ export type Database = {
           timezone?: string | null;
           created_at?: string | null;
           updated_at?: string | null;
+          // is_grandfathered is computed, not insertable
         };
         Update: {
           anonymous_id?: string;
@@ -73,6 +75,7 @@ export type Database = {
           timezone?: string | null;
           created_at?: string | null;
           updated_at?: string | null;
+          // is_grandfathered is computed, not updatable
         };
       };
       app_feedback: {

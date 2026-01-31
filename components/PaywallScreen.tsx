@@ -1,8 +1,9 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState, useRef } from 'react';
 import {
   ActivityIndicator,
   Alert,
   Linking,
+  Modal,
   SafeAreaView,
   ScrollView,
   StyleSheet,
@@ -13,9 +14,12 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as SecureStore from 'expo-secure-store';
+import * as Clipboard from 'expo-clipboard';
+import Constants from 'expo-constants';
 import { RefreshCw, MessageCircle, BookOpen, Sparkles, Check } from 'lucide-react-native';
 import { adjustFontWeight } from '@/constants/fonts';
 import { useSubscription } from '@/hooks/useSubscription';
+import { usageLogger } from '@/lib/usageLogger';
 
 const DEVELOPER_MODE_KEY = 'sober_dailies_developer_mode';
 const PREMIUM_OVERRIDE_KEY = 'sober_dailies_premium_override';
@@ -80,12 +84,75 @@ export default function PaywallScreen() {
   const [isRestoring, setIsRestoring] = useState(false);
   const [isDeveloperMode, setIsDeveloperMode] = useState(false);
 
+  // Version tap state for revealing Support ID
+  const [versionTapCount, setVersionTapCount] = useState(0);
+  const [showSupportId, setShowSupportId] = useState(false);
+  const [supportId, setSupportId] = useState<string | null>(null);
+  const versionTapTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Version info
+  const appVersion = Constants.expoConfig?.version ?? '—';
+
   // Check for developer mode on mount
   useEffect(() => {
     AsyncStorage.getItem(DEVELOPER_MODE_KEY).then((value) => {
       setIsDeveloperMode(value === 'true');
     });
   }, []);
+
+  // Clean up timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (versionTapTimeoutRef.current) {
+        clearTimeout(versionTapTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  // Handle version taps to reveal Support ID
+  const handleVersionTap = async () => {
+    if (versionTapTimeoutRef.current) {
+      clearTimeout(versionTapTimeoutRef.current);
+    }
+
+    const newCount = versionTapCount + 1;
+    setVersionTapCount(newCount);
+
+    if (newCount >= 7) {
+      setVersionTapCount(0);
+      // Fetch and show Support ID
+      const id = await usageLogger.getAnonymousId();
+      setSupportId(id);
+      setShowSupportId(true);
+    } else {
+      versionTapTimeoutRef.current = setTimeout(() => {
+        setVersionTapCount(0);
+      }, 3000);
+    }
+  };
+
+  // Copy Support ID to clipboard
+  const copySupportId = async () => {
+    if (supportId) {
+      await Clipboard.setStringAsync(supportId);
+      Alert.alert('Copied', 'Support ID copied to clipboard');
+    }
+  };
+
+  // Open email with Support ID
+  const emailWithSupportId = async () => {
+    const id = supportId || await usageLogger.getAnonymousId() || 'Not available';
+    const subject = encodeURIComponent('Sober Dailies Support Request');
+    const body = encodeURIComponent(`Support ID: ${id}\n\n[Please describe your issue here]`);
+    const mailtoUrl = `mailto:support@soberdailies.org?subject=${subject}&body=${body}`;
+    
+    try {
+      await Linking.openURL(mailtoUrl);
+    } catch {
+      Alert.alert('Error', 'Could not open email app');
+    }
+  };
+
 
   // Get packages from the 'default' offering only
   const subscriptionOffering = offerings?.all?.['default'] ?? null;
@@ -308,6 +375,24 @@ export default function PaywallScreen() {
             <Text style={styles.link} onPress={openPrivacy}>Privacy Policy</Text>.
           </Text>
 
+          {/* Need Help - clickable email address */}
+          <View style={styles.needHelpContainer}>
+            <Text style={styles.needHelpLabel}>Need Help? </Text>
+            <TouchableOpacity onPress={emailWithSupportId} activeOpacity={0.7}>
+              <Text style={styles.needHelpEmail}>support@soberdailies.org</Text>
+            </TouchableOpacity>
+          </View>
+
+          {/* Version number - tap 7 times to reveal Support ID */}
+          <TouchableOpacity
+            style={styles.versionContainer}
+            onPress={handleVersionTap}
+            activeOpacity={0.7}
+          >
+            <Text style={styles.versionText}>Version {appVersion}</Text>
+          </TouchableOpacity>
+
+
           {/* Dev/Developer Mode bypass button */}
           {(__DEV__ || isDeveloperMode) && (
             <TouchableOpacity
@@ -333,6 +418,31 @@ export default function PaywallScreen() {
 
         </ScrollView>
       </LinearGradient>
+
+      {/* Support ID Modal */}
+      <Modal
+        visible={showSupportId}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowSupportId(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Support ID</Text>
+            <TouchableOpacity onPress={copySupportId} activeOpacity={0.7}>
+              <Text style={styles.modalId}>{supportId || 'Not available'}</Text>
+            </TouchableOpacity>
+            <Text style={styles.modalHint}>Tap to copy • Provide this ID to support</Text>
+            <TouchableOpacity
+              style={styles.modalDoneButton}
+              onPress={() => setShowSupportId(false)}
+              activeOpacity={0.8}
+            >
+              <Text style={styles.modalDoneText}>Done</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -554,6 +664,85 @@ const styles = StyleSheet.create({
     color: '#fff',
     textDecorationLine: 'underline',
     fontWeight: adjustFontWeight('500', true),
+  },
+
+  // Need Help
+  needHelpContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 16,
+    paddingVertical: 8,
+  },
+  needHelpLabel: {
+    color: 'rgba(255, 255, 255, 0.7)',
+    fontSize: 13,
+  },
+  needHelpEmail: {
+    color: '#fff',
+    fontSize: 13,
+    fontWeight: adjustFontWeight('500', true),
+    textDecorationLine: 'underline',
+  },
+
+  // Version
+  versionContainer: {
+    alignItems: 'center',
+    marginTop: 8,
+    paddingVertical: 4,
+  },
+  versionText: {
+    color: 'rgba(255, 255, 255, 0.5)',
+    fontSize: 11,
+  },
+
+  // Support ID Modal
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 24,
+  },
+  modalContent: {
+    backgroundColor: '#fff',
+    borderRadius: 16,
+    padding: 24,
+    alignItems: 'center',
+    width: '100%',
+    maxWidth: 320,
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: adjustFontWeight('600', true),
+    color: '#2d3748',
+    marginBottom: 16,
+  },
+  modalId: {
+    fontSize: 14,
+    fontFamily: 'monospace',
+    color: '#3D8B8B',
+    backgroundColor: '#f0f4f4',
+    padding: 12,
+    borderRadius: 8,
+    overflow: 'hidden',
+  },
+  modalHint: {
+    fontSize: 12,
+    color: '#6b7c8a',
+    marginTop: 8,
+    marginBottom: 20,
+  },
+  modalDoneButton: {
+    backgroundColor: '#3D8B8B',
+    paddingVertical: 12,
+    paddingHorizontal: 32,
+    borderRadius: 8,
+  },
+  modalDoneText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: adjustFontWeight('600', true),
   },
 
   // Dev-only
