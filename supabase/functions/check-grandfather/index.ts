@@ -155,7 +155,6 @@ serve(async (req: Request) => {
       headers: {
         'Authorization': `Bearer ${revenueCatSecretKey}`,
         'Content-Type': 'application/json',
-        'X-Platform': platform,
       },
       body: JSON.stringify({
         duration: 'lifetime', // Grandfathered users get lifetime access
@@ -163,6 +162,9 @@ serve(async (req: Request) => {
     });
 
     const rcResult = await rcResponse.json();
+
+    console.log(`[check-grandfather] RevenueCat response status: ${rcResponse.status}`);
+    console.log(`[check-grandfather] RevenueCat response body:`, rcResult);
 
     if (!rcResponse.ok) {
       console.error(`[check-grandfather] RevenueCat API error:`, rcResult);
