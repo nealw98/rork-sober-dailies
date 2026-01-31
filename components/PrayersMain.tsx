@@ -25,6 +25,7 @@ import { aaPrayers } from '@/constants/prayers';
 import { adjustFontWeight } from '@/constants/fonts';
 import { PrayerReader } from './PrayerReader';
 import { useTextSettings } from '@/hooks/use-text-settings';
+import { logEvent } from '@/lib/usageLogger';
 
 export function PrayersMain() {
   const posthog = usePostHog();
@@ -57,10 +58,16 @@ export function PrayersMain() {
   const handleSelectPrayer = useCallback((index: number) => {
     const selectedPrayer = aaPrayers[index];
     
-    // Track prayer view
+    // Track prayer view - PostHog
     posthog?.capture('prayer_viewed', { 
       $screen_name: 'Prayers',
       prayer_title: selectedPrayer.title 
+    });
+    
+    // Track prayer view - Supabase
+    logEvent('prayer_viewed', {
+      screen: 'Prayers',
+      prayer_title: selectedPrayer.title
     });
     
     setSelectedPrayerIndex(index);

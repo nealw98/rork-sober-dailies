@@ -9,6 +9,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import ScreenContainer from "@/components/ScreenContainer";
 import { adjustFontWeight } from "@/constants/fonts";
 import { useReadingSession } from "@/hooks/useReadingSession";
+import { logEvent } from "@/lib/usageLogger";
 
 interface LiteratureOption {
   id: string;
@@ -65,11 +66,20 @@ export default function LiteratureScreen() {
       'meeting-pocket': 'Meeting Guide'
     };
     
+    // Track in PostHog
     posthog?.capture('literature_selected', { 
       $screen_name: 'Literature',
       literature_id: literatureId,
       literature_section: sectionMap[literatureId] || literatureId
     });
+    
+    // Track in Supabase
+    logEvent('literature_selected', {
+      screen: 'Literature',
+      literature_id: literatureId,
+      literature_section: sectionMap[literatureId] || literatureId
+    });
+    
     router.push(route as any);
   };
 

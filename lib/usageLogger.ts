@@ -1,11 +1,13 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Platform } from 'react-native';
 import { AppState, AppStateStatus } from 'react-native';
-import { supabase } from './supabase';
 import Constants from 'expo-constants';
 import * as SecureStore from 'expo-secure-store';
 
 const ANONYMOUS_ID_KEY = 'sober_dailies_anonymous_id';
+
+// Edge Function URL for logging events with geolocation
+const USAGE_EVENT_FUNCTION_URL = 'https://uzfqabcjxjqufpipdcla.supabase.co/functions/v1/log-usage-event';
 
 interface UsageEvent {
   id?: string;
@@ -18,6 +20,7 @@ interface UsageEvent {
   anonymous_id: string | null;
   app_version?: string;
   platform: string;
+  properties?: Record<string, any>;
 }
 
 // PostHog type (avoiding direct import to prevent circular dependencies)
@@ -159,10 +162,13 @@ class UsageLogger {
     }
     this.lastEventTime = now;
 
+    // Extract known fields from props, put the rest in properties
+    const { screen, feature, duration_seconds, ...otherProps } = props || {};
+
     const usageEvent: UsageEvent = {
       ts: new Date().toISOString(),
       event,
-      screen: props?.screen || this.currentScreen || undefined,
+      screen: screen || this.currentScreen || undefined,
       session_id: this.sessionId,
       anonymous_id: this.anonymousId,
       app_version: Constants.expoConfig?.version || undefined,
@@ -170,17 +176,22 @@ class UsageLogger {
     };
 
     // Add feature if it's a feature-related event
-    if (props?.feature) {
-      usageEvent.feature = props.feature;
+    if (feature) {
+      usageEvent.feature = feature;
     }
 
     // Add duration if provided (for screen_close events)
-    if (props?.duration_seconds !== undefined) {
-      usageEvent.duration_seconds = props.duration_seconds;
+    if (duration_seconds !== undefined) {
+      usageEvent.duration_seconds = duration_seconds;
+    }
+
+    // Add any additional properties to the properties field
+    if (Object.keys(otherProps).length > 0) {
+      usageEvent.properties = otherProps;
     }
 
     this.eventQueue.push(usageEvent);
-    console.log('[UsageLogger] Event queued:', event, 'screen:', props?.screen || this.currentScreen, 'duration:', props?.duration_seconds, 'queue size:', this.eventQueue.length);
+    console.log('[UsageLogger] Event queued:', event, 'screen:', screen || this.currentScreen, 'duration:', duration_seconds, 'properties:', usageEvent.properties, 'queue size:', this.eventQueue.length);
 
     // Flush events in the background
     this.scheduleFlush();
@@ -198,7 +209,7 @@ class UsageLogger {
   }
 
   async flushEvents(): Promise<void> {
-    if (this.isFlushing || this.eventQueue.length === 0 || !supabase) {
+    if (this.isFlushing || this.eventQueue.length === 0) {
       return;
     }
 
@@ -207,18 +218,24 @@ class UsageLogger {
     this.eventQueue = [];
 
     try {
-      console.log('[UsageLogger] Flushing', eventsToFlush.length, 'events');
+      console.log('[UsageLogger] Flushing', eventsToFlush.length, 'events to Edge Function');
 
-      const { error } = await supabase
-        .from('usage_events')
-        .insert(eventsToFlush);
+      const response = await fetch(USAGE_EVENT_FUNCTION_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ events: eventsToFlush }),
+      });
 
-      if (error) {
-        console.error('[UsageLogger] Failed to flush events:', error);
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        console.error('[UsageLogger] Failed to flush events:', response.status, errorData);
         // Put events back in queue for retry
         this.eventQueue.unshift(...eventsToFlush);
       } else {
-        console.log('[UsageLogger] Successfully flushed events');
+        const result = await response.json();
+        console.log('[UsageLogger] Successfully flushed events:', result.message, result.location ? `(${result.location})` : '');
       }
     } catch (error) {
       console.error('[UsageLogger] Error flushing events:', error);

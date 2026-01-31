@@ -2,6 +2,7 @@ import { useEffect, useRef, useCallback } from 'react';
 import { AppState, AppStateStatus } from 'react-native';
 import { usePostHog } from 'posthog-react-native';
 import { useFocusEffect } from '@react-navigation/native';
+import { logEvent } from '@/lib/usageLogger';
 
 /**
  * Hook to track time spent on a screen
@@ -15,6 +16,8 @@ import { useFocusEffect } from '@react-navigation/native';
  * 
  * IMPORTANT: Only fires screen_opened when screen is actually focused/visible,
  * not on mount. This prevents firing events for all tabs on app launch.
+ * 
+ * Sends events to both PostHog and Supabase (via usageLogger Edge Function).
  * 
  * @param screenName - Human-readable screen name (e.g., "Daily Reflections", "Salty Sam")
  */
@@ -32,8 +35,15 @@ export function useScreenTimeTracking(screenName: string) {
       
       console.log(`[ScreenTime] ${screenName} opened at ${new Date(openTimestamp).toISOString()}`);
       
+      // PostHog
       posthog?.capture('screen_opened', {
         $screen_name: screenName,
+        timestamp: openTimestamp,
+      });
+      
+      // Supabase
+      logEvent('screen_opened', {
+        screen: screenName,
         timestamp: openTimestamp,
       });
 
@@ -50,6 +60,7 @@ export function useScreenTimeTracking(screenName: string) {
             
             // Only track if session was > 2 seconds
             if (duration >= 2) {
+              // PostHog
               posthog?.capture('screen_closed', {
                 $screen_name: screenName,
                 timestamp: now,
@@ -58,6 +69,20 @@ export function useScreenTimeTracking(screenName: string) {
 
               posthog?.capture('screen_time_completed', {
                 $screen_name: screenName,
+                duration_seconds: duration,
+                open_timestamp: startTimeRef.current,
+                close_timestamp: now,
+              });
+              
+              // Supabase
+              logEvent('screen_closed', {
+                screen: screenName,
+                duration_seconds: duration,
+                timestamp: now,
+              });
+
+              logEvent('screen_time_completed', {
+                screen: screenName,
                 duration_seconds: duration,
                 open_timestamp: startTimeRef.current,
                 close_timestamp: now,
@@ -77,8 +102,15 @@ export function useScreenTimeTracking(screenName: string) {
             
             console.log(`[ScreenTime] ${screenName} reopened from background at ${new Date(reopenTimestamp).toISOString()}`);
             
+            // PostHog
             posthog?.capture('screen_opened', {
               $screen_name: screenName,
+              timestamp: reopenTimestamp,
+            });
+            
+            // Supabase
+            logEvent('screen_opened', {
+              screen: screenName,
               timestamp: reopenTimestamp,
             });
           }
@@ -104,6 +136,7 @@ export function useScreenTimeTracking(screenName: string) {
           
           // Only track if session was > 2 seconds
           if (duration >= 2) {
+            // PostHog
             posthog?.capture('screen_closed', {
               $screen_name: screenName,
               timestamp: closeTimestamp,
@@ -112,6 +145,20 @@ export function useScreenTimeTracking(screenName: string) {
 
             posthog?.capture('screen_time_completed', {
               $screen_name: screenName,
+              duration_seconds: duration,
+              open_timestamp: startTimeRef.current,
+              close_timestamp: closeTimestamp,
+            });
+            
+            // Supabase
+            logEvent('screen_closed', {
+              screen: screenName,
+              duration_seconds: duration,
+              timestamp: closeTimestamp,
+            });
+
+            logEvent('screen_time_completed', {
+              screen: screenName,
               duration_seconds: duration,
               open_timestamp: startTimeRef.current,
               close_timestamp: closeTimestamp,

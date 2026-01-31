@@ -18,6 +18,7 @@ import Colors from "@/constants/colors";
 import { adjustFontWeight } from "@/constants/fonts";
 import { SPONSORS } from "@/constants/sponsors";
 import ScreenContainer from "@/components/ScreenContainer";
+import { logEvent } from "@/lib/usageLogger";
 
 const { width: screenWidth } = Dimensions.get("window");
 const TILE_GAP = 20;
@@ -45,11 +46,20 @@ export default function ChatScreen() {
   const handleSponsorSelect = (sponsorId: string) => {
     const sponsor = SPONSORS.find(s => s.id === sponsorId);
     if (sponsor && sponsor.isAvailable) {
+      // Track in PostHog
       posthog?.capture('sponsor_selected', { 
         $screen_name: 'AI Sponsor',
         sponsor_id: sponsorId, 
         sponsor_name: sponsor.name 
       });
+      
+      // Track in Supabase
+      logEvent('sponsor_selected', {
+        screen: 'AI Sponsor',
+        sponsor_id: sponsorId,
+        sponsor_name: sponsor.name
+      });
+      
       router.push(`/sponsor-chat?sponsor=${sponsorId}`);
     }
   };

@@ -107,6 +107,12 @@ export default function SettingsScreen() {
           is_developer: newValue
         });
       }
+      
+      // Also log to Supabase via usageLogger
+      usageLogger.logEvent('developer_mode_toggled', {
+        screen: 'Settings',
+        is_developer: newValue
+      });
     } catch (error) {
       console.error('[Settings] Failed to save developer mode:', error);
       Alert.alert('Error', 'Failed to save developer mode setting');
