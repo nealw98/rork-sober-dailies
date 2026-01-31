@@ -9,6 +9,9 @@ const ANONYMOUS_ID_KEY = 'sober_dailies_anonymous_id';
 // Edge Function URL for logging events with geolocation
 const USAGE_EVENT_FUNCTION_URL = 'https://uzfqabcjxjqufpipdcla.supabase.co/functions/v1/log-usage-event';
 
+// Supabase anon key for Edge Function authorization
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV6ZnFhYmNqeGpxdWZwaXBkY2xhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTMxOTI4NDgsImV4cCI6MjA2ODc2ODg0OH0.kqPftTCAXLQNd0sdDpIC1TRMXjk315hn92BEW7TKXmU';
+
 interface UsageEvent {
   id?: string;
   ts: string;
@@ -224,6 +227,7 @@ class UsageLogger {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
         },
         body: JSON.stringify({ events: eventsToFlush }),
       });
