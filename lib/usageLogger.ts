@@ -45,9 +45,19 @@ class UsageLogger {
   private lastBackgroundEventTime: number = 0; // Prevent duplicate background events
 
   constructor() {
-    this.initializeSession();
-    this.initializeAnonymousId();
-    this.setupAppStateListener();
+    // Wrap initialization in try-catch to prevent crashes on Android
+    // during early app startup before native modules are ready
+    try {
+      this.initializeSession();
+      this.initializeAnonymousId();
+      this.setupAppStateListener();
+    } catch (error) {
+      console.error('[UsageLogger] Constructor error (non-fatal):', error);
+      // Ensure we have at least a session ID
+      if (!this.sessionId) {
+        this.sessionId = this.generateSessionId();
+      }
+    }
   }
 
   // Set PostHog instance for dual tracking
@@ -99,35 +109,64 @@ class UsageLogger {
       }
 
       // Try to get from SecureStore first (persists across reinstalls on iOS)
-      const secureId = await SecureStore.getItemAsync(ANONYMOUS_ID_KEY);
+      // SecureStore can fail on some Android devices, so wrap in separate try-catch
+      let secureId: string | null = null;
+      try {
+        secureId = await SecureStore.getItemAsync(ANONYMOUS_ID_KEY);
+      } catch (secureStoreError) {
+        console.warn('[UsageLogger] SecureStore read failed (Android issue):', secureStoreError);
+        // Continue to try AsyncStorage
+      }
+      
       if (secureId) {
         this.anonymousId = secureId;
         console.log('[UsageLogger] Retrieved anonymous ID from SecureStore');
         return secureId;
       }
 
-      // Check AsyncStorage for migration from existing users
-      const legacyId = await AsyncStorage.getItem('anonymous_id');
+      // Check AsyncStorage for migration from existing users or as fallback
+      let legacyId: string | null = null;
+      try {
+        legacyId = await AsyncStorage.getItem('anonymous_id');
+      } catch (asyncStorageError) {
+        console.warn('[UsageLogger] AsyncStorage read failed:', asyncStorageError);
+      }
+      
       if (legacyId) {
-        // Migrate to SecureStore
-        await SecureStore.setItemAsync(ANONYMOUS_ID_KEY, legacyId);
+        // Try to migrate to SecureStore (non-blocking on failure)
+        try {
+          await SecureStore.setItemAsync(ANONYMOUS_ID_KEY, legacyId);
+          console.log('[UsageLogger] Migrated anonymous ID to SecureStore:', legacyId);
+        } catch (migrateError) {
+          console.warn('[UsageLogger] SecureStore migration failed (non-fatal):', migrateError);
+        }
         this.anonymousId = legacyId;
-        console.log('[UsageLogger] Migrated anonymous ID to SecureStore:', legacyId);
         return legacyId;
       }
 
-      // Generate new anonymous ID and store in SecureStore
-      const newId = this.generateSessionId(); // Reuse UUID generation logic
-      await SecureStore.setItemAsync(ANONYMOUS_ID_KEY, newId);
-      // Also store in AsyncStorage as backup
-      await AsyncStorage.setItem('anonymous_id', newId);
-      this.anonymousId = newId;
+      // Generate new anonymous ID
+      const newId = this.generateSessionId();
       
-      console.log('[UsageLogger] Generated new anonymous ID (SecureStore):', newId);
+      // Store in SecureStore (non-blocking on failure)
+      try {
+        await SecureStore.setItemAsync(ANONYMOUS_ID_KEY, newId);
+      } catch (secureStoreWriteError) {
+        console.warn('[UsageLogger] SecureStore write failed (Android issue):', secureStoreWriteError);
+      }
+      
+      // Also store in AsyncStorage as backup (non-blocking on failure)
+      try {
+        await AsyncStorage.setItem('anonymous_id', newId);
+      } catch (asyncStorageWriteError) {
+        console.warn('[UsageLogger] AsyncStorage write failed:', asyncStorageWriteError);
+      }
+      
+      this.anonymousId = newId;
+      console.log('[UsageLogger] Generated new anonymous ID:', newId);
       return newId;
     } catch (error) {
       console.error('[UsageLogger] Failed to get/generate anonymous ID:', error);
-      // Return a fallback ID if storage fails
+      // Return a fallback ID if everything fails
       const fallbackId = this.generateSessionId();
       this.anonymousId = fallbackId;
       return fallbackId;
@@ -135,17 +174,18 @@ class UsageLogger {
   }
 
   private generateSessionId(): string {
-    // Use expo-crypto for proper UUID generation
+    // Use manual UUID generation for reliability across all platforms
+    // expo-crypto can fail on some Android devices before native modules are ready
     try {
-      const { randomUUID } = require('expo-crypto');
-      return randomUUID();
-    } catch (error) {
-      console.warn('[UsageLogger] expo-crypto not available, falling back to manual UUID generation');
       return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
         const r = Math.random() * 16 | 0;
         const v = c === 'x' ? r : (r & 0x3 | 0x8);
         return v.toString(16);
       });
+    } catch (error) {
+      // Absolute fallback - should never happen but prevents crashes
+      console.warn('[UsageLogger] UUID generation failed, using timestamp fallback');
+      return `${Date.now()}-${Math.random().toString(36).substring(2, 15)}`;
     }
   }
 

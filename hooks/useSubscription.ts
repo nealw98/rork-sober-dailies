@@ -256,37 +256,58 @@ export const [SubscriptionProvider, useSubscription] = createContextHook(() => {
     (async () => {
       try {
         // Step 0: Check for developer premium override
-        const override = await SecureStore.getItemAsync(PREMIUM_OVERRIDE_KEY);
-        if (override === 'true') {
-          console.log('[Subscription] Premium override enabled (developer mode)');
-          if (!didCancel) setIsPremiumOverride(true);
+        // SecureStore can fail on some Android devices, so wrap in try-catch
+        try {
+          const override = await SecureStore.getItemAsync(PREMIUM_OVERRIDE_KEY);
+          if (override === 'true') {
+            console.log('[Subscription] Premium override enabled (developer mode)');
+            if (!didCancel) setIsPremiumOverride(true);
+          }
+        } catch (secureStoreError) {
+          console.warn('[Subscription] SecureStore read failed (non-fatal):', secureStoreError);
+          // Continue without premium override - not critical
         }
 
         // Step 1: Check grandfather status directly from Supabase
-        const grandfathered = await checkGrandfatherStatus();
-        if (!didCancel) {
-          setIsGrandfathered(grandfathered);
-          if (grandfathered) {
-            console.log('[Subscription] User is grandfathered - unlocking premium features');
+        try {
+          const grandfathered = await checkGrandfatherStatus();
+          if (!didCancel) {
+            setIsGrandfathered(grandfathered);
+            if (grandfathered) {
+              console.log('[Subscription] User is grandfathered - unlocking premium features');
+            }
           }
+        } catch (grandfatherError) {
+          console.warn('[Subscription] Grandfather check failed (non-fatal):', grandfatherError);
+          // Continue without grandfather status - user can still purchase
         }
 
         // Step 2: Refresh RevenueCat status for paid subscriptions
         await refresh();
+      } catch (error) {
+        console.error('[Subscription] Initialization error:', error);
       } finally {
         if (!didCancel) setIsLoading(false);
       }
     })();
 
     // Set up listener for purchase/restore updates
+    // Only add listener after a small delay to ensure RevenueCat is configured
     if (Platform.OS !== 'web') {
-      try {
-        removeListener = Purchases.addCustomerInfoUpdateListener((info) => {
-          setCustomerInfo(info);
-        });
-      } catch {
-        // no-op - SDK might not be configured yet
-      }
+      const setupListener = async () => {
+        try {
+          // Wait for RevenueCat to be configured
+          const configured = await ensurePurchasesConfigured();
+          if (configured.ok && !didCancel) {
+            removeListener = Purchases.addCustomerInfoUpdateListener((info) => {
+              setCustomerInfo(info);
+            });
+          }
+        } catch (listenerError) {
+          console.warn('[Subscription] Failed to add customer info listener (non-fatal):', listenerError);
+        }
+      };
+      setupListener();
     }
 
     return () => {
