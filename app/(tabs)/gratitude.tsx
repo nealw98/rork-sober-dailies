@@ -28,35 +28,7 @@ import SavedGratitudeEntries from '@/components/SavedGratitudeEntries';
 import { GratitudeCompleteModal } from '@/components/GratitudeCompleteModal';
 import { useTextSettings } from '@/hooks/use-text-settings';
 import { useScreenTimeTracking } from '@/hooks/useScreenTimeTracking';
-
-// 25 inspirational gratitude quotes for daily rotation
-const GRATITUDE_QUOTES = [
-  "Taking time each day to acknowledge what we're grateful for strengthens our recovery and brings peace to our hearts.",
-  "Gratitude turns what we have into enough, and sobriety gives us the clarity to see it.",
-  "Each day of recovery is a gift. Each moment of gratitude is a step forward.",
-  "In sobriety, we learn that gratitude isn't about having everything, but appreciating what we do have.",
-  "Gratitude is not only the greatest of virtues but the parent of all others. — Cicero",
-  "The unthankful heart discovers no mercies; but the thankful heart will find, in every hour, some heavenly blessings to flow upon it. — Henry Ward Beecher",
-  "When we focus on our gratitude, the tide of disappointment goes out and the tide of love rushes in. — Kristin Armstrong",
-  "Gratitude makes sense of our past, brings peace for today, and creates a vision for tomorrow. — Melody Beattie",
-  "A full and thankful heart cannot entertain great conceits. — As Bill Sees It, p 37",
-  "We are grateful for the gifts we have been given, grateful for the people we love, grateful for the mercy of a loving God. — Daily Reflections",
-  "Gratitude is the attitude that sets the altitude for living. — AA Slogan",
-  "When we are grateful, we are not anxious. When we are anxious, we are not grateful. — Recovery Wisdom",
-  "The more you practice gratitude, the more you see how much there is to be grateful for. — Sobriety Insight",
-  "Gratitude is the foundation of a happy life and a strong recovery.",
-  "Every day in sobriety is a miracle worth celebrating with gratitude.",
-  "Gratitude transforms the ordinary into the extraordinary.",
-  "In recovery, we discover that gratitude is not just a feeling—it's a practice that changes everything.",
-  "The practice of gratitude opens our hearts to the abundance that surrounds us.",
-  "Gratitude is the key that unlocks the door to peace and contentment in recovery.",
-  "When we count our blessings instead of our problems, we find true happiness.",
-  "Gratitude is the bridge between where we were and where we want to be.",
-  "In moments of gratitude, we connect with something greater than ourselves.",
-  "The habit of gratitude creates a foundation for lasting joy and serenity.",
-  "Gratitude is the light that illuminates even the darkest moments of our journey.",
-  "Today I choose gratitude over resentment, love over fear, and hope over despair."
-];
+import { useGratitudeQuote } from '@/hooks/useGratitudeQuote';
 
 // 25 daily-changing toast confirmation messages
 const TOAST_MESSAGES = [
@@ -86,14 +58,6 @@ const TOAST_MESSAGES = [
   "Thankfulness saved! You're building something lasting. 🏛️",
   "Gratitude captured! Recovery is a beautiful journey. 🌸",
 ];
-
-// Function to get daily quote based on day of year
-function getDailyQuote(): string {
-  const now = new Date();
-  const dayOfYear = Math.floor((now.getTime() - new Date(now.getFullYear(), 0, 0).getTime()) / (1000 * 60 * 60 * 24));
-  const index = dayOfYear % GRATITUDE_QUOTES.length;
-  return GRATITUDE_QUOTES[index];
-}
 
 // Function to calculate consecutive days of gratitude practice
 function getConsecutiveDays(entries: any[]): number {
@@ -342,7 +306,7 @@ export default function GratitudeListScreen() {
   const [inputValue, setInputValue] = useState('');
   const [showConfirmation, setShowConfirmation] = useState(false);
   const [showSavedEntries, setShowSavedEntries] = useState(false);
-  const [dailyQuote] = useState(() => getDailyQuote());
+  const { formattedQuote, isLoading: isQuoteLoading } = useGratitudeQuote();
   const inputRef = useRef<TextInput>(null);
   const router = useRouter();
 
@@ -736,11 +700,13 @@ export default function GratitudeListScreen() {
           <Text style={[styles.dateText, { color: palette.text }]}>{formatDateDisplay(today)}</Text>
 
           {/* Daily Quote */}
-          <View style={[styles.quoteTile, { backgroundColor: `${palette.tint}40` }]}>
-            <Text style={[styles.quoteText, { fontSize, lineHeight, color: palette.text }]}>
-              &ldquo;{dailyQuote}&rdquo;
-            </Text>
-          </View>
+          {!isQuoteLoading && formattedQuote && (
+            <View style={[styles.quoteTile, { backgroundColor: `${palette.tint}40` }]}>
+              <Text style={[styles.quoteText, { fontSize, lineHeight, color: palette.text }]}>
+                &ldquo;{formattedQuote}&rdquo;
+              </Text>
+            </View>
+          )}
           
           {/* Gratitude Input */}
           <View style={styles.inputSection}>
