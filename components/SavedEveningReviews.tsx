@@ -12,7 +12,9 @@ import {
 } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
 import { Calendar, Share as ShareIcon, Trash2, X, Check } from 'lucide-react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useEveningReviewStore } from '@/hooks/use-evening-review-store';
+import { useTheme } from '@/hooks/useTheme';
 import Colors from '@/constants/colors';
 import { adjustFontWeight } from '@/constants/fonts';
 
@@ -45,6 +47,7 @@ const formatDateShort = (dateString: string): string => {
 
 export default function SavedEveningReviews({ visible, onClose }: SavedEveningReviewsProps) {
   const { savedEntries, deleteSavedEntry } = useEveningReviewStore();
+  const { palette } = useTheme();
   const [selectedEntry, setSelectedEntry] = useState<any>(null);
 
   // Debug logging
@@ -247,10 +250,15 @@ export default function SavedEveningReviews({ visible, onClose }: SavedEveningRe
       ];
 
       return (
-        <View style={styles.entryDetailContainer}>
-          {/* Teal Header */}
-          <View style={styles.entryDetailHeader}>
-            <Text style={styles.modalTitle}>Nightly Review</Text>
+        <View style={[styles.entryDetailContainer, { backgroundColor: palette.background }]}>
+          {/* Gradient Header */}
+          <LinearGradient
+            colors={palette.gradients.header as [string, string, ...string[]]}
+            style={styles.entryDetailHeader}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+          >
+            <Text style={[styles.modalTitle, { color: palette.headerText }]}>Nightly Review</Text>
             <TouchableOpacity
               style={styles.closeButton}
               onPress={() => {
@@ -259,23 +267,23 @@ export default function SavedEveningReviews({ visible, onClose }: SavedEveningRe
               }}
               hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
             >
-              <X color="#fff" size={24} />
+              <X color={palette.headerText} size={24} />
             </TouchableOpacity>
-          </View>
+          </LinearGradient>
 
           <ScrollView style={styles.entryDetailContent}>
-            <Text style={styles.entryDate}>{formatDateDisplay(date)}</Text>
+            <Text style={[styles.entryDate, { color: palette.tint }]}>{formatDateDisplay(date)}</Text>
             
             {/* Daily Actions Section */}
             <View style={styles.sectionContainer}>
-              <Text style={styles.sectionTitle}>Daily Actions</Text>
-              <View style={styles.checkboxContainer}>
+              <Text style={[styles.sectionTitle, { color: palette.text }]}>Daily Actions</Text>
+              <View style={[styles.checkboxContainer, { backgroundColor: palette.cardBackground, borderColor: palette.border }]}>
                 {dailyActions.map((action, index) => (
                   <View key={index} style={styles.checkboxRow}>
-                    <View style={[styles.checkbox, action.checked && styles.checkboxChecked]}>
-                      {action.checked && <Check size={16} color="white" />}
+                    <View style={[styles.checkbox, { borderColor: palette.border }, action.checked && [styles.checkboxChecked, { backgroundColor: palette.tint, borderColor: palette.tint }]]}>
+                      {action.checked && <Check size={16} color={palette.headerText} />}
                     </View>
-                    <Text style={styles.checkboxText}>{action.label}</Text>
+                    <Text style={[styles.checkboxText, { color: palette.text }]}>{action.label}</Text>
                   </View>
                 ))}
               </View>
@@ -283,12 +291,12 @@ export default function SavedEveningReviews({ visible, onClose }: SavedEveningRe
             
             {/* 10th Step Inventory Section */}
             <View style={styles.sectionContainer}>
-              <Text style={styles.sectionTitle}>10th Step Inventory</Text>
-              <View style={styles.inventoryContainer}>
+              <Text style={[styles.sectionTitle, { color: palette.text }]}>10th Step Inventory</Text>
+              <View style={[styles.inventoryContainer, { backgroundColor: palette.cardBackground, borderColor: palette.border }]}>
                 {inventoryQuestions.map((question, index) => (
                   <View key={index} style={styles.inventoryItem}>
-                    <Text style={styles.inventoryQuestion}>{question.label}</Text>
-                    <Text style={styles.inventoryAnswer}>
+                    <Text style={[styles.inventoryQuestion, { color: palette.text }]}>{question.label}</Text>
+                    <Text style={[styles.inventoryAnswer, { color: palette.text, backgroundColor: palette.background, borderColor: palette.border }]}>
                       {question.value && question.value.trim() ? question.value : 'No response'}
                     </Text>
                   </View>
@@ -341,10 +349,15 @@ export default function SavedEveningReviews({ visible, onClose }: SavedEveningRe
       ];
 
     return (
-      <View style={styles.entryDetailContainer}>
-        {/* Teal Header */}
-        <View style={styles.entryDetailHeader}>
-          <Text style={styles.modalTitle}>Nightly Review</Text>
+      <View style={[styles.entryDetailContainer, { backgroundColor: palette.background }]}>
+        {/* Gradient Header */}
+        <LinearGradient
+          colors={palette.gradients.header as [string, string, ...string[]]}
+          style={styles.entryDetailHeader}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+        >
+          <Text style={[styles.modalTitle, { color: palette.headerText }]}>Nightly Review</Text>
           <TouchableOpacity
             style={styles.closeButton}
             onPress={() => {
@@ -353,37 +366,37 @@ export default function SavedEveningReviews({ visible, onClose }: SavedEveningRe
             }}
             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
           >
-            <X color="#fff" size={24} />
+            <X color={palette.headerText} size={24} />
           </TouchableOpacity>
-        </View>
+        </LinearGradient>
 
         <ScrollView style={styles.entryDetailContent}>
-          <Text style={styles.entryDate}>{formatDateDisplay(date)}</Text>
+          <Text style={[styles.entryDate, { color: palette.tint }]}>{formatDateDisplay(date)}</Text>
           
           <View style={styles.questionsContainer}>
             {questions.map((question, index) => (
-              <View key={index} style={styles.questionContainer}>
-                <Text style={styles.questionText}>{question.text}</Text>
+              <View key={index} style={[styles.questionContainer, { backgroundColor: palette.cardBackground, borderColor: palette.border }]}>
+                <Text style={[styles.questionText, { color: palette.text }]}>{question.text}</Text>
                 {question.inputOnly ? (
                   question.note ? (
-                    <Text style={styles.answerText}>{question.note}</Text>
+                    <Text style={[styles.answerText, { color: palette.text }]}>{question.note}</Text>
                   ) : (
-                    <Text style={styles.noAnswerText}>No response</Text>
+                    <Text style={[styles.noAnswerText, { color: palette.muted }]}>No response</Text>
                   )
                 ) : (
                   <>
                     {question.flag ? (
                       <Text style={[
                         styles.answerText,
-                        question.flag === 'yes' ? styles.yesAnswer : styles.noAnswer
+                        question.flag === 'yes' ? styles.yesAnswer : { color: palette.tint }
                       ]}>
                         {question.flag === 'yes' ? 'Yes' : 'No'}
                       </Text>
                     ) : (
-                      <Text style={styles.noAnswerText}>No response</Text>
+                      <Text style={[styles.noAnswerText, { color: palette.muted }]}>No response</Text>
                     )}
                     {question.flag === 'yes' && question.note && (
-                      <Text style={styles.noteText}>{question.note}</Text>
+                      <Text style={[styles.noteText, { color: palette.text, borderLeftColor: palette.border }]}>{question.note}</Text>
                     )}
                   </>
                 )}
@@ -423,18 +436,23 @@ export default function SavedEveningReviews({ visible, onClose }: SavedEveningRe
         }
       }}
     >
-      <View style={styles.container}>
+      <View style={[styles.container, { backgroundColor: palette.background }]}>
         {selectedEntry ? (
           renderEntryDetail()
         ) : (
           <>
-            {/* Teal Header */}
-            <View style={styles.header}>
-              <Text style={styles.title}>Saved Reviews</Text>
+            {/* Gradient Header */}
+            <LinearGradient
+              colors={palette.gradients.header as [string, string, ...string[]]}
+              style={styles.header}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+            >
+              <Text style={[styles.title, { color: palette.headerText }]}>Saved Reviews</Text>
               <TouchableOpacity style={styles.closeButton} onPress={onClose}>
-                <X color="#fff" size={24} />
+                <X color={palette.headerText} size={24} />
               </TouchableOpacity>
-            </View>
+            </LinearGradient>
 
             <ScrollView 
               style={styles.content}
@@ -445,9 +463,9 @@ export default function SavedEveningReviews({ visible, onClose }: SavedEveningRe
             >
               {savedEntries.length === 0 ? (
                 <View style={styles.emptyState}>
-                  <Calendar color={Colors.light.muted} size={48} />
-                  <Text style={styles.emptyTitle}>No Saved Reviews</Text>
-                  <Text style={styles.emptyDescription}>
+                  <Calendar color={palette.muted} size={48} />
+                  <Text style={[styles.emptyTitle, { color: palette.text }]}>No Saved Reviews</Text>
+                  <Text style={[styles.emptyDescription, { color: palette.muted }]}>
                     Your saved nightly reviews will appear here.
                   </Text>
                 </View>
@@ -458,7 +476,7 @@ export default function SavedEveningReviews({ visible, onClose }: SavedEveningRe
                     return (
                       <TouchableOpacity
                         key={entry.date}
-                        style={styles.entryCard}
+                        style={[styles.entryCard, { backgroundColor: palette.cardBackground, borderColor: palette.border }]}
                         onPress={() => {
                           console.log('=== TOUCHABLE ONPRESS FIRED ===');
                           console.log('Entry pressed:', entry.date);
@@ -477,10 +495,10 @@ export default function SavedEveningReviews({ visible, onClose }: SavedEveningRe
                       >
                       <View style={styles.entryHeader}>
                         <View style={styles.entryDateContainer}>
-                          <Text style={styles.entryDateText}>
+                          <Text style={[styles.entryDateText, { color: palette.tint }]}>
                             {formatDateShort(entry.date)}
                           </Text>
-                          <Text style={styles.entryFullDate}>
+                          <Text style={[styles.entryFullDate, { color: palette.muted }]}>
                             {formatDateDisplay(entry.date)}
                           </Text>
                         </View>
@@ -496,7 +514,7 @@ export default function SavedEveningReviews({ visible, onClose }: SavedEveningRe
                       </View>
                       
                       <View style={styles.entryPreview}>
-                        <Text style={styles.previewText}>
+                        <Text style={[styles.previewText, { color: palette.muted }]}>
                           Tap to view full review
                         </Text>
                       </View>

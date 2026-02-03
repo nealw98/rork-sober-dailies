@@ -39,11 +39,12 @@ const formatDateDisplay = (date: Date): string => {
 };
 
 // Animated Checkbox Component
-const AnimatedCheckbox = ({ checked, onPress, children, fontSize }: { 
+const AnimatedCheckbox = ({ checked, onPress, children, fontSize, palette }: { 
   checked: boolean; 
   onPress: () => void; 
   children: React.ReactNode;
   fontSize?: number;
+  palette?: any;
 }) => {
   const scaleAnim = useRef(new Animated.Value(1)).current;
 
@@ -79,12 +80,14 @@ const AnimatedCheckbox = ({ checked, onPress, children, fontSize }: {
           style={[
             styles.checkboxRow,
             {
-              backgroundColor: checked ? 'rgba(255, 255, 255, 0.3)' : 'rgba(255, 255, 255, 0.1)',
+              backgroundColor: checked 
+                ? (palette?.tint ? `${palette.tint}40` : 'rgba(255, 255, 255, 0.3)') 
+                : (palette?.tint ? `${palette.tint}20` : 'rgba(255, 255, 255, 0.1)'),
             }
           ]}
         >
-          <View style={[styles.checkbox, checked && styles.checkboxChecked]}>
-            {checked && <Check size={16} color="white" />}
+          <View style={[styles.checkbox, { borderColor: palette?.tint || '#1E3A5F' }, checked && [styles.checkboxChecked, { backgroundColor: palette?.tint || '#1E3A5F', borderColor: palette?.tint || '#1E3A5F' }]]}>
+            {checked && <Check size={16} color={palette?.headerText || 'white'} />}
           </View>
           <View style={styles.textContainer}>
             <Animated.Text 
@@ -93,6 +96,7 @@ const AnimatedCheckbox = ({ checked, onPress, children, fontSize }: {
                 {
                   transform: [{ scale: scaleAnim }],
                   fontSize: fontSize || 16,
+                  color: palette?.text || '#000',
                 }
               ]}
             >
@@ -472,9 +476,12 @@ export default function EveningReview() {
     setShowSavedReviews(true);
   };
 
+  // For input boxes in Deep Sea, use tint (Blue Slate) as background
+  const inputBackground = palette.sponsorSelection ? palette.tint : palette.cardBackground;
+  
   // Main form render
   return (
-    <ScreenContainer style={styles.container} noPadding>
+    <ScreenContainer style={[styles.container, { backgroundColor: palette.background }]} noPadding>
       <Stack.Screen options={{ headerShown: false }} />
       
       {/* Gradient header block */}
@@ -499,7 +506,7 @@ export default function EveningReview() {
       </LinearGradient>
 
       {/* Action Row - Below header */}
-      <View style={styles.actionRow}>
+      <View style={[styles.actionRow, { borderBottomColor: palette.divider, backgroundColor: palette.background }]}>
         {/* History */}
         <TouchableOpacity 
           onPress={() => setShowSavedReviews(true)}
@@ -510,7 +517,7 @@ export default function EveningReview() {
           style={styles.actionButton}
         >
           <List color={palette.tint} size={18} />
-          <Text style={styles.actionButtonText}>History</Text>
+          <Text style={[styles.actionButtonText, { color: palette.tint }]}>History</Text>
         </TouchableOpacity>
         
         {/* Save */}
@@ -523,7 +530,7 @@ export default function EveningReview() {
           style={styles.actionButton}
         >
           <Save color={palette.tint} size={18} />
-          <Text style={styles.actionButtonText}>Save</Text>
+          <Text style={[styles.actionButtonText, { color: palette.tint }]}>Save</Text>
         </TouchableOpacity>
         
         {/* Share */}
@@ -536,7 +543,7 @@ export default function EveningReview() {
           style={styles.actionButton}
         >
           <ShareIcon color={palette.tint} size={18} />
-          <Text style={styles.actionButtonText}>Share</Text>
+          <Text style={[styles.actionButtonText, { color: palette.tint }]}>Share</Text>
         </TouchableOpacity>
         
         {/* Reset */}
@@ -549,7 +556,7 @@ export default function EveningReview() {
           style={styles.actionButton}
         >
           <RotateCcw color={palette.tint} size={18} />
-          <Text style={styles.actionButtonText}>Reset</Text>
+          <Text style={[styles.actionButtonText, { color: palette.tint }]}>Reset</Text>
         </TouchableOpacity>
       </View>
       
@@ -562,11 +569,11 @@ export default function EveningReview() {
         automaticallyAdjustKeyboardInsets={true}
       >
           {/* Date */}
-          <Text style={styles.dateText}>{formatDateDisplay(today)}</Text>
+          <Text style={[styles.dateText, { color: palette.text }]}>{formatDateDisplay(today)}</Text>
 
           {/* Daily Actions Section */}
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Daily Actions</Text>
+            <Text style={[styles.sectionTitle, { color: palette.text }]}>Daily Actions</Text>
             <View style={styles.dailyActionsContainer}>
               {dailyActions.map((action) => (
                 <AnimatedCheckbox
@@ -574,6 +581,7 @@ export default function EveningReview() {
                   checked={action.checked}
                   onPress={() => action.setChecked(!action.checked)}
                   fontSize={fontSize}
+                  palette={palette}
                 >
                   {action.label}
                 </AnimatedCheckbox>
@@ -583,7 +591,7 @@ export default function EveningReview() {
 
           {/* Inventory Section */}
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>10th Step Inventory</Text>
+            <Text style={[styles.sectionTitle, { color: palette.text }]}>10th Step Inventory</Text>
             <View style={styles.inventoryContainer}>
               {inventoryQuestions.map((question, index) => (
                 <View 
@@ -593,14 +601,14 @@ export default function EveningReview() {
                     inputPositions.current[question.key] = event.nativeEvent.layout.y;
                   }}
                 >
-                  <Text style={[styles.questionText, { fontSize, lineHeight }]}>{question.label}</Text>
+                  <Text style={[styles.questionText, { fontSize, lineHeight, color: palette.text }]}>{question.label}</Text>
                   <TextInput
-                    style={[styles.inventoryTextInput, { fontSize }]}
+                    style={[styles.inventoryTextInput, { fontSize, backgroundColor: inputBackground, color: palette.text, borderColor: palette.border }]}
                     placeholder="Write your reflection here..."
                     value={question.value}
                     onChangeText={question.setValue}
                     multiline
-                    placeholderTextColor="#999"
+                    placeholderTextColor={palette.sponsorSelection ? palette.text : palette.muted}
                     returnKeyType="done"
                     blurOnSubmit={true}
                     onFocus={() => {
@@ -622,7 +630,7 @@ export default function EveningReview() {
             </View>
           </View>
 
-          <Text style={styles.privacyText}>
+          <Text style={[styles.privacyText, { color: palette.muted }]}>
             Your responses are saved only on your device. Nothing is uploaded or shared.
           </Text>
         </ScrollView>
@@ -644,7 +652,6 @@ export default function EveningReview() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f6f8',
   },
   headerBlock: {
     paddingBottom: 16,

@@ -65,6 +65,7 @@ export interface ResolvedPalette {
   sponsorSelection?: {
     background: string; // Background color for sponsor selection page
     tileColor: string[]; // Color for sponsor tiles
+    tileText?: string; // Text color for sponsor tiles
   };
   /** Chat background for sponsor chat windows */
   chatBackground?: string;
@@ -110,6 +111,7 @@ export interface ThemePalette {
   sponsorSelection?: {
     background: string;
     tileColor: string[];
+    tileText?: string;
   };
   /** Chat background for sponsor chat windows */
   chatBackground?: string;

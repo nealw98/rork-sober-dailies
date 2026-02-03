@@ -119,7 +119,8 @@ const MarkdownText: React.FC<{ children: string; style?: any }> = ({ children, s
 const InstructionsModal: React.FC<{
   visible: boolean;
   onClose: () => void;
-}> = ({ visible, onClose }) => {
+  palette: any;
+}> = ({ visible, onClose, palette }) => {
   return (
     <Modal
       visible={visible}
@@ -129,56 +130,56 @@ const InstructionsModal: React.FC<{
     >
       <View style={styles.instructionsOverlay}>
         <TouchableOpacity style={styles.instructionsBackdrop} onPress={onClose} />
-        <View style={styles.instructionsModal}>
-          <View style={styles.instructionsHeader}>
-            <Text style={styles.instructionsTitle}>
+        <View style={[styles.instructionsModal, { backgroundColor: palette.cardBackground }]}>
+          <View style={[styles.instructionsHeader, { borderBottomColor: palette.border }]}>
+            <Text style={[styles.instructionsTitle, { color: palette.text }]}>
               How to Use Spot Check Inventory
             </Text>
             <TouchableOpacity onPress={onClose} style={styles.instructionsCloseButton}>
-              <X size={24} color={Colors.light.text} />
+              <X size={24} color={palette.text} />
             </TouchableOpacity>
           </View>
           
           <ScrollView style={styles.instructionsContent} showsVerticalScrollIndicator={false}>
             <View style={styles.instructionStep}>
-              <MarkdownText style={styles.instructionText}>
+              <MarkdownText style={[styles.instructionText, { color: palette.text }]}>
                 1. Describe what's disturbing you
               </MarkdownText>
             </View>
             
             <View style={styles.instructionStep}>
-              <MarkdownText style={styles.instructionText}>
+              <MarkdownText style={[styles.instructionText, { color: palette.text }]}>
                 2. Tap character defects on the left (red)
               </MarkdownText>
             </View>
             
             <View style={styles.instructionStep}>
-              <MarkdownText style={styles.instructionText}>
+              <MarkdownText style={[styles.instructionText, { color: palette.text }]}>
                 3. See what to strive for on the right
               </MarkdownText>
             </View>
             
             <View style={styles.instructionStep}>
-              <MarkdownText style={styles.instructionText}>
+              <MarkdownText style={[styles.instructionText, { color: palette.text }]}>
                 4. Mark positives you maintained (green)
               </MarkdownText>
             </View>
             
             <View style={styles.instructionStep}>
-              <MarkdownText style={styles.instructionText}>
+              <MarkdownText style={[styles.instructionText, { color: palette.text }]}>
                 5. Save to track your progress
               </MarkdownText>
             </View>
             
-            <View style={styles.instructionsFooter}>
-              <MarkdownText style={styles.instructionsFooterText}>
+            <View style={[styles.instructionsFooter, { borderTopColor: palette.border }]}>
+              <MarkdownText style={[styles.instructionsFooterText, { color: palette.tint }]}>
                 Watch For → Strive For
               </MarkdownText>
             </View>
           </ScrollView>
           
-          <TouchableOpacity style={styles.instructionsButton} onPress={onClose}>
-            <Text style={styles.instructionsButtonText}>Got it!</Text>
+          <TouchableOpacity style={[styles.instructionsButton, { backgroundColor: palette.tint }]} onPress={onClose}>
+            <Text style={[styles.instructionsButtonText, { color: palette.headerText }]}>Got it!</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -191,7 +192,9 @@ const SpotCheckPair: React.FC<{
   state: SelectionState;
   onPressLookFor: () => void;
   onPressStriveFor: () => void;
-}> = ({ pair, state, onPressLookFor, onPressStriveFor }) => {
+  palette: any;
+  inputBackground?: string;
+}> = ({ pair, state, onPressLookFor, onPressStriveFor, palette, inputBackground }) => {
   const arrowScale = useRef(new Animated.Value(1)).current;
   const cardScale = useRef(new Animated.Value(1)).current;
   const striveForScale = useRef(new Animated.Value(1)).current;
@@ -253,7 +256,8 @@ const SpotCheckPair: React.FC<{
       styles.cardWrapperLevel2, 
       { 
         transform: [{ scale: cardScale }],
-        backgroundColor: '#fff' // Always pure white (awake state)
+        backgroundColor: inputBackground || palette.cardBackground,
+        borderColor: palette.border,
       }
     ]}>
       <View style={styles.card}>
@@ -264,6 +268,7 @@ const SpotCheckPair: React.FC<{
         >
           <Text style={[
             styles.lookForText,
+            { color: palette.text },
             state === 'lookFor' && styles.selectedText,
             state === 'lookFor' && styles.lookForSelected,
           ]}>
@@ -273,7 +278,7 @@ const SpotCheckPair: React.FC<{
         
         <Animated.Text style={[
           styles.arrow,
-          { transform: [{ scale: arrowScale }] }
+          { transform: [{ scale: arrowScale }], color: palette.muted }
         ]}>
           →
         </Animated.Text>
@@ -285,6 +290,7 @@ const SpotCheckPair: React.FC<{
         >
           <Animated.Text style={[
             styles.striveForText,
+            { color: palette.text },
             (state === 'lookFor' || state === 'complete') && styles.selectedText,
             state === 'complete' && styles.striveForSelected,
             { transform: [{ scale: striveForScale }] }
@@ -303,7 +309,8 @@ const SpotCheckHistorySheet: React.FC<{
   onSelectRecord: (record: SpotCheckRecord) => void;
   hasUnsavedChanges: boolean;
   handleSave: () => Promise<void>;
-}> = ({ visible, onClose, onSelectRecord, hasUnsavedChanges, handleSave }) => {
+  palette: any;
+}> = ({ visible, onClose, onSelectRecord, hasUnsavedChanges, handleSave, palette }) => {
   const [records, setRecords] = useState<SpotCheckRecord[]>([]);
 
   useEffect(() => {
@@ -388,27 +395,32 @@ const SpotCheckHistorySheet: React.FC<{
       presentationStyle={Platform.OS === 'ios' ? 'pageSheet' : 'fullScreen'}
       onRequestClose={onClose}
     >
-      <View style={styles.historyContainer}>
-        {/* Teal Header */}
-        <View style={styles.historyHeader}>
-          <Text style={styles.historyTitle}>Previous Spot Checks</Text>
+      <View style={[styles.historyContainer, { backgroundColor: palette.background }]}>
+        {/* Gradient Header */}
+        <LinearGradient
+          colors={palette.gradients.header as [string, string, ...string[]]}
+          style={styles.historyHeader}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+        >
+          <Text style={[styles.historyTitle, { color: palette.headerText }]}>Previous Spot Checks</Text>
           <TouchableOpacity style={styles.historyCloseButton} onPress={onClose}>
-            <X color="#fff" size={24} />
+            <X color={palette.headerText} size={24} />
           </TouchableOpacity>
-        </View>
+        </LinearGradient>
 
         <ScrollView style={styles.historyList} contentContainerStyle={styles.historyListContent}>
           {records.length === 0 ? (
             <View style={styles.emptyState}>
-              <Calendar color={Colors.light.muted} size={48} />
-              <Text style={styles.emptyTitle}>No Previous Spot Checks</Text>
-              <Text style={styles.emptyDescription}>
+              <Calendar color={palette.muted} size={48} />
+              <Text style={[styles.emptyTitle, { color: palette.text }]}>No Previous Spot Checks</Text>
+              <Text style={[styles.emptyDescription, { color: palette.muted }]}>
                 Your saved spot check inventories will appear here.
               </Text>
             </View>
           ) : (
             records.map((record) => (
-              <View key={record.id} style={styles.historyCard}>
+              <View key={record.id} style={[styles.historyCard, { backgroundColor: palette.cardBackground, borderColor: palette.border }]}>
                 <TouchableOpacity
                   style={styles.historyItemTouchable}
                   onPress={() => {
@@ -439,7 +451,7 @@ const SpotCheckHistorySheet: React.FC<{
                 >
                   <View style={styles.historyItemContent}>
                     <View style={styles.historyItemHeader}>
-                      <Text style={styles.historyItemDate}>{formatTimestamp(record)}</Text>
+                      <Text style={[styles.historyItemDate, { color: palette.tint }]}>{formatTimestamp(record)}</Text>
                       <TouchableOpacity
                         style={styles.historyItemDelete}
                         onPress={() => handleDelete(record.id)}
@@ -449,7 +461,7 @@ const SpotCheckHistorySheet: React.FC<{
                       </TouchableOpacity>
                     </View>
                     {record.situation && (
-                      <Text style={styles.historyItemSituation} numberOfLines={2}>
+                      <Text style={[styles.historyItemSituation, { color: palette.muted }]} numberOfLines={2}>
                         {record.situation}
                       </Text>
                     )}
@@ -459,9 +471,9 @@ const SpotCheckHistorySheet: React.FC<{
                       if (allTraits.length > 0) {
                         return (
                           <View style={styles.historyItemTraitsContainer}>
-                            <Text style={styles.historyItemTraitsText} numberOfLines={2} ellipsizeMode="tail">
+                            <Text style={[styles.historyItemTraitsText, { color: palette.muted }]} numberOfLines={2} ellipsizeMode="tail">
                               {lookForTraits.map((trait, idx) => (
-                                <Text key={`lookFor-${idx}`} style={styles.historyItemTraitRed}>
+                                <Text key={`lookFor-${idx}`} style={[styles.historyItemTraitRed]}>
                                   {trait}
                                   {idx < lookForTraits.length - 1 || completeTraits.length > 0 ? ', ' : ''}
                                 </Text>
@@ -709,8 +721,11 @@ const Inventory = () => {
     setHasUnsavedChanges(false);
   };
 
+  // For input boxes in Deep Sea, use tint (Blue Slate) as background
+  const inputBackground = palette.sponsorSelection ? palette.tint : palette.cardBackground;
+  
   return (
-    <ScreenContainer style={styles.container} noPadding>
+    <ScreenContainer style={[styles.container, { backgroundColor: palette.background }]} noPadding>
       <Stack.Screen options={{ headerShown: false }} />
       
       {/* Gradient header block */}
@@ -741,7 +756,7 @@ const Inventory = () => {
       </LinearGradient>
 
       {/* Action Row - Below header */}
-      <View style={styles.actionRow}>
+      <View style={[styles.actionRow, { borderBottomColor: palette.divider, backgroundColor: palette.background }]}>
         {/* History */}
         <TouchableOpacity 
           onPress={() => {
@@ -755,7 +770,7 @@ const Inventory = () => {
           style={styles.actionButton}
         >
           <List color={palette.tint} size={18} />
-          <Text style={styles.actionButtonText}>History</Text>
+          <Text style={[styles.actionButtonText, { color: palette.tint }]}>History</Text>
         </TouchableOpacity>
         
         {/* Save */}
@@ -768,7 +783,7 @@ const Inventory = () => {
           style={styles.actionButton}
         >
           <SaveIcon color={palette.tint} size={18} />
-          <Text style={styles.actionButtonText}>Save</Text>
+          <Text style={[styles.actionButtonText, { color: palette.tint }]}>Save</Text>
         </TouchableOpacity>
         
         {/* Share */}
@@ -781,7 +796,7 @@ const Inventory = () => {
           style={styles.actionButton}
         >
           <ShareIcon color={palette.tint} size={18} />
-          <Text style={styles.actionButtonText}>Share</Text>
+          <Text style={[styles.actionButtonText, { color: palette.tint }]}>Share</Text>
         </TouchableOpacity>
         
         {/* Reset */}
@@ -794,7 +809,7 @@ const Inventory = () => {
           style={styles.actionButton}
         >
           <RotateCcw color={palette.tint} size={18} />
-          <Text style={styles.actionButtonText}>Reset</Text>
+          <Text style={[styles.actionButtonText, { color: palette.tint }]}>Reset</Text>
         </TouchableOpacity>
       </View>
 
@@ -807,20 +822,20 @@ const Inventory = () => {
       >
         {/* Saved Timestamp */}
         {currentRecord && (
-          <Text style={styles.savedTimestamp}>
+          <Text style={[styles.savedTimestamp, { color: palette.tint }]}>
             Saved: {formatSavedTimestamp()}
           </Text>
         )}
         
         {/* Situation Input */}
         <View style={styles.situationContainer}>
-          <Text style={[styles.situationLabel, { fontSize }]}>What's disturbing you?</Text>
+          <Text style={[styles.situationLabel, { fontSize, color: palette.text }]}>What's disturbing you?</Text>
           <TextInput
-            style={[styles.situationInput, { fontSize }]}
+            style={[styles.situationInput, { fontSize, backgroundColor: inputBackground, color: palette.text, borderColor: palette.border }]}
             value={situation}
             onChangeText={handleSituationChange}
             placeholder="Describe the situation"
-            placeholderTextColor="#999"
+            placeholderTextColor={palette.sponsorSelection ? palette.text : palette.muted}
             multiline={true}
             numberOfLines={3}
             textAlignVertical="top"
@@ -832,8 +847,8 @@ const Inventory = () => {
         
         {/* Column Headers */}
         <View style={styles.columnHeaderRow}>
-          <Text style={styles.columnHeaderLeft}>Watch For</Text>
-          <Text style={styles.columnHeaderRight}>Strive For</Text>
+          <Text style={[styles.columnHeaderLeft, { color: palette.text }]}>Watch For</Text>
+          <Text style={[styles.columnHeaderRight, { color: palette.text }]}>Strive For</Text>
         </View>
 
         {/* Spot Check Cards */}
@@ -845,6 +860,8 @@ const Inventory = () => {
               state={selections[pair.id] || 'none'}
               onPressLookFor={() => handlePressLookFor(pair.id)}
               onPressStriveFor={() => handlePressStriveFor(pair.id)}
+              palette={palette}
+              inputBackground={inputBackground}
             />
           ))}
         </View>
@@ -856,11 +873,13 @@ const Inventory = () => {
         onSelectRecord={handleSelectRecord}
         hasUnsavedChanges={hasUnsavedChanges}
         handleSave={handleSave}
+        palette={palette}
       />
       
       <InstructionsModal
         visible={showInstructions}
         onClose={handleCloseInstructions}
+        palette={palette}
       />
     </ScreenContainer>
   );
@@ -869,7 +888,6 @@ const Inventory = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f6f8',
   },
   headerBlock: {
     paddingBottom: 16,

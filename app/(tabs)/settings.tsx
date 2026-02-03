@@ -681,61 +681,66 @@ export default function SettingsScreen() {
         onRequestClose={handleFeedbackClose}
       >
         <KeyboardAvoidingView 
-          style={styles.feedbackContainer}
+          style={[styles.feedbackContainer, { backgroundColor: palette.background }]}
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         >
-          {/* Teal Header */}
-          <View style={styles.feedbackHeader}>
-            <Text style={styles.feedbackHeaderTitle}>Send Feedback</Text>
+          {/* Gradient Header */}
+          <LinearGradient
+            colors={palette.gradients.header as [string, string, ...string[]]}
+            style={styles.feedbackHeader}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+          >
+            <Text style={[styles.feedbackHeaderTitle, { color: palette.headerText }]}>Send Feedback</Text>
             <TouchableOpacity onPress={handleFeedbackClose} style={styles.feedbackCloseButton}>
-              <X size={24} color="#fff" />
+              <X size={24} color={palette.headerText} />
             </TouchableOpacity>
-          </View>
+          </LinearGradient>
 
           <ScrollView 
             style={styles.feedbackContent}
             contentContainerStyle={styles.feedbackScrollContent}
             keyboardShouldPersistTaps="handled"
           >
-            <Text style={styles.feedbackLabel}>What's on your mind?</Text>
+            <Text style={[styles.feedbackLabel, { color: palette.text }]}>What's on your mind?</Text>
             <TextInput
-              style={styles.feedbackInput}
+              style={[styles.feedbackInput, { backgroundColor: palette.cardBackground, color: palette.text, borderColor: palette.border }]}
               value={feedbackText}
               onChangeText={setFeedbackText}
               placeholder="Share your thoughts, suggestions, or report an issue..."
-              placeholderTextColor="#999"
+              placeholderTextColor={palette.muted}
               multiline
               numberOfLines={6}
               textAlignVertical="top"
             />
 
-            <Text style={[styles.feedbackLabel, { marginTop: 20 }]}>
+            <Text style={[styles.feedbackLabel, { marginTop: 20, color: palette.text }]}>
               Contact info (optional)
             </Text>
             <TextInput
-              style={styles.feedbackContactInput}
+              style={[styles.feedbackContactInput, { backgroundColor: palette.cardBackground, color: palette.text, borderColor: palette.border }]}
               value={contactInfo}
               onChangeText={setContactInfo}
               placeholder="Email if you'd like a response"
-              placeholderTextColor="#999"
+              placeholderTextColor={palette.muted}
               keyboardType="email-address"
               autoCapitalize="none"
             />
 
-            <Text style={styles.feedbackNote}>
+            <Text style={[styles.feedbackNote, { color: palette.tint }]}>
               Your feedback is anonymous unless you provide contact info. We read every message!
             </Text>
 
             <TouchableOpacity
-              style={[styles.feedbackSubmitButton, isSubmitting && styles.feedbackSubmitButtonDisabled]}
+              style={[styles.feedbackSubmitButton, { backgroundColor: palette.tint }, isSubmitting && styles.feedbackSubmitButtonDisabled]}
               onPress={handleFeedbackSubmit}
               disabled={isSubmitting}
               activeOpacity={0.8}
             >
               {isSubmitting ? (
-                <ActivityIndicator color="#fff" />
+                <ActivityIndicator color={palette.headerText} />
               ) : (
-                <Text style={styles.feedbackSubmitButtonText}>Submit Feedback</Text>
+                <Text style={[styles.feedbackSubmitButtonText, { color: palette.headerText }]}>Submit Feedback</Text>
               )}
             </TouchableOpacity>
           </ScrollView>

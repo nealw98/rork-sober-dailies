@@ -321,18 +321,23 @@ const SobrietyCounter = () => {
 
   // Show "Add Date" button if user previously selected "Not Now"
   if (shouldShowAddButton()) {
+    // For Deep Sea theme, use Eggshell background with dark text
+    const isDeepSea = !!palette.sponsorSelection;
+    const containerBg = isDeepSea ? palette.text : palette.cardBackground;
+    const textColor = isDeepSea ? palette.background : palette.text;
+    
     return (
-      <View style={styles.addDateContainer}>
+      <View style={[styles.addDateContainer, { backgroundColor: containerBg }]}>
         <View style={styles.addDateRow}>
-          <Text style={styles.addDateMainTitle}>Track your sobriety</Text>
+          <Text style={[styles.addDateMainTitle, { color: textColor }]}>Track your sobriety</Text>
           <TouchableOpacity 
-            style={styles.addDateButton}
+            style={[styles.addDateButton, { backgroundColor: palette.tint }]}
             onPress={handleAddDate}
           >
             <Text style={styles.addDateButtonText}>Add Date</Text>
           </TouchableOpacity>
         </View>
-        <Text style={styles.addDateSubtitle}>
+        <Text style={[styles.addDateSubtitle, { color: isDeepSea ? palette.background : palette.muted }]}>
           See how many days you've been sober.
         </Text>
         

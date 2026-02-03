@@ -157,7 +157,6 @@ function getMilestoneToastMessage(consecutiveDays: number): string {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f6f8',
   },
   headerBlock: {
     paddingBottom: 16,
@@ -646,9 +645,12 @@ export default function GratitudeListScreen() {
     setShowSavedEntries(true);
   };
 
+  // For input boxes in Deep Sea, use tint (Blue Slate) as background
+  const inputBackground = palette.sponsorSelection ? palette.tint : palette.cardBackground;
+  
   // Main form render
   return (
-    <ScreenContainer style={styles.container} noPadding>
+    <ScreenContainer style={[styles.container, { backgroundColor: palette.background }]} noPadding>
       <Stack.Screen options={{ headerShown: false }} />
       
       {/* Gradient header block */}
@@ -673,7 +675,7 @@ export default function GratitudeListScreen() {
       </LinearGradient>
       
       {/* Action Row - Below header */}
-      <View style={styles.actionRow}>
+      <View style={[styles.actionRow, { borderBottomColor: palette.divider, backgroundColor: palette.background }]}>
         <TouchableOpacity 
           onPress={() => setShowSavedEntries(true)}
           accessible={true}
@@ -683,7 +685,7 @@ export default function GratitudeListScreen() {
           style={styles.actionButton}
         >
           <List color={palette.tint} size={18} />
-          <Text style={styles.actionButtonText}>History</Text>
+          <Text style={[styles.actionButtonText, { color: palette.tint }]}>History</Text>
         </TouchableOpacity>
         
         <TouchableOpacity 
@@ -695,7 +697,7 @@ export default function GratitudeListScreen() {
           style={styles.actionButton}
         >
           <Save color={palette.tint} size={18} />
-          <Text style={styles.actionButtonText}>Save</Text>
+          <Text style={[styles.actionButtonText, { color: palette.tint }]}>Save</Text>
         </TouchableOpacity>
         
         <TouchableOpacity 
@@ -707,7 +709,7 @@ export default function GratitudeListScreen() {
           style={styles.actionButton}
         >
           <ShareIcon color={palette.tint} size={18} />
-          <Text style={styles.actionButtonText}>Share</Text>
+          <Text style={[styles.actionButtonText, { color: palette.tint }]}>Share</Text>
         </TouchableOpacity>
         
         <TouchableOpacity 
@@ -719,7 +721,7 @@ export default function GratitudeListScreen() {
           style={styles.actionButton}
         >
           <RotateCcw color={palette.tint} size={18} />
-          <Text style={styles.actionButtonText}>Reset</Text>
+          <Text style={[styles.actionButtonText, { color: palette.tint }]}>Reset</Text>
         </TouchableOpacity>
       </View>
       
@@ -731,25 +733,25 @@ export default function GratitudeListScreen() {
           automaticallyAdjustKeyboardInsets={true}
         >
           {/* Date */}
-          <Text style={styles.dateText}>{formatDateDisplay(today)}</Text>
+          <Text style={[styles.dateText, { color: palette.text }]}>{formatDateDisplay(today)}</Text>
 
           {/* Daily Quote */}
-          <View style={styles.quoteTile}>
-            <Text style={[styles.quoteText, { fontSize, lineHeight }]}>
+          <View style={[styles.quoteTile, { backgroundColor: `${palette.tint}40` }]}>
+            <Text style={[styles.quoteText, { fontSize, lineHeight, color: palette.text }]}>
               &ldquo;{dailyQuote}&rdquo;
             </Text>
           </View>
           
           {/* Gratitude Input */}
           <View style={styles.inputSection}>
-            <Text style={[styles.inputLabel, { fontSize }]}>Today I'm grateful for:</Text>
+            <Text style={[styles.inputLabel, { fontSize, color: palette.text }]}>Today I'm grateful for:</Text>
             
             <View style={styles.inputContainer}>
               <TextInput
                 ref={inputRef}
-                style={[styles.textInput, { fontSize }]}
+                style={[styles.textInput, { fontSize, backgroundColor: inputBackground, color: palette.text, borderColor: palette.border }]}
                 placeholder={gratitudeItems.length === 0 ? "e.g., My sobriety" : ""}
-                placeholderTextColor="#999"
+                placeholderTextColor={palette.sponsorSelection ? palette.text : palette.muted}
                 value={inputValue}
                 onChangeText={setInputValue}
                 onKeyPress={handleKeyPress}
@@ -761,15 +763,16 @@ export default function GratitudeListScreen() {
               <TouchableOpacity
                 style={[
                   styles.addButton,
-                  { backgroundColor: palette.tint },
-                  !inputValue.trim() && styles.addButtonDisabled
+                  { backgroundColor: inputValue.trim() ? palette.tint : palette.muted },
+                  !inputValue.trim() && { opacity: 0.6 }
                 ]}
                 onPress={handleAddGratitude}
                 disabled={!inputValue.trim()}
               >
                 <Text style={[
                   styles.addButtonText,
-                  !inputValue.trim() && styles.addButtonTextDisabled
+                  { color: palette.headerText },
+                  !inputValue.trim() && { opacity: 0.7 }
                 ]}>Add</Text>
               </TouchableOpacity>
             </View>
@@ -777,11 +780,11 @@ export default function GratitudeListScreen() {
             {gratitudeItems.length > 0 && (
               <View style={styles.itemsList}>
                 {gratitudeItems.map((item, index) => (
-                  <View key={index} style={styles.gratitudeItem}>
+                  <View key={index} style={[styles.gratitudeItem, { borderBottomColor: palette.divider }]}>
                     <View style={{ flex: 1 }}>
                       {editingIndex === index ? (
                         <TextInput
-                          style={[styles.gratitudeItemEditInput, { fontSize }]}
+                          style={[styles.gratitudeItemEditInput, { fontSize, backgroundColor: inputBackground, color: palette.text, borderColor: palette.border }]}
                           value={editingValue}
                           onChangeText={setEditingValue}
                           autoFocus
@@ -794,12 +797,12 @@ export default function GratitudeListScreen() {
                         />
                       ) : (
                         <TouchableOpacity onPress={() => beginEdit(index)} activeOpacity={0.7}>
-                          <Text style={[styles.gratitudeItemText, { fontSize, lineHeight }]}>{item}</Text>
+                          <Text style={[styles.gratitudeItemText, { fontSize, lineHeight, color: palette.text }]}>{item}</Text>
                         </TouchableOpacity>
                       )}
                     </View>
                     <TouchableOpacity onPress={() => handleDelete(index)} style={styles.deleteButton}>
-                      <Trash2 size={16} color="#999" />
+                      <Trash2 size={16} color={palette.muted} />
                     </TouchableOpacity>
                   </View>
                 ))}
@@ -808,7 +811,7 @@ export default function GratitudeListScreen() {
           </View>
 
           {/* Privacy Notice */}
-          <Text style={styles.privacyText}>
+          <Text style={[styles.privacyText, { color: palette.muted }]}>
             Your gratitude lists are saved only on your device. Nothing is uploaded or shared.
           </Text>
         </ScrollView>

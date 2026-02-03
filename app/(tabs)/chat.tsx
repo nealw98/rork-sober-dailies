@@ -133,10 +133,10 @@ export default function ChatScreen() {
                   />
                 )}
                 <View style={styles.tileTextContainer}>
-                  <Text style={styles.sponsorNameLeft} numberOfLines={1}>
+                  <Text style={[styles.sponsorNameLeft, palette.sponsorSelection?.tileText && { color: palette.sponsorSelection.tileText }]} numberOfLines={1}>
                     {sponsor.name}
                   </Text>
-                  <Text style={styles.sponsorDescriptionLeft} numberOfLines={2}>
+                  <Text style={[styles.sponsorDescriptionLeft, palette.sponsorSelection?.tileText && { color: palette.sponsorSelection.tileText }]} numberOfLines={2}>
                     {sponsor.description}
                   </Text>
                 </View>
@@ -170,10 +170,10 @@ export default function ChatScreen() {
                       style={styles.avatar}
                     />
                   )}
-                  <Text style={styles.sponsorName} numberOfLines={1}>
+                  <Text style={[styles.sponsorName, palette.sponsorSelection?.tileText && { color: palette.sponsorSelection.tileText }]} numberOfLines={1}>
                     {sponsor.name}
                   </Text>
-                  <Text style={styles.sponsorDescription} numberOfLines={2}>
+                  <Text style={[styles.sponsorDescription, palette.sponsorSelection?.tileText && { color: palette.sponsorSelection.tileText }]} numberOfLines={2}>
                     {sponsor.description}
                   </Text>
                 </TouchableOpacity>
@@ -207,10 +207,10 @@ export default function ChatScreen() {
                       style={styles.avatar}
                     />
                   )}
-                  <Text style={styles.sponsorName} numberOfLines={1}>
+                  <Text style={[styles.sponsorName, palette.sponsorSelection?.tileText && { color: palette.sponsorSelection.tileText }]} numberOfLines={1}>
                     {sponsor.name}
                   </Text>
-                  <Text style={styles.sponsorDescription} numberOfLines={2}>
+                  <Text style={[styles.sponsorDescription, palette.sponsorSelection?.tileText && { color: palette.sponsorSelection.tileText }]} numberOfLines={2}>
                     {sponsor.description}
                   </Text>
                 </TouchableOpacity>
@@ -244,10 +244,10 @@ export default function ChatScreen() {
                       style={styles.avatar}
                     />
                   )}
-                  <Text style={styles.sponsorName} numberOfLines={1}>
+                  <Text style={[styles.sponsorName, palette.sponsorSelection?.tileText && { color: palette.sponsorSelection.tileText }]} numberOfLines={1}>
                     {sponsor.name}
                   </Text>
-                  <Text style={styles.sponsorDescription} numberOfLines={2}>
+                  <Text style={[styles.sponsorDescription, palette.sponsorSelection?.tileText && { color: palette.sponsorSelection.tileText }]} numberOfLines={2}>
                     {sponsor.description}
                   </Text>
                 </TouchableOpacity>

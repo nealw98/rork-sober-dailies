@@ -12,7 +12,9 @@ import {
 } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
 import { Calendar, Share as ShareIcon, Trash2, X } from 'lucide-react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useGratitudeStore } from '@/hooks/use-gratitude-store';
+import { useTheme } from '@/hooks/useTheme';
 import Colors from '@/constants/colors';
 import { adjustFontWeight } from '@/constants/fonts';
 
@@ -45,6 +47,7 @@ const formatDateShort = (dateString: string): string => {
 
 export default function SavedGratitudeEntries({ visible, onClose }: SavedGratitudeEntriesProps) {
   const { savedEntries, deleteSavedEntry } = useGratitudeStore();
+  const { palette } = useTheme();
   const [selectedEntry, setSelectedEntry] = useState<any>(null);
 
   // Debug logging
@@ -171,10 +174,15 @@ export default function SavedGratitudeEntries({ visible, onClose }: SavedGratitu
     const { date, items } = selectedEntry;
 
     return (
-      <View style={styles.entryDetailContainer}>
-        {/* Teal Header */}
-        <View style={styles.entryDetailHeader}>
-          <Text style={styles.modalTitle}>Gratitude List</Text>
+      <View style={[styles.entryDetailContainer, { backgroundColor: palette.background }]}>
+        {/* Gradient Header */}
+        <LinearGradient
+          colors={palette.gradients.header as [string, string, ...string[]]}
+          style={styles.entryDetailHeader}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+        >
+          <Text style={[styles.modalTitle, { color: palette.headerText }]}>Gratitude List</Text>
           <TouchableOpacity
             style={styles.closeButton}
             onPress={() => {
@@ -183,18 +191,18 @@ export default function SavedGratitudeEntries({ visible, onClose }: SavedGratitu
             }}
             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
           >
-            <X color="#fff" size={24} />
+            <X color={palette.headerText} size={24} />
           </TouchableOpacity>
-        </View>
+        </LinearGradient>
 
         <ScrollView style={styles.entryDetailContent}>
-          <Text style={styles.entryDate}>{formatDateDisplay(date)}</Text>
+          <Text style={[styles.entryDate, { color: palette.tint }]}>{formatDateDisplay(date)}</Text>
           
-          <View style={styles.gratitudeContainer}>
-            <Text style={styles.gratitudeTitle}>Today I was grateful for:</Text>
+          <View style={[styles.gratitudeContainer, { backgroundColor: palette.cardBackground, borderColor: palette.border }]}>
+            <Text style={[styles.gratitudeTitle, { color: palette.tint }]}>Today I was grateful for:</Text>
             {items.map((item: string, index: number) => (
               <View key={index} style={styles.gratitudeItemContainer}>
-                <Text style={styles.gratitudeItemText}>{item}</Text>
+                <Text style={[styles.gratitudeItemText, { color: palette.text }]}>{item}</Text>
               </View>
             ))}
           </View>
@@ -230,18 +238,23 @@ export default function SavedGratitudeEntries({ visible, onClose }: SavedGratitu
         }
       }}
     >
-      <View style={styles.container}>
+      <View style={[styles.container, { backgroundColor: palette.background }]}>
         {selectedEntry ? (
           renderEntryDetail()
         ) : (
           <>
-            {/* Teal Header */}
-            <View style={styles.header}>
-              <Text style={styles.title}>Saved Gratitude Lists</Text>
+            {/* Gradient Header */}
+            <LinearGradient
+              colors={palette.gradients.header as [string, string, ...string[]]}
+              style={styles.header}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+            >
+              <Text style={[styles.title, { color: palette.headerText }]}>Saved Gratitude Lists</Text>
               <TouchableOpacity style={styles.closeButton} onPress={onClose}>
-                <X color="#fff" size={24} />
+                <X color={palette.headerText} size={24} />
               </TouchableOpacity>
-            </View>
+            </LinearGradient>
 
             <ScrollView 
               style={styles.content}
@@ -252,9 +265,9 @@ export default function SavedGratitudeEntries({ visible, onClose }: SavedGratitu
             >
               {savedEntries.length === 0 ? (
                 <View style={styles.emptyState}>
-                  <Calendar color={Colors.light.muted} size={48} />
-                  <Text style={styles.emptyTitle}>No Saved Gratitude Lists</Text>
-                  <Text style={styles.emptyDescription}>
+                  <Calendar color={palette.muted} size={48} />
+                  <Text style={[styles.emptyTitle, { color: palette.text }]}>No Saved Gratitude Lists</Text>
+                  <Text style={[styles.emptyDescription, { color: palette.muted }]}>
                     Your saved gratitude lists will appear here.
                   </Text>
                 </View>
@@ -265,7 +278,7 @@ export default function SavedGratitudeEntries({ visible, onClose }: SavedGratitu
                     return (
                       <TouchableOpacity
                         key={entry.date}
-                        style={styles.entryCard}
+                        style={[styles.entryCard, { backgroundColor: palette.cardBackground, borderColor: palette.border }]}
                         onPress={() => {
                           console.log('=== TOUCHABLE ONPRESS FIRED ===');
                           console.log('Entry pressed:', entry.date);
@@ -284,10 +297,10 @@ export default function SavedGratitudeEntries({ visible, onClose }: SavedGratitu
                       >
                       <View style={styles.entryHeader}>
                         <View style={styles.entryDateContainer}>
-                          <Text style={styles.entryDateText}>
+                          <Text style={[styles.entryDateText, { color: palette.tint }]}>
                             {formatDateShort(entry.date)}
                           </Text>
-                          <Text style={styles.entryFullDate}>
+                          <Text style={[styles.entryFullDate, { color: palette.muted }]}>
                             {formatDateDisplay(entry.date)}
                           </Text>
                         </View>
@@ -303,7 +316,7 @@ export default function SavedGratitudeEntries({ visible, onClose }: SavedGratitu
                       </View>
                       
                       <View style={styles.entryPreview}>
-                        <Text style={styles.previewText}>
+                        <Text style={[styles.previewText, { color: palette.muted }]}>
                           {entry.items.length} {entry.items.length === 1 ? 'item' : 'items'} • Tap to view full list
                         </Text>
                       </View>

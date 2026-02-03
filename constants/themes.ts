@@ -130,7 +130,8 @@ const blueDeepSeaDark = {
   },
   sponsorSelection: {
     background: '#0D1321', // Ink Black for sponsor selection page background
-    tileColor: ['#748CAB', '#748CAB'], // Dusty Denim for sponsor tiles
+    tileColor: ['#3E5C76', '#3E5C76'], // Blue Slate for sponsor tiles
+    tileText: '#F0EBD8', // Eggshell for sponsor tile text
   },
   chatBackground: '#1D2D44', // Deep Space Blue for sponsor chat background
   sobrietyCardBackground: '#0D1321', // Ink Black for sobriety tracker card
