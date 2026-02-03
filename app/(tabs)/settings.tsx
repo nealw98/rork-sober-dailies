@@ -390,7 +390,7 @@ export default function SettingsScreen() {
   };
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: palette.background }]}>
       <Stack.Screen options={{ headerShown: false, tabBarStyle: { display: 'none' } }} />
       
       {/* Gradient header block */}
@@ -406,26 +406,26 @@ export default function SettingsScreen() {
             style={styles.backButton}
             activeOpacity={0.7}
           >
-            <ChevronLeft size={24} color="#fff" />
+            <ChevronLeft size={24} color={palette.headerText} />
           </TouchableOpacity>
           <View style={{ width: 60 }} />
         </View>
-        <Text style={styles.headerTitle}>Settings</Text>
+        <Text style={[styles.headerTitle, { color: palette.headerText }]}>Settings</Text>
       </LinearGradient>
       
       {/* Content */}
-      <ScrollView style={styles.content} contentContainerStyle={{ paddingBottom: 24 }}>
+      <ScrollView style={[styles.content, { backgroundColor: palette.background }]} contentContainerStyle={{ paddingBottom: 24 }}>
         {/* Appearance Section */}
-        <Text style={styles.sectionTitle}>Text Size</Text>
+        <Text style={[styles.sectionTitle, { color: palette.text }]}>Text Size</Text>
         
         {/* Text Size Controls - Inline */}
         <View style={styles.textSizeSection}>
           {/* Preview */}
-          <View style={styles.preview}>
+          <View style={[styles.preview, { backgroundColor: palette.cardBackground }]}>
             <Text
               style={[
                 styles.previewText,
-                { fontSize, lineHeight: fontSize * 1.5, fontWeight: adjustFontWeight("500") },
+                { fontSize, lineHeight: fontSize * 1.5, fontWeight: adjustFontWeight("500"), color: palette.text },
               ]}
             >
               "Daily progress one day at a time."
@@ -435,7 +435,11 @@ export default function SettingsScreen() {
           {/* Controls */}
           <View style={styles.controls}>
             <TouchableOpacity
-              style={[styles.sizeButton, fontSize <= minFontSize && styles.sizeButtonDisabled]}
+              style={[
+                styles.sizeButton, 
+                { backgroundColor: palette.tint, borderColor: palette.border },
+                fontSize <= minFontSize && [styles.sizeButtonDisabled, { backgroundColor: palette.muted }]
+              ]}
               onPress={decrease}
               disabled={fontSize <= minFontSize}
               activeOpacity={0.7}
@@ -444,7 +448,11 @@ export default function SettingsScreen() {
             </TouchableOpacity>
 
             <TouchableOpacity
-              style={[styles.sizeButton, fontSize >= maxFontSize && styles.sizeButtonDisabled]}
+              style={[
+                styles.sizeButton, 
+                { backgroundColor: palette.tint, borderColor: palette.border },
+                fontSize >= maxFontSize && [styles.sizeButtonDisabled, { backgroundColor: palette.muted }]
+              ]}
               onPress={increase}
               disabled={fontSize >= maxFontSize}
               activeOpacity={0.7}
@@ -456,44 +464,51 @@ export default function SettingsScreen() {
           {/* Reset to Default */}
           {fontSize !== defaultFontSize && (
             <TouchableOpacity
-              style={styles.resetButton}
+              style={[styles.resetButton, { backgroundColor: palette.cardBackground }]}
               onPress={resetDefaults}
               activeOpacity={0.7}
             >
-              <Text style={styles.resetButtonText}>Reset to Default</Text>
+              <Text style={[styles.resetButtonText, { color: palette.tint }]}>Reset to Default</Text>
             </TouchableOpacity>
           )}
         </View>
 
         {/* Theme Section */}
-        <Text style={[styles.sectionTitle, { marginTop: 24 }]}>Theme</Text>
+        <Text style={[styles.sectionTitle, { marginTop: 24, color: palette.text }]}>Theme</Text>
         <View style={styles.themeRow}>
           {themes.map((theme) => (
             <TouchableOpacity
               key={theme.id}
               style={[
                 styles.themeOption,
-                themeId === theme.id && { borderColor: palette.tint, borderWidth: 2, backgroundColor: palette.cardBackground },
+                { 
+                  backgroundColor: themeId === theme.id ? palette.tint : palette.cardBackground,
+                  borderColor: palette.border,
+                },
               ]}
               onPress={() => setThemeId(theme.id)}
               activeOpacity={0.7}
             >
-              <View style={[styles.themeSwatch, { backgroundColor: (theme.light || theme.dark)?.tint }]} />
-              <Text style={[styles.themeOptionLabel, { color: palette.text }]}>{theme.name}</Text>
+              <Text style={[
+                styles.themeOptionLabel, 
+                { color: themeId === theme.id ? '#fff' : palette.text }
+              ]}>
+                {theme.name}
+              </Text>
             </TouchableOpacity>
           ))}
         </View>
 
         {/* Support Section */}
-        <Text style={[styles.sectionTitle, { marginTop: 24 }]}>Support Sober Dailies</Text>
+        <Text style={[styles.sectionTitle, { marginTop: 24, color: palette.text }]}>Support Sober Dailies</Text>
         
         <TouchableOpacity 
           style={styles.menuItem}
           onPress={handleRateAppPress}
           activeOpacity={0.7}
         >
-          <Text style={[styles.menuItemTitle, { fontSize }]}>Rate & Review</Text>
-          <ChevronRight size={18} color="#a0a0a0" />
+          <Text style={[styles.menuItemTitle, { fontSize, color: palette.text }]}>Rate & Review</Text>
+          <ChevronRight size={18} color={palette.muted} />
         </TouchableOpacity>
         
         <TouchableOpacity 
@@ -501,8 +516,8 @@ export default function SettingsScreen() {
           onPress={handleSharePress}
           activeOpacity={0.7}
         >
-          <Text style={[styles.menuItemTitle, { fontSize }]}>Share the App</Text>
-          <ChevronRight size={18} color="#a0a0a0" />
+          <Text style={[styles.menuItemTitle, { fontSize, color: palette.text }]}>Share the App</Text>
+          <ChevronRight size={18} color={palette.muted} />
         </TouchableOpacity>
         
         <TouchableOpacity 
@@ -510,47 +525,47 @@ export default function SettingsScreen() {
           onPress={() => setFeedbackVisible(true)}
           activeOpacity={0.7}
         >
-          <Text style={[styles.menuItemTitle, { fontSize }]}>Send Feedback</Text>
-          <ChevronRight size={18} color="#a0a0a0" />
+          <Text style={[styles.menuItemTitle, { fontSize, color: palette.text }]}>Send Feedback</Text>
+          <ChevronRight size={18} color={palette.muted} />
         </TouchableOpacity>
 
         {/* About Section */}
-        <Text style={[styles.sectionTitle, { marginTop: 24 }]}>About</Text>
+        <Text style={[styles.sectionTitle, { marginTop: 24, color: palette.text }]}>About</Text>
         
         <TouchableOpacity 
           style={[styles.menuItem, styles.menuItemLast]}
           onPress={() => router.push('/about')}
           activeOpacity={0.7}
         >
-          <Text style={[styles.menuItemTitle, { fontSize }]}>About Sober Dailies</Text>
-          <ChevronRight size={18} color="#a0a0a0" />
+          <Text style={[styles.menuItemTitle, { fontSize, color: palette.text }]}>About Sober Dailies</Text>
+          <ChevronRight size={18} color={palette.muted} />
         </TouchableOpacity>
       </ScrollView>
 
       {/* Legal Links - above footer */}
-      <View style={styles.legalLinksContainer}>
+      <View style={[styles.legalLinksContainer, { backgroundColor: palette.background }]}>
         <TouchableOpacity onPress={handlePrivacyPress}>
-          <Text style={styles.legalLink}>Privacy</Text>
+          <Text style={[styles.legalLink, { color: palette.muted }]}>Privacy</Text>
         </TouchableOpacity>
-        <Text style={styles.legalSeparator}>·</Text>
+        <Text style={[styles.legalSeparator, { color: palette.muted }]}>·</Text>
         <TouchableOpacity onPress={handleTermsPress}>
-          <Text style={styles.legalLink}>Terms</Text>
+          <Text style={[styles.legalLink, { color: palette.muted }]}>Terms</Text>
         </TouchableOpacity>
-        <Text style={styles.legalSeparator}>·</Text>
+        <Text style={[styles.legalSeparator, { color: palette.muted }]}>·</Text>
         <TouchableOpacity onPress={handleSupportPress}>
-          <Text style={styles.legalLink}>Support</Text>
+          <Text style={[styles.legalLink, { color: palette.muted }]}>Support</Text>
         </TouchableOpacity>
       </View>
 
       {/* Footer with version */}
-      <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, 16) }]}>
+      <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, 16), backgroundColor: palette.background }]}>
         <TouchableOpacity 
           onPress={handleVersionTap}
           onLongPress={toggleLogs}
           activeOpacity={0.6}
           delayLongPress={500}
         >
-          <Text style={styles.versionText}>
+          <Text style={[styles.versionText, { color: palette.muted }]}>
             Version {appVersion}
             {Platform.OS === 'ios' && iosBuild ? ` (${iosBuild})` : ''}
             {Platform.OS === 'android' && androidVersionCode ? ` (${androidVersionCode})` : ''}
@@ -758,7 +773,6 @@ export default function SettingsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f6f8',
   },
   headerBlock: {
     paddingBottom: 16,
@@ -781,7 +795,6 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 32,
     fontWeight: adjustFontWeight('400'),
-    color: '#fff',
     textAlign: 'center',
   },
   content: {
@@ -792,7 +805,6 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 11,
     fontWeight: adjustFontWeight('600'),
-    color: '#6b7c8a',
     textTransform: 'uppercase',
     letterSpacing: 1,
     marginBottom: 8,
@@ -806,34 +818,26 @@ const styles = StyleSheet.create({
   themeOption: {
     flex: 1,
     alignItems: 'center',
-    paddingVertical: 12,
-    paddingHorizontal: 8,
+    justifyContent: 'center',
+    paddingVertical: 16,
+    paddingHorizontal: 16,
     borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#e2e8f0',
-  },
-  themeSwatch: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    marginBottom: 6,
+    borderWidth: 2,
   },
   themeOptionLabel: {
-    fontSize: 13,
-    fontWeight: '500',
+    fontSize: 16,
+    fontWeight: '600',
   },
   textSizeSection: {
     marginBottom: 8,
     gap: 16,
   },
   preview: {
-    backgroundColor: '#fff',
     borderRadius: 12,
     padding: 16,
     alignItems: 'center',
   },
   previewText: {
-    color: '#2d3748',
     textAlign: 'center',
   },
   controls: {
@@ -868,7 +872,6 @@ const styles = StyleSheet.create({
   },
   resetButtonText: {
     fontSize: 14,
-    color: '#3D8B8B',
     fontWeight: adjustFontWeight('500'),
   },
   menuItem: {
@@ -886,7 +889,6 @@ const styles = StyleSheet.create({
   menuItemTitle: {
     fontSize: 16,
     fontWeight: adjustFontWeight('500'),
-    color: '#000',
     flex: 1,
   },
   legalLinksContainer: {
@@ -894,11 +896,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: 12,
-    backgroundColor: '#f5f6f8',
   },
   legalLink: {
     fontSize: 14,
-    color: '#3D8B8B',
     fontWeight: adjustFontWeight('500'),
   },
   legalSeparator: {
@@ -915,7 +915,6 @@ const styles = StyleSheet.create({
   },
   versionText: {
     fontSize: 12,
-    color: '#a0a0a0',
   },
   logsContainer: {
     flex: 1,

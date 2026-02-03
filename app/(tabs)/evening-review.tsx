@@ -495,7 +495,7 @@ export default function EveningReview() {
           </TouchableOpacity>
           <View style={{ width: 60 }} />
         </View>
-        <Text style={styles.headerTitle}>Nightly Review</Text>
+        <Text style={[styles.headerTitle, { color: palette.headerText }]}>Nightly Review</Text>
       </LinearGradient>
 
       {/* Action Row - Below header */}
@@ -672,7 +672,6 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 32,
     fontWeight: adjustFontWeight('400'),
-    color: '#fff',
     textAlign: 'center',
   },
   actionRow: {

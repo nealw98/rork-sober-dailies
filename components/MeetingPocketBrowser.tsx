@@ -18,6 +18,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Colors from "@/constants/colors";
 import { adjustFontWeight } from "@/constants/fonts";
 import { useTextSettings } from "@/hooks/use-text-settings";
+import { useTheme } from "@/hooks/useTheme";
 import SimpleTextReader from "./SimpleTextReader";
 
 interface MeetingReading {
@@ -75,6 +76,7 @@ function MeetingPocketBrowserContent() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { fontSize } = useTextSettings();
+  const { palette } = useTheme();
   const [textReaderVisible, setTextReaderVisible] = useState(false);
   const [currentReading, setCurrentReading] = useState<MeetingReading | null>(null);
 
@@ -88,10 +90,10 @@ function MeetingPocketBrowserContent() {
   };
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: palette.background }]}>
       {/* Gradient Header */}
       <LinearGradient
-        colors={['#4A6FA5', '#3D8B8B', '#45A08A']}
+        colors={palette.gradients.header as [string, string, ...string[]]}
         style={[styles.headerBlock, { paddingTop: insets.top + 8 }]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
@@ -102,10 +104,10 @@ function MeetingPocketBrowserContent() {
             onPress={handleBack}
             activeOpacity={0.7}
           >
-            <ChevronLeft size={24} color="#fff" />
+            <ChevronLeft size={24} color={palette.headerText} />
           </TouchableOpacity>
         </View>
-        <Text style={styles.headerTitle}>AA Meeting Readings</Text>
+        <Text style={[styles.headerTitle, { color: palette.headerText }]}>AA Meeting Readings</Text>
       </LinearGradient>
       
       <ScrollView 
@@ -119,13 +121,14 @@ function MeetingPocketBrowserContent() {
               key={reading.id}
               style={[
                 styles.listRow,
+                { borderBottomColor: palette.divider },
                 index === meetingReadings.length - 1 && styles.listRowLast
               ]}
               onPress={() => handleOpenContent(reading)}
               activeOpacity={0.7}
             >
-              <Text style={[styles.rowTitle, { fontSize }]}>{reading.title}</Text>
-              <ChevronRight size={18} color="#a0a0a0" />
+              <Text style={[styles.rowTitle, { fontSize, color: palette.text }]}>{reading.title}</Text>
+              <ChevronRight size={18} color={palette.muted} />
             </TouchableOpacity>
           ))}
         </View>
@@ -144,6 +147,7 @@ function MeetingPocketBrowserContent() {
             source={currentReading.source}
             indentParagraphs={currentReading.id !== 'generic-format'}
             onClose={() => setTextReaderVisible(false)}
+            palette={palette}
           />
         )}
       </Modal>
@@ -158,7 +162,6 @@ export default function MeetingPocketBrowser() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f6f8',
   },
   headerBlock: {
     paddingHorizontal: 20,
@@ -177,7 +180,6 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 32,
     fontWeight: adjustFontWeight('400'),
-    color: '#fff',
   },
   content: {
     flex: 1,
@@ -194,7 +196,6 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     paddingHorizontal: 4,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(61, 139, 139, 0.3)',
   },
   listRowLast: {
     borderBottomWidth: 0,
@@ -202,7 +203,6 @@ const styles = StyleSheet.create({
   rowTitle: {
     fontSize: 16,
     fontWeight: adjustFontWeight('500'),
-    color: '#000',
     flex: 1,
   },
 });

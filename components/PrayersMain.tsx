@@ -26,6 +26,7 @@ import { adjustFontWeight } from '@/constants/fonts';
 import { PrayerReader } from './PrayerReader';
 import { useTextSettings } from '@/hooks/use-text-settings';
 import { logEvent } from '@/lib/usageLogger';
+import { useTheme } from '@/hooks/useTheme';
 
 export function PrayersMain() {
   const posthog = usePostHog();
@@ -33,6 +34,7 @@ export function PrayersMain() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { fontSize } = useTextSettings();
+  const { palette } = useTheme();
   
   const [selectedPrayerIndex, setSelectedPrayerIndex] = useState<number | null>(null);
   const [showReaderModal, setShowReaderModal] = useState(false);
@@ -89,10 +91,10 @@ export function PrayersMain() {
   }, []);
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: palette.background }]}>
       {/* Gradient header block */}
       <LinearGradient
-        colors={['#4A6FA5', '#3D8B8B', '#45A08A']}
+        colors={palette.gradients.header as [string, string, ...string[]]}
         style={[styles.headerBlock, { paddingTop: insets.top + 8 }]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
@@ -103,16 +105,16 @@ export function PrayersMain() {
             style={styles.backButton}
             activeOpacity={0.7}
           >
-            <ChevronLeft size={24} color="#fff" />
+            <ChevronLeft size={24} color={palette.headerText} />
           </TouchableOpacity>
           <View style={{ width: 60 }} />
         </View>
-        <Text style={styles.headerTitle}>AA Prayers</Text>
+        <Text style={[styles.headerTitle, { color: palette.headerText }]}>AA Prayers</Text>
       </LinearGradient>
       
       {/* Prayer List */}
       <ScrollView 
-        style={styles.scrollContainer} 
+        style={[styles.scrollContainer, { backgroundColor: palette.background }]} 
         contentContainerStyle={styles.contentContainer}
         showsVerticalScrollIndicator={false}
       >
@@ -122,13 +124,14 @@ export function PrayersMain() {
               key={index}
               style={[
                 styles.listRow,
+                { borderBottomColor: palette.divider },
                 index === aaPrayers.length - 1 && styles.listRowLast
               ]}
               onPress={() => handleSelectPrayer(index)}
               activeOpacity={0.7}
             >
-              <Text style={[styles.rowTitle, { fontSize }]}>{prayerItem.title}</Text>
-              <ChevronRight size={18} color="#a0a0a0" />
+              <Text style={[styles.rowTitle, { fontSize, color: palette.text }]}>{prayerItem.title}</Text>
+              <ChevronRight size={18} color={palette.muted} />
             </TouchableOpacity>
           ))}
         </View>
@@ -141,6 +144,7 @@ export function PrayersMain() {
           prayerIndex={selectedPrayerIndex}
           onClose={handleCloseReader}
           onPrayerChange={handlePrayerChange}
+          palette={palette}
         />
       )}
     </View>
@@ -173,7 +177,6 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 32,
     fontWeight: adjustFontWeight('400'),
-    color: '#fff',
     textAlign: 'center',
   },
   scrollContainer: {
@@ -192,7 +195,6 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     paddingHorizontal: 4,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(61, 139, 139, 0.3)',
   },
   listRowLast: {
     borderBottomWidth: 0,
@@ -200,7 +202,6 @@ const styles = StyleSheet.create({
   rowTitle: {
     fontSize: 18,
     fontWeight: adjustFontWeight('500'),
-    color: '#000',
     flex: 1,
   },
 });

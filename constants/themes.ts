@@ -1,12 +1,11 @@
 /**
  * Theme definitions.
  * - Default theme: Original multi-color design with unique gradients for each tile. NEVER changes.
- * - Deep Sea (blue): Dark mode only.
+ * - Deep Sea: Dark mode only.
  *   - HOME PAGE: All tiles use PRIMARY color (Blue Slate #3E5C76)
  *   - SPONSOR SELECTION PAGE: 
  *     - Background: Deep Space Blue (#1D2D44) 
  *     - Sponsor tiles: Dusty Denim (#748CAB)
- * - Green theme: Light/dark with all home tiles using primary color.
  */
 
 import type { ThemeDefinition } from '@/types/theme';
@@ -15,9 +14,9 @@ import type { ThemeDefinition } from '@/types/theme';
 const defaultLight = {
   text: '#333333',
   background: '#fff',
-  tint: '#4A90E2',
+  tint: '#3D8B8B', // Teal - used for icons, tab highlights, and UI accents
   tabIconDefault: '#ccc',
-  tabIconSelected: '#4A90E2',
+  tabIconSelected: '#3D8B8B',
   cardBackground: '#f8f9fa',
   accent: '#5CB85C',
   muted: '#6c757d',
@@ -50,6 +49,13 @@ const defaultLight = {
     prayers: ['#6AC8B8', '#4AA898'],
     spotCheck: ['#E0CABE', '#907565'],
   },
+  heroTileText: '#ffffff', // White text on colored tile backgrounds
+  headerText: '#ffffff', // White text on header gradient
+  literatureTiles: {
+    bigbook: ['#6AC08A', '#4AA06A'],
+    twelveAndTwelve: ['#5DABAB', '#3D8B8B'],
+    meetingPocket: ['#AA85D5', '#8A65B5'],
+  },
 } as const;
 
 const defaultDark = {
@@ -76,6 +82,13 @@ const defaultDark = {
     nightlyReview: ['#8a65a5', '#6a4585'],
     prayers: ['#4aa888', '#3a8868'],
     spotCheck: ['#b09585', '#907565'],
+  },
+  heroTileText: '#ffffff', // White text on colored tile backgrounds
+  headerText: '#ffffff', // White text on header gradient
+  literatureTiles: {
+    bigbook: ['#4a906a', '#3a704a'],
+    twelveAndTwelve: ['#3d7a7a', '#2d5a5a'],
+    meetingPocket: ['#8a65a5', '#6a4585'],
   },
 };
 
@@ -120,90 +133,26 @@ const blueDeepSeaDark = {
     tileColor: ['#748CAB', '#748CAB'], // Dusty Denim for sponsor tiles
   },
   chatBackground: '#1D2D44', // Deep Space Blue for sponsor chat background
-} as const;
-
-// ----- Green theme: 3 solid colors for tiles -----
-const greenPrimary = '#059669';
-const greenSecondary = '#34d399';
-const greenTertiary = '#6ee7b7';
-const greenHeader = ['#059669', '#047857', '#065f46'];
-
-const greenLight = {
-  text: '#333333',
-  background: '#fff',
-  tint: '#059669',
-  tabIconDefault: '#ccc',
-  tabIconSelected: '#059669',
-  cardBackground: '#f0fdf4',
-  accent: '#10b981',
-  muted: '#64748b',
-  chatBubbleUser: 'rgba(5, 150, 105, 0.5)',
-  chatBubbleBot: 'rgba(16, 185, 129, 0.25)',
-  chatBubbleGrace: 'rgba(52, 211, 153, 0.25)',
-  chatBubbleSalty: 'rgba(134, 239, 172, 0.25)',
-  border: '#dcfce7',
-  divider: '#dcfce7',
-  destructive: '#EF4444',
-  recognition: { gradientStart: '#10b981', gradientEnd: '#047857', text: 'white' },
-  gradients: {
-    main: ['#6ee7b7', '#a7f3d0'],
-    mainThreeColor: ['#6ee7b7', '#a7f3d0', '#d1fae5'],
-    header: greenHeader, // Keep gradient for header
-  },
-  heroTiles: {
-    header: greenHeader,
-    // ALL HOME PAGE TILES use Primary color
-    dailyReflection: [greenPrimary, greenPrimary], // Primary
-    aiSponsor: [greenPrimary, greenPrimary], // Primary (also for sponsor selection tiles)
-    literature: [greenPrimary, greenPrimary], // Primary
-    morningPrayer: [greenPrimary, greenPrimary], // Primary
-    gratitude: [greenPrimary, greenPrimary], // Primary
-    eveningPrayer: [greenPrimary, greenPrimary], // Primary
-    nightlyReview: [greenPrimary, greenPrimary], // Primary
-    prayers: [greenPrimary, greenPrimary], // Primary
-    spotCheck: [greenPrimary, greenPrimary], // Primary
+  sobrietyCardBackground: '#0D1321', // Ink Black for sobriety tracker card
+  heroTileText: '#F0EBD8', // Eggshell text on tiles
+  headerText: '#F0EBD8', // Eggshell text on header gradient
+  literatureTiles: {
+    bigbook: ['#3E5C76', '#3E5C76'], // Blue Slate solid for Deep Sea
+    twelveAndTwelve: ['#3E5C76', '#3E5C76'],
+    meetingPocket: ['#3E5C76', '#3E5C76'],
   },
 } as const;
-
-const greenDark = {
-  ...greenLight,
-  text: '#ecfdf5',
-  background: '#022c22',
-  cardBackground: '#064e3b',
-  muted: '#6ee7b7',
-  border: '#065f46',
-  divider: '#065f46',
-  gradients: {
-    main: ['#065f46', '#047857'],
-    mainThreeColor: ['#065f46', '#047857', '#022c22'],
-    header: ['#047857', '#065f46', '#064e3b'], // Keep gradient for header
-  },
-  heroTiles: {
-    header: ['#047857', '#065f46', '#064e3b'],
-    // ALL HOME PAGE TILES use Primary color
-    dailyReflection: ['#047857', '#047857'], // Primary
-    aiSponsor: ['#047857', '#047857'], // Primary (also for sponsor selection tiles)
-    literature: ['#047857', '#047857'], // Primary
-    morningPrayer: ['#047857', '#047857'], // Primary
-    gratitude: ['#047857', '#047857'], // Primary
-    eveningPrayer: ['#047857', '#047857'], // Primary
-    nightlyReview: ['#047857', '#047857'], // Primary
-    prayers: ['#047857', '#047857'], // Primary
-    spotCheck: ['#047857', '#047857'], // Primary
-  },
-};
 
 // ----- Export theme definitions -----
 export const THEMES: ThemeDefinition[] = [
   { id: 'default', name: 'Default', light: defaultLight as any, dark: defaultDark as any },
   { id: 'blue', name: 'Deep Sea', dark: blueDeepSeaDark as any, forcedMode: 'dark' },
-  { id: 'green', name: 'Green', light: greenLight as any, dark: greenDark as any },
 ];
 
 export const DEFAULT_THEME_ID = 'default' as const;
 export const DEFAULT_COLOR_SCHEME = 'light' as const;
 
-export function getThemeById(id: 'default' | 'blue' | 'green'): ThemeDefinition {
+export function getThemeById(id: 'default' | 'blue'): ThemeDefinition {
   const theme = THEMES.find((t) => t.id === id);
   if (!theme) return THEMES[0];
   return theme;

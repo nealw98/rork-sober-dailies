@@ -44,6 +44,7 @@ import { BigBookHighlightsList } from './BigBookHighlightsList';
 import { BigBookBookmarksList } from './BigBookBookmarksList';
 import { BigBookPageNavigation } from './BigBookPageNavigation';
 import { BigBookSearchModal } from './BigBookSearchModal';
+import { useTheme } from '@/hooks/useTheme';
 
 interface BigBookChapterListProps {
   onSelectChapter: (chapterId: string, scrollToParagraphId?: string, searchTerm?: string) => void;
@@ -56,6 +57,7 @@ interface SectionProps {
   chapters: BigBookChapterMeta[];
   onSelectChapter: (chapterId: string) => void;
   fontSize: number;
+  palette: any;
 }
 
 // Helper to remove chapter numbers from titles (e.g., "1. Bill's Story" -> "Bill's Story")
@@ -63,10 +65,10 @@ function removeChapterNumber(title: string): string {
   return title.replace(/^\d+\.\s*/, '');
 }
 
-function ChapterSection({ title, chapters, onSelectChapter, fontSize }: SectionProps) {
+function ChapterSection({ title, chapters, onSelectChapter, fontSize, palette }: SectionProps) {
   return (
     <View style={styles.sectionContainer}>
-      <Text style={styles.sectionLabel}>{title}</Text>
+      <Text style={[styles.sectionLabel, { color: palette.muted }]}>{title}</Text>
       
       <View style={styles.listContainer}>
         {chapters.map((chapter, index) => (
@@ -74,17 +76,18 @@ function ChapterSection({ title, chapters, onSelectChapter, fontSize }: SectionP
             key={chapter.id}
             style={[
               styles.listRow,
+              { borderBottomColor: palette.divider },
               index === chapters.length - 1 && styles.listRowLast
             ]}
             onPress={() => onSelectChapter(chapter.id)}
             activeOpacity={0.7}
           >
-            <Text style={[styles.rowTitle, { fontSize }]}>{removeChapterNumber(chapter.title)}</Text>
+            <Text style={[styles.rowTitle, { fontSize, color: palette.text }]}>{removeChapterNumber(chapter.title)}</Text>
             <View style={styles.rowRight}>
-              <Text style={styles.pageNumber}>
+              <Text style={[styles.pageNumber, { color: palette.muted }]}>
                 pp. {formatPageNumber(chapter.pageRange[0], chapter.useRomanNumerals || false)}-{formatPageNumber(chapter.pageRange[1], chapter.useRomanNumerals || false)}
               </Text>
-              <ChevronRight size={18} color="#a0a0a0" />
+              <ChevronRight size={18} color={palette.muted} />
             </View>
           </TouchableOpacity>
         ))}
@@ -97,6 +100,7 @@ export function BigBookChapterList({ onSelectChapter, onBack, isReaderOpen }: Bi
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { fontSize } = useTextSettings();
+  const { palette } = useTheme();
   const frontMatter = getFrontMatter();
   const mainChapters = getMainChapters();
   const appendices = getAppendices();
@@ -174,10 +178,10 @@ export function BigBookChapterList({ onSelectChapter, onBack, isReaderOpen }: Bi
   };
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: palette.background }]}>
       {/* Gradient Header Block */}
       <LinearGradient
-        colors={['#4A6FA5', '#3D8B8B', '#45A08A']}
+        colors={palette.gradients.header as [string, string, ...string[]]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={[styles.headerBlock, { paddingTop: insets.top + 8 }]}
@@ -187,21 +191,21 @@ export function BigBookChapterList({ onSelectChapter, onBack, isReaderOpen }: Bi
             onPress={handleBack}
             style={styles.backButton}
           >
-            <ChevronLeft size={24} color="#fff" />
+            <ChevronLeft size={24} color={palette.headerText} />
           </TouchableOpacity>
         </View>
-        <Text style={styles.headerTitle}>Alcoholics Anonymous</Text>
+        <Text style={[styles.headerTitle, { color: palette.headerText }]}>Alcoholics Anonymous</Text>
       </LinearGradient>
       
       {/* Action Row - Below header */}
-      <View style={styles.actionRow}>
+      <View style={[styles.actionRow, { backgroundColor: palette.cardBackground, borderBottomColor: palette.divider }]}>
         <TouchableOpacity
           onPress={() => setShowPageNavigation(true)}
           activeOpacity={0.8}
           style={styles.actionButton}
         >
-          <Hash size={18} color="#3D8B8B" />
-          <Text style={styles.actionButtonText}>Page</Text>
+          <Hash size={18} color={palette.tint} />
+          <Text style={[styles.actionButtonText, { color: palette.tint }]}>Page</Text>
         </TouchableOpacity>
         
         <TouchableOpacity
@@ -209,8 +213,8 @@ export function BigBookChapterList({ onSelectChapter, onBack, isReaderOpen }: Bi
           activeOpacity={0.8}
           style={styles.actionButton}
         >
-          <SearchIcon size={18} color="#3D8B8B" />
-          <Text style={styles.actionButtonText}>Search</Text>
+          <SearchIcon size={18} color={palette.tint} />
+          <Text style={[styles.actionButtonText, { color: palette.tint }]}>Search</Text>
         </TouchableOpacity>
         
         <TouchableOpacity
@@ -218,8 +222,8 @@ export function BigBookChapterList({ onSelectChapter, onBack, isReaderOpen }: Bi
           activeOpacity={0.8}
           style={styles.actionButton}
         >
-          <Highlighter size={18} color="#3D8B8B" fill={hasHighlights ? "#3D8B8B" : "transparent"} />
-          <Text style={styles.actionButtonText}>Highlights</Text>
+          <Highlighter size={18} color={palette.tint} fill={hasHighlights ? palette.tint : "transparent"} />
+          <Text style={[styles.actionButtonText, { color: palette.tint }]}>Highlights</Text>
         </TouchableOpacity>
         
         <TouchableOpacity
@@ -227,8 +231,8 @@ export function BigBookChapterList({ onSelectChapter, onBack, isReaderOpen }: Bi
           activeOpacity={0.8}
           style={styles.actionButton}
         >
-          <BookmarkIcon size={18} color="#3D8B8B" fill={hasBookmarks ? "#3D8B8B" : "transparent"} />
-          <Text style={styles.actionButtonText}>Bookmarks</Text>
+          <BookmarkIcon size={18} color={palette.tint} fill={hasBookmarks ? palette.tint : "transparent"} />
+          <Text style={[styles.actionButtonText, { color: palette.tint }]}>Bookmarks</Text>
         </TouchableOpacity>
       </View>
       
@@ -242,6 +246,7 @@ export function BigBookChapterList({ onSelectChapter, onBack, isReaderOpen }: Bi
           chapters={frontMatter}
           onSelectChapter={onSelectChapter}
           fontSize={fontSize}
+          palette={palette}
         />
         
         <ChapterSection
@@ -249,6 +254,7 @@ export function BigBookChapterList({ onSelectChapter, onBack, isReaderOpen }: Bi
           chapters={mainChapters}
           onSelectChapter={onSelectChapter}
           fontSize={fontSize}
+          palette={palette}
         />
         
         <ChapterSection
@@ -256,6 +262,7 @@ export function BigBookChapterList({ onSelectChapter, onBack, isReaderOpen }: Bi
           chapters={appendices}
           onSelectChapter={onSelectChapter}
           fontSize={fontSize}
+          palette={palette}
         />
       </ScrollView>
       
@@ -291,7 +298,6 @@ export function BigBookChapterList({ onSelectChapter, onBack, isReaderOpen }: Bi
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f6f8',
   },
   headerBlock: {
     paddingHorizontal: 20,
@@ -313,7 +319,6 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 32,
     fontWeight: adjustFontWeight('400'),
-    color: '#fff',
   },
   actionRow: {
     flexDirection: 'row',
@@ -323,8 +328,6 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     paddingHorizontal: 20,
     borderBottomWidth: 1,
-    borderBottomColor: '#e0e0e0',
-    backgroundColor: '#fff',
   },
   actionButton: {
     flexDirection: 'column',
@@ -335,7 +338,6 @@ const styles = StyleSheet.create({
   },
   actionButtonText: {
     fontSize: 12,
-    color: '#3D8B8B',
     fontWeight: '500',
   },
   scrollView: {
@@ -352,7 +354,6 @@ const styles = StyleSheet.create({
   sectionLabel: {
     fontSize: 11,
     fontWeight: adjustFontWeight('600'),
-    color: '#6b7c8a',
     textTransform: 'uppercase',
     letterSpacing: 1,
     marginBottom: 8,
@@ -367,7 +368,6 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     paddingHorizontal: 4,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(61, 139, 139, 0.3)',
   },
   listRowLast: {
     borderBottomWidth: 0,
@@ -375,7 +375,6 @@ const styles = StyleSheet.create({
   rowTitle: {
     fontSize: 16,
     fontWeight: adjustFontWeight('500'),
-    color: '#000',
     flex: 1,
   },
   rowRight: {
@@ -385,6 +384,5 @@ const styles = StyleSheet.create({
   },
   pageNumber: {
     fontSize: 13,
-    color: '#a0a0a0',
   },
 });

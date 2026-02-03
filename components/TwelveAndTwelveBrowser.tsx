@@ -18,6 +18,7 @@ import { BigBookStoreProvider, useBigBookStore } from "@/hooks/use-bigbook-store
 import { TwelveAndTwelveCategory, BigBookSection } from "@/types/bigbook";
 import { adjustFontWeight } from "@/constants/fonts";
 import { useTextSettings } from "@/hooks/use-text-settings";
+import { useTheme } from "@/hooks/useTheme";
 
 import PDFViewer from "@/components/PDFViewer";
 
@@ -26,9 +27,10 @@ interface SectionProps {
   sections: BigBookSection[];
   onOpenPDF: (url: string, title: string) => void;
   fontSize: number;
+  palette: any;
 }
 
-function CategorySection({ title, sections, onOpenPDF, fontSize }: SectionProps) {
+function CategorySection({ title, sections, onOpenPDF, fontSize, palette }: SectionProps) {
   const { addToRecent } = useBigBookStore();
 
   const handlePress = (section: BigBookSection) => {
@@ -38,7 +40,7 @@ function CategorySection({ title, sections, onOpenPDF, fontSize }: SectionProps)
 
   return (
     <View style={styles.sectionContainer}>
-      <Text style={styles.sectionLabel}>{title}</Text>
+      <Text style={[styles.sectionLabel, { color: palette.muted }]}>{title}</Text>
       
       <View style={styles.listContainer}>
         {sections.map((section, index) => (
@@ -46,17 +48,18 @@ function CategorySection({ title, sections, onOpenPDF, fontSize }: SectionProps)
             key={section.id}
             style={[
               styles.listRow,
+              { borderBottomColor: palette.divider },
               index === sections.length - 1 && styles.listRowLast
             ]}
             onPress={() => handlePress(section)}
             activeOpacity={0.7}
           >
-            <Text style={[styles.rowTitle, { fontSize }]}>{section.title}</Text>
+            <Text style={[styles.rowTitle, { fontSize, color: palette.text }]}>{section.title}</Text>
             <View style={styles.rowRight}>
               {section.pageNumber && (
-                <Text style={styles.pageNumber}>{section.pageNumber}</Text>
+                <Text style={[styles.pageNumber, { color: palette.muted }]}>{section.pageNumber}</Text>
               )}
-              <ChevronRight size={18} color="#a0a0a0" />
+              <ChevronRight size={18} color={palette.muted} />
             </View>
           </TouchableOpacity>
         ))}
@@ -69,6 +72,7 @@ function TwelveAndTwelveBrowserContent() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { fontSize } = useTextSettings();
+  const { palette } = useTheme();
   const [pdfViewerVisible, setPdfViewerVisible] = useState<boolean>(false);
   const [currentPdf, setCurrentPdf] = useState<{ url: string; title: string } | null>(null);
 
@@ -108,10 +112,10 @@ function TwelveAndTwelveBrowserContent() {
   };
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: palette.background }]}>
       {/* Gradient Header */}
       <LinearGradient
-        colors={['#4A6FA5', '#3D8B8B', '#45A08A']}
+        colors={palette.gradients.header as [string, string, ...string[]]}
         style={[styles.headerBlock, { paddingTop: insets.top + 8 }]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
@@ -122,10 +126,10 @@ function TwelveAndTwelveBrowserContent() {
             onPress={handleBack}
             activeOpacity={0.7}
           >
-            <ChevronLeft size={24} color="#fff" />
+            <ChevronLeft size={24} color={palette.headerText} />
           </TouchableOpacity>
         </View>
-        <Text style={styles.headerTitle}>Twelve Steps & Twelve Traditions</Text>
+        <Text style={[styles.headerTitle, { color: palette.headerText }]}>Twelve Steps & Twelve Traditions</Text>
       </LinearGradient>
       
       <ScrollView 
@@ -140,11 +144,12 @@ function TwelveAndTwelveBrowserContent() {
             sections={category.sections}
             onOpenPDF={handleOpenPDF}
             fontSize={fontSize}
+            palette={palette}
           />
         ))}
         
         <View style={styles.copyrightContainer}>
-          <Text style={styles.copyrightText}>
+          <Text style={[styles.copyrightText, { color: palette.muted }]}>
             Copyright © 1990 by Alcoholics Anonymous World Services, Inc. All rights reserved.
           </Text>
         </View>
@@ -179,7 +184,6 @@ export default function TwelveAndTwelveBrowser() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f6f8',
   },
   headerBlock: {
     paddingHorizontal: 20,
@@ -198,7 +202,6 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 32,
     fontWeight: adjustFontWeight('400'),
-    color: '#fff',
   },
   content: {
     flex: 1,
@@ -212,7 +215,6 @@ const styles = StyleSheet.create({
   sectionLabel: {
     fontSize: 11,
     fontWeight: adjustFontWeight('600'),
-    color: '#6b7c8a',
     textTransform: 'uppercase',
     letterSpacing: 1,
     marginBottom: 8,
@@ -227,7 +229,6 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     paddingHorizontal: 4,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(61, 139, 139, 0.3)',
   },
   listRowLast: {
     borderBottomWidth: 0,
@@ -235,7 +236,6 @@ const styles = StyleSheet.create({
   rowTitle: {
     fontSize: 16,
     fontWeight: adjustFontWeight('500'),
-    color: '#000',
     flex: 1,
   },
   rowRight: {
@@ -245,7 +245,6 @@ const styles = StyleSheet.create({
   },
   pageNumber: {
     fontSize: 13,
-    color: '#a0a0a0',
   },
   copyrightContainer: {
     marginTop: 8,
@@ -253,7 +252,6 @@ const styles = StyleSheet.create({
   },
   copyrightText: {
     fontSize: 12,
-    color: '#6b7c8a',
     textAlign: "center",
     lineHeight: 16,
   },

@@ -90,11 +90,11 @@ export default function ChatScreen() {
               onPress={handleBack}
               activeOpacity={0.7}
             >
-              <ChevronLeft size={24} color="#fff" />
-            </TouchableOpacity>
-            <View style={{ width: 60 }} />
-          </View>
-          <Text style={styles.headerTitle}>Choose Your Sponsor</Text>
+            <ChevronLeft size={24} color={palette.headerText} />
+          </TouchableOpacity>
+          <View style={{ width: 60 }} />
+        </View>
+        <Text style={[styles.headerTitle, { color: palette.headerText }]}>Choose Your Sponsor</Text>
         </LinearGradient>
 
         {/* Content area with sponsor-specific background */}
@@ -108,16 +108,24 @@ export default function ChatScreen() {
             {visibleSponsors.filter(s => s.id === "supportive").map((sponsor) => (
               <TouchableOpacity
                 key={sponsor.id}
-                style={[styles.tile, styles.tileFullWidth, styles.tileHorizontal, styles.tileWithGradient]}
+                style={[
+                  styles.tile,
+                  styles.tileFullWidth,
+                  styles.tileHorizontal,
+                  // Use sponsor tileColor for Default theme, or gradient fill for Deep Sea
+                  palette.sponsorSelection ? styles.tileWithGradient : (sponsor.tileColor && { backgroundColor: sponsor.tileColor }),
+                ]}
                 onPress={() => handleSponsorSelect(sponsor.id)}
                 activeOpacity={0.7}
               >
-                <LinearGradient
-                  colors={(palette.sponsorSelection?.tileColor || palette.heroTiles.aiSponsor) as [string, string, ...string[]]}
-                  style={styles.tileGradientFill}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 1 }}
-                />
+                {palette.sponsorSelection && (
+                  <LinearGradient
+                    colors={palette.sponsorSelection.tileColor as [string, string, ...string[]]}
+                    style={styles.tileGradientFill}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 1 }}
+                  />
+                )}
                 {sponsor.avatar && (
                   <Image 
                     source={sponsor.avatar} 
@@ -140,16 +148,22 @@ export default function ChatScreen() {
               {visibleSponsors.filter(s => s.id === "salty" || s.id === "grace").map((sponsor) => (
                 <TouchableOpacity
                   key={sponsor.id}
-                  style={[styles.tile, styles.tileHalf, styles.tileWithGradient]}
+                  style={[
+                    styles.tile,
+                    styles.tileHalf,
+                    palette.sponsorSelection ? styles.tileWithGradient : (sponsor.tileColor && { backgroundColor: sponsor.tileColor }),
+                  ]}
                   onPress={() => handleSponsorSelect(sponsor.id)}
                   activeOpacity={0.7}
                 >
-                  <LinearGradient
-                    colors={(palette.sponsorSelection?.tileColor || palette.heroTiles.aiSponsor) as [string, string, ...string[]]}
-                    style={styles.tileGradientFill}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 1 }}
-                  />
+                  {palette.sponsorSelection && (
+                    <LinearGradient
+                      colors={palette.sponsorSelection.tileColor as [string, string, ...string[]]}
+                      style={styles.tileGradientFill}
+                      start={{ x: 0, y: 0 }}
+                      end={{ x: 1, y: 1 }}
+                    />
+                  )}
                   {sponsor.avatar && (
                     <Image 
                       source={sponsor.avatar} 
@@ -171,16 +185,22 @@ export default function ChatScreen() {
               {visibleSponsors.filter(s => s.id === "cowboy-pete" || s.id === "mama-jo").map((sponsor) => (
                 <TouchableOpacity
                   key={sponsor.id}
-                  style={[styles.tile, styles.tileHalf, styles.tileWithGradient]}
+                  style={[
+                    styles.tile,
+                    styles.tileHalf,
+                    palette.sponsorSelection ? styles.tileWithGradient : (sponsor.tileColor && { backgroundColor: sponsor.tileColor }),
+                  ]}
                   onPress={() => handleSponsorSelect(sponsor.id)}
                   activeOpacity={0.7}
                 >
-                  <LinearGradient
-                    colors={(palette.sponsorSelection?.tileColor || palette.heroTiles.aiSponsor) as [string, string, ...string[]]}
-                    style={styles.tileGradientFill}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 1 }}
-                  />
+                  {palette.sponsorSelection && (
+                    <LinearGradient
+                      colors={palette.sponsorSelection.tileColor as [string, string, ...string[]]}
+                      style={styles.tileGradientFill}
+                      start={{ x: 0, y: 0 }}
+                      end={{ x: 1, y: 1 }}
+                    />
+                  )}
                   {sponsor.avatar && (
                     <Image 
                       source={sponsor.avatar} 
@@ -202,16 +222,22 @@ export default function ChatScreen() {
               {["fresh", "co-sign-sally"].map(id => visibleSponsors.find(s => s.id === id)).filter(Boolean).map((sponsor) => (
                 <TouchableOpacity
                   key={sponsor.id}
-                  style={[styles.tile, styles.tileHalf, styles.tileWithGradient]}
+                  style={[
+                    styles.tile,
+                    styles.tileHalf,
+                    palette.sponsorSelection ? styles.tileWithGradient : (sponsor.tileColor && { backgroundColor: sponsor.tileColor }),
+                  ]}
                   onPress={() => handleSponsorSelect(sponsor.id)}
                   activeOpacity={0.7}
                 >
-                  <LinearGradient
-                    colors={(palette.sponsorSelection?.tileColor || palette.heroTiles.aiSponsor) as [string, string, ...string[]]}
-                    style={styles.tileGradientFill}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 1 }}
-                  />
+                  {palette.sponsorSelection && (
+                    <LinearGradient
+                      colors={palette.sponsorSelection.tileColor as [string, string, ...string[]]}
+                      style={styles.tileGradientFill}
+                      start={{ x: 0, y: 0 }}
+                      end={{ x: 1, y: 1 }}
+                    />
+                  )}
                   {sponsor.avatar && (
                     <Image 
                       source={sponsor.avatar} 
@@ -256,7 +282,6 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 32,
     fontWeight: adjustFontWeight("400"),
-    color: "#fff",
     textAlign: "center",
   },
   container: {
@@ -276,6 +301,7 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
   },
   tile: {
+    backgroundColor: 'rgba(61, 139, 139, 0.15)',
     borderRadius: 16,
     padding: 16,
     marginBottom: TILE_GAP,

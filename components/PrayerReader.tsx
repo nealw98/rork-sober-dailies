@@ -23,15 +23,17 @@ import { adjustFontWeight } from '@/constants/fonts';
 import { useTextSettings } from '@/hooks/use-text-settings';
 import { aaPrayers } from '@/constants/prayers';
 import { useScreenTimeTracking } from '@/hooks/useScreenTimeTracking';
+import { ResolvedPalette } from '@/types/theme';
 
 interface PrayerReaderProps {
   visible: boolean;
   prayerIndex: number;
   onClose: () => void;
   onPrayerChange: (index: number) => void;
+  palette: ResolvedPalette;
 }
 
-export function PrayerReader({ visible, prayerIndex, onClose, onPrayerChange }: PrayerReaderProps) {
+export function PrayerReader({ visible, prayerIndex, onClose, onPrayerChange, palette }: PrayerReaderProps) {
   const insets = useSafeAreaInsets();
   const { fontSize, lineHeight } = useTextSettings();
   const scrollViewRef = useRef<ScrollView>(null);
@@ -113,10 +115,10 @@ export function PrayerReader({ visible, prayerIndex, onClose, onPrayerChange }: 
     if (currentPrayer.title === "Morning Prayer") {
       return (
         <View>
-          <Text style={[styles.prayerText, styles.italicText, styles.introMargin, { fontSize, lineHeight }]}>
+          <Text style={[styles.prayerText, styles.italicText, styles.introMargin, { fontSize, lineHeight, color: palette.text }]}>
             As I begin this day, I ask my Higher Power:
           </Text>
-          <Text style={[styles.prayerText, { fontSize, lineHeight }]}>
+          <Text style={[styles.prayerText, { fontSize, lineHeight, color: palette.text }]}>
             {currentPrayer.content.split('As I begin this day, I ask my Higher Power:')[1]?.trim()}
           </Text>
         </View>
@@ -126,10 +128,10 @@ export function PrayerReader({ visible, prayerIndex, onClose, onPrayerChange }: 
     if (currentPrayer.title === "Evening Prayer") {
       return (
         <View>
-          <Text style={[styles.prayerText, styles.italicText, styles.introMargin, { fontSize, lineHeight }]}>
+          <Text style={[styles.prayerText, styles.italicText, styles.introMargin, { fontSize, lineHeight, color: palette.text }]}>
             As this day closes,
           </Text>
-          <Text style={[styles.prayerText, { fontSize, lineHeight }]}>
+          <Text style={[styles.prayerText, { fontSize, lineHeight, color: palette.text }]}>
             {currentPrayer.content.split('As this day closes,')[1]?.trim()}
           </Text>
         </View>
@@ -137,7 +139,7 @@ export function PrayerReader({ visible, prayerIndex, onClose, onPrayerChange }: 
     }
 
     return (
-      <Text style={[styles.prayerText, { fontSize, lineHeight }]}>
+      <Text style={[styles.prayerText, { fontSize, lineHeight, color: palette.text }]}>
         {currentPrayer.content}
       </Text>
     );
@@ -152,10 +154,10 @@ export function PrayerReader({ visible, prayerIndex, onClose, onPrayerChange }: 
       presentationStyle="fullScreen"
       onRequestClose={onClose}
     >
-      <View style={styles.container}>
+      <View style={[styles.container, { backgroundColor: palette.background }]}>
         {/* Gradient Header */}
         <LinearGradient
-          colors={['#4A6FA5', '#3D8B8B', '#45A08A']}
+          colors={palette.gradients.header as [string, string, ...string[]]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={[styles.headerBlock, { paddingTop: insets.top + 8 }]}
@@ -166,16 +168,16 @@ export function PrayerReader({ visible, prayerIndex, onClose, onPrayerChange }: 
               style={styles.backButton}
               activeOpacity={0.7}
             >
-              <ChevronLeft size={24} color="#fff" />
+              <ChevronLeft size={24} color={palette.headerText} />
             </TouchableOpacity>
           </View>
-          <Text style={styles.headerTitle} numberOfLines={2}>
+          <Text style={[styles.headerTitle, { color: palette.headerText }]} numberOfLines={2}>
             {currentPrayer.title}
           </Text>
         </LinearGradient>
 
         {/* Content */}
-        <View style={styles.contentWrapper} collapsable={false}>
+        <View style={[styles.contentWrapper, { backgroundColor: palette.background }]} collapsable={false}>
           <ScrollView
             key={`prayer-scroll-${layoutKey}`}
             ref={scrollViewRef}
@@ -187,7 +189,7 @@ export function PrayerReader({ visible, prayerIndex, onClose, onPrayerChange }: 
             {renderPrayerContent()}
             
             {currentPrayer.source && (
-              <Text style={[styles.prayerSource, { fontSize: fontSize * 0.75 }]}>
+              <Text style={[styles.prayerSource, { fontSize: fontSize * 0.75, color: palette.muted }]}>
                 — {currentPrayer.source}
               </Text>
             )}
@@ -195,16 +197,16 @@ export function PrayerReader({ visible, prayerIndex, onClose, onPrayerChange }: 
         </View>
 
         {/* Footer with Prayer Navigation */}
-        <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, 16) }]}>
+        <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, 16), borderTopColor: palette.divider }]}>
           <TouchableOpacity 
             onPress={goToPrevious}
             style={[styles.footerNavButton, !hasPrevious && styles.footerNavButtonDisabled]}
             disabled={!hasPrevious}
             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
           >
-            <ChevronLeft size={20} color={hasPrevious ? "#3D8B8B" : "#ccc"} />
+            <ChevronLeft size={20} color={hasPrevious ? palette.tint : palette.muted} />
             <Text 
-              style={[styles.footerNavText, !hasPrevious && styles.footerNavTextDisabled]}
+              style={[styles.footerNavText, { color: hasPrevious ? palette.text : palette.muted }]}
               numberOfLines={1}
             >
               {previousPrayer ? previousPrayer.title.replace(' Prayer', '') : 'Prev'}
@@ -218,12 +220,12 @@ export function PrayerReader({ visible, prayerIndex, onClose, onPrayerChange }: 
             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
           >
             <Text 
-              style={[styles.footerNavText, !hasNext && styles.footerNavTextDisabled]}
+              style={[styles.footerNavText, { color: hasNext ? palette.text : palette.muted }]}
               numberOfLines={1}
             >
               {nextPrayer ? nextPrayer.title.replace(' Prayer', '') : 'Next'}
             </Text>
-            <ChevronRight size={20} color={hasNext ? "#3D8B8B" : "#ccc"} />
+            <ChevronRight size={20} color={hasNext ? palette.tint : palette.muted} />
           </TouchableOpacity>
         </View>
       </View>
@@ -253,7 +255,6 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 32,
     fontWeight: adjustFontWeight('400'),
-    color: '#fff',
   },
   contentWrapper: {
     flex: 1,
@@ -273,7 +274,6 @@ const styles = StyleSheet.create({
   },
   prayerText: {
     fontSize: 18,
-    color: '#000',
     marginBottom: 16,
   },
   italicText: {
@@ -284,7 +284,6 @@ const styles = StyleSheet.create({
   },
   prayerSource: {
     fontSize: 14,
-    color: '#555',
     textAlign: 'right',
     fontStyle: 'italic',
     marginTop: 8,
@@ -295,9 +294,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 24,
     paddingTop: 12,
-    backgroundColor: '#fff',
     borderTopWidth: 1,
-    borderTopColor: '#e0e0e0',
   },
   footerNavButton: {
     flexDirection: 'row',
@@ -311,10 +308,8 @@ const styles = StyleSheet.create({
   },
   footerNavText: {
     fontSize: 16,
-    color: '#3D8B8B',
     fontWeight: adjustFontWeight('400'),
   },
   footerNavTextDisabled: {
-    color: '#ccc',
   },
 });

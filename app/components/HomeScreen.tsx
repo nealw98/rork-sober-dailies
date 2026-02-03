@@ -99,8 +99,8 @@ const HomeScreen = () => {
             end={{ x: 0.5, y: 1 }}
           >
             <Text style={styles.heroEmoji}>📅</Text>
-            <Text style={styles.heroTitle}>Daily Reflection</Text>
-            <Text style={styles.heroSubtitle}>
+            <Text style={[styles.heroTitle, { color: palette.heroTileText }]}>Daily Reflection</Text>
+            <Text style={[styles.heroSubtitle, { color: palette.heroTileText }]}>
               {dateDisplay} — {todaysReflection?.title || 'Loading...'}
             </Text>
           </LinearGradient>
@@ -120,7 +120,7 @@ const HomeScreen = () => {
               end={{ x: 0.5, y: 1 }}
             >
               <Text style={styles.heroEmoji}>💬</Text>
-              <Text style={styles.heroTitle}>AI Sponsor</Text>
+              <Text style={[styles.heroTitle, { color: palette.heroTileText }]}>AI Sponsor</Text>
             </LinearGradient>
           </TouchableOpacity>
 
@@ -136,13 +136,13 @@ const HomeScreen = () => {
               end={{ x: 0.5, y: 1 }}
             >
               <Text style={styles.heroEmoji}>📖</Text>
-              <Text style={styles.heroTitle}>Literature</Text>
+              <Text style={[styles.heroTitle, { color: palette.heroTileText }]}>Literature</Text>
             </LinearGradient>
           </TouchableOpacity>
         </View>
 
         {/* Morning Section */}
-        <Text style={styles.sectionLabel}>Morning</Text>
+        <Text style={[styles.sectionLabel, { color: palette.muted }]}>Morning</Text>
         <View style={styles.routineRow}>
           <TouchableOpacity
             onPress={() => router.push('/(tabs)/prayers?prayer=morning')}
@@ -156,7 +156,7 @@ const HomeScreen = () => {
               end={{ x: 0.5, y: 1 }}
             >
               <Text style={styles.routineEmoji}>🙏</Text>
-              <Text style={styles.routineTitleLight}>Morning Prayer</Text>
+              <Text style={[styles.routineTitleLight, { color: palette.heroTileText }]}>Morning Prayer</Text>
             </LinearGradient>
           </TouchableOpacity>
 
@@ -172,13 +172,13 @@ const HomeScreen = () => {
               end={{ x: 0.5, y: 1 }}
             >
               <Text style={styles.routineEmoji}>😊</Text>
-              <Text style={styles.routineTitleLight}>Gratitude List</Text>
+              <Text style={[styles.routineTitleLight, { color: palette.heroTileText }]}>Gratitude List</Text>
             </LinearGradient>
           </TouchableOpacity>
         </View>
 
         {/* Evening Section */}
-        <Text style={styles.sectionLabel}>Evening</Text>
+        <Text style={[styles.sectionLabel, { color: palette.muted }]}>Evening</Text>
         <View style={styles.routineRow}>
           <TouchableOpacity
             onPress={() => router.push('/(tabs)/prayers?prayer=evening')}
@@ -192,7 +192,7 @@ const HomeScreen = () => {
               end={{ x: 0.5, y: 1 }}
             >
               <Text style={styles.routineEmoji}>🙏</Text>
-              <Text style={styles.routineTitleLight}>Evening Prayer</Text>
+              <Text style={[styles.routineTitleLight, { color: palette.heroTileText }]}>Evening Prayer</Text>
             </LinearGradient>
           </TouchableOpacity>
 
@@ -208,13 +208,13 @@ const HomeScreen = () => {
               end={{ x: 0.5, y: 1 }}
             >
               <Text style={styles.routineEmoji}>🌙</Text>
-              <Text style={styles.routineTitleLight}>Nightly Review</Text>
+              <Text style={[styles.routineTitleLight, { color: palette.heroTileText }]}>Nightly Review</Text>
             </LinearGradient>
           </TouchableOpacity>
         </View>
 
         {/* Anytime Section */}
-        <Text style={styles.sectionLabel}>Anytime</Text>
+        <Text style={[styles.sectionLabel, { color: palette.muted }]}>Anytime</Text>
         <View style={styles.routineRow}>
           <TouchableOpacity
             onPress={() => router.push('/(tabs)/prayers')}
@@ -228,7 +228,7 @@ const HomeScreen = () => {
               end={{ x: 0.5, y: 1 }}
             >
               <Text style={styles.routineEmoji}>🙏</Text>
-              <Text style={styles.routineTitleLight}>Prayers</Text>
+              <Text style={[styles.routineTitleLight, { color: palette.heroTileText }]}>Prayers</Text>
             </LinearGradient>
           </TouchableOpacity>
 
@@ -244,7 +244,7 @@ const HomeScreen = () => {
               end={{ x: 0.5, y: 1 }}
             >
               <Text style={styles.routineEmoji}>📝</Text>
-              <Text style={styles.routineTitleLight}>Spot Check</Text>
+              <Text style={[styles.routineTitleLight, { color: palette.heroTileText }]}>Spot Check</Text>
             </LinearGradient>
           </TouchableOpacity>
         </View>
@@ -311,11 +311,9 @@ const styles = StyleSheet.create({
   heroTitle: {
     fontSize: 22,
     fontWeight: adjustFontWeight('600'),
-    color: '#fff',
   },
   heroSubtitle: {
     fontSize: 16,
-    color: 'rgba(255,255,255,0.8)',
     marginTop: 4,
   },
 
@@ -323,7 +321,6 @@ const styles = StyleSheet.create({
   sectionLabel: {
     fontSize: 11,
     fontWeight: adjustFontWeight('600'),
-    color: '#6b7c8a',
     textTransform: 'uppercase',
     letterSpacing: 1,
     marginTop: 16,
@@ -368,12 +365,10 @@ const styles = StyleSheet.create({
   routineTitle: {
     fontSize: 22,
     fontWeight: adjustFontWeight('600'),
-    color: '#3d5a6a',
   },
   routineTitleLight: {
     fontSize: 22,
     fontWeight: adjustFontWeight('600'),
-    color: '#fff',
   },
   routineSubtitle: {
     fontSize: 14,

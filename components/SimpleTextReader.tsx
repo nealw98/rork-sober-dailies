@@ -37,9 +37,10 @@ interface SimpleTextReaderProps {
   onClose: () => void;
   indentParagraphs?: boolean;
   source?: string;
+  palette: any;
 }
 
-const SimpleTextReader = ({ content, title, onClose, indentParagraphs = false, source }: SimpleTextReaderProps) => {
+const SimpleTextReader = ({ content, title, onClose, indentParagraphs = false, source, palette }: SimpleTextReaderProps) => {
   const insets = useSafeAreaInsets();
   const { fontSize, lineHeight } = useTextSettings();
   const scrollViewRef = useRef<ScrollView>(null);
@@ -169,10 +170,10 @@ const SimpleTextReader = ({ content, title, onClose, indentParagraphs = false, s
   };
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: palette.background }]}>
       {/* Gradient Header */}
       <LinearGradient
-        colors={['#4A6FA5', '#3D8B8B', '#45A08A']}
+        colors={palette.gradients.header as [string, string, ...string[]]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={[styles.headerBlock, { paddingTop: insets.top + 8 }]}
@@ -183,14 +184,14 @@ const SimpleTextReader = ({ content, title, onClose, indentParagraphs = false, s
             onPress={onClose}
             activeOpacity={0.7}
           >
-            <ChevronLeft size={24} color="#fff" />
+            <ChevronLeft size={24} color={palette.headerText} />
           </TouchableOpacity>
         </View>
-        <Text style={styles.headerTitle} numberOfLines={2}>{title}</Text>
+        <Text style={[styles.headerTitle, { color: palette.headerText }]} numberOfLines={2}>{title}</Text>
       </LinearGradient>
       
       {/* Content */}
-      <View style={styles.contentWrapper} collapsable={false}>
+      <View style={[styles.contentWrapper, { backgroundColor: palette.background }]} collapsable={false}>
         <ScrollView 
           key={`text-scroll-${layoutKey}`}
           ref={scrollViewRef}
@@ -235,8 +236,8 @@ const SimpleTextReader = ({ content, title, onClose, indentParagraphs = false, s
                 lastWasBlank = false;
                 return (
                   <View key={idx} style={styles.numberRow}>
-                    <Text style={[styles.numberLabel, { width: labelWidth, fontSize, lineHeight }]} numberOfLines={1}>{label}</Text>
-                    {renderMarkdownText(text, [styles.numberText, { fontSize, lineHeight }])}
+                    <Text style={[styles.numberLabel, { width: labelWidth, fontSize, lineHeight, color: palette.text }]} numberOfLines={1}>{label}</Text>
+                    {renderMarkdownText(text, [styles.numberText, { fontSize, lineHeight, color: palette.text }])}
                   </View>
                 );
               }
@@ -249,8 +250,8 @@ const SimpleTextReader = ({ content, title, onClose, indentParagraphs = false, s
                 lastWasBlank = false;
                 return (
                   <View key={idx} style={styles.numberRow}>
-                    <Text style={[styles.numberLabel, { width: labelWidth, fontSize, lineHeight }]} numberOfLines={1}>{label}</Text>
-                    {renderMarkdownText(text, [styles.numberText, { fontSize, lineHeight }])}
+                    <Text style={[styles.numberLabel, { width: labelWidth, fontSize, lineHeight, color: palette.text }]} numberOfLines={1}>{label}</Text>
+                    {renderMarkdownText(text, [styles.numberText, { fontSize, lineHeight, color: palette.text }])}
                   </View>
                 );
               }
@@ -263,8 +264,8 @@ const SimpleTextReader = ({ content, title, onClose, indentParagraphs = false, s
                 lastWasBlank = false;
                 return (
                   <View key={idx} style={styles.numberRow}>
-                    <Text style={[styles.numberLabel, { width: labelWidth, fontSize, lineHeight }]} numberOfLines={1}>{label}</Text>
-                    {renderMarkdownText(text, [styles.numberText, { fontSize, lineHeight }])}
+                    <Text style={[styles.numberLabel, { width: labelWidth, fontSize, lineHeight, color: palette.text }]} numberOfLines={1}>{label}</Text>
+                    {renderMarkdownText(text, [styles.numberText, { fontSize, lineHeight, color: palette.text }])}
                   </View>
                 );
               }
@@ -273,13 +274,13 @@ const SimpleTextReader = ({ content, title, onClose, indentParagraphs = false, s
               const textToRender = prefix + trimmed;
               return (
                 <View key={idx}>
-                  {renderMarkdownText(textToRender, isKnownHeading ? [styles.headingText, { fontSize }] : [styles.textContent, { fontSize, lineHeight }])}
+                  {renderMarkdownText(textToRender, isKnownHeading ? [styles.headingText, { fontSize, color: palette.text }] : [styles.textContent, { fontSize, lineHeight, color: palette.text }])}
                 </View>
               );
             });
             })()}
           {source ? (
-            <Text style={[styles.sourceText, { fontSize: fontSize * 0.875 }]}>{source}</Text>
+            <Text style={[styles.sourceText, { fontSize: fontSize * 0.875, color: palette.muted }]}>{source}</Text>
           ) : null}
         </ScrollView>
       </View>
@@ -290,7 +291,6 @@ const SimpleTextReader = ({ content, title, onClose, indentParagraphs = false, s
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
   },
   headerBlock: {
     paddingHorizontal: 20,
@@ -309,7 +309,6 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 32,
     fontWeight: adjustFontWeight('400'),
-    color: '#fff',
   },
   contentWrapper: {
     flex: 1,
@@ -318,7 +317,6 @@ const styles = StyleSheet.create({
     flexBasis: 0, // Start from 0 and grow - helps Android respect constraints
     minHeight: 0, // Critical for Android - allows flex to shrink below content size
     overflow: 'hidden', // Ensures content doesn't push siblings off-screen
-    backgroundColor: '#fff',
   },
   content: {
     // Removed flex: 1 - parent contentWrapper handles flex, ScrollView fills naturally
@@ -330,7 +328,6 @@ const styles = StyleSheet.create({
   textContent: {
     fontSize: 18,
     lineHeight: 28,
-    color: '#000',
   },
   italicText: {
     fontStyle: 'italic',
@@ -341,7 +338,6 @@ const styles = StyleSheet.create({
   headingText: {
     fontSize: 18,
     lineHeight: 28,
-    color: '#000',
     fontWeight: adjustFontWeight('700'),
   },
   numberRow: {
@@ -353,19 +349,16 @@ const styles = StyleSheet.create({
     marginRight: 8,
     fontSize: 18,
     lineHeight: 28,
-    color: '#000',
     fontWeight: adjustFontWeight('600'),
   },
   numberText: {
     flex: 1,
     fontSize: 18,
     lineHeight: 28,
-    color: '#000',
   },
   sourceText: {
     marginTop: 16,
     fontSize: 12,
-    color: '#6b7c8a',
     fontStyle: 'italic',
   },
 });

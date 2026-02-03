@@ -185,7 +185,6 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 32,
     fontWeight: adjustFontWeight('400'),
-    color: '#fff',
     textAlign: 'center',
   },
   actionRow: {
@@ -670,7 +669,7 @@ export default function GratitudeListScreen() {
           </TouchableOpacity>
           <View style={{ width: 60 }} />
         </View>
-        <Text style={styles.headerTitle}>Gratitude List</Text>
+        <Text style={[styles.headerTitle, { color: palette.headerText }]}>Gratitude List</Text>
       </LinearGradient>
       
       {/* Action Row - Below header */}

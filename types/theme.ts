@@ -4,7 +4,7 @@
  * Other themes = single-hue variants.
  */
 
-export type ThemeId = 'default' | 'blue' | 'green';
+export type ThemeId = 'default' | 'blue';
 
 export type ColorSchemePreference = 'light' | 'dark' | 'system';
 
@@ -51,6 +51,16 @@ export interface ResolvedPalette {
     header: string[];
   };
   heroTiles: HeroTilesGradients;
+  /** Text color for hero tiles */
+  heroTileText: string;
+  /** Text color for header gradient */
+  headerText: string;
+  /** Literature tile colors */
+  literatureTiles: {
+    bigbook: string[];
+    twelveAndTwelve: string[];
+    meetingPocket: string[];
+  };
   /** Sponsor selection page specific colors */
   sponsorSelection?: {
     background: string; // Background color for sponsor selection page
@@ -58,6 +68,8 @@ export interface ResolvedPalette {
   };
   /** Chat background for sponsor chat windows */
   chatBackground?: string;
+  /** Sobriety tracker card background */
+  sobrietyCardBackground?: string;
 }
 
 /** Per-theme palette (light or dark variant). */
@@ -84,6 +96,16 @@ export interface ThemePalette {
     header: string[];
   };
   heroTiles: HeroTilesGradients;
+  /** Text color for hero tiles */
+  heroTileText: string;
+  /** Text color for header gradient */
+  headerText: string;
+  /** Literature tile colors */
+  literatureTiles: {
+    bigbook: string[];
+    twelveAndTwelve: string[];
+    meetingPocket: string[];
+  };
   /** Sponsor selection page specific colors */
   sponsorSelection?: {
     background: string;
@@ -91,6 +113,8 @@ export interface ThemePalette {
   };
   /** Chat background for sponsor chat windows */
   chatBackground?: string;
+  /** Sobriety tracker card background */
+  sobrietyCardBackground?: string;
 }
 
 export interface ThemeDefinition {

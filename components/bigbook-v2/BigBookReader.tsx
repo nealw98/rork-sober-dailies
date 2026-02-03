@@ -40,6 +40,7 @@ import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Colors from '@/constants/colors';
 import { adjustFontWeight } from '@/constants/fonts';
 import { useTextSettings } from '@/hooks/use-text-settings';
+import { useTheme } from '@/hooks/useTheme';
 import { useBigBookContent } from '@/hooks/use-bigbook-content';
 import { useBigBookBookmarks } from '@/hooks/use-bigbook-bookmarks';
 import { useBigBookHighlights } from '@/hooks/use-bigbook-highlights';
@@ -79,6 +80,7 @@ export function BigBookReader({ visible, initialChapterId, scrollToParagraphId, 
   } = useBigBookContent();
 
   const insets = useSafeAreaInsets();
+  const { palette } = useTheme();
 
   // Handle Android back button
   useEffect(() => {
@@ -391,9 +393,9 @@ export function BigBookReader({ visible, initialChapterId, scrollToParagraphId, 
         presentationStyle="fullScreen"
         onRequestClose={onClose}
       >
-        <View style={styles.container}>
+        <View style={[styles.container, { backgroundColor: palette.background }]}>
           <LinearGradient
-            colors={['#4A6FA5', '#3D8B8B', '#45A08A']}
+            colors={palette.gradients.header as [string, string, ...string[]]}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
             style={[styles.headerBlock, { paddingTop: insets.top + 8 }]}
@@ -403,13 +405,13 @@ export function BigBookReader({ visible, initialChapterId, scrollToParagraphId, 
                 onPress={onClose}
                 style={styles.backButton}
               >
-                <ChevronLeft size={24} color="#fff" />
+                <ChevronLeft size={24} color={palette.headerText} />
               </TouchableOpacity>
             </View>
-            <Text style={styles.headerTitle}>Loading...</Text>
+            <Text style={[styles.headerTitle, { color: palette.headerText }]}>Loading...</Text>
           </LinearGradient>
           <View style={styles.loadingContainer}>
-            <Text style={styles.loadingText}>Loading chapter...</Text>
+            <Text style={[styles.loadingText, { color: palette.text }]}>Loading chapter...</Text>
           </View>
         </View>
       </Modal>
@@ -423,10 +425,10 @@ export function BigBookReader({ visible, initialChapterId, scrollToParagraphId, 
       presentationStyle="fullScreen"
       onRequestClose={onClose}
     >
-      <View style={styles.container}>
+      <View style={[styles.container, { backgroundColor: palette.background }]}>
       {/* Gradient Header Block */}
       <LinearGradient
-        colors={['#4A6FA5', '#3D8B8B', '#45A08A']}
+        colors={palette.gradients.header as [string, string, ...string[]]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={[styles.headerBlock, { paddingTop: insets.top + 8 }]}
@@ -436,18 +438,18 @@ export function BigBookReader({ visible, initialChapterId, scrollToParagraphId, 
             onPress={onClose}
             style={styles.backButton}
           >
-            <ChevronLeft size={24} color="#fff" />
+            <ChevronLeft size={24} color={palette.headerText} />
           </TouchableOpacity>
         </View>
-        <Text style={styles.headerTitle} numberOfLines={2}>
+        <Text style={[styles.headerTitle, { color: palette.headerText }]} numberOfLines={2}>
           {currentChapter.title}
         </Text>
       </LinearGradient>
 
       {/* Action Row - Below header */}
-      <View style={styles.actionRow}>
+      <View style={[styles.actionRow, { backgroundColor: palette.cardBackground, borderBottomColor: palette.divider }]}>
         {currentPageNumber && (
-          <Text style={styles.actionRowPageNumber}>
+          <Text style={[styles.actionRowPageNumber, { color: palette.text }]}>
             Page {formatPageNumber(
               currentPageNumber, 
               getChapterMeta(currentChapterId)?.useRomanNumerals || false
@@ -462,8 +464,8 @@ export function BigBookReader({ visible, initialChapterId, scrollToParagraphId, 
           >
             <Highlighter 
               size={18} 
-              color="#3D8B8B"
-              fill={highlightMode ? "#3D8B8B" : 'transparent'}
+              color={palette.tint}
+              fill={highlightMode ? palette.tint : 'transparent'}
             />
           </TouchableOpacity>
 
@@ -474,8 +476,8 @@ export function BigBookReader({ visible, initialChapterId, scrollToParagraphId, 
           >
             <BookmarkIcon 
               size={18} 
-              color="#3D8B8B"
-              fill={isCurrentPageBookmarked ? "#3D8B8B" : 'transparent'}
+              color={palette.tint}
+              fill={isCurrentPageBookmarked ? palette.tint : 'transparent'}
             />
           </TouchableOpacity>
         </View>
@@ -483,7 +485,7 @@ export function BigBookReader({ visible, initialChapterId, scrollToParagraphId, 
 
       {/* Content */}
       <View
-        style={[styles.contentWrapper, !isLayoutReady && styles.contentWrapperHidden]}
+        style={[styles.contentWrapper, !isLayoutReady && styles.contentWrapperHidden, { backgroundColor: palette.background }]}
         collapsable={false}
         pointerEvents={isLayoutReady ? 'auto' : 'none'}
       >
@@ -529,6 +531,7 @@ export function BigBookReader({ visible, initialChapterId, scrollToParagraphId, 
                       onHighlightTap={(sentenceIndex) =>
                         handleHighlightTap(paragraph.id, sentenceIndex)
                       }
+                      palette={palette}
                     />
                   </View>
             );
@@ -538,18 +541,18 @@ export function BigBookReader({ visible, initialChapterId, scrollToParagraphId, 
       </View>
 
       {/* Footer with Chapter Navigation */}
-      <View style={styles.footer}>
+      <View style={[styles.footer, { borderTopColor: palette.divider }]}>
         <TouchableOpacity 
           onPress={goToPreviousChapter}
           style={styles.footerNavButton}
           hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
         >
-          <ChevronLeft size={20} color="#3D8B8B" />
-          <Text style={styles.footerNavText}>Prev</Text>
+          <ChevronLeft size={20} color={palette.tint} />
+          <Text style={[styles.footerNavText, { color: palette.text }]}>Prev</Text>
         </TouchableOpacity>
 
         {getChapterMeta(currentChapterId)?.chapterNumber && (
-          <Text style={styles.footerChapterNumber}>
+          <Text style={[styles.footerChapterNumber, { color: palette.text }]}>
             Chapter {getChapterMeta(currentChapterId)?.chapterNumber}
           </Text>
         )}
@@ -559,8 +562,8 @@ export function BigBookReader({ visible, initialChapterId, scrollToParagraphId, 
           style={styles.footerNavButton}
           hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
         >
-          <Text style={styles.footerNavText}>Next</Text>
-          <ChevronRight size={20} color="#3D8B8B" />
+          <Text style={[styles.footerNavText, { color: palette.text }]}>Next</Text>
+          <ChevronRight size={20} color={palette.tint} />
         </TouchableOpacity>
       </View>
 
@@ -586,7 +589,6 @@ export function BigBookReader({ visible, initialChapterId, scrollToParagraphId, 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
   },
   headerBlock: {
     paddingHorizontal: 20,
@@ -606,7 +608,6 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 32,
     fontWeight: adjustFontWeight('400'),
-    color: '#fff',
   },
   actionRow: {
     flexDirection: 'row',
@@ -614,12 +615,10 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingVertical: 6,
     paddingHorizontal: 16,
-    backgroundColor: '#fff',
   },
   actionRowPageNumber: {
     fontSize: 14,
     fontWeight: adjustFontWeight('500'),
-    color: '#3D8B8B',
   },
   actionButtons: {
     flexDirection: 'row',
@@ -639,7 +638,6 @@ const styles = StyleSheet.create({
     flexBasis: 0,
     minHeight: 0,
     overflow: 'hidden',
-    backgroundColor: '#fff',
   },
   contentWrapperHidden: {
     opacity: 0,
@@ -666,9 +664,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     paddingTop: 8,
     paddingBottom: 4,
-    backgroundColor: '#FFFFFF',
     borderTopWidth: 1,
-    borderTopColor: Colors.light.divider,
   },
   footerNavButton: {
     flexDirection: 'row',
@@ -678,12 +674,10 @@ const styles = StyleSheet.create({
   },
   footerNavText: {
     fontSize: 16,
-    color: '#3D8B8B',
     fontWeight: '400',
   },
   footerChapterNumber: {
     fontSize: 14,
-    color: Colors.light.text,
     fontWeight: adjustFontWeight('500'),
   },
   searchContainer: {

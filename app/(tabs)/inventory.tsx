@@ -737,7 +737,7 @@ const Inventory = () => {
             <HelpCircle size={22} color="#fff" />
           </TouchableOpacity>
         </View>
-        <Text style={styles.headerTitle}>Spot Check Inventory</Text>
+        <Text style={[styles.headerTitle, { color: palette.headerText }]}>Spot Check Inventory</Text>
       </LinearGradient>
 
       {/* Action Row - Below header */}
@@ -900,7 +900,6 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 32,
     fontWeight: adjustFontWeight('400'),
-    color: '#fff',
     textAlign: 'center',
   },
   actionRow: {

@@ -298,7 +298,7 @@ export default function DailyReflection({ fontSize = 18, lineHeight, jumpToDate 
     const monthYear = calendarDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
     
     return (
-      <View style={styles.calendarContainer}>
+      <View style={[styles.calendarContainer, { backgroundColor: palette.background }]}>
         <View style={styles.calendarHeader}>
           <TouchableOpacity 
             onPress={() => changeCalendarMonth('prev')} 
@@ -306,22 +306,22 @@ export default function DailyReflection({ fontSize = 18, lineHeight, jumpToDate 
             activeOpacity={0.7}
             hitSlop={{ top: 15, bottom: 15, left: 15, right: 15 }}
           >
-            <ChevronLeft size={24} color="#3D8B8B" />
+            <ChevronLeft size={24} color={palette.tint} />
           </TouchableOpacity>
-          <Text style={styles.calendarMonthYear}>{monthYear}</Text>
+          <Text style={[styles.calendarMonthYear, { color: palette.text }]}>{monthYear}</Text>
           <TouchableOpacity 
             onPress={() => changeCalendarMonth('next')} 
             testID="next-month"
             activeOpacity={0.7}
             hitSlop={{ top: 15, bottom: 15, left: 15, right: 15 }}
           >
-            <ChevronRight size={24} color="#3D8B8B" />
+            <ChevronRight size={24} color={palette.tint} />
           </TouchableOpacity>
         </View>
         
         <View style={styles.weekDaysContainer}>
           {weekDays.map((day, index) => (
-            <Text key={index} style={styles.weekDayText}>{day}</Text>
+            <Text key={index} style={[styles.weekDayText, { color: palette.muted }]}>{day}</Text>
           ))}
         </View>
         
@@ -345,9 +345,9 @@ export default function DailyReflection({ fontSize = 18, lineHeight, jumpToDate 
                 style={[
                   styles.dayButton,
                   !item.currentMonth && styles.otherMonthDay,
-                  isSelected && !isToday && styles.selectedDay,
-                  isToday && !isSelected && styles.todayDay,
-                  isTodayAndSelected && styles.todaySelectedDay
+                  isSelected && !isToday && { backgroundColor: palette.tint, borderRadius: 20 },
+                  isToday && !isSelected && { borderWidth: 2, borderColor: palette.tint, borderRadius: 20 },
+                  isTodayAndSelected && { backgroundColor: palette.tint, borderRadius: 20, borderWidth: 2, borderColor: 'white' }
                 ]}
                 onPress={() => selectCalendarDay(item.date)}
                 testID={`calendar-day-${item.day}`}
@@ -358,10 +358,10 @@ export default function DailyReflection({ fontSize = 18, lineHeight, jumpToDate 
                 <Text 
                   style={[
                     styles.dayText,
-                    !item.currentMonth && styles.otherMonthDayText,
-                    isSelected && !isToday && styles.selectedDayText,
-                    isToday && !isSelected && styles.todayText,
-                    isTodayAndSelected && styles.todaySelectedText
+                    { color: palette.text },
+                    !item.currentMonth && { color: palette.muted, opacity: 0.4 },
+                    (isSelected || isTodayAndSelected) && { color: 'white', fontWeight: '600' },
+                    isToday && !isSelected && { color: palette.tint, fontWeight: '600' }
                   ]}
                 >
                   {item.day}
@@ -373,7 +373,7 @@ export default function DailyReflection({ fontSize = 18, lineHeight, jumpToDate 
         
         <View style={styles.calendarFooter}>
           <TouchableOpacity 
-            style={styles.footerButton}
+            style={[styles.footerButton, { backgroundColor: palette.cardBackground }]}
             onPress={() => {
               const today = new Date();
               setSelectedDate(today);
@@ -384,17 +384,17 @@ export default function DailyReflection({ fontSize = 18, lineHeight, jumpToDate 
             activeOpacity={0.7}
             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
           >
-            <Text style={styles.todayButtonText}>Today</Text>
+            <Text style={[styles.todayButtonText, { color: palette.tint }]}>Today</Text>
           </TouchableOpacity>
           
           <TouchableOpacity 
-            style={styles.footerButton}
+            style={[styles.footerButton, { backgroundColor: palette.cardBackground }]}
             onPress={closeDatePicker}
             testID="cancel-button"
             activeOpacity={0.7}
             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
           >
-            <Text style={styles.cancelButtonText}>Cancel</Text>
+            <Text style={[styles.cancelButtonText, { color: palette.muted }]}>Cancel</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -421,12 +421,12 @@ export default function DailyReflection({ fontSize = 18, lineHeight, jumpToDate 
             style={styles.backButton}
             activeOpacity={0.7}
           >
-            <ChevronLeft size={24} color={palette.text} />
+            <ChevronLeft size={24} color={palette.headerText} />
           </TouchableOpacity>
           <View style={{ width: 60 }} />
         </View>
         
-        <Text style={[styles.headerTitle, { color: palette.text }]}>Daily Reflections</Text>
+        <Text style={[styles.headerTitle, { color: palette.headerText }]}>Daily Reflections</Text>
       </LinearGradient>
       
       {/* Action row - fixed under header */}
@@ -570,28 +570,28 @@ export default function DailyReflection({ fontSize = 18, lineHeight, jumpToDate 
         onRequestClose={() => setShowBookmarks(false)}
       >
         <View style={styles.bookmarksModalOverlay}>
-          <View style={styles.bookmarksModalContent}>
-            <View style={styles.bookmarksModalHeader}>
-              <Text style={styles.bookmarksModalTitle}>Saved Reflections</Text>
+          <View style={[styles.bookmarksModalContent, { backgroundColor: palette.cardBackground }]}>
+            <View style={[styles.bookmarksModalHeader, { borderBottomColor: palette.divider }]}>
+              <Text style={[styles.bookmarksModalTitle, { color: palette.text }]}>Saved Reflections</Text>
               <TouchableOpacity
                 onPress={() => setShowBookmarks(false)}
                 hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
               >
-                <X size={24} color="#000" />
+                <X size={24} color={palette.text} />
               </TouchableOpacity>
             </View>
             <ScrollView style={styles.bookmarksList}>
               {bookmarks.length === 0 ? (
                 <View style={styles.emptyBookmarks}>
-                  <Bookmark size={40} color={Colors.light.muted} />
-                  <Text style={styles.emptyBookmarksText}>No saved reflections yet</Text>
-                  <Text style={styles.emptyBookmarksSubtext}>Tap the bookmark icon to save a reflection</Text>
+                  <Bookmark size={40} color={palette.muted} />
+                  <Text style={[styles.emptyBookmarksText, { color: palette.text }]}>No saved reflections yet</Text>
+                  <Text style={[styles.emptyBookmarksSubtext, { color: palette.muted }]}>Tap the bookmark icon to save a reflection</Text>
                 </View>
               ) : (
                 bookmarks.map((bookmark) => (
                   <TouchableOpacity
                     key={bookmark.id}
-                    style={styles.bookmarkItem}
+                    style={[styles.bookmarkItem, { borderBottomColor: palette.divider }]}
                     onPress={() => {
                       const [year, month, day] = bookmark.id.split('-').map(Number);
                       const date = new Date(year, month - 1, day);
@@ -601,15 +601,15 @@ export default function DailyReflection({ fontSize = 18, lineHeight, jumpToDate 
                     activeOpacity={0.7}
                   >
                     <View style={styles.bookmarkItemContent}>
-                      <Text style={styles.bookmarkItemDate}>{bookmark.displayDate}</Text>
-                      <Text style={styles.bookmarkItemTitle} numberOfLines={1}>{bookmark.title}</Text>
+                      <Text style={[styles.bookmarkItemDate, { color: palette.muted }]}>{bookmark.displayDate}</Text>
+                      <Text style={[styles.bookmarkItemTitle, { color: palette.text }]} numberOfLines={1}>{bookmark.title}</Text>
                     </View>
                     <TouchableOpacity
                       onPress={() => removeBookmark(bookmark.id)}
                       style={styles.bookmarkDeleteButton}
                       hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
                     >
-                      <Trash2 size={18} color={Colors.light.muted} />
+                      <Trash2 size={18} color={palette.muted} />
                     </TouchableOpacity>
                   </TouchableOpacity>
                 ))
@@ -646,7 +646,6 @@ const styles = StyleSheet.create({
   },
   backButtonText: {
     fontSize: 15,
-    color: '#fff',
     fontWeight: '500',
   },
   headerTitle: {
@@ -803,7 +802,6 @@ const styles = StyleSheet.create({
   },
   // Calendar styles
   calendarContainer: {
-    backgroundColor: Colors.light.background,
     borderTopLeftRadius: 16,
     borderTopRightRadius: 16,
     padding: 16,
@@ -817,7 +815,6 @@ const styles = StyleSheet.create({
   calendarMonthYear: {
     fontSize: 18,
     fontWeight: adjustFontWeight('600', true),
-    color: Colors.light.text,
   },
   weekDaysContainer: {
     flexDirection: 'row',
@@ -828,7 +825,6 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     fontSize: 14,
     fontWeight: adjustFontWeight('500'),
-    color: Colors.light.muted,
   },
   daysContainer: {
     flexDirection: 'row',
@@ -844,40 +840,23 @@ const styles = StyleSheet.create({
   },
   dayText: {
     fontSize: 16,
-    color: Colors.light.text,
   },
   otherMonthDay: {
     opacity: 0.4,
   },
   otherMonthDayText: {
-    color: Colors.light.muted,
   },
   selectedDay: {
-    backgroundColor: '#3D8B8B',
-    borderRadius: 20,
   },
   selectedDayText: {
-    color: 'white',
-    fontWeight: adjustFontWeight('600'),
   },
   todayDay: {
-    borderWidth: 2,
-    borderColor: '#3D8B8B',
-    borderRadius: 20,
   },
   todayText: {
-    color: '#3D8B8B',
-    fontWeight: adjustFontWeight('600'),
   },
   todaySelectedDay: {
-    backgroundColor: '#3D8B8B',
-    borderRadius: 20,
-    borderWidth: 2,
-    borderColor: 'white',
   },
   todaySelectedText: {
-    color: 'white',
-    fontWeight: adjustFontWeight('600'),
   },
   calendarFooter: {
     flexDirection: 'row',
@@ -888,19 +867,16 @@ const styles = StyleSheet.create({
   footerButton: {
     paddingVertical: 10,
     paddingHorizontal: 20,
-    backgroundColor: Colors.light.cardBackground,
     borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
     minWidth: 100,
   },
   todayButtonText: {
-    color: '#3D8B8B',
     fontWeight: adjustFontWeight('600'),
     fontSize: 16,
   },
   cancelButtonText: {
-    color: Colors.light.muted,
     fontWeight: adjustFontWeight('500'),
     fontSize: 16,
   },
@@ -911,7 +887,6 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
   },
   bookmarksModalContent: {
-    backgroundColor: '#fff',
     borderTopLeftRadius: 16,
     borderTopRightRadius: 16,
     maxHeight: '70%',
@@ -923,12 +898,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#e9ecef',
   },
   bookmarksModalTitle: {
     fontSize: 18,
     fontWeight: adjustFontWeight('600', true),
-    color: '#000',
   },
   bookmarksList: {
     paddingHorizontal: 16,
@@ -940,12 +913,10 @@ const styles = StyleSheet.create({
   emptyBookmarksText: {
     fontSize: 16,
     fontWeight: adjustFontWeight('500'),
-    color: '#000',
     marginTop: 16,
   },
   emptyBookmarksSubtext: {
     fontSize: 14,
-    color: '#666',
     marginTop: 4,
   },
   bookmarkItem: {
@@ -953,20 +924,17 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 14,
     borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
   },
   bookmarkItemContent: {
     flex: 1,
   },
   bookmarkItemDate: {
     fontSize: 12,
-    color: '#666',
     marginBottom: 2,
   },
   bookmarkItemTitle: {
     fontSize: 16,
     fontWeight: adjustFontWeight('500'),
-    color: '#000',
   },
   bookmarkDeleteButton: {
     padding: 8,

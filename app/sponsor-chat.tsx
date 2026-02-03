@@ -290,13 +290,13 @@ function SponsorChatContent({ initialSponsor }: { initialSponsor: string }) {
             style={styles.backButton}
             activeOpacity={0.7}
           >
-            <ChevronLeft size={24} color={palette.text} />
+            <ChevronLeft size={24} color={palette.headerText} />
           </TouchableOpacity>
         </View>
         
         {/* Sponsor Name */}
         <View style={styles.sponsorInfo}>
-          <Text style={[styles.headerTitle, { color: palette.text }]}>{sponsor.name}</Text>
+          <Text style={[styles.headerTitle, { color: palette.headerText }]}>{sponsor.name}</Text>
         </View>
       </LinearGradient>
       

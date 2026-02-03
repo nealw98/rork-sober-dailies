@@ -4,9 +4,11 @@ import { Calendar, X, Edit3 } from 'lucide-react-native';
 import { useSobriety } from '@/hooks/useSobrietyStore';
 import { formatStoredDateForDisplay, parseLocalDate, formatLocalDate } from '@/lib/dateUtils';
 import Colors from '@/constants/colors';
+import { useTheme } from '@/hooks/useTheme';
 
 const SobrietyCounter = () => {
   const { width } = useWindowDimensions();
+  const { palette } = useTheme();
   const { 
     sobrietyDate, 
     shouldShowPrompt, 
@@ -343,18 +345,23 @@ const SobrietyCounter = () => {
             onRequestClose={handleCancel}
           >
             <View style={styles.datePickerOverlay}>
-              <View style={styles.datePickerContent}>
-                <Text style={styles.datePickerTitle}>Enter your sobriety date</Text>
+              <View style={[styles.datePickerContent, { backgroundColor: palette.cardBackground }]}>
+                <Text style={[styles.datePickerTitle, { color: palette.text }]}>Enter your sobriety date</Text>
                 
                 <TextInput
                   style={[
                     styles.dateInput,
+                    { 
+                      borderColor: palette.tint, 
+                      color: palette.text, 
+                      backgroundColor: palette.background 
+                    },
                     !isValidDate(dateInput) && dateInput.length === 10 && styles.dateInputError
                   ]}
                   value={dateInput}
                   onChangeText={handleDateInputChange}
                   placeholder="mm/dd/yyyy"
-                  placeholderTextColor={Colors.light.muted}
+                  placeholderTextColor={palette.muted}
                   maxLength={10}
                   keyboardType="numeric"
                   autoFocus={true}
@@ -366,24 +373,24 @@ const SobrietyCounter = () => {
                 
                 <View style={styles.datePickerButtons}>
                   <TouchableOpacity 
-                    style={[styles.datePickerButton, styles.cancelButton]}
+                    style={[styles.datePickerButton, styles.cancelButton, { borderColor: palette.border }]}
                     onPress={handleCancel}
                   >
-                    <Text style={styles.cancelButtonText}>Cancel</Text>
+                    <Text style={[styles.cancelButtonText, { color: palette.text }]}>Cancel</Text>
                   </TouchableOpacity>
                   
                   <TouchableOpacity 
                     style={[
                       styles.datePickerButton, 
-                      styles.confirmDateButton,
-                      (!dateInput || dateInput.length < 10 || !isValidDate(dateInput)) && styles.disabledButton
+                      { backgroundColor: palette.tint },
+                      (!dateInput || dateInput.length < 10 || !isValidDate(dateInput)) && { backgroundColor: palette.border }
                     ]}
                     onPress={handleConfirmDate}
                     disabled={!dateInput || dateInput.length < 10 || !isValidDate(dateInput)}
                   >
                     <Text style={[
                       styles.confirmDateButtonText,
-                      (!dateInput || dateInput.length < 10 || !isValidDate(dateInput)) && styles.disabledButtonText
+                      (!dateInput || dateInput.length < 10 || !isValidDate(dateInput)) && { color: palette.muted }
                     ]}>OK</Text>
                   </TouchableOpacity>
                 </View>
@@ -402,14 +409,14 @@ const SobrietyCounter = () => {
         <View style={styles.counterWrapper}>
           {/* Top: Sober since date with edit */}
           <View style={styles.dateRow}>
-            <Text style={styles.sobrietyDateText}>
+            <Text style={[styles.sobrietyDateText, { color: palette.heroTileText }]}>
               Sober since {formatStoredDateForDisplay(sobrietyDate)}
             </Text>
             <TouchableOpacity 
               style={styles.editButton}
               onPress={handleEditDate}
             >
-              <Edit3 size={16} color="rgba(255,255,255,0.8)" />
+              <Edit3 size={16} color={palette.heroTileText} />
             </TouchableOpacity>
           </View>
           
@@ -423,10 +430,10 @@ const SobrietyCounter = () => {
               {showTotalDays ? (
                 // Total days display - stacked
                 <View style={styles.totalDaysContainer}>
-                  <Text style={styles.totalDaysNumber}>
+                  <Text style={[styles.totalDaysNumber, { color: palette.heroTileText }]}>
                     {validDaysSober.toLocaleString()}
                   </Text>
-                  <Text style={styles.totalDaysLabel}>
+                  <Text style={[styles.totalDaysLabel, { color: palette.heroTileText }]}>
                     {validDaysSober === 1 ? 'day' : 'days'}
                   </Text>
                 </View>
@@ -435,22 +442,23 @@ const SobrietyCounter = () => {
                 // Largest visible unit gets largest font, scaling down from there
                 <View style={styles.stackedCounter}>
                   {breakdown.years > 0 && (
-                    <Text style={styles.stackedLarge}>
+                    <Text style={[styles.stackedLarge, { color: palette.heroTileText }]}>
                       {breakdown.years} {breakdown.years === 1 ? 'year' : 'years'}
                     </Text>
                   )}
                   {breakdown.months > 0 && (
-                    <Text style={breakdown.years > 0 ? styles.stackedMedium : styles.stackedLarge}>
+                    <Text style={[breakdown.years > 0 ? styles.stackedMedium : styles.stackedLarge, { color: palette.heroTileText }]}>
                       {breakdown.months} {breakdown.months === 1 ? 'month' : 'months'}
                     </Text>
                   )}
-                  <Text style={
+                  <Text style={[
                     breakdown.years > 0 
                       ? styles.stackedSmall 
                       : breakdown.months > 0 
                         ? styles.stackedMedium 
-                        : styles.stackedLarge
-                  }>
+                        : styles.stackedLarge,
+                    { color: palette.heroTileText }
+                  ]}>
                     {breakdown.days} {breakdown.days === 1 ? 'day' : 'days'}
                   </Text>
                 </View>
@@ -468,18 +476,23 @@ const SobrietyCounter = () => {
             onRequestClose={handleCancelEdit}
           >
             <View style={styles.datePickerOverlay}>
-              <View style={styles.datePickerContent}>
-                <Text style={styles.datePickerTitle}>Edit your sobriety date</Text>
+              <View style={[styles.datePickerContent, { backgroundColor: palette.cardBackground }]}>
+                <Text style={[styles.datePickerTitle, { color: palette.text }]}>Edit your sobriety date</Text>
                 
                 <TextInput
                   style={[
                     styles.dateInput,
+                    { 
+                      borderColor: palette.tint, 
+                      color: palette.text, 
+                      backgroundColor: palette.background 
+                    },
                     !isValidDate(dateInput) && dateInput.length === 10 && styles.dateInputError
                   ]}
                   value={dateInput}
                   onChangeText={handleDateInputChange}
                   placeholder="mm/dd/yyyy"
-                  placeholderTextColor={Colors.light.muted}
+                  placeholderTextColor={palette.muted}
                   maxLength={10}
                   keyboardType="numeric"
                   autoFocus={true}
@@ -491,24 +504,24 @@ const SobrietyCounter = () => {
                 
                 <View style={styles.datePickerButtons}>
                   <TouchableOpacity 
-                    style={[styles.datePickerButton, styles.cancelButton]}
+                    style={[styles.datePickerButton, styles.cancelButton, { borderColor: palette.border }]}
                     onPress={handleCancelEdit}
                   >
-                    <Text style={styles.cancelButtonText}>Cancel</Text>
+                    <Text style={[styles.cancelButtonText, { color: palette.text }]}>Cancel</Text>
                   </TouchableOpacity>
                   
                   <TouchableOpacity 
                     style={[
                       styles.datePickerButton, 
-                      styles.confirmDateButton,
-                      (!dateInput || dateInput.length < 10 || !isValidDate(dateInput)) && styles.disabledButton
+                      { backgroundColor: palette.tint },
+                      (!dateInput || dateInput.length < 10 || !isValidDate(dateInput)) && { backgroundColor: palette.border }
                     ]}
                     onPress={handleConfirmEditDate}
                     disabled={!dateInput || dateInput.length < 10 || !isValidDate(dateInput)}
                   >
                     <Text style={[
                       styles.confirmDateButtonText,
-                      (!dateInput || dateInput.length < 10 || !isValidDate(dateInput)) && styles.disabledButtonText
+                      (!dateInput || dateInput.length < 10 || !isValidDate(dateInput)) && { color: palette.muted }
                     ]}>OK</Text>
                   </TouchableOpacity>
                 </View>
@@ -575,7 +588,6 @@ const styles = StyleSheet.create({
   },
   headerLabel: {
     fontSize: 20,
-    color: 'rgba(255,255,255,0.9)',
     fontWeight: '600',
     textAlign: 'center',
     marginBottom: 4,
@@ -609,13 +621,11 @@ const styles = StyleSheet.create({
   },
   totalDaysNumber: {
     fontSize: 40,
-    color: '#fff',
     fontWeight: '700',
     textAlign: 'center',
   },
   totalDaysLabel: {
     fontSize: 22,
-    color: 'rgba(255,255,255,0.9)',
     fontWeight: '600',
     textAlign: 'center',
   },
@@ -624,19 +634,16 @@ const styles = StyleSheet.create({
   },
   stackedLarge: {
     fontSize: 26,
-    color: '#fff',
     fontWeight: '700',
     textAlign: 'center',
   },
   stackedMedium: {
     fontSize: 21,
-    color: 'rgba(255,255,255,0.9)',
     fontWeight: '600',
     textAlign: 'center',
   },
   stackedSmall: {
     fontSize: 18,
-    color: 'rgba(255,255,255,0.8)',
     fontWeight: '500',
     textAlign: 'center',
   },
@@ -649,7 +656,6 @@ const styles = StyleSheet.create({
   },
   yearsText: {
     fontSize: 28,
-    color: '#fff',
     fontWeight: '700',
     textAlign: 'center',
     marginBottom: 2,
@@ -664,7 +670,6 @@ const styles = StyleSheet.create({
   },
   totalDaysText: {
     fontSize: 15,
-    color: 'rgba(255,255,255,0.9)',
     fontWeight: '500',
     textAlign: 'center',
   },
@@ -712,7 +717,6 @@ const styles = StyleSheet.create({
   },
   sobrietyDateText: {
     fontSize: 16,
-    color: 'rgba(255,255,255,0.9)',
     textAlign: 'center',
     fontWeight: '500',
   },
@@ -793,7 +797,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   datePickerContent: {
-    backgroundColor: Colors.light.background,
     borderRadius: 16,
     padding: 24,
     margin: 20,
@@ -808,19 +811,15 @@ const styles = StyleSheet.create({
   datePickerTitle: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: Colors.light.text,
     textAlign: 'center',
     marginBottom: 20,
   },
   dateInput: {
     borderWidth: 1,
-    borderColor: Colors.light.tint,
     borderRadius: 8,
     paddingHorizontal: 16,
     paddingVertical: 12,
     fontSize: 16,
-    color: Colors.light.text,
-    backgroundColor: Colors.light.background,
     textAlign: 'center',
     marginBottom: 16,
     minWidth: 200,
@@ -849,15 +848,12 @@ const styles = StyleSheet.create({
   cancelButton: {
     backgroundColor: 'transparent',
     borderWidth: 1,
-    borderColor: Colors.light.border,
   },
   cancelButtonText: {
-    color: Colors.light.text,
     fontSize: 16,
     fontWeight: '600',
   },
   confirmDateButton: {
-    backgroundColor: Colors.light.tint,
   },
   confirmDateButtonText: {
     color: '#FFFFFF',
@@ -865,10 +861,8 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   disabledButton: {
-    backgroundColor: Colors.light.border,
   },
   disabledButtonText: {
-    color: Colors.light.muted,
   },
 });
 

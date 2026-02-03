@@ -73,34 +73,43 @@ export default function LiteratureScreen() {
             style={styles.backButton}
             activeOpacity={0.7}
           >
-            <ChevronLeft size={24} color="#fff" />
+            <ChevronLeft size={24} color={palette.headerText} />
           </TouchableOpacity>
           <View style={{ width: 60 }} />
         </View>
-        <Text style={styles.headerTitle}>AA Literature</Text>
+        <Text style={[styles.headerTitle, { color: palette.headerText }]}>AA Literature</Text>
       </LinearGradient>
       
       {/* Off-white content area */}
       <View style={styles.content}>
-        {literatureOptions.map((option) => (
-          <TouchableOpacity
-            key={option.id}
-            onPress={() => handleOptionPress(option.route, option.id)}
-            activeOpacity={0.8}
-            testID={`literature-option-${option.id}`}
-          >
-            <LinearGradient
-              colors={palette.heroTiles.literature as [string, string, ...string[]]}
-              style={styles.tile}
-              start={{ x: 0.5, y: 0 }}
-              end={{ x: 0.5, y: 1 }}
+        {literatureOptions.map((option) => {
+          // Get the right color for each literature option
+          const tileColors = option.id === 'bigbook' 
+            ? palette.literatureTiles.bigbook 
+            : option.id === 'twelve-and-twelve'
+              ? palette.literatureTiles.twelveAndTwelve
+              : palette.literatureTiles.meetingPocket;
+          
+          return (
+            <TouchableOpacity
+              key={option.id}
+              onPress={() => handleOptionPress(option.route, option.id)}
+              activeOpacity={0.8}
+              testID={`literature-option-${option.id}`}
             >
-              <Text style={styles.tileEmoji}>{option.emoji}</Text>
-              <Text style={styles.tileTitle}>{option.title}</Text>
-              {option.description ? <Text style={styles.tileDescription}>{option.description}</Text> : null}
-            </LinearGradient>
-          </TouchableOpacity>
-        ))}
+              <LinearGradient
+                colors={tileColors as [string, string, ...string[]]}
+                style={styles.tile}
+                start={{ x: 0.5, y: 0 }}
+                end={{ x: 0.5, y: 1 }}
+              >
+                <Text style={styles.tileEmoji}>{option.emoji}</Text>
+                <Text style={[styles.tileTitle, { color: palette.heroTileText }]}>{option.title}</Text>
+                {option.description ? <Text style={[styles.tileDescription, { color: palette.heroTileText }]}>{option.description}</Text> : null}
+              </LinearGradient>
+            </TouchableOpacity>
+          );
+        })}
       </View>
     </ScreenContainer>
   );
@@ -131,7 +140,6 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 32,
     fontWeight: adjustFontWeight('400'),
-    color: '#fff',
     textAlign: 'center',
   },
   content: {
@@ -151,12 +159,10 @@ const styles = StyleSheet.create({
   tileTitle: {
     fontSize: 22,
     fontWeight: adjustFontWeight('600'),
-    color: '#fff',
     marginBottom: 4,
   },
   tileDescription: {
     fontSize: 14,
-    color: 'rgba(255, 255, 255, 0.9)',
     lineHeight: 20,
   },
 });

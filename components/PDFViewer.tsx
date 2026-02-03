@@ -14,6 +14,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Colors from '@/constants/colors';
 import { adjustFontWeight } from '@/constants/fonts';
+import { useTheme } from '@/hooks/useTheme';
 
 interface PDFViewerProps {
   url: string;
@@ -24,6 +25,7 @@ interface PDFViewerProps {
 export default function PDFViewer({ url, title, onClose }: PDFViewerProps) {
   console.log('PDFViewer rendered with URL:', url);
   const insets = useSafeAreaInsets();
+  const { palette } = useTheme();
   const [hasError, setHasError] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   
@@ -44,10 +46,10 @@ export default function PDFViewer({ url, title, onClose }: PDFViewerProps) {
   };
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: palette.cardBackground }]}>
       {/* Gradient Header */}
       <LinearGradient
-        colors={['#4A6FA5', '#3D8B8B', '#45A08A']}
+        colors={palette.gradients.header as [string, string, ...string[]]}
         style={[styles.headerBlock, { paddingTop: insets.top + 8 }]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
@@ -59,7 +61,7 @@ export default function PDFViewer({ url, title, onClose }: PDFViewerProps) {
             activeOpacity={0.7}
             testID="pdf-close-button"
           >
-            <ChevronLeft size={24} color="#fff" />
+            <ChevronLeft size={24} color={palette.headerText} />
           </TouchableOpacity>
           
           {hasError && (
@@ -69,22 +71,22 @@ export default function PDFViewer({ url, title, onClose }: PDFViewerProps) {
               activeOpacity={0.7}
               testID="pdf-retry-button"
             >
-              <RefreshCw size={20} color="#fff" />
+              <RefreshCw size={20} color={palette.headerText} />
             </TouchableOpacity>
           )}
         </View>
-        <Text style={styles.headerTitle} numberOfLines={2}>{title}</Text>
+        <Text style={[styles.headerTitle, { color: palette.headerText }]} numberOfLines={2}>{title}</Text>
       </LinearGradient>
       
       {hasError ? (
-        <View style={styles.errorContainer}>
-          <Text style={styles.errorTitle}>Unable to load PDF</Text>
-          <Text style={styles.errorMessage}>
+        <View style={[styles.errorContainer, { backgroundColor: palette.cardBackground }]}>
+          <Text style={[styles.errorTitle, { color: palette.text }]}>Unable to load PDF</Text>
+          <Text style={[styles.errorMessage, { color: palette.muted }]}>
             The PDF couldn&apos;t be loaded. This might be due to network issues or the PDF being temporarily unavailable.
           </Text>
-          <TouchableOpacity style={styles.retryButtonLarge} onPress={handleRetry}>
-            <RefreshCw size={20} color="#fff" />
-            <Text style={styles.retryButtonText}>Try Again</Text>
+          <TouchableOpacity style={[styles.retryButtonLarge, { backgroundColor: palette.tint }]} onPress={handleRetry}>
+            <RefreshCw size={20} color={palette.headerText} />
+            <Text style={[styles.retryButtonText, { color: palette.headerText }]}>Try Again</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.openExternalButton} onPress={() => {
             Alert.alert(
@@ -98,19 +100,19 @@ export default function PDFViewer({ url, title, onClose }: PDFViewerProps) {
               ]
             );
           }}>
-            <Text style={styles.openExternalText}>Open in Browser</Text>
+            <Text style={[styles.openExternalText, { color: palette.tint }]}>Open in Browser</Text>
           </TouchableOpacity>
         </View>
       ) : (
         <WebView
           key={hasError ? 'error' : 'normal'} // Force re-render on retry
           source={{ uri: viewerUrl }}
-          style={styles.webview}
+          style={[styles.webview, { backgroundColor: palette.cardBackground }]}
           startInLoadingState={true}
           renderLoading={() => (
-            <View style={styles.loadingContainer}>
-              <ActivityIndicator size="large" color="#3D8B8B" />
-              <Text style={styles.loadingText}>Loading PDF...</Text>
+            <View style={[styles.loadingContainer, { backgroundColor: palette.cardBackground }]}>
+              <ActivityIndicator size="large" color={palette.tint} />
+              <Text style={[styles.loadingText, { color: palette.muted }]}>Loading PDF...</Text>
             </View>
           )}
           onLoadStart={() => {
@@ -169,7 +171,6 @@ export default function PDFViewer({ url, title, onClose }: PDFViewerProps) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f6f8',
   },
   headerBlock: {
     paddingHorizontal: 20,
@@ -194,11 +195,9 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 32,
     fontWeight: adjustFontWeight('400'),
-    color: '#fff',
   },
   webview: {
     flex: 1,
-    backgroundColor: '#fff',
   },
   loadingContainer: {
     position: 'absolute',
@@ -208,11 +207,9 @@ const styles = StyleSheet.create({
     bottom: 0,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#f5f6f8',
   },
   loadingText: {
     fontSize: 16,
-    color: '#6b7c8a',
     fontWeight: adjustFontWeight('500'),
     marginTop: 12,
   },
@@ -221,18 +218,15 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     padding: 32,
-    backgroundColor: '#f5f6f8',
   },
   errorTitle: {
     fontSize: 20,
     fontWeight: adjustFontWeight('600'),
-    color: '#2d3748',
     marginBottom: 12,
     textAlign: 'center',
   },
   errorMessage: {
     fontSize: 16,
-    color: '#6b7c8a',
     textAlign: 'center',
     lineHeight: 24,
     marginBottom: 24,
@@ -240,14 +234,12 @@ const styles = StyleSheet.create({
   retryButtonLarge: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#3D8B8B',
     paddingHorizontal: 24,
     paddingVertical: 12,
     borderRadius: 8,
     marginBottom: 16,
   },
   retryButtonText: {
-    color: '#fff',
     fontSize: 16,
     fontWeight: adjustFontWeight('600'),
     marginLeft: 8,
@@ -257,7 +249,6 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
   },
   openExternalText: {
-    color: '#3D8B8B',
     fontSize: 16,
     fontWeight: adjustFontWeight('500'),
     textDecorationLine: 'underline',
