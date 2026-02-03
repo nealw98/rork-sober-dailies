@@ -178,6 +178,29 @@ export type Database = {
           created_at?: string | null;
         };
       };
+      gratitude_quotes: {
+        Row: {
+          id: string;
+          day_of_year: number;
+          quote: string;
+          source: string | null;
+          created_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          day_of_year: number;
+          quote: string;
+          source?: string | null;
+          created_at?: string | null;
+        };
+        Update: {
+          id?: string;
+          day_of_year?: number;
+          quote?: string;
+          source?: string | null;
+          created_at?: string | null;
+        };
+      };
     };
   };
 };
