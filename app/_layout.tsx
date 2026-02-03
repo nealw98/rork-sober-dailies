@@ -16,7 +16,7 @@ import { TextSettingsProvider } from "@/hooks/use-text-settings";
 import { SubscriptionProvider, useSubscription } from "@/hooks/useSubscription";
 import { useOTAUpdates } from "@/hooks/useOTAUpdates";
 import { adjustFontWeight } from "@/constants/fonts";
-import Colors from "@/constants/colors";
+import { useTheme } from "@/hooks/useTheme";
 import WelcomeScreen from "@/components/WelcomeScreen";
 import PaywallScreen from "@/components/PaywallScreen";
 import OTASnackbar from "@/components/OTASnackbar";
@@ -25,6 +25,7 @@ import { initUsageLogger, setPostHogForUsageLogger, getAnonymousId } from "@/lib
 import { recordAppOpen } from "@/lib/reviewPrompt";
 import { useExpoRouterTracking } from "@/hooks/useExpoRouterTracking";
 import { SessionProvider } from "@/hooks/useSessionContext";
+import { ThemeProvider } from "@/hooks/useTheme";
 import { useSobrietyBirthday } from "@/hooks/useSobrietyBirthday";
 import SobrietyBirthdayModal from "@/components/SobrietyBirthdayModal";
 import { getSobrietyMilestone } from "@/utils/sobriety";
@@ -115,9 +116,10 @@ function PostHogIdentifier({ children }: { children: React.ReactNode }) {
           sobriety_milestone: milestone,
         });
 
-        // Register milestone as super property (included with every event)
+        // Register milestone and anonymous ID as super properties (included with every event)
         posthog.register({
           sobriety_milestone: milestone,
+          sober_dailies_anonymous_id: anonymousId,
         });
 
         console.log('[PostHog] User identified with shared anonymous ID and milestone');
@@ -137,6 +139,7 @@ function PostHogIdentifier({ children }: { children: React.ReactNode }) {
 }
 
 function RootLayoutNav() {
+  const { palette } = useTheme();
   const { isOnboardingComplete, isLoading } = useOnboarding();
   const { showSnackbar, dismissSnackbar, restartApp } = useOTAUpdates();
   const { showBirthdayModal, closeBirthdayModal } = useSobrietyBirthday();
@@ -277,13 +280,13 @@ function RootLayoutNav() {
             onPress={() => router.back()}
             activeOpacity={0.7}
           >
-            <ChevronLeft color={Colors.light.tint} size={20} />
-            <Text style={styles.backText}>Back</Text>
+            <ChevronLeft color={palette.tint} size={20} />
+            <Text style={[styles.backText, { color: palette.tint }]}>Back</Text>
           </TouchableOpacity>
         ) : null,
-        contentStyle: { backgroundColor: "#f8f9fa" },
+        contentStyle: { backgroundColor: palette.cardBackground },
         headerStyle: {
-          backgroundColor: "#f8f9fa",
+          backgroundColor: palette.cardBackground,
         },
         headerTitleStyle: {
           fontWeight: adjustFontWeight("600", true),
@@ -338,7 +341,6 @@ const styles = StyleSheet.create({
   },
   backText: {
     fontSize: 14,
-    color: Colors.light.tint,
     marginLeft: 4,
   },
 });
@@ -367,28 +369,30 @@ export default function RootLayout() {
         }}
       >
         <PostHogIdentifier>
-          <SessionProvider>
-            <SubscriptionProvider>
-              <OnboardingProvider>
-                <TextSettingsProvider>
-                  <GratitudeProvider>
-                    <SobrietyProvider>
-                      <EveningReviewProvider>
-                        <GestureHandlerRootView style={{ flex: 1 }}>
-                          {Platform.OS === 'android' && (
-                            <StatusBar translucent backgroundColor="transparent" barStyle="light-content" />
-                          )}
-                          <ErrorBoundary>
-                            <RootLayoutNav />
-                          </ErrorBoundary>
-                        </GestureHandlerRootView>
-                      </EveningReviewProvider>
-                    </SobrietyProvider>
-                  </GratitudeProvider>
-                </TextSettingsProvider>
-              </OnboardingProvider>
-            </SubscriptionProvider>
-          </SessionProvider>
+          <ThemeProvider>
+            <SessionProvider>
+              <SubscriptionProvider>
+                <OnboardingProvider>
+                  <TextSettingsProvider>
+                    <GratitudeProvider>
+                      <SobrietyProvider>
+                        <EveningReviewProvider>
+                          <GestureHandlerRootView style={{ flex: 1 }}>
+                            {Platform.OS === 'android' && (
+                              <StatusBar translucent backgroundColor="transparent" barStyle="light-content" />
+                            )}
+                            <ErrorBoundary>
+                              <RootLayoutNav />
+                            </ErrorBoundary>
+                          </GestureHandlerRootView>
+                        </EveningReviewProvider>
+                      </SobrietyProvider>
+                    </GratitudeProvider>
+                  </TextSettingsProvider>
+                </OnboardingProvider>
+              </SubscriptionProvider>
+            </SessionProvider>
+          </ThemeProvider>
         </PostHogIdentifier>
       </PostHogProvider>
     </QueryClientProvider>

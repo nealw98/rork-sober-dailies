@@ -12,6 +12,7 @@ import * as Application from 'expo-application';
 import * as SecureStore from 'expo-secure-store';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Purchases from 'react-native-purchases';
+import { useTheme } from '@/hooks/useTheme';
 import { adjustFontWeight } from '@/constants/fonts';
 import { useTextSettings } from '@/hooks/use-text-settings';
 import { Logger } from '@/lib/logger';
@@ -44,6 +45,7 @@ async function getDeviceId(): Promise<string | null> {
 export default function SettingsScreen() {
   const posthog = usePostHog();
   const insets = useSafeAreaInsets();
+  const { palette, themeId, setThemeId, themes } = useTheme();
   const { fontSize, setFontSize, minFontSize, maxFontSize, resetDefaults, defaultFontSize } = useTextSettings();
   
   useScreenTimeTracking('Settings');
@@ -393,7 +395,7 @@ export default function SettingsScreen() {
       
       {/* Gradient header block */}
       <LinearGradient
-        colors={['#4A6FA5', '#3D8B8B', '#45A08A']}
+        colors={palette.gradients.header as [string, string, ...string[]]}
         style={[styles.headerBlock, { paddingTop: insets.top + 8 }]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
@@ -461,6 +463,25 @@ export default function SettingsScreen() {
               <Text style={styles.resetButtonText}>Reset to Default</Text>
             </TouchableOpacity>
           )}
+        </View>
+
+        {/* Theme Section */}
+        <Text style={[styles.sectionTitle, { marginTop: 24 }]}>Theme</Text>
+        <View style={styles.themeRow}>
+          {themes.map((theme) => (
+            <TouchableOpacity
+              key={theme.id}
+              style={[
+                styles.themeOption,
+                themeId === theme.id && { borderColor: palette.tint, borderWidth: 2, backgroundColor: palette.cardBackground },
+              ]}
+              onPress={() => setThemeId(theme.id)}
+              activeOpacity={0.7}
+            >
+              <View style={[styles.themeSwatch, { backgroundColor: (theme.light || theme.dark)?.tint }]} />
+              <Text style={[styles.themeOptionLabel, { color: palette.text }]}>{theme.name}</Text>
+            </TouchableOpacity>
+          ))}
         </View>
 
         {/* Support Section */}
@@ -776,6 +797,30 @@ const styles = StyleSheet.create({
     letterSpacing: 1,
     marginBottom: 8,
     marginLeft: 4,
+  },
+  themeRow: {
+    flexDirection: 'row',
+    gap: 12,
+    marginBottom: 8,
+  },
+  themeOption: {
+    flex: 1,
+    alignItems: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 8,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+  },
+  themeSwatch: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    marginBottom: 6,
+  },
+  themeOptionLabel: {
+    fontSize: 13,
+    fontWeight: '500',
   },
   textSizeSection: {
     marginBottom: 8,

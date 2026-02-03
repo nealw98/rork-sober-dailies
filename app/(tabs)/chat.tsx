@@ -14,7 +14,7 @@ import { usePostHog } from 'posthog-react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { ChevronLeft } from "lucide-react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import Colors from "@/constants/colors";
+import { useTheme } from "@/hooks/useTheme";
 import { adjustFontWeight } from "@/constants/fonts";
 import { SPONSORS } from "@/constants/sponsors";
 import ScreenContainer from "@/components/ScreenContainer";
@@ -34,6 +34,7 @@ export default function ChatScreen() {
   const posthog = usePostHog();
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const { palette } = useTheme();
   
   useScreenTimeTracking('AI Sponsor Selection');
 
@@ -77,7 +78,7 @@ export default function ChatScreen() {
       <ScreenContainer noPadding={true}>
         {/* Gradient header block with back button */}
         <LinearGradient
-          colors={['#4A6FA5', '#3D8B8B', '#45A08A']}
+          colors={palette.gradients.header as [string, string, ...string[]]}
           style={[styles.headerBlock, { paddingTop: insets.top + 8 }]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
@@ -96,8 +97,8 @@ export default function ChatScreen() {
           <Text style={styles.headerTitle}>Choose Your Sponsor</Text>
         </LinearGradient>
 
-        {/* Off-white background content area */}
-        <View style={styles.container}>
+        {/* Content area with sponsor-specific background */}
+        <View style={[styles.container, palette.sponsorSelection && { backgroundColor: palette.sponsorSelection.background }]}>
           <ScrollView
             style={styles.scrollView}
             contentContainerStyle={styles.scrollContent}
@@ -107,15 +108,16 @@ export default function ChatScreen() {
             {visibleSponsors.filter(s => s.id === "supportive").map((sponsor) => (
               <TouchableOpacity
                 key={sponsor.id}
-                style={[
-                  styles.tile,
-                  styles.tileFullWidth,
-                  styles.tileHorizontal,
-                  sponsor.tileColor && { backgroundColor: sponsor.tileColor },
-                ]}
+                style={[styles.tile, styles.tileFullWidth, styles.tileHorizontal, styles.tileWithGradient]}
                 onPress={() => handleSponsorSelect(sponsor.id)}
                 activeOpacity={0.7}
               >
+                <LinearGradient
+                  colors={(palette.sponsorSelection?.tileColor || palette.heroTiles.aiSponsor) as [string, string, ...string[]]}
+                  style={styles.tileGradientFill}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                />
                 {sponsor.avatar && (
                   <Image 
                     source={sponsor.avatar} 
@@ -138,14 +140,16 @@ export default function ChatScreen() {
               {visibleSponsors.filter(s => s.id === "salty" || s.id === "grace").map((sponsor) => (
                 <TouchableOpacity
                   key={sponsor.id}
-                  style={[
-                    styles.tile,
-                    styles.tileHalf,
-                    sponsor.tileColor && { backgroundColor: sponsor.tileColor },
-                  ]}
+                  style={[styles.tile, styles.tileHalf, styles.tileWithGradient]}
                   onPress={() => handleSponsorSelect(sponsor.id)}
                   activeOpacity={0.7}
                 >
+                  <LinearGradient
+                    colors={(palette.sponsorSelection?.tileColor || palette.heroTiles.aiSponsor) as [string, string, ...string[]]}
+                    style={styles.tileGradientFill}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 1 }}
+                  />
                   {sponsor.avatar && (
                     <Image 
                       source={sponsor.avatar} 
@@ -167,14 +171,16 @@ export default function ChatScreen() {
               {visibleSponsors.filter(s => s.id === "cowboy-pete" || s.id === "mama-jo").map((sponsor) => (
                 <TouchableOpacity
                   key={sponsor.id}
-                  style={[
-                    styles.tile,
-                    styles.tileHalf,
-                    sponsor.tileColor && { backgroundColor: sponsor.tileColor },
-                  ]}
+                  style={[styles.tile, styles.tileHalf, styles.tileWithGradient]}
                   onPress={() => handleSponsorSelect(sponsor.id)}
                   activeOpacity={0.7}
                 >
+                  <LinearGradient
+                    colors={(palette.sponsorSelection?.tileColor || palette.heroTiles.aiSponsor) as [string, string, ...string[]]}
+                    style={styles.tileGradientFill}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 1 }}
+                  />
                   {sponsor.avatar && (
                     <Image 
                       source={sponsor.avatar} 
@@ -196,14 +202,16 @@ export default function ChatScreen() {
               {["fresh", "co-sign-sally"].map(id => visibleSponsors.find(s => s.id === id)).filter(Boolean).map((sponsor) => (
                 <TouchableOpacity
                   key={sponsor.id}
-                  style={[
-                    styles.tile,
-                    styles.tileHalf,
-                    sponsor.tileColor && { backgroundColor: sponsor.tileColor },
-                  ]}
+                  style={[styles.tile, styles.tileHalf, styles.tileWithGradient]}
                   onPress={() => handleSponsorSelect(sponsor.id)}
                   activeOpacity={0.7}
                 >
+                  <LinearGradient
+                    colors={(palette.sponsorSelection?.tileColor || palette.heroTiles.aiSponsor) as [string, string, ...string[]]}
+                    style={styles.tileGradientFill}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 1 }}
+                  />
                   {sponsor.avatar && (
                     <Image 
                       source={sponsor.avatar} 
@@ -268,11 +276,16 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
   },
   tile: {
-    backgroundColor: 'rgba(61, 139, 139, 0.15)',
     borderRadius: 16,
     padding: 16,
     marginBottom: TILE_GAP,
     alignItems: "center",
+  },
+  tileWithGradient: {
+    overflow: 'hidden',
+  },
+  tileGradientFill: {
+    ...StyleSheet.absoluteFillObject,
   },
   tileFullWidth: {
     width: FULL_WIDTH,

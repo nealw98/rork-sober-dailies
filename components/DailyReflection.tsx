@@ -13,6 +13,7 @@ import { Reflection } from "@/types";
 import { adjustFontWeight } from "@/constants/fonts";
 import { recordDailyReflectionDay } from "@/lib/reviewPrompt";
 import { useDailyReflectionBookmarks } from "@/hooks/use-daily-reflection-bookmarks";
+import { useTheme } from "@/hooks/useTheme";
 
 interface DailyReflectionProps {
   fontSize?: number;
@@ -92,6 +93,7 @@ const generateCalendarDays = (date: Date) => {
 
 export default function DailyReflection({ fontSize = 18, lineHeight, jumpToDate = null, onJumpApplied }: DailyReflectionProps) {
   const effectiveLineHeight = lineHeight ?? fontSize * 1.5; // Fallback to industry standard
+  const { palette } = useTheme();
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [reflection, setReflection] = useState<Reflection | null>(null);
   const { toggleBookmark, isBookmarked, bookmarks, removeBookmark } = useDailyReflectionBookmarks();
@@ -404,10 +406,10 @@ export default function DailyReflection({ fontSize = 18, lineHeight, jumpToDate 
   const dayNumber = selectedDate.getDate();
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: palette.background }]}>
       {/* Gradient header block */}
       <LinearGradient
-        colors={['#4A6FA5', '#3D8B8B', '#45A08A']}
+        colors={palette.gradients.header as [string, string, ...string[]]}
         style={[styles.headerBlock, { paddingTop: insets.top + 8 }]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
@@ -419,16 +421,16 @@ export default function DailyReflection({ fontSize = 18, lineHeight, jumpToDate 
             style={styles.backButton}
             activeOpacity={0.7}
           >
-            <ChevronLeft size={24} color="#fff" />
+            <ChevronLeft size={24} color={palette.text} />
           </TouchableOpacity>
           <View style={{ width: 60 }} />
         </View>
         
-        <Text style={styles.headerTitle}>Daily Reflections</Text>
+        <Text style={[styles.headerTitle, { color: palette.text }]}>Daily Reflections</Text>
       </LinearGradient>
       
       {/* Action row - fixed under header */}
-      <View style={styles.actionRow}>
+      <View style={[styles.actionRow, { backgroundColor: palette.cardBackground }]}>
         <View style={styles.actionRowLeft}>
           <TouchableOpacity
             onPress={toggleBookmarkForDay}
@@ -437,9 +439,9 @@ export default function DailyReflection({ fontSize = 18, lineHeight, jumpToDate 
             activeOpacity={0.6}
           >
           {bookmarked ? (
-            <BookmarkCheck size={18} color="#3D8B8B" fill="#3D8B8B" />
+            <BookmarkCheck size={18} color={palette.tint} fill={palette.tint} />
           ) : (
-            <Bookmark size={18} color="#3D8B8B" />
+            <Bookmark size={18} color={palette.tint} />
           )}
           </TouchableOpacity>
           
@@ -449,7 +451,7 @@ export default function DailyReflection({ fontSize = 18, lineHeight, jumpToDate 
             testID="bookmarks-list-button"
             activeOpacity={0.6}
           >
-            <List size={18} color="#3D8B8B" />
+            <List size={18} color={palette.tint} />
           </TouchableOpacity>
         </View>
         
@@ -459,12 +461,12 @@ export default function DailyReflection({ fontSize = 18, lineHeight, jumpToDate 
           testID="share-button"
           activeOpacity={0.6}
         >
-          <Upload size={18} color="#3D8B8B" />
+          <Upload size={18} color={palette.tint} />
         </TouchableOpacity>
       </View>
 
       {/* Off-white content area */}
-      <ScrollView style={styles.scrollContainer} contentContainerStyle={styles.contentContainer}>
+      <ScrollView style={[styles.scrollContainer, { backgroundColor: palette.background }]} contentContainerStyle={styles.contentContainer}>
         {/* Date navigation */}
         <View style={styles.dateNavRow}>
           <TouchableOpacity 
@@ -474,7 +476,7 @@ export default function DailyReflection({ fontSize = 18, lineHeight, jumpToDate 
             activeOpacity={0.7}
             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
           >
-            <ChevronLeft size={20} color="#3D8B8B" />
+            <ChevronLeft size={20} color={palette.tint} />
           </TouchableOpacity>
           
           <TouchableOpacity 
@@ -483,7 +485,7 @@ export default function DailyReflection({ fontSize = 18, lineHeight, jumpToDate 
             testID="calendar-button"
             activeOpacity={0.7}
           >
-            <Text style={styles.dateText}>{monthName} {dayNumber}</Text>
+            <Text style={[styles.dateText, { color: palette.tint }]}>{monthName} {dayNumber}</Text>
           </TouchableOpacity>
           
           <TouchableOpacity 
@@ -493,29 +495,29 @@ export default function DailyReflection({ fontSize = 18, lineHeight, jumpToDate 
             activeOpacity={0.7}
             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
           >
-            <ChevronRight size={20} color="#3D8B8B" />
+            <ChevronRight size={20} color={palette.tint} />
           </TouchableOpacity>
         </View>
         
-        <View style={styles.card}>
-          <Text style={styles.title}>{reflection.title}</Text>
-          <Text style={[styles.quote, { fontSize, lineHeight: effectiveLineHeight }]}>"{reflection.quote}"</Text>
-          <Text style={[styles.source, { fontSize: fontSize * 0.75 }]}>{reflection.source}</Text>
+        <View style={[styles.card, { backgroundColor: palette.background }]}>
+          <Text style={[styles.title, { color: palette.text }]}>{reflection.title}</Text>
+          <Text style={[styles.quote, { fontSize, lineHeight: effectiveLineHeight, color: palette.text }]}>"{reflection.quote}"</Text>
+          <Text style={[styles.source, { fontSize: fontSize * 0.75, color: palette.muted }]}>{reflection.source}</Text>
           
-          <View style={styles.divider} />
+          <View style={[styles.divider, { backgroundColor: palette.divider }]} />
           
-          <Text style={[styles.reflectionText, { fontSize, lineHeight: effectiveLineHeight }]}>{reflection.reflection}</Text>
+          <Text style={[styles.reflectionText, { fontSize, lineHeight: effectiveLineHeight, color: palette.text }]}>{reflection.reflection}</Text>
           
-          <View style={styles.divider} />
+          <View style={[styles.divider, { backgroundColor: palette.divider }]} />
           
           <View style={styles.meditationTile}>
-            <Text style={styles.thoughtTitle}>Meditation:</Text>
-            <Text style={[styles.thought, { fontSize, lineHeight: effectiveLineHeight }]}>{reflection.thought}</Text>
+            <Text style={[styles.thoughtTitle, { color: palette.text }]}>Meditation:</Text>
+            <Text style={[styles.thought, { fontSize, lineHeight: effectiveLineHeight, color: palette.text }]}>{reflection.thought}</Text>
           </View>
         </View>
 
         <View style={styles.copyrightContainer}>
-          <Text style={[styles.copyrightText, { fontSize: fontSize * 0.75 }]}>
+          <Text style={[styles.copyrightText, { fontSize: fontSize * 0.75, color: palette.muted }]}>
             Copyright © 1990 by Alcoholics Anonymous World Services, Inc. All rights reserved.
           </Text>
         </View>
@@ -623,7 +625,6 @@ export default function DailyReflection({ fontSize = 18, lineHeight, jumpToDate 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
   },
   headerBlock: {
     paddingBottom: 16,
@@ -651,22 +652,7 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 32,
     fontWeight: adjustFontWeight('400'),
-    color: '#fff',
     textAlign: 'center',
-  },
-  actionRow: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    gap: 20,
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#e0e0e0',
-  },
-  actionButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
   },
   actionRow: {
     flexDirection: 'row',
@@ -674,7 +660,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 6,
     paddingHorizontal: 16,
-    backgroundColor: '#fff',
   },
   actionRowLeft: {
     flexDirection: 'row',
@@ -686,7 +671,6 @@ const styles = StyleSheet.create({
   },
   actionButtonText: {
     fontSize: 14,
-    color: '#3D8B8B',
     fontWeight: '500',
   },
   dateNavRow: {
@@ -705,7 +689,6 @@ const styles = StyleSheet.create({
   dateText: {
     fontSize: 17,
     fontWeight: adjustFontWeight('500'),
-    color: '#3D8B8B',
   },
   scrollContainer: {
     flex: 1,
@@ -731,7 +714,6 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 32,
     fontWeight: adjustFontWeight("600", true),
-    color: '#000',
     marginTop: 16,
     marginBottom: 20,
     textAlign: "center",
@@ -740,26 +722,22 @@ const styles = StyleSheet.create({
   quote: {
     fontSize: 16,
     fontStyle: "italic",
-    color: '#000',
     marginBottom: 8,
     lineHeight: 22,
     textAlign: "center",
   },
   source: {
     fontSize: 12,
-    color: '#555',
     textAlign: "right",
     marginBottom: 16,
     fontWeight: adjustFontWeight("500"),
   },
   divider: {
     height: 1,
-    backgroundColor: '#ddd',
     marginVertical: 16,
   },
   reflectionText: {
     fontSize: 16,
-    color: '#000',
     lineHeight: 22,
   },
   meditationTile: {
@@ -771,12 +749,10 @@ const styles = StyleSheet.create({
   thoughtTitle: {
     fontSize: 16,
     fontWeight: adjustFontWeight("bold", true),
-    color: '#000',
     marginBottom: 8,
   },
   thought: {
     fontSize: 16,
-    color: '#000',
     fontStyle: "italic",
     lineHeight: 22,
   },
@@ -786,7 +762,6 @@ const styles = StyleSheet.create({
   },
   copyrightText: {
     fontSize: 12,
-    color: '#666',
     textAlign: "center",
     lineHeight: 16,
   },

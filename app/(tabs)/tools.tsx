@@ -5,6 +5,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ChevronLeft } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 
+import { useTheme } from '@/hooks/useTheme';
 import { adjustFontWeight } from '@/constants/fonts';
 import { useScreenTimeTracking } from '@/hooks/useScreenTimeTracking';
 
@@ -47,16 +48,17 @@ const toolOptions: ToolOption[] = [
 export default function ToolsScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const { palette } = useTheme();
   
   useScreenTimeTracking('Tools');
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: palette.background }]}>
       <Stack.Screen options={{ headerShown: false }} />
       
       {/* Gradient Header */}
       <LinearGradient
-        colors={['#4A6FA5', '#3D8B8B', '#45A08A']}
+        colors={palette.gradients.header as [string, string, ...string[]]}
         style={[styles.headerBlock, { paddingTop: insets.top + 8 }]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
@@ -95,7 +97,6 @@ export default function ToolsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
   },
   headerBlock: {
     paddingBottom: 16,

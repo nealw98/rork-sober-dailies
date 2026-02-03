@@ -18,6 +18,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Send, ChevronDown } from "lucide-react-native";
 import * as Clipboard from 'expo-clipboard';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useTheme } from "@/hooks/useTheme";
 import Colors from "@/constants/colors";
 import { useChatStore } from "@/hooks/use-chat-store";
 import { featureUse, getAnonymousId } from "@/lib/usageLogger";
@@ -206,6 +207,7 @@ export default function ChatInterface({
   onSponsorPress,
 }: ChatInterfaceProps) {
   const posthog = usePostHog();
+  const { palette } = useTheme();
   const { messages, isLoading, sendMessage, sponsorType: storeSponsorType, changeSponsor } = useChatStore();
   const textSettings = useTextSettings();
   const fontSize = textSettings?.fontSize ?? 18;
@@ -352,7 +354,7 @@ export default function ChatInterface({
       keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 0}
     >
       <LinearGradient
-        colors={Colors.gradients.mainThreeColor}
+        colors={palette.gradients.mainThreeColor}
         style={styles.backgroundGradient}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}

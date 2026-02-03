@@ -25,7 +25,7 @@ import { useEveningReviewStore } from '@/hooks/use-evening-review-store';
 import SavedEveningReviews from '@/components/SavedEveningReviews';
 import AnimatedEveningReviewMessage from '@/components/AnimatedEveningReviewMessage';
 import { ReviewCompleteModal } from '@/components/ReviewCompleteModal';
-import Colors from '@/constants/colors';
+import { useTheme } from '@/hooks/useTheme';
 import { adjustFontWeight } from '@/constants/fonts';
 import { useTextSettings } from '@/hooks/use-text-settings';
 import { useScreenTimeTracking } from '@/hooks/useScreenTimeTracking';
@@ -108,6 +108,7 @@ const AnimatedCheckbox = ({ checked, onPress, children, fontSize }: {
 export default function EveningReview() {
   const posthog = usePostHog();
   const insets = useSafeAreaInsets();
+  const { palette } = useTheme();
   const { fontSize, lineHeight } = useTextSettings();
   const scrollViewRef = useRef<ScrollView>(null);
   const inputPositions = useRef<{ [key: string]: number }>({});
@@ -478,7 +479,7 @@ export default function EveningReview() {
       
       {/* Gradient header block */}
       <LinearGradient
-        colors={['#4A6FA5', '#3D8B8B', '#45A08A']}
+        colors={palette.gradients.header as [string, string, ...string[]]}
         style={[styles.headerBlock, { paddingTop: insets.top + 8 }]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
@@ -508,7 +509,7 @@ export default function EveningReview() {
           activeOpacity={0.6}
           style={styles.actionButton}
         >
-          <List color="#3D8B8B" size={18} />
+          <List color={palette.tint} size={18} />
           <Text style={styles.actionButtonText}>History</Text>
         </TouchableOpacity>
         
@@ -521,7 +522,7 @@ export default function EveningReview() {
           activeOpacity={0.6}
           style={styles.actionButton}
         >
-          <Save color="#3D8B8B" size={18} />
+          <Save color={palette.tint} size={18} />
           <Text style={styles.actionButtonText}>Save</Text>
         </TouchableOpacity>
         
@@ -534,7 +535,7 @@ export default function EveningReview() {
           activeOpacity={0.6}
           style={styles.actionButton}
         >
-          <ShareIcon color="#3D8B8B" size={18} />
+          <ShareIcon color={palette.tint} size={18} />
           <Text style={styles.actionButtonText}>Share</Text>
         </TouchableOpacity>
         
@@ -547,7 +548,7 @@ export default function EveningReview() {
           activeOpacity={0.6}
           style={styles.actionButton}
         >
-          <RotateCcw color="#3D8B8B" size={18} />
+          <RotateCcw color={palette.tint} size={18} />
           <Text style={styles.actionButtonText}>Reset</Text>
         </TouchableOpacity>
       </View>

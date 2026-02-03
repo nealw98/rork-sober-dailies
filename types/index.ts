@@ -29,3 +29,5 @@ export interface WeeklyProgressDay {
 }
 
 export type SponsorType = "salty" | "supportive" | "grace" | "cowboy" | "cosign" | "fresh" | "mama-jo";
+
+export type { ThemeId, ColorSchemePreference, ResolvedPalette, ThemePalette, ThemeDefinition } from './theme';

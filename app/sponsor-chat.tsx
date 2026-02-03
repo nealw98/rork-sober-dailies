@@ -21,6 +21,7 @@ import * as Clipboard from 'expo-clipboard';
 import { ChatStoreProvider, useChatStore } from "@/hooks/use-chat-store";
 import { getSponsorById, SPONSORS } from "@/constants/sponsors";
 import { useScreenTimeTracking } from "@/hooks/useScreenTimeTracking";
+import { useTheme } from "@/hooks/useTheme";
 import Colors from "@/constants/colors";
 import { adjustFontWeight } from "@/constants/fonts";
 import { useTextSettings } from "@/hooks/use-text-settings";
@@ -98,12 +99,14 @@ const ChatBubble = ({
   bubbleBorderColor,
   sponsorType,
   fontSize,
+  palette,
 }: {
   message: ChatMessage;
   bubbleColor?: string;
   bubbleBorderColor?: string;
   sponsorType: SponsorType;
   fontSize: number;
+  palette: any;
 }) => {
   const isUser = message.sender === "user";
   const sponsor = getSponsorById(sponsorType);
@@ -125,8 +128,9 @@ const ChatBubble = ({
       activeOpacity={0.9}
       style={[
         styles.messageBubble,
-        isUser ? styles.userBubble : styles.botBubble,
-        !isUser && bubbleColor ? { backgroundColor: bubbleColor } : {},
+        isUser 
+          ? { alignSelf: 'flex-end', backgroundColor: palette.chatBubbleUser } 
+          : { alignSelf: 'flex-start', backgroundColor: bubbleColor },
         !isUser && bubbleBorderColor ? { borderWidth: 2, borderColor: bubbleBorderColor } : {},
       ]}
     >
@@ -136,7 +140,7 @@ const ChatBubble = ({
       <View style={styles.bubbleContent}>
         <ChatMarkdownRenderer 
           content={messageText} 
-          style={{ color: isUser ? '#fff' : '#333', fontSize }}
+          style={{ color: palette.text, fontSize }}
         />
       </View>
     </TouchableOpacity>
@@ -147,6 +151,7 @@ function SponsorChatContent({ initialSponsor }: { initialSponsor: string }) {
   const posthog = usePostHog();
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const { palette } = useTheme();
   const textSettings = useTextSettings();
   const fontSize = textSettings?.fontSize ?? 18;
   const { messages, isLoading, sendMessage, clearChat, changeSponsor, sponsorType } = useChatStore();
@@ -169,8 +174,9 @@ function SponsorChatContent({ initialSponsor }: { initialSponsor: string }) {
   // Track screen time with sponsor name
   useScreenTimeTracking(screenName);
   
-  const bubbleColor = sponsor?.bubbleColor;
-  const bubbleBorderColor = sponsor?.bubbleBorderColor;
+  // Use theme colors for chat bubbles instead of sponsor-specific colors
+  const bubbleColor = palette.chatBubbleBot;
+  const bubbleBorderColor = undefined; // No border in themed mode
   const placeholderText = sponsor?.placeholderText ?? "Type a message...";
   const loadingText = sponsor?.loadingText ?? "Thinking...";
 
@@ -268,12 +274,12 @@ function SponsorChatContent({ initialSponsor }: { initialSponsor: string }) {
   const isSendDisabled = !inputText.trim() || isLoading || isCheckingLimits;
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: palette.chatBackground || palette.background }]}>
       <Stack.Screen options={{ headerShown: false }} />
       
       {/* Gradient header with avatar and sponsor name */}
       <LinearGradient
-        colors={['#4A6FA5', '#3D8B8B', '#45A08A']}
+        colors={palette.gradients.header as [string, string, ...string[]]}
         style={[styles.headerBlock, { paddingTop: insets.top + 8 }]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
@@ -284,18 +290,18 @@ function SponsorChatContent({ initialSponsor }: { initialSponsor: string }) {
             style={styles.backButton}
             activeOpacity={0.7}
           >
-            <ChevronLeft size={24} color="#fff" />
+            <ChevronLeft size={24} color={palette.text} />
           </TouchableOpacity>
         </View>
         
         {/* Sponsor Name */}
         <View style={styles.sponsorInfo}>
-          <Text style={styles.headerTitle}>{sponsor.name}</Text>
+          <Text style={[styles.headerTitle, { color: palette.text }]}>{sponsor.name}</Text>
         </View>
       </LinearGradient>
       
       {/* Action row below header */}
-      <View style={styles.actionRow}>
+      <View style={[styles.actionRow, { backgroundColor: palette.chatBackground || palette.background, borderBottomColor: palette.border }]}>
         <TouchableOpacity
           onPress={handleRefresh}
           accessible={true}
@@ -304,8 +310,8 @@ function SponsorChatContent({ initialSponsor }: { initialSponsor: string }) {
           activeOpacity={0.6}
           style={styles.actionButton}
         >
-          <RotateCcw color="#3D8B8B" size={18} />
-          <Text style={styles.actionButtonText}>Reset</Text>
+          <RotateCcw color={palette.tint} size={18} />
+          <Text style={[styles.actionButtonText, { color: palette.tint }]}>Reset</Text>
         </TouchableOpacity>
       </View>
       
@@ -327,6 +333,7 @@ function SponsorChatContent({ initialSponsor }: { initialSponsor: string }) {
                 bubbleBorderColor={bubbleBorderColor}
                 sponsorType={initialSponsor as SponsorType}
                 fontSize={fontSize}
+                palette={palette}
               />
             )}
             contentContainerStyle={styles.chatContainer}
@@ -345,14 +352,19 @@ function SponsorChatContent({ initialSponsor }: { initialSponsor: string }) {
         <View
           style={[
             styles.inputContainer,
-            { paddingBottom: Math.max(insets.bottom, 12) },
+            { 
+              paddingBottom: Math.max(insets.bottom, 12),
+              backgroundColor: palette.chatBackground || palette.background,
+              borderTopColor: palette.border,
+            },
           ]}
         >
           <TextInput
-            style={[styles.input, { fontSize }]}
+            style={[styles.input, { fontSize, color: palette.text, backgroundColor: palette.cardBackground, borderColor: palette.border }]}
             value={inputText}
             onChangeText={setInputText}
             placeholder={placeholderText}
+            placeholderTextColor={palette.muted}
             placeholderTextColor={Colors.light.muted}
             multiline
             maxLength={500}
@@ -393,7 +405,6 @@ export default function SponsorChatScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f6f8',
   },
   headerBlock: {
     paddingBottom: 16,
@@ -425,7 +436,6 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     paddingHorizontal: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#e0e0e0',
   },
   actionButton: {
     flexDirection: 'row',
@@ -434,7 +444,6 @@ const styles = StyleSheet.create({
   },
   actionButtonText: {
     fontSize: 14,
-    color: '#3D8B8B',
     fontWeight: '500',
   },
   sponsorInfo: {
@@ -445,7 +454,6 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 32,
     fontWeight: adjustFontWeight('400'),
-    color: '#fff',
   },
   chatArea: {
     flex: 1,
@@ -463,14 +471,6 @@ const styles = StyleSheet.create({
     maxWidth: '85%',
     borderRadius: 16,
     padding: 12,
-  },
-  userBubble: {
-    alignSelf: 'flex-end',
-    backgroundColor: Colors.light.tint,
-  },
-  botBubble: {
-    alignSelf: 'flex-start',
-    backgroundColor: '#e8f8e8',
   },
   bubbleAvatar: {
     width: 28,
@@ -498,21 +498,16 @@ const styles = StyleSheet.create({
     alignItems: 'flex-end',
     paddingHorizontal: 16,
     paddingTop: 12,
-    backgroundColor: '#f5f6f8',
     borderTopWidth: 1,
-    borderTopColor: '#e0e0e0',
     gap: 8,
   },
   input: {
     flex: 1,
-    backgroundColor: '#fff',
     borderRadius: 20,
     paddingHorizontal: 16,
     paddingVertical: 10,
-    // fontSize applied inline to match text settings
     maxHeight: 100,
     borderWidth: 1,
-    borderColor: '#e0e0e0',
   },
   sendButton: {
     width: 44,

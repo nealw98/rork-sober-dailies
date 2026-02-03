@@ -19,6 +19,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { ChevronLeft, RotateCcw, Share as ShareIcon, Save as SaveIcon, List, Trash2, X, Calendar, HelpCircle } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useTheme } from '@/hooks/useTheme';
 import Colors from '@/constants/colors';
 import { adjustFontWeight } from '@/constants/fonts';
 import ScreenContainer from '@/components/ScreenContainer';
@@ -490,6 +491,7 @@ const SpotCheckHistorySheet: React.FC<{
 
 const Inventory = () => {
   const insets = useSafeAreaInsets();
+  const { palette } = useTheme();
   const { fontSize, lineHeight } = useTextSettings();
   const [selections, setSelections] = useState<{ [key: string]: SelectionState }>({});
   const [situation, setSituation] = useState('');
@@ -713,7 +715,7 @@ const Inventory = () => {
       
       {/* Gradient header block */}
       <LinearGradient
-        colors={['#4A6FA5', '#3D8B8B', '#45A08A']}
+        colors={palette.gradients.header as [string, string, ...string[]]}
         style={[styles.headerBlock, { paddingTop: insets.top + 8 }]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
@@ -752,7 +754,7 @@ const Inventory = () => {
           activeOpacity={0.6}
           style={styles.actionButton}
         >
-          <List color="#3D8B8B" size={18} />
+          <List color={palette.tint} size={18} />
           <Text style={styles.actionButtonText}>History</Text>
         </TouchableOpacity>
         
@@ -765,7 +767,7 @@ const Inventory = () => {
           activeOpacity={0.6}
           style={styles.actionButton}
         >
-          <SaveIcon color="#3D8B8B" size={18} />
+          <SaveIcon color={palette.tint} size={18} />
           <Text style={styles.actionButtonText}>Save</Text>
         </TouchableOpacity>
         
@@ -778,7 +780,7 @@ const Inventory = () => {
           activeOpacity={0.6}
           style={styles.actionButton}
         >
-          <ShareIcon color="#3D8B8B" size={18} />
+          <ShareIcon color={palette.tint} size={18} />
           <Text style={styles.actionButtonText}>Share</Text>
         </TouchableOpacity>
         
@@ -791,7 +793,7 @@ const Inventory = () => {
           activeOpacity={0.6}
           style={styles.actionButton}
         >
-          <RotateCcw color="#3D8B8B" size={18} />
+          <RotateCcw color={palette.tint} size={18} />
           <Text style={styles.actionButtonText}>Reset</Text>
         </TouchableOpacity>
       </View>

@@ -343,7 +343,8 @@ class UsageLogger {
           platform: Platform.OS,
           $screen_name: this.currentScreen,
           session_duration_seconds: sessionDuration,
-          session_id: this.sessionId
+          session_id: this.sessionId,
+          sober_dailies_anonymous_id: this.getAnonymousIdSync() ?? undefined,
         });
         
         // Note: screen_close events are handled by useScreenTimeTracking hook
@@ -370,7 +371,8 @@ class UsageLogger {
           platform: Platform.OS,
           $screen_name: this.currentScreen,
           previous_session_id: previousSessionId,
-          new_session_id: this.sessionId
+          new_session_id: this.sessionId,
+          sober_dailies_anonymous_id: this.getAnonymousIdSync() ?? undefined,
         });
         
         // Check daily streak (non-blocking)

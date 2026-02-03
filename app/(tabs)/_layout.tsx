@@ -9,7 +9,7 @@ import FontAwesome from "@expo/vector-icons/FontAwesome";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { ChevronLeft } from "lucide-react-native";
 
-import Colors from "@/constants/colors";
+import { useTheme } from "@/hooks/useTheme";
 import { adjustFontWeight, getScreenPadding } from "@/constants/fonts";
 
 const styles = StyleSheet.create({
@@ -41,7 +41,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   iconWrapperActive: {
-    backgroundColor: Colors.light.tint,
+    backgroundColor: '#4A90E2', // overridden by theme in TabLayout
   },
   iconWrapperInactive: {
     backgroundColor: '#F0F4FF',
@@ -61,7 +61,6 @@ const styles = StyleSheet.create({
   },
   backText: {
     fontSize: 17,
-    color: Colors.light.tint,
     fontWeight: '400',
     lineHeight: 20,
   },
@@ -70,6 +69,7 @@ const styles = StyleSheet.create({
 
 const BackButton = () => {
   const pathname = usePathname();
+  const { palette } = useTheme();
   const handleBackPress = () => {
     try {
       // Use pathname to determine current location
@@ -107,8 +107,8 @@ const BackButton = () => {
       onPress={handleBackPress}
       testID="back-button"
     >
-      <ChevronLeft size={20} color={Colors.light.tint} />
-      <Text style={styles.backText}>Back</Text>
+      <ChevronLeft size={20} color={palette.tint} />
+      <Text style={[styles.backText, { color: palette.tint }]}>Back</Text>
     </TouchableOpacity>
   );
 };
@@ -137,9 +137,10 @@ const createTabIcon = (
 const createOutlineTabIcon = (
   outlineName: string,
   filledName: string,
+  tintColor: string,
   iconSize = 22
 ) => ({ focused }: { color: string; size: number; focused: boolean }) => {
-  const iconColor = focused ? '#3D8B8B' : '#8E8E93';
+  const iconColor = focused ? tintColor : '#8E8E93';
   const iconName = focused ? filledName : outlineName;
   return (
     <Ionicons
@@ -151,10 +152,11 @@ const createOutlineTabIcon = (
 };
 
 export default function TabLayout() {
+  const { palette } = useTheme();
   return (
       <Tabs
         screenOptions={{
-        tabBarActiveTintColor: '#3D8B8B',
+        tabBarActiveTintColor: palette.tint,
         tabBarInactiveTintColor: '#8E8E93',
         headerShown: true,
         headerTitleAlign: 'center',
@@ -167,15 +169,15 @@ export default function TabLayout() {
           marginTop: 2,
         },
         tabBarStyle: {
-          backgroundColor: "#FFFFFF",
+          backgroundColor: palette.background,
           height: Platform.OS === 'android' ? 70 : 84,
           paddingBottom: Platform.OS === 'android' ? 14 : 28,
           paddingTop: 8,
           borderTopWidth: 1,
-          borderTopColor: '#E4E7EC',
+          borderTopColor: palette.border,
         },
         headerStyle: {
-          backgroundColor: "#f8f9fa",
+          backgroundColor: palette.cardBackground,
         },
         headerStatusBarHeight: Platform.OS === 'android' ? StatusBar.currentHeight : undefined,
         headerTitleStyle: {
@@ -200,7 +202,7 @@ export default function TabLayout() {
               </Text>
             </View>
           ),
-          tabBarIcon: createOutlineTabIcon('home-outline', 'home'),
+          tabBarIcon: createOutlineTabIcon('home-outline', 'home', palette.tint),
         }}
       />
 
@@ -210,7 +212,7 @@ export default function TabLayout() {
         options={{
           title: "Reflection",
           headerShown: false,
-          tabBarIcon: createOutlineTabIcon('calendar-outline', 'calendar'),
+          tabBarIcon: createOutlineTabIcon('calendar-outline', 'calendar', palette.tint),
         }}
       />
 
@@ -221,7 +223,7 @@ export default function TabLayout() {
           title: "Sponsor",
           headerShown: false,
           tabBarHideOnKeyboard: Platform.OS === 'android' ? true : undefined,
-          tabBarIcon: createOutlineTabIcon('chatbubble-outline', 'chatbubble'),
+          tabBarIcon: createOutlineTabIcon('chatbubble-outline', 'chatbubble', palette.tint),
         }}
       />
 
@@ -231,7 +233,7 @@ export default function TabLayout() {
         options={{
           title: "Literature",
           headerShown: false,
-          tabBarIcon: createOutlineTabIcon('book-outline', 'book'),
+          tabBarIcon: createOutlineTabIcon('book-outline', 'book', palette.tint),
         }}
       />
 
@@ -250,7 +252,7 @@ export default function TabLayout() {
         options={{
           title: "Settings",
           headerShown: false,
-          tabBarIcon: createOutlineTabIcon('settings-outline', 'settings'),
+          tabBarIcon: createOutlineTabIcon('settings-outline', 'settings', palette.tint),
         }}
       />
 

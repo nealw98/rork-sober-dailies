@@ -21,7 +21,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Stack, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useGratitudeStore } from '@/hooks/use-gratitude-store';
-import Colors from '@/constants/colors';
+import { useTheme } from '@/hooks/useTheme';
 import { adjustFontWeight } from '@/constants/fonts';
 import ScreenContainer from '@/components/ScreenContainer';
 import SavedGratitudeEntries from '@/components/SavedGratitudeEntries';
@@ -269,7 +269,6 @@ const styles = StyleSheet.create({
   addButton: {
     paddingHorizontal: 16,
     paddingVertical: 12,
-    backgroundColor: Colors.light.tint,
     borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
@@ -338,6 +337,7 @@ const formatDateDisplay = (date: Date): string => {
 
 export default function GratitudeListScreen() {
   const posthog = usePostHog();
+  const { palette } = useTheme();
   const [gratitudeItems, setGratitudeItems] = useState<string[]>([]);
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const [editingValue, setEditingValue] = useState<string>('');
@@ -654,7 +654,7 @@ export default function GratitudeListScreen() {
       
       {/* Gradient header block */}
       <LinearGradient
-        colors={['#4A6FA5', '#3D8B8B', '#45A08A']}
+        colors={palette.gradients.header as [string, string, ...string[]]}
         style={[styles.headerBlock, { paddingTop: insets.top + 8 }]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
@@ -683,7 +683,7 @@ export default function GratitudeListScreen() {
           activeOpacity={0.6}
           style={styles.actionButton}
         >
-          <List color="#3D8B8B" size={18} />
+          <List color={palette.tint} size={18} />
           <Text style={styles.actionButtonText}>History</Text>
         </TouchableOpacity>
         
@@ -695,7 +695,7 @@ export default function GratitudeListScreen() {
           activeOpacity={0.6}
           style={styles.actionButton}
         >
-          <Save color="#3D8B8B" size={18} />
+          <Save color={palette.tint} size={18} />
           <Text style={styles.actionButtonText}>Save</Text>
         </TouchableOpacity>
         
@@ -707,7 +707,7 @@ export default function GratitudeListScreen() {
           activeOpacity={0.6}
           style={styles.actionButton}
         >
-          <ShareIcon color="#3D8B8B" size={18} />
+          <ShareIcon color={palette.tint} size={18} />
           <Text style={styles.actionButtonText}>Share</Text>
         </TouchableOpacity>
         
@@ -719,7 +719,7 @@ export default function GratitudeListScreen() {
           activeOpacity={0.6}
           style={styles.actionButton}
         >
-          <RotateCcw color="#3D8B8B" size={18} />
+          <RotateCcw color={palette.tint} size={18} />
           <Text style={styles.actionButtonText}>Reset</Text>
         </TouchableOpacity>
       </View>
@@ -762,6 +762,7 @@ export default function GratitudeListScreen() {
               <TouchableOpacity
                 style={[
                   styles.addButton,
+                  { backgroundColor: palette.tint },
                   !inputValue.trim() && styles.addButtonDisabled
                 ]}
                 onPress={handleAddGratitude}

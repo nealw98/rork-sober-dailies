@@ -75,6 +75,7 @@ function PostHogIdentifier({ children }: { children: React.ReactNode }) {
 
         posthog.register({
           sobriety_milestone: milestone,
+          sober_dailies_anonymous_id: deviceId,
         });
       } catch (error) {
         console.error('[PostHog] Error during identification:', error);

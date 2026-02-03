@@ -7,6 +7,7 @@ import { ChevronLeft } from "lucide-react-native";
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import ScreenContainer from "@/components/ScreenContainer";
+import { useTheme } from "@/hooks/useTheme";
 import { adjustFontWeight } from "@/constants/fonts";
 import { useReadingSession } from "@/hooks/useReadingSession";
 import { useScreenTimeTracking } from "@/hooks/useScreenTimeTracking";
@@ -17,38 +18,17 @@ interface LiteratureOption {
   description: string;
   route: string;
   emoji: string;
-  gradientColors: [string, string];
 }
 
 const literatureOptions: LiteratureOption[] = [
-  {
-    id: "bigbook",
-    title: "Alcoholics Anonymous",
-    description: "",
-    route: "/bigbook",
-    emoji: "📖",
-    gradientColors: ["#6AC08A", "#4AA06A"], // Light to dark green (matches home Literature tile)
-  },
-  {
-    id: "twelve-and-twelve",
-    title: "Twelve Steps and Twelve Traditions",
-    description: "",
-    route: "/twelve-and-twelve",
-    emoji: "📚",
-    gradientColors: ["#5DABAB", "#3D8B8B"], // Light to dark teal (matches home AI Sponsor tile)
-  },
-  {
-    id: "meeting-pocket",
-    title: "AA Meeting Readings",
-    description: "",
-    route: "/meeting-pocket",
-    emoji: "📄",
-    gradientColors: ["#AA85D5", "#8A65B5"], // Light to dark purple
-  }
+  { id: "bigbook", title: "Alcoholics Anonymous", description: "", route: "/bigbook", emoji: "📖" },
+  { id: "twelve-and-twelve", title: "Twelve Steps and Twelve Traditions", description: "", route: "/twelve-and-twelve", emoji: "📚" },
+  { id: "meeting-pocket", title: "AA Meeting Readings", description: "", route: "/meeting-pocket", emoji: "📄" },
 ];
 
 export default function LiteratureScreen() {
   const posthog = usePostHog();
+  const { palette } = useTheme();
   useReadingSession('literature');
   useScreenTimeTracking('Literature');
   const insets = useSafeAreaInsets();
@@ -76,12 +56,12 @@ export default function LiteratureScreen() {
   };
 
   return (
-    <ScreenContainer style={styles.container} noPadding>
+    <ScreenContainer style={[styles.container, { backgroundColor: palette.background }]} noPadding>
       <Stack.Screen options={{ headerShown: false }} />
       
       {/* Gradient header block */}
       <LinearGradient
-        colors={['#4A6FA5', '#3D8B8B', '#45A08A']}
+        colors={palette.gradients.header as [string, string, ...string[]]}
         style={[styles.headerBlock, { paddingTop: insets.top + 8 }]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
@@ -110,7 +90,7 @@ export default function LiteratureScreen() {
             testID={`literature-option-${option.id}`}
           >
             <LinearGradient
-              colors={option.gradientColors}
+              colors={palette.heroTiles.literature as [string, string, ...string[]]}
               style={styles.tile}
               start={{ x: 0.5, y: 0 }}
               end={{ x: 0.5, y: 1 }}
@@ -129,7 +109,6 @@ export default function LiteratureScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
   },
   headerBlock: {
     paddingBottom: 16,

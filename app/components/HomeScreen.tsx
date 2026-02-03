@@ -5,6 +5,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 
 import SobrietyCounter from '@/components/SobrietyCounter';
+import { useTheme } from '@/hooks/useTheme';
 import { adjustFontWeight } from '@/constants/fonts';
 import { getTodaysReflection } from '@/constants/reflections';
 import { Reflection } from '@/types';
@@ -16,9 +17,15 @@ const isSameDay = (date1: Date, date2: Date): boolean => {
          date1.getDate() === date2.getDate();
 };
 
+// Helper to check if a color array is a gradient or solid
+const isSolidColor = (colors: string[]): boolean => {
+  return colors.length === 2 && colors[0] === colors[1];
+};
+
 const HomeScreen = () => {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const { palette } = useTheme();
   const [todaysReflection, setTodaysReflection] = useState<Reflection | null>(null);
   const [currentDate, setCurrentDate] = useState<Date>(new Date());
   const lastDateRef = useRef<Date>(new Date());
@@ -60,10 +67,10 @@ const HomeScreen = () => {
   });
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: palette.background }]}>
       {/* Gradient Header with Sobriety Counter */}
       <LinearGradient
-        colors={['#4A6FA5', '#3D8B8B', '#45A08A']}
+        colors={palette.gradients.header as [string, string, ...string[]]}
         style={[styles.headerGradient, { paddingTop: insets.top + 16 }]}
         start={{ x: 0.1, y: 0 }}
         end={{ x: 0.9, y: 1 }}
@@ -86,7 +93,7 @@ const HomeScreen = () => {
           activeOpacity={0.8}
         >
           <LinearGradient
-            colors={['#6A88D5', '#4A68B5']}
+            colors={palette.heroTiles.dailyReflection as [string, string, ...string[]]}
             style={[styles.heroTile, styles.dailyReflectionTile]}
             start={{ x: 0.5, y: 0 }}
             end={{ x: 0.5, y: 1 }}
@@ -107,7 +114,7 @@ const HomeScreen = () => {
             style={styles.heroTileHalf}
           >
             <LinearGradient
-              colors={['#5DABAB', '#3D8B8B']}
+              colors={palette.heroTiles.aiSponsor as [string, string, ...string[]]}
               style={[styles.heroTile]}
               start={{ x: 0.5, y: 0 }}
               end={{ x: 0.5, y: 1 }}
@@ -123,7 +130,7 @@ const HomeScreen = () => {
             style={styles.heroTileHalf}
           >
             <LinearGradient
-              colors={['#6AC08A', '#4AA06A']}
+              colors={palette.heroTiles.literature as [string, string, ...string[]]}
               style={[styles.heroTile]}
               start={{ x: 0.5, y: 0 }}
               end={{ x: 0.5, y: 1 }}
@@ -143,7 +150,7 @@ const HomeScreen = () => {
             style={styles.routineTileHalf}
           >
             <LinearGradient
-              colors={['#F5D560', '#E5B530']}
+              colors={palette.heroTiles.morningPrayer as [string, string, ...string[]]}
               style={[styles.routineTile]}
               start={{ x: 0.5, y: 0 }}
               end={{ x: 0.5, y: 1 }}
@@ -159,7 +166,7 @@ const HomeScreen = () => {
             style={styles.routineTileHalf}
           >
             <LinearGradient
-              colors={['#F8A870', '#E8884A']}
+              colors={palette.heroTiles.gratitude as [string, string, ...string[]]}
               style={[styles.routineTile]}
               start={{ x: 0.5, y: 0 }}
               end={{ x: 0.5, y: 1 }}
@@ -179,7 +186,7 @@ const HomeScreen = () => {
             style={styles.routineTileHalf}
           >
             <LinearGradient
-              colors={['#E590AA', '#D5708A']}
+              colors={palette.heroTiles.eveningPrayer as [string, string, ...string[]]}
               style={[styles.routineTile]}
               start={{ x: 0.5, y: 0 }}
               end={{ x: 0.5, y: 1 }}
@@ -195,7 +202,7 @@ const HomeScreen = () => {
             style={styles.routineTileHalf}
           >
             <LinearGradient
-              colors={['#AA85D5', '#8A65B5']}
+              colors={palette.heroTiles.nightlyReview as [string, string, ...string[]]}
               style={[styles.routineTile]}
               start={{ x: 0.5, y: 0 }}
               end={{ x: 0.5, y: 1 }}
@@ -215,7 +222,7 @@ const HomeScreen = () => {
             style={styles.routineTileHalf}
           >
             <LinearGradient
-              colors={['#6AC8B8', '#4AA898']}
+              colors={palette.heroTiles.prayers as [string, string, ...string[]]}
               style={[styles.routineTile]}
               start={{ x: 0.5, y: 0 }}
               end={{ x: 0.5, y: 1 }}
@@ -231,7 +238,7 @@ const HomeScreen = () => {
             style={styles.routineTileHalf}
           >
             <LinearGradient
-              colors={['#E0CABE', '#907565']}
+              colors={palette.heroTiles.spotCheck as [string, string, ...string[]]}
               style={[styles.routineTile]}
               start={{ x: 0.5, y: 0 }}
               end={{ x: 0.5, y: 1 }}
@@ -252,7 +259,6 @@ const HomeScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
   },
   headerGradient: {
     paddingBottom: 16,
