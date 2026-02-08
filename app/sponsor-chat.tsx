@@ -365,7 +365,6 @@ function SponsorChatContent({ initialSponsor }: { initialSponsor: string }) {
             onChangeText={setInputText}
             placeholder={placeholderText}
             placeholderTextColor={palette.muted}
-            placeholderTextColor={Colors.light.muted}
             multiline
             maxLength={500}
             returnKeyType="done"
