@@ -349,7 +349,7 @@ function SponsorChatContent({ initialSponsor }: { initialSponsor: string }) {
           ]}
         >
           <TextInput
-            style={[styles.input, { fontSize }]}
+            style={[styles.input, { fontSize, color: '#333333' }]}
             value={inputText}
             onChangeText={setInputText}
             placeholder={placeholderText}

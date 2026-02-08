@@ -418,7 +418,7 @@ export default function ChatInterface({
         ]}
       >
         <TextInput
-          style={styles.input}
+          style={[styles.input, { color: '#333333' }]}
           value={inputText}
           onChangeText={setInputText}
           placeholder={placeholderText}
