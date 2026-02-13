@@ -116,28 +116,6 @@ export function SpeakerPlayer({ youtubeId }: SpeakerPlayerProps) {
 
   return (
     <View style={styles.container}>
-      {/* YouTube player — full size, behind the player card */}
-      <View style={[styles.playerBehind, { backgroundColor: palette.background }]} pointerEvents="none">
-        <YoutubePlayer
-          ref={playerRef}
-          height={200}
-          videoId={youtubeId}
-          play={isPlaying}
-          onReady={onReady}
-          onChangeState={onStateChange}
-          initialPlayerParams={{
-            controls: false,
-            modestbranding: true,
-            rel: false,
-          }}
-          webViewProps={{
-            injectedJavaScript: playbackSpeed !== 1
-              ? `try { document.querySelector('video').playbackRate = ${playbackSpeed}; } catch(e) {} true;`
-              : 'true;',
-          }}
-        />
-      </View>
-
       {/* Player Card */}
       <View style={[styles.playerCard, { backgroundColor: cardBg }]}>
         {/* Now Playing header row */}
@@ -234,6 +212,30 @@ export function SpeakerPlayer({ youtubeId }: SpeakerPlayerProps) {
           ))}
         </View>
       </View>
+
+      {/* YouTube player — full size below the card, covered by a mask */}
+      <View style={styles.ytContainer} pointerEvents="none">
+        <YoutubePlayer
+          ref={playerRef}
+          height={200}
+          videoId={youtubeId}
+          play={isPlaying}
+          onReady={onReady}
+          onChangeState={onStateChange}
+          initialPlayerParams={{
+            controls: false,
+            modestbranding: true,
+            rel: false,
+          }}
+          webViewProps={{
+            injectedJavaScript: playbackSpeed !== 1
+              ? `try { document.querySelector('video').playbackRate = ${playbackSpeed}; } catch(e) {} true;`
+              : 'true;',
+          }}
+        />
+      </View>
+      {/* Cover the YouTube player with page background */}
+      <View style={[styles.ytCover, { backgroundColor: palette.background }]} />
     </View>
   );
 }
@@ -242,12 +244,12 @@ const styles = StyleSheet.create({
   container: {
     marginTop: 16,
   },
-  playerBehind: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    zIndex: -1,
+  ytContainer: {
+    marginTop: 0,
+  },
+  ytCover: {
+    height: 200,
+    marginTop: -200,
   },
   playerCard: {
     borderRadius: 16,
