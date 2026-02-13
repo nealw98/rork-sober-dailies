@@ -74,19 +74,39 @@ export function SpeakerPlayer({ youtubeId }: SpeakerPlayerProps) {
     }
   }, []);
 
+  // Track user intent separately from YouTube state to avoid race conditions
+  const userIntentRef = useRef<boolean | null>(null);
+  const intentTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   const onStateChange = useCallback((state: string) => {
-    console.log('[SpeakerPlayer] onStateChange:', state);
+    console.log('[SpeakerPlayer] onStateChange:', state, 'userIntent:', userIntentRef.current);
     if (state === 'playing') {
-      setIsPlaying(true);
-    } else if (state === 'paused' || state === 'ended') {
+      // Only sync to playing if user hasn't explicitly paused
+      if (userIntentRef.current !== false) {
+        setIsPlaying(true);
+      }
+    } else if (state === 'paused') {
+      // Only sync to paused if user hasn't explicitly pressed play
+      if (userIntentRef.current !== true) {
+        setIsPlaying(false);
+      }
+    } else if (state === 'ended') {
+      userIntentRef.current = null;
       setIsPlaying(false);
     }
   }, []);
 
   const togglePlay = useCallback(() => {
     setIsPlaying((prev) => {
-      console.log('[SpeakerPlayer] togglePlay, isReady:', isReady, 'current:', prev, '-> next:', !prev);
-      return !prev;
+      const next = !prev;
+      console.log('[SpeakerPlayer] togglePlay, isReady:', isReady, 'current:', prev, '-> next:', next);
+      // Set user intent and clear it after YouTube has had time to sync
+      userIntentRef.current = next;
+      if (intentTimeoutRef.current) clearTimeout(intentTimeoutRef.current);
+      intentTimeoutRef.current = setTimeout(() => {
+        userIntentRef.current = null;
+      }, 3000);
+      return next;
     });
   }, [isReady]);
 
