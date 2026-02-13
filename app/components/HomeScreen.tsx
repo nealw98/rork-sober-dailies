@@ -141,6 +141,23 @@ const HomeScreen = () => {
           </TouchableOpacity>
         </View>
 
+        {/* Speakers - Full Width */}
+        <TouchableOpacity
+          onPress={() => router.push('/(tabs)/speakers')}
+          activeOpacity={0.8}
+        >
+          <LinearGradient
+            colors={palette.heroTiles.speakers as [string, string, ...string[]]}
+            style={[styles.heroTile]}
+            start={{ x: 0.5, y: 0 }}
+            end={{ x: 0.5, y: 1 }}
+          >
+            <Text style={styles.heroEmoji}>🎙️</Text>
+            <Text style={[styles.heroTitle, { color: palette.heroTileText }]}>AA Speakers</Text>
+            <Text style={[styles.heroSubtitle, { color: palette.heroTileText }]}>35 Speaker Stories</Text>
+          </LinearGradient>
+        </TouchableOpacity>
+
         {/* Morning Section */}
         <Text style={[styles.sectionLabel, { color: palette.muted }]}>Morning</Text>
         <View style={styles.routineRow}>

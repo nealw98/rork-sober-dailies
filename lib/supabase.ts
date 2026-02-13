@@ -178,6 +178,62 @@ export type Database = {
           created_at?: string | null;
         };
       };
+      speakers: {
+        Row: {
+          id: string;
+          speaker: string;
+          hometown: string;
+          meeting: string;
+          date: string | null;
+          title: string;
+          subtitle: string | null;
+          sobriety_years: string | null;
+          core_themes: string;
+          audience: string | null;
+          explicit: boolean;
+          substances: string | null;
+          youtube_id: string;
+          youtube_url: string;
+          quote: string | null;
+          created_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          speaker: string;
+          hometown: string;
+          meeting: string;
+          date?: string | null;
+          title: string;
+          subtitle?: string | null;
+          sobriety_years?: string | null;
+          core_themes: string;
+          audience?: string | null;
+          explicit?: boolean;
+          substances?: string | null;
+          youtube_id: string;
+          youtube_url: string;
+          quote?: string | null;
+          created_at?: string | null;
+        };
+        Update: {
+          id?: string;
+          speaker?: string;
+          hometown?: string;
+          meeting?: string;
+          date?: string | null;
+          title?: string;
+          subtitle?: string | null;
+          sobriety_years?: string | null;
+          core_themes?: string;
+          audience?: string | null;
+          explicit?: boolean;
+          substances?: string | null;
+          youtube_id?: string;
+          youtube_url?: string;
+          quote?: string | null;
+          created_at?: string | null;
+        };
+      };
       gratitude_quotes: {
         Row: {
           id: string;

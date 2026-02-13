@@ -48,6 +48,7 @@ const defaultLight = {
     nightlyReview: ['#AA85D5', '#8A65B5'],
     prayers: ['#6AC8B8', '#4AA898'],
     spotCheck: ['#E0CABE', '#907565'],
+    speakers: ['#8B6AC0', '#6A4A98'],
   },
   heroTileText: '#ffffff', // White text on colored tile backgrounds
   headerText: '#ffffff', // White text on header gradient
@@ -82,6 +83,7 @@ const defaultDark = {
     nightlyReview: ['#8a65a5', '#6a4585'],
     prayers: ['#4aa888', '#3a8868'],
     spotCheck: ['#b09585', '#907565'],
+    speakers: ['#7a5aaa', '#5a3a88'],
   },
   heroTileText: '#ffffff', // White text on colored tile backgrounds
   headerText: '#ffffff', // White text on header gradient
@@ -127,6 +129,7 @@ const blueDeepSeaDark = {
     nightlyReview: ['#3E5C76', '#3E5C76'], // Primary: Blue Slate
     prayers: ['#3E5C76', '#3E5C76'], // Primary: Blue Slate
     spotCheck: ['#3E5C76', '#3E5C76'], // Primary: Blue Slate
+    speakers: ['#3E5C76', '#3E5C76'], // Primary: Blue Slate
   },
   sponsorSelection: {
     background: '#0D1321', // Ink Black for sponsor selection page background

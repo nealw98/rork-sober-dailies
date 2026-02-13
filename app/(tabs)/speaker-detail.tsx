@@ -1,0 +1,314 @@
+import React, { useCallback, useMemo } from 'react';
+import { StyleSheet, View, Text, ScrollView, TouchableOpacity } from 'react-native';
+import { router, Stack, useLocalSearchParams } from 'expo-router';
+import { usePostHog } from 'posthog-react-native';
+import { useFocusEffect } from '@react-navigation/native';
+import { ChevronLeft } from 'lucide-react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import ScreenContainer from '@/components/ScreenContainer';
+import { SpeakerPlayer } from '@/components/SpeakerPlayer';
+import { useTheme } from '@/hooks/useTheme';
+import { useSpeakers } from '@/hooks/useSpeakers';
+import { useScreenTimeTracking } from '@/hooks/useScreenTimeTracking';
+import { adjustFontWeight } from '@/constants/fonts';
+
+export default function SpeakerDetailScreen() {
+  const { id } = useLocalSearchParams<{ id: string }>();
+  const posthog = usePostHog();
+  const { palette } = useTheme();
+  const { speakers } = useSpeakers();
+  const insets = useSafeAreaInsets();
+
+  useScreenTimeTracking('SpeakerDetail');
+
+  const speaker = useMemo(
+    () => speakers.find((s) => s.id === id),
+    [speakers, id]
+  );
+
+  useFocusEffect(
+    useCallback(() => {
+      if (speaker) {
+        posthog?.screen('Speaker Detail', {
+          speaker_name: speaker.speaker,
+          speaker_title: speaker.title,
+        });
+      }
+    }, [posthog, speaker])
+  );
+
+  const themes = useMemo(
+    () =>
+      speaker?.core_themes
+        .split(',')
+        .map((t) => t.trim())
+        .filter(Boolean) ?? [],
+    [speaker?.core_themes]
+  );
+
+  const formattedDate = useMemo(() => {
+    if (!speaker?.date) return null;
+    try {
+      const d = new Date(speaker.date);
+      return d.toLocaleDateString('en-US', {
+        month: 'long',
+        day: 'numeric',
+        year: 'numeric',
+      });
+    } catch {
+      return speaker.date;
+    }
+  }, [speaker?.date]);
+
+  if (!speaker) {
+    return (
+      <ScreenContainer style={[styles.container, { backgroundColor: palette.background }]} noPadding>
+        <Stack.Screen options={{ headerShown: false }} />
+        <View style={styles.loading}>
+          <Text style={{ color: palette.muted }}>Loading...</Text>
+        </View>
+      </ScreenContainer>
+    );
+  }
+
+  return (
+    <ScreenContainer style={[styles.container, { backgroundColor: palette.background }]} noPadding>
+      <Stack.Screen options={{ headerShown: false }} />
+
+      {/* Gradient header */}
+      <LinearGradient
+        colors={palette.gradients.header as [string, string, ...string[]]}
+        style={[styles.headerBlock, { paddingTop: insets.top + 8 }]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+      >
+        <View style={styles.headerTopRow}>
+          <TouchableOpacity
+            onPress={() => router.push('/speakers' as any)}
+            style={styles.backButton}
+            activeOpacity={0.7}
+          >
+            <ChevronLeft size={24} color={palette.headerText} />
+          </TouchableOpacity>
+          <View style={{ width: 60 }} />
+        </View>
+        <Text style={[styles.headerTitle, { color: palette.headerText }]} numberOfLines={1}>
+          {speaker.speaker}
+        </Text>
+        <Text style={[styles.headerSubtitle, { color: palette.headerText }]} numberOfLines={1}>
+          {speaker.hometown}
+        </Text>
+      </LinearGradient>
+
+      <ScrollView
+        style={styles.scrollView}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Title */}
+        <Text style={[styles.title, { color: palette.text }]}>{speaker.title}</Text>
+
+        {/* Subtitle */}
+        {speaker.subtitle ? (
+          <Text style={[styles.subtitle, { color: palette.muted }]}>
+            {speaker.subtitle}
+          </Text>
+        ) : null}
+
+        {/* Quote block */}
+        {speaker.quote ? (
+          <View style={[styles.quoteBlock, { borderLeftColor: palette.tint }]}>
+            <Text style={[styles.quoteText, { color: palette.text }]}>
+              &ldquo;{speaker.quote}&rdquo;
+            </Text>
+          </View>
+        ) : null}
+
+        {/* Theme tags */}
+        {themes.length > 0 && (
+          <View style={styles.tags}>
+            {themes.map((theme) => (
+              <View
+                key={theme}
+                style={[styles.tag, { backgroundColor: palette.border }]}
+              >
+                <Text style={[styles.tagText, { color: palette.muted }]}>
+                  {theme}
+                </Text>
+              </View>
+            ))}
+          </View>
+        )}
+
+        {/* Explicit badge */}
+        {speaker.explicit && (
+          <View style={styles.explicitRow}>
+            <View style={[styles.explicitBadge, { backgroundColor: palette.muted }]}>
+              <Text style={styles.explicitBadgeText}>E</Text>
+            </View>
+            <Text style={[styles.explicitLabel, { color: palette.muted }]}>
+              Explicit language
+            </Text>
+          </View>
+        )}
+
+        {/* Metadata row */}
+        <View style={[styles.metaRow, { borderTopColor: palette.border }]}>
+          {speaker.sobriety_years ? (
+            <View style={styles.metaItem}>
+              <Text style={[styles.metaLabel, { color: palette.muted }]}>Sobriety</Text>
+              <Text style={[styles.metaValue, { color: palette.text }]}>
+                {speaker.sobriety_years}
+              </Text>
+            </View>
+          ) : null}
+          {formattedDate ? (
+            <View style={styles.metaItem}>
+              <Text style={[styles.metaLabel, { color: palette.muted }]}>Recorded</Text>
+              <Text style={[styles.metaValue, { color: palette.text }]}>
+                {formattedDate}
+              </Text>
+            </View>
+          ) : null}
+          {speaker.audience ? (
+            <View style={styles.metaItem}>
+              <Text style={[styles.metaLabel, { color: palette.muted }]}>Audience</Text>
+              <Text style={[styles.metaValue, { color: palette.text }]}>
+                {speaker.audience}
+              </Text>
+            </View>
+          ) : null}
+        </View>
+
+        {/* Player */}
+        <SpeakerPlayer youtubeId={speaker.youtube_id} />
+
+        <View style={{ height: 40 }} />
+      </ScrollView>
+    </ScreenContainer>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
+  headerBlock: {
+    paddingBottom: 16,
+    paddingHorizontal: 16,
+  },
+  headerTopRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  backButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    borderRadius: 16,
+  },
+  headerTitle: {
+    fontSize: 28,
+    fontWeight: adjustFontWeight('600'),
+    textAlign: 'center',
+  },
+  headerSubtitle: {
+    fontSize: 15,
+    textAlign: 'center',
+    marginTop: 4,
+    opacity: 0.8,
+  },
+  scrollView: {
+    flex: 1,
+  },
+  scrollContent: {
+    paddingHorizontal: 20,
+    paddingTop: 20,
+  },
+  title: {
+    fontSize: 24,
+    fontWeight: adjustFontWeight('700'),
+    marginBottom: 8,
+  },
+  subtitle: {
+    fontSize: 16,
+    lineHeight: 22,
+    marginBottom: 16,
+  },
+  quoteBlock: {
+    borderLeftWidth: 3,
+    paddingLeft: 14,
+    paddingVertical: 8,
+    marginBottom: 16,
+  },
+  quoteText: {
+    fontSize: 16,
+    fontStyle: 'italic',
+    lineHeight: 24,
+  },
+  tags: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginBottom: 12,
+  },
+  tag: {
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 10,
+  },
+  tagText: {
+    fontSize: 13,
+  },
+  explicitRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 12,
+  },
+  explicitBadge: {
+    width: 20,
+    height: 20,
+    borderRadius: 4,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  explicitBadgeText: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: adjustFontWeight('700'),
+  },
+  explicitLabel: {
+    fontSize: 13,
+  },
+  metaRow: {
+    flexDirection: 'row',
+    borderTopWidth: 1,
+    paddingTop: 12,
+    marginTop: 4,
+    gap: 16,
+  },
+  metaItem: {
+    flex: 1,
+  },
+  metaLabel: {
+    fontSize: 11,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    marginBottom: 2,
+  },
+  metaValue: {
+    fontSize: 14,
+    fontWeight: adjustFontWeight('500'),
+  },
+  loading: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+});

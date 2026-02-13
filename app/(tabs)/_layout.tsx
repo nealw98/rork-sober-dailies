@@ -88,6 +88,10 @@ const BackButton = () => {
         console.log('🧭 Navigation: Special case - navigating from meeting-pocket to literature');
         router.push('/literature');
         return;
+      } else if (pathname && (pathname.includes('/speaker-detail') || pathname.endsWith('speaker-detail'))) {
+        console.log('🧭 Navigation: Special case - navigating from speaker-detail to speakers');
+        router.push('/speakers');
+        return;
       }
       
       // Actually navigate back for other cases
@@ -341,6 +345,20 @@ export default function TabLayout() {
           headerShown: true,
           headerTitle: '',
           headerLeft: () => <BackButton />,
+        }}
+      />
+      <Tabs.Screen
+        name="speakers"
+        options={{
+          href: null,
+          headerShown: false,
+        }}
+      />
+      <Tabs.Screen
+        name="speaker-detail"
+        options={{
+          href: null,
+          headerShown: false,
         }}
       />
 

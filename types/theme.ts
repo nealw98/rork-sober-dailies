@@ -25,6 +25,7 @@ export interface HeroTilesGradients {
   nightlyReview: string[];
   prayers: string[];
   spotCheck: string[];
+  speakers: string[];
 }
 
 /** Resolved palette: semantic colors + gradients + hero tiles. Used by useTheme(). */
