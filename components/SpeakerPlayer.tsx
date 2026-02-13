@@ -80,18 +80,8 @@ export function SpeakerPlayer({ youtubeId }: SpeakerPlayerProps) {
     }
   }, []);
 
-  const hasPlayedRef = useRef(false);
-
   const togglePlay = useCallback(() => {
-    setIsPlaying((prev) => {
-      const willPlay = !prev;
-      // On first play, seek to 0 to ensure the WebView player is fully engaged
-      if (willPlay && !hasPlayedRef.current) {
-        hasPlayedRef.current = true;
-        playerRef.current?.seekTo(0, true);
-      }
-      return willPlay;
-    });
+    setIsPlaying((prev) => !prev);
   }, []);
 
   const skipBack = useCallback(() => {
@@ -126,12 +116,12 @@ export function SpeakerPlayer({ youtubeId }: SpeakerPlayerProps) {
 
   return (
     <View style={styles.container}>
-      {/* Hidden YouTube player — invisible, audio only */}
+      {/* Hidden YouTube player — needs 200x200 minimum for YouTube API to work */}
       <View style={styles.hiddenPlayer}>
         <YoutubePlayer
           ref={playerRef}
-          height={1}
-          width={1}
+          height={200}
+          width={200}
           videoId={youtubeId}
           play={isPlaying}
           onReady={onReady}
@@ -255,11 +245,12 @@ const styles = StyleSheet.create({
   },
   hiddenPlayer: {
     height: 1,
-    width: 1,
     overflow: 'hidden',
+    opacity: 0.01,
     position: 'absolute',
-    top: -1,
-    left: -1,
+    top: 0,
+    left: 0,
+    right: 0,
     zIndex: -1,
   },
   playerCard: {
