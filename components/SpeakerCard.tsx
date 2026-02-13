@@ -12,10 +12,6 @@ interface SpeakerCardProps {
 
 function SpeakerCardInner({ speaker, onPress }: SpeakerCardProps) {
   const { palette } = useTheme();
-  const themes = speaker.core_themes
-    .split(',')
-    .map((t) => t.trim())
-    .filter(Boolean);
 
   return (
     <TouchableOpacity
@@ -46,31 +42,14 @@ function SpeakerCardInner({ speaker, onPress }: SpeakerCardProps) {
           {speaker.title}
         </Text>
 
-        <View style={styles.meta}>
-          {speaker.sobriety_years ? (
-            <Text style={[styles.metaText, { color: palette.muted }]}>
-              {speaker.sobriety_years}
-            </Text>
-          ) : null}
-          {speaker.explicit && (
+        {speaker.explicit && (
+          <View style={styles.meta}>
             <View style={[styles.explicitBadge, { backgroundColor: palette.muted }]}>
               <Text style={styles.explicitText}>E</Text>
             </View>
-          )}
-        </View>
+          </View>
+        )}
 
-        <View style={styles.tags}>
-          {themes.slice(0, 3).map((theme) => (
-            <View
-              key={theme}
-              style={[styles.tag, { backgroundColor: palette.border }]}
-            >
-              <Text style={[styles.tagText, { color: palette.muted }]}>
-                {theme}
-              </Text>
-            </View>
-          ))}
-        </View>
       </View>
     </TouchableOpacity>
   );
@@ -115,10 +94,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    marginBottom: 8,
-  },
-  metaText: {
-    fontSize: 13,
   },
   explicitBadge: {
     width: 18,
@@ -131,18 +106,5 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 11,
     fontWeight: adjustFontWeight('700'),
-  },
-  tags: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 6,
-  },
-  tag: {
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 8,
-  },
-  tagText: {
-    fontSize: 12,
   },
 });

@@ -1,9 +1,9 @@
 import React, { useState, useMemo, useCallback } from 'react';
-import { StyleSheet, View, Text, TouchableOpacity, FlatList, ActivityIndicator } from 'react-native';
+import { StyleSheet, View, Text, TouchableOpacity, FlatList, ActivityIndicator, TextInput } from 'react-native';
 import { router, Stack } from 'expo-router';
 import { usePostHog } from 'posthog-react-native';
 import { useFocusEffect } from '@react-navigation/native';
-import { ChevronLeft } from 'lucide-react-native';
+import { ChevronLeft, Search, X } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import ScreenContainer from '@/components/ScreenContainer';
@@ -52,6 +52,7 @@ export default function SpeakersScreen() {
   const { speakers, isLoading } = useSpeakers();
   const insets = useSafeAreaInsets();
   const [sortBy, setSortBy] = useState<SortOption>('newest');
+  const [searchQuery, setSearchQuery] = useState('');
 
   useScreenTimeTracking('Speakers');
 
@@ -61,10 +62,21 @@ export default function SpeakersScreen() {
     }, [posthog])
   );
 
-  const sortedSpeakers = useMemo(
-    () => sortSpeakers(speakers, sortBy),
-    [speakers, sortBy]
-  );
+  const filteredAndSorted = useMemo(() => {
+    let results = speakers;
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase().trim();
+      results = speakers.filter(
+        (s) =>
+          s.speaker.toLowerCase().includes(q) ||
+          s.title.toLowerCase().includes(q) ||
+          (s.subtitle && s.subtitle.toLowerCase().includes(q)) ||
+          s.hometown.toLowerCase().includes(q) ||
+          s.core_themes.toLowerCase().includes(q)
+      );
+    }
+    return sortSpeakers(results, sortBy);
+  }, [speakers, sortBy, searchQuery]);
 
   const handleSpeakerPress = useCallback(
     (speaker: Speaker) => {
@@ -116,30 +128,50 @@ export default function SpeakersScreen() {
         </Text>
       </LinearGradient>
 
-      {/* Sort controls */}
-      <View style={[styles.sortRow, { borderBottomColor: palette.border }]}>
-        {SORT_OPTIONS.map((opt) => (
-          <TouchableOpacity
-            key={opt.key}
-            onPress={() => setSortBy(opt.key)}
-            style={[
-              styles.sortButton,
-              sortBy === opt.key && { borderBottomColor: palette.tint, borderBottomWidth: 2 },
-            ]}
-          >
-            <Text
+      {/* Search + Sort controls */}
+      <View style={[styles.controlsBar, { borderBottomColor: palette.border }]}>
+        <View style={[styles.searchRow, { backgroundColor: palette.cardBackground, borderColor: palette.border }]}>
+          <Search size={16} color={palette.muted} />
+          <TextInput
+            style={[styles.searchInput, { color: palette.text }]}
+            placeholder="Search speakers..."
+            placeholderTextColor={palette.muted}
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+            autoCorrect={false}
+            autoCapitalize="none"
+            returnKeyType="search"
+          />
+          {searchQuery.length > 0 && (
+            <TouchableOpacity onPress={() => setSearchQuery('')} hitSlop={8}>
+              <X size={16} color={palette.muted} />
+            </TouchableOpacity>
+          )}
+        </View>
+        <View style={styles.sortRow}>
+          {SORT_OPTIONS.map((opt) => (
+            <TouchableOpacity
+              key={opt.key}
+              onPress={() => setSortBy(opt.key)}
               style={[
-                styles.sortText,
-                {
-                  color: sortBy === opt.key ? palette.tint : palette.muted,
-                  fontWeight: sortBy === opt.key ? adjustFontWeight('600') : adjustFontWeight('400'),
-                },
+                styles.sortButton,
+                sortBy === opt.key && { borderBottomColor: palette.tint, borderBottomWidth: 2 },
               ]}
             >
-              {opt.label}
-            </Text>
-          </TouchableOpacity>
-        ))}
+              <Text
+                style={[
+                  styles.sortText,
+                  {
+                    color: sortBy === opt.key ? palette.tint : palette.muted,
+                    fontWeight: sortBy === opt.key ? adjustFontWeight('600') : adjustFontWeight('400'),
+                  },
+                ]}
+              >
+                {opt.label}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
       </View>
 
       {/* Speaker list */}
@@ -149,13 +181,21 @@ export default function SpeakersScreen() {
         </View>
       ) : (
         <FlatList
-          data={sortedSpeakers}
+          data={filteredAndSorted}
           renderItem={renderItem}
           keyExtractor={keyExtractor}
           contentContainerStyle={styles.listContent}
           showsVerticalScrollIndicator={false}
           initialNumToRender={10}
           maxToRenderPerBatch={10}
+          keyboardShouldPersistTaps="handled"
+          ListEmptyComponent={
+            <View style={styles.empty}>
+              <Text style={[styles.emptyText, { color: palette.muted }]}>
+                No speakers found
+              </Text>
+            </View>
+          }
         />
       )}
     </ScreenContainer>
@@ -189,11 +229,30 @@ const styles = StyleSheet.create({
     fontWeight: adjustFontWeight('400'),
     textAlign: 'center',
   },
+  controlsBar: {
+    borderBottomWidth: 1,
+    paddingTop: 12,
+  },
+  searchRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginHorizontal: 16,
+    marginBottom: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 10,
+    borderWidth: 1,
+    gap: 8,
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: 15,
+    padding: 0,
+  },
   sortRow: {
     flexDirection: 'row',
     justifyContent: 'center',
-    paddingVertical: 8,
-    borderBottomWidth: 1,
+    paddingVertical: 4,
     gap: 24,
   },
   sortButton: {
@@ -212,5 +271,12 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  empty: {
+    alignItems: 'center',
+    paddingTop: 40,
+  },
+  emptyText: {
+    fontSize: 15,
   },
 });
