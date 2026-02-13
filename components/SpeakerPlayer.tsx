@@ -116,8 +116,8 @@ export function SpeakerPlayer({ youtubeId }: SpeakerPlayerProps) {
 
   return (
     <View style={styles.container}>
-      {/* YouTube player — visible for debugging */}
-      <View>
+      {/* YouTube player — rendered at full size but clipped to 0px */}
+      <View style={styles.playerClip}>
         <YoutubePlayer
           ref={playerRef}
           height={200}
@@ -242,15 +242,9 @@ const styles = StyleSheet.create({
   container: {
     marginTop: 16,
   },
-  hiddenPlayer: {
-    height: 1,
+  playerClip: {
+    height: 0,
     overflow: 'hidden',
-    opacity: 0.01,
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    zIndex: -1,
   },
   playerCard: {
     borderRadius: 16,
