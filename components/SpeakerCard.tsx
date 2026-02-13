@@ -42,6 +42,12 @@ function SpeakerCardInner({ speaker, onPress }: SpeakerCardProps) {
           {speaker.title}
         </Text>
 
+        {speaker.quote ? (
+          <Text style={[styles.quotePreview, { color: palette.muted }]} numberOfLines={1}>
+            &ldquo;{speaker.quote}&rdquo;
+          </Text>
+        ) : null}
+
         {speaker.explicit && (
           <View style={styles.meta}>
             <View style={[styles.explicitBadge, { backgroundColor: palette.muted }]}>
@@ -88,6 +94,11 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 18,
     fontWeight: adjustFontWeight('700'),
+    marginBottom: 4,
+  },
+  quotePreview: {
+    fontSize: 13,
+    fontStyle: 'italic',
     marginBottom: 8,
   },
   meta: {

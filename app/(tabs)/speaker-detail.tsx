@@ -38,15 +38,6 @@ export default function SpeakerDetailScreen() {
     }, [posthog, speaker])
   );
 
-  const themes = useMemo(
-    () =>
-      speaker?.core_themes
-        .split(',')
-        .map((t) => t.trim())
-        .filter(Boolean) ?? [],
-    [speaker?.core_themes]
-  );
-
   const formattedDate = useMemo(() => {
     if (!speaker?.date) return null;
     try {
@@ -125,22 +116,6 @@ export default function SpeakerDetailScreen() {
           </View>
         ) : null}
 
-        {/* Theme tags */}
-        {themes.length > 0 && (
-          <View style={styles.tags}>
-            {themes.map((theme) => (
-              <View
-                key={theme}
-                style={[styles.tag, { backgroundColor: palette.border }]}
-              >
-                <Text style={[styles.tagText, { color: palette.muted }]}>
-                  {theme}
-                </Text>
-              </View>
-            ))}
-          </View>
-        )}
-
         {/* Explicit badge */}
         {speaker.explicit && (
           <View style={styles.explicitRow}>
@@ -153,33 +128,12 @@ export default function SpeakerDetailScreen() {
           </View>
         )}
 
-        {/* Metadata row */}
-        <View style={[styles.metaRow, { borderTopColor: palette.border }]}>
-          {speaker.sobriety_years ? (
-            <View style={styles.metaItem}>
-              <Text style={[styles.metaLabel, { color: palette.muted }]}>Sobriety</Text>
-              <Text style={[styles.metaValue, { color: palette.text }]}>
-                {speaker.sobriety_years}
-              </Text>
-            </View>
-          ) : null}
-          {formattedDate ? (
-            <View style={styles.metaItem}>
-              <Text style={[styles.metaLabel, { color: palette.muted }]}>Recorded</Text>
-              <Text style={[styles.metaValue, { color: palette.text }]}>
-                {formattedDate}
-              </Text>
-            </View>
-          ) : null}
-          {speaker.audience ? (
-            <View style={styles.metaItem}>
-              <Text style={[styles.metaLabel, { color: palette.muted }]}>Audience</Text>
-              <Text style={[styles.metaValue, { color: palette.text }]}>
-                {speaker.audience}
-              </Text>
-            </View>
-          ) : null}
-        </View>
+        {/* Recorded date */}
+        {formattedDate ? (
+          <Text style={[styles.recordedDate, { color: palette.muted }]}>
+            Recorded: {formattedDate}
+          </Text>
+        ) : null}
 
         {/* Player */}
         <SpeakerPlayer youtubeId={speaker.youtube_id} />
@@ -251,20 +205,6 @@ const styles = StyleSheet.create({
     fontStyle: 'italic',
     lineHeight: 24,
   },
-  tags: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-    marginBottom: 12,
-  },
-  tag: {
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 10,
-  },
-  tagText: {
-    fontSize: 13,
-  },
   explicitRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -286,25 +226,10 @@ const styles = StyleSheet.create({
   explicitLabel: {
     fontSize: 13,
   },
-  metaRow: {
-    flexDirection: 'row',
-    borderTopWidth: 1,
-    paddingTop: 12,
+  recordedDate: {
+    fontSize: 13,
     marginTop: 4,
-    gap: 16,
-  },
-  metaItem: {
-    flex: 1,
-  },
-  metaLabel: {
-    fontSize: 11,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-    marginBottom: 2,
-  },
-  metaValue: {
-    fontSize: 14,
-    fontWeight: adjustFontWeight('500'),
+    marginBottom: 8,
   },
   loading: {
     flex: 1,

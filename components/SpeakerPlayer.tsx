@@ -106,8 +106,8 @@ export function SpeakerPlayer({ youtubeId }: SpeakerPlayerProps) {
       <View style={[styles.playerStrip, { backgroundColor: '#000' }]}>
         <YoutubePlayer
           ref={playerRef}
-          height={60}
-          width={300}
+          height={1}
+          width={1}
           videoId={youtubeId}
           play={isPlaying}
           onReady={onReady}
@@ -127,7 +127,7 @@ export function SpeakerPlayer({ youtubeId }: SpeakerPlayerProps) {
         <EqualizerOverlay isPlaying={isPlaying} />
         {/* YouTube attribution */}
         <View style={styles.ytBadge}>
-          <Text style={styles.ytBadgeText}>YouTube</Text>
+          <Text style={styles.ytBadgeText}>Playing via YouTube</Text>
         </View>
       </View>
 
@@ -218,7 +218,7 @@ const styles = StyleSheet.create({
     marginTop: 16,
   },
   playerStrip: {
-    height: 60,
+    height: 36,
     borderRadius: 8,
     overflow: 'hidden',
     position: 'relative',
