@@ -63,16 +63,19 @@ export function SpeakerPlayer({ youtubeId }: SpeakerPlayerProps) {
   }, [isPlaying, isReady]);
 
   const onReady = useCallback(async () => {
+    console.log('[SpeakerPlayer] onReady fired');
     setIsReady(true);
     try {
       const dur = await playerRef.current?.getDuration();
+      console.log('[SpeakerPlayer] duration:', dur);
       if (dur !== undefined) setDuration(dur);
-    } catch {
-      // ignore
+    } catch (e) {
+      console.log('[SpeakerPlayer] getDuration error:', e);
     }
   }, []);
 
   const onStateChange = useCallback((state: string) => {
+    console.log('[SpeakerPlayer] onStateChange:', state);
     if (state === 'playing') {
       setIsPlaying(true);
     } else if (state === 'paused' || state === 'ended') {
@@ -81,8 +84,11 @@ export function SpeakerPlayer({ youtubeId }: SpeakerPlayerProps) {
   }, []);
 
   const togglePlay = useCallback(() => {
-    setIsPlaying((prev) => !prev);
-  }, []);
+    setIsPlaying((prev) => {
+      console.log('[SpeakerPlayer] togglePlay, isReady:', isReady, 'current:', prev, '-> next:', !prev);
+      return !prev;
+    });
+  }, [isReady]);
 
   const skipBack = useCallback(() => {
     const newTime = Math.max(0, currentTime - 15);
@@ -143,9 +149,10 @@ export function SpeakerPlayer({ youtubeId }: SpeakerPlayerProps) {
             onReady={onReady}
             onChangeState={onStateChange}
             initialPlayerParams={{
-              controls: false,
+              controls: true,
               modestbranding: true,
               rel: false,
+              preventFullScreen: true,
             }}
             webViewProps={{
               injectedJavaScript: playbackSpeed !== 1
