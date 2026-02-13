@@ -80,8 +80,18 @@ export function SpeakerPlayer({ youtubeId }: SpeakerPlayerProps) {
     }
   }, []);
 
+  const hasPlayedRef = useRef(false);
+
   const togglePlay = useCallback(() => {
-    setIsPlaying((prev) => !prev);
+    setIsPlaying((prev) => {
+      const willPlay = !prev;
+      // On first play, seek to 0 to ensure the WebView player is fully engaged
+      if (willPlay && !hasPlayedRef.current) {
+        hasPlayedRef.current = true;
+        playerRef.current?.seekTo(0, true);
+      }
+      return willPlay;
+    });
   }, []);
 
   const skipBack = useCallback(() => {
@@ -244,11 +254,13 @@ const styles = StyleSheet.create({
     marginTop: 16,
   },
   hiddenPlayer: {
-    height: 0,
-    width: 0,
+    height: 1,
+    width: 1,
     overflow: 'hidden',
     position: 'absolute',
-    opacity: 0,
+    top: -1,
+    left: -1,
+    zIndex: -1,
   },
   playerCard: {
     borderRadius: 16,
