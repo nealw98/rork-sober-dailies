@@ -43,7 +43,7 @@ function SpeakerCardInner({ speaker, onPress }: SpeakerCardProps) {
         </Text>
 
         {speaker.quote ? (
-          <Text style={[styles.quotePreview, { color: palette.muted }]} numberOfLines={1}>
+          <Text style={[styles.quotePreview, { color: palette.muted }]} numberOfLines={2}>
             &ldquo;{speaker.quote}&rdquo;
           </Text>
         ) : null}

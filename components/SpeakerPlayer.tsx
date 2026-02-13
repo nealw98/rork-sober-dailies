@@ -1,5 +1,5 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react';
-import { StyleSheet, View, Text, TouchableOpacity, Platform } from 'react-native';
+import { StyleSheet, View, Text, TouchableOpacity } from 'react-native';
 import YoutubePlayer, { YoutubeIframeRef } from 'react-native-youtube-iframe';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useTheme } from '@/hooks/useTheme';
@@ -11,6 +11,15 @@ interface SpeakerPlayerProps {
 }
 
 const SPEEDS = [0.75, 1, 1.25, 1.5];
+
+// Speaker accent colors per theme
+const SPEAKER_ACCENT = '#8B6AC0';
+const SPEAKER_ACCENT_DARK = '#7A5AAA';
+const SPEAKER_ACCENT_DEEPSEA = '#3E5C76';
+
+const CARD_BG_LIGHT = 'rgba(139, 106, 192, 0.08)';
+const CARD_BG_DARK = 'rgba(122, 90, 170, 0.12)';
+const CARD_BG_DEEPSEA = 'rgba(62, 92, 118, 0.15)';
 
 function formatTime(seconds: number): string {
   const mins = Math.floor(seconds / 60);
@@ -29,6 +38,13 @@ export function SpeakerPlayer({ youtubeId }: SpeakerPlayerProps) {
   const [duration, setDuration] = useState(0);
   const [playbackSpeed, setPlaybackSpeed] = useState(1);
   const [isReady, setIsReady] = useState(false);
+
+  // Derive accent and card background colors from theme
+  const isDeepSea = (palette.heroTiles as any)?.speakers?.[0] === '#3E5C76';
+  const isDark = palette.background !== '#fff';
+
+  const accentColor = isDeepSea ? SPEAKER_ACCENT_DEEPSEA : (isDark ? SPEAKER_ACCENT_DARK : SPEAKER_ACCENT);
+  const cardBg = isDeepSea ? CARD_BG_DEEPSEA : (isDark ? CARD_BG_DARK : CARD_BG_LIGHT);
 
   // Poll current time while playing
   useEffect(() => {
@@ -82,8 +98,6 @@ export function SpeakerPlayer({ youtubeId }: SpeakerPlayerProps) {
 
   const handleSpeedChange = useCallback((speed: number) => {
     setPlaybackSpeed(speed);
-    // react-native-youtube-iframe doesn't have a direct playbackRate prop
-    // Use the initialPlayerParams or webViewProps to set speed
   }, []);
 
   const handleProgressBarPress = useCallback(
@@ -102,8 +116,8 @@ export function SpeakerPlayer({ youtubeId }: SpeakerPlayerProps) {
 
   return (
     <View style={styles.container}>
-      {/* Thin YouTube player with equalizer overlay */}
-      <View style={[styles.playerStrip, { backgroundColor: '#000' }]}>
+      {/* Hidden YouTube player — invisible, audio only */}
+      <View style={styles.hiddenPlayer}>
         <YoutubePlayer
           ref={playerRef}
           height={1}
@@ -118,96 +132,108 @@ export function SpeakerPlayer({ youtubeId }: SpeakerPlayerProps) {
             rel: false,
           }}
           webViewProps={{
-            // Set playback speed via injected JS when speed changes
             injectedJavaScript: playbackSpeed !== 1
               ? `try { document.querySelector('video').playbackRate = ${playbackSpeed}; } catch(e) {} true;`
               : 'true;',
           }}
         />
-        <EqualizerOverlay isPlaying={isPlaying} />
-        {/* YouTube attribution */}
-        <View style={styles.ytBadge}>
-          <Text style={styles.ytBadgeText}>Playing via YouTube</Text>
-        </View>
       </View>
 
-      {/* Progress bar */}
-      <TouchableOpacity
-        activeOpacity={1}
-        onPress={handleProgressBarPress}
-        style={styles.progressContainer}
-      >
-        <View
-          ref={progressBarRef}
-          style={[styles.progressTrack, { backgroundColor: palette.border }]}
-          onLayout={(e) => {
-            barWidthRef.current = e.nativeEvent.layout.width;
-          }}
+      {/* Player Card */}
+      <View style={[styles.playerCard, { backgroundColor: cardBg }]}>
+        {/* Now Playing header row */}
+        <View style={styles.nowPlayingRow}>
+          <View style={styles.nowPlayingLeft}>
+            <View style={styles.equalizerInline}>
+              <EqualizerOverlay isPlaying={isPlaying} barCount={4} barColor={accentColor} />
+            </View>
+            <Text style={[styles.nowPlayingLabel, { color: accentColor }]}>
+              Now Playing
+            </Text>
+          </View>
+          <Text style={[styles.ytAttribution, { color: palette.muted }]}>
+            Playing via YouTube
+          </Text>
+        </View>
+
+        {/* Progress bar */}
+        <TouchableOpacity
+          activeOpacity={1}
+          onPress={handleProgressBarPress}
+          style={styles.progressContainer}
         >
           <View
-            style={[
-              styles.progressFill,
-              { width: `${progress * 100}%`, backgroundColor: palette.tint },
-            ]}
-          />
-        </View>
-        <View style={styles.timeRow}>
-          <Text style={[styles.timeText, { color: palette.muted }]}>
-            {formatTime(currentTime)}
-          </Text>
-          <Text style={[styles.timeText, { color: palette.muted }]}>
-            {formatTime(duration)}
-          </Text>
-        </View>
-      </TouchableOpacity>
-
-      {/* Playback controls */}
-      <View style={styles.controls}>
-        <TouchableOpacity onPress={skipBack} style={styles.controlButton}>
-          <Ionicons name="play-back" size={24} color={palette.text} />
-          <Text style={[styles.skipLabel, { color: palette.muted }]}>15s</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity onPress={togglePlay} style={styles.playButton}>
-          <Ionicons
-            name={isPlaying ? 'pause-circle' : 'play-circle'}
-            size={56}
-            color={palette.tint}
-          />
-        </TouchableOpacity>
-
-        <TouchableOpacity onPress={skipForward} style={styles.controlButton}>
-          <Ionicons name="play-forward" size={24} color={palette.text} />
-          <Text style={[styles.skipLabel, { color: palette.muted }]}>30s</Text>
-        </TouchableOpacity>
-      </View>
-
-      {/* Speed selector */}
-      <View style={styles.speedRow}>
-        {SPEEDS.map((speed) => (
-          <TouchableOpacity
-            key={speed}
-            onPress={() => handleSpeedChange(speed)}
-            style={[
-              styles.speedButton,
-              {
-                backgroundColor:
-                  playbackSpeed === speed ? palette.tint : palette.border,
-              },
-            ]}
+            ref={progressBarRef}
+            style={[styles.progressTrack, { backgroundColor: palette.border }]}
+            onLayout={(e) => {
+              barWidthRef.current = e.nativeEvent.layout.width;
+            }}
           >
-            <Text
+            <View
               style={[
-                styles.speedText,
+                styles.progressFill,
+                { width: `${progress * 100}%`, backgroundColor: accentColor },
+              ]}
+            />
+          </View>
+          <View style={styles.timeRow}>
+            <Text style={[styles.timeText, { color: palette.muted }]}>
+              {formatTime(currentTime)}
+            </Text>
+            <Text style={[styles.timeText, { color: palette.muted }]}>
+              {formatTime(duration)}
+            </Text>
+          </View>
+        </TouchableOpacity>
+
+        {/* Playback controls */}
+        <View style={styles.controls}>
+          <TouchableOpacity onPress={skipBack} style={styles.controlButton}>
+            <Ionicons name="play-back" size={24} color={palette.text} />
+            <Text style={[styles.skipLabel, { color: palette.muted }]}>15s</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity onPress={togglePlay} style={styles.playButton}>
+            <Ionicons
+              name={isPlaying ? 'pause-circle' : 'play-circle'}
+              size={56}
+              color={accentColor}
+            />
+          </TouchableOpacity>
+
+          <TouchableOpacity onPress={skipForward} style={styles.controlButton}>
+            <Ionicons name="play-forward" size={24} color={palette.text} />
+            <Text style={[styles.skipLabel, { color: palette.muted }]}>30s</Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* Speed selector */}
+        <View style={styles.speedRow}>
+          {SPEEDS.map((speed) => (
+            <TouchableOpacity
+              key={speed}
+              onPress={() => handleSpeedChange(speed)}
+              style={[
+                styles.speedButton,
                 {
-                  color: playbackSpeed === speed ? '#fff' : palette.muted,
+                  backgroundColor:
+                    playbackSpeed === speed ? accentColor : palette.border,
                 },
               ]}
             >
-              {speed}x
-            </Text>
-          </TouchableOpacity>
-        ))}
+              <Text
+                style={[
+                  styles.speedText,
+                  {
+                    color: playbackSpeed === speed ? '#fff' : palette.muted,
+                  },
+                ]}
+              >
+                {speed}x
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
       </View>
     </View>
   );
@@ -217,29 +243,42 @@ const styles = StyleSheet.create({
   container: {
     marginTop: 16,
   },
-  playerStrip: {
-    height: 36,
-    borderRadius: 8,
+  hiddenPlayer: {
+    height: 0,
+    width: 0,
     overflow: 'hidden',
+    position: 'absolute',
+    opacity: 0,
+  },
+  playerCard: {
+    borderRadius: 16,
+    padding: 16,
+  },
+  nowPlayingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 16,
+  },
+  nowPlayingLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  equalizerInline: {
+    width: 22,
+    height: 24,
     position: 'relative',
   },
-  ytBadge: {
-    position: 'absolute',
-    bottom: 4,
-    right: 8,
-    backgroundColor: 'rgba(0, 0, 0, 0.6)',
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 4,
+  nowPlayingLabel: {
+    fontSize: 15,
+    fontWeight: adjustFontWeight('600'),
   },
-  ytBadgeText: {
-    color: '#fff',
-    fontSize: 9,
-    fontWeight: '600',
+  ytAttribution: {
+    fontSize: 11,
   },
   progressContainer: {
-    marginTop: 12,
-    paddingHorizontal: 4,
+    marginBottom: 12,
   },
   progressTrack: {
     height: 4,
@@ -262,7 +301,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: 8,
+    marginTop: 4,
     gap: 24,
   },
   controlButton: {

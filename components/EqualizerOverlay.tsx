@@ -12,6 +12,7 @@ import Animated, {
 interface EqualizerOverlayProps {
   isPlaying: boolean;
   barCount?: number;
+  barColor?: string;
 }
 
 const BAR_WIDTH = 3;
@@ -28,7 +29,7 @@ const BAR_CONFIGS = [
   { duration: 420, delay: 80 },
 ];
 
-function Bar({ isPlaying, index }: { isPlaying: boolean; index: number }) {
+function Bar({ isPlaying, index, barColor }: { isPlaying: boolean; index: number; barColor: string }) {
   const height = useSharedValue(MIN_HEIGHT);
   const config = BAR_CONFIGS[index % BAR_CONFIGS.length];
 
@@ -58,18 +59,21 @@ function Bar({ isPlaying, index }: { isPlaying: boolean; index: number }) {
     <Animated.View
       style={[
         styles.bar,
+        { backgroundColor: barColor },
         animatedStyle,
       ]}
     />
   );
 }
 
-export function EqualizerOverlay({ isPlaying, barCount = 5 }: EqualizerOverlayProps) {
+const DEFAULT_BAR_COLOR = 'rgba(255, 255, 255, 0.8)';
+
+export function EqualizerOverlay({ isPlaying, barCount = 5, barColor = DEFAULT_BAR_COLOR }: EqualizerOverlayProps) {
   return (
     <View style={styles.container} pointerEvents="none">
       <View style={styles.bars}>
         {Array.from({ length: barCount }).map((_, i) => (
-          <Bar key={i} isPlaying={isPlaying} index={i} />
+          <Bar key={i} isPlaying={isPlaying} index={i} barColor={barColor} />
         ))}
       </View>
     </View>
@@ -90,7 +94,6 @@ const styles = StyleSheet.create({
   },
   bar: {
     width: BAR_WIDTH,
-    backgroundColor: 'rgba(255, 255, 255, 0.8)',
     borderRadius: 2,
   },
 });

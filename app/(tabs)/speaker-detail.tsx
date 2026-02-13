@@ -109,7 +109,7 @@ export default function SpeakerDetailScreen() {
 
         {/* Quote block */}
         {speaker.quote ? (
-          <View style={[styles.quoteBlock, { borderLeftColor: palette.tint }]}>
+          <View style={[styles.quoteBlock, { backgroundColor: palette.cardBackground }]}>
             <Text style={[styles.quoteText, { color: palette.text }]}>
               &ldquo;{speaker.quote}&rdquo;
             </Text>
@@ -195,10 +195,10 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   quoteBlock: {
-    borderLeftWidth: 3,
-    paddingLeft: 14,
-    paddingVertical: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
     marginBottom: 16,
+    borderRadius: 12,
   },
   quoteText: {
     fontSize: 16,

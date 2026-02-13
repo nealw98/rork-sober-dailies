@@ -154,7 +154,6 @@ const HomeScreen = () => {
           >
             <Text style={styles.heroEmoji}>🎙️</Text>
             <Text style={[styles.heroTitle, { color: palette.heroTileText }]}>AA Speakers</Text>
-            <Text style={[styles.heroSubtitle, { color: palette.heroTileText }]}>35 Speaker Stories</Text>
           </LinearGradient>
         </TouchableOpacity>
 
