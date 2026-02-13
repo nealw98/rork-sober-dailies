@@ -38,6 +38,15 @@ export default function SpeakerDetailScreen() {
     }, [posthog, speaker])
   );
 
+  // Match the player card's purple tint for the quote background
+  const isDeepSea = (palette.heroTiles as any)?.speakers?.[0] === '#3E5C76';
+  const isDark = palette.background !== '#fff';
+  const quoteBg = isDeepSea
+    ? 'rgba(62, 92, 118, 0.15)'
+    : isDark
+      ? 'rgba(122, 90, 170, 0.12)'
+      : 'rgba(139, 106, 192, 0.08)';
+
   const formattedDate = useMemo(() => {
     if (!speaker?.date) return null;
     try {
@@ -109,7 +118,7 @@ export default function SpeakerDetailScreen() {
 
         {/* Quote block */}
         {speaker.quote ? (
-          <View style={[styles.quoteBlock, { backgroundColor: palette.cardBackground }]}>
+          <View style={[styles.quoteBlock, { backgroundColor: quoteBg }]}>
             <Text style={[styles.quoteText, { color: palette.text }]}>
               &ldquo;{speaker.quote}&rdquo;
             </Text>
