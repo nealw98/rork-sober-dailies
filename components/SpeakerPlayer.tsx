@@ -116,12 +116,11 @@ export function SpeakerPlayer({ youtubeId }: SpeakerPlayerProps) {
 
   return (
     <View style={styles.container}>
-      {/* Hidden YouTube player — needs 200x200 minimum for YouTube API to work */}
-      <View style={styles.hiddenPlayer}>
+      {/* YouTube player — visible for debugging */}
+      <View>
         <YoutubePlayer
           ref={playerRef}
           height={200}
-          width={200}
           videoId={youtubeId}
           play={isPlaying}
           onReady={onReady}
