@@ -137,7 +137,7 @@ export function SpeakerPlayer({ youtubeId }: SpeakerPlayerProps) {
         <View style={styles.ytEmbed}>
           <YoutubePlayer
             ref={playerRef}
-            height={200}
+            height={100}
             videoId={youtubeId}
             play={isPlaying}
             onReady={onReady}
