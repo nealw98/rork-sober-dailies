@@ -27,7 +27,6 @@ interface CachedSpeakers {
 }
 
 const CACHE_KEY = 'speakers_cache';
-const CACHE_MAX_AGE_MS = 24 * 60 * 60 * 1000; // 24 hours
 
 export function useSpeakers() {
   const [speakers, setSpeakers] = useState<Speaker[]>([]);
@@ -41,15 +40,9 @@ export function useSpeakers() {
       if (cached) {
         setSpeakers(cached.speakers);
         setIsLoading(false);
-
-        // If cache is fresh, skip network fetch
-        const cacheAge = Date.now() - new Date(cached.cached_at).getTime();
-        if (cacheAge < CACHE_MAX_AGE_MS) {
-          return;
-        }
       }
 
-      // Fetch from Supabase
+      // Always fetch fresh data from Supabase
       const { data, error: fetchError } = await supabase
         .from('speakers')
         .select('*')

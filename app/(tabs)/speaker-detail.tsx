@@ -38,9 +38,10 @@ export default function SpeakerDetailScreen() {
     }, [posthog, speaker])
   );
 
-  // Match the player card's purple tint for the quote background
+  // Theme-aware accent and background colors for speakers
   const isDeepSea = (palette.heroTiles as any)?.speakers?.[0] === '#3E5C76';
   const isDark = palette.background !== '#fff';
+  const accentColor = isDeepSea ? '#3E5C76' : (isDark ? '#7A5AAA' : '#8B6AC0');
   const quoteBg = isDeepSea
     ? 'rgba(62, 92, 118, 0.15)'
     : isDark
@@ -107,7 +108,7 @@ export default function SpeakerDetailScreen() {
         showsVerticalScrollIndicator={false}
       >
         {/* Title */}
-        <Text style={[styles.title, { color: palette.text }]}>{speaker.title}</Text>
+        <Text style={[styles.title, { color: accentColor }]}>{speaker.title}</Text>
 
         {/* Subtitle */}
         {speaker.subtitle ? (
@@ -176,7 +177,7 @@ const styles = StyleSheet.create({
     borderRadius: 16,
   },
   headerTitle: {
-    fontSize: 28,
+    fontSize: 32,
     fontWeight: adjustFontWeight('600'),
     textAlign: 'center',
   },

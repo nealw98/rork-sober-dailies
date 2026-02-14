@@ -5,6 +5,11 @@ import { useTheme } from '@/hooks/useTheme';
 import { adjustFontWeight } from '@/constants/fonts';
 import type { Speaker } from '@/hooks/useSpeakers';
 
+// Speaker accent colors — shared with SpeakerPlayer
+const SPEAKER_ACCENT = '#8B6AC0';
+const SPEAKER_ACCENT_DARK = '#7A5AAA';
+const SPEAKER_ACCENT_DEEPSEA = '#3E5C76';
+
 interface SpeakerCardProps {
   speaker: Speaker;
   onPress: () => void;
@@ -12,6 +17,10 @@ interface SpeakerCardProps {
 
 function SpeakerCardInner({ speaker, onPress }: SpeakerCardProps) {
   const { palette } = useTheme();
+
+  const isDeepSea = (palette.heroTiles as any)?.speakers?.[0] === '#3E5C76';
+  const isDark = palette.background !== '#fff';
+  const accentColor = isDeepSea ? SPEAKER_ACCENT_DEEPSEA : (isDark ? SPEAKER_ACCENT_DARK : SPEAKER_ACCENT);
 
   return (
     <TouchableOpacity
@@ -35,18 +44,12 @@ function SpeakerCardInner({ speaker, onPress }: SpeakerCardProps) {
               {speaker.hometown}
             </Text>
           </View>
-          <Ionicons name="play-circle-outline" size={32} color={palette.tint} />
+          <Ionicons name="play-circle-outline" size={32} color={accentColor} />
         </View>
 
-        <Text style={[styles.title, { color: palette.text }]} numberOfLines={2}>
+        <Text style={[styles.title, { color: accentColor }]} numberOfLines={2}>
           {speaker.title}
         </Text>
-
-        {speaker.quote ? (
-          <Text style={[styles.quotePreview, { color: palette.muted }]} numberOfLines={2}>
-            &ldquo;{speaker.quote}&rdquo;
-          </Text>
-        ) : null}
 
         {speaker.explicit && (
           <View style={styles.meta}>
@@ -84,22 +87,17 @@ const styles = StyleSheet.create({
     marginRight: 12,
   },
   name: {
-    fontSize: 16,
-    fontWeight: adjustFontWeight('600'),
+    fontSize: 18,
+    fontWeight: adjustFontWeight('700'),
   },
   hometown: {
     fontSize: 13,
     marginTop: 2,
   },
   title: {
-    fontSize: 18,
-    fontWeight: adjustFontWeight('700'),
+    fontSize: 16,
+    fontWeight: adjustFontWeight('600'),
     marginBottom: 4,
-  },
-  quotePreview: {
-    fontSize: 13,
-    fontStyle: 'italic',
-    marginBottom: 8,
   },
   meta: {
     flexDirection: 'row',

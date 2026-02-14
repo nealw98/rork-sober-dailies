@@ -63,35 +63,21 @@ export function SpeakerPlayer({ youtubeId }: SpeakerPlayerProps) {
   }, [isPlaying, isReady]);
 
   const onReady = useCallback(async () => {
-    console.log('[SpeakerPlayer] onReady fired');
     setIsReady(true);
     try {
       const dur = await playerRef.current?.getDuration();
-      console.log('[SpeakerPlayer] duration:', dur);
       if (dur !== undefined) setDuration(dur);
-    } catch (e) {
-      console.log('[SpeakerPlayer] getDuration error:', e);
+    } catch {
+      // Player may not be ready
     }
   }, []);
 
-  // Track user intent separately from YouTube state to avoid race conditions
-  const userIntentRef = useRef<boolean | null>(null);
-  const intentTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
   const onStateChange = useCallback((state: string) => {
-    console.log('[SpeakerPlayer] onStateChange:', state, 'userIntent:', userIntentRef.current);
     if (state === 'playing') {
-      // Only sync to playing if user hasn't explicitly paused
-      if (userIntentRef.current !== false) {
-        setIsPlaying(true);
-      }
+      setIsPlaying(true);
     } else if (state === 'paused') {
-      // Only sync to paused if user hasn't explicitly pressed play
-      if (userIntentRef.current !== true) {
-        setIsPlaying(false);
-      }
+      setIsPlaying(false);
     } else if (state === 'ended') {
-      userIntentRef.current = null;
       setIsPlaying(false);
     }
   }, []);
@@ -99,16 +85,12 @@ export function SpeakerPlayer({ youtubeId }: SpeakerPlayerProps) {
   const togglePlay = useCallback(() => {
     setIsPlaying((prev) => {
       const next = !prev;
-      console.log('[SpeakerPlayer] togglePlay, isReady:', isReady, 'current:', prev, '-> next:', next);
-      // Set user intent and clear it after YouTube has had time to sync
-      userIntentRef.current = next;
-      if (intentTimeoutRef.current) clearTimeout(intentTimeoutRef.current);
-      intentTimeoutRef.current = setTimeout(() => {
-        userIntentRef.current = null;
-      }, 3000);
+      // Seek to current position to nudge the WebView communication channel.
+      // This ensures the play prop change is picked up by the YouTube iframe.
+      playerRef.current?.seekTo(currentTime || 0, true);
       return next;
     });
-  }, [isReady]);
+  }, [currentTime]);
 
   const skipBack = useCallback(() => {
     const newTime = Math.max(0, currentTime - 15);
@@ -159,22 +141,24 @@ export function SpeakerPlayer({ youtubeId }: SpeakerPlayerProps) {
           </Text>
         </View>
 
-        {/* YouTube video embed */}
-        <View style={styles.ytEmbed}>
+        {/* YouTube video embed — hidden but functional */}
+        <View style={styles.ytHidden}>
           <YoutubePlayer
             ref={playerRef}
-            height={100}
+            height={200}
             videoId={youtubeId}
             play={isPlaying}
             onReady={onReady}
             onChangeState={onStateChange}
             initialPlayerParams={{
-              controls: true,
+              controls: false,
               modestbranding: true,
               rel: false,
               preventFullScreen: true,
             }}
             webViewProps={{
+              allowsInlineMediaPlayback: true,
+              mediaPlaybackRequiresUserAction: false,
               injectedJavaScript: playbackSpeed !== 1
                 ? `try { document.querySelector('video').playbackRate = ${playbackSpeed}; } catch(e) {} true;`
                 : 'true;',
@@ -270,10 +254,10 @@ const styles = StyleSheet.create({
   container: {
     marginTop: 16,
   },
-  ytEmbed: {
-    borderRadius: 12,
+  ytHidden: {
+    height: 1,
     overflow: 'hidden',
-    marginBottom: 12,
+    opacity: 0.01,
   },
   playerCard: {
     borderRadius: 16,
