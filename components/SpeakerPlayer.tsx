@@ -1,6 +1,7 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { StyleSheet, View, Text, TouchableOpacity } from 'react-native';
 import YoutubePlayer, { YoutubeIframeRef } from 'react-native-youtube-iframe';
+import { activateKeepAwakeAsync, deactivateKeepAwake } from 'expo-keep-awake';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useTheme } from '@/hooks/useTheme';
 import { adjustFontWeight } from '@/constants/fonts';
@@ -45,6 +46,18 @@ export function SpeakerPlayer({ youtubeId }: SpeakerPlayerProps) {
 
   const accentColor = isDeepSea ? SPEAKER_ACCENT_DEEPSEA : (isDark ? SPEAKER_ACCENT_DARK : SPEAKER_ACCENT);
   const cardBg = isDeepSea ? CARD_BG_DEEPSEA : (isDark ? CARD_BG_DARK : CARD_BG_LIGHT);
+
+  // Keep screen awake while playing (prevents lock during long talks)
+  useEffect(() => {
+    if (isPlaying) {
+      activateKeepAwakeAsync('speaker-player');
+    } else {
+      deactivateKeepAwake('speaker-player');
+    }
+    return () => {
+      deactivateKeepAwake('speaker-player');
+    };
+  }, [isPlaying]);
 
   // Poll current time while playing
   useEffect(() => {
