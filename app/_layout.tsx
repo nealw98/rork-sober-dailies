@@ -150,6 +150,8 @@ function RootLayoutNav() {
 
   // Local state to prevent re-renders from affecting rendering logic
   const [appReady, setAppReady] = useState(false);
+  // Dev-only: allow dismissing the paywall
+  const [paywallDismissed, setPaywallDismissed] = useState(false);
   // Ensure OTA selection/check completes before we hide splash
   const [otaChecked, setOtaChecked] = useState(false);
 
@@ -264,8 +266,8 @@ function RootLayoutNav() {
   }
 
   // Entire app is subscription-only after onboarding.
-  if (!isPremium) {
-    return <PaywallScreen />;
+  if (!isPremium && !paywallDismissed) {
+    return <PaywallScreen onDismiss={__DEV__ ? () => setPaywallDismissed(true) : undefined} />;
   }
 
   return (

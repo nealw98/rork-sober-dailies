@@ -17,6 +17,7 @@ export interface Speaker {
   substances: string | null;
   youtube_id: string;
   youtube_url: string;
+  audio_url: string | null;
   quote: string | null;
   created_at: string | null;
 }

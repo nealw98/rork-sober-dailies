@@ -19,7 +19,8 @@
       "buildNumber": "120",
       "icon": "./assets/images/icon.png",
       "infoPlist": {
-        "ITSAppUsesNonExemptEncryption": false
+        "ITSAppUsesNonExemptEncryption": false,
+        "UIBackgroundModes": ["audio"]
       },
       "entitlements": {}
     },

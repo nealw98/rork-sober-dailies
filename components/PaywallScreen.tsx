@@ -16,7 +16,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as SecureStore from 'expo-secure-store';
 import * as Clipboard from 'expo-clipboard';
 import Constants from 'expo-constants';
-import { RefreshCw, MessageCircle, BookOpen, Sparkles, Check } from 'lucide-react-native';
+import { RefreshCw, MessageCircle, BookOpen, Sparkles, Check, X } from 'lucide-react-native';
 import { adjustFontWeight } from '@/constants/fonts';
 import { useSubscription } from '@/hooks/useSubscription';
 import { usageLogger } from '@/lib/usageLogger';
@@ -78,7 +78,11 @@ const PREMIUM_BENEFITS = [
 // PAYWALL SCREEN
 // ============================================================================
 
-export default function PaywallScreen() {
+interface PaywallScreenProps {
+  onDismiss?: () => void;
+}
+
+export default function PaywallScreen({ onDismiss }: PaywallScreenProps) {
   const { offerings, isLoading, error, purchasePackage, restorePurchases, refresh } = useSubscription();
   const [isPurchasing, setIsPurchasing] = useState(false);
   const [isRestoring, setIsRestoring] = useState(false);
@@ -250,6 +254,17 @@ export default function PaywallScreen() {
           showsVerticalScrollIndicator={false}
         >
           
+          {/* Close button (dev only) */}
+          {__DEV__ && onDismiss && (
+            <TouchableOpacity
+              style={styles.closeButton}
+              onPress={onDismiss}
+              activeOpacity={0.7}
+            >
+              <X size={22} color="#fff" />
+            </TouchableOpacity>
+          )}
+
           {/* Header */}
           <View style={styles.header}>
             <Text style={styles.title}>Try 7 Days Free</Text>
@@ -462,6 +477,18 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     justifyContent: 'center',
     padding: 24,
+  },
+  closeButton: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(0, 0, 0, 0.3)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 10,
   },
 
   // Header

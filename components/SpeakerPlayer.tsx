@@ -1,13 +1,18 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { StyleSheet, View, Text, TouchableOpacity } from 'react-native';
-import YoutubePlayer, { YoutubeIframeRef } from 'react-native-youtube-iframe';
+import { Audio, AVPlaybackStatus } from 'expo-av';
 import { activateKeepAwakeAsync, deactivateKeepAwake } from 'expo-keep-awake';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useTheme } from '@/hooks/useTheme';
 import { adjustFontWeight } from '@/constants/fonts';
 import { EqualizerOverlay } from './EqualizerOverlay';
 
+const SUPABASE_AUDIO_BASE = 'https://uzfqabcjxjqufpipdcla.supabase.co/storage/v1/object/public/speaker-audio';
+
 interface SpeakerPlayerProps {
+  /** Full audio URL from the audio_url column, or null to construct from youtubeId */
+  audioUrl?: string | null;
+  /** YouTube ID — used as fallback to construct the audio URL */
   youtubeId: string;
 }
 
@@ -28,9 +33,24 @@ function formatTime(seconds: number): string {
   return `${mins}:${secs.toString().padStart(2, '0')}`;
 }
 
-export function SpeakerPlayer({ youtubeId }: SpeakerPlayerProps) {
+// Configure audio mode for background playback
+async function configureAudioMode() {
+  try {
+    await Audio.setAudioModeAsync({
+      allowsRecordingIOS: false,
+      staysActiveInBackground: true,
+      playsInSilentModeIOS: true,
+      shouldDuckAndroid: true,
+      playThroughEarpieceAndroid: false,
+    });
+  } catch (e) {
+    console.warn('[SpeakerPlayer] Failed to configure audio mode:', e);
+  }
+}
+
+export function SpeakerPlayer({ audioUrl, youtubeId }: SpeakerPlayerProps) {
   const { palette } = useTheme();
-  const playerRef = useRef<YoutubeIframeRef>(null);
+  const soundRef = useRef<Audio.Sound | null>(null);
   const progressBarRef = useRef<View>(null);
   const barWidthRef = useRef(0);
 
@@ -38,7 +58,9 @@ export function SpeakerPlayer({ youtubeId }: SpeakerPlayerProps) {
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const [playbackSpeed, setPlaybackSpeed] = useState(1);
-  const [isReady, setIsReady] = useState(false);
+  const [isLoaded, setIsLoaded] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   // Derive accent and card background colors from theme
   const isDeepSea = (palette.heroTiles as any)?.speakers?.[0] === '#3E5C76';
@@ -47,7 +69,10 @@ export function SpeakerPlayer({ youtubeId }: SpeakerPlayerProps) {
   const accentColor = isDeepSea ? SPEAKER_ACCENT_DEEPSEA : (isDark ? SPEAKER_ACCENT_DARK : SPEAKER_ACCENT);
   const cardBg = isDeepSea ? CARD_BG_DEEPSEA : (isDark ? CARD_BG_DARK : CARD_BG_LIGHT);
 
-  // Keep screen awake while playing (prevents lock during long talks)
+  // Resolve the audio URI
+  const resolvedUri = audioUrl || `${SUPABASE_AUDIO_BASE}/${youtubeId}.m4a`;
+
+  // Keep screen awake while playing
   useEffect(() => {
     if (isPlaying) {
       activateKeepAwakeAsync('speaker-player');
@@ -59,78 +84,136 @@ export function SpeakerPlayer({ youtubeId }: SpeakerPlayerProps) {
     };
   }, [isPlaying]);
 
-  // Poll current time while playing
-  useEffect(() => {
-    if (!isPlaying || !isReady) return;
-
-    const interval = setInterval(async () => {
-      try {
-        const time = await playerRef.current?.getCurrentTime();
-        if (time !== undefined) setCurrentTime(time);
-      } catch {
-        // Player may not be ready
+  // Playback status callback
+  const onPlaybackStatusUpdate = useCallback((status: AVPlaybackStatus) => {
+    if (!status.isLoaded) {
+      if (status.error) {
+        console.error('[SpeakerPlayer] Playback error:', status.error);
+        setError('Failed to load audio');
       }
-    }, 1000);
+      return;
+    }
 
-    return () => clearInterval(interval);
-  }, [isPlaying, isReady]);
+    setCurrentTime(status.positionMillis / 1000);
+    if (status.durationMillis) {
+      setDuration(status.durationMillis / 1000);
+    }
+    setIsPlaying(status.isPlaying);
 
-  const onReady = useCallback(async () => {
-    setIsReady(true);
+    if (status.didJustFinish) {
+      setIsPlaying(false);
+      setCurrentTime(0);
+    }
+  }, []);
+
+  // Load the audio
+  const loadAudio = useCallback(async () => {
     try {
-      const dur = await playerRef.current?.getDuration();
-      if (dur !== undefined) setDuration(dur);
-    } catch {
-      // Player may not be ready
+      setIsLoading(true);
+      setError(null);
+
+      await configureAudioMode();
+
+      // Unload previous sound if any
+      if (soundRef.current) {
+        await soundRef.current.unloadAsync();
+        soundRef.current = null;
+      }
+
+      const { sound } = await Audio.Sound.createAsync(
+        { uri: resolvedUri },
+        { shouldPlay: false, rate: playbackSpeed, shouldCorrectPitch: true },
+        onPlaybackStatusUpdate
+      );
+
+      soundRef.current = sound;
+      setIsLoaded(true);
+    } catch (e) {
+      console.error('[SpeakerPlayer] Error loading audio:', e);
+      setError('Failed to load audio file');
+    } finally {
+      setIsLoading(false);
     }
-  }, []);
+  }, [resolvedUri, onPlaybackStatusUpdate]);
 
-  const onStateChange = useCallback((state: string) => {
-    if (state === 'playing') {
-      setIsPlaying(true);
-    } else if (state === 'paused') {
-      setIsPlaying(false);
-    } else if (state === 'ended') {
-      setIsPlaying(false);
+  // Load audio on mount
+  useEffect(() => {
+    loadAudio();
+
+    return () => {
+      // Cleanup on unmount
+      if (soundRef.current) {
+        soundRef.current.unloadAsync();
+        soundRef.current = null;
+      }
+    };
+  }, [resolvedUri]);
+
+  // Update playback speed when changed
+  useEffect(() => {
+    if (soundRef.current && isLoaded) {
+      soundRef.current.setRateAsync(playbackSpeed, true).catch(() => {});
     }
-  }, []);
+  }, [playbackSpeed, isLoaded]);
 
-  const togglePlay = useCallback(() => {
-    setIsPlaying((prev) => {
-      const next = !prev;
-      // Seek to current position to nudge the WebView communication channel.
-      // This ensures the play prop change is picked up by the YouTube iframe.
-      playerRef.current?.seekTo(currentTime || 0, true);
-      return next;
-    });
-  }, [currentTime]);
+  const togglePlay = useCallback(async () => {
+    if (!soundRef.current || !isLoaded) {
+      // Try loading if not loaded yet
+      await loadAudio();
+      return;
+    }
 
-  const skipBack = useCallback(() => {
-    const newTime = Math.max(0, currentTime - 15);
-    playerRef.current?.seekTo(newTime, true);
-    setCurrentTime(newTime);
-  }, [currentTime]);
+    try {
+      if (isPlaying) {
+        await soundRef.current.pauseAsync();
+      } else {
+        await soundRef.current.playAsync();
+      }
+    } catch (e) {
+      console.error('[SpeakerPlayer] Toggle play error:', e);
+    }
+  }, [isPlaying, isLoaded, loadAudio]);
 
-  const skipForward = useCallback(() => {
-    const newTime = Math.min(duration, currentTime + 30);
-    playerRef.current?.seekTo(newTime, true);
-    setCurrentTime(newTime);
-  }, [currentTime, duration]);
+  const skipBack = useCallback(async () => {
+    if (!soundRef.current || !isLoaded) return;
+    try {
+      const newTime = Math.max(0, currentTime - 15);
+      await soundRef.current.setPositionAsync(newTime * 1000);
+      setCurrentTime(newTime);
+    } catch (e) {
+      console.error('[SpeakerPlayer] Skip back error:', e);
+    }
+  }, [currentTime, isLoaded]);
+
+  const skipForward = useCallback(async () => {
+    if (!soundRef.current || !isLoaded) return;
+    try {
+      const newTime = Math.min(duration, currentTime + 30);
+      await soundRef.current.setPositionAsync(newTime * 1000);
+      setCurrentTime(newTime);
+    } catch (e) {
+      console.error('[SpeakerPlayer] Skip forward error:', e);
+    }
+  }, [currentTime, duration, isLoaded]);
 
   const handleSpeedChange = useCallback((speed: number) => {
     setPlaybackSpeed(speed);
   }, []);
 
   const handleProgressBarPress = useCallback(
-    (event: { nativeEvent: { locationX: number } }) => {
-      if (barWidthRef.current > 0 && duration > 0) {
+    async (event: { nativeEvent: { locationX: number } }) => {
+      if (barWidthRef.current > 0 && duration > 0 && soundRef.current && isLoaded) {
         const proportion = event.nativeEvent.locationX / barWidthRef.current;
         const seekTime = proportion * duration;
-        playerRef.current?.seekTo(seekTime, true);
-        setCurrentTime(seekTime);
+        try {
+          await soundRef.current.setPositionAsync(seekTime * 1000);
+          setCurrentTime(seekTime);
+        } catch (e) {
+          console.error('[SpeakerPlayer] Seek error:', e);
+        }
       }
     },
-    [duration]
+    [duration, isLoaded]
   );
 
   const progress = duration > 0 ? currentTime / duration : 0;
@@ -146,38 +229,19 @@ export function SpeakerPlayer({ youtubeId }: SpeakerPlayerProps) {
               <EqualizerOverlay isPlaying={isPlaying} barCount={4} barColor={accentColor} />
             </View>
             <Text style={[styles.nowPlayingLabel, { color: accentColor }]}>
-              Now Playing
+              {isLoading ? 'Loading…' : 'Now Playing'}
             </Text>
           </View>
-          <Text style={[styles.ytAttribution, { color: palette.muted }]}>
-            Playing via YouTube
-          </Text>
         </View>
 
-        {/* YouTube video embed — hidden but functional */}
-        <View style={styles.ytHidden}>
-          <YoutubePlayer
-            ref={playerRef}
-            height={200}
-            videoId={youtubeId}
-            play={isPlaying}
-            onReady={onReady}
-            onChangeState={onStateChange}
-            initialPlayerParams={{
-              controls: false,
-              modestbranding: true,
-              rel: false,
-              preventFullScreen: true,
-            }}
-            webViewProps={{
-              allowsInlineMediaPlayback: true,
-              mediaPlaybackRequiresUserAction: false,
-              injectedJavaScript: playbackSpeed !== 1
-                ? `try { document.querySelector('video').playbackRate = ${playbackSpeed}; } catch(e) {} true;`
-                : 'true;',
-            }}
-          />
-        </View>
+        {/* Error state */}
+        {!!error && (
+          <TouchableOpacity onPress={loadAudio} style={styles.errorRow}>
+            <Text style={[styles.errorText, { color: palette.muted }]}>
+              {error} — Tap to retry
+            </Text>
+          </TouchableOpacity>
+        )}
 
         {/* Progress bar */}
         <TouchableOpacity
@@ -258,7 +322,6 @@ export function SpeakerPlayer({ youtubeId }: SpeakerPlayerProps) {
           ))}
         </View>
       </View>
-
     </View>
   );
 }
@@ -266,11 +329,6 @@ export function SpeakerPlayer({ youtubeId }: SpeakerPlayerProps) {
 const styles = StyleSheet.create({
   container: {
     marginTop: 16,
-  },
-  ytHidden: {
-    height: 1,
-    overflow: 'hidden',
-    opacity: 0.01,
   },
   playerCard: {
     borderRadius: 16,
@@ -296,8 +354,13 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: adjustFontWeight('600'),
   },
-  ytAttribution: {
-    fontSize: 11,
+  errorRow: {
+    paddingVertical: 8,
+    marginBottom: 8,
+  },
+  errorText: {
+    fontSize: 13,
+    textAlign: 'center',
   },
   progressContainer: {
     marginBottom: 12,

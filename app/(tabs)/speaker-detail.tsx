@@ -146,7 +146,7 @@ export default function SpeakerDetailScreen() {
         ) : null}
 
         {/* Player */}
-        <SpeakerPlayer youtubeId={speaker.youtube_id} />
+        <SpeakerPlayer youtubeId={speaker.youtube_id} audioUrl={speaker.audio_url} />
 
         <View style={{ height: 40 }} />
       </ScrollView>
