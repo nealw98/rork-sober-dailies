@@ -106,11 +106,15 @@ export function SpeakerPlayer({ audioUrl, youtubeId }: SpeakerPlayerProps) {
     }
   }, []);
 
-  // Load the audio
+  // Load the audio with timeout to avoid hanging on bad URLs
   const loadAudio = useCallback(async () => {
     try {
       setIsLoading(true);
       setError(null);
+
+      console.log('[SpeakerPlayer] audioUrl prop:', audioUrl);
+      console.log('[SpeakerPlayer] youtubeId prop:', youtubeId);
+      console.log('[SpeakerPlayer] Resolved URI:', resolvedUri);
 
       await configureAudioMode();
 
@@ -120,24 +124,41 @@ export function SpeakerPlayer({ audioUrl, youtubeId }: SpeakerPlayerProps) {
         soundRef.current = null;
       }
 
-      const { sound } = await Audio.Sound.createAsync(
+      console.log('[SpeakerPlayer] Loading audio from:', resolvedUri);
+
+      // Race the load against a timeout so we don't hang forever on bad URLs
+      const timeoutPromise = new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error('Audio load timed out after 15s')), 15000)
+      );
+
+      const loadPromise = Audio.Sound.createAsync(
         { uri: resolvedUri },
         { shouldPlay: false, rate: playbackSpeed, shouldCorrectPitch: true },
         onPlaybackStatusUpdate
       );
 
+      const { sound, status } = await Promise.race([loadPromise, timeoutPromise]);
+      console.log('[SpeakerPlayer] Audio loaded successfully, duration:', (status as any)?.durationMillis);
+
       soundRef.current = sound;
       setIsLoaded(true);
-    } catch (e) {
-      console.error('[SpeakerPlayer] Error loading audio:', e);
-      setError('Failed to load audio file');
+    } catch (e: any) {
+      console.error('[SpeakerPlayer] Error loading audio:', e?.message || e);
+      setError(e?.message?.includes('timed out') ? 'Audio file not found' : 'Failed to load audio file');
     } finally {
       setIsLoading(false);
     }
-  }, [resolvedUri, onPlaybackStatusUpdate]);
+  }, [resolvedUri, audioUrl, youtubeId, onPlaybackStatusUpdate]);
 
-  // Load audio on mount
+  // Load audio on mount — only when resolvedUri changes
+  const hasLoadedRef = useRef(false);
   useEffect(() => {
+    hasLoadedRef.current = false;
+  }, [resolvedUri]);
+
+  useEffect(() => {
+    if (hasLoadedRef.current) return;
+    hasLoadedRef.current = true;
     loadAudio();
 
     return () => {
