@@ -116,7 +116,7 @@ export const chapter_7: BigBookChapter = {
       chapterId: 'chapter-7',
       pageNumber: 92,
       order: 15,
-      content: 'Continue to speak of alcoholism as an illness, a fatal malady.  Talk about the conditions of body and mind which accompany it.  Keep his attention focused mainly on your personal experience.  Explain that many are doomed who never realize their predicament.  Doctors are rightly loath to tell alcoholic patients the whole story unless it will serve some good purpose.  But you may talk to him about the hopelessness of alcoholism because you offer a solution.  You will soon have your friend admitting he has many, if not all, of the traits of the alcoholic.  If his own doctor is willing to tell him that he is alcoholic, so much the better.  Even though your prot&eacute;g&eacute; may not have entirely',
+      content: 'Continue to speak of alcoholism as an illness, a fatal malady.  Talk about the conditions of body and mind which accompany it.  Keep his attention focused mainly on your personal experience.  Explain that many are doomed who never realize their predicament.  Doctors are rightly loath to tell alcoholic patients the whole story unless it will serve some good purpose.  But you may talk to him about the hopelessness of alcoholism because you offer a solution.  You will soon have your friend admitting he has many, if not all, of the traits of the alcoholic.  If his own doctor is willing to tell him that he is alcoholic, so much the better.  Even though your protégé may not have entirely',
     },
     {
       id: 'chapter-7-p16',
