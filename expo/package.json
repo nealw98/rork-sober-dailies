@@ -50,7 +50,6 @@
     "expo-updates": "~0.28.17",
     "expo-web-browser": "~14.2.0",
     "lucide-react-native": "^0.539.0",
-    "nativewind": "^4.1.23",
     "posthog-react-native": "^4.23.0",
     "posthog-react-native-session-replay": "^1.2.3",
     "react": "19.0.0",
@@ -70,7 +69,8 @@
     "react-native-web": "^0.20.0",
     "react-native-webview": "13.13.5",
     "yaml": "^2.8.1",
-    "zustand": "^5.0.2"
+    "zustand": "^5.0.2",
+    "@rork-ai/toolkit-sdk": "latest"
   },
   "devDependencies": {
     "@babel/core": "^7.28.3",
