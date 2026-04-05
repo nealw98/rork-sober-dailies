@@ -407,69 +407,46 @@ const SobrietyCounter = () => {
     );
   }
 
+  // Build the headline string: "X Years, X Months, X Days"
+  const buildHeadline = () => {
+    const parts = [];
+    if (breakdown.years > 0) {
+      parts.push(`${breakdown.years} ${breakdown.years === 1 ? 'Year' : 'Years'}`);
+    }
+    if (breakdown.months > 0) {
+      parts.push(`${breakdown.months} ${breakdown.months === 1 ? 'Month' : 'Months'}`);
+    }
+    parts.push(`${breakdown.days} ${breakdown.days === 1 ? 'Day' : 'Days'}`);
+    return parts.join(', ');
+  };
+
   // Show sobriety counter if date is set
   if (sobrietyDate) {
     return (
       <>
         <View style={styles.counterWrapper}>
-          {/* Top: Sober since date with edit */}
-          <View style={styles.dateRow}>
-            <Text style={[styles.sobrietyDateText, { color: palette.heroTileText }]}>
+          {/* Line 1: Sober since... with pencil — sits at top */}
+          <View style={styles.sinceRow}>
+            <Text style={styles.sinceText}>
               Sober since {formatStoredDateForDisplay(sobrietyDate)}
             </Text>
-            <TouchableOpacity 
+            <TouchableOpacity
               style={styles.editButton}
               onPress={handleEditDate}
             >
-              <Edit3 size={16} color={palette.heroTileText} />
+              <Edit3 size={14} color="rgba(255,255,255,0.7)" />
             </TouchableOpacity>
           </View>
-          
-          {/* Tappable counter to toggle between breakdown and total days */}
-          <TouchableOpacity 
-            onPress={() => setShowTotalDays(!showTotalDays)}
-            activeOpacity={0.7}
-            style={styles.counterTouchable}
-          >
-            <View style={styles.counterBox}>
-              {showTotalDays ? (
-                // Total days display - stacked
-                <View style={styles.totalDaysContainer}>
-                  <Text style={[styles.totalDaysNumber, { color: palette.heroTileText }]}>
-                    {validDaysSober.toLocaleString()}
-                  </Text>
-                  <Text style={[styles.totalDaysLabel, { color: palette.heroTileText }]}>
-                    {validDaysSober === 1 ? 'day' : 'days'}
-                  </Text>
-                </View>
-              ) : (
-                // Breakdown display - stacked with dynamic font sizes
-                // Largest visible unit gets largest font, scaling down from there
-                <View style={styles.stackedCounter}>
-                  {breakdown.years > 0 && (
-                    <Text style={[styles.stackedLarge, { color: palette.heroTileText }]}>
-                      {breakdown.years} {breakdown.years === 1 ? 'year' : 'years'}
-                    </Text>
-                  )}
-                  {breakdown.months > 0 && (
-                    <Text style={[breakdown.years > 0 ? styles.stackedMedium : styles.stackedLarge, { color: palette.heroTileText }]}>
-                      {breakdown.months} {breakdown.months === 1 ? 'month' : 'months'}
-                    </Text>
-                  )}
-                  <Text style={[
-                    breakdown.years > 0 
-                      ? styles.stackedSmall 
-                      : breakdown.months > 0 
-                        ? styles.stackedMedium 
-                        : styles.stackedLarge,
-                    { color: palette.heroTileText }
-                  ]}>
-                    {breakdown.days} {breakdown.days === 1 ? 'day' : 'days'}
-                  </Text>
-                </View>
-              )}
-            </View>
-          </TouchableOpacity>
+
+          {/* Lines 2+3: Headline + subtitle — pushed to bottom */}
+          <View>
+            <Text style={styles.headlineText}>
+              {buildHeadline()}
+            </Text>
+            <Text style={styles.subtitleText}>
+              — {validDaysSober.toLocaleString()} days
+            </Text>
+          </View>
         </View>
         
         {/* Edit Date Modal */}
@@ -584,33 +561,38 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: Colors.light.muted,
   },
-  // Counter display styles
+  // Counter display styles — editorial, left-justified
   counterWrapper: {
-    alignItems: 'center',
-    marginHorizontal: 20,
-    height: 140,
-    flexDirection: 'column',
+    alignItems: 'flex-start',
+    width: '100%',
+    paddingTop: 8,
+    paddingBottom: 8,
   },
-  headerLabel: {
-    fontSize: 20,
+  sinceRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 16,
+  },
+  sinceText: {
+    fontSize: 11,
     fontWeight: '600',
-    textAlign: 'center',
-    marginBottom: 4,
+    color: 'rgba(255,255,255,0.6)',
+    textTransform: 'uppercase',
+    letterSpacing: 1.5,
   },
-  counterTouchable: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
+  headlineText: {
+    fontSize: 28,
+    fontFamily: 'Inter_700Bold',
+    color: '#FFFFFF',
+    letterSpacing: -0.5,
+    marginBottom: 8,
   },
-  counterBox: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingTop: 12,
-    paddingBottom: 16,
-    paddingHorizontal: 28,
-    width: 220,
-    height: 110,
-    marginTop: 14,
+  subtitleText: {
+    fontSize: 13,
+    fontWeight: '400',
+    color: 'rgba(255,255,255,0.45)',
+    letterSpacing: 0.5,
   },
   pointerIcon: {
     position: 'absolute',

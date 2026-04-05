@@ -14,7 +14,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import { MessageCircle, Mic, BookOpen, ChevronRight, Play } from 'lucide-react-native';
+import { MessageCircle, Mic, BookOpen } from 'lucide-react-native';
 
 import SobrietyCounter from '@/components/SobrietyCounter';
 import { useTheme } from '@/hooks/useTheme';
@@ -145,7 +145,6 @@ const HomeScreen = () => {
                 </Text>
                 <View style={styles.pillButton}>
                   <Text style={styles.pillButtonText}>Begin Reflection</Text>
-                  <ChevronRight size={16} color={sem.text} />
                 </View>
               </View>
             </ImageBackground>
@@ -185,18 +184,11 @@ const HomeScreen = () => {
             </Text>
           </View>
           <Text style={[styles.cardTitle, { color: sem.text }]}>AA Speakers</Text>
-          <View style={styles.featuredRow}>
-            <View style={styles.playButton}>
-              <Play size={18} color={colors.white} style={{ marginLeft: 2 }} />
-            </View>
-            <View style={styles.featuredText}>
-              <Text style={[styles.featuredTitle, { color: sem.text }]}>
-                The Power of Surrender
-              </Text>
-              <Text style={[styles.featuredSubtitle, { color: sem.textSecondary }]}>
-                Speaker Collection
-              </Text>
-            </View>
+          <Text style={[styles.cardSubtitle, { color: sem.textSecondary }]}>
+            Listen to inspiring stories of recovery from fellow members.
+          </Text>
+          <View style={styles.pillButton}>
+            <Text style={styles.pillButtonText}>Browse Speakers</Text>
           </View>
         </TouchableOpacity>
 
@@ -300,7 +292,7 @@ const styles = StyleSheet.create({
 
   // Header — extra bottom padding so the reflection card can overlap into it
   headerGradient: {
-    paddingBottom: 80, // extra space for the reflection card to pull up into
+    paddingBottom: 56, // extra space for the reflection card to pull up into
   },
   watermarkContainer: {
     position: 'absolute',
@@ -332,7 +324,7 @@ const styles = StyleSheet.create({
     // no padding here — the gradient fills edge-to-edge
   },
   cardsContainer: {
-    marginTop: -60, // pull up to overlap the header gradient
+    marginTop: -40, // pull up to overlap the header gradient
     paddingHorizontal: spacing.lg,
     paddingBottom: spacing.lg,
   },
