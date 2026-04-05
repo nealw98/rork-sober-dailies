@@ -5,8 +5,13 @@ import React, { useEffect, useCallback, useState } from "react";
 import { Text, StyleSheet, TouchableOpacity, Platform, View, StatusBar } from 'react-native';
 import { ChevronLeft } from "lucide-react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
-import { PostHogProvider, usePostHog } from 'posthog-react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import {
+  useFonts,
+  Inter_400Regular,
+  Inter_500Medium,
+  Inter_600SemiBold,
+  Inter_700Bold,
+} from '@expo-google-fonts/inter';
 
 import { GratitudeProvider } from "@/hooks/use-gratitude-store";
 import { OnboardingProvider, useOnboarding } from "@/hooks/useOnboardingStore";
@@ -21,14 +26,13 @@ import WelcomeScreen from "@/components/WelcomeScreen";
 import PaywallScreen from "@/components/PaywallScreen";
 import OTASnackbar from "@/components/OTASnackbar";
 import { Logger } from "@/lib/logger";
-import { initUsageLogger, setPostHogForUsageLogger, getAnonymousId } from "@/lib/usageLogger";
+import { initUsageLogger } from "@/lib/usageLogger";
 import { recordAppOpen } from "@/lib/reviewPrompt";
 import { useExpoRouterTracking } from "@/hooks/useExpoRouterTracking";
 import { SessionProvider } from "@/hooks/useSessionContext";
 import { ThemeProvider } from "@/hooks/useTheme";
 import { useSobrietyBirthday } from "@/hooks/useSobrietyBirthday";
 import SobrietyBirthdayModal from "@/components/SobrietyBirthdayModal";
-import { getSobrietyMilestone } from "@/utils/sobriety";
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync().catch(() => {
@@ -57,93 +61,18 @@ const hideSplashScreenSafely = async () => {
   }
 };
 
-/**
- * Component that identifies the user with PostHog using the same anonymous ID
- * that Supabase uses (stored in SecureStore). This ensures consistent user
- * tracking across both analytics systems.
- * 
- * Also sets sobriety milestone (range only, not actual date) as a user property.
- * Must be a child of PostHogProvider to access usePostHog hook.
- */
-function PostHogIdentifier({ children }: { children: React.ReactNode }) {
-  const posthog = usePostHog();
-
-  useEffect(() => {
-    let isMounted = true;
-
-    const identifyUser = async () => {
-      try {
-        // Register PostHog instance with usageLogger for dual tracking
-        if (posthog) {
-          setPostHogForUsageLogger(posthog);
-        }
-
-        // Get the same anonymous ID that Supabase uses (from SecureStore)
-        // This ensures consistent user tracking across both systems
-        const anonymousId = await getAnonymousId();
-        
-        if (!anonymousId) {
-          console.warn('[PostHog] No anonymous ID available for identification');
-          return;
-        }
-
-        if (!isMounted || !posthog) {
-          return;
-        }
-
-        console.log('[PostHog] Identifying user with anonymous ID:', anonymousId);
-
-        // Get sobriety date from AsyncStorage
-        const sobrietyDataStr = await AsyncStorage.getItem('sobriety_data');
-        let sobrietyDate: string | null = null;
-        
-        if (sobrietyDataStr) {
-          try {
-            const sobrietyData = JSON.parse(sobrietyDataStr);
-            sobrietyDate = sobrietyData.sobrietyDate || null;
-          } catch (parseError) {
-            console.error('[PostHog] Error parsing sobriety data:', parseError);
-          }
-        }
-
-        // Calculate milestone range (NEVER send actual date)
-        const milestone = getSobrietyMilestone(sobrietyDate);
-        
-        console.log('[PostHog] Sobriety milestone:', milestone);
-
-        // Identify user with anonymous ID (same as Supabase) and milestone as person property
-        posthog.identify(anonymousId, {
-          sobriety_milestone: milestone,
-        });
-
-        // Register milestone and anonymous ID as super properties (included with every event)
-        posthog.register({
-          sobriety_milestone: milestone,
-          sober_dailies_anonymous_id: anonymousId,
-        });
-
-        console.log('[PostHog] User identified with shared anonymous ID and milestone');
-      } catch (error) {
-        console.error('[PostHog] Error during identification:', error);
-      }
-    };
-
-    identifyUser();
-
-    return () => {
-      isMounted = false;
-    };
-  }, [posthog]);
-
-  return <>{children}</>;
-}
-
 function RootLayoutNav() {
   const { palette } = useTheme();
   const { isOnboardingComplete, isLoading } = useOnboarding();
   const { showSnackbar, dismissSnackbar, restartApp } = useOTAUpdates();
   const { showBirthdayModal, closeBirthdayModal } = useSobrietyBirthday();
   const { isLoading: isSubscriptionLoading, isPremium } = useSubscription();
+  const [fontsLoaded] = useFonts({
+    Inter_400Regular,
+    Inter_500Medium,
+    Inter_600SemiBold,
+    Inter_700Bold,
+  });
 
   // Enable screen tracking for Expo Router
   useExpoRouterTracking();
@@ -233,16 +162,16 @@ function RootLayoutNav() {
   // Handle splash screen hiding based on app state
   useEffect(() => {
     // Only proceed when we know the loading state
-    if (isLoading === false && otaChecked) {
+    if (isLoading === false && otaChecked && fontsLoaded) {
       console.log('🟢 SPLASH: App ready, isOnboardingComplete:', isOnboardingComplete);
-      
+
       // App is ready to render
       setAppReady(true);
-      
+
       // Hide splash screen
       hideSplashScreenSafely();
     }
-  }, [isLoading, isOnboardingComplete, otaChecked]);
+  }, [isLoading, isOnboardingComplete, otaChecked, fontsLoaded]);
 
   // Failsafe: hide splash screen after timeout
   useEffect(() => {
@@ -358,45 +287,30 @@ export default function RootLayout() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <PostHogProvider
-        apiKey="phc_rNmxplbqDdGgWftieyYPJoKJHRYpWT0QHdwiSFYMfI1"
-        options={{
-          host: 'https://us.i.posthog.com',
-          enableSessionReplay: true,
-        }}
-        autocapture={{
-          captureTouches: false, // Disable touch autocapture
-          captureLifecycleEvents: true, // Keep app open/close events
-          captureScreens: true // Keep screen navigation
-        }}
-      >
-        <PostHogIdentifier>
-          <ThemeProvider>
-            <SessionProvider>
-              <SubscriptionProvider>
-                <OnboardingProvider>
-                  <TextSettingsProvider>
-                    <GratitudeProvider>
-                      <SobrietyProvider>
-                        <EveningReviewProvider>
-                          <GestureHandlerRootView style={{ flex: 1 }}>
-                            {Platform.OS === 'android' && (
-                              <StatusBar translucent backgroundColor="transparent" barStyle="light-content" />
-                            )}
-                            <ErrorBoundary>
-                              <RootLayoutNav />
-                            </ErrorBoundary>
-                          </GestureHandlerRootView>
-                        </EveningReviewProvider>
-                      </SobrietyProvider>
-                    </GratitudeProvider>
-                  </TextSettingsProvider>
-                </OnboardingProvider>
-              </SubscriptionProvider>
-            </SessionProvider>
-          </ThemeProvider>
-        </PostHogIdentifier>
-      </PostHogProvider>
+      <ThemeProvider>
+        <SessionProvider>
+          <SubscriptionProvider>
+            <OnboardingProvider>
+              <TextSettingsProvider>
+                <GratitudeProvider>
+                  <SobrietyProvider>
+                    <EveningReviewProvider>
+                      <GestureHandlerRootView style={{ flex: 1 }}>
+                        {Platform.OS === 'android' && (
+                          <StatusBar translucent backgroundColor="transparent" barStyle="light-content" />
+                        )}
+                        <ErrorBoundary>
+                          <RootLayoutNav />
+                        </ErrorBoundary>
+                      </GestureHandlerRootView>
+                    </EveningReviewProvider>
+                  </SobrietyProvider>
+                </GratitudeProvider>
+              </TextSettingsProvider>
+            </OnboardingProvider>
+          </SubscriptionProvider>
+        </SessionProvider>
+      </ThemeProvider>
     </QueryClientProvider>
   );
 }

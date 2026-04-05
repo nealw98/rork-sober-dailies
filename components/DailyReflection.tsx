@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback, useRef } from "react";
-import { StyleSheet, Text, View, ScrollView, TouchableOpacity, Modal, Platform, Share, AppState, AppStateStatus } from "react-native";
+import { StyleSheet, Text, View, ScrollView, TouchableOpacity, Modal, Platform, Share, AppState, AppStateStatus, ImageBackground, Dimensions, PanResponder } from "react-native";
 import { ChevronLeft, ChevronRight, Calendar, Upload, Bookmark, BookmarkCheck, List, X, Trash2 } from "lucide-react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import DateTimePicker from '@react-native-community/datetimepicker';
@@ -14,6 +14,15 @@ import { adjustFontWeight } from "@/constants/fonts";
 import { recordDailyReflectionDay } from "@/lib/reviewPrompt";
 import { useDailyReflectionBookmarks } from "@/hooks/use-daily-reflection-bookmarks";
 import { useTheme } from "@/hooks/useTheme";
+import {
+  colors,
+  semanticColors,
+  spacing,
+  radii,
+  fontFamily,
+  fontSize as fontSizeTokens,
+  shadows,
+} from '@/constants/designTokens';
 
 interface DailyReflectionProps {
   fontSize?: number;
@@ -33,67 +42,39 @@ const isSameDay = (date1: Date, date2: Date): boolean => {
 const generateCalendarDays = (date: Date) => {
   const year = date.getFullYear();
   const month = date.getMonth();
-  
-  // First day of the month
   const firstDay = new Date(year, month, 1);
-  // Last day of the month
   const lastDay = new Date(year, month + 1, 0);
-  
-  // Get the day of the week for the first day (0 = Sunday, 1 = Monday, etc.)
   const firstDayOfWeek = firstDay.getDay();
-  
-  // Calculate how many days to show from the previous month
   const daysFromPrevMonth = firstDayOfWeek;
-  
-  // Calculate total days in the current month
   const daysInMonth = lastDay.getDate();
-  
-  // Calculate how many rows we need (including days from prev/next months)
   const totalDays = daysFromPrevMonth + daysInMonth;
   const rows = Math.ceil(totalDays / 7);
   const totalCells = rows * 7;
-  
-  // Generate calendar days array
   const days = [];
-  
-  // Previous month days
+
   const prevMonth = new Date(year, month, 0);
   const prevMonthDays = prevMonth.getDate();
-  
+
   for (let i = 0; i < daysFromPrevMonth; i++) {
     const day = prevMonthDays - daysFromPrevMonth + i + 1;
-    days.push({
-      date: new Date(year, month - 1, day),
-      day,
-      currentMonth: false,
-    });
+    days.push({ date: new Date(year, month - 1, day), day, currentMonth: false });
   }
-  
-  // Current month days
   for (let i = 1; i <= daysInMonth; i++) {
-    days.push({
-      date: new Date(year, month, i),
-      day: i,
-      currentMonth: true,
-    });
+    days.push({ date: new Date(year, month, i), day: i, currentMonth: true });
   }
-  
-  // Next month days
   const remainingCells = totalCells - days.length;
   for (let i = 1; i <= remainingCells; i++) {
-    days.push({
-      date: new Date(year, month + 1, i),
-      day: i,
-      currentMonth: false,
-    });
+    days.push({ date: new Date(year, month + 1, i), day: i, currentMonth: false });
   }
-  
   return days;
 };
 
+const HERO_HEIGHT = 340;
+
 export default function DailyReflection({ fontSize = 18, lineHeight, jumpToDate = null, onJumpApplied }: DailyReflectionProps) {
-  const effectiveLineHeight = lineHeight ?? fontSize * 1.5; // Fallback to industry standard
+  const effectiveLineHeight = lineHeight ?? fontSize * 1.5;
   const { palette } = useTheme();
+  const sem = semanticColors.light;
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [reflection, setReflection] = useState<Reflection | null>(null);
   const { toggleBookmark, isBookmarked, bookmarks, removeBookmark } = useDailyReflectionBookmarks();
@@ -114,11 +95,24 @@ export default function DailyReflection({ fontSize = 18, lineHeight, jumpToDate 
   const [calendarDays, setCalendarDays] = useState<any[]>([]);
   const [calendarDate, setCalendarDate] = useState<Date>(new Date());
   const [isLoading, setIsLoading] = useState<boolean>(true);
-  
-  // Track the last date we showed when the component was focused
   const lastShownDateRef = useRef<Date>(new Date());
 
-  // Preserve user's selection; do not reset to today on focus
+  // Swipe left/right to navigate days
+  const panResponder = useRef(
+    PanResponder.create({
+      onMoveShouldSetPanResponder: (_, gestureState) => {
+        return Math.abs(gestureState.dx) > 30 && Math.abs(gestureState.dy) < 50;
+      },
+      onPanResponderRelease: (_, gestureState) => {
+        if (gestureState.dx > 50) {
+          navigateDate('prev');
+        } else if (gestureState.dx < -50) {
+          navigateDate('next');
+        }
+      },
+    })
+  ).current;
+
   useFocusEffect(
     useCallback(() => {
       lastShownDateRef.current = selectedDate;
@@ -126,30 +120,21 @@ export default function DailyReflection({ fontSize = 18, lineHeight, jumpToDate 
     }, [])
   );
 
-  // Reset to today's date when app comes to foreground on a new day
   useEffect(() => {
     const handleAppStateChange = (nextAppState: AppStateStatus) => {
       if (nextAppState === 'active') {
         const today = new Date();
-        // If it's a new day, reset to today
         if (!isSameDay(selectedDate, today)) {
-          console.log('[DailyReflection] New day detected on foreground, resetting to today');
           setSelectedDate(today);
         }
       }
     };
-
     const subscription = AppState.addEventListener('change', handleAppStateChange);
-    return () => {
-      subscription.remove();
-    };
+    return () => { subscription.remove(); };
   }, [selectedDate]);
 
-  useEffect(() => {
-    updateReflection(selectedDate);
-  }, [selectedDate]);
+  useEffect(() => { updateReflection(selectedDate); }, [selectedDate]);
 
-  // Apply external jump requests
   useEffect(() => {
     if (jumpToDate) {
       setSelectedDate(jumpToDate);
@@ -171,19 +156,11 @@ export default function DailyReflection({ fontSize = 18, lineHeight, jumpToDate 
 
   const updateReflection = async (date: Date) => {
     setIsLoading(true);
-    const options: Intl.DateTimeFormatOptions = { 
-      weekday: 'long', 
-      year: 'numeric', 
-      month: 'long', 
-      day: 'numeric' 
-    };
+    const options: Intl.DateTimeFormatOptions = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
     setDateString(date.toLocaleDateString(undefined, options));
-    
     try {
       const dateReflection = await getReflectionForDate(date);
       setReflection(dateReflection);
-      
-
     } catch (error) {
       console.error('Error updating reflection:', error);
     } finally {
@@ -191,18 +168,11 @@ export default function DailyReflection({ fontSize = 18, lineHeight, jumpToDate 
     }
   };
 
-
-
   const shareReflection = async () => {
     if (!reflection) return;
-    
     try {
       const shareContent = `${reflection.title}\n\n"${reflection.quote}"\n\n${reflection.source}\n\n${reflection.reflection}\n\nMeditation:\n${reflection.thought}`;
-      
-      await Share.share({
-        message: shareContent,
-        title: reflection.title
-      });
+      await Share.share({ message: shareContent, title: reflection.title });
     } catch (error) {
       console.error('Error sharing reflection:', error);
     }
@@ -230,20 +200,19 @@ export default function DailyReflection({ fontSize = 18, lineHeight, jumpToDate 
       } else {
         updatedDate.setDate(updatedDate.getDate() + 1);
       }
-      lastShownDateRef.current = updatedDate; // Update the ref when user navigates
+      lastShownDateRef.current = updatedDate;
       return updatedDate;
     });
   };
 
   const handleDateChange = (event: any, date?: Date) => {
     if (Platform.OS === 'android') {
-      // Close regardless, but only apply when user confirms selection
       setShowDatePicker(false);
       if (event?.type !== 'set') return;
     }
     if (date) {
       setSelectedDate(date);
-      lastShownDateRef.current = date; // Update the ref when date changes
+      lastShownDateRef.current = date;
       if (Platform.OS === 'ios') {
         setShowDatePicker(false);
       }
@@ -255,9 +224,7 @@ export default function DailyReflection({ fontSize = 18, lineHeight, jumpToDate 
     setShowDatePicker(true);
   };
 
-  const closeDatePicker = () => {
-    setShowDatePicker(false);
-  };
+  const closeDatePicker = () => { setShowDatePicker(false); };
 
   const changeCalendarMonth = (direction: 'prev' | 'next') => {
     setCalendarDate(prevDate => {
@@ -273,14 +240,14 @@ export default function DailyReflection({ fontSize = 18, lineHeight, jumpToDate 
 
   const selectCalendarDay = (date: Date) => {
     setSelectedDate(date);
-    lastShownDateRef.current = date; // Update the ref when user picks a date
+    lastShownDateRef.current = date;
     closeDatePicker();
   };
 
   if (isLoading) {
     return (
       <View style={styles.loadingContainer}>
-        <Text style={styles.loadingText}>Loading reflection...</Text>
+        <Text style={[styles.loadingText, { color: palette.muted }]}>Loading reflection...</Text>
       </View>
     );
   }
@@ -288,310 +255,210 @@ export default function DailyReflection({ fontSize = 18, lineHeight, jumpToDate 
   if (!reflection) {
     return (
       <View style={styles.loadingContainer}>
-        <Text style={styles.loadingText}>Unable to load reflection</Text>
+        <Text style={[styles.loadingText, { color: palette.muted }]}>Unable to load reflection</Text>
       </View>
     );
   }
 
+  // Format display values
+  const monthDay = selectedDate.toLocaleDateString('en-US', { month: 'long', day: 'numeric' });
+  const monthName = selectedDate.toLocaleDateString('en-US', { month: 'long' }).toUpperCase();
+  const dayNumber = selectedDate.getDate();
+
   const renderCalendarView = () => {
     const weekDays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
     const monthYear = calendarDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
-    
+
     return (
       <View style={[styles.calendarContainer, { backgroundColor: palette.background }]}>
         <View style={styles.calendarHeader}>
-          <TouchableOpacity 
-            onPress={() => changeCalendarMonth('prev')} 
-            testID="prev-month"
-            activeOpacity={0.7}
-            hitSlop={{ top: 15, bottom: 15, left: 15, right: 15 }}
-          >
-            <ChevronLeft size={24} color={palette.tint} />
+          <TouchableOpacity onPress={() => changeCalendarMonth('prev')} activeOpacity={0.7} hitSlop={{ top: 15, bottom: 15, left: 15, right: 15 }}>
+            <ChevronLeft size={24} color={colors.primary} />
           </TouchableOpacity>
-          <Text style={[styles.calendarMonthYear, { color: palette.text }]}>{monthYear}</Text>
-          <TouchableOpacity 
-            onPress={() => changeCalendarMonth('next')} 
-            testID="next-month"
-            activeOpacity={0.7}
-            hitSlop={{ top: 15, bottom: 15, left: 15, right: 15 }}
-          >
-            <ChevronRight size={24} color={palette.tint} />
+          <Text style={[styles.calendarMonthYear, { color: sem.text }]}>{monthYear}</Text>
+          <TouchableOpacity onPress={() => changeCalendarMonth('next')} activeOpacity={0.7} hitSlop={{ top: 15, bottom: 15, left: 15, right: 15 }}>
+            <ChevronRight size={24} color={colors.primary} />
           </TouchableOpacity>
         </View>
-        
         <View style={styles.weekDaysContainer}>
           {weekDays.map((day, index) => (
-            <Text key={index} style={[styles.weekDayText, { color: palette.muted }]}>{day}</Text>
+            <Text key={index} style={[styles.weekDayText, { color: sem.textMuted }]}>{day}</Text>
           ))}
         </View>
-        
         <View style={styles.daysContainer}>
           {calendarDays.map((item, index) => {
-            const isSelected = 
-              selectedDate.getDate() === item.date.getDate() && 
-              selectedDate.getMonth() === item.date.getMonth() && 
-              selectedDate.getFullYear() === item.date.getFullYear();
-            
-            const isToday = 
-              new Date().getDate() === item.date.getDate() && 
-              new Date().getMonth() === item.date.getMonth() && 
-              new Date().getFullYear() === item.date.getFullYear();
-            
+            const isSelected = selectedDate.getDate() === item.date.getDate() && selectedDate.getMonth() === item.date.getMonth() && selectedDate.getFullYear() === item.date.getFullYear();
+            const isToday = new Date().getDate() === item.date.getDate() && new Date().getMonth() === item.date.getMonth() && new Date().getFullYear() === item.date.getFullYear();
             const isTodayAndSelected = isToday && isSelected;
-            
             return (
               <TouchableOpacity
                 key={index}
                 style={[
                   styles.dayButton,
                   !item.currentMonth && styles.otherMonthDay,
-                  isSelected && !isToday && { backgroundColor: palette.tint, borderRadius: 20 },
-                  isToday && !isSelected && { borderWidth: 2, borderColor: palette.tint, borderRadius: 20 },
-                  isTodayAndSelected && { backgroundColor: palette.tint, borderRadius: 20, borderWidth: 2, borderColor: 'white' }
+                  isSelected && !isToday && { backgroundColor: colors.primary, borderRadius: 20 },
+                  isToday && !isSelected && { borderWidth: 2, borderColor: colors.primary, borderRadius: 20 },
+                  isTodayAndSelected && { backgroundColor: colors.primary, borderRadius: 20, borderWidth: 2, borderColor: 'white' }
                 ]}
                 onPress={() => selectCalendarDay(item.date)}
-                testID={`calendar-day-${item.day}`}
                 activeOpacity={0.7}
-                // Add hitSlop to improve touch target area
                 hitSlop={{ top: 5, bottom: 5, left: 5, right: 5 }}
               >
-                <Text 
-                  style={[
-                    styles.dayText,
-                    { color: palette.text },
-                    !item.currentMonth && { color: palette.muted, opacity: 0.4 },
-                    (isSelected || isTodayAndSelected) && { color: 'white', fontWeight: '600' },
-                    isToday && !isSelected && { color: palette.tint, fontWeight: '600' }
-                  ]}
-                >
+                <Text style={[
+                  styles.dayText,
+                  { color: sem.text },
+                  !item.currentMonth && { color: sem.textMuted, opacity: 0.4 },
+                  (isSelected || isTodayAndSelected) && { color: 'white', fontWeight: '600' },
+                  isToday && !isSelected && { color: colors.primary, fontWeight: '600' }
+                ]}>
                   {item.day}
                 </Text>
               </TouchableOpacity>
             );
           })}
         </View>
-        
         <View style={styles.calendarFooter}>
-          <TouchableOpacity 
-            style={[styles.footerButton, { backgroundColor: palette.cardBackground }]}
-            onPress={() => {
-              const today = new Date();
-              setSelectedDate(today);
-              setCalendarDate(today);
-              closeDatePicker();
-            }}
-            testID="today-button"
+          <TouchableOpacity
+            style={[styles.footerButton, { backgroundColor: sem.surface }]}
+            onPress={() => { const today = new Date(); setSelectedDate(today); setCalendarDate(today); closeDatePicker(); }}
             activeOpacity={0.7}
-            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
           >
-            <Text style={[styles.todayButtonText, { color: palette.tint }]}>Today</Text>
+            <Text style={[styles.todayButtonText, { color: colors.primary }]}>Today</Text>
           </TouchableOpacity>
-          
-          <TouchableOpacity 
-            style={[styles.footerButton, { backgroundColor: palette.cardBackground }]}
+          <TouchableOpacity
+            style={[styles.footerButton, { backgroundColor: sem.surface }]}
             onPress={closeDatePicker}
-            testID="cancel-button"
             activeOpacity={0.7}
-            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
           >
-            <Text style={[styles.cancelButtonText, { color: palette.muted }]}>Cancel</Text>
+            <Text style={[styles.cancelButtonText, { color: sem.textMuted }]}>Cancel</Text>
           </TouchableOpacity>
         </View>
       </View>
     );
   };
 
-  // Format month and day for the calendar-style header
-  const monthName = selectedDate.toLocaleDateString('en-US', { month: 'long' }).toUpperCase();
-  const dayNumber = selectedDate.getDate();
-
   return (
-    <View style={[styles.container, { backgroundColor: palette.background }]}>
-      {/* Gradient header block */}
-      <LinearGradient
-        colors={palette.gradients.header as [string, string, ...string[]]}
-        style={[styles.headerBlock, { paddingTop: insets.top + 8 }]}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-      >
-        {/* Top row with back button and text settings */}
-        <View style={styles.headerTopRow}>
-          <TouchableOpacity 
-            onPress={() => router.back()} 
-            style={styles.backButton}
-            activeOpacity={0.7}
-          >
-            <ChevronLeft size={24} color={palette.headerText} />
-          </TouchableOpacity>
-          <View style={{ width: 60 }} />
-        </View>
-        
-        <Text style={[styles.headerTitle, { color: palette.headerText }]}>Daily Reflections</Text>
-      </LinearGradient>
-      
-      {/* Action row - fixed under header */}
-      <View style={[styles.actionRow, { backgroundColor: palette.cardBackground }]}>
-        <View style={styles.actionRowLeft}>
-          <TouchableOpacity
-            onPress={toggleBookmarkForDay}
-            style={styles.actionButton}
-            testID="bookmark-button"
-            activeOpacity={0.6}
-          >
-          {bookmarked ? (
-            <BookmarkCheck size={18} color={palette.tint} fill={palette.tint} />
-          ) : (
-            <Bookmark size={18} color={palette.tint} />
-          )}
-          </TouchableOpacity>
-          
-          <TouchableOpacity
-            onPress={() => setShowBookmarks(true)}
-            style={styles.actionButton}
-            testID="bookmarks-list-button"
-            activeOpacity={0.6}
-          >
-            <List size={18} color={palette.tint} />
-          </TouchableOpacity>
-        </View>
-        
-        <TouchableOpacity 
-          onPress={shareReflection} 
-          style={styles.actionButton}
-          testID="share-button"
-          activeOpacity={0.6}
-        >
-          <Upload size={18} color={palette.tint} />
-        </TouchableOpacity>
-      </View>
+    <View style={[styles.container, { backgroundColor: sem.background }]}>
+      <ScrollView style={styles.scrollContainer} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false} {...panResponder.panHandlers}>
 
-      {/* Off-white content area */}
-      <ScrollView style={[styles.scrollContainer, { backgroundColor: palette.background }]} contentContainerStyle={styles.contentContainer}>
-        {/* Date navigation */}
-        <View style={styles.dateNavRow}>
-          <TouchableOpacity 
-            onPress={() => navigateDate('prev')} 
-            style={styles.dateNavArrow}
-            testID="prev-day-button"
-            activeOpacity={0.7}
-            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+        {/* ── Hero Image ── */}
+        <ImageBackground
+          source={require('@/assets/reflections_images/reflection_bg4.webp')}
+          style={[styles.heroImage, { paddingTop: insets.top }]}
+          resizeMode="cover"
+        >
+          {/* Top bar: back + actions */}
+          <View style={styles.heroTopRow}>
+            <TouchableOpacity onPress={() => router.back()} style={styles.heroBackButton} activeOpacity={0.7}>
+              <ChevronLeft size={22} color={colors.white} />
+            </TouchableOpacity>
+            <View style={styles.heroActions}>
+              <TouchableOpacity onPress={toggleBookmarkForDay} activeOpacity={0.6} style={styles.heroActionBtn}>
+                {bookmarked ? (
+                  <BookmarkCheck size={20} color={colors.white} fill={colors.white} />
+                ) : (
+                  <Bookmark size={20} color={colors.white} />
+                )}
+              </TouchableOpacity>
+              <TouchableOpacity onPress={() => setShowBookmarks(true)} activeOpacity={0.6} style={styles.heroActionBtn}>
+                <List size={20} color={colors.white} />
+              </TouchableOpacity>
+              <TouchableOpacity onPress={shareReflection} activeOpacity={0.6} style={styles.heroActionBtn}>
+                <Upload size={20} color={colors.white} />
+              </TouchableOpacity>
+            </View>
+          </View>
+
+          {/* Bottom fade + title overlaid on image */}
+          <LinearGradient
+            colors={['transparent', 'rgba(0,0,0,0.15)', sem.background]}
+            style={styles.heroFade}
+            start={{ x: 0.5, y: 0 }}
+            end={{ x: 0.5, y: 1 }}
           >
-            <ChevronLeft size={20} color={palette.tint} />
-          </TouchableOpacity>
-          
-          <TouchableOpacity 
-            onPress={openDatePicker}
-            style={styles.dateTextButton}
-            testID="calendar-button"
-            activeOpacity={0.7}
-          >
-            <Text style={[styles.dateText, { color: palette.tint }]}>{monthName} {dayNumber}</Text>
-          </TouchableOpacity>
-          
-          <TouchableOpacity 
-            onPress={() => navigateDate('next')} 
-            style={styles.dateNavArrow}
-            testID="next-day-button"
-            activeOpacity={0.7}
-            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-          >
-            <ChevronRight size={20} color={palette.tint} />
-          </TouchableOpacity>
-        </View>
-        
-        <View style={[styles.card, { backgroundColor: palette.background }]}>
-          <Text style={[styles.title, { color: palette.text }]}>{reflection.title}</Text>
-          <Text style={[styles.quote, { fontSize, lineHeight: effectiveLineHeight, color: palette.text }]}>"{reflection.quote}"</Text>
-          <Text style={[styles.source, { fontSize: fontSize * 0.75, color: palette.muted }]}>{reflection.source}</Text>
-          
-          <View style={[styles.divider, { backgroundColor: palette.divider }]} />
-          
-          <Text style={[styles.reflectionText, { fontSize, lineHeight: effectiveLineHeight, color: palette.text }]}>{reflection.reflection}</Text>
-          
-          <View style={[styles.divider, { backgroundColor: palette.divider }]} />
-          
-          <View style={styles.meditationTile}>
-            <Text style={[styles.thoughtTitle, { color: palette.text }]}>Meditation:</Text>
-            <Text style={[styles.thought, { fontSize, lineHeight: effectiveLineHeight, color: palette.text }]}>{reflection.thought}</Text>
+            <View style={styles.metaRow}>
+              <Text style={styles.title}>{reflection.title}</Text>
+            </View>
+          </LinearGradient>
+        </ImageBackground>
+
+        {/* Date below image */}
+        <TouchableOpacity onPress={openDatePicker} style={styles.dateBelowImage} activeOpacity={0.7}>
+          <Text style={[styles.dateLabel, { color: sem.textSecondary }]}>{monthDay.toUpperCase()}</Text>
+        </TouchableOpacity>
+
+        {/* ── Content Card ── */}
+        <View style={styles.contentCard}>
+          <View style={[styles.divider, { backgroundColor: sem.border }]} />
+
+          {/* Quote */}
+          <View style={styles.quoteBlock}>
+            <View style={[styles.quoteBorder, { backgroundColor: colors.primary }]} />
+            <Text style={[styles.quoteText, { fontSize, lineHeight: effectiveLineHeight, color: sem.textSecondary }]}>
+              "{reflection.quote}"
+            </Text>
+          </View>
+
+          <Text style={[styles.source, { fontSize: fontSize * 0.75, color: sem.textMuted }]}>{reflection.source}</Text>
+
+          {/* Reflection body */}
+          <Text style={[styles.reflectionText, { fontSize, lineHeight: effectiveLineHeight, color: sem.text }]}>
+            {reflection.reflection}
+          </Text>
+
+          <View style={[styles.divider, { backgroundColor: sem.border }]} />
+
+          {/* Meditation */}
+          <View style={[styles.meditationTile, { backgroundColor: `${colors.primary}15` }]}>
+            <Text style={[styles.thoughtTitle, { color: sem.text }]}>Meditation:</Text>
+            <Text style={[styles.thought, { fontSize, lineHeight: effectiveLineHeight, color: sem.text }]}>
+              {reflection.thought}
+            </Text>
           </View>
         </View>
 
         <View style={styles.copyrightContainer}>
-          <Text style={[styles.copyrightText, { fontSize: fontSize * 0.75, color: palette.muted }]}>
+          <Text style={[styles.copyrightText, { fontSize: fontSize * 0.75, color: sem.textMuted }]}>
             Copyright © 1990 by Alcoholics Anonymous World Services, Inc. All rights reserved.
           </Text>
         </View>
       </ScrollView>
 
-
-
       {/* Calendar Modal */}
-      <Modal
-        visible={showDatePicker}
-        transparent={true}
-        animationType="fade"
-        onRequestClose={closeDatePicker}
-      >
-        <TouchableOpacity 
-          style={styles.modalOverlay}
-          activeOpacity={1}
-          onPress={closeDatePicker}
-        >
-          <View style={styles.modalContent}>
-            <TouchableOpacity 
-              activeOpacity={1} 
-              onPress={(e) => e.stopPropagation()}
-              style={styles.modalInnerContent}
-            >
-              {Platform.OS === 'ios' ? (
-                renderCalendarView()
-              ) : (
-                <>
-                  {showDatePicker && (
-                    <DateTimePicker
-                      value={selectedDate}
-                      mode="date"
-                      display="default"
-                      onChange={handleDateChange}
-                    />
-                  )}
-                </>
+      <Modal visible={showDatePicker} transparent animationType="fade" onRequestClose={closeDatePicker}>
+        <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={closeDatePicker}>
+          <View style={[styles.modalContent, { backgroundColor: sem.background }]}>
+            <TouchableOpacity activeOpacity={1} onPress={(e) => e.stopPropagation()} style={styles.modalInnerContent}>
+              {Platform.OS === 'ios' ? renderCalendarView() : (
+                showDatePicker && <DateTimePicker value={selectedDate} mode="date" display="default" onChange={handleDateChange} />
               )}
             </TouchableOpacity>
           </View>
         </TouchableOpacity>
       </Modal>
 
-      {/* Bookmarks List Modal */}
-      <Modal
-        visible={showBookmarks}
-        transparent={true}
-        animationType="slide"
-        onRequestClose={() => setShowBookmarks(false)}
-      >
+      {/* Bookmarks Modal */}
+      <Modal visible={showBookmarks} transparent animationType="slide" onRequestClose={() => setShowBookmarks(false)}>
         <View style={styles.bookmarksModalOverlay}>
-          <View style={[styles.bookmarksModalContent, { backgroundColor: palette.cardBackground }]}>
-            <View style={[styles.bookmarksModalHeader, { borderBottomColor: palette.divider }]}>
-              <Text style={[styles.bookmarksModalTitle, { color: palette.text }]}>Saved Reflections</Text>
-              <TouchableOpacity
-                onPress={() => setShowBookmarks(false)}
-                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-              >
-                <X size={24} color={palette.text} />
+          <View style={[styles.bookmarksModalContent, { backgroundColor: sem.surface }]}>
+            <View style={[styles.bookmarksModalHeader, { borderBottomColor: sem.border }]}>
+              <Text style={[styles.bookmarksModalTitle, { color: sem.text }]}>Saved Reflections</Text>
+              <TouchableOpacity onPress={() => setShowBookmarks(false)} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+                <X size={24} color={sem.text} />
               </TouchableOpacity>
             </View>
             <ScrollView style={styles.bookmarksList}>
               {bookmarks.length === 0 ? (
                 <View style={styles.emptyBookmarks}>
-                  <Bookmark size={40} color={palette.muted} />
-                  <Text style={[styles.emptyBookmarksText, { color: palette.text }]}>No saved reflections yet</Text>
-                  <Text style={[styles.emptyBookmarksSubtext, { color: palette.muted }]}>Tap the bookmark icon to save a reflection</Text>
+                  <Bookmark size={40} color={sem.textMuted} />
+                  <Text style={[styles.emptyBookmarksText, { color: sem.text }]}>No saved reflections yet</Text>
+                  <Text style={[styles.emptyBookmarksSubtext, { color: sem.textMuted }]}>Tap the bookmark icon to save a reflection</Text>
                 </View>
               ) : (
                 bookmarks.map((bookmark) => (
                   <TouchableOpacity
                     key={bookmark.id}
-                    style={[styles.bookmarkItem, { borderBottomColor: palette.divider }]}
+                    style={[styles.bookmarkItem, { borderBottomColor: sem.border }]}
                     onPress={() => {
                       const [year, month, day] = bookmark.id.split('-').map(Number);
                       const date = new Date(year, month - 1, day);
@@ -601,15 +468,11 @@ export default function DailyReflection({ fontSize = 18, lineHeight, jumpToDate 
                     activeOpacity={0.7}
                   >
                     <View style={styles.bookmarkItemContent}>
-                      <Text style={[styles.bookmarkItemDate, { color: palette.muted }]}>{bookmark.displayDate}</Text>
-                      <Text style={[styles.bookmarkItemTitle, { color: palette.text }]} numberOfLines={1}>{bookmark.title}</Text>
+                      <Text style={[styles.bookmarkItemDate, { color: sem.textMuted }]}>{bookmark.displayDate}</Text>
+                      <Text style={[styles.bookmarkItemTitle, { color: sem.text }]} numberOfLines={1}>{bookmark.title}</Text>
                     </View>
-                    <TouchableOpacity
-                      onPress={() => removeBookmark(bookmark.id)}
-                      style={styles.bookmarkDeleteButton}
-                      hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                    >
-                      <Trash2 size={18} color={palette.muted} />
+                    <TouchableOpacity onPress={() => removeBookmark(bookmark.id)} style={styles.bookmarkDeleteButton} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+                      <Trash2 size={18} color={sem.textMuted} />
                     </TouchableOpacity>
                   </TouchableOpacity>
                 ))
@@ -622,217 +485,185 @@ export default function DailyReflection({ fontSize = 18, lineHeight, jumpToDate 
   );
 }
 
+// ─── Styles ──────────────────────────────────────────────────────────────────
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  headerBlock: {
-    paddingBottom: 16,
-    paddingHorizontal: 16,
-  },
-  headerTopRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  backButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 6,
-    paddingHorizontal: 10,
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    borderRadius: 16,
-  },
-  backButtonText: {
-    fontSize: 15,
-    fontWeight: '500',
-  },
-  headerTitle: {
-    fontSize: 32,
-    fontWeight: adjustFontWeight('400'),
-    textAlign: 'center',
-  },
-  actionRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: 6,
-    paddingHorizontal: 16,
-  },
-  actionRowLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 16,
-  },
-  actionButton: {
-    padding: 4,
-  },
-  actionButtonText: {
-    fontSize: 14,
-    fontWeight: '500',
-  },
-  dateNavRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 12,
-  },
-  dateNavArrow: {
-    padding: 6,
-  },
-  dateTextButton: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-  },
-  dateText: {
-    fontSize: 17,
-    fontWeight: adjustFontWeight('500'),
-  },
   scrollContainer: {
     flex: 1,
   },
-  contentContainer: {
-    paddingTop: 8,
-    paddingHorizontal: 16,
-    paddingBottom: 16,
+  scrollContent: {
+    paddingBottom: spacing.xl,
   },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
+
+  // ── Hero Image ──
+  heroImage: {
+    height: HERO_HEIGHT,
+    justifyContent: 'space-between',
   },
-  loadingText: {
-    fontSize: 16,
-    color: Colors.light.muted,
+  heroTopRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: spacing.md,
+    paddingTop: spacing.sm,
   },
-  card: {
-    paddingHorizontal: 8,
-    marginBottom: 16,
+  heroBackButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: 'rgba(0, 0, 0, 0.3)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  heroActions: {
+    flexDirection: 'row',
+    gap: spacing.md,
+  },
+  heroActionBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: 'rgba(0, 0, 0, 0.3)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  heroFade: {
+    height: 140,
+    justifyContent: 'flex-end',
+  },
+
+  // ── Meta / Date + Title ── overlaid on the fade
+  metaRow: {
+    paddingHorizontal: spacing.lg,
+    paddingBottom: spacing.sm,
+  },
+  dateBelowImage: {
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.md,
+    paddingBottom: spacing.xs,
+  },
+  dateLabel: {
+    fontFamily: fontFamily.semiBold,
+    fontSize: fontSizeTokens.xs,
+    letterSpacing: 1,
   },
   title: {
-    fontSize: 32,
-    fontWeight: adjustFontWeight("600", true),
-    marginTop: 16,
-    marginBottom: 20,
-    textAlign: "center",
+    fontFamily: fontFamily.bold,
+    fontSize: fontSizeTokens['4xl'],
     letterSpacing: -0.5,
+    marginBottom: spacing.md,
+    color: colors.white,
   },
-  quote: {
-    fontSize: 16,
-    fontStyle: "italic",
-    marginBottom: 8,
-    lineHeight: 22,
-    textAlign: "center",
+
+  // ── Content ──
+  contentCard: {
+    paddingHorizontal: spacing.lg,
+  },
+  quoteBlock: {
+    flexDirection: 'row',
+    marginVertical: spacing.lg,
+  },
+  quoteBorder: {
+    width: 3,
+    borderRadius: 2,
+    marginRight: spacing.md,
+  },
+  quoteText: {
+    flex: 1,
+    fontStyle: 'italic',
   },
   source: {
-    fontSize: 12,
-    textAlign: "right",
-    marginBottom: 16,
-    fontWeight: adjustFontWeight("500"),
+    textAlign: 'right',
+    marginBottom: spacing.lg,
+    fontFamily: fontFamily.medium,
   },
   divider: {
     height: 1,
-    marginVertical: 16,
   },
   reflectionText: {
-    fontSize: 16,
-    lineHeight: 22,
+    marginVertical: spacing.lg,
   },
   meditationTile: {
-    backgroundColor: 'rgba(61, 139, 139, 0.25)',
-    borderRadius: 16,
-    padding: 16,
-    marginTop: 8,
+    borderRadius: radii.lg,
+    padding: spacing.md,
+    marginTop: spacing.sm,
   },
   thoughtTitle: {
-    fontSize: 16,
-    fontWeight: adjustFontWeight("bold", true),
-    marginBottom: 8,
+    fontFamily: fontFamily.bold,
+    fontSize: fontSizeTokens.lg,
+    marginBottom: spacing.sm,
   },
   thought: {
-    fontSize: 16,
-    fontStyle: "italic",
-    lineHeight: 22,
+    fontStyle: 'italic',
   },
   copyrightContainer: {
-    marginTop: 24,
-    paddingHorizontal: 8,
+    marginTop: spacing.xl,
+    paddingHorizontal: spacing.lg,
   },
   copyrightText: {
-    fontSize: 12,
-    textAlign: "center",
+    textAlign: 'center',
     lineHeight: 16,
   },
 
+  // ── Loading ──
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingText: {
+    fontSize: 16,
+  },
+
+  // ── Calendar Modal ──
   modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
     justifyContent: 'flex-end',
   },
   modalContent: {
-    backgroundColor: Colors.light.background,
-    borderTopLeftRadius: 16,
-    borderTopRightRadius: 16,
+    borderTopLeftRadius: radii.lg,
+    borderTopRightRadius: radii.lg,
     paddingBottom: Platform.OS === 'ios' ? 34 : 0,
   },
   modalInnerContent: {
     width: '100%',
   },
-  modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.light.divider,
-  },
-  modalTitle: {
-    fontSize: 18,
-    fontWeight: adjustFontWeight('600', true),
-    color: Colors.light.text,
-  },
-  modalButton: {
-    fontSize: 16,
-    color: Colors.light.tint,
-    fontWeight: adjustFontWeight('500'),
-  },
-  datePicker: {
-    height: 200,
-  },
-  // Calendar styles
   calendarContainer: {
-    borderTopLeftRadius: 16,
-    borderTopRightRadius: 16,
-    padding: 16,
+    borderTopLeftRadius: radii.lg,
+    borderTopRightRadius: radii.lg,
+    padding: spacing.md,
   },
   calendarHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 16,
+    marginBottom: spacing.md,
   },
   calendarMonthYear: {
     fontSize: 18,
-    fontWeight: adjustFontWeight('600', true),
+    fontFamily: fontFamily.semiBold,
   },
   weekDaysContainer: {
     flexDirection: 'row',
-    marginBottom: 8,
+    marginBottom: spacing.sm,
   },
   weekDayText: {
     flex: 1,
     textAlign: 'center',
     fontSize: 14,
-    fontWeight: adjustFontWeight('500'),
+    fontFamily: fontFamily.medium,
   },
   daysContainer: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    marginBottom: 16,
+    marginBottom: spacing.md,
   },
   dayButton: {
-    width: '14.28%', // 100% / 7 days
+    width: '14.28%',
     aspectRatio: 1,
     justifyContent: 'center',
     alignItems: 'center',
@@ -844,51 +675,38 @@ const styles = StyleSheet.create({
   otherMonthDay: {
     opacity: 0.4,
   },
-  otherMonthDayText: {
-  },
-  selectedDay: {
-  },
-  selectedDayText: {
-  },
-  todayDay: {
-  },
-  todayText: {
-  },
-  todaySelectedDay: {
-  },
-  todaySelectedText: {
-  },
   calendarFooter: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginTop: 8,
-    paddingHorizontal: 8,
+    marginTop: spacing.sm,
+    paddingHorizontal: spacing.sm,
   },
   footerButton: {
     paddingVertical: 10,
     paddingHorizontal: 20,
-    borderRadius: 8,
+    borderRadius: radii.sm,
     alignItems: 'center',
     justifyContent: 'center',
     minWidth: 100,
   },
   todayButtonText: {
-    fontWeight: adjustFontWeight('600'),
+    fontFamily: fontFamily.semiBold,
     fontSize: 16,
   },
   cancelButtonText: {
-    fontWeight: adjustFontWeight('500'),
+    fontFamily: fontFamily.medium,
     fontSize: 16,
   },
-  // Bookmarks Modal styles
+
+  // ── Bookmarks Modal ──
   bookmarksModalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
     justifyContent: 'flex-end',
   },
   bookmarksModalContent: {
-    borderTopLeftRadius: 16,
-    borderTopRightRadius: 16,
+    borderTopLeftRadius: radii.lg,
+    borderTopRightRadius: radii.lg,
     maxHeight: '70%',
     paddingBottom: Platform.OS === 'ios' ? 34 : 16,
   },
@@ -896,15 +714,15 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: 16,
+    padding: spacing.md,
     borderBottomWidth: 1,
   },
   bookmarksModalTitle: {
     fontSize: 18,
-    fontWeight: adjustFontWeight('600', true),
+    fontFamily: fontFamily.semiBold,
   },
   bookmarksList: {
-    paddingHorizontal: 16,
+    paddingHorizontal: spacing.md,
   },
   emptyBookmarks: {
     alignItems: 'center',
@@ -912,12 +730,12 @@ const styles = StyleSheet.create({
   },
   emptyBookmarksText: {
     fontSize: 16,
-    fontWeight: adjustFontWeight('500'),
-    marginTop: 16,
+    fontFamily: fontFamily.medium,
+    marginTop: spacing.md,
   },
   emptyBookmarksSubtext: {
     fontSize: 14,
-    marginTop: 4,
+    marginTop: spacing.xs,
   },
   bookmarkItem: {
     flexDirection: 'row',
@@ -934,9 +752,9 @@ const styles = StyleSheet.create({
   },
   bookmarkItemTitle: {
     fontSize: 16,
-    fontWeight: adjustFontWeight('500'),
+    fontFamily: fontFamily.medium,
   },
   bookmarkDeleteButton: {
-    padding: 8,
+    padding: spacing.sm,
   },
 });

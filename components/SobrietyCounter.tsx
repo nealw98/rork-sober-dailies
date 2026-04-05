@@ -605,16 +605,12 @@ const styles = StyleSheet.create({
   counterBox: {
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.3)',
-    borderRadius: 16,
     paddingTop: 12,
     paddingBottom: 16,
     paddingHorizontal: 28,
     width: 220,
     height: 110,
     marginTop: 14,
-    backgroundColor: 'rgba(255,255,255,0.1)',
   },
   pointerIcon: {
     position: 'absolute',

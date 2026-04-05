@@ -1,25 +1,55 @@
 import React, { useEffect, useState, useRef, useCallback } from 'react';
-import { StyleSheet, View, Text, ScrollView, TouchableOpacity, AppState, AppStateStatus, Platform } from 'react-native';
+import {
+  StyleSheet,
+  View,
+  Text,
+  ScrollView,
+  TouchableOpacity,
+  Image,
+  ImageBackground,
+  AppState,
+  AppStateStatus,
+} from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { BlurView } from 'expo-blur';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
+import { MessageCircle, Mic, BookOpen, ChevronRight, Play } from 'lucide-react-native';
 
 import SobrietyCounter from '@/components/SobrietyCounter';
 import { useTheme } from '@/hooks/useTheme';
-import { adjustFontWeight } from '@/constants/fonts';
 import { getTodaysReflection } from '@/constants/reflections';
 import { Reflection } from '@/types';
+import {
+  colors,
+  semanticColors,
+  cardColors,
+  spacing,
+  radii,
+  fontFamily,
+  fontSize,
+  shadows,
+  gradients,
+} from '@/constants/designTokens';
 
 // Helper to check if two dates are the same day
 const isSameDay = (date1: Date, date2: Date): boolean => {
-  return date1.getFullYear() === date2.getFullYear() &&
-         date1.getMonth() === date2.getMonth() &&
-         date1.getDate() === date2.getDate();
+  return (
+    date1.getFullYear() === date2.getFullYear() &&
+    date1.getMonth() === date2.getMonth() &&
+    date1.getDate() === date2.getDate()
+  );
 };
 
-// Helper to check if a color array is a gradient or solid
-const isSolidColor = (colors: string[]): boolean => {
-  return colors.length === 2 && colors[0] === colors[1];
+// Extract the last sentence from a block of text
+const getLastSentence = (text: string): string => {
+  const trimmed = text.trim();
+  // Split on sentence-ending punctuation followed by space or end
+  const sentences = trimmed.match(/[^.!?]*[.!?]+/g);
+  if (sentences && sentences.length > 0) {
+    return sentences[sentences.length - 1].trim();
+  }
+  return trimmed;
 };
 
 const HomeScreen = () => {
@@ -29,6 +59,10 @@ const HomeScreen = () => {
   const [todaysReflection, setTodaysReflection] = useState<Reflection | null>(null);
   const [currentDate, setCurrentDate] = useState<Date>(new Date());
   const lastDateRef = useRef<Date>(new Date());
+
+  // Use new design token semantic colors (light mode for now)
+  const sem = semanticColors.light;
+  const cards = cardColors.light;
 
   // Fetch today's reflection
   const fetchReflection = useCallback(() => {
@@ -44,9 +78,7 @@ const HomeScreen = () => {
     const handleAppStateChange = (nextAppState: AppStateStatus) => {
       if (nextAppState === 'active') {
         const today = new Date();
-        // If it's a new day, update the date and re-fetch reflection
         if (!isSameDay(lastDateRef.current, today)) {
-          console.log('[HomeScreen] New day detected on foreground, updating date and reflection');
           lastDateRef.current = today;
           setCurrentDate(today);
           fetchReflection();
@@ -60,336 +92,428 @@ const HomeScreen = () => {
     };
   }, [fetchReflection]);
 
-  // Format today's date
-  const dateDisplay = currentDate.toLocaleDateString('en-US', { 
-    month: 'short', 
-    day: 'numeric' 
-  });
-
   return (
-    <View style={[styles.container, { backgroundColor: palette.background }]}>
-      {/* Gradient Header with Sobriety Counter */}
-      <LinearGradient
-        colors={palette.gradients.header as [string, string, ...string[]]}
-        style={[styles.headerGradient, { paddingTop: insets.top + 16 }]}
-        start={{ x: 0.1, y: 0 }}
-        end={{ x: 0.9, y: 1 }}
-      >
-        <View style={styles.sobrietyCounterContainer}>
-          <SobrietyCounter />
-        </View>
-      </LinearGradient>
-
-      {/* Bento Grid Content Area */}
-      <ScrollView 
-        style={styles.scrollView} 
-        contentContainerStyle={styles.scrollContent}
+    <View style={[styles.container, { backgroundColor: sem.background }]}>
+      {/* Everything scrolls together — header is just the top of the page */}
+      <ScrollView
+        style={styles.scrollView}
+        contentContainerStyle={styles.scrollContentOuter}
         showsVerticalScrollIndicator={false}
       >
-        {/* Hero Tiles */}
-        {/* Daily Reflection - Full Width */}
-        <TouchableOpacity
-          onPress={() => router.push('/daily-reflections')}
-          activeOpacity={0.8}
+        {/* Hero header — gradient with watermark icon */}
+        <LinearGradient
+          colors={palette.gradients.header as [string, string, ...string[]]}
+          style={[styles.headerGradient, { paddingTop: insets.top + 16 }]}
+          start={{ x: 0.1, y: 0 }}
+          end={{ x: 0.9, y: 1 }}
         >
-          <LinearGradient
-            colors={palette.heroTiles.dailyReflection as [string, string, ...string[]]}
-            style={[styles.heroTile, styles.dailyReflectionTile]}
-            start={{ x: 0.5, y: 0 }}
-            end={{ x: 0.5, y: 1 }}
+          {/* Watermark icon — rotated -45deg, faded */}
+          <View style={styles.watermarkContainer} pointerEvents="none">
+            <Image
+              source={require('@/assets/reflections_images/splash-android-icon.png')}
+              style={styles.watermarkIcon}
+              resizeMode="contain"
+            />
+          </View>
+          <View style={styles.sobrietyCounterContainer}>
+            <SobrietyCounter />
+          </View>
+        </LinearGradient>
+
+        {/* Cards area — reflection overlaps the gradient via negative margin */}
+        <View style={styles.cardsContainer}>
+          {/* ── Daily Reflection Card ── overlaps header gradient */}
+          <TouchableOpacity
+            onPress={() => router.push('/daily-reflections')}
+            activeOpacity={0.85}
+            style={styles.reflectionTouchable}
           >
-            <Text style={styles.heroEmoji}>📅</Text>
-            <Text style={[styles.heroTitle, { color: palette.heroTileText }]}>Daily Reflection</Text>
-            <Text style={[styles.heroSubtitle, { color: palette.heroTileText }]}>
-              {dateDisplay} — {todaysReflection?.title || 'Loading...'}
+            <ImageBackground
+              source={require('@/assets/reflections_images/reflection_bg4.webp')}
+              style={styles.reflectionCard}
+              imageStyle={styles.reflectionImage}
+              resizeMode="cover"
+              blurRadius={3}
+            >
+              <View style={styles.reflectionOverlay}>
+                <Text style={styles.categoryLabel}>TODAY'S FOCUS</Text>
+                <Text style={styles.reflectionTitle}>Daily Reflection</Text>
+                <Text style={styles.reflectionQuote} numberOfLines={4}>
+                  {todaysReflection?.reflection
+                    ? `"${getLastSentence(todaysReflection.reflection)}"`
+                    : 'Loading...'}
+                </Text>
+                <View style={styles.pillButton}>
+                  <Text style={styles.pillButtonText}>Begin Reflection</Text>
+                  <ChevronRight size={16} color={sem.text} />
+                </View>
+              </View>
+            </ImageBackground>
+          </TouchableOpacity>
+
+        {/* ── AI Sponsor Card ── */}
+        <TouchableOpacity
+          onPress={() => router.push('/(tabs)/chat')}
+          activeOpacity={0.85}
+          style={[styles.card, { backgroundColor: cards.sponsor }]}
+        >
+          <View style={styles.categoryRow}>
+            <MessageCircle size={16} color={colors.secondaryDark} />
+            <Text style={[styles.categoryLabelDark, { color: colors.secondaryDark }]}>
+              AI COMPANION
             </Text>
-          </LinearGradient>
+          </View>
+          <Text style={[styles.cardTitle, { color: sem.text }]}>AI Sponsor</Text>
+          <Text style={[styles.cardSubtitle, { color: sem.textSecondary }]}>
+            Always here to listen, guide, and support your step work in real-time.
+          </Text>
+          <View style={styles.pillButton}>
+            <Text style={styles.pillButtonText}>Talk Now</Text>
+          </View>
         </TouchableOpacity>
 
-        {/* AI Sponsor & Literature - Side by Side */}
-        <View style={styles.heroRow}>
-          <TouchableOpacity
-            onPress={() => router.push('/(tabs)/chat')}
-            activeOpacity={0.8}
-            style={styles.heroTileHalf}
-          >
-            <LinearGradient
-              colors={palette.heroTiles.aiSponsor as [string, string, ...string[]]}
-              style={[styles.heroTile]}
-              start={{ x: 0.5, y: 0 }}
-              end={{ x: 0.5, y: 1 }}
-            >
-              <Text style={styles.heroEmoji}>💬</Text>
-              <Text style={[styles.heroTitle, { color: palette.heroTileText }]}>AI Sponsor</Text>
-            </LinearGradient>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            onPress={() => router.push('/(tabs)/literature')}
-            activeOpacity={0.8}
-            style={styles.heroTileHalf}
-          >
-            <LinearGradient
-              colors={palette.heroTiles.literature as [string, string, ...string[]]}
-              style={[styles.heroTile]}
-              start={{ x: 0.5, y: 0 }}
-              end={{ x: 0.5, y: 1 }}
-            >
-              <Text style={styles.heroEmoji}>📖</Text>
-              <Text style={[styles.heroTitle, { color: palette.heroTileText }]}>Literature</Text>
-            </LinearGradient>
-          </TouchableOpacity>
-        </View>
-
-        {/* Speakers - Full Width */}
+        {/* ── AA Speakers Card ── */}
         <TouchableOpacity
           onPress={() => router.push('/(tabs)/speakers')}
-          activeOpacity={0.8}
+          activeOpacity={0.85}
+          style={[styles.card, { backgroundColor: cards.speakers }]}
         >
-          <LinearGradient
-            colors={palette.heroTiles.speakers as [string, string, ...string[]]}
-            style={[styles.heroTile]}
-            start={{ x: 0.5, y: 0 }}
-            end={{ x: 0.5, y: 1 }}
-          >
-            <Text style={styles.heroEmoji}>🎙️</Text>
-            <Text style={[styles.heroTitle, { color: palette.heroTileText }]}>AA Speakers</Text>
-          </LinearGradient>
+          <View style={styles.categoryRow}>
+            <Mic size={16} color={colors.tertiaryDark} />
+            <Text style={[styles.categoryLabelDark, { color: colors.tertiaryDark }]}>
+              FEATURED
+            </Text>
+          </View>
+          <Text style={[styles.cardTitle, { color: sem.text }]}>AA Speakers</Text>
+          <View style={styles.featuredRow}>
+            <View style={styles.playButton}>
+              <Play size={18} color={colors.white} style={{ marginLeft: 2 }} />
+            </View>
+            <View style={styles.featuredText}>
+              <Text style={[styles.featuredTitle, { color: sem.text }]}>
+                The Power of Surrender
+              </Text>
+              <Text style={[styles.featuredSubtitle, { color: sem.textSecondary }]}>
+                Speaker Collection
+              </Text>
+            </View>
+          </View>
         </TouchableOpacity>
 
-        {/* Morning Section */}
-        <Text style={[styles.sectionLabel, { color: palette.muted }]}>Morning</Text>
-        <View style={styles.routineRow}>
+        {/* ── Literature Card ── */}
+        <TouchableOpacity
+          onPress={() => router.push('/(tabs)/literature')}
+          activeOpacity={0.85}
+          style={[styles.card, styles.literatureCard, { backgroundColor: cards.literature }]}
+        >
+          <View style={styles.literatureContent}>
+            <Text style={[styles.cardTitle, { color: sem.text }]}>Literature</Text>
+            <Text style={[styles.cardSubtitle, { color: sem.textSecondary }]}>
+              Access the Big Book & 12x12
+            </Text>
+          </View>
+          <View style={styles.literatureIcon}>
+            <BookOpen size={28} color={colors.primary} />
+          </View>
+        </TouchableOpacity>
+
+        {/* ── Daily Rituals Section ── */}
+        <Text style={[styles.sectionLabel, { color: sem.textMuted }]}>DAILY RITUALS</Text>
+
+        {/* Row 1: Morning Prayer + Gratitude */}
+        <View style={styles.ritualRow}>
           <TouchableOpacity
             onPress={() => router.push('/(tabs)/prayers?prayer=morning')}
-            activeOpacity={0.8}
-            style={styles.routineTileHalf}
+            activeOpacity={0.85}
+            style={[styles.ritualCard, { backgroundColor: cards.ritual, borderColor: sem.border }]}
           >
-            <LinearGradient
-              colors={palette.heroTiles.morningPrayer as [string, string, ...string[]]}
-              style={[styles.routineTile]}
-              start={{ x: 0.5, y: 0 }}
-              end={{ x: 0.5, y: 1 }}
-            >
-              <Text style={styles.routineEmoji}>🙏</Text>
-              <Text style={[styles.routineTitleLight, { color: palette.heroTileText }]}>Morning Prayer</Text>
-            </LinearGradient>
+            <Text style={styles.ritualEmoji}>🙏</Text>
+            <Text style={[styles.ritualTitle, { color: sem.text }]}>Morning Prayer</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
             onPress={() => router.push('/(tabs)/gratitude')}
-            activeOpacity={0.8}
-            style={styles.routineTileHalf}
+            activeOpacity={0.85}
+            style={[styles.ritualCard, { backgroundColor: cards.ritual, borderColor: sem.border }]}
           >
-            <LinearGradient
-              colors={palette.heroTiles.gratitude as [string, string, ...string[]]}
-              style={[styles.routineTile]}
-              start={{ x: 0.5, y: 0 }}
-              end={{ x: 0.5, y: 1 }}
-            >
-              <Text style={styles.routineEmoji}>😊</Text>
-              <Text style={[styles.routineTitleLight, { color: palette.heroTileText }]}>Gratitude List</Text>
-            </LinearGradient>
+            <Text style={styles.ritualEmoji}>💚</Text>
+            <Text style={[styles.ritualTitle, { color: sem.text }]}>Gratitude List</Text>
           </TouchableOpacity>
         </View>
 
-        {/* Evening Section */}
-        <Text style={[styles.sectionLabel, { color: palette.muted }]}>Evening</Text>
-        <View style={styles.routineRow}>
+        {/* Row 2: Evening Prayer + Nightly Review */}
+        <View style={styles.ritualRow}>
           <TouchableOpacity
             onPress={() => router.push('/(tabs)/prayers?prayer=evening')}
-            activeOpacity={0.8}
-            style={styles.routineTileHalf}
+            activeOpacity={0.85}
+            style={[styles.ritualCard, { backgroundColor: cards.ritual, borderColor: sem.border }]}
           >
-            <LinearGradient
-              colors={palette.heroTiles.eveningPrayer as [string, string, ...string[]]}
-              style={[styles.routineTile]}
-              start={{ x: 0.5, y: 0 }}
-              end={{ x: 0.5, y: 1 }}
-            >
-              <Text style={styles.routineEmoji}>🙏</Text>
-              <Text style={[styles.routineTitleLight, { color: palette.heroTileText }]}>Evening Prayer</Text>
-            </LinearGradient>
+            <Text style={styles.ritualEmoji}>🌙</Text>
+            <Text style={[styles.ritualTitle, { color: sem.text }]}>Evening Prayer</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
             onPress={() => router.push('/(tabs)/evening-review')}
-            activeOpacity={0.8}
-            style={styles.routineTileHalf}
+            activeOpacity={0.85}
+            style={[styles.ritualCard, { backgroundColor: cards.ritual, borderColor: sem.border }]}
           >
-            <LinearGradient
-              colors={palette.heroTiles.nightlyReview as [string, string, ...string[]]}
-              style={[styles.routineTile]}
-              start={{ x: 0.5, y: 0 }}
-              end={{ x: 0.5, y: 1 }}
-            >
-              <Text style={styles.routineEmoji}>🌙</Text>
-              <Text style={[styles.routineTitleLight, { color: palette.heroTileText }]}>Nightly Review</Text>
-            </LinearGradient>
+            <Text style={styles.ritualEmoji}>📝</Text>
+            <Text style={[styles.ritualTitle, { color: sem.text }]}>Nightly Review</Text>
           </TouchableOpacity>
         </View>
 
-        {/* Anytime Section */}
-        <Text style={[styles.sectionLabel, { color: palette.muted }]}>Anytime</Text>
-        <View style={styles.routineRow}>
+        {/* Row 3: Prayers + Spot Check */}
+        <View style={styles.ritualRow}>
           <TouchableOpacity
             onPress={() => router.push('/(tabs)/prayers')}
-            activeOpacity={0.8}
-            style={styles.routineTileHalf}
+            activeOpacity={0.85}
+            style={[styles.ritualCard, { backgroundColor: cards.ritual, borderColor: sem.border }]}
           >
-            <LinearGradient
-              colors={palette.heroTiles.prayers as [string, string, ...string[]]}
-              style={[styles.routineTile]}
-              start={{ x: 0.5, y: 0 }}
-              end={{ x: 0.5, y: 1 }}
-            >
-              <Text style={styles.routineEmoji}>🙏</Text>
-              <Text style={[styles.routineTitleLight, { color: palette.heroTileText }]}>Prayers</Text>
-            </LinearGradient>
+            <Text style={styles.ritualEmoji}>📖</Text>
+            <Text style={[styles.ritualTitle, { color: sem.text }]}>Prayers</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
             onPress={() => router.push('/(tabs)/inventory')}
-            activeOpacity={0.8}
-            style={styles.routineTileHalf}
+            activeOpacity={0.85}
+            style={[styles.ritualCard, { backgroundColor: cards.ritual, borderColor: sem.border }]}
           >
-            <LinearGradient
-              colors={palette.heroTiles.spotCheck as [string, string, ...string[]]}
-              style={[styles.routineTile]}
-              start={{ x: 0.5, y: 0 }}
-              end={{ x: 0.5, y: 1 }}
-            >
-              <Text style={styles.routineEmoji}>📝</Text>
-              <Text style={[styles.routineTitleLight, { color: palette.heroTileText }]}>Spot Check</Text>
-            </LinearGradient>
+            <Text style={styles.ritualEmoji}>✅</Text>
+            <Text style={[styles.ritualTitle, { color: sem.text }]}>Spot Check</Text>
           </TouchableOpacity>
         </View>
 
-        {/* Bottom padding */}
-        <View style={{ height: 20 }} />
+          {/* Bottom padding */}
+          <View style={{ height: spacing.xl }} />
+        </View>
       </ScrollView>
     </View>
   );
 };
 
+// ─── Styles ──────────────────────────────────────────────────────────────────
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
+
+  // Header — extra bottom padding so the reflection card can overlap into it
   headerGradient: {
-    paddingBottom: 16,
+    paddingBottom: 80, // extra space for the reflection card to pull up into
+  },
+  watermarkContainer: {
+    position: 'absolute',
+    top: 0,
+    left: -100,
+    right: 0,
+    bottom: 0,
+    alignItems: 'center',
+    justifyContent: 'center',
+    overflow: 'hidden',
+  },
+  watermarkIcon: {
+    width: 700,
+    height: 700,
+    opacity: 0.03,
+    transform: [{ rotate: '-30deg' }],
   },
   sobrietyCounterContainer: {
     alignItems: 'center',
-    paddingTop: 8,
-    paddingBottom: 0,
-    paddingHorizontal: 20,
+    paddingTop: spacing.sm,
+    paddingBottom: spacing.sm,
+    paddingHorizontal: spacing.lg,
   },
+
   scrollView: {
     flex: 1,
   },
-  scrollContent: {
-    paddingHorizontal: 20,
-    paddingTop: 20,
+  scrollContentOuter: {
+    // no padding here — the gradient fills edge-to-edge
   },
-  
-  // Hero Tiles
-  heroTile: {
-    borderRadius: 16,
-    padding: 20,
-    marginBottom: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 6,
-  },
-  heroTileHalf: {
-    flex: 1,
-  },
-  heroRow: {
-    flexDirection: 'row',
-    gap: 20,
-  },
-  dailyReflectionTile: {
-    shadowColor: '#4A68B5',
-  },
-  aiSponsorTile: {
-    shadowColor: '#3D8B8B',
-  },
-  literatureTile: {
-    shadowColor: '#4AA06A',
-  },
-  heroEmoji: {
-    fontSize: 24,
-    marginBottom: 8,
-  },
-  heroTitle: {
-    fontSize: 22,
-    fontWeight: adjustFontWeight('600'),
-  },
-  heroSubtitle: {
-    fontSize: 16,
-    marginTop: 4,
+  cardsContainer: {
+    marginTop: -60, // pull up to overlap the header gradient
+    paddingHorizontal: spacing.lg,
+    paddingBottom: spacing.lg,
   },
 
-  // Section Labels
-  sectionLabel: {
-    fontSize: 11,
-    fontWeight: adjustFontWeight('600'),
+  // ── Daily Reflection ──
+  reflectionTouchable: {
+    // overlap handled by cardsContainer marginTop
+  },
+  reflectionCard: {
+    borderRadius: radii.lg,
+    overflow: 'hidden',
+    marginBottom: spacing.md,
+    ...shadows.lg,
+  },
+  reflectionImage: {
+    borderRadius: radii.lg,
+  },
+  reflectionOverlay: {
+    padding: spacing.lg,
+    paddingVertical: spacing.xl,
+    backgroundColor: 'rgba(0, 0, 0, 0.35)',
+  },
+  reflectionTitle: {
+    fontFamily: fontFamily.bold,
+    fontSize: fontSize['3xl'],
+    color: colors.white,
+    marginBottom: spacing.sm,
+    textShadowColor: 'rgba(0, 0, 0, 0.5)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 4,
+  },
+  reflectionQuote: {
+    fontFamily: fontFamily.regular,
+    fontSize: fontSize.md,
+    color: 'rgba(255, 255, 255, 0.85)',
+    fontStyle: 'italic',
+    lineHeight: 22,
+    marginBottom: spacing.lg,
+  },
+
+  // ── Shared Card ──
+  card: {
+    borderRadius: radii.lg,
+    padding: spacing.lg,
+    marginBottom: spacing.md,
+    ...shadows.lg,
+  },
+
+  // ── Category Label ──
+  categoryLabel: {
+    fontFamily: fontFamily.semiBold,
+    fontSize: fontSize.xs,
+    color: 'rgba(255, 255, 255, 0.85)',
+    letterSpacing: 1.5,
     textTransform: 'uppercase',
-    letterSpacing: 1,
-    marginTop: 16,
-    marginBottom: 8,
+    marginBottom: spacing.sm,
+    textShadowColor: 'rgba(0, 0, 0, 0.5)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 3,
+  },
+  categoryLabelDark: {
+    fontFamily: fontFamily.semiBold,
+    fontSize: fontSize.xs,
+    letterSpacing: 1.5,
+    textTransform: 'uppercase',
+    marginLeft: spacing.sm,
+  },
+  categoryRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: spacing.sm,
   },
 
-  // Routine Tiles
-  routineRow: {
+  // ── Card Typography ──
+  cardTitle: {
+    fontFamily: fontFamily.bold,
+    fontSize: fontSize['3xl'],
+    marginBottom: spacing.xs,
+  },
+  cardSubtitle: {
+    fontFamily: fontFamily.regular,
+    fontSize: fontSize.md,
+    lineHeight: 20,
+    marginBottom: spacing.md,
+  },
+
+  // ── Pill Button ──
+  pillButton: {
+    alignSelf: 'flex-start',
     flexDirection: 'row',
-    gap: 12,
-    marginBottom: 12,
+    alignItems: 'center',
+    backgroundColor: colors.white,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.sm + 2,
+    borderRadius: radii.full,
+    gap: spacing.xs,
   },
-  routineTile: {
-    borderRadius: 16,
-    padding: 20,
+  pillButtonText: {
+    fontFamily: fontFamily.semiBold,
+    fontSize: fontSize.base,
+    color: '#1A1A2E',
   },
-  routineTileHalf: {
+
+  // ── Featured Speaker ──
+  featuredRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: spacing.md,
+    backgroundColor: 'rgba(0, 0, 0, 0.06)',
+    borderRadius: radii.md,
+    padding: spacing.md,
+    gap: spacing.md,
+  },
+  playButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: colors.tertiaryDark,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  featuredText: {
     flex: 1,
   },
-  routineTileFull: {
+  featuredTitle: {
+    fontFamily: fontFamily.semiBold,
+    fontSize: fontSize.base,
+  },
+  featuredSubtitle: {
+    fontFamily: fontFamily.regular,
+    fontSize: fontSize.sm,
+    marginTop: 2,
+  },
+
+  // ── Literature Card ──
+  literatureCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  literatureContent: {
     flex: 1,
   },
-  morningPrayerTile: {
-    shadowColor: '#E5B530',
+  literatureIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: radii.md,
+    backgroundColor: 'rgba(92, 141, 255, 0.1)',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  gratitudeTile: {
-    shadowColor: '#E8884A',
+
+  // ── Section Label ──
+  sectionLabel: {
+    fontFamily: fontFamily.semiBold,
+    fontSize: fontSize.sm,
+    letterSpacing: 1,
+    textTransform: 'uppercase',
+    marginTop: spacing.lg,
+    marginBottom: spacing.md,
   },
-  eveningPrayerTile: {
-    shadowColor: '#D5708A',
+
+  // ── Ritual Cards ──
+  ritualRow: {
+    flexDirection: 'row',
+    gap: spacing.md,
+    marginBottom: spacing.md,
   },
-  nightlyReviewTile: {
-    shadowColor: '#8A65B5',
+  ritualCard: {
+    flex: 1,
+    borderRadius: radii.md,
+    padding: spacing.md,
+    borderWidth: 1,
+    ...shadows.lg,
   },
-  spotCheckTile: {
-    shadowColor: '#4AA898',
-  },
-  routineEmoji: {
+  ritualEmoji: {
     fontSize: 24,
-    marginBottom: 8,
+    marginBottom: spacing.sm,
   },
-  routineTitle: {
-    fontSize: 22,
-    fontWeight: adjustFontWeight('600'),
-  },
-  routineTitleLight: {
-    fontSize: 22,
-    fontWeight: adjustFontWeight('600'),
-  },
-  routineSubtitle: {
-    fontSize: 14,
-    color: '#6b7c8a',
-    marginTop: 4,
+  ritualTitle: {
+    fontFamily: fontFamily.semiBold,
+    fontSize: fontSize.base,
   },
 });
 

@@ -10,6 +10,7 @@
     "ios": "expo run:ios"
   },
   "dependencies": {
+    "@expo-google-fonts/inter": "^0.4.2",
     "@expo-google-fonts/quantico": "^0.4.1",
     "@expo-google-fonts/vt323": "^0.4.1",
     "@expo/react-native-action-sheet": "^4.1.1",
@@ -53,8 +54,6 @@
     "expo-web-browser": "~14.2.0",
     "lucide-react-native": "^0.539.0",
     "nativewind": "^4.1.23",
-    "posthog-react-native": "^4.23.0",
-    "posthog-react-native-session-replay": "^1.2.3",
     "react": "19.0.0",
     "react-dom": "19.0.0",
     "react-native": "0.79.6",

@@ -160,7 +160,7 @@ export default function TabLayout() {
   return (
       <Tabs
         screenOptions={{
-        tabBarActiveTintColor: palette.tint,
+        tabBarActiveTintColor: '#5C8DFF',
         tabBarInactiveTintColor: '#8E8E93',
         headerShown: true,
         headerTitleAlign: 'center',
@@ -210,13 +210,13 @@ export default function TabLayout() {
         }}
       />
 
-      {/* Tab 1: Daily Reflection */}
+      {/* Speakers Tab */}
       <Tabs.Screen
-        name="daily-reflections"
+        name="speakers"
         options={{
-          title: "Reflection",
+          title: "Speakers",
           headerShown: false,
-          tabBarIcon: createOutlineTabIcon('calendar-outline', 'calendar', palette.tint),
+          tabBarIcon: createOutlineTabIcon('mic-outline', 'mic', palette.tint),
         }}
       />
 
@@ -348,9 +348,10 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="speakers"
+        name="daily-reflections"
         options={{
           href: null,
+          title: "Reflection",
           headerShown: false,
         }}
       />
