@@ -123,7 +123,7 @@ const HomeScreen = () => {
               style={styles.reflectionCard}
               imageStyle={styles.reflectionImage}
               resizeMode="cover"
-              blurRadius={3}
+              blurRadius={4}
             >
               <View style={styles.reflectionOverlay}>
                 <Text style={styles.categoryLabel}>TODAY'S FOCUS</Text>
@@ -335,24 +335,27 @@ const styles = StyleSheet.create({
   reflectionOverlay: {
     padding: spacing.lg,
     paddingVertical: spacing.xl,
-    backgroundColor: 'rgba(0, 0, 0, 0.35)',
+    backgroundColor: 'transparent',
   },
   reflectionTitle: {
     fontFamily: fontFamily.bold,
     fontSize: fontSize['3xl'],
     color: colors.white,
     marginBottom: spacing.sm,
-    textShadowColor: 'rgba(0, 0, 0, 0.5)',
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 4,
+    textShadowColor: 'rgba(0, 0, 0, 0.7)',
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 12,
   },
   reflectionQuote: {
     fontFamily: fontFamily.regular,
     fontSize: fontSize.md,
-    color: 'rgba(255, 255, 255, 0.85)',
+    color: colors.white,
     fontStyle: 'italic',
     lineHeight: 22,
     marginBottom: spacing.lg,
+    textShadowColor: 'rgba(0, 0, 0, 0.8)',
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 12,
   },
 
   // ── Shared Card ──
@@ -371,9 +374,9 @@ const styles = StyleSheet.create({
     letterSpacing: 1.5,
     textTransform: 'uppercase',
     marginBottom: spacing.sm,
-    textShadowColor: 'rgba(0, 0, 0, 0.5)',
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 3,
+    textShadowColor: 'rgba(0, 0, 0, 0.7)',
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 10,
   },
   categoryLabelDark: {
     fontFamily: fontFamily.semiBold,
