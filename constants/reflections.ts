@@ -44,6 +44,7 @@ export async function getReflectionForDate(date: Date): Promise<Reflection> {
         source: data.source,
         reflection: data.reflection,
         thought: data.meditation || data.thought, // Use meditation field, fallback to thought
+        homeQuote: data.home_quote || undefined,
       };
     }
 

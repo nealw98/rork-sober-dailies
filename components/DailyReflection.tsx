@@ -1,9 +1,10 @@
 import { useEffect, useState, useCallback, useRef } from "react";
 import { StyleSheet, Text, View, ScrollView, TouchableOpacity, Modal, Platform, Share, AppState, AppStateStatus, ImageBackground, Dimensions, PanResponder } from "react-native";
-import { ChevronLeft, ChevronRight, Calendar, Upload, Bookmark, BookmarkCheck, List, X, Trash2 } from "lucide-react-native";
+import { Home, ChevronLeft, ChevronRight, Upload, X, Menu } from "lucide-react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useFocusEffect, useRouter } from 'expo-router';
+import { useHamburgerMenu } from '@/hooks/useHamburgerMenu';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -12,7 +13,6 @@ import { getReflectionForDate } from "@/constants/reflections";
 import { Reflection } from "@/types";
 import { adjustFontWeight } from "@/constants/fonts";
 import { recordDailyReflectionDay } from "@/lib/reviewPrompt";
-import { useDailyReflectionBookmarks } from "@/hooks/use-daily-reflection-bookmarks";
 import { useTheme } from "@/hooks/useTheme";
 import {
   colors,
@@ -77,25 +77,15 @@ export default function DailyReflection({ fontSize = 18, lineHeight, jumpToDate 
   const sem = semanticColors.light;
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [reflection, setReflection] = useState<Reflection | null>(null);
-  const { toggleBookmark, isBookmarked, bookmarks, removeBookmark } = useDailyReflectionBookmarks();
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const formatDateKey = (date: Date) => {
-    const y = date.getFullYear();
-    const m = String(date.getMonth() + 1).padStart(2, "0");
-    const d = String(date.getDate()).padStart(2, "0");
-    return `${y}-${m}-${d}`;
-  };
-  const dateKey = formatDateKey(selectedDate);
-  const bookmarked = isBookmarked(dateKey);
-
   const [showDatePicker, setShowDatePicker] = useState<boolean>(false);
-  const [showBookmarks, setShowBookmarks] = useState<boolean>(false);
   const [dateString, setDateString] = useState<string>("");
   const [calendarDays, setCalendarDays] = useState<any[]>([]);
   const [calendarDate, setCalendarDate] = useState<Date>(new Date());
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const lastShownDateRef = useRef<Date>(new Date());
+  const { open: openMenu } = useHamburgerMenu();
 
   // Swipe left/right to navigate days
   const panResponder = useRef(
@@ -176,20 +166,6 @@ export default function DailyReflection({ fontSize = 18, lineHeight, jumpToDate 
     } catch (error) {
       console.error('Error sharing reflection:', error);
     }
-  };
-
-  const toggleBookmarkForDay = () => {
-    if (!reflection || !dateString) return;
-    toggleBookmark({
-      id: dateKey,
-      displayDate: dateString,
-      title: reflection.title,
-      quote: reflection.quote,
-      source: reflection.source,
-      reflection: reflection.reflection,
-      thought: reflection.thought,
-      timestamp: Date.now(),
-    });
   };
 
   const navigateDate = (direction: 'prev' | 'next') => {
@@ -339,39 +315,33 @@ export default function DailyReflection({ fontSize = 18, lineHeight, jumpToDate 
 
   return (
     <View style={[styles.container, { backgroundColor: sem.background }]}>
+      {/* Fixed header bar */}
+      <View style={[styles.headerBar, { paddingTop: insets.top + spacing.sm }]}>
+        <TouchableOpacity onPress={() => router.push('/(main)/')} style={styles.headerBtn} activeOpacity={0.7}>
+          <Home size={20} color={sem.text} />
+        </TouchableOpacity>
+        <View style={styles.headerActions}>
+          <TouchableOpacity onPress={shareReflection} activeOpacity={0.6} style={styles.headerBtn}>
+            <Upload size={20} color={sem.text} />
+          </TouchableOpacity>
+          <TouchableOpacity onPress={openMenu} activeOpacity={0.6} style={styles.headerBtn}>
+            <Menu size={20} color={sem.text} />
+          </TouchableOpacity>
+        </View>
+      </View>
+
       <ScrollView style={styles.scrollContainer} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false} {...panResponder.panHandlers}>
 
         {/* ── Hero Image ── */}
         <ImageBackground
-          source={require('@/assets/reflections_images/reflection_bg4.webp')}
-          style={[styles.heroImage, { paddingTop: insets.top }]}
+          source={require('@/assets/reflections_images/reflection_bg2.webp')}
+          style={styles.heroImage}
           resizeMode="cover"
         >
-          {/* Top bar: back + actions */}
-          <View style={styles.heroTopRow}>
-            <TouchableOpacity onPress={() => router.back()} style={styles.heroBackButton} activeOpacity={0.7}>
-              <ChevronLeft size={22} color={colors.white} />
-            </TouchableOpacity>
-            <View style={styles.heroActions}>
-              <TouchableOpacity onPress={toggleBookmarkForDay} activeOpacity={0.6} style={styles.heroActionBtn}>
-                {bookmarked ? (
-                  <BookmarkCheck size={20} color={colors.white} fill={colors.white} />
-                ) : (
-                  <Bookmark size={20} color={colors.white} />
-                )}
-              </TouchableOpacity>
-              <TouchableOpacity onPress={() => setShowBookmarks(true)} activeOpacity={0.6} style={styles.heroActionBtn}>
-                <List size={20} color={colors.white} />
-              </TouchableOpacity>
-              <TouchableOpacity onPress={shareReflection} activeOpacity={0.6} style={styles.heroActionBtn}>
-                <Upload size={20} color={colors.white} />
-              </TouchableOpacity>
-            </View>
-          </View>
-
           {/* Bottom fade + title overlaid on image */}
           <LinearGradient
-            colors={['transparent', 'rgba(0,0,0,0.15)', sem.background]}
+            colors={['transparent', 'transparent', sem.background]}
+            locations={[0, 0.6, 1]}
             style={styles.heroFade}
             start={{ x: 0.5, y: 0 }}
             end={{ x: 0.5, y: 1 }}
@@ -382,9 +352,10 @@ export default function DailyReflection({ fontSize = 18, lineHeight, jumpToDate 
           </LinearGradient>
         </ImageBackground>
 
-        {/* Date below image */}
-        <TouchableOpacity onPress={openDatePicker} style={styles.dateBelowImage} activeOpacity={0.7}>
+        {/* Date + calendar picker */}
+        <TouchableOpacity onPress={openDatePicker} style={styles.dateRow} activeOpacity={0.7}>
           <Text style={[styles.dateLabel, { color: sem.textSecondary }]}>{monthDay.toUpperCase()}</Text>
+          <ChevronRight size={14} color={sem.textMuted} />
         </TouchableOpacity>
 
         {/* ── Content Card ── */}
@@ -437,50 +408,6 @@ export default function DailyReflection({ fontSize = 18, lineHeight, jumpToDate 
         </TouchableOpacity>
       </Modal>
 
-      {/* Bookmarks Modal */}
-      <Modal visible={showBookmarks} transparent animationType="slide" onRequestClose={() => setShowBookmarks(false)}>
-        <View style={styles.bookmarksModalOverlay}>
-          <View style={[styles.bookmarksModalContent, { backgroundColor: sem.surface }]}>
-            <View style={[styles.bookmarksModalHeader, { borderBottomColor: sem.border }]}>
-              <Text style={[styles.bookmarksModalTitle, { color: sem.text }]}>Saved Reflections</Text>
-              <TouchableOpacity onPress={() => setShowBookmarks(false)} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-                <X size={24} color={sem.text} />
-              </TouchableOpacity>
-            </View>
-            <ScrollView style={styles.bookmarksList}>
-              {bookmarks.length === 0 ? (
-                <View style={styles.emptyBookmarks}>
-                  <Bookmark size={40} color={sem.textMuted} />
-                  <Text style={[styles.emptyBookmarksText, { color: sem.text }]}>No saved reflections yet</Text>
-                  <Text style={[styles.emptyBookmarksSubtext, { color: sem.textMuted }]}>Tap the bookmark icon to save a reflection</Text>
-                </View>
-              ) : (
-                bookmarks.map((bookmark) => (
-                  <TouchableOpacity
-                    key={bookmark.id}
-                    style={[styles.bookmarkItem, { borderBottomColor: sem.border }]}
-                    onPress={() => {
-                      const [year, month, day] = bookmark.id.split('-').map(Number);
-                      const date = new Date(year, month - 1, day);
-                      setSelectedDate(date);
-                      setShowBookmarks(false);
-                    }}
-                    activeOpacity={0.7}
-                  >
-                    <View style={styles.bookmarkItemContent}>
-                      <Text style={[styles.bookmarkItemDate, { color: sem.textMuted }]}>{bookmark.displayDate}</Text>
-                      <Text style={[styles.bookmarkItemTitle, { color: sem.text }]} numberOfLines={1}>{bookmark.title}</Text>
-                    </View>
-                    <TouchableOpacity onPress={() => removeBookmark(bookmark.id)} style={styles.bookmarkDeleteButton} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-                      <Trash2 size={18} color={sem.textMuted} />
-                    </TouchableOpacity>
-                  </TouchableOpacity>
-                ))
-              )}
-            </ScrollView>
-          </View>
-        </View>
-      </Modal>
     </View>
   );
 }
@@ -501,37 +428,31 @@ const styles = StyleSheet.create({
   // ── Hero Image ──
   heroImage: {
     height: HERO_HEIGHT,
-    justifyContent: 'space-between',
+    justifyContent: 'flex-end',
   },
-  heroTopRow: {
+  headerBar: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
+    justifyContent: 'space-between',
     paddingHorizontal: spacing.md,
-    paddingTop: spacing.sm,
+    paddingBottom: spacing.sm,
+    backgroundColor: colors.white,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F1F5F9',
   },
-  heroBackButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: 'rgba(0, 0, 0, 0.3)',
+  headerBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  heroActions: {
+  headerActions: {
     flexDirection: 'row',
-    gap: spacing.md,
-  },
-  heroActionBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: 'rgba(0, 0, 0, 0.3)',
-    alignItems: 'center',
-    justifyContent: 'center',
+    gap: spacing.xs,
   },
   heroFade: {
-    height: 140,
+    ...StyleSheet.absoluteFillObject,
     justifyContent: 'flex-end',
   },
 
@@ -540,10 +461,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.lg,
     paddingBottom: spacing.sm,
   },
-  dateBelowImage: {
+  dateRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
     paddingHorizontal: spacing.lg,
     paddingTop: spacing.md,
     paddingBottom: spacing.xs,
+    gap: spacing.xs,
   },
   dateLabel: {
     fontFamily: fontFamily.semiBold,

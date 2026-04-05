@@ -249,20 +249,20 @@ const styles = StyleSheet.create({
   heroLabel: {
     fontFamily: fontFamily.semiBold,
     fontSize: fontSize.xs,
-    color: "rgba(255, 255, 255, 0.8)",
+    color: colors.secondaryDark,
     letterSpacing: 1.5,
     marginBottom: spacing.sm,
   },
   heroTitle: {
     fontFamily: fontFamily.bold,
     fontSize: fontSize["4xl"],
-    color: colors.white,
+    color: semanticColors.light.text,
     marginBottom: spacing.sm,
   },
   heroDescription: {
     fontFamily: fontFamily.regular,
     fontSize: fontSize.md,
-    color: "rgba(255, 255, 255, 0.85)",
+    color: semanticColors.light.textSecondary,
     lineHeight: 20,
   },
   headerSubtitle: {

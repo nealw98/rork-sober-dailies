@@ -5,6 +5,7 @@ export interface Reflection {
   source: string;
   reflection: string;
   thought: string;
+  homeQuote?: string; // Optional curated quote for the home page card
 }
 
 export interface ChatMessage {

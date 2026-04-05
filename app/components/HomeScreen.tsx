@@ -41,16 +41,6 @@ const isSameDay = (date1: Date, date2: Date): boolean => {
   );
 };
 
-// Extract the last sentence from a block of text
-const getLastSentence = (text: string): string => {
-  const trimmed = text.trim();
-  // Split on sentence-ending punctuation followed by space or end
-  const sentences = trimmed.match(/[^.!?]*[.!?]+/g);
-  if (sentences && sentences.length > 0) {
-    return sentences[sentences.length - 1].trim();
-  }
-  return trimmed;
-};
 
 const HomeScreen = () => {
   const router = useRouter();
@@ -129,7 +119,7 @@ const HomeScreen = () => {
             style={styles.reflectionTouchable}
           >
             <ImageBackground
-              source={require('@/assets/reflections_images/reflection_bg4.webp')}
+              source={require('@/assets/reflections_images/reflection_bg2.webp')}
               style={styles.reflectionCard}
               imageStyle={styles.reflectionImage}
               resizeMode="cover"
@@ -139,8 +129,8 @@ const HomeScreen = () => {
                 <Text style={styles.categoryLabel}>TODAY'S FOCUS</Text>
                 <Text style={styles.reflectionTitle}>Daily Reflection</Text>
                 <Text style={styles.reflectionQuote} numberOfLines={4}>
-                  {todaysReflection?.reflection
-                    ? `"${getLastSentence(todaysReflection.reflection)}"`
+                  {todaysReflection?.homeQuote
+                    ? `"${todaysReflection.homeQuote}"`
                     : 'Loading...'}
                 </Text>
                 <View style={styles.pillButton}>
