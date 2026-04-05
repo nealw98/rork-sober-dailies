@@ -1,8 +1,5 @@
 import { StyleSheet, View, Text, TouchableOpacity } from "react-native";
 import { router, Stack } from "expo-router";
-import { useCallback } from "react";
-import { usePostHog } from 'posthog-react-native';
-import { useFocusEffect } from '@react-navigation/native';
 import { ChevronLeft } from "lucide-react-native";
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -27,17 +24,10 @@ const literatureOptions: LiteratureOption[] = [
 ];
 
 export default function LiteratureScreen() {
-  const posthog = usePostHog();
   const { palette } = useTheme();
   useReadingSession('literature');
   useScreenTimeTracking('Literature');
   const insets = useSafeAreaInsets();
-
-  useFocusEffect(
-    useCallback(() => {
-      posthog?.screen('Literature');
-    }, [posthog])
-  );
 
   const handleOptionPress = (route: string, literatureId: string) => {
     // Map literature ID to section name
@@ -47,11 +37,6 @@ export default function LiteratureScreen() {
       'meeting-pocket': 'Meeting Guide'
     };
     
-    posthog?.capture('literature_selected', { 
-      $screen_name: 'Literature',
-      literature_id: literatureId,
-      literature_section: sectionMap[literatureId] || literatureId
-    });
     router.push(route as any);
   };
 

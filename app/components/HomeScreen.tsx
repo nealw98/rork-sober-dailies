@@ -152,7 +152,7 @@ const HomeScreen = () => {
 
         {/* ── AI Sponsor Card ── */}
         <TouchableOpacity
-          onPress={() => router.push('/(tabs)/chat')}
+          onPress={() => router.push('/(main)/chat')}
           activeOpacity={0.85}
           style={[styles.card, { backgroundColor: cards.sponsor }]}
         >
@@ -173,7 +173,7 @@ const HomeScreen = () => {
 
         {/* ── AA Speakers Card ── */}
         <TouchableOpacity
-          onPress={() => router.push('/(tabs)/speakers')}
+          onPress={() => router.push('/(main)/speakers')}
           activeOpacity={0.85}
           style={[styles.card, { backgroundColor: cards.speakers }]}
         >
@@ -194,7 +194,7 @@ const HomeScreen = () => {
 
         {/* ── Literature Card ── */}
         <TouchableOpacity
-          onPress={() => router.push('/(tabs)/literature')}
+          onPress={() => router.push('/(main)/literature')}
           activeOpacity={0.85}
           style={[styles.card, styles.literatureCard, { backgroundColor: cards.literature }]}
         >
@@ -215,7 +215,7 @@ const HomeScreen = () => {
         {/* Row 1: Morning Prayer + Gratitude */}
         <View style={styles.ritualRow}>
           <TouchableOpacity
-            onPress={() => router.push('/(tabs)/prayers?prayer=morning')}
+            onPress={() => router.push('/(main)/prayers?prayer=morning')}
             activeOpacity={0.85}
             style={[styles.ritualCard, { backgroundColor: cards.ritual, borderColor: sem.border }]}
           >
@@ -224,7 +224,7 @@ const HomeScreen = () => {
           </TouchableOpacity>
 
           <TouchableOpacity
-            onPress={() => router.push('/(tabs)/gratitude')}
+            onPress={() => router.push('/(main)/gratitude')}
             activeOpacity={0.85}
             style={[styles.ritualCard, { backgroundColor: cards.ritual, borderColor: sem.border }]}
           >
@@ -236,7 +236,7 @@ const HomeScreen = () => {
         {/* Row 2: Evening Prayer + Nightly Review */}
         <View style={styles.ritualRow}>
           <TouchableOpacity
-            onPress={() => router.push('/(tabs)/prayers?prayer=evening')}
+            onPress={() => router.push('/(main)/prayers?prayer=evening')}
             activeOpacity={0.85}
             style={[styles.ritualCard, { backgroundColor: cards.ritual, borderColor: sem.border }]}
           >
@@ -245,7 +245,7 @@ const HomeScreen = () => {
           </TouchableOpacity>
 
           <TouchableOpacity
-            onPress={() => router.push('/(tabs)/evening-review')}
+            onPress={() => router.push('/(main)/evening-review')}
             activeOpacity={0.85}
             style={[styles.ritualCard, { backgroundColor: cards.ritual, borderColor: sem.border }]}
           >
@@ -257,7 +257,7 @@ const HomeScreen = () => {
         {/* Row 3: Prayers + Spot Check */}
         <View style={styles.ritualRow}>
           <TouchableOpacity
-            onPress={() => router.push('/(tabs)/prayers')}
+            onPress={() => router.push('/(main)/prayers')}
             activeOpacity={0.85}
             style={[styles.ritualCard, { backgroundColor: cards.ritual, borderColor: sem.border }]}
           >
@@ -266,7 +266,7 @@ const HomeScreen = () => {
           </TouchableOpacity>
 
           <TouchableOpacity
-            onPress={() => router.push('/(tabs)/inventory')}
+            onPress={() => router.push('/(main)/inventory')}
             activeOpacity={0.85}
             style={[styles.ritualCard, { backgroundColor: cards.ritual, borderColor: sem.border }]}
           >

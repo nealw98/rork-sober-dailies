@@ -1,8 +1,6 @@
 import React, { useState, useMemo, useCallback } from 'react';
 import { StyleSheet, View, Text, TouchableOpacity, FlatList, ActivityIndicator, TextInput } from 'react-native';
 import { router, Stack } from 'expo-router';
-import { usePostHog } from 'posthog-react-native';
-import { useFocusEffect } from '@react-navigation/native';
 import { ChevronLeft, Search, X } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -47,7 +45,6 @@ function sortSpeakers(speakers: Speaker[], sortBy: SortOption): Speaker[] {
 }
 
 export default function SpeakersScreen() {
-  const posthog = usePostHog();
   const { palette } = useTheme();
   const { speakers, isLoading } = useSpeakers();
   const insets = useSafeAreaInsets();
@@ -55,12 +52,6 @@ export default function SpeakersScreen() {
   const [searchQuery, setSearchQuery] = useState('');
 
   useScreenTimeTracking('Speakers');
-
-  useFocusEffect(
-    useCallback(() => {
-      posthog?.screen('Speakers');
-    }, [posthog])
-  );
 
   const filteredAndSorted = useMemo(() => {
     let results = speakers;
@@ -80,17 +71,12 @@ export default function SpeakersScreen() {
 
   const handleSpeakerPress = useCallback(
     (speaker: Speaker) => {
-      posthog?.capture('speaker_selected', {
-        $screen_name: 'Speakers',
-        speaker_name: speaker.speaker,
-        speaker_title: speaker.title,
-      });
       router.push({
-        pathname: '/(tabs)/speaker-detail',
+        pathname: '/(main)/speaker-detail',
         params: { id: speaker.id },
       } as any);
     },
-    [posthog]
+    []
   );
 
   const renderItem = useCallback(

@@ -1,8 +1,6 @@
-import React, { useCallback, useMemo } from 'react';
+import React, { useMemo } from 'react';
 import { StyleSheet, View, Text, ScrollView, TouchableOpacity } from 'react-native';
 import { router, Stack, useLocalSearchParams } from 'expo-router';
-import { usePostHog } from 'posthog-react-native';
-import { useFocusEffect } from '@react-navigation/native';
 import { ChevronLeft } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -15,7 +13,6 @@ import { adjustFontWeight } from '@/constants/fonts';
 
 export default function SpeakerDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const posthog = usePostHog();
   const { palette } = useTheme();
   const { speakers } = useSpeakers();
   const insets = useSafeAreaInsets();
@@ -25,17 +22,6 @@ export default function SpeakerDetailScreen() {
   const speaker = useMemo(
     () => speakers.find((s) => s.id === id),
     [speakers, id]
-  );
-
-  useFocusEffect(
-    useCallback(() => {
-      if (speaker) {
-        posthog?.screen('Speaker Detail', {
-          speaker_name: speaker.speaker,
-          speaker_title: speaker.title,
-        });
-      }
-    }, [posthog, speaker])
   );
 
   // Theme-aware accent and background colors for speakers

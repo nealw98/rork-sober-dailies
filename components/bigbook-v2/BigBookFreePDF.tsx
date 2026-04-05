@@ -39,7 +39,7 @@ export function BigBookFreePDF() {
 
   const handleSubscribe = () => {
     // Navigate to store/subscription page
-    router.push('/(tabs)/store');
+    router.push('/(main)/store');
   };
 
   return (

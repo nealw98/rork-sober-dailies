@@ -41,7 +41,7 @@ const getScreenNameFromPathname = (pathname: string): string => {
     return 'Home';
   }
   
-  // Remove leading slash and any (tabs) group
+  // Remove leading slash and any main group
   let name = pathname.replace(/^\//, '').replace(/^\(tabs\)\//, '');
   
   // Replace hyphens with spaces and capitalize each word

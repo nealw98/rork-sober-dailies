@@ -3,12 +3,9 @@ import { View, Text, StyleSheet, TouchableOpacity, Platform, Linking, Share, Scr
 import { router, Stack } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { usePostHog } from 'posthog-react-native';
-import { useFocusEffect } from '@react-navigation/native';
 import { ChevronLeft, ChevronRight, X, Code2, Terminal, RefreshCw } from 'lucide-react-native';
 import Constants from 'expo-constants';
 import * as Clipboard from 'expo-clipboard';
-import * as Application from 'expo-application';
 import * as SecureStore from 'expo-secure-store';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Purchases from 'react-native-purchases';
@@ -22,28 +19,7 @@ import { useScreenTimeTracking } from '@/hooks/useScreenTimeTracking';
 
 const DEVELOPER_MODE_KEY = 'developer_mode_enabled';
 
-/**
- * Get a unique device identifier for PostHog tracking
- * - iOS: Uses identifierForVendor (unique per app vendor, resets on reinstall)
- * - Android: Uses ANDROID_ID (unique per device, persists across reinstalls)
- */
-async function getDeviceId(): Promise<string | null> {
-  try {
-    if (Platform.OS === 'ios') {
-      const iosId = await Application.getIosIdForVendorAsync();
-      return iosId;
-    } else if (Platform.OS === 'android') {
-      return Application.androidId;
-    }
-    return null;
-  } catch (error) {
-    console.error('[Settings] Failed to get device ID:', error);
-    return null;
-  }
-}
-
 export default function SettingsScreen() {
-  const posthog = usePostHog();
   const insets = useSafeAreaInsets();
   const { palette, themeId, setThemeId, themes } = useTheme();
   const { fontSize, setFontSize, minFontSize, maxFontSize, resetDefaults, defaultFontSize } = useTextSettings();
@@ -78,12 +54,6 @@ export default function SettingsScreen() {
     };
     loadDeveloperMode();
   }, []);
-
-  useFocusEffect(
-    useCallback(() => {
-      posthog?.screen('Settings');
-    }, [posthog])
-  );
   
   const toggleDeveloperMode = async () => {
     const newValue = !isDeveloperMode;
@@ -91,29 +61,7 @@ export default function SettingsScreen() {
     
     try {
       await AsyncStorage.setItem(DEVELOPER_MODE_KEY, newValue.toString());
-      
-      // Update PostHog person property using identify
-      if (posthog) {
-        // Get the device ID (same one used for identification)
-        const deviceId = await getDeviceId();
-        if (deviceId) {
-          // Update person properties
-          posthog.identify(deviceId, {
-            is_developer: newValue
-          });
-        }
-        
-        // Also set as super property for event filtering
-        posthog.register({
-          is_developer: newValue
-        });
-        
-        // Log the toggle event
-        posthog.capture('developer_mode_toggled', {
-          is_developer: newValue
-        });
-      }
-      
+
       // Also log to Supabase via usageLogger
       usageLogger.logEvent('developer_mode_toggled', {
         screen: 'Settings',
@@ -128,15 +76,9 @@ export default function SettingsScreen() {
   const step = 2;
   const increase = () => {
     setFontSize(fontSize + step);
-    posthog?.capture('settings_font_size_increase', {
-      $screen_name: 'Settings'
-    });
   };
   const decrease = () => {
     setFontSize(fontSize - step);
-    posthog?.capture('settings_font_size_decrease', {
-      $screen_name: 'Settings'
-    });
   };
 
   const handleBack = () => {

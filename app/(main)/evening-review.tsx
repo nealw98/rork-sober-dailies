@@ -16,8 +16,6 @@ import {
 import { router, Stack } from 'expo-router';
 import * as Clipboard from 'expo-clipboard';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { usePostHog } from 'posthog-react-native';
-import { useFocusEffect } from '@react-navigation/native';
 import ScreenContainer from "@/components/ScreenContainer";
 import { LinearGradient } from 'expo-linear-gradient';
 import { ChevronLeft, Share as ShareIcon, Save, List, Check, RotateCcw } from 'lucide-react-native';
@@ -110,7 +108,6 @@ const AnimatedCheckbox = ({ checked, onPress, children, fontSize, palette }: {
 };
 
 export default function EveningReview() {
-  const posthog = usePostHog();
   const insets = useSafeAreaInsets();
   const { palette } = useTheme();
   const { fontSize, lineHeight } = useTextSettings();
@@ -187,13 +184,6 @@ export default function EveningReview() {
     { key: 'reflectionWell', label: 'What have I done well today?', value: reflectionWell, setValue: setReflectionWell },
     { key: 'reflectionBetter', label: 'What could I have done better?', value: reflectionBetter, setValue: setReflectionBetter },
   ];
-
-  // Track screen view
-  useFocusEffect(
-    useCallback(() => {
-      posthog?.screen('Evening Review');
-    }, [posthog])
-  );
 
   const handleStartNew = () => {
     setStayedSober(false);
@@ -419,14 +409,6 @@ export default function EveningReview() {
     // Count completed actions and inventory items
     const actionsCount = dailyActions.filter(action => action.checked).length;
     const inventoryCount = inventoryQuestions.filter(question => question.value.trim() !== '').length;
-    
-    // Track nightly review save
-    posthog?.capture('nightly_review_saved', {
-      $screen_name: 'Evening Review',
-      actions_completed: actionsCount,
-      inventory_items_completed: inventoryCount,
-      total_items: actionsCount + inventoryCount
-    });
     
     const detailedEntry = {
       // New format fields

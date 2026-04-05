@@ -13,8 +13,6 @@ import {
 } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import * as Clipboard from 'expo-clipboard';
-import { usePostHog } from 'posthog-react-native';
-import { useFocusEffect } from '@react-navigation/native';
 import { Heart, Share as ShareIcon, Save, List, CheckCircle, Calendar, Trash2, RotateCcw, ChevronLeft } from 'lucide-react-native';
 import AnimatedWeeklyProgressMessage from '@/components/AnimatedWeeklyProgressMessage';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -298,7 +296,6 @@ const formatDateDisplay = (date: Date): string => {
 };
 
 export default function GratitudeListScreen() {
-  const posthog = usePostHog();
   const { palette } = useTheme();
   const [gratitudeItems, setGratitudeItems] = useState<string[]>([]);
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
@@ -318,12 +315,6 @@ export default function GratitudeListScreen() {
   // Always call hooks in the same order
   const gratitudeStore = useGratitudeStore();
   const { fontSize, lineHeight } = useTextSettings();
-
-  useFocusEffect(
-    useCallback(() => {
-      posthog?.screen('Gratitude List');
-    }, [posthog])
-  );
 
   // Add safety check to prevent destructuring undefined
   if (!gratitudeStore) {
@@ -429,10 +420,6 @@ export default function GratitudeListScreen() {
       const newItems = [...gratitudeItems, inputValue.trim()];
       setGratitudeItems(newItems);
       addItemsToToday([inputValue.trim()]);
-      posthog?.capture('gratitude_item_added', { 
-        $screen_name: 'Gratitude List',
-        item_count: newItems.length 
-      });
       setInputValue('');
       inputRef.current?.blur();
     }
@@ -583,12 +570,7 @@ export default function GratitudeListScreen() {
     // Save for today's date and mark as completed
     saveDetailedEntry(gratitudeItems);
     completeToday(gratitudeItems);
-    
-    posthog?.capture('gratitude_list_completed', { 
-      $screen_name: 'Gratitude List',
-      item_count: gratitudeItems.length 
-    });
-    
+
     // Show completion modal
     setShowConfirmation(true);
   };

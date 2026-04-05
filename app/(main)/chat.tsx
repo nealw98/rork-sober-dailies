@@ -1,9 +1,10 @@
 import React, { useEffect, useState, useCallback, useRef } from "react";
 import { StyleSheet, Image, View, Text, ScrollView, TouchableOpacity } from "react-native";
 import { Stack } from "expo-router";
-import { LinearGradient } from "expo-linear-gradient";
+// LinearGradient removed — using hero card instead
 import { useRouter, useFocusEffect } from "expo-router";
-import { ChevronLeft, MessageCircle } from "lucide-react-native";
+import { MessageCircle } from "lucide-react-native";
+import TopLevelHeader from "@/components/navigation/TopLevelHeader";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
@@ -15,6 +16,7 @@ import { useScreenTimeTracking } from "@/hooks/useScreenTimeTracking";
 import {
   colors,
   semanticColors,
+  cardColors,
   spacing,
   radii,
   fontFamily,
@@ -165,9 +167,7 @@ export default function ChatScreen() {
     }
   };
 
-  const handleBack = () => {
-    router.push("/(tabs)");
-  };
+
 
   const renderSponsorCard = (sponsor: SponsorConfig) => {
     return (
@@ -202,14 +202,7 @@ export default function ChatScreen() {
       <Stack.Screen options={{ headerShown: false }} />
       <ScreenContainer noPadding>
         <View style={[styles.container, { backgroundColor: sem.background }]}>
-          {/* Fixed back button */}
-          <TouchableOpacity
-            style={[styles.backButton, { top: insets.top + 12 }]}
-            onPress={handleBack}
-            activeOpacity={0.7}
-          >
-            <ChevronLeft size={22} color={colors.white} />
-          </TouchableOpacity>
+          <TopLevelHeader title="" />
 
           <ScrollView
             ref={scrollRef}
@@ -217,18 +210,14 @@ export default function ChatScreen() {
             contentContainerStyle={styles.scrollContent}
             showsVerticalScrollIndicator={false}
           >
-            {/* Header — scrolls with content */}
-            <LinearGradient
-              colors={palette.gradients.header as [string, string, ...string[]]}
-              style={[styles.header, { paddingTop: insets.top + 12 + 48 }]}
-              start={{ x: 0.1, y: 0 }}
-              end={{ x: 0.9, y: 1 }}
-            >
-              <View style={styles.headerContent}>
-                <Text style={styles.headerLabel}>AI COMPANION</Text>
-                <Text style={styles.headerTitle}>Find Your Guide</Text>
-              </View>
-            </LinearGradient>
+            {/* Hero Card */}
+            <View style={styles.heroCard}>
+              <Text style={styles.heroLabel}>AI COMPANION</Text>
+              <Text style={styles.heroTitle}>Find Your Guide</Text>
+              <Text style={styles.heroDescription}>
+                Choose a sponsor that resonates with your recovery journey and personality.
+              </Text>
+            </View>
 
             {/* Sponsor cards — only render once data is loaded to prevent flicker */}
             {dataLoaded && (
@@ -248,37 +237,33 @@ const styles = StyleSheet.create({
     flex: 1,
   },
 
-  // ── Header ──
-  header: {
-    paddingBottom: 56,
-    paddingHorizontal: spacing.lg,
+  // ── Hero Card ──
+  heroCard: {
+    backgroundColor: cardColors.light.sponsor,
+    borderRadius: radii.lg,
+    padding: spacing.lg,
+    marginHorizontal: spacing.lg,
+    marginBottom: spacing.lg,
+    ...shadows.lg,
   },
-  backButton: {
-    position: "absolute",
-    left: spacing.lg,
-    zIndex: 10,
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: "rgba(0, 0, 0, 0.3)",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  headerContent: {
-    alignItems: "flex-start",
-  },
-  headerLabel: {
+  heroLabel: {
     fontFamily: fontFamily.semiBold,
     fontSize: fontSize.xs,
-    color: "rgba(255, 255, 255, 0.7)",
+    color: "rgba(255, 255, 255, 0.8)",
     letterSpacing: 1.5,
     marginBottom: spacing.sm,
   },
-  headerTitle: {
+  heroTitle: {
     fontFamily: fontFamily.bold,
     fontSize: fontSize["4xl"],
     color: colors.white,
-    marginBottom: spacing.xs,
+    marginBottom: spacing.sm,
+  },
+  heroDescription: {
+    fontFamily: fontFamily.regular,
+    fontSize: fontSize.md,
+    color: "rgba(255, 255, 255, 0.85)",
+    lineHeight: 20,
   },
   headerSubtitle: {
     fontFamily: fontFamily.regular,
@@ -295,7 +280,6 @@ const styles = StyleSheet.create({
     paddingBottom: spacing.xxl,
   },
   cardsContainer: {
-    marginTop: -40,
     paddingHorizontal: spacing.lg,
     paddingBottom: spacing.lg,
   },
