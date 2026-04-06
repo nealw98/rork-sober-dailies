@@ -1,15 +1,23 @@
 import React, { useState, useMemo, useCallback } from 'react';
 import { StyleSheet, View, Text, TouchableOpacity, FlatList, ActivityIndicator, TextInput } from 'react-native';
 import { router, Stack } from 'expo-router';
-import { ChevronLeft, Search, X } from 'lucide-react-native';
-import { LinearGradient } from 'expo-linear-gradient';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Search, X, Mic } from 'lucide-react-native';
 import ScreenContainer from '@/components/ScreenContainer';
 import { SpeakerCard } from '@/components/SpeakerCard';
-import { useTheme } from '@/hooks/useTheme';
 import { useSpeakers, Speaker } from '@/hooks/useSpeakers';
 import { useScreenTimeTracking } from '@/hooks/useScreenTimeTracking';
-import { adjustFontWeight } from '@/constants/fonts';
+import TopLevelHeader from '@/components/navigation/TopLevelHeader';
+import {
+  colors,
+  semanticColors,
+  spacing,
+  radii,
+  fontFamily,
+  fontSize,
+  shadows,
+} from '@/constants/designTokens';
+
+const sem = semanticColors.light;
 
 type SortOption = 'newest' | 'oldest' | 'az';
 
@@ -21,7 +29,6 @@ const SORT_OPTIONS: { key: SortOption; label: string }[] = [
 
 function sortSpeakers(speakers: Speaker[], sortBy: SortOption): Speaker[] {
   const sorted = [...speakers];
-
   switch (sortBy) {
     case 'newest':
       return sorted.sort((a, b) => {
@@ -45,9 +52,7 @@ function sortSpeakers(speakers: Speaker[], sortBy: SortOption): Speaker[] {
 }
 
 export default function SpeakersScreen() {
-  const { palette } = useTheme();
   const { speakers, isLoading } = useSpeakers();
-  const insets = useSafeAreaInsets();
   const [sortBy, setSortBy] = useState<SortOption>('newest');
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -88,40 +93,28 @@ export default function SpeakersScreen() {
 
   const keyExtractor = useCallback((item: Speaker) => item.id, []);
 
-  return (
-    <ScreenContainer style={[styles.container, { backgroundColor: palette.background }]} noPadding>
-      <Stack.Screen options={{ headerShown: false }} />
-
-      {/* Gradient header */}
-      <LinearGradient
-        colors={palette.gradients.header as [string, string, ...string[]]}
-        style={[styles.headerBlock, { paddingTop: insets.top + 8 }]}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-      >
-        <View style={styles.headerTopRow}>
-          <TouchableOpacity
-            onPress={() => router.back()}
-            style={styles.backButton}
-            activeOpacity={0.7}
-          >
-            <ChevronLeft size={24} color={palette.headerText} />
-          </TouchableOpacity>
-          <View style={{ width: 60 }} />
+  const ListHeader = (
+    <>
+      {/* Page intro */}
+      <View style={styles.pageIntro}>
+        <View style={styles.introLabelRow}>
+          <Mic size={14} color={colors.tertiaryDark} />
+          <Text style={[styles.introLabel, { color: colors.tertiaryDark }]}>FEATURED</Text>
         </View>
-        <Text style={[styles.headerTitle, { color: palette.headerText }]}>
-          AA Speakers
+        <Text style={[styles.introTitle, { color: sem.text }]}>AA Speakers</Text>
+        <Text style={[styles.introDescription, { color: sem.textSecondary }]}>
+          Listen to inspiring stories of recovery from fellow members.
         </Text>
-      </LinearGradient>
+      </View>
 
       {/* Search + Sort controls */}
-      <View style={[styles.controlsBar, { borderBottomColor: palette.border }]}>
-        <View style={[styles.searchRow, { backgroundColor: palette.cardBackground, borderColor: palette.border }]}>
-          <Search size={16} color={palette.muted} />
+      <View style={styles.controlsBar}>
+        <View style={styles.searchRow}>
+          <Search size={16} color={sem.textMuted} />
           <TextInput
-            style={[styles.searchInput, { color: palette.text }]}
+            style={styles.searchInput}
             placeholder="Search speakers..."
-            placeholderTextColor={palette.muted}
+            placeholderTextColor={sem.textMuted}
             value={searchQuery}
             onChangeText={setSearchQuery}
             autoCorrect={false}
@@ -130,7 +123,7 @@ export default function SpeakersScreen() {
           />
           {searchQuery.length > 0 && (
             <TouchableOpacity onPress={() => setSearchQuery('')} hitSlop={8}>
-              <X size={16} color={palette.muted} />
+              <X size={16} color={sem.textMuted} />
             </TouchableOpacity>
           )}
         </View>
@@ -141,16 +134,13 @@ export default function SpeakersScreen() {
               onPress={() => setSortBy(opt.key)}
               style={[
                 styles.sortButton,
-                sortBy === opt.key && { borderBottomColor: palette.tint, borderBottomWidth: 2 },
+                sortBy === opt.key && styles.sortButtonActive,
               ]}
             >
               <Text
                 style={[
                   styles.sortText,
-                  {
-                    color: sortBy === opt.key ? palette.tint : palette.muted,
-                    fontWeight: sortBy === opt.key ? adjustFontWeight('600') : adjustFontWeight('400'),
-                  },
+                  { color: sortBy === opt.key ? colors.tertiaryDark : sem.textMuted },
                 ]}
               >
                 {opt.label}
@@ -159,31 +149,38 @@ export default function SpeakersScreen() {
           ))}
         </View>
       </View>
+    </>
+  );
 
-      {/* Speaker list */}
-      {isLoading ? (
-        <View style={styles.loading}>
-          <ActivityIndicator size="large" color={palette.tint} />
-        </View>
-      ) : (
-        <FlatList
-          data={filteredAndSorted}
-          renderItem={renderItem}
-          keyExtractor={keyExtractor}
-          contentContainerStyle={styles.listContent}
-          showsVerticalScrollIndicator={false}
-          initialNumToRender={10}
-          maxToRenderPerBatch={10}
-          keyboardShouldPersistTaps="handled"
-          ListEmptyComponent={
-            <View style={styles.empty}>
-              <Text style={[styles.emptyText, { color: palette.muted }]}>
-                No speakers found
-              </Text>
-            </View>
-          }
-        />
-      )}
+  return (
+    <ScreenContainer noPadding>
+      <Stack.Screen options={{ headerShown: false }} />
+      <View style={[styles.container, { backgroundColor: sem.background }]}>
+        <TopLevelHeader title="" />
+
+        {isLoading ? (
+          <View style={styles.loading}>
+            <ActivityIndicator size="large" color={colors.tertiary} />
+          </View>
+        ) : (
+          <FlatList
+            data={filteredAndSorted}
+            renderItem={renderItem}
+            keyExtractor={keyExtractor}
+            ListHeaderComponent={ListHeader}
+            contentContainerStyle={styles.listContent}
+            showsVerticalScrollIndicator={false}
+            initialNumToRender={10}
+            maxToRenderPerBatch={10}
+            keyboardShouldPersistTaps="handled"
+            ListEmptyComponent={
+              <View style={styles.empty}>
+                <Text style={styles.emptyText}>No speakers found</Text>
+              </View>
+            }
+          />
+        )}
+      </View>
     </ScreenContainer>
   );
 }
@@ -192,66 +189,80 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  headerBlock: {
-    paddingBottom: 16,
-    paddingHorizontal: 16,
+
+  // ── Page Intro ──
+  pageIntro: {
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.lg,
+    paddingBottom: spacing.xl,
   },
-  headerTopRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  backButton: {
+  introLabelRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 6,
-    paddingHorizontal: 10,
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    borderRadius: 16,
+    gap: spacing.sm,
+    marginBottom: spacing.sm,
   },
-  headerTitle: {
-    fontSize: 32,
-    fontWeight: adjustFontWeight('400'),
-    textAlign: 'center',
+  introLabel: {
+    fontFamily: fontFamily.semiBold,
+    fontSize: fontSize.xs,
+    letterSpacing: 1.5,
   },
+  introTitle: {
+    fontFamily: fontFamily.bold,
+    fontSize: fontSize['4xl'],
+    marginBottom: spacing.sm,
+  },
+  introDescription: {
+    fontFamily: fontFamily.regular,
+    fontSize: fontSize.md,
+    lineHeight: 20,
+  },
+
+  // ── Search + Sort ──
   controlsBar: {
-    borderBottomWidth: 1,
-    paddingTop: 12,
+    paddingHorizontal: spacing.lg,
+    marginBottom: spacing.md,
   },
   searchRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginHorizontal: 16,
-    marginBottom: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 10,
-    borderWidth: 1,
-    gap: 8,
+    backgroundColor: colors.white,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    borderRadius: radii.md,
+    gap: spacing.sm,
+    ...shadows.sm,
   },
   searchInput: {
     flex: 1,
-    fontSize: 15,
+    fontFamily: fontFamily.regular,
+    fontSize: fontSize.base,
+    color: sem.text,
     padding: 0,
   },
   sortRow: {
     flexDirection: 'row',
     justifyContent: 'center',
-    paddingVertical: 4,
-    gap: 24,
+    paddingVertical: spacing.md,
+    gap: spacing.md,
   },
   sortButton: {
-    paddingVertical: 4,
-    paddingHorizontal: 8,
+    paddingVertical: spacing.xs,
+    paddingHorizontal: spacing.md,
+    borderRadius: radii.full,
+  },
+  sortButtonActive: {
+    backgroundColor: colors.tertiaryLight,
   },
   sortText: {
-    fontSize: 14,
+    fontFamily: fontFamily.medium,
+    fontSize: fontSize.md,
   },
+
+  // ── List ──
   listContent: {
-    paddingHorizontal: 20,
-    paddingTop: 16,
-    paddingBottom: 24,
+    paddingHorizontal: spacing.lg,
+    paddingBottom: spacing.xxl,
   },
   loading: {
     flex: 1,
@@ -263,6 +274,8 @@ const styles = StyleSheet.create({
     paddingTop: 40,
   },
   emptyText: {
-    fontSize: 15,
+    fontFamily: fontFamily.regular,
+    fontSize: fontSize.base,
+    color: sem.textMuted,
   },
 });
