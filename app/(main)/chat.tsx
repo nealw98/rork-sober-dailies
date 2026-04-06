@@ -201,7 +201,7 @@ export default function ChatScreen() {
     <>
       <Stack.Screen options={{ headerShown: false }} />
       <ScreenContainer noPadding>
-        <View style={[styles.container, { backgroundColor: sem.background }]}>
+        <View style={[styles.container, { backgroundColor: colors.secondary }]}>
           <TopLevelHeader title="" />
 
           <ScrollView
@@ -210,11 +210,14 @@ export default function ChatScreen() {
             contentContainerStyle={styles.scrollContent}
             showsVerticalScrollIndicator={false}
           >
-            {/* Hero Card */}
-            <View style={styles.heroCard}>
-              <Text style={styles.heroLabel}>AI COMPANION</Text>
-              <Text style={styles.heroTitle}>Find Your Guide</Text>
-              <Text style={styles.heroDescription}>
+            {/* Page intro */}
+            <View style={styles.pageIntro}>
+              <View style={styles.introLabelRow}>
+                <MessageCircle size={14} color={colors.secondaryDark} />
+                <Text style={[styles.introLabel, { color: colors.secondaryDark }]}>AI COMPANION</Text>
+              </View>
+              <Text style={[styles.introTitle, { color: sem.text }]}>Find Your Guide</Text>
+              <Text style={[styles.introDescription, { color: sem.textSecondary }]}>
                 Choose a sponsor that resonates with your recovery journey and personality.
               </Text>
             </View>
@@ -237,32 +240,31 @@ const styles = StyleSheet.create({
     flex: 1,
   },
 
-  // ── Hero Card ──
-  heroCard: {
-    backgroundColor: cardColors.light.sponsor,
-    borderRadius: radii.lg,
-    padding: spacing.lg,
-    marginHorizontal: spacing.lg,
-    marginBottom: spacing.lg,
-    ...shadows.lg,
+  // ── Page Intro ──
+  pageIntro: {
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.lg,
+    paddingBottom: spacing.xxl,
   },
-  heroLabel: {
+  introLabelRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    marginBottom: spacing.sm,
+  },
+  introLabel: {
     fontFamily: fontFamily.semiBold,
     fontSize: fontSize.xs,
-    color: colors.secondaryDark,
     letterSpacing: 1.5,
-    marginBottom: spacing.sm,
   },
-  heroTitle: {
+  introTitle: {
     fontFamily: fontFamily.bold,
     fontSize: fontSize["4xl"],
-    color: semanticColors.light.text,
     marginBottom: spacing.sm,
   },
-  heroDescription: {
+  introDescription: {
     fontFamily: fontFamily.regular,
     fontSize: fontSize.md,
-    color: semanticColors.light.textSecondary,
     lineHeight: 20,
   },
   headerSubtitle: {

@@ -15,21 +15,26 @@ import {
 import { useRouter, useLocalSearchParams, Stack } from "expo-router";
 import { ChevronLeft, RotateCcw, Send } from "lucide-react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { LinearGradient } from "expo-linear-gradient";
-import * as Haptics from 'expo-haptics';
-import * as Clipboard from 'expo-clipboard';
+import * as Haptics from "expo-haptics";
+import * as Clipboard from "expo-clipboard";
 import { ChatStoreProvider, useChatStore } from "@/hooks/use-chat-store";
 import { getSponsorById, SPONSORS } from "@/constants/sponsors";
 import { useScreenTimeTracking } from "@/hooks/useScreenTimeTracking";
 import { useTheme } from "@/hooks/useTheme";
-import Colors from "@/constants/colors";
-import { adjustFontWeight } from "@/constants/fonts";
 import { useTextSettings } from "@/hooks/use-text-settings";
 import { SponsorType, ChatMessage } from "@/types";
 import { ChatMarkdownRenderer } from "@/components/ChatMarkdownRenderer";
 import { featureUse, getAnonymousId } from "@/lib/usageLogger";
-import { usePostHog } from 'posthog-react-native';
 import { supabase } from "@/lib/supabase";
+import {
+  colors,
+  semanticColors,
+  spacing,
+  radii,
+  fontFamily,
+  fontSize as fontSizeTokens,
+  shadows,
+} from "@/constants/designTokens";
 
 const DAILY_SPONSOR_LIMIT = 50;
 const MONTHLY_SPONSOR_LIMIT = 200;
@@ -43,13 +48,9 @@ const checkSponsorMessageLimits = async (): Promise<LimitCheckResult> => {
   try {
     const anonymousId = await getAnonymousId();
     const now = new Date();
-    
-    // Calculate start of today UTC
     const startOfTodayUtc = new Date(
       Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), 0, 0, 0)
     ).toISOString();
-    
-    // Calculate start of this month UTC
     const startOfMonthUtc = new Date(
       Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1, 0, 0, 0)
     ).toISOString();
@@ -93,73 +94,102 @@ const checkSponsorMessageLimits = async (): Promise<LimitCheckResult> => {
   }
 };
 
-const ChatBubble = ({
+// ─── Chat Bubble ─────────────────────────────────────────────────────────────
+
+const sem = semanticColors.light;
+
+const ChatMessage_View = ({
   message,
-  bubbleColor,
-  bubbleBorderColor,
   sponsorType,
   fontSize,
-  palette,
+  sponsorAvatar,
 }: {
   message: ChatMessage;
-  bubbleColor?: string;
-  bubbleBorderColor?: string;
   sponsorType: SponsorType;
   fontSize: number;
-  palette: any;
+  sponsorAvatar?: any;
 }) => {
   const isUser = message.sender === "user";
-  const sponsor = getSponsorById(sponsorType);
-  const messageText = message.text;
 
   const handleLongPress = async () => {
     try {
       await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-      await Clipboard.setStringAsync(messageText);
+      await Clipboard.setStringAsync(message.text);
       Alert.alert("Copied", "Message copied to clipboard");
     } catch {
       // ignore
     }
   };
-  
-  return (
-    <TouchableOpacity
-      onLongPress={handleLongPress}
-      activeOpacity={0.9}
-      style={[
-        styles.messageBubble,
-        isUser 
-          ? { alignSelf: 'flex-end', backgroundColor: palette.chatBubbleUser } 
-          : { alignSelf: 'flex-start', backgroundColor: bubbleColor },
-        !isUser && bubbleBorderColor ? { borderWidth: 2, borderColor: bubbleBorderColor } : {},
-      ]}
-    >
-      {!isUser && sponsor?.avatar && (
-        <Image source={sponsor.avatar} style={styles.bubbleAvatar} />
-      )}
-      <View style={styles.bubbleContent}>
-        <ChatMarkdownRenderer 
-          content={messageText} 
-          style={{ color: palette.text, fontSize }}
-        />
+
+  const isWelcome = message.id.startsWith('welcome-');
+  const timeString = isWelcome
+    ? 'WELCOME'
+    : new Date(message.timestamp).toLocaleTimeString('en-US', {
+        hour: 'numeric',
+        minute: '2-digit',
+        hour12: true,
+      }).toUpperCase();
+
+  if (isUser) {
+    return (
+      <View style={styles.userRow}>
+        <TouchableOpacity
+          onLongPress={handleLongPress}
+          activeOpacity={0.9}
+          style={styles.userBubble}
+        >
+          <Text style={[styles.userText, { fontSize }]}>{message.text}</Text>
+        </TouchableOpacity>
+        <Text style={styles.userMeta}>YOU • {timeString}</Text>
       </View>
-    </TouchableOpacity>
+    );
+  }
+
+  const sponsor = getSponsorById(sponsorType);
+  const sponsorFirstName = sponsor?.name?.split(' ')[1] || sponsor?.name || '';
+
+  return (
+    <View style={styles.sponsorRow}>
+      <View style={styles.sponsorBubbleRow}>
+        {sponsorAvatar && (
+          <Image source={sponsorAvatar} style={styles.sponsorBubbleAvatar} />
+        )}
+        <TouchableOpacity
+          onLongPress={handleLongPress}
+          activeOpacity={0.9}
+          style={styles.sponsorBubble}
+        >
+          <ChatMarkdownRenderer
+            content={message.text}
+            style={{ color: sem.text, fontSize }}
+          />
+        </TouchableOpacity>
+      </View>
+      <Text style={styles.sponsorMeta}>{sponsorFirstName.toUpperCase()} • {timeString}</Text>
+    </View>
   );
 };
 
+// ─── Main Chat Content ───────────────────────────────────────────────────────
+
 function SponsorChatContent({ initialSponsor }: { initialSponsor: string }) {
-  const posthog = usePostHog();
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { palette } = useTheme();
   const textSettings = useTextSettings();
   const fontSize = textSettings?.fontSize ?? 18;
-  const { messages, isLoading, sendMessage, clearChat, changeSponsor, sponsorType } = useChatStore();
+  const {
+    messages,
+    isLoading,
+    sendMessage,
+    clearChat,
+    changeSponsor,
+    sponsorType,
+  } = useChatStore();
   const [inputText, setInputText] = useState("");
   const [isCheckingLimits, setIsCheckingLimits] = useState(false);
   const flatListRef = useRef<FlatList>(null);
 
-  // Sync sponsor type with store on mount
   useEffect(() => {
     const targetSponsor = initialSponsor as SponsorType;
     if (targetSponsor !== sponsorType) {
@@ -167,16 +197,10 @@ function SponsorChatContent({ initialSponsor }: { initialSponsor: string }) {
     }
   }, [initialSponsor, sponsorType, changeSponsor]);
 
-  // Use the initialSponsor directly for display (we know it's valid)
   const sponsor = getSponsorById(initialSponsor as SponsorType);
-  const screenName = sponsor?.name || 'Unknown Sponsor';
-  
-  // Track screen time with sponsor name
+  const screenName = sponsor?.name || "Unknown Sponsor";
   useScreenTimeTracking(screenName);
-  
-  // Use theme colors for chat bubbles instead of sponsor-specific colors
-  const bubbleColor = palette.chatBubbleBot;
-  const bubbleBorderColor = undefined; // No border in themed mode
+
   const placeholderText = sponsor?.placeholderText ?? "Type a message...";
   const loadingText = sponsor?.loadingText ?? "Thinking...";
 
@@ -193,7 +217,14 @@ function SponsorChatContent({ initialSponsor }: { initialSponsor: string }) {
   };
 
   const handleRefresh = () => {
-    clearChat();
+    Alert.alert(
+      "Reset Conversation",
+      "This will clear your chat history with this sponsor. Continue?",
+      [
+        { text: "Cancel", style: "cancel" },
+        { text: "Reset", style: "destructive", onPress: () => clearChat() },
+      ]
+    );
   };
 
   const handleSend = async () => {
@@ -223,48 +254,34 @@ function SponsorChatContent({ initialSponsor }: { initialSponsor: string }) {
 
     setInputText("");
     featureUse(`SponsorMessage_${getSponsorDisplayName(sponsorType)}`);
-    
-    // TODO: Remove Supabase tracking after PostHog validation
-    posthog?.capture('sponsor_message_sent', { 
-      $screen_name: sponsor ? sponsor.name : 'Unknown Sponsor',
-      sponsor_name: getSponsorDisplayName(sponsorType)
-    });
-    
     await sendMessage(trimmed);
   };
 
-  // Helper function to get sponsor display name for logging
   const getSponsorDisplayName = (type: SponsorType): string => {
     switch (type) {
-      case "salty":
-        return "SaltySam";
-      case "supportive":
-        return "SteadyEddie";
-      case "grace":
-        return "GentleGrace";
-      case "cowboy-pete":
-        return "CowboyPete";
-      case "co-sign-sally":
-        return "CoSignSally";
-      case "fresh":
-        return "FreshFreddie";
-      case "mama-jo":
-        return "MamaJo";
-      default:
-        return type;
+      case "salty": return "SaltySam";
+      case "supportive": return "SteadyEddie";
+      case "grace": return "GentleGrace";
+      case "cowboy-pete": return "CowboyPete";
+      case "co-sign-sally": return "CoSignSally";
+      case "fresh": return "FreshFreddie";
+      case "mama-jo": return "MamaJo";
+      default: return type;
     }
   };
 
-  // Show loading while syncing sponsor
-  if (sponsorType !== initialSponsor) {
-    return null;
-  }
+  if (sponsorType !== initialSponsor) return null;
 
   if (!sponsor || !sponsor.isAvailable) {
     return (
       <View style={styles.errorContainer}>
-        <Text style={styles.errorText}>Sponsor not found</Text>
-        <TouchableOpacity onPress={handleBack} style={styles.errorButton}>
+        <Text style={[styles.errorText, { color: sem.text }]}>
+          Sponsor not found
+        </Text>
+        <TouchableOpacity
+          onPress={handleBack}
+          style={styles.errorButton}
+        >
           <Text style={styles.errorButtonText}>Go Back</Text>
         </TouchableOpacity>
       </View>
@@ -274,97 +291,81 @@ function SponsorChatContent({ initialSponsor }: { initialSponsor: string }) {
   const isSendDisabled = !inputText.trim() || isLoading || isCheckingLimits;
 
   return (
-    <View style={[styles.container, { backgroundColor: palette.chatBackground || palette.background }]}>
+    <View style={[styles.container, { backgroundColor: colors.secondary }]}>
       <Stack.Screen options={{ headerShown: false }} />
-      
-      {/* Gradient header with avatar and sponsor name */}
-      <LinearGradient
-        colors={palette.gradients.header as [string, string, ...string[]]}
-        style={[styles.headerBlock, { paddingTop: insets.top + 8 }]}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-      >
-        <View style={styles.headerTopRow}>
-          <TouchableOpacity 
-            onPress={handleBack} 
-            style={styles.backButton}
-            activeOpacity={0.7}
-          >
-            <ChevronLeft size={24} color={palette.headerText} />
-          </TouchableOpacity>
+
+      {/* ── Header Bar ── */}
+      <View style={[styles.headerBar, { paddingTop: insets.top + 8 }]}>
+        <TouchableOpacity
+          onPress={handleBack}
+          style={styles.headerBackBtn}
+          activeOpacity={0.7}
+        >
+          <ChevronLeft size={22} color={sem.text} />
+        </TouchableOpacity>
+
+        <View style={styles.headerCenter}>
+          {sponsor.avatar && (
+            <Image source={sponsor.avatar} style={styles.headerAvatar} />
+          )}
+          <Text style={[styles.headerName, { color: sem.text }]}>
+            {sponsor.name}
+          </Text>
         </View>
-        
-        {/* Sponsor Name */}
-        <View style={styles.sponsorInfo}>
-          <Text style={[styles.headerTitle, { color: palette.headerText }]}>{sponsor.name}</Text>
-        </View>
-      </LinearGradient>
-      
-      {/* Action row below header */}
-      <View style={[styles.actionRow, { backgroundColor: palette.chatBackground || palette.background, borderBottomColor: palette.border }]}>
+
         <TouchableOpacity
           onPress={handleRefresh}
-          accessible={true}
-          accessibilityLabel="Reset conversation"
-          accessibilityRole="button"
+          style={styles.headerResetBtn}
           activeOpacity={0.6}
-          style={styles.actionButton}
         >
-          <RotateCcw color={palette.tint} size={18} />
-          <Text style={[styles.actionButtonText, { color: palette.tint }]}>Reset</Text>
+          <RotateCcw size={18} color={sem.textMuted} />
         </TouchableOpacity>
       </View>
-      
-      {/* Chat area with off-white background */}
+
+      {/* ── Chat Messages ── */}
       <KeyboardAvoidingView
         style={styles.chatArea}
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         keyboardVerticalOffset={0}
       >
-        <View style={styles.messagesWrapper}>
-          <FlatList
-            ref={flatListRef}
-            data={messages}
-            keyExtractor={(item) => item.id}
-            renderItem={({ item }) => (
-              <ChatBubble
-                message={item}
-                bubbleColor={bubbleColor}
-                bubbleBorderColor={bubbleBorderColor}
-                sponsorType={initialSponsor as SponsorType}
-                fontSize={fontSize}
-                palette={palette}
-              />
-            )}
-            contentContainerStyle={styles.chatContainer}
-            showsVerticalScrollIndicator={false}
-            keyboardShouldPersistTaps="handled"
-          />
-          
-          {isLoading && (
-            <View style={styles.loadingContainer}>
-              <ActivityIndicator size="small" color={Colors.light.tint} />
-              <Text style={styles.loadingText}>{loadingText}</Text>
-            </View>
+        <FlatList
+          ref={flatListRef}
+          data={messages}
+          keyExtractor={(item) => item.id}
+          renderItem={({ item }) => (
+            <ChatMessage_View
+              message={item}
+              sponsorType={initialSponsor as SponsorType}
+              fontSize={fontSize}
+              sponsorAvatar={sponsor.avatar}
+            />
           )}
-        </View>
-        
+          contentContainerStyle={styles.messagesList}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+        />
+
+        {/* Loading indicator */}
+        {isLoading && (
+          <View style={styles.loadingRow}>
+            <ActivityIndicator size="small" color={sem.textMuted} />
+            <Text style={styles.loadingText}>{loadingText}</Text>
+          </View>
+        )}
+
+        {/* ── Input Bar ── */}
         <View
           style={[
-            styles.inputContainer,
-            { 
-              paddingBottom: Math.max(insets.bottom, 12),
-              backgroundColor: palette.chatBackground || palette.background,
-              borderTopColor: palette.border,
-            },
+            styles.inputBar,
+            { paddingBottom: Math.max(insets.bottom, 12) },
           ]}
         >
           <TextInput
-            style={[styles.input, { fontSize, color: palette.text, backgroundColor: palette.cardBackground, borderColor: palette.border }]}
+            style={[styles.input, { fontSize }]}
             value={inputText}
             onChangeText={setInputText}
             placeholder={placeholderText}
-            placeholderTextColor={palette.muted}
+            placeholderTextColor={sem.textMuted}
             multiline
             maxLength={500}
             returnKeyType="done"
@@ -373,22 +374,21 @@ function SponsorChatContent({ initialSponsor }: { initialSponsor: string }) {
           />
           <TouchableOpacity
             style={[
-              styles.sendButton,
-              isSendDisabled && styles.sendButtonDisabled,
+              styles.sendBtn,
+              isSendDisabled && styles.sendBtnDisabled,
             ]}
             onPress={handleSend}
             disabled={isSendDisabled}
           >
-            <Send
-              size={20}
-              color={isSendDisabled ? Colors.light.muted : "#fff"}
-            />
+            <Send size={18} color={isSendDisabled ? sem.textMuted : colors.white} />
           </TouchableOpacity>
         </View>
       </KeyboardAvoidingView>
     </View>
   );
 }
+
+// ─── Export ──────────────────────────────────────────────────────────────────
 
 export default function SponsorChatScreen() {
   const params = useLocalSearchParams<{ sponsor: string }>();
@@ -401,144 +401,196 @@ export default function SponsorChatScreen() {
   );
 }
 
+// ─── Styles ──────────────────────────────────────────────────────────────────
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  headerBlock: {
-    paddingBottom: 16,
-    paddingHorizontal: 16,
-  },
-  headerTopRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  backButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 6,
-    paddingHorizontal: 10,
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    borderRadius: 16,
-  },
-  backButtonText: {
-    fontSize: 15,
-    color: '#fff',
-    fontWeight: '500',
-  },
-  actionRow: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-    alignItems: 'center',
-    paddingVertical: 12,
-    paddingHorizontal: 16,
+
+  // ── Header ──
+  headerBar: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: spacing.md,
+    paddingBottom: spacing.md,
+    backgroundColor: colors.white,
     borderBottomWidth: 1,
+    borderBottomColor: "#F1F5F9",
   },
-  actionButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
+  headerBackBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: "center",
+    justifyContent: "center",
   },
-  actionButtonText: {
-    fontSize: 14,
-    fontWeight: '500',
+  headerCenter: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: spacing.sm,
   },
-  sponsorInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
+  headerAvatar: {
+    width: 28,
+    height: 28,
+    borderRadius: radii.sm,
   },
-  headerTitle: {
-    fontSize: 32,
-    fontWeight: adjustFontWeight('400'),
+  headerName: {
+    fontFamily: fontFamily.semiBold,
+    fontSize: fontSizeTokens.lg,
   },
+  headerResetBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+
+  // ── Chat Area ──
   chatArea: {
     flex: 1,
   },
-  messagesWrapper: {
-    flex: 1,
+  messagesList: {
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.lg,
+    paddingBottom: spacing.sm,
   },
-  chatContainer: {
-    padding: 16,
-    paddingBottom: 8,
+
+  // ── Messages ──
+  userRow: {
+    alignItems: "flex-end",
+    marginBottom: spacing.lg,
   },
-  messageBubble: {
-    flexDirection: 'row',
-    marginBottom: 12,
-    maxWidth: '85%',
-    borderRadius: 16,
-    padding: 12,
+  userBubble: {
+    backgroundColor: colors.primary,
+    padding: spacing.md,
+    maxWidth: "80%",
+    borderTopLeftRadius: radii.lg,
+    borderTopRightRadius: radii.lg,
+    borderBottomLeftRadius: radii.lg,
+    borderBottomRightRadius: 0,
+    ...shadows.lg,
   },
-  bubbleAvatar: {
+  userText: {
+    fontFamily: fontFamily.regular,
+    color: colors.white,
+  },
+  userMeta: {
+    fontFamily: fontFamily.medium,
+    fontSize: 10,
+    color: 'rgba(255, 255, 255, 0.7)',
+    letterSpacing: 1,
+    marginTop: spacing.sm,
+    marginRight: spacing.xs,
+  },
+  sponsorRow: {
+    alignItems: "flex-start",
+    marginBottom: spacing.lg,
+  },
+  sponsorBubbleRow: {
+    flexDirection: "row",
+    alignItems: "flex-end",
+    maxWidth: "85%",
+  },
+  sponsorBubbleAvatar: {
     width: 28,
     height: 28,
-    borderRadius: 14,
-    marginRight: 8,
+    borderRadius: radii.sm,
+    marginRight: spacing.sm,
   },
-  bubbleContent: {
+  sponsorBubble: {
     flex: 1,
+    backgroundColor: colors.white,
+    padding: spacing.md,
+    borderTopLeftRadius: radii.lg,
+    borderTopRightRadius: radii.lg,
+    borderBottomRightRadius: radii.lg,
+    borderBottomLeftRadius: 0,
+    ...shadows.lg,
   },
-  loadingContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 12,
-    gap: 8,
+  sponsorMeta: {
+    fontFamily: fontFamily.medium,
+    fontSize: 10,
+    color: 'rgba(255, 255, 255, 0.7)',
+    letterSpacing: 1,
+    marginTop: spacing.sm,
+    marginLeft: 40, // align with bubble text (avatar 28 + margin 8 + bubble padding)
+    alignSelf: "flex-start",
+  },
+
+  // ── Loading ──
+  loadingRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: spacing.lg,
+    paddingBottom: spacing.md,
+    gap: spacing.sm,
   },
   loadingText: {
-    fontSize: 14,
-    color: Colors.light.muted,
-    fontStyle: 'italic',
+    fontFamily: fontFamily.regular,
+    fontSize: fontSizeTokens.md,
+    color: sem.textMuted,
+    fontStyle: "italic",
   },
-  inputContainer: {
-    flexDirection: 'row',
-    alignItems: 'flex-end',
-    paddingHorizontal: 16,
-    paddingTop: 12,
+
+  // ── Input Bar ──
+  inputBar: {
+    flexDirection: "row",
+    alignItems: "flex-end",
+    paddingHorizontal: spacing.md,
+    paddingTop: spacing.sm,
+    backgroundColor: colors.white,
     borderTopWidth: 1,
-    gap: 8,
+    borderTopColor: "#F1F5F9",
+    gap: spacing.sm,
   },
   input: {
     flex: 1,
-    borderRadius: 20,
-    paddingHorizontal: 16,
+    fontFamily: fontFamily.regular,
+    color: sem.text,
+    backgroundColor: sem.background,
+    borderRadius: radii.md,
+    paddingHorizontal: spacing.md,
     paddingVertical: 10,
     maxHeight: 100,
-    borderWidth: 1,
   },
-  sendButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: Colors.light.tint,
-    alignItems: 'center',
-    justifyContent: 'center',
+  sendBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: colors.primary,
+    alignItems: "center",
+    justifyContent: "center",
   },
-  sendButtonDisabled: {
-    backgroundColor: '#e0e0e0',
+  sendBtnDisabled: {
+    backgroundColor: "#E5E7EB",
   },
+
+  // ── Error State ──
   errorContainer: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#f5f6f8',
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: sem.background,
   },
   errorText: {
-    fontSize: 18,
-    color: Colors.light.text,
-    marginBottom: 16,
+    fontFamily: fontFamily.medium,
+    fontSize: fontSizeTokens.xl,
+    marginBottom: spacing.md,
   },
   errorButton: {
-    backgroundColor: Colors.light.tint,
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-    borderRadius: 8,
+    backgroundColor: colors.primary,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
+    borderRadius: radii.sm,
   },
   errorButtonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: adjustFontWeight('600'),
+    fontFamily: fontFamily.semiBold,
+    color: colors.white,
+    fontSize: fontSizeTokens.lg,
   },
 });

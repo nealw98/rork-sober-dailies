@@ -5,6 +5,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Home, Menu } from 'lucide-react-native';
 import { useHamburgerMenu } from '@/hooks/useHamburgerMenu';
 import {
+  colors,
   semanticColors,
   spacing,
   fontFamily,
@@ -15,12 +16,14 @@ const sem = semanticColors.light;
 
 interface TopLevelHeaderProps {
   title?: string;
+  light?: boolean; // true = white icons/text for colored backgrounds
 }
 
-export default function TopLevelHeader({ title }: TopLevelHeaderProps) {
+export default function TopLevelHeader({ title, light = false }: TopLevelHeaderProps) {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { open } = useHamburgerMenu();
+  const iconColor = light ? colors.white : sem.text;
 
   return (
     <View style={[styles.header, { paddingTop: insets.top + spacing.sm }]}>
@@ -30,12 +33,12 @@ export default function TopLevelHeader({ title }: TopLevelHeaderProps) {
         onPress={() => router.push('/(main)/')}
         activeOpacity={0.7}
       >
-        <Home size={22} color={sem.text} />
+        <Home size={22} color={iconColor} />
       </TouchableOpacity>
 
       {/* Title */}
       {title && (
-        <Text style={styles.title} numberOfLines={1}>
+        <Text style={[styles.title, light && { color: colors.white }]} numberOfLines={1}>
           {title}
         </Text>
       )}
@@ -46,7 +49,7 @@ export default function TopLevelHeader({ title }: TopLevelHeaderProps) {
         onPress={open}
         activeOpacity={0.7}
       >
-        <Menu size={22} color={sem.text} />
+        <Menu size={22} color={iconColor} />
       </TouchableOpacity>
     </View>
   );
@@ -59,7 +62,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: spacing.md,
     paddingBottom: spacing.sm,
-    backgroundColor: 'transparent',
+    backgroundColor: colors.white,
   },
   iconBtn: {
     width: 40,
