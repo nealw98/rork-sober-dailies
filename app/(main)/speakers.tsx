@@ -98,8 +98,8 @@ export default function SpeakersScreen() {
       {/* Page intro */}
       <View style={styles.pageIntro}>
         <View style={styles.introLabelRow}>
-          <Mic size={14} color={colors.tertiaryDark} />
-          <Text style={[styles.introLabel, { color: colors.tertiaryDark }]}>FEATURED</Text>
+          <Mic size={14} color={colors.primaryDark} />
+          <Text style={[styles.introLabel, { color: colors.primaryDark }]}>FEATURED</Text>
         </View>
         <Text style={[styles.introTitle, { color: sem.text }]}>AA Speakers</Text>
         <Text style={[styles.introDescription, { color: sem.textSecondary }]}>
@@ -140,7 +140,7 @@ export default function SpeakersScreen() {
               <Text
                 style={[
                   styles.sortText,
-                  { color: sortBy === opt.key ? colors.tertiaryDark : sem.textMuted },
+                  { color: sortBy === opt.key ? colors.primaryDark : sem.textMuted },
                 ]}
               >
                 {opt.label}
@@ -252,7 +252,7 @@ const styles = StyleSheet.create({
     borderRadius: radii.full,
   },
   sortButtonActive: {
-    backgroundColor: colors.tertiaryLight,
+    backgroundColor: colors.primaryLight,
   },
   sortText: {
     fontFamily: fontFamily.medium,

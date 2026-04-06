@@ -56,8 +56,6 @@ function SpeakerCardInner({ speaker, onPress }: SpeakerCardProps) {
           )}
         </View>
 
-        {/* Bottom bar */}
-        <View style={styles.bottomBar} />
       </View>
     </TouchableOpacity>
   );
@@ -69,17 +67,19 @@ const styles = StyleSheet.create({
   cardOuter: {
     borderRadius: radii.lg,
     marginBottom: spacing.md,
-    ...shadows.lg,
     backgroundColor: colors.white,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.25,
+    shadowRadius: 14,
+    elevation: 8,
   },
   cardInner: {
     borderRadius: radii.lg,
     overflow: 'hidden',
-    borderWidth: 2,
-    borderColor: colors.white,
   },
   topSection: {
-    backgroundColor: colors.tertiary,
+    backgroundColor: colors.primaryDark,
     padding: spacing.lg,
   },
   name: {
@@ -92,10 +92,6 @@ const styles = StyleSheet.create({
     fontFamily: fontFamily.regular,
     fontSize: fontSize.sm,
     color: 'rgba(255, 255, 255, 0.75)',
-  },
-  bottomBar: {
-    height: 14,
-    backgroundColor: colors.tertiary,
   },
   bottomSection: {
     backgroundColor: colors.white,
@@ -113,7 +109,7 @@ const styles = StyleSheet.create({
   title: {
     fontFamily: fontFamily.semiBold,
     fontSize: fontSize.xl,
-    color: colors.tertiaryDark,
+    color: colors.primaryDark,
   },
   explicitBadge: {
     width: 18,

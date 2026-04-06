@@ -1,21 +1,28 @@
 import React, { useMemo } from 'react';
-import { StyleSheet, View, Text, ScrollView, TouchableOpacity } from 'react-native';
-import { router, Stack, useLocalSearchParams } from 'expo-router';
-import { ChevronLeft } from 'lucide-react-native';
-import { LinearGradient } from 'expo-linear-gradient';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { StyleSheet, View, Text, ScrollView } from 'react-native';
+import { Stack, useLocalSearchParams } from 'expo-router';
 import ScreenContainer from '@/components/ScreenContainer';
 import { SpeakerPlayer } from '@/components/SpeakerPlayer';
-import { useTheme } from '@/hooks/useTheme';
 import { useSpeakers } from '@/hooks/useSpeakers';
 import { useScreenTimeTracking } from '@/hooks/useScreenTimeTracking';
-import { adjustFontWeight } from '@/constants/fonts';
+import SubPageHeader from '@/components/navigation/SubPageHeader';
+import { useRouter } from 'expo-router';
+import {
+  colors,
+  semanticColors,
+  spacing,
+  radii,
+  fontFamily,
+  fontSize,
+  shadows,
+} from '@/constants/designTokens';
+
+const sem = semanticColors.light;
 
 export default function SpeakerDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { palette } = useTheme();
   const { speakers } = useSpeakers();
-  const insets = useSafeAreaInsets();
+  const router = useRouter();
 
   useScreenTimeTracking('SpeakerDetail');
 
@@ -23,16 +30,6 @@ export default function SpeakerDetailScreen() {
     () => speakers.find((s) => s.id === id),
     [speakers, id]
   );
-
-  // Theme-aware accent and background colors for speakers
-  const isDeepSea = (palette.heroTiles as any)?.speakers?.[0] === '#3E5C76';
-  const isDark = palette.background !== '#fff';
-  const accentColor = isDeepSea ? '#3E5C76' : (isDark ? '#7A5AAA' : '#8B6AC0');
-  const quoteBg = isDeepSea
-    ? 'rgba(62, 92, 118, 0.15)'
-    : isDark
-      ? 'rgba(122, 90, 170, 0.12)'
-      : 'rgba(139, 106, 192, 0.08)';
 
   const formattedDate = useMemo(() => {
     if (!speaker?.date) return null;
@@ -50,92 +47,73 @@ export default function SpeakerDetailScreen() {
 
   if (!speaker) {
     return (
-      <ScreenContainer style={[styles.container, { backgroundColor: palette.background }]} noPadding>
+      <ScreenContainer noPadding>
         <Stack.Screen options={{ headerShown: false }} />
+        <SubPageHeader onBack={() => router.push('/(main)/speakers' as any)} />
         <View style={styles.loading}>
-          <Text style={{ color: palette.muted }}>Loading...</Text>
+          <Text style={styles.loadingText}>Loading...</Text>
         </View>
       </ScreenContainer>
     );
   }
 
   return (
-    <ScreenContainer style={[styles.container, { backgroundColor: palette.background }]} noPadding>
+    <ScreenContainer noPadding>
       <Stack.Screen options={{ headerShown: false }} />
+      <View style={[styles.container, { backgroundColor: sem.background }]}>
+        <SubPageHeader
+          title={speaker.speaker}
+          onBack={() => router.push('/(main)/speakers' as any)}
+        />
 
-      {/* Gradient header */}
-      <LinearGradient
-        colors={palette.gradients.header as [string, string, ...string[]]}
-        style={[styles.headerBlock, { paddingTop: insets.top + 8 }]}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-      >
-        <View style={styles.headerTopRow}>
-          <TouchableOpacity
-            onPress={() => router.push('/speakers' as any)}
-            style={styles.backButton}
-            activeOpacity={0.7}
-          >
-            <ChevronLeft size={24} color={palette.headerText} />
-          </TouchableOpacity>
-          <View style={{ width: 60 }} />
-        </View>
-        <Text style={[styles.headerTitle, { color: palette.headerText }]} numberOfLines={1}>
-          {speaker.speaker}
-        </Text>
-        <Text style={[styles.headerSubtitle, { color: palette.headerText }]} numberOfLines={1}>
-          {speaker.hometown}
-        </Text>
-      </LinearGradient>
+        <ScrollView
+          style={styles.scrollView}
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+        >
+          {/* Name tag card with player integrated */}
+          <View style={styles.nameCard}>
+            <View style={styles.nameCardInner}>
+              {/* Top — name + hometown */}
+              <View style={styles.nameCardTop}>
+                <Text style={styles.speakerName}>{speaker.speaker}</Text>
+                <Text style={styles.speakerHometown}>{speaker.hometown}</Text>
+              </View>
 
-      <ScrollView
-        style={styles.scrollView}
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
-      >
-        {/* Title */}
-        <Text style={[styles.title, { color: accentColor }]}>{speaker.title}</Text>
-
-        {/* Subtitle */}
-        {speaker.subtitle ? (
-          <Text style={[styles.subtitle, { color: palette.muted }]}>
-            {speaker.subtitle}
-          </Text>
-        ) : null}
-
-        {/* Quote block */}
-        {speaker.quote ? (
-          <View style={[styles.quoteBlock, { backgroundColor: quoteBg }]}>
-            <Text style={[styles.quoteText, { color: palette.text }]}>
-              &ldquo;{speaker.quote}&rdquo;
-            </Text>
-          </View>
-        ) : null}
-
-        {/* Explicit badge */}
-        {speaker.explicit && (
-          <View style={styles.explicitRow}>
-            <View style={[styles.explicitBadge, { backgroundColor: palette.muted }]}>
-              <Text style={styles.explicitBadgeText}>E</Text>
+              {/* Bottom — title + progress bar */}
+              <View style={styles.nameCardBottom}>
+                <Text style={styles.talkTitle}>{speaker.title}</Text>
+                {(speaker.date || speaker.meeting) && (
+                  <Text style={styles.talkMeta}>
+                    {[speaker.meeting, formattedDate].filter(Boolean).join(' • ')}
+                  </Text>
+                )}
+                {speaker.explicit && (
+                  <View style={styles.explicitRow}>
+                    <View style={styles.explicitBadge}>
+                      <Text style={styles.explicitText}>E</Text>
+                    </View>
+                    <Text style={styles.explicitLabel}>Explicit language</Text>
+                  </View>
+                )}
+              </View>
             </View>
-            <Text style={[styles.explicitLabel, { color: palette.muted }]}>
-              Explicit language
-            </Text>
           </View>
-        )}
 
-        {/* Recorded date */}
-        {formattedDate ? (
-          <Text style={[styles.recordedDate, { color: palette.muted }]}>
-            Recorded: {formattedDate}
-          </Text>
-        ) : null}
+          {/* Player controls — outside the card */}
+          <SpeakerPlayer youtubeId={speaker.youtube_id} audioUrl={speaker.audio_url} />
 
-        {/* Player */}
-        <SpeakerPlayer youtubeId={speaker.youtube_id} audioUrl={speaker.audio_url} />
+          {/* Quote */}
+          {speaker.quote ? (
+            <View style={styles.quoteBlock}>
+              <View style={styles.quoteBorder} />
+              <Text style={styles.quoteText}>"{speaker.quote}"</Text>
+            </View>
+          ) : null}
 
-        <View style={{ height: 40 }} />
-      </ScrollView>
+          <View style={{ height: 40 }} />
+        </ScrollView>
+      </View>
     </ScreenContainer>
   );
 }
@@ -144,92 +122,115 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  headerBlock: {
-    paddingBottom: 16,
-    paddingHorizontal: 16,
-  },
-  headerTopRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  backButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 6,
-    paddingHorizontal: 10,
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    borderRadius: 16,
-  },
-  headerTitle: {
-    fontSize: 32,
-    fontWeight: adjustFontWeight('600'),
-    textAlign: 'center',
-  },
-  headerSubtitle: {
-    fontSize: 15,
-    textAlign: 'center',
-    marginTop: 4,
-    opacity: 0.8,
-  },
   scrollView: {
     flex: 1,
   },
   scrollContent: {
-    paddingHorizontal: 20,
-    paddingTop: 20,
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.md,
   },
-  title: {
-    fontSize: 24,
-    fontWeight: adjustFontWeight('700'),
-    marginBottom: 8,
+
+  // ── Name Tag Card ──
+  nameCard: {
+    borderRadius: radii.lg,
+    marginBottom: spacing.lg,
+    backgroundColor: colors.white,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.25,
+    shadowRadius: 14,
+    elevation: 8,
   },
-  subtitle: {
-    fontSize: 16,
-    lineHeight: 22,
-    marginBottom: 16,
+  nameCardInner: {
+    borderRadius: radii.lg,
+    overflow: 'hidden',
   },
-  quoteBlock: {
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    marginBottom: 16,
-    borderRadius: 12,
+  nameCardTop: {
+    backgroundColor: colors.secondaryLight,
+    padding: spacing.lg,
   },
-  quoteText: {
-    fontSize: 16,
-    fontStyle: 'italic',
-    lineHeight: 24,
+  speakerName: {
+    fontFamily: fontFamily.bold,
+    fontSize: fontSize['4xl'],
+    color: sem.text,
+    marginBottom: 2,
+  },
+  speakerHometown: {
+    fontFamily: fontFamily.regular,
+    fontSize: fontSize.sm,
+    color: sem.textSecondary,
+  },
+  nameCardBottom: {
+    backgroundColor: colors.white,
+    padding: spacing.lg,
+    paddingVertical: spacing.xl,
+  },
+  talkTitle: {
+    fontFamily: fontFamily.semiBold,
+    fontSize: fontSize.xl,
+    color: sem.text,
+  },
+  talkMeta: {
+    fontFamily: fontFamily.medium,
+    fontSize: fontSize.xs,
+    color: sem.textMuted,
+    letterSpacing: 1,
+    marginTop: spacing.sm,
   },
   explicitRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
-    marginBottom: 12,
+    gap: spacing.sm,
+    marginTop: spacing.sm,
   },
   explicitBadge: {
-    width: 20,
-    height: 20,
-    borderRadius: 4,
+    width: 18,
+    height: 18,
+    borderRadius: 3,
+    backgroundColor: sem.textMuted,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  explicitBadgeText: {
-    color: '#fff',
-    fontSize: 12,
-    fontWeight: adjustFontWeight('700'),
+  explicitText: {
+    color: colors.white,
+    fontFamily: fontFamily.bold,
+    fontSize: fontSize.xs,
   },
   explicitLabel: {
-    fontSize: 13,
+    fontFamily: fontFamily.regular,
+    fontSize: fontSize.sm,
+    color: sem.textMuted,
   },
-  recordedDate: {
-    fontSize: 13,
-    marginTop: 4,
-    marginBottom: 8,
+
+  // ── Quote ──
+  quoteBlock: {
+    flexDirection: 'row',
+    marginTop: spacing.lg,
   },
+  quoteBorder: {
+    width: 3,
+    borderRadius: 2,
+    backgroundColor: colors.secondary,
+    marginRight: spacing.md,
+  },
+  quoteText: {
+    flex: 1,
+    fontFamily: fontFamily.regular,
+    fontSize: fontSize.lg,
+    fontStyle: 'italic',
+    color: sem.textSecondary,
+    lineHeight: 24,
+  },
+
+  // ── Loading ──
   loading: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  loadingText: {
+    fontFamily: fontFamily.regular,
+    fontSize: fontSize.lg,
+    color: sem.textMuted,
   },
 });
