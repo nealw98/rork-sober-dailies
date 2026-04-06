@@ -201,7 +201,7 @@ export default function ChatScreen() {
     <>
       <Stack.Screen options={{ headerShown: false }} />
       <ScreenContainer noPadding>
-        <View style={[styles.container, { backgroundColor: colors.secondary }]}>
+        <View style={[styles.container, { backgroundColor: colors.secondaryLight }]}>
           <TopLevelHeader title="" />
 
           <ScrollView

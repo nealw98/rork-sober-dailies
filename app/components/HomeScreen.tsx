@@ -14,7 +14,8 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import { MessageCircle, Mic, BookOpen } from 'lucide-react-native';
+import { MessageCircle, Mic, BookOpen, Settings, Menu } from 'lucide-react-native';
+import { useHamburgerMenu } from '@/hooks/useHamburgerMenu';
 
 import SobrietyCounter from '@/components/SobrietyCounter';
 import { useTheme } from '@/hooks/useTheme';
@@ -53,6 +54,7 @@ const HomeScreen = () => {
   // Use new design token semantic colors (light mode for now)
   const sem = semanticColors.light;
   const cards = cardColors.light;
+  const { open: openMenu } = useHamburgerMenu();
 
   // Fetch today's reflection
   const fetchReflection = useCallback(() => {
@@ -97,6 +99,17 @@ const HomeScreen = () => {
           start={{ x: 0.1, y: 0 }}
           end={{ x: 0.9, y: 1 }}
         >
+          {/* Top row — settings + menu */}
+          <View style={styles.homeTopRow}>
+            <TouchableOpacity
+              onPress={() => router.push('/(main)/settings')}
+              style={styles.homeIconBtn}
+              activeOpacity={0.7}
+            >
+              <Settings size={20} color="rgba(255,255,255,0.8)" />
+            </TouchableOpacity>
+          </View>
+
           {/* Watermark icon — rotated -45deg, faded */}
           <View style={styles.watermarkContainer} pointerEvents="none">
             <Image
@@ -278,6 +291,22 @@ const HomeScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+  },
+
+  // Home top row
+  homeTopRow: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    gap: spacing.sm,
+    paddingHorizontal: spacing.md,
+    marginBottom: spacing.xs,
+  },
+  homeIconBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 
   // Header — extra bottom padding so the reflection card can overlap into it
