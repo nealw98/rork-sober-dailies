@@ -1,12 +1,8 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import {
-  documentDirectory,
-  getInfoAsync,
-  deleteAsync,
-  createDownloadResumable,
-  DownloadResumable,
-} from 'expo-file-system';
-import type { DownloadProgressData } from 'expo-file-system';
+import * as FileSystem from 'expo-file-system';
+
+const { documentDirectory } = FileSystem;
+type DownloadResumable = FileSystem.DownloadResumable;
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -67,7 +63,7 @@ export function useSpeakerDownload(speakerId: string, audioUrl: string) {
       const record = map[speakerId];
 
       if (record?.downloaded && record.localPath) {
-        const info = await getInfoAsync(record.localPath);
+        const info = await FileSystem.getInfoAsync(record.localPath);
         if (info.exists) {
           if (mountedRef.current) {
             setDownloadStatus('downloaded');
@@ -96,7 +92,7 @@ export function useSpeakerDownload(speakerId: string, audioUrl: string) {
 
     // Check if file already exists
     try {
-      const info = await getInfoAsync(filePath);
+      const info = await FileSystem.getInfoAsync(filePath);
       if (info.exists) {
         const map = await loadDownloadMap();
         map[speakerId] = {
@@ -120,7 +116,7 @@ export function useSpeakerDownload(speakerId: string, audioUrl: string) {
       setDownloadProgress(0);
     }
 
-    const progressCallback = (data: DownloadProgressData) => {
+    const progressCallback = (data: FileSystem.DownloadProgressData) => {
       if (!mountedRef.current) return;
       if (data.totalBytesExpectedToWrite > 0) {
         const pct = Math.round(
@@ -130,7 +126,7 @@ export function useSpeakerDownload(speakerId: string, audioUrl: string) {
       }
     };
 
-    const resumable = createDownloadResumable(audioUrl, filePath, {}, progressCallback);
+    const resumable = FileSystem.createDownloadResumable(audioUrl, filePath, {}, progressCallback);
     downloadResumableRef.current = resumable;
 
     try {
@@ -163,7 +159,7 @@ export function useSpeakerDownload(speakerId: string, audioUrl: string) {
     } catch (err) {
       console.error('[Download] Failed:', speakerId, err);
       try {
-        await deleteAsync(filePath, { idempotent: true });
+        await FileSystem.deleteAsync(filePath, { idempotent: true });
       } catch {
         // Ignore cleanup errors
       }
@@ -188,7 +184,7 @@ export function useSpeakerDownload(speakerId: string, audioUrl: string) {
 
     const filePath = getLocalPath(speakerId);
     try {
-      await deleteAsync(filePath, { idempotent: true });
+      await FileSystem.deleteAsync(filePath, { idempotent: true });
     } catch {
       // Ignore
     }
@@ -203,7 +199,7 @@ export function useSpeakerDownload(speakerId: string, audioUrl: string) {
     const filePath = getLocalPath(speakerId);
 
     try {
-      await deleteAsync(filePath, { idempotent: true });
+      await FileSystem.deleteAsync(filePath, { idempotent: true });
     } catch {
       // Ignore
     }
@@ -244,7 +240,7 @@ export async function resolveAudioUri(
     const map = await loadDownloadMap();
     const record = map[speakerId];
     if (record?.downloaded && record.localPath) {
-      const info = await getInfoAsync(record.localPath);
+      const info = await FileSystem.getInfoAsync(record.localPath);
       if (info.exists) {
         return record.localPath;
       }
