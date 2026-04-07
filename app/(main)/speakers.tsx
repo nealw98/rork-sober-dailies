@@ -109,7 +109,7 @@ export default function SpeakersScreen() {
         />
       );
     },
-    [handleSpeakerPress, player.currentSpeakerId, player.isLoaded, player.isPlaying]
+    [handleSpeakerPress, player.currentSpeakerId, player.isLoaded, player.isPlaying, downloadedIds]
   );
 
   const keyExtractor = useCallback((item: Speaker) => item.id, []);
@@ -193,6 +193,7 @@ export default function SpeakersScreen() {
             data={filteredAndSorted}
             renderItem={renderItem}
             keyExtractor={keyExtractor}
+            extraData={[player.currentSpeakerId, player.isPlaying, downloadedIds]}
             ListHeaderComponent={ListHeader}
             contentContainerStyle={styles.listContent}
             showsVerticalScrollIndicator={false}
