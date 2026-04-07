@@ -15,9 +15,10 @@ const sem = semanticColors.light;
 interface SubPageHeaderProps {
   title?: string;
   onBack?: () => void;
+  rightElement?: React.ReactNode;
 }
 
-export default function SubPageHeader({ title, onBack }: SubPageHeaderProps) {
+export default function SubPageHeader({ title, onBack, rightElement }: SubPageHeaderProps) {
   const router = useRouter();
   const insets = useSafeAreaInsets();
 
@@ -41,14 +42,16 @@ export default function SubPageHeader({ title, onBack }: SubPageHeaderProps) {
       </TouchableOpacity>
 
       {/* Title */}
-      {title && (
+      {title ? (
         <Text style={styles.title} numberOfLines={1}>
           {title}
         </Text>
+      ) : (
+        <View style={{ flex: 1 }} />
       )}
 
-      {/* Spacer to balance layout */}
-      <View style={styles.iconBtn} />
+      {/* Right element or spacer */}
+      {rightElement || <View style={styles.iconBtn} />}
     </View>
   );
 }

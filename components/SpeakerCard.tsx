@@ -29,14 +29,8 @@ function SpeakerCardInner({ speaker, onPress, isActive = false, isPlaying = fals
       style={styles.cardOuter}
     >
       <View style={styles.cardInner}>
-        {/* Top — purple with name + hometown */}
+        {/* Top — purple with name + hometown + playback badge */}
         <View style={styles.topSection}>
-          <Text style={styles.name} numberOfLines={1}>
-            {speaker.speaker}
-          </Text>
-          <Text style={styles.hometown} numberOfLines={1}>
-            {speaker.hometown}
-          </Text>
           {isActive && (
             <View style={styles.playbackBadge}>
               <View style={styles.equalizerInline}>
@@ -47,6 +41,12 @@ function SpeakerCardInner({ speaker, onPress, isActive = false, isPlaying = fals
               </Text>
             </View>
           )}
+          <Text style={styles.name} numberOfLines={1}>
+            {speaker.speaker}
+          </Text>
+          <Text style={styles.hometown} numberOfLines={1}>
+            {speaker.hometown}
+          </Text>
         </View>
 
         {/* Bottom — white with talk title */}
@@ -96,10 +96,12 @@ const styles = StyleSheet.create({
     padding: spacing.lg,
   },
   playbackBadge: {
+    position: 'absolute',
+    top: spacing.sm,
+    right: spacing.sm,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.sm,
-    marginTop: spacing.sm,
+    gap: spacing.xs,
   },
   equalizerInline: {
     width: 18,

@@ -2,7 +2,6 @@ import React, { useEffect, useCallback, useRef } from 'react';
 import { StyleSheet, View, Text, TouchableOpacity } from 'react-native';
 import { activateKeepAwakeAsync, deactivateKeepAwake } from 'expo-keep-awake';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { EqualizerOverlay } from './EqualizerOverlay';
 import { useGlobalAudioPlayer } from '@/hooks/useGlobalAudioPlayer';
 import {
   colors,
@@ -119,17 +118,6 @@ export function SpeakerPlayer({ speakerId, audioUrl, youtubeId }: SpeakerPlayerP
   return (
     <View style={styles.container}>
       <View style={styles.playerCard}>
-        {/* Now Playing header row */}
-        <View style={styles.nowPlayingRow}>
-          <View style={styles.nowPlayingLeft}>
-            <View style={styles.equalizerInline}>
-              <EqualizerOverlay isPlaying={isPlaying} barCount={4} barColor={ACCENT_COLOR} />
-            </View>
-            <Text style={[styles.nowPlayingLabel, { color: ACCENT_COLOR }]}>
-              {isBuffering ? 'Loading…' : isPlaying ? 'Now Playing' : isLoaded ? 'Paused' : 'Ready'}
-            </Text>
-          </View>
-        </View>
 
         {/* Error state */}
         {!!loadError && (
@@ -168,7 +156,7 @@ export function SpeakerPlayer({ speakerId, audioUrl, youtubeId }: SpeakerPlayerP
         {/* Playback controls — stop, skip back, play/pause, skip forward */}
         <View style={styles.controls}>
           <TouchableOpacity onPress={handleStop} style={styles.controlButton}>
-            <Ionicons name="stop-circle-outline" size={28} color={sem.textMuted} />
+            <Ionicons name="stop" size={24} color={sem.text} />
           </TouchableOpacity>
 
           <TouchableOpacity onPress={handleSkipBack} style={styles.controlButton}>
@@ -189,10 +177,6 @@ export function SpeakerPlayer({ speakerId, audioUrl, youtubeId }: SpeakerPlayerP
             <Text style={styles.skipLabel}>30s</Text>
           </TouchableOpacity>
 
-          {/* Spacer to balance the stop button */}
-          <View style={styles.controlButton}>
-            <View style={{ width: 28, height: 28 }} />
-          </View>
         </View>
 
         {/* Speed selector */}
@@ -239,26 +223,6 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.12,
     shadowRadius: 12,
     elevation: 6,
-  },
-  nowPlayingRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: spacing.md,
-  },
-  nowPlayingLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-  },
-  equalizerInline: {
-    width: 22,
-    height: 24,
-    position: 'relative',
-  },
-  nowPlayingLabel: {
-    fontFamily: fontFamily.semiBold,
-    fontSize: fontSizeTokens.base,
   },
   errorRow: {
     paddingVertical: spacing.sm,

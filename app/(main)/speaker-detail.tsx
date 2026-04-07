@@ -8,6 +8,8 @@ import { useSpeakers } from '@/hooks/useSpeakers';
 import { useScreenTimeTracking } from '@/hooks/useScreenTimeTracking';
 import SubPageHeader from '@/components/navigation/SubPageHeader';
 import { useRouter } from 'expo-router';
+import { useGlobalAudioPlayer } from '@/hooks/useGlobalAudioPlayer';
+import { EqualizerOverlay } from '@/components/EqualizerOverlay';
 import {
   colors,
   semanticColors,
@@ -39,6 +41,7 @@ export default function SpeakerDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { speakers } = useSpeakers();
   const router = useRouter();
+  const player = useGlobalAudioPlayer();
 
   useScreenTimeTracking('SpeakerDetail');
 
@@ -80,6 +83,18 @@ export default function SpeakerDetailScreen() {
         <SubPageHeader
           title=""
           onBack={() => router.push('/(main)/speakers' as any)}
+          rightElement={
+            player.currentSpeakerId === speaker?.id && player.isLoaded ? (
+              <View style={styles.headerBadge}>
+                <View style={styles.headerEqualizer}>
+                  <EqualizerOverlay isPlaying={player.isPlaying} barCount={3} barColor={colors.tertiaryDark} />
+                </View>
+                <Text style={styles.headerBadgeText}>
+                  {player.isPlaying ? 'Playing' : 'Paused'}
+                </Text>
+              </View>
+            ) : undefined
+          }
         />
 
         <ScrollView
@@ -242,6 +257,26 @@ const styles = StyleSheet.create({
     fontStyle: 'italic',
     color: sem.text,
     lineHeight: 24,
+  },
+
+  // ── Header Badge ──
+  headerBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+    paddingRight: spacing.sm,
+  },
+  headerEqualizer: {
+    width: 18,
+    height: 16,
+    position: 'relative',
+  },
+  headerBadgeText: {
+    fontFamily: fontFamily.medium,
+    fontSize: fontSize.xs,
+    color: colors.tertiaryDark,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
 
   // ── Loading ──
