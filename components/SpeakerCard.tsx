@@ -1,6 +1,6 @@
 import React from 'react';
 import { StyleSheet, View, Text, TouchableOpacity } from 'react-native';
-import { Download } from 'lucide-react-native';
+import { ArrowDown } from 'lucide-react-native';
 import type { Speaker } from '@/hooks/useSpeakers';
 import { EqualizerOverlay } from './EqualizerOverlay';
 import {
@@ -53,12 +53,6 @@ function SpeakerCardInner({ speaker, onPress, isActive = false, isPlaying = fals
 
         {/* Bottom — white with talk title */}
         <View style={styles.bottomSection}>
-          {isDownloaded && (
-            <View style={styles.downloadedBadge}>
-              <Download size={10} color={colors.tertiaryDark} />
-              <Text style={styles.downloadedText}>Downloaded</Text>
-            </View>
-          )}
           <Text style={styles.title} numberOfLines={2}>
             {speaker.title}
           </Text>
@@ -73,6 +67,11 @@ function SpeakerCardInner({ speaker, onPress, isActive = false, isPlaying = fals
           {speaker.explicit && (
             <View style={styles.explicitBadge}>
               <Text style={styles.explicitText}>E</Text>
+            </View>
+          )}
+          {isDownloaded && (
+            <View style={styles.downloadedDot}>
+              <ArrowDown size={14} color={colors.tertiaryDark} strokeWidth={3} />
             </View>
           )}
         </View>
@@ -135,18 +134,16 @@ const styles = StyleSheet.create({
     fontSize: fontSize.sm,
     color: 'rgba(255, 255, 255, 0.75)',
   },
-  downloadedBadge: {
-    flexDirection: 'row',
+  downloadedDot: {
+    position: 'absolute',
+    top: spacing.md,
+    right: spacing.md,
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: colors.tertiaryLight,
     alignItems: 'center',
-    gap: spacing.xs,
-    marginBottom: spacing.sm,
-  },
-  downloadedText: {
-    fontFamily: fontFamily.medium,
-    fontSize: fontSize.xs,
-    color: colors.tertiaryDark,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
+    justifyContent: 'center',
   },
   bottomSection: {
     backgroundColor: colors.white,
