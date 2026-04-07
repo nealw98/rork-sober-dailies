@@ -162,6 +162,7 @@ const styles = StyleSheet.create({
     fontFamily: fontFamily.semiBold,
     fontSize: fontSize.xl,
     color: colors.tertiaryDark,
+    paddingRight: spacing.xl + spacing.sm,
   },
   explicitBadge: {
     width: 18,
