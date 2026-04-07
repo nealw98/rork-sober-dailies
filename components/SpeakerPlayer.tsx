@@ -54,9 +54,19 @@ export function SpeakerPlayer({ speakerId, audioUrl, youtubeId }: SpeakerPlayerP
   const duration = isThisSpeaker ? player.durationMs / 1000 : 0;
   const loadError = isThisSpeaker ? player.loadError : null;
 
-  // Don't auto-load on mount — only load when user presses play.
-  // This prevents interrupting a currently playing speaker when
-  // opening another speaker's detail page.
+  // Pre-load audio on mount ONLY if nothing else is currently playing.
+  // This gives instant playback for the common case while preventing
+  // interruption of a currently playing speaker.
+  const hasPreloadedRef = useRef(false);
+  useEffect(() => {
+    if (!hasPreloadedRef.current && !player.currentSpeakerId) {
+      hasPreloadedRef.current = true;
+      (async () => {
+        const uri = await resolveAudioUri(speakerId, remoteUri);
+        player.load(speakerId, uri);
+      })();
+    }
+  }, [speakerId, remoteUri]);
 
   // Keep screen awake while playing
   useEffect(() => {
