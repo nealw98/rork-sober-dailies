@@ -97,8 +97,9 @@ const styles = StyleSheet.create({
   },
   playbackBadge: {
     position: 'absolute',
-    top: spacing.sm,
-    right: spacing.sm,
+    top: 0,
+    bottom: 0,
+    right: spacing.lg,
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.xs,

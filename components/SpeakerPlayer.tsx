@@ -153,30 +153,27 @@ export function SpeakerPlayer({ speakerId, audioUrl, youtubeId }: SpeakerPlayerP
           </View>
         </TouchableOpacity>
 
-        {/* Playback controls — stop, skip back, play/pause, skip forward */}
+        {/* Playback controls — back, stop, play/pause, forward */}
         <View style={styles.controls}>
-          <TouchableOpacity onPress={handleStop} style={styles.controlButton}>
-            <Ionicons name="stop" size={24} color={sem.text} />
-          </TouchableOpacity>
+          <Text style={[styles.skipLabel, { marginRight: -spacing.md }]}>15s</Text>
 
           <TouchableOpacity onPress={handleSkipBack} style={styles.controlButton}>
-            <Ionicons name="play-back" size={24} color={sem.text} />
-            <Text style={styles.skipLabel}>15s</Text>
+            <Ionicons name="play-back" size={28} color={sem.text} />
+          </TouchableOpacity>
+
+          <TouchableOpacity onPress={handleStop} style={styles.controlButton}>
+            <Ionicons name="stop" size={28} color={sem.text} />
           </TouchableOpacity>
 
           <TouchableOpacity onPress={handleTogglePlay} style={styles.playButton}>
-            <Ionicons
-              name={isPlaying ? 'pause-circle' : 'play-circle'}
-              size={56}
-              color={ACCENT_COLOR}
-            />
+            <Ionicons name={isPlaying ? 'pause' : 'play'} size={22} color={colors.white} />
           </TouchableOpacity>
 
           <TouchableOpacity onPress={handleSkipForward} style={styles.controlButton}>
-            <Ionicons name="play-forward" size={24} color={sem.text} />
-            <Text style={styles.skipLabel}>30s</Text>
+            <Ionicons name="play-forward" size={28} color={sem.text} />
           </TouchableOpacity>
 
+          <Text style={[styles.skipLabel, { marginLeft: -spacing.md }]}>30s</Text>
         </View>
 
         {/* Speed selector */}
@@ -262,20 +259,26 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     marginTop: spacing.xs,
-    gap: spacing.lg,
+    gap: spacing.md,
   },
   controlButton: {
+    width: 44,
+    height: 44,
     alignItems: 'center',
-    padding: spacing.sm,
+    justifyContent: 'center',
+  },
+  playButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: colors.tertiaryExtraDark,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   skipLabel: {
     fontFamily: fontFamily.regular,
     fontSize: 10,
     color: sem.textMuted,
-    marginTop: 2,
-  },
-  playButton: {
-    padding: spacing.xs,
   },
   speedRow: {
     flexDirection: 'row',
