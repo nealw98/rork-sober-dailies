@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useCallback } from 'react';
-import { StyleSheet, View, Text, TouchableOpacity, FlatList, ActivityIndicator, TextInput } from 'react-native';
+import { StyleSheet, View, Text, TouchableOpacity, FlatList, ActivityIndicator, TextInput, ImageBackground } from 'react-native';
 import { router, Stack } from 'expo-router';
 import { Search, X, Mic } from 'lucide-react-native';
 import ScreenContainer from '@/components/ScreenContainer';
@@ -95,16 +95,21 @@ export default function SpeakersScreen() {
 
   const ListHeader = (
     <>
-      {/* Page intro */}
-      <View style={styles.pageIntro}>
-        <View style={styles.introLabelRow}>
-          <Mic size={14} color={colors.secondaryDark} />
-          <Text style={[styles.introLabel, { color: colors.secondaryDark }]}>FEATURED</Text>
-        </View>
-        <Text style={[styles.introTitle, { color: sem.text }]}>AA Speakers</Text>
-        <Text style={[styles.introDescription, { color: sem.textSecondary }]}>
-          Listen to inspiring stories of recovery from fellow members.
-        </Text>
+      {/* ── Hero Image ── */}
+      <View style={styles.heroWrapper}>
+        <ImageBackground
+          source={require('@/assets/images/speakers_page.webp')}
+          style={styles.heroImage}
+          resizeMode="cover"
+        >
+          <View style={styles.heroFeaturedRow}>
+            <Mic size={14} color="rgba(255,255,255,0.85)" />
+            <Text style={styles.heroFeaturedLabel}>FEATURED</Text>
+          </View>
+          <View style={styles.heroTitleRow}>
+            <Text style={styles.heroTitle}>AA Speakers</Text>
+          </View>
+        </ImageBackground>
       </View>
 
       {/* Search + Sort controls */}
@@ -140,7 +145,7 @@ export default function SpeakersScreen() {
               <Text
                 style={[
                   styles.sortText,
-                  { color: sortBy === opt.key ? colors.secondaryDark : sem.textMuted },
+                  { color: sortBy === opt.key ? colors.tertiaryDark : sem.textMuted },
                 ]}
               >
                 {opt.label}
@@ -190,33 +195,46 @@ const styles = StyleSheet.create({
     flex: 1,
   },
 
-  // ── Page Intro ──
-  pageIntro: {
-    paddingHorizontal: spacing.lg,
-    paddingTop: spacing.lg,
-    paddingBottom: spacing.xl,
+  // ── Hero Image ──
+  heroWrapper: {
+    marginHorizontal: -spacing.lg,
+    marginBottom: spacing.lg,
   },
-  introLabelRow: {
+  heroImage: {
+    height: 300,
+    justifyContent: 'flex-end',
+  },
+  heroFeaturedRow: {
+    position: 'absolute',
+    top: spacing.md,
+    left: spacing.lg,
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.sm,
-    marginBottom: spacing.sm,
   },
-  introLabel: {
+  heroFeaturedLabel: {
     fontFamily: fontFamily.semiBold,
     fontSize: fontSize.xs,
     letterSpacing: 1.5,
+    color: 'rgba(255,255,255,0.85)',
+    textShadowColor: 'rgba(0,0,0,0.5)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 3,
   },
-  introTitle: {
+  heroTitleRow: {
+    paddingHorizontal: spacing.lg,
+    paddingBottom: spacing.sm,
+  },
+  heroTitle: {
     fontFamily: fontFamily.bold,
     fontSize: fontSize['4xl'],
-    marginBottom: spacing.sm,
+    letterSpacing: -0.5,
+    color: colors.white,
+    textShadowColor: 'rgba(0,0,0,0.5)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 4,
   },
-  introDescription: {
-    fontFamily: fontFamily.regular,
-    fontSize: fontSize.md,
-    lineHeight: 20,
-  },
+
 
   // ── Search + Sort ──
   controlsBar: {
@@ -252,7 +270,7 @@ const styles = StyleSheet.create({
     borderRadius: radii.full,
   },
   sortButtonActive: {
-    backgroundColor: colors.secondaryLight,
+    backgroundColor: colors.tertiaryLight,
   },
   sortText: {
     fontFamily: fontFamily.medium,
