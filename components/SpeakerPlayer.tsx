@@ -1,8 +1,10 @@
 import React, { useEffect, useCallback, useRef } from 'react';
-import { StyleSheet, View, Text, TouchableOpacity } from 'react-native';
+import { StyleSheet, View, Text, TouchableOpacity, ActivityIndicator, Alert } from 'react-native';
 import { activateKeepAwakeAsync, deactivateKeepAwake } from 'expo-keep-awake';
 import Ionicons from '@expo/vector-icons/Ionicons';
+import { Download, Check, X } from 'lucide-react-native';
 import { useGlobalAudioPlayer } from '@/hooks/useGlobalAudioPlayer';
+import { useSpeakerDownload, resolveAudioUri } from '@/hooks/useSpeakerDownload';
 import {
   colors,
   semanticColors,
@@ -38,7 +40,10 @@ export function SpeakerPlayer({ speakerId, audioUrl, youtubeId }: SpeakerPlayerP
   const barWidthRef = useRef(0);
 
   // Resolve the audio URI
-  const resolvedUri = audioUrl || `${SUPABASE_AUDIO_BASE}/${youtubeId}.m4a`;
+  const remoteUri = audioUrl || `${SUPABASE_AUDIO_BASE}/${youtubeId}.m4a`;
+
+  // Download management
+  const download = useSpeakerDownload(speakerId, remoteUri);
 
   // Is this player's speaker the currently loaded one?
   const isThisSpeaker = player.currentSpeakerId === speakerId;
@@ -49,14 +54,17 @@ export function SpeakerPlayer({ speakerId, audioUrl, youtubeId }: SpeakerPlayerP
   const duration = isThisSpeaker ? player.durationMs / 1000 : 0;
   const loadError = isThisSpeaker ? player.loadError : null;
 
-  // Load audio on mount if not already loaded for this speaker
+  // Load audio on mount — prefer local file if downloaded
   const hasLoadedRef = useRef(false);
   useEffect(() => {
     if (!isThisSpeaker && !hasLoadedRef.current) {
       hasLoadedRef.current = true;
-      player.load(speakerId, resolvedUri);
+      (async () => {
+        const uri = await resolveAudioUri(speakerId, remoteUri);
+        player.load(speakerId, uri);
+      })();
     }
-  }, [speakerId, resolvedUri]);
+  }, [speakerId, remoteUri]);
 
   // Keep screen awake while playing
   useEffect(() => {
@@ -72,7 +80,8 @@ export function SpeakerPlayer({ speakerId, audioUrl, youtubeId }: SpeakerPlayerP
 
   const handleTogglePlay = useCallback(async () => {
     if (!isLoaded) {
-      await player.load(speakerId, resolvedUri, true);
+      const uri = await resolveAudioUri(speakerId, remoteUri);
+      await player.load(speakerId, uri, true);
       return;
     }
     if (isPlaying) {
@@ -110,14 +119,52 @@ export function SpeakerPlayer({ speakerId, audioUrl, youtubeId }: SpeakerPlayerP
   );
 
   const handleRetry = useCallback(async () => {
-    await player.load(speakerId, resolvedUri);
-  }, [speakerId, resolvedUri]);
+    const uri = await resolveAudioUri(speakerId, remoteUri);
+    await player.load(speakerId, uri);
+  }, [speakerId, remoteUri]);
 
   const progress = duration > 0 ? currentTime / duration : 0;
 
   return (
     <View style={styles.container}>
       <View style={styles.playerCard}>
+
+        {/* Download pill */}
+        <View style={styles.downloadRow}>
+          {download.downloadStatus === 'not_downloaded' && (
+            <TouchableOpacity onPress={download.startDownload} style={styles.downloadPill}>
+              <Download size={14} color={colors.tertiaryDark} />
+              <Text style={styles.downloadPillText}>Download</Text>
+            </TouchableOpacity>
+          )}
+          {download.downloadStatus === 'downloading' && (
+            <View style={styles.downloadPill}>
+              <ActivityIndicator size="small" color={colors.tertiaryDark} />
+              <Text style={styles.downloadPillText}>{download.downloadProgress}%</Text>
+              <TouchableOpacity onPress={download.cancelDownload} hitSlop={8}>
+                <X size={14} color={sem.textMuted} />
+              </TouchableOpacity>
+            </View>
+          )}
+          {download.downloadStatus === 'downloaded' && (
+            <TouchableOpacity
+              onPress={() => {
+                Alert.alert(
+                  'Remove Download',
+                  'Delete the downloaded audio file?',
+                  [
+                    { text: 'Cancel', style: 'cancel' },
+                    { text: 'Delete', style: 'destructive', onPress: download.deleteDownload },
+                  ]
+                );
+              }}
+              style={styles.downloadedPill}
+            >
+              <Check size={14} color={colors.tertiaryDark} />
+              <Text style={styles.downloadPillText}>Downloaded</Text>
+            </TouchableOpacity>
+          )}
+        </View>
 
         {/* Error state */}
         {!!loadError && (
@@ -220,6 +267,34 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.12,
     shadowRadius: 12,
     elevation: 6,
+  },
+  downloadRow: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    marginBottom: spacing.md,
+  },
+  downloadPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+    backgroundColor: colors.tertiaryLight,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    borderRadius: radii.full,
+  },
+  downloadedPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+    backgroundColor: colors.tertiaryLight,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    borderRadius: radii.full,
+  },
+  downloadPillText: {
+    fontFamily: fontFamily.semiBold,
+    fontSize: fontSizeTokens.sm,
+    color: colors.tertiaryDark,
   },
   errorRow: {
     paddingVertical: spacing.sm,
