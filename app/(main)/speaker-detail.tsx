@@ -1,5 +1,6 @@
 import React, { useMemo } from 'react';
 import { StyleSheet, View, Text, ScrollView } from 'react-native';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { Stack, useLocalSearchParams } from 'expo-router';
 import ScreenContainer from '@/components/ScreenContainer';
 import { SpeakerPlayer } from '@/components/SpeakerPlayer';
@@ -18,6 +19,21 @@ import {
 } from '@/constants/designTokens';
 
 const sem = semanticColors.light;
+
+function DecorativeQuoteMark({ color }: { color: string }) {
+  return (
+    <Svg width={80} height={62} viewBox="0 0 118 92" fill="none">
+      <Path
+        d="M38 10C24.7 10 14 20.7 14 34C14 44.9 21.2 54 31.1 56.8L22 82H42.3L56 53.9V34C56 20.7 45.3 10 32 10H38Z"
+        fill={color}
+      />
+      <Path
+        d="M82 10C68.7 10 58 20.7 58 34C58 44.9 65.2 54 75.1 56.8L66 82H86.3L100 53.9V34C100 20.7 89.3 10 76 10H82Z"
+        fill={color}
+      />
+    </Svg>
+  );
+}
 
 export default function SpeakerDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -62,7 +78,7 @@ export default function SpeakerDetailScreen() {
       <Stack.Screen options={{ headerShown: false }} />
       <View style={[styles.container, { backgroundColor: sem.background }]}>
         <SubPageHeader
-          title={speaker.speaker}
+          title=""
           onBack={() => router.push('/(main)/speakers' as any)}
         />
 
@@ -76,6 +92,9 @@ export default function SpeakerDetailScreen() {
             <View style={styles.nameCardInner}>
               {/* Top — name + hometown */}
               <View style={styles.nameCardTop}>
+                <View style={styles.watermark} pointerEvents="none">
+                  <Ionicons name="headset" size={160} color="rgba(255,255,255,0.05)" />
+                </View>
                 <Text style={styles.speakerName}>{speaker.speaker}</Text>
                 <Text style={styles.speakerHometown}>{speaker.hometown}</Text>
               </View>
@@ -91,12 +110,11 @@ export default function SpeakerDetailScreen() {
           </View>
 
           {/* Player controls — outside the card */}
-          <SpeakerPlayer youtubeId={speaker.youtube_id} audioUrl={speaker.audio_url} />
+          <SpeakerPlayer speakerId={speaker.id} youtubeId={speaker.youtube_id} audioUrl={speaker.audio_url} />
 
           {/* Quote */}
           {speaker.quote ? (
             <View style={styles.quoteCard}>
-              <View style={styles.quoteBorder} />
               <Text style={styles.quoteText}>"{speaker.quote}"</Text>
             </View>
           ) : null}
@@ -138,6 +156,13 @@ const styles = StyleSheet.create({
   nameCardTop: {
     backgroundColor: colors.tertiaryExtraDark,
     padding: spacing.lg,
+    overflow: 'hidden',
+  },
+  watermark: {
+    position: 'absolute',
+    right: spacing.md,
+    bottom: -5,
+    transform: [{ rotate: '25deg' }],
   },
   speakerName: {
     fontFamily: fontFamily.bold,
@@ -201,26 +226,15 @@ const styles = StyleSheet.create({
 
   // ── Quote ──
   quoteCard: {
-    backgroundColor: colors.white,
+    backgroundColor: '#EDEAF4',
     borderRadius: radii.lg,
     padding: spacing.lg,
-    paddingLeft: spacing.lg + 6,
     marginTop: spacing.lg,
-    flexDirection: 'row',
-    overflow: 'hidden',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.12,
-    shadowRadius: 12,
-    elevation: 6,
-  },
-  quoteBorder: {
-    position: 'absolute',
-    left: 0,
-    top: 0,
-    bottom: 0,
-    width: 5,
-    backgroundColor: colors.tertiaryExtraDark,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.25,
+    shadowRadius: 14,
+    elevation: 8,
   },
   quoteText: {
     fontFamily: fontFamily.regular,
@@ -228,7 +242,6 @@ const styles = StyleSheet.create({
     fontStyle: 'italic',
     color: sem.text,
     lineHeight: 24,
-    flex: 1,
   },
 
   // ── Loading ──

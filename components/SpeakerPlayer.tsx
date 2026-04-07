@@ -1,31 +1,32 @@
-import React, { useState, useRef, useCallback, useEffect } from 'react';
+import React, { useEffect, useCallback, useRef } from 'react';
 import { StyleSheet, View, Text, TouchableOpacity } from 'react-native';
-import { Audio, AVPlaybackStatus } from 'expo-av';
 import { activateKeepAwakeAsync, deactivateKeepAwake } from 'expo-keep-awake';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { useTheme } from '@/hooks/useTheme';
-import { adjustFontWeight } from '@/constants/fonts';
 import { EqualizerOverlay } from './EqualizerOverlay';
+import { useGlobalAudioPlayer } from '@/hooks/useGlobalAudioPlayer';
+import {
+  colors,
+  semanticColors,
+  spacing,
+  radii,
+  fontFamily,
+  fontSize as fontSizeTokens,
+  shadows,
+} from '@/constants/designTokens';
+
+const sem = semanticColors.light;
 
 const SUPABASE_AUDIO_BASE = 'https://uzfqabcjxjqufpipdcla.supabase.co/storage/v1/object/public/speaker-audio';
 
 interface SpeakerPlayerProps {
-  /** Full audio URL from the audio_url column, or null to construct from youtubeId */
+  speakerId: string;
   audioUrl?: string | null;
-  /** YouTube ID — used as fallback to construct the audio URL */
   youtubeId: string;
 }
 
 const SPEEDS = [0.75, 1, 1.25, 1.5];
 
-// Speaker accent colors per theme
-const SPEAKER_ACCENT = '#8B6AC0';
-const SPEAKER_ACCENT_DARK = '#7A5AAA';
-const SPEAKER_ACCENT_DEEPSEA = '#3E5C76';
-
-const CARD_BG_LIGHT = 'rgba(139, 106, 192, 0.08)';
-const CARD_BG_DARK = 'rgba(122, 90, 170, 0.12)';
-const CARD_BG_DEEPSEA = 'rgba(62, 92, 118, 0.15)';
+const ACCENT_COLOR = colors.tertiaryExtraDark;
 
 function formatTime(seconds: number): string {
   const mins = Math.floor(seconds / 60);
@@ -33,44 +34,30 @@ function formatTime(seconds: number): string {
   return `${mins}:${secs.toString().padStart(2, '0')}`;
 }
 
-// Configure audio mode for background playback
-async function configureAudioMode() {
-  try {
-    await Audio.setAudioModeAsync({
-      allowsRecordingIOS: false,
-      staysActiveInBackground: true,
-      playsInSilentModeIOS: true,
-      shouldDuckAndroid: true,
-      playThroughEarpieceAndroid: false,
-    });
-  } catch (e) {
-    console.warn('[SpeakerPlayer] Failed to configure audio mode:', e);
-  }
-}
-
-export function SpeakerPlayer({ audioUrl, youtubeId }: SpeakerPlayerProps) {
-  const { palette } = useTheme();
-  const soundRef = useRef<Audio.Sound | null>(null);
-  const progressBarRef = useRef<View>(null);
+export function SpeakerPlayer({ speakerId, audioUrl, youtubeId }: SpeakerPlayerProps) {
+  const player = useGlobalAudioPlayer();
   const barWidthRef = useRef(0);
-
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [currentTime, setCurrentTime] = useState(0);
-  const [duration, setDuration] = useState(0);
-  const [playbackSpeed, setPlaybackSpeed] = useState(1);
-  const [isLoaded, setIsLoaded] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  // Derive accent and card background colors from theme
-  const isDeepSea = (palette.heroTiles as any)?.speakers?.[0] === '#3E5C76';
-  const isDark = palette.background !== '#fff';
-
-  const accentColor = isDeepSea ? SPEAKER_ACCENT_DEEPSEA : (isDark ? SPEAKER_ACCENT_DARK : SPEAKER_ACCENT);
-  const cardBg = isDeepSea ? CARD_BG_DEEPSEA : (isDark ? CARD_BG_DARK : CARD_BG_LIGHT);
 
   // Resolve the audio URI
   const resolvedUri = audioUrl || `${SUPABASE_AUDIO_BASE}/${youtubeId}.m4a`;
+
+  // Is this player's speaker the currently loaded one?
+  const isThisSpeaker = player.currentSpeakerId === speakerId;
+  const isPlaying = isThisSpeaker && player.isPlaying;
+  const isBuffering = isThisSpeaker && player.isBuffering;
+  const isLoaded = isThisSpeaker && player.isLoaded;
+  const currentTime = isThisSpeaker ? player.positionMs / 1000 : 0;
+  const duration = isThisSpeaker ? player.durationMs / 1000 : 0;
+  const loadError = isThisSpeaker ? player.loadError : null;
+
+  // Load audio on mount if not already loaded for this speaker
+  const hasLoadedRef = useRef(false);
+  useEffect(() => {
+    if (!isThisSpeaker && !hasLoadedRef.current) {
+      hasLoadedRef.current = true;
+      player.load(speakerId, resolvedUri);
+    }
+  }, [speakerId, resolvedUri]);
 
   // Keep screen awake while playing
   useEffect(() => {
@@ -84,182 +71,71 @@ export function SpeakerPlayer({ audioUrl, youtubeId }: SpeakerPlayerProps) {
     };
   }, [isPlaying]);
 
-  // Playback status callback
-  const onPlaybackStatusUpdate = useCallback((status: AVPlaybackStatus) => {
-    if (!status.isLoaded) {
-      if (status.error) {
-        console.error('[SpeakerPlayer] Playback error:', status.error);
-        setError('Failed to load audio');
-      }
+  const handleTogglePlay = useCallback(async () => {
+    if (!isLoaded) {
+      await player.load(speakerId, resolvedUri, true);
       return;
     }
-
-    setCurrentTime(status.positionMillis / 1000);
-    if (status.durationMillis) {
-      setDuration(status.durationMillis / 1000);
+    if (isPlaying) {
+      await player.pause();
+    } else {
+      await player.play();
     }
-    setIsPlaying(status.isPlaying);
+  }, [isLoaded, isPlaying, speakerId, resolvedUri]);
 
-    if (status.didJustFinish) {
-      setIsPlaying(false);
-      setCurrentTime(0);
-    }
+  const handleStop = useCallback(async () => {
+    await player.stop();
   }, []);
 
-  // Load the audio with timeout to avoid hanging on bad URLs
-  const loadAudio = useCallback(async () => {
-    try {
-      setIsLoading(true);
-      setError(null);
+  const handleSkipBack = useCallback(async () => {
+    await player.seekBy(-15);
+  }, []);
 
-      console.log('[SpeakerPlayer] audioUrl prop:', audioUrl);
-      console.log('[SpeakerPlayer] youtubeId prop:', youtubeId);
-      console.log('[SpeakerPlayer] Resolved URI:', resolvedUri);
+  const handleSkipForward = useCallback(async () => {
+    await player.seekBy(30);
+  }, []);
 
-      await configureAudioMode();
-
-      // Unload previous sound if any
-      if (soundRef.current) {
-        await soundRef.current.unloadAsync();
-        soundRef.current = null;
-      }
-
-      console.log('[SpeakerPlayer] Loading audio from:', resolvedUri);
-
-      // Race the load against a timeout so we don't hang forever on bad URLs
-      const timeoutPromise = new Promise<never>((_, reject) =>
-        setTimeout(() => reject(new Error('Audio load timed out after 15s')), 15000)
-      );
-
-      const loadPromise = Audio.Sound.createAsync(
-        { uri: resolvedUri },
-        { shouldPlay: false, rate: playbackSpeed, shouldCorrectPitch: true },
-        onPlaybackStatusUpdate
-      );
-
-      const { sound, status } = await Promise.race([loadPromise, timeoutPromise]);
-      console.log('[SpeakerPlayer] Audio loaded successfully, duration:', (status as any)?.durationMillis);
-
-      soundRef.current = sound;
-      setIsLoaded(true);
-    } catch (e: any) {
-      console.error('[SpeakerPlayer] Error loading audio:', e?.message || e);
-      setError(e?.message?.includes('timed out') ? 'Audio file not found' : 'Failed to load audio file');
-    } finally {
-      setIsLoading(false);
-    }
-  }, [resolvedUri, audioUrl, youtubeId, onPlaybackStatusUpdate]);
-
-  // Load audio on mount — only when resolvedUri changes
-  const hasLoadedRef = useRef(false);
-  useEffect(() => {
-    hasLoadedRef.current = false;
-  }, [resolvedUri]);
-
-  useEffect(() => {
-    if (hasLoadedRef.current) return;
-    hasLoadedRef.current = true;
-    loadAudio();
-
-    return () => {
-      // Cleanup on unmount
-      if (soundRef.current) {
-        soundRef.current.unloadAsync();
-        soundRef.current = null;
-      }
-    };
-  }, [resolvedUri]);
-
-  // Update playback speed when changed
-  useEffect(() => {
-    if (soundRef.current && isLoaded) {
-      soundRef.current.setRateAsync(playbackSpeed, true).catch(() => {});
-    }
-  }, [playbackSpeed, isLoaded]);
-
-  const togglePlay = useCallback(async () => {
-    if (!soundRef.current || !isLoaded) {
-      // Try loading if not loaded yet
-      await loadAudio();
-      return;
-    }
-
-    try {
-      if (isPlaying) {
-        await soundRef.current.pauseAsync();
-      } else {
-        await soundRef.current.playAsync();
-      }
-    } catch (e) {
-      console.error('[SpeakerPlayer] Toggle play error:', e);
-    }
-  }, [isPlaying, isLoaded, loadAudio]);
-
-  const skipBack = useCallback(async () => {
-    if (!soundRef.current || !isLoaded) return;
-    try {
-      const newTime = Math.max(0, currentTime - 15);
-      await soundRef.current.setPositionAsync(newTime * 1000);
-      setCurrentTime(newTime);
-    } catch (e) {
-      console.error('[SpeakerPlayer] Skip back error:', e);
-    }
-  }, [currentTime, isLoaded]);
-
-  const skipForward = useCallback(async () => {
-    if (!soundRef.current || !isLoaded) return;
-    try {
-      const newTime = Math.min(duration, currentTime + 30);
-      await soundRef.current.setPositionAsync(newTime * 1000);
-      setCurrentTime(newTime);
-    } catch (e) {
-      console.error('[SpeakerPlayer] Skip forward error:', e);
-    }
-  }, [currentTime, duration, isLoaded]);
-
-  const handleSpeedChange = useCallback((speed: number) => {
-    setPlaybackSpeed(speed);
+  const handleSpeedChange = useCallback(async (speed: number) => {
+    await player.setRate(speed);
   }, []);
 
   const handleProgressBarPress = useCallback(
     async (event: { nativeEvent: { locationX: number } }) => {
-      if (barWidthRef.current > 0 && duration > 0 && soundRef.current && isLoaded) {
+      if (barWidthRef.current > 0 && duration > 0 && isLoaded) {
         const proportion = event.nativeEvent.locationX / barWidthRef.current;
-        const seekTime = proportion * duration;
-        try {
-          await soundRef.current.setPositionAsync(seekTime * 1000);
-          setCurrentTime(seekTime);
-        } catch (e) {
-          console.error('[SpeakerPlayer] Seek error:', e);
-        }
+        const seekTimeMs = proportion * duration * 1000;
+        await player.seekTo(seekTimeMs);
       }
     },
     [duration, isLoaded]
   );
 
+  const handleRetry = useCallback(async () => {
+    await player.load(speakerId, resolvedUri);
+  }, [speakerId, resolvedUri]);
+
   const progress = duration > 0 ? currentTime / duration : 0;
 
   return (
     <View style={styles.container}>
-      {/* Player Card */}
-      <View style={[styles.playerCard, { backgroundColor: cardBg }]}>
+      <View style={styles.playerCard}>
         {/* Now Playing header row */}
         <View style={styles.nowPlayingRow}>
           <View style={styles.nowPlayingLeft}>
             <View style={styles.equalizerInline}>
-              <EqualizerOverlay isPlaying={isPlaying} barCount={4} barColor={accentColor} />
+              <EqualizerOverlay isPlaying={isPlaying} barCount={4} barColor={ACCENT_COLOR} />
             </View>
-            <Text style={[styles.nowPlayingLabel, { color: accentColor }]}>
-              {isLoading ? 'Loading…' : 'Now Playing'}
+            <Text style={[styles.nowPlayingLabel, { color: ACCENT_COLOR }]}>
+              {isBuffering ? 'Loading…' : isPlaying ? 'Now Playing' : isLoaded ? 'Paused' : 'Ready'}
             </Text>
           </View>
         </View>
 
         {/* Error state */}
-        {!!error && (
-          <TouchableOpacity onPress={loadAudio} style={styles.errorRow}>
-            <Text style={[styles.errorText, { color: palette.muted }]}>
-              {error} — Tap to retry
+        {!!loadError && (
+          <TouchableOpacity onPress={handleRetry} style={styles.errorRow}>
+            <Text style={styles.errorText}>
+              {loadError} — Tap to retry
             </Text>
           </TouchableOpacity>
         )}
@@ -271,8 +147,7 @@ export function SpeakerPlayer({ audioUrl, youtubeId }: SpeakerPlayerProps) {
           style={styles.progressContainer}
         >
           <View
-            ref={progressBarRef}
-            style={[styles.progressTrack, { backgroundColor: palette.border }]}
+            style={styles.progressTrack}
             onLayout={(e) => {
               barWidthRef.current = e.nativeEvent.layout.width;
             }}
@@ -280,39 +155,44 @@ export function SpeakerPlayer({ audioUrl, youtubeId }: SpeakerPlayerProps) {
             <View
               style={[
                 styles.progressFill,
-                { width: `${progress * 100}%`, backgroundColor: accentColor },
+                { width: `${progress * 100}%`, backgroundColor: ACCENT_COLOR },
               ]}
             />
           </View>
           <View style={styles.timeRow}>
-            <Text style={[styles.timeText, { color: palette.muted }]}>
-              {formatTime(currentTime)}
-            </Text>
-            <Text style={[styles.timeText, { color: palette.muted }]}>
-              {formatTime(duration)}
-            </Text>
+            <Text style={styles.timeText}>{formatTime(currentTime)}</Text>
+            <Text style={styles.timeText}>{formatTime(duration)}</Text>
           </View>
         </TouchableOpacity>
 
-        {/* Playback controls */}
+        {/* Playback controls — stop, skip back, play/pause, skip forward */}
         <View style={styles.controls}>
-          <TouchableOpacity onPress={skipBack} style={styles.controlButton}>
-            <Ionicons name="play-back" size={24} color={palette.text} />
-            <Text style={[styles.skipLabel, { color: palette.muted }]}>15s</Text>
+          <TouchableOpacity onPress={handleStop} style={styles.controlButton}>
+            <Ionicons name="stop-circle-outline" size={28} color={sem.textMuted} />
           </TouchableOpacity>
 
-          <TouchableOpacity onPress={togglePlay} style={styles.playButton}>
+          <TouchableOpacity onPress={handleSkipBack} style={styles.controlButton}>
+            <Ionicons name="play-back" size={24} color={sem.text} />
+            <Text style={styles.skipLabel}>15s</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity onPress={handleTogglePlay} style={styles.playButton}>
             <Ionicons
               name={isPlaying ? 'pause-circle' : 'play-circle'}
               size={56}
-              color={accentColor}
+              color={ACCENT_COLOR}
             />
           </TouchableOpacity>
 
-          <TouchableOpacity onPress={skipForward} style={styles.controlButton}>
-            <Ionicons name="play-forward" size={24} color={palette.text} />
-            <Text style={[styles.skipLabel, { color: palette.muted }]}>30s</Text>
+          <TouchableOpacity onPress={handleSkipForward} style={styles.controlButton}>
+            <Ionicons name="play-forward" size={24} color={sem.text} />
+            <Text style={styles.skipLabel}>30s</Text>
           </TouchableOpacity>
+
+          {/* Spacer to balance the stop button */}
+          <View style={styles.controlButton}>
+            <View style={{ width: 28, height: 28 }} />
+          </View>
         </View>
 
         {/* Speed selector */}
@@ -324,8 +204,7 @@ export function SpeakerPlayer({ audioUrl, youtubeId }: SpeakerPlayerProps) {
               style={[
                 styles.speedButton,
                 {
-                  backgroundColor:
-                    playbackSpeed === speed ? accentColor : palette.border,
+                  backgroundColor: player.rate === speed ? ACCENT_COLOR : sem.border,
                 },
               ]}
             >
@@ -333,7 +212,7 @@ export function SpeakerPlayer({ audioUrl, youtubeId }: SpeakerPlayerProps) {
                 style={[
                   styles.speedText,
                   {
-                    color: playbackSpeed === speed ? '#fff' : palette.muted,
+                    color: player.rate === speed ? colors.white : sem.textMuted,
                   },
                 ]}
               >
@@ -349,22 +228,28 @@ export function SpeakerPlayer({ audioUrl, youtubeId }: SpeakerPlayerProps) {
 
 const styles = StyleSheet.create({
   container: {
-    marginTop: 16,
+    marginTop: spacing.md,
   },
   playerCard: {
-    borderRadius: 16,
-    padding: 16,
+    borderRadius: radii.lg,
+    padding: spacing.md,
+    backgroundColor: colors.white,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.12,
+    shadowRadius: 12,
+    elevation: 6,
   },
   nowPlayingRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 16,
+    marginBottom: spacing.md,
   },
   nowPlayingLeft: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: spacing.sm,
   },
   equalizerInline: {
     width: 22,
@@ -372,23 +257,26 @@ const styles = StyleSheet.create({
     position: 'relative',
   },
   nowPlayingLabel: {
-    fontSize: 15,
-    fontWeight: adjustFontWeight('600'),
+    fontFamily: fontFamily.semiBold,
+    fontSize: fontSizeTokens.base,
   },
   errorRow: {
-    paddingVertical: 8,
-    marginBottom: 8,
+    paddingVertical: spacing.sm,
+    marginBottom: spacing.sm,
   },
   errorText: {
-    fontSize: 13,
+    fontFamily: fontFamily.regular,
+    fontSize: fontSizeTokens.sm,
+    color: sem.textMuted,
     textAlign: 'center',
   },
   progressContainer: {
-    marginBottom: 12,
+    marginBottom: spacing.md,
   },
   progressTrack: {
     height: 4,
     borderRadius: 2,
+    backgroundColor: sem.border,
     overflow: 'hidden',
   },
   progressFill: {
@@ -398,42 +286,46 @@ const styles = StyleSheet.create({
   timeRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginTop: 4,
+    marginTop: spacing.xs,
   },
   timeText: {
-    fontSize: 12,
+    fontFamily: fontFamily.regular,
+    fontSize: fontSizeTokens.sm,
+    color: sem.textMuted,
   },
   controls: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: 4,
-    gap: 24,
+    marginTop: spacing.xs,
+    gap: spacing.lg,
   },
   controlButton: {
     alignItems: 'center',
-    padding: 8,
+    padding: spacing.sm,
   },
   skipLabel: {
+    fontFamily: fontFamily.regular,
     fontSize: 10,
+    color: sem.textMuted,
     marginTop: 2,
   },
   playButton: {
-    padding: 4,
+    padding: spacing.xs,
   },
   speedRow: {
     flexDirection: 'row',
     justifyContent: 'center',
-    gap: 8,
-    marginTop: 12,
+    gap: spacing.sm,
+    marginTop: spacing.md,
   },
   speedButton: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 12,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    borderRadius: radii.md,
   },
   speedText: {
-    fontSize: 13,
-    fontWeight: adjustFontWeight('600'),
+    fontFamily: fontFamily.semiBold,
+    fontSize: fontSizeTokens.sm,
   },
 });

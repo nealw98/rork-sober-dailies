@@ -1,6 +1,7 @@
 import React from 'react';
 import { StyleSheet, View, Text, TouchableOpacity } from 'react-native';
 import type { Speaker } from '@/hooks/useSpeakers';
+import { EqualizerOverlay } from './EqualizerOverlay';
 import {
   colors,
   semanticColors,
@@ -16,9 +17,11 @@ const sem = semanticColors.light;
 interface SpeakerCardProps {
   speaker: Speaker;
   onPress: () => void;
+  isActive?: boolean;
+  isPlaying?: boolean;
 }
 
-function SpeakerCardInner({ speaker, onPress }: SpeakerCardProps) {
+function SpeakerCardInner({ speaker, onPress, isActive = false, isPlaying = false }: SpeakerCardProps) {
   return (
     <TouchableOpacity
       onPress={onPress}
@@ -34,6 +37,16 @@ function SpeakerCardInner({ speaker, onPress }: SpeakerCardProps) {
           <Text style={styles.hometown} numberOfLines={1}>
             {speaker.hometown}
           </Text>
+          {isActive && (
+            <View style={styles.playbackBadge}>
+              <View style={styles.equalizerInline}>
+                <EqualizerOverlay isPlaying={isPlaying} barCount={3} barColor={colors.white} />
+              </View>
+              <Text style={styles.playbackLabel}>
+                {isPlaying ? 'Now Playing' : 'Paused'}
+              </Text>
+            </View>
+          )}
         </View>
 
         {/* Bottom — white with talk title */}
@@ -81,6 +94,24 @@ const styles = StyleSheet.create({
   topSection: {
     backgroundColor: colors.tertiaryExtraDark,
     padding: spacing.lg,
+  },
+  playbackBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    marginTop: spacing.sm,
+  },
+  equalizerInline: {
+    width: 18,
+    height: 16,
+    position: 'relative',
+  },
+  playbackLabel: {
+    fontFamily: fontFamily.semiBold,
+    fontSize: fontSize.xs,
+    color: 'rgba(255, 255, 255, 0.8)',
+    textTransform: 'uppercase',
+    letterSpacing: 1,
   },
   name: {
     fontFamily: fontFamily.bold,

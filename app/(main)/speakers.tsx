@@ -7,6 +7,7 @@ import { SpeakerCard } from '@/components/SpeakerCard';
 import { useSpeakers, Speaker } from '@/hooks/useSpeakers';
 import { useScreenTimeTracking } from '@/hooks/useScreenTimeTracking';
 import TopLevelHeader from '@/components/navigation/TopLevelHeader';
+import { useGlobalAudioPlayer } from '@/hooks/useGlobalAudioPlayer';
 import {
   colors,
   semanticColors,
@@ -56,6 +57,7 @@ export default function SpeakersScreen() {
   const [sortBy, setSortBy] = useState<SortOption>('newest');
   const [searchQuery, setSearchQuery] = useState('');
 
+  const player = useGlobalAudioPlayer();
   useScreenTimeTracking('Speakers');
 
   const filteredAndSorted = useMemo(() => {
@@ -85,10 +87,18 @@ export default function SpeakersScreen() {
   );
 
   const renderItem = useCallback(
-    ({ item }: { item: Speaker }) => (
-      <SpeakerCard speaker={item} onPress={() => handleSpeakerPress(item)} />
-    ),
-    [handleSpeakerPress]
+    ({ item }: { item: Speaker }) => {
+      const isActive = player.currentSpeakerId === item.id && player.isLoaded;
+      return (
+        <SpeakerCard
+          speaker={item}
+          onPress={() => handleSpeakerPress(item)}
+          isActive={isActive}
+          isPlaying={isActive && player.isPlaying}
+        />
+      );
+    },
+    [handleSpeakerPress, player.currentSpeakerId, player.isLoaded, player.isPlaying]
   );
 
   const keyExtractor = useCallback((item: Speaker) => item.id, []);

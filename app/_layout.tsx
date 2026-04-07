@@ -7,6 +7,7 @@ import { ChevronLeft } from "lucide-react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { HamburgerMenuProvider } from "@/hooks/useHamburgerMenu";
 import HamburgerMenu from "@/components/navigation/HamburgerMenu";
+import { AudioPlayerProvider } from "@/hooks/useGlobalAudioPlayer";
 import {
   useFonts,
   Inter_400Regular,
@@ -316,10 +317,12 @@ export default function RootLayout() {
                           <StatusBar translucent backgroundColor="transparent" barStyle="light-content" />
                         )}
                         <ErrorBoundary>
-                          <HamburgerMenuProvider>
-                            <RootLayoutNav />
-                            <HamburgerMenu />
-                          </HamburgerMenuProvider>
+                          <AudioPlayerProvider>
+                            <HamburgerMenuProvider>
+                              <RootLayoutNav />
+                              <HamburgerMenu />
+                            </HamburgerMenuProvider>
+                          </AudioPlayerProvider>
                         </ErrorBoundary>
                       </GestureHandlerRootView>
                     </EveningReviewProvider>
