@@ -89,7 +89,7 @@ export function SpeakerPlayer({ speakerId, audioUrl, youtubeId }: SpeakerPlayerP
     } else {
       await player.play();
     }
-  }, [isLoaded, isPlaying, speakerId, resolvedUri]);
+  }, [isLoaded, isPlaying, speakerId, remoteUri]);
 
   const handleStop = useCallback(async () => {
     await player.stop();
