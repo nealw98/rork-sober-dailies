@@ -68,7 +68,7 @@ export default function SpeakerDetailScreen() {
     return (
       <ScreenContainer noPadding>
         <Stack.Screen options={{ headerShown: false }} />
-        <SubPageHeader onBack={() => router.push('/(main)/speakers' as any)} />
+        <SubPageHeader onBack={() => router.back()} />
         <View style={styles.loading}>
           <Text style={styles.loadingText}>Loading...</Text>
         </View>
@@ -82,7 +82,7 @@ export default function SpeakerDetailScreen() {
       <View style={[styles.container, { backgroundColor: sem.background }]}>
         <SubPageHeader
           title=""
-          onBack={() => router.push('/(main)/speakers' as any)}
+          onBack={() => router.back()}
           rightElement={
             player.currentSpeakerId === speaker?.id && player.isLoaded ? (
               <View style={styles.headerBadge}>
@@ -129,7 +129,7 @@ export default function SpeakerDetailScreen() {
             speakerId={speaker.id}
             youtubeId={speaker.youtube_id}
             audioUrl={speaker.audio_url}
-            onStop={() => router.push('/(main)/speakers' as any)}
+            onStop={() => router.back()}
           />
 
           {/* Quote */}
