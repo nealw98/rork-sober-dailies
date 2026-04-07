@@ -83,19 +83,9 @@ export default function SpeakerDetailScreen() {
               {/* Bottom — title + progress bar */}
               <View style={styles.nameCardBottom}>
                 <Text style={styles.talkTitle}>{speaker.title}</Text>
-                {(speaker.date || speaker.meeting) && (
-                  <Text style={styles.talkMeta}>
-                    {[speaker.meeting, formattedDate].filter(Boolean).join(' • ')}
-                  </Text>
-                )}
-                {speaker.explicit && (
-                  <View style={styles.explicitRow}>
-                    <View style={styles.explicitBadge}>
-                      <Text style={styles.explicitText}>E</Text>
-                    </View>
-                    <Text style={styles.explicitLabel}>Explicit language</Text>
-                  </View>
-                )}
+                {speaker.subtitle ? (
+                  <Text style={styles.talkDescription}>{speaker.subtitle}</Text>
+                ) : null}
               </View>
             </View>
           </View>
@@ -105,8 +95,7 @@ export default function SpeakerDetailScreen() {
 
           {/* Quote */}
           {speaker.quote ? (
-            <View style={styles.quoteBlock}>
-              <View style={styles.quoteBorder} />
+            <View style={styles.quoteCard}>
               <Text style={styles.quoteText}>"{speaker.quote}"</Text>
             </View>
           ) : null}
@@ -146,19 +135,19 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   nameCardTop: {
-    backgroundColor: colors.secondaryLight,
+    backgroundColor: colors.tertiaryExtraDark,
     padding: spacing.lg,
   },
   speakerName: {
     fontFamily: fontFamily.bold,
     fontSize: fontSize['4xl'],
-    color: sem.text,
+    color: colors.white,
     marginBottom: 2,
   },
   speakerHometown: {
     fontFamily: fontFamily.regular,
     fontSize: fontSize.sm,
-    color: sem.textSecondary,
+    color: 'rgba(255, 255, 255, 0.75)',
   },
   nameCardBottom: {
     backgroundColor: colors.white,
@@ -168,7 +157,14 @@ const styles = StyleSheet.create({
   talkTitle: {
     fontFamily: fontFamily.semiBold,
     fontSize: fontSize.xl,
-    color: sem.text,
+    color: colors.tertiaryExtraDark,
+  },
+  talkDescription: {
+    fontFamily: fontFamily.regular,
+    fontSize: fontSize.md,
+    color: sem.textSecondary,
+    lineHeight: 20,
+    marginTop: spacing.sm,
   },
   talkMeta: {
     fontFamily: fontFamily.medium,
@@ -203,22 +199,22 @@ const styles = StyleSheet.create({
   },
 
   // ── Quote ──
-  quoteBlock: {
-    flexDirection: 'row',
+  quoteCard: {
+    backgroundColor: colors.tertiaryExtraDark,
+    borderRadius: radii.lg,
+    padding: spacing.lg,
     marginTop: spacing.lg,
-  },
-  quoteBorder: {
-    width: 3,
-    borderRadius: 2,
-    backgroundColor: colors.secondary,
-    marginRight: spacing.md,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.12,
+    shadowRadius: 12,
+    elevation: 6,
   },
   quoteText: {
-    flex: 1,
     fontFamily: fontFamily.regular,
     fontSize: fontSize.lg,
     fontStyle: 'italic',
-    color: sem.textSecondary,
+    color: colors.white,
     lineHeight: 24,
   },
 

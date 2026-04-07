@@ -79,19 +79,19 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   topSection: {
-    backgroundColor: colors.secondaryLight,
+    backgroundColor: colors.tertiaryExtraDark,
     padding: spacing.lg,
   },
   name: {
     fontFamily: fontFamily.bold,
     fontSize: fontSize['4xl'],
-    color: sem.text,
+    color: colors.white,
     marginBottom: 2,
   },
   hometown: {
     fontFamily: fontFamily.regular,
     fontSize: fontSize.sm,
-    color: sem.textSecondary,
+    color: 'rgba(255, 255, 255, 0.75)',
   },
   bottomSection: {
     backgroundColor: colors.white,
@@ -109,7 +109,7 @@ const styles = StyleSheet.create({
   title: {
     fontFamily: fontFamily.semiBold,
     fontSize: fontSize.xl,
-    color: colors.secondaryDark,
+    color: colors.tertiaryDark,
   },
   explicitBadge: {
     width: 18,
