@@ -230,6 +230,45 @@ export function useSpeakerDownload(speakerId: string, audioUrl: string) {
   };
 }
 
+// ─── Hook: useDownloadedSpeakerIds (browse screen) ──────────────────────────
+
+export function useDownloadedSpeakerIds() {
+  const [downloadedIds, setDownloadedIds] = useState<Set<string>>(new Set());
+  const mountedRef = useRef(true);
+
+  const refresh = useCallback(async () => {
+    try {
+      const map = await loadDownloadMap();
+      const ids = new Set<string>();
+
+      for (const [id, record] of Object.entries(map)) {
+        if (record.downloaded && record.localPath) {
+          const info = await FileSystem.getInfoAsync(record.localPath);
+          if (info.exists) {
+            ids.add(id);
+          }
+        }
+      }
+
+      if (mountedRef.current) {
+        setDownloadedIds(ids);
+      }
+    } catch {
+      // Ignore
+    }
+  }, []);
+
+  useEffect(() => {
+    mountedRef.current = true;
+    refresh();
+    return () => {
+      mountedRef.current = false;
+    };
+  }, [refresh]);
+
+  return { downloadedIds, refresh };
+}
+
 // ─── Helper: resolve audio URI for playback ──────────────────────────────────
 
 export async function resolveAudioUri(

@@ -1,5 +1,6 @@
 import React from 'react';
 import { StyleSheet, View, Text, TouchableOpacity } from 'react-native';
+import { Download } from 'lucide-react-native';
 import type { Speaker } from '@/hooks/useSpeakers';
 import { EqualizerOverlay } from './EqualizerOverlay';
 import {
@@ -19,9 +20,10 @@ interface SpeakerCardProps {
   onPress: () => void;
   isActive?: boolean;
   isPlaying?: boolean;
+  isDownloaded?: boolean;
 }
 
-function SpeakerCardInner({ speaker, onPress, isActive = false, isPlaying = false }: SpeakerCardProps) {
+function SpeakerCardInner({ speaker, onPress, isActive = false, isPlaying = false, isDownloaded = false }: SpeakerCardProps) {
   return (
     <TouchableOpacity
       onPress={onPress}
@@ -51,6 +53,12 @@ function SpeakerCardInner({ speaker, onPress, isActive = false, isPlaying = fals
 
         {/* Bottom — white with talk title */}
         <View style={styles.bottomSection}>
+          {isDownloaded && (
+            <View style={styles.downloadedBadge}>
+              <Download size={10} color={colors.tertiaryDark} />
+              <Text style={styles.downloadedText}>Downloaded</Text>
+            </View>
+          )}
           <Text style={styles.title} numberOfLines={2}>
             {speaker.title}
           </Text>
@@ -126,6 +134,19 @@ const styles = StyleSheet.create({
     fontFamily: fontFamily.regular,
     fontSize: fontSize.sm,
     color: 'rgba(255, 255, 255, 0.75)',
+  },
+  downloadedBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+    marginBottom: spacing.sm,
+  },
+  downloadedText: {
+    fontFamily: fontFamily.medium,
+    fontSize: fontSize.xs,
+    color: colors.tertiaryDark,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
   bottomSection: {
     backgroundColor: colors.white,

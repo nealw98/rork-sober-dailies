@@ -8,6 +8,7 @@ import { useSpeakers, Speaker } from '@/hooks/useSpeakers';
 import { useScreenTimeTracking } from '@/hooks/useScreenTimeTracking';
 import TopLevelHeader from '@/components/navigation/TopLevelHeader';
 import { useGlobalAudioPlayer } from '@/hooks/useGlobalAudioPlayer';
+import { useDownloadedSpeakerIds } from '@/hooks/useSpeakerDownload';
 import {
   colors,
   semanticColors,
@@ -58,6 +59,7 @@ export default function SpeakersScreen() {
   const [searchQuery, setSearchQuery] = useState('');
 
   const player = useGlobalAudioPlayer();
+  const { downloadedIds } = useDownloadedSpeakerIds();
   useScreenTimeTracking('Speakers');
 
   const filteredAndSorted = useMemo(() => {
@@ -95,6 +97,7 @@ export default function SpeakersScreen() {
           onPress={() => handleSpeakerPress(item)}
           isActive={isActive}
           isPlaying={isActive && player.isPlaying}
+          isDownloaded={downloadedIds.has(item.id)}
         />
       );
     },
