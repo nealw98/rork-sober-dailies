@@ -1,4 +1,5 @@
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useMemo, useCallback, useEffect } from 'react';
+import { AppState, AppStateStatus } from 'react-native';
 import { useFocusEffect } from 'expo-router';
 import { StyleSheet, View, Text, TouchableOpacity, FlatList, ActivityIndicator, TextInput, ImageBackground } from 'react-native';
 import { router, Stack } from 'expo-router';
@@ -69,6 +70,14 @@ export default function SpeakersScreen() {
       refreshDownloads();
     }, [refreshDownloads])
   );
+
+  // Also refresh when app returns from background
+  useEffect(() => {
+    const sub = AppState.addEventListener('change', (state: AppStateStatus) => {
+      if (state === 'active') refreshDownloads();
+    });
+    return () => sub.remove();
+  }, [refreshDownloads]);
 
   const filteredAndSorted = useMemo(() => {
     let results = speakers;

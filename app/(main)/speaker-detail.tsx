@@ -125,7 +125,12 @@ export default function SpeakerDetailScreen() {
           </View>
 
           {/* Player controls — outside the card */}
-          <SpeakerPlayer speakerId={speaker.id} youtubeId={speaker.youtube_id} audioUrl={speaker.audio_url} />
+          <SpeakerPlayer
+            speakerId={speaker.id}
+            youtubeId={speaker.youtube_id}
+            audioUrl={speaker.audio_url}
+            onStop={() => router.push('/(main)/speakers' as any)}
+          />
 
           {/* Quote */}
           {speaker.quote ? (

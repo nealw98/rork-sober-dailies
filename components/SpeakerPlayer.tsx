@@ -23,6 +23,7 @@ interface SpeakerPlayerProps {
   speakerId: string;
   audioUrl?: string | null;
   youtubeId: string;
+  onStop?: () => void;
 }
 
 const SPEEDS = [0.75, 1, 1.25, 1.5];
@@ -35,7 +36,7 @@ function formatTime(seconds: number): string {
   return `${mins}:${secs.toString().padStart(2, '0')}`;
 }
 
-export function SpeakerPlayer({ speakerId, audioUrl, youtubeId }: SpeakerPlayerProps) {
+export function SpeakerPlayer({ speakerId, audioUrl, youtubeId, onStop }: SpeakerPlayerProps) {
   const player = useGlobalAudioPlayer();
   const barWidthRef = useRef(0);
 
@@ -95,7 +96,8 @@ export function SpeakerPlayer({ speakerId, audioUrl, youtubeId }: SpeakerPlayerP
 
   const handleStop = useCallback(async () => {
     await player.stop();
-  }, []);
+    onStop?.();
+  }, [onStop]);
 
   const handleSkipBack = useCallback(async () => {
     await player.seekBy(-15);
