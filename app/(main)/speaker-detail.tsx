@@ -96,6 +96,7 @@ export default function SpeakerDetailScreen() {
           {/* Quote */}
           {speaker.quote ? (
             <View style={styles.quoteCard}>
+              <View style={styles.quoteBorder} />
               <Text style={styles.quoteText}>"{speaker.quote}"</Text>
             </View>
           ) : null}
@@ -200,22 +201,34 @@ const styles = StyleSheet.create({
 
   // ── Quote ──
   quoteCard: {
-    backgroundColor: colors.tertiaryExtraDark,
+    backgroundColor: colors.white,
     borderRadius: radii.lg,
     padding: spacing.lg,
+    paddingLeft: spacing.lg + 6,
     marginTop: spacing.lg,
+    flexDirection: 'row',
+    overflow: 'hidden',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.12,
     shadowRadius: 12,
     elevation: 6,
   },
+  quoteBorder: {
+    position: 'absolute',
+    left: 0,
+    top: 0,
+    bottom: 0,
+    width: 5,
+    backgroundColor: colors.tertiaryExtraDark,
+  },
   quoteText: {
     fontFamily: fontFamily.regular,
     fontSize: fontSize.lg,
     fontStyle: 'italic',
-    color: colors.white,
+    color: sem.text,
     lineHeight: 24,
+    flex: 1,
   },
 
   // ── Loading ──

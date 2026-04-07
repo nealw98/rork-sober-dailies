@@ -19,6 +19,7 @@ import {
   Heart,
   NotebookPen,
   Settings,
+  Sparkles,
 } from 'lucide-react-native';
 import { useHamburgerMenu } from '@/hooks/useHamburgerMenu';
 import {
@@ -43,8 +44,9 @@ interface MenuItem {
 
 const MENU_ITEMS: MenuItem[] = [
   { label: 'Home', icon: Home, route: '/(main)/' },
-  { label: 'Speakers', icon: Mic, route: '/(main)/speakers' },
+  { label: 'Reflections', icon: Sparkles, route: '/(main)/daily-reflections' },
   { label: 'AI Sponsor', icon: MessageCircle, route: '/(main)/chat' },
+  { label: 'Speakers', icon: Mic, route: '/(main)/speakers' },
   { label: 'Literature', icon: BookOpen, route: '/(main)/literature' },
   { label: 'Prayers', icon: Heart, route: '/(main)/prayers' },
   { label: 'Notebook', icon: NotebookPen, route: null, disabled: true },
