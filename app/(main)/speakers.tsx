@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useCallback } from 'react';
+import { useFocusEffect } from 'expo-router';
 import { StyleSheet, View, Text, TouchableOpacity, FlatList, ActivityIndicator, TextInput, ImageBackground } from 'react-native';
 import { router, Stack } from 'expo-router';
 import { Search, X, Mic } from 'lucide-react-native';
@@ -59,8 +60,15 @@ export default function SpeakersScreen() {
   const [searchQuery, setSearchQuery] = useState('');
 
   const player = useGlobalAudioPlayer();
-  const { downloadedIds } = useDownloadedSpeakerIds();
+  const { downloadedIds, refresh: refreshDownloads } = useDownloadedSpeakerIds();
   useScreenTimeTracking('Speakers');
+
+  // Refresh downloaded status when returning to this screen
+  useFocusEffect(
+    useCallback(() => {
+      refreshDownloads();
+    }, [refreshDownloads])
+  );
 
   const filteredAndSorted = useMemo(() => {
     let results = speakers;
