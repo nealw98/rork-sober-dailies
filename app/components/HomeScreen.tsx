@@ -94,7 +94,7 @@ const HomeScreen = () => {
         {/* Hero header — gradient with watermark icon */}
         <LinearGradient
           colors={palette.gradients.header as [string, string, ...string[]]}
-          style={[styles.headerGradient, { paddingTop: insets.top + 32 }]}
+          style={[styles.headerGradient, { paddingTop: insets.top + 16 }]}
           start={{ x: 0.1, y: 0 }}
           end={{ x: 0.9, y: 1 }}
         >
@@ -311,7 +311,7 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
     gap: spacing.sm,
     paddingHorizontal: spacing.md,
-    marginBottom: spacing.md,
+    marginBottom: 0,
   },
   homeIconBtn: {
     width: 36,
