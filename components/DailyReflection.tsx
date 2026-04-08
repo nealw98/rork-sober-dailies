@@ -315,7 +315,7 @@ export default function DailyReflection({ fontSize = 18, lineHeight, jumpToDate 
     <View style={[styles.container, { backgroundColor: sem.background }]}>
       {/* ── Floating Pill Nav — sticky at top ── */}
       <View style={[styles.pillWrapper, { top: insets.top + 8 }]}>
-        <BlurView intensity={80} tint="light" style={styles.pillBar}>
+        <BlurView intensity={40} tint="extraLight" style={styles.pillBar}>
           {/* Frosted tint overlay */}
           <View style={styles.pillTintOverlay} />
           {/* Jewel edge catch light */}
@@ -329,13 +329,13 @@ export default function DailyReflection({ fontSize = 18, lineHeight, jumpToDate 
           {/* Center: Nav cluster */}
           <View style={styles.pillNavCluster}>
             <TouchableOpacity onPress={() => navigateDate('prev')} style={styles.pillNavArrow} activeOpacity={0.7}>
-              <ChevronLeft size={16} color="#2E7A7B" strokeWidth={1.5} />
+              <ChevronLeft size={16} color="#2E7A7B" strokeWidth={2} />
             </TouchableOpacity>
             <TouchableOpacity onPress={openDatePicker} activeOpacity={0.7} style={styles.pillDateBtn}>
               <Text style={styles.pillDateText}>{monthDay}</Text>
             </TouchableOpacity>
             <TouchableOpacity onPress={() => navigateDate('next')} style={styles.pillNavArrow} activeOpacity={0.7} disabled={isToday}>
-              <ChevronRight size={16} color="#2E7A7B" strokeWidth={1.5} style={{ opacity: isToday ? 0.2 : 1 }} />
+              <ChevronRight size={16} color="#2E7A7B" strokeWidth={2} style={{ opacity: isToday ? 0.2 : 1 }} />
             </TouchableOpacity>
           </View>
 
@@ -442,6 +442,11 @@ const styles = StyleSheet.create({
     left: spacing.lg,
     right: spacing.lg,
     zIndex: 100,
+    shadowColor: '#000',
+    shadowOpacity: 0.1,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 6,
   },
   pillBar: {
     flexDirection: 'row',
@@ -455,7 +460,7 @@ const styles = StyleSheet.create({
   pillTintOverlay: {
     ...StyleSheet.absoluteFillObject,
     borderRadius: 9999,
-    backgroundColor: 'rgba(220, 220, 220, 0.15)',
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
   },
   pillBorderOverlay: {
     ...StyleSheet.absoluteFillObject,
@@ -465,6 +470,13 @@ const styles = StyleSheet.create({
     borderLeftWidth: 0,
     borderRightWidth: 0,
     borderBottomWidth: 0,
+  },
+  pillShadow: {
+    shadowColor: '#000',
+    shadowOpacity: 0.1,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 6,
   },
   pillBtn: {
     width: 36,
@@ -535,17 +547,19 @@ const styles = StyleSheet.create({
   },
   decorativeQuoteMark: {
     position: 'absolute',
-    top: -24,
-    left: -10,
+    top: -20,
+    left: -6,
     fontSize: 80,
     fontFamily: fontFamily.serifBold,
-    color: 'rgba(109, 190, 191, 0.35)',
+    color: '#E5E2D9',
     lineHeight: 80,
+    zIndex: -1,
   },
   quoteText: {
     flex: 1,
     fontFamily: fontFamily.serif,
     fontStyle: 'italic',
+    zIndex: 1,
   },
   source: {
     textAlign: 'right',
