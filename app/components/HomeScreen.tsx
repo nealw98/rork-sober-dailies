@@ -94,7 +94,7 @@ const HomeScreen = () => {
         {/* Hero header — gradient with watermark icon */}
         <LinearGradient
           colors={palette.gradients.header as [string, string, ...string[]]}
-          style={[styles.headerGradient, { paddingTop: insets.top + 16 }]}
+          style={[styles.headerGradient, { paddingTop: insets.top + 32 }]}
           start={{ x: 0.1, y: 0 }}
           end={{ x: 0.9, y: 1 }}
         >
