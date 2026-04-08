@@ -1,13 +1,21 @@
 import { StyleSheet, View, Text, TouchableOpacity } from "react-native";
 import { router, Stack } from "expo-router";
-import { ChevronLeft } from "lucide-react-native";
-import { LinearGradient } from 'expo-linear-gradient';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { BookOpen } from "lucide-react-native";
 import ScreenContainer from "@/components/ScreenContainer";
-import { useTheme } from "@/hooks/useTheme";
-import { adjustFontWeight } from "@/constants/fonts";
 import { useReadingSession } from "@/hooks/useReadingSession";
 import { useScreenTimeTracking } from "@/hooks/useScreenTimeTracking";
+import TopLevelHeader from "@/components/navigation/TopLevelHeader";
+import {
+  colors,
+  semanticColors,
+  spacing,
+  radii,
+  fontFamily,
+  fontSize,
+  shadows,
+} from "@/constants/designTokens";
+
+const sem = semanticColors.light;
 
 interface LiteratureOption {
   id: string;
@@ -15,86 +23,51 @@ interface LiteratureOption {
   description: string;
   route: string;
   emoji: string;
+  color?: string;
 }
 
 const literatureOptions: LiteratureOption[] = [
-  { id: "bigbook", title: "Alcoholics Anonymous", description: "", route: "/bigbook", emoji: "📖" },
-  { id: "twelve-and-twelve", title: "Twelve Steps and Twelve Traditions", description: "", route: "/twelve-and-twelve", emoji: "📚" },
-  { id: "meeting-pocket", title: "AA Meeting Readings", description: "", route: "/meeting-pocket", emoji: "📄" },
+  { id: "bigbook", title: "Alcoholics Anonymous", description: "The Big Book — the foundation of the program", route: "/bigbook", emoji: "📖", color: colors.secondary },
+  { id: "twelve-and-twelve", title: "Twelve Steps and Twelve Traditions", description: "A deeper look at the principles of recovery", route: "/twelve-and-twelve", emoji: "📚", color: colors.tertiary },
+  { id: "meeting-pocket", title: "AA Meeting Readings", description: "Common readings used in meetings", route: "/meeting-pocket", emoji: "📄", color: undefined },
 ];
 
 export default function LiteratureScreen() {
-  const { palette } = useTheme();
   useReadingSession('literature');
   useScreenTimeTracking('Literature');
-  const insets = useSafeAreaInsets();
-
-  const handleOptionPress = (route: string, literatureId: string) => {
-    // Map literature ID to section name
-    const sectionMap: Record<string, string> = {
-      'bigbook': 'Big Book',
-      'twelve-and-twelve': '12 Steps & 12 Traditions',
-      'meeting-pocket': 'Meeting Guide'
-    };
-    
-    router.push(route as any);
-  };
 
   return (
-    <ScreenContainer style={[styles.container, { backgroundColor: palette.background }]} noPadding>
+    <ScreenContainer noPadding>
       <Stack.Screen options={{ headerShown: false }} />
-      
-      {/* Gradient header block */}
-      <LinearGradient
-        colors={palette.gradients.header as [string, string, ...string[]]}
-        style={[styles.headerBlock, { paddingTop: insets.top + 8 }]}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-      >
-        {/* Top row with back button */}
-        <View style={styles.headerTopRow}>
-          <TouchableOpacity 
-            onPress={() => router.back()} 
-            style={styles.backButton}
-            activeOpacity={0.7}
-          >
-            <ChevronLeft size={24} color={palette.headerText} />
-          </TouchableOpacity>
-          <View style={{ width: 60 }} />
+      <View style={[styles.container, { backgroundColor: sem.background }]}>
+        <TopLevelHeader title="" />
+
+        {/* Page intro */}
+        <View style={styles.pageIntro}>
+          <View style={styles.introLabelRow}>
+            <BookOpen size={14} color={sem.textMuted} />
+            <Text style={styles.introLabel}>LIBRARY</Text>
+          </View>
+          <Text style={styles.introTitle}>AA Literature</Text>
         </View>
-        <Text style={[styles.headerTitle, { color: palette.headerText }]}>AA Literature</Text>
-      </LinearGradient>
-      
-      {/* Off-white content area */}
-      <View style={styles.content}>
-        {literatureOptions.map((option) => {
-          // Get the right color for each literature option
-          const tileColors = option.id === 'bigbook' 
-            ? palette.literatureTiles.bigbook 
-            : option.id === 'twelve-and-twelve'
-              ? palette.literatureTiles.twelveAndTwelve
-              : palette.literatureTiles.meetingPocket;
-          
-          return (
+
+        {/* Literature cards */}
+        <View style={styles.content}>
+          {literatureOptions.map((option) => (
             <TouchableOpacity
               key={option.id}
-              onPress={() => handleOptionPress(option.route, option.id)}
-              activeOpacity={0.8}
-              testID={`literature-option-${option.id}`}
+              onPress={() => router.push(option.route as any)}
+              activeOpacity={0.85}
+              style={[styles.card, option.color ? { backgroundColor: option.color } : {}]}
             >
-              <LinearGradient
-                colors={tileColors as [string, string, ...string[]]}
-                style={styles.tile}
-                start={{ x: 0.5, y: 0 }}
-                end={{ x: 0.5, y: 1 }}
-              >
-                <Text style={styles.tileEmoji}>{option.emoji}</Text>
-                <Text style={[styles.tileTitle, { color: palette.heroTileText }]}>{option.title}</Text>
-                {option.description ? <Text style={[styles.tileDescription, { color: palette.heroTileText }]}>{option.description}</Text> : null}
-              </LinearGradient>
+              <Text style={styles.cardEmoji}>{option.emoji}</Text>
+              <View style={styles.cardText}>
+                <Text style={[styles.cardTitle, option.color ? { color: colors.white } : {}]}>{option.title}</Text>
+                <Text style={[styles.cardDescription, option.color ? { color: 'rgba(255,255,255,0.85)' } : {}]}>{option.description}</Text>
+              </View>
             </TouchableOpacity>
-          );
-        })}
+          ))}
+        </View>
       </View>
     </ScreenContainer>
   );
@@ -104,50 +77,64 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  headerBlock: {
-    paddingBottom: 16,
-    paddingHorizontal: 16,
+
+  // ── Page Intro ──
+  pageIntro: {
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.lg,
+    paddingBottom: spacing.xl,
   },
-  headerTopRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  backButton: {
+  introLabelRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 6,
-    paddingHorizontal: 10,
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    borderRadius: 16,
+    gap: spacing.sm,
+    marginBottom: spacing.sm,
   },
-  headerTitle: {
-    fontSize: 32,
-    fontWeight: adjustFontWeight('400'),
-    textAlign: 'center',
+  introLabel: {
+    fontFamily: fontFamily.semiBold,
+    fontSize: fontSize.xs,
+    color: sem.textMuted,
+    letterSpacing: 1.5,
   },
+  introTitle: {
+    fontFamily: fontFamily.bold,
+    fontSize: fontSize['4xl'],
+    color: sem.text,
+  },
+
+  // ── Content ──
   content: {
     flex: 1,
-    paddingHorizontal: 20,
-    paddingTop: 24,
-    gap: 24,
+    paddingHorizontal: spacing.lg,
+    gap: spacing.md,
   },
-  tile: {
-    borderRadius: 16,
-    padding: 20,
+
+  // ── Cards ──
+  card: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.white,
+    borderRadius: radii.lg,
+    padding: spacing.lg,
+    gap: spacing.md,
+    ...shadows.lg,
   },
-  tileEmoji: {
-    fontSize: 28,
-    marginBottom: 8,
+  cardEmoji: {
+    fontSize: 32,
   },
-  tileTitle: {
-    fontSize: 22,
-    fontWeight: adjustFontWeight('600'),
-    marginBottom: 4,
+  cardText: {
+    flex: 1,
   },
-  tileDescription: {
-    fontSize: 14,
-    lineHeight: 20,
+  cardTitle: {
+    fontFamily: fontFamily.semiBold,
+    fontSize: fontSize.xl,
+    color: sem.text,
+    marginBottom: spacing.xs,
+  },
+  cardDescription: {
+    fontFamily: fontFamily.regular,
+    fontSize: fontSize.sm,
+    color: sem.textSecondary,
+    lineHeight: 18,
   },
 });

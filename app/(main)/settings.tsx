@@ -3,7 +3,17 @@ import { View, Text, StyleSheet, TouchableOpacity, Platform, Linking, Share, Scr
 import { router, Stack } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { ChevronLeft, ChevronRight, X, Code2, Terminal, RefreshCw } from 'lucide-react-native';
+import { ChevronLeft, ChevronRight, X, Code2, Terminal, RefreshCw, Settings } from 'lucide-react-native';
+import TopLevelHeader from '@/components/navigation/TopLevelHeader';
+import {
+  colors,
+  semanticColors,
+  spacing,
+  radii,
+  fontFamily,
+  fontSize as fontSizeTokens,
+  shadows,
+} from '@/constants/designTokens';
 import Constants from 'expo-constants';
 import * as Clipboard from 'expo-clipboard';
 import * as SecureStore from 'expo-secure-store';
@@ -332,31 +342,20 @@ export default function SettingsScreen() {
   };
 
   return (
-    <View style={[styles.container, { backgroundColor: palette.background }]}>
-      <Stack.Screen options={{ headerShown: false, tabBarStyle: { display: 'none' } }} />
-      
-      {/* Gradient header block */}
-      <LinearGradient
-        colors={palette.gradients.header as [string, string, ...string[]]}
-        style={[styles.headerBlock, { paddingTop: insets.top + 8 }]}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-      >
-        <View style={styles.headerTopRow}>
-          <TouchableOpacity 
-            onPress={handleBack} 
-            style={styles.backButton}
-            activeOpacity={0.7}
-          >
-            <ChevronLeft size={24} color={palette.headerText} />
-          </TouchableOpacity>
-          <View style={{ width: 60 }} />
-        </View>
-        <Text style={[styles.headerTitle, { color: palette.headerText }]}>Settings</Text>
-      </LinearGradient>
-      
+    <View style={[styles.container, { backgroundColor: semanticColors.light.background }]}>
+      <Stack.Screen options={{ headerShown: false }} />
+      <TopLevelHeader title="" />
+
       {/* Content */}
-      <ScrollView style={[styles.content, { backgroundColor: palette.background }]} contentContainerStyle={{ paddingBottom: 24 }}>
+      <ScrollView style={styles.content} contentContainerStyle={{ paddingBottom: 24 }}>
+        {/* Page intro */}
+        <View style={styles.pageIntro}>
+          <View style={styles.introLabelRow}>
+            <Settings size={14} color={semanticColors.light.textMuted} />
+            <Text style={styles.introLabel}>PREFERENCES</Text>
+          </View>
+          <Text style={styles.introTitle}>Settings</Text>
+        </View>
         {/* Appearance Section */}
         <Text style={[styles.sectionTitle, { color: palette.text }]}>Text Size</Text>
         
@@ -485,7 +484,7 @@ export default function SettingsScreen() {
       </ScrollView>
 
       {/* Legal Links - above footer */}
-      <View style={[styles.legalLinksContainer, { backgroundColor: palette.background }]}>
+      <View style={[styles.legalLinksContainer, { backgroundColor: semanticColors.light.background }]}>
         <TouchableOpacity onPress={handlePrivacyPress}>
           <Text style={[styles.legalLink, { color: palette.muted }]}>Privacy</Text>
         </TouchableOpacity>
@@ -500,7 +499,7 @@ export default function SettingsScreen() {
       </View>
 
       {/* Footer with version */}
-      <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, 16), backgroundColor: palette.background }]}>
+      <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, 16), backgroundColor: semanticColors.light.background }]}>
         <TouchableOpacity 
           onPress={handleVersionTap}
           onLongPress={toggleLogs}
@@ -721,41 +720,39 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  headerBlock: {
-    paddingBottom: 16,
-    paddingHorizontal: 16,
-  },
-  headerTopRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  backButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 6,
-    paddingHorizontal: 10,
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    borderRadius: 16,
-  },
-  headerTitle: {
-    fontSize: 32,
-    fontWeight: adjustFontWeight('400'),
-    textAlign: 'center',
-  },
   content: {
     flex: 1,
-    paddingHorizontal: 16,
-    paddingTop: 16,
+    paddingHorizontal: spacing.lg,
+  },
+  pageIntro: {
+    paddingTop: spacing.lg,
+    paddingBottom: spacing.xl,
+  },
+  introLabelRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    marginBottom: spacing.sm,
+  },
+  introLabel: {
+    fontFamily: fontFamily.semiBold,
+    fontSize: fontSizeTokens.xs,
+    color: semanticColors.light.textMuted,
+    letterSpacing: 1.5,
+  },
+  introTitle: {
+    fontFamily: fontFamily.bold,
+    fontSize: fontSizeTokens['4xl'],
+    color: semanticColors.light.text,
   },
   sectionTitle: {
-    fontSize: 11,
-    fontWeight: adjustFontWeight('600'),
+    fontFamily: fontFamily.semiBold,
+    fontSize: fontSizeTokens.xs,
     textTransform: 'uppercase',
     letterSpacing: 1,
-    marginBottom: 8,
-    marginLeft: 4,
+    marginBottom: spacing.sm,
+    marginLeft: spacing.xs,
+    color: semanticColors.light.textMuted,
   },
   themeRow: {
     flexDirection: 'row',
