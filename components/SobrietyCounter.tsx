@@ -445,7 +445,7 @@ const SobrietyCounter = () => {
               {buildHeadline()}
             </Text>
             <Text style={styles.subtitleText}>
-              — {validDaysSober.toLocaleString()} days
+              {validDaysSober.toLocaleString()} days
             </Text>
           </View>
         </View>
@@ -591,7 +591,7 @@ const styles = StyleSheet.create({
   },
   subtitleText: {
     fontSize: 13,
-    fontWeight: '400',
+    fontWeight: '600',
     color: 'rgba(255,255,255,0.45)',
     letterSpacing: 0.5,
   },
