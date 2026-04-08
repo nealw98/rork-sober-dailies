@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback, useRef } from "react";
 import { StyleSheet, Text, View, ScrollView, TouchableOpacity, Modal, Platform, Share, AppState, AppStateStatus, ImageBackground, Dimensions, PanResponder } from "react-native";
-import { ChevronLeft, ChevronRight, Upload, Menu } from "lucide-react-native";
+import { ChevronLeft, ChevronRight, Upload } from "lucide-react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useFocusEffect, useRouter } from 'expo-router';
@@ -69,7 +69,7 @@ const generateCalendarDays = (date: Date) => {
   return days;
 };
 
-const HERO_HEIGHT = 380;
+const HERO_HEIGHT = 340;
 
 export default function DailyReflection({ fontSize = 18, lineHeight, jumpToDate = null, onJumpApplied }: DailyReflectionProps) {
   const effectiveLineHeight = lineHeight ?? fontSize * 1.6;
@@ -86,6 +86,8 @@ export default function DailyReflection({ fontSize = 18, lineHeight, jumpToDate 
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const lastShownDateRef = useRef<Date>(new Date());
   const { open: openMenu } = useHamburgerMenu();
+
+  const isToday = isSameDay(selectedDate, new Date());
 
   // Swipe left/right to navigate days
   const panResponder = useRef(
@@ -169,6 +171,7 @@ export default function DailyReflection({ fontSize = 18, lineHeight, jumpToDate 
   };
 
   const navigateDate = (direction: 'prev' | 'next') => {
+    if (direction === 'next' && isToday) return;
     setSelectedDate(prevDate => {
       const updatedDate = new Date(prevDate);
       if (direction === 'prev') {
@@ -238,8 +241,6 @@ export default function DailyReflection({ fontSize = 18, lineHeight, jumpToDate 
 
   // Format display values
   const monthDay = selectedDate.toLocaleDateString('en-US', { month: 'long', day: 'numeric' });
-  const monthName = selectedDate.toLocaleDateString('en-US', { month: 'long' }).toUpperCase();
-  const dayNumber = selectedDate.getDate();
 
   const renderCalendarView = () => {
     const weekDays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -249,11 +250,11 @@ export default function DailyReflection({ fontSize = 18, lineHeight, jumpToDate 
       <View style={[styles.calendarContainer, { backgroundColor: palette.background }]}>
         <View style={styles.calendarHeader}>
           <TouchableOpacity onPress={() => changeCalendarMonth('prev')} activeOpacity={0.7} hitSlop={{ top: 15, bottom: 15, left: 15, right: 15 }}>
-            <ChevronLeft size={24} color={colors.primary} />
+            <ChevronLeft size={24} color={colors.secondary} />
           </TouchableOpacity>
           <Text style={[styles.calendarMonthYear, { color: sem.text }]}>{monthYear}</Text>
           <TouchableOpacity onPress={() => changeCalendarMonth('next')} activeOpacity={0.7} hitSlop={{ top: 15, bottom: 15, left: 15, right: 15 }}>
-            <ChevronRight size={24} color={colors.primary} />
+            <ChevronRight size={24} color={colors.secondary} />
           </TouchableOpacity>
         </View>
         <View style={styles.weekDaysContainer}>
@@ -264,17 +265,17 @@ export default function DailyReflection({ fontSize = 18, lineHeight, jumpToDate 
         <View style={styles.daysContainer}>
           {calendarDays.map((item, index) => {
             const isSelected = selectedDate.getDate() === item.date.getDate() && selectedDate.getMonth() === item.date.getMonth() && selectedDate.getFullYear() === item.date.getFullYear();
-            const isToday = new Date().getDate() === item.date.getDate() && new Date().getMonth() === item.date.getMonth() && new Date().getFullYear() === item.date.getFullYear();
-            const isTodayAndSelected = isToday && isSelected;
+            const isCalToday = new Date().getDate() === item.date.getDate() && new Date().getMonth() === item.date.getMonth() && new Date().getFullYear() === item.date.getFullYear();
+            const isTodayAndSelected = isCalToday && isSelected;
             return (
               <TouchableOpacity
                 key={index}
                 style={[
                   styles.dayButton,
                   !item.currentMonth && styles.otherMonthDay,
-                  isSelected && !isToday && { backgroundColor: colors.primary, borderRadius: 20 },
-                  isToday && !isSelected && { borderWidth: 2, borderColor: colors.primary, borderRadius: 20 },
-                  isTodayAndSelected && { backgroundColor: colors.primary, borderRadius: 20, borderWidth: 2, borderColor: 'white' }
+                  isSelected && !isCalToday && { backgroundColor: colors.tertiary, borderRadius: 20 },
+                  isCalToday && !isSelected && { borderWidth: 2, borderColor: colors.secondary, borderRadius: 20 },
+                  isTodayAndSelected && { backgroundColor: colors.secondary, borderRadius: 20 }
                 ]}
                 onPress={() => selectCalendarDay(item.date)}
                 activeOpacity={0.7}
@@ -285,7 +286,7 @@ export default function DailyReflection({ fontSize = 18, lineHeight, jumpToDate 
                   { color: sem.text },
                   !item.currentMonth && { color: sem.textMuted, opacity: 0.4 },
                   (isSelected || isTodayAndSelected) && { color: 'white', fontWeight: '600' },
-                  isToday && !isSelected && { color: colors.primary, fontWeight: '600' }
+                  isCalToday && !isSelected && { color: colors.secondary, fontWeight: '600' }
                 ]}>
                   {item.day}
                 </Text>
@@ -299,7 +300,7 @@ export default function DailyReflection({ fontSize = 18, lineHeight, jumpToDate 
             onPress={() => { const today = new Date(); setSelectedDate(today); setCalendarDate(today); closeDatePicker(); }}
             activeOpacity={0.7}
           >
-            <Text style={[styles.todayButtonText, { color: colors.primary }]}>Today</Text>
+            <Text style={[styles.todayButtonText, { color: colors.secondary }]}>Today</Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={[styles.footerButton, { backgroundColor: sem.surface }]}
@@ -315,48 +316,55 @@ export default function DailyReflection({ fontSize = 18, lineHeight, jumpToDate 
 
   return (
     <View style={[styles.container, { backgroundColor: sem.background }]}>
+      {/* ── Fixed Header ── */}
+      <View style={[styles.headerBar, { paddingTop: insets.top + spacing.xs }]}>
+        {/* Left: Back */}
+        <TouchableOpacity onPress={() => router.back()} style={styles.headerBtn} activeOpacity={0.7}>
+          <ChevronLeft size={22} color="#2E7A7B" strokeWidth={1.5} />
+        </TouchableOpacity>
+
+        {/* Center: Nav cluster [ < ] April 8 [ > ] */}
+        <View style={styles.headerNavCluster}>
+          <TouchableOpacity onPress={() => navigateDate('prev')} style={styles.headerNavArrow} activeOpacity={0.7}>
+            <ChevronLeft size={18} color="#2E7A7B" strokeWidth={1.5} />
+          </TouchableOpacity>
+          <TouchableOpacity onPress={openDatePicker} activeOpacity={0.7} style={styles.headerDateBtn}>
+            <Text style={styles.headerDateText}>{monthDay}</Text>
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => navigateDate('next')} style={styles.headerNavArrow} activeOpacity={0.7} disabled={isToday}>
+            <ChevronRight size={18} color="#2E7A7B" strokeWidth={1.5} style={{ opacity: isToday ? 0.2 : 1 }} />
+          </TouchableOpacity>
+        </View>
+
+        {/* Right: Share */}
+        <TouchableOpacity onPress={shareReflection} style={styles.headerBtn} activeOpacity={0.7}>
+          <Upload size={20} color="#2E7A7B" strokeWidth={1.5} />
+        </TouchableOpacity>
+      </View>
+
       <ScrollView style={styles.scrollContainer} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false} {...panResponder.panHandlers}>
 
-        {/* ── Full-Bleed Hero Image ── */}
+        {/* ── Clean Hero Image — no overlays ── */}
         <ImageBackground
           source={require('@/assets/reflections_images/reflection_bg7.webp')}
-          style={[styles.heroImage, { paddingTop: insets.top }]}
+          style={styles.heroImage}
           resizeMode="cover"
         >
-          {/* Nav icons overlaid on image */}
-          <View style={styles.heroNavRow}>
-            <TouchableOpacity onPress={() => router.back()} style={styles.heroNavBtn} activeOpacity={0.7}>
-              <ChevronLeft size={22} color="rgba(255,255,255,0.7)" style={styles.heroNavIcon} />
-            </TouchableOpacity>
-            <View style={styles.heroNavActions}>
-              <TouchableOpacity onPress={shareReflection} activeOpacity={0.6} style={styles.heroNavBtn}>
-                <Upload size={20} color="rgba(255,255,255,0.7)" style={styles.heroNavIcon} />
-              </TouchableOpacity>
-              <TouchableOpacity onPress={openMenu} activeOpacity={0.6} style={styles.heroNavBtn}>
-                <Menu size={20} color="rgba(255,255,255,0.7)" style={styles.heroNavIcon} />
-              </TouchableOpacity>
-            </View>
-          </View>
-
-          {/* Bottom fade */}
           <LinearGradient
             colors={['transparent', 'transparent', sem.background]}
-            locations={[0, 0.5, 1]}
+            locations={[0, 0.6, 1]}
             style={styles.heroFade}
             start={{ x: 0.5, y: 0 }}
             end={{ x: 0.5, y: 1 }}
           />
         </ImageBackground>
 
-        {/* Date + Title on white background */}
-        <View style={styles.dateTitleBlock}>
-          <TouchableOpacity onPress={openDatePicker} activeOpacity={0.7}>
-            <Text style={styles.dateLabel}>{monthDay.toUpperCase()}</Text>
-          </TouchableOpacity>
+        {/* Title — first element below image */}
+        <View style={styles.titleBlock}>
           <Text style={styles.title}>{reflection.title}</Text>
         </View>
 
-        {/* ── Content Card ── */}
+        {/* ── Content ── */}
         <View style={styles.contentCard}>
           <View style={[styles.divider, { backgroundColor: sem.border }]} />
 
@@ -423,33 +431,50 @@ const styles = StyleSheet.create({
     paddingBottom: spacing.xl,
   },
 
-  // ── Full-Bleed Hero Image ──
-  heroImage: {
-    height: HERO_HEIGHT,
-  },
-  heroNavRow: {
+  // ── Fixed Header ──
+  headerBar: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: spacing.md,
-    paddingTop: spacing.sm,
-    zIndex: 10,
+    paddingBottom: spacing.sm,
+    backgroundColor: semanticColors.light.background,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: semanticColors.light.border,
   },
-  heroNavBtn: {
+  headerBtn: {
     width: 40,
     height: 40,
     borderRadius: 20,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  heroNavActions: {
+  headerNavCluster: {
     flexDirection: 'row',
-    gap: spacing.xs,
+    alignItems: 'center',
+    gap: spacing.sm,
   },
-  heroNavIcon: {
-    textShadowColor: 'rgba(0, 0, 0, 0.5)',
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 4,
+  headerNavArrow: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  headerDateBtn: {
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xs,
+  },
+  headerDateText: {
+    fontFamily: fontFamily.serifBold,
+    fontSize: fontSizeTokens.lg,
+    color: '#2E7A7B',
+  },
+
+  // ── Clean Hero Image ──
+  heroImage: {
+    height: HERO_HEIGHT,
+    justifyContent: 'flex-end',
   },
   heroFade: {
     position: 'absolute',
@@ -459,24 +484,17 @@ const styles = StyleSheet.create({
     height: HERO_HEIGHT * 0.5,
   },
 
-  // ── Date + Title ──
-  dateTitleBlock: {
+  // ── Title ──
+  titleBlock: {
     paddingHorizontal: spacing.lg,
     paddingTop: spacing.md,
     paddingBottom: spacing.sm,
-  },
-  dateLabel: {
-    fontFamily: fontFamily.semiBold,
-    fontSize: 12,
-    letterSpacing: 2,
-    color: 'rgba(46, 122, 123, 0.6)', // secondaryExtraDark at 60%
-    marginBottom: spacing.sm,
   },
   title: {
     fontFamily: fontFamily.serifBold,
     fontSize: 28,
     letterSpacing: -0.5,
-    color: '#2E7A7B', // secondaryExtraDark
+    color: '#2E7A7B',
   },
 
   // ── Content ──
@@ -494,7 +512,7 @@ const styles = StyleSheet.create({
     left: -4,
     fontSize: 80,
     fontFamily: fontFamily.serifBold,
-    color: 'rgba(168, 222, 222, 0.2)', // secondaryLight at 20%
+    color: 'rgba(168, 222, 222, 0.2)',
     lineHeight: 80,
   },
   quoteText: {
@@ -523,7 +541,7 @@ const styles = StyleSheet.create({
     fontFamily: fontFamily.serifBold,
     fontSize: fontSizeTokens.lg,
     marginBottom: spacing.sm,
-    color: '#2E7A7B', // secondaryExtraDark
+    color: '#2E7A7B',
   },
   thought: {
     fontStyle: 'italic',
