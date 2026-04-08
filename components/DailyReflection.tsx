@@ -91,7 +91,7 @@ export default function DailyReflection({ fontSize = 18, lineHeight, jumpToDate 
   const panResponder = useRef(
     PanResponder.create({
       onMoveShouldSetPanResponder: (_, gestureState) => {
-        return Math.abs(gestureState.dx) > 30 && Math.abs(gestureState.dy) < 50;
+        return Math.abs(gestureState.dx) > 50 && Math.abs(gestureState.dy) < 20 && Math.abs(gestureState.dx) > Math.abs(gestureState.dy) * 3;
       },
       onPanResponderRelease: (_, gestureState) => {
         if (gestureState.dx > 50) {
@@ -334,7 +334,7 @@ export default function DailyReflection({ fontSize = 18, lineHeight, jumpToDate 
 
         {/* ── Hero Image ── */}
         <ImageBackground
-          source={require('@/assets/reflections_images/reflection_bg2.webp')}
+          source={require('@/assets/reflections_images/reflection_bg7.webp')}
           style={styles.heroImage}
           resizeMode="cover"
         >
