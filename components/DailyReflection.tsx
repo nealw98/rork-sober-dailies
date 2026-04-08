@@ -6,6 +6,7 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useHamburgerMenu } from '@/hooks/useHamburgerMenu';
 import { LinearGradient } from 'expo-linear-gradient';
+import { BlurView } from 'expo-blur';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import Colors from "@/constants/colors";
@@ -31,14 +32,12 @@ interface DailyReflectionProps {
   onJumpApplied?: () => void;
 }
 
-// Helper to check if two dates are the same day
 const isSameDay = (date1: Date, date2: Date): boolean => {
   return date1.getFullYear() === date2.getFullYear() &&
          date1.getMonth() === date2.getMonth() &&
          date1.getDate() === date2.getDate();
 };
 
-// Helper to generate calendar grid
 const generateCalendarDays = (date: Date) => {
   const year = date.getFullYear();
   const month = date.getMonth();
@@ -69,7 +68,7 @@ const generateCalendarDays = (date: Date) => {
   return days;
 };
 
-const HERO_HEIGHT = 340;
+const HERO_HEIGHT = 400;
 
 export default function DailyReflection({ fontSize = 18, lineHeight, jumpToDate = null, onJumpApplied }: DailyReflectionProps) {
   const effectiveLineHeight = lineHeight ?? fontSize * 1.6;
@@ -89,7 +88,6 @@ export default function DailyReflection({ fontSize = 18, lineHeight, jumpToDate 
 
   const isToday = isSameDay(selectedDate, new Date());
 
-  // Swipe left/right to navigate days
   const panResponder = useRef(
     PanResponder.create({
       onMoveShouldSetPanResponder: (_, gestureState) => {
@@ -239,7 +237,6 @@ export default function DailyReflection({ fontSize = 18, lineHeight, jumpToDate 
     );
   }
 
-  // Format display values
   const monthDay = selectedDate.toLocaleDateString('en-US', { month: 'long', day: 'numeric' });
 
   const renderCalendarView = () => {
@@ -316,50 +313,57 @@ export default function DailyReflection({ fontSize = 18, lineHeight, jumpToDate 
 
   return (
     <View style={[styles.container, { backgroundColor: sem.background }]}>
-      {/* ── Fixed Header ── */}
-      <View style={[styles.headerBar, { paddingTop: insets.top + spacing.xs }]}>
-        {/* Left: Back */}
-        <TouchableOpacity onPress={() => router.back()} style={styles.headerBtn} activeOpacity={0.7}>
-          <ChevronLeft size={22} color="#2E7A7B" strokeWidth={1.5} />
-        </TouchableOpacity>
+      {/* ── Floating Pill Nav — sticky at top ── */}
+      <View style={[styles.pillWrapper, { top: insets.top + 8 }]}>
+        <BlurView intensity={60} tint="dark" style={styles.pillBar}>
+          {/* Jewel edge border overlay */}
+          <View style={styles.pillBorderOverlay} />
 
-        {/* Center: Nav cluster [ < ] April 8 [ > ] */}
-        <View style={styles.headerNavCluster}>
-          <TouchableOpacity onPress={() => navigateDate('prev')} style={styles.headerNavArrow} activeOpacity={0.7}>
-            <ChevronLeft size={18} color="#2E7A7B" strokeWidth={1.5} />
+          {/* Left: Back */}
+          <TouchableOpacity onPress={() => router.back()} style={styles.pillBtn} activeOpacity={0.7}>
+            <ChevronLeft size={20} color="rgba(255,255,255,0.9)" strokeWidth={1.5} />
           </TouchableOpacity>
-          <TouchableOpacity onPress={openDatePicker} activeOpacity={0.7} style={styles.headerDateBtn}>
-            <Text style={styles.headerDateText}>{monthDay}</Text>
-          </TouchableOpacity>
-          <TouchableOpacity onPress={() => navigateDate('next')} style={styles.headerNavArrow} activeOpacity={0.7} disabled={isToday}>
-            <ChevronRight size={18} color="#2E7A7B" strokeWidth={1.5} style={{ opacity: isToday ? 0.2 : 1 }} />
-          </TouchableOpacity>
-        </View>
 
-        {/* Right: Share */}
-        <TouchableOpacity onPress={shareReflection} style={styles.headerBtn} activeOpacity={0.7}>
-          <Upload size={20} color="#2E7A7B" strokeWidth={1.5} />
-        </TouchableOpacity>
+          {/* Center: Nav cluster */}
+          <View style={styles.pillNavCluster}>
+            <TouchableOpacity onPress={() => navigateDate('prev')} style={styles.pillNavArrow} activeOpacity={0.7}>
+              <ChevronLeft size={16} color="rgba(255,255,255,0.9)" strokeWidth={1.5} />
+            </TouchableOpacity>
+            <TouchableOpacity onPress={openDatePicker} activeOpacity={0.7} style={styles.pillDateBtn}>
+              <Text style={styles.pillDateText}>{monthDay}</Text>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={() => navigateDate('next')} style={styles.pillNavArrow} activeOpacity={0.7} disabled={isToday}>
+              <ChevronRight size={16} color="rgba(255,255,255,0.9)" strokeWidth={1.5} style={{ opacity: isToday ? 0.2 : 1 }} />
+            </TouchableOpacity>
+          </View>
+
+          {/* Right: Share */}
+          <TouchableOpacity onPress={shareReflection} style={styles.pillBtn} activeOpacity={0.7}>
+            <Upload size={18} color="rgba(255,255,255,0.9)" strokeWidth={1.5} />
+          </TouchableOpacity>
+        </BlurView>
       </View>
 
       <ScrollView style={styles.scrollContainer} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false} {...panResponder.panHandlers}>
 
-        {/* ── Clean Hero Image — no overlays ── */}
-        <ImageBackground
-          source={require('@/assets/reflections_images/reflection_bg7.webp')}
-          style={styles.heroImage}
-          resizeMode="cover"
-        >
-          <LinearGradient
-            colors={['transparent', 'transparent', sem.background]}
-            locations={[0, 0.6, 1]}
-            style={styles.heroFade}
-            start={{ x: 0.5, y: 0 }}
-            end={{ x: 0.5, y: 1 }}
-          />
-        </ImageBackground>
+        {/* ── Full-Bleed Hero Image ── */}
+        <View style={styles.heroContainer}>
+          <ImageBackground
+            source={require('@/assets/reflections_images/reflection_bg7.webp')}
+            style={styles.heroImage}
+            resizeMode="cover"
+          >
+            <LinearGradient
+              colors={['transparent', 'transparent', sem.background]}
+              locations={[0, 0.6, 1]}
+              style={styles.heroFade}
+              start={{ x: 0.5, y: 0 }}
+              end={{ x: 0.5, y: 1 }}
+            />
+          </ImageBackground>
+        </View>
 
-        {/* Title — first element below image */}
+        {/* Title — first element on white background */}
         <View style={styles.titleBlock}>
           <Text style={styles.title}>{reflection.title}</Text>
         </View>
@@ -413,7 +417,6 @@ export default function DailyReflection({ fontSize = 18, lineHeight, jumpToDate 
           </View>
         </TouchableOpacity>
       </Modal>
-
     </View>
   );
 }
@@ -431,50 +434,64 @@ const styles = StyleSheet.create({
     paddingBottom: spacing.xl,
   },
 
-  // ── Fixed Header ──
-  headerBar: {
+  // ── Floating Pill Nav ──
+  pillWrapper: {
+    position: 'absolute',
+    left: spacing.lg,
+    right: spacing.lg,
+    zIndex: 100,
+  },
+  pillBar: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: spacing.md,
-    paddingBottom: spacing.sm,
-    backgroundColor: semanticColors.light.background,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: semanticColors.light.border,
+    borderRadius: 9999,
+    paddingVertical: spacing.xs + 2,
+    paddingHorizontal: spacing.sm + 2,
+    overflow: 'hidden',
   },
-  headerBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+  pillBorderOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    borderRadius: 9999,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  pillBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  headerNavCluster: {
+  pillNavCluster: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.sm,
+    gap: spacing.xs,
   },
-  headerNavArrow: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+  pillNavArrow: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  headerDateBtn: {
+  pillDateBtn: {
     paddingHorizontal: spacing.sm,
     paddingVertical: spacing.xs,
   },
-  headerDateText: {
+  pillDateText: {
     fontFamily: fontFamily.serifBold,
-    fontSize: fontSizeTokens.lg,
-    color: '#2E7A7B',
+    fontSize: fontSizeTokens.base,
+    color: 'rgba(255, 255, 255, 0.95)',
   },
 
-  // ── Clean Hero Image ──
-  heroImage: {
+  // ── Full-Bleed Hero ──
+  heroContainer: {
     height: HERO_HEIGHT,
-    justifyContent: 'flex-end',
+  },
+  heroImage: {
+    ...StyleSheet.absoluteFillObject,
+    height: HERO_HEIGHT,
   },
   heroFade: {
     position: 'absolute',
