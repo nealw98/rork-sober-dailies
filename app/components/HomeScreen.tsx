@@ -11,10 +11,9 @@ import {
   AppStateStatus,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { BlurView } from 'expo-blur';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import { MessageCircle, Mic, BookOpen, Settings, Menu } from 'lucide-react-native';
+import { MessageCircle, Mic, BookOpen, Settings, ChevronRight, Sun, Heart, Moon, PenLine, CheckCircle, Library } from 'lucide-react-native';
 import { useHamburgerMenu } from '@/hooks/useHamburgerMenu';
 
 import SobrietyCounter from '@/components/SobrietyCounter';
@@ -146,8 +145,9 @@ const HomeScreen = () => {
                     ? `"${todaysReflection.homeQuote}"`
                     : 'Loading...'}
                 </Text>
-                <View style={styles.pillButton}>
-                  <Text style={styles.pillButtonText}>Begin Reflection</Text>
+                <View style={styles.cardFooter}>
+                  <Text style={styles.cardFooterText}>Read More</Text>
+                  <ChevronRight size={16} color="rgba(255,255,255,0.7)" strokeWidth={1.5} />
                 </View>
               </View>
             </ImageBackground>
@@ -165,12 +165,12 @@ const HomeScreen = () => {
               AI COMPANION
             </Text>
           </View>
-          <Text style={[styles.cardTitle, { color: sem.text }]}>AI Sponsor</Text>
-          <Text style={[styles.cardSubtitle, { color: sem.textSecondary }]}>
+          <Text style={[styles.cardTitle, { color: colors.secondaryExtraDark }]}>AI Sponsor</Text>
+          <Text style={[styles.cardSubtitle, { color: colors.secondaryDark }]}>
             Always here to listen, guide, and support your step work in real-time.
           </Text>
-          <View style={styles.pillButton}>
-            <Text style={styles.pillButtonText}>Talk Now</Text>
+          <View style={styles.cardFooter}>
+            <ChevronRight size={18} color={colors.secondaryExtraDark} strokeWidth={1.5} />
           </View>
         </TouchableOpacity>
 
@@ -186,52 +186,39 @@ const HomeScreen = () => {
               FEATURED
             </Text>
           </View>
-          <Text style={[styles.cardTitle, { color: sem.text }]}>AA Speakers</Text>
-          <Text style={[styles.cardSubtitle, { color: sem.textSecondary }]}>
+          <Text style={[styles.cardTitle, { color: colors.tertiaryExtraDark }]}>AA Speakers</Text>
+          <Text style={[styles.cardSubtitle, { color: colors.tertiaryDark }]}>
             Listen to inspiring stories of recovery from fellow members.
           </Text>
-          <View style={styles.pillButton}>
-            <Text style={styles.pillButtonText}>Browse Speakers</Text>
+          <View style={styles.cardFooter}>
+            <ChevronRight size={18} color={colors.tertiaryExtraDark} strokeWidth={1.5} />
           </View>
         </TouchableOpacity>
 
-        {/* ── Literature Card ── */}
-        <TouchableOpacity
-          onPress={() => router.push('/(main)/literature')}
-          activeOpacity={0.85}
-          style={[styles.card, styles.literatureCard, { backgroundColor: cards.literature }]}
-        >
-          <View style={styles.literatureContent}>
-            <Text style={[styles.cardTitle, { color: sem.text }]}>Literature</Text>
-            <Text style={[styles.cardSubtitle, { color: sem.textSecondary }]}>
-              Access the Big Book & 12x12
-            </Text>
-          </View>
-          <View style={styles.literatureIcon}>
-            <BookOpen size={28} color={colors.primary} />
-          </View>
-        </TouchableOpacity>
-
-        {/* ── Daily Rituals Section ── */}
-        <Text style={[styles.sectionLabel, { color: sem.textMuted }]}>DAILY RITUALS</Text>
+        {/* ── Daily Habits Section ── */}
+        <Text style={[styles.sectionLabel, { color: sem.textMuted }]}>DAILY HABITS</Text>
 
         {/* Row 1: Morning Prayer + Gratitude */}
         <View style={styles.ritualRow}>
           <TouchableOpacity
             onPress={() => router.push('/(main)/prayers?prayer=morning')}
             activeOpacity={0.85}
-            style={[styles.ritualCard, { backgroundColor: cards.ritual, borderColor: sem.border }]}
+            style={[styles.ritualCard, { backgroundColor: cards.ritual, borderColor: colors.secondaryLight }]}
           >
-            <Text style={styles.ritualEmoji}>🙏</Text>
+            <View style={styles.ritualIcon}>
+              <Sun size={24} color={colors.secondary} strokeWidth={1.5} />
+            </View>
             <Text style={[styles.ritualTitle, { color: sem.text }]}>Morning Prayer</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
             onPress={() => router.push('/(main)/gratitude')}
             activeOpacity={0.85}
-            style={[styles.ritualCard, { backgroundColor: cards.ritual, borderColor: sem.border }]}
+            style={[styles.ritualCard, { backgroundColor: cards.ritual, borderColor: colors.secondaryLight }]}
           >
-            <Text style={styles.ritualEmoji}>💚</Text>
+            <View style={styles.ritualIcon}>
+              <Heart size={24} color={colors.secondary} strokeWidth={1.5} />
+            </View>
             <Text style={[styles.ritualTitle, { color: sem.text }]}>Gratitude List</Text>
           </TouchableOpacity>
         </View>
@@ -241,18 +228,22 @@ const HomeScreen = () => {
           <TouchableOpacity
             onPress={() => router.push('/(main)/prayers?prayer=evening')}
             activeOpacity={0.85}
-            style={[styles.ritualCard, { backgroundColor: cards.ritual, borderColor: sem.border }]}
+            style={[styles.ritualCard, { backgroundColor: cards.ritual, borderColor: colors.secondaryLight }]}
           >
-            <Text style={styles.ritualEmoji}>🌙</Text>
+            <View style={styles.ritualIcon}>
+              <Moon size={24} color={colors.secondary} strokeWidth={1.5} />
+            </View>
             <Text style={[styles.ritualTitle, { color: sem.text }]}>Evening Prayer</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
             onPress={() => router.push('/(main)/evening-review')}
             activeOpacity={0.85}
-            style={[styles.ritualCard, { backgroundColor: cards.ritual, borderColor: sem.border }]}
+            style={[styles.ritualCard, { backgroundColor: cards.ritual, borderColor: colors.secondaryLight }]}
           >
-            <Text style={styles.ritualEmoji}>📝</Text>
+            <View style={styles.ritualIcon}>
+              <PenLine size={24} color={colors.secondary} strokeWidth={1.5} />
+            </View>
             <Text style={[styles.ritualTitle, { color: sem.text }]}>Nightly Review</Text>
           </TouchableOpacity>
         </View>
@@ -262,20 +253,39 @@ const HomeScreen = () => {
           <TouchableOpacity
             onPress={() => router.push('/(main)/prayers')}
             activeOpacity={0.85}
-            style={[styles.ritualCard, { backgroundColor: cards.ritual, borderColor: sem.border }]}
+            style={[styles.ritualCard, { backgroundColor: cards.ritual, borderColor: colors.secondaryLight }]}
           >
-            <Text style={styles.ritualEmoji}>📖</Text>
+            <View style={styles.ritualIcon}>
+              <BookOpen size={24} color={colors.secondary} strokeWidth={1.5} />
+            </View>
             <Text style={[styles.ritualTitle, { color: sem.text }]}>Prayers</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
             onPress={() => router.push('/(main)/inventory')}
             activeOpacity={0.85}
-            style={[styles.ritualCard, { backgroundColor: cards.ritual, borderColor: sem.border }]}
+            style={[styles.ritualCard, { backgroundColor: cards.ritual, borderColor: colors.secondaryLight }]}
           >
-            <Text style={styles.ritualEmoji}>✅</Text>
+            <View style={styles.ritualIcon}>
+              <CheckCircle size={24} color={colors.secondary} strokeWidth={1.5} />
+            </View>
             <Text style={[styles.ritualTitle, { color: sem.text }]}>Spot Check</Text>
           </TouchableOpacity>
+        </View>
+
+        {/* Row 4: Literature */}
+        <View style={styles.ritualRow}>
+          <TouchableOpacity
+            onPress={() => router.push('/(main)/literature')}
+            activeOpacity={0.85}
+            style={[styles.ritualCard, { backgroundColor: cards.ritual, borderColor: colors.secondaryLight }]}
+          >
+            <View style={styles.ritualIcon}>
+              <Library size={24} color={colors.secondary} strokeWidth={1.5} />
+            </View>
+            <Text style={[styles.ritualTitle, { color: sem.text }]}>Literature</Text>
+          </TouchableOpacity>
+          <View style={{ flex: 1 }} />
         </View>
 
           {/* Bottom padding */}
@@ -331,8 +341,6 @@ const styles = StyleSheet.create({
   },
   sobrietyCounterContainer: {
     alignItems: 'center',
-    paddingTop: spacing.sm,
-    paddingBottom: spacing.sm,
     paddingHorizontal: spacing.lg,
   },
 
@@ -356,7 +364,7 @@ const styles = StyleSheet.create({
     borderRadius: radii.lg,
     overflow: 'hidden',
     marginBottom: spacing.md,
-    ...shadows.lg,
+    ...shadows.softUI,
   },
   reflectionImage: {
     borderRadius: radii.lg,
@@ -367,7 +375,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'transparent',
   },
   reflectionTitle: {
-    fontFamily: fontFamily.bold,
+    fontFamily: fontFamily.serifBold,
     fontSize: fontSize['3xl'],
     color: colors.white,
     marginBottom: spacing.sm,
@@ -392,7 +400,7 @@ const styles = StyleSheet.create({
     borderRadius: radii.lg,
     padding: spacing.lg,
     marginBottom: spacing.md,
-    ...shadows.lg,
+    ...shadows.softUI,
   },
 
   // ── Category Label ──
@@ -422,7 +430,7 @@ const styles = StyleSheet.create({
 
   // ── Card Typography ──
   cardTitle: {
-    fontFamily: fontFamily.bold,
+    fontFamily: fontFamily.serifBold,
     fontSize: fontSize['3xl'],
     marginBottom: spacing.xs,
   },
@@ -433,21 +441,18 @@ const styles = StyleSheet.create({
     marginBottom: spacing.md,
   },
 
-  // ── Pill Button ──
-  pillButton: {
-    alignSelf: 'flex-start',
+  // ── Card Footer ──
+  cardFooter: {
     flexDirection: 'row',
+    justifyContent: 'flex-end',
     alignItems: 'center',
-    backgroundColor: colors.white,
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.sm + 2,
-    borderRadius: radii.full,
+    marginTop: spacing.sm,
     gap: spacing.xs,
   },
-  pillButtonText: {
-    fontFamily: fontFamily.semiBold,
-    fontSize: fontSize.base,
-    color: '#1A1A2E',
+  cardFooterText: {
+    fontFamily: fontFamily.medium,
+    fontSize: fontSize.sm,
+    color: 'rgba(255,255,255,0.7)',
   },
 
   // ── Featured Speaker ──
@@ -481,22 +486,6 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
 
-  // ── Literature Card ──
-  literatureCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  literatureContent: {
-    flex: 1,
-  },
-  literatureIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: radii.md,
-    backgroundColor: 'rgba(92, 141, 255, 0.1)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
 
   // ── Section Label ──
   sectionLabel: {
@@ -516,13 +505,12 @@ const styles = StyleSheet.create({
   },
   ritualCard: {
     flex: 1,
-    borderRadius: radii.md,
+    borderRadius: radii.lg,
     padding: spacing.md,
     borderWidth: 1,
-    ...shadows.lg,
+    ...shadows.softUI,
   },
-  ritualEmoji: {
-    fontSize: 24,
+  ritualIcon: {
     marginBottom: spacing.sm,
   },
   ritualTitle: {

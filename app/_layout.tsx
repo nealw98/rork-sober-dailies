@@ -25,6 +25,10 @@ import {
   Manrope_700Bold,
   Manrope_800ExtraBold,
 } from '@expo-google-fonts/manrope';
+import {
+  Lora_400Regular,
+  Lora_700Bold,
+} from '@expo-google-fonts/lora';
 
 import { GratitudeProvider } from "@/hooks/use-gratitude-store";
 import { OnboardingProvider, useOnboarding } from "@/hooks/useOnboardingStore";
@@ -89,6 +93,8 @@ function RootLayoutNav() {
     BarlowCondensed_700Bold,
     Manrope_700Bold,
     Manrope_800ExtraBold,
+    Lora_400Regular,
+    Lora_700Bold,
   });
 
   // Enable screen tracking for Expo Router

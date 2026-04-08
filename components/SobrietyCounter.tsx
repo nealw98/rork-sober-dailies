@@ -4,6 +4,7 @@ import { Calendar, X, Edit3 } from 'lucide-react-native';
 import { useSobriety } from '@/hooks/useSobrietyStore';
 import { formatStoredDateForDisplay, parseLocalDate, formatLocalDate } from '@/lib/dateUtils';
 import Colors from '@/constants/colors';
+import { fontFamily as designFontFamily } from '@/constants/designTokens';
 import { useTheme } from '@/hooks/useTheme';
 
 const SobrietyCounter = () => {
@@ -575,15 +576,15 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   sinceText: {
-    fontSize: 11,
+    fontSize: 9,
     fontWeight: '600',
     color: 'rgba(255,255,255,0.6)',
     textTransform: 'uppercase',
-    letterSpacing: 1.5,
+    letterSpacing: 2.0,
   },
   headlineText: {
     fontSize: 28,
-    fontFamily: 'Inter_700Bold',
+    fontFamily: designFontFamily.serifBold,
     color: '#FFFFFF',
     letterSpacing: -0.5,
     marginBottom: 8,

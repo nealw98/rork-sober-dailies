@@ -15,6 +15,7 @@ export const colors = {
   secondary: '#6DBEBF',    // Calming teal — supporting elements
   secondaryLight: '#A8DEDE',
   secondaryDark: '#4A9E9F',
+  secondaryExtraDark: '#2E7A7B',
 
   tertiary: '#A386D5',     // Soft lavender — accents, highlights
   tertiaryLight: '#C9B8E8',
@@ -89,7 +90,7 @@ export const spacing = {
 export const radii = {
   sm: 8,
   md: 12,
-  lg: 16,
+  lg: 20,
   xl: 24,
   full: 9999,
 } as const;
@@ -101,6 +102,8 @@ export const fontFamily = {
   medium: 'Inter_500Medium',
   semiBold: 'Inter_600SemiBold',
   bold: 'Inter_700Bold',
+  serif: 'Lora_400Regular',
+  serifBold: 'Lora_700Bold',
 } as const;
 
 export const fontSize = {
@@ -139,6 +142,13 @@ export const shadows = {
     shadowOpacity: 0.12,
     shadowRadius: 12,
     elevation: 6,
+  },
+  softUI: {
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.12,
+    shadowRadius: 24,
+    elevation: 8,
   },
 } as const;
 
