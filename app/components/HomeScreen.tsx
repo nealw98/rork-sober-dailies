@@ -131,7 +131,7 @@ const HomeScreen = () => {
             style={styles.reflectionTouchable}
           >
             <ImageBackground
-              source={require('@/assets/reflections_images/reflection_bg4.webp')}
+              source={require('@/assets/reflections_images/reflection_bg7.webp')}
               style={styles.reflectionCard}
               imageStyle={styles.reflectionImage}
               resizeMode="cover"
