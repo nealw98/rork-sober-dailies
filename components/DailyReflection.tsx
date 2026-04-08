@@ -315,7 +315,7 @@ export default function DailyReflection({ fontSize = 18, lineHeight, jumpToDate 
     <View style={[styles.container, { backgroundColor: sem.background }]}>
       {/* ── Floating Pill Nav — sticky at top ── */}
       <View style={[styles.pillWrapper, { top: insets.top + 8 }]}>
-        <BlurView intensity={40} tint="extraLight" style={styles.pillBar}>
+        <BlurView intensity={50} tint="dark" style={styles.pillBar}>
           {/* Frosted tint overlay */}
           <View style={styles.pillTintOverlay} />
           {/* Jewel edge catch light */}
@@ -323,25 +323,25 @@ export default function DailyReflection({ fontSize = 18, lineHeight, jumpToDate 
 
           {/* Left: Back */}
           <TouchableOpacity onPress={() => router.back()} style={styles.pillBtn} activeOpacity={0.7}>
-            <ChevronLeft size={20} color="#2E7A7B" strokeWidth={1.5} />
+            <ChevronLeft size={20} color="rgba(255,255,255,0.95)" strokeWidth={1.5} />
           </TouchableOpacity>
 
           {/* Center: Nav cluster */}
           <View style={styles.pillNavCluster}>
             <TouchableOpacity onPress={() => navigateDate('prev')} style={styles.pillNavArrow} activeOpacity={0.7}>
-              <ChevronLeft size={16} color="#2E7A7B" strokeWidth={2} />
+              <ChevronLeft size={16} color="rgba(255,255,255,0.95)" strokeWidth={2} />
             </TouchableOpacity>
             <TouchableOpacity onPress={openDatePicker} activeOpacity={0.7} style={styles.pillDateBtn}>
               <Text style={styles.pillDateText}>{monthDay}</Text>
             </TouchableOpacity>
             <TouchableOpacity onPress={() => navigateDate('next')} style={styles.pillNavArrow} activeOpacity={0.7} disabled={isToday}>
-              <ChevronRight size={16} color="#2E7A7B" strokeWidth={2} style={{ opacity: isToday ? 0.2 : 1 }} />
+              <ChevronRight size={16} color="rgba(255,255,255,0.95)" strokeWidth={2} style={{ opacity: isToday ? 0.2 : 1 }} />
             </TouchableOpacity>
           </View>
 
           {/* Right: Share */}
           <TouchableOpacity onPress={shareReflection} style={styles.pillBtn} activeOpacity={0.7}>
-            <Upload size={18} color="#2E7A7B" strokeWidth={1.5} />
+            <Upload size={18} color="rgba(255,255,255,0.95)" strokeWidth={1.5} />
           </TouchableOpacity>
         </BlurView>
       </View>
@@ -376,7 +376,6 @@ export default function DailyReflection({ fontSize = 18, lineHeight, jumpToDate 
 
           {/* Quote */}
           <View style={styles.quoteBlock}>
-            <Text style={styles.decorativeQuoteMark}>{'\u201C'}</Text>
             <Text style={[styles.quoteText, { fontSize, lineHeight: effectiveLineHeight, color: sem.textSecondary }]}>
               {reflection.quote}
             </Text>
@@ -460,7 +459,7 @@ const styles = StyleSheet.create({
   pillTintOverlay: {
     ...StyleSheet.absoluteFillObject,
     borderRadius: 9999,
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    backgroundColor: 'rgba(0, 0, 0, 0.15)',
   },
   pillBorderOverlay: {
     ...StyleSheet.absoluteFillObject,
@@ -504,7 +503,7 @@ const styles = StyleSheet.create({
   pillDateText: {
     fontFamily: fontFamily.serifBold,
     fontSize: fontSizeTokens.base,
-    color: '#2E7A7B',
+    color: 'rgba(255,255,255,0.95)',
   },
 
   // ── Full-Bleed Hero ──
@@ -543,23 +542,11 @@ const styles = StyleSheet.create({
   quoteBlock: {
     marginVertical: spacing.lg,
     paddingLeft: spacing.lg,
-    position: 'relative',
-  },
-  decorativeQuoteMark: {
-    position: 'absolute',
-    top: -20,
-    left: -6,
-    fontSize: 80,
-    fontFamily: fontFamily.serifBold,
-    color: '#E5E2D9',
-    lineHeight: 80,
-    zIndex: -1,
   },
   quoteText: {
     flex: 1,
     fontFamily: fontFamily.serif,
     fontStyle: 'italic',
-    zIndex: 1,
   },
   source: {
     textAlign: 'right',
