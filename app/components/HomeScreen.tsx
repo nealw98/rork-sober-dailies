@@ -160,16 +160,17 @@ const HomeScreen = () => {
           style={[styles.card, { backgroundColor: cards.sponsor }]}
         >
           <View style={styles.categoryRow}>
-            <MessageCircle size={16} color={colors.secondaryDark} />
-            <Text style={[styles.categoryLabelDark, { color: colors.secondaryDark }]}>
+            <MessageCircle size={16} color="#3B7E7F" />
+            <Text style={[styles.categoryLabelDark, { color: '#3B7E7F' }]}>
               AI COMPANION
             </Text>
           </View>
-          <Text style={[styles.cardTitle, { color: colors.secondaryExtraDark }]}>AI Sponsor</Text>
-          <Text style={[styles.cardSubtitle, { color: colors.secondaryDark }]}>
+          <Text style={[styles.cardTitle, { color: '#256263' }]}>AI Sponsor</Text>
+          <Text style={[styles.cardSubtitle, { color: '#3B7E7F' }]}>
             Always here to listen, guide, and support your step work in real-time.
           </Text>
           <View style={styles.cardFooter}>
+            <Text style={[styles.cardFooterText, { color: colors.secondaryExtraDark }]}>Talk</Text>
             <ChevronRight size={18} color={colors.secondaryExtraDark} strokeWidth={1.5} />
           </View>
         </TouchableOpacity>
@@ -191,6 +192,7 @@ const HomeScreen = () => {
             Listen to inspiring stories of recovery from fellow members.
           </Text>
           <View style={styles.cardFooter}>
+            <Text style={[styles.cardFooterText, { color: colors.tertiaryExtraDark }]}>Listen</Text>
             <ChevronRight size={18} color={colors.tertiaryExtraDark} strokeWidth={1.5} />
           </View>
         </TouchableOpacity>
@@ -309,7 +311,7 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
     gap: spacing.sm,
     paddingHorizontal: spacing.md,
-    marginBottom: spacing.xs,
+    marginBottom: spacing.md,
   },
   homeIconBtn: {
     width: 36,
