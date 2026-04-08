@@ -592,7 +592,7 @@ const styles = StyleSheet.create({
   subtitleText: {
     fontSize: 13,
     fontWeight: '600',
-    color: 'rgba(255,255,255,0.8)',
+    color: 'rgba(255,255,255,0.7)',
     letterSpacing: 0.5,
   },
   pointerIcon: {
