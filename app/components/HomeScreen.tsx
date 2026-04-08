@@ -344,6 +344,7 @@ const styles = StyleSheet.create({
   sobrietyCounterContainer: {
     alignItems: 'center',
     paddingHorizontal: spacing.lg,
+    marginTop: -12,
   },
 
   scrollView: {
