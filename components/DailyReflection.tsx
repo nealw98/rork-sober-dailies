@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback, useRef } from "react";
 import { StyleSheet, Text, View, ScrollView, TouchableOpacity, Modal, Platform, Share, AppState, AppStateStatus, ImageBackground, Dimensions, PanResponder } from "react-native";
-import { Home, ChevronLeft, ChevronRight, Upload, X, Menu } from "lucide-react-native";
+import { ChevronLeft, ChevronRight, Upload, Menu } from "lucide-react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useFocusEffect, useRouter } from 'expo-router';
@@ -69,10 +69,10 @@ const generateCalendarDays = (date: Date) => {
   return days;
 };
 
-const HERO_HEIGHT = 340;
+const HERO_HEIGHT = 380;
 
 export default function DailyReflection({ fontSize = 18, lineHeight, jumpToDate = null, onJumpApplied }: DailyReflectionProps) {
-  const effectiveLineHeight = lineHeight ?? fontSize * 1.5;
+  const effectiveLineHeight = lineHeight ?? fontSize * 1.6;
   const { palette } = useTheme();
   const sem = semanticColors.light;
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
@@ -315,48 +315,46 @@ export default function DailyReflection({ fontSize = 18, lineHeight, jumpToDate 
 
   return (
     <View style={[styles.container, { backgroundColor: sem.background }]}>
-      {/* Fixed header bar */}
-      <View style={[styles.headerBar, { paddingTop: insets.top + spacing.sm }]}>
-        <TouchableOpacity onPress={() => router.push('/(main)/')} style={styles.headerBtn} activeOpacity={0.7}>
-          <Home size={20} color={sem.text} />
-        </TouchableOpacity>
-        <View style={styles.headerActions}>
-          <TouchableOpacity onPress={shareReflection} activeOpacity={0.6} style={styles.headerBtn}>
-            <Upload size={20} color={sem.text} />
-          </TouchableOpacity>
-          <TouchableOpacity onPress={openMenu} activeOpacity={0.6} style={styles.headerBtn}>
-            <Menu size={20} color={sem.text} />
-          </TouchableOpacity>
-        </View>
-      </View>
-
       <ScrollView style={styles.scrollContainer} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false} {...panResponder.panHandlers}>
 
-        {/* ── Hero Image ── */}
+        {/* ── Full-Bleed Hero Image ── */}
         <ImageBackground
           source={require('@/assets/reflections_images/reflection_bg7.webp')}
-          style={styles.heroImage}
+          style={[styles.heroImage, { paddingTop: insets.top }]}
           resizeMode="cover"
         >
-          {/* Bottom fade + title overlaid on image */}
+          {/* Nav icons overlaid on image */}
+          <View style={styles.heroNavRow}>
+            <TouchableOpacity onPress={() => router.back()} style={styles.heroNavBtn} activeOpacity={0.7}>
+              <ChevronLeft size={22} color="rgba(255,255,255,0.7)" style={styles.heroNavIcon} />
+            </TouchableOpacity>
+            <View style={styles.heroNavActions}>
+              <TouchableOpacity onPress={shareReflection} activeOpacity={0.6} style={styles.heroNavBtn}>
+                <Upload size={20} color="rgba(255,255,255,0.7)" style={styles.heroNavIcon} />
+              </TouchableOpacity>
+              <TouchableOpacity onPress={openMenu} activeOpacity={0.6} style={styles.heroNavBtn}>
+                <Menu size={20} color="rgba(255,255,255,0.7)" style={styles.heroNavIcon} />
+              </TouchableOpacity>
+            </View>
+          </View>
+
+          {/* Bottom fade */}
           <LinearGradient
             colors={['transparent', 'transparent', sem.background]}
-            locations={[0, 0.6, 1]}
+            locations={[0, 0.5, 1]}
             style={styles.heroFade}
             start={{ x: 0.5, y: 0 }}
             end={{ x: 0.5, y: 1 }}
-          >
-            <View style={styles.metaRow}>
-              <Text style={styles.title}>{reflection.title}</Text>
-            </View>
-          </LinearGradient>
+          />
         </ImageBackground>
 
-        {/* Date + calendar picker */}
-        <TouchableOpacity onPress={openDatePicker} style={styles.dateRow} activeOpacity={0.7}>
-          <Text style={[styles.dateLabel, { color: sem.textSecondary }]}>{monthDay.toUpperCase()}</Text>
-          <ChevronRight size={14} color={sem.textMuted} />
-        </TouchableOpacity>
+        {/* Date + Title on white background */}
+        <View style={styles.dateTitleBlock}>
+          <TouchableOpacity onPress={openDatePicker} activeOpacity={0.7}>
+            <Text style={styles.dateLabel}>{monthDay.toUpperCase()}</Text>
+          </TouchableOpacity>
+          <Text style={styles.title}>{reflection.title}</Text>
+        </View>
 
         {/* ── Content Card ── */}
         <View style={styles.contentCard}>
@@ -364,9 +362,9 @@ export default function DailyReflection({ fontSize = 18, lineHeight, jumpToDate 
 
           {/* Quote */}
           <View style={styles.quoteBlock}>
-            <View style={[styles.quoteBorder, { backgroundColor: colors.primary }]} />
+            <Text style={styles.decorativeQuoteMark}>{'\u201C'}</Text>
             <Text style={[styles.quoteText, { fontSize, lineHeight: effectiveLineHeight, color: sem.textSecondary }]}>
-              "{reflection.quote}"
+              {reflection.quote}
             </Text>
           </View>
 
@@ -380,8 +378,8 @@ export default function DailyReflection({ fontSize = 18, lineHeight, jumpToDate 
           <View style={[styles.divider, { backgroundColor: sem.border }]} />
 
           {/* Meditation */}
-          <View style={[styles.meditationTile, { backgroundColor: `${colors.primary}15` }]}>
-            <Text style={[styles.thoughtTitle, { color: sem.text }]}>Meditation:</Text>
+          <View style={styles.meditationTile}>
+            <Text style={styles.thoughtTitle}>Meditation:</Text>
             <Text style={[styles.thought, { fontSize, lineHeight: effectiveLineHeight, color: sem.text }]}>
               {reflection.thought}
             </Text>
@@ -389,7 +387,7 @@ export default function DailyReflection({ fontSize = 18, lineHeight, jumpToDate 
         </View>
 
         <View style={styles.copyrightContainer}>
-          <Text style={[styles.copyrightText, { fontSize: fontSize * 0.75, color: sem.textMuted }]}>
+          <Text style={styles.copyrightText}>
             Copyright © 1990 by Alcoholics Anonymous World Services, Inc. All rights reserved.
           </Text>
         </View>
@@ -425,61 +423,60 @@ const styles = StyleSheet.create({
     paddingBottom: spacing.xl,
   },
 
-  // ── Hero Image ──
+  // ── Full-Bleed Hero Image ──
   heroImage: {
     height: HERO_HEIGHT,
-    justifyContent: 'flex-end',
   },
-  headerBar: {
+  heroNavRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: spacing.md,
-    paddingBottom: spacing.sm,
-    backgroundColor: colors.white,
-    borderBottomWidth: 1,
-    borderBottomColor: '#F1F5F9',
+    paddingTop: spacing.sm,
+    zIndex: 10,
   },
-  headerBtn: {
+  heroNavBtn: {
     width: 40,
     height: 40,
     borderRadius: 20,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  headerActions: {
+  heroNavActions: {
     flexDirection: 'row',
     gap: spacing.xs,
+  },
+  heroNavIcon: {
+    textShadowColor: 'rgba(0, 0, 0, 0.5)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 4,
   },
   heroFade: {
-    ...StyleSheet.absoluteFillObject,
-    justifyContent: 'flex-end',
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    height: HERO_HEIGHT * 0.5,
   },
 
-  // ── Meta / Date + Title ── overlaid on the fade
-  metaRow: {
-    paddingHorizontal: spacing.lg,
-    paddingBottom: spacing.sm,
-  },
-  dateRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
+  // ── Date + Title ──
+  dateTitleBlock: {
     paddingHorizontal: spacing.lg,
     paddingTop: spacing.md,
-    paddingBottom: spacing.xs,
-    gap: spacing.xs,
+    paddingBottom: spacing.sm,
   },
   dateLabel: {
     fontFamily: fontFamily.semiBold,
-    fontSize: fontSizeTokens.xs,
-    letterSpacing: 1,
+    fontSize: 12,
+    letterSpacing: 2,
+    color: 'rgba(46, 122, 123, 0.6)', // secondaryExtraDark at 60%
+    marginBottom: spacing.sm,
   },
   title: {
-    fontFamily: fontFamily.bold,
-    fontSize: fontSizeTokens['4xl'],
+    fontFamily: fontFamily.serifBold,
+    fontSize: 28,
     letterSpacing: -0.5,
-    marginBottom: spacing.md,
-    color: colors.white,
+    color: '#2E7A7B', // secondaryExtraDark
   },
 
   // ── Content ──
@@ -487,16 +484,22 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.lg,
   },
   quoteBlock: {
-    flexDirection: 'row',
     marginVertical: spacing.lg,
+    paddingLeft: spacing.lg,
+    position: 'relative',
   },
-  quoteBorder: {
-    width: 3,
-    borderRadius: 2,
-    marginRight: spacing.md,
+  decorativeQuoteMark: {
+    position: 'absolute',
+    top: -16,
+    left: -4,
+    fontSize: 80,
+    fontFamily: fontFamily.serifBold,
+    color: 'rgba(168, 222, 222, 0.2)', // secondaryLight at 20%
+    lineHeight: 80,
   },
   quoteText: {
     flex: 1,
+    fontFamily: fontFamily.serif,
     fontStyle: 'italic',
   },
   source: {
@@ -511,14 +514,16 @@ const styles = StyleSheet.create({
     marginVertical: spacing.lg,
   },
   meditationTile: {
+    backgroundColor: '#FDFCF8',
     borderRadius: radii.lg,
-    padding: spacing.md,
+    padding: 20,
     marginTop: spacing.sm,
   },
   thoughtTitle: {
-    fontFamily: fontFamily.bold,
+    fontFamily: fontFamily.serifBold,
     fontSize: fontSizeTokens.lg,
     marginBottom: spacing.sm,
+    color: '#2E7A7B', // secondaryExtraDark
   },
   thought: {
     fontStyle: 'italic',
@@ -529,7 +534,9 @@ const styles = StyleSheet.create({
   },
   copyrightText: {
     textAlign: 'center',
-    lineHeight: 16,
+    fontSize: 10,
+    color: 'rgba(0, 0, 0, 0.4)',
+    lineHeight: 14,
   },
 
   // ── Loading ──
