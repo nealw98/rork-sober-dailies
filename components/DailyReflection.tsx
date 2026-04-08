@@ -1,14 +1,12 @@
 import { useEffect, useState, useCallback, useRef } from "react";
-import { StyleSheet, Text, View, ScrollView, TouchableOpacity, Modal, Platform, Share, AppState, AppStateStatus, ImageBackground, Animated, PanResponder } from "react-native";
+import { StyleSheet, Text, View, ScrollView, TouchableOpacity, Modal, Platform, Share, AppState, AppStateStatus, ImageBackground, Dimensions, PanResponder } from "react-native";
 import { ChevronLeft, ChevronRight, Upload, Menu } from "lucide-react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useHamburgerMenu } from '@/hooks/useHamburgerMenu';
 import { LinearGradient } from 'expo-linear-gradient';
-import { BlurView } from 'expo-blur';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import * as Haptics from 'expo-haptics';
 
 import Colors from "@/constants/colors";
 import { getReflectionForDate } from "@/constants/reflections";
@@ -72,7 +70,6 @@ const generateCalendarDays = (date: Date) => {
 };
 
 const HERO_HEIGHT = 380;
-const SCREEN_WIDTH = require('react-native').Dimensions.get('window').width;
 
 export default function DailyReflection({ fontSize = 18, lineHeight, jumpToDate = null, onJumpApplied }: DailyReflectionProps) {
   const effectiveLineHeight = lineHeight ?? fontSize * 1.6;
@@ -89,11 +86,8 @@ export default function DailyReflection({ fontSize = 18, lineHeight, jumpToDate 
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const lastShownDateRef = useRef<Date>(new Date());
   const { open: openMenu } = useHamburgerMenu();
-  const slideAnim = useRef(new Animated.Value(0)).current;
 
-  const isToday = isSameDay(selectedDate, new Date());
-
-  // Swipe left/right to navigate days with animated page-slide
+  // Swipe left/right to navigate days
   const panResponder = useRef(
     PanResponder.create({
       onMoveShouldSetPanResponder: (_, gestureState) => {
@@ -101,9 +95,9 @@ export default function DailyReflection({ fontSize = 18, lineHeight, jumpToDate 
       },
       onPanResponderRelease: (_, gestureState) => {
         if (gestureState.dx > 50) {
-          navigateDateAnimated('prev');
+          navigateDate('prev');
         } else if (gestureState.dx < -50) {
-          navigateDateAnimated('next');
+          navigateDate('next');
         }
       },
     })
@@ -175,7 +169,6 @@ export default function DailyReflection({ fontSize = 18, lineHeight, jumpToDate 
   };
 
   const navigateDate = (direction: 'prev' | 'next') => {
-    if (direction === 'next' && isToday) return;
     setSelectedDate(prevDate => {
       const updatedDate = new Date(prevDate);
       if (direction === 'prev') {
@@ -186,36 +179,6 @@ export default function DailyReflection({ fontSize = 18, lineHeight, jumpToDate 
       lastShownDateRef.current = updatedDate;
       return updatedDate;
     });
-  };
-
-  const navigateDateAnimated = (direction: 'prev' | 'next') => {
-    if (direction === 'next' && isToday) return;
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    // Slide content out
-    Animated.timing(slideAnim, {
-      toValue: direction === 'prev' ? SCREEN_WIDTH * 0.3 : -SCREEN_WIDTH * 0.3,
-      duration: 200,
-      useNativeDriver: true,
-    }).start(() => {
-      navigateDate(direction);
-      // Reset to opposite side and slide in
-      slideAnim.setValue(direction === 'prev' ? -SCREEN_WIDTH * 0.3 : SCREEN_WIDTH * 0.3);
-      Animated.timing(slideAnim, {
-        toValue: 0,
-        duration: 250,
-        useNativeDriver: true,
-      }).start();
-    });
-  };
-
-  const handleNavPrev = () => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    navigateDateAnimated('prev');
-  };
-
-  const handleNavNext = () => {
-    if (isToday) return;
-    navigateDateAnimated('next');
   };
 
   const handleDateChange = (event: any, date?: Date) => {
@@ -275,6 +238,8 @@ export default function DailyReflection({ fontSize = 18, lineHeight, jumpToDate 
 
   // Format display values
   const monthDay = selectedDate.toLocaleDateString('en-US', { month: 'long', day: 'numeric' });
+  const monthName = selectedDate.toLocaleDateString('en-US', { month: 'long' }).toUpperCase();
+  const dayNumber = selectedDate.getDate();
 
   const renderCalendarView = () => {
     const weekDays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -284,11 +249,11 @@ export default function DailyReflection({ fontSize = 18, lineHeight, jumpToDate 
       <View style={[styles.calendarContainer, { backgroundColor: palette.background }]}>
         <View style={styles.calendarHeader}>
           <TouchableOpacity onPress={() => changeCalendarMonth('prev')} activeOpacity={0.7} hitSlop={{ top: 15, bottom: 15, left: 15, right: 15 }}>
-            <ChevronLeft size={24} color={colors.secondary} />
+            <ChevronLeft size={24} color={colors.primary} />
           </TouchableOpacity>
           <Text style={[styles.calendarMonthYear, { color: sem.text }]}>{monthYear}</Text>
           <TouchableOpacity onPress={() => changeCalendarMonth('next')} activeOpacity={0.7} hitSlop={{ top: 15, bottom: 15, left: 15, right: 15 }}>
-            <ChevronRight size={24} color={colors.secondary} />
+            <ChevronRight size={24} color={colors.primary} />
           </TouchableOpacity>
         </View>
         <View style={styles.weekDaysContainer}>
@@ -299,17 +264,17 @@ export default function DailyReflection({ fontSize = 18, lineHeight, jumpToDate 
         <View style={styles.daysContainer}>
           {calendarDays.map((item, index) => {
             const isSelected = selectedDate.getDate() === item.date.getDate() && selectedDate.getMonth() === item.date.getMonth() && selectedDate.getFullYear() === item.date.getFullYear();
-            const isCalToday = new Date().getDate() === item.date.getDate() && new Date().getMonth() === item.date.getMonth() && new Date().getFullYear() === item.date.getFullYear();
-            const isTodayAndSelected = isCalToday && isSelected;
+            const isToday = new Date().getDate() === item.date.getDate() && new Date().getMonth() === item.date.getMonth() && new Date().getFullYear() === item.date.getFullYear();
+            const isTodayAndSelected = isToday && isSelected;
             return (
               <TouchableOpacity
                 key={index}
                 style={[
                   styles.dayButton,
                   !item.currentMonth && styles.otherMonthDay,
-                  isSelected && !isCalToday && { backgroundColor: colors.tertiary, borderRadius: 20 },
-                  isCalToday && !isSelected && { borderWidth: 2, borderColor: colors.secondary, borderRadius: 20 },
-                  isTodayAndSelected && { backgroundColor: colors.secondary, borderRadius: 20 }
+                  isSelected && !isToday && { backgroundColor: colors.primary, borderRadius: 20 },
+                  isToday && !isSelected && { borderWidth: 2, borderColor: colors.primary, borderRadius: 20 },
+                  isTodayAndSelected && { backgroundColor: colors.primary, borderRadius: 20, borderWidth: 2, borderColor: 'white' }
                 ]}
                 onPress={() => selectCalendarDay(item.date)}
                 activeOpacity={0.7}
@@ -320,7 +285,7 @@ export default function DailyReflection({ fontSize = 18, lineHeight, jumpToDate 
                   { color: sem.text },
                   !item.currentMonth && { color: sem.textMuted, opacity: 0.4 },
                   (isSelected || isTodayAndSelected) && { color: 'white', fontWeight: '600' },
-                  isCalToday && !isSelected && { color: colors.secondary, fontWeight: '600' }
+                  isToday && !isSelected && { color: colors.primary, fontWeight: '600' }
                 ]}>
                   {item.day}
                 </Text>
@@ -334,7 +299,7 @@ export default function DailyReflection({ fontSize = 18, lineHeight, jumpToDate 
             onPress={() => { const today = new Date(); setSelectedDate(today); setCalendarDate(today); closeDatePicker(); }}
             activeOpacity={0.7}
           >
-            <Text style={[styles.todayButtonText, { color: colors.secondary }]}>Today</Text>
+            <Text style={[styles.todayButtonText, { color: colors.primary }]}>Today</Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={[styles.footerButton, { backgroundColor: sem.surface }]}
@@ -350,7 +315,7 @@ export default function DailyReflection({ fontSize = 18, lineHeight, jumpToDate 
 
   return (
     <View style={[styles.container, { backgroundColor: sem.background }]}>
-      <ScrollView style={styles.scrollContainer} contentContainerStyle={[styles.scrollContent, { paddingBottom: 80 + insets.bottom }]} showsVerticalScrollIndicator={false} {...panResponder.panHandlers}>
+      <ScrollView style={styles.scrollContainer} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false} {...panResponder.panHandlers}>
 
         {/* ── Full-Bleed Hero Image ── */}
         <ImageBackground
@@ -383,69 +348,50 @@ export default function DailyReflection({ fontSize = 18, lineHeight, jumpToDate 
           />
         </ImageBackground>
 
-        <Animated.View style={{ transform: [{ translateX: slideAnim }] }}>
-          {/* Date + Title on white background */}
-          <View style={styles.dateTitleBlock}>
-            <TouchableOpacity onPress={openDatePicker} activeOpacity={0.7}>
-              <Text style={styles.dateLabel}>{monthDay.toUpperCase()}</Text>
-            </TouchableOpacity>
-            <Text style={styles.title}>{reflection.title}</Text>
-          </View>
+        {/* Date + Title on white background */}
+        <View style={styles.dateTitleBlock}>
+          <TouchableOpacity onPress={openDatePicker} activeOpacity={0.7}>
+            <Text style={styles.dateLabel}>{monthDay.toUpperCase()}</Text>
+          </TouchableOpacity>
+          <Text style={styles.title}>{reflection.title}</Text>
+        </View>
 
-          {/* ── Content Card ── */}
-          <View style={styles.contentCard}>
-            <View style={[styles.divider, { backgroundColor: sem.border }]} />
+        {/* ── Content Card ── */}
+        <View style={styles.contentCard}>
+          <View style={[styles.divider, { backgroundColor: sem.border }]} />
 
-            {/* Quote */}
-            <View style={styles.quoteBlock}>
-              <Text style={styles.decorativeQuoteMark}>{'\u201C'}</Text>
-              <Text style={[styles.quoteText, { fontSize, lineHeight: effectiveLineHeight, color: sem.textSecondary }]}>
-                {reflection.quote}
-              </Text>
-            </View>
-
-            <Text style={[styles.source, { fontSize: fontSize * 0.75, color: sem.textMuted }]}>{reflection.source}</Text>
-
-            {/* Reflection body */}
-            <Text style={[styles.reflectionText, { fontSize, lineHeight: effectiveLineHeight, color: sem.text }]}>
-              {reflection.reflection}
-            </Text>
-
-            <View style={[styles.divider, { backgroundColor: sem.border }]} />
-
-            {/* Meditation */}
-            <View style={styles.meditationTile}>
-              <Text style={styles.thoughtTitle}>Meditation:</Text>
-              <Text style={[styles.thought, { fontSize, lineHeight: effectiveLineHeight, color: sem.text }]}>
-                {reflection.thought}
-              </Text>
-            </View>
-          </View>
-
-          <View style={styles.copyrightContainer}>
-            <Text style={styles.copyrightText}>
-              Copyright © 1990 by Alcoholics Anonymous World Services, Inc. All rights reserved.
+          {/* Quote */}
+          <View style={styles.quoteBlock}>
+            <Text style={styles.decorativeQuoteMark}>{'\u201C'}</Text>
+            <Text style={[styles.quoteText, { fontSize, lineHeight: effectiveLineHeight, color: sem.textSecondary }]}>
+              {reflection.quote}
             </Text>
           </View>
-        </Animated.View>
+
+          <Text style={[styles.source, { fontSize: fontSize * 0.75, color: sem.textMuted }]}>{reflection.source}</Text>
+
+          {/* Reflection body */}
+          <Text style={[styles.reflectionText, { fontSize, lineHeight: effectiveLineHeight, color: sem.text }]}>
+            {reflection.reflection}
+          </Text>
+
+          <View style={[styles.divider, { backgroundColor: sem.border }]} />
+
+          {/* Meditation */}
+          <View style={styles.meditationTile}>
+            <Text style={styles.thoughtTitle}>Meditation:</Text>
+            <Text style={[styles.thought, { fontSize, lineHeight: effectiveLineHeight, color: sem.text }]}>
+              {reflection.thought}
+            </Text>
+          </View>
+        </View>
+
+        <View style={styles.copyrightContainer}>
+          <Text style={styles.copyrightText}>
+            Copyright © 1990 by Alcoholics Anonymous World Services, Inc. All rights reserved.
+          </Text>
+        </View>
       </ScrollView>
-
-      {/* ── Floating Bottom Controller ── */}
-      <View style={[styles.bottomBarWrapper, { paddingBottom: insets.bottom || spacing.sm }]}>
-        <BlurView intensity={80} tint="light" style={styles.bottomBar}>
-          <TouchableOpacity onPress={handleNavPrev} style={styles.bottomNavBtn} activeOpacity={0.7}>
-            <ChevronLeft size={22} color={colors.secondaryExtraDark} strokeWidth={1.5} />
-          </TouchableOpacity>
-
-          <TouchableOpacity onPress={openDatePicker} activeOpacity={0.7} style={styles.bottomDateBtn}>
-            <Text style={styles.bottomDateText}>{monthDay}</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity onPress={handleNavNext} style={styles.bottomNavBtn} activeOpacity={0.7} disabled={isToday}>
-            <ChevronRight size={22} color={colors.secondaryExtraDark} strokeWidth={1.5} style={{ opacity: isToday ? 0.2 : 1 }} />
-          </TouchableOpacity>
-        </BlurView>
-      </View>
 
       {/* Calendar Modal */}
       <Modal visible={showDatePicker} transparent animationType="fade" onRequestClose={closeDatePicker}>
@@ -523,14 +469,14 @@ const styles = StyleSheet.create({
     fontFamily: fontFamily.semiBold,
     fontSize: 12,
     letterSpacing: 2,
-    color: 'rgba(46, 122, 123, 0.6)',
+    color: 'rgba(46, 122, 123, 0.6)', // secondaryExtraDark at 60%
     marginBottom: spacing.sm,
   },
   title: {
     fontFamily: fontFamily.serifBold,
     fontSize: 28,
     letterSpacing: -0.5,
-    color: '#2E7A7B',
+    color: '#2E7A7B', // secondaryExtraDark
   },
 
   // ── Content ──
@@ -548,7 +494,7 @@ const styles = StyleSheet.create({
     left: -4,
     fontSize: 80,
     fontFamily: fontFamily.serifBold,
-    color: 'rgba(168, 222, 222, 0.2)',
+    color: 'rgba(168, 222, 222, 0.2)', // secondaryLight at 20%
     lineHeight: 80,
   },
   quoteText: {
@@ -577,7 +523,7 @@ const styles = StyleSheet.create({
     fontFamily: fontFamily.serifBold,
     fontSize: fontSizeTokens.lg,
     marginBottom: spacing.sm,
-    color: '#2E7A7B',
+    color: '#2E7A7B', // secondaryExtraDark
   },
   thought: {
     fontStyle: 'italic',
@@ -591,39 +537,6 @@ const styles = StyleSheet.create({
     fontSize: 10,
     color: 'rgba(0, 0, 0, 0.4)',
     lineHeight: 14,
-  },
-
-  // ── Floating Bottom Controller ──
-  bottomBarWrapper: {
-    position: 'absolute',
-    left: spacing.lg,
-    right: spacing.lg,
-    bottom: 0,
-  },
-  bottomBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    borderRadius: radii.lg,
-    paddingVertical: spacing.sm + 2,
-    paddingHorizontal: spacing.md,
-    overflow: 'hidden',
-  },
-  bottomNavBtn: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  bottomDateBtn: {
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.xs,
-  },
-  bottomDateText: {
-    fontFamily: fontFamily.serifBold,
-    fontSize: fontSizeTokens.lg,
-    color: '#2E7A7B',
   },
 
   // ── Loading ──
