@@ -182,13 +182,13 @@ const HomeScreen = () => {
           style={[styles.card, { backgroundColor: cards.speakers }]}
         >
           <View style={styles.categoryRow}>
-            <Mic size={16} color={colors.tertiaryDark} />
-            <Text style={[styles.categoryLabelDark, { color: colors.tertiaryDark }]}>
+            <Mic size={16} color="#624C91" />
+            <Text style={[styles.categoryLabelDark, { color: '#624C91' }]}>
               FEATURED
             </Text>
           </View>
           <Text style={[styles.cardTitle, { color: colors.tertiaryExtraDark }]}>AA Speakers</Text>
-          <Text style={[styles.cardSubtitle, { color: colors.tertiaryDark }]}>
+          <Text style={[styles.cardSubtitle, { color: '#624C91' }]}>
             Listen to inspiring stories of recovery from fellow members.
           </Text>
           <View style={styles.cardFooter}>
