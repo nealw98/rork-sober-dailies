@@ -29,6 +29,9 @@ import {
   Lora_400Regular,
   Lora_700Bold,
 } from '@expo-google-fonts/lora';
+import {
+  WixMadeforDisplay_700Bold,
+} from '@expo-google-fonts/wix-madefor-display';
 
 import { GratitudeProvider } from "@/hooks/use-gratitude-store";
 import { OnboardingProvider, useOnboarding } from "@/hooks/useOnboardingStore";
@@ -95,6 +98,7 @@ function RootLayoutNav() {
     Manrope_800ExtraBold,
     Lora_400Regular,
     Lora_700Bold,
+    WixMadeforDisplay_700Bold,
   });
 
   // Enable screen tracking for Expo Router
