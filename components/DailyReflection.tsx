@@ -382,7 +382,7 @@ export default function DailyReflection({ fontSize = 18, lineHeight, jumpToDate 
             </Text>
           </View>
 
-          <Text style={[styles.source, { fontSize, color: sem.textMuted }]}>{reflection.source.replace(/\w\S*/g, (txt: string) => txt.charAt(0).toUpperCase() + txt.substring(1).toLowerCase())}</Text>
+          <Text style={[styles.source, { fontSize: fontSize - 1, color: sem.textMuted }]}>{reflection.source}</Text>
 
           {/* Reflection body */}
           <Text style={[styles.reflectionText, { fontSize, lineHeight: effectiveLineHeight, color: sem.text }]}>
@@ -560,7 +560,7 @@ const styles = StyleSheet.create({
     paddingLeft: spacing.sm + 3 + spacing.md,
     marginTop: spacing.xs,
     marginBottom: spacing.lg,
-    fontFamily: 'WixMadeforText_500Medium',
+    fontFamily: 'WixMadeforText_400Regular',
   },
   divider: {
     height: 1,
