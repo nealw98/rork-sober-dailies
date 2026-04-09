@@ -439,8 +439,10 @@ const styles = StyleSheet.create({
     overflow: "hidden",
   },
   heroImage: {
-    width: "100%",
-    height: "100%",
+    width: "120%",
+    height: "120%",
+    marginLeft: "-10%",
+    marginTop: "-5%",
   },
   heroTopGradient: {
     position: "absolute",
