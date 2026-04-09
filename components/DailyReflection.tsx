@@ -364,7 +364,7 @@ export default function DailyReflection({ fontSize = 18, lineHeight, jumpToDate 
 
         {/* Title — first element on white background */}
         <View style={styles.titleBlock}>
-          <Text style={styles.title}>{reflection.title}</Text>
+          <Text style={styles.title}>{reflection.title.replace(/\w\S*/g, (txt: string) => txt.charAt(0).toUpperCase() + txt.substring(1).toLowerCase())}</Text>
         </View>
 
         {/* Decorative separator */}
