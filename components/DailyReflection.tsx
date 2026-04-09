@@ -169,7 +169,6 @@ export default function DailyReflection({ fontSize = 18, lineHeight, jumpToDate 
   };
 
   const navigateDate = (direction: 'prev' | 'next') => {
-    if (direction === 'next' && isToday) return;
     setSelectedDate(prevDate => {
       const updatedDate = new Date(prevDate);
       if (direction === 'prev') {
@@ -315,31 +314,31 @@ export default function DailyReflection({ fontSize = 18, lineHeight, jumpToDate 
     <View style={[styles.container, { backgroundColor: sem.background }]}>
       {/* ── Floating Pill Nav — sticky at top ── */}
       <View style={[styles.pillWrapper, { top: insets.top + 8 }]}>
-        <BlurView intensity={60} tint="systemMaterialDark" style={styles.pillBar}>
+        <BlurView intensity={40} tint="extraLight" style={styles.pillBar}>
           {/* Jewel edge catch light */}
           <View style={styles.pillBorderOverlay} />
 
           {/* Left: Back */}
           <TouchableOpacity onPress={() => router.back()} style={styles.pillBtn} activeOpacity={0.7}>
-            <ChevronLeft size={20} color="#FFFFFF" strokeWidth={2} />
+            <ChevronLeft size={20} color={sem.text} strokeWidth={2} />
           </TouchableOpacity>
 
           {/* Center: Nav cluster */}
           <View style={styles.pillNavCluster}>
             <TouchableOpacity onPress={() => navigateDate('prev')} style={styles.pillNavArrow} activeOpacity={0.7}>
-              <ChevronLeft size={16} color="#FFFFFF" strokeWidth={2} />
+              <ChevronLeft size={16} color={sem.text} strokeWidth={2} />
             </TouchableOpacity>
             <TouchableOpacity onPress={openDatePicker} activeOpacity={0.7} style={styles.pillDateBtn}>
-              <Text style={styles.pillDateText}>{monthDay}</Text>
+              <Text style={[styles.pillDateText, { color: sem.text }]}>{monthDay}</Text>
             </TouchableOpacity>
-            <TouchableOpacity onPress={() => navigateDate('next')} style={styles.pillNavArrow} activeOpacity={0.7} disabled={isToday}>
-              <ChevronRight size={16} color="#FFFFFF" strokeWidth={2} style={{ opacity: isToday ? 0.2 : 1 }} />
+            <TouchableOpacity onPress={() => navigateDate('next')} style={styles.pillNavArrow} activeOpacity={0.7}>
+              <ChevronRight size={16} color={sem.text} strokeWidth={2} />
             </TouchableOpacity>
           </View>
 
           {/* Right: Share */}
           <TouchableOpacity onPress={shareReflection} style={styles.pillBtn} activeOpacity={0.7}>
-            <Upload size={18} color="#FFFFFF" strokeWidth={2} />
+            <Upload size={18} color={sem.text} strokeWidth={2} />
           </TouchableOpacity>
         </BlurView>
       </View>
@@ -439,14 +438,14 @@ const styles = StyleSheet.create({
   // ── Floating Pill Nav ──
   pillWrapper: {
     position: 'absolute',
-    left: spacing.xl,
-    right: spacing.xl,
+    left: spacing.lg,
+    right: spacing.lg,
     zIndex: 100,
     shadowColor: '#000',
-    shadowOpacity: 0.3,
-    shadowRadius: 20,
-    shadowOffset: { width: 0, height: 10 },
-    elevation: 10,
+    shadowOpacity: 0.1,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 6,
   },
   pillBar: {
     flexDirection: 'row',
@@ -454,14 +453,17 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     borderRadius: 9999,
     paddingVertical: spacing.xs + 2,
-    paddingHorizontal: spacing.xs + 2,
+    paddingHorizontal: spacing.sm + 2,
     overflow: 'hidden',
   },
   pillBorderOverlay: {
     ...StyleSheet.absoluteFillObject,
     borderRadius: 9999,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.15)',
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255, 255, 255, 0.3)',
+    borderLeftWidth: 0,
+    borderRightWidth: 0,
+    borderBottomWidth: 0,
   },
   pillBtn: {
     width: 36,
@@ -489,7 +491,7 @@ const styles = StyleSheet.create({
   pillDateText: {
     fontFamily: fontFamily.serifBold,
     fontSize: fontSizeTokens.base,
-    color: '#FFFFFF',
+    color: semanticColors.light.text,
   },
 
   // ── Full-Bleed Hero ──
