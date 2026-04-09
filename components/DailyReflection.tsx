@@ -520,7 +520,7 @@ const styles = StyleSheet.create({
     fontFamily: 'WixMadeforDisplay_700Bold',
     fontSize: 28,
     letterSpacing: -0.5,
-    color: '#1A1A2E',
+    color: '#2E7A7B',
   },
   titleSeparator: {
     alignItems: 'center',
@@ -538,7 +538,7 @@ const styles = StyleSheet.create({
   },
   quoteBlock: {
     paddingLeft: spacing.lg,
-    marginBottom: spacing.lg,
+    marginBottom: 0,
   },
   quoteText: {
     flex: 1,
@@ -547,6 +547,7 @@ const styles = StyleSheet.create({
   },
   source: {
     textAlign: 'right',
+    marginTop: spacing.xs,
     marginBottom: spacing.lg,
     fontFamily: fontFamily.medium,
   },
