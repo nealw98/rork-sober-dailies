@@ -42,9 +42,7 @@ import {
 
 const DAILY_SPONSOR_LIMIT = 50;
 const MONTHLY_SPONSOR_LIMIT = 200;
-const SCREEN_WIDTH = Dimensions.get("window").width;
-const HERO_IMAGE_HEIGHT = SCREEN_WIDTH / 0.85; // matches aspectRatio
-const STICKY_THRESHOLD = HERO_IMAGE_HEIGHT - 80;
+const STICKY_THRESHOLD = 300;
 
 type LimitCheckResult =
   | { allowed: true }
@@ -278,7 +276,7 @@ function SponsorChatContent({ initialSponsor }: { initialSponsor: string }) {
     <View>
       {/* ── Hero Image ── */}
       <View style={styles.heroContainer}>
-        <Image source={sponsor.avatar} style={styles.heroImage} resizeMode="cover" />
+        <Image source={sponsor.avatar} style={styles.heroImage} />
 
         {/* Bottom gradient — dark fade for name/tags readability */}
         <LinearGradient
@@ -427,8 +425,7 @@ const styles = StyleSheet.create({
   },
   heroImage: {
     width: "100%",
-    height: undefined,
-    aspectRatio: 0.85,
+    aspectRatio: 1.5,
   },
   heroBottomGradient: {
     position: "absolute",
