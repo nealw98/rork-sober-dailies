@@ -165,7 +165,7 @@ const HomeScreen = () => {
               AI COMPANION
             </Text>
           </View>
-          <Text style={[styles.cardTitle, { color: '#256263', fontFamily: 'WixMadeforDisplay_700Bold' }]}>AI Sponsor</Text>
+          <Text style={[styles.cardTitle, { color: '#256263', fontFamily: 'WixMadeforDisplay_500Medium' }]}>AI Sponsor</Text>
           <Text style={[styles.cardSubtitle, { color: '#3B7E7F' }]}>
             Always here to listen, guide, and support your step work in real-time.
           </Text>
@@ -187,7 +187,7 @@ const HomeScreen = () => {
               FEATURED
             </Text>
           </View>
-          <Text style={[styles.cardTitle, { color: colors.tertiaryExtraDark, fontFamily: 'WixMadeforDisplay_700Bold' }]}>AA Speakers</Text>
+          <Text style={[styles.cardTitle, { color: colors.tertiaryExtraDark, fontFamily: 'WixMadeforDisplay_500Medium' }]}>AA Speakers</Text>
           <Text style={[styles.cardSubtitle, { color: '#624C91' }]}>
             Listen to inspiring stories of recovery from fellow members.
           </Text>

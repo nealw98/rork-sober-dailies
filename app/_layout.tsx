@@ -30,6 +30,7 @@ import {
   Lora_700Bold,
 } from '@expo-google-fonts/lora';
 import {
+  WixMadeforDisplay_500Medium,
   WixMadeforDisplay_700Bold,
 } from '@expo-google-fonts/wix-madefor-display';
 
@@ -98,6 +99,7 @@ function RootLayoutNav() {
     Manrope_800ExtraBold,
     Lora_400Regular,
     Lora_700Bold,
+    WixMadeforDisplay_500Medium,
     WixMadeforDisplay_700Bold,
   });
 
