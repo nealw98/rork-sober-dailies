@@ -315,33 +315,31 @@ export default function DailyReflection({ fontSize = 18, lineHeight, jumpToDate 
     <View style={[styles.container, { backgroundColor: sem.background }]}>
       {/* ── Floating Pill Nav — sticky at top ── */}
       <View style={[styles.pillWrapper, { top: insets.top + 8 }]}>
-        <BlurView intensity={40} tint="extraLight" style={styles.pillBar}>
-          {/* Frosted tint overlay */}
-          <View style={styles.pillTintOverlay} />
+        <BlurView intensity={60} tint="systemMaterialDark" style={styles.pillBar}>
           {/* Jewel edge catch light */}
           <View style={styles.pillBorderOverlay} />
 
           {/* Left: Back */}
           <TouchableOpacity onPress={() => router.back()} style={styles.pillBtn} activeOpacity={0.7}>
-            <ChevronLeft size={20} color="#2E7A7B" strokeWidth={1.5} />
+            <ChevronLeft size={20} color="#FFFFFF" strokeWidth={2} />
           </TouchableOpacity>
 
           {/* Center: Nav cluster */}
           <View style={styles.pillNavCluster}>
             <TouchableOpacity onPress={() => navigateDate('prev')} style={styles.pillNavArrow} activeOpacity={0.7}>
-              <ChevronLeft size={16} color="#2E7A7B" strokeWidth={2} />
+              <ChevronLeft size={16} color="#FFFFFF" strokeWidth={2} />
             </TouchableOpacity>
             <TouchableOpacity onPress={openDatePicker} activeOpacity={0.7} style={styles.pillDateBtn}>
               <Text style={styles.pillDateText}>{monthDay}</Text>
             </TouchableOpacity>
             <TouchableOpacity onPress={() => navigateDate('next')} style={styles.pillNavArrow} activeOpacity={0.7} disabled={isToday}>
-              <ChevronRight size={16} color="#2E7A7B" strokeWidth={2} style={{ opacity: isToday ? 0.2 : 1 }} />
+              <ChevronRight size={16} color="#FFFFFF" strokeWidth={2} style={{ opacity: isToday ? 0.2 : 1 }} />
             </TouchableOpacity>
           </View>
 
           {/* Right: Share */}
           <TouchableOpacity onPress={shareReflection} style={styles.pillBtn} activeOpacity={0.7}>
-            <Upload size={18} color="#2E7A7B" strokeWidth={1.5} />
+            <Upload size={18} color="#FFFFFF" strokeWidth={2} />
           </TouchableOpacity>
         </BlurView>
       </View>
@@ -370,13 +368,15 @@ export default function DailyReflection({ fontSize = 18, lineHeight, jumpToDate 
           <Text style={styles.title}>{reflection.title}</Text>
         </View>
 
+        {/* Decorative separator */}
+        <View style={styles.titleSeparator}>
+          <View style={styles.titleSeparatorLine} />
+        </View>
+
         {/* ── Content ── */}
         <View style={styles.contentCard}>
-          <View style={[styles.divider, { backgroundColor: sem.border }]} />
-
           {/* Quote */}
           <View style={styles.quoteBlock}>
-            <Text style={styles.decorativeQuoteMark}>{'\u201C'}</Text>
             <Text style={[styles.quoteText, { fontSize, lineHeight: effectiveLineHeight, color: sem.textSecondary }]}>
               {reflection.quote}
             </Text>
@@ -439,14 +439,14 @@ const styles = StyleSheet.create({
   // ── Floating Pill Nav ──
   pillWrapper: {
     position: 'absolute',
-    left: spacing.lg,
-    right: spacing.lg,
+    left: spacing.xl,
+    right: spacing.xl,
     zIndex: 100,
     shadowColor: '#000',
-    shadowOpacity: 0.1,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 6,
+    shadowOpacity: 0.3,
+    shadowRadius: 20,
+    shadowOffset: { width: 0, height: 10 },
+    elevation: 10,
   },
   pillBar: {
     flexDirection: 'row',
@@ -454,29 +454,14 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     borderRadius: 9999,
     paddingVertical: spacing.xs + 2,
-    paddingHorizontal: spacing.sm + 2,
+    paddingHorizontal: spacing.xs + 2,
     overflow: 'hidden',
-  },
-  pillTintOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    borderRadius: 9999,
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
   },
   pillBorderOverlay: {
     ...StyleSheet.absoluteFillObject,
     borderRadius: 9999,
-    borderTopWidth: 1,
-    borderTopColor: 'rgba(255, 255, 255, 0.3)',
-    borderLeftWidth: 0,
-    borderRightWidth: 0,
-    borderBottomWidth: 0,
-  },
-  pillShadow: {
-    shadowColor: '#000',
-    shadowOpacity: 0.1,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 6,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.15)',
   },
   pillBtn: {
     width: 36,
@@ -504,7 +489,7 @@ const styles = StyleSheet.create({
   pillDateText: {
     fontFamily: fontFamily.serifBold,
     fontSize: fontSizeTokens.base,
-    color: '#2E7A7B',
+    color: '#FFFFFF',
   },
 
   // ── Full-Bleed Hero ──
@@ -526,8 +511,8 @@ const styles = StyleSheet.create({
   // ── Title ──
   titleBlock: {
     paddingHorizontal: spacing.lg,
-    paddingTop: spacing.md,
-    paddingBottom: spacing.sm,
+    paddingTop: 32,
+    paddingBottom: 0,
   },
   title: {
     fontFamily: fontFamily.serifBold,
@@ -535,31 +520,28 @@ const styles = StyleSheet.create({
     letterSpacing: -0.5,
     color: '#2E7A7B',
   },
+  titleSeparator: {
+    alignItems: 'center',
+    paddingVertical: 20,
+  },
+  titleSeparatorLine: {
+    width: 40,
+    height: 1,
+    backgroundColor: '#E5E2D9',
+  },
 
   // ── Content ──
   contentCard: {
     paddingHorizontal: spacing.lg,
   },
   quoteBlock: {
-    marginVertical: spacing.lg,
     paddingLeft: spacing.lg,
-    position: 'relative',
-  },
-  decorativeQuoteMark: {
-    position: 'absolute',
-    top: -20,
-    left: -6,
-    fontSize: 80,
-    fontFamily: fontFamily.serifBold,
-    color: '#E5E2D9',
-    lineHeight: 80,
-    zIndex: -1,
+    marginBottom: spacing.lg,
   },
   quoteText: {
     flex: 1,
     fontFamily: fontFamily.serif,
     fontStyle: 'italic',
-    zIndex: 1,
   },
   source: {
     textAlign: 'right',
