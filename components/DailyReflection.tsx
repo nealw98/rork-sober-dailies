@@ -393,8 +393,8 @@ export default function DailyReflection({ fontSize = 18, lineHeight, jumpToDate 
 
           {/* Meditation */}
           <View style={styles.meditationTile}>
-            <Text style={styles.thoughtTitle}>Meditation:</Text>
-            <Text style={[styles.thought, { fontSize, lineHeight: effectiveLineHeight, color: sem.text }]}>
+            <Text style={styles.thoughtTitle}>MEDITATION</Text>
+            <Text style={[styles.thought, { fontSize, lineHeight: fontSize * 1.45, color: 'rgba(26, 58, 74, 0.9)' }]}>
               {reflection.thought}
             </Text>
           </View>
@@ -572,17 +572,18 @@ const styles = StyleSheet.create({
   meditationTile: {
     backgroundColor: 'rgba(168, 222, 222, 0.15)',
     borderRadius: radii.lg,
-    padding: 20,
-    marginTop: spacing.sm,
+    padding: 24,
+    marginTop: 32,
   },
   thoughtTitle: {
-    fontFamily: 'WixMadeforDisplay_500Medium',
-    fontSize: fontSizeTokens.lg,
-    marginBottom: spacing.sm,
-    color: '#2E7A7B',
+    fontFamily: 'WixMadeforDisplay_700Bold',
+    fontSize: fontSizeTokens.sm,
+    letterSpacing: 1.2,
+    marginBottom: spacing.md,
+    color: '#1A3A4A',
   },
   thought: {
-    fontFamily: 'WixMadeforText_400Regular_Italic',
+    fontFamily: 'WixMadeforText_400Regular',
   },
   copyrightContainer: {
     marginTop: spacing.xl,
