@@ -378,7 +378,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'transparent',
   },
   reflectionTitle: {
-    fontFamily: 'WixMadeforDisplay_500Medium',
+    fontFamily: 'WixMadeforDisplay_700Bold',
     fontSize: fontSize['3xl'],
     color: colors.white,
     marginBottom: spacing.sm,
@@ -433,7 +433,7 @@ const styles = StyleSheet.create({
 
   // ── Card Typography ──
   cardTitle: {
-    fontFamily: 'WixMadeforDisplay_500Medium',
+    fontFamily: 'WixMadeforDisplay_700Bold',
     fontSize: fontSize['3xl'],
     marginBottom: spacing.xs,
   },
