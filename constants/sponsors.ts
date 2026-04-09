@@ -68,7 +68,7 @@ export const SPONSORS: SponsorConfig[] = [
     id: "salty",
     name: "Salty Sam",
     description: "Direct and no-nonsense",
-    avatar: require("@/assets/images/salty_sam.webp"),
+    avatar: require("@/assets/images/salty_sam2.webp"),
     isAvailable: true,
     systemPrompt: SALTY_SAM_SYSTEM_PROMPT,
     initialMessage: SALTY_SAM_INITIAL_MESSAGE,
