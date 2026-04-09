@@ -424,9 +424,8 @@ const styles = StyleSheet.create({
     marginHorizontal: -spacing.lg,
   },
   heroImage: {
-    width: Dimensions.get("window").width,
-    height: Dimensions.get("window").width / 1.5,
-    resizeMode: "cover",
+    width: "100%",
+    aspectRatio: 0.75,
   },
   heroBottomGradient: {
     position: "absolute",
