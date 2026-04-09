@@ -382,7 +382,7 @@ export default function DailyReflection({ fontSize = 18, lineHeight, jumpToDate 
             </Text>
           </View>
 
-          <Text style={[styles.source, { fontSize: fontSize - 1, color: sem.textMuted }]}>{reflection.source}</Text>
+          <Text style={[styles.source, { fontSize: 13, color: sem.textMuted }]}>{reflection.source}</Text>
 
           {/* Reflection body */}
           <Text style={[styles.reflectionText, { fontSize, lineHeight: effectiveLineHeight, color: sem.text }]}>
@@ -557,7 +557,7 @@ const styles = StyleSheet.create({
   },
   source: {
     textAlign: 'left',
-    paddingLeft: spacing.sm + 3 + spacing.md,
+    paddingLeft: spacing.sm + 3 + spacing.md + 6,
     marginTop: spacing.xs,
     marginBottom: spacing.lg,
     fontFamily: 'WixMadeforText_400Regular',
