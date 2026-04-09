@@ -489,7 +489,7 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.xs,
   },
   pillDateText: {
-    fontFamily: fontFamily.serifBold,
+    fontFamily: 'WixMadeforDisplay_500Medium',
     fontSize: fontSizeTokens.base,
     color: semanticColors.light.text,
   },
@@ -517,7 +517,7 @@ const styles = StyleSheet.create({
     paddingBottom: 0,
   },
   title: {
-    fontFamily: fontFamily.serifBold,
+    fontFamily: 'WixMadeforDisplay_500Medium',
     fontSize: 28,
     letterSpacing: -0.5,
     color: '#2E7A7B',
@@ -542,7 +542,7 @@ const styles = StyleSheet.create({
   },
   quoteText: {
     flex: 1,
-    fontFamily: fontFamily.serif,
+    fontFamily: 'WixMadeforDisplay_500Medium',
     fontStyle: 'italic',
   },
   source: {
@@ -563,7 +563,7 @@ const styles = StyleSheet.create({
     marginTop: spacing.sm,
   },
   thoughtTitle: {
-    fontFamily: fontFamily.serifBold,
+    fontFamily: 'WixMadeforDisplay_500Medium',
     fontSize: fontSizeTokens.lg,
     marginBottom: spacing.sm,
     color: '#2E7A7B',
