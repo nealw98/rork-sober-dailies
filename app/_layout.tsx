@@ -34,6 +34,13 @@ import {
   WixMadeforDisplay_600SemiBold,
   WixMadeforDisplay_700Bold,
 } from '@expo-google-fonts/wix-madefor-display';
+import {
+  WixMadeforText_400Regular,
+  WixMadeforText_400Regular_Italic,
+  WixMadeforText_500Medium,
+  WixMadeforText_500Medium_Italic,
+  WixMadeforText_600SemiBold,
+} from '@expo-google-fonts/wix-madefor-text';
 
 import { GratitudeProvider } from "@/hooks/use-gratitude-store";
 import { OnboardingProvider, useOnboarding } from "@/hooks/useOnboardingStore";
@@ -103,6 +110,11 @@ function RootLayoutNav() {
     WixMadeforDisplay_500Medium,
     WixMadeforDisplay_600SemiBold,
     WixMadeforDisplay_700Bold,
+    WixMadeforText_400Regular,
+    WixMadeforText_400Regular_Italic,
+    WixMadeforText_500Medium,
+    WixMadeforText_500Medium_Italic,
+    WixMadeforText_600SemiBold,
   });
 
   // Enable screen tracking for Expo Router

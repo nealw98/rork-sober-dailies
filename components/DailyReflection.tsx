@@ -542,20 +542,20 @@ const styles = StyleSheet.create({
   },
   quoteText: {
     flex: 1,
-    fontFamily: 'WixMadeforDisplay_500Medium',
-    fontStyle: 'italic',
+    fontFamily: 'WixMadeforText_400Regular_Italic',
   },
   source: {
     textAlign: 'right',
     marginTop: spacing.xs,
     marginBottom: spacing.lg,
-    fontFamily: fontFamily.medium,
+    fontFamily: 'WixMadeforText_500Medium',
   },
   divider: {
     height: 1,
   },
   reflectionText: {
     marginVertical: spacing.lg,
+    fontFamily: 'WixMadeforText_400Regular',
   },
   meditationTile: {
     backgroundColor: '#FDFCF8',
@@ -570,7 +570,7 @@ const styles = StyleSheet.create({
     color: '#2E7A7B',
   },
   thought: {
-    fontStyle: 'italic',
+    fontFamily: 'WixMadeforText_400Regular_Italic',
   },
   copyrightContainer: {
     marginTop: spacing.xl,
@@ -579,6 +579,7 @@ const styles = StyleSheet.create({
   copyrightText: {
     textAlign: 'center',
     fontSize: 10,
+    fontFamily: 'WixMadeforText_400Regular',
     color: 'rgba(0, 0, 0, 0.4)',
     lineHeight: 14,
   },
