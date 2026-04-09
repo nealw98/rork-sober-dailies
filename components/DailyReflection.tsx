@@ -545,7 +545,7 @@ const styles = StyleSheet.create({
   quoteBorder: {
     width: 3,
     borderRadius: 2,
-    backgroundColor: '#4A9E9F',
+    backgroundColor: '#1A5254',
     marginRight: spacing.md,
   },
   quoteText: {
