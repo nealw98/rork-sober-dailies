@@ -437,12 +437,11 @@ const styles = StyleSheet.create({
   heroContainer: {
     height: HERO_HEIGHT,
     overflow: "hidden",
+    marginHorizontal: -spacing.lg,
   },
   heroImage: {
-    width: "120%",
-    height: "120%",
-    marginLeft: "-10%",
-    marginTop: "-5%",
+    width: "100%",
+    height: "100%",
   },
   heroTopGradient: {
     position: "absolute",
