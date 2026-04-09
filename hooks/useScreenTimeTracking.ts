@@ -1,6 +1,5 @@
 import { useEffect, useRef, useCallback } from 'react';
 import { AppState, AppStateStatus } from 'react-native';
-import { usePostHog } from 'posthog-react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { logEvent } from '@/lib/usageLogger';
 
@@ -17,40 +16,23 @@ import { logEvent } from '@/lib/usageLogger';
  * IMPORTANT: Only fires screen_opened when screen is actually focused/visible,
  * not on mount. This prevents firing events for all tabs on app launch.
  * 
- * Sends events to both PostHog and Supabase (via usageLogger Edge Function).
+ * Sends events to the app usage logger.
  * 
  * @param screenName - Human-readable screen name (e.g., "Daily Reflections", "Salty Sam")
  */
 export function useScreenTimeTracking(screenName: string) {
-  const posthog = usePostHog();
   const startTimeRef = useRef<number | null>(null);
   const appStateSubscriptionRef = useRef<any>(null);
 
   // Track screen open/close based on screen focus (not mount)
   useFocusEffect(
     useCallback(() => {
-      // Helper to safely capture PostHog events
-      const safeCapture = (event: string, properties: Record<string, any>) => {
-        try {
-          posthog?.capture(event, properties);
-        } catch (error) {
-          console.warn(`[ScreenTime] PostHog capture failed for ${event}:`, error);
-        }
-      };
-
       // Screen is now focused - track screen open
       const openTimestamp = Date.now();
       startTimeRef.current = openTimestamp;
       
       console.log(`[ScreenTime] ${screenName} opened at ${new Date(openTimestamp).toISOString()}`);
       
-      // PostHog
-      safeCapture('screen_opened', {
-        $screen_name: screenName,
-        timestamp: openTimestamp,
-      });
-      
-      // Supabase - already has internal error handling
       logEvent('screen_opened', {
         screen: screenName,
         timestamp: openTimestamp,
@@ -70,21 +52,6 @@ export function useScreenTimeTracking(screenName: string) {
               
               // Only track if session was > 2 seconds
               if (duration >= 2) {
-                // PostHog
-                safeCapture('screen_closed', {
-                  $screen_name: screenName,
-                  timestamp: now,
-                  duration_seconds: duration,
-                });
-
-                safeCapture('screen_time_completed', {
-                  $screen_name: screenName,
-                  duration_seconds: duration,
-                  open_timestamp: startTimeRef.current,
-                  close_timestamp: now,
-                });
-                
-                // Supabase
                 logEvent('screen_closed', {
                   screen: screenName,
                   duration_seconds: duration,
@@ -112,13 +79,6 @@ export function useScreenTimeTracking(screenName: string) {
               
               console.log(`[ScreenTime] ${screenName} reopened from background at ${new Date(reopenTimestamp).toISOString()}`);
               
-              // PostHog
-              safeCapture('screen_opened', {
-                $screen_name: screenName,
-                timestamp: reopenTimestamp,
-              });
-              
-              // Supabase
               logEvent('screen_opened', {
                 screen: screenName,
                 timestamp: reopenTimestamp,
@@ -159,21 +119,6 @@ export function useScreenTimeTracking(screenName: string) {
           
           // Only track if session was > 2 seconds
           if (duration >= 2) {
-            // PostHog
-            safeCapture('screen_closed', {
-              $screen_name: screenName,
-              timestamp: closeTimestamp,
-              duration_seconds: duration,
-            });
-
-            safeCapture('screen_time_completed', {
-              $screen_name: screenName,
-              duration_seconds: duration,
-              open_timestamp: startTimeRef.current,
-              close_timestamp: closeTimestamp,
-            });
-            
-            // Supabase
             logEvent('screen_closed', {
               screen: screenName,
               duration_seconds: duration,
@@ -193,6 +138,6 @@ export function useScreenTimeTracking(screenName: string) {
           startTimeRef.current = null;
         }
       };
-    }, [screenName, posthog])
+    }, [screenName])
   );
 }

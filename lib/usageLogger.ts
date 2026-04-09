@@ -26,11 +26,6 @@ interface UsageEvent {
   properties?: Record<string, any>;
 }
 
-// PostHog type (avoiding direct import to prevent circular dependencies)
-type PostHogInstance = {
-  capture: (event: string, properties?: Record<string, any>) => void;
-} | null;
-
 class UsageLogger {
   private sessionId: string | null = null;
   private anonymousId: string | null = null;
@@ -40,7 +35,6 @@ class UsageLogger {
   private screenOpenTime: number | null = null;
   private lastEventTime: number = Date.now();
   private appState: AppStateStatus = 'active';
-  private posthog: PostHogInstance = null;
   private sessionStartTime: number = Date.now(); // Track when session started
   private lastBackgroundEventTime: number = 0; // Prevent duplicate background events
 
@@ -60,12 +54,6 @@ class UsageLogger {
     }
   }
 
-  // Set PostHog instance for dual tracking
-  setPostHog(posthogInstance: PostHogInstance): void {
-    this.posthog = posthogInstance;
-    console.log('[UsageLogger] PostHog instance registered for dual tracking');
-  }
-
   async initializeSession(): Promise<void> {
     try {
       // Always generate a new session ID on app launch
@@ -73,7 +61,7 @@ class UsageLogger {
       this.sessionStartTime = Date.now(); // Record session start time
       console.log('[UsageLogger] New session initialized on app launch:', this.sessionId);
       
-      // Log app launch event to Supabase (NOT PostHog - user doesn't want Application Opened)
+      // Log app launch event
       this.logEvent('app_launch', { 
         platform: Platform.OS,
         app_version: Constants.expoConfig?.version 
@@ -338,15 +326,6 @@ class UsageLogger {
           session_duration_seconds: sessionDuration
         });
         
-        // Also send to PostHog with session duration
-        this.posthog?.capture('Application Backgrounded', {
-          platform: Platform.OS,
-          $screen_name: this.currentScreen,
-          session_duration_seconds: sessionDuration,
-          session_id: this.sessionId,
-          sober_dailies_anonymous_id: this.getAnonymousIdSync() ?? undefined,
-        });
-        
         // Note: screen_close events are handled by useScreenTimeTracking hook
         // We just reset the screen time here
         this.screenOpenTime = null;
@@ -364,15 +343,6 @@ class UsageLogger {
           platform: Platform.OS,
           previous_session_id: previousSessionId,
           new_session_id: this.sessionId
-        });
-        
-        // Also send to PostHog
-        this.posthog?.capture('Application Became Active', {
-          platform: Platform.OS,
-          $screen_name: this.currentScreen,
-          previous_session_id: previousSessionId,
-          new_session_id: this.sessionId,
-          sober_dailies_anonymous_id: this.getAnonymousIdSync() ?? undefined,
         });
         
         // Check daily streak (non-blocking)
@@ -460,9 +430,6 @@ export const usageLogger = new UsageLogger();
 
 // Export initialization function
 export const initUsageLogger = () => usageLogger;
-
-// Export function to set PostHog instance
-export const setPostHogForUsageLogger = (posthogInstance: any) => usageLogger.setPostHog(posthogInstance);
 
 // Export helper functions
 export const logEvent = (event: string, props?: Record<string, any>) => usageLogger.logEvent(event, props);

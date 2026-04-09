@@ -22,7 +22,6 @@ import { useTheme } from "@/hooks/useTheme";
 import Colors from "@/constants/colors";
 import { useChatStore } from "@/hooks/use-chat-store";
 import { featureUse, getAnonymousId } from "@/lib/usageLogger";
-import { usePostHog } from 'posthog-react-native';
 import { supabase } from "@/lib/supabase";
 import { ChatMessage, SponsorType } from "@/types";
 import { adjustFontWeight } from "@/constants/fonts";
@@ -206,7 +205,6 @@ export default function ChatInterface({
   sponsorType: propSponsorType,
   onSponsorPress,
 }: ChatInterfaceProps) {
-  const posthog = usePostHog();
   const { palette } = useTheme();
   const { messages, isLoading, sendMessage, sponsorType: storeSponsorType, changeSponsor } = useChatStore();
   const textSettings = useTextSettings();
@@ -288,13 +286,6 @@ export default function ChatInterface({
 
     const sponsorName = getSponsorDisplayName(sponsorType);
     featureUse(`SponsorMessage_${sponsorName}`, 'Chat');
-
-    // TODO: Remove Supabase tracking after PostHog validation
-    posthog?.capture('sponsor_message_sent', { 
-      $screen_name: 'Chat',
-      sponsor_name: sponsorName,
-      screen: 'Chat'
-    });
 
     const textToSend = inputText;
     setInputText("");

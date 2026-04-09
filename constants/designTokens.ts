@@ -19,6 +19,7 @@ export const colors = {
 
   tertiary: '#A386D5',     // Soft lavender — accents, highlights
   tertiaryLight: '#C9B8E8',
+  tertiaryExtraLight: '#E8DFF5',
   tertiaryDark: '#7A5FB5',
   tertiaryExtraDark: '#5A4290',
 
