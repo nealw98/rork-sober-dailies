@@ -41,7 +41,7 @@ import {
 
 const DAILY_SPONSOR_LIMIT = 50;
 const MONTHLY_SPONSOR_LIMIT = 200;
-const HERO_HEIGHT = Dimensions.get("window").height * 0.35;
+const HERO_HEIGHT = Dimensions.get("window").height * 0.40;
 const STICKY_THRESHOLD = HERO_HEIGHT - 80;
 
 type LimitCheckResult =
