@@ -165,7 +165,7 @@ const HomeScreen = () => {
               AI COMPANION
             </Text>
           </View>
-          <Text style={[styles.cardTitle, { color: '#256263', fontFamily: 'WixMadeforDisplay_500Medium' }]}>AI Sponsor</Text>
+          <Text style={[styles.cardTitle, { color: '#256263' }]}>AI Sponsor</Text>
           <Text style={[styles.cardSubtitle, { color: '#3B7E7F' }]}>
             Always here to listen, guide, and support your step work in real-time.
           </Text>
@@ -187,7 +187,7 @@ const HomeScreen = () => {
               FEATURED
             </Text>
           </View>
-          <Text style={[styles.cardTitle, { color: colors.tertiaryExtraDark, fontFamily: 'WixMadeforDisplay_500Medium' }]}>AA Speakers</Text>
+          <Text style={[styles.cardTitle, { color: colors.tertiaryExtraDark }]}>AA Speakers</Text>
           <Text style={[styles.cardSubtitle, { color: '#624C91' }]}>
             Listen to inspiring stories of recovery from fellow members.
           </Text>
@@ -378,7 +378,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'transparent',
   },
   reflectionTitle: {
-    fontFamily: fontFamily.serifBold,
+    fontFamily: 'WixMadeforDisplay_500Medium',
     fontSize: fontSize['3xl'],
     color: colors.white,
     marginBottom: spacing.sm,
@@ -433,7 +433,7 @@ const styles = StyleSheet.create({
 
   // ── Card Typography ──
   cardTitle: {
-    fontFamily: fontFamily.serifBold,
+    fontFamily: 'WixMadeforDisplay_500Medium',
     fontSize: fontSize['3xl'],
     marginBottom: spacing.xs,
   },

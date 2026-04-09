@@ -584,7 +584,7 @@ const styles = StyleSheet.create({
   },
   headlineText: {
     fontSize: 28,
-    fontFamily: designFontFamily.serifBold,
+    fontFamily: 'WixMadeforDisplay_500Medium',
     color: '#FFFFFF',
     letterSpacing: -0.5,
     marginBottom: 8,
