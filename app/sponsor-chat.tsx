@@ -42,7 +42,7 @@ import {
 
 const DAILY_SPONSOR_LIMIT = 50;
 const MONTHLY_SPONSOR_LIMIT = 200;
-const STICKY_THRESHOLD = 300;
+const STICKY_THRESHOLD = 340;
 
 type LimitCheckResult =
   | { allowed: true }
@@ -420,12 +420,14 @@ const styles = StyleSheet.create({
 
   // ── Hero ──
   heroContainer: {
+    height: 420,
     overflow: "hidden",
     marginHorizontal: -spacing.lg,
   },
   heroImage: {
     width: "100%",
-    aspectRatio: 1.5,
+    height: "100%",
+    resizeMode: "cover",
   },
   heroBottomGradient: {
     position: "absolute",
