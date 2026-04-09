@@ -517,7 +517,7 @@ const styles = StyleSheet.create({
     paddingBottom: 0,
   },
   title: {
-    fontFamily: 'WixMadeforDisplay_500Medium',
+    fontFamily: 'WixMadeforDisplay_600SemiBold',
     fontSize: 28,
     letterSpacing: -0.5,
     color: '#2E7A7B',

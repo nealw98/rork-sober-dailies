@@ -31,6 +31,7 @@ import {
 } from '@expo-google-fonts/lora';
 import {
   WixMadeforDisplay_500Medium,
+  WixMadeforDisplay_600SemiBold,
   WixMadeforDisplay_700Bold,
 } from '@expo-google-fonts/wix-madefor-display';
 
@@ -100,6 +101,7 @@ function RootLayoutNav() {
     Lora_400Regular,
     Lora_700Bold,
     WixMadeforDisplay_500Medium,
+    WixMadeforDisplay_600SemiBold,
     WixMadeforDisplay_700Bold,
   });
 
