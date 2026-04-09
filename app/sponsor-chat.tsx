@@ -18,6 +18,7 @@ import { useRouter, useLocalSearchParams, Stack } from "expo-router";
 import { ChevronLeft, RotateCcw, Send } from "lucide-react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
+import { BlurView } from "expo-blur";
 import * as Haptics from "expo-haptics";
 import * as Clipboard from "expo-clipboard";
 import { ChatStoreProvider, useChatStore } from "@/hooks/use-chat-store";
@@ -41,8 +42,9 @@ import {
 
 const DAILY_SPONSOR_LIMIT = 50;
 const MONTHLY_SPONSOR_LIMIT = 200;
-const HERO_HEIGHT = Dimensions.get("window").height * 0.40;
-const STICKY_THRESHOLD = HERO_HEIGHT - 80;
+const SCREEN_WIDTH = Dimensions.get("window").width;
+const HERO_IMAGE_HEIGHT = SCREEN_WIDTH / 0.85; // matches aspectRatio
+const STICKY_THRESHOLD = HERO_IMAGE_HEIGHT - 80;
 
 type LimitCheckResult =
   | { allowed: true }
@@ -278,29 +280,12 @@ function SponsorChatContent({ initialSponsor }: { initialSponsor: string }) {
       <View style={styles.heroContainer}>
         <Image source={sponsor.avatar} style={styles.heroImage} resizeMode="cover" />
 
-        {/* Top gradient — ensures nav buttons visible on any photo */}
+        {/* Bottom gradient — dark fade for name/tags readability */}
         <LinearGradient
-          colors={["rgba(0,0,0,0.4)", "rgba(0,0,0,0.1)", "transparent"]}
-          locations={[0, 0.5, 1]}
-          style={styles.heroTopGradient}
-        />
-
-        {/* Bottom gradient — seamless fade into #F8F9FA */}
-        <LinearGradient
-          colors={["transparent", "transparent", "#F8F9FA"]}
-          locations={[0, 0.5, 1]}
+          colors={["transparent", "rgba(0,0,0,0.5)", "rgba(0,0,0,0.7)"]}
+          locations={[0.3, 0.7, 1]}
           style={styles.heroBottomGradient}
         />
-
-        {/* Nav buttons */}
-        <View style={[styles.heroNavRow, { paddingTop: insets.top + 8 }]}>
-          <TouchableOpacity onPress={handleBack} style={styles.heroNavBtn} activeOpacity={0.7}>
-            <ChevronLeft size={22} color="rgba(255,255,255,0.85)" strokeWidth={2} />
-          </TouchableOpacity>
-          <TouchableOpacity onPress={handleRefresh} style={styles.heroNavBtn} activeOpacity={0.7}>
-            <RotateCcw size={18} color="rgba(255,255,255,0.85)" strokeWidth={2} />
-          </TouchableOpacity>
-        </View>
 
         {/* Name + Tags at bottom of image */}
         <View style={styles.heroOverlay}>
@@ -334,21 +319,23 @@ function SponsorChatContent({ initialSponsor }: { initialSponsor: string }) {
     <View style={styles.container}>
       <Stack.Screen options={{ headerShown: false }} />
 
-      {/* ── Sticky Compact Header ── */}
-      <Animated.View
-        style={[
-          styles.stickyHeader,
-          { paddingTop: insets.top + 8, opacity: stickyOpacity },
-        ]}
-      >
-        <TouchableOpacity onPress={handleBack} style={styles.stickyBtn} activeOpacity={0.7}>
-          <ChevronLeft size={20} color="#1A3A4A" strokeWidth={2} />
-        </TouchableOpacity>
-        <Text style={styles.stickyName}>{sponsor.name}</Text>
-        <TouchableOpacity onPress={handleRefresh} style={styles.stickyBtn} activeOpacity={0.7}>
-          <RotateCcw size={16} color={sem.textMuted} strokeWidth={2} />
-        </TouchableOpacity>
-      </Animated.View>
+      {/* ── Persistent Frosted Pill Nav ── */}
+      <View style={[styles.pillWrapper, { top: insets.top + 8 }]}>
+        <BlurView intensity={40} tint="extraLight" style={styles.pillBar}>
+          <View style={styles.pillBorderOverlay} />
+          <TouchableOpacity onPress={handleBack} style={styles.pillBtn} activeOpacity={0.7}>
+            <ChevronLeft size={20} color="#1A3A4A" strokeWidth={1.5} />
+          </TouchableOpacity>
+
+          <Animated.Text style={[styles.pillName, { opacity: stickyOpacity }]}>
+            {sponsor.name}
+          </Animated.Text>
+
+          <TouchableOpacity onPress={handleRefresh} style={styles.pillBtn} activeOpacity={0.7}>
+            <RotateCcw size={16} color="#1A3A4A" strokeWidth={1.5} />
+          </TouchableOpacity>
+        </BlurView>
+      </View>
 
       {/* ── Chat ── */}
       <KeyboardAvoidingView
@@ -435,44 +422,20 @@ const styles = StyleSheet.create({
 
   // ── Hero ──
   heroContainer: {
-    height: HERO_HEIGHT,
     overflow: "hidden",
     marginHorizontal: -spacing.lg,
   },
   heroImage: {
     width: "100%",
-    height: "100%",
-  },
-  heroTopGradient: {
-    position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
-    height: 120,
+    height: undefined,
+    aspectRatio: 0.85,
   },
   heroBottomGradient: {
     position: "absolute",
     left: 0,
     right: 0,
     bottom: 0,
-    height: HERO_HEIGHT * 0.5,
-  },
-  heroNavRow: {
-    position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
-    flexDirection: "row",
-    justifyContent: "space-between",
-    paddingHorizontal: spacing.md,
-    zIndex: 10,
-  },
-  heroNavBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    alignItems: "center",
-    justifyContent: "center",
+    height: 120,
   },
   heroOverlay: {
     position: "absolute",
@@ -485,9 +448,12 @@ const styles = StyleSheet.create({
   heroName: {
     fontFamily: "WixMadeforDisplay_700Bold",
     fontSize: 28,
-    color: "#1A3A4A",
+    color: "#FFFFFF",
     letterSpacing: -0.5,
     marginBottom: spacing.sm,
+    textShadowColor: "rgba(0,0,0,0.4)",
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 6,
   },
   tagsRow: {
     flexDirection: "row",
@@ -495,7 +461,7 @@ const styles = StyleSheet.create({
     flexWrap: "wrap",
   },
   tagPill: {
-    backgroundColor: "rgba(168, 222, 222, 0.15)",
+    backgroundColor: "rgba(255, 255, 255, 0.2)",
     borderRadius: 9999,
     paddingHorizontal: 12,
     paddingVertical: 4,
@@ -504,7 +470,7 @@ const styles = StyleSheet.create({
     fontFamily: "WixMadeforText_500Medium",
     fontSize: 10,
     letterSpacing: 1,
-    color: "#1A3A4A",
+    color: "rgba(255, 255, 255, 0.9)",
     textTransform: "uppercase",
   },
 
@@ -528,32 +494,46 @@ const styles = StyleSheet.create({
     backgroundColor: "#E5E2D9",
   },
 
-  // ── Sticky Header ──
-  stickyHeader: {
+  // ── Persistent Frosted Pill ──
+  pillWrapper: {
     position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
+    left: spacing.lg,
+    right: spacing.lg,
     zIndex: 100,
+    shadowColor: "#000",
+    shadowOpacity: 0.1,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 6,
+  },
+  pillBar: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingHorizontal: spacing.md,
-    paddingBottom: spacing.sm,
-    backgroundColor: "#F8F9FA",
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: "#E5E2D9",
+    borderRadius: 9999,
+    paddingVertical: spacing.xs + 2,
+    paddingHorizontal: spacing.sm + 2,
+    overflow: "hidden",
   },
-  stickyBtn: {
+  pillBorderOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    borderRadius: 9999,
+    borderTopWidth: 1,
+    borderTopColor: "rgba(255, 255, 255, 0.3)",
+    borderLeftWidth: 0,
+    borderRightWidth: 0,
+    borderBottomWidth: 0,
+  },
+  pillBtn: {
     width: 36,
     height: 36,
     borderRadius: 18,
     alignItems: "center",
     justifyContent: "center",
   },
-  stickyName: {
+  pillName: {
     fontFamily: "WixMadeforDisplay_600SemiBold",
-    fontSize: fontSizeTokens.lg,
+    fontSize: fontSizeTokens.base,
     color: "#1A3A4A",
   },
 
