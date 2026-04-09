@@ -376,6 +376,7 @@ export default function DailyReflection({ fontSize = 18, lineHeight, jumpToDate 
         <View style={styles.contentCard}>
           {/* Quote */}
           <View style={styles.quoteBlock}>
+            <View style={styles.quoteBorder} />
             <Text style={[styles.quoteText, { fontSize, lineHeight: effectiveLineHeight, color: sem.textSecondary }]}>
               {reflection.quote}
             </Text>
@@ -537,15 +538,23 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.lg,
   },
   quoteBlock: {
-    paddingLeft: spacing.lg,
+    flexDirection: 'row',
+    paddingLeft: spacing.sm,
     marginBottom: 0,
+  },
+  quoteBorder: {
+    width: 3,
+    borderRadius: 2,
+    backgroundColor: '#2E7A7B',
+    marginRight: spacing.md,
   },
   quoteText: {
     flex: 1,
     fontFamily: 'WixMadeforText_400Regular_Italic',
   },
   source: {
-    textAlign: 'right',
+    textAlign: 'left',
+    paddingLeft: spacing.sm + 3 + spacing.md,
     marginTop: spacing.xs,
     marginBottom: spacing.lg,
     fontFamily: 'WixMadeforText_500Medium',
