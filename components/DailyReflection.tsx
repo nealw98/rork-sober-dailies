@@ -382,7 +382,7 @@ export default function DailyReflection({ fontSize = 18, lineHeight, jumpToDate 
             </Text>
           </View>
 
-          <Text style={[styles.source, { fontSize: fontSize * 0.75, color: sem.textMuted }]}>{reflection.source.replace(/\w\S*/g, (txt: string, i: number) => i === 0 ? txt.charAt(0).toUpperCase() + txt.substring(1).toLowerCase() : txt.toLowerCase())}</Text>
+          <Text style={[styles.source, { fontSize, color: sem.textMuted }]}>{reflection.source.replace(/\w\S*/g, (txt: string) => txt.charAt(0).toUpperCase() + txt.substring(1).toLowerCase())}</Text>
 
           {/* Reflection body */}
           <Text style={[styles.reflectionText, { fontSize, lineHeight: effectiveLineHeight, color: sem.text }]}>
@@ -547,7 +547,9 @@ const styles = StyleSheet.create({
     width: 3,
     borderRadius: 1.5,
     backgroundColor: '#1A3A4A',
-    marginRight: spacing.md,
+    marginRight: spacing.md + 6,
+    marginTop: 6,
+    marginBottom: 6,
   },
   quoteText: {
     flex: 1,
