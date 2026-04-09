@@ -42,6 +42,9 @@ export interface SponsorConfig {
   bubbleShadowColor?: string;
   bubbleBorderColor?: string;
   tileColor?: string;
+  tags?: string[];
+  hookQuote?: string;
+  chatPlaceholder?: string;
 }
 
 export const SPONSORS: SponsorConfig[] = [
@@ -57,6 +60,9 @@ export const SPONSORS: SponsorConfig[] = [
     loadingText: "Steady Eddie is thinking...",
     bubbleColor: "#d0e8d0",
     tileColor: "#a8d8a8",
+    tags: ["PATIENT", "STEADY", "WISE"],
+    hookQuote: "One day at a time. That's all any of us have.",
+    chatPlaceholder: "What's on your mind...",
   },
   {
     id: "salty",
@@ -70,6 +76,9 @@ export const SPONSORS: SponsorConfig[] = [
     loadingText: "Salty Sam is thinking...",
     bubbleColor: "#fff0d4",
     tileColor: "#ffeca7",
+    tags: ["OLD SCHOOL", "DIRECT", "UNVARNISHED"],
+    hookQuote: "If you want the truth, sit down. If you want a hug, call your mom.",
+    chatPlaceholder: "Give it to me straight...",
   },
   {
     id: "grace",
@@ -83,6 +92,9 @@ export const SPONSORS: SponsorConfig[] = [
     loadingText: "Gentle Grace is channeling wisdom...",
     bubbleColor: "#e8d4f0",
     tileColor: "#d8b8e8",
+    tags: ["COMPASSIONATE", "GENTLE", "ENCOURAGING"],
+    hookQuote: "You're here. That's already brave.",
+    chatPlaceholder: "What's in your heart...",
   },
   {
     id: "cowboy-pete",
@@ -96,6 +108,9 @@ export const SPONSORS: SponsorConfig[] = [
     loadingText: "Cowboy Pete is mullin' it over...",
     bubbleColor: "#E0CABE",
     tileColor: "#c9b09e",
+    tags: ["WESTERN", "GROUNDED", "FOLKSY"],
+    hookQuote: "Saddle up, partner. The trail gets easier.",
+    chatPlaceholder: "What's kickin' up dust...",
   },
   {
     id: "co-sign-sally",
@@ -109,6 +124,9 @@ export const SPONSORS: SponsorConfig[] = [
     loadingText: "Sally is noddin' along...",
     bubbleColor: "#FFD6E6",
     tileColor: "#f5b8cc",
+    tags: ["WRY", "HONEST", "SARCASTIC"],
+    hookQuote: "Oh honey, I've heard it all before.",
+    chatPlaceholder: "Tell me your side of the story...",
   },
   {
     id: "fresh",
@@ -123,6 +141,9 @@ export const SPONSORS: SponsorConfig[] = [
     bubbleColor: "#CCFBF1",
     bubbleShadowColor: "rgba(16,185,129,0.45)",
     tileColor: "#a8ebe0",
+    tags: ["UPBEAT", "REAL", "ZOOMER"],
+    hookQuote: "Yo, let's get into it. No cap.",
+    chatPlaceholder: "What's goin' on...",
   },
   {
     id: "mama-jo",
@@ -136,6 +157,9 @@ export const SPONSORS: SponsorConfig[] = [
     loadingText: "Mama Jo is fixin' to share some wisdom...",
     bubbleColor: "#ffe1d3",
     tileColor: "#ffba9b",
+    tags: ["WARM", "FIRM", "SOUTHERN"],
+    hookQuote: "Come sit down, baby. Let's talk.",
+    chatPlaceholder: "What's on your mind, sugar...",
   },
 ];
 
