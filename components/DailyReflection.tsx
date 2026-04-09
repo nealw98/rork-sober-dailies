@@ -376,7 +376,7 @@ export default function DailyReflection({ fontSize = 18, lineHeight, jumpToDate 
         <View style={styles.contentCard}>
           {/* Quote */}
           <View style={styles.quoteBlock}>
-            <Text style={[styles.quoteText, { fontSize, lineHeight: fontSize * 1.3, color: sem.textSecondary }]}>
+            <Text style={[styles.quoteText, { fontSize, lineHeight: effectiveLineHeight, color: sem.textSecondary }]}>
               {reflection.quote}
             </Text>
           </View>
