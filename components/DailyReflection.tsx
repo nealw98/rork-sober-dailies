@@ -377,12 +377,12 @@ export default function DailyReflection({ fontSize = 18, lineHeight, jumpToDate 
           {/* Quote */}
           <View style={styles.quoteBlock}>
             <View style={styles.quoteBorder} />
-            <Text style={[styles.quoteText, { fontSize, lineHeight: effectiveLineHeight, color: sem.textSecondary }]}>
+            <Text style={[styles.quoteText, { fontSize, lineHeight: effectiveLineHeight, color: '#5B6370' }]}>
               {reflection.quote}
             </Text>
           </View>
 
-          <Text style={[styles.source, { fontSize: fontSize * 0.75, color: sem.textMuted }]}>{reflection.source}</Text>
+          <Text style={[styles.source, { fontSize: fontSize * 0.75, color: sem.textMuted }]}>{reflection.source.replace(/\w\S*/g, (txt: string, i: number) => i === 0 ? txt.charAt(0).toUpperCase() + txt.substring(1).toLowerCase() : txt.toLowerCase())}</Text>
 
           {/* Reflection body */}
           <Text style={[styles.reflectionText, { fontSize, lineHeight: effectiveLineHeight, color: sem.text }]}>
@@ -521,7 +521,7 @@ const styles = StyleSheet.create({
     fontFamily: 'WixMadeforDisplay_700Bold',
     fontSize: 28,
     letterSpacing: -0.5,
-    color: '#1A5254',
+    color: '#1A3A4A',
   },
   titleSeparator: {
     alignItems: 'center',
@@ -539,13 +539,14 @@ const styles = StyleSheet.create({
   },
   quoteBlock: {
     flexDirection: 'row',
+    alignItems: 'stretch',
     paddingLeft: spacing.sm,
     marginBottom: 0,
   },
   quoteBorder: {
     width: 3,
-    borderRadius: 2,
-    backgroundColor: '#1A5254',
+    borderRadius: 1.5,
+    backgroundColor: '#1A3A4A',
     marginRight: spacing.md,
   },
   quoteText: {
