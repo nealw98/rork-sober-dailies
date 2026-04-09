@@ -572,6 +572,8 @@ const styles = StyleSheet.create({
   meditationTile: {
     backgroundColor: 'rgba(168, 222, 222, 0.15)',
     borderRadius: radii.lg,
+    borderWidth: 0.5,
+    borderColor: '#D1E6E6',
     padding: 24,
     marginTop: 32,
   },
