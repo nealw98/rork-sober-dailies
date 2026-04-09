@@ -570,7 +570,7 @@ const styles = StyleSheet.create({
     fontFamily: 'WixMadeforText_400Regular',
   },
   meditationTile: {
-    backgroundColor: '#FDFCF8',
+    backgroundColor: 'rgba(168, 222, 222, 0.15)',
     borderRadius: radii.lg,
     padding: 20,
     marginTop: spacing.sm,
