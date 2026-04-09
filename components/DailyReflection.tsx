@@ -517,10 +517,10 @@ const styles = StyleSheet.create({
     paddingBottom: 0,
   },
   title: {
-    fontFamily: 'WixMadeforDisplay_600SemiBold',
+    fontFamily: 'WixMadeforDisplay_700Bold',
     fontSize: 28,
     letterSpacing: -0.5,
-    color: '#2E7A7B',
+    color: '#1A1A2E',
   },
   titleSeparator: {
     alignItems: 'center',
