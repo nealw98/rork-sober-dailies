@@ -420,14 +420,13 @@ const styles = StyleSheet.create({
 
   // ── Hero ──
   heroContainer: {
-    height: 420,
     overflow: "hidden",
     marginHorizontal: -spacing.lg,
   },
   heroImage: {
     width: "100%",
-    height: "100%",
-    resizeMode: "cover",
+    aspectRatio: 1.5,
+    resizeMode: "stretch",
   },
   heroBottomGradient: {
     position: "absolute",
