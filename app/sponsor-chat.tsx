@@ -278,10 +278,10 @@ function SponsorChatContent({ initialSponsor }: { initialSponsor: string }) {
       <View style={styles.heroContainer}>
         <Image source={sponsor.avatar} style={styles.heroImage} />
 
-        {/* Bottom gradient — dark fade for name/tags readability */}
+        {/* Bottom gradient — fades image into page background */}
         <LinearGradient
-          colors={["transparent", "rgba(0,0,0,0.5)", "rgba(0,0,0,0.7)"]}
-          locations={[0.3, 0.7, 1]}
+          colors={["transparent", "rgba(0,0,0,0.4)", "#F8F9FA"]}
+          locations={[0.2, 0.6, 1]}
           style={styles.heroBottomGradient}
         />
 
@@ -420,6 +420,7 @@ const styles = StyleSheet.create({
 
   // ── Hero ──
   heroContainer: {
+    height: 450,
     overflow: "hidden",
     marginHorizontal: -spacing.lg,
   },
@@ -432,7 +433,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    height: 120,
+    height: 200,
   },
   heroOverlay: {
     position: "absolute",
