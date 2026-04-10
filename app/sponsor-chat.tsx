@@ -223,19 +223,21 @@ function SponsorChatContent({ initialSponsor }: { initialSponsor: string }) {
 
     if (!limitResult.allowed) {
       if ("error" in limitResult) {
-        Alert.alert("Error", limitResult.error);
+        // Fail open — log but don't block the user
+        console.warn("Limit check error:", limitResult.error);
       } else if (limitResult.reason === "daily") {
         Alert.alert(
           "Daily Limit Reached",
           `You've reached the daily limit of ${DAILY_SPONSOR_LIMIT} messages. Please try again tomorrow.`
         );
+        return;
       } else {
         Alert.alert(
           "Monthly Limit Reached",
           `You've reached the monthly limit of ${MONTHLY_SPONSOR_LIMIT} messages. Limits reset at the start of each month.`
         );
+        return;
       }
-      return;
     }
 
     setInputText("");
