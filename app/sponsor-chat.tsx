@@ -310,11 +310,9 @@ function SponsorChatContent({ initialSponsor }: { initialSponsor: string }) {
       {/* ── Hook Quote ── */}
       {sponsor.hookQuote && (
         <View style={styles.hookQuoteContainer}>
-          <View style={styles.separatorLine} />
           <Text style={styles.hookQuoteText}>
             {`\u201C${sponsor.hookQuote}\u201D`}
           </Text>
-          <View style={styles.separatorLine} />
         </View>
       )}
     </View>
@@ -490,15 +488,15 @@ const styles = StyleSheet.create({
   hookQuoteContainer: {
     alignItems: "center",
     paddingHorizontal: spacing.xl,
-    paddingVertical: spacing.lg,
+    paddingTop: spacing.sm,
+    paddingBottom: spacing.lg,
   },
   hookQuoteText: {
     fontFamily: "WixMadeforText_400Regular_Italic",
-    fontSize: fontSizeTokens.md,
-    color: "#1A3A4A",
+    fontSize: fontSizeTokens.base,
+    color: sem.textMuted,
     textAlign: "center",
     lineHeight: 22,
-    paddingVertical: spacing.md,
   },
   separatorLine: {
     width: 40,
