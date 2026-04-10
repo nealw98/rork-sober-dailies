@@ -132,7 +132,7 @@ export const SPONSORS: SponsorConfig[] = [
     id: "fresh",
     name: "Fresh Freddie",
     description: "Upbeat zoomer energy",
-    avatar: require("@/assets/images/fresh_freddie2.webp"),
+    avatar: require("@/assets/images/fresh_freddie4.webp"),
     isAvailable: true,
     systemPrompt: FRESH_FREDDIE_SYSTEM_PROMPT,
     initialMessage: FRESH_FREDDIE_INITIAL_MESSAGE,
