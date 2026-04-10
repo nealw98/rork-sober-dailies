@@ -564,7 +564,7 @@ const styles = StyleSheet.create({
     marginBottom: spacing.lg,
   },
   userBubble: {
-    backgroundColor: "#6DBEBF",
+    backgroundColor: "#A8DEDE",
     padding: spacing.md,
     maxWidth: "85%",
     borderTopLeftRadius: 18,
