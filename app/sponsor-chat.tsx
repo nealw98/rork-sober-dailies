@@ -564,7 +564,7 @@ const styles = StyleSheet.create({
     marginBottom: spacing.lg,
   },
   userBubble: {
-    backgroundColor: "#6DBEBF",
+    backgroundColor: "#86CDCE",
     padding: spacing.md,
     maxWidth: "85%",
     borderTopLeftRadius: 18,
@@ -574,7 +574,7 @@ const styles = StyleSheet.create({
   },
   userText: {
     fontFamily: "WixMadeforText_400Regular",
-    color: "#FFFFFF",
+    color: "#1A3A4A",
   },
   userMeta: {
     fontFamily: "WixMadeforText_400Regular",
@@ -589,7 +589,7 @@ const styles = StyleSheet.create({
     marginBottom: spacing.lg,
   },
   sponsorBubble: {
-    backgroundColor: "#F0F0F0",
+    backgroundColor: "#F0F2F2",
     padding: spacing.md,
     maxWidth: "85%",
     borderTopLeftRadius: 18,
