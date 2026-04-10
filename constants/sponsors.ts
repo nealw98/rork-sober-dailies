@@ -141,7 +141,7 @@ export const SPONSORS: SponsorConfig[] = [
     bubbleColor: "#CCFBF1",
     bubbleShadowColor: "rgba(16,185,129,0.45)",
     tileColor: "#a8ebe0",
-    tags: ["UPBEAT", "REAL", "ZOOMER"],
+    tags: ["UPBEAT", "REAL", "GAMER"],
     hookQuote: "Yo, let's get into it. No cap.",
     chatPlaceholder: "What's goin' on...",
   },
