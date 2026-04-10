@@ -278,16 +278,15 @@ function SponsorChatContent({ initialSponsor }: { initialSponsor: string }) {
       <View style={styles.heroContainer}>
         <Image source={sponsor.avatar} style={styles.heroImage} />
 
-        {/* Dark gradient for text contrast */}
+        {/* Dark gradient for name/tags readability */}
         <LinearGradient
-          colors={["transparent", "rgba(0,0,0,0.5)"]}
+          colors={["transparent", "rgba(0,0,0,0.65)"]}
           style={styles.heroDarkGradient}
         />
 
-        {/* Fade into page background — starts higher */}
+        {/* Fade into page background — only at very bottom */}
         <LinearGradient
-          colors={["transparent", "rgba(248,249,250,0.4)", "#F8F9FA"]}
-          locations={[0, 0.5, 1]}
+          colors={["transparent", "#F8F9FA"]}
           style={styles.heroFadeGradient}
         />
 
@@ -446,7 +445,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    height: 120,
+    height: 80,
   },
   heroOverlay: {
     position: "absolute",
