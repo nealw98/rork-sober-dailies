@@ -574,7 +574,7 @@ const styles = StyleSheet.create({
   },
   userText: {
     fontFamily: "WixMadeforText_400Regular",
-    color: "#1A3A4A",
+    color: "#FFFFFF",
   },
   userMeta: {
     fontFamily: "WixMadeforText_400Regular",
