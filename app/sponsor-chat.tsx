@@ -278,26 +278,16 @@ function SponsorChatContent({ initialSponsor }: { initialSponsor: string }) {
       <View style={styles.heroContainer}>
         <Image source={sponsor.avatar} style={styles.heroImage} />
 
-        {/* Blur zone behind name/tags — light blur at top, stronger at bottom */}
-        <View style={styles.heroBlurZone}>
-          <BlurView intensity={15} tint="dark" style={styles.heroBlurLight} />
-        </View>
-        <View style={styles.heroBlurZoneStrong}>
-          <BlurView intensity={40} tint="dark" style={styles.heroBlurStrong} />
-        </View>
-        <View style={styles.heroBlurZoneBottom}>
-          <BlurView intensity={60} tint="dark" style={styles.heroBlurBottom} />
-        </View>
-
-        {/* Dark gradient overlay for text contrast */}
+        {/* Dark gradient for text contrast */}
         <LinearGradient
-          colors={["transparent", "rgba(0,0,0,0.4)"]}
+          colors={["transparent", "rgba(0,0,0,0.5)"]}
           style={styles.heroDarkGradient}
         />
 
-        {/* Fade into page background at very bottom */}
+        {/* Fade into page background — starts higher */}
         <LinearGradient
-          colors={["transparent", "#F8F9FA"]}
+          colors={["transparent", "rgba(248,249,250,0.4)", "#F8F9FA"]}
+          locations={[0, 0.5, 1]}
           style={styles.heroFadeGradient}
         />
 
@@ -444,52 +434,19 @@ const styles = StyleSheet.create({
     width: Dimensions.get("window").width,
     height: Dimensions.get("window").width * (4 / 3),
   },
-  heroBlurZone: {
-    position: "absolute",
-    left: 0,
-    right: 0,
-    bottom: 80,
-    height: 60,
-    overflow: "hidden",
-  },
-  heroBlurLight: {
-    flex: 1,
-  },
-  heroBlurZoneStrong: {
-    position: "absolute",
-    left: 0,
-    right: 0,
-    bottom: 40,
-    height: 40,
-    overflow: "hidden",
-  },
-  heroBlurStrong: {
-    flex: 1,
-  },
-  heroBlurZoneBottom: {
-    position: "absolute",
-    left: 0,
-    right: 0,
-    bottom: 0,
-    height: 40,
-    overflow: "hidden",
-  },
-  heroBlurBottom: {
-    flex: 1,
-  },
   heroDarkGradient: {
     position: "absolute",
     left: 0,
     right: 0,
     bottom: 0,
-    height: 180,
+    height: 200,
   },
   heroFadeGradient: {
     position: "absolute",
     left: 0,
     right: 0,
     bottom: 0,
-    height: 30,
+    height: 120,
   },
   heroOverlay: {
     position: "absolute",
