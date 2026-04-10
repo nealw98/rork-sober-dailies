@@ -639,7 +639,7 @@ const styles = StyleSheet.create({
     borderRadius: radii.md,
     paddingHorizontal: spacing.md,
     paddingVertical: 10,
-    maxHeight: 100,
+    maxHeight: 160,
   },
   sendBtn: {
     width: 40,
