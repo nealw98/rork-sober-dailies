@@ -597,7 +597,7 @@ const styles = StyleSheet.create({
   numberText: {
     fontFamily: 'WixMadeforDisplay_800ExtraBold',
     fontSize: 54,
-    color: 'rgba(255,255,255,0.9)',
+    color: '#FFFFFF',
     letterSpacing: -1.5,
     lineHeight: 58,
     textAlign: 'center',
@@ -614,7 +614,7 @@ const styles = StyleSheet.create({
   milestoneText: {
     fontFamily: 'WixMadeforDisplay_700Bold',
     fontSize: 15,
-    color: 'rgba(255,255,255,0.75)',
+    color: 'rgba(255,255,255,0.8)',
     textAlign: 'center',
     marginTop: 15,
   },

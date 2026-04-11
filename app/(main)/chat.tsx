@@ -1,11 +1,12 @@
 import React, { useEffect, useState, useCallback, useRef } from "react";
 import { StyleSheet, Image, View, Text, ScrollView, TouchableOpacity } from "react-native";
 import { Stack } from "expo-router";
-// LinearGradient removed — using hero card instead
 import { useRouter, useFocusEffect } from "expo-router";
-import { MessageCircle } from "lucide-react-native";
-import TopLevelHeader from "@/components/navigation/TopLevelHeader";
+import { LinearGradient } from "expo-linear-gradient";
+import { MessageCircle, Home, Menu } from "lucide-react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { BlurView } from "expo-blur";
+import { useHamburgerMenu } from "@/hooks/useHamburgerMenu";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 import { useTheme } from "@/hooks/useTheme";
@@ -23,6 +24,7 @@ import {
   fontSize,
   shadows,
 } from "@/constants/designTokens";
+import CompassWatermark from "@/components/CompassWatermark";
 
 // Only show these sponsors on the selection page
 const VISIBLE_SPONSOR_IDS = [
@@ -46,10 +48,14 @@ const SPONSOR_STORAGE_KEYS: Record<string, string> = {
   "mama-jo": "aa-chat-messages-mama-jo",
 };
 
+const GRADIENT_COLORS = ["#4A6FA5", "#3D8B8B", "#45A08A", "#F2F6F5"] as const;
+const GRADIENT_LOCATIONS = [0, 0.12, 0.25, 0.45] as const;
+
 export default function ChatScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { palette } = useTheme();
+  const { open } = useHamburgerMenu();
   const sem = semanticColors.light;
   const [lastUsedSponsorId, setLastUsedSponsorId] = useState<string | null>(null);
   const [activeChats, setActiveChats] = useState<Set<string>>(new Set());
@@ -167,8 +173,6 @@ export default function ChatScreen() {
     }
   };
 
-
-
   const renderSponsorCard = (sponsor: SponsorConfig) => {
     return (
       <TouchableOpacity
@@ -180,19 +184,21 @@ export default function ChatScreen() {
           cardPositions.current[sponsor.id] = e.nativeEvent.layout.y;
         }}
       >
-        <View style={styles.cardInner}>
-          {sponsor.avatar && (
-            <Image
-              source={sponsor.avatar}
-              style={styles.cardImage}
-              resizeMode="cover"
-            />
-          )}
-          <View style={styles.cardBody}>
-            <Text style={[styles.cardName, { color: sem.text }]}>{sponsor.name}</Text>
-            <Text style={[styles.cardDescription, { color: sem.textSecondary }]}>{sponsor.description}</Text>
+        <BlurView intensity={60} tint="extraLight" style={styles.cardBlur}>
+          <View style={styles.cardInner}>
+            {sponsor.avatar && (
+              <Image
+                source={sponsor.avatar}
+                style={styles.cardImage}
+                resizeMode="cover"
+              />
+            )}
+            <View style={styles.cardBody}>
+              <Text style={styles.cardName}>{sponsor.name}</Text>
+              <Text style={styles.cardDescription}>{sponsor.description}</Text>
+            </View>
           </View>
-        </View>
+        </BlurView>
       </TouchableOpacity>
     );
   };
@@ -201,8 +207,22 @@ export default function ChatScreen() {
     <>
       <Stack.Screen options={{ headerShown: false }} />
       <ScreenContainer noPadding>
-        <View style={[styles.container, { backgroundColor: colors.secondaryLight }]}>
-          <TopLevelHeader title="" />
+        <View style={styles.container}>
+          {/* ── Floating Frosted Pill Nav ── */}
+          <View style={[styles.pillWrapper, { top: insets.top + 8 }]}>
+            <BlurView intensity={40} tint="extraLight" style={styles.pillBar}>
+              <View style={styles.pillBorderOverlay} />
+              <TouchableOpacity onPress={() => router.push('/(main)/')} style={styles.pillBtn} activeOpacity={0.7}>
+                <Home size={20} color="#1A1A2E" strokeWidth={1.5} />
+              </TouchableOpacity>
+
+              <View style={{ flex: 1 }} />
+
+              <TouchableOpacity onPress={open} style={styles.pillBtn} activeOpacity={0.7}>
+                <Menu size={20} color="#1A1A2E" strokeWidth={1.5} />
+              </TouchableOpacity>
+            </BlurView>
+          </View>
 
           <ScrollView
             ref={scrollRef}
@@ -210,24 +230,37 @@ export default function ChatScreen() {
             contentContainerStyle={styles.scrollContent}
             showsVerticalScrollIndicator={false}
           >
-            {/* Page intro */}
-            <View style={styles.pageIntro}>
-              <View style={styles.introLabelRow}>
-                <MessageCircle size={14} color={colors.secondaryDark} />
-                <Text style={[styles.introLabel, { color: colors.secondaryDark }]}>AI COMPANION</Text>
-              </View>
-              <Text style={[styles.introTitle, { color: sem.text }]}>Find Your Guide</Text>
-              <Text style={[styles.introDescription, { color: sem.textSecondary }]}>
-                Choose a sponsor that resonates with your recovery journey and personality.
-              </Text>
-            </View>
+            {/* ── Full-page Gradient Wrapper ── */}
+            <View style={styles.gradientPage}>
+              <LinearGradient
+                colors={GRADIENT_COLORS as unknown as string[]}
+                locations={GRADIENT_LOCATIONS as unknown as number[]}
+                style={styles.gradientBackground}
+                start={{ x: 0.1, y: 0 }}
+                end={{ x: 0.9, y: 1 }}
+              />
 
-            {/* Sponsor cards — only render once data is loaded to prevent flicker */}
-            {dataLoaded && (
-              <View style={styles.cardsContainer}>
-                {sortedSponsors.map((sponsor) => renderSponsorCard(sponsor))}
+              <CompassWatermark />
+
+              {/* ── Editorial Header ── */}
+              <View style={[styles.pageIntro, { paddingTop: insets.top + 100 }]}>
+                <View style={styles.introLabelRow}>
+                  <MessageCircle size={14} color="rgba(255,255,255,0.7)" />
+                  <Text style={styles.introLabel}>AI SPONSOR</Text>
+                </View>
+                <Text style={styles.introTitle}>Find Your Guide</Text>
+                <Text style={styles.introDescription}>
+                  Choose a sponsor that resonates with your recovery journey and personality.
+                </Text>
               </View>
-            )}
+
+              {/* Sponsor cards — only render once data is loaded to prevent flicker */}
+              {dataLoaded && (
+                <View style={styles.cardsContainer}>
+                  {sortedSponsors.map((sponsor) => renderSponsorCard(sponsor))}
+                </View>
+              )}
+            </View>
           </ScrollView>
         </View>
       </ScreenContainer>
@@ -238,40 +271,79 @@ export default function ChatScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: "transparent",
   },
 
-  // ── Page Intro ──
+  // ── Gradient Page ──
+  gradientPage: {
+    minHeight: "100%",
+  },
+  gradientBackground: {
+    ...StyleSheet.absoluteFillObject,
+  },
+
+  // ── Frosted Pill Nav ──
+  pillWrapper: {
+    position: "absolute",
+    left: spacing.lg,
+    right: spacing.lg,
+    zIndex: 100,
+  },
+  pillBar: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    borderRadius: 9999,
+    paddingVertical: spacing.xs + 2,
+    paddingHorizontal: spacing.sm + 2,
+    overflow: "hidden",
+  },
+  pillBorderOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    borderRadius: 9999,
+    borderTopWidth: 1,
+    borderTopColor: "rgba(255, 255, 255, 0.3)",
+    borderLeftWidth: 0,
+    borderRightWidth: 0,
+    borderBottomWidth: 0,
+  },
+  pillBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  // ── Editorial Page Intro ──
   pageIntro: {
     paddingHorizontal: spacing.lg,
-    paddingTop: spacing.lg,
-    paddingBottom: spacing.xxl,
+    paddingTop: 80,
+    paddingBottom: spacing.xl,
   },
   introLabelRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: spacing.sm,
     marginBottom: spacing.sm,
   },
   introLabel: {
-    fontFamily: fontFamily.semiBold,
+    fontFamily: "WixMadeforDisplay_600SemiBold",
     fontSize: fontSize.xs,
     letterSpacing: 1.5,
+    color: "rgba(255,255,255,0.7)",
   },
   introTitle: {
-    fontFamily: fontFamily.bold,
+    fontFamily: "WixMadeforDisplay_700Bold",
     fontSize: fontSize["4xl"],
     marginBottom: spacing.sm,
+    color: colors.white,
   },
   introDescription: {
-    fontFamily: fontFamily.regular,
+    fontFamily: "WixMadeforText_400Regular",
     fontSize: fontSize.md,
     lineHeight: 20,
-  },
-  headerSubtitle: {
-    fontFamily: fontFamily.regular,
-    fontSize: fontSize.md,
-    color: "rgba(255, 255, 255, 0.8)",
-    lineHeight: 20,
+    color: "rgba(255,255,255,0.8)",
   },
 
   // ── Scroll ──
@@ -286,24 +358,24 @@ const styles = StyleSheet.create({
     paddingBottom: spacing.lg,
   },
 
-  // ── Section Label ──
-  sectionLabel: {
-    fontFamily: fontFamily.semiBold,
-    fontSize: fontSize.sm,
-    letterSpacing: 1,
-    marginTop: spacing.lg,
-    marginBottom: spacing.md,
-  },
-
-  // ── Card ──
+  // ── Frosted Glass Card ──
   card: {
-    backgroundColor: colors.white,
-    borderRadius: radii.lg,
-    marginBottom: spacing.md,
-    ...shadows.lg,
+    borderRadius: 24,
+    marginBottom: 20,
+    overflow: "hidden",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.05,
+    shadowRadius: 20,
+    elevation: 4,
+  },
+  cardBlur: {
+    borderRadius: 24,
+    overflow: "hidden",
+    backgroundColor: "rgba(255, 255, 255, 0.9)",
   },
   cardInner: {
-    borderRadius: radii.lg,
+    borderRadius: 24,
     overflow: "hidden",
   },
   cardImage: {
@@ -314,13 +386,15 @@ const styles = StyleSheet.create({
     padding: spacing.lg,
   },
   cardName: {
-    fontFamily: fontFamily.bold,
+    fontFamily: "WixMadeforDisplay_700Bold",
     fontSize: fontSize["3xl"],
     marginBottom: spacing.xs,
+    color: "#1A1A2E",
   },
   cardDescription: {
-    fontFamily: fontFamily.regular,
+    fontFamily: "WixMadeforText_400Regular",
     fontSize: fontSize.md,
     lineHeight: 20,
+    color: "#6B7280",
   },
 });
