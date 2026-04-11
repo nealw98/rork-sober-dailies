@@ -9,6 +9,7 @@ import {
   ImageBackground,
   AppState,
   AppStateStatus,
+  useWindowDimensions,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -45,6 +46,7 @@ const isSameDay = (date1: Date, date2: Date): boolean => {
 const HomeScreen = () => {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const { height: screenHeight } = useWindowDimensions();
   const { palette } = useTheme();
   const [todaysReflection, setTodaysReflection] = useState<Reflection | null>(null);
   const [currentDate, setCurrentDate] = useState<Date>(new Date());
@@ -94,7 +96,7 @@ const HomeScreen = () => {
         {/* Hero header — gradient with watermark icon */}
         <LinearGradient
           colors={palette.gradients.header as [string, string, ...string[]]}
-          style={[styles.headerGradient, { paddingTop: insets.top + 16 }]}
+          style={[styles.headerGradient, { paddingTop: insets.top, minHeight: Math.round(screenHeight / 3) }]}
           start={{ x: 0.1, y: 0 }}
           end={{ x: 0.9, y: 1 }}
         >
@@ -135,7 +137,7 @@ const HomeScreen = () => {
               style={styles.reflectionCard}
               imageStyle={styles.reflectionImage}
               resizeMode="cover"
-              blurRadius={4}
+              blurRadius={8}
             >
               <View style={styles.reflectionOverlay}>
                 <Text style={styles.categoryLabel}>TODAY'S FOCUS</Text>
@@ -165,7 +167,7 @@ const HomeScreen = () => {
               AI COMPANION
             </Text>
           </View>
-          <Text style={[styles.cardTitle, { color: '#256263' }]}>AI Sponsor</Text>
+          <Text style={styles.cardTitle}>AI Sponsor</Text>
           <Text style={[styles.cardSubtitle, { color: '#3B7E7F' }]}>
             Always here to listen, guide, and support your step work in real-time.
           </Text>
@@ -187,7 +189,7 @@ const HomeScreen = () => {
               FEATURED
             </Text>
           </View>
-          <Text style={[styles.cardTitle, { color: colors.tertiaryExtraDark }]}>AA Speakers</Text>
+          <Text style={styles.cardTitle}>AA Speakers</Text>
           <Text style={[styles.cardSubtitle, { color: '#624C91' }]}>
             Listen to inspiring stories of recovery from fellow members.
           </Text>
@@ -323,7 +325,7 @@ const styles = StyleSheet.create({
 
   // Header — extra bottom padding so the reflection card can overlap into it
   headerGradient: {
-    paddingBottom: 56, // extra space for the reflection card to pull up into
+    paddingBottom: 16,
   },
   watermarkContainer: {
     position: 'absolute',
@@ -344,7 +346,7 @@ const styles = StyleSheet.create({
   sobrietyCounterContainer: {
     alignItems: 'center',
     paddingHorizontal: spacing.lg,
-    marginTop: -12,
+    marginTop: -22,
   },
 
   scrollView: {
@@ -354,7 +356,7 @@ const styles = StyleSheet.create({
     // no padding here — the gradient fills edge-to-edge
   },
   cardsContainer: {
-    marginTop: -40, // pull up to overlap the header gradient
+    marginTop: -40,
     paddingHorizontal: spacing.lg,
     paddingBottom: spacing.lg,
   },
@@ -374,12 +376,13 @@ const styles = StyleSheet.create({
   },
   reflectionOverlay: {
     padding: spacing.lg,
-    paddingVertical: spacing.xl,
+    paddingVertical: spacing.lg,
     backgroundColor: 'transparent',
   },
   reflectionTitle: {
-    fontFamily: 'WixMadeforDisplay_700Bold',
-    fontSize: fontSize['3xl'],
+    fontFamily: 'WixMadeforDisplay_800ExtraBold',
+    fontSize: 24,
+    letterSpacing: -0.5,
     color: colors.white,
     marginBottom: spacing.sm,
     textShadowColor: 'rgba(0, 0, 0, 0.7)',
@@ -392,7 +395,7 @@ const styles = StyleSheet.create({
     color: colors.white,
     fontStyle: 'italic',
     lineHeight: 22,
-    marginBottom: spacing.lg,
+    marginBottom: spacing.xs,
     textShadowColor: 'rgba(0, 0, 0, 0.8)',
     textShadowOffset: { width: 0, height: 2 },
     textShadowRadius: 12,
@@ -433,8 +436,10 @@ const styles = StyleSheet.create({
 
   // ── Card Typography ──
   cardTitle: {
-    fontFamily: 'WixMadeforDisplay_700Bold',
-    fontSize: fontSize['3xl'],
+    fontFamily: 'WixMadeforDisplay_800ExtraBold',
+    fontSize: 24,
+    letterSpacing: -0.5,
+    color: semanticColors.light.text,
     marginBottom: spacing.xs,
   },
   cardSubtitle: {

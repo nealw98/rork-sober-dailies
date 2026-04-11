@@ -33,6 +33,7 @@ import {
   WixMadeforDisplay_500Medium,
   WixMadeforDisplay_600SemiBold,
   WixMadeforDisplay_700Bold,
+  WixMadeforDisplay_800ExtraBold,
 } from '@expo-google-fonts/wix-madefor-display';
 import {
   WixMadeforText_400Regular,
@@ -110,6 +111,7 @@ function RootLayoutNav() {
     WixMadeforDisplay_500Medium,
     WixMadeforDisplay_600SemiBold,
     WixMadeforDisplay_700Bold,
+    WixMadeforDisplay_800ExtraBold,
     WixMadeforText_400Regular,
     WixMadeforText_400Regular_Italic,
     WixMadeforText_500Medium,

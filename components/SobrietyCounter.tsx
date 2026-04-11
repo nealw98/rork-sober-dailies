@@ -1,10 +1,10 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { StyleSheet, View, Text, TouchableOpacity, Modal, TextInput, Alert, Keyboard, useWindowDimensions } from 'react-native';
 import { Calendar, X, Edit3 } from 'lucide-react-native';
 import { useSobriety } from '@/hooks/useSobrietyStore';
 import { formatStoredDateForDisplay, parseLocalDate, formatLocalDate } from '@/lib/dateUtils';
 import Colors from '@/constants/colors';
-import { fontFamily as designFontFamily } from '@/constants/designTokens';
+import { fontFamily as designFontFamily, colors } from '@/constants/designTokens';
 import { useTheme } from '@/hooks/useTheme';
 
 const SobrietyCounter = () => {
@@ -24,6 +24,11 @@ const SobrietyCounter = () => {
   const [dateInput, setDateInput] = useState<string>('');
   const [showEditModal, setShowEditModal] = useState<boolean>(false);
   const [showTotalDays, setShowTotalDays] = useState<boolean>(false);
+  const [numberWidth, setNumberWidth] = useState<number>(0);
+
+  const onNumberLayout = useCallback((e: any) => {
+    setNumberWidth(e.nativeEvent.layout.width);
+  }, []);
 
 
   // Auto-format input as user types: mm/dd/yyyy
@@ -426,7 +431,7 @@ const SobrietyCounter = () => {
     return (
       <>
         <View style={styles.counterWrapper}>
-          {/* Line 1: Sober since... with pencil — sits at top */}
+          {/* Sober since label with edit pencil */}
           <View style={styles.sinceRow}>
             <Text style={styles.sinceText}>
               Sober since {formatStoredDateForDisplay(sobrietyDate)}
@@ -435,19 +440,24 @@ const SobrietyCounter = () => {
               style={styles.editButton}
               onPress={handleEditDate}
             >
-              <Edit3 size={14} color="rgba(255,255,255,0.7)" />
+              <Edit3 size={14} color="rgba(255,255,255,0.5)" />
             </TouchableOpacity>
           </View>
 
-          {/* Lines 2+3: Headline + subtitle — pushed to bottom */}
-          <View>
-            <Text style={styles.headlineText}>
-              {buildHeadline()}
+          {/* Justified block: number + label */}
+          <View style={styles.blockContainer}>
+            <Text style={styles.numberText} onLayout={onNumberLayout}>
+              {validDaysSober.toLocaleString()}
             </Text>
-            <Text style={styles.subtitleText}>
-              {validDaysSober.toLocaleString()} days
+            <Text style={styles.daysLabel} numberOfLines={1}>
+              D · A · Y · S
             </Text>
           </View>
+
+          {/* Milestone footer */}
+          <Text style={styles.milestoneText}>
+            {buildHeadline()}
+          </Text>
         </View>
         
         {/* Edit Date Modal */}
@@ -562,38 +572,51 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: Colors.light.muted,
   },
-  // Counter display styles — editorial, left-justified
+  // Counter display styles — justified block, compact
   counterWrapper: {
-    alignItems: 'flex-start',
+    alignItems: 'center',
     width: '100%',
-    paddingTop: 8,
-    paddingBottom: 8,
   },
   sinceRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    marginBottom: 16,
+    marginBottom: 20,
   },
   sinceText: {
-    fontSize: 9,
-    fontWeight: '600',
-    color: 'rgba(255,255,255,0.6)',
+    fontFamily: 'WixMadeforDisplay_500Medium',
+    fontSize: 10,
+    color: 'rgba(255,255,255,0.5)',
     textTransform: 'uppercase',
     letterSpacing: 2.0,
+    textAlign: 'center',
   },
-  headlineText: {
-    fontSize: 28,
-    fontFamily: 'WixMadeforDisplay_500Medium',
-    color: '#FFFFFF',
-    letterSpacing: -0.5,
-    marginBottom: 8,
+  blockContainer: {
+    alignItems: 'center',
   },
-  subtitleText: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: 'rgba(255,255,255,0.7)',
-    letterSpacing: 0.5,
+  numberText: {
+    fontFamily: 'WixMadeforDisplay_800ExtraBold',
+    fontSize: 54,
+    color: 'rgba(255,255,255,0.9)',
+    letterSpacing: -1.5,
+    lineHeight: 58,
+    textAlign: 'center',
+  },
+  daysLabel: {
+    fontFamily: 'WixMadeforDisplay_700Bold',
+    fontSize: 16,
+    color: colors.secondary,
+    textAlign: 'center',
+    letterSpacing: 4,
+    marginTop: -6,
+    paddingLeft: 8,
+  },
+  milestoneText: {
+    fontFamily: 'WixMadeforDisplay_700Bold',
+    fontSize: 15,
+    color: 'rgba(255,255,255,0.75)',
+    textAlign: 'center',
+    marginTop: 15,
   },
   pointerIcon: {
     position: 'absolute',
