@@ -100,7 +100,7 @@ export const SPONSORS: SponsorConfig[] = [
     id: "cowboy-pete",
     name: "Cowboy Pete",
     description: "Western wisdom in a gentle drawl",
-    avatar: require("@/assets/images/cowboy_pete.png"),
+    avatar: require("@/assets/images/cowboy_pete.webp"),
     isAvailable: true,
     systemPrompt: COWBOY_PETE_SYSTEM_PROMPT,
     initialMessage: COWBOY_PETE_INITIAL_MESSAGE,
