@@ -134,7 +134,7 @@ export default function SupportIdModal({ visible, onClose }: SupportIdModalProps
             <View style={styles.divider} />
 
             <Text style={styles.refreshNote}>
-              If you just received a gift subscription, tap Refresh after Neal confirms it&apos;s granted.
+              If you just received a gift subscription, tap Refresh after we confirm it&apos;s granted.
             </Text>
 
             <TouchableOpacity
