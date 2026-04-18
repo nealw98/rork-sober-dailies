@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Platform, Linking, Share, ScrollView, Modal, SafeAreaView, Alert, TextInput, ActivityIndicator, KeyboardAvoidingView, Switch } from 'react-native';
 import { router, Stack } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -18,6 +18,7 @@ import { Logger } from '@/lib/logger';
 import { submitFeedback } from '@/lib/feedback';
 import { usageLogger } from '@/lib/usageLogger';
 import { useScreenTimeTracking } from '@/hooks/useScreenTimeTracking';
+import SupportIdModal from '@/components/SupportIdModal';
 
 const DEVELOPER_MODE_KEY = 'developer_mode_enabled';
 
@@ -58,11 +59,8 @@ export default function SettingsScreen() {
   const [contactInfo, setContactInfo] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Support ID modal state (hidden, revealed by tapping version 7 times)
-  const [supportIdModalVisible, setSupportIdModalVisible] = useState(false);
-  const [supportId, setSupportId] = useState<string | null>(null);
-  const [versionTapCount, setVersionTapCount] = useState(0);
-  const versionTapTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  // Gift / support modal (visible menu item)
+  const [giftSupportVisible, setGiftSupportVisible] = useState(false);
 
   // Load developer mode on mount
   useEffect(() => {
@@ -341,52 +339,6 @@ export default function SettingsScreen() {
     }
   };
 
-  // Handle version number taps for hidden diagnostic screen
-  const handleVersionTap = () => {
-    // Clear existing timeout
-    if (versionTapTimeoutRef.current) {
-      clearTimeout(versionTapTimeoutRef.current);
-    }
-
-    const newCount = versionTapCount + 1;
-    setVersionTapCount(newCount);
-
-    if (newCount >= 7) {
-      // Reset count and show Support ID modal
-      setVersionTapCount(0);
-      showSupportIdModal();
-    } else {
-      // Reset count after 3 seconds of no taps
-      versionTapTimeoutRef.current = setTimeout(() => {
-        setVersionTapCount(0);
-      }, 3000);
-    }
-  };
-
-  // Clean up timeout on unmount
-  useEffect(() => {
-    return () => {
-      if (versionTapTimeoutRef.current) {
-        clearTimeout(versionTapTimeoutRef.current);
-      }
-    };
-  }, []);
-
-  // Show Support ID modal
-  const showSupportIdModal = async () => {
-    const id = await usageLogger.getAnonymousId();
-    setSupportId(id);
-    setSupportIdModalVisible(true);
-  };
-
-  // Copy Support ID to clipboard
-  const copySupportId = async () => {
-    if (supportId) {
-      await Clipboard.setStringAsync(supportId);
-      Alert.alert('Copied', 'Support ID copied to clipboard');
-    }
-  };
-
   return (
     <View style={styles.container}>
       <Stack.Screen options={{ headerShown: false, tabBarStyle: { display: 'none' } }} />
@@ -484,12 +436,21 @@ export default function SettingsScreen() {
           <ChevronRight size={18} color="#a0a0a0" />
         </TouchableOpacity>
         
-        <TouchableOpacity 
+        <TouchableOpacity
           style={styles.menuItem}
           onPress={() => setFeedbackVisible(true)}
           activeOpacity={0.7}
         >
           <Text style={[styles.menuItemTitle, { fontSize }]}>Send Feedback</Text>
+          <ChevronRight size={18} color="#a0a0a0" />
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={styles.menuItem}
+          onPress={() => setGiftSupportVisible(true)}
+          activeOpacity={0.7}
+        >
+          <Text style={[styles.menuItemTitle, { fontSize }]}>Gift Code & Support</Text>
           <ChevronRight size={18} color="#a0a0a0" />
         </TouchableOpacity>
 
@@ -523,8 +484,7 @@ export default function SettingsScreen() {
 
       {/* Footer with version */}
       <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, 16) }]}>
-        <TouchableOpacity 
-          onPress={handleVersionTap}
+        <TouchableOpacity
           onLongPress={toggleLogs}
           activeOpacity={0.6}
           delayLongPress={500}
@@ -706,30 +666,11 @@ export default function SettingsScreen() {
         </KeyboardAvoidingView>
       </Modal>
 
-      {/* Support ID Modal (hidden, revealed by tapping version 7 times) */}
-      <Modal
-        visible={supportIdModalVisible}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setSupportIdModalVisible(false)}
-      >
-        <View style={styles.supportIdModalOverlay}>
-          <View style={styles.supportIdModalContent}>
-            <Text style={styles.supportIdModalTitle}>Support ID</Text>
-            <TouchableOpacity onPress={copySupportId} activeOpacity={0.7}>
-              <Text style={styles.supportIdModalValue}>{supportId || 'Not available'}</Text>
-            </TouchableOpacity>
-            <Text style={styles.supportIdModalHint}>Tap to copy • Provide this ID to support</Text>
-            <TouchableOpacity
-              style={styles.supportIdModalDoneButton}
-              onPress={() => setSupportIdModalVisible(false)}
-              activeOpacity={0.8}
-            >
-              <Text style={styles.supportIdModalDoneText}>Done</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </Modal>
+      {/* Gift code / Support ID (visible menu item) */}
+      <SupportIdModal
+        visible={giftSupportVisible}
+        onClose={() => setGiftSupportVisible(false)}
+      />
     </View>
   );
 }
@@ -1106,53 +1047,5 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: adjustFontWeight('600'),
     color: '#fff',
-  },
-  // Support ID Modal styles
-  supportIdModalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 24,
-  },
-  supportIdModalContent: {
-    backgroundColor: '#fff',
-    borderRadius: 16,
-    padding: 24,
-    alignItems: 'center',
-    width: '100%',
-    maxWidth: 320,
-  },
-  supportIdModalTitle: {
-    fontSize: 18,
-    fontWeight: adjustFontWeight('600'),
-    color: '#2d3748',
-    marginBottom: 16,
-  },
-  supportIdModalValue: {
-    fontSize: 14,
-    fontFamily: Platform.select({ ios: 'Menlo', android: 'monospace' }),
-    color: '#3D8B8B',
-    backgroundColor: '#f0f4f4',
-    padding: 12,
-    borderRadius: 8,
-    overflow: 'hidden',
-  },
-  supportIdModalHint: {
-    fontSize: 12,
-    color: '#6b7c8a',
-    marginTop: 8,
-    marginBottom: 20,
-  },
-  supportIdModalDoneButton: {
-    backgroundColor: '#3D8B8B',
-    paddingVertical: 12,
-    paddingHorizontal: 32,
-    borderRadius: 8,
-  },
-  supportIdModalDoneText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: adjustFontWeight('600'),
   },
 });
