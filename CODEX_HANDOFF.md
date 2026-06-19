@@ -12,7 +12,7 @@ switching computers or ending a meaningful implementation session.
 - Branch: `codex/3.0-redesign`
 - Starting baseline: `678aa54`
 - Latest completed checkpoint: `d7d97c1` — Remove paywall and add Archivo foundation
-- Session workflow checkpoint: `64cd855` — Add cross-device Codex handoff guide
+- Session workflow checkpoint: `9744028` — Add start and end session skills
 - Current target: iOS only. Android adaptation is a separate phase after iOS is complete.
 - Design source package: `Sober Dailies-3.zip` (not committed; supplied separately)
 
