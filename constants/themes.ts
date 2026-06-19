@@ -149,8 +149,7 @@ const blueDeepSeaDark = {
 
 // ----- Export theme definitions -----
 export const THEMES: ThemeDefinition[] = [
-  { id: 'default', name: 'Default', light: defaultLight as any, dark: defaultDark as any },
-  { id: 'blue', name: 'Deep Sea', dark: blueDeepSeaDark as any, forcedMode: 'dark' },
+  { id: 'default', name: 'Light', light: defaultLight as any, forcedMode: 'light' },
 ];
 
 export const DEFAULT_THEME_ID = 'default' as const;

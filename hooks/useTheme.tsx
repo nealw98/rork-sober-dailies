@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useColorScheme as useSystemColorScheme } from 'react-native';
 import createContextHook from '@nkzw/create-context-hook';
 import type { ThemeId, ColorSchemePreference, ResolvedPalette } from '@/types/theme';
 import {
@@ -14,9 +13,8 @@ const THEME_ID_KEY = 'theme_id';
 const COLOR_SCHEME_KEY = 'color_scheme';
 
 export const [ThemeProvider, useTheme] = createContextHook(() => {
-  const systemScheme = useSystemColorScheme();
   const [themeId, setThemeIdState] = useState<ThemeId>(DEFAULT_THEME_ID);
-  const [colorSchemePref, setColorSchemePrefState] = useState<ColorSchemePreference>(DEFAULT_COLOR_SCHEME);
+  const [colorSchemePref, setColorSchemePrefState] = useState<ColorSchemePreference>('light');
   const [isLoaded, setIsLoaded] = useState(false);
 
   // Load persisted theme and color scheme on mount
@@ -27,12 +25,11 @@ export const [ThemeProvider, useTheme] = createContextHook(() => {
           AsyncStorage.getItem(THEME_ID_KEY),
           AsyncStorage.getItem(COLOR_SCHEME_KEY),
         ]);
-        if (savedThemeId && (savedThemeId === 'default' || savedThemeId === 'blue' || savedThemeId === 'green')) {
-          setThemeIdState(savedThemeId as ThemeId);
-        }
-        if (savedColorScheme && (savedColorScheme === 'light' || savedColorScheme === 'dark' || savedColorScheme === 'system')) {
-          setColorSchemePrefState(savedColorScheme as ColorSchemePreference);
-        }
+        // The 3.0 redesign currently has an approved light palette only.
+        // Ignore legacy theme and dark-mode preferences until those visuals
+        // are intentionally designed.
+        if (savedThemeId === 'default') setThemeIdState('default');
+        if (savedColorScheme === 'light') setColorSchemePrefState('light');
       } catch (e) {
         // keep defaults
       } finally {
@@ -42,46 +39,29 @@ export const [ThemeProvider, useTheme] = createContextHook(() => {
     load();
   }, []);
 
-  // Resolve effective color scheme: 'system' -> systemScheme, else use preference
-  const effectiveScheme = colorSchemePref === 'system'
-    ? (systemScheme === 'dark' ? 'dark' : 'light')
-    : colorSchemePref;
+  const effectiveScheme = 'light' as const;
 
   // Resolved palette from current theme + effective scheme
   const palette = useMemo((): ResolvedPalette => {
     const theme = getThemeById(themeId);
     
-    // If theme has forcedMode, always use that regardless of user preference
-    if (theme.forcedMode) {
-      const variant = theme.forcedMode === 'dark' ? theme.dark : theme.light;
-      if (!variant) {
-        // Fallback to available variant
-        const fallbackVariant = theme.dark || theme.light;
-        return fallbackVariant as ResolvedPalette;
-      }
-      return variant as ResolvedPalette;
-    }
-    
-    // Otherwise use effective scheme
-    const variant = effectiveScheme === 'dark' 
-      ? (theme.dark || theme.light) 
-      : (theme.light || theme.dark);
-    return variant as ResolvedPalette;
-  }, [themeId, effectiveScheme]);
+    return (theme.light || theme.dark) as ResolvedPalette;
+  }, [themeId]);
 
   const setThemeId = useCallback(async (id: ThemeId) => {
-    setThemeIdState(id);
+    // Only the approved 3.0 light theme is selectable.
+    setThemeIdState('default');
     try {
-      await AsyncStorage.setItem(THEME_ID_KEY, id);
+      await AsyncStorage.setItem(THEME_ID_KEY, 'default');
     } catch (e) {
       // ignore
     }
   }, []);
 
   const setColorScheme = useCallback(async (scheme: ColorSchemePreference) => {
-    setColorSchemePrefState(scheme);
+    setColorSchemePrefState('light');
     try {
-      await AsyncStorage.setItem(COLOR_SCHEME_KEY, scheme);
+      await AsyncStorage.setItem(COLOR_SCHEME_KEY, 'light');
     } catch (e) {
       // ignore
     }

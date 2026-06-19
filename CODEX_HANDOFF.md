@@ -13,6 +13,7 @@ switching computers or ending a meaningful implementation session.
 - Starting baseline: `678aa54`
 - Latest completed checkpoint: `d7d97c1` — Remove paywall and add Archivo foundation
 - Session workflow checkpoint: `9744028` — Add start and end session skills
+- Phase 1 checkpoint: Build shared iOS shell and scalable typography
 - Current target: iOS only. Android adaptation is a separate phase after iOS is complete.
 - Design source package: `Sober Dailies-3.zip` (not committed; supplied separately)
 
@@ -41,6 +42,10 @@ When design artifacts disagree, use:
   deep link. In-app meeting finder, My Meetings, and API-backed meeting features
   are pending.
 - Archivo is the structural/title font; Lora is reading/quote text; Inter is UI.
+- The Claude design does not define dark mode. The redesign remains light-only
+  until a dark palette is intentionally designed; do not derive or invent one.
+- Global Text Size applies fully to Inter and Lora. Archivo structural titles
+  scale within a narrower range so navigation and hierarchy remain stable.
 - No account or login. User data remains local-first.
 - Start from shared commit `678aa54`; deliberately exclude divergent commits
   `eb17c97` and `680610b`.
@@ -71,6 +76,21 @@ When design artifacts disagree, use:
   `quick_validate.py` could not run because its Python environment lacks
   PyYAML, so equivalent local validation was used.
 
+### Phase 1 — shared app foundation
+
+- Added the warm-white redesign token system for colors, typography, spacing,
+  radii, and shadows.
+- Added `AppText`, the shared Archivo/Inter/Lora text component.
+- Extended the persisted Text Size provider with role-aware global scaling:
+  Inter and Lora use the full user scale; Archivo scales conservatively.
+- Replaced the stack-only top level with a floating four-tab shell:
+  Today, Tools, Journey, Settings.
+- Added the persistent AI Sponsor FAB on Today, Tools, and Journey only. It
+  opens the last-used sponsor chat from existing AsyncStorage state.
+- Added the Journey tab foundation while preserving existing feature routes.
+- Removed the legacy Deep Sea theme from active selection and locked the app to
+  the approved light palette. Settings marks dark mode as pending design.
+
 ## Known baseline issues
 
 - The repository has many pre-existing TypeScript errors unrelated to the
@@ -84,14 +104,13 @@ When design artifacts disagree, use:
 
 ## Next implementation slice
 
-Build the shared app foundation used by the redesign:
+Begin Phase 2 — Today and My Dailies:
 
-1. Establish final light/dark palette and typography/component tokens.
-2. Replace the current stack-only top-level experience with the four-tab shell:
-   Today, Tools, Journey, Settings.
-3. Add the persistent AI Sponsor FAB on Today, Tools, and Journey only.
-4. Preserve existing feature routes while the individual screens are migrated.
-5. Verify the shell in the iOS simulator before beginning Today/My Dailies.
+1. Add the persisted Morning/Anytime/Evening dailies store and seed contract.
+2. Rebuild Today using the approved hero, counter, and action-row system.
+3. Keep Daily Reflection permanent and outside the editable list.
+4. Build My Dailies add/remove/rename/move/custom-action flows.
+5. Connect completion behavior without introducing mock production data.
 
 ## Cross-device workflow
 
@@ -120,3 +139,8 @@ Before handing work to another computer or chat:
 - `npx expo export --platform ios --output-dir .expo/codex-export --clear` — passed
 - iPhone 17 simulator launch from Metro port 8082 — passed
 - Paywall absent and returning user reaches Home — confirmed from runtime logs
+- Phase 1 iOS export after shell/theme/text changes — passed
+- iPhone 17 simulator: Today, Journey, and Settings tab states — visually verified
+- Sponsor FAB present on Today/Journey and absent on Settings — visually verified
+- Settings Lora preview uses global text scaling; light-only appearance shown —
+  visually verified

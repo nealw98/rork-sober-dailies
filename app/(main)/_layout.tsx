@@ -1,36 +1,37 @@
-import { Stack } from "expo-router";
+import { Tabs } from "expo-router";
 import React from "react";
-import { useTheme } from "@/hooks/useTheme";
+import { RedesignTabBar } from "@/components/navigation/RedesignTabBar";
+import { redesignColors } from "@/constants/redesignTokens";
 
 export default function MainLayout() {
-  const { palette } = useTheme();
-
   return (
-    <Stack
+    <Tabs
+      tabBar={(props) => <RedesignTabBar {...props} />}
       screenOptions={{
         headerShown: false,
-        contentStyle: { backgroundColor: palette.background },
-        animation: "slide_from_right",
+        sceneStyle: { backgroundColor: redesignColors.paper },
       }}
     >
-      <Stack.Screen name="index" />
-      <Stack.Screen name="daily-reflections" />
-      <Stack.Screen name="chat" />
-      <Stack.Screen name="speakers" />
-      <Stack.Screen name="speaker-detail" />
-      <Stack.Screen name="literature" />
-      <Stack.Screen name="bigbook" />
-      <Stack.Screen name="twelve-and-twelve" />
-      <Stack.Screen name="meeting-pocket" />
-      <Stack.Screen name="settings" />
-      <Stack.Screen name="gratitude" />
-      <Stack.Screen name="prayers" />
-      <Stack.Screen name="evening-review" />
-      <Stack.Screen name="inventory" />
-      <Stack.Screen name="tools" />
-      <Stack.Screen name="check-in" />
-      <Stack.Screen name="add-contact" />
-      <Stack.Screen name="modal" />
-    </Stack>
+      <Tabs.Screen name="index" options={{ title: "Today" }} />
+      <Tabs.Screen name="tools" options={{ title: "Tools" }} />
+      <Tabs.Screen name="journey" options={{ title: "Journey" }} />
+      <Tabs.Screen name="settings" options={{ title: "Settings" }} />
+
+      <Tabs.Screen name="daily-reflections" options={{ href: null }} />
+      <Tabs.Screen name="chat" options={{ href: null }} />
+      <Tabs.Screen name="speakers" options={{ href: null }} />
+      <Tabs.Screen name="speaker-detail" options={{ href: null }} />
+      <Tabs.Screen name="literature" options={{ href: null }} />
+      <Tabs.Screen name="bigbook" options={{ href: null }} />
+      <Tabs.Screen name="twelve-and-twelve" options={{ href: null }} />
+      <Tabs.Screen name="meeting-pocket" options={{ href: null }} />
+      <Tabs.Screen name="gratitude" options={{ href: null }} />
+      <Tabs.Screen name="prayers" options={{ href: null }} />
+      <Tabs.Screen name="evening-review" options={{ href: null }} />
+      <Tabs.Screen name="inventory" options={{ href: null }} />
+      <Tabs.Screen name="check-in" options={{ href: null }} />
+      <Tabs.Screen name="add-contact" options={{ href: null }} />
+      <Tabs.Screen name="modal" options={{ href: null }} />
+    </Tabs>
   );
 }

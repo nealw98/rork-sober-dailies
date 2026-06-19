@@ -24,12 +24,14 @@ import { Logger } from '@/lib/logger';
 import { submitFeedback } from '@/lib/feedback';
 import { usageLogger } from '@/lib/usageLogger';
 import { useScreenTimeTracking } from '@/hooks/useScreenTimeTracking';
+import { AppText } from '@/components/ui/AppText';
+import { redesignColors } from '@/constants/redesignTokens';
 
 const DEVELOPER_MODE_KEY = 'developer_mode_enabled';
 
 export default function SettingsScreen() {
   const insets = useSafeAreaInsets();
-  const { palette, themeId, setThemeId, themes } = useTheme();
+  const { palette } = useTheme();
   const { fontSize, setFontSize, minFontSize, maxFontSize, resetDefaults, defaultFontSize } = useTextSettings();
   
   useScreenTimeTracking('Settings');
@@ -48,7 +50,7 @@ export default function SettingsScreen() {
   const [supportIdModalVisible, setSupportIdModalVisible] = useState(false);
   const [supportId, setSupportId] = useState<string | null>(null);
   const [versionTapCount, setVersionTapCount] = useState(0);
-  const versionTapTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const versionTapTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Load developer mode on mount
   useEffect(() => {
@@ -319,14 +321,9 @@ export default function SettingsScreen() {
         <View style={styles.textSizeSection}>
           {/* Preview */}
           <View style={[styles.preview, { backgroundColor: palette.cardBackground }]}>
-            <Text
-              style={[
-                styles.previewText,
-                { fontSize, lineHeight: fontSize * 1.5, fontWeight: adjustFontWeight("500"), color: palette.text },
-              ]}
-            >
+            <AppText voice="reader" size={18} color={redesignColors.ink}>
               "Daily progress one day at a time."
-            </Text>
+            </AppText>
           </View>
           
           {/* Controls */}
@@ -371,29 +368,24 @@ export default function SettingsScreen() {
         </View>
 
         {/* Theme Section */}
-        <Text style={[styles.sectionTitle, { marginTop: 24, color: palette.text }]}>Theme</Text>
+        <Text style={[styles.sectionTitle, { marginTop: 24, color: palette.text }]}>Appearance</Text>
         <View style={styles.themeRow}>
-          {themes.map((theme) => (
-            <TouchableOpacity
-              key={theme.id}
-              style={[
-                styles.themeOption,
-                { 
-                  backgroundColor: themeId === theme.id ? palette.tint : palette.cardBackground,
-                  borderColor: palette.border,
-                },
-              ]}
-              onPress={() => setThemeId(theme.id)}
-              activeOpacity={0.7}
-            >
-              <Text style={[
-                styles.themeOptionLabel, 
-                { color: themeId === theme.id ? '#fff' : palette.text }
-              ]}>
-                {theme.name}
-              </Text>
-            </TouchableOpacity>
-          ))}
+          <View
+            style={[
+              styles.themeOption,
+              { backgroundColor: palette.tint, borderColor: palette.border },
+            ]}
+          >
+            <Text style={[styles.themeOptionLabel, { color: '#fff' }]}>Light</Text>
+          </View>
+          <View
+            style={[
+              styles.themeOption,
+              { backgroundColor: palette.cardBackground, borderColor: palette.border, opacity: 0.55 },
+            ]}
+          >
+            <Text style={[styles.themeOptionLabel, { color: palette.muted }]}>Dark · pending design</Text>
+          </View>
         </View>
 
         {/* Support Section */}

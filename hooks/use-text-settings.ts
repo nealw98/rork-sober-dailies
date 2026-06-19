@@ -2,12 +2,14 @@ import { useCallback, useEffect, useState } from "react";
 import { Platform } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import createContextHook from "@nkzw/create-context-hook";
+import type { TypographyVoice } from "@/constants/redesignTokens";
 
 const STORAGE_KEY = "sd-text-settings-v1";
 const DEFAULT_FONT_SIZE = Platform.OS === "android" ? 20 : 18;
 const DEFAULT_LINE_HEIGHT_MULTIPLIER = 1.5; // Industry standard for body text
 const MIN_FONT_SIZE = 12;
 const MAX_FONT_SIZE = Platform.OS === "android" ? 32 : 30;
+const IOS_BASE_FONT_SIZE = 18;
 
 type StoredSettings = {
   fontSize?: number;
@@ -79,6 +81,21 @@ export const [TextSettingsProvider, useTextSettings] = createContextHook(() => {
     setLineHeightMultiplierState(DEFAULT_LINE_HEIGHT_MULTIPLIER);
   }, []);
 
+  const scaleTypography = useCallback(
+    (baseSize: number, voice: TypographyVoice = "interface") => {
+      const rawScale = fontSize / IOS_BASE_FONT_SIZE;
+      // Structural Archivo titles should remain stable enough to preserve
+      // navigation and hierarchy. Inter and Lora carry the user's full setting.
+      const appliedScale =
+        voice === "display" ? 1 + (rawScale - 1) * 0.35 : rawScale;
+      const minimum = voice === "display" ? 0.92 : 0.78;
+      const maximum = voice === "display" ? 1.18 : 1.55;
+      const clampedScale = Math.max(minimum, Math.min(appliedScale, maximum));
+      return Math.round(baseSize * clampedScale * 10) / 10;
+    },
+    [fontSize]
+  );
+
   return {
     loaded,
     fontSize,
@@ -91,6 +108,6 @@ export const [TextSettingsProvider, useTextSettings] = createContextHook(() => {
     maxFontSize: MAX_FONT_SIZE,
     defaultFontSize: DEFAULT_FONT_SIZE,
     defaultLineHeightMultiplier: DEFAULT_LINE_HEIGHT_MULTIPLIER,
+    scaleTypography,
   };
 });
-
