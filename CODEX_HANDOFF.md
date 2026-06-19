@@ -4,11 +4,15 @@ This is the durable handoff between Codex chats and computers. Read this file
 before changing code. Update it before ending a meaningful work session, then
 commit the update with the related code.
 
+Use `$session-start` when beginning on either computer and `$session-end` before
+switching computers or ending a meaningful implementation session.
+
 ## Current state
 
 - Branch: `codex/3.0-redesign`
 - Starting baseline: `678aa54`
 - Latest completed checkpoint: `d7d97c1` — Remove paywall and add Archivo foundation
+- Session workflow checkpoint: `64cd855` — Add cross-device Codex handoff guide
 - Current target: iOS only. Android adaptation is a separate phase after iOS is complete.
 - Design source package: `Sober Dailies-3.zip` (not committed; supplied separately)
 
@@ -55,6 +59,18 @@ When design artifacts disagree, use:
 - Verified an iOS production-style Expo export completes.
 - Verified the app launches in the iPhone 17 simulator from the Codex worktree.
 
+### Cross-device session skills
+
+- Added repository-scoped `$session-start` and `$session-end` skills under
+  `.agents/skills`.
+- Startup safely fetches and fast-forwards only clean, non-diverged checkouts,
+  then loads the project rules and this handoff.
+- Shutdown reviews scope, verifies iOS changes when applicable, updates this
+  handoff, commits intended work, and pushes without force.
+- Both skill manifests passed YAML/frontmatter validation. The bundled
+  `quick_validate.py` could not run because its Python environment lacks
+  PyYAML, so equivalent local validation was used.
+
 ## Known baseline issues
 
 - The repository has many pre-existing TypeScript errors unrelated to the
@@ -77,6 +93,18 @@ Build the shared app foundation used by the redesign:
 4. Preserve existing feature routes while the individual screens are migrated.
 5. Verify the shell in the iOS simulator before beginning Today/My Dailies.
 
+## Cross-device workflow
+
+Repository skills live in `.agents/skills` and travel with the branch:
+
+- `$session-start` safely fetches/fast-forwards, reads this handoff, and reports
+  the exact next task.
+- `$session-end` checks the diff, runs focused iOS verification, refreshes this
+  handoff, commits the intended work, and pushes the branch.
+
+Codex detects repository skills automatically. If newly pulled skills do not
+appear in the picker, restart Codex or start a new thread.
+
 ## Session close checklist
 
 Before handing work to another computer or chat:
@@ -92,4 +120,3 @@ Before handing work to another computer or chat:
 - `npx expo export --platform ios --output-dir .expo/codex-export --clear` — passed
 - iPhone 17 simulator launch from Metro port 8082 — passed
 - Paywall absent and returning user reaches Home — confirmed from runtime logs
-

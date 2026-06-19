@@ -1,0 +1,4 @@
+interface:
+  display_name: "End Sober Dailies Session"
+  short_description: "Verify, document, commit, and push session work"
+  default_prompt: "Use $session-end to verify this Sober Dailies session, update the handoff, commit, and push it."

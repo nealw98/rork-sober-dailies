@@ -1,0 +1,4 @@
+interface:
+  display_name: "Start Sober Dailies Session"
+  short_description: "Sync branch and load the latest project handoff"
+  default_prompt: "Use $session-start to safely sync this checkout and brief me on the next Sober Dailies task."

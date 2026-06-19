@@ -11,3 +11,11 @@ Before making changes on the 3.0 redesign:
 6. Update `CODEX_HANDOFF.md` before ending a meaningful implementation session
    so another Codex chat or computer can continue without transcript access.
 
+## Cross-device session commands
+
+- At the beginning of a new chat or after changing computers, invoke
+  `$session-start`.
+- At the end of a meaningful work session, invoke `$session-end`.
+- The session-end skill is the normal authorized path for focused verification,
+  updating the handoff, committing intended changes, and pushing
+  `codex/3.0-redesign`.
