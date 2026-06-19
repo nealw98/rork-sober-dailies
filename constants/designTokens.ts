@@ -99,10 +99,17 @@ export const radii = {
 // ─── Typography ──────────────────────────────────────────────────────────────
 
 export const fontFamily = {
+  display: 'Archivo_700Bold',
+  displayRegular: 'Archivo_400Regular',
+  displayMedium: 'Archivo_500Medium',
+  displaySemiBold: 'Archivo_600SemiBold',
   regular: 'Inter_400Regular',
   medium: 'Inter_500Medium',
   semiBold: 'Inter_600SemiBold',
   bold: 'Inter_700Bold',
+  reader: 'Lora_400Regular',
+  readerBold: 'Lora_700Bold',
+  // Compatibility aliases while existing screens are migrated.
   serif: 'Lora_400Regular',
   serifBold: 'Lora_700Bold',
 } as const;

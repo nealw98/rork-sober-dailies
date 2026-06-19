@@ -16,9 +16,7 @@ import {
 } from '@/constants/designTokens';
 import Constants from 'expo-constants';
 import * as Clipboard from 'expo-clipboard';
-import * as SecureStore from 'expo-secure-store';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import Purchases from 'react-native-purchases';
 import { useTheme } from '@/hooks/useTheme';
 import { adjustFontWeight } from '@/constants/fonts';
 import { useTextSettings } from '@/hooks/use-text-settings';
@@ -148,48 +146,6 @@ export default function SettingsScreen() {
       const Updates = await import('expo-updates');
       await Updates.reloadAsync();
     } catch {}
-  };
-
-  const resetSubscriptionState = async () => {
-    Alert.alert(
-      'Reset Subscription State',
-      'This will clear ALL user data including anonymous ID and RevenueCat user. The app will behave as a completely new install. Continue?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Reset Everything',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              // Clear premium override (dev bypass)
-              await SecureStore.deleteItemAsync('sober_dailies_premium_override');
-              // Clear anonymous ID (SecureStore and AsyncStorage)
-              await SecureStore.deleteItemAsync('sober_dailies_anonymous_id');
-              await AsyncStorage.removeItem('anonymous_id');
-              // Clear onboarding
-              await AsyncStorage.removeItem('sober_dailies_onboarding_complete');
-              
-              // Logout from RevenueCat to get a new anonymous user ID
-              try {
-                await Purchases.logOut();
-                console.log('[Settings] RevenueCat user logged out');
-              } catch (rcError) {
-                console.warn('[Settings] RevenueCat logout failed (may not be configured):', rcError);
-              }
-              
-              Alert.alert(
-                'Reset Complete',
-                'All user data has been cleared. You MUST restart the app now for changes to take effect.',
-                [{ text: 'OK' }]
-              );
-            } catch (error) {
-              Alert.alert('Error', 'Failed to reset subscription state.');
-              console.error('[Settings] Reset subscription state error:', error);
-            }
-          },
-        },
-      ]
-    );
   };
 
   const handlePrivacyPress = () => {
@@ -577,13 +533,6 @@ export default function SettingsScreen() {
             </TouchableOpacity>
             <TouchableOpacity onPress={clearLogs} style={styles.logsActionButton}>
               <Text style={styles.logsActionButtonText}>Clear Logs</Text>
-            </TouchableOpacity>
-          </View>
-
-          {/* Subscription Debug */}
-          <View style={styles.logsActionsRow}>
-            <TouchableOpacity onPress={resetSubscriptionState} style={[styles.logsActionButton, { backgroundColor: '#7f1d1d' }]}>
-              <Text style={styles.logsActionButtonText}>Reset Subscription State</Text>
             </TouchableOpacity>
           </View>
 

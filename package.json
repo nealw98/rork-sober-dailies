@@ -10,6 +10,7 @@
     "ios": "expo run:ios"
   },
   "dependencies": {
+    "@expo-google-fonts/archivo": "^0.4.2",
     "@expo-google-fonts/barlow-condensed": "^0.4.1",
     "@expo-google-fonts/inter": "^0.4.2",
     "@expo-google-fonts/inter-tight": "^0.4.2",
@@ -67,8 +68,6 @@
     "react-native-gesture-handler": "~2.24.0",
     "react-native-markdown-display": "^7.0.2",
     "react-native-modal-datetime-picker": "^18.0.0",
-    "react-native-purchases": "^9.7.2",
-    "react-native-purchases-ui": "^9.7.2",
     "react-native-reanimated": "^3.19.1",
     "react-native-safe-area-context": "5.4.0",
     "react-native-screens": "~4.11.1",

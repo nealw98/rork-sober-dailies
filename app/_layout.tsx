@@ -30,6 +30,12 @@ import {
   Lora_700Bold,
 } from '@expo-google-fonts/lora';
 import {
+  Archivo_400Regular,
+  Archivo_500Medium,
+  Archivo_600SemiBold,
+  Archivo_700Bold,
+} from '@expo-google-fonts/archivo';
+import {
   WixMadeforDisplay_500Medium,
   WixMadeforDisplay_600SemiBold,
   WixMadeforDisplay_700Bold,
@@ -48,12 +54,10 @@ import { OnboardingProvider, useOnboarding } from "@/hooks/useOnboardingStore";
 import { SobrietyProvider } from "@/hooks/useSobrietyStore";
 import { EveningReviewProvider } from "@/hooks/use-evening-review-store";
 import { TextSettingsProvider } from "@/hooks/use-text-settings";
-import { SubscriptionProvider, useSubscription } from "@/hooks/useSubscription";
 import { useOTAUpdates } from "@/hooks/useOTAUpdates";
 import { adjustFontWeight } from "@/constants/fonts";
 import { useTheme } from "@/hooks/useTheme";
 import WelcomeScreen from "@/components/WelcomeScreen";
-import PaywallScreen from "@/components/PaywallScreen";
 import OTASnackbar from "@/components/OTASnackbar";
 import { Logger } from "@/lib/logger";
 import { initUsageLogger } from "@/lib/usageLogger";
@@ -96,7 +100,6 @@ function RootLayoutNav() {
   const { isOnboardingComplete, isLoading } = useOnboarding();
   const { showSnackbar, dismissSnackbar, restartApp } = useOTAUpdates();
   const { showBirthdayModal, closeBirthdayModal } = useSobrietyBirthday();
-  const { isLoading: isSubscriptionLoading, isPremium } = useSubscription();
   const [fontsLoaded] = useFonts({
     Inter_400Regular,
     Inter_500Medium,
@@ -108,6 +111,10 @@ function RootLayoutNav() {
     Manrope_800ExtraBold,
     Lora_400Regular,
     Lora_700Bold,
+    Archivo_400Regular,
+    Archivo_500Medium,
+    Archivo_600SemiBold,
+    Archivo_700Bold,
     WixMadeforDisplay_500Medium,
     WixMadeforDisplay_600SemiBold,
     WixMadeforDisplay_700Bold,
@@ -124,8 +131,6 @@ function RootLayoutNav() {
 
   // Local state to prevent re-renders from affecting rendering logic
   const [appReady, setAppReady] = useState(false);
-  // Dev-only: allow dismissing the paywall
-  const [paywallDismissed, setPaywallDismissed] = useState(false);
   // Ensure OTA selection/check completes before we hide splash
   const [otaChecked, setOtaChecked] = useState(false);
 
@@ -235,13 +240,8 @@ function RootLayoutNav() {
   }
 
   // Only show main app after consent is complete AND other initialization is done
-  if (!appReady || isLoading || isSubscriptionLoading) {
+  if (!appReady || isLoading) {
     return null; // Let splash screen remain visible
-  }
-
-  // Entire app is subscription-only after onboarding.
-  if (!isPremium && !paywallDismissed) {
-    return <PaywallScreen onDismiss={__DEV__ ? () => setPaywallDismissed(true) : undefined} />;
   }
 
   return (
@@ -334,8 +334,7 @@ export default function RootLayout() {
     <QueryClientProvider client={queryClient}>
       <ThemeProvider>
         <SessionProvider>
-          <SubscriptionProvider>
-            <OnboardingProvider>
+          <OnboardingProvider>
               <TextSettingsProvider>
                 <GratitudeProvider>
                   <SobrietyProvider>
@@ -357,8 +356,7 @@ export default function RootLayout() {
                   </SobrietyProvider>
                 </GratitudeProvider>
               </TextSettingsProvider>
-            </OnboardingProvider>
-          </SubscriptionProvider>
+          </OnboardingProvider>
         </SessionProvider>
       </ThemeProvider>
     </QueryClientProvider>
