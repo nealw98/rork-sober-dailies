@@ -103,7 +103,7 @@ const HomeScreen = () => {
           {/* Top row — settings + menu */}
           <View style={styles.homeTopRow}>
             <TouchableOpacity
-              onPress={() => router.push('/(main)/settings')}
+              onPress={() => router.push('/settings')}
               style={styles.homeIconBtn}
               activeOpacity={0.7}
             >
@@ -172,8 +172,8 @@ const HomeScreen = () => {
             Always here to listen, guide, and support your step work in real-time.
           </Text>
           <View style={styles.cardFooter}>
-            <Text style={[styles.cardFooterText, { color: colors.secondaryExtraDark }]}>Talk</Text>
-            <ChevronRight size={18} color={colors.secondaryExtraDark} strokeWidth={1.5} />
+            <Text style={[styles.cardFooterText, { color: colors.primaryDark }]}>Talk</Text>
+            <ChevronRight size={18} color={colors.primaryDark} strokeWidth={1.5} />
           </View>
         </TouchableOpacity>
 

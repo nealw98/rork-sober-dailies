@@ -43,14 +43,14 @@ interface MenuItem {
 }
 
 const MENU_ITEMS: MenuItem[] = [
-  { label: 'Home', icon: Home, route: '/(main)/' },
+  { label: 'Home', icon: Home, route: '/' },
   { label: 'Reflections', icon: Sparkles, route: '/(main)/daily-reflections' },
   { label: 'AI Sponsor', icon: MessageCircle, route: '/(main)/chat' },
   { label: 'Speakers', icon: Mic, route: '/(main)/speakers' },
   { label: 'Literature', icon: BookOpen, route: '/(main)/literature' },
   { label: 'Prayers', icon: Heart, route: '/(main)/prayers' },
   { label: 'Notebook', icon: NotebookPen, route: null, disabled: true },
-  { label: 'Settings', icon: Settings, route: '/(main)/settings' },
+  { label: 'Settings', icon: Settings, route: '/settings' },
 ];
 
 export default function HamburgerMenu() {

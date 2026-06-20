@@ -30,7 +30,7 @@ export default function TopLevelHeader({ title, light = false }: TopLevelHeaderP
       {/* Home icon */}
       <TouchableOpacity
         style={styles.iconBtn}
-        onPress={() => router.push('/(main)/')}
+        onPress={() => router.push('/')}
         activeOpacity={0.7}
       >
         <Home size={22} color={iconColor} />

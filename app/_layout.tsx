@@ -30,6 +30,10 @@ import {
   Lora_700Bold,
 } from '@expo-google-fonts/lora';
 import {
+  Archivo_600SemiBold,
+  Archivo_700Bold,
+} from '@expo-google-fonts/archivo';
+import {
   WixMadeforDisplay_500Medium,
   WixMadeforDisplay_600SemiBold,
   WixMadeforDisplay_700Bold,
@@ -44,6 +48,7 @@ import {
 } from '@expo-google-fonts/wix-madefor-text';
 
 import { GratitudeProvider } from "@/hooks/use-gratitude-store";
+import { DailiesProvider } from "@/hooks/use-dailies-store";
 import { OnboardingProvider, useOnboarding } from "@/hooks/useOnboardingStore";
 import { SobrietyProvider } from "@/hooks/useSobrietyStore";
 import { EveningReviewProvider } from "@/hooks/use-evening-review-store";
@@ -108,6 +113,8 @@ function RootLayoutNav() {
     Manrope_800ExtraBold,
     Lora_400Regular,
     Lora_700Bold,
+    Archivo_600SemiBold,
+    Archivo_700Bold,
     WixMadeforDisplay_500Medium,
     WixMadeforDisplay_600SemiBold,
     WixMadeforDisplay_700Bold,
@@ -339,6 +346,7 @@ export default function RootLayout() {
               <TextSettingsProvider>
                 <GratitudeProvider>
                   <SobrietyProvider>
+                    <DailiesProvider>
                     <EveningReviewProvider>
                       <GestureHandlerRootView style={{ flex: 1 }}>
                         {Platform.OS === 'android' && (
@@ -354,6 +362,7 @@ export default function RootLayout() {
                         </ErrorBoundary>
                       </GestureHandlerRootView>
                     </EveningReviewProvider>
+                    </DailiesProvider>
                   </SobrietyProvider>
                 </GratitudeProvider>
               </TextSettingsProvider>

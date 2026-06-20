@@ -6,22 +6,33 @@
  */
 
 // ─── Brand Colors ────────────────────────────────────────────────────────────
+// Redesign 3.0: teal is the primary brand voice (was blue). Blue demoted to
+// secondary (Journal / player), lavender stays tertiary (AI Sponsor / Nightly /
+// Meditation), amber is the warm accent, coral is Spot Check. Mirrors the
+// prototype tokens in `frames/hifi-tokens.js`.
 
 export const colors = {
-  primary: '#5C8DFF',      // Vibrant blue — primary actions, brand emphasis
-  primaryLight: '#A3BFFF',
-  primaryDark: '#3A6AE0',
+  primary: '#3D8B8B',      // Teal — brand, streaks, checkboxes, primary buttons
+  primaryLight: '#7FB8B8',
+  primaryDark: '#2E6F6F',
+  primarySoft: '#D8E8E8',
 
-  secondary: '#6DBEBF',    // Calming teal — supporting elements
-  secondaryLight: '#A8DEDE',
-  secondaryDark: '#4A9E9F',
-  secondaryExtraDark: '#2E7A7B',
+  secondary: '#5C8DFF',    // Blue — Journal, player, secondary actions
+  secondaryLight: '#A3BFFF',
+  secondaryDark: '#3A6AE0',
+  secondarySoft: '#DEE8FF',
 
-  tertiary: '#A386D5',     // Soft lavender — accents, highlights
+  tertiary: '#A386D5',     // Lavender — AI Sponsor, Nightly Review, Meditation
   tertiaryLight: '#C9B8E8',
   tertiaryExtraLight: '#E8DFF5',
   tertiaryDark: '#7A5FB5',
   tertiaryExtraDark: '#5A4290',
+  tertiarySoft: '#E9E0F6',
+
+  amber: '#E8A95D',        // Warm accent — Gratitude, Prayers, Literature
+  amberSoft: '#F6E5C8',
+
+  coral: '#D36A5A',        // Terracotta — Spot Check
 
   destructive: '#EF4444',
   success: '#22C55E',
@@ -31,17 +42,34 @@ export const colors = {
   black: '#000000',
 };
 
+// ─── Per-tool tones ──────────────────────────────────────────────────────────
+// One color per tool/concept. MUST match the Journey medallions and Tools
+// tiles exactly (see DESIGN-DECISIONS.md "Tile color tone-per-tool").
+
+export const toolColors = {
+  dailyReflection: colors.primary,   // teal
+  speakerTapes: colors.tertiary,     // lavender
+  literature: colors.amber,          // amber
+  journal: colors.secondary,         // blue
+  gratitude: colors.amber,           // amber
+  spotCheck: colors.coral,           // coral
+  nightlyReview: colors.tertiary,    // lavender
+  prayers: colors.amber,             // amber
+  meditation: colors.tertiary,       // lavender
+  aiSponsor: colors.tertiary,        // lavender
+} as const;
+
 // ─── Semantic Colors (mode-aware) ────────────────────────────────────────────
 
 export const semanticColors = {
   light: {
-    background: '#F8F9FA',    // Neutral — base canvas
+    background: '#F9F7F2',    // Warm white — base canvas (redesign 3.0)
     surface: '#FFFFFF',        // Pure white — cards/containers
-    text: '#1A1A2E',
-    textSecondary: '#6B7280',
-    textMuted: '#9CA3AF',
-    border: '#F1F5F9',         // Subtle card borders
-    divider: '#E5E7EB',
+    text: '#2B2A30',
+    textSecondary: '#4A4A5E',
+    textMuted: '#8A8A9A',
+    border: '#EDEAE2',         // Warm subtle card borders
+    divider: '#F3F1EC',
     overlay: 'rgba(0, 0, 0, 0.45)',
   },
   dark: {
@@ -98,6 +126,10 @@ export const radii = {
 
 // ─── Typography ──────────────────────────────────────────────────────────────
 
+// Three voices, three jobs (DESIGN-DECISIONS.md "Visual system"):
+//   display (Archivo) = titles / page & section headers — the structural voice
+//   serif   (Lora)    = long-form reading + genuine quotes ONLY
+//   regular…bold (Inter) = everything you operate (UI, labels, prompts, counters)
 export const fontFamily = {
   regular: 'Inter_400Regular',
   medium: 'Inter_500Medium',
@@ -105,6 +137,8 @@ export const fontFamily = {
   bold: 'Inter_700Bold',
   serif: 'Lora_400Regular',
   serifBold: 'Lora_700Bold',
+  display: 'Archivo_600SemiBold',     // section headers, row/tab titles
+  displayBold: 'Archivo_700Bold',     // page titles, hero
 } as const;
 
 export const fontSize = {

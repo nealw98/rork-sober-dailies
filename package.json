@@ -2,6 +2,22 @@
   "name": "sober-dailies-fresh",
   "main": "expo-router/entry",
   "version": "2.5.0",
+  "overrides": {
+    "metro": "0.82.5",
+    "metro-babel-transformer": "0.82.5",
+    "metro-cache": "0.82.5",
+    "metro-cache-key": "0.82.5",
+    "metro-config": "0.82.5",
+    "metro-core": "0.82.5",
+    "metro-file-map": "0.82.5",
+    "metro-minify-terser": "0.82.5",
+    "metro-resolver": "0.82.5",
+    "metro-runtime": "0.82.5",
+    "metro-source-map": "0.82.5",
+    "metro-symbolicate": "0.82.5",
+    "metro-transform-plugins": "0.82.5",
+    "metro-transform-worker": "0.82.5"
+  },
   "scripts": {
     "start": "bunx rork start -p slb0yphh4l03b7fd78jn4 --tunnel",
     "start-web": "bunx rork start -p slb0yphh4l03b7fd78jn4 --web --tunnel",
@@ -10,6 +26,7 @@
     "ios": "expo run:ios"
   },
   "dependencies": {
+    "@expo-google-fonts/archivo": "^0.4.2",
     "@expo-google-fonts/barlow-condensed": "^0.4.1",
     "@expo-google-fonts/inter": "^0.4.2",
     "@expo-google-fonts/inter-tight": "^0.4.2",
@@ -60,6 +77,7 @@
     "expo-web-browser": "~14.2.0",
     "lucide-react-native": "^0.539.0",
     "nativewind": "^4.1.23",
+    "phosphor-react-native": "^3.0.6",
     "react": "19.0.0",
     "react-dom": "19.0.0",
     "react-native": "0.79.6",
