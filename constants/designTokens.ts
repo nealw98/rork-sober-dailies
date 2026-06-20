@@ -7,21 +7,29 @@
 
 // ─── Brand Colors ────────────────────────────────────────────────────────────
 
+// Brand palette aligned to the 3.0 prototype (frames/hifi-tokens.js · SD_TOKENS):
+// teal = primary brand, blue = supporting, lavender = accent, amber = warm hopeful accent.
 export const colors = {
-  primary: '#5C8DFF',      // Vibrant blue — primary actions, brand emphasis
-  primaryLight: '#A3BFFF',
-  primaryDark: '#3A6AE0',
+  primary: '#3D8B8B',      // Teal — primary actions, brand emphasis
+  primaryLight: '#7FB8B8',
+  primaryDark: '#2E6F6F',
+  primarySoft: '#D8E8E8',
 
-  secondary: '#6DBEBF',    // Calming teal — supporting elements
-  secondaryLight: '#A8DEDE',
-  secondaryDark: '#4A9E9F',
-  secondaryExtraDark: '#2E7A7B',
+  secondary: '#5C8DFF',    // Blue — supporting elements, links
+  secondaryLight: '#A3BFFF',
+  secondaryDark: '#3A6AE0',
+  secondaryExtraDark: '#2E7A7B', // retained for back-compat with existing screens
+  secondarySoft: '#DEE8FF',
 
   tertiary: '#A386D5',     // Soft lavender — accents, highlights
   tertiaryLight: '#C9B8E8',
   tertiaryExtraLight: '#E8DFF5',
   tertiaryDark: '#7A5FB5',
   tertiaryExtraDark: '#5A4290',
+  tertiarySoft: '#E9E0F6',
+
+  amber: '#E8A95D',        // Warm hopeful accent
+  amberSoft: '#F6E5C8',
 
   destructive: '#EF4444',
   success: '#22C55E',
@@ -35,13 +43,13 @@ export const colors = {
 
 export const semanticColors = {
   light: {
-    background: '#F8F9FA',    // Neutral — base canvas
+    background: '#F9F7F2',    // Warm paper — base canvas (SD_TOKENS.bg)
     surface: '#FFFFFF',        // Pure white — cards/containers
-    text: '#1A1A2E',
-    textSecondary: '#6B7280',
-    textMuted: '#9CA3AF',
-    border: '#F1F5F9',         // Subtle card borders
-    divider: '#E5E7EB',
+    text: '#2B2A30',           // ink
+    textSecondary: '#4A4A5E',  // ink2
+    textMuted: '#8A8A9A',      // ink3
+    border: '#EDEAE2',         // warm hairline border
+    divider: '#F3F1EC',
     overlay: 'rgba(0, 0, 0, 0.45)',
   },
   dark: {
@@ -98,11 +106,19 @@ export const radii = {
 
 // ─── Typography ──────────────────────────────────────────────────────────────
 
+// Three type voices (3.0 prototype, Session-13 decision):
+//   Inter   = everything you operate (UI, labels, buttons, inputs, prompts, counters)
+//   Archivo = titles, page & section headers (the structural "marquee" voice)
+//   Lora    = long-form reading & genuine quotes ONLY (reflections, prayers, literature, pull-quotes)
 export const fontFamily = {
   regular: 'Inter_400Regular',
   medium: 'Inter_500Medium',
   semiBold: 'Inter_600SemiBold',
   bold: 'Inter_700Bold',
+  display: 'Archivo_600SemiBold',
+  displayMedium: 'Archivo_500Medium',
+  displayBold: 'Archivo_700Bold',
+  displayHeavy: 'Archivo_800ExtraBold',
   serif: 'Lora_400Regular',
   serifBold: 'Lora_700Bold',
 } as const;

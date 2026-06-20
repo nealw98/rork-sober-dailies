@@ -16,6 +16,13 @@ import {
   Inter_700Bold,
 } from '@expo-google-fonts/inter';
 import {
+  Archivo_400Regular,
+  Archivo_500Medium,
+  Archivo_600SemiBold,
+  Archivo_700Bold,
+  Archivo_800ExtraBold,
+} from '@expo-google-fonts/archivo';
+import {
   InterTight_700Bold,
 } from '@expo-google-fonts/inter-tight';
 import {
@@ -102,6 +109,11 @@ function RootLayoutNav() {
     Inter_500Medium,
     Inter_600SemiBold,
     Inter_700Bold,
+    Archivo_400Regular,
+    Archivo_500Medium,
+    Archivo_600SemiBold,
+    Archivo_700Bold,
+    Archivo_800ExtraBold,
     InterTight_700Bold,
     BarlowCondensed_700Bold,
     Manrope_700Bold,
