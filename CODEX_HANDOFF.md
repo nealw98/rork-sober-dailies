@@ -47,6 +47,16 @@ When design artifacts disagree, use:
 - Global Text Size applies fully to Inter and Lora. Archivo structural titles
   scale within a narrower range so navigation and hierarchy remain stable.
 - No account or login. User data remains local-first.
+- Daily Reflections hero image should come from an image stored in Supabase,
+  not from a final hardcoded/bundled asset. Phase 2 may use a safe fallback
+  while wiring the UI, but the data contract should allow Supabase delivery.
+- Supabase Storage bucket `daily-reflection-images` now contains the current
+  bundled hero image at `daily-reflections/reflection_bg7.webp`.
+- Daily Reflection hero-image rotation should use
+  `public.daily_reflection_images`, which stores bucket/object paths, active
+  status, sort order, alt text, and optional date windows.
+- `public.app_image_assets` also exists from the first generic metadata pass,
+  but Phase 2 should prefer the dedicated `daily_reflection_images` table.
 - Start from shared commit `678aa54`; deliberately exclude divergent commits
   `eb17c97` and `680610b`.
 
@@ -90,6 +100,15 @@ When design artifacts disagree, use:
 - Added the Journey tab foundation while preserving existing feature routes.
 - Removed the legacy Deep Sea theme from active selection and locked the app to
   the approved light palette. Settings marks dark mode as pending design.
+- Added a Supabase migration draft for the Daily Reflections image bucket and
+  `app_image_assets` metadata table.
+- Created the remote Supabase Storage bucket `daily-reflection-images` and
+  uploaded `assets/reflections_images/reflection_bg7.webp` to
+  `daily-reflections/reflection_bg7.webp`.
+- Applied the remote `app_image_assets` metadata table and then added/applied
+  the dedicated `daily_reflection_images` rotation table.
+- Verified the app's anon Supabase key can read `daily_reflection_images` and
+  resolve the public Storage URL for `reflection_bg7.webp`.
 
 ## Known baseline issues
 
@@ -107,10 +126,14 @@ When design artifacts disagree, use:
 Begin Phase 2 — Today and My Dailies:
 
 1. Add the persisted Morning/Anytime/Evening dailies store and seed contract.
-2. Rebuild Today using the approved hero, counter, and action-row system.
-3. Keep Daily Reflection permanent and outside the editable list.
-4. Build My Dailies add/remove/rename/move/custom-action flows.
-5. Connect completion behavior without introducing mock production data.
+2. Rebuild Today using the approved hero, counter, and action-row system. Treat
+   the Daily Reflections hero image as Supabase-sourced, with a temporary
+   fallback only if needed during implementation.
+3. Fetch active rows from `daily_reflection_images` and rotate/select the hero
+   image in app code.
+4. Keep Daily Reflection permanent and outside the editable list.
+5. Build My Dailies add/remove/rename/move/custom-action flows.
+6. Connect completion behavior without introducing mock production data.
 
 ## Cross-device workflow
 
@@ -144,3 +167,7 @@ Before handing work to another computer or chat:
 - Sponsor FAB present on Today/Journey and absent on Settings — visually verified
 - Settings Lora preview uses global text scaling; light-only appearance shown —
   visually verified
+- Supabase Storage bucket `daily-reflection-images` contains
+  `daily-reflections/reflection_bg7.webp` — verified by upload response
+- Supabase table `daily_reflection_images` has the initial active image row and
+  is readable through the app's anon key — verified

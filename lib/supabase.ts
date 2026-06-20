@@ -52,6 +52,47 @@ export type Database = {
           updated_at?: string;
         };
       };
+      daily_reflection_images: {
+        Row: {
+          id: string;
+          bucket: string;
+          object_path: string;
+          title: string | null;
+          alt_text: string;
+          is_active: boolean;
+          sort_order: number;
+          starts_on: string | null;
+          ends_on: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          bucket?: string;
+          object_path: string;
+          title?: string | null;
+          alt_text?: string;
+          is_active?: boolean;
+          sort_order?: number;
+          starts_on?: string | null;
+          ends_on?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          bucket?: string;
+          object_path?: string;
+          title?: string | null;
+          alt_text?: string;
+          is_active?: boolean;
+          sort_order?: number;
+          starts_on?: string | null;
+          ends_on?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+      };
       user_profiles: {
         Row: {
           anonymous_id: string;
