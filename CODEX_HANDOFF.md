@@ -11,22 +11,27 @@ switching computers or ending a meaningful implementation session.
 
 - Branch: `codex/3.0-redesign`
 - Starting baseline: `678aa54`
-- Latest completed checkpoint: `d7d97c1` — Remove paywall and add Archivo foundation
+- Latest completed checkpoint: `6d260d6` — Add Supabase Daily Reflection image metadata
 - Session workflow checkpoint: `9744028` — Add start and end session skills
 - Phase 1 checkpoint: Build shared iOS shell and scalable typography
+- Phase 2 status: Today/My Dailies replacement pass is in progress in the
+  working tree and not committed yet.
 - Current target: iOS only. Android adaptation is a separate phase after iOS is complete.
 - Design source package: `Sober Dailies-3.zip` (not committed; supplied separately)
+- Latest app-defining prototype: `/Users/nealwagner/Downloads/Sober Dailies - Standalone.html`
 
 ## Authority order
 
 When design artifacts disagree, use:
 
 1. The user's latest explicit decision
-2. `CODEX_HANDOFF.md`
-3. `CLAUDE.md` from the design package for data/storage contracts
-4. `progress.md` from the design package
-5. `DESIGN-DECISIONS.md` from the design package
-6. Older canvases and screenshots as historical reference
+2. `/Users/nealwagner/Downloads/Sober Dailies - Standalone.html`; if needed,
+   inspect the embedded source modules extracted from that standalone bundle
+3. `CODEX_HANDOFF.md`
+4. `CLAUDE.md` from the design package for data/storage contracts
+5. `progress.md` from the design package
+6. `DESIGN-DECISIONS.md` from the design package
+7. Older canvases and screenshots as historical reference
 
 ## Locked product decisions
 
@@ -110,6 +115,36 @@ When design artifacts disagree, use:
 - Verified the app's anon Supabase key can read `daily_reflection_images` and
   resolve the public Storage URL for `reflection_bg7.webp`.
 
+### Phase 2 — Today and My Dailies, replacement pass in progress
+
+- Added local-first `use-dailies-store` backed by AsyncStorage.
+- Seeded editable Morning/Anytime/Evening dailies:
+  Say my Morning Prayer, Write my Gratitude List, Attend a meeting, Read the
+  literature, Nightly Review, and Say my Evening Prayer.
+- Rebuilt Today around the standalone prototype Your Day structure: date
+  header, medallion sobriety counter, permanent Daily Reflection hero, and
+  Morning/Anytime/Evening medallion rows.
+- Daily Reflection is permanent and outside the editable dailies list.
+- Daily Reflection hero image is fetched from Supabase
+  `daily_reflection_images`, with bundled `reflection_bg7.webp` fallback.
+- Opening Daily Reflection marks it complete for today; users can still manually
+  uncheck it from Today.
+- Linked reading/open actions mark complete on open where the prototype does
+  so. Writing/review-style actions remain manual until they can sync from their
+  save flows.
+- Added My Dailies editor screen with add, remove, rename, move-between-section,
+  and create-custom-action flows. No drag reorder is implemented, per latest
+  decision.
+- Added `DailiesProvider` to the app root and registered hidden
+  `/(main)/my-dailies` route.
+- Corrected the first Today implementation away from the hybrid draft:
+  customization moved to the footer `Customize my dailies` affordance, the
+  counter returned to medallion style, and standard daily rows now use left
+  medallion icons plus right-side completion checks.
+- User clarified on June 20, 2026 that the app-defining prototype is
+  `/Users/nealwagner/Downloads/Sober Dailies - Standalone.html`, not the older
+  intermediate design-path files.
+
 ## Known baseline issues
 
 - The repository has many pre-existing TypeScript errors unrelated to the
@@ -123,17 +158,20 @@ When design artifacts disagree, use:
 
 ## Next implementation slice
 
-Begin Phase 2 — Today and My Dailies:
+Continue Phase 2 — Today and My Dailies:
 
-1. Add the persisted Morning/Anytime/Evening dailies store and seed contract.
-2. Rebuild Today using the approved hero, counter, and action-row system. Treat
-   the Daily Reflections hero image as Supabase-sourced, with a temporary
-   fallback only if needed during implementation.
-3. Fetch active rows from `daily_reflection_images` and rotate/select the hero
-   image in app code.
-4. Keep Daily Reflection permanent and outside the editable list.
-5. Build My Dailies add/remove/rename/move/custom-action flows.
-6. Connect completion behavior without introducing mock production data.
+1. Visually test and tune Today + My Dailies on simulator once the dev-client
+   menu is dismissed.
+2. Decide whether completion for linked writing tools should be purely manual
+   from Today or synced from existing tool stores after save.
+3. Connect any agreed existing-tool completion sources without introducing mock
+   production data.
+4. Continue polish on Today row density, hero height, and My Dailies sheet
+   behavior.
+5. Resolve the Phase 1/prototype FAB discrepancy: earlier user-approved Phase 1
+   has the AI Sponsor FAB on Today/Tools/Journey; the standalone prototype only
+   enables it on Tools/Journey.
+6. Commit Phase 2 first slice once reviewed.
 
 ## Cross-device workflow
 
@@ -171,3 +209,27 @@ Before handing work to another computer or chat:
   `daily-reflections/reflection_bg7.webp` — verified by upload response
 - Supabase table `daily_reflection_images` has the initial active image row and
   is readable through the app's anon key — verified
+- Phase 2 changed-file TypeScript filter — no errors in changed files
+- Phase 2 iOS export:
+  `npx expo export --platform ios --output-dir .expo/codex-export --clear` —
+  passed
+- Phase 2 iPhone 17 simulator launch on Metro port 8083 — reached new Today
+  screen, loaded Supabase Daily Reflection content, no runtime crash observed
+  before dev-client menu overlay
+- Phase 2 Today design-guide correction iOS export — passed
+- Phase 2 corrected Today screenshot captured at
+  `/tmp/sober-dailies-phase2-today-design-pass.png`
+- Phase 2 standalone replacement changed-file TypeScript filter — no errors in
+  changed files
+- Phase 2 standalone replacement iOS export:
+  `npx expo export --platform ios --output-dir .expo/codex-export --clear` —
+  passed
+- Phase 2 standalone replacement Today screenshot captured at
+  `/tmp/sober-dailies-phase2-today-standalone-replacement.png`
+- Phase 2 prototype/icon fidelity pass added `PrototypeIcon`, aligned Today/My
+  Dailies icons to the standalone prototype, removed extra row chevrons,
+  changed Daily Reflection hero to title treatment, and switched the Sponsor
+  FAB to an avatar image.
+- Phase 2 prototype/icon fidelity iOS export:
+  `npx expo export --platform ios --output-dir .expo/codex-export --clear` —
+  passed

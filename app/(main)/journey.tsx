@@ -50,7 +50,7 @@ export default function JourneyScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: redesignColors.paper,
+    backgroundColor: redesignColors.warmWhite,
   },
   content: {
     paddingHorizontal: redesignSpacing.xl,
@@ -73,4 +73,3 @@ const styles = StyleSheet.create({
     color: redesignColors.teal,
   },
 });
-

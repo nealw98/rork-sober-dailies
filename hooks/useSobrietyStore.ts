@@ -81,6 +81,13 @@ export const [SobrietyProvider, useSobriety] = createContextHook(() => {
     console.log('[Sobriety] Date saved successfully.');
   }, [saveData]);
 
+  const removeSobrietyDate = useCallback(async () => {
+    setSobrietyDate(null);
+    setHasSeenPrompt(true);
+    await saveData(null, true);
+    await syncSobrietyDate(null);
+  }, [saveData]);
+
   const dismissPrompt = useCallback(() => {
     setHasSeenPrompt(true);
     saveData(sobrietyDate, true);
@@ -139,6 +146,7 @@ export const [SobrietyProvider, useSobriety] = createContextHook(() => {
     dailyCheckIns,
     emergencyContacts,
     setSobrietyDate: setSobrietyDateAndSave,
+    removeSobrietyDate,
     dismissPrompt,
     calculateDaysSober,
     shouldShowPrompt,
@@ -154,6 +162,7 @@ export const [SobrietyProvider, useSobriety] = createContextHook(() => {
     dailyCheckIns,
     emergencyContacts,
     setSobrietyDateAndSave,
+    removeSobrietyDate,
     dismissPrompt,
     calculateDaysSober,
     shouldShowPrompt,

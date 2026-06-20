@@ -27,6 +27,9 @@ import {
 } from '@expo-google-fonts/manrope';
 import {
   Lora_400Regular,
+  Lora_400Regular_Italic,
+  Lora_500Medium,
+  Lora_500Medium_Italic,
   Lora_700Bold,
 } from '@expo-google-fonts/lora';
 import {
@@ -53,6 +56,7 @@ import { GratitudeProvider } from "@/hooks/use-gratitude-store";
 import { OnboardingProvider, useOnboarding } from "@/hooks/useOnboardingStore";
 import { SobrietyProvider } from "@/hooks/useSobrietyStore";
 import { EveningReviewProvider } from "@/hooks/use-evening-review-store";
+import { DailiesProvider } from "@/hooks/use-dailies-store";
 import { TextSettingsProvider } from "@/hooks/use-text-settings";
 import { useOTAUpdates } from "@/hooks/useOTAUpdates";
 import { adjustFontWeight } from "@/constants/fonts";
@@ -110,6 +114,9 @@ function RootLayoutNav() {
     Manrope_700Bold,
     Manrope_800ExtraBold,
     Lora_400Regular,
+    Lora_400Regular_Italic,
+    Lora_500Medium,
+    Lora_500Medium_Italic,
     Lora_700Bold,
     Archivo_400Regular,
     Archivo_500Medium,
@@ -339,19 +346,21 @@ export default function RootLayout() {
                 <GratitudeProvider>
                   <SobrietyProvider>
                     <EveningReviewProvider>
-                      <GestureHandlerRootView style={{ flex: 1 }}>
-                        {Platform.OS === 'android' && (
-                          <StatusBar translucent backgroundColor="transparent" barStyle="light-content" />
-                        )}
-                        <ErrorBoundary>
-                          <AudioPlayerProvider>
-                            <HamburgerMenuProvider>
-                              <RootLayoutNav />
-                              <HamburgerMenu />
-                            </HamburgerMenuProvider>
-                          </AudioPlayerProvider>
-                        </ErrorBoundary>
-                      </GestureHandlerRootView>
+                      <DailiesProvider>
+                        <GestureHandlerRootView style={{ flex: 1 }}>
+                          {Platform.OS === 'android' && (
+                            <StatusBar translucent backgroundColor="transparent" barStyle="light-content" />
+                          )}
+                          <ErrorBoundary>
+                            <AudioPlayerProvider>
+                              <HamburgerMenuProvider>
+                                <RootLayoutNav />
+                                <HamburgerMenu />
+                              </HamburgerMenuProvider>
+                            </AudioPlayerProvider>
+                          </ErrorBoundary>
+                        </GestureHandlerRootView>
+                      </DailiesProvider>
                     </EveningReviewProvider>
                   </SobrietyProvider>
                 </GratitudeProvider>

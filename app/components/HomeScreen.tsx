@@ -1,72 +1,334 @@
-import React, { useEffect, useState, useRef, useCallback } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
-  StyleSheet,
-  View,
-  Text,
-  ScrollView,
-  TouchableOpacity,
-  Image,
-  ImageBackground,
   AppState,
   AppStateStatus,
-  useWindowDimensions,
+  ImageBackground,
+  Linking,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  View,
 } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import { MessageCircle, Mic, BookOpen, Settings, ChevronRight, Sun, Heart, Moon, PenLine, CheckCircle, Library } from 'lucide-react-native';
-import { useHamburgerMenu } from '@/hooks/useHamburgerMenu';
 
-import SobrietyCounter from '@/components/SobrietyCounter';
-import { useTheme } from '@/hooks/useTheme';
-import { getTodaysReflection } from '@/constants/reflections';
-import { Reflection } from '@/types';
+import { AppText } from '@/components/ui/AppText';
+import { PrototypeIcon } from '@/components/ui/PrototypeIcon';
 import {
-  colors,
-  semanticColors,
-  cardColors,
-  spacing,
-  radii,
-  fontFamily,
-  fontSize,
-  shadows,
-  gradients,
-} from '@/constants/designTokens';
+  redesignColors,
+  redesignRadii,
+  redesignShadows,
+  redesignSpacing,
+} from '@/constants/redesignTokens';
+import { getTodaysReflection } from '@/constants/reflections';
+import { useDailyReflectionImages } from '@/hooks/use-daily-reflection-images';
+import { DailyAction, DailyItem, DailySection, DailyTone, useDailiesStore } from '@/hooks/use-dailies-store';
+import { getMeditationSettings, getSelectedMeditationApp } from '@/hooks/use-meditation-settings';
+import { useSobriety } from '@/hooks/useSobrietyStore';
+import { Reflection } from '@/types';
 
-// Helper to check if two dates are the same day
-const isSameDay = (date1: Date, date2: Date): boolean => {
-  return (
-    date1.getFullYear() === date2.getFullYear() &&
-    date1.getMonth() === date2.getMonth() &&
-    date1.getDate() === date2.getDate()
-  );
+const REFLECTION_COMPLETION_ID = 'daily-reflection';
+const SECTIONS: DailySection[] = ['Morning', 'Anytime', 'Evening'];
+const MARK_DONE_ON_OPEN = new Set<DailyAction>([
+  'prayerMorning',
+  'prayerEvening',
+  'prayer',
+  'meeting',
+  'lit',
+  'speaker',
+  'quick',
+]);
+
+async function openMeditationApp(appUrl: string, fallbackUrl: string) {
+  try {
+    await Linking.openURL(appUrl);
+  } catch {
+    await Linking.openURL(fallbackUrl);
+  }
+}
+
+const toneColors: Record<DailyTone, { ink: string; soft: string }> = {
+  teal: { ink: redesignColors.teal, soft: redesignColors.tealSoft },
+  amber: { ink: redesignColors.amber, soft: redesignColors.amberSoft },
+  blue: { ink: redesignColors.blue, soft: redesignColors.blueSoft },
+  lavender: { ink: redesignColors.lavender, soft: redesignColors.lavenderSoft },
+  coral: { ink: redesignColors.coral, soft: redesignColors.coralSoft },
+  gray: { ink: redesignColors.inkMuted, soft: redesignColors.paperDeep },
 };
 
+function isSameDay(date1: Date, date2: Date): boolean {
+  return (
+    date1.getFullYear() === date2.getFullYear()
+    && date1.getMonth() === date2.getMonth()
+    && date1.getDate() === date2.getDate()
+  );
+}
 
-const HomeScreen = () => {
+function formatDate(date: Date) {
+  return new Intl.DateTimeFormat(undefined, {
+    weekday: 'long',
+    month: 'long',
+    day: 'numeric',
+  }).format(date);
+}
+
+function toTitleCase(value: string | undefined) {
+  if (!value) return 'Daily Reflection';
+  return value
+    .toLowerCase()
+    .replace(/\b\w/g, character => character.toUpperCase());
+}
+
+function getDateParts(dateString: string | null) {
+  if (!dateString) return null;
+  const [year, month, day] = dateString.split('-').map(Number);
+  if (!year || !month || !day) return null;
+  return new Date(year, month - 1, day);
+}
+
+function formatSoberDate(dateString: string | null) {
+  const date = getDateParts(dateString);
+  if (!date) return null;
+  return new Intl.DateTimeFormat(undefined, {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  }).format(date);
+}
+
+function getSoberBreakdown(dateString: string | null, now = new Date()) {
+  const start = getDateParts(dateString);
+  if (!start) return null;
+
+  let years = now.getFullYear() - start.getFullYear();
+  let months = now.getMonth() - start.getMonth();
+  let days = now.getDate() - start.getDate();
+
+  if (days < 0) {
+    months -= 1;
+    days += new Date(now.getFullYear(), now.getMonth(), 0).getDate();
+  }
+  if (months < 0) {
+    years -= 1;
+    months += 12;
+  }
+
+  return { years: Math.max(years, 0), months: Math.max(months, 0), days: Math.max(days, 0) };
+}
+
+function IconMedallion({
+  icon,
+  tone,
+  size = 19,
+}: {
+  icon: string;
+  tone: DailyTone;
+  size?: number;
+}) {
+  const toneColor = toneColors[tone];
+
+  return (
+    <View style={[styles.medallion, { backgroundColor: toneColor.ink }]}>
+      <PrototypeIcon name={icon} size={size} color={redesignColors.white} stroke={2} />
+    </View>
+  );
+}
+
+function CompletionButton({
+  done,
+  color,
+  onPress,
+}: {
+  done: boolean;
+  color: string;
+  onPress: () => void;
+}) {
+  return (
+    <Pressable
+      accessibilityRole="checkbox"
+      accessibilityState={{ checked: done }}
+      hitSlop={10}
+      onPress={(event) => {
+        event.stopPropagation();
+        onPress();
+      }}
+      style={[
+        styles.checkButton,
+        {
+          borderColor: done ? color : `${color}70`,
+          backgroundColor: done ? color : `${color}1A`,
+        },
+      ]}
+    >
+      <PrototypeIcon
+        name="checkPlain"
+        size={15}
+        color={done ? redesignColors.white : `${color}66`}
+        stroke={2.4}
+      />
+    </Pressable>
+  );
+}
+
+function SobrietyCounter({
+  totalDays,
+  soberDate,
+  dismissed,
+  onAddDate,
+  onNotNow,
+}: {
+  totalDays: number | null;
+  soberDate: string | null;
+  dismissed: boolean;
+  onAddDate: () => void;
+  onNotNow: () => void;
+}) {
+  const breakdown = getSoberBreakdown(soberDate);
+  const formattedDate = formatSoberDate(soberDate);
+
+  if (totalDays === null || !breakdown) {
+    if (dismissed) {
+      return (
+        <Pressable style={styles.soberDismissed} onPress={onAddDate}>
+          <View style={styles.soberDismissedCoin}>
+            <View style={styles.counterMedallionRing} />
+            <PrototypeIcon name="sunrise" size={38} color={redesignColors.white} stroke={2} />
+          </View>
+          <View style={styles.soberDismissedText}>
+            <AppText voice="reader" weight="medium" italic size={22} color={redesignColors.teal} style={styles.soberPromptTitle}>
+              One day at a time.
+            </AppText>
+            <PrototypeIcon name="pen" size={13} color={redesignColors.inkMuted} stroke={2} />
+          </View>
+        </Pressable>
+      );
+    }
+
+    return (
+      <View style={styles.soberPrompt}>
+        <AppText voice="reader" weight="medium" italic size={22} color={redesignColors.teal} style={styles.soberPromptTitle}>
+          One day at a time.
+        </AppText>
+        <AppText typeRole="sub" color={redesignColors.inkMuted} style={styles.soberPromptText}>
+          Counting days helps some people. Add your sober date whenever you&apos;re ready — no pressure.
+        </AppText>
+        <View style={styles.soberPromptActions}>
+          <Pressable style={styles.addDateButton} onPress={onAddDate}>
+            <AppText typeRole="ui" color={redesignColors.white}>
+              Add date
+            </AppText>
+          </Pressable>
+          <Pressable style={styles.notNowButton} onPress={onNotNow}>
+            <AppText typeRole="ui" color={redesignColors.inkSecondary}>
+              Not now
+            </AppText>
+          </Pressable>
+        </View>
+      </View>
+    );
+  }
+
+  return (
+    <Pressable style={styles.counterCard} onPress={onAddDate}>
+      <View style={styles.counterMedallion}>
+        <View style={styles.counterMedallionRing} />
+        <AppText voice="display" weight="bold" size={28} color={redesignColors.white}>
+          {totalDays}
+        </AppText>
+      </View>
+      <View style={styles.counterBody}>
+        <View style={styles.daysSoberRow}>
+          <AppText typeRole="section" color={redesignColors.teal}>
+            days sober
+          </AppText>
+          <PrototypeIcon name="pen" size={13} color={redesignColors.inkMuted} stroke={2} />
+        </View>
+        <AppText typeRole="sub" color={redesignColors.inkMuted}>
+          {breakdown.years} years · {breakdown.months} months · {breakdown.days} days
+        </AppText>
+        {formattedDate ? (
+          <AppText typeRole="sub" color={redesignColors.inkMuted}>
+            since {formattedDate}
+          </AppText>
+        ) : null}
+      </View>
+    </Pressable>
+  );
+}
+
+function DailyRow({
+  item,
+  done,
+  onToggle,
+  onOpen,
+}: {
+  item: DailyItem;
+  done: boolean;
+  onToggle: () => void;
+  onOpen: () => void;
+}) {
+  const tone = toneColors[item.tone];
+
+  return (
+    <Pressable
+      onPress={onOpen}
+      style={[
+        styles.dailyRow,
+        done && {
+          backgroundColor: tone.soft,
+          borderColor: `${tone.ink}66`,
+        },
+      ]}
+    >
+      <IconMedallion icon={item.icon} tone={item.tone} />
+      <View style={styles.dailyText}>
+        <AppText typeRole="ui" color={redesignColors.ink} numberOfLines={1}>
+          {item.label}
+        </AppText>
+        {item.subtitle ? (
+          <AppText typeRole="sub" color={redesignColors.inkMuted} numberOfLines={1}>
+            {item.subtitle}
+          </AppText>
+        ) : null}
+      </View>
+      <CompletionButton done={done} color={tone.ink} onPress={onToggle} />
+    </Pressable>
+  );
+}
+
+export default function HomeScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { height: screenHeight } = useWindowDimensions();
-  const { palette } = useTheme();
+  const {
+    calculateDaysSober,
+    dismissPrompt,
+    emergencyContacts,
+    hasSeenPrompt,
+    isLoading: sobrietyLoading,
+    sobrietyDate,
+  } = useSobriety();
+  const {
+    sectionItems,
+    isDoneToday,
+    toggleDoneToday,
+    setDoneForDate,
+  } = useDailiesStore();
+  const { todaysImage } = useDailyReflectionImages();
+
   const [todaysReflection, setTodaysReflection] = useState<Reflection | null>(null);
-  const [currentDate, setCurrentDate] = useState<Date>(new Date());
-  const lastDateRef = useRef<Date>(new Date());
+  const [currentDate, setCurrentDate] = useState(new Date());
+  const lastDateRef = useRef(new Date());
 
-  // Use new design token semantic colors (light mode for now)
-  const sem = semanticColors.light;
-  const cards = cardColors.light;
-  const { open: openMenu } = useHamburgerMenu();
-
-  // Fetch today's reflection
   const fetchReflection = useCallback(() => {
-    getTodaysReflection().then(setTodaysReflection).catch(console.error);
+    getTodaysReflection().then(setTodaysReflection).catch(error => {
+      console.error('[Today] Failed to load reflection', error);
+    });
   }, []);
 
   useEffect(() => {
     fetchReflection();
   }, [fetchReflection]);
 
-  // Update date and reflection when app comes to foreground on a new day
   useEffect(() => {
     const handleAppStateChange = (nextAppState: AppStateStatus) => {
       if (nextAppState === 'active') {
@@ -80,451 +342,426 @@ const HomeScreen = () => {
     };
 
     const subscription = AppState.addEventListener('change', handleAppStateChange);
-    return () => {
-      subscription.remove();
-    };
+    return () => subscription.remove();
   }, [fetchReflection]);
 
+  const daysSober = useMemo(() => {
+    if (sobrietyLoading) return null;
+    return calculateDaysSober();
+  }, [calculateDaysSober, sobrietyLoading]);
+
+  const reflectionDone = isDoneToday(REFLECTION_COMPLETION_ID);
+
+  const openReflection = useCallback(async () => {
+    await setDoneForDate(REFLECTION_COMPLETION_ID, true);
+    router.push('/(main)/daily-reflections');
+  }, [router, setDoneForDate]);
+
+  const openDaily = useCallback(async (item: DailyItem) => {
+    if (item.action === 'meditation') {
+      const meditationSettings = await getMeditationSettings();
+      if (!meditationSettings.source) {
+        router.push(`/(main)/meditation-timer?dailyId=${encodeURIComponent(item.id)}` as any);
+        return;
+      }
+      if (meditationSettings.source === 'app') {
+        const selectedApp = getSelectedMeditationApp(meditationSettings);
+        await openMeditationApp(selectedApp.appUrl, selectedApp.appStoreUrl);
+        await setDoneForDate(item.id, true);
+        return;
+      }
+      if (meditationSettings.source === 'youtube') {
+        router.push(`/(main)/meditation-youtube?dailyId=${encodeURIComponent(item.id)}` as any);
+        return;
+      }
+      if (meditationSettings.source === 'timer') {
+        router.push(`/(main)/meditation-timer?dailyId=${encodeURIComponent(item.id)}` as any);
+        return;
+      }
+    }
+    if (item.action === 'call' && emergencyContacts.length === 0) {
+      router.push('/(main)/add-from-contacts');
+      return;
+    }
+    if (MARK_DONE_ON_OPEN.has(item.action)) {
+      await setDoneForDate(item.id, true);
+    }
+    if (item.route) {
+      router.push(item.route as any);
+    } else {
+      toggleDoneToday(item.id);
+    }
+  }, [emergencyContacts.length, router, setDoneForDate, toggleDoneToday]);
+
+  const reflectionImageSource = todaysImage?.publicUrl
+    ? { uri: todaysImage.publicUrl }
+    : require('@/assets/reflections_images/reflection_bg7.webp');
+
   return (
-    <View style={[styles.container, { backgroundColor: sem.background }]}>
-      {/* Everything scrolls together — header is just the top of the page */}
+    <View style={styles.container}>
       <ScrollView
         style={styles.scrollView}
-        contentContainerStyle={styles.scrollContentOuter}
+        contentContainerStyle={[
+          styles.scrollContent,
+          { paddingTop: Math.max(insets.top - 6, 52) },
+        ]}
         showsVerticalScrollIndicator={false}
       >
-        {/* Hero header — gradient with watermark icon */}
-        <LinearGradient
-          colors={palette.gradients.header as [string, string, ...string[]]}
-          style={[styles.headerGradient, { paddingTop: insets.top, minHeight: Math.round(screenHeight / 3) }]}
-          start={{ x: 0.1, y: 0 }}
-          end={{ x: 0.9, y: 1 }}
-        >
-          {/* Top row — settings + menu */}
-          <View style={styles.homeTopRow}>
-            <TouchableOpacity
-              onPress={() => router.push('/(main)/settings')}
-              style={styles.homeIconBtn}
-              activeOpacity={0.7}
-            >
-              <Settings size={20} color="rgba(255,255,255,0.8)" />
-            </TouchableOpacity>
-          </View>
+        <View style={styles.header}>
+          <AppText typeRole="displayM" color={redesignColors.ink} style={styles.headerTitle}>
+            Today
+          </AppText>
+          <AppText typeRole="sub" color={redesignColors.inkMuted}>
+            {formatDate(currentDate)}
+          </AppText>
+        </View>
 
-          {/* Watermark icon — rotated -45deg, faded */}
-          <View style={styles.watermarkContainer} pointerEvents="none">
-            <Image
-              source={require('@/assets/reflections_images/splash-android-icon.png')}
-              style={styles.watermarkIcon}
-              resizeMode="contain"
-            />
-          </View>
-          <View style={styles.sobrietyCounterContainer}>
-            <SobrietyCounter />
-          </View>
-        </LinearGradient>
+        <SobrietyCounter
+          totalDays={daysSober}
+          soberDate={sobrietyDate}
+          dismissed={hasSeenPrompt}
+          onAddDate={() => router.push('/sobriety-date')}
+          onNotNow={dismissPrompt}
+        />
 
-        {/* Cards area — reflection overlaps the gradient via negative margin */}
-        <View style={styles.cardsContainer}>
-          {/* ── Daily Reflection Card ── overlaps header gradient */}
-          <TouchableOpacity
-            onPress={() => router.push('/daily-reflections')}
-            activeOpacity={0.85}
-            style={styles.reflectionTouchable}
-          >
+        <SectionHeader
+          title="Morning"
+        />
+
+        <View style={[
+          styles.heroCard,
+          reflectionDone && styles.heroCardDone,
+        ]}>
+          <Pressable onPress={openReflection}>
             <ImageBackground
-              source={require('@/assets/reflections_images/reflection_bg7.webp')}
-              style={styles.reflectionCard}
-              imageStyle={styles.reflectionImage}
+              source={reflectionImageSource}
+              style={styles.heroImage}
+              imageStyle={styles.heroImageRadius}
               resizeMode="cover"
-              blurRadius={8}
             >
-              <View style={styles.reflectionOverlay}>
-                <Text style={styles.categoryLabel}>TODAY'S FOCUS</Text>
-                <Text style={styles.reflectionTitle}>Daily Reflection</Text>
-                <Text style={styles.reflectionQuote} numberOfLines={4}>
-                  {todaysReflection?.homeQuote
-                    ? `"${todaysReflection.homeQuote}"`
-                    : 'Loading...'}
-                </Text>
-                <View style={styles.cardFooter}>
-                  <Text style={styles.cardFooterText}>Read More</Text>
-                  <ChevronRight size={16} color="rgba(255,255,255,0.7)" strokeWidth={1.5} />
-                </View>
+              <View style={styles.heroShade} />
+              <View style={styles.heroPill}>
+                <AppText typeRole="eyebrow" color={redesignColors.ink} style={styles.heroPillText}>
+                  DAILY REFLECTION
+                </AppText>
               </View>
+              <AppText typeRole="displayS" color={redesignColors.white} style={styles.heroTitle} numberOfLines={2}>
+                {toTitleCase(todaysReflection?.title)}
+              </AppText>
             </ImageBackground>
-          </TouchableOpacity>
+          </Pressable>
+          <Pressable style={[
+            styles.heroMetaRow,
+            reflectionDone && styles.heroMetaRowDone,
+          ]} onPress={openReflection}>
+            <IconMedallion icon="book" tone="teal" />
+            <View style={styles.heroMetaText}>
+              <AppText typeRole="ui" color={redesignColors.ink}>
+                Daily Reflection
+              </AppText>
+            </View>
+            <CompletionButton
+              done={reflectionDone}
+              color={redesignColors.teal}
+              onPress={() => toggleDoneToday(REFLECTION_COMPLETION_ID)}
+            />
+          </Pressable>
+        </View>
 
-        {/* ── AI Sponsor Card ── */}
-        <TouchableOpacity
-          onPress={() => router.push('/(main)/chat')}
-          activeOpacity={0.85}
-          style={[styles.card, { backgroundColor: cards.sponsor }]}
-        >
-          <View style={styles.categoryRow}>
-            <MessageCircle size={16} color="#3B7E7F" />
-            <Text style={[styles.categoryLabelDark, { color: '#3B7E7F' }]}>
-              AI COMPANION
-            </Text>
+        {sectionItems('Morning').map(item => (
+          <DailyRow
+            key={item.id}
+            item={item}
+            done={isDoneToday(item.id)}
+            onOpen={() => openDaily(item)}
+            onToggle={() => toggleDoneToday(item.id)}
+          />
+        ))}
+
+        {SECTIONS.filter(section => section !== 'Morning').map(section => (
+          <View key={section}>
+            <SectionHeader
+              title={section}
+            />
+            {sectionItems(section).map(item => (
+              <DailyRow
+                key={item.id}
+                item={item}
+                done={isDoneToday(item.id)}
+                onOpen={() => openDaily(item)}
+                onToggle={() => toggleDoneToday(item.id)}
+              />
+            ))}
           </View>
-          <Text style={styles.cardTitle}>AI Sponsor</Text>
-          <Text style={[styles.cardSubtitle, { color: '#3B7E7F' }]}>
-            Always here to listen, guide, and support your step work in real-time.
-          </Text>
-          <View style={styles.cardFooter}>
-            <Text style={[styles.cardFooterText, { color: colors.secondaryExtraDark }]}>Talk</Text>
-            <ChevronRight size={18} color={colors.secondaryExtraDark} strokeWidth={1.5} />
-          </View>
-        </TouchableOpacity>
+        ))}
 
-        {/* ── AA Speakers Card ── */}
-        <TouchableOpacity
-          onPress={() => router.push('/(main)/speakers')}
-          activeOpacity={0.85}
-          style={[styles.card, { backgroundColor: cards.speakers }]}
-        >
-          <View style={styles.categoryRow}>
-            <Mic size={16} color="#624C91" />
-            <Text style={[styles.categoryLabelDark, { color: '#624C91' }]}>
-              FEATURED
-            </Text>
-          </View>
-          <Text style={styles.cardTitle}>AA Speakers</Text>
-          <Text style={[styles.cardSubtitle, { color: '#624C91' }]}>
-            Listen to inspiring stories of recovery from fellow members.
-          </Text>
-          <View style={styles.cardFooter}>
-            <Text style={[styles.cardFooterText, { color: colors.tertiaryExtraDark }]}>Listen</Text>
-            <ChevronRight size={18} color={colors.tertiaryExtraDark} strokeWidth={1.5} />
-          </View>
-        </TouchableOpacity>
-
-        {/* ── Daily Habits Section ── */}
-        <Text style={[styles.sectionLabel, { color: sem.textMuted }]}>DAILY HABITS</Text>
-
-        {/* Row 1: Morning Prayer + Gratitude */}
-        <View style={styles.ritualRow}>
-          <TouchableOpacity
-            onPress={() => router.push('/(main)/prayers?prayer=morning')}
-            activeOpacity={0.85}
-            style={[styles.ritualCard, { backgroundColor: cards.ritual, borderColor: colors.secondaryLight }]}
-          >
-            <View style={styles.ritualIcon}>
-              <Sun size={24} color={colors.secondary} strokeWidth={1.5} />
-            </View>
-            <Text style={[styles.ritualTitle, { color: sem.text }]}>Morning Prayer</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            onPress={() => router.push('/(main)/gratitude')}
-            activeOpacity={0.85}
-            style={[styles.ritualCard, { backgroundColor: cards.ritual, borderColor: colors.secondaryLight }]}
-          >
-            <View style={styles.ritualIcon}>
-              <Heart size={24} color={colors.secondary} strokeWidth={1.5} />
-            </View>
-            <Text style={[styles.ritualTitle, { color: sem.text }]}>Gratitude List</Text>
-          </TouchableOpacity>
-        </View>
-
-        {/* Row 2: Evening Prayer + Nightly Review */}
-        <View style={styles.ritualRow}>
-          <TouchableOpacity
-            onPress={() => router.push('/(main)/prayers?prayer=evening')}
-            activeOpacity={0.85}
-            style={[styles.ritualCard, { backgroundColor: cards.ritual, borderColor: colors.secondaryLight }]}
-          >
-            <View style={styles.ritualIcon}>
-              <Moon size={24} color={colors.secondary} strokeWidth={1.5} />
-            </View>
-            <Text style={[styles.ritualTitle, { color: sem.text }]}>Evening Prayer</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            onPress={() => router.push('/(main)/evening-review')}
-            activeOpacity={0.85}
-            style={[styles.ritualCard, { backgroundColor: cards.ritual, borderColor: colors.secondaryLight }]}
-          >
-            <View style={styles.ritualIcon}>
-              <PenLine size={24} color={colors.secondary} strokeWidth={1.5} />
-            </View>
-            <Text style={[styles.ritualTitle, { color: sem.text }]}>Nightly Review</Text>
-          </TouchableOpacity>
-        </View>
-
-        {/* Row 3: Prayers + Spot Check */}
-        <View style={styles.ritualRow}>
-          <TouchableOpacity
-            onPress={() => router.push('/(main)/prayers')}
-            activeOpacity={0.85}
-            style={[styles.ritualCard, { backgroundColor: cards.ritual, borderColor: colors.secondaryLight }]}
-          >
-            <View style={styles.ritualIcon}>
-              <BookOpen size={24} color={colors.secondary} strokeWidth={1.5} />
-            </View>
-            <Text style={[styles.ritualTitle, { color: sem.text }]}>Prayers</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            onPress={() => router.push('/(main)/inventory')}
-            activeOpacity={0.85}
-            style={[styles.ritualCard, { backgroundColor: cards.ritual, borderColor: colors.secondaryLight }]}
-          >
-            <View style={styles.ritualIcon}>
-              <CheckCircle size={24} color={colors.secondary} strokeWidth={1.5} />
-            </View>
-            <Text style={[styles.ritualTitle, { color: sem.text }]}>Spot Check</Text>
-          </TouchableOpacity>
-        </View>
-
-        {/* Row 4: Literature */}
-        <View style={styles.ritualRow}>
-          <TouchableOpacity
-            onPress={() => router.push('/(main)/literature')}
-            activeOpacity={0.85}
-            style={[styles.ritualCard, { backgroundColor: cards.ritual, borderColor: colors.secondaryLight }]}
-          >
-            <View style={styles.ritualIcon}>
-              <Library size={24} color={colors.secondary} strokeWidth={1.5} />
-            </View>
-            <Text style={[styles.ritualTitle, { color: sem.text }]}>Literature</Text>
-          </TouchableOpacity>
-          <View style={{ flex: 1 }} />
-        </View>
-
-          {/* Bottom padding */}
-          <View style={{ height: spacing.xl }} />
-        </View>
+        <Pressable style={styles.customizeButton} onPress={() => router.push('/(main)/my-dailies')}>
+          <PrototypeIcon name="sliders" size={16} color={redesignColors.teal} stroke={2} />
+          <AppText typeRole="ui" color={redesignColors.teal}>
+            Customize my dailies
+          </AppText>
+        </Pressable>
       </ScrollView>
     </View>
   );
-};
+}
 
-// ─── Styles ──────────────────────────────────────────────────────────────────
+function SectionHeader({
+  title,
+}: {
+  title: DailySection;
+}) {
+  return (
+    <View style={styles.sectionHeader}>
+      <AppText typeRole="section" color={redesignColors.ink}>
+        {title}
+      </AppText>
+    </View>
+  );
+}
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: redesignColors.warmWhite,
   },
-
-  // Home top row
-  homeTopRow: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-    gap: spacing.sm,
-    paddingHorizontal: spacing.md,
-    marginBottom: 0,
-  },
-  homeIconBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-
-  // Header — extra bottom padding so the reflection card can overlap into it
-  headerGradient: {
-    paddingBottom: 16,
-  },
-  watermarkContainer: {
-    position: 'absolute',
-    top: 0,
-    left: -100,
-    right: 0,
-    bottom: 0,
-    alignItems: 'center',
-    justifyContent: 'center',
-    overflow: 'hidden',
-  },
-  watermarkIcon: {
-    width: 700,
-    height: 700,
-    opacity: 0.03,
-    transform: [{ rotate: '-30deg' }],
-  },
-  sobrietyCounterContainer: {
-    alignItems: 'center',
-    paddingHorizontal: spacing.lg,
-    marginTop: -22,
-  },
-
   scrollView: {
     flex: 1,
   },
-  scrollContentOuter: {
-    // no padding here — the gradient fills edge-to-edge
+  scrollContent: {
+    paddingHorizontal: 22,
+    paddingBottom: 134,
   },
-  cardsContainer: {
-    marginTop: -40,
-    paddingHorizontal: spacing.lg,
-    paddingBottom: spacing.lg,
+  header: {
+    marginBottom: 10,
   },
-
-  // ── Daily Reflection ──
-  reflectionTouchable: {
-    // overlap handled by cardsContainer marginTop
+  headerTitle: {
+    letterSpacing: -0.4,
+    marginBottom: 2,
   },
-  reflectionCard: {
-    borderRadius: radii.lg,
-    overflow: 'hidden',
-    marginBottom: spacing.md,
-    ...shadows.softUI,
+  soberPrompt: {
+    backgroundColor: redesignColors.surface,
+    borderColor: redesignColors.border,
+    borderRadius: 16,
+    borderWidth: 1,
+    marginBottom: 10,
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+    shadowColor: redesignColors.shadow,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.04,
+    shadowRadius: 10,
+    elevation: 2,
   },
-  reflectionImage: {
-    borderRadius: radii.lg,
-  },
-  reflectionOverlay: {
-    padding: spacing.lg,
-    paddingVertical: spacing.lg,
-    backgroundColor: 'transparent',
-  },
-  reflectionTitle: {
-    fontFamily: 'WixMadeforDisplay_800ExtraBold',
-    fontSize: 24,
-    letterSpacing: -0.5,
-    color: colors.white,
-    marginBottom: spacing.sm,
-    textShadowColor: 'rgba(0, 0, 0, 0.7)',
-    textShadowOffset: { width: 0, height: 2 },
-    textShadowRadius: 12,
-  },
-  reflectionQuote: {
-    fontFamily: fontFamily.regular,
-    fontSize: fontSize.md,
-    color: colors.white,
+  soberPromptTitle: {
     fontStyle: 'italic',
-    lineHeight: 22,
-    marginBottom: spacing.xs,
-    textShadowColor: 'rgba(0, 0, 0, 0.8)',
-    textShadowOffset: { width: 0, height: 2 },
-    textShadowRadius: 12,
+    lineHeight: 28,
   },
-
-  // ── Shared Card ──
-  card: {
-    borderRadius: radii.lg,
-    padding: spacing.lg,
-    marginBottom: spacing.md,
-    ...shadows.softUI,
+  soberPromptText: {
+    lineHeight: 19,
+    marginTop: 6,
   },
-
-  // ── Category Label ──
-  categoryLabel: {
-    fontFamily: fontFamily.semiBold,
-    fontSize: fontSize.xs,
-    color: 'rgba(255, 255, 255, 0.85)',
-    letterSpacing: 1.5,
-    textTransform: 'uppercase',
-    marginBottom: spacing.sm,
-    textShadowColor: 'rgba(0, 0, 0, 0.7)',
-    textShadowOffset: { width: 0, height: 2 },
-    textShadowRadius: 10,
-  },
-  categoryLabelDark: {
-    fontFamily: fontFamily.semiBold,
-    fontSize: fontSize.xs,
-    letterSpacing: 1.5,
-    textTransform: 'uppercase',
-    marginLeft: spacing.sm,
-  },
-  categoryRow: {
+  soberPromptActions: {
     flexDirection: 'row',
+    gap: 10,
+    marginTop: 14,
+  },
+  addDateButton: {
+    backgroundColor: redesignColors.teal,
+    borderRadius: redesignRadii.pill,
+    paddingHorizontal: 18,
+    paddingVertical: 9,
+  },
+  notNowButton: {
+    backgroundColor: 'transparent',
+    borderColor: redesignColors.border,
+    borderRadius: redesignRadii.pill,
+    borderWidth: 1.5,
+    paddingHorizontal: 18,
+    paddingVertical: 9,
+  },
+  soberDismissed: {
     alignItems: 'center',
-    marginBottom: spacing.sm,
-  },
-
-  // ── Card Typography ──
-  cardTitle: {
-    fontFamily: 'WixMadeforDisplay_800ExtraBold',
-    fontSize: 24,
-    letterSpacing: -0.5,
-    color: semanticColors.light.text,
-    marginBottom: spacing.xs,
-  },
-  cardSubtitle: {
-    fontFamily: fontFamily.regular,
-    fontSize: fontSize.md,
-    lineHeight: 20,
-    marginBottom: spacing.md,
-  },
-
-  // ── Card Footer ──
-  cardFooter: {
     flexDirection: 'row',
+    gap: 15,
+    marginBottom: 10,
+  },
+  soberDismissedCoin: {
+    alignItems: 'center',
+    backgroundColor: redesignColors.teal,
+    borderRadius: 42,
+    height: 84,
+    justifyContent: 'center',
+    shadowColor: redesignColors.teal,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.32,
+    shadowRadius: 18,
+    width: 84,
+  },
+  soberDismissedText: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    flex: 1,
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  counterCard: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: 15,
+    marginBottom: 10,
+  },
+  counterMedallion: {
+    alignItems: 'center',
+    backgroundColor: redesignColors.teal,
+    borderRadius: 42,
+    height: 84,
+    justifyContent: 'center',
+    shadowColor: redesignColors.teal,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.32,
+    shadowRadius: 18,
+    width: 84,
+  },
+  counterMedallionRing: {
+    ...StyleSheet.absoluteFillObject,
+    borderColor: 'rgba(255,255,255,0.42)',
+    borderRadius: 36,
+    borderWidth: 1.5,
+    bottom: 6,
+    left: 6,
+    right: 6,
+    top: 6,
+  },
+  counterBody: {
+    flex: 1,
+    gap: 5,
+  },
+  daysSoberRow: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: 6,
+  },
+  sectionHeader: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 10,
+    marginTop: 18,
+  },
+  heroCard: {
+    backgroundColor: redesignColors.surface,
+    borderColor: 'transparent',
+    borderRadius: 18,
+    borderWidth: 0,
+    marginBottom: 8,
+    overflow: 'hidden',
+    shadowColor: redesignColors.shadow,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.05,
+    shadowRadius: 14,
+    elevation: 3,
+  },
+  heroCardDone: {
+    borderColor: `${redesignColors.teal}55`,
+    borderWidth: 1,
+  },
+  heroImage: {
+    height: 140,
     justifyContent: 'flex-end',
+  },
+  heroImageRadius: {
+    borderTopLeftRadius: 18,
+    borderTopRightRadius: 18,
+  },
+  heroShade: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.18)',
+  },
+  heroPill: {
+    backgroundColor: 'rgba(255,255,255,0.94)',
+    borderRadius: redesignRadii.pill,
+    left: redesignSpacing.md,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    position: 'absolute',
+    top: redesignSpacing.md,
+  },
+  heroPillText: {
+    letterSpacing: 0.8,
+  },
+  heroTitle: {
+    lineHeight: 26,
+    paddingBottom: 12,
+    paddingHorizontal: 14,
+    textShadowColor: 'rgba(0,0,0,0.32)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 6,
+  },
+  heroMetaRow: {
     alignItems: 'center',
-    marginTop: spacing.sm,
-    gap: spacing.xs,
-  },
-  cardFooterText: {
-    fontFamily: fontFamily.medium,
-    fontSize: fontSize.sm,
-    color: 'rgba(255,255,255,0.7)',
-  },
-
-  // ── Featured Speaker ──
-  featuredRow: {
+    backgroundColor: redesignColors.surface,
     flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: spacing.md,
-    backgroundColor: 'rgba(0, 0, 0, 0.06)',
-    borderRadius: radii.md,
-    padding: spacing.md,
-    gap: spacing.md,
+    gap: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
   },
-  playButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: colors.tertiaryDark,
+  heroMetaRowDone: {
+    backgroundColor: redesignColors.tealSoft,
+  },
+  heroMetaText: {
+    flex: 1,
+    gap: 1,
+  },
+  dailyRow: {
     alignItems: 'center',
+    backgroundColor: redesignColors.surface,
+    borderColor: 'rgba(43,42,48,0.03)',
+    borderRadius: 18,
+    borderWidth: 1,
+    flexDirection: 'row',
+    gap: 12,
+    marginBottom: 8,
+    minHeight: 64,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    shadowColor: redesignColors.shadow,
+    shadowOffset: { width: 0, height: 7 },
+    shadowOpacity: 0.10,
+    shadowRadius: 18,
+    elevation: 4,
+  },
+  medallion: {
+    alignItems: 'center',
+    borderRadius: 12,
+    height: 40,
+    justifyContent: 'center',
+    width: 40,
+  },
+  dailyText: {
+    flex: 1,
+    gap: 1,
+  },
+  checkButton: {
+    alignItems: 'center',
+    borderRadius: 14,
+    borderWidth: 1.5,
+    height: 28,
+    justifyContent: 'center',
+    width: 28,
+  },
+  customizeButton: {
+    alignItems: 'center',
+    alignSelf: 'center',
+    backgroundColor: redesignColors.tealSoft,
+    borderColor: `${redesignColors.teal}55`,
+    borderRadius: 18,
+    borderWidth: 1.5,
+    flexDirection: 'row',
+    gap: 7,
+    marginTop: 18,
+    padding: 12,
+    width: '100%',
     justifyContent: 'center',
   },
-  featuredText: {
-    flex: 1,
-  },
-  featuredTitle: {
-    fontFamily: fontFamily.semiBold,
-    fontSize: fontSize.base,
-  },
-  featuredSubtitle: {
-    fontFamily: fontFamily.regular,
-    fontSize: fontSize.sm,
-    marginTop: 2,
-  },
-
-
-  // ── Section Label ──
-  sectionLabel: {
-    fontFamily: fontFamily.semiBold,
-    fontSize: fontSize.sm,
-    letterSpacing: 1,
-    textTransform: 'uppercase',
-    marginTop: spacing.lg,
-    marginBottom: spacing.md,
-  },
-
-  // ── Ritual Cards ──
-  ritualRow: {
-    flexDirection: 'row',
-    gap: spacing.md,
-    marginBottom: spacing.md,
-  },
-  ritualCard: {
-    flex: 1,
-    borderRadius: radii.lg,
-    padding: spacing.md,
-    borderWidth: 1,
-    ...shadows.softUI,
-  },
-  ritualIcon: {
-    marginBottom: spacing.sm,
-  },
-  ritualTitle: {
-    fontFamily: fontFamily.semiBold,
-    fontSize: fontSize.base,
-  },
 });
-
-export default HomeScreen;

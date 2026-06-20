@@ -1,7 +1,8 @@
 import type { TextStyle, ViewStyle } from 'react-native';
 
 export const redesignColors = {
-  paper: '#F9F7F2',
+  warmWhite: '#F9F7F2',
+  paper: '#FCFBF8',
   paperDeep: '#F2EEE6',
   surface: '#FFFFFF',
   ink: '#2B2A30',
@@ -38,6 +39,9 @@ export const redesignTypography = {
   },
   reader: {
     regular: 'Lora_400Regular',
+    italic: 'Lora_400Regular_Italic',
+    medium: 'Lora_500Medium',
+    mediumItalic: 'Lora_500Medium_Italic',
     bold: 'Lora_700Bold',
   },
 } as const;
@@ -52,6 +56,99 @@ export const redesignTypeSize = {
   title: 30,
   hero: 34,
 } as const;
+
+export type TypographyVoice = 'display' | 'interface' | 'reader';
+export type TypographyWeight = 'regular' | 'medium' | 'semiBold' | 'bold';
+
+export const redesignTextRoles = {
+  displayL: {
+    voice: 'display',
+    weight: 'medium',
+    size: 36,
+    tracking: -1,
+    leading: 1.05,
+  },
+  displayM: {
+    voice: 'display',
+    weight: 'medium',
+    size: 28,
+    tracking: -0.5,
+    leading: 1.1,
+  },
+  displayS: {
+    voice: 'display',
+    weight: 'medium',
+    size: 22,
+    tracking: -0.4,
+    leading: 1.15,
+  },
+  section: {
+    voice: 'display',
+    weight: 'medium',
+    size: 18,
+    tracking: -0.2,
+    leading: 1.2,
+  },
+  readingL: {
+    voice: 'reader',
+    weight: 'regular',
+    size: 19,
+    tracking: -0.1,
+    leading: 1.6,
+  },
+  reading: {
+    voice: 'reader',
+    weight: 'regular',
+    size: 16,
+    tracking: -0.05,
+    leading: 1.65,
+  },
+  bodyL: {
+    voice: 'interface',
+    weight: 'regular',
+    size: 16,
+    tracking: 0,
+    leading: 1.55,
+  },
+  ui: {
+    voice: 'interface',
+    weight: 'semiBold',
+    size: 14,
+    tracking: 0,
+    leading: 1.3,
+  },
+  sub: {
+    voice: 'interface',
+    weight: 'medium',
+    size: 12,
+    tracking: 0,
+    leading: 1.4,
+  },
+  eyebrow: {
+    voice: 'interface',
+    weight: 'bold',
+    size: 11,
+    tracking: 1.6,
+    leading: 1.2,
+    uppercase: true,
+  },
+  counter: {
+    voice: 'interface',
+    weight: 'semiBold',
+    size: 11,
+    tracking: 0.2,
+    leading: 1.3,
+  },
+} as const satisfies Record<string, {
+  voice: TypographyVoice;
+  weight: TypographyWeight;
+  size: number;
+  tracking: number;
+  leading: number;
+  uppercase?: boolean;
+}>;
+
+export type RedesignTextRole = keyof typeof redesignTextRoles;
 
 export const redesignSpacing = {
   xs: 4,
@@ -87,21 +184,27 @@ export const redesignShadows: Record<'soft' | 'floating', ViewStyle> = {
   },
 };
 
-export type TypographyVoice = 'display' | 'interface' | 'reader';
-export type TypographyWeight = 'regular' | 'medium' | 'semiBold' | 'bold';
-
 export function fontFor(
   voice: TypographyVoice,
   weight: TypographyWeight = 'regular',
+  italic = false,
 ): TextStyle['fontFamily'] {
   if (voice === 'display') {
     return redesignTypography.display[weight];
   }
   if (voice === 'reader') {
+    if (italic && weight === 'medium') {
+      return redesignTypography.reader.mediumItalic;
+    }
+    if (italic) {
+      return redesignTypography.reader.italic;
+    }
+    if (weight === 'medium' || weight === 'semiBold') {
+      return redesignTypography.reader.medium;
+    }
     return weight === 'bold'
       ? redesignTypography.reader.bold
       : redesignTypography.reader.regular;
   }
   return redesignTypography.interface[weight];
 }
-

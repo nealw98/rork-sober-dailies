@@ -9,7 +9,7 @@ export default function MainLayout() {
       tabBar={(props) => <RedesignTabBar {...props} />}
       screenOptions={{
         headerShown: false,
-        sceneStyle: { backgroundColor: redesignColors.paper },
+        sceneStyle: { backgroundColor: redesignColors.warmWhite },
       }}
     >
       <Tabs.Screen name="index" options={{ title: "Today" }} />
@@ -17,6 +17,7 @@ export default function MainLayout() {
       <Tabs.Screen name="journey" options={{ title: "Journey" }} />
       <Tabs.Screen name="settings" options={{ title: "Settings" }} />
 
+      <Tabs.Screen name="my-dailies" options={{ href: null }} />
       <Tabs.Screen name="daily-reflections" options={{ href: null }} />
       <Tabs.Screen name="chat" options={{ href: null }} />
       <Tabs.Screen name="speakers" options={{ href: null }} />
@@ -29,8 +30,12 @@ export default function MainLayout() {
       <Tabs.Screen name="prayers" options={{ href: null }} />
       <Tabs.Screen name="evening-review" options={{ href: null }} />
       <Tabs.Screen name="inventory" options={{ href: null }} />
+      <Tabs.Screen name="meditation-setup" options={{ href: null }} />
+      <Tabs.Screen name="meditation-timer" options={{ href: null }} />
+      <Tabs.Screen name="meditation-youtube" options={{ href: null }} />
       <Tabs.Screen name="check-in" options={{ href: null }} />
       <Tabs.Screen name="add-contact" options={{ href: null }} />
+      <Tabs.Screen name="add-from-contacts" options={{ href: null }} />
       <Tabs.Screen name="modal" options={{ href: null }} />
     </Tabs>
   );

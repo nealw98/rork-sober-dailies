@@ -1,18 +1,11 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
-import {
-  BookHeart,
-  MessageCircle,
-  Route,
-  Settings,
-  Sun,
-  Wrench,
-} from 'lucide-react-native';
-import React from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { Image, Pressable, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { AppText } from '@/components/ui/AppText';
+import { PrototypeIcon } from '@/components/ui/PrototypeIcon';
 import {
   redesignColors,
   redesignRadii,
@@ -20,25 +13,45 @@ import {
 } from '@/constants/redesignTokens';
 
 const TAB_META = {
-  index: { label: 'Today', icon: Sun },
-  tools: { label: 'Tools', icon: Wrench },
-  journey: { label: 'Journey', icon: Route },
-  settings: { label: 'Settings', icon: Settings },
+  index: { label: 'Today', icon: 'sunrise', color: redesignColors.teal },
+  tools: { label: 'Tools', icon: 'library', color: redesignColors.amber },
+  journey: { label: 'Journey', icon: 'pen', color: redesignColors.blue },
+  settings: { label: 'Settings', icon: 'user', color: redesignColors.lavender },
 } as const;
 
 const FAB_TABS = new Set(['index', 'tools', 'journey']);
+
+const sponsorImages: Record<string, any> = {
+  cowboy: require('@/assets/images/cowboy_pete2.webp'),
+  cosign: require('@/assets/images/new_co-sign_sally.webp'),
+  fresh: require('@/assets/images/fresh_freddie4.webp'),
+  grace: require('@/assets/images/gentle_grace3.webp'),
+  'mama-jo': require('@/assets/images/mamma_jo.webp'),
+  salty: require('@/assets/images/salty_sam4.webp'),
+  supportive: require('@/assets/images/steady_eddie4.webp'),
+};
 
 export function RedesignTabBar({ state, navigation }: any) {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const activeRoute = state.routes[state.index]?.name;
+  const [lastSponsor, setLastSponsor] = useState('supportive');
   const visibleRoutes = state.routes.filter(
     (route: { name: string }) => route.name in TAB_META,
   );
 
+  useEffect(() => {
+    AsyncStorage.getItem('aa-chat-sponsor-type')
+      .then(value => {
+        if (value) setLastSponsor(value);
+      })
+      .catch(() => {});
+  }, [activeRoute]);
+
   const openLastSponsor = async () => {
     const lastSponsor =
       (await AsyncStorage.getItem('aa-chat-sponsor-type')) || 'supportive';
+    setLastSponsor(lastSponsor);
     router.push(`/sponsor-chat?sponsor=${lastSponsor}` as any);
   };
 
@@ -55,7 +68,11 @@ export function RedesignTabBar({ state, navigation }: any) {
             pressed && styles.pressed,
           ]}
         >
-          <MessageCircle size={23} color={redesignColors.white} strokeWidth={2} />
+            <Image
+              source={sponsorImages[lastSponsor] || sponsorImages.supportive}
+              style={styles.fabImage}
+              resizeMode="cover"
+            />
         </Pressable>
       )}
 
@@ -67,7 +84,6 @@ export function RedesignTabBar({ state, navigation }: any) {
       >
         {visibleRoutes.map((route: { key: string; name: keyof typeof TAB_META }) => {
           const meta = TAB_META[route.name];
-          const Icon = meta.icon;
           const selected = route.name === activeRoute;
 
           return (
@@ -91,27 +107,21 @@ export function RedesignTabBar({ state, navigation }: any) {
                 pressed && styles.pressed,
               ]}
             >
-              <View style={[styles.iconWrap, selected && styles.iconWrapSelected]}>
-                {selected && route.name === 'index' ? (
-                  <BookHeart
-                    size={20}
-                    color={redesignColors.white}
-                    strokeWidth={2.1}
-                  />
-                ) : (
-                  <Icon
-                    size={20}
-                    color={
-                      selected ? redesignColors.white : redesignColors.inkMuted
-                    }
-                    strokeWidth={selected ? 2.2 : 1.8}
-                  />
-                )}
+              <View style={[
+                styles.iconWrap,
+                selected && [styles.iconWrapSelected, { backgroundColor: meta.color }],
+              ]}>
+                <PrototypeIcon
+                  name={meta.icon}
+                  size={20}
+                  color={selected ? redesignColors.white : redesignColors.inkMuted}
+                  stroke={selected ? 2.1 : 1.8}
+                />
               </View>
               <AppText
                 size={11}
                 weight={selected ? 'semiBold' : 'medium'}
-                color={selected ? redesignColors.teal : redesignColors.inkMuted}
+                color={selected ? meta.color : redesignColors.inkMuted}
                 numberOfLines={1}
               >
                 {meta.label}
@@ -155,7 +165,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   iconWrapSelected: {
-    backgroundColor: redesignColors.teal,
     transform: [{ translateY: -5 }],
     ...redesignShadows.soft,
   },
@@ -169,13 +178,17 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     backgroundColor: redesignColors.lavender,
     borderWidth: 3,
-    borderColor: redesignColors.paper,
+    borderColor: redesignColors.white,
     zIndex: 20,
+    overflow: 'hidden',
     ...redesignShadows.floating,
+  },
+  fabImage: {
+    height: '100%',
+    width: '100%',
   },
   pressed: {
     opacity: 0.72,
     transform: [{ scale: 0.97 }],
   },
 });
-
