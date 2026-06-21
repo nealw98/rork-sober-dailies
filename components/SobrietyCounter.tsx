@@ -1,528 +1,109 @@
-import React, { useEffect, useState, useCallback } from 'react';
-import { StyleSheet, View, Text, TouchableOpacity, Modal, TextInput, Alert, Keyboard, useWindowDimensions } from 'react-native';
-import { Calendar, X, Edit3 } from 'lucide-react-native';
+import React from 'react';
+import { StyleSheet, View, Text, Pressable } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import { useRouter } from 'expo-router';
+import Svg, { Path } from 'react-native-svg';
+import { Pencil } from 'lucide-react-native';
 import { useSobriety } from '@/hooks/useSobrietyStore';
-import { formatStoredDateForDisplay, parseLocalDate, formatLocalDate } from '@/lib/dateUtils';
-import Colors from '@/constants/colors';
-import { fontFamily as designFontFamily, colors } from '@/constants/designTokens';
-import { useTheme } from '@/hooks/useTheme';
+import { formatStoredDateForDisplay, parseLocalDate } from '@/lib/dateUtils';
+import { colors, fontFamily, fontSize, radii, shadows, getSemanticColors } from '@/constants/designTokens';
+
+const c = getSemanticColors('light');
+
+// Brand sunrise glyph (matches the tab bar) — used in the no-date coin.
+function SunriseGlyph({ size = 38, color = '#fff' }: { size?: number; color?: string }) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+      <Path d="M12 2.6v2.5" />
+      <Path d="M5.9 6 7.7 7.8" />
+      <Path d="M18.1 6 16.3 7.8" />
+      <Path d="M7.4 14.5a4.6 4.6 0 0 1 9.2 0" />
+      <Path d="M3.5 19q8.5-2.9 17 0" />
+    </Svg>
+  );
+}
+
+// 84px sobriety coin — teal sheen, inset ring, soft glow.
+function Coin({ children }: { children: React.ReactNode }) {
+  return (
+    <View style={styles.coinWrap}>
+      <LinearGradient colors={[colors.primaryLight, colors.primary, colors.primaryDark]} start={{ x: 0.5, y: 0 }} end={{ x: 0.5, y: 1 }} style={styles.coin}>
+        <View style={styles.coinRing} pointerEvents="none" />
+        {children}
+      </LinearGradient>
+    </View>
+  );
+}
 
 const SobrietyCounter = () => {
-  const { width } = useWindowDimensions();
-  const { palette } = useTheme();
-  const { 
-    sobrietyDate, 
-    shouldShowPrompt, 
-    shouldShowAddButton,
-    setSobrietyDate, 
-    dismissPrompt, 
-    calculateDaysSober,
-    isLoading 
-  } = useSobriety();
-  
-  const [showDatePicker, setShowDatePicker] = useState<boolean>(false);
-  const [dateInput, setDateInput] = useState<string>('');
-  const [showEditModal, setShowEditModal] = useState<boolean>(false);
-  const [showTotalDays, setShowTotalDays] = useState<boolean>(false);
-  const [numberWidth, setNumberWidth] = useState<number>(0);
+  const router = useRouter();
+  const { sobrietyDate, shouldShowPrompt, shouldShowAddButton, dismissPrompt, calculateDaysSober, isLoading } = useSobriety();
+  const openDate = () => router.push('/(main)/sober-date');
 
-  const onNumberLayout = useCallback((e: any) => {
-    setNumberWidth(e.nativeEvent.layout.width);
-  }, []);
+  if (isLoading) return null;
 
-
-  // Auto-format input as user types: mm/dd/yyyy
-  const formatDateInput = (text: string) => {
-    const numbers = text.replace(/\D/g, '');
-    if (numbers.length <= 2) {
-      return numbers;
-    } else if (numbers.length <= 4) {
-      return `${numbers.slice(0, 2)}/${numbers.slice(2)}`;
-    } else {
-      return `${numbers.slice(0, 2)}/${numbers.slice(2, 4)}/${numbers.slice(4, 8)}`;
-    }
-  };
-
-  const handleDateInputChange = (text: string) => {
-    const formatted = formatDateInput(text);
-    setDateInput(formatted);
-  };
-
-  // Validate date: must be real date, not in future, in mm/dd/yyyy format
-  const isValidDate = (dateString: string): boolean => {
-    if (!dateString || dateString.length < 10) return false;
-    
-    const regex = /^\d{2}\/\d{2}\/\d{4}$/;
-    if (!regex.test(dateString)) return false;
-    
-    const [month, day, year] = dateString.split('/').map(Number);
-    
-    // Check month and day ranges
-    if (month < 1 || month > 12 || day < 1 || day > 31) return false;
-    
-    // Check if date actually exists (handles leap years, etc.)
-    const date = new Date(year, month - 1, day);
-    if (date.getFullYear() !== year || date.getMonth() !== month - 1 || date.getDate() !== day) {
-      return false;
-    }
-    
-    // Check if date is in the future
-    const today = new Date();
-    today.setHours(23, 59, 59, 999); // End of today
-    if (date > today) return false;
-    
-    return true;
-  };
-
-  const handleConfirmDate = () => {
-    if (!dateInput || dateInput.length < 10 || !isValidDate(dateInput)) {
-      Alert.alert('Invalid Date', 'Please enter a valid date in MM/DD/YYYY format that is not in the future.');
-      return;
-    }
-    
-    // Dismiss keyboard first
-    Keyboard.dismiss();
-    
-    const [month, day, year] = dateInput.split('/').map(Number);
-    const dateString = `${year}-${month.toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`;
-    
-    setSobrietyDate(dateString);
-    setShowDatePicker(false);
-    setDateInput('');
-  };
-
-  const handleCancel = () => {
-    setShowDatePicker(false);
-    setDateInput('');
-  };
-
-  const handleNotNow = () => {
-    dismissPrompt();
-    setShowDatePicker(false);
-  };
-
-  const handleAddDate = () => {
-    setDateInput('');
-    setShowDatePicker(true);
-  };
-
-  const handleEditDate = () => {
-    if (sobrietyDate) {
-      const currentDate = parseLocalDate(sobrietyDate);
-      const month = (currentDate.getMonth() + 1).toString().padStart(2, '0');
-      const day = currentDate.getDate().toString().padStart(2, '0');
-      const year = currentDate.getFullYear().toString();
-      setDateInput(`${month}/${day}/${year}`);
-    }
-    setShowEditModal(true);
-  };
-
-  const handleCancelEdit = () => {
-    setShowEditModal(false);
-    setDateInput('');
-  };
-
-  const handleConfirmEditDate = () => {
-    if (!dateInput || dateInput.length < 10 || !isValidDate(dateInput)) {
-      Alert.alert('Invalid Date', 'Please enter a valid date in MM/DD/YYYY format that is not in the future.');
-      return;
-    }
-    
-    // Dismiss keyboard first
-    Keyboard.dismiss();
-    
-    const [month, day, year] = dateInput.split('/').map(Number);
-    const dateString = `${year}-${month.toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`;
-    
-    setSobrietyDate(dateString);
-    setShowEditModal(false);
-    setDateInput('');
-  };
-
-  if (isLoading) {
-    return null;
-  }
-
-  const daysSober = calculateDaysSober();
-  const validDaysSober = typeof daysSober === 'number' && !isNaN(daysSober) ? daysSober : 0;
-
-  // Calculate years, months, and remaining days using proper date arithmetic
-  const calculateBreakdown = (startDateString: string | null) => {
-    if (!startDateString) {
-      return { years: 0, months: 0, days: 0 };
-    }
-    
-    const startDate = parseLocalDate(startDateString);
-    const today = new Date();
-    
-    let years = today.getFullYear() - startDate.getFullYear();
-    let months = today.getMonth() - startDate.getMonth();
-    let days = today.getDate() - startDate.getDate();
-    
-    // Adjust if days are negative
-    if (days < 0) {
-      months -= 1;
-      // Get the last day of the previous month
-      const lastMonth = new Date(today.getFullYear(), today.getMonth(), 0);
-      days += lastMonth.getDate();
-    }
-    
-    // Adjust if months are negative
-    if (months < 0) {
-      years -= 1;
-      months += 12;
-    }
-    
-    return { years, months, days };
-  };
-
-  const breakdown = calculateBreakdown(sobrietyDate);
-
-  // Calculate responsive font size based on content length and screen width
-  const getResponsiveFontSize = () => {
-    if (!sobrietyDate) return 32;
-    
-    // Build the full text string to measure
-    let fullText = '';
-    if (breakdown.years > 0) {
-      fullText = `${breakdown.years} ${breakdown.years === 1 ? 'year' : 'years'}`;
-      if (breakdown.months > 0) {
-        fullText += ` • ${breakdown.months} ${breakdown.months === 1 ? 'month' : 'months'}`;
-      }
-      if (breakdown.days > 0) {
-        fullText += ` • ${breakdown.days} ${breakdown.days === 1 ? 'day' : 'days'}`;
-      }
-    } else if (breakdown.months > 0) {
-      fullText = `${breakdown.months} ${breakdown.months === 1 ? 'month' : 'months'}`;
-      if (breakdown.days > 0) {
-        fullText += ` • ${breakdown.days} ${breakdown.days === 1 ? 'day' : 'days'}`;
-      }
-    } else {
-      fullText = `${breakdown.days} ${breakdown.days === 1 ? 'day' : 'days'}`;
-    }
-    
-    // More accurate character width estimation for bold text (0.55 works better)
-    const availableWidth = width - 60; // Less conservative padding
-    const textLength = fullText.length;
-    
-    // Start with 32px and scale down if needed
-    let fontSize = 32;
-    let estimatedWidth = textLength * fontSize * 0.55;
-    
-    if (estimatedWidth > availableWidth) {
-      fontSize = Math.floor(availableWidth / (textLength * 0.55));
-      fontSize = Math.max(fontSize, 20); // Don't go below 20px
-    }
-    
-    return fontSize;
-  };
-
-  const dynamicFontSize = getResponsiveFontSize();
-
-  // Show prompt modal for first-time users
+  // ── No date, first invitation (soft, never a demand) ──
   if (shouldShowPrompt()) {
     return (
-      <>
-        <Modal
-          visible={!showDatePicker}
-          transparent={true}
-          animationType="fade"
-          onRequestClose={handleNotNow}
-        >
-          <View style={styles.modalOverlay}>
-            <View style={styles.modalContent}>
-              <TouchableOpacity 
-                style={styles.closeButton}
-                onPress={handleNotNow}
-              >
-                <X size={24} color={Colors.light.muted} />
-              </TouchableOpacity>
-              
-              <Calendar size={48} color={Colors.light.tint} style={styles.modalIcon} />
-              
-              <Text style={styles.modalTitle}>Track Your Sobriety</Text>
-              <Text style={styles.modalDescription}>
-                Would you like to add your sobriety date to track your progress?
-              </Text>
-              
-              <View style={styles.modalButtons}>
-                <TouchableOpacity 
-                  style={[styles.modalButton, styles.confirmButton]}
-                  onPress={handleAddDate}
-                >
-                  <Text style={styles.confirmButtonText}>Add Date</Text>
-                </TouchableOpacity>
-                
-                <TouchableOpacity 
-                  style={[styles.modalButton, styles.notNowButton]}
-                  onPress={handleNotNow}
-                >
-                  <Text style={styles.notNowButtonText}>Not Now</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-          </View>
-        </Modal>
-        
-        {/* Unified Date Input Modal */}
-        {showDatePicker && (
-          <Modal
-            visible={true}
-            transparent={true}
-            animationType="slide"
-            onRequestClose={handleCancel}
-          >
-            <View style={styles.datePickerOverlay}>
-              <View style={styles.datePickerContent}>
-                <Text style={styles.datePickerTitle}>Enter your sobriety date</Text>
-                
-                <TextInput
-                  style={[
-                    styles.dateInput,
-                    !isValidDate(dateInput) && dateInput.length === 10 && styles.dateInputError
-                  ]}
-                  value={dateInput}
-                  onChangeText={handleDateInputChange}
-                  placeholder="mm/dd/yyyy"
-                  placeholderTextColor={Colors.light.muted}
-                  maxLength={10}
-                  keyboardType="numeric"
-                  autoFocus={true}
-                />
-                
-                {!isValidDate(dateInput) && dateInput.length === 10 && (
-                  <Text style={styles.errorText}>Please enter a valid date</Text>
-                )}
-                
-                <View style={styles.datePickerButtons}>
-                  <TouchableOpacity 
-                    style={[styles.datePickerButton, styles.cancelButton]}
-                    onPress={handleCancel}
-                  >
-                    <Text style={styles.cancelButtonText}>Cancel</Text>
-                  </TouchableOpacity>
-                  
-                  <TouchableOpacity 
-                    style={[
-                      styles.datePickerButton, 
-                      styles.confirmDateButton,
-                      (!dateInput || dateInput.length < 10 || !isValidDate(dateInput)) && styles.disabledButton
-                    ]}
-                    onPress={handleConfirmDate}
-                    disabled={!dateInput || dateInput.length < 10 || !isValidDate(dateInput)}
-                  >
-                    <Text style={[
-                      styles.confirmDateButtonText,
-                      (!dateInput || dateInput.length < 10 || !isValidDate(dateInput)) && styles.disabledButtonText
-                    ]}>OK</Text>
-                  </TouchableOpacity>
-                </View>
-              </View>
-            </View>
-          </Modal>
-        )}
-      </>
-    );
-  }
-
-  // Show "Add Date" button if user previously selected "Not Now"
-  if (shouldShowAddButton()) {
-    // For Deep Sea theme, use Eggshell background with dark text
-    const isDeepSea = !!palette.sponsorSelection;
-    const containerBg = isDeepSea ? palette.text : palette.cardBackground;
-    const textColor = isDeepSea ? palette.background : palette.text;
-    
-    return (
-      <View style={[styles.addDateContainer, { backgroundColor: containerBg }]}>
-        <View style={styles.addDateRow}>
-          <Text style={[styles.addDateMainTitle, { color: textColor }]}>Track your sobriety</Text>
-          <TouchableOpacity 
-            style={[styles.addDateButton, { backgroundColor: palette.tint }]}
-            onPress={handleAddDate}
-          >
-            <Text style={styles.addDateButtonText}>Add Date</Text>
-          </TouchableOpacity>
+      <View style={styles.inviteCard}>
+        <Text style={styles.affirmation}>One day at a time.</Text>
+        <Text style={styles.inviteBody}>Counting days helps some people. Add your sober date whenever you’re ready — no pressure.</Text>
+        <View style={styles.inviteButtons}>
+          <Pressable style={styles.addPill} onPress={openDate}>
+            <Text style={styles.addPillText}>Add date</Text>
+          </Pressable>
+          <Pressable style={styles.notNowPill} onPress={() => dismissPrompt()}>
+            <Text style={styles.notNowText}>Not now</Text>
+          </Pressable>
         </View>
-        <Text style={[styles.addDateSubtitle, { color: isDeepSea ? palette.background : palette.muted }]}>
-          See how many days you've been sober.
-        </Text>
-        
-        {/* Unified Date Input Modal */}
-        {showDatePicker && (
-          <Modal
-            visible={true}
-            transparent={true}
-            animationType="slide"
-            onRequestClose={handleCancel}
-          >
-            <View style={styles.datePickerOverlay}>
-              <View style={[styles.datePickerContent, { backgroundColor: palette.cardBackground }]}>
-                <Text style={[styles.datePickerTitle, { color: palette.text }]}>Enter your sobriety date</Text>
-                
-                <TextInput
-                  style={[
-                    styles.dateInput,
-                    { 
-                      borderColor: palette.tint, 
-                      color: palette.text, 
-                      backgroundColor: palette.background 
-                    },
-                    !isValidDate(dateInput) && dateInput.length === 10 && styles.dateInputError
-                  ]}
-                  value={dateInput}
-                  onChangeText={handleDateInputChange}
-                  placeholder="mm/dd/yyyy"
-                  placeholderTextColor={palette.muted}
-                  maxLength={10}
-                  keyboardType="numeric"
-                  autoFocus={true}
-                />
-                
-                {!isValidDate(dateInput) && dateInput.length === 10 && (
-                  <Text style={styles.errorText}>Please enter a valid date</Text>
-                )}
-                
-                <View style={styles.datePickerButtons}>
-                  <TouchableOpacity 
-                    style={[styles.datePickerButton, styles.cancelButton, { borderColor: palette.border }]}
-                    onPress={handleCancel}
-                  >
-                    <Text style={[styles.cancelButtonText, { color: palette.text }]}>Cancel</Text>
-                  </TouchableOpacity>
-                  
-                  <TouchableOpacity 
-                    style={[
-                      styles.datePickerButton, 
-                      { backgroundColor: palette.tint },
-                      (!dateInput || dateInput.length < 10 || !isValidDate(dateInput)) && { backgroundColor: palette.border }
-                    ]}
-                    onPress={handleConfirmDate}
-                    disabled={!dateInput || dateInput.length < 10 || !isValidDate(dateInput)}
-                  >
-                    <Text style={[
-                      styles.confirmDateButtonText,
-                      (!dateInput || dateInput.length < 10 || !isValidDate(dateInput)) && { color: palette.muted }
-                    ]}>OK</Text>
-                  </TouchableOpacity>
-                </View>
-              </View>
-            </View>
-          </Modal>
-        )}
       </View>
     );
   }
 
-  // Build the headline string: "X Years, X Months, X Days"
-  const buildHeadline = () => {
-    const parts = [];
-    if (breakdown.years > 0) {
-      parts.push(`${breakdown.years} ${breakdown.years === 1 ? 'Year' : 'Years'}`);
-    }
-    if (breakdown.months > 0) {
-      parts.push(`${breakdown.months} ${breakdown.months === 1 ? 'Month' : 'Months'}`);
-    }
-    parts.push(`${breakdown.days} ${breakdown.days === 1 ? 'Day' : 'Days'}`);
-    return parts.join(', ');
-  };
-
-  // Show sobriety counter if date is set
-  if (sobrietyDate) {
+  // ── No date, after "Not now" — quiet affirmation + a way back in ──
+  if (shouldShowAddButton()) {
     return (
-      <>
-        <View style={styles.counterWrapper}>
-          {/* Sober since label with edit pencil */}
-          <View style={styles.sinceRow}>
-            <Text style={styles.sinceText}>
-              Sober since {formatStoredDateForDisplay(sobrietyDate)}
-            </Text>
-            <TouchableOpacity
-              style={styles.editButton}
-              onPress={handleEditDate}
-            >
-              <Edit3 size={14} color="rgba(255,255,255,0.5)" />
-            </TouchableOpacity>
-          </View>
-
-          {/* Justified block: number + label */}
-          <View style={styles.blockContainer}>
-            <Text style={styles.numberText} onLayout={onNumberLayout}>
-              {validDaysSober.toLocaleString()}
-            </Text>
-            <Text style={styles.daysLabel} numberOfLines={1}>
-              D · A · Y · S
-            </Text>
-          </View>
-
-          {/* Milestone footer */}
-          <Text style={styles.milestoneText}>
-            {buildHeadline()}
-          </Text>
+      <Pressable style={styles.row} onPress={openDate}>
+        <Coin>
+          <SunriseGlyph size={38} />
+        </Coin>
+        <View style={styles.rowText}>
+          <Text style={styles.affirmationInline}>One day at a time.</Text>
+          <Pencil size={13} color={c.textMuted} strokeWidth={2} />
         </View>
-        
-        {/* Edit Date Modal */}
-        {showEditModal && (
-          <Modal
-            visible={true}
-            transparent={true}
-            animationType="slide"
-            onRequestClose={handleCancelEdit}
-          >
-            <View style={styles.datePickerOverlay}>
-              <View style={[styles.datePickerContent, { backgroundColor: palette.cardBackground }]}>
-                <Text style={[styles.datePickerTitle, { color: palette.text }]}>Edit your sobriety date</Text>
-                
-                <TextInput
-                  style={[
-                    styles.dateInput,
-                    { 
-                      borderColor: palette.tint, 
-                      color: palette.text, 
-                      backgroundColor: palette.background 
-                    },
-                    !isValidDate(dateInput) && dateInput.length === 10 && styles.dateInputError
-                  ]}
-                  value={dateInput}
-                  onChangeText={handleDateInputChange}
-                  placeholder="mm/dd/yyyy"
-                  placeholderTextColor={palette.muted}
-                  maxLength={10}
-                  keyboardType="numeric"
-                  autoFocus={true}
-                />
-                
-                {!isValidDate(dateInput) && dateInput.length === 10 && (
-                  <Text style={styles.errorText}>Please enter a valid date</Text>
-                )}
-                
-                <View style={styles.datePickerButtons}>
-                  <TouchableOpacity 
-                    style={[styles.datePickerButton, styles.cancelButton, { borderColor: palette.border }]}
-                    onPress={handleCancelEdit}
-                  >
-                    <Text style={[styles.cancelButtonText, { color: palette.text }]}>Cancel</Text>
-                  </TouchableOpacity>
-                  
-                  <TouchableOpacity 
-                    style={[
-                      styles.datePickerButton, 
-                      { backgroundColor: palette.tint },
-                      (!dateInput || dateInput.length < 10 || !isValidDate(dateInput)) && { backgroundColor: palette.border }
-                    ]}
-                    onPress={handleConfirmEditDate}
-                    disabled={!dateInput || dateInput.length < 10 || !isValidDate(dateInput)}
-                  >
-                    <Text style={[
-                      styles.confirmDateButtonText,
-                      (!dateInput || dateInput.length < 10 || !isValidDate(dateInput)) && { color: palette.muted }
-                    ]}>OK</Text>
-                  </TouchableOpacity>
-                </View>
-              </View>
-            </View>
-          </Modal>
-        )}
-      </>
+      </Pressable>
+    );
+  }
+
+  // ── Date set — the MEDALLION ──
+  if (sobrietyDate) {
+    const totalDays = calculateDaysSober();
+    const days = typeof totalDays === 'number' && !isNaN(totalDays) ? totalDays : 0;
+    const start = parseLocalDate(sobrietyDate);
+    const now = new Date();
+    let y = now.getFullYear() - start.getFullYear();
+    let m = now.getMonth() - start.getMonth();
+    let d = now.getDate() - start.getDate();
+    if (d < 0) { m -= 1; d += new Date(now.getFullYear(), now.getMonth(), 0).getDate(); }
+    if (m < 0) { y -= 1; m += 12; }
+    // Size to the rendered (comma'd) string; adjustsFontSizeToFit catches the rest.
+    const display = days.toLocaleString();
+    const coinFont = display.length <= 3 ? 30 : display.length <= 5 ? 22 : display.length === 6 ? 18 : 15;
+
+    return (
+      <Pressable style={styles.row} onPress={openDate}>
+        <Coin>
+          <Text style={[styles.coinNumber, { fontSize: coinFont }]} numberOfLines={1} adjustsFontSizeToFit>{display}</Text>
+        </Coin>
+        <View style={styles.rowText}>
+          <View style={styles.daysSoberRow}>
+            <Text style={styles.daysSober}>days sober</Text>
+            <Pencil size={12} color={c.textMuted} strokeWidth={2} />
+          </View>
+          <Text style={styles.breakdown}>{y} years · {m} months · {d} days</Text>
+          <Text style={styles.breakdown}>since {formatStoredDateForDisplay(sobrietyDate)}</Text>
+        </View>
+      </Pressable>
     );
   }
 
@@ -530,347 +111,32 @@ const SobrietyCounter = () => {
 };
 
 const styles = StyleSheet.create({
+  row: { flexDirection: 'row', alignItems: 'center', gap: 15, paddingVertical: 4 },
+  rowText: { flex: 1, minWidth: 0 },
 
-  editButton: {
-    padding: 4,
-  },
-  addDateContainer: {
-    backgroundColor: Colors.light.background,
-    borderRadius: 12,
-    padding: 16,
-    marginHorizontal: 16,
-    marginVertical: 8,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  addDateRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 8,
-  },
-  addDateMainTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: Colors.light.text,
-  },
-  addDateButton: {
-    backgroundColor: Colors.light.tint,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 8,
-  },
-  addDateButtonText: {
-    color: '#FFFFFF',
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  addDateSubtitle: {
-    fontSize: 14,
-    color: Colors.light.muted,
-  },
-  // Counter display styles — justified block, compact
-  counterWrapper: {
-    alignItems: 'center',
-    width: '100%',
-  },
-  sinceRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    marginBottom: 20,
-  },
-  sinceText: {
-    fontFamily: 'WixMadeforDisplay_500Medium',
-    fontSize: 10,
-    color: 'rgba(255,255,255,0.5)',
-    textTransform: 'uppercase',
-    letterSpacing: 2.0,
-    textAlign: 'center',
-  },
-  blockContainer: {
-    alignItems: 'center',
-  },
-  numberText: {
-    fontFamily: 'WixMadeforDisplay_800ExtraBold',
-    fontSize: 54,
-    color: 'rgba(255,255,255,0.9)',
-    letterSpacing: -1.5,
-    lineHeight: 58,
-    textAlign: 'center',
-  },
-  daysLabel: {
-    fontFamily: 'WixMadeforDisplay_700Bold',
-    fontSize: 16,
-    color: colors.secondary,
-    textAlign: 'center',
-    letterSpacing: 4,
-    marginTop: -6,
-    paddingLeft: 8,
-  },
-  milestoneText: {
-    fontFamily: 'WixMadeforDisplay_700Bold',
-    fontSize: 15,
-    color: 'rgba(255,255,255,0.75)',
-    textAlign: 'center',
-    marginTop: 15,
-  },
-  pointerIcon: {
-    position: 'absolute',
-    top: 6,
-    right: 8,
-  },
-  totalDaysContainer: {
-    alignItems: 'center',
-  },
-  totalDaysNumber: {
-    fontSize: 40,
-    fontWeight: '700',
-    textAlign: 'center',
-  },
-  totalDaysLabel: {
-    fontSize: 22,
-    fontWeight: '600',
-    textAlign: 'center',
-  },
-  stackedCounter: {
-    alignItems: 'center',
-  },
-  stackedLarge: {
-    fontSize: 26,
-    fontWeight: '700',
-    textAlign: 'center',
-  },
-  stackedMedium: {
-    fontSize: 21,
-    fontWeight: '600',
-    textAlign: 'center',
-  },
-  stackedSmall: {
-    fontSize: 18,
-    fontWeight: '500',
-    textAlign: 'center',
-  },
-  headerText: {
-    fontSize: 16,
-    color: Colors.light.muted,
-    fontWeight: '400',
-    textAlign: 'center',
-    marginBottom: 8,
-  },
-  yearsText: {
-    fontSize: 28,
-    fontWeight: '700',
-    textAlign: 'center',
-    marginBottom: 2,
-    lineHeight: 34,
-  },
-  monthsDaysText: {
-    fontSize: 22,
-    color: Colors.light.text,
-    fontWeight: '600',
-    textAlign: 'center',
-    marginBottom: 6,
-  },
-  totalDaysText: {
-    fontSize: 15,
-    fontWeight: '500',
-    textAlign: 'center',
-  },
-  largeDaysText: {
-    fontSize: 56,
-    color: Colors.light.text,
-    fontWeight: '700',
-    textAlign: 'center',
-    marginBottom: 4,
-    lineHeight: 64,
-  },
-  daysLabelText: {
-    fontSize: 24,
-    color: Colors.light.text,
-    fontWeight: '600',
-    textAlign: 'center',
-    textTransform: 'uppercase',
-    letterSpacing: 2,
-    marginBottom: 12,
-  },
-  sobrietyText: {
-    fontSize: 48,
-    color: Colors.light.text,
-    fontWeight: '700',
-    textAlign: 'center',
-    marginBottom: 8,
-    lineHeight: 56,
-  },
-  dayLabel: {
-    fontSize: 20,
-    color: Colors.light.text,
-    fontWeight: '600',
-    textAlign: 'center',
-    marginBottom: 12,
-    letterSpacing: 1,
-    textTransform: 'uppercase',
-  },
-  dateRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    marginTop: 0,
-    marginBottom: 0,
-  },
-  sobrietyDateText: {
-    fontSize: 16,
-    textAlign: 'center',
-    fontWeight: '500',
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  modalContent: {
-    backgroundColor: Colors.light.background,
-    borderRadius: 16,
-    padding: 24,
-    margin: 20,
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.25,
-    shadowRadius: 8,
-    elevation: 8,
-  },
-  closeButton: {
-    position: 'absolute',
-    top: 16,
-    right: 16,
-    padding: 4,
-  },
-  modalIcon: {
-    marginBottom: 16,
-  },
-  modalTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: Colors.light.text,
-    textAlign: 'center',
-    marginBottom: 8,
-  },
-  modalDescription: {
-    fontSize: 16,
-    color: Colors.light.muted,
-    textAlign: 'center',
-    marginBottom: 24,
-    lineHeight: 22,
-  },
-  modalButtons: {
-    flexDirection: 'row',
-    gap: 12,
-  },
-  modalButton: {
-    flex: 1,
-    paddingVertical: 12,
-    paddingHorizontal: 24,
-    borderRadius: 8,
-    alignItems: 'center',
-  },
-  confirmButton: {
-    backgroundColor: Colors.light.tint,
-  },
-  confirmButtonText: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  notNowButton: {
-    backgroundColor: 'transparent',
-    borderWidth: 1,
-    borderColor: Colors.light.border,
-  },
-  notNowButtonText: {
-    color: Colors.light.text,
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  datePickerOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  datePickerContent: {
-    borderRadius: 16,
-    padding: 24,
-    margin: 20,
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.25,
-    shadowRadius: 8,
-    elevation: 8,
-    minWidth: 300,
-  },
-  datePickerTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    textAlign: 'center',
-    marginBottom: 20,
-  },
-  dateInput: {
-    borderWidth: 1,
-    borderRadius: 8,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    fontSize: 16,
-    textAlign: 'center',
-    marginBottom: 16,
-    minWidth: 200,
-  },
-  dateInputError: {
-    borderColor: '#FF3B30',
-  },
-  errorText: {
-    color: '#FF3B30',
-    fontSize: 14,
-    marginBottom: 16,
-    textAlign: 'center',
-  },
-  datePickerButtons: {
-    flexDirection: 'row',
-    gap: 12,
-    width: '100%',
-  },
-  datePickerButton: {
-    flex: 1,
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderRadius: 8,
-    alignItems: 'center',
-  },
-  cancelButton: {
-    backgroundColor: 'transparent',
-    borderWidth: 1,
-  },
-  cancelButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  confirmDateButton: {
-  },
-  confirmDateButtonText: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  disabledButton: {
-  },
-  disabledButtonText: {
-  },
+  // coin
+  coinWrap: { width: 84, height: 84, borderRadius: 42, shadowColor: colors.primary, shadowOpacity: 0.4, shadowRadius: 14, shadowOffset: { width: 0, height: 8 }, elevation: 6 },
+  coin: { width: 84, height: 84, borderRadius: 42, alignItems: 'center', justifyContent: 'center' },
+  coinRing: { position: 'absolute', top: 6, left: 6, right: 6, bottom: 6, borderRadius: 36, borderWidth: 1.5, borderColor: 'rgba(255,255,255,0.42)' },
+  coinNumber: { fontFamily: fontFamily.bold, color: '#fff', letterSpacing: -1, fontVariant: ['tabular-nums'], maxWidth: 66, textAlign: 'center' },
+
+  // medallion text
+  daysSoberRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  daysSober: { fontFamily: fontFamily.serifMediumItalic, fontSize: fontSize.xl, color: colors.primary },
+  breakdown: { fontFamily: fontFamily.regular, fontSize: 13, color: c.textMuted, marginTop: 5, lineHeight: 18 },
+
+  // affirmation (no-date)
+  affirmationInline: { fontFamily: fontFamily.serifMediumItalic, fontSize: fontSize['3xl'], color: colors.primary, lineHeight: 28 },
+
+  // invitation card
+  inviteCard: { backgroundColor: c.surface, borderWidth: 1, borderColor: c.border, borderRadius: radii.lg, padding: 18, ...shadows.sm },
+  affirmation: { fontFamily: fontFamily.serifMediumItalic, fontSize: fontSize['3xl'], color: colors.primary, lineHeight: 28 },
+  inviteBody: { fontFamily: fontFamily.regular, fontSize: fontSize.md, color: c.textMuted, marginTop: 6, lineHeight: 20 },
+  inviteButtons: { flexDirection: 'row', gap: 10, marginTop: 16 },
+  addPill: { paddingHorizontal: 18, paddingVertical: 9, borderRadius: radii.full, backgroundColor: colors.primary },
+  addPillText: { fontFamily: fontFamily.semiBold, fontSize: fontSize.md, color: '#fff' },
+  notNowPill: { paddingHorizontal: 18, paddingVertical: 9, borderRadius: radii.full, borderWidth: 1.5, borderColor: c.border },
+  notNowText: { fontFamily: fontFamily.semiBold, fontSize: fontSize.md, color: c.textSecondary },
 });
 
 export default SobrietyCounter;

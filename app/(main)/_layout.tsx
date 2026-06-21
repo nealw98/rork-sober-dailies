@@ -32,6 +32,7 @@ export default function MainLayout() {
       <Stack.Screen name="add-contact" />
       <Stack.Screen name="my-dailies" />
       <Stack.Screen name="meditation" />
+      <Stack.Screen name="sober-date" />
       <Stack.Screen name="modal" />
     </Stack>
   );

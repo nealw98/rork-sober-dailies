@@ -37,7 +37,7 @@ const styles = StyleSheet.create({
   safe: { flex: 1 },
   header: { paddingHorizontal: spacing.lg, paddingTop: spacing.md, paddingBottom: spacing.sm },
   title: { fontFamily: fontFamily.displayBold, fontSize: fontSize.hero, letterSpacing: -0.5 },
-  subtitle: { fontFamily: fontFamily.serif, fontSize: fontSize.lg, marginTop: 2, fontStyle: 'italic' },
+  subtitle: { fontFamily: fontFamily.serifItalic, fontSize: fontSize.lg, marginTop: 2 },
   empty: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: spacing.sm, paddingHorizontal: spacing.xl },
   medallion: {
     width: 56, height: 56, borderRadius: 28, backgroundColor: colors.secondary,

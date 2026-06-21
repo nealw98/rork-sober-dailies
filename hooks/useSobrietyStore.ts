@@ -86,6 +86,13 @@ export const [SobrietyProvider, useSobriety] = createContextHook(() => {
     saveData(sobrietyDate, true);
   }, [sobrietyDate, saveData]);
 
+  // Clear the sober date but keep the soft "add date" state (not the first-run prompt).
+  const removeSobrietyDate = useCallback(async () => {
+    setSobrietyDate(null);
+    setHasSeenPrompt(true);
+    await saveData(null, true);
+  }, [saveData]);
+
   const calculateDaysSober = useCallback((): number => {
     if (!sobrietyDate) return 0;
     return calculateDaysBetween(sobrietyDate);
@@ -140,6 +147,7 @@ export const [SobrietyProvider, useSobriety] = createContextHook(() => {
     emergencyContacts,
     setSobrietyDate: setSobrietyDateAndSave,
     dismissPrompt,
+    removeSobrietyDate,
     calculateDaysSober,
     shouldShowPrompt,
     shouldShowAddButton,
@@ -155,6 +163,7 @@ export const [SobrietyProvider, useSobriety] = createContextHook(() => {
     emergencyContacts,
     setSobrietyDateAndSave,
     dismissPrompt,
+    removeSobrietyDate,
     calculateDaysSober,
     shouldShowPrompt,
     shouldShowAddButton,

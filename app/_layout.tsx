@@ -27,6 +27,8 @@ import {
 } from '@expo-google-fonts/manrope';
 import {
   Lora_400Regular,
+  Lora_400Regular_Italic,
+  Lora_500Medium_Italic,
   Lora_700Bold,
 } from '@expo-google-fonts/lora';
 import {
@@ -113,6 +115,8 @@ function RootLayoutNav() {
     Manrope_700Bold,
     Manrope_800ExtraBold,
     Lora_400Regular,
+    Lora_400Regular_Italic,
+    Lora_500Medium_Italic,
     Lora_700Bold,
     Archivo_600SemiBold,
     Archivo_700Bold,
