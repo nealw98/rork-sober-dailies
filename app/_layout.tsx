@@ -49,6 +49,7 @@ import {
 
 import { GratitudeProvider } from "@/hooks/use-gratitude-store";
 import { DailiesProvider } from "@/hooks/use-dailies-store";
+import { MeditationProvider } from "@/hooks/use-meditation-store";
 import { OnboardingProvider, useOnboarding } from "@/hooks/useOnboardingStore";
 import { SobrietyProvider } from "@/hooks/useSobrietyStore";
 import { EveningReviewProvider } from "@/hooks/use-evening-review-store";
@@ -347,6 +348,7 @@ export default function RootLayout() {
                 <GratitudeProvider>
                   <SobrietyProvider>
                     <DailiesProvider>
+                    <MeditationProvider>
                     <EveningReviewProvider>
                       <GestureHandlerRootView style={{ flex: 1 }}>
                         {Platform.OS === 'android' && (
@@ -362,6 +364,7 @@ export default function RootLayout() {
                         </ErrorBoundary>
                       </GestureHandlerRootView>
                     </EveningReviewProvider>
+                    </MeditationProvider>
                     </DailiesProvider>
                   </SobrietyProvider>
                 </GratitudeProvider>

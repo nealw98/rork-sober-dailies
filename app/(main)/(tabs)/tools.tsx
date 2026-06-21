@@ -63,7 +63,7 @@ const SECTIONS: { title: string; tools: ToolDef[] }[] = [
     title: 'Reflect & learn',
     tools: [
       { id: 'prayers', name: 'Prayers', sub: 'Daily prayers', tone: TONE.amber, Icon: HandsPraying, route: '/(main)/prayers' },
-      { id: 'meditation', name: 'Meditation', sub: '11th step', tone: TONE.lavender, Icon: FlowerLotus, route: null },
+      { id: 'meditation', name: 'Meditation', sub: '11th step', tone: TONE.lavender, Icon: FlowerLotus, route: '/(main)/meditation' },
     ],
   },
   {

@@ -36,7 +36,7 @@ const ACTION_ROUTE: Record<string, Href | null> = {
   spotcheck: '/(main)/inventory',
   nightly: '/(main)/evening-review',
   speaker: '/(main)/speakers',
-  meditation: null,
+  meditation: '/(main)/meditation',
   callAnother: null,
   lit: '/(main)/literature',
   meeting: '/(main)/meeting-pocket',
@@ -145,9 +145,14 @@ export default function TodayScreen() {
       dailies.toggleDone(item.id);
       return;
     }
-    // Net-new tool not built yet (journal, meditation, call-another).
+    // Net-new tool not built yet (journal, call-another).
     if (route === null) {
       Alert.alert('Coming soon', `${item.label} is on the way in the redesign.`);
+      return;
+    }
+    // Meditation marks done on timer completion — pass the daily id through.
+    if (item.action === 'meditation') {
+      router.push({ pathname: '/(main)/meditation', params: { dailyId: item.id } });
       return;
     }
     if (!MARK_ON_SAVE.has(item.action)) dailies.markDone(item.id);
