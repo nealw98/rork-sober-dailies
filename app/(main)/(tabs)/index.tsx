@@ -5,9 +5,9 @@ import {
   Text,
   ScrollView,
   Pressable,
-  ImageBackground,
   Alert,
 } from 'react-native';
+import { Image } from 'expo-image';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter, type Href } from 'expo-router';
@@ -17,6 +17,7 @@ import { colors, fontFamily, fontSize, spacing, radii, shadows, getSemanticColor
 import { ROW_TONES, resolveGlyph, resolveTone } from '@/components/dailyTokens';
 import { useScreenTimeTracking } from '@/hooks/useScreenTimeTracking';
 import { useDailies, type DailyItem, type WhenBucket } from '@/hooks/use-dailies-store';
+import { useReflectionHeroImage } from '@/hooks/useReflectionHeroImage';
 import SobrietyCounter from '@/components/SobrietyCounter';
 import { getTodaysReflection } from '@/constants/reflections';
 import { Reflection } from '@/types';
@@ -84,23 +85,31 @@ function DailyRow({ item, done, onOpen, onToggle }: { item: DailyItem; done: boo
   );
 }
 
-function ReflectionHero({ title, done, onRead, onToggle }: { title: string; done: boolean; onRead: () => void; onToggle: () => void }) {
+// Bundled offline/loading placeholder for the hero (also the source until the
+// rotating Supabase image resolves, and if it fails).
+const HERO_FALLBACK = require('@/assets/reflections_images/reflection_bg7.webp');
+
+function ReflectionHero({ title, imageUri, alt, done, onRead, onToggle }: { title: string; imageUri?: string; alt?: string; done: boolean; onRead: () => void; onToggle: () => void }) {
   const teal = ROW_TONES.teal;
   return (
     <View style={[styles.hero, { borderColor: done ? teal.ink + '55' : '#EDEAE2' }]}>
       <Pressable onPress={onRead}>
-        <ImageBackground
-          source={require('@/assets/reflections_images/reflection_bg7.webp')}
-          style={styles.heroCover}
-          imageStyle={styles.heroImg}
-          resizeMode="cover"
-        >
+        <View style={styles.heroCover}>
+          <Image
+            source={imageUri ? { uri: imageUri } : HERO_FALLBACK}
+            placeholder={HERO_FALLBACK}
+            contentFit="cover"
+            transition={250}
+            cachePolicy="memory-disk"
+            accessibilityLabel={alt}
+            style={StyleSheet.absoluteFill}
+          />
           <LinearGradient colors={['rgba(0,0,0,0)', 'rgba(0,0,0,0.55)']} locations={[0.35, 1]} style={StyleSheet.absoluteFill} />
           <View style={styles.heroPill}>
             <Text style={styles.heroPillText}>DAILY REFLECTION</Text>
           </View>
           <Text style={styles.heroTitle} numberOfLines={2}>{title}</Text>
-        </ImageBackground>
+        </View>
       </Pressable>
       <View style={[styles.heroMeta, done && { backgroundColor: teal.soft }]}>
         <Pressable style={styles.rowMain} onPress={onRead}>
@@ -119,6 +128,7 @@ export default function TodayScreen() {
   const router = useRouter();
   const c = getSemanticColors('light');
   const dailies = useDailies();
+  const heroImage = useReflectionHeroImage();
   const [reflection, setReflection] = useState<Reflection | null>(null);
   useScreenTimeTracking('Today');
 
@@ -169,6 +179,8 @@ export default function TodayScreen() {
               {isMorning && (
                 <ReflectionHero
                   title={reflection?.title || 'Daily Reflection'}
+                  imageUri={heroImage?.uri}
+                  alt={heroImage?.alt}
                   done={dailies.reflectionDone}
                   onRead={openReflection}
                   onToggle={dailies.toggleReflection}
@@ -247,8 +259,7 @@ const styles = StyleSheet.create({
 
   // reflection hero
   hero: { borderRadius: 16, borderWidth: 1, backgroundColor: colors.white, overflow: 'hidden', marginBottom: 8, ...shadows.sm },
-  heroCover: { height: 150, justifyContent: 'flex-end' },
-  heroImg: {},
+  heroCover: { height: 150, justifyContent: 'flex-end', overflow: 'hidden' },
   heroPill: {
     position: 'absolute',
     top: 12,
