@@ -25,20 +25,29 @@ function getDayOfYear(date = new Date()): number {
   return Math.floor((date.getTime() - start.getTime()) / 86_400_000); // 1..366
 }
 
+// Trailing number in a path (e.g. ".../reflections-12.webp" → 12) for a clean
+// numeric daily cycle; paths without one (the old placeholder) sort to the end.
+function pathOrder(path: string): number {
+  const m = path.match(/(\d+)(?=\.\w+$)/);
+  return m ? parseInt(m[1], 10) : Number.MAX_SAFE_INTEGER;
+}
+
 async function fetchHeroImages(): Promise<HeroImage[]> {
   const { data, error } = await supabase
     .from('app_image_assets')
     .select('asset_key, bucket, object_path, alt_text')
     .eq('bucket', BUCKET)
-    .eq('is_active', true)
-    .order('asset_key', { ascending: true }); // stable order for deterministic rotation
+    .eq('is_active', true);
 
   if (error) throw error;
 
-  return (data ?? []).map((row) => ({
-    uri: supabase.storage.from(row.bucket).getPublicUrl(row.object_path).data.publicUrl,
-    alt: row.alt_text || '',
-  }));
+  return (data ?? [])
+    .slice()
+    .sort((a, b) => pathOrder(a.object_path) - pathOrder(b.object_path)) // numeric, sequential
+    .map((row) => ({
+      uri: supabase.storage.from(row.bucket).getPublicUrl(row.object_path).data.publicUrl,
+      alt: row.alt_text || '',
+    }));
 }
 
 /** Today's hero image, or null while loading / if the pool is empty or offline. */
