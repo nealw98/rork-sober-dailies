@@ -67,7 +67,7 @@ function ConsentStep({ onContinue }: { onContinue: () => void }) {
             <Sunrise size={32} />
           </View>
           <Text style={styles.consentTitle}>Welcome to{'\n'}Sober Dailies</Text>
-          <Text style={styles.consentDesc}>Daily recovery practices — reflections, gratitude, prayers, and a sponsor-style AI chat — in one quiet place.</Text>
+          <Text style={styles.consentDesc}>Practice the daily exercises that keep you in fit spiritual condition.</Text>
 
           <View style={styles.consentCard}>
             <Text style={styles.consentNote}>Please note:</Text>
@@ -297,7 +297,7 @@ const styles = StyleSheet.create({
   consentScroll: { flexGrow: 1, justifyContent: 'center', paddingHorizontal: 24, paddingVertical: 24 },
   consentMark: { width: 60, height: 60, borderRadius: 18, alignSelf: 'center', backgroundColor: 'rgba(255,255,255,0.16)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.32)', alignItems: 'center', justifyContent: 'center', marginBottom: 16 },
   consentTitle: { fontFamily: fontFamily.displayBold, fontSize: 32, color: '#fff', textAlign: 'center', letterSpacing: -0.6, lineHeight: 35 },
-  consentDesc: { fontFamily: fontFamily.serif, fontSize: fontSize.lg, color: '#fff', opacity: 0.94, textAlign: 'center', lineHeight: 24, marginTop: 14 },
+  consentDesc: { fontFamily: fontFamily.serifItalic, fontSize: fontSize.lg, color: '#fff', opacity: 0.94, textAlign: 'center', lineHeight: 24, marginTop: 14 },
   consentCard: { backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: 14, padding: 18, marginVertical: 24 },
   consentNote: { fontFamily: fontFamily.semiBold, fontSize: fontSize.lg, color: '#fff', marginBottom: 12 },
   consentBullet: { flexDirection: 'row', gap: 9, alignItems: 'flex-start' },
