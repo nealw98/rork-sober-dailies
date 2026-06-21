@@ -11,6 +11,7 @@ import { AudioPlayerProvider } from "@/hooks/useGlobalAudioPlayer";
 import {
   useFonts,
   Inter_400Regular,
+  Inter_400Regular_Italic,
   Inter_500Medium,
   Inter_600SemiBold,
   Inter_600SemiBold_Italic,
@@ -108,6 +109,7 @@ function RootLayoutNav() {
   const { isLoading: isSubscriptionLoading, isPremium } = useSubscription();
   const [fontsLoaded] = useFonts({
     Inter_400Regular,
+    Inter_400Regular_Italic,
     Inter_500Medium,
     Inter_600SemiBold,
     Inter_600SemiBold_Italic,

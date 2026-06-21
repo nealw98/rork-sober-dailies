@@ -17,8 +17,6 @@ import { colors, fontFamily, getSemanticColors } from '@/constants/designTokens'
 const c = getSemanticColors('light');
 const tool = TOOLS.gratitude;
 
-const PLACEHOLDERS = ['Something you’re grateful for', 'Another good thing', 'Something small is fine'];
-
 export default function GratitudeScreen() {
   const router = useRouter();
   const { dailyId } = useLocalSearchParams<{ dailyId?: string }>();
@@ -67,9 +65,9 @@ export default function GratitudeScreen() {
               key={i}
               value={val}
               onChangeText={(t) => setVal(i, t)}
-              placeholder={PLACEHOLDERS[i] || 'One more thing'}
+              placeholder={i === 0 ? 'e.g., My sobriety' : ''}
               placeholderTextColor={c.textMuted}
-              style={styles.field}
+              style={[styles.field, i === 0 && val === '' ? styles.fieldItalic : null]}
               multiline
             />
           ))}
@@ -105,6 +103,7 @@ const styles = StyleSheet.create({
     color: c.text,
     marginBottom: 12,
   },
+  fieldItalic: { fontFamily: fontFamily.regularItalic },
   addAnother: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 8, marginTop: 4 },
   addAnotherText: { fontFamily: fontFamily.semiBold, fontSize: 15 },
 });

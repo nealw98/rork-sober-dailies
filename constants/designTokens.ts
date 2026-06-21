@@ -136,6 +136,7 @@ export const fontFamily = {
   semiBold: 'Inter_600SemiBold',
   bold: 'Inter_700Bold',
   serif: 'Lora_400Regular',
+  regularItalic: 'Inter_400Regular_Italic', // RN needs the real italic face — fontStyle:'italic' won't synthesize it
   semiBoldItalic: 'Inter_600SemiBold_Italic', // RN needs the real italic face — fontStyle:'italic' won't synthesize it
   serifItalic: 'Lora_400Regular_Italic', // RN needs the real italic face — fontStyle:'italic' won't synthesize it
   serifMediumItalic: 'Lora_500Medium_Italic', // the affirmation weight (prototype uses 500)
