@@ -7,7 +7,7 @@ import Svg, { Path } from 'react-native-svg';
 import { Check, ChevronLeft, ArrowRight, BookOpen, PenLine, MessageCircle } from 'lucide-react-native';
 
 import { colors, fontFamily, fontSize, spacing, radii, shadows, gradients, getSemanticColors } from '@/constants/designTokens';
-import { resolveGlyph, resolveTone } from '@/components/dailyTokens';
+import { resolveGlyph } from '@/components/dailyTokens';
 import { useOnboarding } from '@/hooks/useOnboardingStore';
 import { useSobriety } from '@/hooks/useSobrietyStore';
 import { useDailies, type DailyItem, type WhenBucket } from '@/hooks/use-dailies-store';
@@ -177,6 +177,16 @@ const STARTER: { when: WhenBucket; items: StarterItem[] }[] = [
   ] },
 ];
 
+// Soft icon-box + dark outline glyph per tone (prototype OBV_TONE).
+const DEF_TONE: Record<string, { solid: string; ink: string }> = {
+  amber: { solid: '#E8A95D', ink: '#B07A33' },
+  blue: { solid: '#5C8DFF', ink: '#3A6AE0' },
+  lavender: { solid: '#A386D5', ink: '#7A5FB5' },
+  teal: { solid: '#3D8B8B', ink: '#2E6F6F' },
+  coral: { solid: '#D36A5A', ink: '#C0533F' },
+  gray: { solid: '#9A98A4', ink: '#5A5A68' },
+};
+
 function DefineDailiesStep({ onBack, onStart }: { onBack: () => void; onStart: (items: DailyItem[]) => void }) {
   const [selected, setSelected] = useState<Set<string>>(
     () => new Set(STARTER.flatMap((s) => s.items.filter((i) => i.on).map((i) => i.id))),
@@ -186,7 +196,7 @@ function DefineDailiesStep({ onBack, onStart }: { onBack: () => void; onStart: (
     next.has(id) ? next.delete(id) : next.add(id);
     return next;
   });
-  const count = selected.size;
+  const total = 1 + selected.size; // + the permanent Daily Reflection hero
 
   const start = () => {
     const items: DailyItem[] = STARTER.flatMap((s) =>
@@ -205,33 +215,45 @@ function DefineDailiesStep({ onBack, onStart }: { onBack: () => void; onStart: (
       </View>
       <ScrollView contentContainerStyle={styles.dailiesScroll} showsVerticalScrollIndicator={false}>
         <Text style={styles.insideTitle}>Define your dailies</Text>
-        <Text style={styles.insideSub}>We&apos;ve checked the basics. Tap any practice to add or remove it — you can change everything later in My Dailies.</Text>
+        <Text style={styles.dailiesSubtitle}>The practices you&apos;ll start with</Text>
 
-        {STARTER.map((section) => (
-          <View key={section.when} style={styles.dailiesSection}>
-            <Text style={styles.dailiesSectionLabel}>{section.when}</Text>
-            {section.items.map((item) => {
-              const on = selected.has(item.id);
-              const tone = resolveTone(item.color);
-              const Glyph = resolveGlyph(item.icon);
-              return (
-                <Pressable key={item.id} style={[styles.dailyRow, on && { borderColor: tone.ink + '55', backgroundColor: tone.soft }]} onPress={() => toggle(item.id)}>
-                  <View style={[styles.dailyMedallion, { backgroundColor: tone.ink }]}>
-                    <Glyph size={19} color="#fff" />
-                  </View>
-                  <Text style={styles.dailyLabel}>{item.label}</Text>
-                  <View style={[styles.dailyCheck, { borderColor: on ? tone.ink : c.border, backgroundColor: on ? tone.ink : 'transparent' }]}>
-                    {on && <Check size={14} color="#fff" strokeWidth={3} />}
-                  </View>
-                </Pressable>
-              );
-            })}
-          </View>
-        ))}
+        <View style={styles.infoCard}>
+          <Text style={styles.infoText}>
+            We&apos;ve checked the <Text style={styles.infoBold}>basics</Text> to get you started. Tap any practice to add or remove it — you can change everything later in <Text style={styles.infoBold}>My Dailies</Text>.
+          </Text>
+        </View>
+
+        {STARTER.map((section) => {
+          const sel = section.items.filter((i) => selected.has(i.id)).length;
+          return (
+            <View key={section.when} style={styles.dailiesSection}>
+              <View style={styles.sectionLabelRow}>
+                <Text style={styles.sectionLabelName}>{section.when}</Text>
+                <Text style={styles.sectionLabelCount}>{sel} of {section.items.length}</Text>
+              </View>
+              {section.items.map((item) => {
+                const on = selected.has(item.id);
+                const tone = DEF_TONE[item.color] ?? DEF_TONE.gray;
+                const Glyph = resolveGlyph(item.icon);
+                return (
+                  <Pressable key={item.id} style={[styles.dailyRow, { borderColor: on ? tone.solid + '55' : c.border }]} onPress={() => toggle(item.id)}>
+                    <View style={[styles.dailyIconBox, { backgroundColor: tone.solid + '22' }]}>
+                      <Glyph size={18} color={tone.ink} />
+                    </View>
+                    <Text style={styles.dailyLabel}>{item.label}</Text>
+                    <View style={[styles.dailyCheck, on ? { backgroundColor: colors.primary, borderColor: colors.primary } : { borderColor: c.border }]}>
+                      {on && <Check size={15} color="#fff" strokeWidth={3} />}
+                    </View>
+                  </Pressable>
+                );
+              })}
+            </View>
+          );
+        })}
       </ScrollView>
-      <View style={styles.footer}>
-        <Pressable style={[styles.primaryBtn, count === 0 && styles.primaryBtnOff]} onPress={start} disabled={count === 0}>
-          <Text style={styles.primaryText}>Start my program · {count} {count === 1 ? 'daily' : 'dailies'}</Text>
+      <View style={styles.footerBordered}>
+        <Pressable style={styles.primaryBtn} onPress={start}>
+          <Text style={styles.primaryText}>Start my program · {total} {total === 1 ? 'daily' : 'dailies'}</Text>
           <ArrowRight size={18} color="#fff" />
         </Pressable>
       </View>
@@ -312,13 +334,20 @@ const styles = StyleSheet.create({
   outlineSub: { fontFamily: fontFamily.serif, fontSize: 14.5, color: c.textSecondary, lineHeight: 22, marginTop: 3 },
 
   // define dailies
-  dailiesScroll: { paddingHorizontal: 24, paddingTop: 6, paddingBottom: 24 },
-  dailiesSection: { marginTop: 18 },
-  dailiesSectionLabel: { fontFamily: fontFamily.semiBold, fontSize: fontSize.xl, color: c.text, marginBottom: spacing.sm },
-  dailyRow: { flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: c.surface, borderWidth: 1, borderColor: c.border, borderRadius: 16, paddingVertical: 11, paddingHorizontal: 14, marginBottom: 8 },
-  dailyMedallion: { width: 38, height: 38, borderRadius: 11, alignItems: 'center', justifyContent: 'center' },
-  dailyLabel: { flex: 1, fontFamily: fontFamily.semiBold, fontSize: fontSize.lg, color: c.text },
-  dailyCheck: { width: 24, height: 24, borderRadius: 12, borderWidth: 2, alignItems: 'center', justifyContent: 'center' },
+  dailiesScroll: { paddingHorizontal: 22, paddingTop: 6, paddingBottom: 16 },
+  dailiesSubtitle: { fontFamily: fontFamily.regular, fontSize: 13, color: c.textMuted, marginTop: 4 },
+  infoCard: { backgroundColor: colors.primarySoft, borderWidth: 1, borderColor: colors.primary + '33', borderRadius: 14, padding: 13, marginTop: 14, marginBottom: 4 },
+  infoText: { fontFamily: fontFamily.regular, fontSize: 12.5, color: c.textSecondary, lineHeight: 19 },
+  infoBold: { fontFamily: fontFamily.semiBold, color: c.text },
+  dailiesSection: { marginTop: 4 },
+  sectionLabelRow: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', marginTop: 14, marginBottom: 8 },
+  sectionLabelName: { fontFamily: fontFamily.display, fontSize: 18, color: c.text },
+  sectionLabelCount: { fontFamily: fontFamily.medium, fontSize: 11, color: c.textMuted },
+  dailyRow: { flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: c.surface, borderWidth: 1, borderRadius: 14, paddingVertical: 12, paddingHorizontal: 14, marginBottom: 6 },
+  dailyIconBox: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },
+  dailyLabel: { flex: 1, fontFamily: fontFamily.semiBold, fontSize: fontSize.base, color: c.text },
+  dailyCheck: { width: 26, height: 26, borderRadius: 13, borderWidth: 2, alignItems: 'center', justifyContent: 'center' },
+  footerBordered: { paddingHorizontal: 24, paddingTop: 12, paddingBottom: 12, borderTopWidth: 1, borderTopColor: c.border },
 
   // shared footer
   footer: { paddingHorizontal: 24, paddingTop: 12, paddingBottom: 12 },
