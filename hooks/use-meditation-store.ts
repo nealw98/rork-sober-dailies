@@ -28,7 +28,7 @@ export const SOUND_LABEL: Record<SoundId, string> = {
 interface MeditationSettings {
   source: 'timer' | 'youtube' | 'app' | null; // null = unconfigured → timer
   hintSeen: boolean;
-  timer: { minutes: number; sound: SoundId };
+  timer: { minutes: number; sound: string }; // sound = selected scene key (dynamic)
 }
 
 const KEY = 'meditation_settings';

@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { View, Text, Pressable, StyleSheet, Animated, Easing } from 'react-native';
+import { View, Text, Pressable, StyleSheet, Animated, Easing, FlatList, useWindowDimensions } from 'react-native';
 import { Image } from 'expo-image';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
@@ -9,8 +9,8 @@ import Svg, { Circle, Defs, LinearGradient as SvgGradient, Stop } from 'react-na
 import { ChevronLeft, Play, Pause, Plus, Minus, X } from 'lucide-react-native';
 
 import { fontFamily } from '@/constants/designTokens';
-import { useMeditation, SOUNDS, SOUND_LABEL, type SoundId } from '@/hooks/use-meditation-store';
-import { useMeditationScenes } from '@/hooks/useMeditationScenes';
+import { useMeditation, SOUNDS } from '@/hooks/use-meditation-store';
+import { useMeditationScenes, type MeditationScene } from '@/hooks/useMeditationScenes';
 import { useDailies } from '@/hooks/use-dailies-store';
 
 // Bundled offline/loading fallback for the scene background.
@@ -137,6 +137,60 @@ function TopBar({ onClose }: { onClose: () => void }) {
   );
 }
 
+// Horizontal snap carousel of scenes — swipe (or tap a neighbour) to select.
+// Centered item is the selection; the screen background follows it. Scales to
+// any number of scenes without crowding (replaces the soundtrack chip row).
+function SceneCarousel({ scenes, selectedKey, onSelect }: { scenes: MeditationScene[]; selectedKey: string; onSelect: (key: string) => void }) {
+  const { width } = useWindowDimensions();
+  const ITEM_W = Math.round(width * 0.5);
+  const listRef = useRef<FlatList<MeditationScene>>(null);
+  const selectedIndex = Math.max(0, scenes.findIndex((s) => s.key === selectedKey));
+
+  return (
+    <View>
+      <FlatList
+        ref={listRef}
+        data={scenes}
+        keyExtractor={(s) => s.key}
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        snapToInterval={ITEM_W}
+        decelerationRate="fast"
+        contentContainerStyle={{ paddingHorizontal: (width - ITEM_W) / 2 }}
+        getItemLayout={(_, i) => ({ length: ITEM_W, offset: ITEM_W * i, index: i })}
+        initialScrollIndex={selectedIndex}
+        onScrollToIndexFailed={() => {}}
+        onMomentumScrollEnd={(e) => {
+          const idx = Math.round(e.nativeEvent.contentOffset.x / ITEM_W);
+          const scene = scenes[idx];
+          if (scene && scene.key !== selectedKey) onSelect(scene.key);
+        }}
+        renderItem={({ item, index }) => {
+          const active = item.key === selectedKey;
+          return (
+            <Pressable
+              onPress={() => {
+                listRef.current?.scrollToIndex({ index, animated: true });
+                onSelect(item.key);
+              }}
+              style={[styles.sceneItem, { width: ITEM_W }]}
+            >
+              <Text style={[styles.sceneName, { color: active ? TH.ink : TH.ink2, opacity: active ? 1 : 0.5, fontSize: active ? 20 : 15 }]}>
+                {item.name}
+              </Text>
+            </Pressable>
+          );
+        }}
+      />
+      <View style={styles.dots}>
+        {scenes.map((s, i) => (
+          <View key={s.key} style={[styles.dot, i === selectedIndex && styles.dotActive]} />
+        ))}
+      </View>
+    </View>
+  );
+}
+
 type Phase = 'ready' | 'active' | 'complete';
 
 export default function MeditationScreen() {
@@ -150,16 +204,24 @@ export default function MeditationScreen() {
 
   const [phase, setPhase] = useState<Phase>('ready');
   const [minutes, setMinutes] = useState(cfg.minutes);
-  const [sound, setSound] = useState<SoundId>(cfg.sound);
+  const [sound, setSound] = useState<string>(cfg.sound);
   const [remaining, setRemaining] = useState(cfg.minutes * 60);
   const [paused, setPaused] = useState(false);
   const [doneMin, setDoneMin] = useState(cfg.minutes);
   const [hintDismissed, setHintDismissed] = useState(false);
   const isCustom = !PRESETS.includes(minutes);
 
-  // Scene background — the selected scene's still from Supabase (bundled fallback).
+  // Scenes — from Supabase when loaded, else the bundled defaults so the carousel
+  // is never empty. The selected scene drives the background still.
   const scenes = useMeditationScenes();
+  const sceneList = Object.values(scenes);
+  const carouselScenes: MeditationScene[] =
+    sceneList.length > 0
+      ? sceneList
+      : SOUNDS.map((s) => ({ key: s.id, name: s.label, stillUri: null, animatedUri: null, audioUri: null }));
   const sceneStill = scenes[sound]?.stillUri ?? null;
+  const sceneAnimated = scenes[sound]?.animatedUri ?? null; // animated webp/video, if any
+  const currentScene = carouselScenes.find((s) => s.key === sound);
 
   // Ken Burns — slow continuous pan/zoom that gives the still life.
   const kb = useRef(new Animated.Value(0)).current;
@@ -228,15 +290,27 @@ export default function MeditationScreen() {
   return (
     <View style={styles.root}>
       <StatusBar style="light" />
-      <Animated.View style={[StyleSheet.absoluteFill, kbStyle]}>
+      {sceneAnimated ? (
+        // Real motion already baked in — play it, no Ken Burns.
         <Image
-          source={sceneStill ? { uri: sceneStill } : SCENE_FALLBACK}
+          source={{ uri: sceneAnimated }}
           placeholder={SCENE_FALLBACK}
           style={StyleSheet.absoluteFill}
           contentFit="cover"
           transition={300}
         />
-      </Animated.View>
+      ) : (
+        // Still image — give it life with a slow Ken Burns pan/zoom.
+        <Animated.View style={[StyleSheet.absoluteFill, kbStyle]}>
+          <Image
+            source={sceneStill ? { uri: sceneStill } : SCENE_FALLBACK}
+            placeholder={SCENE_FALLBACK}
+            style={StyleSheet.absoluteFill}
+            contentFit="cover"
+            transition={300}
+          />
+        </Animated.View>
+      )}
       <LinearGradient
         colors={['rgba(8,14,32,0.28)', 'rgba(8,14,32,0)', 'rgba(8,14,32,0.42)']}
         locations={[0, 0.45, 1]}
@@ -275,13 +349,9 @@ export default function MeditationScreen() {
                   </View>
                 )}
               </View>
-              <View style={styles.section}>
-                <Text style={styles.sectionLabel}>SOUNDTRACK</Text>
-                <View style={styles.chipRow}>
-                  {SOUNDS.map((s) => (
-                    <Chip key={s.id} label={s.label} on={s.id === sound} wide onPress={() => setSound(s.id)} />
-                  ))}
-                </View>
+              <View style={styles.sceneSection}>
+                <Text style={styles.sectionLabel}>SCENE</Text>
+                <SceneCarousel scenes={carouselScenes} selectedKey={sound} onSelect={setSound} />
               </View>
             </View>
             <View style={styles.footer}>
@@ -300,7 +370,7 @@ export default function MeditationScreen() {
               <TimerRing progress={minutes ? remaining / (minutes * 60) : 0} big={fmtMMSS(remaining)} pulsing={!paused} />
               {sound !== 'silence' ? (
                 <View style={styles.soundPill}>
-                  <Text style={styles.soundPillText}>{SOUND_LABEL[sound]}</Text>
+                  <Text style={styles.soundPillText}>{currentScene?.name ?? sound}</Text>
                 </View>
               ) : (
                 <View style={{ height: 35 }} />
@@ -372,6 +442,13 @@ const styles = StyleSheet.create({
   chipRow: { flexDirection: 'row', gap: 8, justifyContent: 'center', flexWrap: 'wrap' },
   chip: { minWidth: 50, paddingVertical: 9, paddingHorizontal: 12, borderRadius: 999, borderWidth: 1, alignItems: 'center' },
   chipText: { fontFamily: fontFamily.bold, fontSize: 14 },
+
+  sceneSection: { width: '100%' },
+  sceneItem: { alignItems: 'center', justifyContent: 'center', paddingVertical: 4 },
+  sceneName: { fontFamily: fontFamily.display, textAlign: 'center', letterSpacing: -0.2 },
+  dots: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 6, marginTop: 12 },
+  dot: { width: 6, height: 6, borderRadius: 3, backgroundColor: 'rgba(255,255,255,0.30)' },
+  dotActive: { width: 18, backgroundColor: 'rgba(255,255,255,0.9)' },
 
   stepper: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 18 },
   stepBtn: { width: 40, height: 40, borderRadius: 20, borderWidth: 1, borderColor: TH.glassBorder, backgroundColor: TH.glassBg, alignItems: 'center', justifyContent: 'center' },
