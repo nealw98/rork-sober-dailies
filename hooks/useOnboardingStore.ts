@@ -45,9 +45,20 @@ export const [OnboardingProvider, useOnboarding] = createContextHook(() => {
     }
   }, []);
 
+  // Dev-only: clear the flag so the onboarding flow re-appears on next render.
+  const resetOnboarding = useCallback(async () => {
+    try {
+      await AsyncStorage.removeItem(ONBOARDING_KEY);
+      setIsOnboardingComplete(false);
+    } catch (error) {
+      console.log('Error resetting onboarding status:', error);
+    }
+  }, []);
+
   return {
     isOnboardingComplete,
     isLoading,
     completeOnboarding,
+    resetOnboarding,
   };
 });

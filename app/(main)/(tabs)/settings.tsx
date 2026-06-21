@@ -26,6 +26,7 @@ import { Logger } from '@/lib/logger';
 import { submitFeedback } from '@/lib/feedback';
 import { usageLogger } from '@/lib/usageLogger';
 import { useScreenTimeTracking } from '@/hooks/useScreenTimeTracking';
+import { useOnboarding } from '@/hooks/useOnboardingStore';
 
 const DEVELOPER_MODE_KEY = 'developer_mode_enabled';
 
@@ -33,7 +34,8 @@ export default function SettingsScreen() {
   const insets = useSafeAreaInsets();
   const { palette, themeId, setThemeId, themes } = useTheme();
   const { fontSize, setFontSize, minFontSize, maxFontSize, resetDefaults, defaultFontSize } = useTextSettings();
-  
+  const { resetOnboarding } = useOnboarding();
+
   useScreenTimeTracking('Settings');
   
   const [logsVisible, setLogsVisible] = useState(false);
@@ -473,7 +475,7 @@ export default function SettingsScreen() {
         {/* About Section */}
         <Text style={[styles.sectionTitle, { marginTop: 24, color: palette.text }]}>About</Text>
         
-        <TouchableOpacity 
+        <TouchableOpacity
           style={[styles.menuItem, styles.menuItemLast]}
           onPress={() => router.push('/about')}
           activeOpacity={0.7}
@@ -481,6 +483,21 @@ export default function SettingsScreen() {
           <Text style={[styles.menuItemTitle, { fontSize, color: palette.text }]}>About Sober Dailies</Text>
           <ChevronRight size={18} color={palette.muted} />
         </TouchableOpacity>
+
+        {/* Developer — dev builds only */}
+        {__DEV__ && (
+          <>
+            <Text style={[styles.sectionTitle, { marginTop: 24, color: palette.text }]}>Developer</Text>
+            <TouchableOpacity
+              style={[styles.menuItem, styles.menuItemLast]}
+              onPress={() => { resetOnboarding(); }}
+              activeOpacity={0.7}
+            >
+              <Text style={[styles.menuItemTitle, { fontSize, color: palette.text }]}>Replay onboarding</Text>
+              <ChevronRight size={18} color={palette.muted} />
+            </TouchableOpacity>
+          </>
+        )}
       </ScrollView>
 
       {/* Legal Links - above footer */}
