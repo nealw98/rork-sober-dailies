@@ -16,6 +16,23 @@ import SoberDateEditor from '@/components/SoberDateEditor';
 
 const c = getSemanticColors('light');
 
+// App-icon gradient → interior bridge (prototype `obvGrad`). t=0 = vivid app icon,
+// t=1 = muted interior. Onboarding stays icon-leaning (the retiring teal header
+// gradient is NOT used here).
+const OBV_HOT = ['#0079C5', '#0099C0', '#00B7B0'];
+const OBV_COOL = ['#4A6FA5', '#3D8B8B', '#45A08A'];
+function lerpHex(a: string, b: string, t: number): string {
+  const pa = [1, 3, 5].map((i) => parseInt(a.slice(i, i + 2), 16));
+  const pb = [1, 3, 5].map((i) => parseInt(b.slice(i, i + 2), 16));
+  return '#' + pa.map((v, i) => Math.round(v + (pb[i] - v) * t).toString(16).padStart(2, '0')).join('');
+}
+function obvGrad(t: number): [string, string, string] {
+  return [lerpHex(OBV_HOT[0], OBV_COOL[0], t), lerpHex(OBV_HOT[1], OBV_COOL[1], t), lerpHex(OBV_HOT[2], OBV_COOL[2], t)];
+}
+function obvInk(t: number): string {
+  return lerpHex('#0086C2', '#2F6E6E', t);
+}
+
 function Sunrise({ size = 32, color = '#fff' }: { size?: number; color?: string }) {
   return (
     <Svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
@@ -43,7 +60,7 @@ function ConsentStep({ onContinue }: { onContinue: () => void }) {
   return (
     <View style={{ flex: 1 }}>
       <StatusBar style="light" />
-      <LinearGradient colors={gradients.header} start={{ x: 0.1, y: 0 }} end={{ x: 0.9, y: 1 }} style={StyleSheet.absoluteFill} />
+      <LinearGradient colors={obvGrad(0.3)} start={{ x: 0.1, y: 0 }} end={{ x: 0.9, y: 1 }} style={StyleSheet.absoluteFill} />
       <SafeAreaView style={{ flex: 1 }}>
         <ScrollView contentContainerStyle={styles.consentScroll} showsVerticalScrollIndicator={false}>
           <View style={styles.consentMark}>
@@ -78,7 +95,7 @@ function ConsentStep({ onContinue }: { onContinue: () => void }) {
             onPress={() => agreed && onContinue()}
             disabled={!agreed}
           >
-            <Text style={[styles.consentContinueText, !agreed && { color: 'rgba(255,255,255,0.7)' }]}>Continue</Text>
+            <Text style={[styles.consentContinueText, { color: obvInk(0.3) }, !agreed && { color: 'rgba(255,255,255,0.7)' }]}>Continue</Text>
           </Pressable>
         </ScrollView>
       </SafeAreaView>
@@ -86,48 +103,52 @@ function ConsentStep({ onContinue }: { onContinue: () => void }) {
   );
 }
 
-// ─── Step 2 · What's inside (paper feature rows) ────────────────────────────
-const FEATURES: { tone: string; Icon: React.ComponentType<{ size?: number; color?: string }>; title: string; sub: string }[] = [
-  { tone: 'teal', Icon: Sunrise, title: 'Today', sub: 'Your daily program — a simple checklist across Morning, Anytime, and Evening.' },
-  { tone: 'amber', Icon: BookOpen, title: 'Tools', sub: 'Daily reflection, prayers, literature, speaker tapes, and the writing tools.' },
-  { tone: 'blue', Icon: PenLine, title: 'Journey', sub: 'Look back on your days and see your progress over time.' },
-  { tone: 'lavender', Icon: MessageCircle, title: 'AI Sponsor', sub: 'A sponsor-style companion for encouragement, anytime. Not a person.' },
+// ─── Step 2 · What's inside (ObvOutline — gradient band + paper rows) ───────
+const FEATURES: { Icon: React.ComponentType<{ size?: number; color?: string }>; iconColor: string; title: string; sub: string }[] = [
+  { Icon: Sunrise, iconColor: '#2E6F6F', title: 'Today', sub: 'The heart of your program — where you define your dailies and build the accountability that keeps you on track.' },
+  { Icon: BookOpen, iconColor: '#B07A33', title: 'Tools', sub: 'The tools you reach for each day — literature, speakers, prayers, meetings — linked right to your dailies as you work through them.' },
+  { Icon: PenLine, iconColor: '#3A6AE0', title: 'Journey', sub: 'The record of your program — your notebook entries and daily progress, to look back on and keep yourself accountable.' },
+  { Icon: MessageCircle, iconColor: '#7A5FB5', title: 'Your AI Sponsor, anytime', sub: 'Bring real questions, get real advice and support from distinct sponsor personalities, day or night.' },
 ];
 
 function WhatsInsideStep({ onBack, onContinue }: { onBack: () => void; onContinue: () => void }) {
   return (
-    <SafeAreaView style={styles.paper} edges={['top', 'bottom']}>
-      <StatusBar style="dark" />
-      <View style={styles.topBar}>
-        <Pressable hitSlop={8} onPress={onBack} style={styles.backBtn}>
-          <ChevronLeft size={22} color={c.text} />
-        </Pressable>
-      </View>
-      <ScrollView contentContainerStyle={styles.insideScroll} showsVerticalScrollIndicator={false}>
-        <Text style={styles.insideTitle}>What&apos;s inside</Text>
-        <Text style={styles.insideSub}>Four places to build and keep your daily program.</Text>
-        {FEATURES.map((f) => {
-          const tone = resolveTone(f.tone);
-          return (
-            <View key={f.title} style={styles.featureRow}>
-              <View style={[styles.featureMedallion, { backgroundColor: tone.ink, shadowColor: tone.ink }]}>
-                <f.Icon size={22} color="#fff" />
+    <View style={{ flex: 1, backgroundColor: c.background }}>
+      <StatusBar style="light" />
+      <LinearGradient colors={obvGrad(0.4)} start={{ x: 0.1, y: 0 }} end={{ x: 0.9, y: 1 }} style={styles.insideBand} />
+      <SafeAreaView style={{ flex: 1 }} edges={['top', 'bottom']}>
+        <View style={styles.topBar}>
+          <Pressable hitSlop={8} onPress={onBack} style={styles.backBtnDark}>
+            <ChevronLeft size={22} color="#fff" />
+          </Pressable>
+        </View>
+        <View style={styles.insideHeader}>
+          <Text style={styles.insideOverline}>EVERYTHING YOU NEED</Text>
+          <Text style={styles.insideHeadline}>Your whole program, all in one place</Text>
+        </View>
+        <View style={styles.insideSheet}>
+          <ScrollView contentContainerStyle={styles.insideSheetScroll} showsVerticalScrollIndicator={false}>
+            {FEATURES.map((f) => (
+              <View key={f.title} style={styles.outlineRow}>
+                <View style={styles.outlineIconBox}>
+                  <f.Icon size={23} color={f.iconColor} />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.outlineTitle}>{f.title}</Text>
+                  <Text style={styles.outlineSub}>{f.sub}</Text>
+                </View>
               </View>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.featureTitle}>{f.title}</Text>
-                <Text style={styles.featureSub}>{f.sub}</Text>
-              </View>
-            </View>
-          );
-        })}
-      </ScrollView>
-      <View style={styles.footer}>
-        <Pressable style={styles.primaryBtn} onPress={onContinue}>
-          <Text style={styles.primaryText}>Continue</Text>
-          <ArrowRight size={18} color="#fff" />
-        </Pressable>
-      </View>
-    </SafeAreaView>
+            ))}
+          </ScrollView>
+          <View style={styles.footer}>
+            <Pressable style={styles.primaryBtn} onPress={onContinue}>
+              <Text style={styles.primaryText}>Set up my app</Text>
+              <ArrowRight size={18} color="#fff" />
+            </Pressable>
+          </View>
+        </View>
+      </SafeAreaView>
+    </View>
   );
 }
 
@@ -274,14 +295,21 @@ const styles = StyleSheet.create({
   paper: { flex: 1, backgroundColor: c.background },
   topBar: { paddingHorizontal: 16, paddingTop: 4, paddingBottom: 4 },
   backBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: c.surface, alignItems: 'center', justifyContent: 'center', ...shadows.sm },
-  insideScroll: { paddingHorizontal: 24, paddingTop: 6, paddingBottom: 24 },
   insideTitle: { fontFamily: fontFamily.displayBold, fontSize: fontSize.hero, color: c.text, letterSpacing: -0.5 },
   insideSub: { fontFamily: fontFamily.regular, fontSize: fontSize.md, color: c.textSecondary, lineHeight: 21, marginTop: 8, marginBottom: 8 },
 
-  featureRow: { flexDirection: 'row', alignItems: 'center', gap: 14, backgroundColor: c.surface, borderWidth: 1, borderColor: c.border, borderRadius: 16, padding: 14, marginTop: 12, ...shadows.sm },
-  featureMedallion: { width: 44, height: 44, borderRadius: 13, alignItems: 'center', justifyContent: 'center', shadowOpacity: 0.25, shadowRadius: 8, shadowOffset: { width: 0, height: 3 }, elevation: 3 },
-  featureTitle: { fontFamily: fontFamily.semiBold, fontSize: fontSize.xl, color: c.text },
-  featureSub: { fontFamily: fontFamily.regular, fontSize: fontSize.sm, color: c.textMuted, lineHeight: 18, marginTop: 2 },
+  // What's inside — gradient band + paper sheet + outline rows
+  insideBand: { position: 'absolute', top: 0, left: 0, right: 0, height: 240 },
+  backBtnDark: { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.16)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.3)', alignItems: 'center', justifyContent: 'center' },
+  insideHeader: { paddingHorizontal: 26, paddingTop: 8, paddingBottom: 18 },
+  insideOverline: { fontFamily: fontFamily.bold, fontSize: 11, letterSpacing: 2, color: 'rgba(255,255,255,0.9)' },
+  insideHeadline: { fontFamily: fontFamily.display, fontSize: 27, color: '#fff', letterSpacing: -0.5, lineHeight: 31, marginTop: 9 },
+  insideSheet: { flex: 1, backgroundColor: c.background, borderTopLeftRadius: 26, borderTopRightRadius: 26 },
+  insideSheetScroll: { paddingHorizontal: 20, paddingTop: 20, paddingBottom: 8 },
+  outlineRow: { flexDirection: 'row', gap: 14, alignItems: 'flex-start', marginBottom: 18 },
+  outlineIconBox: { width: 46, height: 46, borderRadius: 14, backgroundColor: c.background, borderWidth: 1, borderColor: c.border, alignItems: 'center', justifyContent: 'center' },
+  outlineTitle: { fontFamily: fontFamily.display, fontSize: 18, color: c.text, letterSpacing: -0.2 },
+  outlineSub: { fontFamily: fontFamily.serif, fontSize: 14.5, color: c.textSecondary, lineHeight: 22, marginTop: 3 },
 
   // define dailies
   dailiesScroll: { paddingHorizontal: 24, paddingTop: 6, paddingBottom: 24 },
