@@ -13,6 +13,7 @@ import {
   Inter_400Regular,
   Inter_500Medium,
   Inter_600SemiBold,
+  Inter_600SemiBold_Italic,
   Inter_700Bold,
 } from '@expo-google-fonts/inter';
 import {
@@ -109,6 +110,7 @@ function RootLayoutNav() {
     Inter_400Regular,
     Inter_500Medium,
     Inter_600SemiBold,
+    Inter_600SemiBold_Italic,
     Inter_700Bold,
     InterTight_700Bold,
     BarlowCondensed_700Bold,

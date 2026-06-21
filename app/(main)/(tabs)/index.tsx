@@ -155,7 +155,13 @@ export default function TodayScreen() {
       router.push({ pathname: '/(main)/meditation', params: { dailyId: item.id } });
       return;
     }
-    if (!MARK_ON_SAVE.has(item.action)) dailies.markDone(item.id);
+    // Writing tools (gratitude, spotcheck, nightly) check off only once the
+    // entry is saved — pass the daily id so the editor can mark it done.
+    if (MARK_ON_SAVE.has(item.action)) {
+      router.push({ pathname: route as any, params: { dailyId: item.id } });
+      return;
+    }
+    dailies.markDone(item.id);
     router.push(route);
   };
 

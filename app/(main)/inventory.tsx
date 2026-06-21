@@ -1,1260 +1,200 @@
-import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { 
-  StyleSheet, 
-  View, 
-  Text, 
-  ScrollView, 
-  TouchableOpacity, 
-  Animated, 
-  TextInput,
-  Alert,
-  Share as ShareModule,
-  Platform,
-  Keyboard,
-  Modal
-} from 'react-native';
-import { router, Stack } from 'expo-router';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { LinearGradient } from 'expo-linear-gradient';
-import { ChevronLeft, RotateCcw, Share as ShareIcon, Save as SaveIcon, List, Trash2, X, Calendar, HelpCircle } from 'lucide-react-native';
-import * as Haptics from 'expo-haptics';
+// Spot Check Inventory — "Watch For → Strive For" in-the-moment tool
+// (redesign 3.0). Per the prototype (hifi-tools-four.jsx SpotCheckEditor):
+// name the situation, tap what's driving it (6 core defects up front, "Show
+// all 18" reveals the rest), and see the on-the-beam counterpart to strive
+// for. Saving writes a record to AsyncStorage (spot_check_inventories, the
+// existing local-first shape) and, when opened from a Today daily, checks it
+// off. History moves to the deferred Journey "Notebook".
+import React, { useState } from 'react';
+import { View, Text, TextInput, Pressable, ScrollView, StyleSheet, Keyboard } from 'react-native';
+import { Stack, useRouter, useLocalSearchParams } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useTheme } from '@/hooks/useTheme';
-import Colors from '@/constants/colors';
-import { adjustFontWeight } from '@/constants/fonts';
-import ScreenContainer from '@/components/ScreenContainer';
-import { useFocusEffect } from '@react-navigation/native';
-import { useTextSettings } from '@/hooks/use-text-settings';
-import { useScreenTimeTracking } from '@/hooks/useScreenTimeTracking';
+import * as Haptics from 'expo-haptics';
+import { useDailies } from '@/hooks/use-dailies-store';
+import { ToolHeader, ToolIntro, TOOLS } from '@/components/ToolScreen';
+import { colors, fontFamily, getSemanticColors } from '@/constants/designTokens';
+
+const c = getSemanticColors('light');
+const tool = TOOLS.spotcheck;
+const ON = { ink: colors.primary, soft: colors.primarySoft, dark: colors.primaryDark };
 
 const INVENTORY_STORAGE_KEY = 'spot_check_inventories';
 
-// Spot check pairs: Watch For → Strive For
-const spotCheckPairs = [
-  { id: 'fear', lookFor: 'Fear', striveFor: 'Faith' },
-  { id: 'anger', lookFor: 'Anger', striveFor: 'Self-Control' },
-  { id: 'selfPity', lookFor: 'Self-Pity', striveFor: 'Self-Forgiveness' },
-  { id: 'selfJustification', lookFor: 'Self-Justification', striveFor: 'Integrity' },
-  { id: 'selfImportance', lookFor: 'Self-Importance', striveFor: 'Modesty' },
-  { id: 'selfCondemnation', lookFor: 'Self-Condemnation', striveFor: 'Self-Esteem' },
-  { id: 'dishonesty', lookFor: 'Dishonesty', striveFor: 'Honesty' },
-  { id: 'impatience', lookFor: 'Impatience', striveFor: 'Patience' },
-  { id: 'hate', lookFor: 'Hate', striveFor: 'Love' },
-  { id: 'resentment', lookFor: 'Resentment', striveFor: 'Forgiveness' },
-  { id: 'falsePride', lookFor: 'Pride', striveFor: 'Humility' },
-  { id: 'jealousy', lookFor: 'Jealousy', striveFor: 'Trust' },
-  { id: 'envy', lookFor: 'Envy', striveFor: 'Generosity' },
-  { id: 'laziness', lookFor: 'Laziness', striveFor: 'Activity' },
-  { id: 'procrastination', lookFor: 'Procrastination', striveFor: 'Promptness' },
-  { id: 'insincerity', lookFor: 'Insincerity', striveFor: 'Straight Forwardness' },
-  { id: 'negativeThinking', lookFor: 'Negative Thinking', striveFor: 'Positive Thinking' },
-  { id: 'criticizing', lookFor: 'Criticizing', striveFor: 'Look For The Good' },
+// The 18 Watch For → Strive For pairs. `core` = the six surfaced before "Show all 18".
+const SPOT_PAIRS: { id: string; off: string; on: string; core?: boolean }[] = [
+  { id: 'fear', off: 'Fear', on: 'Faith', core: true },
+  { id: 'resentment', off: 'Resentment', on: 'Forgiveness', core: true },
+  { id: 'dishonesty', off: 'Dishonesty', on: 'Honesty', core: true },
+  { id: 'pride', off: 'Pride', on: 'Humility', core: true },
+  { id: 'selfPity', off: 'Self-pity', on: 'Self-forgiveness', core: true },
+  { id: 'anger', off: 'Anger', on: 'Self-control', core: true },
+  { id: 'selfJustification', off: 'Self-justification', on: 'Integrity' },
+  { id: 'selfImportance', off: 'Self-importance', on: 'Modesty' },
+  { id: 'selfCondemnation', off: 'Self-condemnation', on: 'Self-esteem' },
+  { id: 'impatience', off: 'Impatience', on: 'Patience' },
+  { id: 'hate', off: 'Hate', on: 'Love' },
+  { id: 'jealousy', off: 'Jealousy', on: 'Trust' },
+  { id: 'envy', off: 'Envy', on: 'Generosity' },
+  { id: 'laziness', off: 'Laziness', on: 'Activity' },
+  { id: 'procrastination', off: 'Procrastination', on: 'Promptness' },
+  { id: 'insincerity', off: 'Insincerity', on: 'Straightforwardness' },
+  { id: 'negativeThinking', off: 'Negative thinking', on: 'Positive thinking' },
+  { id: 'criticizing', off: 'Criticizing', on: 'Look for the good' },
 ];
 
-interface SpotCheckRecord {
-  id: string;
-  ts: string;
-  situation: string;
-  selections: { [key: string]: SelectionState };
-}
+export default function InventoryScreen() {
+  const router = useRouter();
+  const { dailyId } = useLocalSearchParams<{ dailyId?: string }>();
+  const dailies = useDailies();
 
-type SelectionState = 'none' | 'lookFor' | 'complete';
-
-// Simple Markdown Text Renderer for bold and italics
-const MarkdownText: React.FC<{ children: string; style?: any }> = ({ children, style }) => {
-  const parts: Array<{ text: string; bold: boolean; italic: boolean }> = [];
-  
-  // Parse markdown for **bold** and *italic*
-  const regex = /(\*\*[^*]+\*\*|\*[^*]+\*)/g;
-  let lastIndex = 0;
-  let match: RegExpExecArray | null;
-  
-  while ((match = regex.exec(children)) !== null) {
-    // Add regular text before match
-    if (match.index > lastIndex) {
-      parts.push({ text: children.slice(lastIndex, match.index), bold: false, italic: false });
-    }
-    
-    // Add formatted text
-    const matchedText = match[0];
-    if (matchedText.startsWith('**') && matchedText.endsWith('**')) {
-      // Bold
-      parts.push({ text: matchedText.slice(2, -2), bold: true, italic: false });
-    } else if (matchedText.startsWith('*') && matchedText.endsWith('*')) {
-      // Italic
-      parts.push({ text: matchedText.slice(1, -1), bold: false, italic: true });
-    }
-    
-    lastIndex = match.index + match[0].length;
-  }
-  
-  // Add remaining text
-  if (lastIndex < children.length) {
-    parts.push({ text: children.slice(lastIndex), bold: false, italic: false });
-  }
-  
-  // If no markdown found, return plain text
-  if (parts.length === 0) {
-    return <Text style={style}>{children}</Text>;
-  }
-  
-  return (
-    <Text style={style}>
-      {parts.map((part, idx) => (
-        <Text 
-          key={idx} 
-          style={[
-            part.bold && { fontWeight: 'bold' },
-            part.italic && { fontStyle: 'italic' }
-          ]}
-        >
-          {part.text}
-        </Text>
-      ))}
-    </Text>
-  );
-};
-
-// Instructions Modal Component
-const InstructionsModal: React.FC<{
-  visible: boolean;
-  onClose: () => void;
-  palette: any;
-}> = ({ visible, onClose, palette }) => {
-  return (
-    <Modal
-      visible={visible}
-      transparent={true}
-      animationType="fade"
-      onRequestClose={onClose}
-    >
-      <View style={styles.instructionsOverlay}>
-        <TouchableOpacity style={styles.instructionsBackdrop} onPress={onClose} />
-        <View style={[styles.instructionsModal, { backgroundColor: palette.cardBackground }]}>
-          <View style={[styles.instructionsHeader, { borderBottomColor: palette.border }]}>
-            <Text style={[styles.instructionsTitle, { color: palette.text }]}>
-              How to Use Spot Check Inventory
-            </Text>
-            <TouchableOpacity onPress={onClose} style={styles.instructionsCloseButton}>
-              <X size={24} color={palette.text} />
-            </TouchableOpacity>
-          </View>
-          
-          <ScrollView style={styles.instructionsContent} showsVerticalScrollIndicator={false}>
-            <View style={styles.instructionStep}>
-              <MarkdownText style={[styles.instructionText, { color: palette.text }]}>
-                1. Describe what's disturbing you
-              </MarkdownText>
-            </View>
-            
-            <View style={styles.instructionStep}>
-              <MarkdownText style={[styles.instructionText, { color: palette.text }]}>
-                2. Tap character defects on the left (red)
-              </MarkdownText>
-            </View>
-            
-            <View style={styles.instructionStep}>
-              <MarkdownText style={[styles.instructionText, { color: palette.text }]}>
-                3. See what to strive for on the right
-              </MarkdownText>
-            </View>
-            
-            <View style={styles.instructionStep}>
-              <MarkdownText style={[styles.instructionText, { color: palette.text }]}>
-                4. Mark positives you maintained (green)
-              </MarkdownText>
-            </View>
-            
-            <View style={styles.instructionStep}>
-              <MarkdownText style={[styles.instructionText, { color: palette.text }]}>
-                5. Save to track your progress
-              </MarkdownText>
-            </View>
-            
-            <View style={[styles.instructionsFooter, { borderTopColor: palette.border }]}>
-              <MarkdownText style={[styles.instructionsFooterText, { color: palette.tint }]}>
-                Watch For → Strive For
-              </MarkdownText>
-            </View>
-          </ScrollView>
-          
-          <TouchableOpacity style={[styles.instructionsButton, { backgroundColor: palette.tint }]} onPress={onClose}>
-            <Text style={[styles.instructionsButtonText, { color: palette.headerText }]}>Got it!</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
-    </Modal>
-  );
-};
-
-const SpotCheckPair: React.FC<{
-  pair: typeof spotCheckPairs[0];
-  state: SelectionState;
-  onPressLookFor: () => void;
-  onPressStriveFor: () => void;
-  palette: any;
-  inputBackground?: string;
-}> = ({ pair, state, onPressLookFor, onPressStriveFor, palette, inputBackground }) => {
-  const arrowScale = useRef(new Animated.Value(1)).current;
-  const cardScale = useRef(new Animated.Value(1)).current;
-  const striveForScale = useRef(new Animated.Value(1)).current;
-  const prevStateRef = useRef<SelectionState>('none');
-
-  React.useEffect(() => {
-    // Only animate on state change
-    if (prevStateRef.current === state) return;
-    const previousState = prevStateRef.current;
-    prevStateRef.current = state;
-
-    if (state === 'lookFor') {
-      // Pulse arrow when Watch For is selected
-      Animated.loop(
-        Animated.sequence([
-          Animated.timing(arrowScale, {
-            toValue: 1.3,
-            duration: 600,
-            useNativeDriver: true,
-          }),
-          Animated.timing(arrowScale, {
-            toValue: 1,
-            duration: 600,
-            useNativeDriver: true,
-          }),
-        ])
-      ).start();
-
-      // Same card pop animation as green to draw attention
-      Animated.sequence([
-        Animated.timing(cardScale, {
-          toValue: 1.05,
-          duration: 150,
-          useNativeDriver: true,
-        }),
-        Animated.timing(cardScale, {
-          toValue: 1,
-          duration: 150,
-          useNativeDriver: true,
-        }),
-      ]).start();
-    } else if (state === 'complete') {
-      // Stop all animations when complete
-      arrowScale.stopAnimation();
-      arrowScale.setValue(1);
-      striveForScale.setValue(1);
-      cardScale.setValue(1);
-    } else {
-      arrowScale.stopAnimation();
-      arrowScale.setValue(1);
-      striveForScale.stopAnimation();
-      striveForScale.setValue(1);
-      cardScale.setValue(1);
-    }
-  }, [state]);
-
-  return (
-    <Animated.View style={[
-      styles.cardWrapperLevel2, 
-      { 
-        transform: [{ scale: cardScale }],
-        backgroundColor: inputBackground || palette.cardBackground,
-        borderColor: palette.border,
-      }
-    ]}>
-      <View style={styles.card}>
-        <TouchableOpacity 
-          style={styles.textButton}
-          onPress={onPressLookFor}
-          activeOpacity={0.7}
-        >
-          <Text style={[
-            styles.lookForText,
-            { color: palette.text },
-            state === 'lookFor' && styles.selectedText,
-            state === 'lookFor' && styles.lookForSelected,
-          ]}>
-            {pair.lookFor}
-          </Text>
-        </TouchableOpacity>
-        
-        <Animated.Text style={[
-          styles.arrow,
-          { transform: [{ scale: arrowScale }], color: palette.muted }
-        ]}>
-          →
-        </Animated.Text>
-        
-        <TouchableOpacity 
-          style={styles.textButton}
-          onPress={onPressStriveFor}
-          activeOpacity={0.7}
-        >
-          <Animated.Text style={[
-            styles.striveForText,
-            { color: palette.text },
-            (state === 'lookFor' || state === 'complete') && styles.selectedText,
-            state === 'complete' && styles.striveForSelected,
-            { transform: [{ scale: striveForScale }] }
-          ]}>
-            {pair.striveFor}
-          </Animated.Text>
-        </TouchableOpacity>
-      </View>
-    </Animated.View>
-  );
-};
-
-const SpotCheckHistorySheet: React.FC<{
-  visible: boolean;
-  onClose: () => void;
-  onSelectRecord: (record: SpotCheckRecord) => void;
-  hasUnsavedChanges: boolean;
-  handleSave: () => Promise<void>;
-  palette: any;
-}> = ({ visible, onClose, onSelectRecord, hasUnsavedChanges, handleSave, palette }) => {
-  const [records, setRecords] = useState<SpotCheckRecord[]>([]);
-
-  useEffect(() => {
-    if (visible) {
-      loadRecords();
-    }
-  }, [visible]);
-
-  const loadRecords = async () => {
-    try {
-      const stored = await AsyncStorage.getItem(INVENTORY_STORAGE_KEY);
-      if (stored) {
-        const parsedRecords = JSON.parse(stored);
-        const sortedRecords = parsedRecords.sort((a: SpotCheckRecord, b: SpotCheckRecord) => {
-          const aTime = new Date(a.ts || 0).getTime();
-          const bTime = new Date(b.ts || 0).getTime();
-          return bTime - aTime;
-        });
-        setRecords(sortedRecords);
-      } else {
-        setRecords([]);
-      }
-    } catch (error) {
-      console.error('[History] Error loading records:', error);
-      setRecords([]);
-    }
-  };
-
-  const formatTimestamp = (record: SpotCheckRecord) => {
-    if (!record.ts) return 'Unknown date';
-    const date = new Date(record.ts);
-    return date.toLocaleDateString('en-US', {
-      weekday: 'short',
-      month: 'short',
-      day: 'numeric',
-      hour: 'numeric',
-      minute: '2-digit',
-      hour12: true
-    });
-  };
-
-  const getSelectionCount = (record: SpotCheckRecord) => {
-    return Object.values(record.selections || {}).filter(s => s !== 'none').length;
-  };
-
-  const getSelectedTraits = (record: SpotCheckRecord) => {
-    const lookForTraits: string[] = [];
-    const completeTraits: string[] = [];
-    
-    Object.entries(record.selections || {}).forEach(([pairId, state]) => {
-      const pair = spotCheckPairs.find(p => p.id === pairId);
-      if (pair) {
-        if (state === 'lookFor') {
-          lookForTraits.push(pair.lookFor);
-        } else if (state === 'complete') {
-          completeTraits.push(pair.striveFor);
-        }
-      }
-    });
-    
-    return { lookForTraits, completeTraits };
-  };
-
-  const handleDelete = async (recordId: string) => {
-    try {
-      const stored = await AsyncStorage.getItem(INVENTORY_STORAGE_KEY);
-      if (stored) {
-        const parsedRecords = JSON.parse(stored);
-        const updatedRecords = parsedRecords.filter((r: SpotCheckRecord) => r.id !== recordId);
-        await AsyncStorage.setItem(INVENTORY_STORAGE_KEY, JSON.stringify(updatedRecords));
-        setRecords(updatedRecords);
-      }
-    } catch (error) {
-      console.error('[History] Error deleting record:', error);
-    }
-  };
-
-  return (
-    <Modal
-      visible={visible}
-      animationType="slide"
-      presentationStyle={Platform.OS === 'ios' ? 'pageSheet' : 'fullScreen'}
-      onRequestClose={onClose}
-    >
-      <View style={[styles.historyContainer, { backgroundColor: palette.background }]}>
-        {/* Gradient Header */}
-        <LinearGradient
-          colors={palette.gradients.header as [string, string, ...string[]]}
-          style={styles.historyHeader}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-        >
-          <Text style={[styles.historyTitle, { color: palette.headerText }]}>Previous Spot Checks</Text>
-          <TouchableOpacity style={styles.historyCloseButton} onPress={onClose}>
-            <X color={palette.headerText} size={24} />
-          </TouchableOpacity>
-        </LinearGradient>
-
-        <ScrollView style={styles.historyList} contentContainerStyle={styles.historyListContent}>
-          {records.length === 0 ? (
-            <View style={styles.emptyState}>
-              <Calendar color={palette.muted} size={48} />
-              <Text style={[styles.emptyTitle, { color: palette.text }]}>No Previous Spot Checks</Text>
-              <Text style={[styles.emptyDescription, { color: palette.muted }]}>
-                Your saved spot check inventories will appear here.
-              </Text>
-            </View>
-          ) : (
-            records.map((record) => (
-              <View key={record.id} style={[styles.historyCard, { backgroundColor: palette.cardBackground, borderColor: palette.border }]}>
-                <TouchableOpacity
-                  style={styles.historyItemTouchable}
-                  onPress={() => {
-                    // Check for unsaved changes before loading new record
-                    if (hasUnsavedChanges) {
-                      Alert.alert(
-                        'Unsaved Changes',
-                        'Save your current spot check before loading a different one?',
-                        [
-                          { text: 'Cancel', style: 'cancel' },
-                          { text: 'Discard', style: 'destructive', onPress: () => {
-                            onSelectRecord(record);
-                            onClose();
-                          }},
-                          { text: 'Save First', onPress: async () => {
-                            await handleSave();
-                            onSelectRecord(record);
-                            onClose();
-                          }}
-                        ]
-                      );
-                    } else {
-                      onSelectRecord(record);
-                      onClose();
-                    }
-                  }}
-                  activeOpacity={0.6}
-                >
-                  <View style={styles.historyItemContent}>
-                    <View style={styles.historyItemHeader}>
-                      <Text style={[styles.historyItemDate, { color: palette.tint }]}>{formatTimestamp(record)}</Text>
-                      <TouchableOpacity
-                        style={styles.historyItemDelete}
-                        onPress={() => handleDelete(record.id)}
-                        hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                      >
-                        <Trash2 size={18} color="#dc3545" />
-                      </TouchableOpacity>
-                    </View>
-                    {record.situation && (
-                      <Text style={[styles.historyItemSituation, { color: palette.muted }]} numberOfLines={2}>
-                        {record.situation}
-                      </Text>
-                    )}
-                    {(() => {
-                      const { lookForTraits, completeTraits } = getSelectedTraits(record);
-                      const allTraits = [...lookForTraits, ...completeTraits];
-                      if (allTraits.length > 0) {
-                        return (
-                          <View style={styles.historyItemTraitsContainer}>
-                            <Text style={[styles.historyItemTraitsText, { color: palette.muted }]} numberOfLines={2} ellipsizeMode="tail">
-                              {lookForTraits.map((trait, idx) => (
-                                <Text key={`lookFor-${idx}`} style={[styles.historyItemTraitRed]}>
-                                  {trait}
-                                  {idx < lookForTraits.length - 1 || completeTraits.length > 0 ? ', ' : ''}
-                                </Text>
-                              ))}
-                              {completeTraits.map((trait, idx) => (
-                                <Text key={`complete-${idx}`} style={styles.historyItemTraitGreen}>
-                                  {trait}
-                                  {idx < completeTraits.length - 1 ? ', ' : ''}
-                                </Text>
-                              ))}
-                            </Text>
-                          </View>
-                        );
-                      }
-                      return null;
-                    })()}
-                  </View>
-                </TouchableOpacity>
-              </View>
-            ))
-          )}
-        </ScrollView>
-      </View>
-    </Modal>
-  );
-};
-
-const Inventory = () => {
-  const insets = useSafeAreaInsets();
-  const { palette } = useTheme();
-  const { fontSize, lineHeight } = useTextSettings();
-  const [selections, setSelections] = useState<{ [key: string]: SelectionState }>({});
   const [situation, setSituation] = useState('');
-  const [currentRecord, setCurrentRecord] = useState<SpotCheckRecord | null>(null);
-  const [showHistory, setShowHistory] = useState(false);
-  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
-  const [showInstructions, setShowInstructions] = useState(false);
+  const [sel, setSel] = useState<Record<string, boolean>>({});
+  const [showAll, setShowAll] = useState(false);
 
-  useScreenTimeTracking('Spot Check Inventory');
+  const toggle = (id: string) => setSel((s) => ({ ...s, [id]: !s[id] }));
+  const visible = showAll ? SPOT_PAIRS : SPOT_PAIRS.filter((p) => p.core || sel[p.id]);
+  const chosen = SPOT_PAIRS.filter((p) => sel[p.id]);
+  const dirty = situation.trim() !== '' || chosen.length > 0;
 
-  // Handler to close instructions
-  const handleCloseInstructions = () => {
-    setShowInstructions(false);
-  };
-
-  // Function to dismiss keyboard
-  const dismissKeyboard = useCallback(() => {
+  const commit = async () => {
     Keyboard.dismiss();
-  }, []);
-
-  // Handler to show help instructions
-  const handleShowHelp = useCallback(() => {
-    dismissKeyboard();
-    setShowInstructions(true);
-  }, [dismissKeyboard]);
-
-  const formatSavedTimestamp = () => {
-    if (!currentRecord) return '';
-    const timestamp = currentRecord.ts;
-    if (!timestamp) return '';
-    const date = new Date(timestamp);
-    return date.toLocaleDateString('en-US', {
-      weekday: 'short',
-      month: 'short',
-      day: 'numeric',
-      hour: 'numeric',
-      minute: '2-digit',
-      hour12: true
-    });
-  };
-
-  // Check if form has any content
-  const hasContent = situation.trim() !== '' || Object.values(selections).some(s => s !== 'none');
-
-  // Define handler functions before useLayoutEffect to avoid stale closures
-  const handleSave = useCallback(async () => {
-    // Check if there's any content to save
-    const hasSelections = Object.values(selections).some(val => val !== 'none');
-    const hasSituation = situation.trim().length > 0;
-    
-    if (!hasSelections && !hasSituation) {
-      Alert.alert(
-        'Save Spot Check',
-        'Please add a situation or make at least one selection before saving.',
-        [{ text: 'OK' }]
-      );
-      return;
+    if (dirty) {
+      try {
+        const selections: Record<string, 'lookFor'> = {};
+        chosen.forEach((p) => { selections[p.id] = 'lookFor'; });
+        const record = { id: Date.now().toString(), ts: new Date().toISOString(), situation, selections };
+        const stored = await AsyncStorage.getItem(INVENTORY_STORAGE_KEY);
+        const records = stored ? JSON.parse(stored) : [];
+        records.unshift(record);
+        await AsyncStorage.setItem(INVENTORY_STORAGE_KEY, JSON.stringify(records));
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        if (dailyId) dailies.markDone(dailyId);
+      } catch (error) {
+        console.error('Error saving spot check:', error);
+      }
     }
-    
-    dismissKeyboard(); // Hide keyboard when saving
-    try {
-      const stored = await AsyncStorage.getItem(INVENTORY_STORAGE_KEY);
-      const records = stored ? JSON.parse(stored) : [];
-      
-      // Always create a new record on save
-      const newRecord: SpotCheckRecord = {
-        id: Date.now().toString(),
-        ts: new Date().toISOString(),
-        situation,
-        selections
-      };
-      records.unshift(newRecord);
-      setCurrentRecord(newRecord);
-      
-      await AsyncStorage.setItem(INVENTORY_STORAGE_KEY, JSON.stringify(records));
-      setHasUnsavedChanges(false);
-      
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    } catch (error) {
-      console.error('Error saving spot check:', error);
-      Alert.alert('Error', 'Failed to save spot check.');
-    }
-  }, [situation, selections, dismissKeyboard]);
-
-  const handleShare = useCallback(async () => {
-    dismissKeyboard(); // Hide keyboard when sharing
-    try {
-      console.log('[Share] Current selections:', selections);
-      console.log('[Share] Current situation:', situation);
-      
-      const workingOnPairs: string[] = [];
-      const positiveTraits: string[] = [];
-      
-      Object.entries(selections).forEach(([pairId, state]) => {
-        const pair = spotCheckPairs.find(p => p.id === pairId);
-        if (!pair) return;
-        
-        if (state === 'lookFor') {
-          workingOnPairs.push(`${pair.lookFor} → Working on ${pair.striveFor}`);
-        } else if (state === 'complete') {
-          positiveTraits.push(pair.striveFor);
-        }
-      });
-
-      const parts: string[] = [];
-      
-      if (situation) {
-        parts.push('Spot Check Inventory Situation:');
-        parts.push(situation);
-      } else {
-        parts.push('Spot Check Inventory');
-      }
-      
-      if (workingOnPairs.length > 0) {
-        parts.push('');
-        parts.push('My part:');
-        parts.push(...workingOnPairs);
-      }
-      
-      if (positiveTraits.length > 0) {
-        parts.push('');
-        parts.push('Positive traits:');
-        parts.push(positiveTraits.join(', '));
-      }
-
-      const shareText = parts.join('\n');
-
-      await ShareModule.share({
-        message: shareText,
-        title: 'Spot Check Inventory'
-      });
-    } catch (error) {
-      console.error('Error sharing spot check:', error);
-    }
-  }, [situation, selections, dismissKeyboard]);
-
-  const handleReset = useCallback(() => {
-    // Check if there's any content before showing the alert
-    const hasAnyContent = situation.trim() !== '' || Object.keys(selections).length > 0;
-    
-    if (!hasAnyContent) return;
-    
-    // Only show warning if there are unsaved changes
-    if (hasUnsavedChanges) {
-      Alert.alert(
-        'Reset Spot Check',
-        'You have unsaved changes. Are you sure you want to clear your current spot check?',
-        [
-          { text: 'Cancel', style: 'cancel' },
-          {
-            text: 'Reset',
-            style: 'destructive',
-            onPress: () => {
-              dismissKeyboard(); // Hide keyboard when resetting
-              setSelections({});
-              setSituation('');
-              setCurrentRecord(null);
-              setHasUnsavedChanges(false);
-            }
-          }
-        ]
-      );
-    } else {
-      // Already saved, just reset without warning
-      dismissKeyboard();
-      setSelections({});
-      setSituation('');
-      setCurrentRecord(null);
-      setHasUnsavedChanges(false);
-    }
-  }, [situation, selections, hasUnsavedChanges, dismissKeyboard]);
-
-  const handlePressLookFor = (pairId: string) => {
-    dismissKeyboard(); // Hide keyboard when selecting traits
-    setSelections(prev => {
-      const current = prev[pairId] || 'none';
-      if (current === 'lookFor') {
-        // Deselect if Watch For is already selected
-        setHasUnsavedChanges(true);
-        return { ...prev, [pairId]: 'none' };
-      } else {
-        // Select Watch For (whether from 'none' or 'complete') - add haptic feedback
-        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-        setHasUnsavedChanges(true);
-        return { ...prev, [pairId]: 'lookFor' };
-      }
-    });
+    router.back();
   };
 
-  const handlePressStriveFor = (pairId: string) => {
-    dismissKeyboard(); // Hide keyboard when selecting traits
-    setSelections(prev => {
-      const current = prev[pairId] || 'none';
-      if (current === 'complete') {
-        // Deselect if Strive For is already selected
-        setHasUnsavedChanges(true);
-        return { ...prev, [pairId]: 'none' };
-      } else {
-        // Complete the pair (reward animation) - this also clears red if it was set
-        setHasUnsavedChanges(true);
-        return { ...prev, [pairId]: 'complete' };
-      }
-    });
-  };
-
-  const handleSituationChange = (text: string) => {
-    setSituation(text);
-    setHasUnsavedChanges(true);
-  };
-
-  const handleSelectRecord = (record: SpotCheckRecord) => {
-    setSituation(record.situation || '');
-    setSelections(record.selections || {});
-    setCurrentRecord(record);
-    setHasUnsavedChanges(false);
-  };
-
-  // For input boxes in Deep Sea, use tint (Blue Slate) as background
-  const inputBackground = palette.sponsorSelection ? palette.tint : palette.cardBackground;
-  
   return (
-    <ScreenContainer style={[styles.container, { backgroundColor: palette.background }]} noPadding>
+    <View style={styles.screen}>
       <Stack.Screen options={{ headerShown: false }} />
-      
-      {/* Gradient header block */}
-      <LinearGradient
-        colors={palette.gradients.header as [string, string, ...string[]]}
-        style={[styles.headerBlock, { paddingTop: insets.top + 8 }]}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-      >
-        {/* Top row with back button and help */}
-        <View style={styles.headerTopRow}>
-          <TouchableOpacity 
-            onPress={() => router.back()} 
-            style={styles.backButton}
-            activeOpacity={0.7}
-          >
-            <ChevronLeft size={24} color="#fff" />
-          </TouchableOpacity>
-          <TouchableOpacity 
-            onPress={handleShowHelp}
-            style={styles.helpButton}
-            activeOpacity={0.7}
-          >
-            <HelpCircle size={22} color="#fff" />
-          </TouchableOpacity>
-        </View>
-        <Text style={[styles.headerTitle, { color: palette.headerText }]}>Spot Check Inventory</Text>
-      </LinearGradient>
-
-      {/* Action Row - Below header */}
-      <View style={[styles.actionRow, { borderBottomColor: palette.divider, backgroundColor: palette.background }]}>
-        {/* History */}
-        <TouchableOpacity 
-          onPress={() => {
-            dismissKeyboard();
-            setShowHistory(true);
-          }}
-          accessible={true}
-          accessibilityLabel="View history"
-          accessibilityRole="button"
-          activeOpacity={0.6}
-          style={styles.actionButton}
-        >
-          <List color={palette.tint} size={18} />
-          <Text style={[styles.actionButtonText, { color: palette.tint }]}>History</Text>
-        </TouchableOpacity>
-        
-        {/* Save */}
-        <TouchableOpacity 
-          onPress={handleSave}
-          accessible={true}
-          accessibilityLabel="Save spot check"
-          accessibilityRole="button"
-          activeOpacity={0.6}
-          style={styles.actionButton}
-        >
-          <SaveIcon color={palette.tint} size={18} />
-          <Text style={[styles.actionButtonText, { color: palette.tint }]}>Save</Text>
-        </TouchableOpacity>
-        
-        {/* Share */}
-        <TouchableOpacity 
-          onPress={handleShare}
-          accessible={true}
-          accessibilityLabel="Share spot check"
-          accessibilityRole="button"
-          activeOpacity={0.6}
-          style={styles.actionButton}
-        >
-          <ShareIcon color={palette.tint} size={18} />
-          <Text style={[styles.actionButtonText, { color: palette.tint }]}>Share</Text>
-        </TouchableOpacity>
-        
-        {/* Reset */}
-        <TouchableOpacity 
-          onPress={handleReset}
-          accessible={true}
-          accessibilityLabel="Reset all selections"
-          accessibilityRole="button"
-          activeOpacity={0.6}
-          style={styles.actionButton}
-        >
-          <RotateCcw color={palette.tint} size={18} />
-          <Text style={[styles.actionButtonText, { color: palette.tint }]}>Reset</Text>
-        </TouchableOpacity>
-      </View>
-
-      {/* Content Area */}
-      <ScrollView 
-        style={styles.content}
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
+      <ToolHeader tool={tool} dirty={dirty} onCommit={commit} />
+      <ScrollView
+        style={styles.flex}
+        contentContainerStyle={styles.scroll}
         keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+        automaticallyAdjustKeyboardInsets
       >
-        {/* Saved Timestamp */}
-        {currentRecord && (
-          <Text style={[styles.savedTimestamp, { color: palette.tint }]}>
-            Saved: {formatSavedTimestamp()}
-          </Text>
-        )}
-        
-        {/* Situation Input */}
-        <View style={styles.situationContainer}>
-          <Text style={[styles.situationLabel, { fontSize, color: palette.text }]}>What's disturbing you?</Text>
-          <TextInput
-            style={[styles.situationInput, { fontSize, backgroundColor: inputBackground, color: palette.text, borderColor: palette.border }]}
-            value={situation}
-            onChangeText={handleSituationChange}
-            placeholder="Describe the situation"
-            placeholderTextColor={palette.sponsorSelection ? palette.text : palette.muted}
-            multiline={true}
-            numberOfLines={3}
-            textAlignVertical="top"
-            returnKeyType="done"
-            onSubmitEditing={dismissKeyboard}
-            blurOnSubmit={true}
-          />
-        </View>
-        
-        {/* Column Headers */}
-        <View style={styles.columnHeaderRow}>
-          <Text style={[styles.columnHeaderLeft, { color: palette.text }]}>Watch For</Text>
-          <Text style={[styles.columnHeaderRight, { color: palette.text }]}>Strive For</Text>
-        </View>
+        <ToolIntro tool={tool}>Pause. Breathe. Name what&rsquo;s driving it — then turn it around.</ToolIntro>
 
-        {/* Spot Check Cards */}
-        <View style={styles.cardsContainer}>
-          {spotCheckPairs.map((pair) => (
-            <SpotCheckPair
-              key={pair.id}
-              pair={pair}
-              state={selections[pair.id] || 'none'}
-              onPressLookFor={() => handlePressLookFor(pair.id)}
-              onPressStriveFor={() => handlePressStriveFor(pair.id)}
-              palette={palette}
-              inputBackground={inputBackground}
-            />
-          ))}
+        <View style={styles.body}>
+          {/* Situation */}
+          <Text style={styles.heading}>What&rsquo;s disturbing you?</Text>
+          <TextInput
+            value={situation}
+            onChangeText={setSituation}
+            placeholder="What happened? Name the situation."
+            placeholderTextColor={c.textMuted}
+            style={styles.situation}
+            multiline
+          />
+
+          {/* Off the beam */}
+          <View style={styles.offHead}>
+            <Text style={styles.heading}>Where am I off the beam?</Text>
+            <Text style={styles.subhead}>Tap what&rsquo;s driving this one.</Text>
+          </View>
+
+          <View style={styles.chips}>
+            {visible.map((p) => {
+              const on = !!sel[p.id];
+              return (
+                <Pressable
+                  key={p.id}
+                  onPress={() => toggle(p.id)}
+                  style={[styles.chip, on ? { backgroundColor: tool.accent, borderColor: tool.accent } : styles.chipOff]}
+                >
+                  <Text style={[styles.chipText, { color: on ? '#fff' : c.textSecondary }]}>{p.off}</Text>
+                </Pressable>
+              );
+            })}
+            <Pressable onPress={() => setShowAll((v) => !v)} style={[styles.chip, styles.chipShowAll]}>
+              <Text style={[styles.chipText, { color: c.textMuted }]}>{showAll ? 'Show fewer' : 'Show all 18'}</Text>
+            </Pressable>
+          </View>
+
+          {/* Strive for — the on-the-beam counterpart for each pick */}
+          {chosen.length > 0 && (
+            <View style={styles.striveCard}>
+              <View style={styles.striveHeadRow}>
+                <Text style={styles.watchLabel}>WATCH FOR</Text>
+                <Text style={styles.striveLabel}>STRIVE FOR</Text>
+              </View>
+              <View style={styles.striveList}>
+                {chosen.map((p) => (
+                  <View key={p.id} style={styles.striveRow}>
+                    <Text style={styles.striveOff}>{p.off}</Text>
+                    <Text style={styles.striveOn}>{p.on}</Text>
+                  </View>
+                ))}
+              </View>
+            </View>
+          )}
         </View>
       </ScrollView>
-      
-      <SpotCheckHistorySheet
-        visible={showHistory}
-        onClose={() => setShowHistory(false)}
-        onSelectRecord={handleSelectRecord}
-        hasUnsavedChanges={hasUnsavedChanges}
-        handleSave={handleSave}
-        palette={palette}
-      />
-      
-      <InstructionsModal
-        visible={showInstructions}
-        onClose={handleCloseInstructions}
-        palette={palette}
-      />
-    </ScreenContainer>
+    </View>
   );
-};
+}
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  headerBlock: {
-    paddingBottom: 16,
-    paddingHorizontal: 16,
-  },
-  headerTopRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  backButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 6,
-    paddingHorizontal: 10,
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    borderRadius: 16,
-  },
-  helpButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 6,
-    paddingHorizontal: 10,
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    borderRadius: 16,
-  },
-  headerTitle: {
-    fontSize: 32,
-    fontWeight: adjustFontWeight('400'),
-    textAlign: 'center',
-  },
-  actionRow: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    gap: 20,
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#e0e0e0',
-  },
-  actionButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  actionButtonText: {
-    fontSize: 14,
-    color: '#3D8B8B',
-    fontWeight: '500',
-  },
-  content: {
-    flex: 1,
-    paddingHorizontal: 16,
-  },
-  scrollContent: {
-    flexGrow: 1,
-    paddingBottom: 40,
-  },
-  savedTimestamp: {
-    fontSize: 14,
-    color: '#3D8B8B',
-    fontWeight: '600',
-    textAlign: 'center',
-    marginTop: 16,
-    marginBottom: 8,
-  },
-  situationContainer: {
-    marginTop: 16,
-    marginBottom: 24,
-  },
-  situationLabel: {
-    fontSize: 18,
-    fontWeight: adjustFontWeight('600', true),
-    color: '#000',
-    marginBottom: 8,
-  },
-  situationInput: {
-    backgroundColor: '#fff',
-    borderRadius: 8,
-    padding: 12,
-    fontSize: 16,
-    color: '#000',
-    minHeight: 80,
-    textAlignVertical: 'top',
-    borderWidth: 1,
-    borderColor: '#ddd',
-  },
-  columnHeaderRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    marginBottom: 12,
-  },
-  columnHeaderLeft: {
-    fontSize: 16,
-    fontWeight: adjustFontWeight('600', true),
-    color: '#000',
-    textAlign: 'left',
-  },
-  columnHeaderRight: {
-    fontSize: 16,
-    fontWeight: adjustFontWeight('600', true),
-    color: '#000',
-    textAlign: 'right',
-  },
-  cardsContainer: {
-    gap: 8,
-  },
-  cardWrapper: {
-    borderRadius: 8,
-    backgroundColor: '#fff',
-    borderWidth: 1,
-    borderColor: '#e0e0e0',
-  },
-  cardWrapperSelected: {
-    borderRadius: 8,
-    backgroundColor: '#fff',
-    borderWidth: 1,
-    borderColor: '#e0e0e0',
-  },
-  cardWrapperLevel2: {
-    borderRadius: 8,
-    backgroundColor: '#fff',
-    borderWidth: 1,
-    borderColor: '#e0e0e0',
-  },
-  card: {
-    borderRadius: 8,
-    padding: 14,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    minHeight: 52,
-  },
-  textButton: {
-    flex: 1,
-  },
-  lookForText: {
-    fontSize: Platform.OS === 'android' ? 17 : 18,
-    fontWeight: '400',
-    color: '#000',
-    textAlign: 'left',
-    flexShrink: 1,
-  },
-  arrow: {
-    fontSize: 18,
-    color: '#666',
-    marginHorizontal: 10,
-    fontWeight: 'normal',
-  },
-  striveForText: {
-    fontSize: Platform.OS === 'android' ? 17 : 18,
-    fontWeight: '400',
-    color: '#000',
-    textAlign: 'right',
-    flexShrink: 1,
-  },
-  selectedText: {
-    fontWeight: 'bold',
-  },
-  lookForSelected: {
-    color: '#dc3545',
-  },
-  striveForSelected: {
-    color: '#28a745',
-  },
-  historyContainer: {
-    flex: 1,
-    backgroundColor: '#f5f6f8',
-  },
-  historyHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 16,
-    backgroundColor: '#3D8B8B',
-  },
-  historyCloseButton: {
-    padding: 8,
-  },
-  historyTitle: {
-    fontSize: 24,
-    fontWeight: adjustFontWeight('400'),
-    color: '#fff',
-  },
-  historyPlaceholder: {
-    width: 40,
-  },
-  historyList: {
-    flex: 1,
-  },
-  historyListContent: {
-    padding: 16,
-    paddingTop: 16,
-  },
-  historyCard: {
-    backgroundColor: 'white',
-    borderRadius: 12,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: Colors.light.border,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 2,
-    overflow: 'hidden',
-  },
-  historyItemTouchable: {
-    flex: 1,
-  },
-  historyItemContent: {
-    flex: 1,
-    padding: 16,
-  },
-  historyItemHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  historyItemDelete: {
-    padding: 4,
-  },
-  historyItemDate: {
-    fontSize: 17,
-    fontWeight: adjustFontWeight('600', true),
-    color: Colors.light.tint,
-    flex: 1,
-  },
-  historyItemSituation: {
-    fontSize: 15,
-    color: '#666',
-    fontStyle: 'italic',
-    marginBottom: 6,
-  },
-  historyItemTraitsContainer: {
-    marginTop: 2,
-  },
-  historyItemTraitsText: {
-    fontSize: 14,
-    lineHeight: 18,
-  },
-  historyItemTraitRed: {
-    fontSize: 14,
-    color: '#dc3545',
-    fontWeight: '500',
-  },
-  historyItemTraitGreen: {
-    fontSize: 14,
-    color: '#28a745',
-    fontWeight: '500',
-  },
-  emptyState: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 80,
-  },
-  emptyTitle: {
-    fontSize: 22,
-    fontWeight: adjustFontWeight('600', true),
-    color: Colors.light.text,
-    marginTop: 16,
-    marginBottom: 8,
-  },
-  emptyDescription: {
-    fontSize: 17,
-    color: Colors.light.muted,
-    textAlign: 'center',
-    lineHeight: 22,
-  },
-  // Instructions Modal Styles
-  instructionsOverlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    zIndex: 2000,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  instructionsBackdrop: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: 'rgba(0, 0, 0, 0.6)',
-  },
-  instructionsModal: {
-    backgroundColor: '#fff',
-    borderRadius: 20,
-    width: '85%',
-    maxWidth: 500,
-    maxHeight: '80%',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.3,
-    shadowRadius: 20,
-    elevation: 10,
-  },
-  instructionsHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: 20,
-    paddingBottom: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#eee',
-  },
-  instructionsTitle: {
-    fontSize: 24,
-    fontWeight: '800',
-    color: Colors.light.text,
-    flex: 1,
-    paddingRight: 10,
-  },
-  instructionsCloseButton: {
-    padding: 4,
-  },
-  instructionsContent: {
-    padding: 20,
-    paddingTop: 16,
-  },
-  instructionsIntro: {
-    fontSize: 17,
-    fontWeight: '400',
-    color: Colors.light.text,
-    marginBottom: 16,
-  },
-  instructionStep: {
-    marginBottom: 14,
-  },
-  instructionText: {
-    fontSize: 16,
-    lineHeight: 22,
-    color: Colors.light.text,
-  },
-  instructionsFooter: {
-    marginTop: 20,
-    paddingTop: 16,
-    borderTopWidth: 1,
-    borderTopColor: '#eee',
-  },
-  instructionsFooterText: {
-    fontSize: 16,
-    lineHeight: 22,
-    color: Colors.light.tint,
-    textAlign: 'center',
-  },
-  instructionsButton: {
-    backgroundColor: Colors.light.tint,
-    margin: 20,
-    marginTop: 0,
-    padding: 16,
-    borderRadius: 12,
-    alignItems: 'center',
-  },
-  instructionsButtonText: {
-    fontSize: 17,
-    fontWeight: '600',
-    color: '#fff',
-  },
-});
+  screen: { flex: 1, backgroundColor: c.background },
+  flex: { flex: 1 },
+  scroll: { paddingBottom: 40 },
+  body: { paddingHorizontal: 18 },
 
-export default Inventory;
+  heading: { fontFamily: fontFamily.semiBold, fontSize: 17, color: c.text, letterSpacing: -0.2 },
+  subhead: { fontFamily: fontFamily.regular, fontSize: 12.5, color: c.textMuted, marginTop: 3 },
+
+  situation: {
+    marginTop: 7,
+    backgroundColor: colors.white,
+    borderWidth: 1,
+    borderColor: c.border,
+    borderRadius: 12,
+    paddingHorizontal: 15,
+    paddingVertical: 13,
+    minHeight: 60,
+    fontFamily: fontFamily.regular,
+    fontSize: 16.5,
+    lineHeight: 23,
+    color: c.text,
+  },
+
+  offHead: { marginTop: 20, marginBottom: 12 },
+
+  chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  chip: { paddingHorizontal: 14, paddingVertical: 9, borderRadius: 999, borderWidth: 1.5 },
+  chipOff: { backgroundColor: colors.white, borderColor: c.border },
+  chipShowAll: { backgroundColor: 'transparent', borderColor: c.textMuted + '66', borderStyle: 'dashed' },
+  chipText: { fontFamily: fontFamily.semiBold, fontSize: 14 },
+
+  striveCard: {
+    marginTop: 18,
+    paddingHorizontal: 16,
+    paddingTop: 16,
+    paddingBottom: 14,
+    borderRadius: 16,
+    backgroundColor: ON.soft,
+    borderWidth: 1,
+    borderColor: ON.ink + '33',
+  },
+  striveHeadRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 10 },
+  watchLabel: { fontFamily: fontFamily.bold, fontSize: 10.5, letterSpacing: 1.1, color: tool.dark, flex: 1 },
+  striveLabel: { fontFamily: fontFamily.bold, fontSize: 10.5, letterSpacing: 1.1, color: ON.dark, flex: 1, textAlign: 'right' },
+  striveList: { gap: 11 },
+  striveRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 },
+  striveOff: { fontFamily: fontFamily.semiBold, fontSize: 15, color: tool.dark, flex: 1 },
+  striveOn: { fontFamily: fontFamily.semiBoldItalic, fontSize: 15, color: ON.dark, flex: 1, textAlign: 'right' },
+});

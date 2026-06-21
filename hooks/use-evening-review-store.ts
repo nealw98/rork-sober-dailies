@@ -53,6 +53,7 @@ interface DetailedEveningEntry {
   reflectionApology?: string;
   reflectionShared?: string;
   reflectionKind?: string;
+  reflectionWell?: string;
   reflectionBetter?: string;
   reflectionOthers?: string;
 }

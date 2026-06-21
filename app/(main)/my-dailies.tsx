@@ -12,7 +12,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import { ChevronLeft, Settings, X, Plus, Trash2 } from 'lucide-react-native';
+import { Settings, X, Plus, Trash2 } from 'lucide-react-native';
 
 import { colors, fontFamily, fontSize, spacing, radii, shadows, getSemanticColors } from '@/constants/designTokens';
 import { resolveGlyph, resolveTone } from '@/components/dailyTokens';
@@ -249,10 +249,16 @@ export default function MyDailiesScreen() {
   return (
     <SafeAreaView style={[styles.safe, { backgroundColor: c.background }]} edges={['top']}>
       <View style={styles.header}>
-        <Pressable hitSlop={8} onPress={() => router.back()} style={styles.backBtn}>
-          <ChevronLeft size={26} color={c.text} />
-        </Pressable>
         <Text style={[styles.title, { color: c.text }]}>My Dailies</Text>
+        <Pressable
+          hitSlop={8}
+          onPress={() => router.back()}
+          style={[styles.doneBtn, { backgroundColor: colors.primary }]}
+          accessibilityRole="button"
+          accessibilityLabel="Done"
+        >
+          <Text style={styles.doneText}>Done</Text>
+        </Pressable>
       </View>
 
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
@@ -343,9 +349,10 @@ export default function MyDailiesScreen() {
 
 const styles = StyleSheet.create({
   safe: { flex: 1 },
-  header: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 16, paddingTop: spacing.sm, paddingBottom: spacing.sm },
-  backBtn: { padding: 2 },
+  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingTop: spacing.sm, paddingBottom: spacing.sm },
   title: { fontFamily: fontFamily.displayBold, fontSize: 26, letterSpacing: -0.4 },
+  doneBtn: { paddingHorizontal: 18, paddingVertical: 7, borderRadius: 999 },
+  doneText: { fontFamily: fontFamily.semiBold, fontSize: 13, color: '#fff' },
   scroll: { paddingHorizontal: 22, paddingBottom: 60 },
 
   intro: { backgroundColor: colors.primarySoft, borderRadius: 14, borderWidth: 1, borderColor: colors.primary + '33', padding: 14, marginTop: 4 },
