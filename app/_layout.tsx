@@ -60,7 +60,7 @@ import { SubscriptionProvider, useSubscription } from "@/hooks/useSubscription";
 import { useOTAUpdates } from "@/hooks/useOTAUpdates";
 import { adjustFontWeight } from "@/constants/fonts";
 import { useTheme } from "@/hooks/useTheme";
-import WelcomeScreen from "@/components/WelcomeScreen";
+import OnboardingFlow from "@/components/OnboardingFlow";
 import PaywallScreen from "@/components/PaywallScreen";
 import OTASnackbar from "@/components/OTASnackbar";
 import { Logger } from "@/lib/logger";
@@ -241,9 +241,9 @@ function RootLayoutNav() {
     return () => clearTimeout(timer);
   }, []);
 
-  // Show consent page immediately if not completed, regardless of other initialization
+  // Show the onboarding flow until it's completed.
   if (!isOnboardingComplete) {
-    return <WelcomeScreen />;
+    return <OnboardingFlow />;
   }
 
   // Only show main app after consent is complete AND other initialization is done
