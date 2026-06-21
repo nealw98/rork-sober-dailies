@@ -105,7 +105,7 @@ function ConsentStep({ onContinue }: { onContinue: () => void }) {
 
 // ─── Step 2 · What's inside (ObvOutline — gradient band + paper rows) ───────
 const FEATURES: { Icon: React.ComponentType<{ size?: number; color?: string }>; iconColor: string; title: string; sub: string }[] = [
-  { Icon: Sunrise, iconColor: '#2E6F6F', title: 'Today', sub: 'The heart of your program — where you define your dailies and build the accountability that keeps you on track.' },
+  { Icon: Sunrise, iconColor: '#2E6F6F', title: 'Today', sub: 'The heart of your program — where you define your dailies and track your progress one day at a time.' },
   { Icon: BookOpen, iconColor: '#B07A33', title: 'Tools', sub: 'The tools you reach for each day — literature, speakers, prayers, meetings — linked right to your dailies as you work through them.' },
   { Icon: PenLine, iconColor: '#3A6AE0', title: 'Journey', sub: 'The record of your program — your notebook entries and daily progress, to look back on and keep yourself accountable.' },
   { Icon: MessageCircle, iconColor: '#7A5FB5', title: 'Your AI Sponsor, anytime', sub: 'Bring real questions, get real advice and support from distinct sponsor personalities, day or night.' },

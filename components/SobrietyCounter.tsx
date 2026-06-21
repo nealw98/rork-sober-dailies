@@ -68,8 +68,10 @@ const SobrietyCounter = () => {
           <SunriseGlyph size={38} />
         </Coin>
         <View style={styles.rowText}>
-          <Text style={styles.affirmationInline}>One day at a time.</Text>
-          <Pencil size={13} color={c.textMuted} strokeWidth={2} />
+          <View style={styles.affirmationRow}>
+            <Text style={styles.affirmationInline}>One day at a time.</Text>
+            <Pencil size={13} color={c.textMuted} strokeWidth={2} />
+          </View>
         </View>
       </Pressable>
     );
@@ -126,11 +128,12 @@ const styles = StyleSheet.create({
   breakdown: { fontFamily: fontFamily.regular, fontSize: 13, color: c.textMuted, marginTop: 5, lineHeight: 18 },
 
   // affirmation (no-date)
-  affirmationInline: { fontFamily: fontFamily.serifMediumItalic, fontSize: fontSize['3xl'], color: colors.primary, lineHeight: 28 },
+  affirmationRow: { flexDirection: 'row', alignItems: 'center', gap: 7 },
+  affirmationInline: { fontFamily: fontFamily.serifMediumItalic, fontSize: fontSize['2xl'], color: colors.primary, lineHeight: 26 },
 
   // invitation card
   inviteCard: { backgroundColor: c.surface, borderWidth: 1, borderColor: c.border, borderRadius: radii.lg, padding: 18, ...shadows.sm },
-  affirmation: { fontFamily: fontFamily.serifMediumItalic, fontSize: fontSize['3xl'], color: colors.primary, lineHeight: 28 },
+  affirmation: { fontFamily: fontFamily.serifMediumItalic, fontSize: fontSize['2xl'], color: colors.primary, lineHeight: 26 },
   inviteBody: { fontFamily: fontFamily.regular, fontSize: fontSize.md, color: c.textMuted, marginTop: 6, lineHeight: 20 },
   inviteButtons: { flexDirection: 'row', gap: 10, marginTop: 16 },
   addPill: { paddingHorizontal: 18, paddingVertical: 9, borderRadius: radii.full, backgroundColor: colors.primary },
