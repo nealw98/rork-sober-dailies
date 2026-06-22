@@ -2,8 +2,9 @@ import React, { useState } from 'react';
 import { StyleSheet, View, Text, TextInput, Pressable, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
-import { ChevronLeft, ArrowRight } from 'lucide-react-native';
+import { ArrowRight } from 'lucide-react-native';
 import { colors, fontFamily, fontSize, radii, shadows, getSemanticColors } from '@/constants/designTokens';
+import BackButton from '@/components/BackButton';
 
 /**
  * Sober-date screen (prototype `ObvSoberDate`). A full screen — typed mm/dd/yyyy
@@ -70,9 +71,7 @@ export default function SoberDateEditor({ current, onSave, onBack, onRemove, onS
     <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1 }}>
         <View style={styles.topBar}>
-          <Pressable hitSlop={8} onPress={onBack} style={styles.backBtn}>
-            <ChevronLeft size={22} color={c.text} />
-          </Pressable>
+          <BackButton onPress={onBack} />
         </View>
 
         <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
@@ -132,7 +131,6 @@ export default function SoberDateEditor({ current, onSave, onBack, onRemove, onS
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: c.background },
   topBar: { paddingHorizontal: 16, paddingTop: 4, paddingBottom: 4 },
-  backBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: c.surface, alignItems: 'center', justifyContent: 'center', ...shadows.sm },
 
   scroll: { paddingHorizontal: 26, paddingTop: 10, paddingBottom: 24 },
   affirmation: { fontFamily: fontFamily.serifMediumItalic, fontSize: fontSize['3xl'], color: colors.primary, lineHeight: 28 },

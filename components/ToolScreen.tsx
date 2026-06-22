@@ -6,8 +6,8 @@ import React from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import { ChevronLeft } from 'lucide-react-native';
 import { colors, fontFamily, getSemanticColors } from '@/constants/designTokens';
+import BackButton from '@/components/BackButton';
 
 const c = getSemanticColors('light');
 
@@ -34,9 +34,7 @@ export function ToolHeader({ tool, dirty, onCommit }: { tool: ToolMeta; dirty: b
   return (
     <View style={[styles.header, { paddingTop: insets.top + 8 }]}>
       <View style={styles.backRow}>
-        <Pressable hitSlop={8} onPress={() => router.back()} style={styles.backBtn} accessibilityRole="button" accessibilityLabel="Back">
-          <ChevronLeft size={26} color={c.text} />
-        </Pressable>
+        <BackButton onPress={() => router.back()} />
         <Pressable
           onPress={onCommit}
           accessibilityRole="button"
@@ -66,7 +64,6 @@ export function ToolIntro({ tool, children }: { tool: ToolMeta; children: React.
 const styles = StyleSheet.create({
   header: { paddingHorizontal: 20, paddingBottom: 8 },
   backRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 },
-  backBtn: { marginLeft: -4 },
   saveBtn: { paddingHorizontal: 18, paddingVertical: 9, borderRadius: 999 },
   saveBtnGhost: { borderWidth: 1.5, borderColor: c.border },
   saveText: { fontFamily: fontFamily.semiBold, fontSize: 13.5 },

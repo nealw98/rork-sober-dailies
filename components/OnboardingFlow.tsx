@@ -4,9 +4,10 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { StatusBar } from 'expo-status-bar';
 import Svg, { Path } from 'react-native-svg';
-import { Check, ChevronLeft, ArrowRight, BookOpen, PenLine, MessageCircle } from 'lucide-react-native';
+import { Check, ArrowRight, BookOpen, PenLine, MessageCircle } from 'lucide-react-native';
 
 import { colors, fontFamily, fontSize, spacing, radii, shadows, gradients, getSemanticColors } from '@/constants/designTokens';
+import BackButton from '@/components/BackButton';
 import { resolveGlyph } from '@/components/dailyTokens';
 import { useOnboarding } from '@/hooks/useOnboardingStore';
 import { useSobriety } from '@/hooks/useSobrietyStore';
@@ -118,9 +119,7 @@ function WhatsInsideStep({ onBack, onContinue }: { onBack: () => void; onContinu
       <LinearGradient colors={obvGrad(0.4)} start={{ x: 0.1, y: 0 }} end={{ x: 0.9, y: 1 }} style={styles.insideBand} />
       <SafeAreaView style={{ flex: 1 }} edges={['top', 'bottom']}>
         <View style={styles.topBar}>
-          <Pressable hitSlop={8} onPress={onBack} style={styles.backBtnDark}>
-            <ChevronLeft size={22} color="#fff" />
-          </Pressable>
+          <BackButton onPress={onBack} dark />
         </View>
         <View style={styles.insideHeader}>
           <Text style={styles.insideOverline}>EVERYTHING YOU NEED</Text>
@@ -209,9 +208,7 @@ function DefineDailiesStep({ onBack, onStart }: { onBack: () => void; onStart: (
     <SafeAreaView style={styles.paper} edges={['top', 'bottom']}>
       <StatusBar style="dark" />
       <View style={styles.topBar}>
-        <Pressable hitSlop={8} onPress={onBack} style={styles.backBtn}>
-          <ChevronLeft size={22} color={c.text} />
-        </Pressable>
+        <BackButton onPress={onBack} />
       </View>
       <ScrollView contentContainerStyle={styles.dailiesScroll} showsVerticalScrollIndicator={false}>
         <Text style={styles.insideTitle}>Define your dailies</Text>
@@ -316,13 +313,11 @@ const styles = StyleSheet.create({
   // paper screens (inside + dailies)
   paper: { flex: 1, backgroundColor: c.background },
   topBar: { paddingHorizontal: 16, paddingTop: 4, paddingBottom: 4 },
-  backBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: c.surface, alignItems: 'center', justifyContent: 'center', ...shadows.sm },
   insideTitle: { fontFamily: fontFamily.displayBold, fontSize: fontSize.hero, color: c.text, letterSpacing: -0.5 },
   insideSub: { fontFamily: fontFamily.regular, fontSize: fontSize.md, color: c.textSecondary, lineHeight: 21, marginTop: 8, marginBottom: 8 },
 
   // What's inside — gradient band + paper sheet + outline rows
   insideBand: { position: 'absolute', top: 0, left: 0, right: 0, height: 240 },
-  backBtnDark: { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.16)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.3)', alignItems: 'center', justifyContent: 'center' },
   insideHeader: { paddingHorizontal: 26, paddingTop: 8, paddingBottom: 18 },
   insideOverline: { fontFamily: fontFamily.bold, fontSize: 11, letterSpacing: 2, color: 'rgba(255,255,255,0.9)' },
   insideHeadline: { fontFamily: fontFamily.display, fontSize: 27, color: '#fff', letterSpacing: -0.5, lineHeight: 31, marginTop: 9 },

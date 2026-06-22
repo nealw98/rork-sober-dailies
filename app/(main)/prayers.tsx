@@ -7,7 +7,8 @@ import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { View, Text, ScrollView, Pressable, StyleSheet, BackHandler, useWindowDimensions } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Stack, useRouter, useLocalSearchParams } from 'expo-router';
-import { ChevronLeft, ChevronRight, BookOpen } from 'lucide-react-native';
+import { ChevronRight, BookOpen } from 'lucide-react-native';
+import BackButton from '@/components/BackButton';
 import Animated, { useSharedValue, useAnimatedStyle, withTiming, Easing, interpolate, runOnJS, Extrapolation } from 'react-native-reanimated';
 import { useScreenTimeTracking } from '@/hooks/useScreenTimeTracking';
 import { aaPrayers } from '@/constants/prayers';
@@ -142,9 +143,7 @@ export default function PrayersScreen() {
         {/* Library list — kept mounted (scroll preserved); fades out as a prayer opens. */}
         <Animated.View style={[styles.flex, listFade]} pointerEvents={isList ? 'auto' : 'none'}>
           <View style={styles.header}>
-            <Pressable hitSlop={8} onPress={() => router.back()} style={styles.backBtn} accessibilityRole="button" accessibilityLabel="Back">
-              <ChevronLeft size={26} color={c.text} />
-            </Pressable>
+            <BackButton onPress={() => router.back()} style={styles.headerBack} />
             <Text style={styles.bigTitle}>Prayers</Text>
             <Text style={styles.bigSub}>Tap any prayer to read it.</Text>
           </View>
@@ -190,9 +189,7 @@ export default function PrayersScreen() {
       {/* Read-view back button — topmost so the morph overlay can't intercept its taps. */}
       {showBar && (
         <Animated.View pointerEvents="box-none" style={[styles.readBar, { paddingTop: insets.top + 8 }, mode !== 'read' ? barFade : null]}>
-          <Pressable hitSlop={12} onPress={closeRead} style={styles.backBtnRead} accessibilityRole="button" accessibilityLabel="Back">
-            <ChevronLeft size={26} color={c.text} />
-          </Pressable>
+          <BackButton onPress={closeRead} style={styles.backBtnRead} />
         </Animated.View>
       )}
     </View>
@@ -206,7 +203,7 @@ const styles = StyleSheet.create({
 
   // library header
   header: { paddingHorizontal: 20, paddingTop: 8, paddingBottom: 8 },
-  backBtn: { marginLeft: -4, marginBottom: 6, alignSelf: 'flex-start' },
+  headerBack: { marginBottom: 10 },
   bigTitle: { fontFamily: fontFamily.display, fontSize: 30, letterSpacing: -0.5, color: c.text, lineHeight: 34 },
   bigSub: { fontFamily: fontFamily.regular, fontSize: 13, color: c.textMuted, marginTop: 3 },
 
