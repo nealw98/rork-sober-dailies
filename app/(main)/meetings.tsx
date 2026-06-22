@@ -4,14 +4,16 @@
 // Meeting readings. My meetings is net-new + manual-add only; Next-up is derived
 // from the saved list + the device clock (no extra storage).
 import React, { useState } from 'react';
-import { View, Text, ScrollView, Pressable, StyleSheet, Modal, TextInput, Linking, Platform } from 'react-native';
+import { View, Text, ScrollView, Pressable, StyleSheet, Modal, TextInput, Linking, Platform, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Stack, useRouter } from 'expo-router';
 import DateTimePicker from '@react-native-community/datetimepicker';
-import { Plus, X, Globe, MapPin, BookOpen, ChevronRight, ExternalLink, ClipboardList } from 'lucide-react-native';
+import { Plus, X, Globe, MapPin, BookOpen, ChevronRight, ExternalLink, ClipboardList, Sparkles, ImagePlus, Camera } from 'lucide-react-native';
 import { Image } from 'expo-image';
 import BackButton from '@/components/BackButton';
 import { useMeetings, nextUpMeeting, whenLabel, formatTime, WEEKDAY_ABBR, type Meeting, type MeetingDay } from '@/hooks/use-meetings-store';
+import { scanMeetingScreenshot } from '@/lib/meetingOcr';
+import { parseMeetingGuide, type MeetingDraft } from '@/lib/parseMeetingGuide';
 import { colors, fontFamily, getSemanticColors } from '@/constants/designTokens';
 
 const c = getSemanticColors('light');
@@ -48,7 +50,7 @@ export default function MeetingsScreen() {
       <View style={styles.header}>
         <BackButton onPress={() => router.back()} style={{ marginBottom: 8 }} />
         <Text style={styles.title}>Meetings</Text>
-        <Text style={styles.sub}>Your regulars, plus ways to find more and read along.</Text>
+        <Text style={styles.sub}>Save your regular meetings and find ways to discover more.</Text>
       </View>
 
       <ScrollView style={styles.flex} contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
@@ -105,7 +107,7 @@ export default function MeetingsScreen() {
         )}
 
         {/* ── Find a meeting near you ── */}
-        <Text style={styles.label}>FIND A MEETING NEAR YOU</Text>
+        <Text style={styles.label}>LOCAL MEETINGS</Text>
         <View style={styles.guideCard}>
           <View style={styles.guideTopRow}>
             <Image source={require('../../assets/aa-app-logo-registered.png')} style={styles.guideIcon} contentFit="cover" />
@@ -115,7 +117,7 @@ export default function MeetingsScreen() {
             </View>
           </View>
           <Text style={styles.guideBody}>
-            Search thousands of in-person and online meetings by location, day, and time. Sober Dailies opens Meeting Guide if you have it — otherwise grab it from the App Store first.
+            Find the closest in-person and online meetings by location, day, and time — and get directions to the next one near you. Free on the App Store.
           </Text>
           <Pressable style={styles.guideBtn} onPress={() => Linking.openURL(MEETING_GUIDE_URL).catch(() => {})}>
             <Text style={styles.guideBtnText}>Download the app</Text>
@@ -123,12 +125,29 @@ export default function MeetingsScreen() {
           </Pressable>
         </View>
 
-        {/* ── More ── */}
-        <Text style={styles.label}>MORE</Text>
-        <Fn tone={'#16205A'} icon={<Image source={require('../../assets/enhanced-online-intergroup.webp')} style={styles.fnLogo} contentFit="cover" allowDownscaling={false} />} title="Online meetings" badge="In-app"
-          sub="Browse aa-intergroup.org without leaving the app." onPress={() => router.push('/(main)/online-meetings')} />
-        <Fn tone={colors.amber} icon={<BookOpen size={21} color="#fff" strokeWidth={2} />} title="Meeting readings"
-          sub="How It Works, the Promises, Traditions — to read or chair." onPress={() => router.push('/(main)/meeting-pocket')} />
+        {/* ── Online meetings ── */}
+        <Text style={styles.label}>ONLINE MEETINGS</Text>
+        <View style={styles.guideCard}>
+          <View style={styles.guideTopRow}>
+            <Image source={require('../../assets/enhanced-online-intergroup.webp')} style={styles.guideIcon} contentFit="cover" allowDownscaling={false} />
+            <View style={styles.flex}>
+              <Text style={styles.guideName}>AA Online Intergroup</Text>
+              <Text style={styles.guideSub}>Online meeting directory · OIAA</Text>
+            </View>
+          </View>
+          <Text style={styles.guideBody}>
+            Browse listings of current online AA meetings worldwide — by day, time, and format.
+          </Text>
+          <Pressable style={[styles.guideBtn, styles.onlineBtn]} onPress={() => router.push('/(main)/online-meetings')}>
+            <Text style={styles.guideBtnText}>Browse meetings</Text>
+            <ChevronRight size={16} color="#fff" strokeWidth={2} />
+          </Pressable>
+        </View>
+
+        {/* ── Right here, right now ── */}
+        <Text style={styles.label}>RIGHT HERE, RIGHT NOW</Text>
+        <Fn tone={colors.amber} icon={<BookOpen size={21} color="#fff" strokeWidth={2} />} title="Meeting Tools"
+          sub="Readings, a newcomer-meeting guide, and discussion topics to chair." onPress={() => router.push('/(main)/meeting-pocket')} />
       </ScrollView>
 
       <AddMeetingSheet visible={adding} onClose={() => setAdding(false)} onSave={(m) => { addMeeting(m); setAdding(false); }} />
@@ -180,38 +199,8 @@ const DAY_OPTS: { label: string; value: MeetingDay }[] = [
   ...WEEKDAY_ABBR.map((d, i) => ({ label: d, value: i as MeetingDay })),
 ];
 
-function parsePaste(text: string): Partial<Meeting> {
-  const lines = text.trim().split('\n').map((l) => l.trim()).filter(Boolean);
-  const out: Partial<Meeting> = { name: lines[0] || '', where: '', online: /online|zoom|virtual/i.test(text) };
-  const rest = lines.slice(1);
-  const whereParts: string[] = [];
-  rest.forEach((line) => {
-    const lower = line.toLowerCase();
-    let matchedDay: MeetingDay | null = null;
-    if (/dail|every ?day/.test(lower)) matchedDay = 'daily';
-    else {
-      const key = lower.slice(0, 3);
-      const idx = WEEKDAY_ABBR.findIndex((d) => d.toLowerCase() === key);
-      if (idx >= 0) matchedDay = idx as MeetingDay;
-    }
-    const tm = line.match(/(\d{1,2}):(\d{2})\s*([ap]\.?m\.?)/i);
-    if (matchedDay !== null || tm) {
-      if (matchedDay !== null) out.day = matchedDay;
-      if (tm) {
-        let h = parseInt(tm[1], 10) % 12;
-        if (/p/i.test(tm[3])) h += 12;
-        out.time = h * 60 + parseInt(tm[2], 10);
-      }
-    } else {
-      whereParts.push(line);
-    }
-  });
-  out.where = whereParts.join(' · ');
-  return out;
-}
-
 function AddMeetingSheet({ visible, onClose, onSave }: { visible: boolean; onClose: () => void; onSave: (m: Omit<Meeting, 'id'>) => void }) {
-  const [tab, setTab] = useState<'paste' | 'details'>('details');
+  const [tab, setTab] = useState<'scan' | 'paste' | 'details'>('details');
   const [name, setName] = useState('');
   const [day, setDay] = useState<MeetingDay>('daily');
   const [time, setTime] = useState<number | null>(null);
@@ -220,19 +209,41 @@ function AddMeetingSheet({ visible, onClose, onSave }: { visible: boolean; onClo
   const [online, setOnline] = useState(false);
   const [pasted, setPasted] = useState('');
   const [showPicker, setShowPicker] = useState(false);
+  const [scanState, setScanState] = useState<'idle' | 'reading'>('idle');
+  const [scanMsg, setScanMsg] = useState<string | null>(null);
+  const [filledFrom, setFilledFrom] = useState<'scan-exact' | 'scan-guess' | 'paste' | null>(null);
 
-  const reset = () => { setTab('details'); setName(''); setDay('daily'); setTime(null); setWhere(''); setNotes(''); setOnline(false); setPasted(''); };
+  const reset = () => {
+    setTab('details'); setName(''); setDay('daily'); setTime(null); setWhere(''); setNotes('');
+    setOnline(false); setPasted(''); setScanState('idle'); setScanMsg(null); setFilledFrom(null);
+  };
   const close = () => { reset(); onClose(); };
+
+  const fillDraft = (d: MeetingDraft, source: 'scan-exact' | 'scan-guess' | 'paste') => {
+    setName(d.name);
+    if (d.day != null) setDay(d.day);
+    if (d.time != null) setTime(d.time);
+    setWhere(d.where);
+    setOnline(d.online);
+    setFilledFrom(source);
+    setTab('details');
+  };
+
+  const runScan = async (src: 'library' | 'camera') => {
+    setScanMsg(null);
+    setScanState('reading');
+    const r = await scanMeetingScreenshot(src);
+    setScanState('idle');
+    if (r.status === 'ok') fillDraft(r.draft, r.mode === 'exact' ? 'scan-exact' : 'scan-guess');
+    else if (r.status === 'no-permission') setScanMsg(src === 'camera' ? 'Allow camera access to take a photo.' : 'Allow photo access to scan a screenshot.');
+    else if (r.status === 'no-engine') setScanMsg('Scanning needs the latest app build. For now, use Paste or Details.');
+    else if (r.status === 'no-match') setScanMsg("Couldn't find meeting details in that image. Try Paste or Details.");
+    else if (r.status === 'error') setScanMsg('Something went wrong. Please try again.');
+  };
 
   const applyPaste = () => {
     if (!pasted.trim()) return;
-    const p = parsePaste(pasted);
-    setName(p.name ?? '');
-    if (p.day !== undefined) setDay(p.day);
-    if (p.time !== undefined) setTime(p.time);
-    setWhere(p.where ?? '');
-    setOnline(!!p.online);
-    setTab('details');
+    fillDraft(parseMeetingGuide(pasted.split('\n')), 'paste');
   };
 
   const canSave = name.trim().length > 0;
@@ -255,15 +266,41 @@ function AddMeetingSheet({ visible, onClose, onSave }: { visible: boolean; onClo
         </View>
 
         <View style={styles.tabs}>
-          {(['paste', 'details'] as const).map((k) => (
+          {(['details', 'paste', 'scan'] as const).map((k) => (
             <Pressable key={k} onPress={() => setTab(k)} style={[styles.tab, tab === k && styles.tabOn]}>
-              <Text style={[styles.tabText, { color: tab === k ? c.text : c.textMuted }]}>{k === 'paste' ? 'Paste' : 'Details'}</Text>
+              <Text style={[styles.tabText, { color: tab === k ? c.text : c.textMuted }]}>{k === 'scan' ? 'Scan' : k === 'paste' ? 'Paste' : 'Details'}</Text>
             </Pressable>
           ))}
         </View>
 
         <ScrollView keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
-          {tab === 'paste' ? (
+          {tab === 'scan' ? (
+            <View>
+              <View style={styles.pasteHint}>
+                <Sparkles size={15} color={MT_DARK} strokeWidth={2} />
+                <Text style={styles.pasteHintText}>Screenshot a meeting in Meeting Guide for best results — or use the camera to snap a flyer.</Text>
+              </View>
+              <Pressable style={styles.scanBox} onPress={() => runScan('library')} disabled={scanState === 'reading'}>
+                {scanState === 'reading' ? (
+                  <>
+                    <ActivityIndicator color={MT} />
+                    <Text style={styles.scanReading}>Reading image…</Text>
+                  </>
+                ) : (
+                  <>
+                    <View style={styles.scanIcon}><ImagePlus size={24} color={MT_DARK} strokeWidth={1.9} /></View>
+                    <Text style={styles.scanTitle}>Choose a screenshot</Text>
+                    <Text style={styles.scanSub}>From your photo library</Text>
+                  </>
+                )}
+              </Pressable>
+              <Pressable style={styles.scanPhotoBtn} onPress={() => runScan('camera')} disabled={scanState === 'reading'}>
+                <Camera size={16} color={MT_DARK} strokeWidth={2} />
+                <Text style={styles.scanPhotoText}>Take a photo of a flyer</Text>
+              </Pressable>
+              {!!scanMsg && <Text style={styles.scanMsg}>{scanMsg}</Text>}
+            </View>
+          ) : tab === 'paste' ? (
             <View>
               <View style={styles.pasteHint}>
                 <ClipboardList size={15} color={c.textMuted} strokeWidth={2} />
@@ -276,6 +313,18 @@ function AddMeetingSheet({ visible, onClose, onSave }: { visible: boolean; onClo
             </View>
           ) : (
             <View style={{ gap: 14 }}>
+              {filledFrom && (
+                <View style={styles.filledBanner}>
+                  <Sparkles size={15} color={MT_DARK} strokeWidth={2} />
+                  <Text style={styles.filledBannerText}>
+                    {filledFrom === 'scan-exact'
+                      ? 'Filled from your screenshot — check the details below.'
+                      : filledFrom === 'scan-guess'
+                        ? 'Best guess from your image — please double-check everything.'
+                        : 'Filled from what you pasted — check the details below.'}
+                  </Text>
+                </View>
+              )}
               <Field label="Meeting name">
                 <TextInput value={name} onChangeText={setName} placeholder="Meeting name" placeholderTextColor={c.textMuted} style={styles.input} />
               </Field>
@@ -392,12 +441,12 @@ const styles = StyleSheet.create({
   guideSub: { fontFamily: fontFamily.regular, fontSize: 12.5, color: c.textMuted, marginTop: 2 },
   guideBody: { fontFamily: fontFamily.regular, fontSize: 13.5, color: c.textSecondary, lineHeight: 21, marginTop: 13 },
   guideBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, marginTop: 15, paddingVertical: 13, borderRadius: 13, backgroundColor: '#1E4E86' },
+  onlineBtn: { backgroundColor: '#16205A' },
   guideBtnText: { fontFamily: fontFamily.semiBold, fontSize: 14.5, color: '#fff' },
 
   // function row
   fn: { flexDirection: 'row', alignItems: 'center', gap: 13, padding: 14, marginBottom: 10, borderRadius: 18, backgroundColor: c.surface, borderWidth: 1, borderColor: c.border },
   fnIcon: { width: 44, height: 44, borderRadius: 13, alignItems: 'center', justifyContent: 'center' },
-  fnLogo: { width: 44, height: 44, borderRadius: 13 },
   fnTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 7 },
   fnTitle: { fontFamily: fontFamily.semiBold, fontSize: 15.5, color: c.text },
   fnBadge: { fontFamily: fontFamily.bold, fontSize: 9.5, letterSpacing: 0.5, color: colors.secondaryDark, backgroundColor: colors.secondarySoft, paddingHorizontal: 7, paddingVertical: 2, borderRadius: 999, overflow: 'hidden' },
@@ -420,6 +469,17 @@ const styles = StyleSheet.create({
   pasteBox: { minHeight: 110, borderRadius: 12, borderWidth: 1, borderColor: c.border, backgroundColor: '#fff', paddingHorizontal: 14, paddingVertical: 12, fontFamily: fontFamily.regular, fontSize: 15, color: c.text, textAlignVertical: 'top', lineHeight: 22 },
   pasteBtn: { marginTop: 12, paddingVertical: 12, borderRadius: 12, alignItems: 'center', backgroundColor: MT_SOFT },
   pasteBtnText: { fontFamily: fontFamily.semiBold, fontSize: 14 },
+
+  scanBox: { alignItems: 'center', justifyContent: 'center', gap: 12, paddingVertical: 34, paddingHorizontal: 20, borderRadius: 16, borderWidth: 1.5, borderColor: MT + '77', borderStyle: 'dashed', backgroundColor: MT_SOFT },
+  scanIcon: { width: 52, height: 52, borderRadius: 14, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center' },
+  scanTitle: { fontFamily: fontFamily.semiBold, fontSize: 15, color: c.text },
+  scanSub: { fontFamily: fontFamily.regular, fontSize: 12.5, color: c.textMuted },
+  scanReading: { fontFamily: fontFamily.semiBold, fontSize: 14, color: MT_DARK },
+  scanPhotoBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, marginTop: 10, paddingVertical: 11, borderRadius: 12, borderWidth: 1, borderColor: c.border, backgroundColor: '#fff' },
+  scanPhotoText: { fontFamily: fontFamily.semiBold, fontSize: 14, color: MT_DARK },
+  scanMsg: { fontFamily: fontFamily.regular, fontSize: 12.5, color: c.textSecondary, marginTop: 12, textAlign: 'center', lineHeight: 18 },
+  filledBanner: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 12, paddingVertical: 10, borderRadius: 12, backgroundColor: MT_SOFT },
+  filledBannerText: { flex: 1, fontFamily: fontFamily.medium, fontSize: 12.5, color: MT_DARK, lineHeight: 17 },
 
   fieldLabel: { fontFamily: fontFamily.bold, fontSize: 11, letterSpacing: 0.8, color: c.textMuted, marginBottom: 6 },
   input: { borderRadius: 12, borderWidth: 1, borderColor: c.border, backgroundColor: '#fff', paddingHorizontal: 14, paddingVertical: 12, fontFamily: fontFamily.regular, fontSize: 15, color: c.text, justifyContent: 'center' },

@@ -74,12 +74,22 @@
       [
         "expo-build-properties",
         {
+          "ios": {
+            "deploymentTarget": "15.5"
+          },
           "android": {
             "compileSdkVersion": 35,
             "targetSdkVersion": 35,
             "buildToolsVersion": "35.0.0",
             "minSdkVersion": 24
           }
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Sober Dailies needs photo access so you can pick a Meeting Guide screenshot to read a meeting's details.",
+          "cameraPermission": "Sober Dailies needs camera access so you can photograph a meeting flyer to read its details."
         }
       ],
       "expo-web-browser",
