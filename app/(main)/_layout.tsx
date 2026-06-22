@@ -27,6 +27,7 @@ export default function MainLayout() {
       <Stack.Screen name="meetings" />
       <Stack.Screen name="online-meetings" />
       <Stack.Screen name="gratitude" />
+      <Stack.Screen name="journal" />
       <Stack.Screen name="prayers" />
       <Stack.Screen name="evening-review" />
       <Stack.Screen name="inventory" />

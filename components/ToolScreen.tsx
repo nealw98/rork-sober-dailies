@@ -18,6 +18,7 @@ export const TOOLS = {
   gratitude: { id: 'gratitude', label: 'Gratitude', accent: colors.amber, soft: colors.amberSoft, dark: '#B07F38' },
   nightly: { id: 'nightly', label: 'Nightly Review', accent: colors.tertiary, soft: colors.tertiarySoft, dark: colors.tertiaryDark },
   spotcheck: { id: 'spotcheck', label: 'Spot Check Inventory', accent: colors.coral, soft: '#F6DDD3', dark: '#A8493A' },
+  journal: { id: 'journal', label: 'Journal', accent: colors.secondary, soft: colors.secondarySoft, dark: colors.secondaryDark },
 } satisfies Record<string, ToolMeta>;
 
 // The "today" subtitle shown under each tool title.

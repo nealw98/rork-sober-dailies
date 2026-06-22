@@ -58,6 +58,7 @@ import { OnboardingProvider, useOnboarding } from "@/hooks/useOnboardingStore";
 import { SobrietyProvider } from "@/hooks/useSobrietyStore";
 import { EveningReviewProvider } from "@/hooks/use-evening-review-store";
 import { MeetingsProvider } from "@/hooks/use-meetings-store";
+import { JournalProvider } from "@/hooks/use-journal-store";
 import { TextSettingsProvider } from "@/hooks/use-text-settings";
 import { SubscriptionProvider, useSubscription } from "@/hooks/useSubscription";
 import { useOTAUpdates } from "@/hooks/useOTAUpdates";
@@ -360,6 +361,7 @@ export default function RootLayout() {
                     <MeditationProvider>
                     <EveningReviewProvider>
                     <MeetingsProvider>
+                    <JournalProvider>
                       <GestureHandlerRootView style={{ flex: 1 }}>
                         {Platform.OS === 'android' && (
                           <StatusBar translucent backgroundColor="transparent" barStyle="light-content" />
@@ -373,6 +375,7 @@ export default function RootLayout() {
                           </AudioPlayerProvider>
                         </ErrorBoundary>
                       </GestureHandlerRootView>
+                    </JournalProvider>
                     </MeetingsProvider>
                     </EveningReviewProvider>
                     </MeditationProvider>

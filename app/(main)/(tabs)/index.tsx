@@ -31,7 +31,7 @@ const ACTION_ROUTE: Record<string, Href | null> = {
   prayerMorning: '/(main)/prayers',
   prayerEvening: '/(main)/prayers',
   gratitude: '/(main)/gratitude',
-  journal: null,
+  journal: '/(main)/journal' as Href,
   spotcheck: '/(main)/inventory',
   nightly: '/(main)/evening-review',
   speaker: '/(main)/speakers',

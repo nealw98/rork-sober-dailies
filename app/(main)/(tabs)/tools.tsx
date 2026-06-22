@@ -69,7 +69,7 @@ const SECTIONS: { title: string; tools: ToolDef[] }[] = [
   {
     title: 'Write it down',
     tools: [
-      { id: 'journal', name: 'Journal', sub: 'Free writing', tone: TONE.blue, Icon: NotebookPen, route: null },
+      { id: 'journal', name: 'Journal', sub: 'Free writing', tone: TONE.blue, Icon: NotebookPen, route: '/(main)/journal' as Href },
       { id: 'gratitude', name: 'Gratitude', sub: 'Three things', tone: TONE.amber, Icon: Heart, route: '/(main)/gratitude' },
       { id: 'spotcheck', name: 'Spot Check Inventory', sub: 'Practice pause', tone: TONE.coral, Icon: CircleCheck, route: '/(main)/inventory' },
       { id: 'nightly', name: 'Nightly Review', sub: '10th step', tone: TONE.lavender, Icon: Moon, route: '/(main)/evening-review' },
