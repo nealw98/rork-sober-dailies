@@ -79,7 +79,7 @@ const SECTIONS: { title: string; tools: ToolDef[] }[] = [
     title: 'Connect',
     tools: [
       { id: 'another', name: 'Reach Out', sub: 'Call someone', tone: TONE.blue, Icon: Phone, route: null },
-      { id: 'meeting', name: 'Meetings', sub: 'Find a meeting', tone: TONE.lavender, Icon: Users, route: '/(main)/meeting-pocket' },
+      { id: 'meeting', name: 'Meetings', sub: 'Find a meeting', tone: TONE.lavender, Icon: Users, route: '/(main)/meetings' },
     ],
   },
 ];

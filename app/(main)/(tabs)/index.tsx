@@ -39,7 +39,7 @@ const ACTION_ROUTE: Record<string, Href | null> = {
   meditation: '/(main)/meditation',
   callAnother: null,
   lit: '/(main)/literature',
-  meeting: '/(main)/meeting-pocket',
+  meeting: '/(main)/meetings',
 };
 
 // Prayer dailies open a specific prayer directly (deep link); the generic

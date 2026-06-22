@@ -86,7 +86,7 @@ function MeetingPocketBrowserContent() {
   }, []);
 
   const handleBack = () => {
-    router.push('/literature');
+    router.back();
   };
 
   return (
