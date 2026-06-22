@@ -12,7 +12,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import { Settings, X, Plus, Trash2 } from 'lucide-react-native';
+import { Settings, X, Plus, Trash2, Check } from 'lucide-react-native';
 
 import { colors, fontFamily, fontSize, spacing, radii, shadows, getSemanticColors } from '@/constants/designTokens';
 import { resolveGlyph, resolveTone, resolveSubtitle } from '@/components/dailyTokens';
@@ -82,7 +82,7 @@ function SheetBackdrop({ onPress }: { onPress: () => void }) {
   return <Pressable style={styles.backdrop} onPress={onPress} />;
 }
 
-function AddSheet({ section, onClose, onAdd, onCreate }: { section: WhenBucket; onClose: () => void; onAdd: (t: Template) => void; onCreate: () => void }) {
+function AddSheet({ section, added, onClose, onAdd, onCreate }: { section: WhenBucket; added: Set<string>; onClose: () => void; onAdd: (t: Template) => void; onCreate: () => void }) {
   return (
     <Modal transparent visible animationType="slide" onRequestClose={onClose}>
       <View style={styles.sheetWrap}>
@@ -102,7 +102,7 @@ function AddSheet({ section, onClose, onAdd, onCreate }: { section: WhenBucket; 
           <ScrollView contentContainerStyle={{ paddingBottom: 28 }} showsVerticalScrollIndicator={false}>
             <Text style={styles.groupLabel}>FROM YOUR TOOLS</Text>
             {TOOL_CATALOG.map((t) => (
-              <Pressable key={t.action} style={styles.addRow} onPress={() => onAdd(t)}>
+              <Pressable key={t.action} style={styles.addRow} disabled={added.has(t.action)} onPress={() => onAdd(t)}>
                 <Medallion icon={t.icon} tone={t.color} soft />
                 <View style={styles.addRowText}>
                   <Text style={styles.addRowName}>{t.label}</Text>
@@ -110,15 +110,21 @@ function AddSheet({ section, onClose, onAdd, onCreate }: { section: WhenBucket; 
                     <Text style={styles.editRowSub} numberOfLines={1}>{resolveSubtitle(t.action)}</Text>
                   ) : null}
                 </View>
-                <View style={styles.addPlus}>
-                  <Plus size={16} color={colors.primary} strokeWidth={2.4} />
-                </View>
+                {added.has(t.action) ? (
+                  <View style={styles.addedCheck}>
+                    <Check size={13} color="#fff" strokeWidth={3} />
+                  </View>
+                ) : (
+                  <View style={styles.addPlus}>
+                    <Plus size={13} color={colors.primary} strokeWidth={2.4} />
+                  </View>
+                )}
               </Pressable>
             ))}
 
             <Text style={styles.groupLabel}>QUICK ACTIONS · NO TOOL, JUST CHECK OFF</Text>
             {QUICK_CATALOG.map((t) => (
-              <Pressable key={t.action} style={styles.addRow} onPress={() => onAdd(t)}>
+              <Pressable key={t.action} style={styles.addRow} disabled={added.has(t.action)} onPress={() => onAdd(t)}>
                 <Medallion icon={t.icon} tone={t.color} soft />
                 <View style={styles.addRowText}>
                   <Text style={styles.addRowName}>{t.label}</Text>
@@ -126,9 +132,15 @@ function AddSheet({ section, onClose, onAdd, onCreate }: { section: WhenBucket; 
                     <Text style={styles.editRowSub} numberOfLines={1}>{resolveSubtitle(t.action)}</Text>
                   ) : null}
                 </View>
-                <View style={styles.addPlus}>
-                  <Plus size={16} color={colors.primary} strokeWidth={2.4} />
-                </View>
+                {added.has(t.action) ? (
+                  <View style={styles.addedCheck}>
+                    <Check size={13} color="#fff" strokeWidth={3} />
+                  </View>
+                ) : (
+                  <View style={styles.addPlus}>
+                    <Plus size={13} color={colors.primary} strokeWidth={2.4} />
+                  </View>
+                )}
               </Pressable>
             ))}
 
@@ -320,6 +332,7 @@ export default function MyDailiesScreen() {
       {addSection && (
         <AddSheet
           section={addSection}
+          added={new Set(dailies.program.map((i) => i.action))}
           onClose={() => setAddSection(null)}
           onAdd={(t) => {
             dailies.addDaily(t, addSection);
@@ -426,7 +439,8 @@ const styles = StyleSheet.create({
   },
   addRowText: { flex: 1 },
   addRowName: { fontFamily: fontFamily.semiBold, fontSize: fontSize.lg, color: '#2B2A30' },
-  addPlus: { width: 32, height: 32, borderRadius: 16, borderWidth: 1.5, borderColor: colors.primary, alignItems: 'center', justifyContent: 'center' },
+  addPlus: { width: 22, height: 22, borderRadius: 11, borderWidth: 1.5, borderColor: colors.primary, alignItems: 'center', justifyContent: 'center' },
+  addedCheck: { width: 22, height: 22, borderRadius: 11, backgroundColor: colors.primary, alignItems: 'center', justifyContent: 'center' },
   createRow: {
     flexDirection: 'row', alignItems: 'center', gap: 12, marginHorizontal: 22,
     backgroundColor: colors.primary + '12', borderRadius: 14, borderWidth: 1.5, borderColor: colors.primary + '55', borderStyle: 'dashed', padding: 14,
