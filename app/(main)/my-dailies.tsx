@@ -15,7 +15,7 @@ import { useRouter } from 'expo-router';
 import { Settings, X, Plus, Trash2 } from 'lucide-react-native';
 
 import { colors, fontFamily, fontSize, spacing, radii, shadows, getSemanticColors } from '@/constants/designTokens';
-import { resolveGlyph, resolveTone } from '@/components/dailyTokens';
+import { resolveGlyph, resolveTone, resolveSubtitle } from '@/components/dailyTokens';
 import { useDailies, type DailyItem, type WhenBucket } from '@/hooks/use-dailies-store';
 import { useScreenTimeTracking } from '@/hooks/useScreenTimeTracking';
 
@@ -25,7 +25,8 @@ const BUCKETS: WhenBucket[] = ['Morning', 'Anytime', 'Evening'];
 
 // "From your tools" catalog (matches the prototype Add sheet).
 const TOOL_CATALOG: Template[] = [
-  { label: 'Say a prayer', icon: 'pray', color: 'amber', action: 'prayer' },
+  { label: 'Morning Prayer', icon: 'pray', color: 'amber', action: 'prayerMorning' },
+  { label: 'Evening Prayer', icon: 'pray', color: 'amber', action: 'prayerEvening' },
   { label: 'Write my Gratitude List', icon: 'heart', color: 'amber', action: 'gratitude' },
   { label: 'Read the literature', icon: 'library', color: 'teal', action: 'lit' },
   { label: 'Nightly Review', icon: 'moon', color: 'lavender', action: 'nightly' },
@@ -59,8 +60,13 @@ function EditRow({ item, onGear, onRemove }: { item: DailyItem; onGear: () => vo
     <View style={styles.editRow}>
       <Medallion icon={item.icon} tone={item.color} soft />
       <View style={styles.editRowText}>
-        <Text style={styles.editRowLabel} numberOfLines={2}>{item.label}</Text>
-        {item.custom && <Text style={styles.customBadge}>CUSTOM</Text>}
+        <View style={styles.editRowTitleRow}>
+          <Text style={styles.editRowLabel} numberOfLines={2}>{item.label}</Text>
+          {item.custom && <Text style={styles.customBadge}>CUSTOM</Text>}
+        </View>
+        {resolveSubtitle(item.action) ? (
+          <Text style={styles.editRowSub} numberOfLines={1}>{resolveSubtitle(item.action)}</Text>
+        ) : null}
       </View>
       <Pressable hitSlop={6} style={styles.gearBtn} onPress={onGear}>
         <Settings size={17} color="#4A4A5E" strokeWidth={2} />
@@ -97,8 +103,13 @@ function AddSheet({ section, onClose, onAdd, onCreate }: { section: WhenBucket; 
             <Text style={styles.groupLabel}>FROM YOUR TOOLS</Text>
             {TOOL_CATALOG.map((t) => (
               <Pressable key={t.action} style={styles.addRow} onPress={() => onAdd(t)}>
-                <Medallion icon={t.icon} tone={t.color} />
-                <Text style={styles.addRowName}>{t.label}</Text>
+                <Medallion icon={t.icon} tone={t.color} soft />
+                <View style={styles.addRowText}>
+                  <Text style={styles.addRowName}>{t.label}</Text>
+                  {resolveSubtitle(t.action) ? (
+                    <Text style={styles.editRowSub} numberOfLines={1}>{resolveSubtitle(t.action)}</Text>
+                  ) : null}
+                </View>
                 <View style={styles.addPlus}>
                   <Plus size={16} color={colors.primary} strokeWidth={2.4} />
                 </View>
@@ -108,8 +119,13 @@ function AddSheet({ section, onClose, onAdd, onCreate }: { section: WhenBucket; 
             <Text style={styles.groupLabel}>QUICK ACTIONS · NO TOOL, JUST CHECK OFF</Text>
             {QUICK_CATALOG.map((t) => (
               <Pressable key={t.action} style={styles.addRow} onPress={() => onAdd(t)}>
-                <Medallion icon={t.icon} tone={t.color} />
-                <Text style={styles.addRowName}>{t.label}</Text>
+                <Medallion icon={t.icon} tone={t.color} soft />
+                <View style={styles.addRowText}>
+                  <Text style={styles.addRowName}>{t.label}</Text>
+                  {resolveSubtitle(t.action) ? (
+                    <Text style={styles.editRowSub} numberOfLines={1}>{resolveSubtitle(t.action)}</Text>
+                  ) : null}
+                </View>
                 <View style={styles.addPlus}>
                   <Plus size={16} color={colors.primary} strokeWidth={2.4} />
                 </View>
@@ -369,8 +385,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row', alignItems: 'center', gap: 12,
     backgroundColor: colors.white, borderRadius: 16, paddingVertical: 12, paddingHorizontal: 14, marginBottom: 10, ...shadows.sm,
   },
-  editRowText: { flex: 1, minWidth: 0, flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap' },
+  editRowText: { flex: 1, minWidth: 0 },
+  editRowTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap' },
   editRowLabel: { fontFamily: fontFamily.semiBold, fontSize: fontSize.lg, color: '#2B2A30' },
+  editRowSub: { fontFamily: fontFamily.regular, fontSize: 12, color: '#8A8A9A', marginTop: 2 },
   customBadge: { fontFamily: fontFamily.bold, fontSize: 9.5, letterSpacing: 0.6, color: '#7A4A1F', backgroundColor: '#F6E5C8', paddingHorizontal: 7, paddingVertical: 2, borderRadius: radii.full, overflow: 'hidden' },
   gearBtn: { width: 34, height: 34, borderRadius: 17, backgroundColor: '#EFEBE1', alignItems: 'center', justifyContent: 'center' },
   removeBtn: { width: 24, height: 24, borderRadius: 12, backgroundColor: '#C9462E', alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: colors.white },
@@ -406,7 +424,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row', alignItems: 'center', gap: 12, marginHorizontal: 22, marginBottom: 10,
     backgroundColor: colors.white, borderRadius: 16, paddingVertical: 12, paddingHorizontal: 14, ...shadows.sm,
   },
-  addRowName: { flex: 1, fontFamily: fontFamily.semiBold, fontSize: fontSize.lg, color: '#2B2A30' },
+  addRowText: { flex: 1 },
+  addRowName: { fontFamily: fontFamily.semiBold, fontSize: fontSize.lg, color: '#2B2A30' },
   addPlus: { width: 32, height: 32, borderRadius: 16, borderWidth: 1.5, borderColor: colors.primary, alignItems: 'center', justifyContent: 'center' },
   createRow: {
     flexDirection: 'row', alignItems: 'center', gap: 12, marginHorizontal: 22,

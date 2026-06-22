@@ -14,7 +14,7 @@ import { useRouter, type Href } from 'expo-router';
 import { BookOpen, Check, SlidersHorizontal } from 'lucide-react-native';
 
 import { colors, fontFamily, fontSize, spacing, radii, shadows, getSemanticColors } from '@/constants/designTokens';
-import { ROW_TONES, resolveGlyph, resolveTone } from '@/components/dailyTokens';
+import { ROW_TONES, resolveGlyph, resolveTone, resolveSubtitle } from '@/components/dailyTokens';
 import { useScreenTimeTracking } from '@/hooks/useScreenTimeTracking';
 import { useDailies, type DailyItem, type WhenBucket } from '@/hooks/use-dailies-store';
 import { useReflectionHeroImage } from '@/hooks/useReflectionHeroImage';
@@ -30,7 +30,6 @@ const MARK_ON_SAVE = new Set(['gratitude', 'journal', 'spotcheck', 'nightly', 'm
 const ACTION_ROUTE: Record<string, Href | null> = {
   prayerMorning: '/(main)/prayers',
   prayerEvening: '/(main)/prayers',
-  prayer: '/(main)/prayers',
   gratitude: '/(main)/gratitude',
   journal: null,
   spotcheck: '/(main)/inventory',
@@ -85,7 +84,12 @@ function DailyRow({ item, done, onOpen, onToggle }: { item: DailyItem; done: boo
         <View style={[styles.medallion, { backgroundColor: tone.ink, shadowColor: tone.ink }]}>
           <Glyph size={20} color="#fff" />
         </View>
-        <Text style={styles.rowLabel} numberOfLines={2}>{item.label}</Text>
+        <View style={styles.rowText}>
+          <Text style={styles.rowLabel} numberOfLines={2}>{item.label}</Text>
+          {resolveSubtitle(item.action) ? (
+            <Text style={styles.rowSub} numberOfLines={1}>{resolveSubtitle(item.action)}</Text>
+          ) : null}
+        </View>
       </Pressable>
       <RightCheck done={done} color={tone.ink} onPress={onToggle} />
     </View>
@@ -123,7 +127,10 @@ function ReflectionHero({ title, imageUri, alt, done, onRead, onToggle }: { titl
           <View style={[styles.medallion, { backgroundColor: teal.ink, shadowColor: teal.ink }]}>
             <BookOpen size={20} color="#fff" />
           </View>
-          <Text style={styles.rowLabel}>Daily Reflection</Text>
+          <View style={styles.rowText}>
+            <Text style={styles.rowLabel}>Daily Reflection</Text>
+            <Text style={styles.rowSub} numberOfLines={1}>{resolveSubtitle('reflection')}</Text>
+          </View>
         </Pressable>
         <RightCheck done={done} color={teal.ink} onPress={onToggle} />
       </View>
@@ -139,9 +146,13 @@ export default function TodayScreen() {
   const [reflection, setReflection] = useState<Reflection | null>(null);
   useScreenTimeTracking('Today');
 
+  // Refetch the reflection whenever the local day rolls over (dailies.dayKey
+  // updates on app-foreground + each minute), so Today shows the new day's
+  // reflection without a relaunch. The date label + hero image recompute on the
+  // same re-render.
   useEffect(() => {
     getTodaysReflection().then(setReflection).catch((e) => console.error('[today] reflection', e));
-  }, []);
+  }, [dailies.dayKey]);
 
   const dateLabel = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
 
@@ -253,7 +264,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     paddingVertical: 12,
     paddingHorizontal: 14,
-    marginBottom: 8,
+    marginBottom: 12,
     gap: 12,
     ...shadows.sm,
   },
@@ -269,7 +280,9 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 3 },
     elevation: 3,
   },
-  rowLabel: { flex: 1, fontFamily: fontFamily.semiBold, fontSize: fontSize.lg, lineHeight: 20 },
+  rowText: { flex: 1 },
+  rowLabel: { fontFamily: fontFamily.semiBold, fontSize: fontSize.lg, lineHeight: 20 },
+  rowSub: { fontFamily: fontFamily.regular, fontSize: 12, color: '#8A8A9A', marginTop: 2 },
 
   check: {
     width: 26,
@@ -281,7 +294,7 @@ const styles = StyleSheet.create({
   },
 
   // reflection hero
-  hero: { borderRadius: 16, borderWidth: 1, backgroundColor: colors.white, overflow: 'hidden', marginBottom: 8, ...shadows.sm },
+  hero: { borderRadius: 16, borderWidth: 1, backgroundColor: colors.white, overflow: 'hidden', marginBottom: 12, ...shadows.sm },
   heroCover: { height: 150, justifyContent: 'flex-end', overflow: 'hidden' },
   heroPill: {
     position: 'absolute',

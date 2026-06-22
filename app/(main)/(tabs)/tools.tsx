@@ -62,7 +62,7 @@ const SECTIONS: { title: string; tools: ToolDef[] }[] = [
   {
     title: 'Reflect & learn',
     tools: [
-      { id: 'prayers', name: 'Prayers', sub: 'Daily prayers', tone: TONE.amber, Icon: HandsPraying, route: '/(main)/prayers' },
+      { id: 'prayers', name: 'Prayers', sub: 'Essential prayers', tone: TONE.amber, Icon: HandsPraying, route: '/(main)/prayers' },
       { id: 'meditation', name: 'Meditation', sub: '11th step', tone: TONE.lavender, Icon: FlowerLotus, route: '/(main)/meditation' },
     ],
   },
@@ -71,7 +71,7 @@ const SECTIONS: { title: string; tools: ToolDef[] }[] = [
     tools: [
       { id: 'journal', name: 'Journal', sub: 'Free writing', tone: TONE.blue, Icon: NotebookPen, route: null },
       { id: 'gratitude', name: 'Gratitude', sub: 'Three things', tone: TONE.amber, Icon: Heart, route: '/(main)/gratitude' },
-      { id: 'spotcheck', name: 'Spot Check Inventory', sub: 'In the moment', tone: TONE.coral, Icon: CircleCheck, route: '/(main)/inventory' },
+      { id: 'spotcheck', name: 'Spot Check Inventory', sub: 'Practice pause', tone: TONE.coral, Icon: CircleCheck, route: '/(main)/inventory' },
       { id: 'nightly', name: 'Nightly Review', sub: '10th step', tone: TONE.lavender, Icon: Moon, route: '/(main)/evening-review' },
     ],
   },
@@ -135,7 +135,7 @@ export default function ToolsScreen() {
             <Image source={require('@/assets/images/speakers_hero2.webp')} style={styles.heroSmallPhoto} resizeMode="cover" />
             <View style={styles.heroSmallCaption}>
               <Text style={[styles.heroSmallName, { color: c.text }]}>Speaker Tapes</Text>
-              <Text style={[styles.heroSub, { color: c.textMuted }]}>AA talks library</Text>
+              <Text style={[styles.heroSub, { color: c.textMuted }]}>AA talks</Text>
             </View>
           </Pressable>
 

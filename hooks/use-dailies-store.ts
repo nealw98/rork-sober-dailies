@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
+import { AppState } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import createContextHook from '@nkzw/create-context-hook';
 
@@ -66,6 +67,17 @@ export const [DailiesProvider, useDailies] = createContextHook(() => {
   const [program, setProgram] = useState<DailyItem[]>(DEFAULT_PROGRAM);
   const [completion, setCompletion] = useState<Record<string, DayCompletion>>({});
   const [isLoading, setIsLoading] = useState(true);
+  // The current local day. Kept fresh so checkmarks (and the Today reflection)
+  // roll over at the user's midnight — on app-foreground and once a minute —
+  // without needing a relaunch.
+  const [dayKey, setDayKey] = useState(getTodayDateString());
+
+  useEffect(() => {
+    const sync = () => setDayKey((prev) => { const now = getTodayDateString(); return now !== prev ? now : prev; });
+    const sub = AppState.addEventListener('change', (s) => { if (s === 'active') sync(); });
+    const id = setInterval(sync, 60_000);
+    return () => { sub.remove(); clearInterval(id); };
+  }, []);
 
   useEffect(() => {
     (async () => {
@@ -138,11 +150,11 @@ export const [DailiesProvider, useDailies] = createContextHook(() => {
   const setAll = useCallback((items: DailyItem[]) => persistProgram(items), [persistProgram]);
 
   // ── Completion (today) ───────────────────────────────────────────────
-  const todayDone = completion[getTodayDateString()] ?? EMPTY_DAY;
+  const todayDone = completion[dayKey] ?? EMPTY_DAY;
 
   const isDone = useCallback(
-    (id: string) => (completion[getTodayDateString()]?.done ?? []).includes(id),
-    [completion],
+    (id: string) => (completion[dayKey]?.done ?? []).includes(id),
+    [completion, dayKey],
   );
 
   const toggleDone = useCallback(
@@ -202,9 +214,10 @@ export const [DailiesProvider, useDailies] = createContextHook(() => {
       setReflectionDone,
       toggleReflection,
       reflectionStreak,
+      dayKey,
       doneCount,
       totalCount,
     }),
-    [program, isLoading, section, addDaily, removeDaily, setWhen, renameDaily, setAll, isDone, toggleDone, markDone, todayDone.reflection, setReflectionDone, toggleReflection, reflectionStreak, doneCount, totalCount],
+    [program, isLoading, section, addDaily, removeDaily, setWhen, renameDaily, setAll, isDone, toggleDone, markDone, todayDone.reflection, setReflectionDone, toggleReflection, reflectionStreak, dayKey, doneCount, totalCount],
   );
 });
