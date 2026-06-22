@@ -1,29 +1,41 @@
-import { useEffect, useState, useCallback, useRef } from "react";
-import { StyleSheet, Text, View, ScrollView, TouchableOpacity, Modal, Platform, Share, AppState, AppStateStatus, ImageBackground, Dimensions, PanResponder } from "react-native";
-import { ChevronLeft, ChevronRight, Upload } from "lucide-react-native";
-import AsyncStorage from "@react-native-async-storage/async-storage";
-import DateTimePicker from '@react-native-community/datetimepicker';
-import { useFocusEffect, useRouter } from 'expo-router';
-import { useHamburgerMenu } from '@/hooks/useHamburgerMenu';
-import { LinearGradient } from 'expo-linear-gradient';
-import { BlurView } from 'expo-blur';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-
-import Colors from "@/constants/colors";
-import { getReflectionForDate } from "@/constants/reflections";
-import { Reflection } from "@/types";
-import { adjustFontWeight } from "@/constants/fonts";
-import { recordDailyReflectionDay } from "@/lib/reviewPrompt";
-import { useTheme } from "@/hooks/useTheme";
+// Daily Reflection — reading page (redesign 3.0). Per the design handoff
+// (design_handoff_daily_reflection): photographic hero, the day's pull-quote
+// (Lora italic) + reflection (Lora roman), a separate Meditation tile, a Done
+// strip (shown only when today's reflection is read), and copyright. No audio,
+// no in-reader "Mark as read" CTA (that's done from the Today checklist).
+// Bookmarks were intentionally cut. Reflection text + date come from Supabase
+// (constants/reflections.ts); the hero is a fixed bundled photo.
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import {
-  colors,
-  semanticColors,
-  spacing,
-  radii,
-  fontFamily,
-  fontSize as fontSizeTokens,
-  shadows,
-} from '@/constants/designTokens';
+  View, Text, ScrollView, Pressable, StyleSheet, Modal, Share, Platform,
+  AppState, AppStateStatus, PanResponder,
+} from 'react-native';
+import { Image } from 'expo-image';
+import { LinearGradient } from 'expo-linear-gradient';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useRouter } from 'expo-router';
+import { ChevronLeft, ChevronRight, MoreHorizontal, Share2, Calendar, Sparkles, Check } from 'lucide-react-native';
+
+import BackButton from '@/components/BackButton';
+import { getReflectionForDate } from '@/constants/reflections';
+import { Reflection } from '@/types';
+import { recordDailyReflectionDay } from '@/lib/reviewPrompt';
+import { useDailies } from '@/hooks/use-dailies-store';
+import { useTextSettings } from '@/hooks/use-text-settings';
+import { colors, fontFamily, getSemanticColors } from '@/constants/designTokens';
+
+const c = getSemanticColors('light');
+const HERO = require('../assets/images/reflection_bg2.webp');
+const WEEKDAYS = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
+const SIZE_BUCKETS: { k: string; size: number }[] = [
+  { k: 'S', size: 14 }, { k: 'M', size: 18 }, { k: 'L', size: 24 }, { k: 'XL', size: 30 },
+];
+
+const isSameDay = (a: Date, b: Date) =>
+  a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
+const dayOfYear = (d: Date) => Math.floor((d.getTime() - new Date(d.getFullYear(), 0, 0).getTime()) / 86400000);
+const heroDate = (d: Date) =>
+  `${d.toLocaleDateString('en-US', { weekday: 'long' })} · ${d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`;
 
 interface DailyReflectionProps {
   fontSize?: number;
@@ -32,720 +44,351 @@ interface DailyReflectionProps {
   onJumpApplied?: () => void;
 }
 
-const isSameDay = (date1: Date, date2: Date): boolean => {
-  return date1.getFullYear() === date2.getFullYear() &&
-         date1.getMonth() === date2.getMonth() &&
-         date1.getDate() === date2.getDate();
-};
-
-const generateCalendarDays = (date: Date) => {
-  const year = date.getFullYear();
-  const month = date.getMonth();
-  const firstDay = new Date(year, month, 1);
-  const lastDay = new Date(year, month + 1, 0);
-  const firstDayOfWeek = firstDay.getDay();
-  const daysFromPrevMonth = firstDayOfWeek;
-  const daysInMonth = lastDay.getDate();
-  const totalDays = daysFromPrevMonth + daysInMonth;
-  const rows = Math.ceil(totalDays / 7);
-  const totalCells = rows * 7;
-  const days = [];
-
-  const prevMonth = new Date(year, month, 0);
-  const prevMonthDays = prevMonth.getDate();
-
-  for (let i = 0; i < daysFromPrevMonth; i++) {
-    const day = prevMonthDays - daysFromPrevMonth + i + 1;
-    days.push({ date: new Date(year, month - 1, day), day, currentMonth: false });
-  }
-  for (let i = 1; i <= daysInMonth; i++) {
-    days.push({ date: new Date(year, month, i), day: i, currentMonth: true });
-  }
-  const remainingCells = totalCells - days.length;
-  for (let i = 1; i <= remainingCells; i++) {
-    days.push({ date: new Date(year, month + 1, i), day: i, currentMonth: false });
-  }
-  return days;
-};
-
-const HERO_HEIGHT = 400;
-
 export default function DailyReflection({ fontSize = 18, lineHeight, jumpToDate = null, onJumpApplied }: DailyReflectionProps) {
-  const effectiveLineHeight = lineHeight ?? fontSize * 1.6;
-  const { palette } = useTheme();
-  const sem = semanticColors.light;
-  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
-  const [reflection, setReflection] = useState<Reflection | null>(null);
+  const readSize = fontSize;
+  const readLine = lineHeight ?? fontSize * 1.6;
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const [showDatePicker, setShowDatePicker] = useState<boolean>(false);
-  const [dateString, setDateString] = useState<string>("");
-  const [calendarDays, setCalendarDays] = useState<any[]>([]);
-  const [calendarDate, setCalendarDate] = useState<Date>(new Date());
-  const [isLoading, setIsLoading] = useState<boolean>(true);
-  const lastShownDateRef = useRef<Date>(new Date());
-  const { open: openMenu } = useHamburgerMenu();
+  const dailies = useDailies();
+  const { setFontSize } = useTextSettings();
+
+  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+  const [reflection, setReflection] = useState<Reflection | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [sheet, setSheet] = useState<null | 'calendar' | 'display'>(null);
+  const [calendarMonth, setCalendarMonth] = useState<Date>(new Date());
 
   const isToday = isSameDay(selectedDate, new Date());
 
+  const navigateDate = useCallback((dir: 'prev' | 'next') => {
+    setSelectedDate((prev) => {
+      const d = new Date(prev);
+      d.setDate(d.getDate() + (dir === 'prev' ? -1 : 1));
+      return d;
+    });
+  }, []);
+
   const panResponder = useRef(
     PanResponder.create({
-      onMoveShouldSetPanResponder: (_, gestureState) => {
-        return Math.abs(gestureState.dx) > 50 && Math.abs(gestureState.dy) < 20 && Math.abs(gestureState.dx) > Math.abs(gestureState.dy) * 3;
+      onMoveShouldSetPanResponder: (_, g) =>
+        Math.abs(g.dx) > 50 && Math.abs(g.dy) < 20 && Math.abs(g.dx) > Math.abs(g.dy) * 3,
+      onPanResponderRelease: (_, g) => {
+        if (g.dx > 50) navigateDate('prev');
+        else if (g.dx < -50) navigateDate('next');
       },
-      onPanResponderRelease: (_, gestureState) => {
-        if (gestureState.dx > 50) {
-          navigateDate('prev');
-        } else if (gestureState.dx < -50) {
-          navigateDate('next');
-        }
-      },
-    })
+    }),
   ).current;
 
-  useFocusEffect(
-    useCallback(() => {
-      lastShownDateRef.current = selectedDate;
-      return () => {};
-    }, [])
-  );
-
+  // Reflection text for the selected day (Supabase, by day_of_year).
   useEffect(() => {
-    const handleAppStateChange = (nextAppState: AppStateStatus) => {
-      if (nextAppState === 'active') {
-        const today = new Date();
-        if (!isSameDay(selectedDate, today)) {
-          setSelectedDate(today);
-        }
-      }
-    };
-    const subscription = AppState.addEventListener('change', handleAppStateChange);
-    return () => { subscription.remove(); };
+    let alive = true;
+    setIsLoading(true);
+    getReflectionForDate(selectedDate)
+      .then((r) => { if (alive) setReflection(r); })
+      .catch((e) => console.error('Error updating reflection:', e))
+      .finally(() => { if (alive) setIsLoading(false); });
+    return () => { alive = false; };
   }, [selectedDate]);
 
-  useEffect(() => { updateReflection(selectedDate); }, [selectedDate]);
+  // Returning to the app on a new day snaps back to today.
+  useEffect(() => {
+    const sub = AppState.addEventListener('change', (s: AppStateStatus) => {
+      if (s === 'active' && !isSameDay(selectedDate, new Date())) setSelectedDate(new Date());
+    });
+    return () => sub.remove();
+  }, [selectedDate]);
 
   useEffect(() => {
-    if (jumpToDate) {
-      setSelectedDate(jumpToDate);
-      onJumpApplied?.();
-    }
+    recordDailyReflectionDay(selectedDate).catch((e) => console.warn('[reviewPrompt] record failed', e));
+  }, [selectedDate]);
+
+  useEffect(() => {
+    if (jumpToDate) { setSelectedDate(jumpToDate); onJumpApplied?.(); }
   }, [jumpToDate, onJumpApplied]);
 
-  useEffect(() => {
-    recordDailyReflectionDay(selectedDate).catch((error) => {
-      console.warn('[reviewPrompt] Failed to record daily reflection day', error);
-    });
-  }, [selectedDate]);
-
-  useEffect(() => {
-    if (showDatePicker) {
-      setCalendarDays(generateCalendarDays(calendarDate));
-    }
-  }, [showDatePicker, calendarDate]);
-
-  const updateReflection = async (date: Date) => {
-    setIsLoading(true);
-    const options: Intl.DateTimeFormatOptions = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
-    setDateString(date.toLocaleDateString(undefined, options));
-    try {
-      const dateReflection = await getReflectionForDate(date);
-      setReflection(dateReflection);
-    } catch (error) {
-      console.error('Error updating reflection:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const shareReflection = async () => {
+  const shareReflection = useCallback(async () => {
     if (!reflection) return;
-    try {
-      const shareContent = `${reflection.title}\n\n"${reflection.quote}"\n\n${reflection.source}\n\n${reflection.reflection}\n\nMeditation:\n${reflection.thought}`;
-      await Share.share({ message: shareContent, title: reflection.title });
-    } catch (error) {
-      console.error('Error sharing reflection:', error);
-    }
-  };
+    const body = `${reflection.title}\n\n"${reflection.quote}"\n\n${reflection.source}\n\n${reflection.reflection}\n\nMeditation:\n${reflection.thought}`;
+    try { await Share.share({ message: body, title: reflection.title }); }
+    catch (e) { console.error('Error sharing reflection:', e); }
+  }, [reflection]);
 
-  const navigateDate = (direction: 'prev' | 'next') => {
-    setSelectedDate(prevDate => {
-      const updatedDate = new Date(prevDate);
-      if (direction === 'prev') {
-        updatedDate.setDate(updatedDate.getDate() - 1);
-      } else {
-        updatedDate.setDate(updatedDate.getDate() + 1);
-      }
-      lastShownDateRef.current = updatedDate;
-      return updatedDate;
-    });
-  };
+  const pickCalendarDay = (d: Date) => { setSelectedDate(d); setSheet(null); };
 
-  const handleDateChange = (event: any, date?: Date) => {
-    if (Platform.OS === 'android') {
-      setShowDatePicker(false);
-      if (event?.type !== 'set') return;
-    }
-    if (date) {
-      setSelectedDate(date);
-      lastShownDateRef.current = date;
-      if (Platform.OS === 'ios') {
-        setShowDatePicker(false);
-      }
-    }
-  };
-
-  const openDatePicker = () => {
-    setCalendarDate(new Date(selectedDate));
-    setShowDatePicker(true);
-  };
-
-  const closeDatePicker = () => { setShowDatePicker(false); };
-
-  const changeCalendarMonth = (direction: 'prev' | 'next') => {
-    setCalendarDate(prevDate => {
-      const updatedDate = new Date(prevDate);
-      if (direction === 'prev') {
-        updatedDate.setMonth(updatedDate.getMonth() - 1);
-      } else {
-        updatedDate.setMonth(updatedDate.getMonth() + 1);
-      }
-      return updatedDate;
-    });
-  };
-
-  const selectCalendarDay = (date: Date) => {
-    setSelectedDate(date);
-    lastShownDateRef.current = date;
-    closeDatePicker();
-  };
-
-  if (isLoading) {
-    return (
-      <View style={styles.loadingContainer}>
-        <Text style={[styles.loadingText, { color: palette.muted }]}>Loading reflection...</Text>
-      </View>
-    );
-  }
-
-  if (!reflection) {
-    return (
-      <View style={styles.loadingContainer}>
-        <Text style={[styles.loadingText, { color: palette.muted }]}>Unable to load reflection</Text>
-      </View>
-    );
-  }
-
-  const monthDay = selectedDate.toLocaleDateString('en-US', { month: 'long', day: 'numeric' });
-
-  const renderCalendarView = () => {
-    const weekDays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-    const monthYear = calendarDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
-
-    return (
-      <View style={[styles.calendarContainer, { backgroundColor: palette.background }]}>
-        <View style={styles.calendarHeader}>
-          <TouchableOpacity onPress={() => changeCalendarMonth('prev')} activeOpacity={0.7} hitSlop={{ top: 15, bottom: 15, left: 15, right: 15 }}>
-            <ChevronLeft size={24} color={colors.secondary} />
-          </TouchableOpacity>
-          <Text style={[styles.calendarMonthYear, { color: sem.text }]}>{monthYear}</Text>
-          <TouchableOpacity onPress={() => changeCalendarMonth('next')} activeOpacity={0.7} hitSlop={{ top: 15, bottom: 15, left: 15, right: 15 }}>
-            <ChevronRight size={24} color={colors.secondary} />
-          </TouchableOpacity>
-        </View>
-        <View style={styles.weekDaysContainer}>
-          {weekDays.map((day, index) => (
-            <Text key={index} style={[styles.weekDayText, { color: sem.textMuted }]}>{day}</Text>
-          ))}
-        </View>
-        <View style={styles.daysContainer}>
-          {calendarDays.map((item, index) => {
-            const isSelected = selectedDate.getDate() === item.date.getDate() && selectedDate.getMonth() === item.date.getMonth() && selectedDate.getFullYear() === item.date.getFullYear();
-            const isCalToday = new Date().getDate() === item.date.getDate() && new Date().getMonth() === item.date.getMonth() && new Date().getFullYear() === item.date.getFullYear();
-            const isTodayAndSelected = isCalToday && isSelected;
-            return (
-              <TouchableOpacity
-                key={index}
-                style={[
-                  styles.dayButton,
-                  !item.currentMonth && styles.otherMonthDay,
-                  isSelected && !isCalToday && { backgroundColor: colors.tertiary, borderRadius: 20 },
-                  isCalToday && !isSelected && { borderWidth: 2, borderColor: colors.secondary, borderRadius: 20 },
-                  isTodayAndSelected && { backgroundColor: colors.secondary, borderRadius: 20 }
-                ]}
-                onPress={() => selectCalendarDay(item.date)}
-                activeOpacity={0.7}
-                hitSlop={{ top: 5, bottom: 5, left: 5, right: 5 }}
-              >
-                <Text style={[
-                  styles.dayText,
-                  { color: sem.text },
-                  !item.currentMonth && { color: sem.textMuted, opacity: 0.4 },
-                  (isSelected || isTodayAndSelected) && { color: 'white', fontWeight: '600' },
-                  isCalToday && !isSelected && { color: colors.secondary, fontWeight: '600' }
-                ]}>
-                  {item.day}
-                </Text>
-              </TouchableOpacity>
-            );
-          })}
-        </View>
-        <View style={styles.calendarFooter}>
-          <TouchableOpacity
-            style={[styles.footerButton, { backgroundColor: sem.surface }]}
-            onPress={() => { const today = new Date(); setSelectedDate(today); setCalendarDate(today); closeDatePicker(); }}
-            activeOpacity={0.7}
-          >
-            <Text style={[styles.todayButtonText, { color: colors.secondary }]}>Today</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.footerButton, { backgroundColor: sem.surface }]}
-            onPress={closeDatePicker}
-            activeOpacity={0.7}
-          >
-            <Text style={[styles.cancelButtonText, { color: sem.textMuted }]}>Cancel</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
-    );
-  };
+  const showDone = isToday && dailies.reflectionDone;
+  const streak = showDone ? dailies.reflectionStreak() : 0;
 
   return (
-    <View style={[styles.container, { backgroundColor: sem.background }]}>
-      {/* ── Floating Pill Nav — sticky at top ── */}
-      <View style={[styles.pillWrapper, { top: insets.top + 8 }]}>
-        <BlurView intensity={40} tint="extraLight" style={styles.pillBar}>
-          {/* Jewel edge catch light */}
-          <View style={styles.pillBorderOverlay} />
-
-          {/* Left: Back */}
-          <TouchableOpacity onPress={() => router.back()} style={styles.pillBtn} activeOpacity={0.7}>
-            <ChevronLeft size={20} color={sem.text} strokeWidth={2} />
-          </TouchableOpacity>
-
-          {/* Center: Nav cluster */}
-          <View style={styles.pillNavCluster}>
-            <TouchableOpacity onPress={() => navigateDate('prev')} style={styles.pillNavArrow} activeOpacity={0.7}>
-              <ChevronLeft size={16} color={sem.text} strokeWidth={2} />
-            </TouchableOpacity>
-            <TouchableOpacity onPress={openDatePicker} activeOpacity={0.7} style={styles.pillDateBtn}>
-              <Text style={[styles.pillDateText, { color: sem.text }]}>{monthDay}</Text>
-            </TouchableOpacity>
-            <TouchableOpacity onPress={() => navigateDate('next')} style={styles.pillNavArrow} activeOpacity={0.7}>
-              <ChevronRight size={16} color={sem.text} strokeWidth={2} />
-            </TouchableOpacity>
-          </View>
-
-          {/* Right: Share */}
-          <TouchableOpacity onPress={shareReflection} style={styles.pillBtn} activeOpacity={0.7}>
-            <Upload size={18} color={sem.text} strokeWidth={2} />
-          </TouchableOpacity>
-        </BlurView>
+    <SafeAreaView style={styles.screen} edges={['top']}>
+      {/* Top bar */}
+      <View style={styles.topBar}>
+        <BackButton onPress={() => router.back()} />
+        <Pressable onPress={() => setMenuOpen(true)} accessibilityLabel="More" style={[styles.iconBtn, menuOpen && styles.iconBtnActive]}>
+          <MoreHorizontal size={20} color={menuOpen ? colors.primary : c.textSecondary} />
+        </Pressable>
       </View>
 
-      <ScrollView style={styles.scrollContainer} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false} {...panResponder.panHandlers}>
+      {/* Date pill row */}
+      <View style={styles.dateRow}>
+        <Pressable hitSlop={8} onPress={() => navigateDate('prev')} style={styles.dateChev}>
+          <ChevronLeft size={18} color={colors.primary} />
+        </Pressable>
+        <Pressable style={styles.dateBtn} accessibilityLabel="Pick a date" onPress={() => { setCalendarMonth(new Date(selectedDate)); setSheet('calendar'); }}>
+          <Calendar size={18} color={colors.primary} strokeWidth={2} />
+        </Pressable>
+        <Pressable hitSlop={8} onPress={() => navigateDate('next')} style={styles.dateChev}>
+          <ChevronRight size={18} color={colors.primary} />
+        </Pressable>
+      </View>
 
-        {/* ── Full-Bleed Hero Image ── */}
-        <View style={styles.heroContainer}>
-          <ImageBackground
-            source={require('@/assets/reflections_images/reflection_bg7.webp')}
-            style={styles.heroImage}
-            resizeMode="cover"
-          >
-            <LinearGradient
-              colors={['transparent', 'transparent', sem.background]}
-              locations={[0, 0.6, 1]}
-              style={styles.heroFade}
-              start={{ x: 0.5, y: 0 }}
-              end={{ x: 0.5, y: 1 }}
-            />
-          </ImageBackground>
-        </View>
-
-        {/* Title — first element on white background */}
-        <View style={styles.titleBlock}>
-          <Text style={styles.title}>{reflection.title.replace(/\w\S*/g, (txt: string) => txt.charAt(0).toUpperCase() + txt.substring(1).toLowerCase())}</Text>
-        </View>
-
-        {/* Decorative separator */}
-        <View style={styles.titleSeparator}>
-          <View style={styles.titleSeparatorLine} />
-        </View>
-
-        {/* ── Content ── */}
-        <View style={styles.contentCard}>
-          {/* Quote */}
-          <View style={styles.quoteBlock}>
-            <View style={styles.quoteBorder} />
-            <Text style={[styles.quoteText, { fontSize, lineHeight: effectiveLineHeight, color: '#5B6370' }]}>
-              {reflection.quote}
-            </Text>
-          </View>
-
-          <Text style={[styles.source, { fontSize: 13, color: sem.textMuted }]}>{reflection.source}</Text>
-
-          {/* Reflection body */}
-          <Text style={[styles.reflectionText, { fontSize, lineHeight: effectiveLineHeight, color: sem.text }]}>
-            {reflection.reflection}
-          </Text>
-
-          <View style={[styles.divider, { backgroundColor: sem.border }]} />
-
-          {/* Meditation */}
-          <View style={styles.meditationTile}>
-            <Text style={styles.thoughtTitle}>MEDITATION</Text>
-            <Text style={[styles.thought, { fontSize, lineHeight: fontSize * 1.45, color: 'rgba(26, 58, 74, 0.9)' }]}>
-              {reflection.thought}
-            </Text>
+      <ScrollView
+        style={styles.flex}
+        contentContainerStyle={styles.scroll}
+        showsVerticalScrollIndicator={false}
+        {...panResponder.panHandlers}
+      >
+        {/* Hero */}
+        <View style={styles.hero}>
+          <LinearGradient colors={[colors.primary, colors.secondary]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFill} />
+          <Image source={HERO} style={StyleSheet.absoluteFill} contentFit="cover" />
+          <LinearGradient colors={['transparent', 'rgba(0,0,0,0.62)']} locations={[0.3, 1]} style={StyleSheet.absoluteFill} />
+          <View style={styles.heroInner}>
+            <View style={styles.heroChip}><Text style={styles.heroChipText}>DAILY REFLECTION</Text></View>
+            <View>
+              <Text style={styles.heroTitle}>{reflection?.title ?? ' '}</Text>
+              <Text style={styles.heroDate}>{heroDate(selectedDate)}</Text>
+            </View>
           </View>
         </View>
 
-        <View style={styles.copyrightContainer}>
-          <Text style={styles.copyrightText}>
-            Copyright © 1990 by Alcoholics Anonymous World Services, Inc. All rights reserved.
-          </Text>
-        </View>
+        {reflection && (
+          <>
+            {/* Pull-quote — start of the reading */}
+            <View style={styles.quoteWrap}>
+              <Text style={[styles.quote, { fontSize: readSize, lineHeight: readLine - readSize * 0.1 }]}>{reflection.quote}</Text>
+              <Text style={styles.source}>— {reflection.source}</Text>
+            </View>
+
+            {/* Reflection body */}
+            <View style={styles.bodyWrap}>
+              {reflection.reflection.split('\n\n').map((p, i) => (
+                <Text key={i} style={[styles.body, { fontSize: readSize, lineHeight: readLine, marginTop: i === 0 ? 0 : 14 }]}>{p}</Text>
+              ))}
+            </View>
+
+            {/* Meditation tile (separate, app-added section) */}
+            <View style={styles.medTile}>
+              <View style={styles.medOrb} />
+              <View style={styles.medLabelRow}>
+                <Sparkles size={11} color={colors.primaryDark} strokeWidth={2} />
+                <Text style={styles.medLabel}>MEDITATION</Text>
+              </View>
+              <Text style={styles.medText}>&ldquo;{reflection.thought}&rdquo;</Text>
+            </View>
+
+            {/* Done strip — only when today's reflection is read */}
+            {showDone && (
+              <View style={styles.doneStrip}>
+                <View style={styles.doneCheck}><Check size={18} color="#fff" strokeWidth={2.5} /></View>
+                <View style={styles.flex}>
+                  <Text style={styles.doneTitle}>Read for today</Text>
+                  <Text style={styles.doneSub}>Day {dayOfYear(selectedDate)}{streak > 1 ? ` · ${streak} day streak 🔥` : ''}</Text>
+                </View>
+              </View>
+            )}
+
+            <Text style={styles.copyright}>Copyright © 1990 by Alcoholics Anonymous World Services, Inc. All rights reserved.</Text>
+          </>
+        )}
       </ScrollView>
 
-      {/* Calendar Modal */}
-      <Modal visible={showDatePicker} transparent animationType="fade" onRequestClose={closeDatePicker}>
-        <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={closeDatePicker}>
-          <View style={[styles.modalContent, { backgroundColor: sem.background }]}>
-            <TouchableOpacity activeOpacity={1} onPress={(e) => e.stopPropagation()} style={styles.modalInnerContent}>
-              {Platform.OS === 'ios' ? renderCalendarView() : (
-                showDatePicker && <DateTimePicker value={selectedDate} mode="date" display="default" onChange={handleDateChange} />
-              )}
-            </TouchableOpacity>
-          </View>
-        </TouchableOpacity>
+      <CalendarSheet
+        visible={sheet === 'calendar'}
+        month={calendarMonth}
+        selected={selectedDate}
+        onMonth={(dir) => setCalendarMonth((m) => { const d = new Date(m); d.setMonth(d.getMonth() + (dir === 'prev' ? -1 : 1)); return d; })}
+        onPick={pickCalendarDay}
+        onToday={() => pickCalendarDay(new Date())}
+        onClose={() => setSheet(null)}
+        bottomInset={insets.bottom}
+      />
+      <DisplaySheet
+        visible={sheet === 'display'}
+        current={readSize}
+        onSize={setFontSize}
+        onClose={() => setSheet(null)}
+        bottomInset={insets.bottom}
+      />
+
+      <Modal visible={menuOpen} transparent animationType="fade" onRequestClose={() => setMenuOpen(false)}>
+        <Pressable style={styles.menuOverlay} onPress={() => setMenuOpen(false)} />
+        <View style={[styles.menu, { top: insets.top + 50 }]}>
+          <Pressable style={styles.menuRow} onPress={() => { setMenuOpen(false); shareReflection(); }}>
+            <Share2 size={17} color={c.textSecondary} />
+            <Text style={styles.menuLabel}>Share</Text>
+          </Pressable>
+          <Pressable style={styles.menuRow} onPress={() => { setMenuOpen(false); setSheet('display'); }}>
+            <Text style={styles.aA}>aA</Text>
+            <Text style={styles.menuLabel}>Text size</Text>
+          </Pressable>
+        </View>
       </Modal>
-    </View>
+    </SafeAreaView>
   );
 }
 
-// ─── Styles ──────────────────────────────────────────────────────────────────
+// ── Calendar picker sheet ──────────────────────────────────────────────
+function CalendarSheet({ visible, month, selected, onMonth, onPick, onToday, onClose, bottomInset }: {
+  visible: boolean; month: Date; selected: Date; onMonth: (d: 'prev' | 'next') => void;
+  onPick: (d: Date) => void; onToday: () => void; onClose: () => void; bottomInset: number;
+}) {
+  const year = month.getFullYear();
+  const m = month.getMonth();
+  const lead = new Date(year, m, 1).getDay();
+  const daysIn = new Date(year, m + 1, 0).getDate();
+  const cells: (number | null)[] = [...Array(lead).fill(null), ...Array.from({ length: daysIn }, (_, i) => i + 1)];
+  const today = new Date();
+  const monthLabel = `${month.toLocaleDateString('en-US', { month: 'long' })} ${year}`;
+
+  return (
+    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
+      <Pressable style={styles.sheetBackdrop} onPress={onClose} />
+      <View style={[styles.calSheet, { paddingBottom: bottomInset + 18 }]}>
+        <View style={styles.calHead}>
+          <Pressable style={styles.calNav} onPress={() => onMonth('prev')}><ChevronLeft size={16} color={colors.primary} /></Pressable>
+          <Text style={styles.calMonth}>{monthLabel}</Text>
+          <Pressable style={styles.calNav} onPress={() => onMonth('next')}><ChevronRight size={16} color={colors.primary} /></Pressable>
+        </View>
+        <View style={styles.calGrid}>
+          {WEEKDAYS.map((d, i) => <Text key={`w${i}`} style={styles.calWeekday}>{d}</Text>)}
+          {cells.map((d, i) => {
+            if (d === null) return <View key={i} style={styles.calCell} />;
+            const date = new Date(year, m, d);
+            const isSel = isSameDay(date, selected);
+            const isTod = isSameDay(date, today);
+            return (
+              <Pressable key={i} style={styles.calCell} onPress={() => onPick(date)}>
+                <View style={[styles.calDay, isSel && styles.calDaySel, isTod && !isSel && styles.calDayToday]}>
+                  <Text style={[styles.calDayText, isSel && styles.calDayTextSel, isTod && !isSel && styles.calDayTextToday]}>{d}</Text>
+                </View>
+              </Pressable>
+            );
+          })}
+        </View>
+        <View style={styles.calFoot}>
+          <Pressable onPress={onClose}><Text style={styles.calCancel}>Cancel</Text></Pressable>
+          <Pressable style={styles.calTodayBtn} onPress={onToday}><Text style={styles.calTodayText}>Today</Text></Pressable>
+        </View>
+      </View>
+    </Modal>
+  );
+}
+
+// ── Text size sheet ────────────────────────────────────────────────────
+function DisplaySheet({ visible, current, onSize, onClose, bottomInset }: {
+  visible: boolean; current: number; onSize: (n: number) => void; onClose: () => void; bottomInset: number;
+}) {
+  const selected = SIZE_BUCKETS.reduce((best, b) => (Math.abs(b.size - current) < Math.abs(best.size - current) ? b : best), SIZE_BUCKETS[0]).k;
+  return (
+    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
+      <Pressable style={styles.sheetBackdrop} onPress={onClose} />
+      <View style={[styles.dispSheet, { paddingBottom: bottomInset + 28 }]}>
+        <View style={styles.grabber} />
+        <Text style={styles.sheetLabel}>TEXT SIZE</Text>
+        <View style={styles.sizeRow}>
+          <View style={styles.sizeBtns}>
+            {SIZE_BUCKETS.map((b) => {
+              const on = b.k === selected;
+              return (
+                <Pressable key={b.k} onPress={() => onSize(b.size)} style={[styles.sizeBtn, on ? styles.sizeBtnOn : styles.sizeBtnOff]}>
+                  <Text style={[styles.sizeBtnText, { fontSize: b.k === 'S' ? 11 : b.k === 'M' ? 13 : b.k === 'L' ? 15 : 17, color: on ? '#fff' : c.textSecondary }]}>{b.k}</Text>
+                </Pressable>
+              );
+            })}
+          </View>
+        </View>
+        <Pressable style={styles.sheetCancel} onPress={onClose}><Text style={styles.sheetCancelText}>Done</Text></Pressable>
+      </View>
+    </Modal>
+  );
+}
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  scrollContainer: {
-    flex: 1,
-  },
-  scrollContent: {
-    paddingBottom: spacing.xl,
-  },
+  screen: { flex: 1, backgroundColor: c.background },
+  flex: { flex: 1 },
 
-  // ── Floating Pill Nav ──
-  pillWrapper: {
-    position: 'absolute',
-    left: spacing.lg,
-    right: spacing.lg,
-    zIndex: 100,
-    shadowColor: '#000',
-    shadowOpacity: 0.1,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 6,
-  },
-  pillBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    borderRadius: 9999,
-    paddingVertical: spacing.xs + 2,
-    paddingHorizontal: spacing.sm + 2,
-    overflow: 'hidden',
-  },
-  pillBorderOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    borderRadius: 9999,
-    borderTopWidth: 1,
-    borderTopColor: 'rgba(255, 255, 255, 0.3)',
-    borderLeftWidth: 0,
-    borderRightWidth: 0,
-    borderBottomWidth: 0,
-  },
-  pillBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  pillNavCluster: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.xs,
-  },
-  pillNavArrow: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  pillDateBtn: {
-    paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.xs,
-  },
-  pillDateText: {
-    fontFamily: 'WixMadeforDisplay_500Medium',
-    fontSize: fontSizeTokens.base,
-    color: semanticColors.light.text,
-  },
+  topBar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 14, paddingTop: 6, paddingBottom: 8 },
+  iconBtn: { width: 38, height: 38, borderRadius: 19, backgroundColor: c.surface, borderWidth: 1, borderColor: c.border, alignItems: 'center', justifyContent: 'center' },
+  iconBtnActive: { backgroundColor: colors.primarySoft, borderColor: colors.primary + '40' },
+  menuOverlay: { ...StyleSheet.absoluteFillObject },
+  menu: { position: 'absolute', right: 14, minWidth: 168, backgroundColor: c.surface, borderWidth: 1, borderColor: c.border, borderRadius: 14, padding: 6, shadowColor: '#000', shadowOpacity: 0.16, shadowRadius: 30, shadowOffset: { width: 0, height: 12 }, elevation: 8 },
+  menuRow: { flexDirection: 'row', alignItems: 'center', gap: 11, paddingHorizontal: 12, paddingVertical: 10, borderRadius: 10 },
+  menuLabel: { fontFamily: fontFamily.semiBold, fontSize: 13.5, color: c.text },
+  aA: { width: 17, textAlign: 'center', fontFamily: fontFamily.bold, fontSize: 13, color: c.textSecondary },
 
-  // ── Full-Bleed Hero ──
-  heroContainer: {
-    height: HERO_HEIGHT,
-  },
-  heroImage: {
-    ...StyleSheet.absoluteFillObject,
-    height: HERO_HEIGHT,
-  },
-  heroFade: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    bottom: 0,
-    height: HERO_HEIGHT * 0.5,
-  },
+  dateRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingTop: 4, paddingBottom: 14 },
+  dateChev: { width: 30, height: 30, alignItems: 'center', justifyContent: 'center' },
+  dateBtn: { width: 38, height: 38, borderRadius: 19, alignItems: 'center', justifyContent: 'center', backgroundColor: c.surface, borderWidth: 1, borderColor: c.border },
 
-  // ── Title ──
-  titleBlock: {
-    paddingHorizontal: spacing.lg,
-    paddingTop: 32,
-    paddingBottom: 0,
-  },
-  title: {
-    fontFamily: 'WixMadeforDisplay_700Bold',
-    fontSize: 28,
-    letterSpacing: -0.5,
-    color: '#1A3A4A',
-  },
-  titleSeparator: {
-    alignItems: 'center',
-    paddingVertical: 20,
-  },
-  titleSeparatorLine: {
-    width: 40,
-    height: 1,
-    backgroundColor: '#E5E2D9',
-  },
+  scroll: { paddingHorizontal: 20, paddingBottom: 24 },
 
-  // ── Content ──
-  contentCard: {
-    paddingHorizontal: spacing.lg,
-  },
-  quoteBlock: {
-    flexDirection: 'row',
-    alignItems: 'stretch',
-    paddingLeft: spacing.sm,
-    marginBottom: 0,
-  },
-  quoteBorder: {
-    width: 3,
-    borderRadius: 1.5,
-    backgroundColor: '#A8DEDE',
-    marginRight: spacing.md + 6,
-    marginTop: 6,
-    marginBottom: 6,
-  },
-  quoteText: {
-    flex: 1,
-    fontFamily: 'WixMadeforText_400Regular_Italic',
-  },
-  source: {
-    textAlign: 'left',
-    paddingLeft: spacing.sm + 3 + spacing.md + 6,
-    marginTop: spacing.xs,
-    marginBottom: spacing.lg,
-    fontFamily: 'WixMadeforText_400Regular',
-  },
-  divider: {
-    height: 1,
-  },
-  reflectionText: {
-    marginVertical: spacing.lg,
-    fontFamily: 'WixMadeforText_400Regular',
-  },
-  meditationTile: {
-    backgroundColor: 'rgba(168, 222, 222, 0.15)',
-    borderRadius: radii.lg,
-    borderWidth: 0.5,
-    borderColor: '#D1E6E6',
-    padding: 24,
-    marginTop: 32,
-  },
-  thoughtTitle: {
-    fontFamily: 'WixMadeforDisplay_700Bold',
-    fontSize: fontSizeTokens.sm,
-    letterSpacing: 1.2,
-    marginBottom: spacing.md,
-    color: '#1A3A4A',
-  },
-  thought: {
-    fontFamily: 'WixMadeforText_400Regular',
-  },
-  copyrightContainer: {
-    marginTop: spacing.xl,
-    paddingHorizontal: spacing.lg,
-  },
-  copyrightText: {
-    textAlign: 'center',
-    fontSize: 10,
-    fontFamily: 'WixMadeforText_400Regular',
-    color: 'rgba(0, 0, 0, 0.4)',
-    lineHeight: 14,
-  },
+  hero: { height: 168, borderRadius: 22, overflow: 'hidden', backgroundColor: colors.primary },
+  heroInner: { ...StyleSheet.absoluteFillObject, padding: 18, justifyContent: 'space-between' },
+  heroChip: { alignSelf: 'flex-start', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 999, backgroundColor: 'rgba(255,255,255,0.95)' },
+  heroChipText: { fontFamily: fontFamily.bold, fontSize: 10, letterSpacing: 1.4, color: c.text },
+  heroTitle: { fontFamily: fontFamily.display, fontSize: 30, fontWeight: '500', color: '#fff', lineHeight: 32, letterSpacing: -0.8, textShadowColor: 'rgba(0,0,0,0.45)', textShadowRadius: 12, textShadowOffset: { width: 0, height: 2 } },
+  heroDate: { fontFamily: fontFamily.regular, fontSize: 11, color: 'rgba(255,255,255,0.92)', marginTop: 6, textShadowColor: 'rgba(0,0,0,0.4)', textShadowRadius: 6, textShadowOffset: { width: 0, height: 1 } },
 
-  // ── Loading ──
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  loadingText: {
-    fontSize: 16,
-  },
+  quoteWrap: { marginTop: 32, paddingLeft: 18, borderLeftWidth: 2, borderLeftColor: colors.primary },
+  quote: { fontFamily: fontFamily.serifItalic, color: c.textSecondary, letterSpacing: -0.05 },
+  source: { fontFamily: fontFamily.semiBold, fontSize: 11, color: c.textMuted, marginTop: 10, letterSpacing: 1, textTransform: 'uppercase' },
 
-  // ── Calendar Modal ──
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'flex-end',
-  },
-  modalContent: {
-    borderTopLeftRadius: radii.lg,
-    borderTopRightRadius: radii.lg,
-    paddingBottom: Platform.OS === 'ios' ? 34 : 0,
-  },
-  modalInnerContent: {
-    width: '100%',
-  },
-  calendarContainer: {
-    borderTopLeftRadius: radii.lg,
-    borderTopRightRadius: radii.lg,
-    padding: spacing.md,
-  },
-  calendarHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: spacing.md,
-  },
-  calendarMonthYear: {
-    fontSize: 18,
-    fontFamily: fontFamily.semiBold,
-  },
-  weekDaysContainer: {
-    flexDirection: 'row',
-    marginBottom: spacing.sm,
-  },
-  weekDayText: {
-    flex: 1,
-    textAlign: 'center',
-    fontSize: 14,
-    fontFamily: fontFamily.medium,
-  },
-  daysContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    marginBottom: spacing.md,
-  },
-  dayButton: {
-    width: '14.28%',
-    aspectRatio: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginVertical: 2,
-  },
-  dayText: {
-    fontSize: 16,
-  },
-  otherMonthDay: {
-    opacity: 0.4,
-  },
-  calendarFooter: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginTop: spacing.sm,
-    paddingHorizontal: spacing.sm,
-  },
-  footerButton: {
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-    borderRadius: radii.sm,
-    alignItems: 'center',
-    justifyContent: 'center',
-    minWidth: 100,
-  },
-  todayButtonText: {
-    fontFamily: fontFamily.semiBold,
-    fontSize: 16,
-  },
-  cancelButtonText: {
-    fontFamily: fontFamily.medium,
-    fontSize: 16,
-  },
+  bodyWrap: { marginTop: 32 },
+  body: { fontFamily: fontFamily.serif, color: c.textSecondary, letterSpacing: -0.05 },
 
-  // ── Bookmarks Modal ──
-  bookmarksModalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'flex-end',
-  },
-  bookmarksModalContent: {
-    borderTopLeftRadius: radii.lg,
-    borderTopRightRadius: radii.lg,
-    maxHeight: '70%',
-    paddingBottom: Platform.OS === 'ios' ? 34 : 16,
-  },
-  bookmarksModalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: spacing.md,
-    borderBottomWidth: 1,
-  },
-  bookmarksModalTitle: {
-    fontSize: 18,
-    fontFamily: fontFamily.semiBold,
-  },
-  bookmarksList: {
-    paddingHorizontal: spacing.md,
-  },
-  emptyBookmarks: {
-    alignItems: 'center',
-    paddingVertical: 48,
-  },
-  emptyBookmarksText: {
-    fontSize: 16,
-    fontFamily: fontFamily.medium,
-    marginTop: spacing.md,
-  },
-  emptyBookmarksSubtext: {
-    fontSize: 14,
-    marginTop: spacing.xs,
-  },
-  bookmarkItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 14,
-    borderBottomWidth: 1,
-  },
-  bookmarkItemContent: {
-    flex: 1,
-  },
-  bookmarkItemDate: {
-    fontSize: 12,
-    marginBottom: 2,
-  },
-  bookmarkItemTitle: {
-    fontSize: 16,
-    fontFamily: fontFamily.medium,
-  },
-  bookmarkDeleteButton: {
-    padding: spacing.sm,
-  },
+  medTile: { marginTop: 24, padding: 18, backgroundColor: colors.primarySoft, borderRadius: 18, borderWidth: 1, borderColor: colors.primary + '28', overflow: 'hidden' },
+  medOrb: { position: 'absolute', top: -30, right: -30, width: 140, height: 140, borderRadius: 70, backgroundColor: colors.primary + '14' },
+  medLabelRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  medLabel: { fontFamily: fontFamily.bold, fontSize: 10, letterSpacing: 1.4, color: colors.primaryDark },
+  medText: { fontFamily: fontFamily.serifItalic, fontSize: 18, color: c.textSecondary, marginTop: 8, lineHeight: 25, letterSpacing: -0.3 },
+
+  doneStrip: { marginTop: 18, paddingVertical: 14, paddingHorizontal: 16, backgroundColor: colors.primary + '10', borderRadius: 16, borderWidth: 1, borderColor: colors.primary + '30', flexDirection: 'row', alignItems: 'center', gap: 12 },
+  doneCheck: { width: 32, height: 32, borderRadius: 16, backgroundColor: colors.primary, alignItems: 'center', justifyContent: 'center' },
+  doneTitle: { fontFamily: fontFamily.semiBold, fontSize: 14, color: c.text },
+  doneSub: { fontFamily: fontFamily.regular, fontSize: 12, color: c.textMuted, marginTop: 1 },
+
+  copyright: { marginTop: 18, fontFamily: fontFamily.regular, fontSize: 10, color: c.textMuted, lineHeight: 15, textAlign: 'center' },
+
+  // sheets
+  sheetBackdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(26,26,46,0.32)' },
+  calSheet: { position: 'absolute', left: 12, right: 12, bottom: 18, backgroundColor: c.surface, borderRadius: 24, padding: 18, shadowColor: '#000', shadowOpacity: 0.18, shadowRadius: 60, shadowOffset: { width: 0, height: 24 }, elevation: 12 },
+  calHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 },
+  calNav: { width: 32, height: 32, borderRadius: 16, backgroundColor: c.surface, borderWidth: 1, borderColor: c.border, alignItems: 'center', justifyContent: 'center' },
+  calMonth: { fontFamily: fontFamily.display, fontSize: 19, color: c.text, letterSpacing: -0.2 },
+  calGrid: { flexDirection: 'row', flexWrap: 'wrap' },
+  calWeekday: { width: `${100 / 7}%`, textAlign: 'center', fontFamily: fontFamily.semiBold, fontSize: 10, color: c.textMuted, marginBottom: 6 },
+  calCell: { width: `${100 / 7}%`, height: 40, alignItems: 'center', justifyContent: 'center' },
+  calDay: { width: 34, height: 34, borderRadius: 17, alignItems: 'center', justifyContent: 'center' },
+  calDaySel: { backgroundColor: colors.primary },
+  calDayToday: { borderWidth: 1.5, borderColor: colors.primary },
+  calDayText: { fontFamily: fontFamily.medium, fontSize: 13, color: c.textSecondary },
+  calDayTextSel: { color: '#fff', fontFamily: fontFamily.semiBold },
+  calDayTextToday: { color: colors.primary, fontFamily: fontFamily.semiBold },
+  calFoot: { flexDirection: 'row', justifyContent: 'flex-end', alignItems: 'center', gap: 8, marginTop: 14, paddingTop: 12, borderTopWidth: 1, borderTopColor: c.divider },
+  calCancel: { fontFamily: fontFamily.semiBold, fontSize: 13, color: c.textMuted, paddingHorizontal: 14, paddingVertical: 8 },
+  calTodayBtn: { paddingHorizontal: 16, paddingVertical: 8, borderRadius: 999, backgroundColor: colors.primary },
+  calTodayText: { fontFamily: fontFamily.semiBold, fontSize: 13, color: '#fff' },
+
+  dispSheet: { position: 'absolute', left: 0, right: 0, bottom: 0, backgroundColor: c.surface, borderTopLeftRadius: 28, borderTopRightRadius: 28, paddingHorizontal: 20, paddingTop: 14, shadowColor: '#000', shadowOpacity: 0.18, shadowRadius: 40, shadowOffset: { width: 0, height: -10 }, elevation: 12 },
+  grabber: { width: 40, height: 4, borderRadius: 999, backgroundColor: c.border, alignSelf: 'center', marginBottom: 16 },
+  sheetLabel: { fontFamily: fontFamily.bold, fontSize: 11, letterSpacing: 1.4, color: c.textMuted },
+  sizeRow: { flexDirection: 'row', alignItems: 'center', marginTop: 12, paddingHorizontal: 14, paddingVertical: 10, borderRadius: 16, backgroundColor: c.background, borderWidth: 1, borderColor: c.border },
+  sizeBtns: { flex: 1, flexDirection: 'row', gap: 6 },
+  sizeBtn: { flex: 1, paddingVertical: 8, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
+  sizeBtnOn: { backgroundColor: colors.primary },
+  sizeBtnOff: { borderWidth: 1, borderColor: c.border },
+  sizeBtnText: { fontFamily: fontFamily.semiBold },
+  sheetCancel: { marginTop: 22, paddingVertical: 12, borderRadius: 999, borderWidth: 1, borderColor: c.border, alignItems: 'center' },
+  sheetCancelText: { fontFamily: fontFamily.semiBold, fontSize: 14, color: c.textSecondary },
 });

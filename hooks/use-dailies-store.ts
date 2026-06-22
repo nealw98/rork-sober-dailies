@@ -51,12 +51,15 @@ export const DEFAULT_PROGRAM: DailyItem[] = [
 
 const EMPTY_DAY: DayCompletion = { done: [], reflection: false };
 
-function getTodayDateString(): string {
-  const d = new Date();
+function dateKeyFor(d: Date): string {
   const y = d.getFullYear();
   const m = (d.getMonth() + 1).toString().padStart(2, '0');
   const day = d.getDate().toString().padStart(2, '0');
   return `${y}-${m}-${day}`;
+}
+
+function getTodayDateString(): string {
+  return dateKeyFor(new Date());
 }
 
 export const [DailiesProvider, useDailies] = createContextHook(() => {
@@ -166,6 +169,18 @@ export const [DailiesProvider, useDailies] = createContextHook(() => {
     [updateToday],
   );
 
+  // Consecutive days (ending today) the Daily Reflection was marked read.
+  // Computed from completion history — never stored as a flag.
+  const reflectionStreak = useCallback(() => {
+    let streak = 0;
+    const d = new Date();
+    while (completion[dateKeyFor(d)]?.reflection) {
+      streak++;
+      d.setDate(d.getDate() - 1);
+    }
+    return streak;
+  }, [completion]);
+
   // total dailies done today (incl. reflection) / total possible — for summaries
   const doneCount = todayDone.done.length + (todayDone.reflection ? 1 : 0);
   const totalCount = program.length + 1; // + permanent Daily Reflection
@@ -186,9 +201,10 @@ export const [DailiesProvider, useDailies] = createContextHook(() => {
       reflectionDone: todayDone.reflection,
       setReflectionDone,
       toggleReflection,
+      reflectionStreak,
       doneCount,
       totalCount,
     }),
-    [program, isLoading, section, addDaily, removeDaily, setWhen, renameDaily, setAll, isDone, toggleDone, markDone, todayDone.reflection, setReflectionDone, toggleReflection, doneCount, totalCount],
+    [program, isLoading, section, addDaily, removeDaily, setWhen, renameDaily, setAll, isDone, toggleDone, markDone, todayDone.reflection, setReflectionDone, toggleReflection, reflectionStreak, doneCount, totalCount],
   );
 });
