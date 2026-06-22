@@ -42,6 +42,13 @@ const ACTION_ROUTE: Record<string, Href | null> = {
   meeting: '/(main)/meeting-pocket',
 };
 
+// Prayer dailies open a specific prayer directly (deep link); the generic
+// `prayer` action opens the library list.
+const PRAYER_PARAM: Record<string, string> = {
+  prayerMorning: 'morning',
+  prayerEvening: 'evening',
+};
+
 const SECTIONS: WhenBucket[] = ['Morning', 'Anytime', 'Evening'];
 
 function RightCheck({ done, color, onPress }: { done: boolean; color: string; onPress: () => void }) {
@@ -162,6 +169,11 @@ export default function TodayScreen() {
       return;
     }
     dailies.markDone(item.id);
+    const prayerTarget = PRAYER_PARAM[item.action];
+    if (prayerTarget) {
+      router.push({ pathname: route as any, params: { prayer: prayerTarget } });
+      return;
+    }
     router.push(route);
   };
 
