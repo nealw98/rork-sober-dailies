@@ -36,7 +36,7 @@ const ACTION_ROUTE: Record<string, Href | null> = {
   nightly: '/(main)/evening-review',
   speaker: '/(main)/speakers',
   meditation: '/(main)/meditation',
-  callAnother: null,
+  callAnother: '/(main)/reach-out' as Href,
   lit: '/(main)/literature',
   meeting: '/(main)/meetings',
 };
@@ -163,7 +163,7 @@ export default function TodayScreen() {
       dailies.toggleDone(item.id);
       return;
     }
-    // Net-new tool not built yet (journal, call-another).
+    // Net-new tool not built yet (graceful notice for any future deferred action).
     if (route === null) {
       Alert.alert('Coming soon', `${item.label} is on the way in the redesign.`);
       return;
