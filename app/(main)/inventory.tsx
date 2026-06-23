@@ -13,34 +13,13 @@ import * as Haptics from 'expo-haptics';
 import { useDailies } from '@/hooks/use-dailies-store';
 import { ToolHeader, ToolIntro, TOOLS } from '@/components/ToolScreen';
 import { colors, fontFamily, getSemanticColors } from '@/constants/designTokens';
+import { SPOT_PAIRS } from '@/constants/spotCheckPairs';
 
 const c = getSemanticColors('light');
 const tool = TOOLS.spotcheck;
 const ON = { ink: colors.primary, soft: colors.primarySoft, dark: colors.primaryDark };
 
 const INVENTORY_STORAGE_KEY = 'spot_check_inventories';
-
-// The 18 Watch For → Strive For pairs. `core` = the six surfaced before "Show all 18".
-const SPOT_PAIRS: { id: string; off: string; on: string; core?: boolean }[] = [
-  { id: 'fear', off: 'Fear', on: 'Faith', core: true },
-  { id: 'resentment', off: 'Resentment', on: 'Forgiveness', core: true },
-  { id: 'dishonesty', off: 'Dishonesty', on: 'Honesty', core: true },
-  { id: 'pride', off: 'Pride', on: 'Humility', core: true },
-  { id: 'selfPity', off: 'Self-pity', on: 'Self-forgiveness', core: true },
-  { id: 'anger', off: 'Anger', on: 'Self-control', core: true },
-  { id: 'selfJustification', off: 'Self-justification', on: 'Integrity' },
-  { id: 'selfImportance', off: 'Self-importance', on: 'Modesty' },
-  { id: 'selfCondemnation', off: 'Self-condemnation', on: 'Self-esteem' },
-  { id: 'impatience', off: 'Impatience', on: 'Patience' },
-  { id: 'hate', off: 'Hate', on: 'Love' },
-  { id: 'jealousy', off: 'Jealousy', on: 'Trust' },
-  { id: 'envy', off: 'Envy', on: 'Generosity' },
-  { id: 'laziness', off: 'Laziness', on: 'Activity' },
-  { id: 'procrastination', off: 'Procrastination', on: 'Promptness' },
-  { id: 'insincerity', off: 'Insincerity', on: 'Straightforwardness' },
-  { id: 'negativeThinking', off: 'Negative thinking', on: 'Positive thinking' },
-  { id: 'criticizing', off: 'Criticizing', on: 'Look for the good' },
-];
 
 export default function InventoryScreen() {
   const router = useRouter();

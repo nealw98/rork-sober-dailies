@@ -15,17 +15,7 @@ import { colors, fontFamily, getSemanticColors } from '@/constants/designTokens'
 const c = getSemanticColors('light');
 const tool = TOOLS.nightly;
 
-// The 7 Tenth-Step questions. `key` matches the store's DetailedEveningEntry
-// reflection fields so saved entries stay in the existing shape.
-const QUESTIONS = [
-  { key: 'reflectionResentful', q: 'Was I resentful, selfish, dishonest, or afraid?' },
-  { key: 'reflectionApology', q: 'Do I owe an apology?' },
-  { key: 'reflectionShared', q: 'Did I keep something to myself that should be shared with another?' },
-  { key: 'reflectionOthers', q: 'Was I thinking of myself most of the time, or of what I could do for others?' },
-  { key: 'reflectionKind', q: 'Was I kind and loving toward all?' },
-  { key: 'reflectionWell', q: 'What have I done well today?' },
-  { key: 'reflectionBetter', q: 'What could I have done better?' },
-] as const;
+import { NIGHTLY_QUESTIONS as QUESTIONS } from '@/constants/nightlyQuestions';
 
 function PromptCard({ q, value, onChange }: { q: string; value: string; onChange: (v: string) => void }) {
   const filled = value.trim() !== '';

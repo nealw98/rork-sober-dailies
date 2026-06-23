@@ -215,9 +215,10 @@ export const [DailiesProvider, useDailies] = createContextHook(() => {
       toggleReflection,
       reflectionStreak,
       dayKey,
+      completion,
       doneCount,
       totalCount,
     }),
-    [program, isLoading, section, addDaily, removeDaily, setWhen, renameDaily, setAll, isDone, toggleDone, markDone, todayDone.reflection, setReflectionDone, toggleReflection, reflectionStreak, dayKey, doneCount, totalCount],
+    [program, isLoading, section, addDaily, removeDaily, setWhen, renameDaily, setAll, isDone, toggleDone, markDone, todayDone.reflection, setReflectionDone, toggleReflection, reflectionStreak, dayKey, completion, doneCount, totalCount],
   );
 });
