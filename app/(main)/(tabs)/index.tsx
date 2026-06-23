@@ -52,47 +52,55 @@ const PRAYER_PARAM: Record<string, string> = {
 
 const SECTIONS: WhenBucket[] = ['Morning', 'Anytime', 'Evening'];
 
-// Press-and-HOLD to toggle — feels like a physical button: press down depresses
-// it, a brief hold "clicks" (haptic + pop) and commits the toggle, then you lift.
-// A quick tap does nothing, so completion is deliberate.
+// Press-and-HOLD to COMPLETE an unchecked daily — deliberate, like a physical
+// button: it depresses as you press, the hold "clicks" (haptic + pop) and
+// commits, then you lift. A completed daily is un-checked with a simple TAP.
 const HOLD_MS = 240;
 
 function RightCheck({ done, color, onPress }: { done: boolean; color: string; onPress: () => void }) {
   const scale = useSharedValue(1);
-  const fired = useRef(false);
+  const animated = useRef(false);
   const animStyle = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
 
   const onPressIn = () => {
-    fired.current = false;
-    scale.value = withTiming(0.86, { duration: HOLD_MS, easing: Easing.out(Easing.quad) });
+    animated.current = false;
+    // Checked → quick tap-off depress; unchecked → arm the hold (ramp down).
+    scale.value = withTiming(done ? 0.9 : 0.86, { duration: done ? 80 : HOLD_MS, easing: Easing.out(Easing.quad) });
   };
 
+  // Hold completes an unchecked daily — the satisfying pop.
   const onHold = () => {
-    fired.current = true;
-    if (!done) {
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      scale.value = withSequence(
-        withTiming(1.3, { duration: 120, easing: Easing.out(Easing.cubic) }),
-        withSpring(1, { damping: 7, stiffness: 220, mass: 0.5 }),
-      );
-    } else {
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-      scale.value = withSequence(
-        withTiming(0.78, { duration: 80 }),
-        withSpring(1, { damping: 9, stiffness: 220 }),
-      );
-    }
+    if (done) return;
+    animated.current = true;
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    scale.value = withSequence(
+      withTiming(1.3, { duration: 120, easing: Easing.out(Easing.cubic) }),
+      withSpring(1, { damping: 7, stiffness: 220, mass: 0.5 }),
+    );
+    onPress();
+  };
+
+  // Quick tap un-checks a completed daily.
+  const onTap = () => {
+    if (!done) return;
+    animated.current = true;
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    scale.value = withSequence(
+      withTiming(0.78, { duration: 70 }),
+      withSpring(1, { damping: 9, stiffness: 220 }),
+    );
     onPress();
   };
 
   const onPressOut = () => {
-    // Released before the hold completed — spring back, no toggle.
-    if (!fired.current) scale.value = withSpring(1, { damping: 13, stiffness: 240 });
+    // Nothing committed (early release / hold on a done item) — spring back.
+    if (!animated.current) scale.value = withSpring(1, { damping: 13, stiffness: 240 });
   };
 
   return (
     <Pressable
       onPressIn={onPressIn}
+      onPress={onTap}
       onLongPress={onHold}
       onPressOut={onPressOut}
       delayLongPress={HOLD_MS}
