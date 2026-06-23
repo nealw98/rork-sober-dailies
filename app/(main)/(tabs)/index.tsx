@@ -12,6 +12,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter, type Href } from 'expo-router';
 import { BookOpen, Check, SlidersHorizontal } from 'lucide-react-native';
+import * as Haptics from 'expo-haptics';
+import Animated, { useSharedValue, useAnimatedStyle, withSequence, withSpring, withTiming, Easing } from 'react-native-reanimated';
 
 import { colors, fontFamily, fontSize, spacing, radii, shadows, getSemanticColors } from '@/constants/designTokens';
 import { ROW_TONES, resolveGlyph, resolveTone, resolveSubtitle } from '@/components/dailyTokens';
@@ -22,8 +24,6 @@ import SobrietyCounter from '@/components/SobrietyCounter';
 import { getTodaysReflection } from '@/constants/reflections';
 import { Reflection } from '@/types';
 
-// Writing tools + meditation check off on SAVE / timer-completion, never on open.
-// Everything else (prayers, literature, meeting, speaker) checks off on open.
 // Completion is fully manual: every daily — including the notebook tools and the
 // Daily Reflection — is checked off by the user via the row's checkbox, as a
 // deliberate end-of-day review. Tapping a daily only opens its tool.
@@ -53,21 +53,41 @@ const PRAYER_PARAM: Record<string, string> = {
 const SECTIONS: WhenBucket[] = ['Morning', 'Anytime', 'Evening'];
 
 function RightCheck({ done, color, onPress }: { done: boolean; color: string; onPress: () => void }) {
+  const scale = useSharedValue(1);
+  const animStyle = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
+
+  const handlePress = () => {
+    if (!done) {
+      // Completing — a satisfying "it counted" pop + success haptic.
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      scale.value = withSequence(
+        withTiming(1.3, { duration: 110, easing: Easing.out(Easing.cubic) }),
+        withSpring(1, { damping: 7, stiffness: 220, mass: 0.5 }),
+      );
+    } else {
+      // Un-checking — a lighter dip + soft tap.
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      scale.value = withSequence(
+        withTiming(0.86, { duration: 90 }),
+        withSpring(1, { damping: 9, stiffness: 220 }),
+      );
+    }
+    onPress();
+  };
+
   return (
-    <Pressable
-      onPress={onPress}
-      hitSlop={8}
-      accessibilityRole="checkbox"
-      accessibilityState={{ checked: done }}
-      style={[styles.check, { borderColor: done ? color : color + '70', backgroundColor: done ? color : color + '1A' }]}
-    >
-      {done ? (
-        <Check size={15} color="#fff" strokeWidth={3} />
-      ) : (
-        <View style={{ opacity: 0.4 }}>
-          <Check size={14} color={color} strokeWidth={2.5} />
-        </View>
-      )}
+    <Pressable onPress={handlePress} hitSlop={8} accessibilityRole="checkbox" accessibilityState={{ checked: done }}>
+      <Animated.View
+        style={[styles.check, { borderColor: done ? color : color + '70', backgroundColor: done ? color : color + '1A' }, animStyle]}
+      >
+        {done ? (
+          <Check size={15} color="#fff" strokeWidth={3} />
+        ) : (
+          <View style={{ opacity: 0.4 }}>
+            <Check size={14} color={color} strokeWidth={2.5} />
+          </View>
+        )}
+      </Animated.View>
     </Pressable>
   );
 }
