@@ -20,7 +20,10 @@ const c = getSemanticColors('light');
 const MT = colors.tertiary;       // lavender — Meetings tone
 const MT_SOFT = colors.tertiarySoft;
 const MT_DARK = colors.tertiaryDark;
-const MEETING_GUIDE_URL = 'https://apps.apple.com/app/meeting-guide/id1042822219';
+// Meeting Guide (AAWS) is an iOS-only app; Android users get the official site.
+const MEETING_GUIDE_URL = Platform.OS === 'android'
+  ? 'https://meetingguide.org'
+  : 'https://apps.apple.com/app/meeting-guide/id1042822181';
 const ONLINE_AA_URL = 'https://aa-intergroup.org';
 
 const openDirections = (m: Meeting) => {
