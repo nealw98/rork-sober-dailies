@@ -4,14 +4,13 @@ import { Image } from 'expo-image';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useRouter, useLocalSearchParams } from 'expo-router';
+import { useRouter } from 'expo-router';
 import Svg, { Circle, Defs, LinearGradient as SvgGradient, Stop } from 'react-native-svg';
 import { ChevronLeft, Play, Pause, Plus, Minus, X } from 'lucide-react-native';
 
 import { fontFamily } from '@/constants/designTokens';
 import { useMeditation, SOUNDS } from '@/hooks/use-meditation-store';
 import { useMeditationScenes, type MeditationScene } from '@/hooks/useMeditationScenes';
-import { useDailies } from '@/hooks/use-dailies-store';
 
 // Bundled offline/loading fallback for the scene background.
 const SCENE_FALLBACK = require('@/assets/images/meditation-hero1.webp');
@@ -195,9 +194,7 @@ type Phase = 'ready' | 'active' | 'complete';
 
 export default function MeditationScreen() {
   const router = useRouter();
-  const params = useLocalSearchParams<{ dailyId?: string }>();
   const med = useMeditation();
-  const dailies = useDailies();
 
   const cfg = med.settings.timer;
   const firstTime = med.settings.source === null && !med.settings.hintSeen;
@@ -243,10 +240,6 @@ export default function MeditationScreen() {
     ],
   };
 
-  const markMeditationDone = () => {
-    const id = params.dailyId || dailies.program.find((d) => d.action === 'meditation')?.id;
-    if (id) dailies.markDone(id);
-  };
 
   // countdown
   useEffect(() => {
@@ -254,7 +247,6 @@ export default function MeditationScreen() {
     if (remaining <= 0) {
       setDoneMin(minutes);
       setPhase('complete');
-      markMeditationDone();
       return;
     }
     const t = setTimeout(() => setRemaining((r) => r - 1), 1000);
@@ -272,7 +264,6 @@ export default function MeditationScreen() {
   const endEarly = () => {
     setDoneMin(minutes);
     setPhase('complete');
-    markMeditationDone();
   };
   const sitLonger = () => {
     setMinutes(5);
