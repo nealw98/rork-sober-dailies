@@ -1,326 +1,104 @@
-import React, { useEffect, useState, useCallback, useRef } from "react";
-import { StyleSheet, Image, View, Text, ScrollView, TouchableOpacity } from "react-native";
-import { Stack } from "expo-router";
-// LinearGradient removed — using hero card instead
-import { useRouter, useFocusEffect } from "expo-router";
-import { MessageCircle } from "lucide-react-native";
-import TopLevelHeader from "@/components/navigation/TopLevelHeader";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
-import AsyncStorage from "@react-native-async-storage/async-storage";
+// AI Sponsor — persona picker (redesign 3.0). Three sponsors, each with the same
+// AA program in their own voice. Tap a card to open that sponsor's chat.
+// Prototype: frames/hifi-sponsor-v2 (HiFiSponsorSelectV2). Plumbing (chat store,
+// system prompts, the chat screen) is unchanged — this is presentation + copy.
+import React from 'react';
+import { View, Text, ScrollView, Pressable, StyleSheet } from 'react-native';
+import { Image } from 'expo-image';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { Stack, useRouter } from 'expo-router';
+import { ArrowUpRight } from 'lucide-react-native';
+import BackButton from '@/components/BackButton';
+import { SPONSORS, type SponsorConfig } from '@/constants/sponsors';
+import { SELECTION_SPONSOR_IDS, sponsorTone } from '@/constants/sponsorTones';
+import { logEvent } from '@/lib/usageLogger';
+import { useScreenTimeTracking } from '@/hooks/useScreenTimeTracking';
+import { fontFamily, getSemanticColors, shadows } from '@/constants/designTokens';
 
-import { useTheme } from "@/hooks/useTheme";
-import { SPONSORS, SponsorConfig } from "@/constants/sponsors";
-import ScreenContainer from "@/components/ScreenContainer";
-import { logEvent } from "@/lib/usageLogger";
-import { useScreenTimeTracking } from "@/hooks/useScreenTimeTracking";
-import {
-  colors,
-  semanticColors,
-  cardColors,
-  spacing,
-  radii,
-  fontFamily,
-  fontSize,
-  shadows,
-} from "@/constants/designTokens";
+const c = getSemanticColors('light');
 
-// Only show these sponsors on the selection page
-const VISIBLE_SPONSOR_IDS = [
-  "supportive",
-  "salty",
-  "grace",
-  "cowboy-pete",
-  "co-sign-sally",
-  "fresh",
-  "mama-jo",
-];
+// The three sponsors, in the picker's fixed order.
+const SELECTION = SELECTION_SPONSOR_IDS
+  .map((id) => SPONSORS.find((s) => s.id === id))
+  .filter(Boolean) as SponsorConfig[];
 
-// Map sponsor IDs to their AsyncStorage message keys
-const SPONSOR_STORAGE_KEYS: Record<string, string> = {
-  "supportive": "aa-chat-messages-supportive",
-  "salty": "aa-chat-messages-salty",
-  "grace": "aa-chat-messages-grace",
-  "cowboy-pete": "aa-chat-messages-cowboy",
-  "co-sign-sally": "aa-chat-messages-sally",
-  "fresh": "aa-chat-messages-fresh",
-  "mama-jo": "aa-chat-messages-mama-jo",
-};
-
-export default function ChatScreen() {
+export default function SponsorSelectScreen() {
   const router = useRouter();
-  const insets = useSafeAreaInsets();
-  const { palette } = useTheme();
-  const sem = semanticColors.light;
-  const [lastUsedSponsorId, setLastUsedSponsorId] = useState<string | null>(null);
-  const [activeChats, setActiveChats] = useState<Set<string>>(new Set());
-  const [usageCounts, setUsageCounts] = useState<Record<string, number>>({});
-  const [frozenOrder, setFrozenOrder] = useState<string[]>([]);
-  const [dataLoaded, setDataLoaded] = useState(false);
-  const cardPositions = useRef<Record<string, number>>({});
-  const hasLoadedInitialOrder = useRef(false);
+  useScreenTimeTracking('AI Sponsor Selection');
 
-  const scrollRef = useRef<ScrollView>(null);
-
-  useScreenTimeTracking("AI Sponsor Selection");
-
-  // On first mount (app launch): compute and freeze the sort order
-  useEffect(() => {
-    const loadInitialOrder = async () => {
-      try {
-        const storedCounts = await AsyncStorage.getItem("aa-sponsor-usage-counts");
-        let counts: Record<string, number> = {};
-        if (storedCounts) {
-          try { counts = JSON.parse(storedCounts); } catch { /* ignore */ }
-        }
-        setUsageCounts(counts);
-
-        // Compute sort order once and freeze it for this session
-        const sorted = [...VISIBLE_SPONSOR_IDS].sort((a, b) => {
-          const aCount = counts[a] || 0;
-          const bCount = counts[b] || 0;
-          if (bCount !== aCount) return bCount - aCount;
-          return a.localeCompare(b);
-        });
-        setFrozenOrder(sorted);
-        hasLoadedInitialOrder.current = true;
-      } catch (error) {
-        console.error("Error loading initial order:", error);
-        setFrozenOrder(VISIBLE_SPONSOR_IDS);
-        hasLoadedInitialOrder.current = true;
-      }
-    };
-    loadInitialOrder();
-  }, []);
-
-  // On every focus: refresh last-used and active chats (but NOT the order)
-  useFocusEffect(
-    useCallback(() => {
-      const refreshData = async () => {
-        try {
-          const [lastUsed, ...messageResults] = await Promise.all([
-            AsyncStorage.getItem("aa-chat-sponsor-type"),
-            ...Object.values(SPONSOR_STORAGE_KEYS).map((key) =>
-              AsyncStorage.getItem(key)
-            ),
-          ]);
-
-          // Build active chats set
-          const active = new Set<string>();
-          const sponsorIds = Object.keys(SPONSOR_STORAGE_KEYS);
-          messageResults.forEach((messages, index) => {
-            if (messages) {
-              try {
-                const parsed = JSON.parse(messages);
-                if (Array.isArray(parsed) && parsed.length > 1) {
-                  active.add(sponsorIds[index]);
-                }
-              } catch { /* ignore */ }
-            }
-          });
-
-          setLastUsedSponsorId(lastUsed);
-          setActiveChats(active);
-          setDataLoaded(true);
-
-          // Scroll to the last-used sponsor's card
-          if (lastUsed && cardPositions.current[lastUsed] !== undefined) {
-            setTimeout(() => {
-              scrollRef.current?.scrollTo({
-                y: cardPositions.current[lastUsed],
-                animated: false,
-              });
-            }, 50);
-          }
-        } catch (error) {
-          console.error("Error refreshing sponsor data:", error);
-          setDataLoaded(true);
-        }
-      };
-      refreshData();
-    }, [])
-  );
-
-  const visibleSponsors = SPONSORS.filter((s) =>
-    VISIBLE_SPONSOR_IDS.includes(s.id)
-  );
-
-  // Use the frozen order from app launch — never changes mid-session
-  const sortedSponsors = frozenOrder
-    .map((id) => visibleSponsors.find((s) => s.id === id))
-    .filter(Boolean) as typeof visibleSponsors;
-
-  const handleSponsorSelect = async (sponsorId: string) => {
-    const sponsor = SPONSORS.find((s) => s.id === sponsorId);
-    if (sponsor && sponsor.isAvailable) {
-      logEvent("sponsor_selected", {
-        screen: "AI Sponsor",
-        sponsor_id: sponsorId,
-        sponsor_name: sponsor.name,
-      });
-
-      // Increment usage count
-      const newCounts = { ...usageCounts, [sponsorId]: (usageCounts[sponsorId] || 0) + 1 };
-      setUsageCounts(newCounts);
-      AsyncStorage.setItem("aa-sponsor-usage-counts", JSON.stringify(newCounts)).catch(() => {});
-
-      router.push(`/sponsor-chat?sponsor=${sponsorId}`);
-    }
-  };
-
-
-
-  const renderSponsorCard = (sponsor: SponsorConfig) => {
-    return (
-      <TouchableOpacity
-        key={sponsor.id}
-        style={styles.card}
-        onPress={() => handleSponsorSelect(sponsor.id)}
-        activeOpacity={0.85}
-        onLayout={(e) => {
-          cardPositions.current[sponsor.id] = e.nativeEvent.layout.y;
-        }}
-      >
-        <View style={styles.cardInner}>
-          {sponsor.avatar && (
-            <Image
-              source={sponsor.avatar}
-              style={styles.cardImage}
-              resizeMode="cover"
-            />
-          )}
-          <View style={styles.cardBody}>
-            <Text style={[styles.cardName, { color: sem.text }]}>{sponsor.name}</Text>
-            <Text style={[styles.cardDescription, { color: sem.textSecondary }]}>{sponsor.description}</Text>
-          </View>
-        </View>
-      </TouchableOpacity>
-    );
+  const select = (s: SponsorConfig) => {
+    logEvent('sponsor_selected', { screen: 'AI Sponsor', sponsor_id: s.id, sponsor_name: s.name });
+    router.push(`/sponsor-chat?sponsor=${s.id}`);
   };
 
   return (
-    <>
+    <SafeAreaView style={styles.screen} edges={['top']}>
       <Stack.Screen options={{ headerShown: false }} />
-      <ScreenContainer noPadding>
-        <View style={[styles.container, { backgroundColor: colors.secondaryLight }]}>
-          <TopLevelHeader title="" />
+      <View style={styles.header}>
+        <BackButton onPress={() => router.back()} style={{ marginBottom: 12 }} />
+        <Text style={styles.h1}>Three voices.{'\n'}One program.</Text>
+        <Text style={styles.sub}>
+          Each sponsor gives the same solid AA guidance — in their own unmistakable voice. Pick who you need today. Switch any time.
+        </Text>
+      </View>
 
-          <ScrollView
-            ref={scrollRef}
-            style={styles.scrollView}
-            contentContainerStyle={styles.scrollContent}
-            showsVerticalScrollIndicator={false}
-          >
-            {/* Page intro */}
-            <View style={styles.pageIntro}>
-              <View style={styles.introLabelRow}>
-                <MessageCircle size={14} color={colors.secondaryDark} />
-                <Text style={[styles.introLabel, { color: colors.secondaryDark }]}>AI COMPANION</Text>
-              </View>
-              <Text style={[styles.introTitle, { color: sem.text }]}>Find Your Guide</Text>
-              <Text style={[styles.introDescription, { color: sem.textSecondary }]}>
-                Choose a sponsor that resonates with your recovery journey and personality.
-              </Text>
-            </View>
+      <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
+        {SELECTION.map((s) => <SponsorCard key={s.id} s={s} onPress={() => select(s)} />)}
+        <Text style={styles.disclaimer}>
+          Private by default · AI companions, not a substitute for a human sponsor or a meeting.
+        </Text>
+      </ScrollView>
+    </SafeAreaView>
+  );
+}
 
-            {/* Sponsor cards — only render once data is loaded to prevent flicker */}
-            {dataLoaded && (
-              <View style={styles.cardsContainer}>
-                {sortedSponsors.map((sponsor) => renderSponsorCard(sponsor))}
-              </View>
-            )}
-          </ScrollView>
+function SponsorCard({ s, onPress }: { s: SponsorConfig; onPress: () => void }) {
+  const tone = sponsorTone(s.id);
+  return (
+    <Pressable style={styles.card} onPress={onPress} accessibilityRole="button" accessibilityLabel={`Chat with ${s.name}`}>
+      <View style={styles.chevCorner}><ArrowUpRight size={16} color={c.textMuted} strokeWidth={2} /></View>
+
+      <View style={styles.band}>
+        <Image source={s.avatar} style={[styles.avatar, { backgroundColor: tone.tile }]} contentFit="cover" />
+        <View style={styles.bandText}>
+          <Text style={styles.name}>{s.name}</Text>
+          <View style={styles.tagRow}>
+            {(s.tags ?? []).map((t) => (
+              <Text key={t} style={[styles.tag, { backgroundColor: tone.tile, color: tone.ink }]}>{t}</Text>
+            ))}
+          </View>
         </View>
-      </ScreenContainer>
-    </>
+      </View>
+
+      <View style={[styles.quoteBox, { backgroundColor: tone.tile + 'cc' }]}>
+        <Text style={[styles.quoteMark, { color: tone.ink }]}>“</Text>
+        <Text style={[styles.quote, { color: tone.ink }]}>{s.hookQuote}</Text>
+      </View>
+    </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
+  screen: { flex: 1, backgroundColor: c.background },
+  header: { paddingHorizontal: 20, paddingTop: 8, paddingBottom: 6 },
+  h1: { fontFamily: fontFamily.display, fontSize: 28, lineHeight: 32, letterSpacing: -0.4, color: c.text },
+  sub: { fontFamily: fontFamily.regular, fontSize: 13.5, lineHeight: 19, color: c.textMuted, marginTop: 8 },
 
-  // ── Page Intro ──
-  pageIntro: {
-    paddingHorizontal: spacing.lg,
-    paddingTop: spacing.lg,
-    paddingBottom: spacing.xxl,
-  },
-  introLabelRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-    marginBottom: spacing.sm,
-  },
-  introLabel: {
-    fontFamily: fontFamily.semiBold,
-    fontSize: fontSize.xs,
-    letterSpacing: 1.5,
-  },
-  introTitle: {
-    fontFamily: fontFamily.bold,
-    fontSize: fontSize["4xl"],
-    marginBottom: spacing.sm,
-  },
-  introDescription: {
-    fontFamily: fontFamily.regular,
-    fontSize: fontSize.md,
-    lineHeight: 20,
-  },
-  headerSubtitle: {
-    fontFamily: fontFamily.regular,
-    fontSize: fontSize.md,
-    color: "rgba(255, 255, 255, 0.8)",
-    lineHeight: 20,
-  },
+  scroll: { paddingHorizontal: 16, paddingTop: 14, paddingBottom: 40 },
 
-  // ── Scroll ──
-  scrollView: {
-    flex: 1,
-  },
-  scrollContent: {
-    paddingBottom: spacing.xxl,
-  },
-  cardsContainer: {
-    paddingHorizontal: spacing.lg,
-    paddingBottom: spacing.lg,
-  },
+  card: { backgroundColor: c.surface, borderRadius: 24, marginBottom: 14, paddingBottom: 14, ...shadows.md },
+  chevCorner: { position: 'absolute', top: 12, right: 12, zIndex: 2 },
 
-  // ── Section Label ──
-  sectionLabel: {
-    fontFamily: fontFamily.semiBold,
-    fontSize: fontSize.sm,
-    letterSpacing: 1,
-    marginTop: spacing.lg,
-    marginBottom: spacing.md,
-  },
+  band: { flexDirection: 'row', alignItems: 'center', gap: 14, padding: 14 },
+  avatar: { width: 96, height: 96, borderRadius: 20, borderWidth: 2, borderColor: '#fff', ...shadows.sm },
+  bandText: { flex: 1 },
+  name: { fontFamily: fontFamily.bold, fontSize: 19, color: c.text, letterSpacing: -0.3 },
+  tagRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 8 },
+  tag: { fontFamily: fontFamily.bold, fontSize: 9.5, letterSpacing: 0.8, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 999, overflow: 'hidden' },
 
-  // ── Card ──
-  card: {
-    backgroundColor: colors.white,
-    borderRadius: radii.lg,
-    marginBottom: spacing.md,
-    ...shadows.lg,
-  },
-  cardInner: {
-    borderRadius: radii.lg,
-    overflow: "hidden",
-  },
-  cardImage: {
-    width: "100%",
-    height: 280,
-  },
-  cardBody: {
-    padding: spacing.lg,
-  },
-  cardName: {
-    fontFamily: fontFamily.bold,
-    fontSize: fontSize["3xl"],
-    marginBottom: spacing.xs,
-  },
-  cardDescription: {
-    fontFamily: fontFamily.regular,
-    fontSize: fontSize.md,
-    lineHeight: 20,
-  },
+  quoteBox: { marginHorizontal: 14, paddingVertical: 12, paddingHorizontal: 16, borderRadius: 14, position: 'relative' },
+  quoteMark: { position: 'absolute', top: 2, left: 8, fontFamily: fontFamily.serif, fontSize: 38, opacity: 0.35 },
+  quote: { fontFamily: fontFamily.serifItalic, fontSize: 15, lineHeight: 22, paddingLeft: 18 },
+
+  disclaimer: { fontFamily: fontFamily.regular, fontSize: 11.5, lineHeight: 17, color: c.textMuted, textAlign: 'center', paddingHorizontal: 20, marginTop: 8 },
 });
