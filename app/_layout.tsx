@@ -259,7 +259,9 @@ function RootLayoutNav() {
   }
 
   // Entire app is subscription-only after onboarding.
-  if (!isPremium && !paywallDismissed) {
+  // PAYWALL TEMPORARILY DISABLED for preview builds — flip back to true to re-enable.
+  const PAYWALL_ENABLED = false;
+  if (PAYWALL_ENABLED && !isPremium && !paywallDismissed) {
     return <PaywallScreen onDismiss={__DEV__ ? () => setPaywallDismissed(true) : undefined} />;
   }
 
