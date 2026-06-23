@@ -62,11 +62,7 @@ function SponsorCard({ s, onPress }: { s: SponsorConfig; onPress: () => void }) 
         <Image source={s.avatar} style={[styles.avatar, { backgroundColor: tone.tile }]} contentFit="cover" />
         <View style={styles.bandText}>
           <Text style={styles.name}>{s.name}</Text>
-          <View style={styles.tagRow}>
-            {(s.tags ?? []).map((t) => (
-              <Text key={t} style={[styles.tag, { backgroundColor: tone.tile, color: tone.ink }]}>{t}</Text>
-            ))}
-          </View>
+          <Text style={styles.descriptor}>{s.description}</Text>
         </View>
       </View>
 
@@ -93,8 +89,7 @@ const styles = StyleSheet.create({
   avatar: { width: 96, height: 96, borderRadius: 20, borderWidth: 2, borderColor: '#fff', ...shadows.sm },
   bandText: { flex: 1 },
   name: { fontFamily: fontFamily.bold, fontSize: 19, color: c.text, letterSpacing: -0.3 },
-  tagRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 8 },
-  tag: { fontFamily: fontFamily.bold, fontSize: 9.5, letterSpacing: 0.8, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 999, overflow: 'hidden' },
+  descriptor: { fontFamily: fontFamily.regular, fontSize: 13.5, lineHeight: 19, color: c.textSecondary, marginTop: 5 },
 
   quoteBox: { marginHorizontal: 14, paddingVertical: 12, paddingHorizontal: 16, borderRadius: 14, position: 'relative' },
   quoteMark: { position: 'absolute', top: 2, left: 8, fontFamily: fontFamily.serif, fontSize: 38, opacity: 0.35 },
