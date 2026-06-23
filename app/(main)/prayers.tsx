@@ -126,15 +126,17 @@ export default function PrayersScreen() {
       top: interpolate(p, [0, 1], [s.y, target.y]),
       width: interpolate(p, [0, 1], [s.w, target.w]),
       height: interpolate(p, [0, 1], [s.h, target.h]),
+      borderRadius: interpolate(p, [0, 1], [16, 22]),
     };
   });
-  const bodyFade = useAnimatedStyle(() => ({ opacity: interpolate(progress.value, [0.1, 0.65], [0, 1], Extrapolation.CLAMP) }));
+  // Two layers crossfade inside the morphing card (same approach as Journey):
+  // the collapsed-card preview fades OUT while the full read sheet fades IN.
+  const rowFade = useAnimatedStyle(() => ({ opacity: interpolate(progress.value, [0, 0.45], [1, 0], Extrapolation.CLAMP) }));
+  const sheetFade = useAnimatedStyle(() => ({ opacity: interpolate(progress.value, [0.1, 0.65], [0, 1], Extrapolation.CLAMP) }));
   const listFade = useAnimatedStyle(() => ({ opacity: interpolate(progress.value, [0, 0.85], [1, 0], Extrapolation.CLAMP) }));
-  const barFade = useAnimatedStyle(() => ({ opacity: interpolate(progress.value, [0.55, 1], [0, 1], Extrapolation.CLAMP) }));
 
   const isList = mode === 'list';
   const showOverlay = mode !== 'list' && !!prayer;
-  const showBar = mode !== 'list' && !!prayer;
 
   return (
     <View style={styles.root}>
@@ -174,25 +176,33 @@ export default function PrayersScreen() {
 
       </SafeAreaView>
 
-      {/* The morphing card — grows from the tapped tile into the full container. */}
+      {/* The morphing card — grows from the tapped tile into the full container.
+          Inside it, the collapsed preview and the full read sheet crossfade. */}
       {showOverlay && prayer && (
         <Animated.View style={[styles.overlayCard, overlayStyle]}>
-          <ScrollView scrollEnabled={mode === 'read'} showsVerticalScrollIndicator={mode === 'read'} contentContainerStyle={styles.overlayScroll}>
-            <Text style={styles.readCardTitle}>{prayer.title}</Text>
-            <Animated.View style={bodyFade}>
-              <PrayerBody prayer={prayer} />
-            </Animated.View>
-          </ScrollView>
-        </Animated.View>
-      )}
+          {/* collapsed-card preview (matches the list tile) — fades out as it opens */}
+          <Animated.View style={[styles.overlayRow, { width: source?.w ?? target.w }, rowFade]} pointerEvents="none">
+            <View style={styles.cardTitleRow}>
+              <Text style={styles.cardTitle} numberOfLines={1}>{prayer.title}</Text>
+              <ChevronRight size={16} color={c.textMuted} />
+            </View>
+            <Text style={styles.preview} numberOfLines={3}>{prayer.content}</Text>
+          </Animated.View>
 
-      {/* Read-view close (X) — sits inside the prayer container's top-right corner;
-          topmost so the morph overlay can't intercept its taps. */}
-      {showBar && (
-        <Animated.View pointerEvents="box-none" style={[styles.readClose, { top: target.y + 10, right: SIDE + 10 }, mode !== 'read' ? barFade : null]}>
-          <Pressable onPress={closeRead} hitSlop={10} accessibilityRole="button" accessibilityLabel="Close prayer" style={styles.closeBtn}>
-            <X size={19} color={c.textMuted} strokeWidth={2.2} />
-          </Pressable>
+          {/* full read sheet — fades in; the X close lives inside its header */}
+          <Animated.View style={[StyleSheet.absoluteFill, sheetFade]}>
+            <View style={styles.flex}>
+              <View style={styles.readHead}>
+                <Text style={styles.readCardTitle} numberOfLines={2}>{prayer.title}</Text>
+                <Pressable onPress={closeRead} hitSlop={8} accessibilityRole="button" accessibilityLabel="Close prayer" style={styles.closeBtn}>
+                  <X size={18} color={c.textMuted} strokeWidth={2} />
+                </Pressable>
+              </View>
+              <ScrollView scrollEnabled={mode === 'read'} showsVerticalScrollIndicator={mode === 'read'} contentContainerStyle={styles.overlayScroll}>
+                <PrayerBody prayer={prayer} />
+              </ScrollView>
+            </View>
+          </Animated.View>
         </Animated.View>
       )}
     </View>
@@ -222,11 +232,12 @@ const styles = StyleSheet.create({
   preview: { fontFamily: fontFamily.regular, fontSize: 14, color: c.textSecondary, lineHeight: 20, marginTop: 6 },
 
   // read view (morph overlay is the read container)
-  readClose: { position: 'absolute', zIndex: 10 },
+  overlayCard: { position: 'absolute', backgroundColor: c.surface, overflow: 'hidden', ...shadows.md },
+  overlayRow: { position: 'absolute', top: 0, left: 0, padding: 16 },
+  readHead: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: 10, paddingHorizontal: 16, paddingTop: 16 },
   closeBtn: { width: 32, height: 32, borderRadius: 16, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(0,0,0,0.05)' },
-  overlayCard: { position: 'absolute', backgroundColor: c.surface, borderRadius: 16, overflow: 'hidden', ...shadows.md },
-  overlayScroll: { paddingHorizontal: 16, paddingVertical: 16 },
-  readCardTitle: { fontFamily: fontFamily.semiBold, fontSize: 18, letterSpacing: -0.3, color: c.text, paddingRight: 40 },
+  overlayScroll: { paddingHorizontal: 16, paddingTop: 2, paddingBottom: 28 },
+  readCardTitle: { flex: 1, fontFamily: fontFamily.semiBold, fontSize: 18, letterSpacing: -0.3, color: c.text },
   readDivider: { height: 1, backgroundColor: c.divider, marginTop: 14, marginBottom: 16 },
   prayerPara: { fontFamily: fontFamily.regular, fontSize: 17, lineHeight: 26, color: c.text, marginBottom: 14 },
   sourceRow: { flexDirection: 'row', alignItems: 'center', gap: 7, marginTop: 8, paddingTop: 16, borderTopWidth: 1, borderTopColor: c.border },
