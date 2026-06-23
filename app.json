@@ -115,7 +115,8 @@
           }
         }
       ],
-      "expo-secure-store"
+      "expo-secure-store",
+      "./plugins/withFmtConstevalFix.js"
     ],
     "experiments": {
       "typedRoutes": true
