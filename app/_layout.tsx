@@ -60,6 +60,7 @@ import { EveningReviewProvider } from "@/hooks/use-evening-review-store";
 import { MeetingsProvider } from "@/hooks/use-meetings-store";
 import { JournalProvider } from "@/hooks/use-journal-store";
 import { ContactsProvider } from "@/hooks/use-contacts-store";
+import { ActionSheetProvider } from "@expo/react-native-action-sheet";
 import { ImmersiveProvider } from "@/hooks/use-immersive";
 import { TextSettingsProvider } from "@/hooks/use-text-settings";
 import { SubscriptionProvider, useSubscription } from "@/hooks/useSubscription";
@@ -372,14 +373,16 @@ export default function RootLayout() {
                         {Platform.OS === 'android' && (
                           <StatusBar translucent backgroundColor="transparent" barStyle="light-content" />
                         )}
-                        <ErrorBoundary>
-                          <AudioPlayerProvider>
-                            <HamburgerMenuProvider>
-                              <RootLayoutNav />
-                              <HamburgerMenu />
-                            </HamburgerMenuProvider>
-                          </AudioPlayerProvider>
-                        </ErrorBoundary>
+                        <ActionSheetProvider>
+                          <ErrorBoundary>
+                            <AudioPlayerProvider>
+                              <HamburgerMenuProvider>
+                                <RootLayoutNav />
+                                <HamburgerMenu />
+                              </HamburgerMenuProvider>
+                            </AudioPlayerProvider>
+                          </ErrorBoundary>
+                        </ActionSheetProvider>
                       </GestureHandlerRootView>
                     </ImmersiveProvider>
                     </ContactsProvider>

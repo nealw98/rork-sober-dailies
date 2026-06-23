@@ -6,9 +6,9 @@
 import React, { useRef, useState } from 'react';
 import { View, Text, ScrollView, Pressable, StyleSheet, Linking, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Swipeable } from 'react-native-gesture-handler';
+import { useActionSheet } from '@expo/react-native-action-sheet';
 import { Stack, useRouter } from 'expo-router';
-import { Plus, Phone, MessageSquareText, Trash2 } from 'lucide-react-native';
+import { Plus, ChevronRight } from 'lucide-react-native';
 import BackButton from '@/components/BackButton';
 import { useContacts, normalizePhone, type Contact } from '@/hooks/use-contacts-store';
 import { pickContact } from '@/lib/pickContact';
@@ -25,6 +25,7 @@ const text = (phone: string) => Linking.openURL(`sms:${normalizePhone(phone)}`).
 export default function ReachOutScreen() {
   const router = useRouter();
   const { contacts, addContact, removeContact } = useContacts();
+  const { showActionSheetWithOptions } = useActionSheet();
   const [justAdded, setJustAdded] = useState<string | null>(null);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -45,7 +46,24 @@ export default function ReachOutScreen() {
     timer.current = setTimeout(() => setJustAdded(null), 1400);
   };
 
-  const onRemove = (ct: Contact) => removeContact(ct.id);
+  // Tap a contact → bottom action sheet: Call / Text / Delete.
+  const onPressContact = (ct: Contact) => {
+    const options = ['Call', 'Text', 'Delete', 'Cancel'];
+    showActionSheetWithOptions(
+      {
+        title: ct.name,
+        message: ct.phone || undefined,
+        options,
+        destructiveButtonIndex: 2,
+        cancelButtonIndex: 3,
+      },
+      (i) => {
+        if (i === 0) call(ct.phone);
+        else if (i === 1) text(ct.phone);
+        else if (i === 2) removeContact(ct.id);
+      },
+    );
+  };
 
   return (
     <SafeAreaView style={styles.screen} edges={['top']}>
@@ -60,7 +78,7 @@ export default function ReachOutScreen() {
         {contacts.length > 0 ? (
           <>
             {contacts.map((ct) => (
-              <ContactRow key={ct.id} ct={ct} highlight={justAdded === ct.id} onRemove={() => onRemove(ct)} />
+              <ContactRow key={ct.id} ct={ct} highlight={justAdded === ct.id} onPress={() => onPressContact(ct)} />
             ))}
             <Pressable style={styles.addBtn} onPress={onAdd}>
               <Plus size={16} color={CO_DARK} strokeWidth={2.2} />
@@ -81,30 +99,22 @@ export default function ReachOutScreen() {
   );
 }
 
-function ContactRow({ ct, highlight, onRemove }: { ct: Contact; highlight: boolean; onRemove: () => void }) {
+function ContactRow({ ct, highlight, onPress }: { ct: Contact; highlight: boolean; onPress: () => void }) {
   const initial = ct.name.trim()[0]?.toUpperCase() || '?';
-  const renderRightActions = () => (
-    <Pressable style={styles.deleteAction} onPress={onRemove} accessibilityLabel={`Delete ${ct.name}`}>
-      <Trash2 size={20} color="#fff" strokeWidth={2} />
-      <Text style={styles.deleteText}>Delete</Text>
-    </Pressable>
-  );
   return (
-    <Swipeable renderRightActions={renderRightActions} overshootRight={false} containerStyle={styles.swipeWrap}>
-      <View style={[styles.row, highlight && styles.rowHighlight]}>
-        <View style={styles.avatar}><Text style={styles.avatarText}>{initial}</Text></View>
-        <View style={styles.flex}>
-          <Text style={styles.rowName} numberOfLines={1}>{ct.name}</Text>
-          {!!ct.phone && <Text style={styles.rowPhone} numberOfLines={1}>{ct.phone}</Text>}
-        </View>
-        <Pressable style={styles.textBtn} hitSlop={6} onPress={() => text(ct.phone)} accessibilityLabel={`Text ${ct.name}`}>
-          <MessageSquareText size={18} color={CO_DARK} strokeWidth={2} />
-        </Pressable>
-        <Pressable style={styles.callBtn} hitSlop={6} onPress={() => call(ct.phone)} accessibilityLabel={`Call ${ct.name}`}>
-          <Phone size={18} color="#fff" strokeWidth={2} />
-        </Pressable>
+    <Pressable
+      style={[styles.row, highlight && styles.rowHighlight]}
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel={`${ct.name}. Call, text, or delete`}
+    >
+      <View style={styles.avatar}><Text style={styles.avatarText}>{initial}</Text></View>
+      <View style={styles.flex}>
+        <Text style={styles.rowName} numberOfLines={1}>{ct.name}</Text>
+        {!!ct.phone && <Text style={styles.rowPhone} numberOfLines={1}>{ct.phone}</Text>}
       </View>
-    </Swipeable>
+      <ChevronRight size={18} color={c.textMuted} strokeWidth={2} />
+    </Pressable>
   );
 }
 
@@ -116,17 +126,12 @@ const styles = StyleSheet.create({
   sub: { fontFamily: fontFamily.regular, fontSize: 13, color: c.textMuted, marginTop: 3 },
   scroll: { paddingHorizontal: 16, paddingTop: 8, paddingBottom: 40 },
 
-  swipeWrap: { marginBottom: 8 },
-  row: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 10, borderRadius: 16, backgroundColor: c.surface, borderWidth: 1, borderColor: c.border, ...shadows.sm },
+  row: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 10, marginBottom: 8, borderRadius: 16, backgroundColor: c.surface, borderWidth: 1, borderColor: c.border, ...shadows.sm },
   rowHighlight: { backgroundColor: CO_SOFT, borderColor: CO },
-  deleteAction: { width: 84, alignItems: 'center', justifyContent: 'center', gap: 3, backgroundColor: '#E5544B', borderTopRightRadius: 16, borderBottomRightRadius: 16 },
-  deleteText: { color: '#fff', fontFamily: fontFamily.semiBold, fontSize: 12 },
   avatar: { width: 44, height: 44, borderRadius: 22, backgroundColor: CO_SOFT, alignItems: 'center', justifyContent: 'center' },
   avatarText: { fontFamily: fontFamily.display, fontSize: 18, color: CO_DARK, letterSpacing: -0.3 },
   rowName: { fontFamily: fontFamily.semiBold, fontSize: 16, color: c.text, letterSpacing: -0.2 },
   rowPhone: { fontFamily: fontFamily.regular, fontSize: 12.5, color: c.textMuted, marginTop: 2 },
-  textBtn: { width: 40, height: 40, borderRadius: 20, borderWidth: 1.5, borderColor: CO, backgroundColor: c.surface, alignItems: 'center', justifyContent: 'center' },
-  callBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: CO, alignItems: 'center', justifyContent: 'center' },
 
   addBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, marginTop: 4, paddingVertical: 13, borderRadius: 16, borderWidth: 1.5, borderColor: CO + '77', borderStyle: 'dashed' },
   addBtnText: { fontFamily: fontFamily.semiBold, fontSize: 14, color: CO_DARK },
