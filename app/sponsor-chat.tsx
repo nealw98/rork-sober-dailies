@@ -1,413 +1,315 @@
-import React, { useState, useRef, useEffect } from "react";
+// AI Sponsor — chat (redesign 3.0). Reskin of the sponsor conversation to the
+// prototype (frames/hifi-sponsor-v2 HiFiSponsorChatV2): LINEN header with avatar
+// + "Online" + a Switch-sponsor dropdown, PAPER conversation with persona-tinted
+// bubbles, "Or try" suggestion chips, persona-ink send button.
+// Plumbing is UNCHANGED — messages/send/limits still flow through use-chat-store.
+import React, { useState, useRef, useEffect } from 'react';
 import {
-  StyleSheet,
-  View,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  FlatList,
-  Animated,
-  KeyboardAvoidingView,
-  Platform,
-  ActivityIndicator,
-  Image,
-  Alert,
-  Dimensions,
-} from "react-native";
-import { useRouter, useLocalSearchParams, Stack } from "expo-router";
-import { ChevronLeft, RotateCcw, Send } from "lucide-react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { LinearGradient } from "expo-linear-gradient";
-import { BlurView } from "expo-blur";
-import * as Haptics from "expo-haptics";
-import * as Clipboard from "expo-clipboard";
-import { ChatStoreProvider, useChatStore } from "@/hooks/use-chat-store";
-import { getSponsorById, SPONSORS } from "@/constants/sponsors";
-import { useScreenTimeTracking } from "@/hooks/useScreenTimeTracking";
-import { useTheme } from "@/hooks/useTheme";
-import { useTextSettings } from "@/hooks/use-text-settings";
-import { SponsorType, ChatMessage } from "@/types";
-import { ChatMarkdownRenderer } from "@/components/ChatMarkdownRenderer";
-import { featureUse, getAnonymousId } from "@/lib/usageLogger";
-import { supabase } from "@/lib/supabase";
-import {
-  colors,
-  semanticColors,
-  spacing,
-  radii,
-  fontFamily,
-  fontSize as fontSizeTokens,
-  shadows,
-} from "@/constants/designTokens";
+  View, Text, TextInput, Pressable, FlatList, KeyboardAvoidingView,
+  Platform, ActivityIndicator, Alert, StyleSheet,
+} from 'react-native';
+import { Image } from 'expo-image';
+import { useRouter, useLocalSearchParams, Stack } from 'expo-router';
+import { ChevronDown, ChevronRight, Check, RotateCcw, Send } from 'lucide-react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import * as Haptics from 'expo-haptics';
+import * as Clipboard from 'expo-clipboard';
+import { ChatStoreProvider, useChatStore } from '@/hooks/use-chat-store';
+import { getSponsorById, SPONSORS, type SponsorConfig } from '@/constants/sponsors';
+import { SELECTION_SPONSOR_IDS, sponsorTone } from '@/constants/sponsorTones';
+import { useScreenTimeTracking } from '@/hooks/useScreenTimeTracking';
+import { useTextSettings } from '@/hooks/use-text-settings';
+import { SponsorType, ChatMessage } from '@/types';
+import { ChatMarkdownRenderer } from '@/components/ChatMarkdownRenderer';
+import BackButton from '@/components/BackButton';
+import { featureUse, getAnonymousId } from '@/lib/usageLogger';
+import { supabase } from '@/lib/supabase';
+import { fontFamily, getSemanticColors, shadows } from '@/constants/designTokens';
+
+const c = getSemanticColors('light');
+const PAPER = '#FCFBF8';  // conversation background
+const LINEN = '#F5F1E9';  // header + input dock
 
 const DAILY_SPONSOR_LIMIT = 50;
 const MONTHLY_SPONSOR_LIMIT = 200;
-const STICKY_THRESHOLD = 340;
+
+const SUGGESTIONS = ['I’m struggling today', 'Help me think this through', 'I just need to vent', 'I’m fighting a craving'];
+const SWITCHERS = SELECTION_SPONSOR_IDS
+  .map((id) => SPONSORS.find((s) => s.id === id))
+  .filter(Boolean) as SponsorConfig[];
 
 type LimitCheckResult =
   | { allowed: true }
-  | { allowed: false; reason: "daily" | "monthly"; count: number }
+  | { allowed: false; reason: 'daily' | 'monthly'; count: number }
   | { allowed: false; error: string };
 
 const checkSponsorMessageLimits = async (): Promise<LimitCheckResult> => {
   try {
     const anonymousId = await getAnonymousId();
     const now = new Date();
-
     const startOfDay = new Date(now);
     startOfDay.setHours(0, 0, 0, 0);
     const { count: dailyCount, error: dailyError } = await supabase
-      .from("usage_events")
-      .select("*", { count: "exact", head: true })
-      .eq("anonymous_id", anonymousId)
-      .like("feature", "SponsorMessage_%")
-      .gte("created_at", startOfDay.toISOString());
+      .from('usage_events')
+      .select('*', { count: 'exact', head: true })
+      .eq('anonymous_id', anonymousId)
+      .like('feature', 'SponsorMessage_%')
+      .gte('created_at', startOfDay.toISOString());
     if (dailyError) return { allowed: false, error: dailyError.message };
-    if ((dailyCount ?? 0) >= DAILY_SPONSOR_LIMIT)
-      return { allowed: false, reason: "daily", count: dailyCount ?? 0 };
+    if ((dailyCount ?? 0) >= DAILY_SPONSOR_LIMIT) return { allowed: false, reason: 'daily', count: dailyCount ?? 0 };
 
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
     const { count: monthlyCount, error: monthlyError } = await supabase
-      .from("usage_events")
-      .select("*", { count: "exact", head: true })
-      .eq("anonymous_id", anonymousId)
-      .like("feature", "SponsorMessage_%")
-      .gte("created_at", startOfMonth.toISOString());
+      .from('usage_events')
+      .select('*', { count: 'exact', head: true })
+      .eq('anonymous_id', anonymousId)
+      .like('feature', 'SponsorMessage_%')
+      .gte('created_at', startOfMonth.toISOString());
     if (monthlyError) return { allowed: false, error: monthlyError.message };
-    if ((monthlyCount ?? 0) >= MONTHLY_SPONSOR_LIMIT)
-      return { allowed: false, reason: "monthly", count: monthlyCount ?? 0 };
+    if ((monthlyCount ?? 0) >= MONTHLY_SPONSOR_LIMIT) return { allowed: false, reason: 'monthly', count: monthlyCount ?? 0 };
 
     return { allowed: true };
-  } catch (error: any) {
+  } catch {
     return { allowed: true };
   }
 };
 
-// ─── Chat Bubble ─────────────────────────────────────────────────────────────
+const getSponsorDisplayName = (type: string): string => {
+  switch (type) {
+    case 'salty': return 'SaltySam';
+    case 'supportive': return 'SteadyEddie';
+    case 'grace': return 'GentleGrace';
+    case 'cowboy-pete': return 'CowboyPete';
+    case 'co-sign-sally': return 'CoSignSally';
+    case 'fresh': return 'FreshFreddie';
+    case 'mama-jo': return 'MamaJo';
+    default: return type;
+  }
+};
 
-const sem = semanticColors.light;
+const copyMessage = async (text: string) => {
+  try {
+    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    await Clipboard.setStringAsync(text);
+    Alert.alert('Copied', 'Message copied to clipboard');
+  } catch { /* ignore */ }
+};
 
-const ChatMessage_View = ({
-  message,
-  sponsorType,
-  fontSize,
-}: {
-  message: ChatMessage;
-  sponsorType: SponsorType;
-  fontSize: number;
-}) => {
-  const isUser = message.sender === "user";
-
-  const handleLongPress = async () => {
-    try {
-      await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-      await Clipboard.setStringAsync(message.text);
-      Alert.alert("Copied", "Message copied to clipboard");
-    } catch {
-      // ignore
-    }
-  };
-
-  const isWelcome = message.id.startsWith("welcome-");
-  const timeString = isWelcome
-    ? ""
-    : new Date(message.timestamp)
-        .toLocaleTimeString("en-US", {
-          hour: "numeric",
-          minute: "2-digit",
-          hour12: true,
-        })
-        .toUpperCase();
-
+// ── Message bubble ──────────────────────────────────────────────────────────
+function Bubble({ message, sponsor, ink, tile, fontSize }: {
+  message: ChatMessage; sponsor: SponsorConfig; ink: string; tile: string; fontSize: number;
+}) {
+  const isUser = message.sender === 'user';
   if (isUser) {
     return (
       <View style={styles.userRow}>
-        <TouchableOpacity
-          onLongPress={handleLongPress}
-          activeOpacity={0.9}
-          style={styles.userBubble}
-        >
+        <Pressable onLongPress={() => copyMessage(message.text)} style={styles.userBubble}>
           <Text style={[styles.userText, { fontSize }]}>{message.text}</Text>
-        </TouchableOpacity>
-        {timeString ? <Text style={styles.userMeta}>{timeString}</Text> : null}
+        </Pressable>
       </View>
     );
   }
-
   return (
-    <View style={styles.sponsorRow}>
-      <TouchableOpacity
-        onLongPress={handleLongPress}
-        activeOpacity={0.9}
-        style={styles.sponsorBubble}
-      >
-        <ChatMarkdownRenderer
-          content={message.text}
-          style={{ color: "#1A3A4A", fontSize, fontFamily: "WixMadeforText_400Regular" }}
-        />
-      </TouchableOpacity>
-      {timeString ? <Text style={styles.sponsorMeta}>{timeString}</Text> : null}
+    <View style={styles.botRow}>
+      <Image source={sponsor.avatar} style={styles.botAvatar} contentFit="cover" />
+      <Pressable onLongPress={() => copyMessage(message.text)} style={[styles.botBubble, { backgroundColor: tile, borderColor: ink + '22' }]}>
+        <ChatMarkdownRenderer content={message.text} style={{ color: c.text, fontSize, fontFamily: fontFamily.regular }} />
+      </Pressable>
     </View>
   );
-};
+}
 
-// ─── Main Chat Content ───────────────────────────────────────────────────────
-
+// ── Chat content ────────────────────────────────────────────────────────────
 function SponsorChatContent({ initialSponsor }: { initialSponsor: string }) {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { palette } = useTheme();
   const textSettings = useTextSettings();
-  const fontSize = textSettings?.fontSize ?? 18;
-  const {
-    messages,
-    isLoading,
-    sendMessage,
-    clearChat,
-    changeSponsor,
-    sponsorType,
-  } = useChatStore();
-  const [inputText, setInputText] = useState("");
+  const fontSize = textSettings?.fontSize ?? 16;
+  const { messages, isLoading, sendMessage, clearChat, changeSponsor, sponsorType } = useChatStore();
+  const [inputText, setInputText] = useState('');
   const [isCheckingLimits, setIsCheckingLimits] = useState(false);
-  const flatListRef = useRef<FlatList>(null);
-  const scrollY = useRef(new Animated.Value(0)).current;
-
-  const stickyOpacity = scrollY.interpolate({
-    inputRange: [STICKY_THRESHOLD - 40, STICKY_THRESHOLD],
-    outputRange: [0, 1],
-    extrapolate: "clamp",
-  });
+  const [switchOpen, setSwitchOpen] = useState(false);
+  const listRef = useRef<FlatList>(null);
 
   useEffect(() => {
-    const targetSponsor = initialSponsor as SponsorType;
-    if (targetSponsor !== sponsorType) {
-      changeSponsor(targetSponsor);
-    }
+    const target = initialSponsor as SponsorType;
+    if (target !== sponsorType) changeSponsor(target);
   }, [initialSponsor, sponsorType, changeSponsor]);
 
   const sponsor = getSponsorById(initialSponsor as SponsorType);
-  const screenName = sponsor?.name || "Unknown Sponsor";
-  useScreenTimeTracking(screenName);
-
-  const placeholderText = sponsor?.chatPlaceholder ?? sponsor?.placeholderText ?? "Type a message...";
-  const loadingText = sponsor?.loadingText ?? "Thinking...";
+  useScreenTimeTracking(sponsor?.name || 'AI Sponsor');
 
   useEffect(() => {
-    if (messages.length > 0) {
-      setTimeout(() => {
-        flatListRef.current?.scrollToEnd({ animated: true });
-      }, 100);
-    }
+    if (messages.length > 0) setTimeout(() => listRef.current?.scrollToEnd({ animated: true }), 100);
   }, [messages]);
 
-  const handleBack = () => router.back();
-
   const handleRefresh = () => {
-    Alert.alert(
-      "Reset Conversation",
-      "This will clear your chat history with this sponsor. Continue?",
-      [
-        { text: "Cancel", style: "cancel" },
-        { text: "Reset", style: "destructive", onPress: () => clearChat() },
-      ]
-    );
+    Alert.alert('Reset conversation', 'This will clear your chat history with this sponsor. Continue?', [
+      { text: 'Cancel', style: 'cancel' },
+      { text: 'Reset', style: 'destructive', onPress: () => clearChat() },
+    ]);
   };
 
   const handleSend = async () => {
     const trimmed = inputText.trim();
     if (!trimmed || isLoading || isCheckingLimits) return;
-
     setIsCheckingLimits(true);
-    const limitResult = await checkSponsorMessageLimits();
+    const limit = await checkSponsorMessageLimits();
     setIsCheckingLimits(false);
-
-    if (!limitResult.allowed) {
-      if ("error" in limitResult) {
-        // Fail open — log but don't block the user
-        console.warn("Limit check error:", limitResult.error);
-      } else if (limitResult.reason === "daily") {
-        Alert.alert(
-          "Daily Limit Reached",
-          `You've reached the daily limit of ${DAILY_SPONSOR_LIMIT} messages. Please try again tomorrow.`
-        );
+    if (!limit.allowed) {
+      if ('error' in limit) {
+        console.warn('Limit check error:', limit.error);
+      } else if (limit.reason === 'daily') {
+        Alert.alert('Daily Limit Reached', `You've reached the daily limit of ${DAILY_SPONSOR_LIMIT} messages. Please try again tomorrow.`);
         return;
       } else {
-        Alert.alert(
-          "Monthly Limit Reached",
-          `You've reached the monthly limit of ${MONTHLY_SPONSOR_LIMIT} messages. Limits reset at the start of each month.`
-        );
+        Alert.alert('Monthly Limit Reached', `You've reached the monthly limit of ${MONTHLY_SPONSOR_LIMIT} messages. Limits reset at the start of each month.`);
         return;
       }
     }
-
-    setInputText("");
+    setInputText('');
     featureUse(`SponsorMessage_${getSponsorDisplayName(sponsorType)}`);
     await sendMessage(trimmed);
   };
 
-  const getSponsorDisplayName = (type: SponsorType): string => {
-    switch (type) {
-      case "salty": return "SaltySam";
-      case "supportive": return "SteadyEddie";
-      case "grace": return "GentleGrace";
-      case "cowboy-pete": return "CowboyPete";
-      case "co-sign-sally": return "CoSignSally";
-      case "fresh": return "FreshFreddie";
-      case "mama-jo": return "MamaJo";
-      default: return type;
-    }
+  const onSwitch = (id: string) => {
+    setSwitchOpen(false);
+    if (id !== initialSponsor) router.replace(`/sponsor-chat?sponsor=${id}`);
   };
 
   if (sponsorType !== initialSponsor) return null;
 
   if (!sponsor || !sponsor.isAvailable) {
     return (
-      <View style={styles.errorContainer}>
-        <Text style={[styles.errorText, { color: sem.text }]}>Sponsor not found</Text>
-        <TouchableOpacity onPress={handleBack} style={styles.errorButton}>
-          <Text style={styles.errorButtonText}>Go Back</Text>
-        </TouchableOpacity>
+      <View style={styles.errorBox}>
+        <Text style={styles.errorText}>Sponsor not found</Text>
+        <Pressable onPress={() => router.back()} style={styles.errorBtn}><Text style={styles.errorBtnText}>Go Back</Text></Pressable>
       </View>
     );
   }
 
+  const tone = sponsorTone(sponsor.id);
+  const firstName = sponsor.name.split(' ').slice(-1)[0];
   const isSendDisabled = !inputText.trim() || isLoading || isCheckingLimits;
-  const chatMessages = messages.filter((m) => !m.id.startsWith("welcome-"));
-
-  const renderHeroHeader = () => (
-    <View>
-      {/* ── Hero Image ── */}
-      <View style={styles.heroContainer}>
-        <Image source={sponsor.avatar} style={styles.heroImage} />
-
-        {/* Dark gradient for name/tags readability */}
-        <LinearGradient
-          colors={["transparent", "rgba(0,0,0,0.65)"]}
-          style={styles.heroDarkGradient}
-        />
-
-        {/* Fade into page background — only at very bottom */}
-        <LinearGradient
-          colors={["transparent", "#F8F9FA"]}
-          style={styles.heroFadeGradient}
-        />
-
-        {/* Name + Tags at bottom of image */}
-        <View style={styles.heroOverlay}>
-          <Text style={styles.heroName}>{sponsor.name}</Text>
-          {sponsor.tags && (
-            <View style={styles.tagsRow}>
-              {sponsor.tags.map((tag: string, i: number) => (
-                <View key={i} style={styles.tagPill}>
-                  <Text style={styles.tagText}>{tag}</Text>
-                </View>
-              ))}
-            </View>
-          )}
-        </View>
-      </View>
-
-      {/* ── Hook Quote ── */}
-      {sponsor.hookQuote && (
-        <View style={styles.hookQuoteContainer}>
-          <Text style={styles.hookQuoteText}>
-            {`\u201C${sponsor.hookQuote}\u201D`}
-          </Text>
-        </View>
-      )}
-    </View>
-  );
+  const showChips = messages.filter((m) => !m.id.startsWith('welcome-')).length === 0;
 
   return (
     <View style={styles.container}>
       <Stack.Screen options={{ headerShown: false }} />
 
-      {/* ── Persistent Frosted Pill Nav ── */}
-      <View style={[styles.pillWrapper, { top: insets.top + 8 }]}>
-        <BlurView intensity={40} tint="extraLight" style={styles.pillBar}>
-          <View style={styles.pillBorderOverlay} />
-          <TouchableOpacity onPress={handleBack} style={styles.pillBtn} activeOpacity={0.7}>
-            <ChevronLeft size={20} color="#1A3A4A" strokeWidth={1.5} />
-          </TouchableOpacity>
-
-          <Animated.Text style={[styles.pillName, { opacity: stickyOpacity }]}>
-            {sponsor.name}
-          </Animated.Text>
-
-          <TouchableOpacity onPress={handleRefresh} style={styles.pillBtn} activeOpacity={0.7}>
-            <RotateCcw size={16} color="#1A3A4A" strokeWidth={1.5} />
-          </TouchableOpacity>
-        </BlurView>
+      {/* ── Header ── */}
+      <View style={[styles.header, { paddingTop: insets.top + 6 }]}>
+        <BackButton onPress={() => router.back()} style={{ marginBottom: 10 }} />
+        <View style={styles.sponsorRow}>
+          <Image source={sponsor.avatar} style={[styles.hAvatar, { backgroundColor: tone.tile }]} contentFit="cover" />
+          <View style={styles.flex}>
+            <Text style={styles.hName}>{sponsor.name}</Text>
+            <View style={styles.statusRow}>
+              <View style={styles.dot} />
+              <Text style={styles.status}>Online</Text>
+            </View>
+          </View>
+          <Pressable onPress={() => setSwitchOpen((o) => !o)} style={[styles.switchBtn, { borderColor: tone.ink + '40', backgroundColor: tone.tile }]}>
+            <Text style={[styles.switchText, { color: tone.ink }]}>Switch</Text>
+            <ChevronDown size={13} color={tone.ink} strokeWidth={2.4} />
+          </Pressable>
+        </View>
       </View>
 
-      {/* ── Chat ── */}
-      <KeyboardAvoidingView
-        style={styles.chatArea}
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
-        keyboardVerticalOffset={0}
-      >
-        <Animated.FlatList
-          ref={flatListRef}
-          data={chatMessages}
-          keyExtractor={(item) => item.id}
-          renderItem={({ item }) => (
-            <ChatMessage_View
-              message={item}
-              sponsorType={initialSponsor as SponsorType}
-              fontSize={fontSize}
-            />
-          )}
-          ListHeaderComponent={renderHeroHeader}
-          contentContainerStyle={styles.messagesList}
+      {/* ── Switch dropdown ── */}
+      {switchOpen && (
+        <>
+          <Pressable style={styles.ddBackdrop} onPress={() => setSwitchOpen(false)} />
+          <View style={[styles.dropdown, { top: insets.top + 96 }]}>
+            <Text style={styles.ddHead}>SWITCH SPONSOR</Text>
+            {SWITCHERS.map((sp) => {
+              const t = sponsorTone(sp.id);
+              const current = sp.id === sponsor.id;
+              return (
+                <Pressable key={sp.id} style={[styles.ddRow, current && { backgroundColor: t.tile }]} onPress={() => onSwitch(sp.id)}>
+                  <Image source={sp.avatar} style={styles.ddAvatar} contentFit="cover" />
+                  <View style={styles.flex}>
+                    <Text style={styles.ddName}>{sp.name}</Text>
+                    <Text style={[styles.ddVibe, { color: t.ink }]} numberOfLines={1}>{(sp.tags ?? []).join(' · ')}</Text>
+                  </View>
+                  {current && <Check size={16} color={t.ink} strokeWidth={2.4} />}
+                </Pressable>
+              );
+            })}
+            <View style={styles.ddDivider} />
+            <Pressable style={styles.ddAction} onPress={() => { setSwitchOpen(false); handleRefresh(); }}>
+              <RotateCcw size={15} color={c.textMuted} strokeWidth={2} />
+              <Text style={styles.ddActionText}>Reset conversation</Text>
+            </Pressable>
+            <Pressable style={styles.ddAction} onPress={() => { setSwitchOpen(false); router.replace('/(main)/chat'); }}>
+              <Text style={styles.ddActionText}>Meet all three</Text>
+              <ChevronRight size={15} color={c.textMuted} strokeWidth={2} />
+            </Pressable>
+          </View>
+        </>
+      )}
+
+      {/* ── Conversation ── */}
+      <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+        <FlatList
+          ref={listRef}
+          data={messages}
+          keyExtractor={(m) => m.id}
+          renderItem={({ item }) => <Bubble message={item} sponsor={sponsor} ink={tone.ink} tile={tone.tile} fontSize={fontSize} />}
+          ListHeaderComponent={<View style={styles.dayDivider}><Text style={styles.dayText}>Today</Text></View>}
+          ListFooterComponent={showChips ? (
+            <View style={styles.chipsWrap}>
+              <Text style={styles.chipsLabel}>OR TRY</Text>
+              <View style={styles.chipsRow}>
+                {SUGGESTIONS.map((s) => (
+                  <Pressable key={s} style={[styles.chip, { borderColor: tone.ink + '33' }]} onPress={() => setInputText(s)}>
+                    <Text style={[styles.chipText, { color: tone.ink }]}>{s}</Text>
+                  </Pressable>
+                ))}
+              </View>
+            </View>
+          ) : null}
+          contentContainerStyle={styles.list}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
-          onScroll={Animated.event(
-            [{ nativeEvent: { contentOffset: { y: scrollY } } }],
-            { useNativeDriver: true }
-          )}
-          scrollEventThrottle={16}
         />
 
         {isLoading && (
           <View style={styles.loadingRow}>
-            <ActivityIndicator size="small" color={sem.textMuted} />
-            <Text style={styles.loadingText}>{loadingText}</Text>
+            <ActivityIndicator size="small" color={tone.ink} />
+            <Text style={styles.loadingText}>{sponsor.loadingText ?? 'Thinking…'}</Text>
           </View>
         )}
 
-        {/* ── Input Bar ── */}
-        <View style={[styles.inputBar, { paddingBottom: Math.max(insets.bottom, 12) }]}>
+        {/* ── Input dock ── */}
+        <View style={[styles.inputDock, { paddingBottom: Math.max(insets.bottom, 10) + 8 }]}>
           <TextInput
             style={[styles.input, { fontSize }]}
             value={inputText}
             onChangeText={setInputText}
-            placeholder={placeholderText}
-            placeholderTextColor={sem.textMuted}
+            placeholder={`Message ${firstName}…`}
+            placeholderTextColor={c.textMuted}
             multiline
             maxLength={500}
-            returnKeyType="done"
-            blurOnSubmit
-            textAlignVertical="top"
+            returnKeyType="default"
           />
-          <TouchableOpacity
-            style={[styles.sendBtn, isSendDisabled && styles.sendBtnDisabled]}
+          <Pressable
+            style={[styles.sendBtn, { backgroundColor: tone.ink }, isSendDisabled && styles.sendDisabled]}
             onPress={handleSend}
             disabled={isSendDisabled}
+            accessibilityLabel="Send"
           >
-            <Send size={18} color={isSendDisabled ? sem.textMuted : colors.white} />
-          </TouchableOpacity>
+            <Send size={16} color="#fff" strokeWidth={2} />
+          </Pressable>
         </View>
       </KeyboardAvoidingView>
     </View>
   );
 }
 
-// ─── Export ──────────────────────────────────────────────────────────────────
-
 export default function SponsorChatScreen() {
   const params = useLocalSearchParams<{ sponsor: string }>();
-  const initialSponsor = params.sponsor || "supportive";
-
+  const initialSponsor = params.sponsor || 'supportive';
   return (
     <ChatStoreProvider>
       <SponsorChatContent initialSponsor={initialSponsor} />
@@ -415,263 +317,64 @@ export default function SponsorChatScreen() {
   );
 }
 
-// ─── Styles ──────────────────────────────────────────────────────────────────
-
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#F8F9FA",
-  },
+  container: { flex: 1, backgroundColor: PAPER },
+  flex: { flex: 1 },
 
-  // ── Hero ──
-  heroContainer: {
-    height: Dimensions.get("window").width * (4 / 3) - 40,
-    overflow: "hidden",
-    marginHorizontal: -spacing.lg,
-  },
-  heroImage: {
-    width: Dimensions.get("window").width,
-    height: Dimensions.get("window").width * (4 / 3),
-  },
-  heroDarkGradient: {
-    position: "absolute",
-    left: 0,
-    right: 0,
-    bottom: 0,
-    height: 200,
-  },
-  heroFadeGradient: {
-    position: "absolute",
-    left: 0,
-    right: 0,
-    bottom: 0,
-    height: 80,
-  },
-  heroOverlay: {
-    position: "absolute",
-    bottom: 0,
-    left: 0,
-    right: 0,
-    paddingHorizontal: spacing.lg,
-    paddingBottom: spacing.lg,
-  },
-  heroName: {
-    fontFamily: "WixMadeforDisplay_700Bold",
-    fontSize: 28,
-    color: "#FFFFFF",
-    letterSpacing: -0.5,
-    marginBottom: spacing.sm,
-    textShadowColor: "rgba(0,0,0,0.4)",
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 6,
-  },
-  tagsRow: {
-    flexDirection: "row",
-    gap: spacing.sm,
-    flexWrap: "wrap",
-  },
-  tagPill: {
-    backgroundColor: "rgba(255, 255, 255, 0.2)",
-    borderRadius: 9999,
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-  },
-  tagText: {
-    fontFamily: "WixMadeforText_500Medium",
-    fontSize: 10,
-    letterSpacing: 1,
-    color: "rgba(255, 255, 255, 0.9)",
-    textTransform: "uppercase",
-  },
+  // header
+  header: { backgroundColor: LINEN, paddingHorizontal: 14, paddingBottom: 12, borderBottomWidth: 1, borderBottomColor: 'rgba(26,26,46,0.06)' },
+  sponsorRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  hAvatar: { width: 46, height: 46, borderRadius: 23, borderWidth: 2, borderColor: '#fff', ...shadows.sm },
+  hName: { fontFamily: fontFamily.display, fontSize: 22, letterSpacing: -0.3, color: c.text },
+  statusRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 1 },
+  dot: { width: 7, height: 7, borderRadius: 4, backgroundColor: '#22C55E' },
+  status: { fontFamily: fontFamily.semiBold, fontSize: 10.5, letterSpacing: 0.3, color: c.textMuted },
+  switchBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 11, paddingVertical: 7, borderRadius: 999, borderWidth: 1 },
+  switchText: { fontFamily: fontFamily.bold, fontSize: 12 },
 
-  // ── Hook Quote ──
-  hookQuoteContainer: {
-    alignItems: "center",
-    paddingHorizontal: spacing.xl,
-    paddingTop: spacing.sm,
-    paddingBottom: spacing.lg,
-  },
-  hookQuoteText: {
-    fontFamily: "WixMadeforText_400Regular_Italic",
-    fontSize: fontSizeTokens.base,
-    color: sem.textMuted,
-    textAlign: "center",
-    lineHeight: 22,
-  },
-  separatorLine: {
-    width: 40,
-    height: 0.5,
-    backgroundColor: "#E5E2D9",
-  },
+  // switch dropdown
+  ddBackdrop: { ...StyleSheet.absoluteFillObject, zIndex: 20 },
+  dropdown: { position: 'absolute', right: 14, width: 248, zIndex: 30, backgroundColor: c.surface, borderRadius: 16, borderWidth: 1, borderColor: 'rgba(26,26,46,0.06)', padding: 6, ...shadows.lg },
+  ddHead: { fontFamily: fontFamily.bold, fontSize: 10, letterSpacing: 1, color: c.textMuted, paddingHorizontal: 10, paddingTop: 8, paddingBottom: 6 },
+  ddRow: { flexDirection: 'row', alignItems: 'center', gap: 10, padding: 8, borderRadius: 11 },
+  ddAvatar: { width: 34, height: 34, borderRadius: 17, borderWidth: 2, borderColor: '#fff' },
+  ddName: { fontFamily: fontFamily.bold, fontSize: 14, color: c.text },
+  ddVibe: { fontFamily: fontFamily.semiBold, fontSize: 11, marginTop: 1 },
+  ddDivider: { height: 1, backgroundColor: 'rgba(26,26,46,0.07)', marginHorizontal: 8, marginVertical: 6 },
+  ddAction: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8, paddingHorizontal: 10, paddingVertical: 9, borderRadius: 11 },
+  ddActionText: { fontFamily: fontFamily.semiBold, fontSize: 13, color: c.textSecondary },
 
-  // ── Persistent Frosted Pill ──
-  pillWrapper: {
-    position: "absolute",
-    left: spacing.lg,
-    right: spacing.lg,
-    zIndex: 100,
-    shadowColor: "#000",
-    shadowOpacity: 0.1,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 6,
-  },
-  pillBar: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    borderRadius: 9999,
-    paddingVertical: spacing.xs + 2,
-    paddingHorizontal: spacing.sm + 2,
-    overflow: "hidden",
-  },
-  pillBorderOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    borderRadius: 9999,
-    borderTopWidth: 1,
-    borderTopColor: "rgba(255, 255, 255, 0.3)",
-    borderLeftWidth: 0,
-    borderRightWidth: 0,
-    borderBottomWidth: 0,
-  },
-  pillBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  pillName: {
-    fontFamily: "WixMadeforDisplay_600SemiBold",
-    fontSize: fontSizeTokens.base,
-    color: "#1A3A4A",
-  },
+  // conversation
+  list: { paddingHorizontal: 16, paddingTop: 14, paddingBottom: 14 },
+  dayDivider: { alignItems: 'center', marginBottom: 14 },
+  dayText: { fontFamily: fontFamily.regular, fontSize: 11, color: c.textMuted, backgroundColor: c.surface, paddingHorizontal: 12, paddingVertical: 4, borderRadius: 999, overflow: 'hidden', ...shadows.sm },
 
-  // ── Chat Area ──
-  chatArea: {
-    flex: 1,
-  },
-  messagesList: {
-    paddingHorizontal: spacing.lg,
-    paddingBottom: spacing.sm,
-  },
+  userRow: { alignItems: 'flex-end', marginBottom: 8 },
+  userBubble: { maxWidth: '78%', backgroundColor: c.surface, paddingVertical: 10, paddingHorizontal: 14, borderRadius: 18, borderBottomRightRadius: 5, ...shadows.sm },
+  userText: { fontFamily: fontFamily.regular, color: c.text, lineHeight: 21 },
 
-  // ── Bubbles ──
-  userRow: {
-    alignItems: "flex-end",
-    marginBottom: spacing.lg,
-  },
-  userBubble: {
-    backgroundColor: "#86CDCE",
-    padding: spacing.md,
-    maxWidth: "85%",
-    borderTopLeftRadius: 18,
-    borderTopRightRadius: 18,
-    borderBottomLeftRadius: 18,
-    borderBottomRightRadius: 4,
-  },
-  userText: {
-    fontFamily: "WixMadeforText_400Regular",
-    color: "#1A3A4A",
-  },
-  userMeta: {
-    fontFamily: "WixMadeforText_400Regular",
-    fontSize: 10,
-    color: sem.textMuted,
-    letterSpacing: 0.5,
-    marginTop: spacing.xs,
-    marginRight: spacing.xs,
-  },
-  sponsorRow: {
-    alignItems: "flex-start",
-    marginBottom: spacing.lg,
-  },
-  sponsorBubble: {
-    backgroundColor: "#F0F2F2",
-    padding: spacing.md,
-    maxWidth: "85%",
-    borderTopLeftRadius: 18,
-    borderTopRightRadius: 18,
-    borderBottomRightRadius: 18,
-    borderBottomLeftRadius: 4,
-  },
-  sponsorMeta: {
-    fontFamily: "WixMadeforText_400Regular",
-    fontSize: 10,
-    color: sem.textMuted,
-    letterSpacing: 0.5,
-    marginTop: spacing.xs,
-    marginLeft: spacing.xs,
-  },
+  botRow: { flexDirection: 'row', alignItems: 'flex-end', gap: 6, marginBottom: 8 },
+  botAvatar: { width: 26, height: 26, borderRadius: 13, borderWidth: 1.5, borderColor: '#fff', ...shadows.sm },
+  botBubble: { maxWidth: '78%', paddingVertical: 10, paddingHorizontal: 14, borderRadius: 18, borderBottomLeftRadius: 5, borderWidth: 1 },
 
-  // ── Loading ──
-  loadingRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: spacing.lg,
-    paddingBottom: spacing.md,
-    gap: spacing.sm,
-  },
-  loadingText: {
-    fontFamily: "WixMadeforText_400Regular_Italic",
-    fontSize: fontSizeTokens.md,
-    color: sem.textMuted,
-  },
+  chipsWrap: { marginTop: 16 },
+  chipsLabel: { fontFamily: fontFamily.bold, fontSize: 10, letterSpacing: 1.3, color: c.textMuted, marginBottom: 8 },
+  chipsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
+  chip: { backgroundColor: c.surface, paddingVertical: 7, paddingHorizontal: 12, borderRadius: 999, borderWidth: 1, ...shadows.sm },
+  chipText: { fontFamily: fontFamily.medium, fontSize: 12 },
 
-  // ── Input Bar ──
-  inputBar: {
-    flexDirection: "row",
-    alignItems: "flex-end",
-    paddingHorizontal: spacing.md,
-    paddingTop: spacing.sm,
-    backgroundColor: "#F8F9FA",
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: "#E5E2D9",
-    gap: spacing.sm,
-  },
-  input: {
-    flex: 1,
-    fontFamily: "WixMadeforText_400Regular",
-    color: "#1A3A4A",
-    backgroundColor: colors.white,
-    borderRadius: radii.md,
-    paddingHorizontal: spacing.md,
-    paddingVertical: 10,
-    maxHeight: 160,
-  },
-  sendBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: "#1A3A4A",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  sendBtnDisabled: {
-    backgroundColor: "#E5E7EB",
-  },
+  loadingRow: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 18, paddingBottom: 6 },
+  loadingText: { fontFamily: fontFamily.regularItalic, fontSize: 12.5, color: c.textMuted },
 
-  // ── Error ──
-  errorContainer: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    backgroundColor: "#F8F9FA",
-  },
-  errorText: {
-    fontFamily: "WixMadeforText_500Medium",
-    fontSize: fontSizeTokens.xl,
-    marginBottom: spacing.md,
-  },
-  errorButton: {
-    backgroundColor: "#1A3A4A",
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.md,
-    borderRadius: radii.sm,
-  },
-  errorButtonText: {
-    fontFamily: "WixMadeforText_600SemiBold",
-    color: colors.white,
-    fontSize: fontSizeTokens.lg,
-  },
+  // input dock
+  inputDock: { flexDirection: 'row', alignItems: 'flex-end', gap: 8, backgroundColor: LINEN, paddingHorizontal: 14, paddingTop: 10, borderTopWidth: 1, borderTopColor: 'rgba(26,26,46,0.06)' },
+  input: { flex: 1, maxHeight: 120, backgroundColor: c.surface, borderWidth: 1, borderColor: 'rgba(26,26,46,0.07)', borderRadius: 22, paddingHorizontal: 16, paddingVertical: Platform.OS === 'ios' ? 10 : 6, fontFamily: fontFamily.regular, color: c.text },
+  sendBtn: { width: 38, height: 38, borderRadius: 19, alignItems: 'center', justifyContent: 'center' },
+  sendDisabled: { opacity: 0.4 },
+
+  // error
+  errorBox: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 16, backgroundColor: PAPER },
+  errorText: { fontFamily: fontFamily.semiBold, fontSize: 16, color: c.text },
+  errorBtn: { paddingHorizontal: 20, paddingVertical: 10, borderRadius: 12, backgroundColor: c.text },
+  errorBtnText: { fontFamily: fontFamily.semiBold, fontSize: 14, color: '#fff' },
 });
