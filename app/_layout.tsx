@@ -59,6 +59,7 @@ import { SobrietyProvider } from "@/hooks/useSobrietyStore";
 import { EveningReviewProvider } from "@/hooks/use-evening-review-store";
 import { MeetingsProvider } from "@/hooks/use-meetings-store";
 import { JournalProvider } from "@/hooks/use-journal-store";
+import { ContactsProvider } from "@/hooks/use-contacts-store";
 import { ImmersiveProvider } from "@/hooks/use-immersive";
 import { TextSettingsProvider } from "@/hooks/use-text-settings";
 import { SubscriptionProvider, useSubscription } from "@/hooks/useSubscription";
@@ -365,6 +366,7 @@ export default function RootLayout() {
                     <EveningReviewProvider>
                     <MeetingsProvider>
                     <JournalProvider>
+                    <ContactsProvider>
                     <ImmersiveProvider>
                       <GestureHandlerRootView style={{ flex: 1 }}>
                         {Platform.OS === 'android' && (
@@ -380,6 +382,7 @@ export default function RootLayout() {
                         </ErrorBoundary>
                       </GestureHandlerRootView>
                     </ImmersiveProvider>
+                    </ContactsProvider>
                     </JournalProvider>
                     </MeetingsProvider>
                     </EveningReviewProvider>

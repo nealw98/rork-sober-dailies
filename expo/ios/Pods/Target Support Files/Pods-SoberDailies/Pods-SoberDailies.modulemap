@@ -1,0 +1,6 @@
+module Pods_SoberDailies {
+  umbrella header "Pods-SoberDailies-umbrella.h"
+
+  export *
+  module * { export * }
+}

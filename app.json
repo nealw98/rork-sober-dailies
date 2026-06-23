@@ -92,6 +92,12 @@
           "cameraPermission": "Sober Dailies needs camera access so you can photograph a meeting flyer to read its details."
         }
       ],
+      [
+        "expo-contacts",
+        {
+          "contactsPermission": "Sober Dailies uses your contacts so you can save people to call or text when you need to reach out."
+        }
+      ],
       "expo-web-browser",
       [
         "expo-sqlite",
