@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import {
   StyleSheet,
   View,
@@ -52,31 +52,54 @@ const PRAYER_PARAM: Record<string, string> = {
 
 const SECTIONS: WhenBucket[] = ['Morning', 'Anytime', 'Evening'];
 
+// Press-and-HOLD to toggle — feels like a physical button: press down depresses
+// it, a brief hold "clicks" (haptic + pop) and commits the toggle, then you lift.
+// A quick tap does nothing, so completion is deliberate.
+const HOLD_MS = 240;
+
 function RightCheck({ done, color, onPress }: { done: boolean; color: string; onPress: () => void }) {
   const scale = useSharedValue(1);
+  const fired = useRef(false);
   const animStyle = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
 
-  const handlePress = () => {
+  const onPressIn = () => {
+    fired.current = false;
+    scale.value = withTiming(0.86, { duration: HOLD_MS, easing: Easing.out(Easing.quad) });
+  };
+
+  const onHold = () => {
+    fired.current = true;
     if (!done) {
-      // Completing — a satisfying "it counted" pop + success haptic.
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       scale.value = withSequence(
-        withTiming(1.3, { duration: 110, easing: Easing.out(Easing.cubic) }),
+        withTiming(1.3, { duration: 120, easing: Easing.out(Easing.cubic) }),
         withSpring(1, { damping: 7, stiffness: 220, mass: 0.5 }),
       );
     } else {
-      // Un-checking — a lighter dip + soft tap.
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
       scale.value = withSequence(
-        withTiming(0.86, { duration: 90 }),
+        withTiming(0.78, { duration: 80 }),
         withSpring(1, { damping: 9, stiffness: 220 }),
       );
     }
     onPress();
   };
 
+  const onPressOut = () => {
+    // Released before the hold completed — spring back, no toggle.
+    if (!fired.current) scale.value = withSpring(1, { damping: 13, stiffness: 240 });
+  };
+
   return (
-    <Pressable onPress={handlePress} hitSlop={8} accessibilityRole="checkbox" accessibilityState={{ checked: done }}>
+    <Pressable
+      onPressIn={onPressIn}
+      onLongPress={onHold}
+      onPressOut={onPressOut}
+      delayLongPress={HOLD_MS}
+      hitSlop={8}
+      accessibilityRole="checkbox"
+      accessibilityState={{ checked: done }}
+    >
       <Animated.View
         style={[styles.check, { borderColor: done ? color : color + '70', backgroundColor: done ? color : color + '1A' }, animStyle]}
       >
