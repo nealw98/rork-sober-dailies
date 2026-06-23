@@ -6,8 +6,9 @@
 import React, { useRef, useState } from 'react';
 import { View, Text, ScrollView, Pressable, StyleSheet, Linking, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { Swipeable } from 'react-native-gesture-handler';
 import { Stack, useRouter } from 'expo-router';
-import { Plus, Phone, MessageSquareText } from 'lucide-react-native';
+import { Plus, Phone, MessageSquareText, Trash2 } from 'lucide-react-native';
 import BackButton from '@/components/BackButton';
 import { useContacts, normalizePhone, type Contact } from '@/hooks/use-contacts-store';
 import { pickContact } from '@/lib/pickContact';
@@ -44,11 +45,7 @@ export default function ReachOutScreen() {
     timer.current = setTimeout(() => setJustAdded(null), 1400);
   };
 
-  const onRemove = (ct: Contact) =>
-    Alert.alert('Remove contact', `Remove ${ct.name} from your list?`, [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'Remove', style: 'destructive', onPress: () => removeContact(ct.id) },
-    ]);
+  const onRemove = (ct: Contact) => removeContact(ct.id);
 
   return (
     <SafeAreaView style={styles.screen} edges={['top']}>
@@ -86,25 +83,28 @@ export default function ReachOutScreen() {
 
 function ContactRow({ ct, highlight, onRemove }: { ct: Contact; highlight: boolean; onRemove: () => void }) {
   const initial = ct.name.trim()[0]?.toUpperCase() || '?';
-  return (
-    <Pressable
-      style={[styles.row, highlight && styles.rowHighlight]}
-      onLongPress={onRemove}
-      delayLongPress={350}
-      accessibilityHint="Press and hold to remove"
-    >
-      <View style={styles.avatar}><Text style={styles.avatarText}>{initial}</Text></View>
-      <View style={styles.flex}>
-        <Text style={styles.rowName} numberOfLines={1}>{ct.name}</Text>
-        {!!ct.phone && <Text style={styles.rowPhone} numberOfLines={1}>{ct.phone}</Text>}
-      </View>
-      <Pressable style={styles.textBtn} hitSlop={6} onPress={() => text(ct.phone)} accessibilityLabel={`Text ${ct.name}`}>
-        <MessageSquareText size={18} color={CO_DARK} strokeWidth={2} />
-      </Pressable>
-      <Pressable style={styles.callBtn} hitSlop={6} onPress={() => call(ct.phone)} accessibilityLabel={`Call ${ct.name}`}>
-        <Phone size={18} color="#fff" strokeWidth={2} />
-      </Pressable>
+  const renderRightActions = () => (
+    <Pressable style={styles.deleteAction} onPress={onRemove} accessibilityLabel={`Delete ${ct.name}`}>
+      <Trash2 size={20} color="#fff" strokeWidth={2} />
+      <Text style={styles.deleteText}>Delete</Text>
     </Pressable>
+  );
+  return (
+    <Swipeable renderRightActions={renderRightActions} overshootRight={false} containerStyle={styles.swipeWrap}>
+      <View style={[styles.row, highlight && styles.rowHighlight]}>
+        <View style={styles.avatar}><Text style={styles.avatarText}>{initial}</Text></View>
+        <View style={styles.flex}>
+          <Text style={styles.rowName} numberOfLines={1}>{ct.name}</Text>
+          {!!ct.phone && <Text style={styles.rowPhone} numberOfLines={1}>{ct.phone}</Text>}
+        </View>
+        <Pressable style={styles.textBtn} hitSlop={6} onPress={() => text(ct.phone)} accessibilityLabel={`Text ${ct.name}`}>
+          <MessageSquareText size={18} color={CO_DARK} strokeWidth={2} />
+        </Pressable>
+        <Pressable style={styles.callBtn} hitSlop={6} onPress={() => call(ct.phone)} accessibilityLabel={`Call ${ct.name}`}>
+          <Phone size={18} color="#fff" strokeWidth={2} />
+        </Pressable>
+      </View>
+    </Swipeable>
   );
 }
 
@@ -116,8 +116,11 @@ const styles = StyleSheet.create({
   sub: { fontFamily: fontFamily.regular, fontSize: 13, color: c.textMuted, marginTop: 3 },
   scroll: { paddingHorizontal: 16, paddingTop: 8, paddingBottom: 40 },
 
-  row: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 10, marginBottom: 8, borderRadius: 16, backgroundColor: c.surface, borderWidth: 1, borderColor: c.border, ...shadows.sm },
+  swipeWrap: { marginBottom: 8 },
+  row: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 10, borderRadius: 16, backgroundColor: c.surface, borderWidth: 1, borderColor: c.border, ...shadows.sm },
   rowHighlight: { backgroundColor: CO_SOFT, borderColor: CO },
+  deleteAction: { width: 84, alignItems: 'center', justifyContent: 'center', gap: 3, backgroundColor: '#E5544B', borderTopRightRadius: 16, borderBottomRightRadius: 16 },
+  deleteText: { color: '#fff', fontFamily: fontFamily.semiBold, fontSize: 12 },
   avatar: { width: 44, height: 44, borderRadius: 22, backgroundColor: CO_SOFT, alignItems: 'center', justifyContent: 'center' },
   avatarText: { fontFamily: fontFamily.display, fontSize: 18, color: CO_DARK, letterSpacing: -0.3 },
   rowName: { fontFamily: fontFamily.semiBold, fontSize: 16, color: c.text, letterSpacing: -0.2 },
