@@ -59,6 +59,7 @@ import { SobrietyProvider } from "@/hooks/useSobrietyStore";
 import { EveningReviewProvider } from "@/hooks/use-evening-review-store";
 import { MeetingsProvider } from "@/hooks/use-meetings-store";
 import { JournalProvider } from "@/hooks/use-journal-store";
+import { ImmersiveProvider } from "@/hooks/use-immersive";
 import { TextSettingsProvider } from "@/hooks/use-text-settings";
 import { SubscriptionProvider, useSubscription } from "@/hooks/useSubscription";
 import { useOTAUpdates } from "@/hooks/useOTAUpdates";
@@ -362,6 +363,7 @@ export default function RootLayout() {
                     <EveningReviewProvider>
                     <MeetingsProvider>
                     <JournalProvider>
+                    <ImmersiveProvider>
                       <GestureHandlerRootView style={{ flex: 1 }}>
                         {Platform.OS === 'android' && (
                           <StatusBar translucent backgroundColor="transparent" barStyle="light-content" />
@@ -375,6 +377,7 @@ export default function RootLayout() {
                           </AudioPlayerProvider>
                         </ErrorBoundary>
                       </GestureHandlerRootView>
+                    </ImmersiveProvider>
                     </JournalProvider>
                     </MeetingsProvider>
                     </EveningReviewProvider>

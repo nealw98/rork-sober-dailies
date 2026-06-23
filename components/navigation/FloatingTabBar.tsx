@@ -18,6 +18,7 @@ import Svg, { Path, Defs, RadialGradient, Stop, Circle } from 'react-native-svg'
 import { BookOpen, PenLine, UserRound } from 'lucide-react-native';
 import { colors, fontFamily, shadows } from '@/constants/designTokens';
 import { getSponsorById } from '@/constants/sponsors';
+import { useImmersive } from '@/hooks/use-immersive';
 
 type GlyphProps = { size?: number; color?: string; strokeWidth?: number };
 type GlyphComponent = React.ComponentType<GlyphProps>;
@@ -149,9 +150,13 @@ function TabButton({
 
 export default function FloatingTabBar({ state, navigation }: BottomTabBarProps) {
   const insets = useSafeAreaInsets();
+  const { immersive } = useImmersive();
   const activeKey = state.routes[state.index]?.name as TabKey;
   const showFab = !FAB_HIDDEN_ON.includes(activeKey);
   const bottomPad = Math.max(insets.bottom, 16);
+
+  // Hidden while a full-screen overlay (e.g. a Journey entry sheet) is open.
+  if (immersive) return null;
 
   return (
     <View

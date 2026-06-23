@@ -1,16 +1,20 @@
 // Journey — the per-day timeline. Each day is a block: date header + "Day N", a
-// "Dailies · X of Y done" summary, then that day's entries (Gratitude / Spot
-// Check / Nightly / Journal). Today is live (dailies store + this session's
-// saved entries); past days come from the stores' history. Tapping the summary
-// opens the day detail (the checklist); tapping an entry opens it read-only.
-import React, { useState, useEffect, useMemo } from 'react';
-import { View, Text, ScrollView, Pressable, StyleSheet, BackHandler } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { ChevronRight, PenLine, Sunrise, Heart, Moon, CircleCheck, NotebookPen, Check, ArrowRight } from 'lucide-react-native';
-import BackButton from '@/components/BackButton';
+// "Dailies · X of Y done" summary, then that day's entries. Tapping either the
+// summary card OR an entry row grows it in place into a full read sheet (the
+// Prayers-style shared-element morph): the row crossfades out, the sheet
+// crossfades in, the feed fades behind, and the tab bar + FAB hide (immersive).
+// ✕ reverse-morphs it back. The summary opens the day's dailies checklist; an
+// entry opens its read-only detail.
+import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
+import { View, Text, ScrollView, Pressable, StyleSheet, BackHandler, useWindowDimensions } from 'react-native';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import Animated, { useSharedValue, useAnimatedStyle, withTiming, Easing, interpolate, runOnJS, Extrapolation } from 'react-native-reanimated';
+import { ChevronRight, PenLine, Heart, Moon, CircleCheck, NotebookPen, Check, X } from 'lucide-react-native';
+import Svg, { Path } from 'react-native-svg';
 import { useNotebook, type NotebookEntry, type NotebookType } from '@/hooks/use-notebook';
 import { useDailies, type DailyItem } from '@/hooks/use-dailies-store';
 import { useSobriety } from '@/hooks/useSobrietyStore';
+import { useImmersive } from '@/hooks/use-immersive';
 import { resolveGlyph, resolveTone } from '@/components/dailyTokens';
 import { SPOT_PAIRS } from '@/constants/spotCheckPairs';
 import { parseLocalDate } from '@/lib/dateUtils';
@@ -19,19 +23,36 @@ import { colors, fontFamily, getSemanticColors, shadows } from '@/constants/desi
 
 const c = getSemanticColors('light');
 const TEAL = { ink: colors.primary, soft: colors.primarySoft, dark: colors.primaryDark };
+const SIDE = 14;
+const DUR = 340;
+
+type Rect = { x: number; y: number; w: number; h: number };
+type Mode = 'list' | 'opening' | 'read' | 'closing';
 
 type GlyphIcon = React.ComponentType<{ size?: number; color?: string; strokeWidth?: number }>;
-const J_TOOL: Record<NotebookType, { Icon: GlyphIcon; ink: string }> = {
-  gratitude: { Icon: Heart, ink: colors.amber },
-  nightly: { Icon: Moon, ink: colors.tertiary },
-  spotcheck: { Icon: CircleCheck, ink: colors.coral },
-  journal: { Icon: NotebookPen, ink: colors.secondary },
+const J_TOOL: Record<NotebookType, { Icon: GlyphIcon; ink: string; soft: string; dark: string }> = {
+  gratitude: { Icon: Heart, ink: colors.amber, soft: colors.amberSoft, dark: '#B07F38' },
+  nightly: { Icon: Moon, ink: colors.tertiary, soft: colors.tertiarySoft, dark: colors.tertiaryDark },
+  spotcheck: { Icon: CircleCheck, ink: colors.coral, soft: '#F6DDD3', dark: '#A8493A' },
+  journal: { Icon: NotebookPen, ink: colors.secondary, soft: colors.secondarySoft, dark: colors.secondaryDark },
 };
 const TYPE_LABEL: Record<NotebookType, string> = {
   gratitude: 'Gratitude', nightly: 'Nightly Review', spotcheck: 'Spot Check', journal: 'Journal',
 };
 
-// ── date helpers ──────────────────────────────────────────────────────
+// Brand sunrise glyph (matches the Today tab + sobriety coin) — the Dailies mark.
+function SunriseGlyph({ size = 20, color = '#fff' }: { size?: number; color?: string }) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+      <Path d="M12 2.6v2.5" />
+      <Path d="M5.9 6 7.7 7.8" />
+      <Path d="M18.1 6 16.3 7.8" />
+      <Path d="M7.4 14.5a4.6 4.6 0 0 1 9.2 0" />
+      <Path d="M3.5 19q8.5-2.9 17 0" />
+    </Svg>
+  );
+}
+
 function startOfDay(d: Date) { const x = new Date(d); x.setHours(0, 0, 0, 0); return x; }
 function keyToDate(key: string): Date { const [y, m, d] = key.split('-').map(Number); return new Date(y, m - 1, d); }
 function dayKeyOf(ts: number): string {
@@ -54,26 +75,61 @@ function dayNFor(key: string, sobrietyDate: string | null): number | null {
 function timeLabel(ts: number): string { return new Date(ts).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }); }
 
 type DayBlockData = { key: string; label: string; dayN: number | null; done: number; total: number; isToday: boolean; entries: NotebookEntry[] };
+type MorphTarget = { kind: 'entry'; entry: NotebookEntry } | { kind: 'day'; day: DayBlockData };
 
 export default function JourneyScreen() {
   useScreenTimeTracking('Journey');
   const entries = useNotebook();
   const dailies = useDailies();
   const { sobrietyDate } = useSobriety();
-  const [entry, setEntry] = useState<NotebookEntry | null>(null);
-  const [dayKey, setDayKey] = useState<string | null>(null);
+  const { setImmersive } = useImmersive();
+  const insets = useSafeAreaInsets();
+  const { width: screenW, height: screenH } = useWindowDimensions();
 
-  useEffect(() => {
-    const sub = BackHandler.addEventListener('hardwareBackPress', () => {
-      if (entry) { setEntry(null); return true; }
-      if (dayKey) { setDayKey(null); return true; }
-      return false;
-    });
-    return () => sub.remove();
-  }, [entry, dayKey]);
+  const [morph, setMorph] = useState<MorphTarget | null>(null);
+  const [source, setSource] = useState<Rect | null>(null);
+  const [mode, setMode] = useState<Mode>('list');
+  const progress = useSharedValue(0);
 
   const todayKey = dailies.dayKey;
   const completion = dailies.completion ?? {};
+
+  const target = useMemo<Rect>(() => ({
+    x: SIDE,
+    y: insets.top + 6,
+    w: screenW - SIDE * 2,
+    h: screenH - (insets.top + 6) - (insets.bottom + 8),
+  }), [screenW, screenH, insets.top, insets.bottom]);
+
+  const finishClose = () => { setMode('list'); setMorph(null); setSource(null); setImmersive(false); };
+
+  const openMorph = useCallback((t: MorphTarget, rect: Rect | null) => {
+    setMorph(t);
+    setSource(rect);
+    setMode('opening');
+    setImmersive(true);
+    progress.value = 0;
+    progress.value = withTiming(1, { duration: DUR, easing: Easing.inOut(Easing.cubic) }, (done) => {
+      if (done) runOnJS(setMode)('read');
+    });
+  }, []);
+
+  const closeMorph = useCallback(() => {
+    setMode('closing');
+    progress.value = withTiming(0, { duration: DUR, easing: Easing.inOut(Easing.cubic) }, (done) => {
+      if (done) runOnJS(finishClose)();
+    });
+  }, []);
+
+  useEffect(() => {
+    const sub = BackHandler.addEventListener('hardwareBackPress', () => {
+      if (morph && mode !== 'closing') { closeMorph(); return true; }
+      return false;
+    });
+    return () => sub.remove();
+  }, [morph, mode, closeMorph]);
+
+  useEffect(() => () => setImmersive(false), []);
 
   const feed = useMemo<DayBlockData[]>(() => {
     const byDay = new Map<string, NotebookEntry[]>();
@@ -97,63 +153,69 @@ export default function JourneyScreen() {
 
   const hasAny = feed.some((d) => d.entries.length > 0 || d.done > 0);
 
-  if (entry) return <EntryDetail entry={entry} onBack={() => setEntry(null)} />;
-  if (dayKey) {
-    const block = feed.find((d) => d.key === dayKey);
-    if (block) return <DayDetail block={block} program={dailies.program} completion={completion[dayKey]} onBack={() => setDayKey(null)} onEntry={setEntry} />;
-  }
+  const overlayStyle = useAnimatedStyle(() => {
+    const s = source ?? target;
+    const p = source ? progress.value : 1;
+    return {
+      left: interpolate(p, [0, 1], [s.x, target.x]),
+      top: interpolate(p, [0, 1], [s.y, target.y]),
+      width: interpolate(p, [0, 1], [s.w, target.w]),
+      height: interpolate(p, [0, 1], [s.h, target.h]),
+      borderRadius: interpolate(p, [0, 1], [16, 22]),
+    };
+  });
+  const rowFade = useAnimatedStyle(() => ({ opacity: interpolate(progress.value, [0, 0.45], [1, 0], Extrapolation.CLAMP) }));
+  const sheetFade = useAnimatedStyle(() => ({ opacity: interpolate(progress.value, [0.1, 0.65], [0, 1], Extrapolation.CLAMP) }));
+  const baseFade = useAnimatedStyle(() => ({ opacity: interpolate(progress.value, [0, 0.85], [1, 0], Extrapolation.CLAMP) }));
 
   return (
-    <SafeAreaView style={styles.screen} edges={['top']}>
-      <View style={styles.header}>
-        <Text style={styles.title}>Journey</Text>
-        <Text style={styles.subtitle}>Your path of recovery</Text>
-      </View>
+    <View style={styles.root}>
+      <Animated.View style={[styles.flexFill, baseFade]} pointerEvents={mode === 'list' ? 'auto' : 'none'}>
+        <SafeAreaView style={styles.screen} edges={['top']}>
+          <View style={styles.header}>
+            <Text style={styles.title}>Journey</Text>
+            <Text style={styles.subtitle}>Your path of recovery</Text>
+          </View>
+          <ScrollView contentContainerStyle={styles.feed} showsVerticalScrollIndicator={false}>
+            {!hasAny ? (
+              <JourneyEmpty />
+            ) : (
+              feed.map((d) => (
+                <DayBlock
+                  key={d.key}
+                  day={d}
+                  onOpenDay={(rect) => openMorph({ kind: 'day', day: d }, rect)}
+                  onOpenEntry={(entry, rect) => openMorph({ kind: 'entry', entry }, rect)}
+                />
+              ))
+            )}
+          </ScrollView>
+        </SafeAreaView>
+      </Animated.View>
 
-      <ScrollView contentContainerStyle={styles.feed} showsVerticalScrollIndicator={false}>
-        {!hasAny ? (
-          <JourneyEmpty />
-        ) : (
-          feed.map((d) => (
-            <DayBlock key={d.key} day={d} onOpenDay={() => setDayKey(d.key)} onOpenEntry={setEntry} />
-          ))
-        )}
-      </ScrollView>
-    </SafeAreaView>
-  );
-}
-
-function DayBlock({ day, onOpenDay, onOpenEntry }: { day: DayBlockData; onOpenDay: () => void; onOpenEntry: (e: NotebookEntry) => void }) {
-  return (
-    <View style={styles.dayBlock}>
-      <View style={styles.dayHead}>
-        <Text style={styles.dayDate}>{day.label}</Text>
-        {day.dayN != null && <Text style={styles.dayN}>Day {day.dayN}</Text>}
-      </View>
-
-      <Pressable style={[styles.summary, day.entries.length > 0 && { marginBottom: 12 }]} onPress={onOpenDay}>
-        <View style={styles.summaryMed}><Sunrise size={19} color="#fff" strokeWidth={2} /></View>
-        <View style={styles.flex}>
-          <Text style={styles.summaryTitle}>Dailies · <Text style={styles.summaryDone}>{day.done} of {day.total} done</Text></Text>
-          <Text style={styles.summarySub}>{day.isToday ? 'Tap to see today’s list' : 'Tap to see the full day'}</Text>
-        </View>
-        <ChevronRight size={16} color={c.textMuted} />
-      </Pressable>
-
-      {day.entries.map((e) => (
-        <EntryRow key={e.key} entry={e} onPress={() => onOpenEntry(e)} />
-      ))}
+      {morph && (
+        <Animated.View style={[styles.overlayCard, overlayStyle]}>
+          <Animated.View style={[styles.overlayRow, { width: source?.w ?? target.w }, rowFade]} pointerEvents="none">
+            {morph.kind === 'entry' ? <RowContent entry={morph.entry} /> : <SummaryContent day={morph.day} />}
+          </Animated.View>
+          <Animated.View style={[StyleSheet.absoluteFill, sheetFade]}>
+            {morph.kind === 'entry' ? (
+              <EntrySheet entry={morph.entry} onClose={closeMorph} scrollEnabled={mode === 'read'} />
+            ) : (
+              <DaySheet day={morph.day} program={dailies.program} completion={completion[morph.day.key]} onClose={closeMorph} scrollEnabled={mode === 'read'} />
+            )}
+          </Animated.View>
+        </Animated.View>
+      )}
     </View>
   );
 }
 
-function EntryRow({ entry, onPress }: { entry: NotebookEntry; onPress: () => void }) {
+function RowContent({ entry }: { entry: NotebookEntry }) {
   const t = J_TOOL[entry.type];
   return (
-    <Pressable style={styles.entryRow} onPress={onPress}>
-      <View style={[styles.entryMed, { backgroundColor: t.ink, shadowColor: t.ink }]}>
-        <t.Icon size={19} color="#fff" strokeWidth={2} />
-      </View>
+    <>
+      <View style={[styles.entryMed, { backgroundColor: t.ink }]}><t.Icon size={19} color="#fff" strokeWidth={2} /></View>
       <View style={styles.flex}>
         <View style={styles.entryTitleRow}>
           <Text style={styles.entryLabel}>{TYPE_LABEL[entry.type]}</Text>
@@ -161,6 +223,56 @@ function EntryRow({ entry, onPress }: { entry: NotebookEntry; onPress: () => voi
         </View>
         {!!entry.preview && <Text style={styles.entryPreview} numberOfLines={2}>{entry.preview}</Text>}
       </View>
+    </>
+  );
+}
+
+function SummaryContent({ day }: { day: DayBlockData }) {
+  return (
+    <>
+      <View style={styles.summaryMed}><SunriseGlyph size={20} /></View>
+      <View style={styles.flex}>
+        <Text style={styles.summaryTitle}>Dailies · <Text style={styles.summaryDone}>{day.done} of {day.total} done</Text></Text>
+        <Text style={styles.summarySub}>{day.isToday ? 'Tap to see today’s list' : 'Tap to see the full day'}</Text>
+      </View>
+      <ChevronRight size={16} color={c.textMuted} />
+    </>
+  );
+}
+
+function DayBlock({ day, onOpenDay, onOpenEntry }: { day: DayBlockData; onOpenDay: (rect: Rect | null) => void; onOpenEntry: (entry: NotebookEntry, rect: Rect | null) => void }) {
+  const ref = useRef<View>(null);
+  const press = () => {
+    const node = ref.current;
+    if (!node) { onOpenDay(null); return; }
+    node.measureInWindow((x, y, w, h) => onOpenDay({ x, y, w, h }));
+  };
+  return (
+    <View>
+      <View style={styles.dayHead}>
+        <Text style={styles.dayDate}>{day.label}</Text>
+        {day.dayN != null && <Text style={styles.dayN}>Day {day.dayN}</Text>}
+      </View>
+
+      <Pressable ref={ref} style={[styles.summary, day.entries.length > 0 && { marginBottom: 12 }]} onPress={press}>
+        <SummaryContent day={day} />
+      </Pressable>
+
+      {day.entries.map((e) => <EntryRow key={e.key} entry={e} onOpen={onOpenEntry} />)}
+    </View>
+  );
+}
+
+function EntryRow({ entry, onOpen }: { entry: NotebookEntry; onOpen: (entry: NotebookEntry, rect: Rect | null) => void }) {
+  const ref = useRef<View>(null);
+  const press = () => {
+    const node = ref.current;
+    if (!node) { onOpen(entry, null); return; }
+    node.measureInWindow((x, y, w, h) => onOpen(entry, { x, y, w, h }));
+  };
+  return (
+    <Pressable ref={ref} style={styles.entryRow} onPress={press}>
+      <RowContent entry={entry} />
       <ChevronRight size={14} color={c.textMuted} />
     </Pressable>
   );
@@ -176,126 +288,165 @@ function JourneyEmpty() {
   );
 }
 
-// ── Day detail — the day's checklist + its entries ─────────────────────
+// ── Day sheet (read-only checklist, "Option B" card) ──────────────────
 const REFLECTION_ITEM = { id: '__reflection', label: 'Daily Reflection', icon: 'book', color: 'teal' };
 
-function DayDetail({ block, program, completion, onBack, onEntry }: {
-  block: DayBlockData; program: DailyItem[]; completion?: { done: string[]; reflection: boolean }; onBack: () => void; onEntry: (e: NotebookEntry) => void;
+function DaySheet({ day, program, completion, onClose, scrollEnabled = true }: {
+  day: DayBlockData; program: DailyItem[]; completion?: { done: string[]; reflection: boolean }; onClose: () => void; scrollEnabled?: boolean;
 }) {
   const doneSet = new Set(completion?.done ?? []);
-  const items: { id: string; label: string; icon: string; color: string; done: boolean }[] = [
+  const items = [
     { ...REFLECTION_ITEM, done: !!completion?.reflection },
     ...program.map((p) => ({ id: p.id, label: p.label, icon: p.icon, color: p.color, done: doneSet.has(p.id) })),
   ];
+  const done = items.filter((i) => i.done);
+  const notDone = items.filter((i) => !i.done);
   return (
-    <SafeAreaView style={styles.screen} edges={['top']}>
-      <View style={styles.detailBar}><BackButton onPress={onBack} /></View>
-      <ScrollView contentContainerStyle={styles.detailScroll} showsVerticalScrollIndicator={false}>
-        <View style={styles.dayHead}>
-          <Text style={styles.detailTitle}>{block.label}</Text>
-          {block.dayN != null && <Text style={styles.dayN}>Day {block.dayN}</Text>}
+    <View style={styles.flexFill}>
+      <View style={styles.sheetHead}>
+        <View style={[styles.sheetMed, { backgroundColor: colors.primary }]}><SunriseGlyph size={22} /></View>
+        <View style={styles.flex}>
+          <Text style={styles.sheetTitle}>Dailies</Text>
+          <Text style={styles.sheetTime}>{day.label}</Text>
         </View>
-        <Text style={styles.detailDate}>{block.done} of {block.total} dailies done</Text>
-        <View style={styles.detailDivider} />
-
-        {items.map((it) => {
-          const tone = resolveTone(it.color);
-          const Glyph = resolveGlyph(it.icon);
-          return (
-            <View key={it.id} style={[styles.checkRow, !it.done && styles.checkRowDim]}>
-              <View style={[styles.checkMed, { backgroundColor: it.done ? tone.ink : '#B7B1A3' }]}>
-                <Glyph size={18} color="#fff" />
-              </View>
-              <Text style={styles.checkLabel}>{it.label}</Text>
-              <View style={[styles.checkBox, it.done ? { backgroundColor: tone.ink, borderColor: tone.ink } : { borderColor: c.border }]}>
-                {it.done && <Check size={12} color="#fff" strokeWidth={3} />}
-              </View>
-            </View>
-          );
-        })}
-
-        {block.entries.length > 0 && (
-          <>
-            <Text style={styles.detailSection}>Entries</Text>
-            {block.entries.map((e) => (
-              <EntryRow key={e.key} entry={e} onPress={() => onEntry(e)} />
-            ))}
-          </>
-        )}
+        <Pressable style={styles.closeBtn} onPress={onClose} hitSlop={8} accessibilityRole="button" accessibilityLabel="Close">
+          <X size={18} color={c.textSecondary} strokeWidth={2} />
+        </Pressable>
+      </View>
+      <View style={styles.sheetDivider} />
+      <ScrollView scrollEnabled={scrollEnabled} contentContainerStyle={styles.sheetBody} showsVerticalScrollIndicator={false}>
+        {done.map((it, i) => <DailyCheckRow key={it.id} item={it} first={i === 0} />)}
+        {notDone.length > 0 && <Text style={styles.notDoneLabel}>NOT DONE</Text>}
+        {notDone.map((it, i) => <DailyCheckRow key={it.id} item={it} first={i === 0} dim />)}
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 }
 
-// ── Entry detail (read-only) ──────────────────────────────────────────
-function EntryDetail({ entry, onBack }: { entry: NotebookEntry; onBack: () => void }) {
+function DailyCheckRow({ item, first, dim }: { item: { label: string; icon: string; color: string; done: boolean }; first: boolean; dim?: boolean }) {
+  const tone = resolveTone(item.color);
+  const Glyph = resolveGlyph(item.icon);
   return (
-    <SafeAreaView style={styles.screen} edges={['top']}>
-      <View style={styles.detailBar}><BackButton onPress={onBack} /></View>
-      <ScrollView contentContainerStyle={styles.detailScroll} showsVerticalScrollIndicator={false}>
-        <Text style={styles.detailTitle}>{TYPE_LABEL[entry.type]}</Text>
-        <Text style={styles.detailDate}>{dateLabel(dayKeyOf(entry.ts), dayKeyOf(Date.now()))} · {timeLabel(entry.ts)}</Text>
-        <View style={styles.detailDivider} />
-
-        {entry.type === 'gratitude' && (entry.gratitude ?? []).map((it, i) => (
-          <View key={i} style={styles.itemCard}><Text style={styles.itemText}>{it}</Text></View>
-        ))}
-        {entry.type === 'journal' && (
-          <View style={styles.journalCard}><Text style={styles.journalText}>{entry.journal}</Text></View>
-        )}
-        {entry.type === 'nightly' && (entry.nightly ?? []).map((p, i) => (
-          <View key={i} style={styles.qaBlock}>
-            <Text style={styles.qaQuestion}>{p.q}</Text>
-            <View style={styles.qaCard}><Text style={styles.qaAnswer}>{p.a}</Text></View>
-          </View>
-        ))}
-        {entry.type === 'spotcheck' && entry.spot && <SpotBody spot={entry.spot} />}
-      </ScrollView>
-    </SafeAreaView>
+    <View>
+      {!first && <View style={styles.hairline} />}
+      <View style={[styles.dRow, dim && { opacity: 0.5 }]}>
+        <View style={[styles.dMed, { backgroundColor: item.done ? tone.ink : '#C9C3B6' }]}><Glyph size={19} color="#fff" /></View>
+        <Text style={styles.dLabel}>{item.label}</Text>
+        <View style={[styles.dCheck, item.done ? { backgroundColor: tone.ink, borderColor: tone.ink } : { borderColor: c.border }]}>
+          {item.done && <Check size={13} color="#fff" strokeWidth={3} />}
+        </View>
+      </View>
+    </View>
   );
 }
 
-function SpotBody({ spot }: { spot: { situation: string; selected: string[] } }) {
+// ── Entry sheet (read-only, "Option B" card content) ──────────────────
+function EntrySheet({ entry, onClose, scrollEnabled = true }: { entry: NotebookEntry; onClose: () => void; scrollEnabled?: boolean }) {
+  const t = J_TOOL[entry.type];
+  return (
+    <View style={styles.flexFill}>
+      <View style={styles.sheetHead}>
+        <View style={[styles.sheetMed, { backgroundColor: t.ink }]}><t.Icon size={22} color="#fff" strokeWidth={2} /></View>
+        <View style={styles.flex}>
+          <Text style={styles.sheetTitle}>{TYPE_LABEL[entry.type]}</Text>
+          <Text style={styles.sheetTime}>{timeLabel(entry.ts)}</Text>
+        </View>
+        <Pressable style={styles.closeBtn} onPress={onClose} hitSlop={8} accessibilityRole="button" accessibilityLabel="Close">
+          <X size={18} color={c.textSecondary} strokeWidth={2} />
+        </Pressable>
+      </View>
+      <View style={styles.sheetDivider} />
+      <ScrollView scrollEnabled={scrollEnabled} contentContainerStyle={styles.sheetBody} showsVerticalScrollIndicator={false}>
+        {entry.type === 'gratitude' && <GratitudeBody items={entry.gratitude ?? []} tool={t} />}
+        {entry.type === 'journal' && <Text style={styles.journalProse}>{entry.journal}</Text>}
+        {entry.type === 'nightly' && <NightlyBody pairs={entry.nightly ?? []} tool={t} />}
+        {entry.type === 'spotcheck' && entry.spot && <SpotSheetBody spot={entry.spot} />}
+      </ScrollView>
+    </View>
+  );
+}
+
+type Tool = { ink: string; soft: string; dark: string };
+
+function GratitudeBody({ items, tool }: { items: string[]; tool: Tool }) {
+  return (
+    <View>
+      {items.map((it, i) => (
+        <View key={i}>
+          {i > 0 && <View style={styles.hairline} />}
+          <View style={styles.gRow}>
+            <View style={[styles.gNum, { backgroundColor: tool.soft }]}><Text style={[styles.gNumText, { color: tool.dark }]}>{i + 1}</Text></View>
+            <Text style={styles.gText}>{it}</Text>
+          </View>
+        </View>
+      ))}
+    </View>
+  );
+}
+
+function NightlyBody({ pairs, tool }: { pairs: { q: string; a: string }[]; tool: Tool }) {
+  return (
+    <View>
+      {pairs.map((p, i) => (
+        <View key={i}>
+          {i > 0 && <View style={styles.hairline} />}
+          <View style={styles.nBlock}>
+            <Text style={[styles.nQ, { color: tool.dark }]}>{p.q}</Text>
+            <Text style={styles.nA}>{p.a}</Text>
+          </View>
+        </View>
+      ))}
+    </View>
+  );
+}
+
+function SpotSheetBody({ spot }: { spot: { situation: string; selected: string[] } }) {
   const chosen = SPOT_PAIRS.filter((p) => spot.selected.includes(p.id));
   return (
     <View>
       {!!spot.situation && (
         <>
           <Text style={styles.spotHeading}>What was disturbing me?</Text>
-          <View style={styles.itemCard}><Text style={styles.itemText}>{spot.situation}</Text></View>
+          <View style={styles.paperBox}><Text style={styles.paperText}>{spot.situation}</Text></View>
         </>
       )}
       {chosen.length > 0 && (
-        <View style={styles.striveCard}>
-          <View style={styles.striveHeadRow}>
-            <Text style={styles.watchLabel}>WATCH FOR</Text>
-            <Text style={styles.striveLabel}>STRIVE FOR</Text>
+        <>
+          <Text style={[styles.spotHeading, { marginTop: 22 }]}>Where I was off the beam</Text>
+          <View style={styles.chipsRow}>
+            {chosen.map((p) => <View key={p.id} style={styles.chip}><Text style={styles.chipText}>{p.off}</Text></View>)}
           </View>
-          <View style={styles.striveList}>
-            {chosen.map((p) => (
-              <View key={p.id} style={styles.striveRow}>
-                <Text style={styles.striveOff}>{p.off}</Text>
-                <ArrowRight size={15} color={c.textMuted} strokeWidth={2} />
-                <Text style={styles.striveOn}>{p.on}</Text>
-              </View>
-            ))}
+          <View style={styles.striveCard}>
+            <View style={styles.striveHeadRow}>
+              <Text style={styles.watchLabel}>WATCH FOR</Text>
+              <Text style={styles.striveLabel}>STRIVE FOR</Text>
+            </View>
+            <View style={styles.striveList}>
+              {chosen.map((p) => (
+                <View key={p.id} style={styles.striveRow}>
+                  <Text style={styles.striveOff}>{p.off}</Text>
+                  <Text style={styles.striveOn}>{p.on}</Text>
+                </View>
+              ))}
+            </View>
           </View>
-        </View>
+        </>
       )}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
+  root: { flex: 1, backgroundColor: c.background },
   screen: { flex: 1, backgroundColor: c.background },
   flex: { flex: 1, minWidth: 0 },
+  flexFill: { flex: 1 },
   header: { paddingHorizontal: 22, paddingTop: 8, paddingBottom: 8 },
   title: { fontFamily: fontFamily.displayBold, fontSize: 30, letterSpacing: -0.5, color: c.text },
   subtitle: { fontFamily: fontFamily.serifItalic, fontSize: 15, color: c.textSecondary, marginTop: 2 },
 
   feed: { paddingHorizontal: 22, paddingBottom: 48, gap: 26 },
 
-  dayBlock: {},
   dayHead: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 10, paddingHorizontal: 2 },
   dayDate: { fontFamily: fontFamily.semiBold, fontSize: 16, color: c.text },
   dayN: { fontFamily: fontFamily.regular, fontSize: 11, color: c.textMuted },
@@ -311,37 +462,51 @@ const styles = StyleSheet.create({
   entryTitleRow: { flexDirection: 'row', alignItems: 'baseline', gap: 7 },
   entryLabel: { fontFamily: fontFamily.semiBold, fontSize: 15, color: c.text },
   entryTime: { fontFamily: fontFamily.regular, fontSize: 11, color: c.textMuted },
-  entryPreview: { fontFamily: fontFamily.serifItalic, fontSize: 14.5, lineHeight: 21, color: c.textSecondary, marginTop: 5 },
+  entryPreview: { fontFamily: fontFamily.regularItalic, fontSize: 14.5, lineHeight: 21, color: c.textSecondary, marginTop: 5 },
 
   empty: { alignItems: 'center', paddingTop: 64, paddingHorizontal: 30, gap: 12 },
   emptyMedallion: { width: 60, height: 60, borderRadius: 18, backgroundColor: colors.secondary, alignItems: 'center', justifyContent: 'center', marginBottom: 4 },
   emptyTitle: { fontFamily: fontFamily.display, fontSize: 21, color: c.text },
   emptyBody: { fontFamily: fontFamily.regular, fontSize: 14, lineHeight: 21, color: c.textMuted, textAlign: 'center', maxWidth: 290 },
 
-  // detail (shared)
-  detailBar: { paddingHorizontal: 20, paddingTop: 8, paddingBottom: 4 },
-  detailScroll: { paddingHorizontal: 20, paddingBottom: 48, paddingTop: 4 },
-  detailTitle: { fontFamily: fontFamily.display, fontSize: 24, letterSpacing: -0.4, color: c.text },
-  detailDate: { fontFamily: fontFamily.regular, fontSize: 13, color: c.textMuted, marginTop: 3 },
-  detailDivider: { height: 1, backgroundColor: c.divider, marginTop: 14, marginBottom: 18 },
-  detailSection: { fontFamily: fontFamily.bold, fontSize: 11, letterSpacing: 1.4, color: c.textMuted, marginTop: 18, marginBottom: 12 },
+  // morph overlay + sheets (Option B)
+  overlayCard: { position: 'absolute', backgroundColor: colors.white, overflow: 'hidden', ...shadows.md },
+  overlayRow: { position: 'absolute', top: 0, left: 0, flexDirection: 'row', alignItems: 'flex-start', gap: 12, padding: 16 },
+  sheetHead: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 18, paddingTop: 16, paddingBottom: 14 },
+  sheetMed: { width: 44, height: 44, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
+  sheetTitle: { fontFamily: fontFamily.displayBold, fontSize: 22, letterSpacing: -0.4, color: c.text },
+  sheetTime: { fontFamily: fontFamily.regular, fontSize: 13, color: c.textMuted, marginTop: 1 },
+  closeBtn: { width: 34, height: 34, borderRadius: 17, borderWidth: 1, borderColor: c.border, alignItems: 'center', justifyContent: 'center' },
+  sheetDivider: { height: 1, backgroundColor: c.divider, marginHorizontal: 18 },
+  sheetBody: { paddingHorizontal: 18, paddingTop: 6, paddingBottom: 32 },
 
-  checkRow: { flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: c.surface, borderWidth: 1, borderColor: c.border, borderRadius: 14, paddingHorizontal: 14, paddingVertical: 12, marginBottom: 8 },
-  checkRowDim: { opacity: 0.6 },
-  checkMed: { width: 38, height: 38, borderRadius: 11, alignItems: 'center', justifyContent: 'center' },
-  checkLabel: { flex: 1, fontFamily: fontFamily.semiBold, fontSize: 15, color: c.text },
-  checkBox: { width: 24, height: 24, borderRadius: 12, borderWidth: 2, alignItems: 'center', justifyContent: 'center' },
+  // day checklist
+  notDoneLabel: { fontFamily: fontFamily.bold, fontSize: 11, letterSpacing: 1.4, color: c.textMuted, marginTop: 20, marginBottom: 4 },
+  dRow: { flexDirection: 'row', alignItems: 'center', gap: 14, paddingVertical: 13 },
+  dMed: { width: 40, height: 40, borderRadius: 11, alignItems: 'center', justifyContent: 'center' },
+  dLabel: { flex: 1, fontFamily: fontFamily.semiBold, fontSize: 16, color: c.text },
+  dCheck: { width: 26, height: 26, borderRadius: 13, borderWidth: 2, alignItems: 'center', justifyContent: 'center' },
 
-  itemCard: { backgroundColor: c.surface, borderWidth: 1, borderColor: c.border, borderRadius: 12, paddingHorizontal: 15, paddingVertical: 13, marginBottom: 10 },
-  itemText: { fontFamily: fontFamily.regular, fontSize: 16, lineHeight: 23, color: c.text },
-  journalCard: { backgroundColor: c.surface, borderWidth: 1, borderColor: c.border, borderRadius: 16, paddingHorizontal: 18, paddingVertical: 16 },
-  journalText: { fontFamily: fontFamily.regular, fontSize: 16.5, lineHeight: 25, color: c.text },
-  qaBlock: { marginBottom: 18 },
-  qaQuestion: { fontFamily: fontFamily.semiBold, fontSize: 16, lineHeight: 22, color: c.text, letterSpacing: -0.2, marginBottom: 9 },
-  qaCard: { backgroundColor: c.surface, borderWidth: 1, borderColor: c.border, borderRadius: 12, paddingHorizontal: 15, paddingVertical: 13 },
-  qaAnswer: { fontFamily: fontFamily.regular, fontSize: 16, lineHeight: 23, color: c.text },
+  // entry bodies
+  hairline: { height: 1, backgroundColor: c.divider },
+  gRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 14, paddingVertical: 14 },
+  gNum: { width: 28, height: 28, borderRadius: 14, alignItems: 'center', justifyContent: 'center', marginTop: 1 },
+  gNumText: { fontFamily: fontFamily.bold, fontSize: 12 },
+  gText: { flex: 1, fontFamily: fontFamily.regular, fontSize: 17, lineHeight: 24, color: c.text },
+
+  journalProse: { fontFamily: fontFamily.regular, fontSize: 16.5, lineHeight: 25, color: c.text },
+
+  nBlock: { paddingVertical: 16 },
+  nQ: { fontFamily: fontFamily.semiBold, fontSize: 15.5, lineHeight: 21, letterSpacing: -0.2, marginBottom: 7 },
+  nA: { fontFamily: fontFamily.regular, fontSize: 16, lineHeight: 24, color: c.text },
+
   spotHeading: { fontFamily: fontFamily.semiBold, fontSize: 16, color: c.text, letterSpacing: -0.2, marginBottom: 9 },
-  striveCard: { marginTop: 8, paddingHorizontal: 16, paddingTop: 16, paddingBottom: 14, borderRadius: 16, backgroundColor: TEAL.soft, borderWidth: 1, borderColor: TEAL.ink + '33' },
+  paperBox: { backgroundColor: '#F4F1EA', borderWidth: 1, borderColor: c.border, borderRadius: 12, paddingHorizontal: 15, paddingVertical: 13 },
+  paperText: { fontFamily: fontFamily.regular, fontSize: 16, lineHeight: 23, color: c.textSecondary },
+  chipsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 16 },
+  chip: { paddingHorizontal: 14, paddingVertical: 9, borderRadius: 999, backgroundColor: colors.coral },
+  chipText: { fontFamily: fontFamily.semiBold, fontSize: 14, color: '#fff' },
+  striveCard: { paddingHorizontal: 16, paddingTop: 16, paddingBottom: 14, borderRadius: 16, backgroundColor: TEAL.soft, borderWidth: 1, borderColor: TEAL.ink + '33' },
   striveHeadRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 10 },
   watchLabel: { fontFamily: fontFamily.bold, fontSize: 10.5, letterSpacing: 1.1, color: '#A8493A', flex: 1 },
   striveLabel: { fontFamily: fontFamily.bold, fontSize: 10.5, letterSpacing: 1.1, color: TEAL.dark, flex: 1, textAlign: 'right' },
