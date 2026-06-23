@@ -24,10 +24,9 @@ import { Reflection } from '@/types';
 
 // Writing tools + meditation check off on SAVE / timer-completion, never on open.
 // Everything else (prayers, literature, meeting, speaker) checks off on open.
-// The only actions that auto-check — and only once their notebook entry is
-// saved. Every other daily (prayers, meeting, literature, meditation, reach-out,
-// the Daily Reflection) is checked off manually via the row's checkbox.
-const MARK_ON_SAVE = new Set(['gratitude', 'journal', 'spotcheck', 'nightly']);
+// Completion is fully manual: every daily — including the notebook tools and the
+// Daily Reflection — is checked off by the user via the row's checkbox, as a
+// deliberate end-of-day review. Tapping a daily only opens its tool.
 
 // action → route. null = net-new / deferred (graceful notice, no auto-complete).
 const ACTION_ROUTE: Record<string, Href | null> = {
@@ -169,12 +168,6 @@ export default function TodayScreen() {
     // Net-new tool not built yet (graceful notice for any future deferred action).
     if (route === null) {
       Alert.alert('Coming soon', `${item.label} is on the way in the redesign.`);
-      return;
-    }
-    // Notebook tools check off only once their entry is saved — pass the daily
-    // id so the editor marks it done. Everything else is checked manually.
-    if (MARK_ON_SAVE.has(item.action)) {
-      router.push({ pathname: route as any, params: { dailyId: item.id } });
       return;
     }
     const prayerTarget = PRAYER_PARAM[item.action];

@@ -181,6 +181,13 @@ export const [DailiesProvider, useDailies] = createContextHook(() => {
     [updateToday],
   );
 
+  // Overwrite a specific day's completion record. Lets Journey edit past days
+  // (check off dailies the user forgot), keyed by that day's local date.
+  const setDayCompletion = useCallback(
+    (dateKey: string, day: DayCompletion) => persistCompletion({ ...completion, [dateKey]: day }),
+    [completion, persistCompletion],
+  );
+
   // Consecutive days (ending today) the Daily Reflection was marked read.
   // Computed from completion history — never stored as a flag.
   const reflectionStreak = useCallback(() => {
@@ -213,12 +220,13 @@ export const [DailiesProvider, useDailies] = createContextHook(() => {
       reflectionDone: todayDone.reflection,
       setReflectionDone,
       toggleReflection,
+      setDayCompletion,
       reflectionStreak,
       dayKey,
       completion,
       doneCount,
       totalCount,
     }),
-    [program, isLoading, section, addDaily, removeDaily, setWhen, renameDaily, setAll, isDone, toggleDone, markDone, todayDone.reflection, setReflectionDone, toggleReflection, reflectionStreak, dayKey, completion, doneCount, totalCount],
+    [program, isLoading, section, addDaily, removeDaily, setWhen, renameDaily, setAll, isDone, toggleDone, markDone, todayDone.reflection, setReflectionDone, toggleReflection, setDayCompletion, reflectionStreak, dayKey, completion, doneCount, totalCount],
   );
 });

@@ -202,7 +202,7 @@ export default function JourneyScreen() {
             {morph.kind === 'entry' ? (
               <EntrySheet entry={morph.entry} onClose={closeMorph} scrollEnabled={mode === 'read'} />
             ) : (
-              <DaySheet day={morph.day} program={dailies.program} completion={completion[morph.day.key]} onClose={closeMorph} scrollEnabled={mode === 'read'} />
+              <DaySheet day={morph.day} program={dailies.program} completion={completion[morph.day.key]} onClose={closeMorph} onSave={(rec) => dailies.setDayCompletion(morph.day.key, rec)} scrollEnabled={mode === 'read'} />
             )}
           </Animated.View>
         </Animated.View>
@@ -291,16 +291,41 @@ function JourneyEmpty() {
 // ── Day sheet (read-only checklist, "Option B" card) ──────────────────
 const REFLECTION_ITEM = { id: '__reflection', label: 'Daily Reflection', icon: 'book', color: 'teal' };
 
-function DaySheet({ day, program, completion, onClose, scrollEnabled = true }: {
-  day: DayBlockData; program: DailyItem[]; completion?: { done: string[]; reflection: boolean }; onClose: () => void; scrollEnabled?: boolean;
+function DaySheet({ day, program, completion, onClose, onSave, scrollEnabled = true }: {
+  day: DayBlockData; program: DailyItem[]; completion?: { done: string[]; reflection: boolean };
+  onClose: () => void; onSave: (rec: { done: string[]; reflection: boolean }) => void; scrollEnabled?: boolean;
 }) {
-  const doneSet = new Set(completion?.done ?? []);
-  const items = [
-    { ...REFLECTION_ITEM, done: !!completion?.reflection },
-    ...program.map((p) => ({ id: p.id, label: p.label, icon: p.icon, color: p.color, done: doneSet.has(p.id) })),
+  const [editing, setEditing] = useState(false);
+  const [draftDone, setDraftDone] = useState<Set<string>>(new Set());
+  const [draftReflection, setDraftReflection] = useState(false);
+
+  const beginEdit = () => {
+    setDraftDone(new Set(completion?.done ?? []));
+    setDraftReflection(!!completion?.reflection);
+    setEditing(true);
+  };
+  const save = () => {
+    onSave({ done: [...draftDone], reflection: draftReflection });
+    setEditing(false);
+  };
+  const toggle = (id: string) => {
+    if (id === REFLECTION_ITEM.id) { setDraftReflection((v) => !v); return; }
+    setDraftDone((prev) => { const n = new Set(prev); if (n.has(id)) n.delete(id); else n.add(id); return n; });
+  };
+
+  const all = [
+    { id: REFLECTION_ITEM.id, label: REFLECTION_ITEM.label, icon: REFLECTION_ITEM.icon, color: REFLECTION_ITEM.color },
+    ...program.map((p) => ({ id: p.id, label: p.label, icon: p.icon, color: p.color })),
   ];
-  const done = items.filter((i) => i.done);
-  const notDone = items.filter((i) => !i.done);
+  const isDone = (id: string) =>
+    editing
+      ? id === REFLECTION_ITEM.id ? draftReflection : draftDone.has(id)
+      : id === REFLECTION_ITEM.id ? !!completion?.reflection : (completion?.done ?? []).includes(id);
+
+  const rows = all.map((it) => ({ ...it, done: isDone(it.id) }));
+  const done = rows.filter((i) => i.done);
+  const notDone = rows.filter((i) => !i.done);
+
   return (
     <View style={styles.flexFill}>
       <View style={styles.sheetHead}>
@@ -309,33 +334,53 @@ function DaySheet({ day, program, completion, onClose, scrollEnabled = true }: {
           <Text style={styles.sheetTitle}>Dailies</Text>
           <Text style={styles.sheetTime}>{day.label}</Text>
         </View>
-        <Pressable style={styles.closeBtn} onPress={onClose} hitSlop={8} accessibilityRole="button" accessibilityLabel="Close">
-          <X size={18} color={c.textSecondary} strokeWidth={2} />
-        </Pressable>
+        {editing ? (
+          <>
+            <Pressable onPress={() => setEditing(false)} hitSlop={8} style={styles.headTextBtn}><Text style={styles.headCancel}>Cancel</Text></Pressable>
+            <Pressable onPress={save} hitSlop={8} style={styles.headTextBtn}><Text style={styles.headSave}>Save</Text></Pressable>
+          </>
+        ) : (
+          <>
+            <Pressable onPress={beginEdit} hitSlop={8} style={styles.headTextBtn} accessibilityRole="button" accessibilityLabel="Edit dailies"><Text style={styles.headEdit}>Edit</Text></Pressable>
+            <Pressable style={styles.closeBtn} onPress={onClose} hitSlop={8} accessibilityRole="button" accessibilityLabel="Close">
+              <X size={18} color={c.textSecondary} strokeWidth={2} />
+            </Pressable>
+          </>
+        )}
       </View>
       <View style={styles.sheetDivider} />
       <ScrollView scrollEnabled={scrollEnabled} contentContainerStyle={styles.sheetBody} showsVerticalScrollIndicator={false}>
-        {done.map((it, i) => <DailyCheckRow key={it.id} item={it} first={i === 0} />)}
-        {notDone.length > 0 && <Text style={styles.notDoneLabel}>NOT DONE</Text>}
-        {notDone.map((it, i) => <DailyCheckRow key={it.id} item={it} first={i === 0} dim />)}
+        {editing ? (
+          rows.map((it, i) => <DailyCheckRow key={it.id} item={it} first={i === 0} editable onToggle={() => toggle(it.id)} />)
+        ) : (
+          <>
+            {done.map((it, i) => <DailyCheckRow key={it.id} item={it} first={i === 0} />)}
+            {notDone.length > 0 && <Text style={styles.notDoneLabel}>NOT DONE</Text>}
+            {notDone.map((it, i) => <DailyCheckRow key={it.id} item={it} first={i === 0} dim />)}
+          </>
+        )}
       </ScrollView>
     </View>
   );
 }
 
-function DailyCheckRow({ item, first, dim }: { item: { label: string; icon: string; color: string; done: boolean }; first: boolean; dim?: boolean }) {
+function DailyCheckRow({ item, first, dim, editable, onToggle }: {
+  item: { label: string; icon: string; color: string; done: boolean };
+  first: boolean; dim?: boolean; editable?: boolean; onToggle?: () => void;
+}) {
   const tone = resolveTone(item.color);
   const Glyph = resolveGlyph(item.icon);
+  const Row: any = editable ? Pressable : View;
   return (
     <View>
       {!first && <View style={styles.hairline} />}
-      <View style={[styles.dRow, dim && { opacity: 0.5 }]}>
+      <Row style={[styles.dRow, dim && { opacity: 0.5 }]} onPress={editable ? onToggle : undefined}>
         <View style={[styles.dMed, { backgroundColor: item.done ? tone.ink : '#C9C3B6' }]}><Glyph size={19} color="#fff" /></View>
         <Text style={styles.dLabel}>{item.label}</Text>
         <View style={[styles.dCheck, item.done ? { backgroundColor: tone.ink, borderColor: tone.ink } : { borderColor: c.border }]}>
           {item.done && <Check size={13} color="#fff" strokeWidth={3} />}
         </View>
-      </View>
+      </Row>
     </View>
   );
 }
@@ -477,6 +522,10 @@ const styles = StyleSheet.create({
   sheetTitle: { fontFamily: fontFamily.displayBold, fontSize: 22, letterSpacing: -0.4, color: c.text },
   sheetTime: { fontFamily: fontFamily.regular, fontSize: 13, color: c.textMuted, marginTop: 1 },
   closeBtn: { width: 34, height: 34, borderRadius: 17, borderWidth: 1, borderColor: c.border, alignItems: 'center', justifyContent: 'center' },
+  headTextBtn: { paddingHorizontal: 8, paddingVertical: 4 },
+  headEdit: { fontFamily: fontFamily.semiBold, fontSize: 14, color: colors.primary },
+  headCancel: { fontFamily: fontFamily.semiBold, fontSize: 14, color: c.textMuted },
+  headSave: { fontFamily: fontFamily.bold, fontSize: 14, color: colors.primary },
   sheetDivider: { height: 1, backgroundColor: c.divider, marginHorizontal: 18 },
   sheetBody: { paddingHorizontal: 18, paddingTop: 6, paddingBottom: 32 },
 
