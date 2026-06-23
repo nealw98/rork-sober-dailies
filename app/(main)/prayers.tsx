@@ -7,7 +7,7 @@ import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { View, Text, ScrollView, Pressable, StyleSheet, BackHandler, useWindowDimensions } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Stack, useRouter, useLocalSearchParams } from 'expo-router';
-import { ChevronRight, BookOpen } from 'lucide-react-native';
+import { ChevronRight, BookOpen, X } from 'lucide-react-native';
 import BackButton from '@/components/BackButton';
 import Animated, { useSharedValue, useAnimatedStyle, withTiming, Easing, interpolate, runOnJS, Extrapolation } from 'react-native-reanimated';
 import { useScreenTimeTracking } from '@/hooks/useScreenTimeTracking';
@@ -15,7 +15,7 @@ import { aaPrayers } from '@/constants/prayers';
 import { fontFamily, getSemanticColors, shadows } from '@/constants/designTokens';
 
 const c = getSemanticColors('light');
-const READ_BAR_H = 44; // back-chevron bar above the read container
+const TOP_GAP = 8; // small inset above the read container (the X close sits inside it)
 const SIDE = 20; // horizontal page margin = the read container's left/right inset
 const DUR = 340;
 
@@ -58,9 +58,9 @@ export default function PrayersScreen() {
 
   const target = useMemo<Rect>(() => ({
     x: SIDE,
-    y: insets.top + READ_BAR_H,
+    y: insets.top + TOP_GAP,
     w: screenW - SIDE * 2,
-    h: screenH - (insets.top + READ_BAR_H) - (insets.bottom + SIDE),
+    h: screenH - (insets.top + TOP_GAP) - (insets.bottom + SIDE),
   }), [screenW, screenH, insets.top, insets.bottom]);
 
   const finishOpen = () => setMode('read');
@@ -186,10 +186,13 @@ export default function PrayersScreen() {
         </Animated.View>
       )}
 
-      {/* Read-view back button — topmost so the morph overlay can't intercept its taps. */}
+      {/* Read-view close (X) — sits inside the prayer container's top-right corner;
+          topmost so the morph overlay can't intercept its taps. */}
       {showBar && (
-        <Animated.View pointerEvents="box-none" style={[styles.readBar, { paddingTop: insets.top + 8 }, mode !== 'read' ? barFade : null]}>
-          <BackButton onPress={closeRead} style={styles.backBtnRead} />
+        <Animated.View pointerEvents="box-none" style={[styles.readClose, { top: target.y + 10, right: SIDE + 10 }, mode !== 'read' ? barFade : null]}>
+          <Pressable onPress={closeRead} hitSlop={10} accessibilityRole="button" accessibilityLabel="Close prayer" style={styles.closeBtn}>
+            <X size={19} color={c.textMuted} strokeWidth={2.2} />
+          </Pressable>
         </Animated.View>
       )}
     </View>
@@ -219,11 +222,11 @@ const styles = StyleSheet.create({
   preview: { fontFamily: fontFamily.regular, fontSize: 14, color: c.textSecondary, lineHeight: 20, marginTop: 6 },
 
   // read view (morph overlay is the read container)
-  readBar: { position: 'absolute', top: 0, left: 0, right: 0, paddingHorizontal: 16, paddingBottom: 8, zIndex: 10 },
-  backBtnRead: { alignSelf: 'flex-start' },
+  readClose: { position: 'absolute', zIndex: 10 },
+  closeBtn: { width: 32, height: 32, borderRadius: 16, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(0,0,0,0.05)' },
   overlayCard: { position: 'absolute', backgroundColor: c.surface, borderRadius: 16, overflow: 'hidden', ...shadows.md },
   overlayScroll: { paddingHorizontal: 16, paddingVertical: 16 },
-  readCardTitle: { fontFamily: fontFamily.semiBold, fontSize: 18, letterSpacing: -0.3, color: c.text },
+  readCardTitle: { fontFamily: fontFamily.semiBold, fontSize: 18, letterSpacing: -0.3, color: c.text, paddingRight: 40 },
   readDivider: { height: 1, backgroundColor: c.divider, marginTop: 14, marginBottom: 16 },
   prayerPara: { fontFamily: fontFamily.regular, fontSize: 17, lineHeight: 26, color: c.text, marginBottom: 14 },
   sourceRow: { flexDirection: 'row', alignItems: 'center', gap: 7, marginTop: 8, paddingTop: 16, borderTopWidth: 1, borderTopColor: c.border },
