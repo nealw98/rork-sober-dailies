@@ -61,6 +61,7 @@ import { MeetingsProvider } from "@/hooks/use-meetings-store";
 import { JournalProvider } from "@/hooks/use-journal-store";
 import { ContactsProvider } from "@/hooks/use-contacts-store";
 import { LastSponsorProvider } from "@/hooks/use-last-sponsor";
+import { ICloudSyncGate } from "@/hooks/use-icloud-sync";
 import { ActionSheetProvider } from "@expo/react-native-action-sheet";
 import { ImmersiveProvider } from "@/hooks/use-immersive";
 import { TextSettingsProvider } from "@/hooks/use-text-settings";
@@ -380,6 +381,7 @@ export default function RootLayout() {
                             <AudioPlayerProvider>
                               <HamburgerMenuProvider>
                                 <RootLayoutNav />
+                                <ICloudSyncGate />
                                 <HamburgerMenu />
                               </HamburgerMenuProvider>
                             </AudioPlayerProvider>

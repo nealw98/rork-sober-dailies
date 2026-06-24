@@ -37,6 +37,12 @@ export const SYNC_KEYS: string[] = [
   'sober_dailies_onboarding_complete',
 ];
 
+// Chat history is the only data that risks the iCloud KVS ~1 MB cap, so it's
+// excluded from KVS sync (still covered by the manual file backup). A CloudKit
+// transport for chat is a later refinement. ICLOUD_KEYS = everything else.
+export const CHAT_MESSAGE_KEYS = ['aa-chat-messages-supportive', 'aa-chat-messages-salty', 'aa-chat-messages-grace'];
+export const ICLOUD_KEYS = SYNC_KEYS.filter((k) => !CHAT_MESSAGE_KEYS.includes(k));
+
 export const BACKUP_SCHEMA_VERSION = 1;
 
 export type BackupSnapshot = {
@@ -46,9 +52,9 @@ export type BackupSnapshot = {
   data: Record<string, string>;
 };
 
-// Read all allowlisted keys into a JSON backup string.
-export async function serializeUserData(): Promise<string> {
-  const pairs = await AsyncStorage.multiGet(SYNC_KEYS);
+// Read the given keys (default: all allowlisted) into a JSON backup string.
+export async function serializeUserData(keys: string[] = SYNC_KEYS): Promise<string> {
+  const pairs = await AsyncStorage.multiGet(keys);
   const data: Record<string, string> = {};
   for (const [k, v] of pairs) if (v != null) data[k] = v;
   const snapshot: BackupSnapshot = {
@@ -63,7 +69,7 @@ export async function serializeUserData(): Promise<string> {
 // Restore a backup string into AsyncStorage (overwrites the allowlisted keys
 // present in the backup). Returns the count written. The app should reload after
 // so each store re-reads from storage.
-export async function restoreUserData(json: string): Promise<number> {
+export async function restoreUserData(json: string, allowed: string[] = SYNC_KEYS): Promise<number> {
   let snapshot: any;
   try {
     snapshot = JSON.parse(json);
@@ -74,7 +80,7 @@ export async function restoreUserData(json: string): Promise<number> {
     throw new Error('That isn’t a Sober Dailies backup.');
   }
   const entries = Object.entries(snapshot.data)
-    .filter(([k, v]) => SYNC_KEYS.includes(k) && typeof v === 'string') as [string, string][];
+    .filter(([k, v]) => allowed.includes(k) && typeof v === 'string') as [string, string][];
   if (entries.length === 0) throw new Error('The backup had no recognizable data.');
   await AsyncStorage.multiSet(entries);
   return entries.length;

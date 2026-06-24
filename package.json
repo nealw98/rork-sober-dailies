@@ -86,6 +86,7 @@
     "react-native": "0.79.6",
     "react-native-date-picker": "^5.0.5",
     "react-native-gesture-handler": "~2.24.0",
+    "react-native-icloud-kit": "^0.1.8",
     "react-native-markdown-display": "^7.0.2",
     "react-native-modal-datetime-picker": "^18.0.0",
     "react-native-purchases": "^9.7.2",

@@ -7,9 +7,10 @@ import { View, Text, Pressable, StyleSheet, Alert, ScrollView } from 'react-nati
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Stack, useRouter } from 'expo-router';
 import * as Clipboard from 'expo-clipboard';
-import { Copy, ClipboardPaste } from 'lucide-react-native';
+import { Copy, ClipboardPaste, CloudUpload, CloudDownload } from 'lucide-react-native';
 import BackButton from '@/components/BackButton';
 import { serializeUserData, restoreUserData, countStoredItems } from '@/lib/userDataSync';
+import { iCloudSupported, iCloudAvailable, pushToICloud, pullFromICloud } from '@/lib/icloudSync';
 import { colors, fontFamily, getSemanticColors, shadows } from '@/constants/designTokens';
 
 const c = getSemanticColors('light');
@@ -20,8 +21,36 @@ export default function BackupScreen() {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
   const [count, setCount] = useState<number | null>(null);
+  const [icloud, setIcloud] = useState<boolean | null>(null);
 
-  useEffect(() => { countStoredItems().then(setCount).catch(() => {}); }, []);
+  useEffect(() => {
+    countStoredItems().then(setCount).catch(() => {});
+    if (iCloudSupported()) iCloudAvailable().then(setIcloud).catch(() => setIcloud(false));
+  }, []);
+
+  const backupICloud = async () => {
+    setBusy(true);
+    try {
+      const ok = await pushToICloud();
+      Alert.alert(ok ? 'Backed up to iCloud' : 'iCloud unavailable', ok
+        ? 'Your data is in iCloud. It will restore automatically on a reinstall or another device signed into the same iCloud.'
+        : 'Sign into iCloud in Settings, then try again.');
+    } finally { setBusy(false); }
+  };
+
+  const restoreICloud = async () => {
+    setBusy(true);
+    try {
+      const restored = await pullFromICloud();
+      if (restored) {
+        Alert.alert('Restored from iCloud', 'The app will reload.', [
+          { text: 'OK', onPress: async () => { try { const U = await import('expo-updates'); await U.reloadAsync(); } catch { /* ignore */ } } },
+        ]);
+      } else {
+        Alert.alert('Already up to date', 'This device already has the latest iCloud backup (or none exists yet).');
+      }
+    } finally { setBusy(false); }
+  };
 
   const copyBackup = async () => {
     setBusy(true);
@@ -83,6 +112,16 @@ export default function BackupScreen() {
         <Text style={styles.label}>RESTORE</Text>
         <Row icon={<ClipboardPaste size={20} color={TEAL} strokeWidth={2} />} title="Restore from clipboard"
           sub="Replaces this device's data with a copied backup." onPress={restore} disabled={busy} />
+
+        {iCloudSupported() && (
+          <>
+            <Text style={styles.label}>iCLOUD{icloud === false ? ' · NOT SIGNED IN' : icloud ? ' · ON' : ''}</Text>
+            <Row icon={<CloudUpload size={20} color={TEAL} strokeWidth={2} />} title="Back up to iCloud now"
+              sub="Auto-restores on reinstall or another device on the same iCloud. Chats not included yet." onPress={backupICloud} disabled={busy} />
+            <Row icon={<CloudDownload size={20} color={TEAL} strokeWidth={2} />} title="Restore from iCloud"
+              sub="Pull the latest iCloud backup onto this device." onPress={restoreICloud} disabled={busy} />
+          </>
+        )}
 
         <Text style={styles.note}>
           Includes your dailies, sober date, gratitude, spot checks, nightly reviews, journal, meetings, contacts, AI Sponsor chats, and reading progress. Device-only settings and caches aren't included.

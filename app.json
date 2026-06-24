@@ -116,7 +116,13 @@
         }
       ],
       "expo-secure-store",
-      "./plugins/withFmtConstevalFix.js"
+      "./plugins/withFmtConstevalFix.js",
+      [
+        "react-native-icloud-kit/plugin/withICloud",
+        {
+          "containerIdentifier": "iCloud.com.nealwagner.soberdailies"
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true
