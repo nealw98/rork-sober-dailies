@@ -116,7 +116,7 @@ export default function ToolsScreen() {
           style={({ pressed }) => [styles.heroWide, { backgroundColor: c.surface, borderColor: c.border }, pressed && styles.pressed]}
         >
           <ImageBackground
-            source={require('@/assets/images/literature_hero3.webp')}
+            source={require('@/assets/images/literature-hero.webp')}
             style={styles.heroWidePhoto}
             imageStyle={styles.heroPhotoImg}
             resizeMode="cover"
@@ -132,7 +132,7 @@ export default function ToolsScreen() {
             onPress={() => router.push('/(main)/speakers')}
             style={({ pressed }) => [styles.heroSmall, { backgroundColor: c.surface, borderColor: c.border }, pressed && styles.pressed]}
           >
-            <Image source={require('@/assets/images/speakers_hero2.webp')} style={styles.heroSmallPhoto} resizeMode="cover" />
+            <Image source={require('@/assets/images/speaker-hero.webp')} style={styles.heroSmallPhoto} resizeMode="cover" />
             <View style={styles.heroSmallCaption}>
               <Text style={[styles.heroSmallName, { color: c.text }]}>Speaker Tapes</Text>
               <Text style={[styles.heroSub, { color: c.textMuted }]}>AA talks</Text>

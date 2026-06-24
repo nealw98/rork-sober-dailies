@@ -153,15 +153,22 @@ function DailyRow({ item, done, onOpen, onToggle }: { item: DailyItem; done: boo
 // rotating Supabase image resolves, and if it fails).
 const HERO_FALLBACK = require('@/assets/reflections_images/reflection_bg7.webp');
 
-function ReflectionHero({ title, imageUri, alt, done, onRead, onToggle }: { title: string; imageUri?: string; alt?: string; done: boolean; onRead: () => void; onToggle: () => void }) {
+// TEMP: the rotating Supabase hero pool is still placeholder art, so the Today
+// hero is pinned to the seedling photo (the same image the Daily Reflection page
+// uses). Flip ROTATE_HERO back to true once real images are loaded in Supabase.
+const ROTATE_HERO = false;
+const STATIC_HERO = require('@/assets/images/reflection_bg2.webp');
+
+function ReflectionHero({ title, imageUri, alt, staticSource, done, onRead, onToggle }: { title: string; imageUri?: string; alt?: string; staticSource?: number; done: boolean; onRead: () => void; onToggle: () => void }) {
   const teal = ROW_TONES.teal;
+  const fallback = staticSource ?? HERO_FALLBACK;
   return (
     <View style={[styles.hero, { borderColor: done ? teal.ink + '55' : '#EDEAE2' }]}>
       <Pressable onPress={onRead}>
         <View style={styles.heroCover}>
           <Image
-            source={imageUri ? { uri: imageUri } : HERO_FALLBACK}
-            placeholder={HERO_FALLBACK}
+            source={imageUri ? { uri: imageUri } : fallback}
+            placeholder={fallback}
             contentFit="cover"
             transition={250}
             cachePolicy="memory-disk"
@@ -254,8 +261,9 @@ export default function TodayScreen() {
               {isMorning && (
                 <ReflectionHero
                   title={reflection?.title || 'Daily Reflection'}
-                  imageUri={heroImage?.uri}
-                  alt={heroImage?.alt}
+                  imageUri={ROTATE_HERO ? heroImage?.uri : undefined}
+                  alt={ROTATE_HERO ? heroImage?.alt : 'A seedling reaching toward the light'}
+                  staticSource={ROTATE_HERO ? undefined : STATIC_HERO}
                   done={dailies.reflectionDone}
                   onRead={openReflection}
                   onToggle={dailies.toggleReflection}
