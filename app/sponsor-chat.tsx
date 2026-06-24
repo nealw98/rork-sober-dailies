@@ -246,6 +246,7 @@ function SponsorChatContent({ initialSponsor }: { initialSponsor: string }) {
       <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
         <FlatList
           ref={listRef}
+          style={styles.flex}
           data={messages}
           keyExtractor={(m) => m.id}
           renderItem={({ item }) => <Bubble message={item} fontSize={fontSize} />}
@@ -352,8 +353,8 @@ const styles = StyleSheet.create({
   userText: { fontFamily: fontFamily.regular, color: '#2B2A30' },
 
   // suggestion chips (above composer)
-  chipsStrip: { backgroundColor: LINEN, maxHeight: 48 },
-  chipsStripContent: { paddingHorizontal: 14, paddingTop: 10, gap: 6, alignItems: 'center' },
+  chipsStrip: { backgroundColor: LINEN, flexShrink: 0 },
+  chipsStripContent: { paddingHorizontal: 14, paddingVertical: 10, gap: 6, alignItems: 'center' },
   chip: { backgroundColor: c.surface, paddingVertical: 7, paddingHorizontal: 12, borderRadius: 999, borderWidth: 1, borderColor: BR_INK + '55', ...shadows.sm },
   chipText: { fontFamily: fontFamily.medium, fontSize: 12, color: BR_INK },
 
@@ -361,7 +362,7 @@ const styles = StyleSheet.create({
   loadingText: { fontFamily: fontFamily.regularItalic, fontSize: 12.5, color: c.textMuted },
 
   // input dock
-  inputDock: { flexDirection: 'row', alignItems: 'flex-end', gap: 8, backgroundColor: LINEN, paddingHorizontal: 14, paddingTop: 10, borderTopWidth: 1, borderTopColor: 'rgba(26,26,46,0.06)' },
+  inputDock: { flexShrink: 0, flexDirection: 'row', alignItems: 'flex-end', gap: 8, backgroundColor: LINEN, paddingHorizontal: 14, paddingTop: 10, borderTopWidth: 1, borderTopColor: 'rgba(26,26,46,0.06)' },
   input: { flex: 1, maxHeight: 120, backgroundColor: c.surface, borderWidth: 1, borderColor: 'rgba(26,26,46,0.07)', borderRadius: 22, paddingHorizontal: 16, paddingVertical: Platform.OS === 'ios' ? 10 : 6, fontFamily: fontFamily.regular, color: c.text },
   sendBtn: { width: 38, height: 38, borderRadius: 19, alignItems: 'center', justifyContent: 'center', backgroundColor: BR_INK },
   sendDisabled: { opacity: 0.4 },
