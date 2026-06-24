@@ -353,8 +353,8 @@ const styles = StyleSheet.create({
   userText: { fontFamily: fontFamily.regular, color: '#2B2A30' },
 
   // suggestion chips (above composer)
-  chipsStrip: { backgroundColor: LINEN, flexShrink: 0 },
-  chipsStripContent: { paddingHorizontal: 14, paddingVertical: 10, gap: 6, alignItems: 'center' },
+  chipsStrip: { backgroundColor: LINEN, height: 52, flexShrink: 0, flexGrow: 0 },
+  chipsStripContent: { paddingHorizontal: 14, gap: 6, alignItems: 'center' },
   chip: { backgroundColor: c.surface, paddingVertical: 7, paddingHorizontal: 12, borderRadius: 999, borderWidth: 1, borderColor: BR_INK + '55', ...shadows.sm },
   chipText: { fontFamily: fontFamily.medium, fontSize: 12, color: BR_INK },
 
