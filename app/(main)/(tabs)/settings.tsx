@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Platform, Linking, Share, ScrollView, Modal, SafeAreaView, Alert, TextInput, ActivityIndicator, KeyboardAvoidingView, Switch } from 'react-native';
-import { router, Stack } from 'expo-router';
+import { router, Stack, type Href } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ChevronLeft, ChevronRight, X, Code2, Terminal, RefreshCw, Settings } from 'lucide-react-native';
@@ -469,6 +469,17 @@ export default function SettingsScreen() {
           activeOpacity={0.7}
         >
           <Text style={[styles.menuItemTitle, { fontSize, color: palette.text }]}>Send Feedback</Text>
+          <ChevronRight size={18} color={palette.muted} />
+        </TouchableOpacity>
+
+        {/* Your Data Section */}
+        <Text style={[styles.sectionTitle, { marginTop: 24, color: palette.text }]}>Your Data</Text>
+        <TouchableOpacity
+          style={styles.menuItem}
+          onPress={() => router.push('/(main)/backup' as Href)}
+          activeOpacity={0.7}
+        >
+          <Text style={[styles.menuItemTitle, { fontSize, color: palette.text }]}>Backup & Restore</Text>
           <ChevronRight size={18} color={palette.muted} />
         </TouchableOpacity>
 
