@@ -23,7 +23,8 @@ export default function MainLayout() {
       <Stack.Screen name="literature" />
       <Stack.Screen name="bigbook" />
       <Stack.Screen name="twelve-and-twelve" />
-      <Stack.Screen name="meeting-pocket" />
+      <Stack.Screen name="meeting-readings" />
+      <Stack.Screen name="meeting-reading" />
       <Stack.Screen name="meetings" />
       <Stack.Screen name="online-meetings" />
       <Stack.Screen name="reach-out" />

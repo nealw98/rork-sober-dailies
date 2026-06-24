@@ -149,8 +149,8 @@ export default function MeetingsScreen() {
 
         {/* ── Right here, right now ── */}
         <Text style={styles.label}>RIGHT HERE, RIGHT NOW</Text>
-        <Fn tone={colors.amber} icon={<BookOpen size={21} color="#fff" strokeWidth={2} />} title="Meeting Tools"
-          sub="Readings, a newcomer-meeting guide, and discussion topics to chair." onPress={() => router.push('/(main)/meeting-pocket')} />
+        <Fn tone={colors.amber} icon={<BookOpen size={21} color="#fff" strokeWidth={2} />} title="Meeting Readings"
+          sub="Passages read aloud at meetings, plus a format guide to chair." onPress={() => router.push('/(main)/meeting-readings')} />
       </ScrollView>
 
       <AddMeetingSheet visible={adding} onClose={() => setAdding(false)} onSave={(m) => { addMeeting(m); setAdding(false); }} />
