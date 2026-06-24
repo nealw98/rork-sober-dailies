@@ -19,6 +19,7 @@ import { getSponsorById, SPONSORS, type SponsorConfig } from '@/constants/sponso
 import { SELECTION_SPONSOR_IDS, BR_INK, BR_SOFT } from '@/constants/sponsorTones';
 import { useScreenTimeTracking } from '@/hooks/useScreenTimeTracking';
 import { useTextSettings } from '@/hooks/use-text-settings';
+import { useLastSponsor } from '@/hooks/use-last-sponsor';
 import { SponsorType, ChatMessage } from '@/types';
 import { ChatMarkdownRenderer } from '@/components/ChatMarkdownRenderer';
 import BackButton from '@/components/BackButton';
@@ -139,10 +140,13 @@ function SponsorChatContent({ initialSponsor }: { initialSponsor: string }) {
   const [switchOpen, setSwitchOpen] = useState(false);
   const listRef = useRef<FlatList>(null);
 
+  const { setLastSponsor } = useLastSponsor();
+
   useEffect(() => {
     const target = initialSponsor as SponsorType;
     if (target !== sponsorType) changeSponsor(target);
-  }, [initialSponsor, sponsorType, changeSponsor]);
+    setLastSponsor(initialSponsor); // FAB shows + resumes this sponsor
+  }, [initialSponsor, sponsorType, changeSponsor, setLastSponsor]);
 
   const sponsor = getSponsorById(initialSponsor as SponsorType);
   useScreenTimeTracking(sponsor?.name || 'AI Sponsor');

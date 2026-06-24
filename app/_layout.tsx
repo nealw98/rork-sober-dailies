@@ -60,6 +60,7 @@ import { EveningReviewProvider } from "@/hooks/use-evening-review-store";
 import { MeetingsProvider } from "@/hooks/use-meetings-store";
 import { JournalProvider } from "@/hooks/use-journal-store";
 import { ContactsProvider } from "@/hooks/use-contacts-store";
+import { LastSponsorProvider } from "@/hooks/use-last-sponsor";
 import { ActionSheetProvider } from "@expo/react-native-action-sheet";
 import { ImmersiveProvider } from "@/hooks/use-immersive";
 import { TextSettingsProvider } from "@/hooks/use-text-settings";
@@ -368,6 +369,7 @@ export default function RootLayout() {
                     <MeetingsProvider>
                     <JournalProvider>
                     <ContactsProvider>
+                    <LastSponsorProvider>
                     <ImmersiveProvider>
                       <GestureHandlerRootView style={{ flex: 1 }}>
                         {Platform.OS === 'android' && (
@@ -385,6 +387,7 @@ export default function RootLayout() {
                         </ActionSheetProvider>
                       </GestureHandlerRootView>
                     </ImmersiveProvider>
+                    </LastSponsorProvider>
                     </ContactsProvider>
                     </JournalProvider>
                     </MeetingsProvider>

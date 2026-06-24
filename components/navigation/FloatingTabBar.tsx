@@ -19,6 +19,7 @@ import { BookOpen, PenLine, UserRound } from 'lucide-react-native';
 import { colors, fontFamily, shadows } from '@/constants/designTokens';
 import { getSponsorById } from '@/constants/sponsors';
 import { useImmersive } from '@/hooks/use-immersive';
+import { useLastSponsor } from '@/hooks/use-last-sponsor';
 
 type GlyphProps = { size?: number; color?: string; strokeWidth?: number };
 type GlyphComponent = React.ComponentType<GlyphProps>;
@@ -73,12 +74,15 @@ const INACTIVE = '#A79B86';
 const FAB_HIDDEN_ON: TabKey[] = ['settings'];
 
 function SponsorFab() {
-  const sponsor = getSponsorById('supportive'); // Steady Eddie (last-used default)
+  // Show the last-chatted sponsor and tap straight back into that chat
+  // (defaults to Steady Eddie when there's no prior conversation).
+  const { lastSponsorId } = useLastSponsor();
+  const sponsor = getSponsorById(lastSponsorId) ?? getSponsorById('supportive');
   return (
     <Pressable
-      accessibilityLabel="AI Sponsor"
+      accessibilityLabel={`Chat with ${sponsor?.name ?? 'your sponsor'}`}
       accessibilityRole="button"
-      onPress={() => router.push('/(main)/chat')}
+      onPress={() => router.push(`/sponsor-chat?sponsor=${sponsor?.id ?? 'supportive'}`)}
       style={({ pressed }) => [styles.fab, pressed && { opacity: 0.85 }]}
     >
       {sponsor?.avatar ? (
