@@ -18,6 +18,7 @@ import { ChatStoreProvider, useChatStore } from '@/hooks/use-chat-store';
 import { getSponsorById, SPONSORS, type SponsorConfig } from '@/constants/sponsors';
 import { SELECTION_SPONSOR_IDS, BR_INK, BR_SOFT } from '@/constants/sponsorTones';
 import { useScreenTimeTracking } from '@/hooks/useScreenTimeTracking';
+import { useTextSettings } from '@/hooks/use-text-settings';
 import { SponsorType, ChatMessage } from '@/types';
 import { ChatMarkdownRenderer } from '@/components/ChatMarkdownRenderer';
 import BackButton from '@/components/BackButton';
@@ -31,6 +32,12 @@ const LINEN = '#F5F1E9';  // header + input dock
 
 const DAILY_SPONSOR_LIMIT = 50;
 const MONTHLY_SPONSOR_LIMIT = 200;
+
+// Inter reads larger per point than Lora (the app's reading face), so scale the
+// global reading size down so chat (Inter) RESEMBLES Lora at that size, then
+// scales with it. 0.92 lands the default 18 → ~16.5 (1:1/18 read too big, 15 too
+// small). Tune this single factor to make Inter feel like Lora.
+const LORA_SCALE = 0.92;
 
 const SUGGESTIONS = ['I’m struggling today', 'Help me think this through', 'I just need to vent', 'I’m fighting a craving'];
 const SWITCHERS = SELECTION_SPONSOR_IDS
@@ -99,13 +106,13 @@ const copyMessage = async (text: string) => {
 };
 
 // ── Message: user = white bubble; sponsor = flat text (assistant style) ──
-// Fixed prototype sizes (not the global reading setting): bot 15/1.55, user 14.5/1.4.
-function Bubble({ message }: { message: ChatMessage }) {
+// `size` follows the global reading size, Lora-scaled (see LORA_SCALE).
+function Bubble({ message, size }: { message: ChatMessage; size: number }) {
   if (message.sender === 'user') {
     return (
       <View style={styles.userRow}>
         <Pressable onLongPress={() => copyMessage(message.text)} style={styles.userBubble}>
-          <Text style={styles.userText}>{message.text}</Text>
+          <Text style={[styles.userText, { fontSize: size, lineHeight: Math.round(size * 1.4) }]}>{message.text}</Text>
         </Pressable>
       </View>
     );
@@ -114,7 +121,7 @@ function Bubble({ message }: { message: ChatMessage }) {
     <Pressable onLongPress={() => copyMessage(message.text)} style={styles.botBlock}>
       <ChatMarkdownRenderer
         content={message.text}
-        style={{ color: '#2B2A30', fontSize: 15, fontFamily: fontFamily.regular, lineHeight: 23 }}
+        style={{ color: '#2B2A30', fontSize: size, fontFamily: fontFamily.regular, lineHeight: Math.round(size * 1.55) }}
       />
     </Pressable>
   );
@@ -124,6 +131,8 @@ function Bubble({ message }: { message: ChatMessage }) {
 function SponsorChatContent({ initialSponsor }: { initialSponsor: string }) {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const textSettings = useTextSettings();
+  const size = (textSettings?.fontSize ?? 18) * LORA_SCALE; // chat text, Lora-matched
   const { messages, isLoading, sendMessage, clearChat, changeSponsor, sponsorType } = useChatStore();
   const [inputText, setInputText] = useState('');
   const [isCheckingLimits, setIsCheckingLimits] = useState(false);
@@ -247,7 +256,7 @@ function SponsorChatContent({ initialSponsor }: { initialSponsor: string }) {
           style={styles.flex}
           data={messages}
           keyExtractor={(m) => m.id}
-          renderItem={({ item }) => <Bubble message={item} />}
+          renderItem={({ item }) => <Bubble message={item} size={size} />}
           ListHeaderComponent={<View style={styles.dayDivider}><Text style={styles.dayText}>Today</Text></View>}
           contentContainerStyle={styles.list}
           showsVerticalScrollIndicator={false}
@@ -348,7 +357,7 @@ const styles = StyleSheet.create({
 
   userRow: { alignItems: 'flex-end', marginBottom: 18 },
   userBubble: { maxWidth: '78%', backgroundColor: c.surface, paddingVertical: 10, paddingHorizontal: 14, borderRadius: 18, borderBottomRightRadius: 4, ...shadows.sm },
-  userText: { fontFamily: fontFamily.regular, fontSize: 14.5, lineHeight: 20, color: '#2B2A30' },
+  userText: { fontFamily: fontFamily.regular, color: '#2B2A30' },
 
   // suggestion chips (above composer)
   chipsStrip: { backgroundColor: LINEN, height: 52, flexShrink: 0, flexGrow: 0 },
