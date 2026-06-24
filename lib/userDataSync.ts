@@ -37,12 +37,6 @@ export const SYNC_KEYS: string[] = [
   'sober_dailies_onboarding_complete',
 ];
 
-// Chat history is the only data that risks the iCloud KVS ~1 MB cap, so it's
-// excluded from KVS sync (still covered by the manual file backup). A CloudKit
-// transport for chat is a later refinement. ICLOUD_KEYS = everything else.
-export const CHAT_MESSAGE_KEYS = ['aa-chat-messages-supportive', 'aa-chat-messages-salty', 'aa-chat-messages-grace'];
-export const ICLOUD_KEYS = SYNC_KEYS.filter((k) => !CHAT_MESSAGE_KEYS.includes(k));
-
 export const BACKUP_SCHEMA_VERSION = 1;
 
 export type BackupSnapshot = {

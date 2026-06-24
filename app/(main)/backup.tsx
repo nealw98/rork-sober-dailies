@@ -117,7 +117,7 @@ export default function BackupScreen() {
           <>
             <Text style={styles.label}>iCLOUD{icloud === false ? ' · NOT SIGNED IN' : icloud ? ' · ON' : ''}</Text>
             <Row icon={<CloudUpload size={20} color={TEAL} strokeWidth={2} />} title="Back up to iCloud now"
-              sub="Auto-restores on reinstall or another device on the same iCloud. Chats not included yet." onPress={backupICloud} disabled={busy} />
+              sub="Auto-restores on reinstall or another device on the same iCloud." onPress={backupICloud} disabled={busy} />
             <Row icon={<CloudDownload size={20} color={TEAL} strokeWidth={2} />} title="Restore from iCloud"
               sub="Pull the latest iCloud backup onto this device." onPress={restoreICloud} disabled={busy} />
           </>

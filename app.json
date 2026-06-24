@@ -118,9 +118,9 @@
       "expo-secure-store",
       "./plugins/withFmtConstevalFix.js",
       [
-        "react-native-icloud-kit/plugin/withICloud",
+        "react-native-cloud-storage",
         {
-          "containerIdentifier": "iCloud.com.nealwagner.soberdailies"
+          "iCloudContainerEnvironment": "Development"
         }
       ]
     ],

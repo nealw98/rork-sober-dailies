@@ -1,37 +1,34 @@
-// iCloud sync (Phase 1) — automatic backup + restore of user data via
-// NSUbiquitousKeyValueStore (react-native-icloud-kit). iOS only. Syncs
-// ICLOUD_KEYS (everything except chat history, which risks the ~1 MB KVS cap)
-// as one JSON blob, whole-snapshot last-write-wins by timestamp.
-// See [[icloud-sync-plan]]. Requires a native rebuild to activate.
+// iCloud sync (Phase 1) — automatic backup + restore of ALL user data (chat
+// included) as one JSON file in the app's iCloud container, via
+// react-native-cloud-storage (file-based, no KVS size cap; also Android-ready
+// via Google Drive later). Whole-snapshot last-write-wins by the snapshot's
+// embedded `exportedAt`. iOS for now. See [[icloud-sync-plan]]. Needs a rebuild.
 import { Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { serializeUserData, restoreUserData, ICLOUD_KEYS } from './userDataSync';
+import { serializeUserData, restoreUserData } from './userDataSync';
 
-// Defensive require: on a binary that doesn't yet include the native module
-// (e.g. an OTA landing on an older build), this would otherwise throw and crash.
-// Degrade to no-ops; the feature activates once the app is rebuilt with the module.
-let kit: any = null;
+// Defensive require: on a binary without the native module (e.g. an OTA onto an
+// older build) this would throw and crash — degrade to no-ops instead. The
+// feature activates once the app is rebuilt with the module.
+let CloudStorage: any = null;
 try {
-  kit = require('react-native-icloud-kit');
+  CloudStorage = require('react-native-cloud-storage').CloudStorage;
 } catch {
-  kit = null;
+  CloudStorage = null;
 }
-const KVS = kit?.iCloudKVS ?? null;
-const CK = kit?.iCloud ?? null;
 
-const KV_BLOB = 'sd_backup';      // the JSON snapshot of ICLOUD_KEYS
-const KV_AT = 'sd_backup_at';     // its timestamp (string ms)
-const LOCAL_AT = 'icloud_last_sync'; // this device's last-synced timestamp
+const FILE = '/sober-dailies-backup.json';
+const LOCAL_AT = 'icloud_last_sync'; // this device's last-synced snapshot timestamp
 
 export function iCloudSupported(): boolean {
-  return Platform.OS === 'ios' && !!KVS;
+  return Platform.OS === 'ios' && !!CloudStorage;
 }
 
-// Whether the user is signed into iCloud (for the UI). Best-effort.
+// Whether iCloud is reachable / the user is signed in (for the UI). Best-effort.
 export async function iCloudAvailable(): Promise<boolean> {
   if (!iCloudSupported()) return false;
   try {
-    return !!(await CK?.isAvailable?.());
+    return !!(await CloudStorage.isCloudAvailable());
   } catch {
     return false;
   }
@@ -41,10 +38,9 @@ export async function iCloudAvailable(): Promise<boolean> {
 export async function pushToICloud(): Promise<boolean> {
   if (!iCloudSupported()) return false;
   try {
-    const json = await serializeUserData(ICLOUD_KEYS);
-    const at = Date.now();
-    await KVS.set(KV_BLOB, json);
-    await KVS.set(KV_AT, String(at));
+    const json = await serializeUserData(); // whole snapshot, incl. chat
+    await CloudStorage.writeFile(FILE, json);
+    const at = Number(JSON.parse(json)?.exportedAt ?? Date.now());
     await AsyncStorage.setItem(LOCAL_AT, String(at));
     return true;
   } catch (e) {
@@ -58,11 +54,13 @@ export async function pushToICloud(): Promise<boolean> {
 export async function pullFromICloud(): Promise<boolean> {
   if (!iCloudSupported()) return false;
   try {
-    const [cloudAt, cloudJson] = await Promise.all([KVS.get(KV_AT), KVS.get(KV_BLOB)]);
-    if (!cloudAt || !cloudJson) return false;
+    if (!(await CloudStorage.exists(FILE))) return false;
+    const json = await CloudStorage.readFile(FILE);
+    if (!json) return false;
+    const cloudAt = Number(JSON.parse(json)?.exportedAt ?? 0);
     const localAt = Number((await AsyncStorage.getItem(LOCAL_AT)) ?? 0);
-    if (Number(cloudAt) <= localAt) return false;
-    await restoreUserData(cloudJson, ICLOUD_KEYS);
+    if (cloudAt <= localAt) return false;
+    await restoreUserData(json); // all allowlisted keys
     await AsyncStorage.setItem(LOCAL_AT, String(cloudAt));
     return true;
   } catch (e) {
