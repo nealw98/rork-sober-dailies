@@ -7,10 +7,9 @@ import { View, Text, ScrollView, Pressable, StyleSheet } from 'react-native';
 import { Image } from 'expo-image';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Stack, useRouter } from 'expo-router';
-import { ArrowUpRight } from 'lucide-react-native';
 import BackButton from '@/components/BackButton';
 import { SPONSORS, type SponsorConfig } from '@/constants/sponsors';
-import { SELECTION_SPONSOR_IDS, sponsorTone } from '@/constants/sponsorTones';
+import { SELECTION_SPONSOR_IDS, BR_INK, BR_SOFT } from '@/constants/sponsorTones';
 import { logEvent } from '@/lib/usageLogger';
 import { useScreenTimeTracking } from '@/hooks/useScreenTimeTracking';
 import { fontFamily, getSemanticColors, shadows } from '@/constants/designTokens';
@@ -36,7 +35,7 @@ export default function SponsorSelectScreen() {
       <Stack.Screen options={{ headerShown: false }} />
       <View style={styles.header}>
         <BackButton onPress={() => router.back()} style={{ marginBottom: 12 }} />
-        <Text style={styles.h1}>Three voices.{'\n'}One program.</Text>
+        <Text style={styles.h1}>Choose your AI Sponsor</Text>
         <Text style={styles.sub}>
           Each sponsor gives the same solid AA guidance — in their own unmistakable voice. Pick who you need today. Switch any time.
         </Text>
@@ -53,22 +52,13 @@ export default function SponsorSelectScreen() {
 }
 
 function SponsorCard({ s, onPress }: { s: SponsorConfig; onPress: () => void }) {
-  const tone = sponsorTone(s.id);
   return (
     <Pressable style={styles.card} onPress={onPress} accessibilityRole="button" accessibilityLabel={`Chat with ${s.name}`}>
-      <View style={styles.chevCorner}><ArrowUpRight size={16} color={c.textMuted} strokeWidth={2} /></View>
-
-      <View style={styles.band}>
-        <Image source={s.avatar} style={[styles.avatar, { backgroundColor: tone.tile }]} contentFit="cover" />
-        <View style={styles.bandText}>
-          <Text style={styles.name}>{s.name}</Text>
-          <Text style={styles.descriptor}>{s.description}</Text>
-        </View>
-      </View>
-
-      <View style={[styles.quoteBox, { backgroundColor: tone.tile + 'cc' }]}>
-        <Text style={[styles.quoteMark, { color: tone.ink }]}>“</Text>
-        <Text style={[styles.quote, { color: tone.ink }]}>{s.hookQuote}</Text>
+      <Image source={s.avatar} style={styles.avatar} contentFit="cover" />
+      <View style={styles.cardText}>
+        <Text style={styles.name}>{s.name}</Text>
+        <Text style={styles.descriptor}>{s.description}</Text>
+        <Text style={styles.quote}>{`“${s.hookQuote}”`}</Text>
       </View>
     </Pressable>
   );
@@ -82,18 +72,12 @@ const styles = StyleSheet.create({
 
   scroll: { paddingHorizontal: 16, paddingTop: 14, paddingBottom: 40 },
 
-  card: { backgroundColor: c.surface, borderRadius: 24, marginBottom: 14, paddingBottom: 14, ...shadows.md },
-  chevCorner: { position: 'absolute', top: 12, right: 12, zIndex: 2 },
-
-  band: { flexDirection: 'row', alignItems: 'center', gap: 14, padding: 14 },
-  avatar: { width: 96, height: 96, borderRadius: 20, borderWidth: 2, borderColor: '#fff', ...shadows.sm },
-  bandText: { flex: 1 },
+  card: { flexDirection: 'row', gap: 14, padding: 14, backgroundColor: c.surface, borderRadius: 24, marginBottom: 14, ...shadows.md },
+  avatar: { width: 84, height: 84, borderRadius: 16, borderWidth: 2, borderColor: '#fff', backgroundColor: BR_SOFT, ...shadows.sm },
+  cardText: { flex: 1 },
   name: { fontFamily: fontFamily.bold, fontSize: 19, color: c.text, letterSpacing: -0.3 },
-  descriptor: { fontFamily: fontFamily.regular, fontSize: 13.5, lineHeight: 19, color: c.textSecondary, marginTop: 5 },
-
-  quoteBox: { marginHorizontal: 14, paddingVertical: 12, paddingHorizontal: 16, borderRadius: 14, position: 'relative' },
-  quoteMark: { position: 'absolute', top: 2, left: 8, fontFamily: fontFamily.serif, fontSize: 38, opacity: 0.35 },
-  quote: { fontFamily: fontFamily.serifItalic, fontSize: 15, lineHeight: 22, paddingLeft: 18 },
+  descriptor: { fontFamily: fontFamily.regular, fontSize: 14, lineHeight: 19, color: '#4A4A5E', marginTop: 4 },
+  quote: { fontFamily: fontFamily.serifItalic, fontSize: 14, lineHeight: 20, color: BR_INK, marginTop: 8 },
 
   disclaimer: { fontFamily: fontFamily.regular, fontSize: 11.5, lineHeight: 17, color: c.textMuted, textAlign: 'center', paddingHorizontal: 20, marginTop: 8 },
 });

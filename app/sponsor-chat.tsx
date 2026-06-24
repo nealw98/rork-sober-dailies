@@ -1,22 +1,22 @@
-// AI Sponsor — chat (redesign 3.0). Reskin of the sponsor conversation to the
-// prototype (frames/hifi-sponsor-v2 HiFiSponsorChatV2): LINEN header with avatar
-// + "Online" + a Switch-sponsor dropdown, PAPER conversation with persona-tinted
-// bubbles, "Or try" suggestion chips, persona-ink send button.
-// Plumbing is UNCHANGED — messages/send/limits still flow through use-chat-store.
+// AI Sponsor — chat (redesign 3.0, "AI Sponsor Update"). Modern-assistant layout:
+// flat sponsor replies (no bubble/avatar), white user bubbles, suggestion chips
+// pinned above the composer, an icon header (Reset + Switch) showing the vibe
+// string, and one consistent teal accent (no per-persona color).
+// Plumbing is UNCHANGED — messages/send/limits flow through use-chat-store.
 import React, { useState, useRef, useEffect } from 'react';
 import {
-  View, Text, TextInput, Pressable, FlatList, KeyboardAvoidingView,
+  View, Text, TextInput, Pressable, FlatList, ScrollView, KeyboardAvoidingView,
   Platform, ActivityIndicator, Alert, StyleSheet,
 } from 'react-native';
 import { Image } from 'expo-image';
 import { useRouter, useLocalSearchParams, Stack } from 'expo-router';
-import { ChevronDown, ChevronRight, Check, RotateCcw, Send } from 'lucide-react-native';
+import { ArrowLeftRight, ChevronRight, Check, RotateCcw, Send } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
 import * as Clipboard from 'expo-clipboard';
 import { ChatStoreProvider, useChatStore } from '@/hooks/use-chat-store';
 import { getSponsorById, SPONSORS, type SponsorConfig } from '@/constants/sponsors';
-import { SELECTION_SPONSOR_IDS, sponsorTone } from '@/constants/sponsorTones';
+import { SELECTION_SPONSOR_IDS, BR_INK, BR_SOFT } from '@/constants/sponsorTones';
 import { useScreenTimeTracking } from '@/hooks/useScreenTimeTracking';
 import { useTextSettings } from '@/hooks/use-text-settings';
 import { SponsorType, ChatMessage } from '@/types';
@@ -37,6 +37,10 @@ const SUGGESTIONS = ['I’m struggling today', 'Help me think this through', 'I 
 const SWITCHERS = SELECTION_SPONSOR_IDS
   .map((id) => SPONSORS.find((s) => s.id === id))
   .filter(Boolean) as SponsorConfig[];
+
+// The dotted "vibe" string under the name, e.g. "Patient · Steady · Wise".
+const titleCase = (s: string) => s.toLowerCase().replace(/\b\w/g, (ch) => ch.toUpperCase());
+const vibeString = (tags?: string[]) => (tags ?? []).map(titleCase).join(' · ');
 
 type LimitCheckResult =
   | { allowed: true }
@@ -95,27 +99,24 @@ const copyMessage = async (text: string) => {
   } catch { /* ignore */ }
 };
 
-// ── Message bubble ──────────────────────────────────────────────────────────
-function Bubble({ message, sponsor, ink, tile, fontSize }: {
-  message: ChatMessage; sponsor: SponsorConfig; ink: string; tile: string; fontSize: number;
-}) {
-  const isUser = message.sender === 'user';
-  if (isUser) {
+// ── Message: user = white bubble; sponsor = flat text (assistant style) ──
+function Bubble({ message, fontSize }: { message: ChatMessage; fontSize: number }) {
+  if (message.sender === 'user') {
     return (
       <View style={styles.userRow}>
         <Pressable onLongPress={() => copyMessage(message.text)} style={styles.userBubble}>
-          <Text style={[styles.userText, { fontSize }]}>{message.text}</Text>
+          <Text style={[styles.userText, { fontSize, lineHeight: Math.round(fontSize * 1.4) }]}>{message.text}</Text>
         </Pressable>
       </View>
     );
   }
   return (
-    <View style={styles.botRow}>
-      <Image source={sponsor.avatar} style={styles.botAvatar} contentFit="cover" />
-      <Pressable onLongPress={() => copyMessage(message.text)} style={[styles.botBubble, { backgroundColor: tile, borderColor: ink + '22' }]}>
-        <ChatMarkdownRenderer content={message.text} style={{ color: c.text, fontSize, fontFamily: fontFamily.regular }} />
-      </Pressable>
-    </View>
+    <Pressable onLongPress={() => copyMessage(message.text)} style={styles.botBlock}>
+      <ChatMarkdownRenderer
+        content={message.text}
+        style={{ color: '#2B2A30', fontSize, fontFamily: fontFamily.regular, lineHeight: Math.round(fontSize * 1.55) }}
+      />
+    </Pressable>
   );
 }
 
@@ -124,7 +125,7 @@ function SponsorChatContent({ initialSponsor }: { initialSponsor: string }) {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const textSettings = useTextSettings();
-  const fontSize = textSettings?.fontSize ?? 16;
+  const fontSize = textSettings?.fontSize ?? 15;
   const { messages, isLoading, sendMessage, clearChat, changeSponsor, sponsorType } = useChatStore();
   const [inputText, setInputText] = useState('');
   const [isCheckingLimits, setIsCheckingLimits] = useState(false);
@@ -188,10 +189,9 @@ function SponsorChatContent({ initialSponsor }: { initialSponsor: string }) {
     );
   }
 
-  const tone = sponsorTone(sponsor.id);
   const firstName = sponsor.name.split(' ').slice(-1)[0];
   const isSendDisabled = !inputText.trim() || isLoading || isCheckingLimits;
-  const showChips = messages.filter((m) => !m.id.startsWith('welcome-')).length === 0;
+  const showChips = inputText.length === 0;
 
   return (
     <View style={styles.container}>
@@ -201,18 +201,19 @@ function SponsorChatContent({ initialSponsor }: { initialSponsor: string }) {
       <View style={[styles.header, { paddingTop: insets.top + 6 }]}>
         <BackButton onPress={() => router.back()} style={{ marginBottom: 10 }} />
         <View style={styles.sponsorRow}>
-          <Image source={sponsor.avatar} style={[styles.hAvatar, { backgroundColor: tone.tile }]} contentFit="cover" />
+          <Image source={sponsor.avatar} style={styles.hAvatar} contentFit="cover" />
           <View style={styles.flex}>
             <Text style={styles.hName}>{sponsor.name}</Text>
-            <View style={styles.statusRow}>
-              <View style={styles.dot} />
-              <Text style={styles.status}>Online</Text>
-            </View>
+            <Text style={styles.vibe} numberOfLines={1}>{vibeString(sponsor.tags)}</Text>
           </View>
-          <Pressable onPress={() => setSwitchOpen((o) => !o)} style={[styles.switchBtn, { borderColor: tone.ink + '40', backgroundColor: tone.tile }]}>
-            <Text style={[styles.switchText, { color: tone.ink }]}>Switch</Text>
-            <ChevronDown size={13} color={tone.ink} strokeWidth={2.4} />
-          </Pressable>
+          <View style={styles.headActions}>
+            <Pressable onPress={handleRefresh} style={styles.resetBtn} accessibilityLabel="Reset conversation">
+              <RotateCcw size={16} color="#4A4A5E" strokeWidth={2} />
+            </Pressable>
+            <Pressable onPress={() => setSwitchOpen((o) => !o)} style={styles.switchBtn} accessibilityLabel="Switch sponsor">
+              <ArrowLeftRight size={16} color={BR_INK} strokeWidth={2.2} />
+            </Pressable>
+          </View>
         </View>
       </View>
 
@@ -223,24 +224,16 @@ function SponsorChatContent({ initialSponsor }: { initialSponsor: string }) {
           <View style={[styles.dropdown, { top: insets.top + 96 }]}>
             <Text style={styles.ddHead}>SWITCH SPONSOR</Text>
             {SWITCHERS.map((sp) => {
-              const t = sponsorTone(sp.id);
               const current = sp.id === sponsor.id;
               return (
-                <Pressable key={sp.id} style={[styles.ddRow, current && { backgroundColor: t.tile }]} onPress={() => onSwitch(sp.id)}>
+                <Pressable key={sp.id} style={[styles.ddRow, current && { backgroundColor: BR_SOFT }]} onPress={() => onSwitch(sp.id)}>
                   <Image source={sp.avatar} style={styles.ddAvatar} contentFit="cover" />
-                  <View style={styles.flex}>
-                    <Text style={styles.ddName}>{sp.name}</Text>
-                    <Text style={[styles.ddVibe, { color: t.ink }]} numberOfLines={1}>{(sp.tags ?? []).join(' · ')}</Text>
-                  </View>
-                  {current && <Check size={16} color={t.ink} strokeWidth={2.4} />}
+                  <Text style={styles.ddName}>{sp.name}</Text>
+                  {current && <Check size={16} color={BR_INK} strokeWidth={2.4} />}
                 </Pressable>
               );
             })}
             <View style={styles.ddDivider} />
-            <Pressable style={styles.ddAction} onPress={() => { setSwitchOpen(false); handleRefresh(); }}>
-              <RotateCcw size={15} color={c.textMuted} strokeWidth={2} />
-              <Text style={styles.ddActionText}>Reset conversation</Text>
-            </Pressable>
             <Pressable style={styles.ddAction} onPress={() => { setSwitchOpen(false); router.replace('/(main)/chat'); }}>
               <Text style={styles.ddActionText}>Meet all three</Text>
               <ChevronRight size={15} color={c.textMuted} strokeWidth={2} />
@@ -255,20 +248,8 @@ function SponsorChatContent({ initialSponsor }: { initialSponsor: string }) {
           ref={listRef}
           data={messages}
           keyExtractor={(m) => m.id}
-          renderItem={({ item }) => <Bubble message={item} sponsor={sponsor} ink={tone.ink} tile={tone.tile} fontSize={fontSize} />}
+          renderItem={({ item }) => <Bubble message={item} fontSize={fontSize} />}
           ListHeaderComponent={<View style={styles.dayDivider}><Text style={styles.dayText}>Today</Text></View>}
-          ListFooterComponent={showChips ? (
-            <View style={styles.chipsWrap}>
-              <Text style={styles.chipsLabel}>OR TRY</Text>
-              <View style={styles.chipsRow}>
-                {SUGGESTIONS.map((s) => (
-                  <Pressable key={s} style={[styles.chip, { borderColor: tone.ink + '33' }]} onPress={() => setInputText(s)}>
-                    <Text style={[styles.chipText, { color: tone.ink }]}>{s}</Text>
-                  </Pressable>
-                ))}
-              </View>
-            </View>
-          ) : null}
           contentContainerStyle={styles.list}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
@@ -276,15 +257,32 @@ function SponsorChatContent({ initialSponsor }: { initialSponsor: string }) {
 
         {isLoading && (
           <View style={styles.loadingRow}>
-            <ActivityIndicator size="small" color={tone.ink} />
+            <ActivityIndicator size="small" color={BR_INK} />
             <Text style={styles.loadingText}>{sponsor.loadingText ?? 'Thinking…'}</Text>
           </View>
+        )}
+
+        {/* ── Suggestion chips (above composer; hidden once typing) ── */}
+        {showChips && (
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            style={styles.chipsStrip}
+            contentContainerStyle={styles.chipsStripContent}
+            keyboardShouldPersistTaps="handled"
+          >
+            {SUGGESTIONS.map((s) => (
+              <Pressable key={s} style={styles.chip} onPress={() => setInputText(s)}>
+                <Text style={styles.chipText}>{s}</Text>
+              </Pressable>
+            ))}
+          </ScrollView>
         )}
 
         {/* ── Input dock ── */}
         <View style={[styles.inputDock, { paddingBottom: Math.max(insets.bottom, 10) + 8 }]}>
           <TextInput
-            style={[styles.input, { fontSize }]}
+            style={[styles.input, { fontSize: 14 }]}
             value={inputText}
             onChangeText={setInputText}
             placeholder={`Message ${firstName}…`}
@@ -294,7 +292,7 @@ function SponsorChatContent({ initialSponsor }: { initialSponsor: string }) {
             returnKeyType="default"
           />
           <Pressable
-            style={[styles.sendBtn, { backgroundColor: tone.ink }, isSendDisabled && styles.sendDisabled]}
+            style={[styles.sendBtn, isSendDisabled && styles.sendDisabled]}
             onPress={handleSend}
             disabled={isSendDisabled}
             accessibilityLabel="Send"
@@ -324,44 +322,40 @@ const styles = StyleSheet.create({
   // header
   header: { backgroundColor: LINEN, paddingHorizontal: 14, paddingBottom: 12, borderBottomWidth: 1, borderBottomColor: 'rgba(26,26,46,0.06)' },
   sponsorRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  hAvatar: { width: 46, height: 46, borderRadius: 23, borderWidth: 2, borderColor: '#fff', ...shadows.sm },
+  hAvatar: { width: 46, height: 46, borderRadius: 23, borderWidth: 2, borderColor: '#fff', backgroundColor: BR_SOFT, ...shadows.sm },
   hName: { fontFamily: fontFamily.display, fontSize: 22, letterSpacing: -0.3, color: c.text },
-  statusRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 1 },
-  dot: { width: 7, height: 7, borderRadius: 4, backgroundColor: '#22C55E' },
-  status: { fontFamily: fontFamily.semiBold, fontSize: 10.5, letterSpacing: 0.3, color: c.textMuted },
-  switchBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 11, paddingVertical: 7, borderRadius: 999, borderWidth: 1 },
-  switchText: { fontFamily: fontFamily.bold, fontSize: 12 },
+  vibe: { fontFamily: fontFamily.semiBold, fontSize: 11, color: c.textMuted, marginTop: 2 },
+  headActions: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  resetBtn: { width: 34, height: 34, borderRadius: 17, alignItems: 'center', justifyContent: 'center', backgroundColor: c.surface, borderWidth: 1, borderColor: 'rgba(26,26,46,0.12)' },
+  switchBtn: { width: 34, height: 34, borderRadius: 17, alignItems: 'center', justifyContent: 'center', backgroundColor: BR_SOFT, borderWidth: 1, borderColor: BR_INK + '40' },
 
   // switch dropdown
   ddBackdrop: { ...StyleSheet.absoluteFillObject, zIndex: 20 },
-  dropdown: { position: 'absolute', right: 14, width: 248, zIndex: 30, backgroundColor: c.surface, borderRadius: 16, borderWidth: 1, borderColor: 'rgba(26,26,46,0.06)', padding: 6, ...shadows.lg },
+  dropdown: { position: 'absolute', right: 14, width: 232, zIndex: 30, backgroundColor: c.surface, borderRadius: 16, borderWidth: 1, borderColor: 'rgba(26,26,46,0.06)', padding: 6, ...shadows.lg },
   ddHead: { fontFamily: fontFamily.bold, fontSize: 10, letterSpacing: 1, color: c.textMuted, paddingHorizontal: 10, paddingTop: 8, paddingBottom: 6 },
   ddRow: { flexDirection: 'row', alignItems: 'center', gap: 10, padding: 8, borderRadius: 11 },
   ddAvatar: { width: 34, height: 34, borderRadius: 17, borderWidth: 2, borderColor: '#fff' },
-  ddName: { fontFamily: fontFamily.bold, fontSize: 14, color: c.text },
-  ddVibe: { fontFamily: fontFamily.semiBold, fontSize: 11, marginTop: 1 },
+  ddName: { flex: 1, fontFamily: fontFamily.bold, fontSize: 14, color: c.text },
   ddDivider: { height: 1, backgroundColor: 'rgba(26,26,46,0.07)', marginHorizontal: 8, marginVertical: 6 },
   ddAction: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8, paddingHorizontal: 10, paddingVertical: 9, borderRadius: 11 },
   ddActionText: { fontFamily: fontFamily.semiBold, fontSize: 13, color: c.textSecondary },
 
   // conversation
   list: { paddingHorizontal: 16, paddingTop: 14, paddingBottom: 14 },
-  dayDivider: { alignItems: 'center', marginBottom: 14 },
+  dayDivider: { alignItems: 'center', marginBottom: 16 },
   dayText: { fontFamily: fontFamily.regular, fontSize: 11, color: c.textMuted, backgroundColor: c.surface, paddingHorizontal: 12, paddingVertical: 4, borderRadius: 999, overflow: 'hidden', ...shadows.sm },
 
-  userRow: { alignItems: 'flex-end', marginBottom: 8 },
-  userBubble: { maxWidth: '78%', backgroundColor: c.surface, paddingVertical: 10, paddingHorizontal: 14, borderRadius: 18, borderBottomRightRadius: 5, ...shadows.sm },
-  userText: { fontFamily: fontFamily.regular, color: c.text, lineHeight: 21 },
+  botBlock: { marginBottom: 18 },
 
-  botRow: { flexDirection: 'row', alignItems: 'flex-end', gap: 6, marginBottom: 8 },
-  botAvatar: { width: 26, height: 26, borderRadius: 13, borderWidth: 1.5, borderColor: '#fff', ...shadows.sm },
-  botBubble: { maxWidth: '78%', paddingVertical: 10, paddingHorizontal: 14, borderRadius: 18, borderBottomLeftRadius: 5, borderWidth: 1 },
+  userRow: { alignItems: 'flex-end', marginBottom: 18 },
+  userBubble: { maxWidth: '78%', backgroundColor: c.surface, paddingVertical: 10, paddingHorizontal: 14, borderRadius: 18, borderBottomRightRadius: 4, ...shadows.sm },
+  userText: { fontFamily: fontFamily.regular, color: '#2B2A30' },
 
-  chipsWrap: { marginTop: 16 },
-  chipsLabel: { fontFamily: fontFamily.bold, fontSize: 10, letterSpacing: 1.3, color: c.textMuted, marginBottom: 8 },
-  chipsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
-  chip: { backgroundColor: c.surface, paddingVertical: 7, paddingHorizontal: 12, borderRadius: 999, borderWidth: 1, ...shadows.sm },
-  chipText: { fontFamily: fontFamily.medium, fontSize: 12 },
+  // suggestion chips (above composer)
+  chipsStrip: { backgroundColor: LINEN, maxHeight: 48 },
+  chipsStripContent: { paddingHorizontal: 14, paddingTop: 10, gap: 6, alignItems: 'center' },
+  chip: { backgroundColor: c.surface, paddingVertical: 7, paddingHorizontal: 12, borderRadius: 999, borderWidth: 1, borderColor: BR_INK + '55', ...shadows.sm },
+  chipText: { fontFamily: fontFamily.medium, fontSize: 12, color: BR_INK },
 
   loadingRow: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 18, paddingBottom: 6 },
   loadingText: { fontFamily: fontFamily.regularItalic, fontSize: 12.5, color: c.textMuted },
@@ -369,7 +363,7 @@ const styles = StyleSheet.create({
   // input dock
   inputDock: { flexDirection: 'row', alignItems: 'flex-end', gap: 8, backgroundColor: LINEN, paddingHorizontal: 14, paddingTop: 10, borderTopWidth: 1, borderTopColor: 'rgba(26,26,46,0.06)' },
   input: { flex: 1, maxHeight: 120, backgroundColor: c.surface, borderWidth: 1, borderColor: 'rgba(26,26,46,0.07)', borderRadius: 22, paddingHorizontal: 16, paddingVertical: Platform.OS === 'ios' ? 10 : 6, fontFamily: fontFamily.regular, color: c.text },
-  sendBtn: { width: 38, height: 38, borderRadius: 19, alignItems: 'center', justifyContent: 'center' },
+  sendBtn: { width: 38, height: 38, borderRadius: 19, alignItems: 'center', justifyContent: 'center', backgroundColor: BR_INK },
   sendDisabled: { opacity: 0.4 },
 
   // error
