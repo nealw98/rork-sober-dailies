@@ -9,7 +9,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Stack, useRouter } from 'expo-router';
 import BackButton from '@/components/BackButton';
 import { SPONSORS, type SponsorConfig } from '@/constants/sponsors';
-import { SELECTION_SPONSOR_IDS, BR_INK, BR_SOFT } from '@/constants/sponsorTones';
+import { SELECTION_SPONSOR_IDS, BR_SOFT } from '@/constants/sponsorTones';
 import { logEvent } from '@/lib/usageLogger';
 import { useScreenTimeTracking } from '@/hooks/useScreenTimeTracking';
 import { fontFamily, getSemanticColors, shadows } from '@/constants/designTokens';
@@ -58,7 +58,6 @@ function SponsorCard({ s, onPress }: { s: SponsorConfig; onPress: () => void }) 
       <View style={styles.cardText}>
         <Text style={styles.name}>{s.name}</Text>
         <Text style={styles.descriptor}>{s.description}</Text>
-        {!['salty', 'supportive'].includes(s.id) && !!s.hookQuote && <Text style={styles.quote}>{`“${s.hookQuote}”`}</Text>}
       </View>
     </Pressable>
   );
@@ -72,12 +71,11 @@ const styles = StyleSheet.create({
 
   scroll: { paddingHorizontal: 16, paddingTop: 14, paddingBottom: 40 },
 
-  card: { flexDirection: 'row', gap: 14, padding: 14, backgroundColor: c.surface, borderRadius: 24, marginBottom: 14, ...shadows.md },
-  avatar: { width: 84, height: 84, borderRadius: 16, borderWidth: 2, borderColor: '#fff', backgroundColor: BR_SOFT, ...shadows.sm },
+  card: { flexDirection: 'row', alignItems: 'center', gap: 14, padding: 14, backgroundColor: c.surface, borderRadius: 24, marginBottom: 14, ...shadows.md },
+  avatar: { width: 72, height: 72, borderRadius: 16, borderWidth: 2, borderColor: '#fff', backgroundColor: BR_SOFT, ...shadows.sm },
   cardText: { flex: 1 },
   name: { fontFamily: fontFamily.bold, fontSize: 19, color: c.text, letterSpacing: -0.3 },
   descriptor: { fontFamily: fontFamily.regular, fontSize: 14, lineHeight: 19, color: '#4A4A5E', marginTop: 4 },
-  quote: { fontFamily: fontFamily.serifItalic, fontSize: 14, lineHeight: 20, color: BR_INK, marginTop: 8 },
 
   disclaimer: { fontFamily: fontFamily.regular, fontSize: 11.5, lineHeight: 17, color: c.textMuted, textAlign: 'center', paddingHorizontal: 20, marginTop: 8 },
 });
