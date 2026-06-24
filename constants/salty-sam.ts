@@ -68,7 +68,7 @@ AA SAYINGS (when natural):
 
 export const SALTY_SAM_INITIAL_MESSAGE: ChatMessage = {
   id: "welcome-salty",
-  text: "Well, well, well. Look who crawled in. I'm Salty Sam. I've been sober longer than you've been screwing up your life with booze. I don't care about excuses—I deal in reality. So, what fresh hell are you bringing me now?",
+  text: "If you want the truth, sit down. If you want a hug, call your mom. So, what fresh hell are you bringing me now?",
   sender: "bot",
   timestamp: Date.now(),
 };
