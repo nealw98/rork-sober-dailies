@@ -58,7 +58,7 @@ function SponsorCard({ s, onPress }: { s: SponsorConfig; onPress: () => void }) 
       <View style={styles.cardText}>
         <Text style={styles.name}>{s.name}</Text>
         <Text style={styles.descriptor}>{s.description}</Text>
-        {s.id !== 'salty' && !!s.hookQuote && <Text style={styles.quote}>{`“${s.hookQuote}”`}</Text>}
+        {!['salty', 'supportive'].includes(s.id) && !!s.hookQuote && <Text style={styles.quote}>{`“${s.hookQuote}”`}</Text>}
       </View>
     </Pressable>
   );
