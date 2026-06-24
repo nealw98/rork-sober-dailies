@@ -85,3 +85,11 @@ export async function countStoredItems(): Promise<number> {
   const pairs = await AsyncStorage.multiGet(SYNC_KEYS);
   return pairs.filter(([, v]) => v != null).length;
 }
+
+// Wipe ALL allowlisted user data on this device (a local "start fresh"). This
+// clears the onboarding flag too (it's in SYNC_KEYS), so onboarding runs again.
+// The app should reload afterward so every store re-initialises empty. Device-
+// local keys (anonymous_id, caches, entitlements) are untouched.
+export async function clearUserData(): Promise<void> {
+  await AsyncStorage.multiRemove(SYNC_KEYS);
+}

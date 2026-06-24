@@ -411,6 +411,21 @@ export const [GratitudeProvider, useGratitudeStore] = createContextHook(() => {
     saveSavedEntries(filteredEntries);
   }, [savedEntries]);
 
+  // Edit a saved entry's items in place, KEEPING its original timestamp (so an
+  // edited past entry stays on its own day instead of jumping to today). Used by
+  // the Journey Notebook editor.
+  const editSavedEntry = useCallback((dateString: string, items: string[]) => {
+    const cleaned = items.filter(item => item.trim() !== '');
+    const updatedSaved = savedEntries.map(e => (e.date === dateString ? { ...e, items: cleaned } : e));
+    saveSavedEntries(updatedSaved);
+    const idx = entries.findIndex(e => e.date === dateString);
+    if (idx >= 0) {
+      const newEntries = [...entries];
+      newEntries[idx] = { ...newEntries[idx], items: cleaned };
+      saveEntries(newEntries);
+    }
+  }, [savedEntries, entries]);
+
   const getCompletedDaysInLast30 = useCallback((): number => {
     const cutoff = new Date();
     cutoff.setDate(cutoff.getDate() - 30);
@@ -439,6 +454,7 @@ export const [GratitudeProvider, useGratitudeStore] = createContextHook(() => {
     saveDetailedEntry,
     getSavedEntry,
     deleteSavedEntry,
+    editSavedEntry,
     getCompletedDaysInLast30
   }), [
     entries,
@@ -456,6 +472,7 @@ export const [GratitudeProvider, useGratitudeStore] = createContextHook(() => {
     saveDetailedEntry,
     getSavedEntry,
     deleteSavedEntry,
+    editSavedEntry,
     getCompletedDaysInLast30
   ]);
 });

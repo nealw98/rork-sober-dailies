@@ -41,5 +41,10 @@ export const [JournalProvider, useJournal] = createContextHook(() => {
     setEntries((prev) => prev.filter((e) => e.id !== id));
   }, []);
 
-  return useMemo(() => ({ entries, addEntry, removeEntry, loaded }), [entries, addEntry, removeEntry, loaded]);
+  // Edit an existing entry's text in place (keeps id + ts → stays in its day).
+  const updateEntry = useCallback((id: string, text: string) => {
+    setEntries((prev) => prev.map((e) => (e.id === id ? { ...e, text } : e)));
+  }, []);
+
+  return useMemo(() => ({ entries, addEntry, removeEntry, updateEntry, loaded }), [entries, addEntry, removeEntry, updateEntry, loaded]);
 });

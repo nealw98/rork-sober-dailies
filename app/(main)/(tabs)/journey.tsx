@@ -6,17 +6,21 @@
 // ✕ reverse-morphs it back. The summary opens the day's dailies checklist; an
 // entry opens its read-only detail.
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
-import { View, Text, ScrollView, Pressable, StyleSheet, BackHandler, useWindowDimensions } from 'react-native';
+import { View, Text, ScrollView, Pressable, StyleSheet, BackHandler, useWindowDimensions, TextInput } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, { useSharedValue, useAnimatedStyle, withTiming, Easing, interpolate, runOnJS, Extrapolation } from 'react-native-reanimated';
-import { ChevronRight, PenLine, Heart, Moon, CircleCheck, NotebookPen, Check, X } from 'lucide-react-native';
+import { ChevronRight, PenLine, Heart, Moon, CircleCheck, NotebookPen, Check, X, Plus, Trash2 } from 'lucide-react-native';
 import Svg, { Path } from 'react-native-svg';
 import { useNotebook, type NotebookEntry, type NotebookType } from '@/hooks/use-notebook';
 import { useDailies, type DailyItem } from '@/hooks/use-dailies-store';
 import { useSobriety } from '@/hooks/useSobrietyStore';
+import { useGratitudeStore } from '@/hooks/use-gratitude-store';
+import { useEveningReviewStore } from '@/hooks/use-evening-review-store';
+import { useJournal } from '@/hooks/use-journal-store';
 import { useImmersive } from '@/hooks/use-immersive';
 import { resolveGlyph, resolveTone } from '@/components/dailyTokens';
 import { SPOT_PAIRS } from '@/constants/spotCheckPairs';
+import { NIGHTLY_QUESTIONS } from '@/constants/nightlyQuestions';
 import { parseLocalDate } from '@/lib/dateUtils';
 import { useScreenTimeTracking } from '@/hooks/useScreenTimeTracking';
 import { colors, fontFamily, getSemanticColors, shadows } from '@/constants/designTokens';
@@ -79,7 +83,7 @@ type MorphTarget = { kind: 'entry'; entry: NotebookEntry } | { kind: 'day'; day:
 
 export default function JourneyScreen() {
   useScreenTimeTracking('Journey');
-  const entries = useNotebook();
+  const { entries, updateSpotRecord } = useNotebook();
   const dailies = useDailies();
   const { sobrietyDate } = useSobriety();
   const { setImmersive } = useImmersive();
@@ -200,7 +204,7 @@ export default function JourneyScreen() {
           </Animated.View>
           <Animated.View style={[StyleSheet.absoluteFill, sheetFade]}>
             {morph.kind === 'entry' ? (
-              <EntrySheet entry={morph.entry} onClose={closeMorph} scrollEnabled={mode === 'read'} />
+              <EntrySheet entry={morph.entry} onClose={closeMorph} scrollEnabled={mode === 'read'} updateSpotRecord={updateSpotRecord} />
             ) : (
               <DaySheet day={morph.day} program={dailies.program} completion={completion[morph.day.key]} onClose={closeMorph} onSave={(rec) => dailies.setDayCompletion(morph.day.key, rec)} scrollEnabled={mode === 'read'} />
             )}
@@ -385,28 +389,195 @@ function DailyCheckRow({ item, first, dim, editable, onToggle }: {
   );
 }
 
-// ── Entry sheet (read-only, "Option B" card content) ──────────────────
-function EntrySheet({ entry, onClose, scrollEnabled = true }: { entry: NotebookEntry; onClose: () => void; scrollEnabled?: boolean }) {
+// ── Entry sheet (read + edit, "Option B" card content) ─────────────────
+function EntrySheet({ entry, onClose, scrollEnabled = true, updateSpotRecord }: {
+  entry: NotebookEntry; onClose: () => void; scrollEnabled?: boolean;
+  updateSpotRecord: (id: string, next: { situation: string; selected: string[] }) => void;
+}) {
   const t = J_TOOL[entry.type];
+  const gratitudeStore = useGratitudeStore();
+  const eveningStore = useEveningReviewStore();
+  const journal = useJournal();
+
+  // `view` mirrors the saved content so the sheet stays correct after a save
+  // (the parent's morph.entry snapshot doesn't update until reopen).
+  const [view, setView] = useState<NotebookEntry>(entry);
+  const [editing, setEditing] = useState(false);
+
+  const [draftJournal, setDraftJournal] = useState('');
+  const [draftGratitude, setDraftGratitude] = useState<string[]>([]);
+  const [draftNightly, setDraftNightly] = useState<Record<string, string>>({});
+  const [draftSituation, setDraftSituation] = useState('');
+  const [draftSelected, setDraftSelected] = useState<Set<string>>(new Set());
+  const [showAllDefects, setShowAllDefects] = useState(false);
+
+  const beginEdit = () => {
+    if (view.type === 'journal') setDraftJournal(view.journal ?? '');
+    if (view.type === 'gratitude') setDraftGratitude([...(view.gratitude ?? [])]);
+    if (view.type === 'nightly') {
+      const data = view.date ? eveningStore.getSavedEntry(view.date)?.data : undefined;
+      const seed: Record<string, string> = {};
+      NIGHTLY_QUESTIONS.forEach((q) => { seed[q.key] = String((data as any)?.[q.key] ?? '').trim(); });
+      setDraftNightly(seed);
+    }
+    if (view.type === 'spotcheck') {
+      setDraftSituation(view.spot?.situation ?? '');
+      setDraftSelected(new Set(view.spot?.selected ?? []));
+      setShowAllDefects(false);
+    }
+    setEditing(true);
+  };
+
+  const save = () => {
+    if (view.type === 'journal' && view.id) {
+      const text = draftJournal.trim();
+      journal.updateEntry(view.id, text);
+      setView((v) => ({ ...v, journal: text, preview: text.replace(/\s+/g, ' ').trim() }));
+    } else if (view.type === 'gratitude' && view.date) {
+      const items = draftGratitude.map((s) => s.trim()).filter(Boolean);
+      gratitudeStore.editSavedEntry(view.date, items);
+      setView((v) => ({ ...v, gratitude: items, preview: items[0] ?? '', count: `${items.length} ${items.length === 1 ? 'item' : 'items'}` }));
+    } else if (view.type === 'nightly' && view.date) {
+      const patch: Record<string, string> = {};
+      NIGHTLY_QUESTIONS.forEach((q) => { patch[q.key] = (draftNightly[q.key] ?? '').trim(); });
+      eveningStore.editSavedEntry(view.date, patch);
+      const pairs = NIGHTLY_QUESTIONS.map((q) => ({ q: q.q, a: patch[q.key] })).filter((p) => p.a);
+      setView((v) => ({ ...v, nightly: pairs, preview: pairs[0]?.a ?? '' }));
+    } else if (view.type === 'spotcheck' && view.id) {
+      const situation = draftSituation.trim();
+      const selected = [...draftSelected];
+      updateSpotRecord(view.id, { situation, selected });
+      setView((v) => ({ ...v, spot: { situation, selected }, preview: situation }));
+    }
+    setEditing(false);
+  };
+
   return (
     <View style={styles.flexFill}>
       <View style={styles.sheetHead}>
         <View style={[styles.sheetMed, { backgroundColor: t.ink }]}><t.Icon size={22} color="#fff" strokeWidth={2} /></View>
         <View style={styles.flex}>
-          <Text style={styles.sheetTitle}>{TYPE_LABEL[entry.type]}</Text>
-          <Text style={styles.sheetTime}>{timeLabel(entry.ts)}</Text>
+          <Text style={styles.sheetTitle}>{TYPE_LABEL[view.type]}</Text>
+          <Text style={styles.sheetTime}>{timeLabel(view.ts)}</Text>
         </View>
-        <Pressable style={styles.closeBtn} onPress={onClose} hitSlop={8} accessibilityRole="button" accessibilityLabel="Close">
-          <X size={18} color={c.textSecondary} strokeWidth={2} />
-        </Pressable>
+        {editing ? (
+          <>
+            <Pressable onPress={() => setEditing(false)} hitSlop={8} style={styles.headTextBtn}><Text style={styles.headCancel}>Cancel</Text></Pressable>
+            <Pressable onPress={save} hitSlop={8} style={styles.headTextBtn}><Text style={styles.headSave}>Save</Text></Pressable>
+          </>
+        ) : (
+          <>
+            <Pressable onPress={beginEdit} hitSlop={8} style={styles.headTextBtn} accessibilityRole="button" accessibilityLabel={`Edit ${TYPE_LABEL[view.type]}`}><Text style={styles.headEdit}>Edit</Text></Pressable>
+            <Pressable style={styles.closeBtn} onPress={onClose} hitSlop={8} accessibilityRole="button" accessibilityLabel="Close">
+              <X size={18} color={c.textSecondary} strokeWidth={2} />
+            </Pressable>
+          </>
+        )}
       </View>
       <View style={styles.sheetDivider} />
-      <ScrollView scrollEnabled={scrollEnabled} contentContainerStyle={styles.sheetBody} showsVerticalScrollIndicator={false}>
-        {entry.type === 'gratitude' && <GratitudeBody items={entry.gratitude ?? []} tool={t} />}
-        {entry.type === 'journal' && <Text style={styles.journalProse}>{entry.journal}</Text>}
-        {entry.type === 'nightly' && <NightlyBody pairs={entry.nightly ?? []} tool={t} />}
-        {entry.type === 'spotcheck' && entry.spot && <SpotSheetBody spot={entry.spot} />}
+      <ScrollView scrollEnabled={scrollEnabled} contentContainerStyle={styles.sheetBody} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled" automaticallyAdjustKeyboardInsets>
+        {editing ? (
+          <>
+            {view.type === 'gratitude' && <GratitudeEdit items={draftGratitude} setItems={setDraftGratitude} tool={t} />}
+            {view.type === 'journal' && (
+              <TextInput value={draftJournal} onChangeText={setDraftJournal} multiline placeholder="Write…" placeholderTextColor={c.textMuted} style={styles.journalInput} autoFocus />
+            )}
+            {view.type === 'nightly' && <NightlyEdit answers={draftNightly} setAnswers={setDraftNightly} tool={t} />}
+            {view.type === 'spotcheck' && (
+              <SpotEdit
+                situation={draftSituation} setSituation={setDraftSituation}
+                selected={draftSelected} setSelected={setDraftSelected}
+                showAll={showAllDefects} setShowAll={setShowAllDefects}
+              />
+            )}
+          </>
+        ) : (
+          <>
+            {view.type === 'gratitude' && <GratitudeBody items={view.gratitude ?? []} tool={t} />}
+            {view.type === 'journal' && <Text style={styles.journalProse}>{view.journal}</Text>}
+            {view.type === 'nightly' && <NightlyBody pairs={view.nightly ?? []} tool={t} />}
+            {view.type === 'spotcheck' && view.spot && <SpotSheetBody spot={view.spot} />}
+          </>
+        )}
       </ScrollView>
+    </View>
+  );
+}
+
+// ── Editable bodies ────────────────────────────────────────────────────
+function GratitudeEdit({ items, setItems, tool }: { items: string[]; setItems: (v: string[]) => void; tool: Tool }) {
+  const setAt = (i: number, val: string) => setItems(items.map((it, idx) => (idx === i ? val : it)));
+  const removeAt = (i: number) => setItems(items.filter((_, idx) => idx !== i));
+  const add = () => setItems([...items, '']);
+  return (
+    <View>
+      {items.map((it, i) => (
+        <View key={i} style={styles.gEditRow}>
+          <View style={[styles.gNum, { backgroundColor: tool.soft }]}><Text style={[styles.gNumText, { color: tool.dark }]}>{i + 1}</Text></View>
+          <TextInput value={it} onChangeText={(tx) => setAt(i, tx)} multiline placeholder="I'm grateful for…" placeholderTextColor={c.textMuted} style={styles.gInput} />
+          <Pressable onPress={() => removeAt(i)} hitSlop={8} style={styles.gDelete} accessibilityRole="button" accessibilityLabel="Remove item">
+            <Trash2 size={17} color={c.textMuted} strokeWidth={2} />
+          </Pressable>
+        </View>
+      ))}
+      <Pressable onPress={add} style={styles.addRow} accessibilityRole="button">
+        <Plus size={17} color={tool.dark} strokeWidth={2.5} />
+        <Text style={[styles.addText, { color: tool.dark }]}>Add item</Text>
+      </Pressable>
+    </View>
+  );
+}
+
+function NightlyEdit({ answers, setAnswers, tool }: { answers: Record<string, string>; setAnswers: (v: Record<string, string>) => void; tool: Tool }) {
+  return (
+    <View>
+      {NIGHTLY_QUESTIONS.map((q, i) => (
+        <View key={q.key}>
+          {i > 0 && <View style={styles.hairline} />}
+          <View style={styles.nBlock}>
+            <Text style={[styles.nQ, { color: tool.dark }]}>{q.q}</Text>
+            <TextInput
+              value={answers[q.key] ?? ''}
+              onChangeText={(tx) => setAnswers({ ...answers, [q.key]: tx })}
+              multiline placeholder="Your reflection…" placeholderTextColor={c.textMuted}
+              style={styles.nInput}
+            />
+          </View>
+        </View>
+      ))}
+    </View>
+  );
+}
+
+function SpotEdit({ situation, setSituation, selected, setSelected, showAll, setShowAll }: {
+  situation: string; setSituation: (v: string) => void;
+  selected: Set<string>; setSelected: (v: Set<string>) => void;
+  showAll: boolean; setShowAll: (v: boolean) => void;
+}) {
+  const toggle = (id: string) => {
+    const n = new Set(selected);
+    if (n.has(id)) n.delete(id); else n.add(id);
+    setSelected(n);
+  };
+  const visible = showAll ? SPOT_PAIRS : SPOT_PAIRS.filter((p) => p.core || selected.has(p.id));
+  return (
+    <View>
+      <Text style={styles.spotHeading}>What was disturbing me?</Text>
+      <TextInput value={situation} onChangeText={setSituation} multiline placeholder="Name the situation." placeholderTextColor={c.textMuted} style={styles.situationInput} />
+      <Text style={[styles.spotHeading, { marginTop: 22 }]}>Where I was off the beam</Text>
+      <View style={[styles.chipsRow, { marginTop: 10 }]}>
+        {visible.map((p) => {
+          const on = selected.has(p.id);
+          return (
+            <Pressable key={p.id} onPress={() => toggle(p.id)} style={[styles.editChip, on ? styles.editChipOn : styles.editChipOff]}>
+              <Text style={[styles.editChipText, { color: on ? '#fff' : c.textSecondary }]}>{p.off}</Text>
+            </Pressable>
+          );
+        })}
+        <Pressable onPress={() => setShowAll(!showAll)} style={[styles.editChip, styles.chipShowAll]}>
+          <Text style={[styles.editChipText, { color: c.textMuted }]}>{showAll ? 'Show fewer' : 'Show all 18'}</Text>
+        </Pressable>
+      </View>
     </View>
   );
 }
@@ -563,4 +734,19 @@ const styles = StyleSheet.create({
   striveRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 },
   striveOff: { fontFamily: fontFamily.semiBold, fontSize: 15, color: '#A8493A', flex: 1 },
   striveOn: { fontFamily: fontFamily.semiBoldItalic, fontSize: 15, color: TEAL.dark, flex: 1, textAlign: 'right' },
+
+  // editable bodies
+  journalInput: { fontFamily: fontFamily.regular, fontSize: 16.5, lineHeight: 25, color: c.text, minHeight: 200, textAlignVertical: 'top' },
+  gEditRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 12, paddingVertical: 10 },
+  gInput: { flex: 1, fontFamily: fontFamily.regular, fontSize: 17, lineHeight: 24, color: c.text, paddingVertical: 2, paddingHorizontal: 12, backgroundColor: '#F4F1EA', borderRadius: 10, minHeight: 40 },
+  gDelete: { width: 32, height: 32, alignItems: 'center', justifyContent: 'center', marginTop: 2 },
+  addRow: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 14, paddingHorizontal: 2, marginTop: 4 },
+  addText: { fontFamily: fontFamily.semiBold, fontSize: 15 },
+  nInput: { fontFamily: fontFamily.regular, fontSize: 16, lineHeight: 23, color: c.text, marginTop: 2, paddingHorizontal: 13, paddingVertical: 11, backgroundColor: '#F4F1EA', borderRadius: 10, minHeight: 56, textAlignVertical: 'top' },
+  situationInput: { marginTop: 7, backgroundColor: '#F4F1EA', borderWidth: 1, borderColor: c.border, borderRadius: 12, paddingHorizontal: 15, paddingVertical: 13, minHeight: 70, fontFamily: fontFamily.regular, fontSize: 16, lineHeight: 23, color: c.text, textAlignVertical: 'top' },
+  editChip: { paddingHorizontal: 14, paddingVertical: 9, borderRadius: 999, borderWidth: 1.5 },
+  editChipOn: { backgroundColor: colors.coral, borderColor: colors.coral },
+  editChipOff: { backgroundColor: colors.white, borderColor: c.border },
+  editChipText: { fontFamily: fontFamily.semiBold, fontSize: 14 },
+  chipShowAll: { backgroundColor: 'transparent', borderColor: c.textMuted + '66', borderStyle: 'dashed' },
 });

@@ -391,6 +391,16 @@ export const [EveningReviewProvider, useEveningReviewStore] = createContextHook(
     saveSavedEntries(filteredEntries);
   };
 
+  // Patch a saved entry's detailed data (e.g. the reflection answers) in place,
+  // KEEPING its original timestamp so an edited past entry stays on its day.
+  // Used by the Journey Notebook editor.
+  const editSavedEntry = (dateString: string, patch: Record<string, string>) => {
+    const updated = savedEntries.map(e =>
+      e.date === dateString ? { ...e, data: { ...e.data, ...patch } as DetailedEveningEntry } : e
+    );
+    saveSavedEntries(updated);
+  };
+
   const getTodaysAnswers = (): ReviewAnswers | null => {
     const todayString = getTodayDateString();
     const entry = entries.find(entry => entry.date === todayString);
@@ -447,6 +457,7 @@ export const [EveningReviewProvider, useEveningReviewStore] = createContextHook(
     getTodayEntry,
     savedEntries,
     getSavedEntry,
-    deleteSavedEntry
+    deleteSavedEntry,
+    editSavedEntry
   };
 });
