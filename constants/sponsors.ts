@@ -11,22 +11,6 @@ import {
   GENTLE_GRACE_SYSTEM_PROMPT,
   GENTLE_GRACE_INITIAL_MESSAGE,
 } from "./gentle-grace";
-import {
-  COWBOY_PETE_SYSTEM_PROMPT,
-  COWBOY_PETE_INITIAL_MESSAGE,
-} from "./cowboy-pete";
-import {
-  CO_SIGN_SALLY_SYSTEM_PROMPT,
-  CO_SIGN_SALLY_INITIAL_MESSAGE,
-} from "./co-sign-sally";
-import {
-  FRESH_FREDDIE_SYSTEM_PROMPT,
-  FRESH_FREDDIE_INITIAL_MESSAGE,
-} from "./fresh-freddie";
-import {
-  MAMA_JO_SYSTEM_PROMPT,
-  MAMA_JO_INITIAL_MESSAGE,
-} from "./mama-jo";
 
 export interface SponsorConfig {
   id: SponsorType | string;
@@ -95,71 +79,6 @@ export const SPONSORS: SponsorConfig[] = [
     tags: ["COMPASSIONATE", "GENTLE", "ENCOURAGING"],
     hookQuote: "You're here. That's already brave.",
     chatPlaceholder: "What's in your heart...",
-  },
-  {
-    id: "cowboy-pete",
-    name: "Cowboy Pete",
-    description: "Western wisdom in a gentle drawl",
-    avatar: require("@/assets/images/cowboy_pete2.webp"),
-    isAvailable: true,
-    systemPrompt: COWBOY_PETE_SYSTEM_PROMPT,
-    initialMessage: COWBOY_PETE_INITIAL_MESSAGE,
-    placeholderText: "Tell Pete what's kickin' up dust...",
-    loadingText: "Cowboy Pete is mullin' it over...",
-    bubbleColor: "#E0CABE",
-    tileColor: "#c9b09e",
-    tags: ["WESTERN", "GROUNDED", "FOLKSY"],
-    hookQuote: "Saddle up, partner. The trail gets easier.",
-    chatPlaceholder: "What's kickin' up dust...",
-  },
-  {
-    id: "co-sign-sally",
-    name: "Co-Sign Sally",
-    description: "Wry humor and sarcastic truth",
-    avatar: require("@/assets/images/new_co-sign_sally.webp"),
-    isAvailable: true,
-    systemPrompt: CO_SIGN_SALLY_SYSTEM_PROMPT,
-    initialMessage: CO_SIGN_SALLY_INITIAL_MESSAGE,
-    placeholderText: "Tell Sally your side of the story...",
-    loadingText: "Sally is noddin' along...",
-    bubbleColor: "#FFD6E6",
-    tileColor: "#f5b8cc",
-    tags: ["WRY", "HONEST", "SARCASTIC"],
-    hookQuote: "Oh honey, I've heard it all before.",
-    chatPlaceholder: "Tell me your side of the story...",
-  },
-  {
-    id: "fresh",
-    name: "Sir Mellowton",
-    description: "Upbeat zoomer energy",
-    avatar: require("@/assets/images/fresh_freddie4.webp"),
-    isAvailable: true,
-    systemPrompt: FRESH_FREDDIE_SYSTEM_PROMPT,
-    initialMessage: FRESH_FREDDIE_INITIAL_MESSAGE,
-    placeholderText: "Tell Freddie what's goin' on...",
-    loadingText: "Fresh Freddie is cookin' up a take...",
-    bubbleColor: "#CCFBF1",
-    bubbleShadowColor: "rgba(16,185,129,0.45)",
-    tileColor: "#a8ebe0",
-    tags: ["UPBEAT", "REAL", "GAMER"],
-    hookQuote: "Yo, let's get into it. No cap.",
-    chatPlaceholder: "What's goin' on...",
-  },
-  {
-    id: "mama-jo",
-    name: "Mama Jo",
-    description: "Warm Southern wisdom and firm love",
-    avatar: require("@/assets/images/mamma_jo.webp"),
-    isAvailable: true,
-    systemPrompt: MAMA_JO_SYSTEM_PROMPT,
-    initialMessage: MAMA_JO_INITIAL_MESSAGE,
-    placeholderText: "Tell Mama Jo what's on your mind...",
-    loadingText: "Mama Jo is fixin' to share some wisdom...",
-    bubbleColor: "#ffe1d3",
-    tileColor: "#ffba9b",
-    tags: ["WARM", "FIRM", "SOUTHERN"],
-    hookQuote: "Come sit down, baby. Let's talk.",
-    chatPlaceholder: "What's on your mind, sugar...",
   },
 ];
 
