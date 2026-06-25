@@ -9,7 +9,10 @@ export type PdfSearchHit = {
   pdfKey: string;
   bookPage: string;
   pdfPage: number;
-  snippet: string;
+  // snippet split around the match, so the preview can highlight the term
+  before: string;
+  match: string;
+  after: string;
 };
 
 let INDEX: IndexChunk[] | null = null;
@@ -21,10 +24,14 @@ function loadIndex(): IndexChunk[] {
   return INDEX;
 }
 
-function makeSnippet(text: string, at: number, matchLen: number): string {
-  const start = Math.max(0, at - 40);
-  const end = Math.min(text.length, at + matchLen + 60);
-  return (start > 0 ? '…' : '') + text.slice(start, end).trim() + (end < text.length ? '…' : '');
+// Build {before, match, after} around a match, extending `match` to the full
+// word (mirrors the in-app text search's whole-word highlight).
+function contextAround(text: string, at: number, matchLen: number) {
+  let end = at + matchLen;
+  while (end < text.length && /[A-Za-z'’-]/.test(text[end])) end++;
+  const before = (at - 40 > 0 ? '…' : '') + text.slice(Math.max(0, at - 40), at);
+  const after = text.slice(end, Math.min(text.length, end + 60)) + (end + 60 < text.length ? '…' : '');
+  return { before, match: text.slice(at, end), after };
 }
 
 // Word-prefix match (mirrors the in-app text search), case-insensitive.
@@ -37,7 +44,7 @@ export function searchBigBookPdfs(query: string, limit = 30): PdfSearchHit[] {
   for (const c of loadIndex()) {
     const m = re.exec(c.t);
     if (m) {
-      hits.push({ pdfKey: c.k, bookPage: c.b, pdfPage: c.p, snippet: makeSnippet(c.t, m.index, m[0].length) });
+      hits.push({ pdfKey: c.k, bookPage: c.b, pdfPage: c.p, ...contextAround(c.t, m.index, m[0].length) });
       if (hits.length >= limit) break;
     }
   }

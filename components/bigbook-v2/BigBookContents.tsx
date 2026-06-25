@@ -6,7 +6,7 @@
 // merges text + PDF bookmarks; both jump into the correct format at the page.
 import React, { useEffect, useMemo, useState } from 'react';
 import { View, Text, Pressable, StyleSheet, ScrollView, Modal, TextInput, Keyboard } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, SafeAreaProvider, initialWindowMetrics } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { ChevronRight, FileText, Bookmark, Hash, X, Trash2, Search } from 'lucide-react-native';
@@ -82,10 +82,11 @@ export function BigBookContents({ onOpenText, onOpenPdf }: {
 
   // Unified search — in-app text + the bundled PDF index. One list, each result
   // opens its own format at the matched page.
+  type SearchRow = { key: string; isPdf: boolean; title: string; pageLabel: string; before: string; match: string; after: string; open: () => void };
   const searchResults = useMemo(() => {
     const q = debounced.trim();
-    if (q.length < 2) return [] as Array<{ key: string; isPdf: boolean; title: string; pageLabel: string; snippet: string; open: () => void }>;
-    const out: Array<{ key: string; isPdf: boolean; title: string; pageLabel: string; snippet: string; open: () => void }> = [];
+    if (q.length < 2) return [] as SearchRow[];
+    const out: SearchRow[] = [];
     for (const r of searchContent(q).slice(0, 25)) {
       const meta = getChapterMeta(r.chapterId);
       const ctx = r.matches?.[0]?.context;
@@ -93,7 +94,7 @@ export function BigBookContents({ onOpenText, onOpenPdf }: {
         key: `t-${r.paragraphId}`, isPdf: false,
         title: (r.chapterTitle ?? meta?.title ?? 'Big Book').replace(/^\d+\.\s*/, ''),
         pageLabel: formatPageNumber(r.paragraph.pageNumber, meta?.useRomanNumerals || false),
-        snippet: ctx ? `${ctx.before}${ctx.match}${ctx.after}` : '',
+        before: ctx?.before ?? '', match: ctx?.match ?? '', after: ctx?.after ?? '',
         open: () => jump(() => onOpenText(r.chapterId, r.paragraph.pageNumber, q)),
       });
     }
@@ -102,7 +103,7 @@ export function BigBookContents({ onOpenText, onOpenPdf }: {
       if (!e) continue;
       out.push({
         key: `p-${h.pdfKey}-${h.pdfPage}`, isPdf: true,
-        title: e.title, pageLabel: h.bookPage, snippet: h.snippet,
+        title: e.title, pageLabel: h.bookPage, before: h.before, match: h.match, after: h.after,
         open: () => jump(() => onOpenPdf(e, h.pdfPage)),
       });
     }
@@ -205,37 +206,61 @@ export function BigBookContents({ onOpenText, onOpenPdf }: {
 
       {/* Search — in-app text + PDF stories */}
       <Modal visible={showSearch} animationType="slide" presentationStyle="fullScreen" onRequestClose={() => setShowSearch(false)}>
-        <SafeAreaView style={styles.sheet} edges={['top']}>
-          <View style={styles.searchBar}>
-            <Search size={18} color={c.textMuted} strokeWidth={2} />
-            <TextInput
-              value={query}
-              onChangeText={setQuery}
-              placeholder="Search the Big Book"
-              placeholderTextColor={c.textMuted}
-              style={styles.searchInput}
-              autoFocus
-              autoCorrect={false}
-              returnKeyType="search"
-            />
-            <Pressable onPress={() => { setQuery(''); setDebounced(''); setShowSearch(false); }} hitSlop={8}><Text style={styles.searchCancel}>Cancel</Text></Pressable>
-          </View>
-          <ScrollView contentContainerStyle={styles.searchList} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
-            {debounced.trim().length >= 2 && searchResults.length === 0 && (
-              <Text style={styles.searchEmpty}>No matches for “{debounced.trim()}”.</Text>
-            )}
-            {searchResults.map((r) => (
-              <Pressable key={r.key} onPress={r.open} style={({ pressed }) => [styles.resultRow, pressed && { opacity: 0.6 }]}>
-                <View style={styles.resultHead}>
-                  <Text style={styles.resultTitle} numberOfLines={1}>{r.title}</Text>
-                  {r.isPdf && <View style={styles.pdfTag}><Text style={styles.pdfTagText}>PDF</Text></View>}
-                  <Text style={styles.resultPage}>p. {r.pageLabel}</Text>
-                </View>
-                {!!r.snippet && <Text style={styles.resultSnippet} numberOfLines={2}>{r.snippet}</Text>}
+        <SafeAreaProvider initialMetrics={initialWindowMetrics}>
+          <SafeAreaView style={styles.sheet} edges={['top']}>
+            <View style={styles.searchHeader}>
+              <Text style={styles.sheetTitle}>Search</Text>
+              <Pressable onPress={() => { setQuery(''); setDebounced(''); setShowSearch(false); }} hitSlop={8} style={styles.closeBtn}>
+                <X size={18} color={c.textSecondary} strokeWidth={2} />
               </Pressable>
-            ))}
-          </ScrollView>
-        </SafeAreaView>
+            </View>
+            <View style={styles.searchBarWrap}>
+              <View style={styles.searchBar}>
+                <Search size={18} color={c.textMuted} strokeWidth={2} />
+                <TextInput
+                  value={query}
+                  onChangeText={setQuery}
+                  placeholder="Search the Big Book"
+                  placeholderTextColor={c.textMuted}
+                  style={styles.searchInput}
+                  autoFocus
+                  autoCorrect={false}
+                  autoCapitalize="none"
+                  returnKeyType="search"
+                />
+                {query.length > 0 && (
+                  <Pressable onPress={() => setQuery('')} hitSlop={8}><X size={16} color={c.textMuted} strokeWidth={2} /></Pressable>
+                )}
+              </View>
+            </View>
+            <ScrollView contentContainerStyle={styles.searchList} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+              {debounced.trim().length < 2 ? (
+                <Text style={styles.searchHint}>Search across every chapter, story, and appendix.</Text>
+              ) : searchResults.length === 0 ? (
+                <Text style={styles.searchEmpty}>No matches for “{debounced.trim()}”.</Text>
+              ) : (
+                <>
+                  <Text style={styles.searchCount}>{searchResults.length} result{searchResults.length === 1 ? '' : 's'}</Text>
+                  {searchResults.map((r) => (
+                    <Pressable key={r.key} onPress={r.open} style={({ pressed }) => [styles.resultCard, pressed && { opacity: 0.7 }]}>
+                      <View style={styles.resultBar} />
+                      <View style={styles.flex}>
+                        <View style={styles.resultHead}>
+                          <Text style={styles.resultTitle} numberOfLines={1}>{r.title}</Text>
+                          {r.isPdf && <View style={styles.pdfTag}><Text style={styles.pdfTagText}>PDF</Text></View>}
+                        </View>
+                        <Text style={styles.resultSnippet} numberOfLines={2}>
+                          {r.before}<Text style={styles.resultMatch}>{r.match}</Text>{r.after}
+                        </Text>
+                        <Text style={styles.resultMeta}>Page {r.pageLabel}</Text>
+                      </View>
+                    </Pressable>
+                  ))}
+                </>
+              )}
+            </ScrollView>
+          </SafeAreaView>
+        </SafeAreaProvider>
       </Modal>
 
       {/* Go to page */}
@@ -331,16 +356,21 @@ const styles = StyleSheet.create({
   emptyBody: { fontFamily: fontFamily.regular, fontSize: 13.5, lineHeight: 20, color: c.textMuted, textAlign: 'center' },
 
   // search
-  searchBar: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 16, paddingTop: 10, paddingBottom: 12, borderBottomWidth: 1, borderBottomColor: c.divider },
-  searchInput: { flex: 1, fontFamily: fontFamily.regular, fontSize: 16, color: c.text, paddingVertical: 2 },
-  searchCancel: { fontFamily: fontFamily.semiBold, fontSize: 14, color: AMBER_INK },
-  searchList: { paddingHorizontal: 18, paddingTop: 8, paddingBottom: 40 },
+  searchHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingTop: 14, paddingBottom: 8 },
+  searchBarWrap: { paddingHorizontal: 16, paddingBottom: 12, borderBottomWidth: 1, borderBottomColor: c.divider },
+  searchBar: { flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: c.surface, borderWidth: 1, borderColor: c.border, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 10 },
+  searchInput: { flex: 1, fontFamily: fontFamily.regular, fontSize: 16, color: c.text, paddingVertical: 0 },
+  searchList: { paddingHorizontal: 16, paddingTop: 12, paddingBottom: 40 },
+  searchHint: { fontFamily: fontFamily.regular, fontSize: 14, lineHeight: 20, color: c.textMuted, textAlign: 'center', marginTop: 48, paddingHorizontal: 40 },
   searchEmpty: { fontFamily: fontFamily.regular, fontSize: 14, color: c.textMuted, textAlign: 'center', marginTop: 40 },
-  resultRow: { paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: c.divider },
-  resultHead: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  resultTitle: { flex: 1, fontFamily: fontFamily.semiBold, fontSize: 15, color: c.text },
-  resultPage: { fontFamily: fontFamily.regular, fontSize: 12, color: c.textMuted },
-  resultSnippet: { fontFamily: fontFamily.serif, fontSize: 13.5, lineHeight: 19, color: c.textSecondary, marginTop: 4 },
+  searchCount: { fontFamily: fontFamily.bold, fontSize: 11, letterSpacing: 1, color: c.textMuted, marginBottom: 10, marginLeft: 2 },
+  resultCard: { flexDirection: 'row', backgroundColor: c.surface, borderWidth: 1, borderColor: c.border, borderRadius: 12, padding: 12, marginBottom: 8, overflow: 'hidden' },
+  resultBar: { position: 'absolute', left: 0, top: 0, bottom: 0, width: 4, backgroundColor: AMBER_INK },
+  resultHead: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingLeft: 6 },
+  resultTitle: { fontFamily: fontFamily.semiBold, fontSize: 13.5, color: AMBER_INK, flexShrink: 1 },
+  resultSnippet: { fontFamily: fontFamily.serif, fontSize: 14.5, lineHeight: 21, color: c.text, marginTop: 5, paddingLeft: 6 },
+  resultMatch: { backgroundColor: '#FCE9A8', color: c.text },
+  resultMeta: { fontFamily: fontFamily.regular, fontSize: 11.5, color: c.textMuted, marginTop: 6, paddingLeft: 6 },
 
   // go to page
   goToBackdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.35)', alignItems: 'center', justifyContent: 'center', paddingHorizontal: 40 },
