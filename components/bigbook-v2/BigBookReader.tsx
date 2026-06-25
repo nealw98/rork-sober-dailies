@@ -1,46 +1,15 @@
 /**
- * Big Book Reader Component
- * 
- * Full-screen modal reader that displays chapter content with:
- * - Chapter navigation
- * - Paragraph rendering with highlights/bookmarks
- * - Search functionality
- * - Page navigation
- * - Highlights and Bookmarks lists
- * - Scroll to specific paragraphs
- * 
- * Phase 4: Displays content and existing highlights/bookmarks.
- * Phase 5: Text selection and creation of new highlights/bookmarks.
- * Phase 6: Navigation features (highlights list, bookmarks list, go to page).
+ * Big Book Reader — full-screen text reader (redesign 3.0).
+ * Lora on warm white, amber accents, "— PAGE n —" markers, sentence-level
+ * highlights, per-page bookmark, prev/next chapter nav. Body text scales with
+ * the global text-size setting (no in-reader font control). All reading logic
+ * (highlights, bookmarks, page tracking, search-term highlighting) is unchanged.
  */
-
-import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  TouchableOpacity,
-  Modal,
-  Platform,
-  BackHandler,
-  UIManager,
-} from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { 
-  ChevronLeft, 
-  ChevronRight, 
-  List, 
-  Bookmark as BookmarkIcon,
-  Highlighter,
-  Type,
-} from 'lucide-react-native';
-import { LinearGradient } from 'expo-linear-gradient';
-import { Gesture, GestureDetector } from 'react-native-gesture-handler';
-import Colors from '@/constants/colors';
-import { adjustFontWeight } from '@/constants/fonts';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { View, Text, StyleSheet, ScrollView, Pressable, Modal, Platform, BackHandler, UIManager } from 'react-native';
+import { SafeAreaProvider, SafeAreaView, initialWindowMetrics } from 'react-native-safe-area-context';
+import { ChevronLeft, ChevronRight, Highlighter, Bookmark as BookmarkIcon } from 'lucide-react-native';
 import { useTextSettings } from '@/hooks/use-text-settings';
-import { useTheme } from '@/hooks/useTheme';
 import { useBigBookContent } from '@/hooks/use-bigbook-content';
 import { useBigBookBookmarks } from '@/hooks/use-bigbook-bookmarks';
 import { useBigBookHighlights } from '@/hooks/use-bigbook-highlights';
@@ -48,243 +17,128 @@ import { getChapterMeta } from '@/constants/bigbook-v2/metadata';
 import { formatPageNumber } from '@/lib/bigbook-page-utils';
 import { BigBookParagraph } from './BigBookParagraph';
 import { HighlightEditMenu } from './HighlightEditMenu';
-import { SearchResult } from '@/hooks/use-bigbook-content';
 import { HighlightColor, BigBookHighlight } from '@/types/bigbook-v2';
+import { colors, fontFamily, getSemanticColors } from '@/constants/designTokens';
 
-// Enable LayoutAnimation on Android
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
   UIManager.setLayoutAnimationEnabledExperimental(true);
 }
 
-// Fixed highlight color (yellow)
+const c = getSemanticColors('light');
+const PAPER = '#FCFBF8';
+const AMBER = colors.amber;       // #E8A95D
+const AMBER_SOFT = '#FCF0DE';
+const AMBER_INK = '#B27330';
 const HIGHLIGHT_COLOR = HighlightColor.YELLOW;
-const HIGHLIGHT_ICON_COLOR = '#FBBF24';
 
 interface BigBookReaderProps {
   visible: boolean;
   initialChapterId: string;
   scrollToParagraphId?: string | null;
+  scrollToPage?: number | null;
   searchTerm?: string | null;
   onClose: () => void;
 }
 
-export function BigBookReader({ visible, initialChapterId, scrollToParagraphId, searchTerm, onClose }: BigBookReaderProps) {
-  const {
-    currentChapter,
-    currentChapterId,
-    loadChapter,
-    goToNextChapter,
-    goToPreviousChapter,
-    searchContent,
-    goToPage,
-  } = useBigBookContent();
+export function BigBookReader({ visible, initialChapterId, scrollToParagraphId, scrollToPage, searchTerm, onClose }: BigBookReaderProps) {
+  const { currentChapter, currentChapterId, loadChapter, goToNextChapter, goToPreviousChapter } = useBigBookContent();
+  const { fontSize, lineHeight } = useTextSettings();
 
-  const insets = useSafeAreaInsets();
-  const { palette } = useTheme();
-
-  // Handle Android back button
-  useEffect(() => {
-    if (!visible) return;
-    
-    const backHandler = BackHandler.addEventListener('hardwareBackPress', () => {
-      console.log('[BigBookReader] Hardware back pressed, closing reader');
-      onClose();
-      return true; // Prevent default behavior
-    });
-
-    return () => backHandler.remove();
-  }, [visible, onClose]);
-
-  const [showSearch, setShowSearch] = useState(false);
-  const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
-  const [searchQuery, setSearchQuery] = useState('');
   const [currentPageNumber, setCurrentPageNumber] = useState<number | null>(null);
-  
+  const [highlightMode, setHighlightMode] = useState(false);
+  const [showHighlightEditMenu, setShowHighlightEditMenu] = useState(false);
+  const [editingHighlight, setEditingHighlight] = useState<BigBookHighlight | null>(null);
+  const [layoutKey, setLayoutKey] = useState(0);
+  const [isLayoutReady, setIsLayoutReady] = useState(true);
+
   const scrollViewRef = useRef<ScrollView>(null);
   const paragraphRefs = useRef<Map<string, View>>(new Map());
   const paragraphPositions = useRef<Map<string, { y: number; height: number; pageNumber: number }>>(new Map());
   const activeScrollTargetRef = useRef<string | null>(scrollToParagraphId || null);
 
-  // Force layout recalculation on Android when chapter changes
-  // This fixes an issue where initial layout is calculated incorrectly in some chapters
-  const [layoutKey, setLayoutKey] = useState(0);
-  const [isLayoutReady, setIsLayoutReady] = useState(true);
-  
-  // Bookmark management
-  const { 
-    bookmarks,
-    addBookmark, 
-    deleteBookmark, 
-    isPageBookmarked, 
-    getBookmarkForPage,
-    isLoading: bookmarksLoading 
-  } = useBigBookBookmarks();
+  const { addBookmark, deleteBookmark, isPageBookmarked, getBookmarkForPage } = useBigBookBookmarks();
+  const { addHighlight, updateHighlightNote, deleteHighlight, getHighlightById } = useBigBookHighlights();
 
-  // Highlight management
-  const {
-    addHighlight,
-    updateHighlightNote,
-    deleteHighlight,
-    getHighlightById,
-  } = useBigBookHighlights();
+  const meta = currentChapterId ? getChapterMeta(currentChapterId) : undefined;
+  const useRoman = meta?.useRomanNumerals || false;
+  const chapterNumber = meta?.chapterNumber;
 
-  // Highlight mode state (simplified - always uses yellow)
-  const [highlightMode, setHighlightMode] = useState(false);
-  const [showHighlightEditMenu, setShowHighlightEditMenu] = useState(false);
-  const [editingHighlight, setEditingHighlight] = useState<BigBookHighlight | null>(null);
-
-  // Use global text settings
-  const { fontSize, lineHeight, setFontSize, minFontSize, maxFontSize, defaultFontSize } = useTextSettings();
-  
-  const increaseFontSize = useCallback(() => {
-    setFontSize(Math.min(fontSize + 2, maxFontSize));
-  }, [fontSize, maxFontSize, setFontSize]);
-  
-  const decreaseFontSize = useCallback(() => {
-    setFontSize(Math.max(fontSize - 2, minFontSize));
-  }, [fontSize, minFontSize, setFontSize]);
-  
-  // Double-tap to reset to default font size
-  const doubleTapGesture = useMemo(() => Gesture.Tap()
-    .numberOfTaps(2)
-    .onStart(() => {
-      setFontSize(defaultFontSize);
-    })
-    .runOnJS(true), [defaultFontSize, setFontSize]);
-
-  // Load initial chapter
+  // Android hardware back closes the reader.
   useEffect(() => {
-    loadChapter(initialChapterId);
-  }, [initialChapterId, loadChapter]);
+    if (!visible) return;
+    const sub = BackHandler.addEventListener('hardwareBackPress', () => { onClose(); return true; });
+    return () => sub.remove();
+  }, [visible, onClose]);
 
+  useEffect(() => { loadChapter(initialChapterId); }, [initialChapterId, loadChapter]);
+
+  // Android: nudge a layout pass when the chapter changes (fixes initial measure).
   useEffect(() => {
     if (visible && Platform.OS === 'android') {
       setIsLayoutReady(false);
-      const timer = setTimeout(() => {
-        setLayoutKey(k => k + 1);
-        setIsLayoutReady(true);
-      }, 50);
-      return () => clearTimeout(timer);
+      const t = setTimeout(() => { setLayoutKey((k) => k + 1); setIsLayoutReady(true); }, 50);
+      return () => clearTimeout(t);
     }
   }, [visible, currentChapterId]);
 
-  // Handle search
-  const handleSearch = useCallback((query: string) => {
-    setSearchQuery(query);
-    if (!query.trim()) {
-      setSearchResults([]);
-      return;
-    }
-    
-    const results = searchContent(query);
-    setSearchResults(results);
-  }, [searchContent]);
-
-  // Handle search result selection
-  const handleSearchResultPress = useCallback((result: SearchResult) => {
-    // Load the chapter containing the result
-    loadChapter(result.chapterId);
-    setShowSearch(false);
-    setSearchResults([]);
-    setSearchQuery('');
-    
-    // TODO: Scroll to specific paragraph (Phase 5)
-    // For now, just load the chapter
-  }, [loadChapter]);
-
-  // Clear search
-  const handleClearSearch = useCallback(() => {
-    setSearchQuery('');
-    setSearchResults([]);
-  }, []);
-
-  // Scroll to specific paragraph
   const scrollToParagraph = useCallback((paragraphId: string) => {
     if (!paragraphId) return;
     activeScrollTargetRef.current = paragraphId;
-    const paragraphView = paragraphRefs.current.get(paragraphId);
-    
-    if (paragraphView && scrollViewRef.current) {
-      // Small delay to ensure layout is complete
+    const node = paragraphRefs.current.get(paragraphId);
+    if (node && scrollViewRef.current) {
       setTimeout(() => {
-        paragraphView.measureLayout(
+        node.measureLayout(
           scrollViewRef.current as any,
-          (x, y, width, height) => {
-            scrollViewRef.current?.scrollTo({
-              y: Math.max(0, y - 20), // 20px offset from top
-              animated: true
-            });
-          },
-          (error) => console.error('[BigBookReader] Measure error:', error)
+          (_x, y) => scrollViewRef.current?.scrollTo({ y: Math.max(0, y - 20), animated: true }),
+          () => {},
         );
       }, 100);
     }
   }, []);
 
-  // Scroll to top when chapter changes
-  useEffect(() => {
-    scrollViewRef.current?.scrollTo({ y: 0, animated: false });
-  }, [currentChapterId]);
+  useEffect(() => { scrollViewRef.current?.scrollTo({ y: 0, animated: false }); }, [currentChapterId]);
 
-  // Handle scroll to paragraph on mount (from navigation)
   useEffect(() => {
     if (scrollToParagraphId && currentChapter) {
-      console.log('[BigBookReader] Scrolling to paragraph on mount:', scrollToParagraphId);
       activeScrollTargetRef.current = scrollToParagraphId;
-      // Wait for render
-      setTimeout(() => {
-        scrollToParagraph(scrollToParagraphId);
-      }, 200);
+      setTimeout(() => scrollToParagraph(scrollToParagraphId), 200);
     }
   }, [scrollToParagraphId, currentChapter, scrollToParagraph]);
 
-  // When font size changes, keep the active highlighted paragraph in view
+  // Go-to-page: once the chapter loads, scroll to the first paragraph of that page.
   useEffect(() => {
-    if (!visible) return;
-    const targetParagraphId = activeScrollTargetRef.current;
-    if (!targetParagraphId) return;
+    if (scrollToPage && currentChapter) {
+      const p = currentChapter.paragraphs.find((par) => par.pageNumber === scrollToPage);
+      if (p) { activeScrollTargetRef.current = p.id; setTimeout(() => scrollToParagraph(p.id), 250); }
+    }
+  }, [scrollToPage, currentChapter, scrollToParagraph]);
 
-    const timeout = setTimeout(() => {
-      scrollToParagraph(targetParagraphId);
-    }, 250);
-
-    return () => clearTimeout(timeout);
+  // Keep the active paragraph in view when the global font size changes.
+  useEffect(() => {
+    if (!visible || !activeScrollTargetRef.current) return;
+    const t = setTimeout(() => scrollToParagraph(activeScrollTargetRef.current as string), 250);
+    return () => clearTimeout(t);
   }, [fontSize, visible, scrollToParagraph]);
 
-  // Track current page number based on scroll position
   const handleScroll = useCallback((event: any) => {
     if (!currentChapter || paragraphPositions.current.size === 0) return;
-    
     const scrollY = event.nativeEvent.contentOffset.y;
     const viewportHeight = event.nativeEvent.layoutMeasurement.height;
-    const midpoint = scrollY + (viewportHeight / 3); // Check what's in upper third of screen
-    
-    // Find the paragraph that's currently in view at the midpoint
-    let foundPageNumber: number | null = null;
-    let closestDistance = Infinity;
-    
-    paragraphPositions.current.forEach((position, paragraphId) => {
-      const distance = Math.abs(position.y - midpoint);
-      
-      // If this paragraph is close to the midpoint and closer than previous
-      if (distance < closestDistance && position.y <= midpoint && (position.y + position.height) >= scrollY) {
-        closestDistance = distance;
-        foundPageNumber = position.pageNumber;
-      }
+    const midpoint = scrollY + viewportHeight / 3;
+    let found: number | null = null;
+    let closest = Infinity;
+    paragraphPositions.current.forEach((pos) => {
+      const d = Math.abs(pos.y - midpoint);
+      if (d < closest && pos.y <= midpoint && pos.y + pos.height >= scrollY) { closest = d; found = pos.pageNumber; }
     });
-    
-    if (foundPageNumber !== null && foundPageNumber !== currentPageNumber) {
-      setCurrentPageNumber(foundPageNumber);
-    }
+    if (found !== null && found !== currentPageNumber) setCurrentPageNumber(found);
   }, [currentChapter, currentPageNumber]);
-  
-  // Handle paragraph layout to track positions
+
   const handleParagraphLayout = useCallback((paragraphId: string, pageNumber: number, event: any) => {
     const { y, height } = event.nativeEvent.layout;
     paragraphPositions.current.set(paragraphId, { y, height, pageNumber });
   }, []);
 
-  // Clear paragraph positions when chapter changes
   useEffect(() => {
     if (currentChapter) {
       paragraphPositions.current.clear();
@@ -293,228 +147,105 @@ export function BigBookReader({ visible, initialChapterId, scrollToParagraphId, 
     }
   }, [currentChapter]);
 
-  // Bookmark handler - simple toggle (no dialog)
   const handleBookmarkPress = async () => {
     if (!currentPageNumber || !currentChapterId) return;
-    
     try {
-      const existingBookmark = getBookmarkForPage(currentPageNumber);
-      
-      if (existingBookmark) {
-        // Remove existing bookmark
-        await deleteBookmark(existingBookmark.id);
-      } else {
-        // Add new bookmark (no label)
-        await addBookmark(currentPageNumber, currentChapterId, '');
-      }
-    } catch (error) {
-      console.error('[BigBookReader] Error toggling bookmark:', error);
-    }
+      const existing = getBookmarkForPage(currentPageNumber);
+      if (existing) await deleteBookmark(existing.id);
+      else await addBookmark(currentPageNumber, currentChapterId, '');
+    } catch (e) { console.error('[BigBookReader] bookmark toggle', e); }
   };
-
-  // Check if current page is bookmarked
   const isCurrentPageBookmarked = currentPageNumber ? isPageBookmarked(currentPageNumber) : false;
 
-  // Highlight handlers (simplified - always uses yellow)
-  const handleToggleHighlightMode = () => {
-    console.log('[BigBookReader] Toggling highlight mode, current:', highlightMode);
-    setHighlightMode(!highlightMode);
-  };
-
-    const handleSentenceTap = useCallback((paragraphId: string, sentenceIndex: number, sentenceText: string) => {
-    console.log('[BigBookReader] Sentence tapped:', { paragraphId, sentenceIndex, sentenceText });
-    // Always use yellow for highlights
-    createHighlight(paragraphId, sentenceIndex, sentenceText, HIGHLIGHT_COLOR);
-  }, [currentChapterId]);
-
-  const createHighlight = async (
-    paragraphId: string,
-    sentenceIndex: number,
-    sentenceText: string,
-    color: HighlightColor
-  ) => {
-    try {
-      console.log('[BigBookReader] Creating highlight:', { paragraphId, sentenceIndex, color });
-      await addHighlight(paragraphId, currentChapterId, sentenceIndex, color, sentenceText);
-    } catch (error) {
-      console.error('[BigBookReader] Error creating highlight:', error);
-    }
-  };
+  const handleSentenceTap = useCallback(async (paragraphId: string, sentenceIndex: number, sentenceText: string) => {
+    if (!currentChapterId) return;
+    try { await addHighlight(paragraphId, currentChapterId, sentenceIndex, HIGHLIGHT_COLOR, sentenceText); }
+    catch (e) { console.error('[BigBookReader] create highlight', e); }
+  }, [currentChapterId, addHighlight]);
 
   const handleHighlightTap = useCallback(async (paragraphId: string, sentenceIndex: number) => {
-    console.log('[BigBookReader] Existing highlight tapped:', { paragraphId, sentenceIndex, highlightMode });
-    
-    // If in highlight mode, toggle the highlight (remove it)
-    if (highlightMode) {
-      try {
-        const highlights = await getHighlightById(paragraphId, sentenceIndex);
-        if (highlights.length > 0) {
-          console.log('[BigBookReader] Removing highlight in toggle mode:', highlights[0].id);
-          await deleteHighlight(highlights[0].id);
-        }
-      } catch (error) {
-        console.error('[BigBookReader] Error toggling highlight:', error);
-      }
-    } else {
-      // Not in highlight mode - show edit menu (future enhancement)
-      console.log('[BigBookReader] Would show edit menu for highlight');
-    }
+    if (!highlightMode) return;
+    try {
+      const hs = await getHighlightById(paragraphId, sentenceIndex);
+      if (hs.length > 0) await deleteHighlight(hs[0].id);
+    } catch (e) { console.error('[BigBookReader] toggle highlight', e); }
   }, [highlightMode, getHighlightById, deleteHighlight]);
 
   const handleUpdateHighlightNote = async (note: string) => {
     if (!editingHighlight) return;
-    
-    try {
-      await updateHighlightNote(editingHighlight.id, note);
-      setShowHighlightEditMenu(false);
-      setEditingHighlight(null);
-    } catch (error) {
-      console.error('[BigBookReader] Error updating highlight note:', error);
-    }
+    try { await updateHighlightNote(editingHighlight.id, note); setShowHighlightEditMenu(false); setEditingHighlight(null); }
+    catch (e) { console.error('[BigBookReader] update note', e); }
   };
-
   const handleRemoveHighlight = async () => {
     if (!editingHighlight) return;
-    
-    try {
-      await deleteHighlight(editingHighlight.id);
-      setShowHighlightEditMenu(false);
-      setEditingHighlight(null);
-    } catch (error) {
-      console.error('[BigBookReader] Error removing highlight:', error);
-    }
+    try { await deleteHighlight(editingHighlight.id); setShowHighlightEditMenu(false); setEditingHighlight(null); }
+    catch (e) { console.error('[BigBookReader] remove highlight', e); }
   };
 
-  if (!currentChapter) {
-    return (
-      <Modal
-        visible={visible}
-        animationType="slide"
-        presentationStyle="fullScreen"
-        onRequestClose={onClose}
-      >
-        <View style={[styles.container, { backgroundColor: palette.background }]}>
-          <LinearGradient
-            colors={palette.gradients.header as [string, string, ...string[]]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={[styles.headerBlock, { paddingTop: insets.top + 8 }]}
-          >
-            <View style={styles.headerTopRow}>
-              <TouchableOpacity 
-                onPress={onClose}
-                style={styles.backButton}
-              >
-                <ChevronLeft size={24} color={palette.headerText} />
-              </TouchableOpacity>
-            </View>
-            <Text style={[styles.headerTitle, { color: palette.headerText }]}>Loading...</Text>
-          </LinearGradient>
-          <View style={styles.loadingContainer}>
-            <Text style={[styles.loadingText, { color: palette.text }]}>Loading chapter...</Text>
-          </View>
-        </View>
-      </Modal>
-    );
-  }
+  const displayTitle = (currentChapter?.title ?? '').replace(/^\d+\.\s*/, '');
+  const subtitle = chapterNumber ? `Big Book · Chapter ${chapterNumber}` : 'Big Book';
+  const range = currentChapter
+    ? `pp. ${formatPageNumber(currentChapter.pageRange[0], useRoman)}–${formatPageNumber(currentChapter.pageRange[1], useRoman)}`
+    : '';
+  const chapterLabel = `${chapterNumber ? `CHAPTER ${chapterNumber} · ` : ''}${range}`;
 
   return (
-    <Modal
-      visible={visible}
-      animationType="slide"
-      presentationStyle="fullScreen"
-      onRequestClose={onClose}
-    >
-      <View style={[styles.container, { backgroundColor: palette.background }]}>
-      {/* Gradient Header Block */}
-      <LinearGradient
-        colors={palette.gradients.header as [string, string, ...string[]]}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={[styles.headerBlock, { paddingTop: insets.top + 8 }]}
-      >
-        <View style={styles.headerTopRow}>
-          <TouchableOpacity 
-            onPress={onClose}
-            style={styles.backButton}
-          >
-            <ChevronLeft size={24} color={palette.headerText} />
-          </TouchableOpacity>
-        </View>
-        <Text style={[styles.headerTitle, { color: palette.headerText }]} numberOfLines={2}>
-          {currentChapter.title}
-        </Text>
-      </LinearGradient>
+    <Modal visible={visible} animationType="slide" presentationStyle="fullScreen" onRequestClose={onClose}>
+      <SafeAreaProvider initialMetrics={initialWindowMetrics}>
+        <SafeAreaView style={styles.screen} edges={['top', 'bottom']}>
+          {/* Header */}
+          <View style={styles.header}>
+            <Pressable onPress={onClose} hitSlop={8} style={styles.backBtn} accessibilityRole="button" accessibilityLabel="Close">
+              <ChevronLeft size={22} color={c.text} strokeWidth={2} />
+            </Pressable>
+            <View style={styles.flex}>
+              <Text style={styles.title} numberOfLines={1}>{displayTitle || 'Loading…'}</Text>
+              <Text style={styles.subtitle}>{subtitle}</Text>
+            </View>
+          </View>
 
-      {/* Action Row - Below header */}
-      <View style={[styles.actionRow, { backgroundColor: palette.cardBackground, borderBottomColor: palette.divider }]}>
-        {currentPageNumber && (
-          <Text style={[styles.actionRowPageNumber, { color: palette.text }]}>
-            Page {formatPageNumber(
-              currentPageNumber, 
-              getChapterMeta(currentChapterId)?.useRomanNumerals || false
-            )}
-          </Text>
-        )}
-        <View style={styles.actionButtons}>
-          <TouchableOpacity 
-            onPress={handleToggleHighlightMode}
-            activeOpacity={0.8}
-            style={styles.actionButton}
-          >
-            <Highlighter 
-              size={18} 
-              color={palette.tint}
-              fill={highlightMode ? palette.tint : 'transparent'}
-            />
-          </TouchableOpacity>
+          {/* Action row — page · highlight · bookmark */}
+          <View style={styles.actionRow}>
+            <Text style={styles.pageLabel}>
+              {currentPageNumber ? `Page ${formatPageNumber(currentPageNumber, useRoman)}` : ' '}
+            </Text>
+            <View style={styles.actions}>
+              <Pressable
+                onPress={() => setHighlightMode((v) => !v)}
+                style={[styles.hlPill, highlightMode ? { backgroundColor: AMBER_SOFT, borderColor: AMBER } : { borderColor: c.border }]}
+                accessibilityRole="button"
+                accessibilityLabel="Toggle highlight mode"
+              >
+                <Highlighter size={14} color={highlightMode ? AMBER_INK : c.textSecondary} strokeWidth={2} />
+                <Text style={[styles.hlText, { color: highlightMode ? AMBER_INK : c.textSecondary }]}>Highlight</Text>
+              </Pressable>
+              <Pressable onPress={handleBookmarkPress} hitSlop={6} style={[styles.bmBtn, { borderColor: isCurrentPageBookmarked ? AMBER : c.border }]} accessibilityRole="button" accessibilityLabel="Bookmark this page">
+                <BookmarkIcon size={16} color={isCurrentPageBookmarked ? AMBER_INK : c.textSecondary} fill={isCurrentPageBookmarked ? AMBER : 'transparent'} strokeWidth={2} />
+              </Pressable>
+            </View>
+          </View>
 
-          <TouchableOpacity 
-            onPress={handleBookmarkPress}
-            activeOpacity={0.8}
-            style={styles.actionButton}
-          >
-            <BookmarkIcon 
-              size={18} 
-              color={palette.tint}
-              fill={isCurrentPageBookmarked ? palette.tint : 'transparent'}
-            />
-          </TouchableOpacity>
-        </View>
-      </View>
+          {/* Reading body */}
+          <View style={[styles.body, !isLayoutReady && { opacity: 0 }]} collapsable={false} pointerEvents={isLayoutReady ? 'auto' : 'none'}>
+            <ScrollView
+              key={`bb-scroll-${layoutKey}`}
+              ref={scrollViewRef}
+              style={styles.flex}
+              contentContainerStyle={styles.content}
+              showsVerticalScrollIndicator={false}
+              onScroll={handleScroll}
+              scrollEventThrottle={150}
+            >
+              {!!chapterLabel.trim() && <Text style={styles.chapterLabel}>{chapterLabel}</Text>}
 
-      {/* Content */}
-      <View
-        style={[styles.contentWrapper, !isLayoutReady && styles.contentWrapperHidden, { backgroundColor: palette.background }]}
-        collapsable={false}
-        pointerEvents={isLayoutReady ? 'auto' : 'none'}
-      >
-        <GestureDetector gesture={doubleTapGesture}>
-          <ScrollView
-            key={`bigbook-scroll-${layoutKey}`}
-            ref={scrollViewRef}
-            style={styles.content}
-            contentContainerStyle={styles.contentContainer}
-            showsVerticalScrollIndicator={true}
-            onScroll={handleScroll}
-            scrollEventThrottle={150}
-            nestedScrollEnabled={true}
-          >
-            {currentChapter.paragraphs.map((paragraph, index) => {
-                const previousParagraph = index > 0 ? currentChapter.paragraphs[index - 1] : null;
-                const isPageBreak = previousParagraph && previousParagraph.pageNumber !== paragraph.pageNumber;
-                
+              {currentChapter?.paragraphs.map((paragraph, index) => {
+                const prev = index > 0 ? currentChapter.paragraphs[index - 1] : null;
+                const isPageBreak = !!prev && prev.pageNumber !== paragraph.pageNumber;
                 return (
                   <View
                     key={paragraph.id}
-                    ref={(ref) => {
-                      if (ref) {
-                        paragraphRefs.current.set(paragraph.id, ref);
-                      } else {
-                        paragraphRefs.current.delete(paragraph.id);
-                      }
-                    }}
-                    onLayout={(event) => handleParagraphLayout(paragraph.id, paragraph.pageNumber, event)}
+                    ref={(ref) => { if (ref) paragraphRefs.current.set(paragraph.id, ref); else paragraphRefs.current.delete(paragraph.id); }}
+                    onLayout={(e) => handleParagraphLayout(paragraph.id, paragraph.pageNumber, e)}
                     collapsable={false}
                   >
                     <BigBookParagraph
@@ -525,222 +256,68 @@ export function BigBookReader({ visible, initialChapterId, scrollToParagraphId, 
                       lineHeight={lineHeight}
                       highlightMode={highlightMode}
                       searchTerm={searchTerm || undefined}
-                      onSentenceTap={(sentenceIndex, sentenceText) => 
-                        handleSentenceTap(paragraph.id, sentenceIndex, sentenceText)
-                      }
-                      onHighlightTap={(sentenceIndex) =>
-                        handleHighlightTap(paragraph.id, sentenceIndex)
-                      }
-                      palette={palette}
+                      useRomanNumerals={useRoman}
+                      onSentenceTap={(si, st) => handleSentenceTap(paragraph.id, si, st)}
+                      onHighlightTap={(si) => handleHighlightTap(paragraph.id, si)}
                     />
                   </View>
-            );
-          })}
-        </ScrollView>
-        </GestureDetector>
-      </View>
+                );
+              })}
 
-      {/* Footer with Chapter Navigation */}
-      <View style={[styles.footer, { borderTopColor: palette.divider }]}>
-        <TouchableOpacity 
-          onPress={goToPreviousChapter}
-          style={styles.footerNavButton}
-          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-        >
-          <ChevronLeft size={20} color={palette.tint} />
-          <Text style={[styles.footerNavText, { color: palette.text }]}>Prev</Text>
-        </TouchableOpacity>
+              <Text style={styles.footnote}>Tap any sentence with Highlight on to mark it. Bookmarks save your place automatically.</Text>
+              <Text style={styles.copyright}>Copyright © Alcoholics Anonymous World Services, Inc.</Text>
+            </ScrollView>
+          </View>
 
-        {getChapterMeta(currentChapterId)?.chapterNumber && (
-          <Text style={[styles.footerChapterNumber, { color: palette.text }]}>
-            Chapter {getChapterMeta(currentChapterId)?.chapterNumber}
-          </Text>
-        )}
+          {/* Footer — chapter nav */}
+          <View style={styles.footer}>
+            <Pressable onPress={goToPreviousChapter} style={styles.navBtn} hitSlop={8}>
+              <ChevronLeft size={18} color={AMBER_INK} strokeWidth={2} />
+              <Text style={styles.navText}>Prev</Text>
+            </Pressable>
+            <Text style={styles.footerCenter}>{chapterNumber ? `Chapter ${chapterNumber}` : 'Front matter'}</Text>
+            <Pressable onPress={goToNextChapter} style={styles.navBtn} hitSlop={8}>
+              <Text style={styles.navText}>Next</Text>
+              <ChevronRight size={18} color={AMBER_INK} strokeWidth={2} />
+            </Pressable>
+          </View>
 
-        <TouchableOpacity 
-          onPress={goToNextChapter}
-          style={styles.footerNavButton}
-          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-        >
-          <Text style={[styles.footerNavText, { color: palette.text }]}>Next</Text>
-          <ChevronRight size={20} color={palette.tint} />
-        </TouchableOpacity>
-      </View>
-
-
-
-      {/* Highlight Edit Menu */}
-      <HighlightEditMenu
-        visible={showHighlightEditMenu}
-        highlight={editingHighlight}
-        onUpdateNote={handleUpdateHighlightNote}
-        onRemove={handleRemoveHighlight}
-        onClose={() => {
-          setShowHighlightEditMenu(false);
-          setEditingHighlight(null);
-        }}
-      />
-
-    </View>
-  </Modal>
+          <HighlightEditMenu
+            visible={showHighlightEditMenu}
+            highlight={editingHighlight}
+            onUpdateNote={handleUpdateHighlightNote}
+            onRemove={handleRemoveHighlight}
+            onClose={() => { setShowHighlightEditMenu(false); setEditingHighlight(null); }}
+          />
+        </SafeAreaView>
+      </SafeAreaProvider>
+    </Modal>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  headerBlock: {
-    paddingHorizontal: 20,
-    paddingTop: 16,
-    paddingBottom: 16,
-  },
-  headerTopRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  backButton: {
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    borderRadius: 20,
-    padding: 8,
-  },
-  headerTitle: {
-    fontSize: 32,
-    fontWeight: adjustFontWeight('400'),
-  },
-  actionRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: 6,
-    paddingHorizontal: 16,
-  },
-  actionRowPageNumber: {
-    fontSize: 14,
-    fontWeight: adjustFontWeight('500'),
-  },
-  actionButtons: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 16,
-  },
-  actionButton: {
-    padding: 4,
-  },
-  actionButton: {
-    padding: 8,
-  },
-  contentWrapper: {
-    flex: 1,
-    flexGrow: 1,
-    flexShrink: 1,
-    flexBasis: 0,
-    minHeight: 0,
-    overflow: 'hidden',
-  },
-  contentWrapperHidden: {
-    opacity: 0,
-  },
-  headerFontSizeButton: {
-    padding: 4,
-    justifyContent: 'center',
-    alignItems: 'center',
-    minWidth: 32,
-    height: 44,
-  },
-  fontSizeButtonText: {
-    fontSize: 16,
-    color: Colors.light.text,
-    fontWeight: '600',
-  },
-  fontSizeButtonTextLarge: {
-    fontSize: 24,
-  },
-  footer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 24,
-    paddingTop: 8,
-    paddingBottom: 4,
-    borderTopWidth: 1,
-  },
-  footerNavButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 8,
-    gap: 6,
-  },
-  footerNavText: {
-    fontSize: 16,
-    fontWeight: '400',
-  },
-  footerChapterNumber: {
-    fontSize: 14,
-    fontWeight: adjustFontWeight('500'),
-  },
-  searchContainer: {
-    padding: 16,
-    backgroundColor: Colors.light.background,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.light.border || '#E5E7EB',
-  },
-  searchResults: {
-    flex: 1,
-    backgroundColor: Colors.light.background,
-  },
-  searchResultsTitle: {
-    fontSize: 14,
-    fontWeight: adjustFontWeight('600'),
-    color: Colors.light.muted,
-    paddingHorizontal: 16,
-    paddingTop: 12,
-    paddingBottom: 8,
-  },
-  searchResultsList: {
-    flex: 1,
-  },
-  searchResultItem: {
-    padding: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.light.border || '#E5E7EB',
-  },
-  searchResultChapter: {
-    fontSize: 14,
-    fontWeight: adjustFontWeight('600'),
-    color: Colors.light.tint,
-    marginBottom: 4,
-  },
-  searchResultText: {
-    fontSize: 14,
-    lineHeight: 20,
-    color: Colors.light.text,
-    marginBottom: 4,
-  },
-  searchResultMatch: {
-    backgroundColor: '#FEF08A',
-    fontWeight: adjustFontWeight('600'),
-  },
-  searchResultMeta: {
-    fontSize: 12,
-    color: Colors.light.muted,
-  },
-  content: {
-    flex: 1,
-  },
-  contentContainer: {
-    padding: 20,
-    paddingBottom: 40,
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  loadingText: {
-    fontSize: 16,
-    color: Colors.light.muted,
-  },
-});
+  screen: { flex: 1, backgroundColor: PAPER },
+  flex: { flex: 1, minWidth: 0 },
+  header: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 14, paddingTop: 8, paddingBottom: 10 },
+  backBtn: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(0,0,0,0.04)' },
+  title: { fontFamily: fontFamily.displayBold, fontSize: 20, letterSpacing: -0.4, color: c.text },
+  subtitle: { fontFamily: fontFamily.regular, fontSize: 12.5, color: c.textMuted, marginTop: 1 },
 
+  actionRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 18, paddingBottom: 8, borderBottomWidth: 1, borderBottomColor: c.divider },
+  pageLabel: { fontFamily: fontFamily.semiBold, fontSize: 12.5, color: c.textSecondary },
+  actions: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  hlPill: { flexDirection: 'row', alignItems: 'center', gap: 5, height: 30, paddingHorizontal: 11, borderRadius: 15, borderWidth: 1 },
+  hlText: { fontFamily: fontFamily.semiBold, fontSize: 12 },
+  bmBtn: { width: 30, height: 30, borderRadius: 15, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
+
+  body: { flex: 1 },
+  content: { paddingHorizontal: 26, paddingTop: 16, paddingBottom: 32 },
+  chapterLabel: { fontFamily: fontFamily.bold, fontSize: 10.5, letterSpacing: 1.6, color: AMBER_INK, marginBottom: 16 },
+  footnote: { fontFamily: fontFamily.serifItalic, fontSize: 12, lineHeight: 18, color: c.textMuted, textAlign: 'center', marginTop: 18, paddingHorizontal: 16, paddingVertical: 12, backgroundColor: c.background, borderRadius: 12 },
+  copyright: { fontFamily: fontFamily.regular, fontSize: 10, color: c.textMuted, textAlign: 'center', marginTop: 14 },
+
+  footer: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingTop: 8, borderTopWidth: 1, borderTopColor: c.divider },
+  navBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingVertical: 6 },
+  navText: { fontFamily: fontFamily.semiBold, fontSize: 13.5, color: AMBER_INK },
+  footerCenter: { fontFamily: fontFamily.semiBold, fontSize: 12, color: c.textMuted },
+});

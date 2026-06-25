@@ -20,6 +20,44 @@ export type TocEntry = {
 
 export type TocGroup = { label: string; sub?: string; entries: TocEntry[] };
 
+// All entries, flat. Helpers below let "go to page" and bookmarks resolve a book
+// page (or entry id) to the right reader regardless of text/PDF.
+export function flatEntries(): TocEntry[] {
+  return BIGBOOK_TOC.flatMap((g) => g.entries);
+}
+
+export function findEntryById(id: string): TocEntry | undefined {
+  return flatEntries().find((e) => e.id === id);
+}
+
+export function findEntryByPdfKey(pdfKey: string): TocEntry | undefined {
+  return flatEntries().find((e) => e.pdfKey === pdfKey);
+}
+
+// Numeric first book page for arabic-paginated entries (chapters, stories,
+// appendices). Roman-numeral front matter has no numeric page, so it's excluded
+// from page lookup — "go to page 58" means the arabic page.
+function numericStart(e: TocEntry): number | null {
+  if (e.kind === 'pdf' && e.startPage && e.startPage > 0) return e.startPage;
+  const n = parseInt(e.page, 10);
+  return Number.isFinite(n) ? n : null;
+}
+
+// Which entry contains a given (arabic) book page. Each entry runs until the
+// next entry's start page.
+export function findEntryForPage(bookPage: number): TocEntry | undefined {
+  const ranged = flatEntries()
+    .map((e) => ({ e, start: numericStart(e) }))
+    .filter((x): x is { e: TocEntry; start: number } => x.start != null)
+    .sort((a, b) => a.start - b.start);
+  for (let i = 0; i < ranged.length; i++) {
+    const start = ranged[i].start;
+    const end = i + 1 < ranged.length ? ranged[i + 1].start - 1 : start + 999;
+    if (bookPage >= start && bookPage <= end) return ranged[i].e;
+  }
+  return undefined;
+}
+
 export const BIGBOOK_TOC: TocGroup[] = [
   {
     label: 'Front Matter',

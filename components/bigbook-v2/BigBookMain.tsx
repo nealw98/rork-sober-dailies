@@ -4,7 +4,8 @@
  * Renders the Contents page (full 4th-ed. TOC) plus two readers:
  *  • text entries → the in-app BigBookReader (highlights/bookmarks/search)
  *  • PDF entries  → the bundled PdfReader (book-page mapping + bookmarks)
- * No access gate — the full reader is always available.
+ * Exposes open-at-page handlers so the Contents header's go-to-page and the
+ * unified bookmarks list can jump into either format at a specific page.
  */
 
 import React, { useState } from 'react';
@@ -19,57 +20,62 @@ import { recordLiteratureReaderOpen, maybeAskForReview } from '@/lib/reviewPromp
 
 const PDF_ACCENT = '#B27330'; // amber-ink for the Big Book
 
-export function BigBookMain() {
-  const [selectedChapterId, setSelectedChapterId] = useState<string | null>(null);
-  const [scrollToParagraphId, setScrollToParagraphId] = useState<string | null>(null);
-  const [searchTerm, setSearchTerm] = useState<string | null>(null);
-  const [showReaderModal, setShowReaderModal] = useState(false);
-  const [pdf, setPdf] = useState<TocEntry | null>(null);
+type OpenPdf = { id: string; title: string; pdfKey: string; startPage: number; initialPage?: number };
 
-  // Open the text reader on a chapter (optionally scrolling to a paragraph /
-  // carrying a search term to highlight).
-  const handleSelectChapter = (chapterId: string, scrollToId?: string, search?: string) => {
-    setSelectedChapterId(chapterId);
-    setScrollToParagraphId(scrollToId || null);
-    setSearchTerm(search || null);
-    setShowReaderModal(true);
+export function BigBookMain() {
+  const [chapterId, setChapterId] = useState<string | null>(null);
+  const [scrollToPage, setScrollToPage] = useState<number | null>(null);
+  const [searchTerm, setSearchTerm] = useState<string | null>(null);
+  const [showReader, setShowReader] = useState(false);
+  const [pdf, setPdf] = useState<OpenPdf | null>(null);
+
+  // text entry → open the in-app reader, optionally scrolled to a page and
+  // highlighting a search term.
+  const openText = (id: string, page?: number, term?: string) => {
+    setChapterId(id);
+    setScrollToPage(page ?? null);
+    setSearchTerm(term ?? null);
+    setShowReader(true);
+  };
+
+  // pdf entry → open the bundled PDF, optionally at a page
+  const openPdf = (entry: TocEntry, initialPage?: number) => {
+    if (!entry.pdfKey) return;
+    setPdf({ id: entry.id, title: entry.title, pdfKey: entry.pdfKey, startPage: entry.startPage ?? 0, initialPage });
   };
 
   const handleCloseReader = () => {
-    setShowReaderModal(false);
+    setShowReader(false);
     recordLiteratureReaderOpen()
       .then(() => maybeAskForReview('literature'))
       .catch((error) => console.warn('[reviewPrompt] Literature trigger failed', error));
-    setTimeout(() => {
-      setSelectedChapterId(null);
-      setScrollToParagraphId(null);
-      setSearchTerm(null);
-    }, 300);
+    setTimeout(() => { setChapterId(null); setScrollToPage(null); setSearchTerm(null); }, 300);
   };
 
   return (
     <BigBookHighlightsProvider>
       <View style={{ flex: 1 }}>
-        <BigBookContents onSelectText={handleSelectChapter} onSelectPdf={setPdf} />
+        <BigBookContents onOpenText={openText} onOpenPdf={openPdf} />
 
-        {selectedChapterId && (
+        {chapterId && (
           <BigBookReader
-            visible={showReaderModal}
-            initialChapterId={selectedChapterId}
-            scrollToParagraphId={scrollToParagraphId}
+            visible={showReader}
+            initialChapterId={chapterId}
+            scrollToPage={scrollToPage}
             searchTerm={searchTerm}
             onClose={handleCloseReader}
           />
         )}
 
         <Modal visible={!!pdf} animationType="slide" presentationStyle="fullScreen" onRequestClose={() => setPdf(null)}>
-          {pdf?.pdfKey && BIGBOOK_PDFS[pdf.pdfKey] != null && (
+          {pdf && BIGBOOK_PDFS[pdf.pdfKey] != null && (
             <PdfReader
               assetModule={BIGBOOK_PDFS[pdf.pdfKey]}
               title={pdf.title}
               book="bigbook"
               sectionId={pdf.id}
-              startPage={pdf.startPage ?? 0}
+              startPage={pdf.startPage}
+              initialPage={pdf.initialPage}
               accent={PDF_ACCENT}
               onClose={() => setPdf(null)}
             />

@@ -13,9 +13,10 @@ import React, { useMemo } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { BigBookParagraph as ParagraphType, HighlightColor } from '@/types/bigbook-v2';
 import { useParagraphHighlights } from '@/hooks/use-bigbook-highlights';
-import { isPageMarker } from '@/lib/bigbook-page-utils';
-import Colors from '@/constants/colors';
-import { adjustFontWeight } from '@/constants/fonts';
+import { isPageMarker, formatPageNumber } from '@/lib/bigbook-page-utils';
+import { colors, fontFamily, getSemanticColors } from '@/constants/designTokens';
+
+const c = getSemanticColors('light');
 
 interface BigBookParagraphProps {
   paragraph: ParagraphType;
@@ -25,13 +26,14 @@ interface BigBookParagraphProps {
   lineHeight?: number;
   highlightMode?: boolean;
   searchTerm?: string;
+  useRomanNumerals?: boolean;
   onSentenceTap?: (sentenceIndex: number, sentenceText: string) => void;
   onHighlightTap?: (sentenceIndex: number) => void;
 }
 
 // Map highlight colors to actual color values
 const HIGHLIGHT_COLORS: Record<HighlightColor, string> = {
-  [HighlightColor.YELLOW]: '#FEF08A',
+  [HighlightColor.YELLOW]: '#FCE9A8', // prototype yellow underlay
   [HighlightColor.GREEN]: '#BBF7D0',
   [HighlightColor.BLUE]: '#BFDBFE',
   [HighlightColor.PINK]: '#FBCFE8',
@@ -198,7 +200,7 @@ function highlightSearchTerm(text: string, searchTerm: string, key: string | num
   return parts.map((part, idx) => {
     if (part.isMatch) {
       return (
-        <Text key={`${key}-search-${idx}`} style={{ backgroundColor: '#C4B5FD' }}>
+        <Text key={`${key}-search-${idx}`} style={{ backgroundColor: colors.primarySoft }}>
           {parseMarkdownItalics(part.text, `${key}-search-${idx}`)}
         </Text>
       );
@@ -216,6 +218,7 @@ export function BigBookParagraph({
   lineHeight = 27, // fontSize * 1.5 (industry standard)
   highlightMode = false,
   searchTerm,
+  useRomanNumerals = false,
   onSentenceTap,
   onHighlightTap,
 }: BigBookParagraphProps) {
@@ -300,18 +303,12 @@ export function BigBookParagraph({
 
   return (
     <View style={styles.container}>
-      {/* Page Break Divider */}
-      {isPageBreak && (
-        <View style={{ alignItems: 'center', marginTop: -5, marginBottom: 20 }}>
-          <View style={styles.pageBreakDivider} />
-        </View>
-      )}
-
-      {/* Page Number */}
-      {shouldShowPageNumber && (
-        <View style={{ alignItems: 'center', marginVertical: 12 }}>
-          <View style={styles.pageBreakDivider} />
-          <Text style={styles.pageNumber}>Page {paragraph.pageNumber}</Text>
+      {/* Page marker — "—— PAGE 58 ——" at each page transition */}
+      {(isPageBreak || shouldShowPageNumber) && (
+        <View style={styles.pageMarker}>
+          <View style={styles.pageMarkerLine} />
+          <Text style={styles.pageMarkerText}>PAGE {formatPageNumber(paragraph.pageNumber, useRomanNumerals)}</Text>
+          <View style={styles.pageMarkerLine} />
         </View>
       )}
 
@@ -427,104 +424,25 @@ export function BigBookParagraph({
 }
 
 const styles = StyleSheet.create({
-  container: {
-    marginBottom: 20,
-  },
-  pageNumberContainer: {
-    marginBottom: 16,
-    marginTop: 8,
-  },
-  pageBreakDivider: {
-    width: 120,
-    height: 1,
-    backgroundColor: '#666666', // Darker gray line for visibility
-  },
-  pageNumber: {
-    fontSize: 14,
-    fontWeight: adjustFontWeight('600'),
-    color: Colors.light.muted,
-    marginBottom: 8,
-  },
-  pageNumberLine: {
-    height: 1,
-    backgroundColor: Colors.light.border || '#E5E7EB',
-  },
-  paragraphContainer: {
-    flex: 1,
-  },
-  paragraphText: {
-    flex: 1,
-    fontSize: 16,
-    lineHeight: 26,
-    color: '#000',
-  },
-  verseText: {
-    marginLeft: 24,
-    fontStyle: 'italic',
-  },
-  numberedListContainer: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-  },
-  numberedListNumber: {
-    width: 32,
-    flexShrink: 0,
-    color: '#000',
-  },
-  numberedListText: {
-    flex: 1,
-    color: '#000',
-  },
-  letteredListContainer: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    paddingLeft: 16,
-  },
-  letteredListLetter: {
-    width: 32,
-    flexShrink: 0,
-    color: '#000',
-  },
-  letteredListText: {
-    flex: 1,
-    color: '#000',
-  },
-  sentence: {
-    // Inherit from parent paragraphText
-  },
-  sentenceHoverable: {
-    // Visual feedback when in highlight mode
-    // Could add subtle underline or other indicator
-  },
-  tableContainer: {
-    width: '100%',
-    borderWidth: 1,
-    borderColor: Colors.light.border || '#E5E7EB',
-    borderRadius: 4,
-    overflow: 'hidden',
-  },
-  tableRow: {
-    flexDirection: 'row',
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.light.border || '#E5E7EB',
-  },
-  tableCell: {
-    flex: 1,
-    padding: 12,
-    borderRightWidth: 1,
-    borderRightColor: Colors.light.border || '#E5E7EB',
-  },
-  tableHeaderCell: {
-    backgroundColor: '#F3F4F6',
-  },
-  tableHeaderText: {
-    fontSize: 14,
-    fontWeight: adjustFontWeight('700'),
-    color: '#000',
-  },
-  tableCellText: {
-    fontSize: 14,
-    lineHeight: 20,
-    color: '#000',
-  },
+  container: { marginBottom: 18 },
+  pageMarker: { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 4, marginBottom: 16 },
+  pageMarkerLine: { flex: 1, height: 1, backgroundColor: c.divider },
+  pageMarkerText: { fontFamily: fontFamily.bold, fontSize: 10.5, letterSpacing: 1.5, color: c.textMuted },
+  paragraphContainer: { flex: 1 },
+  paragraphText: { flex: 1, fontFamily: fontFamily.serif, color: c.text, letterSpacing: -0.1 },
+  verseText: { marginLeft: 24, fontFamily: fontFamily.serifItalic },
+  numberedListContainer: { flexDirection: 'row', alignItems: 'flex-start' },
+  numberedListNumber: { width: 32, flexShrink: 0, fontFamily: fontFamily.serif, color: c.text },
+  numberedListText: { flex: 1, fontFamily: fontFamily.serif, color: c.text },
+  letteredListContainer: { flexDirection: 'row', alignItems: 'flex-start', paddingLeft: 16 },
+  letteredListLetter: { width: 32, flexShrink: 0, fontFamily: fontFamily.serif, color: c.text },
+  letteredListText: { flex: 1, fontFamily: fontFamily.serif, color: c.text },
+  sentence: {},
+  sentenceHoverable: {},
+  tableContainer: { width: '100%', borderWidth: 1, borderColor: c.border, borderRadius: 6, overflow: 'hidden' },
+  tableRow: { flexDirection: 'row', borderBottomWidth: 1, borderBottomColor: c.border },
+  tableCell: { flex: 1, padding: 12, borderRightWidth: 1, borderRightColor: c.border },
+  tableHeaderCell: { backgroundColor: '#F3F1EC' },
+  tableHeaderText: { fontFamily: fontFamily.bold, color: c.text },
+  tableCellText: { fontFamily: fontFamily.serif, color: c.text },
 });
