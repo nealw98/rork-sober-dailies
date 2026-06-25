@@ -61,7 +61,7 @@ export default function LiteratureScreen() {
         <View style={styles.divider} />
         <View style={styles.catHead}>
           <Text style={styles.catTitle}>Meeting Readings</Text>
-          <Text style={styles.catSub}>Passages read aloud at the start of most meetings.</Text>
+          <Text style={styles.catSub}>Readings frequently read at most meetings.</Text>
         </View>
 
         <View style={styles.readingList}>
