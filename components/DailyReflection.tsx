@@ -14,7 +14,7 @@ import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import { ChevronLeft, ChevronRight, MoreHorizontal, Share2, Calendar, Sparkles, Check } from 'lucide-react-native';
+import { ChevronLeft, ChevronRight, MoreHorizontal, Share2, Calendar, Sparkles } from 'lucide-react-native';
 
 import BackButton from '@/components/BackButton';
 import { getReflectionForDate } from '@/constants/reflections';
@@ -33,7 +33,6 @@ const SIZE_BUCKETS: { k: string; size: number }[] = [
 
 const isSameDay = (a: Date, b: Date) =>
   a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
-const dayOfYear = (d: Date) => Math.floor((d.getTime() - new Date(d.getFullYear(), 0, 0).getTime()) / 86400000);
 const heroDate = (d: Date) =>
   `${d.toLocaleDateString('en-US', { weekday: 'long' })} · ${d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`;
 
@@ -58,8 +57,6 @@ export default function DailyReflection({ fontSize = 18, lineHeight, jumpToDate 
   const [menuOpen, setMenuOpen] = useState(false);
   const [sheet, setSheet] = useState<null | 'calendar' | 'display'>(null);
   const [calendarMonth, setCalendarMonth] = useState<Date>(new Date());
-
-  const isToday = isSameDay(selectedDate, new Date());
 
   const navigateDate = useCallback((dir: 'prev' | 'next') => {
     setSelectedDate((prev) => {
@@ -115,9 +112,6 @@ export default function DailyReflection({ fontSize = 18, lineHeight, jumpToDate 
   }, [reflection]);
 
   const pickCalendarDay = (d: Date) => { setSelectedDate(d); setSheet(null); };
-
-  const showDone = isToday && dailies.reflectionDone;
-  const streak = showDone ? dailies.reflectionStreak() : 0;
 
   return (
     <SafeAreaView style={styles.screen} edges={['top']}>
@@ -186,17 +180,6 @@ export default function DailyReflection({ fontSize = 18, lineHeight, jumpToDate 
               </View>
               <Text style={styles.medText}>&ldquo;{reflection.thought}&rdquo;</Text>
             </View>
-
-            {/* Done strip — only when today's reflection is read */}
-            {showDone && (
-              <View style={styles.doneStrip}>
-                <View style={styles.doneCheck}><Check size={18} color="#fff" strokeWidth={2.5} /></View>
-                <View style={styles.flex}>
-                  <Text style={styles.doneTitle}>Read for today</Text>
-                  <Text style={styles.doneSub}>Day {dayOfYear(selectedDate)}{streak > 1 ? ` · ${streak} day streak 🔥` : ''}</Text>
-                </View>
-              </View>
-            )}
 
             <Text style={styles.copyright}>Copyright © 1990 by Alcoholics Anonymous World Services, Inc. All rights reserved.</Text>
           </>
@@ -353,10 +336,6 @@ const styles = StyleSheet.create({
   medLabel: { fontFamily: fontFamily.bold, fontSize: 10, letterSpacing: 1.4, color: colors.primaryDark },
   medText: { fontFamily: fontFamily.serifItalic, fontSize: 18, color: c.textSecondary, marginTop: 8, lineHeight: 25, letterSpacing: -0.3 },
 
-  doneStrip: { marginTop: 18, paddingVertical: 14, paddingHorizontal: 16, backgroundColor: colors.primary + '10', borderRadius: 16, borderWidth: 1, borderColor: colors.primary + '30', flexDirection: 'row', alignItems: 'center', gap: 12 },
-  doneCheck: { width: 32, height: 32, borderRadius: 16, backgroundColor: colors.primary, alignItems: 'center', justifyContent: 'center' },
-  doneTitle: { fontFamily: fontFamily.semiBold, fontSize: 14, color: c.text },
-  doneSub: { fontFamily: fontFamily.regular, fontSize: 12, color: c.textMuted, marginTop: 1 },
 
   copyright: { marginTop: 18, fontFamily: fontFamily.regular, fontSize: 10, color: c.textMuted, lineHeight: 15, textAlign: 'center' },
 

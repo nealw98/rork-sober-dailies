@@ -6,17 +6,27 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import createContextHook from '@nkzw/create-context-hook';
 
-export type MeetingDay = number | 'daily'; // 0 = Sunday … 6 = Saturday
+export type MeetingDay = number | 'daily'; // 0 = Sunday … 6 = Saturday (used by the paste/scan draft)
 
 export type Meeting = {
   id: string;
   name: string;
-  day: MeetingDay;
+  days: number[]; // weekday numbers it meets on (0 = Sun … 6 = Sat); all 7 = "daily"
   time: number | null; // minutes since midnight; null if unset
   where: string;
   notes: string;
   online: boolean;
 };
+
+// Tolerate the old single-`day` shape (number | 'daily') from before multi-day.
+function normalizeMeeting(m: any): Meeting {
+  let days: number[];
+  if (Array.isArray(m?.days)) days = m.days.filter((d: any) => typeof d === 'number');
+  else if (m?.day === 'daily') days = [0, 1, 2, 3, 4, 5, 6];
+  else if (typeof m?.day === 'number') days = [m.day];
+  else days = [];
+  return { id: m.id, name: m?.name ?? '', days, time: m?.time ?? null, where: m?.where ?? '', notes: m?.notes ?? '', online: !!m?.online };
+}
 
 const STORAGE_KEY = 'my_meetings_v1';
 
@@ -32,11 +42,15 @@ export function formatTime(min: number | null): string {
   return `${h12}:${m.toString().padStart(2, '0')} ${ampm}`;
 }
 
-// Display string for a meeting's schedule, e.g. "Daily · 7:00 AM" / "Wed · 6:30 PM".
+// Display string for a meeting's schedule, e.g. "Daily · 7:00 AM",
+// "Mon, Wed, Fri · 6:30 PM", "Wed · 6:30 PM".
 export function whenLabel(m: Meeting): string {
-  const day = m.day === 'daily' ? 'Daily' : WEEKDAY_ABBR[m.day];
+  const days = m.days ?? [];
+  let dayStr = '';
+  if (days.length === 7) dayStr = 'Daily';
+  else if (days.length > 0) dayStr = [...days].sort((a, b) => a - b).map((d) => WEEKDAY_ABBR[d]).join(', ');
   const t = formatTime(m.time);
-  return t ? `${day} · ${t}` : day;
+  return [dayStr, t].filter(Boolean).join(' · ');
 }
 
 function startOfDay(d: Date): Date {
@@ -45,19 +59,22 @@ function startOfDay(d: Date): Date {
   return x;
 }
 
-// The next datetime this meeting occurs, on or after `now`.
-function nextOccurrence(m: Meeting, now: Date): Date {
-  const at = new Date(now);
+// The soonest timestamp this meeting next occurs, on or after `now` — the min
+// across all of its days. Infinity if it has no days.
+function nextOccurrence(m: Meeting, now: Date): number {
+  const days = m.days ?? [];
+  if (days.length === 0) return Infinity;
   const time = m.time ?? 0;
-  at.setHours(Math.floor(time / 60), time % 60, 0, 0);
-  if (m.day === 'daily') {
-    if (at.getTime() <= now.getTime()) at.setDate(at.getDate() + 1);
-    return at;
+  let best = Infinity;
+  for (const day of days) {
+    const at = new Date(now);
+    at.setHours(Math.floor(time / 60), time % 60, 0, 0);
+    let daysUntil = (day - now.getDay() + 7) % 7;
+    if (daysUntil === 0 && at.getTime() <= now.getTime()) daysUntil = 7;
+    at.setDate(at.getDate() + daysUntil);
+    best = Math.min(best, at.getTime());
   }
-  let daysUntil = (m.day - now.getDay() + 7) % 7;
-  if (daysUntil === 0 && at.getTime() <= now.getTime()) daysUntil = 7;
-  at.setDate(at.getDate() + daysUntil);
-  return at;
+  return best;
 }
 
 // The soonest upcoming saved meeting + a relative label ("Today · 7:00 AM").
@@ -68,10 +85,10 @@ export function nextUpMeeting(
   let bestIndex = -1;
   let bestTime = Infinity;
   meetings.forEach((m, i) => {
-    const t = nextOccurrence(m, now).getTime();
+    const t = nextOccurrence(m, now);
     if (t < bestTime) { bestTime = t; bestIndex = i; }
   });
-  if (bestIndex < 0) return null;
+  if (bestIndex < 0 || bestTime === Infinity) return null;
   const meeting = meetings[bestIndex];
   const at = new Date(bestTime);
   const daysDiff = Math.round((startOfDay(at).getTime() - startOfDay(now).getTime()) / 86400000);
@@ -88,7 +105,7 @@ export const [MeetingsProvider, useMeetings] = createContextHook(() => {
     (async () => {
       try {
         const stored = await AsyncStorage.getItem(STORAGE_KEY);
-        if (stored) setMeetings(JSON.parse(stored));
+        if (stored) setMeetings((JSON.parse(stored) as any[]).map(normalizeMeeting));
       } catch (e) {
         console.warn('[meetings] load failed', e);
       } finally {

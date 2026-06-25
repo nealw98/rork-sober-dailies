@@ -11,7 +11,7 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import { Plus, X, Globe, MapPin, BookOpen, ChevronRight, ExternalLink, ClipboardList, Sparkles, ImagePlus, Camera } from 'lucide-react-native';
 import { Image } from 'expo-image';
 import BackButton from '@/components/BackButton';
-import { useMeetings, nextUpMeeting, whenLabel, formatTime, WEEKDAY_ABBR, type Meeting, type MeetingDay } from '@/hooks/use-meetings-store';
+import { useMeetings, nextUpMeeting, whenLabel, formatTime, WEEKDAY_ABBR, type Meeting } from '@/hooks/use-meetings-store';
 import { scanMeetingScreenshot } from '@/lib/meetingOcr';
 import { parseMeetingGuide, type MeetingDraft } from '@/lib/parseMeetingGuide';
 import { colors, fontFamily, getSemanticColors } from '@/constants/designTokens';
@@ -148,7 +148,7 @@ export default function MeetingsScreen() {
         </View>
 
         {/* ── Right here, right now ── */}
-        <Text style={styles.label}>RIGHT HERE, RIGHT NOW</Text>
+        <Text style={styles.label}>ANY MEETING</Text>
         <Fn tone={colors.amber} icon={<BookOpen size={21} color="#fff" strokeWidth={2} />} title="Meeting Readings"
           sub="Passages read aloud at meetings, plus a format guide to chair." onPress={() => router.push('/(main)/meeting-readings')} />
       </ScrollView>
@@ -197,15 +197,12 @@ function Fn({ tone, icon, title, sub, badge, onPress }: { tone: string; icon: Re
 }
 
 // ── Add a meeting (Paste + Details; Scan/OCR is the next sprint) ──────
-const DAY_OPTS: { label: string; value: MeetingDay }[] = [
-  { label: 'Daily', value: 'daily' },
-  ...WEEKDAY_ABBR.map((d, i) => ({ label: d, value: i as MeetingDay })),
-];
+const ALL_DAYS = [0, 1, 2, 3, 4, 5, 6];
 
 function AddMeetingSheet({ visible, onClose, onSave }: { visible: boolean; onClose: () => void; onSave: (m: Omit<Meeting, 'id'>) => void }) {
   const [tab, setTab] = useState<'scan' | 'paste' | 'details'>('details');
   const [name, setName] = useState('');
-  const [day, setDay] = useState<MeetingDay>('daily');
+  const [days, setDays] = useState<number[]>([]);
   const [time, setTime] = useState<number | null>(null);
   const [where, setWhere] = useState('');
   const [notes, setNotes] = useState('');
@@ -217,14 +214,16 @@ function AddMeetingSheet({ visible, onClose, onSave }: { visible: boolean; onClo
   const [filledFrom, setFilledFrom] = useState<'scan-exact' | 'scan-guess' | 'paste' | null>(null);
 
   const reset = () => {
-    setTab('details'); setName(''); setDay('daily'); setTime(null); setWhere(''); setNotes('');
+    setTab('details'); setName(''); setDays([]); setTime(null); setWhere(''); setNotes('');
     setOnline(false); setPasted(''); setScanState('idle'); setScanMsg(null); setFilledFrom(null);
   };
   const close = () => { reset(); onClose(); };
 
+  const toggleDay = (i: number) => setDays((p) => (p.includes(i) ? p.filter((d) => d !== i) : [...p, i]));
+
   const fillDraft = (d: MeetingDraft, source: 'scan-exact' | 'scan-guess' | 'paste') => {
     setName(d.name);
-    if (d.day != null) setDay(d.day);
+    if (d.day != null) setDays(d.day === 'daily' ? ALL_DAYS : [d.day]);
     if (d.time != null) setTime(d.time);
     setWhere(d.where);
     setOnline(d.online);
@@ -249,10 +248,10 @@ function AddMeetingSheet({ visible, onClose, onSave }: { visible: boolean; onClo
     fillDraft(parseMeetingGuide(pasted.split('\n')), 'paste');
   };
 
-  const canSave = name.trim().length > 0;
+  const canSave = name.trim().length > 0 && days.length > 0;
   const commit = () => {
     if (!canSave) return;
-    onSave({ name: name.trim(), day, time, where: where.trim(), notes: notes.trim(), online });
+    onSave({ name: name.trim(), days, time, where: where.trim(), notes: notes.trim(), online });
     reset();
   };
 
@@ -331,13 +330,19 @@ function AddMeetingSheet({ visible, onClose, onSave }: { visible: boolean; onClo
               <Field label="Meeting name">
                 <TextInput value={name} onChangeText={setName} placeholder="Meeting name" placeholderTextColor={c.textMuted} style={styles.input} />
               </Field>
-              <Field label="Day">
+              <Field label="Days">
                 <View style={styles.dayWrap}>
-                  {DAY_OPTS.map((o) => {
-                    const on = o.value === day;
+                  <Pressable
+                    onPress={() => setDays((p) => (p.length === 7 ? [] : [...ALL_DAYS]))}
+                    style={[styles.dayChip, days.length === 7 ? styles.dayChipOn : styles.dayChipOff]}
+                  >
+                    <Text style={[styles.dayChipText, { color: days.length === 7 ? '#fff' : c.textSecondary }]}>Daily</Text>
+                  </Pressable>
+                  {WEEKDAY_ABBR.map((label, i) => {
+                    const on = days.includes(i);
                     return (
-                      <Pressable key={String(o.value)} onPress={() => setDay(o.value)} style={[styles.dayChip, on ? styles.dayChipOn : styles.dayChipOff]}>
-                        <Text style={[styles.dayChipText, { color: on ? '#fff' : c.textSecondary }]}>{o.label}</Text>
+                      <Pressable key={i} onPress={() => toggleDay(i)} style={[styles.dayChip, on ? styles.dayChipOn : styles.dayChipOff]}>
+                        <Text style={[styles.dayChipText, { color: on ? '#fff' : c.textSecondary }]}>{label}</Text>
                       </Pressable>
                     );
                   })}

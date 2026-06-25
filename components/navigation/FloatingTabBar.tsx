@@ -71,7 +71,7 @@ const INACTIVE = '#A79B86';
 
 // FAB hidden on Settings (per product decision). Last-used persona TODO: wire to
 // use-chat-store `aa-chat-sponsor-type`; default to Steady Eddie for now.
-const FAB_HIDDEN_ON: TabKey[] = ['settings'];
+const FAB_HIDDEN_ON: TabKey[] = [];
 
 function SponsorFab() {
   // Show the last-chatted sponsor and tap straight back into that chat

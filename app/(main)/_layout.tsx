@@ -1,11 +1,14 @@
 import { Stack } from "expo-router";
 import React from "react";
+import { View } from "react-native";
 import { useTheme } from "@/hooks/useTheme";
+import GlobalSponsorFab from "@/components/navigation/GlobalSponsorFab";
 
 export default function MainLayout() {
   const { palette } = useTheme();
 
   return (
+    <View style={{ flex: 1 }}>
     <Stack
       initialRouteName="(tabs)"
       screenOptions={{
@@ -41,5 +44,7 @@ export default function MainLayout() {
       <Stack.Screen name="sober-date" />
       <Stack.Screen name="modal" />
     </Stack>
+      <GlobalSponsorFab />
+    </View>
   );
 }

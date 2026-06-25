@@ -302,8 +302,8 @@ const styles = StyleSheet.create({
   date: { fontFamily: fontFamily.regular, fontSize: fontSize.md, marginTop: 2 },
   scroll: { paddingHorizontal: 22, paddingBottom: 120 },
 
-  section: { marginTop: spacing.lg },
-  sectionTitle: { fontFamily: fontFamily.semiBold, fontSize: fontSize.xl, marginBottom: spacing.sm },
+  section: { marginTop: spacing.xl },
+  sectionTitle: { fontFamily: fontFamily.semiBold, fontSize: fontSize.xl, marginBottom: 14 },
 
   // standard daily row
   row: {
@@ -311,9 +311,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderRadius: 16,
     borderWidth: 1,
-    paddingVertical: 12,
+    paddingVertical: 14,
     paddingHorizontal: 14,
-    marginBottom: 12,
+    marginBottom: 16,
     gap: 12,
     ...shadows.sm,
   },
@@ -343,7 +343,7 @@ const styles = StyleSheet.create({
   },
 
   // reflection hero
-  hero: { borderRadius: 16, borderWidth: 1, backgroundColor: colors.white, overflow: 'hidden', marginBottom: 12, ...shadows.sm },
+  hero: { borderRadius: 16, borderWidth: 1, backgroundColor: colors.white, overflow: 'hidden', marginBottom: 16, ...shadows.sm },
   heroCover: { height: 150, justifyContent: 'flex-end', overflow: 'hidden' },
   heroPill: {
     position: 'absolute',
