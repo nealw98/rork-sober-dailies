@@ -61,6 +61,7 @@ import { MeetingsProvider } from "@/hooks/use-meetings-store";
 import { JournalProvider } from "@/hooks/use-journal-store";
 import { ContactsProvider } from "@/hooks/use-contacts-store";
 import { LastSponsorProvider } from "@/hooks/use-last-sponsor";
+import { PdfBookmarksProvider } from "@/hooks/use-pdf-bookmarks";
 import { ICloudSyncGate } from "@/hooks/use-icloud-sync";
 import { ActionSheetProvider } from "@expo/react-native-action-sheet";
 import { ImmersiveProvider } from "@/hooks/use-immersive";
@@ -371,6 +372,7 @@ export default function RootLayout() {
                     <JournalProvider>
                     <ContactsProvider>
                     <LastSponsorProvider>
+                    <PdfBookmarksProvider>
                     <ImmersiveProvider>
                       <GestureHandlerRootView style={{ flex: 1 }}>
                         {Platform.OS === 'android' && (
@@ -389,6 +391,7 @@ export default function RootLayout() {
                         </ActionSheetProvider>
                       </GestureHandlerRootView>
                     </ImmersiveProvider>
+                    </PdfBookmarksProvider>
                     </LastSponsorProvider>
                     </ContactsProvider>
                     </JournalProvider>

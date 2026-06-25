@@ -29,6 +29,7 @@ export const SYNC_KEYS: string[] = [
   // ── reading + preferences ──
   '@bigbook_v2:bookmarks',
   '@bigbook_v2:highlights',
+  'pdf_bookmarks_v1',
   'READ_PROGRESS_bigbook_1e',
   'aa-bigbook-recent',
   'daily-reflection-bookmarks-v1',
