@@ -126,21 +126,7 @@ export function BigBookContents({ onOpenText, onOpenPdf }: {
   return (
     <SafeAreaView style={styles.screen} edges={['top']}>
       <View style={styles.header}>
-        <View style={styles.topRow}>
-          <BackButton onPress={() => router.back()} />
-          <View style={styles.headerActions}>
-            <Pressable onPress={() => setShowSearch(true)} hitSlop={8} style={styles.iconBtn} accessibilityRole="button" accessibilityLabel="Search">
-              <Search size={20} color={AMBER_INK} strokeWidth={2} />
-            </Pressable>
-            <Pressable onPress={() => setShowGoTo(true)} hitSlop={8} style={styles.iconBtn} accessibilityRole="button" accessibilityLabel="Go to page">
-              <Hash size={20} color={AMBER_INK} strokeWidth={2} />
-            </Pressable>
-            <Pressable onPress={openBookmarks} hitSlop={8} style={styles.iconBtn} accessibilityRole="button" accessibilityLabel="Bookmarks">
-              <Bookmark size={20} color={AMBER_INK} strokeWidth={2} fill={unified.length > 0 ? AMBER_INK : 'transparent'} />
-              {unified.length > 0 && <View style={styles.badge}><Text style={styles.badgeText}>{unified.length}</Text></View>}
-            </Pressable>
-          </View>
-        </View>
+        <BackButton onPress={() => router.back()} style={{ marginBottom: 8 }} />
         <Text style={styles.title}>Alcoholics Anonymous</Text>
         <Text style={styles.sub}>Big Book · 4th edition</Text>
       </View>
@@ -149,9 +135,16 @@ export function BigBookContents({ onOpenText, onOpenPdf }: {
         <LinearGradient colors={[AMBER_SOFT, 'rgba(252,240,222,0)']} style={styles.hero}>
           <BigBookCover w={72} h={101} />
           <View style={styles.flex}>
-            <Text style={styles.heroText}>Read the first 164 pages and appendices in the app. The later-edition forewords and the personal stories open as PDF.</Text>
+            <Text style={styles.heroText}>Also known as the “Big Book,” Alcoholics Anonymous presents the A.A. program for recovery from alcoholism. First published in 1939, it set out to show other alcoholics how A.A.’s first 100 members got sober.</Text>
           </View>
         </LinearGradient>
+
+        {/* Find tools — presented as features, not header utilities */}
+        <View style={styles.findRow}>
+          <FindCard Icon={Search} label="Search" onPress={() => setShowSearch(true)} />
+          <FindCard Icon={Hash} label="Go to page" onPress={() => setShowGoTo(true)} />
+          <FindCard Icon={Bookmark} label="Bookmarks" count={unified.length} onPress={openBookmarks} />
+        </View>
 
         <View style={styles.body}>
           {BIGBOOK_TOC.map((g) => (
@@ -288,6 +281,18 @@ export function BigBookContents({ onOpenText, onOpenPdf }: {
   );
 }
 
+function FindCard({ Icon, label, count, onPress }: { Icon: React.ComponentType<{ size?: number; color?: string; strokeWidth?: number }>; label: string; count?: number; onPress: () => void }) {
+  return (
+    <Pressable onPress={onPress} style={({ pressed }) => [styles.findCard, pressed && { opacity: 0.7 }]} accessibilityRole="button" accessibilityLabel={label}>
+      <View>
+        <Icon size={20} color={AMBER_INK} strokeWidth={2} />
+        {count != null && count > 0 && <View style={styles.findBadge}><Text style={styles.findBadgeText}>{count}</Text></View>}
+      </View>
+      <Text style={styles.findLabel}>{label}</Text>
+    </Pressable>
+  );
+}
+
 function Row({ entry, last, onPress }: { entry: TocEntry; last: boolean; onPress: () => void }) {
   const isPdf = entry.kind === 'pdf';
   return (
@@ -313,17 +318,18 @@ const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: c.background },
   flex: { flex: 1, minWidth: 0 },
   header: { paddingHorizontal: 22, paddingTop: 8, paddingBottom: 6 },
-  topRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 },
-  headerActions: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  iconBtn: { width: 38, height: 38, borderRadius: 19, alignItems: 'center', justifyContent: 'center' },
-  badge: { position: 'absolute', top: 2, right: 0, minWidth: 16, height: 16, borderRadius: 8, paddingHorizontal: 4, backgroundColor: AMBER_INK, alignItems: 'center', justifyContent: 'center' },
-  badgeText: { fontFamily: fontFamily.bold, fontSize: 10, color: '#fff' },
   title: { fontFamily: fontFamily.displayBold, fontSize: 26, letterSpacing: -0.5, color: c.text },
   sub: { fontFamily: fontFamily.regular, fontSize: 13, color: c.textSecondary, marginTop: 4 },
 
   scroll: { paddingBottom: 40 },
   hero: { flexDirection: 'row', gap: 14, alignItems: 'center', paddingHorizontal: 20, paddingTop: 10, paddingBottom: 16 },
   heroText: { fontFamily: fontFamily.regular, fontSize: 12.5, color: c.textSecondary, lineHeight: 18 },
+
+  findRow: { flexDirection: 'row', gap: 10, paddingHorizontal: 20, paddingTop: 2, paddingBottom: 6 },
+  findCard: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 7, paddingVertical: 14, borderRadius: 14, backgroundColor: AMBER_SOFT },
+  findLabel: { fontFamily: fontFamily.semiBold, fontSize: 12.5, color: AMBER_INK },
+  findBadge: { position: 'absolute', top: -7, right: -12, minWidth: 16, height: 16, borderRadius: 8, paddingHorizontal: 4, backgroundColor: AMBER_INK, alignItems: 'center', justifyContent: 'center' },
+  findBadgeText: { fontFamily: fontFamily.bold, fontSize: 10, color: '#fff' },
 
   body: { paddingHorizontal: 20 },
   group: { marginTop: 16 },
