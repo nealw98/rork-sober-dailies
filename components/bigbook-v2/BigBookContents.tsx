@@ -9,7 +9,7 @@ import { View, Text, Pressable, StyleSheet, ScrollView, Modal, TextInput, Keyboa
 import { SafeAreaView, SafeAreaProvider, initialWindowMetrics } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
-import { ChevronRight, FileText, Bookmark, Hash, X, Trash2, Search } from 'lucide-react-native';
+import { ChevronRight, Bookmark, Hash, X, Trash2, Search } from 'lucide-react-native';
 import BackButton from '@/components/BackButton';
 import { BigBookCover, FindCard } from '@/components/literature/literature-ui';
 import { BIGBOOK_TOC, findEntryById, findEntryByPdfKey, findEntryForPage, type TocEntry } from '@/constants/bigbook-toc';
@@ -282,22 +282,10 @@ export function BigBookContents({ onOpenText, onOpenPdf }: {
 }
 
 function Row({ entry, last, onPress }: { entry: TocEntry; last: boolean; onPress: () => void }) {
-  const isPdf = entry.kind === 'pdf';
   return (
     <Pressable onPress={onPress} style={({ pressed }) => [styles.row, !last && styles.rowBorder, pressed && { opacity: 0.6 }]}>
-      <View style={styles.flex}>
-        <Text style={styles.rowTitle} numberOfLines={1}>{entry.title}</Text>
-        <View style={styles.metaRow}>
-          {isPdf && (
-            <View style={styles.pdfTag}>
-              <FileText size={10} color={AMBER_INK} strokeWidth={2.4} />
-              <Text style={styles.pdfTagText}>PDF</Text>
-            </View>
-          )}
-          <Text style={styles.rowPage}>p. {entry.page}{entry.note ? ` · ${entry.note}` : ''}</Text>
-        </View>
-      </View>
-      <ChevronRight size={14} color={c.textMuted} />
+      <Text style={[styles.rowTitle, styles.flex]} numberOfLines={2}>{entry.title}</Text>
+      <Text style={styles.rowPage}>p. {entry.page}{entry.note ? ` · ${entry.note}` : ''}</Text>
     </Pressable>
   );
 }
@@ -320,13 +308,12 @@ const styles = StyleSheet.create({
   groupHead: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 2 },
   groupLabel: { fontFamily: fontFamily.bold, fontSize: 11, letterSpacing: 1, color: c.textMuted },
   groupSub: { fontFamily: fontFamily.regular, fontSize: 10.5, color: c.textMuted },
-  row: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 12 },
+  row: { flexDirection: 'row', alignItems: 'flex-start', gap: 12, paddingVertical: 12 },
   rowBorder: { borderBottomWidth: 1, borderBottomColor: c.divider },
-  rowTitle: { fontFamily: fontFamily.semiBold, fontSize: 15, color: c.text },
-  metaRow: { flexDirection: 'row', alignItems: 'center', gap: 7, marginTop: 3 },
-  pdfTag: { flexDirection: 'row', alignItems: 'center', gap: 3, paddingHorizontal: 6, paddingVertical: 2, borderRadius: 5, backgroundColor: AMBER_SOFT },
+  rowTitle: { fontFamily: fontFamily.semiBold, fontSize: 15, lineHeight: 20, color: c.text },
+  pdfTag: { paddingHorizontal: 6, paddingVertical: 2, borderRadius: 5, backgroundColor: AMBER_SOFT },
   pdfTagText: { fontFamily: fontFamily.bold, fontSize: 9.5, letterSpacing: 0.4, color: AMBER_INK },
-  rowPage: { fontFamily: fontFamily.regular, fontSize: 12, color: c.textMuted },
+  rowPage: { fontFamily: fontFamily.regular, fontSize: 12.5, lineHeight: 20, color: c.textMuted },
   copyright: { fontFamily: fontFamily.regular, fontSize: 10, color: c.textMuted, textAlign: 'center', marginTop: 22, lineHeight: 15 },
 
   // bookmarks sheet

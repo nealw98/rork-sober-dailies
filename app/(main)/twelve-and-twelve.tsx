@@ -256,7 +256,6 @@ function TTRow({ section, last, onOpen }: { section: Section; last: boolean; onO
         {!!section.description && <Text style={styles.rowLine} numberOfLines={1}>{section.description}</Text>}
       </View>
       {!!section.pageNumber && <Text style={styles.rowPage}>{section.pageNumber}</Text>}
-      <ChevronRight size={14} color={c.textMuted} />
     </Pressable>
   );
 }
@@ -276,11 +275,11 @@ const styles = StyleSheet.create({
   body: { paddingHorizontal: 20 },
   group: { marginTop: 14 },
   groupLabel: { fontFamily: fontFamily.bold, fontSize: 11, letterSpacing: 1, color: c.textMuted, marginBottom: 2 },
-  row: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 12 },
+  row: { flexDirection: 'row', alignItems: 'flex-start', gap: 12, paddingVertical: 12 },
   rowBorder: { borderBottomWidth: 1, borderBottomColor: c.divider },
-  rowTitle: { fontFamily: fontFamily.semiBold, fontSize: 15, color: c.text },
+  rowTitle: { fontFamily: fontFamily.semiBold, fontSize: 15, lineHeight: 20, color: c.text },
   rowLine: { fontFamily: fontFamily.regular, fontSize: 12.5, color: c.textMuted, marginTop: 2, lineHeight: 17 },
-  rowPage: { fontFamily: fontFamily.regular, fontSize: 12, color: c.textMuted, flexShrink: 0 },
+  rowPage: { fontFamily: fontFamily.regular, fontSize: 12.5, lineHeight: 20, color: c.textMuted, flexShrink: 0 },
   copyright: { fontFamily: fontFamily.regular, fontSize: 10, color: c.textMuted, textAlign: 'center', marginTop: 20, lineHeight: 15 },
 
   // bookmarks sheet
