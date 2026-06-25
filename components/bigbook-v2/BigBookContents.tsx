@@ -11,12 +11,12 @@ import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { ChevronRight, FileText, Bookmark, Hash, X, Trash2, Search } from 'lucide-react-native';
 import BackButton from '@/components/BackButton';
-import { BigBookCover } from '@/components/literature/literature-ui';
+import { BigBookCover, FindCard } from '@/components/literature/literature-ui';
 import { BIGBOOK_TOC, findEntryById, findEntryByPdfKey, findEntryForPage, type TocEntry } from '@/constants/bigbook-toc';
 import { useBigBookBookmarks } from '@/hooks/use-bigbook-bookmarks';
 import { usePdfBookmarks } from '@/hooks/use-pdf-bookmarks';
 import { useBigBookContent } from '@/hooks/use-bigbook-content';
-import { searchBigBookPdfs } from '@/lib/bigbook-search';
+import { searchBigBookPdfs } from '@/lib/pdf-search';
 import { getChapterMeta } from '@/constants/bigbook-v2/metadata';
 import { formatPageNumber } from '@/lib/bigbook-page-utils';
 import { fontFamily, getSemanticColors } from '@/constants/designTokens';
@@ -141,9 +141,9 @@ export function BigBookContents({ onOpenText, onOpenPdf }: {
 
         {/* Find tools — presented as features, not header utilities */}
         <View style={styles.findRow}>
-          <FindCard Icon={Search} label="Search" onPress={() => setShowSearch(true)} />
-          <FindCard Icon={Hash} label="Go to page" onPress={() => setShowGoTo(true)} />
-          <FindCard Icon={Bookmark} label="Bookmarks" count={unified.length} onPress={openBookmarks} />
+          <FindCard Icon={Search} label="Search" accent={AMBER_INK} soft={AMBER_SOFT} onPress={() => setShowSearch(true)} />
+          <FindCard Icon={Hash} label="Go to page" accent={AMBER_INK} soft={AMBER_SOFT} onPress={() => setShowGoTo(true)} />
+          <FindCard Icon={Bookmark} label="Bookmarks" count={unified.length} accent={AMBER_INK} soft={AMBER_SOFT} onPress={openBookmarks} />
         </View>
 
         <View style={styles.body}>
@@ -281,18 +281,6 @@ export function BigBookContents({ onOpenText, onOpenPdf }: {
   );
 }
 
-function FindCard({ Icon, label, count, onPress }: { Icon: React.ComponentType<{ size?: number; color?: string; strokeWidth?: number }>; label: string; count?: number; onPress: () => void }) {
-  return (
-    <Pressable onPress={onPress} style={({ pressed }) => [styles.findCard, pressed && { opacity: 0.7 }]} accessibilityRole="button" accessibilityLabel={label}>
-      <View>
-        <Icon size={20} color={AMBER_INK} strokeWidth={2} />
-        {count != null && count > 0 && <View style={styles.findBadge}><Text style={styles.findBadgeText}>{count}</Text></View>}
-      </View>
-      <Text style={styles.findLabel}>{label}</Text>
-    </Pressable>
-  );
-}
-
 function Row({ entry, last, onPress }: { entry: TocEntry; last: boolean; onPress: () => void }) {
   const isPdf = entry.kind === 'pdf';
   return (
@@ -326,10 +314,6 @@ const styles = StyleSheet.create({
   heroText: { fontFamily: fontFamily.regular, fontSize: 12.5, color: c.textSecondary, lineHeight: 18 },
 
   findRow: { flexDirection: 'row', gap: 10, paddingHorizontal: 20, paddingTop: 2, paddingBottom: 6 },
-  findCard: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 7, paddingVertical: 14, borderRadius: 14, backgroundColor: AMBER_SOFT },
-  findLabel: { fontFamily: fontFamily.semiBold, fontSize: 12.5, color: AMBER_INK },
-  findBadge: { position: 'absolute', top: -7, right: -12, minWidth: 16, height: 16, borderRadius: 8, paddingHorizontal: 4, backgroundColor: AMBER_INK, alignItems: 'center', justifyContent: 'center' },
-  findBadgeText: { fontFamily: fontFamily.bold, fontSize: 10, color: '#fff' },
 
   body: { paddingHorizontal: 20 },
   group: { marginTop: 16 },

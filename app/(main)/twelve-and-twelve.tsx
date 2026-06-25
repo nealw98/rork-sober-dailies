@@ -3,17 +3,18 @@
 // Traditions list. Each row shows the Step/Tradition's one-line summary and its
 // page, and opens the official A.A. essay as a bundled, offline PDF — shown with
 // real BOOK pages and per-page bookmarks. A bookmarks list lives in the header.
-import React, { useState } from 'react';
-import { View, Text, Pressable, StyleSheet, ScrollView, Modal } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import React, { useEffect, useMemo, useState } from 'react';
+import { View, Text, Pressable, StyleSheet, ScrollView, Modal, TextInput, Keyboard } from 'react-native';
+import { SafeAreaView, SafeAreaProvider, initialWindowMetrics } from 'react-native-safe-area-context';
 import { Stack, useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
-import { ChevronRight, Bookmark, Trash2, X } from 'lucide-react-native';
+import { ChevronRight, Bookmark, Trash2, X, Search, Hash } from 'lucide-react-native';
 import BackButton from '@/components/BackButton';
 import PdfReader from '@/components/PdfReader';
-import { TwelveCover } from '@/components/literature/literature-ui';
+import { TwelveCover, FindCard } from '@/components/literature/literature-ui';
 import { twelveAndTwelveData } from '@/constants/twelve-and-twelve';
 import { TWELVE_PDFS } from '@/constants/twelve-and-twelve-pdfs';
+import { searchTwelvePdfs } from '@/lib/pdf-search';
 import { usePdfBookmarks, type PdfBookmark } from '@/hooks/use-pdf-bookmarks';
 import { useReadingSession } from '@/hooks/useReadingSession';
 import { useScreenTimeTracking } from '@/hooks/useScreenTimeTracking';
@@ -32,6 +33,21 @@ const parsePage = (s?: string) => {
   return Number.isFinite(n) ? n : 0;
 };
 
+// Flat section lookups for search + go-to-page.
+const SECTIONS: Section[] = twelveAndTwelveData.flatMap((g) => g.sections as Section[]);
+const findSectionById = (id: string) => SECTIONS.find((s) => s.id === id);
+const RANGED = SECTIONS.map((s) => ({ s, start: parsePage(s.pageNumber) }))
+  .filter((x) => x.start > 0)
+  .sort((a, b) => a.start - b.start);
+function findSectionForPage(page: number): Section | undefined {
+  for (let i = 0; i < RANGED.length; i++) {
+    const start = RANGED[i].start;
+    const end = i + 1 < RANGED.length ? RANGED[i + 1].start - 1 : start + 50;
+    if (page >= start && page <= end) return RANGED[i].s;
+  }
+  return undefined;
+}
+
 export default function TwelveAndTwelveScreen() {
   useReadingSession('literature');
   useScreenTimeTracking('12 Steps & 12 Traditions');
@@ -39,26 +55,53 @@ export default function TwelveAndTwelveScreen() {
   const { forBook, remove } = usePdfBookmarks();
   const [pdf, setPdf] = useState<OpenPdf | null>(null);
   const [showBookmarks, setShowBookmarks] = useState(false);
+  const [showSearch, setShowSearch] = useState(false);
+  const [showGoTo, setShowGoTo] = useState(false);
+  const [query, setQuery] = useState('');
+  const [debounced, setDebounced] = useState('');
+  const [pageInput, setPageInput] = useState('');
+
+  useEffect(() => { const t = setTimeout(() => setDebounced(query), 220); return () => clearTimeout(t); }, [query]);
 
   const bookmarks = forBook(BOOK);
 
-  const openBookmark = (b: PdfBookmark) => {
-    setShowBookmarks(false);
-    // Let the sheet dismiss before presenting the reader (avoids modal clash).
-    setTimeout(() => setPdf({ id: b.sectionId, title: b.title, startPage: b.startPage, initialPage: b.pdfPage }), 300);
+  // Dismiss any modal before presenting the reader (avoids modal clash).
+  const jump = (fn: () => void) => { setShowBookmarks(false); setShowSearch(false); setShowGoTo(false); setTimeout(fn, 300); };
+
+  const openBookmark = (b: PdfBookmark) => jump(() => setPdf({ id: b.sectionId, title: b.title, startPage: b.startPage, initialPage: b.pdfPage }));
+
+  const searchResults = useMemo(() => {
+    const q = debounced.trim();
+    type Row = { key: string; title: string; pageLabel: string; before: string; match: string; after: string; open: () => void };
+    if (q.length < 2) return [] as Row[];
+    const out: Row[] = [];
+    for (const h of searchTwelvePdfs(q, 30)) {
+      const s = findSectionById(h.pdfKey);
+      if (!s) continue;
+      out.push({
+        key: `${h.pdfKey}-${h.pdfPage}`, title: s.title, pageLabel: h.bookPage, before: h.before, match: h.match, after: h.after,
+        open: () => jump(() => setPdf({ id: s.id, title: s.title, startPage: parsePage(s.pageNumber), initialPage: h.pdfPage })),
+      });
+    }
+    return out;
+  }, [debounced]);
+
+  const submitGoTo = () => {
+    Keyboard.dismiss();
+    const n = parseInt(pageInput, 10);
+    setPageInput('');
+    if (!Number.isFinite(n)) { setShowGoTo(false); return; }
+    const s = findSectionForPage(n);
+    if (!s) { setShowGoTo(false); return; }
+    const start = parsePage(s.pageNumber);
+    jump(() => setPdf({ id: s.id, title: s.title, startPage: start, initialPage: Math.max(1, n - start + 1) }));
   };
 
   return (
     <SafeAreaView style={styles.screen} edges={['top']}>
       <Stack.Screen options={{ headerShown: false }} />
       <View style={styles.header}>
-        <View style={styles.topRow}>
-          <BackButton onPress={() => router.back()} />
-          <Pressable onPress={() => setShowBookmarks(true)} hitSlop={8} style={styles.bmIconBtn} accessibilityRole="button" accessibilityLabel="Bookmarks">
-            <Bookmark size={20} color={TT_INK} strokeWidth={2} fill={bookmarks.length > 0 ? TT_INK : 'transparent'} />
-            {bookmarks.length > 0 && <View style={styles.bmBadge}><Text style={styles.bmBadgeText}>{bookmarks.length}</Text></View>}
-          </Pressable>
-        </View>
+        <BackButton onPress={() => router.back()} style={{ marginBottom: 8 }} />
         <Text style={styles.title}>Twelve &amp; Twelve</Text>
         <Text style={styles.sub}>Steps and Traditions</Text>
       </View>
@@ -71,6 +114,13 @@ export default function TwelveAndTwelveScreen() {
             <Text style={styles.heroText}>Essays on A.A.’s 24 basic principles — a chapter on each of the Twelve Steps and Twelve Traditions, interpreting them for personal recovery and group life.</Text>
           </View>
         </LinearGradient>
+
+        {/* Find tools */}
+        <View style={styles.findRow}>
+          <FindCard Icon={Search} label="Search" accent={TT_INK} soft={LAV_SOFT} onPress={() => setShowSearch(true)} />
+          <FindCard Icon={Hash} label="Go to page" accent={TT_INK} soft={LAV_SOFT} onPress={() => setShowGoTo(true)} />
+          <FindCard Icon={Bookmark} label="Bookmarks" count={bookmarks.length} accent={TT_INK} soft={LAV_SOFT} onPress={() => setShowBookmarks(true)} />
+        </View>
 
         {/* Grouped Step / Tradition list */}
         <View style={styles.body}>
@@ -105,6 +155,58 @@ export default function TwelveAndTwelveScreen() {
             onClose={() => setPdf(null)}
           />
         )}
+      </Modal>
+
+      {/* Search */}
+      <Modal visible={showSearch} animationType="slide" presentationStyle="fullScreen" onRequestClose={() => setShowSearch(false)}>
+        <SafeAreaProvider initialMetrics={initialWindowMetrics}>
+          <SafeAreaView style={styles.sheet} edges={['top']}>
+            <View style={styles.searchHeader}>
+              <Text style={styles.sheetTitle}>Search</Text>
+              <Pressable onPress={() => { setQuery(''); setDebounced(''); setShowSearch(false); }} hitSlop={8} style={styles.closeBtn}><X size={18} color={c.textSecondary} strokeWidth={2} /></Pressable>
+            </View>
+            <View style={styles.searchBarWrap}>
+              <View style={styles.searchBar}>
+                <Search size={18} color={c.textMuted} strokeWidth={2} />
+                <TextInput value={query} onChangeText={setQuery} placeholder="Search the Twelve & Twelve" placeholderTextColor={c.textMuted} style={styles.searchInput} autoFocus autoCorrect={false} autoCapitalize="none" returnKeyType="search" />
+                {query.length > 0 && <Pressable onPress={() => setQuery('')} hitSlop={8}><X size={16} color={c.textMuted} strokeWidth={2} /></Pressable>}
+              </View>
+            </View>
+            <ScrollView contentContainerStyle={styles.searchList} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+              {debounced.trim().length < 2 ? (
+                <Text style={styles.searchHint}>Search across the Steps, Traditions, and introductions.</Text>
+              ) : searchResults.length === 0 ? (
+                <Text style={styles.searchEmpty}>No matches for “{debounced.trim()}”.</Text>
+              ) : (
+                <>
+                  <Text style={styles.searchCount}>{searchResults.length} result{searchResults.length === 1 ? '' : 's'}</Text>
+                  {searchResults.map((r) => (
+                    <Pressable key={r.key} onPress={r.open} style={({ pressed }) => [styles.resultCard, pressed && { opacity: 0.7 }]}>
+                      <View style={styles.resultBar} />
+                      <View style={styles.flex}>
+                        <Text style={styles.resultTitle} numberOfLines={1}>{r.title}</Text>
+                        <Text style={styles.resultSnippet} numberOfLines={2}>{r.before}<Text style={styles.resultMatch}>{r.match}</Text>{r.after}</Text>
+                        <Text style={styles.resultMeta}>Page {r.pageLabel}</Text>
+                      </View>
+                    </Pressable>
+                  ))}
+                </>
+              )}
+            </ScrollView>
+          </SafeAreaView>
+        </SafeAreaProvider>
+      </Modal>
+
+      {/* Go to page */}
+      <Modal visible={showGoTo} transparent animationType="fade" onRequestClose={() => setShowGoTo(false)}>
+        <Pressable style={styles.goToBackdrop} onPress={() => { Keyboard.dismiss(); setShowGoTo(false); }}>
+          <Pressable style={styles.goToCard} onPress={() => {}}>
+            <Text style={styles.goToTitle}>Go to page</Text>
+            <Text style={styles.goToSub}>Enter a page number (14–190).</Text>
+            <TextInput value={pageInput} onChangeText={setPageInput} keyboardType="number-pad" placeholder="34" placeholderTextColor={c.textMuted} style={styles.goToInput} autoFocus returnKeyType="go" onSubmitEditing={submitGoTo} />
+            <Pressable onPress={submitGoTo} style={styles.goToBtn}><Text style={styles.goToBtnText}>Go</Text></Pressable>
+          </Pressable>
+        </Pressable>
       </Modal>
 
       {/* Bookmarks sheet */}
@@ -163,16 +265,13 @@ const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: c.background },
   flex: { flex: 1, minWidth: 0 },
   header: { paddingHorizontal: 22, paddingTop: 8, paddingBottom: 6 },
-  topRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 },
-  bmIconBtn: { width: 38, height: 38, borderRadius: 19, alignItems: 'center', justifyContent: 'center' },
-  bmBadge: { position: 'absolute', top: 2, right: 0, minWidth: 16, height: 16, borderRadius: 8, paddingHorizontal: 4, backgroundColor: TT_INK, alignItems: 'center', justifyContent: 'center' },
-  bmBadgeText: { fontFamily: fontFamily.bold, fontSize: 10, color: '#fff' },
   title: { fontFamily: fontFamily.displayBold, fontSize: 28, letterSpacing: -0.5, color: c.text },
   sub: { fontFamily: fontFamily.regular, fontSize: 13, color: c.textSecondary, marginTop: 4 },
 
   scroll: { paddingBottom: 40 },
   hero: { flexDirection: 'row', gap: 14, alignItems: 'center', paddingHorizontal: 20, paddingTop: 10, paddingBottom: 16 },
   heroText: { fontFamily: fontFamily.regular, fontSize: 12.5, color: c.textSecondary, lineHeight: 18 },
+  findRow: { flexDirection: 'row', gap: 10, paddingHorizontal: 20, paddingTop: 2, paddingBottom: 6 },
 
   body: { paddingHorizontal: 20 },
   group: { marginTop: 14 },
@@ -198,4 +297,29 @@ const styles = StyleSheet.create({
   empty: { alignItems: 'center', paddingTop: 60, paddingHorizontal: 36, gap: 10 },
   emptyTitle: { fontFamily: fontFamily.display, fontSize: 18, color: c.text, marginTop: 4 },
   emptyBody: { fontFamily: fontFamily.regular, fontSize: 13.5, lineHeight: 20, color: c.textMuted, textAlign: 'center' },
+
+  // search
+  searchHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingTop: 14, paddingBottom: 8 },
+  searchBarWrap: { paddingHorizontal: 16, paddingBottom: 12, borderBottomWidth: 1, borderBottomColor: c.divider },
+  searchBar: { flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: c.surface, borderWidth: 1, borderColor: c.border, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 10 },
+  searchInput: { flex: 1, fontFamily: fontFamily.regular, fontSize: 16, color: c.text, paddingVertical: 0 },
+  searchList: { paddingHorizontal: 16, paddingTop: 12, paddingBottom: 40 },
+  searchHint: { fontFamily: fontFamily.regular, fontSize: 14, lineHeight: 20, color: c.textMuted, textAlign: 'center', marginTop: 48, paddingHorizontal: 40 },
+  searchEmpty: { fontFamily: fontFamily.regular, fontSize: 14, color: c.textMuted, textAlign: 'center', marginTop: 40 },
+  searchCount: { fontFamily: fontFamily.bold, fontSize: 11, letterSpacing: 1, color: c.textMuted, marginBottom: 10, marginLeft: 2 },
+  resultCard: { flexDirection: 'row', backgroundColor: c.surface, borderWidth: 1, borderColor: c.border, borderRadius: 12, padding: 12, marginBottom: 8, overflow: 'hidden' },
+  resultBar: { position: 'absolute', left: 0, top: 0, bottom: 0, width: 4, backgroundColor: TT_INK },
+  resultTitle: { fontFamily: fontFamily.semiBold, fontSize: 13.5, color: TT_INK, paddingLeft: 6 },
+  resultSnippet: { fontFamily: fontFamily.serif, fontSize: 14.5, lineHeight: 21, color: c.text, marginTop: 5, paddingLeft: 6 },
+  resultMatch: { backgroundColor: '#FCE9A8', color: c.text },
+  resultMeta: { fontFamily: fontFamily.regular, fontSize: 11.5, color: c.textMuted, marginTop: 6, paddingLeft: 6 },
+
+  // go to page
+  goToBackdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.35)', alignItems: 'center', justifyContent: 'center', paddingHorizontal: 40 },
+  goToCard: { width: '100%', backgroundColor: c.background, borderRadius: 18, padding: 20 },
+  goToTitle: { fontFamily: fontFamily.displayBold, fontSize: 19, color: c.text },
+  goToSub: { fontFamily: fontFamily.regular, fontSize: 12.5, color: c.textMuted, marginTop: 3 },
+  goToInput: { marginTop: 14, borderWidth: 1, borderColor: c.border, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 12, fontFamily: fontFamily.semiBold, fontSize: 20, color: c.text, textAlign: 'center', backgroundColor: c.surface },
+  goToBtn: { marginTop: 14, backgroundColor: TT_INK, borderRadius: 12, paddingVertical: 13, alignItems: 'center' },
+  goToBtnText: { fontFamily: fontFamily.bold, fontSize: 15, color: '#fff' },
 });
