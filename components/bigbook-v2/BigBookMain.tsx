@@ -1,25 +1,32 @@
 /**
  * Big Book Main Entry Component
  *
- * Renders the in-app reader: chapter list + modal reader, wrapped in the
- * highlights provider. The premium/free access gate (and the PDF-upsell
- * "free browser") was removed — the full reader is always available now.
+ * Renders the Contents page (full 4th-ed. TOC) plus two readers:
+ *  • text entries → the in-app BigBookReader (highlights/bookmarks/search)
+ *  • PDF entries  → the bundled PdfReader (book-page mapping + bookmarks)
+ * No access gate — the full reader is always available.
  */
 
 import React, { useState } from 'react';
-import { View } from 'react-native';
-import { BigBookChapterList } from './BigBookChapterList';
+import { View, Modal } from 'react-native';
+import { BigBookContents } from './BigBookContents';
 import { BigBookReader } from './BigBookReader';
 import { BigBookHighlightsProvider } from '@/hooks/use-bigbook-highlights';
+import PdfReader from '@/components/PdfReader';
+import { BIGBOOK_PDFS } from '@/constants/bigbook-pdfs';
+import type { TocEntry } from '@/constants/bigbook-toc';
 import { recordLiteratureReaderOpen, maybeAskForReview } from '@/lib/reviewPrompt';
+
+const PDF_ACCENT = '#B27330'; // amber-ink for the Big Book
 
 export function BigBookMain() {
   const [selectedChapterId, setSelectedChapterId] = useState<string | null>(null);
   const [scrollToParagraphId, setScrollToParagraphId] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState<string | null>(null);
   const [showReaderModal, setShowReaderModal] = useState(false);
+  const [pdf, setPdf] = useState<TocEntry | null>(null);
 
-  // Open the reader modal on a chapter (optionally scrolling to a paragraph /
+  // Open the text reader on a chapter (optionally scrolling to a paragraph /
   // carrying a search term to highlight).
   const handleSelectChapter = (chapterId: string, scrollToId?: string, search?: string) => {
     setSelectedChapterId(chapterId);
@@ -30,13 +37,9 @@ export function BigBookMain() {
 
   const handleCloseReader = () => {
     setShowReaderModal(false);
-
-    // Track a successful reading session and maybe ask for a review on close.
     recordLiteratureReaderOpen()
       .then(() => maybeAskForReview('literature'))
       .catch((error) => console.warn('[reviewPrompt] Literature trigger failed', error));
-
-    // Clear after the modal close animation finishes.
     setTimeout(() => {
       setSelectedChapterId(null);
       setScrollToParagraphId(null);
@@ -47,7 +50,7 @@ export function BigBookMain() {
   return (
     <BigBookHighlightsProvider>
       <View style={{ flex: 1 }}>
-        <BigBookChapterList onSelectChapter={handleSelectChapter} isReaderOpen={showReaderModal} />
+        <BigBookContents onSelectText={handleSelectChapter} onSelectPdf={setPdf} />
 
         {selectedChapterId && (
           <BigBookReader
@@ -58,6 +61,20 @@ export function BigBookMain() {
             onClose={handleCloseReader}
           />
         )}
+
+        <Modal visible={!!pdf} animationType="slide" presentationStyle="fullScreen" onRequestClose={() => setPdf(null)}>
+          {pdf?.pdfKey && BIGBOOK_PDFS[pdf.pdfKey] != null && (
+            <PdfReader
+              assetModule={BIGBOOK_PDFS[pdf.pdfKey]}
+              title={pdf.title}
+              book="bigbook"
+              sectionId={pdf.id}
+              startPage={pdf.startPage ?? 0}
+              accent={PDF_ACCENT}
+              onClose={() => setPdf(null)}
+            />
+          )}
+        </Modal>
       </View>
     </BigBookHighlightsProvider>
   );
