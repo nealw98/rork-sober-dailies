@@ -4,7 +4,7 @@
 // file URI. Shows BOOK pages (not the PDF's own 1..n) by mapping pdfPage →
 // startPage + pdfPage - 1, and lets you bookmark the current page. Presented
 // full-screen in a Modal by the caller.
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { View, Text, Pressable, StyleSheet, ActivityIndicator } from 'react-native';
 import { SafeAreaProvider, SafeAreaView, initialWindowMetrics } from 'react-native-safe-area-context';
 import { Asset } from 'expo-asset';
@@ -28,6 +28,7 @@ export default function PdfReader({
   onClose: () => void;
 }) {
   const { isBookmarked, toggle } = usePdfBookmarks();
+  const pdfRef = useRef<any>(null);
   const [uri, setUri] = useState<string | null>(null);
   const [failed, setFailed] = useState(false);
   const [pdfPage, setPdfPage] = useState(initialPage ?? 1);
@@ -92,9 +93,14 @@ export default function PdfReader({
             <ActivityIndicator color={accent} style={{ marginTop: 48 }} />
           ) : (
             <Pdf
+              ref={pdfRef}
               source={{ uri, cache: true }}
-              page={initialPage ?? 1}
-              onLoadComplete={(n) => setPageCount(n)}
+              onLoadComplete={(n) => {
+                setPageCount(n);
+                // Jump AFTER load so the page offset is exact (otherwise the
+                // page's running header gets clipped under our header bar).
+                if (initialPage && initialPage > 1) setTimeout(() => pdfRef.current?.setPage(initialPage), 0);
+              }}
               onPageChanged={(p) => setPdfPage(p)}
               onError={(e) => { console.warn('[pdf] render error', e); setFailed(true); }}
               style={styles.pdf}
