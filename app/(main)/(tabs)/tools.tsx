@@ -55,6 +55,8 @@ const WALLPAPERS: Record<WallpaperKey, Wall> = {
 
 const WALLPAPER_ORDER: WallpaperKey[] = ['dawn', 'coast', 'dusk', 'paper'];
 
+// Each tone carries its solid + a lighter tint (tone mixed 78% white) for the
+// directional "dome" gradient fill (per the Claude Design icon spec).
 type Tone = { solid: string; light: string };
 const tone = (solid: string): Tone => ({ solid, light: lighten(solid, 0.22) });
 
@@ -86,17 +88,25 @@ function AppIcon({ app, labelColor, labelShadow, onPress }: { app: AppDef; label
   const { Icon } = app;
   return (
     <Pressable style={styles.appCell} onPress={onPress} accessibilityRole="button" accessibilityLabel={app.name}>
+      {/* Claude Design icon: directional dome gradient + colored drop shadow
+          (lift) + a hairline top glint and a thin bottom edge shade (the two
+          inset shadows — RN has no real inset, so they're thin edge overlays). */}
       <View style={[styles.iconShadow, { shadowColor: app.tone.solid }]}>
         <LinearGradient
           colors={[app.tone.light, app.tone.solid]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 0.55, y: 1 }}
+          locations={[0, 0.72]}
+          start={{ x: 0.2, y: 0 }}
+          end={{ x: 0.7, y: 1 }}
           style={styles.iconFill}
         >
-          {/* tactile top highlight (replaces the web inset highlight) */}
           <LinearGradient
-            colors={['rgba(255,255,255,0.45)', 'rgba(255,255,255,0)']}
-            style={styles.iconHighlight}
+            colors={['rgba(255,255,255,0.5)', 'rgba(255,255,255,0)']}
+            style={styles.iconTopGlint}
+            pointerEvents="none"
+          />
+          <LinearGradient
+            colors={['rgba(0,0,0,0)', 'rgba(0,0,0,0.14)']}
+            style={styles.iconBottomShade}
             pointerEvents="none"
           />
           <Icon size={28} color="#fff" />
@@ -292,13 +302,14 @@ const styles = StyleSheet.create({
   appCell: { width: '25%', alignItems: 'center', marginBottom: 20 },
   iconShadow: {
     borderRadius: 15,
-    shadowOpacity: 0.35,
-    shadowRadius: 8,
+    shadowOpacity: 0.35,    // [tone]59 ≈ 0.35, colored (shadowColor set inline)
+    shadowRadius: 12,
     shadowOffset: { width: 0, height: 5 },
-    elevation: 4,
+    elevation: 5,
   },
   iconFill: { width: 60, height: 60, borderRadius: 15, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
-  iconHighlight: { position: 'absolute', top: 0, left: 0, right: 0, height: '55%' },
+  iconTopGlint: { position: 'absolute', top: 0, left: 0, right: 0, height: 4 },     // inset top highlight
+  iconBottomShade: { position: 'absolute', bottom: 0, left: 0, right: 0, height: 6 }, // inset bottom shadow
   appLabel: { fontFamily: fontFamily.medium, fontSize: 11.5, textAlign: 'center', marginTop: 7 },
 
   // Wallpaper picker popover
