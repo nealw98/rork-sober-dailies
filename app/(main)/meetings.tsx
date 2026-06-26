@@ -3,8 +3,8 @@
 // Find a meeting (Meeting Guide hand-off), Online meetings (in-app browser),
 // Meeting readings. My meetings is net-new + manual-add only; Next-up is derived
 // from the saved list + the device clock (no extra storage).
-import React, { useState } from 'react';
-import { View, Text, ScrollView, Pressable, StyleSheet, Modal, TextInput, Linking, Platform, ActivityIndicator } from 'react-native';
+import React, { useEffect, useRef, useState } from 'react';
+import { View, Text, ScrollView, Pressable, StyleSheet, Modal, TextInput, Linking, Platform, ActivityIndicator, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Stack, useRouter } from 'expo-router';
 import DateTimePicker from '@react-native-community/datetimepicker';
@@ -41,8 +41,9 @@ const openOnline = (m: Meeting) => {
 
 export default function MeetingsScreen() {
   const router = useRouter();
-  const { meetings, addMeeting, removeMeeting } = useMeetings();
-  const [adding, setAdding] = useState(false);
+  const { meetings, addMeeting, updateMeeting, removeMeeting } = useMeetings();
+  // null = closed · {mode:'add'} = new · {mode:'edit', meeting} = editing a saved one
+  const [sheet, setSheet] = useState<{ mode: 'add' } | { mode: 'edit'; meeting: Meeting } | null>(null);
 
   const nx = nextUpMeeting(meetings);
   const rest = meetings.filter((m) => !nx || m.id !== nx.meeting.id);
@@ -73,7 +74,7 @@ export default function MeetingsScreen() {
                     <X size={16} color={MT_DARK} strokeWidth={2} />
                   </Pressable>
                 </View>
-                <View style={styles.nextRow}>
+                <Pressable style={styles.nextRow} onPress={() => setSheet({ mode: 'edit', meeting: nx.meeting })} accessibilityLabel={`Edit ${nx.meeting.name}`}>
                   <View style={styles.nextMedallion}>
                     {nx.meeting.online ? <Globe size={20} color="#fff" strokeWidth={2} /> : <MapPin size={20} color="#fff" strokeWidth={2} />}
                   </View>
@@ -82,7 +83,7 @@ export default function MeetingsScreen() {
                     <Text style={styles.nextLabel}>{nx.label}</Text>
                     {!!nx.meeting.where && <Text style={styles.nextWhere}>{nx.meeting.where}</Text>}
                   </View>
-                </View>
+                </Pressable>
                 <Pressable style={styles.nextAction} onPress={() => (nx.meeting.online ? openOnline(nx.meeting) : openDirections(nx.meeting))}>
                   {nx.meeting.online ? <Globe size={16} color="#fff" strokeWidth={2} /> : <MapPin size={16} color="#fff" strokeWidth={2} />}
                   <Text style={styles.nextActionText}>{nx.meeting.online ? 'Join online' : 'Get directions'}</Text>
@@ -91,16 +92,16 @@ export default function MeetingsScreen() {
             )}
 
             {rest.map((m) => (
-              <MeetingRow key={m.id} m={m} onRemove={() => removeMeeting(m.id)} />
+              <MeetingRow key={m.id} m={m} onEdit={() => setSheet({ mode: 'edit', meeting: m })} onRemove={() => removeMeeting(m.id)} />
             ))}
 
-            <Pressable style={styles.addBtn} onPress={() => setAdding(true)}>
+            <Pressable style={styles.addBtn} onPress={() => setSheet({ mode: 'add' })}>
               <Plus size={16} color={MT_DARK} strokeWidth={2.2} />
               <Text style={styles.addBtnText}>Add a meeting</Text>
             </Pressable>
           </>
         ) : (
-          <Pressable style={styles.emptyCard} onPress={() => setAdding(true)}>
+          <Pressable style={styles.emptyCard} onPress={() => setSheet({ mode: 'add' })}>
             <View style={styles.emptyMedallion}><Plus size={19} color={MT_DARK} strokeWidth={2.2} /></View>
             <View style={styles.flex}>
               <Text style={styles.emptyTitle}>Add a meeting</Text>
@@ -153,14 +154,23 @@ export default function MeetingsScreen() {
           sub="Passages read aloud at meetings, plus a format guide to chair." onPress={() => router.push('/(main)/meeting-readings')} />
       </ScrollView>
 
-      <AddMeetingSheet visible={adding} onClose={() => setAdding(false)} onSave={(m) => { addMeeting(m); setAdding(false); }} />
+      <AddMeetingSheet
+        visible={!!sheet}
+        meeting={sheet?.mode === 'edit' ? sheet.meeting : null}
+        onClose={() => setSheet(null)}
+        onSave={(m) => {
+          if (sheet?.mode === 'edit') updateMeeting(sheet.meeting.id, m);
+          else addMeeting(m);
+          setSheet(null);
+        }}
+      />
     </SafeAreaView>
   );
 }
 
-function MeetingRow({ m, onRemove }: { m: Meeting; onRemove: () => void }) {
+function MeetingRow({ m, onEdit, onRemove }: { m: Meeting; onEdit: () => void; onRemove: () => void }) {
   return (
-    <View style={styles.row}>
+    <Pressable style={styles.row} onPress={onEdit} accessibilityLabel={`Edit ${m.name}`}>
       <View style={styles.rowMedallion}>
         {m.online ? <Globe size={18} color={MT_DARK} strokeWidth={2} /> : <MapPin size={18} color={MT_DARK} strokeWidth={2} />}
       </View>
@@ -176,7 +186,7 @@ function MeetingRow({ m, onRemove }: { m: Meeting; onRemove: () => void }) {
       <Pressable hitSlop={8} onPress={onRemove} accessibilityLabel="Remove" style={styles.rowRemove}>
         <X size={17} color={c.textMuted} strokeWidth={2} />
       </Pressable>
-    </View>
+    </Pressable>
   );
 }
 
@@ -199,7 +209,8 @@ function Fn({ tone, icon, title, sub, badge, onPress }: { tone: string; icon: Re
 // ── Add a meeting (Paste + Details; Scan/OCR is the next sprint) ──────
 const ALL_DAYS = [0, 1, 2, 3, 4, 5, 6];
 
-function AddMeetingSheet({ visible, onClose, onSave }: { visible: boolean; onClose: () => void; onSave: (m: Omit<Meeting, 'id'>) => void }) {
+function AddMeetingSheet({ visible, meeting, onClose, onSave }: { visible: boolean; meeting?: Meeting | null; onClose: () => void; onSave: (m: Omit<Meeting, 'id'>) => void }) {
+  const editing = !!meeting;
   const [tab, setTab] = useState<'scan' | 'paste' | 'details'>('details');
   const [name, setName] = useState('');
   const [days, setDays] = useState<number[]>([]);
@@ -212,12 +223,35 @@ function AddMeetingSheet({ visible, onClose, onSave }: { visible: boolean; onClo
   const [scanState, setScanState] = useState<'idle' | 'reading'>('idle');
   const [scanMsg, setScanMsg] = useState<string | null>(null);
   const [filledFrom, setFilledFrom] = useState<'scan-exact' | 'scan-guess' | 'paste' | null>(null);
+  // Snapshot of the values when the sheet opened — for "unsaved changes" detection.
+  const initialRef = useRef('');
 
   const reset = () => {
     setTab('details'); setName(''); setDays([]); setTime(null); setWhere(''); setNotes('');
     setOnline(false); setPasted(''); setScanState('idle'); setScanMsg(null); setFilledFrom(null);
   };
   const close = () => { reset(); onClose(); };
+
+  const snap = (v: { name: string; days: number[]; time: number | null; where: string; notes: string; online: boolean }) =>
+    JSON.stringify({ name: v.name.trim(), days: [...v.days].sort((a, b) => a - b), time: v.time, where: v.where.trim(), notes: v.notes.trim(), online: v.online });
+
+  // Initialise the form each time the sheet opens — from the meeting being
+  // edited, or blank for a new one — and record the baseline for dirty checks.
+  useEffect(() => {
+    if (!visible) return;
+    if (meeting) {
+      setTab('details'); setName(meeting.name); setDays(meeting.days); setTime(meeting.time);
+      setWhere(meeting.where); setNotes(meeting.notes); setOnline(meeting.online);
+      setPasted(''); setScanState('idle'); setScanMsg(null); setFilledFrom(null);
+      initialRef.current = snap(meeting);
+    } else {
+      reset();
+      initialRef.current = snap({ name: '', days: [], time: null, where: '', notes: '', online: false });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [visible, meeting?.id]);
+
+  const dirty = snap({ name, days, time, where, notes, online }) !== initialRef.current;
 
   const toggleDay = (i: number) => setDays((p) => (p.includes(i) ? p.filter((d) => d !== i) : [...p, i]));
 
@@ -249,31 +283,46 @@ function AddMeetingSheet({ visible, onClose, onSave }: { visible: boolean; onClo
   };
 
   const canSave = name.trim().length > 0 && days.length > 0;
+  // Editing only enables Save once something actually changed.
+  const saveEnabled = canSave && (!editing || dirty);
   const commit = () => {
     if (!canSave) return;
     onSave({ name: name.trim(), days, time, where: where.trim(), notes: notes.trim(), online });
     reset();
   };
 
+  // Closing with unsaved changes prompts to save first.
+  const requestClose = () => {
+    if (!dirty) { close(); return; }
+    const buttons: { text: string; style?: 'cancel' | 'destructive'; onPress?: () => void }[] = [
+      { text: 'Keep editing', style: 'cancel' },
+    ];
+    if (canSave) buttons.push({ text: 'Save', onPress: commit });
+    buttons.push({ text: 'Discard', style: 'destructive', onPress: close });
+    Alert.alert('Save changes?', 'You have unsaved changes to this meeting.', buttons);
+  };
+
   const timeAsDate = (() => { const d = new Date(); d.setHours(time == null ? 19 : Math.floor(time / 60), time == null ? 0 : time % 60, 0, 0); return d; })();
 
   return (
-    <Modal visible={visible} transparent animationType="slide" onRequestClose={close}>
-      <Pressable style={styles.sheetBackdrop} onPress={close} />
+    <Modal visible={visible} transparent animationType="slide" onRequestClose={requestClose}>
+      <Pressable style={styles.sheetBackdrop} onPress={requestClose} />
       <View style={styles.sheet}>
         <View style={styles.grabber} />
         <View style={styles.sheetHead}>
-          <Text style={styles.sheetTitle}>Add a meeting</Text>
-          <Pressable onPress={close}><Text style={styles.sheetCancel}>Cancel</Text></Pressable>
+          <Text style={styles.sheetTitle}>{editing ? 'Edit meeting' : 'Add a meeting'}</Text>
+          <Pressable onPress={requestClose}><Text style={styles.sheetCancel}>Cancel</Text></Pressable>
         </View>
 
-        <View style={styles.tabs}>
-          {(['details', 'paste', 'scan'] as const).map((k) => (
-            <Pressable key={k} onPress={() => setTab(k)} style={[styles.tab, tab === k && styles.tabOn]}>
-              <Text style={[styles.tabText, { color: tab === k ? c.text : c.textMuted }]}>{k === 'scan' ? 'Scan' : k === 'paste' ? 'Paste' : 'Details'}</Text>
-            </Pressable>
-          ))}
-        </View>
+        {!editing && (
+          <View style={styles.tabs}>
+            {(['details', 'paste', 'scan'] as const).map((k) => (
+              <Pressable key={k} onPress={() => setTab(k)} style={[styles.tab, tab === k && styles.tabOn]}>
+                <Text style={[styles.tabText, { color: tab === k ? c.text : c.textMuted }]}>{k === 'scan' ? 'Scan' : k === 'paste' ? 'Paste' : 'Details'}</Text>
+              </Pressable>
+            ))}
+          </View>
+        )}
 
         <ScrollView keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
           {tab === 'scan' ? (
@@ -376,8 +425,8 @@ function AddMeetingSheet({ visible, onClose, onSave }: { visible: boolean; onClo
                 </View>
                 <Text style={styles.onlineToggleText}>Online meeting</Text>
               </Pressable>
-              <Pressable style={[styles.saveBtn, !canSave && styles.btnDisabled]} disabled={!canSave} onPress={commit}>
-                <Text style={styles.saveBtnText}>Save meeting</Text>
+              <Pressable style={[styles.saveBtn, !saveEnabled && styles.btnDisabled]} disabled={!saveEnabled} onPress={commit}>
+                <Text style={styles.saveBtnText}>{editing ? 'Save changes' : 'Save meeting'}</Text>
               </Pressable>
             </View>
           )}

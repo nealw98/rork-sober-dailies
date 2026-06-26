@@ -125,9 +125,13 @@ export const [MeetingsProvider, useMeetings] = createContextHook(() => {
     return id;
   }, []);
 
+  const updateMeeting = useCallback((id: string, patch: Omit<Meeting, 'id'>) => {
+    setMeetings((prev) => prev.map((x) => (x.id === id ? { ...patch, id } : x)));
+  }, []);
+
   const removeMeeting = useCallback((id: string) => {
     setMeetings((prev) => prev.filter((x) => x.id !== id));
   }, []);
 
-  return useMemo(() => ({ meetings, addMeeting, removeMeeting, loaded }), [meetings, addMeeting, removeMeeting, loaded]);
+  return useMemo(() => ({ meetings, addMeeting, updateMeeting, removeMeeting, loaded }), [meetings, addMeeting, updateMeeting, removeMeeting, loaded]);
 });

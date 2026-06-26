@@ -32,7 +32,14 @@ function toMinutes(h: number, m: number, ap: string): number {
 }
 
 // Lines we never treat as the name or the location.
-const JUNK_RE = /^(back|<|\d{1,2}:\d{2}\s*(am|pm)?$|cancel)/i;
+const JUNK_RE = /^([<‹›‹❮]*\s*back\b|<|\d{1,2}:\d{2}\s*(am|pm)?$|cancel)/i;
+// A navigation "Back" affordance (optionally chevron-prefixed). The iOS inter-app
+// return chip ("‹ App Store", "‹ Safari", …) sits ABOVE this, so cutting at the
+// last Back line drops both the chip and the status bar from the title.
+const BACK_RE = /^[<‹›‹❮\s]*back\b/i;
+// Common inter-app return-chip labels — stripped from the title as a backstop
+// when the "Back" line itself wasn't captured by OCR.
+const RETURN_CHIP_RE = /^(?:app store|safari|messages|photos|mail|chrome|maps|home)\s+/i;
 const STOP_RE = /(mi from current location|navigation distance|^english$|^open$|^closed$|in-?person meeting|online meeting|open meetings are available|temporarily closed|wheelchair)/i;
 // Timezone abbreviation the Meeting Guide share text adds on its own line.
 const TZ_RE = /^(?:A[KS]?[DS]?T|[CEMP][DS]?T|H[AS]?[DS]?T|UTC|GMT)$/;
@@ -58,14 +65,21 @@ export function parseMeetingGuide(rawLines: string[]): MeetingDraft {
   // no anchor, fall back to the first meaningful line.
   let nameLines: string[];
   if (anchor >= 0) {
-    nameLines = lines.slice(0, anchor).filter((l) => !JUNK_RE.test(l));
+    // Title sits below the nav bar — drop everything up to and including the
+    // last "Back" line (removes the status bar + inter-app return chip above it).
+    let start = 0;
+    for (let i = anchor - 1; i >= 0; i--) {
+      if (BACK_RE.test(lines[i])) { start = i + 1; break; }
+    }
+    nameLines = lines.slice(start, anchor).filter((l) => !JUNK_RE.test(l));
   } else {
     nameLines = lines.filter((l) => !JUNK_RE.test(l)).slice(0, 1);
   }
   const name = nameLines
     .join(' ')
     .replace(/\s+/g, ' ')
-    .replace(/\s*[-–]?\s*(in-?person|online)(\s+meeting)?$/i, '') // Meeting Guide appends the modality
+    .replace(RETURN_CHIP_RE, '') // backstop: leading "App Store"/"Safari"/… return chip
+    .replace(/\s*[-–]?\s*(in[-\s]*person|online)(\s+meeting)?$/i, '') // Meeting Guide appends the modality (tolerate line-wrap)
     .trim();
 
   // Location: the lines after the anchor, up to the first stop line; skip a
