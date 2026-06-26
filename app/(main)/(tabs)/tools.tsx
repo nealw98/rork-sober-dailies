@@ -7,6 +7,7 @@ import {
   Pressable,
   Image,
   Modal,
+  useWindowDimensions,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -107,13 +108,24 @@ function AppIcon({ app, labelColor, labelShadow, onPress }: { app: AppDef; label
 }
 
 // ─── Photo widget — rounded tile + label beneath (Maps/Calendar style) ───────
+// The tile is sized in CONCRETE pixels (from the screen width) so the photo has a
+// real frame to scale into; the Image fills it 100%×100% with `cover`. (Deriving
+// the height from width:'100%' + aspectRatio inside a ScrollView did not resolve,
+// so the image fell back to its native pixel size.)
+const H_PAD = 22;     // ScrollView horizontal padding (each side)
+const PAIR_GAP = 14;  // gap between the two square widgets
+
 function ToolWidget({ image, label, wide, labelColor, labelShadow, onPress }: { image: any; label: string; wide?: boolean; labelColor: string; labelShadow: object; onPress: () => void }) {
+  const { width: screenW } = useWindowDimensions();
+  const contentW = screenW - H_PAD * 2;
+  const w = wide ? contentW : (contentW - PAIR_GAP) / 2;
+  const h = wide ? Math.round(contentW * 9 / 16) : w; // wide = 16:9, square = 1:1
   return (
-    <Pressable style={wide ? styles.widgetWide : styles.widgetSquare} onPress={onPress} accessibilityRole="button" accessibilityLabel={label}>
-      <View style={[styles.widgetTile, wide ? styles.widgetTileWide : styles.widgetTileSquare]}>
-        <Image source={image} style={StyleSheet.absoluteFill} resizeMode="cover" />
+    <Pressable style={wide ? styles.widgetWide : undefined} onPress={onPress} accessibilityRole="button" accessibilityLabel={label}>
+      <View style={[styles.widgetTile, { width: w, height: h, borderRadius: wide ? 22 : 20 }]}>
+        <Image source={image} style={styles.photo} resizeMode="cover" />
       </View>
-      <Text style={[styles.widgetLabel, { color: labelColor }, labelShadow]} numberOfLines={1}>{label}</Text>
+      <Text style={[styles.widgetLabel, { color: labelColor, width: w }, labelShadow]} numberOfLines={1}>{label}</Text>
     </Pressable>
   );
 }
@@ -264,18 +276,15 @@ const styles = StyleSheet.create({
 
   // Widgets
   widgetWide: { marginBottom: 18 },
-  widgetSquare: { flex: 1 },
-  widgetPair: { flexDirection: 'row', gap: 14, marginBottom: 22 },
+  widgetPair: { flexDirection: 'row', gap: PAIR_GAP, marginBottom: 22 },
   widgetTile: {
-    borderRadius: 22,
     overflow: 'hidden',
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.5)',
     backgroundColor: 'rgba(255,255,255,0.25)',
     ...shadows.md,
   },
-  widgetTileWide: { width: '100%', aspectRatio: 16 / 9 },
-  widgetTileSquare: { width: '100%', aspectRatio: 1, borderRadius: 20 },
+  photo: { width: '100%', height: '100%' },
   widgetLabel: { fontFamily: fontFamily.semiBold, fontSize: 13, textAlign: 'center', marginTop: 8 },
 
   // App-icon grid
