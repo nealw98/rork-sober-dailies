@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   StyleSheet,
   View,
@@ -6,10 +6,10 @@ import {
   ScrollView,
   Pressable,
   Image,
-  ImageBackground,
-  Alert,
+  Modal,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter, type Href } from 'expo-router';
 import {
   NotebookPen,
@@ -18,225 +18,296 @@ import {
   Moon,
   Phone,
   Users,
+  Settings,
+  Check,
 } from 'lucide-react-native';
-// Prayer + Meditation use Phosphor (Lucide has no praying-hands / lotus) —
-// per the DESIGN-DECISIONS icon lockdown.
+// Prayer + Meditation use Phosphor (Lucide has no praying-hands / lotus).
 import { HandsPraying, FlowerLotus } from 'phosphor-react-native';
-import { fontFamily, fontSize, spacing, radii, shadows, getSemanticColors } from '@/constants/designTokens';
+import { fontFamily, fontSize, shadows, lighten } from '@/constants/designTokens';
 import { useScreenTimeTracking } from '@/hooks/useScreenTimeTracking';
+import { useToolsWallpaper, type WallpaperKey } from '@/hooks/use-tools-wallpaper';
 
 /**
- * Tools — pure launcher (redesign 3.0). Tap a tool to open it; no "Add to My
- * Day" pills here (curation lives in My Dailies). Structure mirrors the locked
- * `ToolsFinal` direction in `frames/hifi-tools-v2.jsx`:
- *   hero stack (Literature wide + Speaker / AI Sponsor) → categorized cards.
- * Daily Reflection is intentionally absent — it's the permanent hero on Today.
+ * Tools — a phone home screen (redesign 3.0). A swappable wallpaper, the three
+ * flagship tools as photo widgets, and the rest as an app-icon grid. Pure
+ * launcher: no completion, no "Add to My Day". Spec: `Today & Tools Update/Tools.md`.
  */
 
-type Tone = { solid: string; soft: string; ink: string };
+const INK = '#2B2A30';
 
-const TONE: Record<string, Tone> = {
-  teal: { solid: '#3D8B8B', soft: '#E7F1F1', ink: '#1F4F4F' },
-  lavender: { solid: '#A386D5', soft: '#F3EEFA', ink: '#5C3F8F' },
-  amber: { solid: '#E8A95D', soft: '#FCF0DE', ink: '#7A4A1F' },
-  blue: { solid: '#5C8DFF', soft: '#E5ECF6', ink: '#3A6AE0' },
-  coral: { solid: '#D36A5A', soft: '#FBE7E1', ink: '#7A2A1A' },
-  plum: { solid: '#6B3FA0', soft: '#EFE7F7', ink: '#3F2070' },
+type Wall = {
+  colors: readonly [string, string, ...string[]];
+  locations?: readonly [number, number, ...number[]];
+  start: { x: number; y: number };
+  end: { x: number; y: number };
+  light: boolean; // light → dark ink labels; false (dusk) → white labels
 };
 
-// Both Lucide and Phosphor icon components accept { size, color } — type to the
-// shared subset so we can mix the two libraries (Phosphor for prayer/meditation).
+const WALLPAPERS: Record<WallpaperKey, Wall> = {
+  dawn:  { colors: ['#F6E7D6', '#EFD9DC', '#DAE2EC'], locations: [0, 0.42, 1], start: { x: 0.5, y: 0 }, end: { x: 0.5, y: 1 }, light: true },
+  coast: { colors: ['#C3E2DF', '#AECBEA', '#A6BBDD'], locations: [0, 0.55, 1], start: { x: 0.12, y: 0 }, end: { x: 0.88, y: 1 }, light: true },
+  dusk:  { colors: ['#9690C8', '#7286BC', '#515F92'], locations: [0, 0.58, 1], start: { x: 0.5, y: 0 }, end: { x: 0.5, y: 1 }, light: false },
+  paper: { colors: ['#F4F1EA', '#F4F1EA'], start: { x: 0.5, y: 0 }, end: { x: 0.5, y: 1 }, light: true },
+};
+
+const WALLPAPER_ORDER: WallpaperKey[] = ['dawn', 'coast', 'dusk', 'paper'];
+
+type Tone = { solid: string; light: string };
+const tone = (solid: string): Tone => ({ solid, light: lighten(solid, 0.22) });
+
+const TONE = {
+  teal: tone('#3D8B8B'),
+  lavender: tone('#A386D5'),
+  amber: tone('#E8A95D'),
+  blue: tone('#5C8DFF'),
+  coral: tone('#D36A5A'),
+};
+
 type GlyphComponent = React.ComponentType<{ size?: number; color?: string }>;
 
-type ToolDef = {
-  id: string;
-  name: string;
-  sub: string;
-  tone: Tone;
-  Icon: GlyphComponent;
-  // null route → not built yet (net-new / deferred): show a graceful notice
-  route: Href | null;
-};
+type AppDef = { id: string; name: string; tone: Tone; Icon: GlyphComponent; route: Href };
 
-const SECTIONS: { title: string; tools: ToolDef[] }[] = [
-  {
-    title: 'Reflect & learn',
-    tools: [
-      { id: 'prayers', name: 'Prayers', sub: 'Essential prayers', tone: TONE.amber, Icon: HandsPraying, route: '/(main)/prayers' },
-      { id: 'meditation', name: 'Meditation', sub: '11th step', tone: TONE.lavender, Icon: FlowerLotus, route: '/(main)/meditation' },
-    ],
-  },
-  {
-    title: 'Write it down',
-    tools: [
-      { id: 'journal', name: 'Journal', sub: 'Free writing', tone: TONE.blue, Icon: NotebookPen, route: '/(main)/journal' as Href },
-      { id: 'gratitude', name: 'Gratitude', sub: 'Three things', tone: TONE.amber, Icon: Heart, route: '/(main)/gratitude' },
-      { id: 'spotcheck', name: 'Spot Check Inventory', sub: 'Practice pause', tone: TONE.coral, Icon: CircleCheck, route: '/(main)/inventory' },
-      { id: 'nightly', name: 'Nightly Review', sub: '10th step', tone: TONE.lavender, Icon: Moon, route: '/(main)/evening-review' },
-    ],
-  },
-  {
-    title: 'Connect',
-    tools: [
-      { id: 'another', name: 'Reach Out', sub: 'Call someone', tone: TONE.blue, Icon: Phone, route: '/(main)/reach-out' as Href },
-      { id: 'meeting', name: 'Meetings', sub: 'Find a meeting', tone: TONE.lavender, Icon: Users, route: '/(main)/meetings' },
-    ],
-  },
+const APPS: AppDef[] = [
+  { id: 'prayers', name: 'Prayers', tone: TONE.amber, Icon: HandsPraying, route: '/(main)/prayers' },
+  { id: 'meditation', name: 'Meditation', tone: TONE.lavender, Icon: FlowerLotus, route: '/(main)/meditation' },
+  { id: 'journal', name: 'Journal', tone: TONE.blue, Icon: NotebookPen, route: '/(main)/journal' as Href },
+  { id: 'gratitude', name: 'Gratitude', tone: TONE.amber, Icon: Heart, route: '/(main)/gratitude' },
+  { id: 'spotcheck', name: 'Spot Check', tone: TONE.coral, Icon: CircleCheck, route: '/(main)/inventory' },
+  { id: 'nightly', name: 'Nightly Review', tone: TONE.lavender, Icon: Moon, route: '/(main)/evening-review' },
+  { id: 'another', name: 'Reach Out', tone: TONE.blue, Icon: Phone, route: '/(main)/reach-out' as Href },
+  { id: 'meeting', name: 'Meetings', tone: TONE.lavender, Icon: Users, route: '/(main)/meetings' },
 ];
 
-const comingSoon = (name: string) =>
-  Alert.alert('Coming soon', `${name} is on the way in the redesign.`);
+// ─── App icon — gradient squircle with a label beneath ───────────────────────
+function AppIcon({ app, labelColor, labelShadow, onPress }: { app: AppDef; labelColor: string; labelShadow: object; onPress: () => void }) {
+  const { Icon } = app;
+  return (
+    <Pressable style={styles.appCell} onPress={onPress} accessibilityRole="button" accessibilityLabel={app.name}>
+      <View style={[styles.iconShadow, { shadowColor: app.tone.solid }]}>
+        <LinearGradient
+          colors={[app.tone.light, app.tone.solid]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 0.55, y: 1 }}
+          style={styles.iconFill}
+        >
+          {/* tactile top highlight (replaces the web inset highlight) */}
+          <LinearGradient
+            colors={['rgba(255,255,255,0.45)', 'rgba(255,255,255,0)']}
+            style={styles.iconHighlight}
+            pointerEvents="none"
+          />
+          <Icon size={28} color="#fff" />
+        </LinearGradient>
+      </View>
+      <Text style={[styles.appLabel, { color: labelColor }, labelShadow]} numberOfLines={1}>{app.name}</Text>
+    </Pressable>
+  );
+}
+
+// ─── Photo widget — rounded tile + label beneath (Maps/Calendar style) ───────
+function ToolWidget({ image, label, wide, labelColor, labelShadow, onPress }: { image: any; label: string; wide?: boolean; labelColor: string; labelShadow: object; onPress: () => void }) {
+  return (
+    <Pressable style={wide ? styles.widgetWide : styles.widgetSquare} onPress={onPress} accessibilityRole="button" accessibilityLabel={label}>
+      <View style={[styles.widgetTile, wide ? styles.widgetTileWide : styles.widgetTileSquare]}>
+        <Image source={image} style={StyleSheet.absoluteFill} resizeMode="cover" />
+      </View>
+      <Text style={[styles.widgetLabel, { color: labelColor }, labelShadow]} numberOfLines={1}>{label}</Text>
+    </Pressable>
+  );
+}
+
+// ─── Wallpaper picker popover (anchored top-right) ───────────────────────────
+function WallpaperPicker({ current, top, onPick, onClose }: { current: WallpaperKey; top: number; onPick: (w: WallpaperKey) => void; onClose: () => void }) {
+  return (
+    <Modal transparent visible animationType="fade" onRequestClose={onClose}>
+      <Pressable style={styles.pickerBackdrop} onPress={onClose}>
+        <View style={[styles.pickerCard, { top }]}>
+          <Text style={styles.pickerTitle}>Wallpaper</Text>
+          <View style={styles.swatchRow}>
+            {WALLPAPER_ORDER.map((key) => {
+              const w = WALLPAPERS[key];
+              const selected = key === current;
+              return (
+                <Pressable key={key} onPress={() => onPick(key)} style={styles.swatchWrap} accessibilityLabel={key}>
+                  <LinearGradient
+                    colors={w.colors}
+                    locations={w.locations}
+                    start={w.start}
+                    end={w.end}
+                    style={[styles.swatch, selected && styles.swatchSelected]}
+                  >
+                    {selected && (
+                      <View style={styles.swatchCheck}>
+                        <Check size={12} color="#fff" strokeWidth={3} />
+                      </View>
+                    )}
+                  </LinearGradient>
+                  <Text style={styles.swatchLabel}>{key[0].toUpperCase() + key.slice(1)}</Text>
+                </Pressable>
+              );
+            })}
+          </View>
+        </View>
+      </Pressable>
+    </Modal>
+  );
+}
 
 export default function ToolsScreen() {
   const router = useRouter();
-  const c = getSemanticColors('light');
+  const insets = useSafeAreaInsets();
+  const { wallpaper, setWallpaper } = useToolsWallpaper();
+  const [pickerOpen, setPickerOpen] = useState(false);
   useScreenTimeTracking('Tools');
 
-  const open = (route: Href | null, name: string) => {
-    if (route) router.push(route);
-    else comingSoon(name);
-  };
+  const wall = WALLPAPERS[wallpaper];
+  const labelColor = wall.light ? INK : '#fff';
+  const labelShadow = wall.light
+    ? { textShadowColor: 'rgba(255,255,255,0.6)', textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 2 }
+    : { textShadowColor: 'rgba(0,0,0,0.35)', textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 3 };
+  const gearBorder = wall.light ? 'rgba(43,42,48,0.30)' : 'rgba(255,255,255,0.55)';
 
   return (
-    <SafeAreaView style={[styles.safe, { backgroundColor: c.background }]} edges={['top']}>
-      {/* Header (large) */}
-      <View style={styles.header}>
-        <Text style={[styles.title, { color: c.text }]}>Tools</Text>
-        <Text style={[styles.subtitle, { color: c.textMuted }]}>Open any tool</Text>
-      </View>
+    <View style={styles.root}>
+      {/* Wallpaper layer */}
+      <LinearGradient
+        colors={wall.colors}
+        locations={wall.locations}
+        start={wall.start}
+        end={wall.end}
+        style={StyleSheet.absoluteFill}
+      />
 
-      <ScrollView
-        style={styles.scroll}
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
-      >
-        {/* Hero stack — always-on top tools (not "featured") */}
-        <Pressable
-          onPress={() => router.push('/(main)/literature')}
-          style={({ pressed }) => [styles.heroWide, { backgroundColor: c.surface, borderColor: c.border }, pressed && styles.pressed]}
-        >
-          <ImageBackground
-            source={require('@/assets/images/literature-hero.webp')}
-            style={styles.heroWidePhoto}
-            imageStyle={styles.heroPhotoImg}
-            resizeMode="cover"
-          />
-          <View style={styles.heroCaption}>
-            <Text style={[styles.heroName, { color: c.text }]}>Literature</Text>
-            <Text style={[styles.heroSub, { color: c.textMuted }]}>Big Book · 12&amp;12</Text>
+      <SafeAreaView style={styles.safe} edges={['top']}>
+        {/* Header with gear */}
+        <View style={styles.header}>
+          <View style={{ flex: 1 }}>
+            <Text style={[styles.title, { color: labelColor }, labelShadow]}>Tools</Text>
+            <Text style={[styles.subtitle, { color: labelColor }, labelShadow]}>Open any tool</Text>
           </View>
-        </Pressable>
-
-        <View style={styles.heroPair}>
           <Pressable
-            onPress={() => router.push('/(main)/speakers')}
-            style={({ pressed }) => [styles.heroSmall, { backgroundColor: c.surface, borderColor: c.border }, pressed && styles.pressed]}
+            onPress={() => setPickerOpen(true)}
+            style={[styles.gear, { borderColor: gearBorder }]}
+            accessibilityRole="button"
+            accessibilityLabel="Change wallpaper"
+            hitSlop={8}
           >
-            <Image source={require('@/assets/images/speaker-hero.webp')} style={styles.heroSmallPhoto} resizeMode="cover" />
-            <View style={styles.heroSmallCaption}>
-              <Text style={[styles.heroSmallName, { color: c.text }]}>Speaker Tapes</Text>
-              <Text style={[styles.heroSub, { color: c.textMuted }]}>AA talks</Text>
-            </View>
-          </Pressable>
-
-          <Pressable
-            onPress={() => router.push('/(main)/chat')}
-            style={({ pressed }) => [styles.heroSmall, { backgroundColor: c.surface, borderColor: c.border }, pressed && styles.pressed]}
-          >
-            <Image source={require('@/assets/images/ai_sponsor_hero.webp')} style={styles.heroSmallPhoto} resizeMode="cover" />
-            <View style={styles.heroSmallCaption}>
-              <Text style={[styles.heroSmallName, { color: c.text }]}>AI Sponsor</Text>
-              <Text style={[styles.heroSub, { color: c.textMuted }]}>Chat anytime</Text>
-            </View>
+            <Settings size={15} color={labelColor} strokeWidth={2} />
           </Pressable>
         </View>
 
-        {/* Categorized launcher cards */}
-        {SECTIONS.map((section) => (
-          <View key={section.title} style={styles.section}>
-            <Text style={[styles.sectionTitle, { color: c.text }]}>{section.title}</Text>
-            <View style={styles.grid}>
-              {section.tools.map((tool) => {
-                const { Icon } = tool;
-                return (
-                  <Pressable
-                    key={tool.id}
-                    onPress={() => open(tool.route, tool.name)}
-                    style={({ pressed }) => [
-                      styles.card,
-                      { backgroundColor: c.surface, borderColor: c.border },
-                      pressed && styles.pressed,
-                    ]}
-                  >
-                    <View style={[styles.medallion, { backgroundColor: tool.tone.solid, shadowColor: tool.tone.solid }]}>
-                      <Icon size={19} color="#fff" />
-                    </View>
-                    <View style={styles.cardText}>
-                      <Text style={[styles.cardName, { color: c.text }]} numberOfLines={2}>{tool.name}</Text>
-                      <Text style={[styles.cardSub, { color: c.textMuted }]} numberOfLines={1}>{tool.sub}</Text>
-                    </View>
-                  </Pressable>
-                );
-              })}
-            </View>
+        <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
+          {/* Featured widgets */}
+          <ToolWidget
+            image={require('@/assets/images/literature-hero.webp')}
+            label="Literature"
+            wide
+            labelColor={labelColor}
+            labelShadow={labelShadow}
+            onPress={() => router.push('/(main)/literature')}
+          />
+          <View style={styles.widgetPair}>
+            <ToolWidget
+              image={require('@/assets/images/speaker-hero.webp')}
+              label="Speaker Tapes"
+              labelColor={labelColor}
+              labelShadow={labelShadow}
+              onPress={() => router.push('/(main)/speakers')}
+            />
+            <ToolWidget
+              image={require('@/assets/images/ai_sponsor_hero.webp')}
+              label="AI Sponsor"
+              labelColor={labelColor}
+              labelShadow={labelShadow}
+              onPress={() => router.push('/(main)/chat')}
+            />
           </View>
-        ))}
-      </ScrollView>
-    </SafeAreaView>
+
+          {/* App-icon grid */}
+          <View style={styles.grid}>
+            {APPS.map((app) => (
+              <AppIcon
+                key={app.id}
+                app={app}
+                labelColor={labelColor}
+                labelShadow={labelShadow}
+                onPress={() => router.push(app.route)}
+              />
+            ))}
+          </View>
+        </ScrollView>
+      </SafeAreaView>
+
+      {pickerOpen && (
+        <WallpaperPicker
+          current={wallpaper}
+          top={insets.top + 52}
+          onPick={(w) => { setWallpaper(w); setPickerOpen(false); }}
+          onClose={() => setPickerOpen(false)}
+        />
+      )}
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
+  root: { flex: 1 },
   safe: { flex: 1 },
-  header: { paddingHorizontal: 22, paddingTop: spacing.sm, paddingBottom: spacing.sm },
+  header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 22, paddingTop: 8, paddingBottom: 10 },
   title: { fontFamily: fontFamily.display, fontSize: 30, letterSpacing: -0.5 },
   subtitle: { fontFamily: fontFamily.regular, fontSize: fontSize.md, marginTop: 2 },
-  scroll: { flex: 1 },
-  scrollContent: { paddingHorizontal: 22, paddingTop: 6, paddingBottom: 120 },
-  pressed: { opacity: 0.85 },
+  gear: { width: 32, height: 32, borderRadius: 16, borderWidth: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: 'transparent' },
 
-  // Wide hero (Literature)
-  heroWide: { borderRadius: 18, borderWidth: 1, overflow: 'hidden', marginBottom: 10, ...shadows.sm },
-  heroWidePhoto: { height: 132, width: '100%' },
-  heroPhotoImg: {},
-  heroCaption: { paddingHorizontal: 14, paddingTop: 12, paddingBottom: 13 },
-  heroName: { fontFamily: fontFamily.semiBold, fontSize: fontSize.lg, lineHeight: 19 },
-  heroSub: { fontFamily: fontFamily.regular, fontSize: fontSize.sm, marginTop: 2 },
+  scroll: { paddingHorizontal: 22, paddingTop: 8, paddingBottom: 120 },
 
-  // Small hero pair (Speaker / AI Sponsor)
-  heroPair: { flexDirection: 'row', gap: 10, marginBottom: 18 },
-  heroSmall: { flex: 1, borderRadius: 14, borderWidth: 1, overflow: 'hidden', ...shadows.sm },
-  heroSmallPhoto: { height: 88, width: '100%' },
-  heroSmallCaption: { paddingHorizontal: 12, paddingTop: 10, paddingBottom: 12 },
-  heroSmallName: { fontFamily: fontFamily.semiBold, fontSize: fontSize.base, lineHeight: 18 },
-
-  // Sections + cards
-  section: { marginBottom: 18 },
-  sectionTitle: { fontFamily: fontFamily.semiBold, fontSize: fontSize.lg, marginBottom: 10 },
-  grid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' },
-  card: {
-    width: '48%',
-    marginBottom: 10,
-    borderRadius: 16,
+  // Widgets
+  widgetWide: { marginBottom: 18 },
+  widgetSquare: { flex: 1 },
+  widgetPair: { flexDirection: 'row', gap: 14, marginBottom: 22 },
+  widgetTile: {
+    borderRadius: 22,
+    overflow: 'hidden',
     borderWidth: 1,
-    padding: 12,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 11,
-    minHeight: 64,
+    borderColor: 'rgba(255,255,255,0.5)',
+    backgroundColor: 'rgba(255,255,255,0.25)',
+    ...shadows.md,
   },
-  medallion: {
-    width: 38,
-    height: 38,
-    borderRadius: 11,
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowOpacity: 0.25,
+  widgetTileWide: { width: '100%', aspectRatio: 16 / 9 },
+  widgetTileSquare: { width: '100%', aspectRatio: 1, borderRadius: 20 },
+  widgetLabel: { fontFamily: fontFamily.semiBold, fontSize: 13, textAlign: 'center', marginTop: 8 },
+
+  // App-icon grid
+  grid: { flexDirection: 'row', flexWrap: 'wrap' },
+  appCell: { width: '25%', alignItems: 'center', marginBottom: 20 },
+  iconShadow: {
+    borderRadius: 15,
+    shadowOpacity: 0.35,
     shadowRadius: 8,
-    shadowOffset: { width: 0, height: 3 },
-    elevation: 3,
+    shadowOffset: { width: 0, height: 5 },
+    elevation: 4,
   },
-  cardText: { flex: 1, minWidth: 0 },
-  cardName: { fontFamily: fontFamily.semiBold, fontSize: fontSize.md, lineHeight: 17 },
-  cardSub: { fontFamily: fontFamily.regular, fontSize: fontSize.sm, marginTop: 1 },
+  iconFill: { width: 60, height: 60, borderRadius: 15, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
+  iconHighlight: { position: 'absolute', top: 0, left: 0, right: 0, height: '55%' },
+  appLabel: { fontFamily: fontFamily.medium, fontSize: 11.5, textAlign: 'center', marginTop: 7 },
+
+  // Wallpaper picker popover
+  pickerBackdrop: { flex: 1 },
+  pickerCard: {
+    position: 'absolute',
+    right: 16,
+    backgroundColor: '#FFFDF8',
+    borderRadius: 18,
+    padding: 14,
+    width: 250,
+    borderWidth: 1,
+    borderColor: 'rgba(120,98,60,0.13)',
+    ...shadows.lg,
+  },
+  pickerTitle: { fontFamily: fontFamily.bold, fontSize: 11, letterSpacing: 1.1, textTransform: 'uppercase', color: '#8A8A9A', marginBottom: 10, marginLeft: 2 },
+  swatchRow: { flexDirection: 'row', justifyContent: 'space-between' },
+  swatchWrap: { alignItems: 'center', width: 50 },
+  swatch: { width: 46, height: 46, borderRadius: 12, borderWidth: 1, borderColor: 'rgba(0,0,0,0.08)', alignItems: 'center', justifyContent: 'center' },
+  swatchSelected: { borderWidth: 2, borderColor: '#3D8B8B' },
+  swatchCheck: { width: 20, height: 20, borderRadius: 10, backgroundColor: 'rgba(61,139,139,0.92)', alignItems: 'center', justifyContent: 'center' },
+  swatchLabel: { fontFamily: fontFamily.medium, fontSize: 10.5, color: '#4A4A5E', marginTop: 5 },
 });

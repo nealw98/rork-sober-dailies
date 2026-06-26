@@ -1,6 +1,7 @@
 import React from 'react';
 import { Heart, Users, BookOpen, Moon, NotebookPen, CircleCheck, Phone, Play, House, Circle } from 'lucide-react-native';
 import { HandsPraying, FlowerLotus } from 'phosphor-react-native';
+import { lighten } from '@/constants/designTokens';
 
 /**
  * Shared glyph + tone maps for the dailies surfaces (Today + My Dailies editor),
@@ -28,8 +29,11 @@ export const GLYPH: Record<string, GlyphComponent> = {
 
 export const resolveGlyph = (name: string): GlyphComponent => GLYPH[name] ?? Circle;
 
-// tone name → { ink (solid), soft (tint) } — matches the Journey/Tools medallions
-export const ROW_TONES: Record<string, { ink: string; soft: string }> = {
+// tone name → { ink (solid), soft (tint), fill } — matches the Journey/Tools
+// medallions. `fill` is the completed-row inset wash on Today: `soft` lightened
+// ~50% toward white (precomputed; RN has no color-mix).
+type RowTone = { ink: string; soft: string; fill: string };
+const RAW_TONES: Record<string, { ink: string; soft: string }> = {
   teal: { ink: '#3D8B8B', soft: '#D8E8E8' },
   amber: { ink: '#E8A95D', soft: '#F6E5C8' },
   blue: { ink: '#5C8DFF', soft: '#DEE8FF' },
@@ -38,7 +42,11 @@ export const ROW_TONES: Record<string, { ink: string; soft: string }> = {
   gray: { ink: '#9A9AA8', soft: '#E7E2D5' },
 };
 
-export const resolveTone = (name: string) => ROW_TONES[name] ?? ROW_TONES.gray;
+export const ROW_TONES: Record<string, RowTone> = Object.fromEntries(
+  Object.entries(RAW_TONES).map(([k, v]) => [k, { ...v, fill: lighten(v.soft, 0.5) }]),
+);
+
+export const resolveTone = (name: string): RowTone => ROW_TONES[name] ?? ROW_TONES.gray;
 
 // Small, lighter subtitle shown under a daily's label on Today + My Dailies
 // (not the Tools page). Keyed by action; custom dailies have none.
