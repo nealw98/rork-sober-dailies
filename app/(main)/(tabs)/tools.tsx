@@ -23,9 +23,11 @@ import {
 } from 'lucide-react-native';
 // Prayer + Meditation use Phosphor (Lucide has no praying-hands / lotus).
 import { HandsPraying, FlowerLotus } from 'phosphor-react-native';
-import { fontFamily, fontSize, shadows, lighten } from '@/constants/designTokens';
+import { fontFamily, fontSize, shadows, getSemanticColors, lighten } from '@/constants/designTokens';
 import { useScreenTimeTracking } from '@/hooks/useScreenTimeTracking';
 import { useToolsWallpaper, type WallpaperKey } from '@/hooks/use-tools-wallpaper';
+
+const c = getSemanticColors('light');
 
 /**
  * Tools — a phone home screen (redesign 3.0). A swappable wallpaper, the three
@@ -47,7 +49,7 @@ const WALLPAPERS: Record<WallpaperKey, Wall> = {
   dawn:  { colors: ['#F6E7D6', '#EFD9DC', '#DAE2EC'], locations: [0, 0.42, 1], start: { x: 0.5, y: 0 }, end: { x: 0.5, y: 1 }, light: true },
   coast: { colors: ['#C3E2DF', '#AECBEA', '#A6BBDD'], locations: [0, 0.55, 1], start: { x: 0.12, y: 0 }, end: { x: 0.88, y: 1 }, light: true },
   dusk:  { colors: ['#9690C8', '#7286BC', '#515F92'], locations: [0, 0.58, 1], start: { x: 0.5, y: 0 }, end: { x: 0.5, y: 1 }, light: false },
-  paper: { colors: ['#F4F1EA', '#F4F1EA'], start: { x: 0.5, y: 0 }, end: { x: 0.5, y: 1 }, light: true },
+  paper: { colors: [c.background, c.background], start: { x: 0.5, y: 0 }, end: { x: 0.5, y: 1 }, light: true },
 };
 
 const WALLPAPER_ORDER: WallpaperKey[] = ['dawn', 'coast', 'dusk', 'paper'];
@@ -199,7 +201,7 @@ export default function ToolsScreen() {
         <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
           {/* Featured widgets */}
           <ToolWidget
-            image={require('@/assets/images/literature-hero.webp')}
+            image={require('@/assets/images/literature_hero2.webp')}
             label="Literature"
             wide
             labelColor={labelColor}
@@ -208,14 +210,14 @@ export default function ToolsScreen() {
           />
           <View style={styles.widgetPair}>
             <ToolWidget
-              image={require('@/assets/images/speaker-hero.webp')}
+              image={require('@/assets/images/speakers_hero2.webp')}
               label="Speaker Tapes"
               labelColor={labelColor}
               labelShadow={labelShadow}
               onPress={() => router.push('/(main)/speakers')}
             />
             <ToolWidget
-              image={require('@/assets/images/ai_sponsor_hero.webp')}
+              image={require('@/assets/images/ai_sponsor_hero2.webp')}
               label="AI Sponsor"
               labelColor={labelColor}
               labelShadow={labelShadow}

@@ -7,7 +7,9 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 export type WallpaperKey = 'dawn' | 'coast' | 'dusk' | 'paper';
 
 const KEY = 'tools_wallpaper';
-const DEFAULT: WallpaperKey = 'dawn';
+// Default to the plain app background (the "paper" swatch), matching every other
+// screen; the gradients are opt-in via the gear picker.
+const DEFAULT: WallpaperKey = 'paper';
 const VALID: WallpaperKey[] = ['dawn', 'coast', 'dusk', 'paper'];
 
 export function useToolsWallpaper() {
