@@ -1,17 +1,28 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Platform, Linking, Share, ScrollView, Modal, SafeAreaView, Alert, TextInput, ActivityIndicator, KeyboardAvoidingView, Switch } from 'react-native';
+// Settings — rebuilt from the prototype (frames/hifi-profile-v2.jsx · ProfileHiFiB).
+// Tab-style header (large "Settings" title + serif subtitle, matching Today /
+// Journey / Tools — no TopLevelHeader, no Home/hamburger, no eyebrow). Content is
+// token-based CardGroup / CardRow / SettingSection blocks: Text Size (live preview
+// + steppers), Your Data, Support Sober Dailies, About, and a dev-only group.
+// Legal links + version live at the foot of the scroll (the floating tab bar +
+// FAB sit above). Hidden QA: tap the version 7× for the Support ID; long-press for
+// the Debug Console. Reminders (notifications) + Light/Dark/System theme from the
+// prototype are deferred — see the team note in the PR.
+import React, { useState, useEffect, useRef } from 'react';
+import {
+  View, Text, StyleSheet, TouchableOpacity, Platform, Linking, Share, ScrollView,
+  Modal, SafeAreaView as RNSafeAreaView, Alert, TextInput, ActivityIndicator,
+  KeyboardAvoidingView, Switch,
+} from 'react-native';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router, Stack, type Href } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { ChevronLeft, ChevronRight, X, Code2, Terminal, RefreshCw, Settings } from 'lucide-react-native';
-import TopLevelHeader from '@/components/navigation/TopLevelHeader';
+import { ChevronRight, X, Code2, RefreshCw } from 'lucide-react-native';
 import {
   colors,
-  semanticColors,
+  getSemanticColors,
   spacing,
   radii,
   fontFamily,
-  fontSize as fontSizeTokens,
   shadows,
 } from '@/constants/designTokens';
 import Constants from 'expo-constants';
@@ -19,40 +30,81 @@ import * as Clipboard from 'expo-clipboard';
 import * as SecureStore from 'expo-secure-store';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Purchases from 'react-native-purchases';
-import { useTheme } from '@/hooks/useTheme';
-import { adjustFontWeight } from '@/constants/fonts';
 import { useTextSettings } from '@/hooks/use-text-settings';
 import { Logger } from '@/lib/logger';
 import { submitFeedback } from '@/lib/feedback';
 import { usageLogger } from '@/lib/usageLogger';
 import { useScreenTimeTracking } from '@/hooks/useScreenTimeTracking';
 import { useOnboarding } from '@/hooks/useOnboardingStore';
+import { clearUserData } from '@/lib/userDataSync';
+import { setSyncPaused } from '@/lib/icloudSync';
 
+const c = getSemanticColors('light');
 const DEVELOPER_MODE_KEY = 'developer_mode_enabled';
 
+// ─── Token-based building blocks (mirror the prototype) ──────────────────────
+
+// A labelled card containing one or more rows (surface fill, hairline border).
+function CardGroup({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <View style={styles.section}>
+      <Text style={styles.sectionLabel}>{label}</Text>
+      <View style={styles.card}>{children}</View>
+    </View>
+  );
+}
+
+// A tappable row inside a CardGroup: label (+ optional sub / value) + chevron.
+function CardRow({
+  label, value, sub, last, onPress,
+}: { label: string; value?: string; sub?: string; last?: boolean; onPress?: () => void }) {
+  return (
+    <TouchableOpacity
+      style={[styles.row, !last && styles.rowDivider]}
+      onPress={onPress}
+      activeOpacity={0.6}
+    >
+      <View style={styles.rowText}>
+        <Text style={styles.rowLabel}>{label}</Text>
+        {sub ? <Text style={styles.rowSub}>{sub}</Text> : null}
+      </View>
+      {value ? <Text style={styles.rowValue}>{value}</Text> : null}
+      <ChevronRight size={18} color={c.textMuted} />
+    </TouchableOpacity>
+  );
+}
+
+// A labelled section that holds an inline control (no card chrome).
+function SettingSection({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <View style={styles.section}>
+      <Text style={styles.sectionLabel}>{label}</Text>
+      {children}
+    </View>
+  );
+}
+
 export default function SettingsScreen() {
-  const insets = useSafeAreaInsets();
-  const { palette, themeId, setThemeId, themes } = useTheme();
   const { fontSize, setFontSize, minFontSize, maxFontSize, resetDefaults, defaultFontSize } = useTextSettings();
   const { resetOnboarding } = useOnboarding();
 
   useScreenTimeTracking('Settings');
-  
+
   const [logsVisible, setLogsVisible] = useState(false);
   const [logsText, setLogsText] = useState('');
   const [isDeveloperMode, setIsDeveloperMode] = useState(false);
-  
+
   // Feedback modal state
   const [feedbackVisible, setFeedbackVisible] = useState(false);
   const [feedbackText, setFeedbackText] = useState('');
   const [contactInfo, setContactInfo] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Support ID modal state (hidden, revealed by tapping version 7 times)
+  // Support ID modal state (hidden, revealed by tapping the version 7 times)
   const [supportIdModalVisible, setSupportIdModalVisible] = useState(false);
   const [supportId, setSupportId] = useState<string | null>(null);
   const [versionTapCount, setVersionTapCount] = useState(0);
-  const versionTapTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const versionTapTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Load developer mode on mount
   useEffect(() => {
@@ -66,19 +118,13 @@ export default function SettingsScreen() {
     };
     loadDeveloperMode();
   }, []);
-  
+
   const toggleDeveloperMode = async () => {
     const newValue = !isDeveloperMode;
     setIsDeveloperMode(newValue);
-    
     try {
       await AsyncStorage.setItem(DEVELOPER_MODE_KEY, newValue.toString());
-
-      // Also log to Supabase via usageLogger
-      usageLogger.logEvent('developer_mode_toggled', {
-        screen: 'Settings',
-        is_developer: newValue
-      });
+      usageLogger.logEvent('developer_mode_toggled', { screen: 'Settings', is_developer: newValue });
     } catch (error) {
       console.error('[Settings] Failed to save developer mode:', error);
       Alert.alert('Error', 'Failed to save developer mode setting');
@@ -86,46 +132,37 @@ export default function SettingsScreen() {
   };
 
   const step = 2;
-  const increase = () => {
-    setFontSize(fontSize + step);
-  };
-  const decrease = () => {
-    setFontSize(fontSize - step);
-  };
-
-  const handleBack = () => {
-    router.back();
-  };
+  const increase = () => setFontSize(fontSize + step);
+  const decrease = () => setFontSize(fontSize - step);
 
   // Version info
   const appVersion = Constants.expoConfig?.version ?? '—';
   const iosBuild = Constants.expoConfig?.ios?.buildNumber ?? undefined;
   const androidVersionCode = Constants.expoConfig?.android?.versionCode ?? undefined;
+  const versionLabel = `Version ${appVersion}${Platform.OS === 'ios' && iosBuild ? ` (${iosBuild})` : ''}${Platform.OS === 'android' && androidVersionCode ? ` (${androidVersionCode})` : ''}`;
 
   // Update in-app logs when viewer is open
   useEffect(() => {
     if (!logsVisible) return;
     setLogsText(Logger.toClipboardText());
-    const unsub = Logger.subscribe(() => {
-      setLogsText(Logger.toClipboardText());
-    });
+    const unsub = Logger.subscribe(() => setLogsText(Logger.toClipboardText()));
     return () => unsub();
   }, [logsVisible]);
 
   const toggleLogs = () => setLogsVisible((v) => !v);
-  
+
   const copyLogs = async () => {
     try {
       await Clipboard.setStringAsync(Logger.toClipboardText());
       Alert.alert('Copied', 'Logs copied to clipboard');
     } catch {}
   };
-  
+
   const clearLogs = () => {
     Logger.clear();
     setLogsText('');
   };
-  
+
   const checkForOta = async () => {
     try {
       const Updates = await import('expo-updates');
@@ -144,7 +181,7 @@ export default function SettingsScreen() {
       Alert.alert('Update error', e?.message || 'Unknown error');
     }
   };
-  
+
   const reloadApp = async () => {
     try {
       const Updates = await import('expo-updates');
@@ -163,27 +200,17 @@ export default function SettingsScreen() {
           style: 'destructive',
           onPress: async () => {
             try {
-              // Clear premium override (dev bypass)
               await SecureStore.deleteItemAsync('sober_dailies_premium_override');
-              // Clear anonymous ID (SecureStore and AsyncStorage)
               await SecureStore.deleteItemAsync('sober_dailies_anonymous_id');
               await AsyncStorage.removeItem('anonymous_id');
-              // Clear onboarding
               await AsyncStorage.removeItem('sober_dailies_onboarding_complete');
-              
-              // Logout from RevenueCat to get a new anonymous user ID
               try {
                 await Purchases.logOut();
                 console.log('[Settings] RevenueCat user logged out');
               } catch (rcError) {
                 console.warn('[Settings] RevenueCat logout failed (may not be configured):', rcError);
               }
-              
-              Alert.alert(
-                'Reset Complete',
-                'All user data has been cleared. You MUST restart the app now for changes to take effect.',
-                [{ text: 'OK' }]
-              );
+              Alert.alert('Reset Complete', 'All user data has been cleared. You MUST restart the app now for changes to take effect.', [{ text: 'OK' }]);
             } catch (error) {
               Alert.alert('Error', 'Failed to reset subscription state.');
               console.error('[Settings] Reset subscription state error:', error);
@@ -194,28 +221,17 @@ export default function SettingsScreen() {
     );
   };
 
-  const handlePrivacyPress = () => {
-    Linking.openURL('https://soberdailies.com/privacy');
-  };
+  const handlePrivacyPress = () => Linking.openURL('https://soberdailies.com/privacy');
+  const handleTermsPress = () => Linking.openURL('https://www.apple.com/legal/internet-services/itunes/dev/stdeula/');
+  const handleSupportPress = () => Linking.openURL('https://soberdailies.com/support');
 
-  const handleTermsPress = () => {
-    Linking.openURL('https://www.apple.com/legal/internet-services/itunes/dev/stdeula/');
-  };
-
-  const handleSupportPress = () => {
-    Linking.openURL('https://soberdailies.com/support');
-  };
-  
   const handleRateAppPress = async () => {
     try {
       if (Platform.OS === 'ios') {
         const appStoreId = '6749869819';
-        const url = `itms-apps://itunes.apple.com/app/id${appStoreId}?action=write-review`;
-        await Linking.openURL(url);
+        await Linking.openURL(`itms-apps://itunes.apple.com/app/id${appStoreId}?action=write-review`);
       } else {
-        const packageName = 'com.nealwagner.soberdailies';
-        const url = `market://details?id=${packageName}`;
-        await Linking.openURL(url);
+        await Linking.openURL(`market://details?id=com.nealwagner.soberdailies`);
       }
     } catch (error) {
       console.error('Error opening store for rating:', error);
@@ -228,13 +244,8 @@ export default function SettingsScreen() {
         Platform.OS === 'ios'
           ? 'https://apps.apple.com/app/sober-dailies/id6749869819'
           : 'https://play.google.com/store/apps/details?id=com.nealwagner.soberdailies';
-
-      await Share.share({
-        message: 'Sober Dailies helps me stay sober one day at a time. Check it out: ' + appStoreUrl,
-      });
-    } catch {
-      // no-op
-    }
+      await Share.share({ message: 'Sober Dailies helps me stay sober one day at a time. Check it out: ' + appStoreUrl });
+    } catch {}
   };
 
   const handleFeedbackSubmit = async () => {
@@ -242,8 +253,6 @@ export default function SettingsScreen() {
       Alert.alert('Please enter your feedback', 'Let us know what you think!');
       return;
     }
-
-    // Validate email if provided
     if (contactInfo.trim()) {
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
       if (!emailRegex.test(contactInfo.trim())) {
@@ -251,26 +260,16 @@ export default function SettingsScreen() {
         return;
       }
     }
-
     setIsSubmitting(true);
-    
     const result = await submitFeedback({
       feedbackText: feedbackText.trim(),
       contactInfo: contactInfo.trim() || undefined,
     });
-
     setIsSubmitting(false);
-
     if (result.success) {
-      Alert.alert(
-        'Thank you!',
-        'Your feedback has been submitted. We appreciate you taking the time to help improve Sober Dailies.',
-        [{ text: 'OK', onPress: () => {
-          setFeedbackVisible(false);
-          setFeedbackText('');
-          setContactInfo('');
-        }}]
-      );
+      Alert.alert('Thank you!', 'Your feedback has been submitted. We appreciate you taking the time to help improve Sober Dailies.', [
+        { text: 'OK', onPress: () => { setFeedbackVisible(false); setFeedbackText(''); setContactInfo(''); } },
+      ]);
     } else {
       Alert.alert('Error', result.error || 'Failed to submit feedback. Please try again.');
     }
@@ -278,18 +277,10 @@ export default function SettingsScreen() {
 
   const handleFeedbackClose = () => {
     if (feedbackText.trim()) {
-      Alert.alert(
-        'Discard feedback?',
-        'Your feedback will not be saved.',
-        [
-          { text: 'Cancel', style: 'cancel' },
-          { text: 'Discard', style: 'destructive', onPress: () => {
-            setFeedbackVisible(false);
-            setFeedbackText('');
-            setContactInfo('');
-          }},
-        ]
-      );
+      Alert.alert('Discard feedback?', 'Your feedback will not be saved.', [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Discard', style: 'destructive', onPress: () => { setFeedbackVisible(false); setFeedbackText(''); setContactInfo(''); } },
+      ]);
     } else {
       setFeedbackVisible(false);
       setFeedbackText('');
@@ -297,45 +288,27 @@ export default function SettingsScreen() {
     }
   };
 
-  // Handle version number taps for hidden diagnostic screen
+  // Tap the version 7× to reveal the Support ID (for support requests).
   const handleVersionTap = () => {
-    // Clear existing timeout
-    if (versionTapTimeoutRef.current) {
-      clearTimeout(versionTapTimeoutRef.current);
-    }
-
+    if (versionTapTimeoutRef.current) clearTimeout(versionTapTimeoutRef.current);
     const newCount = versionTapCount + 1;
     setVersionTapCount(newCount);
-
     if (newCount >= 7) {
-      // Reset count and show Support ID modal
       setVersionTapCount(0);
       showSupportIdModal();
     } else {
-      // Reset count after 3 seconds of no taps
-      versionTapTimeoutRef.current = setTimeout(() => {
-        setVersionTapCount(0);
-      }, 3000);
+      versionTapTimeoutRef.current = setTimeout(() => setVersionTapCount(0), 3000);
     }
   };
 
-  // Clean up timeout on unmount
-  useEffect(() => {
-    return () => {
-      if (versionTapTimeoutRef.current) {
-        clearTimeout(versionTapTimeoutRef.current);
-      }
-    };
-  }, []);
+  useEffect(() => () => { if (versionTapTimeoutRef.current) clearTimeout(versionTapTimeoutRef.current); }, []);
 
-  // Show Support ID modal
   const showSupportIdModal = async () => {
     const id = await usageLogger.getAnonymousId();
     setSupportId(id);
     setSupportIdModalVisible(true);
   };
 
-  // Copy Support ID to clipboard
   const copySupportId = async () => {
     if (supportId) {
       await Clipboard.setStringAsync(supportId);
@@ -343,214 +316,144 @@ export default function SettingsScreen() {
     }
   };
 
-  return (
-    <View style={[styles.container, { backgroundColor: semanticColors.light.background }]}>
-      <Stack.Screen options={{ headerShown: false }} />
-      <TopLevelHeader title="" />
+  // ── Testing tools (dev) — mirror Backup & Restore's Start Fresh flows ──
+  // Re-run onboarding while keeping all current data (incl. the iCloud backup):
+  // the root layout swaps to onboarding the moment the flag flips.
+  const onboardKeep = () => {
+    Alert.alert('Run onboarding again?', 'The welcome flow will run again. Your current data is kept.', [
+      { text: 'Cancel', style: 'cancel' },
+      { text: 'Run onboarding', onPress: () => { resetOnboarding(); } },
+    ]);
+  };
 
-      {/* Content */}
-      <ScrollView style={styles.content} contentContainerStyle={{ paddingBottom: 24 }}>
-        {/* Page intro */}
-        <View style={styles.pageIntro}>
-          <View style={styles.introLabelRow}>
-            <Settings size={14} color={semanticColors.light.textMuted} />
-            <Text style={styles.introLabel}>PREFERENCES</Text>
-          </View>
-          <Text style={styles.introTitle}>Settings</Text>
+  // Wipe everything on this device and onboard fresh (clean-install test). Pauses
+  // iCloud sync first so the empty state can't overwrite or auto-restore the backup.
+  const clearAll = () => {
+    Alert.alert(
+      'Clear all data?',
+      'Wipes ALL your data on this device and runs onboarding again. Your iCloud backup is kept and sync is paused, so nothing comes back until you restore.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Clear everything',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await setSyncPaused(true);
+              await clearUserData();
+              try { const U = await import('expo-updates'); await U.reloadAsync(); } catch {}
+              await resetOnboarding(); // dev fallback if no updates module
+            } catch (e: any) {
+              Alert.alert('Error', e?.message ?? 'Failed to clear data');
+            }
+          },
+        },
+      ],
+    );
+  };
+
+  return (
+    <View style={styles.container}>
+      <Stack.Screen options={{ headerShown: false }} />
+
+      {/* Header — matches Today / Journey / Tools */}
+      <SafeAreaView edges={['top']} style={styles.headerSafe}>
+        <View style={styles.header}>
+          <Text style={styles.title}>Settings</Text>
+          <Text style={styles.subtitle}>Preferences and support</Text>
         </View>
-        {/* Appearance Section */}
-        <Text style={[styles.sectionTitle, { color: palette.text }]}>Text Size</Text>
-        
-        {/* Text Size Controls - Inline */}
-        <View style={styles.textSizeSection}>
-          {/* Preview */}
-          <View style={[styles.preview, { backgroundColor: palette.cardBackground }]}>
-            <Text
-              style={[
-                styles.previewText,
-                { fontSize, lineHeight: fontSize * 1.5, fontWeight: adjustFontWeight("500"), color: palette.text },
-              ]}
-            >
-              "Daily progress one day at a time."
+      </SafeAreaView>
+
+      <ScrollView style={styles.content} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+
+        {/* Text Size — live preview + steppers */}
+        <SettingSection label="Text Size">
+          <View style={styles.previewCard}>
+            <Text style={[styles.previewText, { fontSize, lineHeight: fontSize * 1.5 }]}>
+              &ldquo;Daily progress one day at a time.&rdquo;
             </Text>
           </View>
-          
-          {/* Controls */}
-          <View style={styles.controls}>
+          <View style={styles.stepperRow}>
             <TouchableOpacity
-              style={[
-                styles.sizeButton, 
-                { backgroundColor: palette.tint, borderColor: palette.border },
-                fontSize <= minFontSize && [styles.sizeButtonDisabled, { backgroundColor: palette.muted }]
-              ]}
+              style={[styles.stepBtn, fontSize <= minFontSize && styles.stepBtnDisabled]}
               onPress={decrease}
               disabled={fontSize <= minFontSize}
               activeOpacity={0.7}
             >
-              <Text style={[styles.sizeButtonText, fontSize <= minFontSize && styles.sizeButtonTextDisabled]}>−</Text>
+              <Text style={[styles.stepBtnText, fontSize <= minFontSize && styles.stepBtnTextDisabled]}>−</Text>
             </TouchableOpacity>
-
             <TouchableOpacity
-              style={[
-                styles.sizeButton, 
-                { backgroundColor: palette.tint, borderColor: palette.border },
-                fontSize >= maxFontSize && [styles.sizeButtonDisabled, { backgroundColor: palette.muted }]
-              ]}
+              style={[styles.stepBtn, fontSize >= maxFontSize && styles.stepBtnDisabled]}
               onPress={increase}
               disabled={fontSize >= maxFontSize}
               activeOpacity={0.7}
             >
-              <Text style={[styles.sizeButtonText, fontSize >= maxFontSize && styles.sizeButtonTextDisabled]}>+</Text>
+              <Text style={[styles.stepBtnText, fontSize >= maxFontSize && styles.stepBtnTextDisabled]}>+</Text>
             </TouchableOpacity>
           </View>
-          
-          {/* Reset to Default */}
           {fontSize !== defaultFontSize && (
-            <TouchableOpacity
-              style={[styles.resetButton, { backgroundColor: palette.cardBackground }]}
-              onPress={resetDefaults}
-              activeOpacity={0.7}
-            >
-              <Text style={[styles.resetButtonText, { color: palette.tint }]}>Reset to Default</Text>
+            <TouchableOpacity style={styles.resetBtn} onPress={resetDefaults} activeOpacity={0.7}>
+              <Text style={styles.resetBtnText}>Reset to default</Text>
             </TouchableOpacity>
           )}
-        </View>
+        </SettingSection>
 
-        {/* Theme Section */}
-        <Text style={[styles.sectionTitle, { marginTop: 24, color: palette.text }]}>Theme</Text>
-        <View style={styles.themeRow}>
-          {themes.map((theme) => (
-            <TouchableOpacity
-              key={theme.id}
-              style={[
-                styles.themeOption,
-                { 
-                  backgroundColor: themeId === theme.id ? palette.tint : palette.cardBackground,
-                  borderColor: palette.border,
-                },
-              ]}
-              onPress={() => setThemeId(theme.id)}
-              activeOpacity={0.7}
-            >
-              <Text style={[
-                styles.themeOptionLabel, 
-                { color: themeId === theme.id ? '#fff' : palette.text }
-              ]}>
-                {theme.name}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </View>
+        {/* Your Data */}
+        <CardGroup label="Your Data">
+          <CardRow label="Backup & Restore" last onPress={() => router.push('/(main)/backup' as Href)} />
+        </CardGroup>
 
-        {/* Support Section */}
-        <Text style={[styles.sectionTitle, { marginTop: 24, color: palette.text }]}>Support Sober Dailies</Text>
-        
-        <TouchableOpacity 
-          style={styles.menuItem}
-          onPress={handleRateAppPress}
-          activeOpacity={0.7}
-        >
-          <Text style={[styles.menuItemTitle, { fontSize, color: palette.text }]}>Rate & Review</Text>
-          <ChevronRight size={18} color={palette.muted} />
-        </TouchableOpacity>
-        
-        <TouchableOpacity 
-          style={styles.menuItem}
-          onPress={handleSharePress}
-          activeOpacity={0.7}
-        >
-          <Text style={[styles.menuItemTitle, { fontSize, color: palette.text }]}>Share the App</Text>
-          <ChevronRight size={18} color={palette.muted} />
-        </TouchableOpacity>
-        
-        <TouchableOpacity 
-          style={styles.menuItem}
-          onPress={() => setFeedbackVisible(true)}
-          activeOpacity={0.7}
-        >
-          <Text style={[styles.menuItemTitle, { fontSize, color: palette.text }]}>Send Feedback</Text>
-          <ChevronRight size={18} color={palette.muted} />
-        </TouchableOpacity>
+        {/* Support Sober Dailies */}
+        <CardGroup label="Support Sober Dailies">
+          <CardRow label="Rate & Review" onPress={handleRateAppPress} />
+          <CardRow label="Share the App" onPress={handleSharePress} />
+          <CardRow label="Send Feedback" last onPress={() => setFeedbackVisible(true)} />
+        </CardGroup>
 
-        {/* Your Data Section */}
-        <Text style={[styles.sectionTitle, { marginTop: 24, color: palette.text }]}>Your Data</Text>
-        <TouchableOpacity
-          style={styles.menuItem}
-          onPress={() => router.push('/(main)/backup' as Href)}
-          activeOpacity={0.7}
-        >
-          <Text style={[styles.menuItemTitle, { fontSize, color: palette.text }]}>Backup & Restore</Text>
-          <ChevronRight size={18} color={palette.muted} />
-        </TouchableOpacity>
+        {/* About */}
+        <CardGroup label="About">
+          <CardRow label="About Sober Dailies" last onPress={() => router.push('/about')} />
+        </CardGroup>
 
-        {/* About Section */}
-        <Text style={[styles.sectionTitle, { marginTop: 24, color: palette.text }]}>About</Text>
-        
-        <TouchableOpacity
-          style={[styles.menuItem, styles.menuItemLast]}
-          onPress={() => router.push('/about')}
-          activeOpacity={0.7}
-        >
-          <Text style={[styles.menuItemTitle, { fontSize, color: palette.text }]}>About Sober Dailies</Text>
-          <ChevronRight size={18} color={palette.muted} />
-        </TouchableOpacity>
-
-        {/* Developer — dev builds only */}
+        {/* Developer / testing — dev builds only */}
         {__DEV__ && (
-          <>
-            <Text style={[styles.sectionTitle, { marginTop: 24, color: palette.text }]}>Developer</Text>
-            <TouchableOpacity
-              style={[styles.menuItem, styles.menuItemLast]}
-              onPress={() => { resetOnboarding(); }}
-              activeOpacity={0.7}
-            >
-              <Text style={[styles.menuItemTitle, { fontSize, color: palette.text }]}>Replay onboarding</Text>
-              <ChevronRight size={18} color={palette.muted} />
-            </TouchableOpacity>
-          </>
+          <CardGroup label="Developer">
+            <CardRow
+              label="Run onboarding again"
+              sub="Replays the welcome flow · keeps all data"
+              onPress={onboardKeep}
+            />
+            <CardRow
+              label="Clear all data & start over"
+              sub="Clean-install test · iCloud backup kept"
+              last
+              onPress={clearAll}
+            />
+          </CardGroup>
         )}
+
+        {/* Legal links — external */}
+        <View style={styles.legalRow}>
+          <TouchableOpacity onPress={handlePrivacyPress}><Text style={styles.legalLink}>Privacy</Text></TouchableOpacity>
+          <Text style={styles.legalSep}>·</Text>
+          <TouchableOpacity onPress={handleTermsPress}><Text style={styles.legalLink}>Terms</Text></TouchableOpacity>
+          <Text style={styles.legalSep}>·</Text>
+          <TouchableOpacity onPress={handleSupportPress}><Text style={styles.legalLink}>Support</Text></TouchableOpacity>
+        </View>
+
+        {/* Version + copyright (7-tap → Support ID · long-press → Debug Console) */}
+        <View style={styles.versionWrap}>
+          <TouchableOpacity onPress={handleVersionTap} onLongPress={toggleLogs} activeOpacity={0.6} delayLongPress={500}>
+            <Text style={styles.versionText}>{versionLabel}</Text>
+          </TouchableOpacity>
+          <Text style={styles.copyright}>© 2026 Daily Growth LLC</Text>
+        </View>
       </ScrollView>
 
-      {/* Legal Links - above footer */}
-      <View style={[styles.legalLinksContainer, { backgroundColor: semanticColors.light.background }]}>
-        <TouchableOpacity onPress={handlePrivacyPress}>
-          <Text style={[styles.legalLink, { color: palette.muted }]}>Privacy</Text>
-        </TouchableOpacity>
-        <Text style={[styles.legalSeparator, { color: palette.muted }]}>·</Text>
-        <TouchableOpacity onPress={handleTermsPress}>
-          <Text style={[styles.legalLink, { color: palette.muted }]}>Terms</Text>
-        </TouchableOpacity>
-        <Text style={[styles.legalSeparator, { color: palette.muted }]}>·</Text>
-        <TouchableOpacity onPress={handleSupportPress}>
-          <Text style={[styles.legalLink, { color: palette.muted }]}>Support</Text>
-        </TouchableOpacity>
-      </View>
-
-      {/* Footer with version */}
-      <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, 16), backgroundColor: semanticColors.light.background }]}>
-        <TouchableOpacity 
-          onPress={handleVersionTap}
-          onLongPress={toggleLogs}
-          activeOpacity={0.6}
-          delayLongPress={500}
-        >
-          <Text style={[styles.versionText, { color: palette.muted }]}>
-            Version {appVersion}
-            {Platform.OS === 'ios' && iosBuild ? ` (${iosBuild})` : ''}
-            {Platform.OS === 'android' && androidVersionCode ? ` (${androidVersionCode})` : ''}
-          </Text>
-        </TouchableOpacity>
-      </View>
-
-      {/* Improved Debug Console Modal (QA screen) */}
-      {/* Improved Debug Console Modal (QA screen) */}
+      {/* Debug Console Modal (hidden QA screen) */}
       <Modal visible={logsVisible} animationType="slide" onRequestClose={toggleLogs}>
-        <SafeAreaView style={styles.logsContainer}>
-          {/* Header with gradient */}
-          <LinearGradient
-            colors={['#1e293b', '#0f172a']}
-            style={styles.logsHeader}
-          >
+        <RNSafeAreaView style={styles.logsContainer}>
+          <LinearGradient colors={['#1e293b', '#0f172a']} style={styles.logsHeader}>
             <View style={styles.logsHeaderContent}>
               <View style={styles.logsHeaderLeft}>
                 <Code2 size={24} color="#60a5fa" />
@@ -562,32 +465,22 @@ export default function SettingsScreen() {
             </View>
           </LinearGradient>
 
-          {/* Info Cards */}
           <View style={styles.logsInfoSection}>
             <View style={styles.logsInfoCard}>
               <Text style={styles.logsInfoLabel}>Version</Text>
-              <Text style={styles.logsInfoValue}>
-                {appVersion}
-                {Platform.OS === 'ios' && iosBuild ? ` (${iosBuild})` : ''}
-                {Platform.OS === 'android' && androidVersionCode ? ` (${androidVersionCode})` : ''}
-              </Text>
+              <Text style={styles.logsInfoValue}>{versionLabel.replace('Version ', '')}</Text>
             </View>
             <View style={styles.logsInfoCard}>
               <Text style={styles.logsInfoLabel}>Platform</Text>
-              <Text style={styles.logsInfoValue}>
-                {Platform.OS === 'ios' ? 'iOS' : 'Android'} {Platform.Version}
-              </Text>
+              <Text style={styles.logsInfoValue}>{Platform.OS === 'ios' ? 'iOS' : 'Android'} {Platform.Version}</Text>
             </View>
           </View>
 
-          {/* Developer Mode Toggle */}
           <View style={styles.logsDeveloperSection}>
             <View style={styles.logsDeveloperToggle}>
               <View>
                 <Text style={styles.logsDeveloperLabel}>Developer Mode</Text>
-                <Text style={styles.logsDeveloperSubtext}>
-                  Tag your activity as developer in analytics
-                </Text>
+                <Text style={styles.logsDeveloperSubtext}>Tag your activity as developer in analytics</Text>
               </View>
               <Switch
                 value={isDeveloperMode}
@@ -598,7 +491,6 @@ export default function SettingsScreen() {
             </View>
           </View>
 
-          {/* Action Buttons */}
           <View style={styles.logsActionsRow}>
             <TouchableOpacity onPress={copyLogs} style={styles.logsActionButton}>
               <Text style={styles.logsActionButtonText}>Copy Logs</Text>
@@ -608,27 +500,19 @@ export default function SettingsScreen() {
             </TouchableOpacity>
           </View>
 
-          {/* Subscription Debug */}
           <View style={styles.logsActionsRow}>
             <TouchableOpacity onPress={resetSubscriptionState} style={[styles.logsActionButton, { backgroundColor: '#7f1d1d' }]}>
               <Text style={styles.logsActionButtonText}>Reset Subscription State</Text>
             </TouchableOpacity>
           </View>
 
-          {/* Logs Display */}
           <View style={styles.logsDisplayContainer}>
             <Text style={styles.logsDisplayLabel}>Application Logs</Text>
-            <ScrollView 
-              style={styles.logsScrollView}
-              contentContainerStyle={styles.logsScrollContent}
-            >
-              <Text style={styles.logsText}>
-                {logsText || 'No logs yet. Logs will appear here as you use the app.'}
-              </Text>
+            <ScrollView style={styles.logsScrollView} contentContainerStyle={styles.logsScrollContent}>
+              <Text style={styles.logsText}>{logsText || 'No logs yet. Logs will appear here as you use the app.'}</Text>
             </ScrollView>
           </View>
 
-          {/* Footer Actions */}
           <View style={styles.logsFooter}>
             <TouchableOpacity onPress={checkForOta} style={styles.logsFooterButton}>
               <RefreshCw size={18} color="#60a5fa" />
@@ -639,90 +523,56 @@ export default function SettingsScreen() {
               <Text style={styles.logsFooterButtonText}>Restart App</Text>
             </TouchableOpacity>
           </View>
-        </SafeAreaView>
+        </RNSafeAreaView>
       </Modal>
 
       {/* Feedback Modal */}
-      <Modal
-        visible={feedbackVisible}
-        animationType="slide"
-        presentationStyle="pageSheet"
-        onRequestClose={handleFeedbackClose}
-      >
-        <KeyboardAvoidingView 
-          style={[styles.feedbackContainer, { backgroundColor: palette.background }]}
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        >
-          {/* Gradient Header */}
-          <LinearGradient
-            colors={palette.gradients.header as [string, string, ...string[]]}
-            style={styles.feedbackHeader}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-          >
-            <Text style={[styles.feedbackHeaderTitle, { color: palette.headerText }]}>Send Feedback</Text>
+      <Modal visible={feedbackVisible} animationType="slide" presentationStyle="pageSheet" onRequestClose={handleFeedbackClose}>
+        <KeyboardAvoidingView style={styles.feedbackContainer} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+          <View style={styles.feedbackHeader}>
+            <Text style={styles.feedbackHeaderTitle}>Send Feedback</Text>
             <TouchableOpacity onPress={handleFeedbackClose} style={styles.feedbackCloseButton}>
-              <X size={24} color={palette.headerText} />
+              <X size={24} color={c.text} />
             </TouchableOpacity>
-          </LinearGradient>
+          </View>
 
-          <ScrollView 
-            style={styles.feedbackContent}
-            contentContainerStyle={styles.feedbackScrollContent}
-            keyboardShouldPersistTaps="handled"
-          >
-            <Text style={[styles.feedbackLabel, { color: palette.text }]}>What's on your mind?</Text>
+          <ScrollView style={styles.feedbackContent} contentContainerStyle={styles.feedbackScrollContent} keyboardShouldPersistTaps="handled">
+            <Text style={styles.feedbackLabel}>What&rsquo;s on your mind?</Text>
             <TextInput
-              style={[styles.feedbackInput, { backgroundColor: palette.cardBackground, color: palette.text, borderColor: palette.border }]}
+              style={styles.feedbackInput}
               value={feedbackText}
               onChangeText={setFeedbackText}
               placeholder="Share your thoughts, suggestions, or report an issue..."
-              placeholderTextColor={palette.muted}
+              placeholderTextColor={c.textMuted}
               multiline
               numberOfLines={6}
               textAlignVertical="top"
             />
-
-            <Text style={[styles.feedbackLabel, { marginTop: 20, color: palette.text }]}>
-              Contact info (optional)
-            </Text>
+            <Text style={[styles.feedbackLabel, { marginTop: 20 }]}>Contact info (optional)</Text>
             <TextInput
-              style={[styles.feedbackContactInput, { backgroundColor: palette.cardBackground, color: palette.text, borderColor: palette.border }]}
+              style={styles.feedbackContactInput}
               value={contactInfo}
               onChangeText={setContactInfo}
               placeholder="Email if you'd like a response"
-              placeholderTextColor={palette.muted}
+              placeholderTextColor={c.textMuted}
               keyboardType="email-address"
               autoCapitalize="none"
             />
-
-            <Text style={[styles.feedbackNote, { color: palette.tint }]}>
-              Your feedback is anonymous unless you provide contact info. We read every message!
-            </Text>
-
+            <Text style={styles.feedbackNote}>Your feedback is anonymous unless you provide contact info. We read every message!</Text>
             <TouchableOpacity
-              style={[styles.feedbackSubmitButton, { backgroundColor: palette.tint }, isSubmitting && styles.feedbackSubmitButtonDisabled]}
+              style={[styles.feedbackSubmitButton, isSubmitting && styles.feedbackSubmitButtonDisabled]}
               onPress={handleFeedbackSubmit}
               disabled={isSubmitting}
               activeOpacity={0.8}
             >
-              {isSubmitting ? (
-                <ActivityIndicator color={palette.headerText} />
-              ) : (
-                <Text style={[styles.feedbackSubmitButtonText, { color: palette.headerText }]}>Submit Feedback</Text>
-              )}
+              {isSubmitting ? <ActivityIndicator color="#fff" /> : <Text style={styles.feedbackSubmitButtonText}>Submit Feedback</Text>}
             </TouchableOpacity>
           </ScrollView>
         </KeyboardAvoidingView>
       </Modal>
 
-      {/* Support ID Modal (hidden, revealed by tapping version 7 times) */}
-      <Modal
-        visible={supportIdModalVisible}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setSupportIdModalVisible(false)}
-      >
+      {/* Support ID Modal (hidden — 7 version taps) */}
+      <Modal visible={supportIdModalVisible} transparent animationType="fade" onRequestClose={() => setSupportIdModalVisible(false)}>
         <View style={styles.supportIdModalOverlay}>
           <View style={styles.supportIdModalContent}>
             <Text style={styles.supportIdModalTitle}>Support ID</Text>
@@ -730,11 +580,7 @@ export default function SettingsScreen() {
               <Text style={styles.supportIdModalValue}>{supportId || 'Not available'}</Text>
             </TouchableOpacity>
             <Text style={styles.supportIdModalHint}>Tap to copy • Provide this ID to support</Text>
-            <TouchableOpacity
-              style={styles.supportIdModalDoneButton}
-              onPress={() => setSupportIdModalVisible(false)}
-              activeOpacity={0.8}
-            >
+            <TouchableOpacity style={styles.supportIdModalDoneButton} onPress={() => setSupportIdModalVisible(false)} activeOpacity={0.8}>
               <Text style={styles.supportIdModalDoneText}>Done</Text>
             </TouchableOpacity>
           </View>
@@ -745,430 +591,140 @@ export default function SettingsScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  content: {
-    flex: 1,
-    paddingHorizontal: spacing.lg,
-  },
-  pageIntro: {
-    paddingTop: spacing.lg,
-    paddingBottom: spacing.xl,
-  },
-  introLabelRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-    marginBottom: spacing.sm,
-  },
-  introLabel: {
-    fontFamily: fontFamily.semiBold,
-    fontSize: fontSizeTokens.xs,
-    color: semanticColors.light.textMuted,
-    letterSpacing: 1.5,
-  },
-  introTitle: {
+  container: { flex: 1, backgroundColor: c.background },
+  headerSafe: { backgroundColor: c.background },
+  header: { paddingHorizontal: 22, paddingTop: 8, paddingBottom: 8 },
+  title: { fontFamily: fontFamily.displayBold, fontSize: 30, letterSpacing: -0.5, color: c.text },
+  subtitle: { fontFamily: fontFamily.serifItalic, fontSize: 15, color: c.textSecondary, marginTop: 2 },
+
+  content: { flex: 1 },
+  scrollContent: { paddingHorizontal: 18, paddingTop: 10, paddingBottom: 150 },
+
+  // Section label + card chrome
+  section: { marginBottom: 18 },
+  sectionLabel: {
     fontFamily: fontFamily.bold,
-    fontSize: fontSizeTokens['4xl'],
-    color: semanticColors.light.text,
-  },
-  sectionTitle: {
-    fontFamily: fontFamily.semiBold,
-    fontSize: fontSizeTokens.xs,
+    fontSize: 11,
+    letterSpacing: 1.1,
     textTransform: 'uppercase',
-    letterSpacing: 1,
-    marginBottom: spacing.sm,
-    marginLeft: spacing.xs,
-    color: semanticColors.light.textMuted,
+    color: c.textMuted,
+    marginLeft: 6,
+    marginBottom: 9,
   },
-  themeRow: {
+  card: {
+    backgroundColor: c.surface,
+    borderWidth: 1,
+    borderColor: c.border,
+    borderRadius: 14,
+    overflow: 'hidden',
+    ...shadows.sm,
+  },
+  row: {
     flexDirection: 'row',
+    alignItems: 'center',
     gap: 12,
-    marginBottom: 8,
+    paddingHorizontal: 14,
+    paddingVertical: 14,
   },
-  themeOption: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 16,
+  rowDivider: { borderBottomWidth: 1, borderBottomColor: c.divider },
+  rowText: { flex: 1, minWidth: 0 },
+  rowLabel: { fontFamily: fontFamily.medium, fontSize: 15, color: c.text },
+  rowSub: { fontFamily: fontFamily.regular, fontSize: 12, color: c.textMuted, marginTop: 2 },
+  rowValue: { fontFamily: fontFamily.regular, fontSize: 13, color: c.textMuted },
+
+  // Text Size control
+  previewCard: {
+    backgroundColor: c.surface,
+    borderWidth: 1,
+    borderColor: c.border,
+    borderRadius: 14,
+    paddingVertical: 22,
     paddingHorizontal: 16,
-    borderRadius: 12,
-    borderWidth: 2,
-  },
-  themeOptionLabel: {
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  textSizeSection: {
-    marginBottom: 8,
-    gap: 16,
-  },
-  preview: {
-    borderRadius: 12,
-    padding: 16,
     alignItems: 'center',
+    ...shadows.sm,
   },
-  previewText: {
-    textAlign: 'center',
-  },
-  controls: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 16,
-  },
-  sizeButton: {
+  previewText: { fontFamily: fontFamily.serifItalic, color: c.text, textAlign: 'center' },
+  stepperRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 16, marginTop: 14 },
+  stepBtn: {
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: '#3D8B8B',
+    backgroundColor: colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
+    ...shadows.sm,
   },
-  sizeButtonDisabled: {
-    backgroundColor: '#e0e0e0',
-  },
-  sizeButtonText: {
-    fontSize: 24,
-    fontWeight: adjustFontWeight('600'),
-    color: '#fff',
-  },
-  sizeButtonTextDisabled: {
-    color: '#a0a0a0',
-  },
-  resetButton: {
-    alignSelf: 'center',
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-  },
-  resetButtonText: {
-    fontSize: 14,
-    fontWeight: adjustFontWeight('500'),
-  },
-  menuItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: 16,
-    paddingHorizontal: 4,
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(61, 139, 139, 0.3)',
-  },
-  menuItemLast: {
-    borderBottomWidth: 0,
-  },
-  menuItemTitle: {
-    fontSize: 16,
-    fontWeight: adjustFontWeight('500'),
-    flex: 1,
-  },
-  legalLinksContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 12,
-  },
-  legalLink: {
-    fontSize: 14,
-    fontWeight: adjustFontWeight('500'),
-  },
-  legalSeparator: {
-    fontSize: 14,
-    color: '#a0a0a0',
-    marginHorizontal: 12,
-  },
-  footer: {
-    alignItems: 'center',
-    paddingVertical: 12,
-    backgroundColor: '#fff',
-    borderTopWidth: 1,
-    borderTopColor: '#E4E7EC',
-  },
-  versionText: {
-    fontSize: 12,
-  },
-  logsContainer: {
-    flex: 1,
-    backgroundColor: '#0f172a',
-  },
-  logsHeader: {
-    paddingVertical: 16,
-    paddingHorizontal: 16,
-  },
-  logsHeaderContent: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  logsHeaderLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  logsHeaderTitle: {
-    fontSize: 20,
-    fontWeight: adjustFontWeight('600'),
-    color: '#f1f5f9',
-  },
-  logsCloseButton: {
-    padding: 4,
-  },
-  logsInfoSection: {
-    flexDirection: 'row',
-    paddingHorizontal: 16,
-    paddingBottom: 16,
-    gap: 12,
-  },
-  logsInfoCard: {
-    flex: 1,
-    backgroundColor: '#1e293b',
-    padding: 12,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#334155',
-  },
-  logsInfoLabel: {
-    fontSize: 12,
-    color: '#94a3b8',
-    marginBottom: 4,
-  },
-  logsInfoValue: {
-    fontSize: 14,
-    fontWeight: adjustFontWeight('600'),
-    color: '#f1f5f9',
-  },
-  logsDeveloperSection: {
-    paddingHorizontal: 16,
-    paddingBottom: 16,
-  },
-  logsDeveloperToggle: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    backgroundColor: '#1e293b',
-    padding: 16,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#334155',
-  },
-  logsDeveloperLabel: {
-    fontSize: 15,
-    fontWeight: adjustFontWeight('600'),
-    color: '#f1f5f9',
-    marginBottom: 4,
-  },
-  logsDeveloperSubtext: {
-    fontSize: 12,
-    color: '#94a3b8',
-  },
-  logsActionsRow: {
-    flexDirection: 'row',
-    paddingHorizontal: 16,
-    paddingBottom: 16,
-    gap: 12,
-  },
-  logsActionButton: {
-    flex: 1,
-    backgroundColor: '#1e293b',
-    paddingVertical: 12,
-    borderRadius: 8,
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#334155',
-  },
-  logsActionButtonText: {
-    color: '#60a5fa',
-    fontSize: 14,
-    fontWeight: adjustFontWeight('600'),
-  },
-  logsDisplayContainer: {
-    flex: 1,
-    marginHorizontal: 16,
-    marginBottom: 16,
-    backgroundColor: '#1e293b',
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#334155',
-    overflow: 'hidden',
-  },
-  logsDisplayLabel: {
-    fontSize: 13,
-    fontWeight: adjustFontWeight('600'),
-    color: '#94a3b8',
-    paddingHorizontal: 16,
-    paddingTop: 12,
-    paddingBottom: 8,
-    borderBottomWidth: 1,
-    borderBottomColor: '#334155',
-  },
-  logsScrollView: {
-    flex: 1,
-  },
-  logsHeaderRight: {
-    flexDirection: 'row',
-  },
-  logsHeaderButton: {
-    color: '#60a5fa',
-    fontSize: 16,
-    fontWeight: adjustFontWeight('600'),
-  },
-  logsScrollContent: {
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-  },
-  logsText: {
-    color: '#cbd5e1',
-    fontFamily: Platform.select({ ios: 'Menlo', android: 'monospace' }),
-    fontSize: 11,
-    lineHeight: 16,
-  },
-  logsFooter: {
-    flexDirection: 'row',
-    paddingHorizontal: 16,
-    paddingVertical: 16,
-    gap: 12,
-    borderTopWidth: 1,
-    borderTopColor: '#1e293b',
-  },
-  logsFooterButton: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    backgroundColor: '#1e293b',
-    paddingVertical: 12,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#334155',
-  },
-  logsFooterButtonText: {
-    color: '#60a5fa',
-    fontSize: 14,
-    fontWeight: adjustFontWeight('600'),
-  },
-  // Feedback Modal styles
-  feedbackContainer: {
-    flex: 1,
-    backgroundColor: '#f5f6f8',
-  },
+  stepBtnDisabled: { backgroundColor: c.divider, shadowOpacity: 0, elevation: 0 },
+  stepBtnText: { fontFamily: fontFamily.semiBold, fontSize: 24, lineHeight: 28, color: '#fff' },
+  stepBtnTextDisabled: { color: c.textMuted },
+  resetBtn: { alignSelf: 'center', marginTop: 10, paddingVertical: 4, paddingHorizontal: 10 },
+  resetBtnText: { fontFamily: fontFamily.semiBold, fontSize: 13, color: colors.primary },
+
+  // Legal + version
+  legalRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 12, marginTop: 4 },
+  legalLink: { fontFamily: fontFamily.medium, fontSize: 13, color: c.textMuted },
+  legalSep: { fontSize: 13, color: c.textMuted },
+  versionWrap: { alignItems: 'center', marginTop: 14, gap: 3 },
+  versionText: { fontFamily: fontFamily.regular, fontSize: 12, color: c.textMuted },
+  copyright: { fontFamily: fontFamily.regular, fontSize: 11.5, color: c.textMuted },
+
+  // ── Debug Console (dark QA modal) ──
+  logsContainer: { flex: 1, backgroundColor: '#0f172a' },
+  logsHeader: { paddingVertical: 16, paddingHorizontal: 16 },
+  logsHeaderContent: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  logsHeaderLeft: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  logsHeaderTitle: { fontSize: 20, fontWeight: '600', color: '#f1f5f9' },
+  logsCloseButton: { padding: 4 },
+  logsInfoSection: { flexDirection: 'row', paddingHorizontal: 16, paddingBottom: 16, gap: 12 },
+  logsInfoCard: { flex: 1, backgroundColor: '#1e293b', padding: 12, borderRadius: 8, borderWidth: 1, borderColor: '#334155' },
+  logsInfoLabel: { fontSize: 12, color: '#94a3b8', marginBottom: 4 },
+  logsInfoValue: { fontSize: 14, fontWeight: '600', color: '#f1f5f9' },
+  logsDeveloperSection: { paddingHorizontal: 16, paddingBottom: 16 },
+  logsDeveloperToggle: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#1e293b', padding: 16, borderRadius: 8, borderWidth: 1, borderColor: '#334155' },
+  logsDeveloperLabel: { fontSize: 15, fontWeight: '600', color: '#f1f5f9', marginBottom: 4 },
+  logsDeveloperSubtext: { fontSize: 12, color: '#94a3b8' },
+  logsActionsRow: { flexDirection: 'row', paddingHorizontal: 16, paddingBottom: 16, gap: 12 },
+  logsActionButton: { flex: 1, backgroundColor: '#1e293b', paddingVertical: 12, borderRadius: 8, alignItems: 'center', borderWidth: 1, borderColor: '#334155' },
+  logsActionButtonText: { color: '#60a5fa', fontSize: 14, fontWeight: '600' },
+  logsDisplayContainer: { flex: 1, marginHorizontal: 16, marginBottom: 16, backgroundColor: '#1e293b', borderRadius: 12, borderWidth: 1, borderColor: '#334155', overflow: 'hidden' },
+  logsDisplayLabel: { fontSize: 13, fontWeight: '600', color: '#94a3b8', paddingHorizontal: 16, paddingTop: 12, paddingBottom: 8, borderBottomWidth: 1, borderBottomColor: '#334155' },
+  logsScrollView: { flex: 1 },
+  logsScrollContent: { paddingHorizontal: 16, paddingVertical: 12 },
+  logsText: { color: '#cbd5e1', fontFamily: Platform.select({ ios: 'Menlo', android: 'monospace' }), fontSize: 11, lineHeight: 16 },
+  logsFooter: { flexDirection: 'row', paddingHorizontal: 16, paddingVertical: 16, gap: 12, borderTopWidth: 1, borderTopColor: '#1e293b' },
+  logsFooterButton: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, backgroundColor: '#1e293b', paddingVertical: 12, borderRadius: 8, borderWidth: 1, borderColor: '#334155' },
+  logsFooterButtonText: { color: '#60a5fa', fontSize: 14, fontWeight: '600' },
+
+  // ── Feedback modal ──
+  feedbackContainer: { flex: 1, backgroundColor: c.background },
   feedbackHeader: {
-    backgroundColor: '#3D8B8B',
-    paddingVertical: 16,
-    paddingHorizontal: 16,
+    paddingTop: 18,
+    paddingBottom: 16,
+    paddingHorizontal: 18,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    borderBottomWidth: 1,
+    borderBottomColor: c.divider,
   },
-  feedbackHeaderTitle: {
-    fontSize: 24,
-    fontWeight: adjustFontWeight('400'),
-    color: '#fff',
-  },
-  feedbackCloseButton: {
-    padding: 4,
-  },
-  feedbackContent: {
-    flex: 1,
-  },
-  feedbackScrollContent: {
-    padding: 20,
-    paddingBottom: 40,
-  },
-  feedbackLabel: {
-    fontSize: 16,
-    fontWeight: adjustFontWeight('600'),
-    color: '#2d3748',
-    marginBottom: 8,
-  },
-  feedbackInput: {
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    padding: 16,
-    fontSize: 16,
-    color: '#2d3748',
-    minHeight: 150,
-    borderWidth: 1,
-    borderColor: '#E4E7EC',
-  },
-  feedbackContactInput: {
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    padding: 16,
-    fontSize: 16,
-    color: '#2d3748',
-    borderWidth: 1,
-    borderColor: '#E4E7EC',
-  },
-  feedbackNote: {
-    fontSize: 13,
-    color: '#6b7c8a',
-    marginTop: 16,
-    marginBottom: 24,
-    textAlign: 'center',
-  },
-  feedbackSubmitButton: {
-    backgroundColor: '#3D8B8B',
-    borderRadius: 12,
-    paddingVertical: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  feedbackSubmitButtonDisabled: {
-    opacity: 0.7,
-  },
-  feedbackSubmitButtonText: {
-    fontSize: 16,
-    fontWeight: adjustFontWeight('600'),
-    color: '#fff',
-  },
-  // Support ID Modal styles
-  supportIdModalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 24,
-  },
-  supportIdModalContent: {
-    backgroundColor: '#fff',
-    borderRadius: 16,
-    padding: 24,
-    alignItems: 'center',
-    width: '100%',
-    maxWidth: 320,
-  },
-  supportIdModalTitle: {
-    fontSize: 18,
-    fontWeight: adjustFontWeight('600'),
-    color: '#2d3748',
-    marginBottom: 16,
-  },
-  supportIdModalValue: {
-    fontSize: 14,
-    fontFamily: Platform.select({ ios: 'Menlo', android: 'monospace' }),
-    color: '#3D8B8B',
-    backgroundColor: '#f0f4f4',
-    padding: 12,
-    borderRadius: 8,
-    overflow: 'hidden',
-  },
-  supportIdModalHint: {
-    fontSize: 12,
-    color: '#6b7c8a',
-    marginTop: 8,
-    marginBottom: 20,
-  },
-  supportIdModalDoneButton: {
-    backgroundColor: '#3D8B8B',
-    paddingVertical: 12,
-    paddingHorizontal: 32,
-    borderRadius: 8,
-  },
-  supportIdModalDoneText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: adjustFontWeight('600'),
-  },
+  feedbackHeaderTitle: { fontFamily: fontFamily.displayBold, fontSize: 22, letterSpacing: -0.3, color: c.text },
+  feedbackCloseButton: { padding: 4 },
+  feedbackContent: { flex: 1 },
+  feedbackScrollContent: { padding: 18, paddingBottom: 40 },
+  feedbackLabel: { fontFamily: fontFamily.semiBold, fontSize: 14, color: c.text, marginBottom: 8 },
+  feedbackInput: { backgroundColor: c.surface, borderRadius: 12, padding: 14, fontFamily: fontFamily.regular, fontSize: 15, color: c.text, minHeight: 150, borderWidth: 1, borderColor: c.border },
+  feedbackContactInput: { backgroundColor: c.surface, borderRadius: 12, padding: 14, fontFamily: fontFamily.regular, fontSize: 15, color: c.text, borderWidth: 1, borderColor: c.border },
+  feedbackNote: { fontFamily: fontFamily.regular, fontSize: 12.5, color: colors.primary, marginTop: 16, marginBottom: 24, textAlign: 'center' },
+  feedbackSubmitButton: { backgroundColor: colors.primary, borderRadius: 12, paddingVertical: 16, alignItems: 'center', justifyContent: 'center' },
+  feedbackSubmitButtonDisabled: { opacity: 0.7 },
+  feedbackSubmitButtonText: { fontFamily: fontFamily.semiBold, fontSize: 16, color: '#fff' },
+
+  // ── Support ID modal ──
+  supportIdModalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center', padding: 24 },
+  supportIdModalContent: { backgroundColor: c.surface, borderRadius: 16, padding: 24, alignItems: 'center', width: '100%', maxWidth: 320 },
+  supportIdModalTitle: { fontFamily: fontFamily.semiBold, fontSize: 18, color: c.text, marginBottom: 16 },
+  supportIdModalValue: { fontSize: 14, fontFamily: Platform.select({ ios: 'Menlo', android: 'monospace' }), color: colors.primary, backgroundColor: colors.primarySoft, padding: 12, borderRadius: 8, overflow: 'hidden' },
+  supportIdModalHint: { fontFamily: fontFamily.regular, fontSize: 12, color: c.textMuted, marginTop: 8, marginBottom: 20 },
+  supportIdModalDoneButton: { backgroundColor: colors.primary, paddingVertical: 12, paddingHorizontal: 32, borderRadius: 8 },
+  supportIdModalDoneText: { fontFamily: fontFamily.semiBold, fontSize: 16, color: '#fff' },
 });
