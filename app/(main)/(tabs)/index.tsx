@@ -227,26 +227,27 @@ export default function TodayScreen() {
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
         <SobrietyCounter />
 
+        {/* Daily Reflection — the permanent hero, pinned above the sections */}
+        <View style={styles.heroTop}>
+          <ReflectionHero
+            title={reflection?.title || 'Daily Reflection'}
+            imageUri={ROTATE_HERO ? heroImage?.uri : undefined}
+            alt={ROTATE_HERO ? heroImage?.alt : 'A seedling reaching toward the light'}
+            staticSource={ROTATE_HERO ? undefined : STATIC_HERO}
+            done={dailies.reflectionDone}
+            onRead={openReflection}
+            onToggle={dailies.toggleReflection}
+          />
+        </View>
+
         {SECTIONS.map((when) => {
           const items = dailies.section(when);
-          const isMorning = when === 'Morning';
-          // Normal mode hides empty non-Morning sections; edit mode shows all
-          // three so you can add to any bucket.
-          if (!isMorning && items.length === 0 && !editing) return null;
+          // Hide empty sections in normal mode; edit mode shows all three so you
+          // can add to any bucket.
+          if (items.length === 0 && !editing) return null;
           return (
             <View key={when} style={styles.section}>
               <Text style={[styles.sectionTitle, { color: c.text }]}>{when}</Text>
-              {isMorning && (
-                <ReflectionHero
-                  title={reflection?.title || 'Daily Reflection'}
-                  imageUri={ROTATE_HERO ? heroImage?.uri : undefined}
-                  alt={ROTATE_HERO ? heroImage?.alt : 'A seedling reaching toward the light'}
-                  staticSource={ROTATE_HERO ? undefined : STATIC_HERO}
-                  done={dailies.reflectionDone}
-                  onRead={openReflection}
-                  onToggle={dailies.toggleReflection}
-                />
-              )}
               {items.length > 0 && (
                 <View style={styles.ledger}>
                   {items.map((item, idx) => (
@@ -330,6 +331,7 @@ const styles = StyleSheet.create({
   editToggle: { fontFamily: fontFamily.semiBold, fontSize: fontSize.lg, color: colors.primaryDark, paddingTop: 6 },
   scroll: { paddingHorizontal: 22, paddingBottom: 120 },
 
+  heroTop: { marginTop: spacing.xl },
   section: { marginTop: spacing.xl },
   sectionTitle: { fontFamily: fontFamily.semiBold, fontSize: fontSize.xl, marginBottom: 12 },
 
