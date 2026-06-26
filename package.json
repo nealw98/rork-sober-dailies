@@ -88,6 +88,7 @@
     "react-native-blob-util": "^0.24.10",
     "react-native-cloud-storage": "2.3.0",
     "react-native-date-picker": "^5.0.5",
+    "react-native-draggable-flatlist": "^4.0.3",
     "react-native-gesture-handler": "~2.24.0",
     "react-native-markdown-display": "^7.0.2",
     "react-native-modal-datetime-picker": "^18.0.0",

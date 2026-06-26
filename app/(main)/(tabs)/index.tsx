@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import {
   StyleSheet,
   View,
@@ -10,8 +10,9 @@ import {
 import { Image } from 'expo-image';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
+import DraggableFlatList, { ScaleDecorator, type RenderItemParams } from 'react-native-draggable-flatlist';
 import { useRouter, type Href } from 'expo-router';
-import { BookOpen, Check, Settings, Minus, Plus } from 'lucide-react-native';
+import { BookOpen, Check, Settings, Minus, Plus, GripVertical } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 
 import { colors, fontFamily, fontSize, spacing, radii, shadows, getSemanticColors } from '@/constants/designTokens';
@@ -52,6 +53,13 @@ const PRAYER_PARAM: Record<string, string> = {
 
 const SECTIONS: WhenBucket[] = ['Morning', 'Anytime', 'Evening'];
 
+// Flattened rows for the edit-mode drag list: a section header, its dailies, and
+// a "+ Add" row, per bucket. Dropping a daily under a different header re-buckets it.
+type EditRow =
+  | { type: 'header'; key: string; when: WhenBucket }
+  | { type: 'daily'; key: string; item: DailyItem; isLast: boolean }
+  | { type: 'add'; key: string; when: WhenBucket };
+
 // ─── Done button — the ledger's completion control (replaces press-and-hold) ──
 function DoneButton({ done, tone, onPress }: { done: boolean; tone: { ink: string }; onPress: () => void }) {
   return (
@@ -74,17 +82,20 @@ function DoneButton({ done, tone, onPress }: { done: boolean; tone: { ink: strin
 }
 
 // ─── Daily row — flat ledger line: accent bar · glyph · title · Done ──────────
+// In edit mode the Done button is swapped for a drag handle (long-press to
+// reorder / move between sections) plus the gear (rename) and remove controls.
 function DailyRow({
-  item, done, isLast, editing, onOpen, onToggle, onGear, onRemove,
+  item, done, isLast, editing, onOpen, onToggle, onGear, onRemove, onDragStart, dragging,
 }: {
   item: DailyItem; done: boolean; isLast: boolean; editing: boolean;
   onOpen: () => void; onToggle: () => void; onGear: () => void; onRemove: () => void;
+  onDragStart?: () => void; dragging?: boolean;
 }) {
   const tone = resolveTone(item.color);
   const Glyph = resolveGlyph(item.icon);
   const sub = resolveSubtitle(item.action);
   return (
-    <View style={[styles.row, !isLast && styles.rowDivider]}>
+    <View style={[styles.row, !isLast && !dragging && styles.rowDivider, dragging && styles.rowDragging]}>
       {done && !editing && <View style={[styles.rowFill, { backgroundColor: tone.fill }]} />}
       <View
         style={[
@@ -92,9 +103,13 @@ function DailyRow({
           { backgroundColor: tone.ink, opacity: done && !editing ? 1 : 0.5, top: done && !editing ? 4 : 0, bottom: done && !editing ? 4 : 0 },
         ]}
       />
-      <Pressable style={styles.rowMain} onPress={onOpen} disabled={editing}>
-        <View style={styles.glyphWrap}>
-          <Glyph size={21} color={tone.ink} />
+      {/* Edit mode: the leading glyph becomes a tone-tinted drag handle; long-press
+          the row (or the handle) to reorder / move between sections. */}
+      <Pressable style={styles.rowMain} onPress={onOpen} onLongPress={editing ? onDragStart : undefined} delayLongPress={150} disabled={editing && !onDragStart}>
+        <View style={styles.glyphWrap} accessibilityLabel={editing ? `Drag ${item.label} to reorder` : undefined}>
+          {editing
+            ? <GripVertical size={21} color={tone.ink} strokeWidth={2} />
+            : <Glyph size={21} color={tone.ink} />}
         </View>
         <View style={styles.rowText}>
           <Text style={styles.rowLabel} numberOfLines={2}>{item.label}</Text>
@@ -212,6 +227,100 @@ export default function TodayScreen() {
 
   const addedActions = new Set(dailies.program.map((i) => i.action));
 
+  // Counter + Daily Reflection hero — shown above the list in both modes.
+  const topContent = (
+    <>
+      <SobrietyCounter />
+      <View style={styles.heroTop}>
+        <ReflectionHero
+          title={reflection?.title || 'Daily Reflection'}
+          imageUri={ROTATE_HERO ? heroImage?.uri : undefined}
+          alt={ROTATE_HERO ? heroImage?.alt : 'A seedling reaching toward the light'}
+          staticSource={ROTATE_HERO ? undefined : STATIC_HERO}
+          done={dailies.reflectionDone}
+          onRead={openReflection}
+          onToggle={dailies.toggleReflection}
+        />
+      </View>
+    </>
+  );
+
+  // Edit mode: one flat drag list across all three sections. The FIRST section's
+  // header (Morning) is pinned in the list header instead of the data, so a row
+  // can never be dragged above it.
+  const editData = useMemo<EditRow[]>(() => {
+    const rows: EditRow[] = [];
+    SECTIONS.forEach((when, si) => {
+      if (si > 0) rows.push({ type: 'header', key: `h-${when}`, when });
+      dailies.program
+        .filter((d) => d.when === when)
+        .forEach((item, idx, arr) => rows.push({ type: 'daily', key: `d-${item.id}`, item, isLast: idx === arr.length - 1 }));
+      rows.push({ type: 'add', key: `a-${when}`, when });
+    });
+    return rows;
+  }, [dailies.program]);
+
+  // Counter + hero + the pinned Morning header (rows can't go above this).
+  const editListHeader = (
+    <>
+      {topContent}
+      <View style={styles.dragHeader}>
+        <Text style={[styles.sectionTitle, styles.dragHeaderText, { color: c.text }]}>{SECTIONS[0]}</Text>
+      </View>
+    </>
+  );
+
+  // Rebuild the program from the dropped order; a daily's bucket = the section
+  // header above it in the list.
+  const handleDragEnd = useCallback(({ data }: { data: EditRow[] }) => {
+    const next: DailyItem[] = [];
+    let when: WhenBucket = SECTIONS[0];
+    data.forEach((row) => {
+      if (row.type === 'header') when = row.when;
+      else if (row.type === 'daily') next.push({ ...row.item, when });
+    });
+    dailies.setAll(next);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+  }, [dailies]);
+
+  const renderEditRow = useCallback(({ item: row, drag, isActive }: RenderItemParams<EditRow>) => {
+    // Cell spacing must be PADDING, not margin — draggable-flatlist measures cell
+    // height via onLayout, which excludes margins, so margins desync the list.
+    if (row.type === 'header') {
+      return (
+        <View style={styles.dragHeader}>
+          <Text style={[styles.sectionTitle, styles.dragHeaderText, { color: c.text }]}>{row.when}</Text>
+        </View>
+      );
+    }
+    if (row.type === 'add') {
+      return (
+        <View style={styles.dragAdd}>
+          <Pressable style={[styles.addPill, styles.addPillFlush]} onPress={() => setAddSection(row.when)}>
+            <Plus size={16} color={colors.primary} strokeWidth={2.4} />
+            <Text style={styles.addPillText}>Add to {row.when}</Text>
+          </Pressable>
+        </View>
+      );
+    }
+    return (
+      <ScaleDecorator activeScale={1.03}>
+        <DailyRow
+          item={row.item}
+          done={false}
+          isLast={row.isLast}
+          editing
+          onOpen={() => {}}
+          onToggle={() => {}}
+          onGear={() => setSettingsItem(row.item)}
+          onRemove={() => dailies.removeDaily(row.item.id)}
+          onDragStart={drag}
+          dragging={isActive}
+        />
+      </ScaleDecorator>
+    );
+  }, [c.text, dailies]);
+
   return (
     <SafeAreaView style={[styles.safe, { backgroundColor: c.background }]} edges={['top']}>
       <View style={styles.header}>
@@ -224,31 +333,27 @@ export default function TodayScreen() {
         </Pressable>
       </View>
 
-      <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
-        <SobrietyCounter />
-
-        {/* Daily Reflection — the permanent hero, pinned above the sections */}
-        <View style={styles.heroTop}>
-          <ReflectionHero
-            title={reflection?.title || 'Daily Reflection'}
-            imageUri={ROTATE_HERO ? heroImage?.uri : undefined}
-            alt={ROTATE_HERO ? heroImage?.alt : 'A seedling reaching toward the light'}
-            staticSource={ROTATE_HERO ? undefined : STATIC_HERO}
-            done={dailies.reflectionDone}
-            onRead={openReflection}
-            onToggle={dailies.toggleReflection}
-          />
-        </View>
-
-        {SECTIONS.map((when) => {
-          const items = dailies.section(when);
-          // Hide empty sections in normal mode; edit mode shows all three so you
-          // can add to any bucket.
-          if (items.length === 0 && !editing) return null;
-          return (
-            <View key={when} style={styles.section}>
-              <Text style={[styles.sectionTitle, { color: c.text }]}>{when}</Text>
-              {items.length > 0 && (
+      {editing ? (
+        <DraggableFlatList
+          data={editData}
+          keyExtractor={(row) => row.key}
+          renderItem={renderEditRow}
+          onDragEnd={handleDragEnd}
+          onDragBegin={() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium)}
+          ListHeaderComponent={editListHeader}
+          containerStyle={styles.flex}
+          contentContainerStyle={styles.scroll}
+          showsVerticalScrollIndicator={false}
+        />
+      ) : (
+        <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
+          {topContent}
+          {SECTIONS.map((when) => {
+            const items = dailies.section(when);
+            if (items.length === 0) return null;
+            return (
+              <View key={when} style={styles.section}>
+                <Text style={[styles.sectionTitle, { color: c.text }]}>{when}</Text>
                 <View style={styles.ledger}>
                   {items.map((item, idx) => (
                     <DailyRow
@@ -256,25 +361,19 @@ export default function TodayScreen() {
                       item={item}
                       done={dailies.isDone(item.id)}
                       isLast={idx === items.length - 1}
-                      editing={editing}
+                      editing={false}
                       onOpen={() => openDaily(item)}
                       onToggle={() => toggleDaily(item.id)}
-                      onGear={() => setSettingsItem(item)}
-                      onRemove={() => dailies.removeDaily(item.id)}
+                      onGear={() => {}}
+                      onRemove={() => {}}
                     />
                   ))}
                 </View>
-              )}
-              {editing && (
-                <Pressable style={styles.addPill} onPress={() => setAddSection(when)}>
-                  <Plus size={16} color={colors.primary} strokeWidth={2.4} />
-                  <Text style={styles.addPillText}>Add to {when}</Text>
-                </Pressable>
-              )}
-            </View>
-          );
-        })}
-      </ScrollView>
+              </View>
+            );
+          })}
+        </ScrollView>
+      )}
 
       {addSection && (
         <AddSheet
@@ -325,6 +424,7 @@ export default function TodayScreen() {
 
 const styles = StyleSheet.create({
   safe: { flex: 1 },
+  flex: { flex: 1 },
   header: { flexDirection: 'row', alignItems: 'flex-start', paddingHorizontal: 22, paddingTop: spacing.sm, paddingBottom: spacing.sm },
   title: { fontFamily: fontFamily.display, fontSize: 30, letterSpacing: -0.4 },
   date: { fontFamily: fontFamily.regular, fontSize: fontSize.md, marginTop: 2 },
@@ -334,6 +434,11 @@ const styles = StyleSheet.create({
   heroTop: { marginTop: spacing.xl },
   section: { marginTop: spacing.xl },
   sectionTitle: { fontFamily: fontFamily.semiBold, fontSize: fontSize.xl, marginBottom: 12 },
+  // Drag-list cells use padding (not margin) so onLayout heights stay correct.
+  dragHeader: { paddingTop: spacing.xl, paddingBottom: 12 },
+  dragHeaderText: { marginBottom: 0 },
+  dragAdd: { paddingTop: 12 },
+  addPillFlush: { marginTop: 0 },
 
   // Ledger: a card-less stack of flat rows
   ledger: {},
@@ -346,6 +451,7 @@ const styles = StyleSheet.create({
     paddingVertical: 13,
   },
   rowDivider: { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: '#E2DED4' },
+  rowDragging: { backgroundColor: colors.white, borderRadius: 12, ...shadows.md },
   // Completed-row inset wash: squared left (flush with accent bar), rounded right.
   rowFill: { position: 'absolute', left: 0, right: 0, top: 4, bottom: 4, borderTopRightRadius: 11, borderBottomRightRadius: 11 },
   accentBar: { position: 'absolute', left: 0, width: 3 },
