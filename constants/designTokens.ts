@@ -6,33 +6,37 @@
  */
 
 // ─── Brand Colors ────────────────────────────────────────────────────────────
-// Redesign 3.0: teal is the primary brand voice (was blue). Blue demoted to
-// secondary (Journal / player), lavender stays tertiary (AI Sponsor / Nightly /
-// Meditation), amber is the warm accent, coral is Spot Check. Mirrors the
-// prototype tokens in `frames/hifi-tokens.js`.
+// June 2026 re-theme: the palette derives from the app icon — three quiet colors
+// instead of the old per-tool rainbow. Teal leads (unchanged). The old per-tool
+// accents (amber / coral) are kept ONLY as aliases that re-tint into the brand
+// palette, so every legacy reference collapses automatically (token-driven):
+//   teal = Daily Reflection, Literature, Gratitude, Prayers, Notebook + chrome
+//   cyan (secondary)   = Journal, Spot Check, Reach Out
+//   periwinkle (tertiary) = Speaker, Nightly, Meditation, AI Sponsor, Meetings
 
 export const colors = {
-  primary: '#3D8B8B',      // Teal — brand, streaks, checkboxes, primary buttons
+  primary: '#3D8B8B',      // Teal — brand anchor (unchanged)
   primaryLight: '#7FB8B8',
   primaryDark: '#2E6F6F',
   primarySoft: '#D8E8E8',
 
-  secondary: '#5C8DFF',    // Blue — Journal, player, secondary actions
-  secondaryLight: '#A3BFFF',
-  secondaryDark: '#3A6AE0',
-  secondarySoft: '#DEE8FF',
+  secondary: '#1C8198',    // Cyan — write/act family (Journal, Spot Check, Reach Out)
+  secondaryLight: '#5BA9B8',
+  secondaryDark: '#0E6375',
+  secondarySoft: '#D5E8EC',
 
-  tertiary: '#A386D5',     // Lavender — AI Sponsor, Nightly Review, Meditation
-  tertiaryLight: '#C9B8E8',
-  tertiaryExtraLight: '#E8DFF5',
-  tertiaryDark: '#7A5FB5',
-  tertiaryExtraDark: '#5A4290',
-  tertiarySoft: '#E9E0F6',
+  tertiary: '#6E7AB0',     // Periwinkle — reflective family (Speaker, Nightly, Meditation, AI Sponsor, Meetings)
+  tertiaryLight: '#9AA4CA',
+  tertiaryExtraLight: '#EEF0F7',
+  tertiaryDark: '#515D92',
+  tertiaryExtraDark: '#3E4773',
+  tertiarySoft: '#E2E4F1',
 
-  amber: '#E8A95D',        // Warm accent — Gratitude, Prayers, Literature
-  amberSoft: '#F6E5C8',
-
-  coral: '#D36A5A',        // Terracotta — Spot Check
+  // Legacy accent aliases — collapsed into the brand palette. amber → teal,
+  // coral → cyan. (Names retained so existing imports keep working.)
+  amber: '#3D8B8B',
+  amberSoft: '#D8E8E8',
+  coral: '#1C8198',
 
   destructive: '#EF4444',
   success: '#22C55E',
@@ -63,13 +67,13 @@ export const toolColors = {
 
 export const semanticColors = {
   light: {
-    background: '#F9F7F2',    // Warm white — base canvas (redesign 3.0)
+    background: '#EFE9DC',    // Oat — warm paper ground (June 2026; balances the cool palette)
     surface: '#FFFFFF',        // Pure white — cards/containers
-    text: '#2B2A30',
-    textSecondary: '#4A4A5E',
-    textMuted: '#8A8A9A',
-    border: '#EDEAE2',         // Warm subtle card borders
-    divider: '#F3F1EC',
+    text: '#232529',
+    textSecondary: '#474A52',
+    textMuted: '#888B92',
+    border: '#E8E4DA',         // Warm subtle card borders
+    divider: '#F0ECE2',
     overlay: 'rgba(0, 0, 0, 0.45)',
   },
   dark: {

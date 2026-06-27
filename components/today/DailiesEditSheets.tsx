@@ -15,7 +15,9 @@ import {
   Platform,
 } from 'react-native';
 import { X, Plus, Trash2, Check } from 'lucide-react-native';
-import { colors, fontFamily, fontSize, radii, shadows } from '@/constants/designTokens';
+import { colors, fontFamily, fontSize, radii, shadows, getSemanticColors } from '@/constants/designTokens';
+
+const SHEET_BG = getSemanticColors('light').background;
 import { resolveGlyph, resolveTone, resolveSubtitle } from '@/components/dailyTokens';
 import { type DailyItem, type WhenBucket } from '@/hooks/use-dailies-store';
 
@@ -246,7 +248,7 @@ const styles = StyleSheet.create({
 
   sheetWrap: { flex: 1, justifyContent: 'flex-end' },
   backdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(20,20,30,0.35)' },
-  sheet: { backgroundColor: '#F9F7F2', borderTopLeftRadius: 28, borderTopRightRadius: 28, paddingTop: 10, maxHeight: '88%' },
+  sheet: { backgroundColor: SHEET_BG, borderTopLeftRadius: 28, borderTopRightRadius: 28, paddingTop: 10, maxHeight: '88%' },
   grabber: { width: 38, height: 4, borderRadius: 2, backgroundColor: '#EDEAE2', alignSelf: 'center', marginBottom: 10 },
   sheetHead: { flexDirection: 'row', alignItems: 'flex-start', gap: 12, paddingHorizontal: 22, paddingBottom: 8 },
   sheetHeadRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 22, paddingBottom: 6 },

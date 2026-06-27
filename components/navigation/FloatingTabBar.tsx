@@ -59,11 +59,12 @@ function SunriseGlyph({ size = 24, color = '#000', strokeWidth = 2 }: GlyphProps
 
 type TabKey = 'index' | 'tools' | 'journey' | 'settings';
 
+// June 2026 re-theme: the active-tab indicator is brand teal on every tab.
 const TAB_META: Record<TabKey, { label: string; Glyph: GlyphComponent; tone: string }> = {
-  index: { label: 'Today', Glyph: SunriseGlyph, tone: colors.primary }, // teal
-  tools: { label: 'Tools', Glyph: BookOpen, tone: '#C2843E' },          // amber
-  journey: { label: 'Journey', Glyph: PenLine, tone: colors.secondary }, // blue
-  settings: { label: 'Settings', Glyph: UserRound, tone: '#8E6FC7' },   // lavender
+  index: { label: 'Today', Glyph: SunriseGlyph, tone: colors.primary },
+  tools: { label: 'Tools', Glyph: BookOpen, tone: colors.primary },
+  journey: { label: 'Journey', Glyph: PenLine, tone: colors.primary },
+  settings: { label: 'Settings', Glyph: UserRound, tone: colors.primary },
 };
 
 const BAR_HEIGHT = 68;

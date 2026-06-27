@@ -1,7 +1,7 @@
 import React from 'react';
 import { Heart, Users, BookOpen, Moon, NotebookPen, CircleCheck, Phone, Play, House, Circle } from 'lucide-react-native';
 import { HandsPraying, FlowerLotus } from 'phosphor-react-native';
-import { lighten } from '@/constants/designTokens';
+import { colors, lighten } from '@/constants/designTokens';
 
 /**
  * Shared glyph + tone maps for the dailies surfaces (Today + My Dailies editor),
@@ -33,13 +33,15 @@ export const resolveGlyph = (name: string): GlyphComponent => GLYPH[name] ?? Cir
 // medallions. `fill` is the completed-row inset wash on Today: `soft` lightened
 // ~50% toward white (precomputed; RN has no color-mix).
 type RowTone = { ink: string; soft: string; fill: string };
+// Collapsed to the brand palette (June 2026): the old tone names re-tint into
+// teal / cyan / periwinkle so existing daily `color` values keep working.
 const RAW_TONES: Record<string, { ink: string; soft: string }> = {
-  teal: { ink: '#3D8B8B', soft: '#D8E8E8' },
-  amber: { ink: '#E8A95D', soft: '#F6E5C8' },
-  blue: { ink: '#5C8DFF', soft: '#DEE8FF' },
-  lavender: { ink: '#A386D5', soft: '#E9E0F6' },
-  coral: { ink: '#D36A5A', soft: '#F4DAD3' },
-  gray: { ink: '#9A9AA8', soft: '#E7E2D5' },
+  teal: { ink: colors.primary, soft: colors.primarySoft },
+  amber: { ink: colors.primary, soft: colors.primarySoft },       // → teal
+  blue: { ink: colors.secondary, soft: colors.secondarySoft },     // → cyan
+  lavender: { ink: colors.tertiary, soft: colors.tertiarySoft },   // → periwinkle
+  coral: { ink: colors.secondary, soft: colors.secondarySoft },    // → cyan
+  gray: { ink: '#888B92', soft: '#E7E2D5' },                       // neutral (custom/no-tool)
 };
 
 export const ROW_TONES: Record<string, RowTone> = Object.fromEntries(

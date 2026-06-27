@@ -22,8 +22,9 @@ const c = getSemanticColors('light');
 const MT = colors.tertiary;
 const MT_DARK = colors.tertiaryDark ?? '#7A5FB5';
 
-const HERO_GRAD = ['#A386D5', '#7A5FB5', '#5C8DFF'] as const;
-const HERO_GRAD_ALT = ['#5C8DFF', '#6A6FD5', '#A386D5'] as const;
+// Periwinkle mic-art gradient (June 2026 brand re-theme), token-derived.
+const HERO_GRAD: readonly string[] = [colors.tertiaryLight, colors.tertiary, colors.tertiaryDark];
+const HERO_GRAD_ALT: readonly string[] = [colors.tertiaryDark, colors.tertiary, colors.tertiaryLight];
 const gradFor = (id: string): readonly string[] => ((id ? id.charCodeAt(0) : 0) % 2 ? HERO_GRAD_ALT : HERO_GRAD);
 
 function fmtDate(iso: string | null): string | null {

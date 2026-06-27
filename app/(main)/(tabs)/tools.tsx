@@ -24,7 +24,7 @@ import {
 } from 'lucide-react-native';
 // Prayer + Meditation use Phosphor (Lucide has no praying-hands / lotus).
 import { HandsPraying, FlowerLotus } from 'phosphor-react-native';
-import { fontFamily, fontSize, shadows, getSemanticColors, lighten } from '@/constants/designTokens';
+import { colors, fontFamily, fontSize, shadows, getSemanticColors, lighten } from '@/constants/designTokens';
 import { useScreenTimeTracking } from '@/hooks/useScreenTimeTracking';
 import { useToolsWallpaper, type WallpaperKey } from '@/hooks/use-tools-wallpaper';
 
@@ -60,12 +60,13 @@ const WALLPAPER_ORDER: WallpaperKey[] = ['dawn', 'coast', 'dusk', 'paper'];
 type Tone = { solid: string; light: string };
 const tone = (solid: string): Tone => ({ solid, light: lighten(solid, 0.22) });
 
+// Collapsed to the brand palette (June 2026): teal / cyan / periwinkle only.
 const TONE = {
-  teal: tone('#3D8B8B'),
-  lavender: tone('#A386D5'),
-  amber: tone('#E8A95D'),
-  blue: tone('#5C8DFF'),
-  coral: tone('#D36A5A'),
+  teal: tone(colors.primary),
+  lavender: tone(colors.tertiary),   // → periwinkle
+  amber: tone(colors.primary),       // → teal
+  blue: tone(colors.secondary),      // → cyan
+  coral: tone(colors.secondary),     // → cyan
 };
 
 type GlyphComponent = React.ComponentType<{ size?: number; color?: string }>;
