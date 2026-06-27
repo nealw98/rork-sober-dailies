@@ -1,4 +1,4 @@
-// Reach Out — "Call another alcoholic" (redesign 3.0, blue/secondary tone).
+// Reach Out — "Talk with another alcoholic" (redesign 3.0, blue/secondary tone).
 // A flat list of saved program contacts; tap Call or Text to hand off to the OS
 // dialer / Messages (tel: / sms:). "Add from contacts" opens the native picker.
 // Prototype: frames/hifi-connect-tools.jsx (ScreenCallAnother). Local-first
@@ -70,7 +70,7 @@ export default function ReachOutScreen() {
       <Stack.Screen options={{ headerShown: false }} />
       <View style={styles.header}>
         <BackButton onPress={() => router.back()} style={{ marginBottom: 8 }} />
-        <Text style={styles.title}>Call another alcoholic</Text>
+        <Text style={styles.title}>Talk with another alcoholic</Text>
         <Text style={styles.sub}>Reach out — a call or a text both count.</Text>
       </View>
 

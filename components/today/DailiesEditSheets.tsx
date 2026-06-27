@@ -35,7 +35,7 @@ export const TOOL_CATALOG: Template[] = [
   { label: 'Write in my journal', icon: 'journal', color: 'blue', action: 'journal' },
   { label: 'Spot Check Inventory', icon: 'check', color: 'coral', action: 'spotcheck' },
   { label: 'Meditation', icon: 'lotus', color: 'lavender', action: 'meditation' },
-  { label: 'Call another alcoholic', icon: 'phone', color: 'blue', action: 'callAnother' },
+  { label: 'Talk with another alcoholic', icon: 'phone', color: 'blue', action: 'callAnother' },
 ];
 
 // "Quick actions" — no tool, just check off.

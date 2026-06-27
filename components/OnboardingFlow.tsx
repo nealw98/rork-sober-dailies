@@ -164,7 +164,7 @@ const STARTER: { when: WhenBucket; items: StarterItem[] }[] = [
     { id: 'meeting', label: 'Attend a meeting', icon: 'users', color: 'lavender', action: 'meeting', on: true },
     { id: 'lit', label: 'Read the literature', icon: 'library', color: 'teal', action: 'lit', on: true },
     { id: 'med', label: 'Meditation', icon: 'lotus', color: 'lavender', action: 'meditation', on: false },
-    { id: 'call', label: 'Call another alcoholic', icon: 'phone', color: 'blue', action: 'callAnother', on: false },
+    { id: 'call', label: 'Talk with another alcoholic', icon: 'phone', color: 'blue', action: 'callAnother', on: false },
     { id: 'speaker', label: 'Listen to a speaker', icon: 'play', color: 'lavender', action: 'speaker', on: false },
     { id: 'journal', label: 'Write in my journal', icon: 'journal', color: 'blue', action: 'journal', on: false },
     { id: 'spotcheck', label: 'Spot Check Inventory', icon: 'check', color: 'coral', action: 'spotcheck', on: false },
