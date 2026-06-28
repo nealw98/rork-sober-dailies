@@ -60,8 +60,10 @@ type EditRow =
   | { type: 'daily'; key: string; item: DailyItem; isLast: boolean }
   | { type: 'add'; key: string; when: WhenBucket };
 
-// ─── Done button — the ledger's completion control (replaces press-and-hold) ──
-function DoneButton({ done, tone, onPress }: { done: boolean; tone: { ink: string }; onPress: () => void }) {
+// ─── Done button — the completion control. Brand teal regardless of row tone:
+// when done it fills in (teal + check); the row's tone shows in the UNDONE
+// highlight instead (inverted completion, June 2026).
+function DoneButton({ done, onPress }: { done: boolean; onPress: () => void }) {
   return (
     <Pressable
       onPress={onPress}
@@ -71,12 +73,12 @@ function DoneButton({ done, tone, onPress }: { done: boolean; tone: { ink: strin
       style={[
         styles.doneBtn,
         done
-          ? { backgroundColor: tone.ink, borderColor: tone.ink }
-          : { backgroundColor: 'transparent', borderColor: tone.ink + '99' },
+          ? { backgroundColor: colors.primary, borderColor: colors.primary }
+          : { backgroundColor: 'transparent', borderColor: colors.primary + '99' },
       ]}
     >
       {done && <Check size={12} color="#fff" strokeWidth={3} />}
-      <Text style={[styles.doneText, { color: done ? '#fff' : tone.ink }]}>Done</Text>
+      <Text style={[styles.doneText, { color: done ? '#fff' : colors.primary }]}>Done</Text>
     </Pressable>
   );
 }
@@ -94,15 +96,22 @@ function DailyRow({
   const tone = resolveTone(item.color);
   const Glyph = resolveGlyph(item.icon);
   const sub = resolveSubtitle(item.action);
+  // Inverted completion: UNDONE rows are highlighted (tint fill + full-height
+  // accent bar); completing one drops the highlight and the separator returns.
+  const highlight = !done && !editing;
+  const showDivider = editing ? (!isLast && !dragging) : (done && !isLast);
   return (
-    <View style={[styles.row, !isLast && !dragging && styles.rowDivider, dragging && styles.rowDragging]}>
-      {done && !editing && <View style={[styles.rowFill, { backgroundColor: tone.fill }]} />}
-      <View
-        style={[
-          styles.accentBar,
-          { backgroundColor: tone.ink, opacity: done && !editing ? 1 : 0.5, top: done && !editing ? 4 : 0, bottom: done && !editing ? 4 : 0 },
-        ]}
-      />
+    <View style={[styles.row, showDivider && styles.rowDivider, dragging && styles.rowDragging]}>
+      {highlight ? (
+        // Undone: tinted card with the accent as its clipped left edge (rounded,
+        // contained — never touches the row above/below).
+        <View style={[styles.rowFill, { backgroundColor: tone.fill }]}>
+          <View style={[styles.accentInner, { backgroundColor: tone.ink }]} />
+        </View>
+      ) : (
+        // Done / editing: a faint contained accent line, no fill.
+        <View style={[styles.accentBar, { backgroundColor: tone.ink, opacity: editing ? 0.5 : 0.32 }]} />
+      )}
       {/* Edit mode: the leading glyph becomes a tone-tinted drag handle; long-press
           the row (or the handle) to reorder / move between sections. */}
       <Pressable style={styles.rowMain} onPress={onOpen} onLongPress={editing ? onDragStart : undefined} delayLongPress={150} disabled={editing && !onDragStart}>
@@ -126,7 +135,7 @@ function DailyRow({
           </Pressable>
         </View>
       ) : (
-        <DoneButton done={done} tone={tone} onPress={onToggle} />
+        <DoneButton done={done} onPress={onToggle} />
       )}
     </View>
   );
@@ -145,7 +154,7 @@ function ReflectionHero({ title, imageUri, alt, staticSource, done, onRead, onTo
   const teal = ROW_TONES.teal;
   const fallback = staticSource ?? HERO_FALLBACK;
   return (
-    <View style={[styles.hero, { borderColor: done ? teal.ink + '55' : '#EDEAE2' }]}>
+    <View style={[styles.hero, { borderColor: !done ? teal.ink + '55' : '#E8E4DA' }]}>
       <Pressable onPress={onRead}>
         <View style={styles.heroCover}>
           <Image
@@ -164,8 +173,8 @@ function ReflectionHero({ title, imageUri, alt, staticSource, done, onRead, onTo
           <Text style={styles.heroTitle} numberOfLines={2}>{title}</Text>
         </View>
       </Pressable>
-      {/* Meta band — matches the ledger rows; fills edge-to-edge when done */}
-      <View style={[styles.heroMeta, done && { backgroundColor: teal.fill }]}>
+      {/* Meta band — inverted: tinted (highlighted) while undone, plain once done */}
+      <View style={[styles.heroMeta, !done && { backgroundColor: teal.fill }]}>
         <Pressable style={styles.rowMain} onPress={onRead}>
           <View style={styles.glyphWrap}>
             <BookOpen size={21} color={teal.ink} />
@@ -175,7 +184,7 @@ function ReflectionHero({ title, imageUri, alt, staticSource, done, onRead, onTo
             <Text style={styles.rowSub} numberOfLines={1}>{resolveSubtitle('reflection')}</Text>
           </View>
         </Pressable>
-        <DoneButton done={done} tone={teal} onPress={onToggle} />
+        <DoneButton done={done} onPress={onToggle} />
       </View>
     </View>
   );
@@ -452,9 +461,12 @@ const styles = StyleSheet.create({
   },
   rowDivider: { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: '#E2DED4' },
   rowDragging: { backgroundColor: colors.white, borderRadius: 12, ...shadows.md },
-  // Completed-row inset wash: squared left (flush with accent bar), rounded right.
-  rowFill: { position: 'absolute', left: 0, right: 0, top: 4, bottom: 4, borderTopRightRadius: 11, borderBottomRightRadius: 11 },
-  accentBar: { position: 'absolute', left: 0, width: 3 },
+  // Undone highlight: a rounded tinted card, inset from the row so cards never
+  // touch. The accent is a clipped child (rounded with the card's left corners).
+  rowFill: { position: 'absolute', left: 0, right: 0, top: 4, bottom: 4, borderRadius: 11, overflow: 'hidden' },
+  accentInner: { position: 'absolute', left: 0, top: 0, bottom: 0, width: 3 },
+  // Done / editing: a faint contained accent line (inset to match the card).
+  accentBar: { position: 'absolute', left: 0, top: 4, bottom: 4, width: 3, borderRadius: 2 },
   rowMain: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 12 },
   glyphWrap: { width: 28, alignItems: 'center', justifyContent: 'center' },
   rowText: { flex: 1 },
