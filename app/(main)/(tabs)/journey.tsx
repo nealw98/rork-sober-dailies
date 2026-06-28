@@ -34,10 +34,12 @@ type Rect = { x: number; y: number; w: number; h: number };
 type Mode = 'list' | 'opening' | 'read' | 'closing';
 
 type GlyphIcon = React.ComponentType<{ size?: number; color?: string; strokeWidth?: number }>;
+// Collapsed to the brand palette (June 2026), token-driven: gratitude → teal,
+// nightly → periwinkle, spot check / journal → cyan.
 const J_TOOL: Record<NotebookType, { Icon: GlyphIcon; ink: string; soft: string; dark: string }> = {
-  gratitude: { Icon: Heart, ink: colors.amber, soft: colors.amberSoft, dark: '#B07F38' },
+  gratitude: { Icon: Heart, ink: colors.primary, soft: colors.primarySoft, dark: colors.primaryDark },
   nightly: { Icon: Moon, ink: colors.tertiary, soft: colors.tertiarySoft, dark: colors.tertiaryDark },
-  spotcheck: { Icon: CircleCheck, ink: colors.coral, soft: '#F6DDD3', dark: '#A8493A' },
+  spotcheck: { Icon: CircleCheck, ink: colors.secondary, soft: colors.secondarySoft, dark: colors.secondaryDark },
   journal: { Icon: NotebookPen, ink: colors.secondary, soft: colors.secondarySoft, dark: colors.secondaryDark },
 };
 const TYPE_LABEL: Record<NotebookType, string> = {
@@ -219,10 +221,10 @@ function RowContent({ entry }: { entry: NotebookEntry }) {
   const t = J_TOOL[entry.type];
   return (
     <>
-      <View style={[styles.entryMed, { backgroundColor: t.ink }]}><t.Icon size={19} color="#fff" strokeWidth={2} /></View>
+      <View style={[styles.med, { backgroundColor: t.soft }]}><t.Icon size={20} color={t.ink} strokeWidth={2} /></View>
       <View style={styles.flex}>
         <View style={styles.entryTitleRow}>
-          <Text style={styles.entryLabel}>{TYPE_LABEL[entry.type]}</Text>
+          <Text style={[styles.entryLabel, { color: t.ink }]}>{TYPE_LABEL[entry.type]}</Text>
           <Text style={styles.entryTime}>{timeLabel(entry.ts)}</Text>
         </View>
         {!!entry.preview && <Text style={styles.entryPreview} numberOfLines={2}>{entry.preview}</Text>}
@@ -234,10 +236,9 @@ function RowContent({ entry }: { entry: NotebookEntry }) {
 function SummaryContent({ day }: { day: DayBlockData }) {
   return (
     <>
-      <View style={styles.summaryMed}><SunriseGlyph size={20} /></View>
+      <View style={[styles.med, { backgroundColor: colors.primarySoft }]}><SunriseGlyph size={20} color={colors.primary} /></View>
       <View style={styles.flex}>
-        <Text style={styles.summaryTitle}>Dailies · <Text style={styles.summaryDone}>{day.done} of {day.total} done</Text></Text>
-        <Text style={styles.summarySub}>{day.isToday ? 'Tap to see today’s list' : 'Tap to see the full day'}</Text>
+        <Text style={styles.summaryTitle}>Dailies · {day.done} of {day.total} done</Text>
       </View>
       <ChevronRight size={16} color={c.textMuted} />
     </>
@@ -252,17 +253,20 @@ function DayBlock({ day, onOpenDay, onOpenEntry }: { day: DayBlockData; onOpenDa
     node.measureInWindow((x, y, w, h) => onOpenDay({ x, y, w, h }));
   };
   return (
-    <View>
+    <View style={styles.dayBlock}>
+      {/* Continuous timeline line — a dark node per day sits on it */}
+      <View style={styles.railLine} />
       <View style={styles.dayHead}>
+        <View style={styles.dayNode} />
         <Text style={styles.dayDate}>{day.label}</Text>
         {day.dayN != null && <Text style={styles.dayN}>Day {day.dayN}</Text>}
       </View>
-
-      <Pressable ref={ref} style={[styles.summary, day.entries.length > 0 && { marginBottom: 12 }]} onPress={press}>
-        <SummaryContent day={day} />
-      </Pressable>
-
-      {day.entries.map((e) => <EntryRow key={e.key} entry={e} onOpen={onOpenEntry} />)}
+      <View style={styles.cards}>
+        <Pressable ref={ref} style={[styles.summary, day.entries.length > 0 && { marginBottom: 12 }]} onPress={press}>
+          <SummaryContent day={day} />
+        </Pressable>
+        {day.entries.map((e) => <EntryRow key={e.key} entry={e} onOpen={onOpenEntry} />)}
+      </View>
     </View>
   );
 }
@@ -661,24 +665,30 @@ const styles = StyleSheet.create({
   title: { fontFamily: fontFamily.displayBold, fontSize: 30, letterSpacing: -0.5, color: c.text },
   subtitle: { fontFamily: fontFamily.serifItalic, fontSize: 15, color: c.textSecondary, marginTop: 2 },
 
-  feed: { paddingHorizontal: 22, paddingBottom: 48, gap: 26 },
+  feed: { paddingHorizontal: 22, paddingBottom: 48 },
 
-  dayHead: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 10, paddingHorizontal: 2 },
+  // Each day block carries a continuous left timeline line (paddingBottom bridges
+  // to the next day's node, so the line reads as one); a dark node sits on it.
+  dayBlock: { position: 'relative', paddingBottom: 24 },
+  railLine: { position: 'absolute', left: 6, top: 10, bottom: 0, width: 2, backgroundColor: c.border },
+  dayHead: { flexDirection: 'row', alignItems: 'center', marginBottom: 12 },
+  dayNode: { width: 14, height: 14, borderRadius: 7, backgroundColor: colors.primaryDark, marginRight: 12 },
   dayDate: { fontFamily: fontFamily.semiBold, fontSize: 16, color: c.text },
-  dayN: { fontFamily: fontFamily.regular, fontSize: 11, color: c.textMuted },
+  dayN: { fontFamily: fontFamily.regular, fontSize: 11, color: c.textMuted, marginLeft: 'auto' },
 
-  summary: { flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: c.surface, borderRadius: 18, paddingHorizontal: 16, paddingVertical: 15, ...shadows.sm },
-  summaryMed: { width: 38, height: 38, borderRadius: 12, backgroundColor: colors.primary, alignItems: 'center', justifyContent: 'center' },
-  summaryTitle: { fontFamily: fontFamily.semiBold, fontSize: 15, color: c.text },
-  summaryDone: { color: c.textSecondary },
-  summarySub: { fontFamily: fontFamily.regular, fontSize: 12, color: c.textMuted, marginTop: 3 },
+  cards: { paddingLeft: 28 },
+  // icon tile — light tone tint fill, icon in the tool color
+  med: { width: 44, height: 44, borderRadius: 13, alignItems: 'center', justifyContent: 'center' },
 
-  entryRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 12, backgroundColor: c.surface, borderWidth: 1, borderColor: c.border, borderRadius: 16, padding: 16, marginBottom: 12, ...shadows.sm },
-  entryMed: { width: 38, height: 38, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
+  // white tiles (summary + entries)
+  summary: { flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: c.surface, borderWidth: 1, borderColor: c.border, borderRadius: 14, paddingVertical: 12, paddingHorizontal: 14, ...shadows.sm },
+  summaryTitle: { fontFamily: fontFamily.semiBold, fontSize: 15, color: colors.primary },
+
+  entryRow: { flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: c.surface, borderWidth: 1, borderColor: c.border, borderRadius: 14, paddingVertical: 12, paddingHorizontal: 14, marginBottom: 12, ...shadows.sm },
   entryTitleRow: { flexDirection: 'row', alignItems: 'baseline', gap: 7 },
-  entryLabel: { fontFamily: fontFamily.semiBold, fontSize: 15, color: c.text },
+  entryLabel: { fontFamily: fontFamily.semiBold, fontSize: 15 },
   entryTime: { fontFamily: fontFamily.regular, fontSize: 11, color: c.textMuted },
-  entryPreview: { fontFamily: fontFamily.regularItalic, fontSize: 14.5, lineHeight: 21, color: c.textSecondary, marginTop: 5 },
+  entryPreview: { fontFamily: fontFamily.regular, fontSize: 14.5, lineHeight: 20, color: c.textSecondary, marginTop: 3 },
 
   empty: { alignItems: 'center', paddingTop: 64, paddingHorizontal: 30, gap: 12 },
   emptyMedallion: { width: 60, height: 60, borderRadius: 18, backgroundColor: colors.secondary, alignItems: 'center', justifyContent: 'center', marginBottom: 4 },
