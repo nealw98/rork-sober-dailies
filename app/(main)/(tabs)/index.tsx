@@ -23,6 +23,7 @@ import { useDailies, type DailyItem, type WhenBucket } from '@/hooks/use-dailies
 import { useReflectionHeroImage } from '@/hooks/useReflectionHeroImage';
 import SobrietyCounter from '@/components/SobrietyCounter';
 import { getTodaysReflection } from '@/constants/reflections';
+import { titleCase } from '@/lib/titleCase';
 import { Reflection } from '@/types';
 
 // Today is a to-do ledger. Completion is fully manual: every daily — including
@@ -224,7 +225,7 @@ export default function TodayScreen() {
       <SobrietyCounter />
       <View style={styles.heroTop}>
         <ReflectionHero
-          title={reflection?.title || 'Daily Reflection'}
+          title={reflection?.title ? titleCase(reflection.title) : 'Daily Reflection'}
           imageUri={ROTATE_HERO ? heroImage?.uri : undefined}
           alt={ROTATE_HERO ? heroImage?.alt : 'A seedling reaching toward the light'}
           staticSource={ROTATE_HERO ? undefined : STATIC_HERO}

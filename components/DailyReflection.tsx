@@ -20,6 +20,7 @@ import BackButton from '@/components/BackButton';
 import { getReflectionForDate } from '@/constants/reflections';
 import { Reflection } from '@/types';
 import { recordDailyReflectionDay } from '@/lib/reviewPrompt';
+import { titleCase } from '@/lib/titleCase';
 import { useDailies } from '@/hooks/use-dailies-store';
 import { useTextSettings } from '@/hooks/use-text-settings';
 import { colors, fontFamily, getSemanticColors } from '@/constants/designTokens';
@@ -152,7 +153,7 @@ export default function DailyReflection({ fontSize = 18, lineHeight, jumpToDate 
           <LinearGradient colors={['transparent', 'rgba(0,0,0,0.62)']} locations={[0.3, 1]} style={StyleSheet.absoluteFill} />
           <View style={styles.heroInner}>
             <View>
-              <Text style={styles.heroTitle}>{reflection?.title ?? ' '}</Text>
+              <Text style={styles.heroTitle}>{reflection?.title ? titleCase(reflection.title) : ' '}</Text>
               <Text style={styles.heroDate}>{heroDate(selectedDate)}</Text>
             </View>
           </View>
@@ -322,7 +323,7 @@ const styles = StyleSheet.create({
 
   hero: { height: 168, borderRadius: 22, overflow: 'hidden', backgroundColor: colors.primary },
   heroInner: { ...StyleSheet.absoluteFillObject, padding: 18, justifyContent: 'flex-end' },
-  heroTitle: { fontFamily: fontFamily.display, fontSize: 30, fontWeight: '500', color: '#fff', lineHeight: 32, letterSpacing: -0.8, textShadowColor: 'rgba(0,0,0,0.45)', textShadowRadius: 12, textShadowOffset: { width: 0, height: 2 } },
+  heroTitle: { fontFamily: fontFamily.display, fontSize: 22, fontWeight: '500', color: '#fff', lineHeight: 27, letterSpacing: -0.4, textShadowColor: 'rgba(0,0,0,0.45)', textShadowRadius: 12, textShadowOffset: { width: 0, height: 2 } },
   heroDate: { fontFamily: fontFamily.regular, fontSize: 11, color: 'rgba(255,255,255,0.92)', marginTop: 6, textShadowColor: 'rgba(0,0,0,0.4)', textShadowRadius: 6, textShadowOffset: { width: 0, height: 1 } },
 
   quoteWrap: { marginTop: 32, paddingLeft: 18, borderLeftWidth: 2, borderLeftColor: colors.primary },
