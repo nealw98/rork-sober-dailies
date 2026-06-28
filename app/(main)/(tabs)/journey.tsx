@@ -167,7 +167,7 @@ export default function JourneyScreen() {
       top: interpolate(p, [0, 1], [s.y, target.y]),
       width: interpolate(p, [0, 1], [s.w, target.w]),
       height: interpolate(p, [0, 1], [s.h, target.h]),
-      borderRadius: interpolate(p, [0, 1], [16, 22]),
+      borderRadius: interpolate(p, [0, 1], [14, 22]),
     };
   });
   const rowFade = useAnimatedStyle(() => ({ opacity: interpolate(progress.value, [0, 0.45], [1, 0], Extrapolation.CLAMP) }));
@@ -202,7 +202,14 @@ export default function JourneyScreen() {
       {morph && (
         <Animated.View style={[styles.overlayCard, overlayStyle]}>
           <Animated.View style={[styles.overlayRow, { width: source?.w ?? target.w }, rowFade]} pointerEvents="none">
-            {morph.kind === 'entry' ? <RowContent entry={morph.entry} /> : <SummaryContent day={morph.day} />}
+            {morph.kind === 'entry' ? (
+              <>
+                <RowContent entry={morph.entry} />
+                <ChevronRight size={14} color={c.textMuted} />
+              </>
+            ) : (
+              <SummaryContent day={morph.day} />
+            )}
           </Animated.View>
           <Animated.View style={[StyleSheet.absoluteFill, sheetFade]}>
             {morph.kind === 'entry' ? (
@@ -337,9 +344,9 @@ function DaySheet({ day, program, completion, onClose, onSave, scrollEnabled = t
   return (
     <View style={styles.flexFill}>
       <View style={styles.sheetHead}>
-        <View style={[styles.sheetMed, { backgroundColor: colors.primary }]}><SunriseGlyph size={22} /></View>
+        <View style={[styles.sheetMed, { backgroundColor: colors.primarySoft }]}><SunriseGlyph size={22} color={colors.primary} /></View>
         <View style={styles.flex}>
-          <Text style={styles.sheetTitle}>Dailies</Text>
+          <Text style={[styles.sheetTitle, { color: colors.primary }]}>Dailies</Text>
           <Text style={styles.sheetTime}>{day.label}</Text>
         </View>
         {editing ? (
@@ -383,7 +390,7 @@ function DailyCheckRow({ item, first, dim, editable, onToggle }: {
     <View>
       {!first && <View style={styles.hairline} />}
       <Row style={[styles.dRow, dim && { opacity: 0.5 }]} onPress={editable ? onToggle : undefined}>
-        <View style={[styles.dMed, { backgroundColor: item.done ? tone.ink : '#C9C3B6' }]}><Glyph size={19} color="#fff" /></View>
+        <View style={[styles.dMed, { backgroundColor: tone.soft }]}><Glyph size={19} color={tone.ink} /></View>
         <Text style={styles.dLabel}>{item.label}</Text>
         <View style={[styles.dCheck, item.done ? { backgroundColor: tone.ink, borderColor: tone.ink } : { borderColor: c.border }]}>
           {item.done && <Check size={13} color="#fff" strokeWidth={3} />}
@@ -459,9 +466,9 @@ function EntrySheet({ entry, onClose, scrollEnabled = true, updateSpotRecord }: 
   return (
     <View style={styles.flexFill}>
       <View style={styles.sheetHead}>
-        <View style={[styles.sheetMed, { backgroundColor: t.ink }]}><t.Icon size={22} color="#fff" strokeWidth={2} /></View>
+        <View style={[styles.sheetMed, { backgroundColor: t.soft }]}><t.Icon size={22} color={t.ink} strokeWidth={2} /></View>
         <View style={styles.flex}>
-          <Text style={styles.sheetTitle}>{TYPE_LABEL[view.type]}</Text>
+          <Text style={[styles.sheetTitle, { color: t.ink }]}>{TYPE_LABEL[view.type]}</Text>
           <Text style={styles.sheetTime}>{timeLabel(view.ts)}</Text>
         </View>
         {editing ? (
@@ -696,10 +703,10 @@ const styles = StyleSheet.create({
   emptyBody: { fontFamily: fontFamily.regular, fontSize: 14, lineHeight: 21, color: c.textMuted, textAlign: 'center', maxWidth: 290 },
 
   // morph overlay + sheets (Option B)
-  overlayCard: { position: 'absolute', backgroundColor: colors.white, overflow: 'hidden', ...shadows.md },
-  overlayRow: { position: 'absolute', top: 0, left: 0, flexDirection: 'row', alignItems: 'flex-start', gap: 12, padding: 16 },
-  sheetHead: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 18, paddingTop: 16, paddingBottom: 14 },
-  sheetMed: { width: 44, height: 44, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
+  overlayCard: { position: 'absolute', backgroundColor: colors.white, borderWidth: 1, borderColor: c.border, overflow: 'hidden', ...shadows.md },
+  overlayRow: { position: 'absolute', top: 0, left: 0, flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 12, paddingHorizontal: 14 },
+  sheetHead: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 14, paddingTop: 12, paddingBottom: 14 },
+  sheetMed: { width: 44, height: 44, borderRadius: 13, alignItems: 'center', justifyContent: 'center' },
   sheetTitle: { fontFamily: fontFamily.displayBold, fontSize: 22, letterSpacing: -0.4, color: c.text },
   sheetTime: { fontFamily: fontFamily.regular, fontSize: 13, color: c.textMuted, marginTop: 1 },
   closeBtn: { width: 34, height: 34, borderRadius: 17, borderWidth: 1, borderColor: c.border, alignItems: 'center', justifyContent: 'center' },

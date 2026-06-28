@@ -67,7 +67,7 @@ export const toolColors = {
 
 export const semanticColors = {
   light: {
-    background: '#EFE9DC',    // Oat — warm paper ground (June 2026; balances the cool palette)
+    background: '#F7F2E8',    // Soft cream — light warm paper (keeps warmth without dulling the white tiles)
     surface: '#FFFFFF',        // Pure white — cards/containers
     text: '#232529',
     textSecondary: '#474A52',
