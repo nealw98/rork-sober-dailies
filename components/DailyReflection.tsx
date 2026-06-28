@@ -152,7 +152,7 @@ export default function DailyReflection({ fontSize = 18, lineHeight, jumpToDate 
           <Image source={HERO} style={StyleSheet.absoluteFill} contentFit="cover" />
           <LinearGradient colors={['transparent', 'rgba(0,0,0,0.62)']} locations={[0.3, 1]} style={StyleSheet.absoluteFill} />
           <View style={styles.heroInner}>
-            <View>
+            <View style={styles.heroTextBlock}>
               <Text style={styles.heroTitle}>{reflection?.title ? titleCase(reflection.title) : ' '}</Text>
               <Text style={styles.heroDate}>{heroDate(selectedDate)}</Text>
             </View>
@@ -323,7 +323,8 @@ const styles = StyleSheet.create({
 
   hero: { height: 168, borderRadius: 22, overflow: 'hidden', backgroundColor: colors.primary },
   heroInner: { ...StyleSheet.absoluteFillObject, padding: 18, justifyContent: 'flex-end' },
-  heroTitle: { fontFamily: fontFamily.display, fontSize: 22, fontWeight: '500', color: '#fff', lineHeight: 27, letterSpacing: -0.4, textShadowColor: 'rgba(0,0,0,0.45)', textShadowRadius: 12, textShadowOffset: { width: 0, height: 2 } },
+  heroTextBlock: { maxWidth: '66%' },   // title sits in the left 2/3 — weight to the left
+  heroTitle: { fontFamily: fontFamily.serifMedium, fontSize: 22, color: '#fff', lineHeight: 28, letterSpacing: 0, textShadowColor: 'rgba(0,0,0,0.45)', textShadowRadius: 12, textShadowOffset: { width: 0, height: 2 } },
   heroDate: { fontFamily: fontFamily.regular, fontSize: 11, color: 'rgba(255,255,255,0.92)', marginTop: 6, textShadowColor: 'rgba(0,0,0,0.4)', textShadowRadius: 6, textShadowOffset: { width: 0, height: 1 } },
 
   quoteWrap: { marginTop: 32, paddingLeft: 18, borderLeftWidth: 2, borderLeftColor: colors.primary },

@@ -485,10 +485,11 @@ const styles = StyleSheet.create({
   hero: { borderRadius: 16, borderWidth: 1, borderColor: '#E8E4DA', backgroundColor: colors.white, overflow: 'hidden', marginBottom: 4, ...shadows.sm },
   heroCover: { height: 150, justifyContent: 'flex-end', overflow: 'hidden' },
   heroTitle: {
-    fontFamily: fontFamily.display,
-    fontSize: 19,
+    fontFamily: fontFamily.serifMedium,
+    fontSize: 22,
     color: '#fff',
-    lineHeight: 24,
+    lineHeight: 27,
+    width: '66%',            // title sits in the left 2/3 — weight to the left
     paddingHorizontal: 14,
     paddingBottom: 12,
     textShadowColor: 'rgba(0,0,0,0.45)',

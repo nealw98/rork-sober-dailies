@@ -30,6 +30,7 @@ import {
 import {
   Lora_400Regular,
   Lora_400Regular_Italic,
+  Lora_500Medium,
   Lora_500Medium_Italic,
   Lora_700Bold,
 } from '@expo-google-fonts/lora';
@@ -129,6 +130,7 @@ function RootLayoutNav() {
     Manrope_800ExtraBold,
     Lora_400Regular,
     Lora_400Regular_Italic,
+    Lora_500Medium,
     Lora_500Medium_Italic,
     Lora_700Bold,
     Archivo_600SemiBold,
