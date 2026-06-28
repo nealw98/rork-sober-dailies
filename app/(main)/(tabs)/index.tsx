@@ -152,9 +152,6 @@ function ReflectionHero({ title, imageUri, alt, staticSource, done, onRead, onTo
             style={StyleSheet.absoluteFill}
           />
           <LinearGradient colors={['rgba(0,0,0,0)', 'rgba(0,0,0,0.55)']} locations={[0.35, 1]} style={StyleSheet.absoluteFill} />
-          <View style={styles.heroPill}>
-            <Text style={styles.heroPillText}>DAILY REFLECTION</Text>
-          </View>
           <Text style={styles.heroTitle} numberOfLines={2}>{title}</Text>
         </View>
       </Pressable>
@@ -486,16 +483,6 @@ const styles = StyleSheet.create({
   // Reflection hero
   hero: { borderRadius: 16, borderWidth: 1, borderColor: '#E8E4DA', backgroundColor: colors.white, overflow: 'hidden', marginBottom: 4, ...shadows.sm },
   heroCover: { height: 150, justifyContent: 'flex-end', overflow: 'hidden' },
-  heroPill: {
-    position: 'absolute',
-    top: 12,
-    left: 12,
-    backgroundColor: 'rgba(255,255,255,0.95)',
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: radii.full,
-  },
-  heroPillText: { fontFamily: fontFamily.bold, fontSize: 10, letterSpacing: 0.5, color: '#2B2A30' },
   heroTitle: {
     fontFamily: fontFamily.display,
     fontSize: 19,

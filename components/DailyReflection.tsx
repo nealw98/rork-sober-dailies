@@ -123,6 +123,9 @@ export default function DailyReflection({ fontSize = 18, lineHeight, jumpToDate 
         </Pressable>
       </View>
 
+      {/* Page title */}
+      <Text style={styles.pageTitle}>Daily Reflections</Text>
+
       {/* Date pill row */}
       <View style={styles.dateRow}>
         <Pressable hitSlop={8} onPress={() => navigateDate('prev')} style={styles.dateChev}>
@@ -148,7 +151,6 @@ export default function DailyReflection({ fontSize = 18, lineHeight, jumpToDate 
           <Image source={HERO} style={StyleSheet.absoluteFill} contentFit="cover" />
           <LinearGradient colors={['transparent', 'rgba(0,0,0,0.62)']} locations={[0.3, 1]} style={StyleSheet.absoluteFill} />
           <View style={styles.heroInner}>
-            <View style={styles.heroChip}><Text style={styles.heroChipText}>DAILY REFLECTION</Text></View>
             <View>
               <Text style={styles.heroTitle}>{reflection?.title ?? ' '}</Text>
               <Text style={styles.heroDate}>{heroDate(selectedDate)}</Text>
@@ -316,10 +318,10 @@ const styles = StyleSheet.create({
 
   scroll: { paddingHorizontal: 20, paddingBottom: 24 },
 
+  pageTitle: { fontFamily: fontFamily.display, fontSize: 28, letterSpacing: -0.5, color: c.text, paddingHorizontal: 20, paddingTop: 2, paddingBottom: 2 },
+
   hero: { height: 168, borderRadius: 22, overflow: 'hidden', backgroundColor: colors.primary },
-  heroInner: { ...StyleSheet.absoluteFillObject, padding: 18, justifyContent: 'space-between' },
-  heroChip: { alignSelf: 'flex-start', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 999, backgroundColor: 'rgba(255,255,255,0.95)' },
-  heroChipText: { fontFamily: fontFamily.bold, fontSize: 10, letterSpacing: 1.4, color: c.text },
+  heroInner: { ...StyleSheet.absoluteFillObject, padding: 18, justifyContent: 'flex-end' },
   heroTitle: { fontFamily: fontFamily.display, fontSize: 30, fontWeight: '500', color: '#fff', lineHeight: 32, letterSpacing: -0.8, textShadowColor: 'rgba(0,0,0,0.45)', textShadowRadius: 12, textShadowOffset: { width: 0, height: 2 } },
   heroDate: { fontFamily: fontFamily.regular, fontSize: 11, color: 'rgba(255,255,255,0.92)', marginTop: 6, textShadowColor: 'rgba(0,0,0,0.4)', textShadowRadius: 6, textShadowOffset: { width: 0, height: 1 } },
 
