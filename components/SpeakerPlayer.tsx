@@ -9,13 +9,14 @@ import { activateKeepAwakeAsync, deactivateKeepAwake } from 'expo-keep-awake';
 import { Bookmark, Download, Check, Share2, Play, Pause, RotateCcw, RotateCw, X } from 'lucide-react-native';
 import { useGlobalAudioPlayer } from '@/hooks/useGlobalAudioPlayer';
 import { useSpeakerDownload, resolveAudioUri } from '@/hooks/useSpeakerDownload';
-import { colors, fontFamily, getSemanticColors, shadows } from '@/constants/designTokens';
+import { colors, fontFamily, getSemanticColors, shadows, families } from '@/constants/designTokens';
 
 const c = getSemanticColors('light');
-const MT = colors.steel;           // Steel Navy — Speaker tone
-const MT_DARK = colors.steelDark ?? '#223454';
-const MT_SOFT = colors.steelSoft ?? '#E0E4EC';
-const SECONDARY = colors.steelLight ?? '#7E97BE';
+// Steel Navy, one ramp step lighter than the global steel (speaker pages read too dark at full strength).
+const MT = families.steel[400];           // was steel[500]
+const MT_DARK = families.steel[600];      // was steel[700]
+const MT_SOFT = families.steel[100];
+const SECONDARY = families.steel[200];
 
 const SUPABASE_AUDIO_BASE = 'https://uzfqabcjxjqufpipdcla.supabase.co/storage/v1/object/public/speaker-audio';
 const SPEEDS = [1, 1.25, 1.5, 2];

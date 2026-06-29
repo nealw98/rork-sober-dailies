@@ -43,7 +43,7 @@ export default function JournalScreen() {
         showsVerticalScrollIndicator={false}
         automaticallyAdjustKeyboardInsets
       >
-        <ToolIntro tool={tool}>Write freely — whatever&rsquo;s on your mind. No rules, no audience.</ToolIntro>
+        <ToolIntro tool={tool} variant="bar">Write freely — whatever&rsquo;s on your mind. No rules, no audience.</ToolIntro>
         <View style={styles.body}>
           <View style={styles.card}>
             <TextInput

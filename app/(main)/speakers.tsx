@@ -7,7 +7,6 @@ import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import { AppState, AppStateStatus, StyleSheet, View, Text, Pressable, FlatList, ActivityIndicator, TextInput, Modal } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, Stack, useFocusEffect } from 'expo-router';
-import { LinearGradient } from 'expo-linear-gradient';
 import { Search, X, Mic, Play, Bookmark, CircleCheck, ChevronDown, Check } from 'lucide-react-native';
 import BackButton from '@/components/BackButton';
 import { useSpeakers, Speaker } from '@/hooks/useSpeakers';
@@ -15,20 +14,16 @@ import { useScreenTimeTracking } from '@/hooks/useScreenTimeTracking';
 import { useGlobalAudioPlayer } from '@/hooks/useGlobalAudioPlayer';
 import { useDownloadedSpeakerIds } from '@/hooks/useSpeakerDownload';
 import { useSpeakerFavorites } from '@/hooks/use-speaker-favorites';
-import { colors, fontFamily, getSemanticColors, shadows } from '@/constants/designTokens';
+import { colors, fontFamily, getSemanticColors, shadows, families } from '@/constants/designTokens';
 
 const c = getSemanticColors('light');
-const MT = colors.steel;           // Steel Navy — Speaker tone
-const MT_DARK = colors.steelDark ?? '#223454';
-const MT_SOFT = colors.steelSoft ?? '#E0E4EC';
+// Steel Navy, one ramp step lighter than the global steel — the speaker pages
+// read too dark at the full strength.
+const MT = families.steel[400];           // was steel[500]
+const MT_DARK = families.steel[600];      // was steel[700]
+const MT_SOFT = families.steel[100];
 
-// Mic-art gradients (verbatim from the prototype), keyed off the tape id so a
-// tape's art is stable everywhere. Rendered with expo-linear-gradient (≈135°).
-// Steel Navy mic-art gradient (token-derived).
-const HERO_GRAD: readonly string[] = [colors.steelLight, colors.steel, colors.steelDark];
-const HERO_GRAD_ALT: readonly string[] = [colors.steelDark, colors.steel, colors.steelLight];
-const gradFor = (id: string): readonly string[] =>
-  (id ? id.charCodeAt(0) : 0) % 2 ? HERO_GRAD_ALT : HERO_GRAD;
+// Mic-art is a flat Steel Navy fill (gradient removed).
 
 function fmtDate(iso: string | null): string | null {
   if (!iso) return null;
@@ -56,12 +51,11 @@ function sortSpeakers(list: Speaker[], sortBy: SortKey): Speaker[] {
 }
 
 // ─── Gradient mic-art thumbnail ──────────────────────────────────────────────
-function MicThumb({ id, size, radius }: { id: string; size: number; radius: number }) {
+function MicThumb({ size, radius }: { id: string; size: number; radius: number }) {
   return (
-    <LinearGradient colors={gradFor(id) as [string, string, ...string[]]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
-      style={{ width: size, height: size, borderRadius: radius, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
-      <Mic size={size * 0.42} color="rgba(255,255,255,0.5)" strokeWidth={1.3} />
-    </LinearGradient>
+    <View style={{ width: size, height: size, borderRadius: radius, backgroundColor: MT, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
+      <Mic size={size * 0.42} color="rgba(255,255,255,0.55)" strokeWidth={1.3} />
+    </View>
   );
 }
 
@@ -70,7 +64,7 @@ function FeaturedHero({ tape, onOpen, onPlay }: { tape: Speaker; onOpen: () => v
   const quote = stripQuote(tape.quote) || tape.subtitle || '';
   return (
     <Pressable onPress={onOpen} style={styles.featuredWrap}>
-      <LinearGradient colors={gradFor(tape.id) as [string, string, ...string[]]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.featuredCard}>
+      <View style={[styles.featuredCard, { backgroundColor: MT }]}>
         <View style={styles.featuredTop}>
           <Text style={styles.featuredEyebrow}>FEATURED · THIS WEEK</Text>
           <Text style={styles.featuredMeta} numberOfLines={1}>{[tape.hometown, fmtDate(tape.date)].filter(Boolean).join(' · ')}</Text>
@@ -89,7 +83,7 @@ function FeaturedHero({ tape, onOpen, onPlay }: { tape: Speaker; onOpen: () => v
             <Play size={22} color={MT_DARK} fill={MT_DARK} style={{ marginLeft: 2 }} />
           </Pressable>
         </View>
-      </LinearGradient>
+      </View>
     </Pressable>
   );
 }

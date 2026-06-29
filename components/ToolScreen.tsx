@@ -6,7 +6,7 @@ import React from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import { colors, fontFamily, getSemanticColors } from '@/constants/designTokens';
+import { colors, fontFamily, getSemanticColors, families } from '@/constants/designTokens';
 import BackButton from '@/components/BackButton';
 
 const c = getSemanticColors('light');
@@ -15,10 +15,11 @@ export type ToolMeta = { id: string; label: string; accent: string; soft: string
 
 // Per-tool tones — accent/soft/dark per the prototype's TOOL map.
 export const TOOLS = {
-  gratitude: { id: 'gratitude', label: 'Gratitude', accent: colors.accent, soft: colors.accentSoft, dark: colors.accentDark },         // terracotta
-  nightly: { id: 'nightly', label: 'Nightly Review', accent: colors.tertiary, soft: colors.tertiarySoft, dark: colors.tertiaryDark },  // periwinkle
-  spotcheck: { id: 'spotcheck', label: 'Spot Check Inventory', accent: colors.accent, soft: colors.accentSoft, dark: colors.accentDark }, // terracotta
-  journal: { id: 'journal', label: 'Journal', accent: colors.primary, soft: colors.primarySoft, dark: colors.primaryDark },             // teal
+  // `soft` is the intro-pill tint, bumped +2 ramp steps (100 → 300) for more color.
+  gratitude: { id: 'gratitude', label: 'Gratitude', accent: colors.accent, soft: families.terracotta[300], dark: colors.accentDark },         // terracotta
+  nightly: { id: 'nightly', label: 'Nightly Review', accent: colors.tertiary, soft: families.periwinkle[300], dark: colors.tertiaryDark },     // periwinkle
+  spotcheck: { id: 'spotcheck', label: 'Spot Check Inventory', accent: colors.accent, soft: families.terracotta[300], dark: colors.accentDark }, // terracotta
+  journal: { id: 'journal', label: 'Journal', accent: colors.primary, soft: families.teal[300], dark: colors.primaryDark },                   // teal
 } satisfies Record<string, ToolMeta>;
 
 // The "today" subtitle shown under each tool title.
@@ -51,13 +52,42 @@ export function ToolHeader({ tool, dirty, onCommit }: { tool: ToolMeta; dirty: b
   );
 }
 
-// Quote / framing card — soft tinted background, 3px accent left border, italic serif.
-export function ToolIntro({ tool, children }: { tool: ToolMeta; children: React.ReactNode }) {
+// Framing line above each tool — borderless (Inter). `variant` picks the accent
+// treatment so the four workbook screens can be compared:
+//   mark  — large accent quotation mark above the text (editorial)
+//   rule  — short accent rule above the text
+//   bar   — thin accent rule down the left (blockquote)
+//   plain — quiet italic line, no accent
+export type IntroVariant = 'plain' | 'mark' | 'rule' | 'bar';
+
+export function ToolIntro({ tool, children, variant = 'plain' }: { tool: ToolMeta; children: React.ReactNode; variant?: IntroVariant }) {
+  if (variant === 'mark') {
+    return (
+      <View style={styles.introWrap}>
+        <Text style={[styles.introMark, { color: tool.accent }]}>&ldquo;</Text>
+        <Text style={styles.introQuote}>{children}</Text>
+      </View>
+    );
+  }
+  if (variant === 'rule') {
+    return (
+      <View style={styles.introWrap}>
+        <View style={[styles.introRule, { backgroundColor: tool.accent }]} />
+        <Text style={styles.introLine}>{children}</Text>
+      </View>
+    );
+  }
+  if (variant === 'bar') {
+    return (
+      <View style={[styles.introWrap, styles.introBarRow]}>
+        <View style={[styles.introBar, { backgroundColor: tool.accent }]} />
+        <Text style={[styles.introLine, styles.introItalic, styles.introFlex]}>{children}</Text>
+      </View>
+    );
+  }
   return (
     <View style={styles.introWrap}>
-      <View style={[styles.introCard, { backgroundColor: tool.soft + '66', borderLeftColor: tool.accent }]}>
-        <Text style={styles.introText}>{children}</Text>
-      </View>
+      <Text style={[styles.introLine, styles.introItalic, styles.introMuted]}>{children}</Text>
     </View>
   );
 }
@@ -71,7 +101,17 @@ const styles = StyleSheet.create({
   title: { fontFamily: fontFamily.display, fontSize: 30, letterSpacing: -0.5, color: c.text, lineHeight: 34 },
   subtitle: { fontFamily: fontFamily.regular, fontSize: 13, color: c.textMuted, marginTop: 3 },
 
-  introWrap: { paddingHorizontal: 20, paddingTop: 2, paddingBottom: 22 },
-  introCard: { borderLeftWidth: 3, paddingVertical: 12, paddingHorizontal: 16, borderRadius: 4 },
-  introText: { fontFamily: fontFamily.serifItalic, fontSize: 14, lineHeight: 20, color: c.textSecondary },
+  introWrap: { paddingHorizontal: 20, paddingTop: 20, paddingBottom: 30 },
+  introLine: { fontFamily: fontFamily.medium, fontSize: 16, lineHeight: 24, color: c.text },
+  introItalic: { fontFamily: fontFamily.regularItalic },
+  introMuted: { color: c.textSecondary },
+  introFlex: { flex: 1 },
+  // mark
+  introMark: { fontFamily: fontFamily.displayBold, fontSize: 42, lineHeight: 34, marginBottom: 2 },
+  introQuote: { fontFamily: fontFamily.medium, fontSize: 17, lineHeight: 25, color: c.text },
+  // rule
+  introRule: { width: 34, height: 3, borderRadius: 2, marginBottom: 12 },
+  // bar
+  introBarRow: { flexDirection: 'row', alignItems: 'stretch', gap: 12 },
+  introBar: { width: 3, borderRadius: 2 },
 });

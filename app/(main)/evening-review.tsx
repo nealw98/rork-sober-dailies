@@ -87,7 +87,7 @@ export default function NightlyReviewScreen() {
         showsVerticalScrollIndicator={false}
         automaticallyAdjustKeyboardInsets
       >
-        <ToolIntro tool={tool}>
+        <ToolIntro tool={tool} variant="bar">
           {'“Continued to take personal inventory and when we were wrong promptly admitted it.” — Step Ten'}
         </ToolIntro>
 

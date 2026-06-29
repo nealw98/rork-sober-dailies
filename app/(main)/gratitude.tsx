@@ -10,7 +10,6 @@ import * as Haptics from 'expo-haptics';
 import { Plus } from 'lucide-react-native';
 import { useGratitudeStore } from '@/hooks/use-gratitude-store';
 import { useDailies } from '@/hooks/use-dailies-store';
-import { useGratitudeQuote } from '@/hooks/useGratitudeQuote';
 import { ToolHeader, ToolIntro, TOOLS } from '@/components/ToolScreen';
 import { colors, fontFamily, getSemanticColors } from '@/constants/designTokens';
 
@@ -22,7 +21,6 @@ export default function GratitudeScreen() {
   const { dailyId } = useLocalSearchParams<{ dailyId?: string }>();
   const gratitude = useGratitudeStore();
   const dailies = useDailies();
-  const { formattedQuote, isLoading: isQuoteLoading } = useGratitudeQuote();
 
   const [vals, setVals] = useState<string[]>(['', '', '']);
   const dirty = vals.some((v) => v.trim() !== '');
@@ -51,11 +49,7 @@ export default function GratitudeScreen() {
         showsVerticalScrollIndicator={false}
         automaticallyAdjustKeyboardInsets
       >
-        {!isQuoteLoading && formattedQuote ? (
-          <ToolIntro tool={tool}>{`“${formattedQuote}”`}</ToolIntro>
-        ) : (
-          <View style={styles.introSpacer} />
-        )}
+        <ToolIntro tool={tool} variant="bar">It isn&rsquo;t about having more, but noticing what&rsquo;s already there. Name three things, big or small.</ToolIntro>
 
         <View style={styles.body}>
           <Text style={styles.heading}>Today I&rsquo;m grateful for&hellip;</Text>
@@ -86,7 +80,6 @@ const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: c.background },
   flex: { flex: 1 },
   scroll: { paddingBottom: 32 },
-  introSpacer: { height: 8 },
   body: { paddingHorizontal: 18 },
   heading: { fontFamily: fontFamily.semiBold, fontSize: 17, color: c.text, letterSpacing: -0.2, marginBottom: 16 },
   field: {

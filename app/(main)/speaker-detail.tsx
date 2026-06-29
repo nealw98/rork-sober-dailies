@@ -16,15 +16,16 @@ import { useSpeakers } from '@/hooks/useSpeakers';
 import { useScreenTimeTracking } from '@/hooks/useScreenTimeTracking';
 import { useGlobalAudioPlayer } from '@/hooks/useGlobalAudioPlayer';
 import { useSpeakerFavorites } from '@/hooks/use-speaker-favorites';
-import { colors, fontFamily, getSemanticColors, shadows } from '@/constants/designTokens';
+import { colors, fontFamily, getSemanticColors, shadows, families } from '@/constants/designTokens';
 
 const c = getSemanticColors('light');
-const MT = colors.steel;
-const MT_DARK = colors.steelDark ?? '#223454';
+// Steel Navy, one ramp step lighter than the global steel (speaker pages read too dark at full strength).
+const MT = families.steel[400];
+const MT_DARK = families.steel[600];
 
-// Steel Navy mic-art gradient (token-derived).
-const HERO_GRAD: readonly string[] = [colors.steelLight, colors.steel, colors.steelDark];
-const HERO_GRAD_ALT: readonly string[] = [colors.steelDark, colors.steel, colors.steelLight];
+// Steel Navy mic-art gradient (token-derived), one step lighter.
+const HERO_GRAD: readonly string[] = [families.steel[200], families.steel[400], families.steel[600]];
+const HERO_GRAD_ALT: readonly string[] = [families.steel[600], families.steel[400], families.steel[200]];
 const gradFor = (id: string): readonly string[] => ((id ? id.charCodeAt(0) : 0) % 2 ? HERO_GRAD_ALT : HERO_GRAD);
 
 function fmtDate(iso: string | null): string | null {

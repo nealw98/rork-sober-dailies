@@ -66,7 +66,7 @@ export default function InventoryScreen() {
         showsVerticalScrollIndicator={false}
         automaticallyAdjustKeyboardInsets
       >
-        <ToolIntro tool={tool}>Pause. Breathe. Name what&rsquo;s driving it — then turn it around.</ToolIntro>
+        <ToolIntro tool={tool} variant="bar">Pause. Breathe. Name what&rsquo;s driving it — then turn it around.</ToolIntro>
 
         <View style={styles.body}>
           {/* Situation */}
