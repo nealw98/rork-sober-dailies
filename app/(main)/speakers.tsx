@@ -18,15 +18,15 @@ import { useSpeakerFavorites } from '@/hooks/use-speaker-favorites';
 import { colors, fontFamily, getSemanticColors, shadows } from '@/constants/designTokens';
 
 const c = getSemanticColors('light');
-const MT = colors.tertiary;        // lavender — Speaker tone
-const MT_DARK = colors.tertiaryDark ?? '#7A5FB5';
-const MT_SOFT = colors.tertiarySoft ?? '#E9E0F6';
+const MT = colors.steel;           // Steel Navy — Speaker tone
+const MT_DARK = colors.steelDark ?? '#223454';
+const MT_SOFT = colors.steelSoft ?? '#E0E4EC';
 
 // Mic-art gradients (verbatim from the prototype), keyed off the tape id so a
 // tape's art is stable everywhere. Rendered with expo-linear-gradient (≈135°).
-// Periwinkle mic-art gradient (June 2026 brand re-theme), token-derived.
-const HERO_GRAD: readonly string[] = [colors.tertiaryLight, colors.tertiary, colors.tertiaryDark];
-const HERO_GRAD_ALT: readonly string[] = [colors.tertiaryDark, colors.tertiary, colors.tertiaryLight];
+// Steel Navy mic-art gradient (token-derived).
+const HERO_GRAD: readonly string[] = [colors.steelLight, colors.steel, colors.steelDark];
+const HERO_GRAD_ALT: readonly string[] = [colors.steelDark, colors.steel, colors.steelLight];
 const gradFor = (id: string): readonly string[] =>
   (id ? id.charCodeAt(0) : 0) % 2 ? HERO_GRAD_ALT : HERO_GRAD;
 

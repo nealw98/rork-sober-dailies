@@ -1,42 +1,176 @@
 /**
- * Design Tokens — Serenity Grid Design System
+ * Design Tokens — Steel Navy color system
  *
- * Single source of truth for the 3.0 redesign.
- * All new screens should import from here instead of themes.ts or colors.ts.
+ * Single source of truth for the 3.0 redesign, structured for theming.
+ *
+ * How it fits together (top → bottom):
+ *   1. color math + `ramp()`  — turn one base hex into a 50→900 scale
+ *   2. Theme                  — 5 family base hexes + the neutral set
+ *   3. ACTIVE_THEME           — the one knob: point it at a different Theme
+ *   4. families / colors       — every value re-derives from the active theme
+ *   5. toolFamily             — which family each tool "speaks in" (assignments)
+ *
+ * To create a new theme: copy `steelNavyTheme`, change the base hexes, and set
+ * `ACTIVE_THEME` to it. To re-assign a tool's color: edit one line in
+ * `toolFamily`. Nothing downstream hardcodes a hex.
  */
 
-// ─── Brand Colors ────────────────────────────────────────────────────────────
-// June 2026 re-theme: the palette derives from the app icon — three quiet colors
-// instead of the old per-tool rainbow. Teal leads (unchanged). The old per-tool
-// accents (amber / coral) are kept ONLY as aliases that re-tint into the brand
-// palette, so every legacy reference collapses automatically (token-driven):
-//   teal = Daily Reflection, Literature, Gratitude, Prayers, Notebook + chrome
-//   cyan (secondary)   = Journal, Spot Check, Reach Out
-//   periwinkle (tertiary) = Speaker, Nightly, Meditation, AI Sponsor, Meetings
+// ─── Color math ──────────────────────────────────────────────────────────────
+
+const hexToRgb = (h: string): [number, number, number] => {
+  const s = h.replace('#', '');
+  return [parseInt(s.slice(0, 2), 16), parseInt(s.slice(2, 4), 16), parseInt(s.slice(4, 6), 16)];
+};
+const to2 = (n: number) => Math.round(Math.max(0, Math.min(255, n))).toString(16).padStart(2, '0');
+
+// Mix colour `a` toward colour `b` by `t` (0 = a, 1 = b).
+const mix = (a: string, b: string, t: number): string => {
+  const A = hexToRgb(a), B = hexToRgb(b);
+  return ('#' + [0, 1, 2].map((i) => to2(A[i] + (B[i] - A[i]) * t)).join('')).toUpperCase();
+};
+
+// Mix a hex toward white by `t` (0 = unchanged, 1 = white). Kept as a public
+// helper — screens use it for one-off lighter fills (e.g. card backgrounds).
+export const lighten = (hex: string, t: number): string => mix(hex, '#FFFFFF', t);
+
+// ─── Ramp generator ──────────────────────────────────────────────────────────
+// One base hex → a 10-step scale. Tints (<500) mix toward white; shades (>500)
+// mix toward a cool near-black. (Same math as the Steel Navy palette spec.)
+
+const RAMP_SHADE = '#171A22';
+const TINT: Record<number, number> = { 50: 0.93, 100: 0.85, 200: 0.7, 300: 0.5, 400: 0.26 };
+const SHADE: Record<number, number> = { 600: 0.16, 700: 0.32, 800: 0.48, 900: 0.64 };
+const RAMP_STEPS = [50, 100, 200, 300, 400, 500, 600, 700, 800, 900] as const;
+
+export type RampStep = (typeof RAMP_STEPS)[number];
+export type Ramp = Record<RampStep, string>;
+
+const ramp = (base: string): Ramp => {
+  const out = {} as Ramp;
+  for (const s of RAMP_STEPS) {
+    out[s] = s === 500 ? base.toUpperCase() : s < 500 ? mix(base, '#FFFFFF', TINT[s]) : mix(base, RAMP_SHADE, SHADE[s]);
+  }
+  return out;
+};
+
+// ─── Theme ───────────────────────────────────────────────────────────────────
+// A theme is the only place real hexes live: the 5 family bases + the neutrals.
+
+export type Theme = {
+  name: string;
+  families: { steel: string; azure: string; teal: string; periwinkle: string; terracotta: string };
+  neutrals: { ink: string; ink2: string; ink3: string; surface: string; background: string; divider: string; border: string; stage: string };
+};
+
+export const steelNavyTheme: Theme = {
+  name: 'Steel Navy',
+  families: {
+    steel: '#2D5882',       // Steel Navy — Speakers · Meetings (out in the world)
+    azure: '#1C7BB0',        // Azure — Journal · Spot Check · Reach Out
+    teal: '#3D8B8B',         // Teal — Reflection · Literature · Gratitude · Prayers
+    periwinkle: '#8273B5',   // Periwinkle — Nightly · Meditation · AI Sponsor (violet-leaning, to separate from Steel Navy)
+    terracotta: '#C16745',   // Terracotta — the single warm accent
+  },
+  neutrals: {
+    ink: '#232529',          // primary text
+    ink2: '#474A52',         // secondary text
+    ink3: '#888B92',         // captions / muted
+    surface: '#FFFFFF',      // cards
+    background: '#FAF6EF',    // page (warm oat)
+    divider: '#F1EDE4',      // hairlines inside cards
+    border: '#E8E4DA',       // card & control borders
+    stage: '#D8D2C4',        // deepest paper (canvas behind sheets)
+  },
+};
+
+// ⇩ The active theme — the single knob. Swap this to re-skin the whole app.
+export const ACTIVE_THEME: Theme = steelNavyTheme;
+
+// ─── Families ────────────────────────────────────────────────────────────────
+// Each base, expanded to its full ramp. `families.teal[500]` is the base, [100]
+// a soft tint for medallion fills, [700] a darker shade for text/pressed states.
+
+export const families = {
+  steel: ramp(ACTIVE_THEME.families.steel),
+  azure: ramp(ACTIVE_THEME.families.azure),
+  teal: ramp(ACTIVE_THEME.families.teal),
+  periwinkle: ramp(ACTIVE_THEME.families.periwinkle),
+  terracotta: ramp(ACTIVE_THEME.families.terracotta),
+};
+export type FamilyName = keyof typeof families;
+
+// ─── Role assignments (tool → family) ────────────────────────────────────────
+// THE assignment table. Edit a line to re-tint that tool everywhere it's drawn.
+
+export const toolFamily: Record<string, FamilyName> = {
+  reflection: 'teal',
+  literature: 'teal',
+  gratitude: 'teal',
+  prayers: 'teal',
+  journal: 'azure',
+  spotCheck: 'azure',
+  reachOut: 'azure',
+  speakers: 'steel',
+  meetings: 'steel',
+  nightly: 'periwinkle',
+  meditation: 'periwinkle',
+  aiSponsor: 'periwinkle',
+};
+
+export const accentFamily: FamilyName = 'terracotta'; // emphasis · streaks · primary actions
+export const chromeFamily: FamilyName = 'teal';        // tab bar / headers / brand chrome
+
+// The working tones a screen needs from a family: a base ink, a soft fill, a
+// lighter step, and a darker shade.
+export type Tone = { base: string; soft: string; light: string; dark: string };
+export const toneFor = (family: FamilyName): Tone => {
+  const r = families[family];
+  return { base: r[500], soft: r[100], light: r[300], dark: r[700] };
+};
+
+// ─── Brand colors (derived — backwards-compatible flat names) ─────────────────
+// Existing screens import these; they now resolve through the active theme's
+// ramps. `primary` = teal, `secondary` = azure, `tertiary` = periwinkle, plus
+// the new `steel` and `accent` families.
 
 export const colors = {
-  primary: '#3D8B8B',      // Teal — brand anchor (unchanged)
-  primaryLight: '#7FB8B8',
-  primaryDark: '#2E6F6F',
-  primarySoft: '#D8E8E8',
+  // Teal — reflection family + brand chrome
+  primary: families.teal[500],
+  primaryLight: families.teal[300],
+  primaryDark: families.teal[700],
+  primarySoft: families.teal[100],
 
-  secondary: '#1C8198',    // Cyan — write/act family (Journal, Spot Check, Reach Out)
-  secondaryLight: '#5BA9B8',
-  secondaryDark: '#0E6375',
-  secondarySoft: '#D5E8EC',
+  // Azure — write/act family (Journal · Spot Check · Reach Out)
+  secondary: families.azure[500],
+  secondaryLight: families.azure[300],
+  secondaryDark: families.azure[700],
+  secondarySoft: families.azure[100],
 
-  tertiary: '#6E7AB0',     // Periwinkle — reflective family (Speaker, Nightly, Meditation, AI Sponsor, Meetings)
-  tertiaryLight: '#9AA4CA',
-  tertiaryExtraLight: '#EEF0F7',
-  tertiaryDark: '#515D92',
-  tertiaryExtraDark: '#3E4773',
-  tertiarySoft: '#E2E4F1',
+  // Periwinkle — reflective family (Nightly · Meditation · AI Sponsor)
+  tertiary: families.periwinkle[500],
+  tertiaryLight: families.periwinkle[300],
+  tertiaryExtraLight: families.periwinkle[50],
+  tertiaryDark: families.periwinkle[700],
+  tertiaryExtraDark: families.periwinkle[800],
+  tertiarySoft: families.periwinkle[100],
 
-  // Legacy accent aliases — collapsed into the brand palette. amber → teal,
-  // coral → cyan. (Names retained so existing imports keep working.)
-  amber: '#3D8B8B',
-  amberSoft: '#D8E8E8',
-  coral: '#1C8198',
+  // Steel Navy — out-in-the-world family (Speakers · Meetings)
+  steel: families.steel[500],
+  steelLight: families.steel[300],
+  steelDark: families.steel[700],
+  steelSoft: families.steel[100],
+
+  // Terracotta — the single warm accent (emphasis · streaks · primary actions)
+  accent: families.terracotta[500],
+  accentLight: families.terracotta[300],
+  accentDark: families.terracotta[700],
+  accentSoft: families.terracotta[100],
+
+  // Legacy accent aliases — collapsed into the palette so old imports keep
+  // working. amber → teal, coral → azure.
+  amber: families.teal[500],
+  amberSoft: families.teal[100],
+  coral: families.azure[500],
 
   destructive: '#EF4444',
   success: '#22C55E',
@@ -46,34 +180,32 @@ export const colors = {
   black: '#000000',
 };
 
-// ─── Per-tool tones ──────────────────────────────────────────────────────────
-// One color per tool/concept. MUST match the Journey medallions and Tools
-// tiles exactly (see DESIGN-DECISIONS.md "Tile color tone-per-tool").
+// ─── Per-tool tones (derived from the assignment table) ───────────────────────
 
 export const toolColors = {
-  dailyReflection: colors.primary,   // teal
-  speakerTapes: colors.tertiary,     // lavender
-  literature: colors.amber,          // amber
-  journal: colors.secondary,         // blue
-  gratitude: colors.amber,           // amber
-  spotCheck: colors.coral,           // coral
-  nightlyReview: colors.tertiary,    // lavender
-  prayers: colors.amber,             // amber
-  meditation: colors.tertiary,       // lavender
-  aiSponsor: colors.tertiary,        // lavender
+  dailyReflection: families[toolFamily.reflection][500],
+  speakerTapes: families[toolFamily.speakers][500],
+  literature: families[toolFamily.literature][500],
+  journal: families[toolFamily.journal][500],
+  gratitude: families[toolFamily.gratitude][500],
+  spotCheck: families[toolFamily.spotCheck][500],
+  nightlyReview: families[toolFamily.nightly][500],
+  prayers: families[toolFamily.prayers][500],
+  meditation: families[toolFamily.meditation][500],
+  aiSponsor: families[toolFamily.aiSponsor][500],
 } as const;
 
 // ─── Semantic Colors (mode-aware) ────────────────────────────────────────────
 
 export const semanticColors = {
   light: {
-    background: '#F7F2E8',    // Soft cream — light warm paper (keeps warmth without dulling the white tiles)
-    surface: '#FFFFFF',        // Pure white — cards/containers
-    text: '#232529',
-    textSecondary: '#474A52',
-    textMuted: '#888B92',
-    border: '#E8E4DA',         // Warm subtle card borders
-    divider: '#F0ECE2',
+    background: ACTIVE_THEME.neutrals.background,
+    surface: ACTIVE_THEME.neutrals.surface,
+    text: ACTIVE_THEME.neutrals.ink,
+    textSecondary: ACTIVE_THEME.neutrals.ink2,
+    textMuted: ACTIVE_THEME.neutrals.ink3,
+    border: ACTIVE_THEME.neutrals.border,
+    divider: ACTIVE_THEME.neutrals.divider,
     overlay: 'rgba(0, 0, 0, 0.45)',
   },
   dark: {
@@ -88,13 +220,13 @@ export const semanticColors = {
   },
 };
 
-// ─── Card Backgrounds ────────────────────────────────────────────────────────
+// ─── Card Backgrounds (legacy) ───────────────────────────────────────────────
 
 export const cardColors = {
   light: {
     reflection: '#FFFFFF',
-    sponsor: '#6DBEBF',      // Secondary color
-    speakers: '#A386D5',     // Tertiary color
+    sponsor: '#6DBEBF',
+    speakers: '#A386D5',
     literature: '#FFFFFF',
     ritual: '#FFFFFF',
   },
@@ -204,21 +336,9 @@ export const gradients = {
   tertiary: ['#A386D5', '#6DBEBF'] as const,
 };
 
-// ─── Helper ──────────────────────────────────────────────────────────────────
+// ─── Helpers ─────────────────────────────────────────────────────────────────
 
 export type ColorMode = 'light' | 'dark';
 
 export const getSemanticColors = (mode: ColorMode) => semanticColors[mode];
 export const getCardColors = (mode: ColorMode) => cardColors[mode];
-
-// Mix a hex colour toward white by `t` (0 = unchanged, 1 = white). RN has no
-// CSS `color-mix`, so precompute lighter tints at module load with this.
-export const lighten = (hex: string, t: number): string => {
-  const h = hex.replace('#', '');
-  const r = parseInt(h.slice(0, 2), 16);
-  const g = parseInt(h.slice(2, 4), 16);
-  const b = parseInt(h.slice(4, 6), 16);
-  const mix = (c: number) => Math.round(c + (255 - c) * t);
-  const to2 = (n: number) => n.toString(16).padStart(2, '0');
-  return `#${to2(mix(r))}${to2(mix(g))}${to2(mix(b))}`;
-};

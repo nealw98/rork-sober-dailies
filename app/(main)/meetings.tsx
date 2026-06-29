@@ -17,9 +17,9 @@ import { parseMeetingGuide, type MeetingDraft } from '@/lib/parseMeetingGuide';
 import { colors, fontFamily, getSemanticColors } from '@/constants/designTokens';
 
 const c = getSemanticColors('light');
-const MT = colors.tertiary;       // lavender — Meetings tone
-const MT_SOFT = colors.tertiarySoft;
-const MT_DARK = colors.tertiaryDark;
+const MT = colors.steel;          // Steel Navy — Meetings tone
+const MT_SOFT = colors.steelSoft;
+const MT_DARK = colors.steelDark;
 // Meeting Guide (AAWS) is an iOS-only app; Android users get the official site.
 const MEETING_GUIDE_URL = Platform.OS === 'android'
   ? 'https://meetingguide.org'

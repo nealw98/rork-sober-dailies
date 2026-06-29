@@ -44,7 +44,7 @@ const COMPLETION_KEY = 'dailies_completion';
 export const DEFAULT_PROGRAM: DailyItem[] = [
   { id: 'prayerM', label: 'Say my Morning Prayer', icon: 'pray', color: 'amber', when: 'Morning', action: 'prayerMorning' },
   { id: 'grat', label: 'Write my Gratitude List', icon: 'heart', color: 'amber', when: 'Morning', action: 'gratitude' },
-  { id: 'meeting', label: 'Attend a meeting', icon: 'users', color: 'lavender', when: 'Anytime', action: 'meeting' },
+  { id: 'meeting', label: 'Attend a meeting', icon: 'users', color: 'steel', when: 'Anytime', action: 'meeting' },
   { id: 'lit', label: 'Read the literature', icon: 'library', color: 'teal', when: 'Anytime', action: 'lit' },
   { id: 'nightly', label: 'Nightly Review', icon: 'moon', color: 'lavender', when: 'Evening', action: 'nightly' },
   { id: 'prayerE', label: 'Say my Evening Prayer', icon: 'pray', color: 'amber', when: 'Evening', action: 'prayerEvening' },

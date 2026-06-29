@@ -33,14 +33,18 @@ export const resolveGlyph = (name: string): GlyphComponent => GLYPH[name] ?? Cir
 // medallions. `fill` is the completed-row inset wash on Today: `soft` lightened
 // ~50% toward white (precomputed; RN has no color-mix).
 type RowTone = { ink: string; soft: string; fill: string };
-// Collapsed to the brand palette (June 2026): the old tone names re-tint into
-// teal / cyan / periwinkle so existing daily `color` values keep working.
+// Tone names map into the active palette (Steel Navy): teal / azure / periwinkle
+// / steel, so existing daily `color` values keep working. Legacy aliases (amber,
+// blue, coral) collapse into the new families.
 const RAW_TONES: Record<string, { ink: string; soft: string }> = {
   teal: { ink: colors.primary, soft: colors.primarySoft },
+  azure: { ink: colors.secondary, soft: colors.secondarySoft },
+  steel: { ink: colors.steel, soft: colors.steelSoft },
+  periwinkle: { ink: colors.tertiary, soft: colors.tertiarySoft },
   amber: { ink: colors.primary, soft: colors.primarySoft },       // → teal
-  blue: { ink: colors.secondary, soft: colors.secondarySoft },     // → cyan
+  blue: { ink: colors.secondary, soft: colors.secondarySoft },     // → azure
   lavender: { ink: colors.tertiary, soft: colors.tertiarySoft },   // → periwinkle
-  coral: { ink: colors.secondary, soft: colors.secondarySoft },    // → cyan
+  coral: { ink: colors.secondary, soft: colors.secondarySoft },    // → azure
   gray: { ink: '#888B92', soft: '#E7E2D5' },                       // neutral (custom/no-tool)
 };
 

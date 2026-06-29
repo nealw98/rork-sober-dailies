@@ -1,15 +1,14 @@
-import React, { useState } from 'react';
+import React from 'react';
 import {
   StyleSheet,
   View,
   Text,
   ScrollView,
   Pressable,
-  Image,
-  Modal,
   useWindowDimensions,
 } from 'react-native';
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Image } from 'expo-image';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter, type Href } from 'expo-router';
 import {
@@ -20,317 +19,167 @@ import {
   Phone,
   Users,
   Settings,
-  Check,
+  Mic,
+  ChevronRight,
 } from 'lucide-react-native';
 // Prayer + Meditation use Phosphor (Lucide has no praying-hands / lotus).
 import { HandsPraying, FlowerLotus } from 'phosphor-react-native';
 import { colors, fontFamily, fontSize, shadows, getSemanticColors, lighten } from '@/constants/designTokens';
 import { useScreenTimeTracking } from '@/hooks/useScreenTimeTracking';
-import { useToolsWallpaper, type WallpaperKey } from '@/hooks/use-tools-wallpaper';
 
 const c = getSemanticColors('light');
 
 /**
- * Tools — a phone home screen (redesign 3.0). A swappable wallpaper, the three
- * flagship tools as photo widgets, and the rest as an app-icon grid. Pure
- * launcher: no completion, no "Add to My Day". Spec: `Today & Tools Update/Tools.md`.
+ * Tools — the app's launcher (redesign 3.0). A featured Literature hero, the two
+ * conversational flagships (Speaker Tapes · AI Sponsor) as colored cards, and the
+ * remaining tools as a clean white-tile grid. Pure launcher — no completion.
  */
 
-const INK = '#2B2A30';
-
-type Wall = {
-  colors: readonly [string, string, ...string[]];
-  locations?: readonly [number, number, ...number[]];
-  start: { x: number; y: number };
-  end: { x: number; y: number };
-  light: boolean; // light → dark ink labels; false (dusk) → white labels
-};
-
-const WALLPAPERS: Record<WallpaperKey, Wall> = {
-  dawn:  { colors: ['#F6E7D6', '#EFD9DC', '#DAE2EC'], locations: [0, 0.42, 1], start: { x: 0.5, y: 0 }, end: { x: 0.5, y: 1 }, light: true },
-  coast: { colors: ['#C3E2DF', '#AECBEA', '#A6BBDD'], locations: [0, 0.55, 1], start: { x: 0.12, y: 0 }, end: { x: 0.88, y: 1 }, light: true },
-  dusk:  { colors: ['#9690C8', '#7286BC', '#515F92'], locations: [0, 0.58, 1], start: { x: 0.5, y: 0 }, end: { x: 0.5, y: 1 }, light: false },
-  paper: { colors: [c.background, c.background], start: { x: 0.5, y: 0 }, end: { x: 0.5, y: 1 }, light: true },
-};
-
-const WALLPAPER_ORDER: WallpaperKey[] = ['dawn', 'coast', 'dusk', 'paper'];
-
-// Each tone carries its solid + a lighter tint (tone mixed 78% white) for the
-// directional "dome" gradient fill (per the Claude Design icon spec).
-type Tone = { solid: string; light: string };
-const tone = (solid: string): Tone => ({ solid, light: lighten(solid, 0.22) });
-
-// Collapsed to the brand palette (June 2026): teal / cyan / periwinkle only.
-const TONE = {
-  teal: tone(colors.primary),
-  lavender: tone(colors.tertiary),   // → periwinkle
-  amber: tone(colors.primary),       // → teal
-  blue: tone(colors.secondary),      // → cyan
-  coral: tone(colors.secondary),     // → cyan
-};
+const INK = c.text;
+const H_PAD = 22;     // ScrollView horizontal padding (each side)
+const CARD_GAP = 12;  // gap between the two flagship cards
 
 type GlyphComponent = React.ComponentType<{ size?: number; color?: string }>;
 
-type AppDef = { id: string; name: string; tone: Tone; Icon: GlyphComponent; route: Href };
+// ─── Flagship cards (Speaker Tapes · AI Sponsor) ─────────────────────────────
+type Flag = { bg: string; circle: string; ink: string };
+const SPEAKER: Flag = { bg: lighten(colors.steel, 0.46), circle: colors.steel, ink: colors.steelDark };
+const SPONSOR: Flag = { bg: lighten(colors.tertiary, 0.4), circle: colors.tertiary, ink: colors.tertiaryDark };
+
+// ─── Grid tools — white tile + line icon in the tool's tone ──────────────────
+type AppDef = { id: string; name: string; color: string; Icon: GlyphComponent; route: Href };
 
 const APPS: AppDef[] = [
-  { id: 'prayers', name: 'Prayers', tone: TONE.amber, Icon: HandsPraying, route: '/(main)/prayers' },
-  { id: 'meditation', name: 'Meditation', tone: TONE.lavender, Icon: FlowerLotus, route: '/(main)/meditation' },
-  { id: 'journal', name: 'Journal', tone: TONE.blue, Icon: NotebookPen, route: '/(main)/journal' as Href },
-  { id: 'gratitude', name: 'Gratitude', tone: TONE.amber, Icon: Heart, route: '/(main)/gratitude' },
-  { id: 'spotcheck', name: 'Spot Check', tone: TONE.coral, Icon: CircleCheck, route: '/(main)/inventory' },
-  { id: 'nightly', name: 'Nightly Review', tone: TONE.lavender, Icon: Moon, route: '/(main)/evening-review' },
-  { id: 'another', name: 'Reach Out', tone: TONE.blue, Icon: Phone, route: '/(main)/reach-out' as Href },
-  { id: 'meeting', name: 'Meetings', tone: TONE.lavender, Icon: Users, route: '/(main)/meetings' },
+  { id: 'prayers', name: 'Prayers', color: colors.primary, Icon: HandsPraying, route: '/(main)/prayers' },
+  { id: 'meditation', name: 'Meditation', color: colors.tertiary, Icon: FlowerLotus, route: '/(main)/meditation' },
+  { id: 'journal', name: 'Journal', color: colors.secondary, Icon: NotebookPen, route: '/(main)/journal' as Href },
+  { id: 'gratitude', name: 'Gratitude', color: colors.primary, Icon: Heart, route: '/(main)/gratitude' },
+  { id: 'spotcheck', name: 'Spot Check', color: colors.secondary, Icon: CircleCheck, route: '/(main)/inventory' },
+  { id: 'nightly', name: 'Nightly Review', color: colors.tertiary, Icon: Moon, route: '/(main)/evening-review' },
+  { id: 'another', name: 'Reach Out', color: colors.secondary, Icon: Phone, route: '/(main)/reach-out' as Href },
+  { id: 'meeting', name: 'Meetings', color: colors.steel, Icon: Users, route: '/(main)/meetings' },
 ];
 
-// ─── App icon — gradient squircle with a label beneath ───────────────────────
-function AppIcon({ app, labelColor, labelShadow, onPress }: { app: AppDef; labelColor: string; labelShadow: object; onPress: () => void }) {
+function FlagCard({ flag, Icon, title, subtitle, onPress }: { flag: Flag; Icon: GlyphComponent; title: string; subtitle: string; onPress: () => void }) {
+  return (
+    <Pressable style={[styles.flagCard, { backgroundColor: flag.bg }]} onPress={onPress} accessibilityRole="button" accessibilityLabel={title}>
+      <View style={styles.flagTop}>
+        <View style={[styles.flagCircle, { backgroundColor: flag.circle }]}>
+          <Icon size={22} color="#fff" />
+        </View>
+        <ChevronRight size={18} color={flag.ink} strokeWidth={2.2} />
+      </View>
+      <View>
+        <Text style={styles.flagTitle}>{title}</Text>
+        <Text style={styles.flagSub} numberOfLines={2}>{subtitle}</Text>
+      </View>
+    </Pressable>
+  );
+}
+
+function AppTile({ app, onPress }: { app: AppDef; onPress: () => void }) {
   const { Icon } = app;
   return (
-    <Pressable style={styles.appCell} onPress={onPress} accessibilityRole="button" accessibilityLabel={app.name}>
-      {/* Claude Design icon: directional dome gradient + colored drop shadow
-          (lift) + a hairline top glint and a thin bottom edge shade (the two
-          inset shadows — RN has no real inset, so they're thin edge overlays). */}
-      <View style={[styles.iconShadow, { shadowColor: app.tone.solid }]}>
-        <LinearGradient
-          colors={[app.tone.light, app.tone.solid]}
-          locations={[0, 0.72]}
-          start={{ x: 0.2, y: 0 }}
-          end={{ x: 0.7, y: 1 }}
-          style={styles.iconFill}
-        >
-          <LinearGradient
-            colors={['rgba(255,255,255,0.5)', 'rgba(255,255,255,0)']}
-            style={styles.iconTopGlint}
-            pointerEvents="none"
-          />
-          <LinearGradient
-            colors={['rgba(0,0,0,0)', 'rgba(0,0,0,0.14)']}
-            style={styles.iconBottomShade}
-            pointerEvents="none"
-          />
-          <Icon size={28} color="#fff" />
-        </LinearGradient>
+    <Pressable style={styles.gridCell} onPress={onPress} accessibilityRole="button" accessibilityLabel={app.name}>
+      <View style={styles.tile}>
+        <Icon size={26} color={app.color} />
       </View>
-      <Text style={[styles.appLabel, { color: labelColor }, labelShadow]} numberOfLines={1}>{app.name}</Text>
+      <Text style={styles.tileLabel} numberOfLines={2}>{app.name}</Text>
     </Pressable>
-  );
-}
-
-// ─── Photo widget — rounded tile + label beneath (Maps/Calendar style) ───────
-// The tile is sized in CONCRETE pixels (from the screen width) so the photo has a
-// real frame to scale into; the Image fills it 100%×100% with `cover`. (Deriving
-// the height from width:'100%' + aspectRatio inside a ScrollView did not resolve,
-// so the image fell back to its native pixel size.)
-const H_PAD = 22;     // ScrollView horizontal padding (each side)
-const PAIR_GAP = 14;  // gap between the two square widgets
-
-function ToolWidget({ image, label, wide, labelColor, labelShadow, onPress }: { image: any; label: string; wide?: boolean; labelColor: string; labelShadow: object; onPress: () => void }) {
-  const { width: screenW } = useWindowDimensions();
-  const contentW = screenW - H_PAD * 2;
-  const w = wide ? contentW : (contentW - PAIR_GAP) / 2;
-  const h = wide ? Math.round(contentW * 9 / 16) : w; // wide = 16:9, square = 1:1
-  return (
-    <Pressable style={wide ? styles.widgetWide : undefined} onPress={onPress} accessibilityRole="button" accessibilityLabel={label}>
-      <View style={[styles.widgetTile, { width: w, height: h, borderRadius: wide ? 22 : 20 }]}>
-        <Image source={image} style={styles.photo} resizeMode="cover" />
-      </View>
-      <Text style={[styles.widgetLabel, { color: labelColor, width: w }, labelShadow]} numberOfLines={1}>{label}</Text>
-    </Pressable>
-  );
-}
-
-// ─── Wallpaper picker popover (anchored top-right) ───────────────────────────
-function WallpaperPicker({ current, top, onPick, onClose }: { current: WallpaperKey; top: number; onPick: (w: WallpaperKey) => void; onClose: () => void }) {
-  return (
-    <Modal transparent visible animationType="fade" onRequestClose={onClose}>
-      <Pressable style={styles.pickerBackdrop} onPress={onClose}>
-        <View style={[styles.pickerCard, { top }]}>
-          <Text style={styles.pickerTitle}>Wallpaper</Text>
-          <View style={styles.swatchRow}>
-            {WALLPAPER_ORDER.map((key) => {
-              const w = WALLPAPERS[key];
-              const selected = key === current;
-              return (
-                <Pressable key={key} onPress={() => onPick(key)} style={styles.swatchWrap} accessibilityLabel={key}>
-                  <LinearGradient
-                    colors={w.colors}
-                    locations={w.locations}
-                    start={w.start}
-                    end={w.end}
-                    style={[styles.swatch, selected && styles.swatchSelected]}
-                  >
-                    {selected && (
-                      <View style={styles.swatchCheck}>
-                        <Check size={12} color="#fff" strokeWidth={3} />
-                      </View>
-                    )}
-                  </LinearGradient>
-                  <Text style={styles.swatchLabel}>{key[0].toUpperCase() + key.slice(1)}</Text>
-                </Pressable>
-              );
-            })}
-          </View>
-        </View>
-      </Pressable>
-    </Modal>
   );
 }
 
 export default function ToolsScreen() {
   const router = useRouter();
-  const insets = useSafeAreaInsets();
-  const { wallpaper, setWallpaper } = useToolsWallpaper();
-  const [pickerOpen, setPickerOpen] = useState(false);
+  const { width: screenW } = useWindowDimensions();
   useScreenTimeTracking('Tools');
 
-  const wall = WALLPAPERS[wallpaper];
-  const labelColor = wall.light ? INK : '#fff';
-  const labelShadow = wall.light
-    ? { textShadowColor: 'rgba(255,255,255,0.6)', textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 2 }
-    : { textShadowColor: 'rgba(0,0,0,0.35)', textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 3 };
-  const gearBorder = wall.light ? 'rgba(43,42,48,0.30)' : 'rgba(255,255,255,0.55)';
+  const heroH = Math.round((screenW - H_PAD * 2) * 0.55);
 
   return (
-    <View style={styles.root}>
-      {/* Wallpaper layer */}
-      <LinearGradient
-        colors={wall.colors}
-        locations={wall.locations}
-        start={wall.start}
-        end={wall.end}
-        style={StyleSheet.absoluteFill}
-      />
+    <SafeAreaView style={styles.safe} edges={['top']}>
+      {/* Header */}
+      <View style={styles.header}>
+        <View style={{ flex: 1 }}>
+          <Text style={styles.title}>Tools</Text>
+          <Text style={styles.subtitle}>Open the support you need</Text>
+        </View>
+        <Pressable
+          onPress={() => router.push('/settings')}
+          style={styles.gear}
+          accessibilityRole="button"
+          accessibilityLabel="Settings"
+          hitSlop={8}
+        >
+          <Settings size={18} color={c.textSecondary} strokeWidth={2} />
+        </Pressable>
+      </View>
 
-      <SafeAreaView style={styles.safe} edges={['top']}>
-        {/* Header with gear */}
-        <View style={styles.header}>
-          <View style={{ flex: 1 }}>
-            <Text style={[styles.title, { color: labelColor }, labelShadow]}>Tools</Text>
-            <Text style={[styles.subtitle, { color: labelColor }, labelShadow]}>Open any tool</Text>
+      <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
+        {/* Featured hero — Literature */}
+        <Pressable style={[styles.hero, { height: heroH }]} onPress={() => router.push('/(main)/literature')} accessibilityRole="button" accessibilityLabel="Literature">
+          <Image source={require('@/assets/images/literature-hero.webp')} style={StyleSheet.absoluteFill} contentFit="cover" transition={200} />
+          <LinearGradient colors={['rgba(0,0,0,0)', 'rgba(0,0,0,0.62)']} locations={[0.4, 1]} style={StyleSheet.absoluteFill} />
+          <View style={styles.featured}>
+            <Text style={styles.featuredText}>FEATURED</Text>
           </View>
-          <Pressable
-            onPress={() => setPickerOpen(true)}
-            style={[styles.gear, { borderColor: gearBorder }]}
-            accessibilityRole="button"
-            accessibilityLabel="Change wallpaper"
-            hitSlop={8}
-          >
-            <Settings size={15} color={labelColor} strokeWidth={2} />
-          </Pressable>
+          <View style={styles.heroBottom}>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.heroTitle}>Literature</Text>
+              <Text style={styles.heroSub}>Read. Reflect. Grow.</Text>
+            </View>
+            <View style={styles.heroArrow}>
+              <ChevronRight size={22} color={INK} strokeWidth={2.4} />
+            </View>
+          </View>
+        </Pressable>
+
+        {/* Flagship cards */}
+        <View style={styles.flagRow}>
+          <FlagCard flag={SPEAKER} Icon={Mic} title="Speaker Tapes" subtitle="Members' experience, strength and hope." onPress={() => router.push('/(main)/speakers')} />
+          <FlagCard flag={SPONSOR} Icon={Users} title="AI Sponsor" subtitle="Guidance and encouragement anytime." onPress={() => router.push('/(main)/chat')} />
         </View>
 
-        <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
-          {/* Featured widgets */}
-          <ToolWidget
-            image={require('@/assets/images/literature_hero2.webp')}
-            label="Literature"
-            wide
-            labelColor={labelColor}
-            labelShadow={labelShadow}
-            onPress={() => router.push('/(main)/literature')}
-          />
-          <View style={styles.widgetPair}>
-            <ToolWidget
-              image={require('@/assets/images/speakers_hero2.webp')}
-              label="Speaker Tapes"
-              labelColor={labelColor}
-              labelShadow={labelShadow}
-              onPress={() => router.push('/(main)/speakers')}
-            />
-            <ToolWidget
-              image={require('@/assets/images/ai_sponsor_hero2.webp')}
-              label="AI Sponsor"
-              labelColor={labelColor}
-              labelShadow={labelShadow}
-              onPress={() => router.push('/(main)/chat')}
-            />
-          </View>
-
-          {/* App-icon grid */}
-          <View style={styles.grid}>
-            {APPS.map((app) => (
-              <AppIcon
-                key={app.id}
-                app={app}
-                labelColor={labelColor}
-                labelShadow={labelShadow}
-                onPress={() => router.push(app.route)}
-              />
-            ))}
-          </View>
-        </ScrollView>
-      </SafeAreaView>
-
-      {pickerOpen && (
-        <WallpaperPicker
-          current={wallpaper}
-          top={insets.top + 52}
-          onPick={(w) => { setWallpaper(w); setPickerOpen(false); }}
-          onClose={() => setPickerOpen(false)}
-        />
-      )}
-    </View>
+        {/* Tool grid */}
+        <View style={styles.grid}>
+          {APPS.map((app) => (
+            <AppTile key={app.id} app={app} onPress={() => router.push(app.route)} />
+          ))}
+        </View>
+      </ScrollView>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1 },
-  safe: { flex: 1 },
-  header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 22, paddingTop: 8, paddingBottom: 10 },
-  title: { fontFamily: fontFamily.display, fontSize: 30, letterSpacing: -0.5 },
-  subtitle: { fontFamily: fontFamily.regular, fontSize: fontSize.md, marginTop: 2 },
-  gear: { width: 32, height: 32, borderRadius: 16, borderWidth: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: 'transparent' },
+  safe: { flex: 1, backgroundColor: c.background },
+  header: { flexDirection: 'row', alignItems: 'flex-start', paddingHorizontal: H_PAD, paddingTop: 8, paddingBottom: 12 },
+  title: { fontFamily: fontFamily.display, fontSize: 30, letterSpacing: -0.5, color: c.text },
+  subtitle: { fontFamily: fontFamily.regular, fontSize: fontSize.md, color: c.textMuted, marginTop: 2 },
+  gear: { width: 40, height: 40, borderRadius: 20, borderWidth: 1, borderColor: c.border, backgroundColor: c.surface, alignItems: 'center', justifyContent: 'center' },
 
-  scroll: { paddingHorizontal: 22, paddingTop: 8, paddingBottom: 120 },
+  scroll: { paddingHorizontal: H_PAD, paddingTop: 6, paddingBottom: 130 },
 
-  // Widgets
-  widgetWide: { marginBottom: 18 },
-  widgetPair: { flexDirection: 'row', gap: PAIR_GAP, marginBottom: 22 },
-  widgetTile: {
-    overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.5)',
-    backgroundColor: 'rgba(255,255,255,0.25)',
-    ...shadows.md,
-  },
-  photo: { width: '100%', height: '100%' },
-  widgetLabel: { fontFamily: fontFamily.semiBold, fontSize: 13, textAlign: 'center', marginTop: 8 },
+  // Featured hero
+  hero: { borderRadius: 22, overflow: 'hidden', backgroundColor: colors.primary, marginBottom: 14, ...shadows.md },
+  featured: { position: 'absolute', top: 16, left: 16, flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: 'rgba(0,0,0,0.45)', paddingHorizontal: 11, paddingVertical: 5, borderRadius: 999 },
+  featuredText: { fontFamily: fontFamily.bold, fontSize: 10.5, letterSpacing: 1, color: '#fff' },
+  heroBottom: { position: 'absolute', left: 0, right: 0, bottom: 0, flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 18, paddingBottom: 18 },
+  heroTitle: { fontFamily: fontFamily.displayBold, fontSize: 30, color: '#fff', letterSpacing: -0.6, textShadowColor: 'rgba(0,0,0,0.4)', textShadowOffset: { width: 0, height: 2 }, textShadowRadius: 10 },
+  heroSub: { fontFamily: fontFamily.medium, fontSize: 14, color: 'rgba(255,255,255,0.92)', marginTop: 2, textShadowColor: 'rgba(0,0,0,0.4)', textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 6 },
+  heroArrow: { width: 52, height: 52, borderRadius: 26, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center', ...shadows.sm },
 
-  // App-icon grid
+  // Flagship cards
+  flagRow: { flexDirection: 'row', gap: CARD_GAP, marginBottom: 22 },
+  flagCard: { flex: 1, height: 150, borderRadius: 20, padding: 16, justifyContent: 'space-between' },
+  flagTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  flagCircle: { width: 46, height: 46, borderRadius: 23, alignItems: 'center', justifyContent: 'center' },
+  flagTitle: { fontFamily: fontFamily.semiBold, fontSize: 16.5, color: c.text, letterSpacing: -0.2 },
+  flagSub: { fontFamily: fontFamily.regular, fontSize: 12.5, color: 'rgba(35,37,41,0.62)', marginTop: 3, lineHeight: 17 },
+
+  // Tool grid — white tiles with a line icon, label beneath
   grid: { flexDirection: 'row', flexWrap: 'wrap' },
-  appCell: { width: '25%', alignItems: 'center', marginBottom: 20 },
-  iconShadow: {
-    borderRadius: 15,
-    shadowOpacity: 0.35,    // [tone]59 ≈ 0.35, colored (shadowColor set inline)
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 5 },
-    elevation: 5,
-  },
-  iconFill: { width: 60, height: 60, borderRadius: 15, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
-  iconTopGlint: { position: 'absolute', top: 0, left: 0, right: 0, height: 4 },     // inset top highlight
-  iconBottomShade: { position: 'absolute', bottom: 0, left: 0, right: 0, height: 6 }, // inset bottom shadow
-  appLabel: { fontFamily: fontFamily.medium, fontSize: 11.5, textAlign: 'center', marginTop: 7 },
-
-  // Wallpaper picker popover
-  pickerBackdrop: { flex: 1 },
-  pickerCard: {
-    position: 'absolute',
-    right: 16,
-    backgroundColor: '#FFFDF8',
-    borderRadius: 18,
-    padding: 14,
-    width: 250,
-    borderWidth: 1,
-    borderColor: 'rgba(120,98,60,0.13)',
-    ...shadows.lg,
-  },
-  pickerTitle: { fontFamily: fontFamily.bold, fontSize: 11, letterSpacing: 1.1, textTransform: 'uppercase', color: '#8A8A9A', marginBottom: 10, marginLeft: 2 },
-  swatchRow: { flexDirection: 'row', justifyContent: 'space-between' },
-  swatchWrap: { alignItems: 'center', width: 50 },
-  swatch: { width: 46, height: 46, borderRadius: 12, borderWidth: 1, borderColor: 'rgba(0,0,0,0.08)', alignItems: 'center', justifyContent: 'center' },
-  swatchSelected: { borderWidth: 2, borderColor: '#3D8B8B' },
-  swatchCheck: { width: 20, height: 20, borderRadius: 10, backgroundColor: 'rgba(61,139,139,0.92)', alignItems: 'center', justifyContent: 'center' },
-  swatchLabel: { fontFamily: fontFamily.medium, fontSize: 10.5, color: '#4A4A5E', marginTop: 5 },
+  gridCell: { width: '25%', alignItems: 'center', marginBottom: 16 },
+  tile: { width: 64, height: 64, borderRadius: 18, backgroundColor: colors.white, borderWidth: 1, borderColor: c.border, alignItems: 'center', justifyContent: 'center', ...shadows.sm },
+  tileLabel: { fontFamily: fontFamily.medium, fontSize: 12, color: c.text, textAlign: 'center', marginTop: 8, width: 80 },
 });
