@@ -15,9 +15,9 @@ import { pickContact } from '@/lib/pickContact';
 import { colors, fontFamily, getSemanticColors, shadows } from '@/constants/designTokens';
 
 const c = getSemanticColors('light');
-const CO = colors.secondary;       // blue — Reach Out tone
-const CO_SOFT = colors.secondarySoft;
-const CO_DARK = colors.secondaryDark;
+const CO = colors.steel;           // Steel Navy — Reach Out tone (people & connection)
+const CO_SOFT = colors.steelSoft;
+const CO_DARK = colors.steelDark;
 
 const call = (phone: string) => Linking.openURL(`tel:${normalizePhone(phone)}`).catch(() => {});
 const text = (phone: string) => Linking.openURL(`sms:${normalizePhone(phone)}`).catch(() => {});

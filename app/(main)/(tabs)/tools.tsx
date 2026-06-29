@@ -52,11 +52,11 @@ type AppDef = { id: string; name: string; color: string; Icon: GlyphComponent; r
 const APPS: AppDef[] = [
   { id: 'prayers', name: 'Prayers', color: colors.primary, Icon: HandsPraying, route: '/(main)/prayers' },
   { id: 'meditation', name: 'Meditation', color: colors.tertiary, Icon: FlowerLotus, route: '/(main)/meditation' },
-  { id: 'journal', name: 'Journal', color: colors.secondary, Icon: NotebookPen, route: '/(main)/journal' as Href },
-  { id: 'gratitude', name: 'Gratitude', color: colors.primary, Icon: Heart, route: '/(main)/gratitude' },
-  { id: 'spotcheck', name: 'Spot Check', color: colors.secondary, Icon: CircleCheck, route: '/(main)/inventory' },
+  { id: 'journal', name: 'Journal', color: colors.primary, Icon: NotebookPen, route: '/(main)/journal' as Href },
+  { id: 'gratitude', name: 'Gratitude', color: colors.accent, Icon: Heart, route: '/(main)/gratitude' },
+  { id: 'spotcheck', name: 'Spot Check', color: colors.accent, Icon: CircleCheck, route: '/(main)/inventory' },
   { id: 'nightly', name: 'Nightly Review', color: colors.tertiary, Icon: Moon, route: '/(main)/evening-review' },
-  { id: 'another', name: 'Reach Out', color: colors.secondary, Icon: Phone, route: '/(main)/reach-out' as Href },
+  { id: 'another', name: 'Reach Out', color: colors.steel, Icon: Phone, route: '/(main)/reach-out' as Href },
   { id: 'meeting', name: 'Meetings', color: colors.steel, Icon: Users, route: '/(main)/meetings' },
 ];
 

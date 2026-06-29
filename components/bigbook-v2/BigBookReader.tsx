@@ -26,9 +26,9 @@ if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental
 
 const c = getSemanticColors('light');
 const PAPER = '#FCFBF8';
-const AMBER = colors.amber;       // #E8A95D
-const AMBER_SOFT = '#FCF0DE';
-const AMBER_INK = '#B27330';
+const AMBER = colors.steel;       // Steel Navy — Big Book accent
+const AMBER_SOFT = colors.steelSoft;
+const AMBER_INK = colors.steelDark;
 const HIGHLIGHT_COLOR = HighlightColor.YELLOW;
 
 interface BigBookReaderProps {

@@ -58,18 +58,17 @@ const ramp = (base: string): Ramp => {
 
 export type Theme = {
   name: string;
-  families: { steel: string; azure: string; teal: string; periwinkle: string; terracotta: string };
+  families: { steel: string; teal: string; periwinkle: string; terracotta: string };
   neutrals: { ink: string; ink2: string; ink3: string; surface: string; background: string; divider: string; border: string; stage: string };
 };
 
 export const steelNavyTheme: Theme = {
   name: 'Steel Navy',
   families: {
-    steel: '#2D5882',       // Steel Navy — Speakers · Meetings (out in the world)
-    azure: '#1C7BB0',        // Azure — Journal · Spot Check · Reach Out
-    teal: '#3D8B8B',         // Teal — Reflection · Literature · Gratitude · Prayers
-    periwinkle: '#8273B5',   // Periwinkle — Nightly · Meditation · AI Sponsor (violet-leaning, to separate from Steel Navy)
-    terracotta: '#C16745',   // Terracotta — the single warm accent
+    steel: '#2D5882',       // Steel Navy — Speakers · Meetings · Reach Out (people & connection)
+    teal: '#3D8B8B',         // Teal — Reflection · Gratitude · Prayers · Meditation (spiritual practice)
+    periwinkle: '#8273B5',   // Periwinkle — Literature · Journal · Spot Check · Nightly (learn & reflect)
+    terracotta: '#C16745',   // Terracotta — warm accent + AI Sponsor
   },
   neutrals: {
     ink: '#232529',          // primary text
@@ -92,7 +91,6 @@ export const ACTIVE_THEME: Theme = steelNavyTheme;
 
 export const families = {
   steel: ramp(ACTIVE_THEME.families.steel),
-  azure: ramp(ACTIVE_THEME.families.azure),
   teal: ramp(ACTIVE_THEME.families.teal),
   periwinkle: ramp(ACTIVE_THEME.families.periwinkle),
   terracotta: ramp(ACTIVE_THEME.families.terracotta),
@@ -103,21 +101,25 @@ export type FamilyName = keyof typeof families;
 // THE assignment table. Edit a line to re-tint that tool everywhere it's drawn.
 
 export const toolFamily: Record<string, FamilyName> = {
-  reflection: 'teal',
-  literature: 'teal',
-  gratitude: 'teal',
+  // Teal — spiritual practice + writing
+  reflection: 'teal',       // the Morning/Evening prayer dailies are tinted in DEFAULT_PROGRAM
   prayers: 'teal',
-  journal: 'azure',
-  spotCheck: 'azure',
-  reachOut: 'azure',
+  journal: 'teal',
+  // Steel Navy — people & connection + reading
   speakers: 'steel',
   meetings: 'steel',
-  nightly: 'periwinkle',
+  reachOut: 'steel',
+  literature: 'steel',
+  // Periwinkle — reflect & wind-down
   meditation: 'periwinkle',
+  nightly: 'periwinkle',
   aiSponsor: 'periwinkle',
+  // Terracotta — warm accents (+ Morning Prayer daily)
+  gratitude: 'terracotta',
+  spotCheck: 'terracotta',
 };
 
-export const accentFamily: FamilyName = 'terracotta'; // emphasis · streaks · primary actions
+export const accentFamily: FamilyName = 'terracotta'; // emphasis · streaks · primary actions · AI Sponsor
 export const chromeFamily: FamilyName = 'teal';        // tab bar / headers / brand chrome
 
 // The working tones a screen needs from a family: a base ink, a soft fill, a
@@ -140,11 +142,12 @@ export const colors = {
   primaryDark: families.teal[700],
   primarySoft: families.teal[100],
 
-  // Azure — write/act family (Journal · Spot Check · Reach Out)
-  secondary: families.azure[500],
-  secondaryLight: families.azure[300],
-  secondaryDark: families.azure[700],
-  secondarySoft: families.azure[100],
+  // Legacy "secondary" — the Azure family was retired; folded into Periwinkle
+  // so any remaining references stay on-palette.
+  secondary: families.periwinkle[500],
+  secondaryLight: families.periwinkle[300],
+  secondaryDark: families.periwinkle[700],
+  secondarySoft: families.periwinkle[100],
 
   // Periwinkle — reflective family (Nightly · Meditation · AI Sponsor)
   tertiary: families.periwinkle[500],
@@ -170,7 +173,7 @@ export const colors = {
   // working. amber → teal, coral → azure.
   amber: families.teal[500],
   amberSoft: families.teal[100],
-  coral: families.azure[500],
+  coral: families.periwinkle[500],
 
   destructive: '#EF4444',
   success: '#22C55E',

@@ -37,10 +37,10 @@ type GlyphIcon = React.ComponentType<{ size?: number; color?: string; strokeWidt
 // Collapsed to the brand palette (June 2026), token-driven: gratitude → teal,
 // nightly → periwinkle, spot check / journal → cyan.
 const J_TOOL: Record<NotebookType, { Icon: GlyphIcon; ink: string; soft: string; dark: string }> = {
-  gratitude: { Icon: Heart, ink: colors.primary, soft: colors.primarySoft, dark: colors.primaryDark },
-  nightly: { Icon: Moon, ink: colors.tertiary, soft: colors.tertiarySoft, dark: colors.tertiaryDark },
-  spotcheck: { Icon: CircleCheck, ink: colors.secondary, soft: colors.secondarySoft, dark: colors.secondaryDark },
-  journal: { Icon: NotebookPen, ink: colors.secondary, soft: colors.secondarySoft, dark: colors.secondaryDark },
+  gratitude: { Icon: Heart, ink: colors.accent, soft: colors.accentSoft, dark: colors.accentDark },             // terracotta
+  nightly: { Icon: Moon, ink: colors.tertiary, soft: colors.tertiarySoft, dark: colors.tertiaryDark },          // periwinkle
+  spotcheck: { Icon: CircleCheck, ink: colors.accent, soft: colors.accentSoft, dark: colors.accentDark },       // terracotta
+  journal: { Icon: NotebookPen, ink: colors.primary, soft: colors.primarySoft, dark: colors.primaryDark },      // teal
 };
 const TYPE_LABEL: Record<NotebookType, string> = {
   gratitude: 'Gratitude', nightly: 'Nightly Review', spotcheck: 'Spot Check', journal: 'Journal',

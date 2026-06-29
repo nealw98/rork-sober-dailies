@@ -13,10 +13,10 @@ import { BigBookCover, TwelveCover, MeetingReadingCard } from '@/components/lite
 import { MEETING_READINGS, PREVIEW_READING_IDS, getMeetingReading } from '@/constants/meeting-readings';
 import { useReadingSession } from '@/hooks/useReadingSession';
 import { useScreenTimeTracking } from '@/hooks/useScreenTimeTracking';
-import { fontFamily, getSemanticColors } from '@/constants/designTokens';
+import { fontFamily, getSemanticColors, families } from '@/constants/designTokens';
 
 const c = getSemanticColors('light');
-const AMBER_INK = '#B27330';
+const LINK_INK = families.steel[700]; // literature is a Steel Navy tool
 
 export default function LiteratureScreen() {
   useReadingSession('literature');
@@ -37,7 +37,7 @@ export default function LiteratureScreen() {
         {/* Hero books */}
         <View style={styles.grid}>
           <Pressable onPress={() => router.push('/(main)/bigbook')} style={({ pressed }) => [styles.bookCardWrap, pressed && { opacity: 0.9 }]}>
-            <LinearGradient colors={['#FFFDF7', '#FCF0DE']} start={{ x: 0.2, y: 0 }} end={{ x: 0.8, y: 1 }} style={[styles.bookCard, { borderColor: '#F1E2C5' }]}>
+            <LinearGradient colors={[families.steel[50], families.steel[100]]} start={{ x: 0.2, y: 0 }} end={{ x: 0.8, y: 1 }} style={[styles.bookCard, { borderColor: families.steel[200] }]}>
               <BigBookCover w={92} h={128} />
               <View style={styles.bookText}>
                 <Text style={styles.bookTitle}>Alcoholics{'\n'}Anonymous</Text>
@@ -47,7 +47,7 @@ export default function LiteratureScreen() {
           </Pressable>
 
           <Pressable onPress={() => router.push('/(main)/twelve-and-twelve')} style={({ pressed }) => [styles.bookCardWrap, pressed && { opacity: 0.9 }]}>
-            <LinearGradient colors={['#FDFBFF', '#E9E0F6']} start={{ x: 0.2, y: 0 }} end={{ x: 0.8, y: 1 }} style={[styles.bookCard, { borderColor: '#E6DCF4' }]}>
+            <LinearGradient colors={[families.teal[50], families.teal[100]]} start={{ x: 0.2, y: 0 }} end={{ x: 0.8, y: 1 }} style={[styles.bookCard, { borderColor: families.teal[200] }]}>
               <TwelveCover w={92} h={128} />
               <View style={styles.bookText}>
                 <Text style={styles.bookTitle}>Twelve Steps{'\n'}& Traditions</Text>
@@ -70,7 +70,7 @@ export default function LiteratureScreen() {
           ))}
           <Pressable onPress={() => router.push('/(main)/meeting-readings')} style={({ pressed }) => [styles.seeAll, pressed && { opacity: 0.7 }]}>
             <Text style={styles.seeAllText}>See all {MEETING_READINGS.length} readings</Text>
-            <ChevronRight size={13} color={AMBER_INK} />
+            <ChevronRight size={13} color={LINK_INK} />
           </Pressable>
         </View>
       </ScrollView>
@@ -99,5 +99,5 @@ const styles = StyleSheet.create({
 
   readingList: { paddingHorizontal: 16, gap: 8 },
   seeAll: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 12, marginTop: 2, borderRadius: 12, borderWidth: 1, borderColor: c.border, borderStyle: 'dashed' },
-  seeAllText: { fontFamily: fontFamily.semiBold, fontSize: 13, color: AMBER_INK },
+  seeAllText: { fontFamily: fontFamily.semiBold, fontSize: 13, color: LINK_INK },
 });

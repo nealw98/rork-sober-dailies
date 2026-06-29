@@ -38,13 +38,15 @@ type RowTone = { ink: string; soft: string; fill: string };
 // blue, coral) collapse into the new families.
 const RAW_TONES: Record<string, { ink: string; soft: string }> = {
   teal: { ink: colors.primary, soft: colors.primarySoft },
-  azure: { ink: colors.secondary, soft: colors.secondarySoft },
   steel: { ink: colors.steel, soft: colors.steelSoft },
   periwinkle: { ink: colors.tertiary, soft: colors.tertiarySoft },
-  amber: { ink: colors.primary, soft: colors.primarySoft },       // → teal
-  blue: { ink: colors.secondary, soft: colors.secondarySoft },     // → azure
+  terracotta: { ink: colors.accent, soft: colors.accentSoft },
+  amber: { ink: colors.primary, soft: colors.primarySoft },        // → teal
   lavender: { ink: colors.tertiary, soft: colors.tertiarySoft },   // → periwinkle
-  coral: { ink: colors.secondary, soft: colors.secondarySoft },    // → azure
+  // retired Azure family — folds into periwinkle
+  azure: { ink: colors.tertiary, soft: colors.tertiarySoft },
+  blue: { ink: colors.tertiary, soft: colors.tertiarySoft },
+  coral: { ink: colors.tertiary, soft: colors.tertiarySoft },
   gray: { ink: '#888B92', soft: '#E7E2D5' },                       // neutral (custom/no-tool)
 };
 

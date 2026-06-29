@@ -19,11 +19,11 @@ import { useBigBookContent } from '@/hooks/use-bigbook-content';
 import { searchBigBookPdfs } from '@/lib/pdf-search';
 import { getChapterMeta } from '@/constants/bigbook-v2/metadata';
 import { formatPageNumber } from '@/lib/bigbook-page-utils';
-import { fontFamily, getSemanticColors } from '@/constants/designTokens';
+import { colors, fontFamily, getSemanticColors } from '@/constants/designTokens';
 
 const c = getSemanticColors('light');
-const AMBER_SOFT = '#FCF0DE';
-const AMBER_INK = '#B27330';
+const AMBER_SOFT = colors.steelSoft;  // Steel Navy — Big Book accent
+const AMBER_INK = colors.steelDark;
 const BOOK = 'bigbook';
 
 export function BigBookContents({ onOpenText, onOpenPdf }: {

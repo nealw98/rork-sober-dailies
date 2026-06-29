@@ -15,10 +15,10 @@ export type ToolMeta = { id: string; label: string; accent: string; soft: string
 
 // Per-tool tones — accent/soft/dark per the prototype's TOOL map.
 export const TOOLS = {
-  gratitude: { id: 'gratitude', label: 'Gratitude', accent: colors.amber, soft: colors.amberSoft, dark: '#B07F38' },
-  nightly: { id: 'nightly', label: 'Nightly Review', accent: colors.tertiary, soft: colors.tertiarySoft, dark: colors.tertiaryDark },
-  spotcheck: { id: 'spotcheck', label: 'Spot Check Inventory', accent: colors.coral, soft: '#F6DDD3', dark: '#A8493A' },
-  journal: { id: 'journal', label: 'Journal', accent: colors.secondary, soft: colors.secondarySoft, dark: colors.secondaryDark },
+  gratitude: { id: 'gratitude', label: 'Gratitude', accent: colors.accent, soft: colors.accentSoft, dark: colors.accentDark },         // terracotta
+  nightly: { id: 'nightly', label: 'Nightly Review', accent: colors.tertiary, soft: colors.tertiarySoft, dark: colors.tertiaryDark },  // periwinkle
+  spotcheck: { id: 'spotcheck', label: 'Spot Check Inventory', accent: colors.accent, soft: colors.accentSoft, dark: colors.accentDark }, // terracotta
+  journal: { id: 'journal', label: 'Journal', accent: colors.primary, soft: colors.primarySoft, dark: colors.primaryDark },             // teal
 } satisfies Record<string, ToolMeta>;
 
 // The "today" subtitle shown under each tool title.

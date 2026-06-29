@@ -42,13 +42,38 @@ const COMPLETION_KEY = 'dailies_completion';
 // ships, so skipping onboarding lands on identical defaults (CLAUDE.md). Daily
 // Reflection is the permanent hero, not listed here.
 export const DEFAULT_PROGRAM: DailyItem[] = [
-  { id: 'prayerM', label: 'Say my Morning Prayer', icon: 'pray', color: 'amber', when: 'Morning', action: 'prayerMorning' },
-  { id: 'grat', label: 'Write my Gratitude List', icon: 'heart', color: 'amber', when: 'Morning', action: 'gratitude' },
+  { id: 'prayerM', label: 'Say my Morning Prayer', icon: 'pray', color: 'terracotta', when: 'Morning', action: 'prayerMorning' },
+  { id: 'grat', label: 'Write my Gratitude List', icon: 'heart', color: 'terracotta', when: 'Morning', action: 'gratitude' },
   { id: 'meeting', label: 'Attend a meeting', icon: 'users', color: 'steel', when: 'Anytime', action: 'meeting' },
-  { id: 'lit', label: 'Read the literature', icon: 'library', color: 'teal', when: 'Anytime', action: 'lit' },
+  { id: 'lit', label: 'Read the literature', icon: 'library', color: 'steel', when: 'Anytime', action: 'lit' },
   { id: 'nightly', label: 'Nightly Review', icon: 'moon', color: 'lavender', when: 'Evening', action: 'nightly' },
-  { id: 'prayerE', label: 'Say my Evening Prayer', icon: 'pray', color: 'amber', when: 'Evening', action: 'prayerEvening' },
+  { id: 'prayerE', label: 'Say my Evening Prayer', icon: 'pray', color: 'periwinkle', when: 'Evening', action: 'prayerEvening' },
 ];
+
+// A daily's tone is derived from its ACTION (the canonical family assignment),
+// so saved programs re-tint to the current palette after a re-theme — older
+// installs never keep stale colors. Custom dailies keep their own tone.
+const ACTION_TONE: Record<string, string> = {
+  prayerMorning: 'terracotta',
+  gratitude: 'terracotta',
+  spotcheck: 'terracotta',
+  prayerEvening: 'periwinkle',
+  nightly: 'periwinkle',
+  meditation: 'periwinkle',
+  meeting: 'steel',
+  speaker: 'steel',
+  callAnother: 'steel',
+  lit: 'steel',
+  journal: 'teal',
+  prayers: 'teal',
+};
+
+function normalizeColors(items: DailyItem[]): DailyItem[] {
+  return items.map((it) => {
+    const tone = ACTION_TONE[it.action];
+    return tone && tone !== it.color ? { ...it, color: tone } : it;
+  });
+}
 
 const EMPTY_DAY: DayCompletion = { done: [], reflection: false };
 
@@ -86,7 +111,12 @@ export const [DailiesProvider, useDailies] = createContextHook(() => {
           AsyncStorage.getItem(PROGRAM_KEY),
           AsyncStorage.getItem(COMPLETION_KEY),
         ]);
-        if (p) setProgram(JSON.parse(p));
+        if (p) {
+          const parsed = normalizeColors(JSON.parse(p) as DailyItem[]);
+          setProgram(parsed);
+          // One-time migration: re-tint a saved program to the current palette.
+          if (JSON.stringify(parsed) !== p) AsyncStorage.setItem(PROGRAM_KEY, JSON.stringify(parsed)).catch(() => {});
+        }
         if (c) setCompletion(JSON.parse(c));
       } catch (error) {
         console.error('[dailies] Error loading store:', error);
@@ -96,7 +126,8 @@ export const [DailiesProvider, useDailies] = createContextHook(() => {
     })();
   }, []);
 
-  const persistProgram = useCallback(async (next: DailyItem[]) => {
+  const persistProgram = useCallback(async (raw: DailyItem[]) => {
+    const next = normalizeColors(raw);
     setProgram(next);
     try {
       await AsyncStorage.setItem(PROGRAM_KEY, JSON.stringify(next));

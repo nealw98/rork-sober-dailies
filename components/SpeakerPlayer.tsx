@@ -12,10 +12,10 @@ import { useSpeakerDownload, resolveAudioUri } from '@/hooks/useSpeakerDownload'
 import { colors, fontFamily, getSemanticColors, shadows } from '@/constants/designTokens';
 
 const c = getSemanticColors('light');
-const MT = colors.tertiary;
-const MT_DARK = colors.tertiaryDark ?? '#7A5FB5';
-const MT_SOFT = colors.tertiarySoft ?? '#E9E0F6';
-const SECONDARY = colors.secondary ?? '#5C8DFF';
+const MT = colors.steel;           // Steel Navy — Speaker tone
+const MT_DARK = colors.steelDark ?? '#223454';
+const MT_SOFT = colors.steelSoft ?? '#E0E4EC';
+const SECONDARY = colors.steelLight ?? '#7E97BE';
 
 const SUPABASE_AUDIO_BASE = 'https://uzfqabcjxjqufpipdcla.supabase.co/storage/v1/object/public/speaker-audio';
 const SPEEDS = [1, 1.25, 1.5, 2];

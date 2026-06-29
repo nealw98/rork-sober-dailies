@@ -21,8 +21,8 @@ import { useScreenTimeTracking } from '@/hooks/useScreenTimeTracking';
 import { colors, fontFamily, getSemanticColors } from '@/constants/designTokens';
 
 const c = getSemanticColors('light');
-const LAV_SOFT = colors.tertiarySoft; // #E9E0F6
-const TT_INK = '#6A4FA0';
+const LAV_SOFT = colors.primarySoft; // Teal soft — 12 & 12 accent
+const TT_INK = colors.primaryDark;   // Teal ink
 const BOOK = 'twelve';
 
 type Section = { id: string; title: string; url: string; description?: string; pageNumber?: string };

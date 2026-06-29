@@ -17,8 +17,9 @@ import PdfReader from '@/components/PdfReader';
 import { BIGBOOK_PDFS } from '@/constants/bigbook-pdfs';
 import type { TocEntry } from '@/constants/bigbook-toc';
 import { recordLiteratureReaderOpen, maybeAskForReview } from '@/lib/reviewPrompt';
+import { colors } from '@/constants/designTokens';
 
-const PDF_ACCENT = '#B27330'; // amber-ink for the Big Book
+const PDF_ACCENT = colors.steelDark; // Steel Navy ink for the Big Book
 
 type OpenPdf = { id: string; title: string; pdfKey: string; startPage: number; initialPage?: number };
 
