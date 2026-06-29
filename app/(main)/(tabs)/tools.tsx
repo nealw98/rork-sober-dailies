@@ -118,7 +118,7 @@ export default function ToolsScreen() {
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
         {/* Featured hero — Literature */}
         <Pressable style={[styles.hero, { height: heroH }]} onPress={() => router.push('/(main)/literature')} accessibilityRole="button" accessibilityLabel="Literature">
-          <Image source={require('@/assets/images/literature-hero.webp')} style={StyleSheet.absoluteFill} contentFit="cover" transition={200} />
+          <Image source={require('@/assets/images/literature-hero4.webp')} style={StyleSheet.absoluteFill} contentFit="cover" transition={200} />
           <LinearGradient colors={['rgba(0,0,0,0)', 'rgba(0,0,0,0.62)']} locations={[0.4, 1]} style={StyleSheet.absoluteFill} />
           <View style={styles.featured}>
             <Text style={styles.featuredText}>FEATURED</Text>
