@@ -1,4 +1,4 @@
-// AI Sponsor — persona picker (redesign 3.0). Three sponsors, each with the same
+// AI Sponsor — persona picker (redesign 3.0). Sponsors share the same
 // AA program in their own voice. Tap a card to open that sponsor's chat.
 // Prototype: frames/hifi-sponsor-v2 (HiFiSponsorSelectV2). Plumbing (chat store,
 // system prompts, the chat screen) is unchanged — this is presentation + copy.
@@ -16,7 +16,7 @@ import { fontFamily, getSemanticColors, shadows } from '@/constants/designTokens
 
 const c = getSemanticColors('light');
 
-// The three sponsors, in the picker's fixed order.
+// The sponsors, in the picker's fixed order.
 const SELECTION = SELECTION_SPONSOR_IDS
   .map((id) => SPONSORS.find((s) => s.id === id))
   .filter(Boolean) as SponsorConfig[];
@@ -37,7 +37,7 @@ export default function SponsorSelectScreen() {
         <BackButton onPress={() => router.back()} style={{ marginBottom: 12 }} />
         <Text style={styles.h1}>Choose your AI Sponsor</Text>
         <Text style={styles.sub}>
-          Each sponsor gives the same solid AA guidance — in their own unmistakable voice. Pick who you need today. Switch any time.
+          Each sponsor gives the same solid AA guidance — in their own unmistakable voice. The “2” sponsors use the new API test backend.
         </Text>
       </View>
 

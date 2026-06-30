@@ -1,6 +1,7 @@
 import createContextHook from "@nkzw/create-context-hook";
 import { useState, useEffect } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import * as SecureStore from "expo-secure-store";
 import { ChatMessage, SponsorType } from "@/types";
 import { detectCrisis, crisisResponses } from "@/constants/crisisTriggers";
 import { 
@@ -31,6 +32,13 @@ import {
   MAMA_JO_SYSTEM_PROMPT,
   MAMA_JO_INITIAL_MESSAGE,
 } from "@/constants/mama-jo";
+import { getSponsorById } from "@/constants/sponsors";
+import {
+  SUPABASE_ANON_KEY,
+  getSponsorApiChatUrl,
+  getSponsorApiTemperature,
+  getSponsorApiUrl,
+} from "@/lib/sponsorApiSettings";
 
 
 
@@ -91,7 +99,7 @@ async function callAI(messages: APIMessage[]): Promise<string> {
     console.log('Completion Length:', data.completion?.length || 0);
     
     return data.completion || "Sorry, I'm having trouble right now. Try again in a minute.";
-  } catch (error) {
+  } catch (error: any) {
     console.error('=== AI API EXCEPTION ===');
     console.error('Error Type:', error?.constructor?.name);
     console.error('Error Message:', error?.message);
@@ -99,6 +107,61 @@ async function callAI(messages: APIMessage[]): Promise<string> {
     console.error('Stack:', error?.stack);
     
     return "I'm having trouble connecting right now. Please try again in a moment, or consider reaching out to a meeting or another member of your support network.";
+  }
+}
+
+async function callSponsorAPI(
+  sponsorType: SponsorType,
+  chatMessages: ChatMessage[],
+  message: string
+): Promise<string> {
+  const sponsor = getSponsorById(sponsorType);
+  const apiSponsorId = sponsor?.apiSponsorId ?? sponsorType;
+  const temperature = await getSponsorApiTemperature();
+  const sponsorApiUrl = await getSponsorApiUrl();
+  const sponsorApiChatUrl = getSponsorApiChatUrl(sponsorApiUrl);
+  const anonymousId = await getAnonymousIdForSponsorApi();
+  const conversation = chatMessages
+    .slice(1, -1)
+    .slice(-10)
+    .map((msg) => ({
+      role: msg.sender === "bot" ? "assistant" : "user",
+      content: msg.text,
+    }));
+
+  const response = await fetch(sponsorApiChatUrl, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "apikey": SUPABASE_ANON_KEY,
+      "Authorization": `Bearer ${SUPABASE_ANON_KEY}`,
+    },
+    body: JSON.stringify({
+      sponsorId: apiSponsorId,
+      message,
+      conversation,
+      temperature,
+      maxOutputTokens: 260,
+      anonymous_id: anonymousId,
+    }),
+  });
+
+  const data = await response.json();
+  if (!response.ok) {
+    throw new Error(data?.error || `Sponsor API request failed: ${response.status}`);
+  }
+
+  return data.outputText || "Sorry, I'm having trouble right now. Try again in a minute.";
+}
+
+async function getAnonymousIdForSponsorApi(): Promise<string | null> {
+  try {
+    return (
+      (await SecureStore.getItemAsync("sober_dailies_anonymous_id")) ||
+      (await AsyncStorage.getItem("anonymous_id"))
+    );
+  } catch {
+    return null;
   }
 }
 
@@ -113,7 +176,16 @@ function convertToAPIMessages(chatMessages: ChatMessage[], sponsorType: SponsorT
     case "supportive":
       systemPrompt = STEADY_EDDIE_SYSTEM_PROMPT;
       break;
-    case "grace":
+      case "grace":
+      systemPrompt = GENTLE_GRACE_SYSTEM_PROMPT;
+      break;
+    case "salty-v2":
+      systemPrompt = SALTY_SAM_SYSTEM_PROMPT;
+      break;
+    case "supportive-v2":
+      systemPrompt = STEADY_EDDIE_SYSTEM_PROMPT;
+      break;
+    case "grace-v2":
       systemPrompt = GENTLE_GRACE_SYSTEM_PROMPT;
       break;
     case "cowboy-pete":
@@ -158,6 +230,9 @@ export const [ChatStoreProvider, useChatStore] = createContextHook(() => {
   const [saltyMessages, setSaltyMessages] = useState<ChatMessage[]>([SALTY_SAM_INITIAL_MESSAGE]);
   const [supportiveMessages, setSupportiveMessages] = useState<ChatMessage[]>([STEADY_EDDIE_INITIAL_MESSAGE]);
   const [graceMessages, setGraceMessages] = useState<ChatMessage[]>([GENTLE_GRACE_INITIAL_MESSAGE]);
+  const [saltyV2Messages, setSaltyV2Messages] = useState<ChatMessage[]>([{ ...SALTY_SAM_INITIAL_MESSAGE, id: "welcome-salty-v2" }]);
+  const [supportiveV2Messages, setSupportiveV2Messages] = useState<ChatMessage[]>([{ ...STEADY_EDDIE_INITIAL_MESSAGE, id: "welcome-supportive-v2" }]);
+  const [graceV2Messages, setGraceV2Messages] = useState<ChatMessage[]>([{ ...GENTLE_GRACE_INITIAL_MESSAGE, id: "welcome-grace-v2" }]);
   const [cowboyMessages, setCowboyMessages] = useState<ChatMessage[]>([COWBOY_PETE_INITIAL_MESSAGE]);
   const [sallyMessages, setSallyMessages] = useState<ChatMessage[]>([CO_SIGN_SALLY_INITIAL_MESSAGE]);
   const [freshMessages, setFreshMessages] = useState<ChatMessage[]>([FRESH_FREDDIE_INITIAL_MESSAGE]);
@@ -171,6 +246,9 @@ export const [ChatStoreProvider, useChatStore] = createContextHook(() => {
       case "salty": return saltyMessages;
       case "supportive": return supportiveMessages;
       case "grace": return graceMessages;
+      case "salty-v2": return saltyV2Messages;
+      case "supportive-v2": return supportiveV2Messages;
+      case "grace-v2": return graceV2Messages;
       case "cowboy-pete": return cowboyMessages;
       case "co-sign-sally": return sallyMessages;
       case "fresh": return freshMessages;
@@ -190,6 +268,15 @@ export const [ChatStoreProvider, useChatStore] = createContextHook(() => {
         break;
       case "grace":
         setGraceMessages(newMessages);
+        break;
+      case "salty-v2":
+        setSaltyV2Messages(newMessages);
+        break;
+      case "supportive-v2":
+        setSupportiveV2Messages(newMessages);
+        break;
+      case "grace-v2":
+        setGraceV2Messages(newMessages);
         break;
       case "cowboy-pete":
         setCowboyMessages(newMessages);
@@ -214,6 +301,9 @@ export const [ChatStoreProvider, useChatStore] = createContextHook(() => {
           storedSaltyMessages, 
           storedSupportiveMessages, 
           storedGraceMessages,
+          storedSaltyV2Messages,
+          storedSupportiveV2Messages,
+          storedGraceV2Messages,
           storedCowboyMessages,
           storedSallyMessages,
           storedFreshMessages,
@@ -223,6 +313,9 @@ export const [ChatStoreProvider, useChatStore] = createContextHook(() => {
           AsyncStorage.getItem("aa-chat-messages-salty"),
           AsyncStorage.getItem("aa-chat-messages-supportive"),
           AsyncStorage.getItem("aa-chat-messages-grace"),
+          AsyncStorage.getItem("aa-chat-messages-salty-v2"),
+          AsyncStorage.getItem("aa-chat-messages-supportive-v2"),
+          AsyncStorage.getItem("aa-chat-messages-grace-v2"),
           AsyncStorage.getItem("aa-chat-messages-cowboy"),
           AsyncStorage.getItem("aa-chat-messages-sally"),
           AsyncStorage.getItem("aa-chat-messages-fresh"),
@@ -232,6 +325,45 @@ export const [ChatStoreProvider, useChatStore] = createContextHook(() => {
         
         if (storedSponsorType) {
           setSponsorType(storedSponsorType as SponsorType);
+        }
+
+        if (storedSaltyV2Messages) {
+          try {
+            const parsed = JSON.parse(storedSaltyV2Messages);
+            if (Array.isArray(parsed)) {
+              setSaltyV2Messages([{ ...SALTY_SAM_INITIAL_MESSAGE, id: "welcome-salty-v2" }, ...parsed.filter((msg) => msg?.id !== "welcome-salty-v2")]);
+            } else {
+              console.warn('[Chat Store] Invalid salty-v2 messages format, using defaults');
+            }
+          } catch (error) {
+            console.error('[Chat Store] Failed to parse salty-v2 messages:', error);
+          }
+        }
+
+        if (storedSupportiveV2Messages) {
+          try {
+            const parsed = JSON.parse(storedSupportiveV2Messages);
+            if (Array.isArray(parsed)) {
+              setSupportiveV2Messages([{ ...STEADY_EDDIE_INITIAL_MESSAGE, id: "welcome-supportive-v2" }, ...parsed.filter((msg) => msg?.id !== "welcome-supportive-v2")]);
+            } else {
+              console.warn('[Chat Store] Invalid supportive-v2 messages format, using defaults');
+            }
+          } catch (error) {
+            console.error('[Chat Store] Failed to parse supportive-v2 messages:', error);
+          }
+        }
+
+        if (storedGraceV2Messages) {
+          try {
+            const parsed = JSON.parse(storedGraceV2Messages);
+            if (Array.isArray(parsed)) {
+              setGraceV2Messages([{ ...GENTLE_GRACE_INITIAL_MESSAGE, id: "welcome-grace-v2" }, ...parsed.filter((msg) => msg?.id !== "welcome-grace-v2")]);
+            } else {
+              console.warn('[Chat Store] Invalid grace-v2 messages format, using defaults');
+            }
+          } catch (error) {
+            console.error('[Chat Store] Failed to parse grace-v2 messages:', error);
+          }
         }
         
         if (storedSaltyMessages) {
@@ -438,6 +570,51 @@ export const [ChatStoreProvider, useChatStore] = createContextHook(() => {
     if (!hasLoadedFromStorage) return;
     const saveMessages = async () => {
       try {
+        await AsyncStorage.setItem("aa-chat-messages-salty-v2", JSON.stringify(saltyV2Messages));
+      } catch (error) {
+        console.error("Error saving Salty Sam 2 messages:", error);
+      }
+    };
+
+    if (saltyV2Messages.length > 0) {
+      saveMessages();
+    }
+  }, [saltyV2Messages, hasLoadedFromStorage]);
+
+  useEffect(() => {
+    if (!hasLoadedFromStorage) return;
+    const saveMessages = async () => {
+      try {
+        await AsyncStorage.setItem("aa-chat-messages-supportive-v2", JSON.stringify(supportiveV2Messages));
+      } catch (error) {
+        console.error("Error saving Steady Eddie 2 messages:", error);
+      }
+    };
+
+    if (supportiveV2Messages.length > 0) {
+      saveMessages();
+    }
+  }, [supportiveV2Messages, hasLoadedFromStorage]);
+
+  useEffect(() => {
+    if (!hasLoadedFromStorage) return;
+    const saveMessages = async () => {
+      try {
+        await AsyncStorage.setItem("aa-chat-messages-grace-v2", JSON.stringify(graceV2Messages));
+      } catch (error) {
+        console.error("Error saving Gentle Grace 2 messages:", error);
+      }
+    };
+
+    if (graceV2Messages.length > 0) {
+      saveMessages();
+    }
+  }, [graceV2Messages, hasLoadedFromStorage]);
+
+  useEffect(() => {
+    if (!hasLoadedFromStorage) return;
+    const saveMessages = async () => {
+      try {
         await AsyncStorage.setItem("aa-chat-messages-cowboy", JSON.stringify(cowboyMessages));
       } catch (error) {
         console.error("Error saving Cowboy Pete messages:", error);
@@ -516,6 +693,9 @@ export const [ChatStoreProvider, useChatStore] = createContextHook(() => {
       case "salty": return saltyMessages;
       case "supportive": return supportiveMessages;
       case "grace": return graceMessages;
+      case "salty-v2": return saltyV2Messages;
+      case "supportive-v2": return supportiveV2Messages;
+      case "grace-v2": return graceV2Messages;
       case "cowboy-pete": return cowboyMessages;
       case "co-sign-sally": return sallyMessages;
       case "fresh": return freshMessages;
@@ -560,12 +740,15 @@ export const [ChatStoreProvider, useChatStore] = createContextHook(() => {
         } else if (crisisType === 'selfHarm') {
           switch (currentSponsorType) {
             case 'salty':
+            case 'salty-v2':
               responseText = crisisResponses.selfHarm['Salty Sam'];
               break;
             case 'supportive':
+            case 'supportive-v2':
               responseText = crisisResponses.selfHarm['Steady Eddie'];
               break;
             case 'grace':
+            case 'grace-v2':
               responseText = crisisResponses.selfHarm['Gentle Grace'];
               break;
             default:
@@ -591,10 +774,10 @@ export const [ChatStoreProvider, useChatStore] = createContextHook(() => {
     
     try {
       // Prepare messages for API call
-      const apiMessages = convertToAPIMessages(updatedMessages, sponsorType);
-      
-      // Call AI API
-      const response = await callAI(apiMessages);
+      const sponsor = getSponsorById(sponsorType);
+      const response = sponsor?.backend === "sponsor-api"
+        ? await callSponsorAPI(sponsorType, updatedMessages, text)
+        : await callAI(convertToAPIMessages(updatedMessages, sponsorType));
       
       // Add bot response
       const botResponse: ChatMessage = {
@@ -620,6 +803,15 @@ export const [ChatStoreProvider, useChatStore] = createContextHook(() => {
           break;
         case "grace":
           errorMessage = "I'm having some connection troubles right now, but sometimes these pauses give us a chance to take a breath and reconnect. Maybe this is a gentle reminder to reach out to your sponsor or attend a meeting. The fellowship is always there for you, and I'll be here when we can connect again.";
+          break;
+        case "salty-v2":
+          errorMessage = "Something's jammed up with this test backend. That's annoying, but it doesn't change the work. Hit a meeting, call somebody, and don't let a busted connection become an excuse.";
+          break;
+        case "supportive-v2":
+          errorMessage = "I'm having trouble reaching the test sponsor backend right now. While that gets sorted out, it may help to connect with a meeting or another sober person today.";
+          break;
+        case "grace-v2":
+          errorMessage = "The test connection is having trouble right now. Take a breath and remember that support is still available through your fellowship, your sponsor, and the next right action.";
           break;
       }
       
@@ -650,6 +842,18 @@ export const [ChatStoreProvider, useChatStore] = createContextHook(() => {
         case "grace":
           await AsyncStorage.removeItem("aa-chat-messages-grace");
           setGraceMessages([GENTLE_GRACE_INITIAL_MESSAGE]);
+          break;
+        case "salty-v2":
+          await AsyncStorage.removeItem("aa-chat-messages-salty-v2");
+          setSaltyV2Messages([{ ...SALTY_SAM_INITIAL_MESSAGE, id: "welcome-salty-v2" }]);
+          break;
+        case "supportive-v2":
+          await AsyncStorage.removeItem("aa-chat-messages-supportive-v2");
+          setSupportiveV2Messages([{ ...STEADY_EDDIE_INITIAL_MESSAGE, id: "welcome-supportive-v2" }]);
+          break;
+        case "grace-v2":
+          await AsyncStorage.removeItem("aa-chat-messages-grace-v2");
+          setGraceV2Messages([{ ...GENTLE_GRACE_INITIAL_MESSAGE, id: "welcome-grace-v2" }]);
           break;
         case "cowboy-pete":
           await AsyncStorage.removeItem("aa-chat-messages-cowboy");

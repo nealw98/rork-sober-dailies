@@ -88,8 +88,11 @@ const checkSponsorMessageLimits = async (): Promise<LimitCheckResult> => {
 const getSponsorDisplayName = (type: string): string => {
   switch (type) {
     case 'salty': return 'SaltySam';
+    case 'salty-v2': return 'SaltySam2';
     case 'supportive': return 'SteadyEddie';
+    case 'supportive-v2': return 'SteadyEddie2';
     case 'grace': return 'GentleGrace';
+    case 'grace-v2': return 'GentleGrace2';
     case 'cowboy-pete': return 'CowboyPete';
     case 'co-sign-sally': return 'CoSignSally';
     case 'fresh': return 'FreshFreddie';
