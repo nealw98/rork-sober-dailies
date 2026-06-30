@@ -4,7 +4,8 @@
 // store (local-first) and, when opened from a Today daily, checks it off.
 // History/Share live in the deferred Journey "Notebook", not in this editor.
 import React, { useState } from 'react';
-import { View, Text, TextInput, Pressable, ScrollView, StyleSheet, Keyboard } from 'react-native';
+import { View, Text, TextInput, Pressable, StyleSheet, Keyboard } from 'react-native';
+import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
 import { Stack, useRouter, useLocalSearchParams } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import { Plus } from 'lucide-react-native';
@@ -42,12 +43,12 @@ export default function GratitudeScreen() {
     <View style={styles.screen}>
       <Stack.Screen options={{ headerShown: false }} />
       <ToolHeader tool={tool} dirty={dirty} onCommit={commit} />
-      <ScrollView
+      <KeyboardAwareScrollView
         style={styles.flex}
         contentContainerStyle={styles.scroll}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
-        automaticallyAdjustKeyboardInsets
+        bottomOffset={24}
       >
         <ToolIntro tool={tool} variant="bar">It isn&rsquo;t about having more, but noticing what&rsquo;s already there. Name three things, big or small.</ToolIntro>
 
@@ -71,7 +72,7 @@ export default function GratitudeScreen() {
             <Text style={[styles.addAnotherText, { color: tool.dark }]}>Add another</Text>
           </Pressable>
         </View>
-      </ScrollView>
+      </KeyboardAwareScrollView>
     </View>
   );
 }

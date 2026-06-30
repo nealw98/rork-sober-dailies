@@ -1,4 +1,5 @@
-import { StyleSheet, Text, View, ScrollView, TouchableOpacity, TextInput, Alert, Platform, KeyboardAvoidingView } from "react-native";
+import { StyleSheet, Text, View, TouchableOpacity, TextInput, Alert, Platform } from "react-native";
+import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useSobriety } from '@/hooks/useSobrietyStore';
 import { useRouter, Stack } from 'expo-router';
@@ -90,15 +91,12 @@ export default function CheckInScreen() {
         headerBackTitleVisible: false
       }} />
       <SafeAreaView style={styles.container}>
-      <KeyboardAvoidingView
-        style={styles.keyboardAvoidingView}
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
-        keyboardVerticalOffset={Platform.OS === "ios" ? 120 : 0}
-      >
-        <ScrollView 
+        <KeyboardAwareScrollView
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
-      >
+          keyboardShouldPersistTaps="handled"
+          bottomOffset={24}
+        >
         {/* Mood Selection */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>How are you feeling today?</Text>
@@ -172,8 +170,7 @@ export default function CheckInScreen() {
             {isSubmitting ? 'Saving...' : 'Complete Check-In'}
           </Text>
         </TouchableOpacity>
-      </ScrollView>
-      </KeyboardAvoidingView>
+      </KeyboardAwareScrollView>
     </SafeAreaView>
     </>
   );

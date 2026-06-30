@@ -6,7 +6,8 @@
 // existing local-first shape) and, when opened from a Today daily, checks it
 // off. History moves to the deferred Journey "Notebook".
 import React, { useState } from 'react';
-import { View, Text, TextInput, Pressable, ScrollView, StyleSheet, Keyboard } from 'react-native';
+import { View, Text, TextInput, Pressable, StyleSheet, Keyboard } from 'react-native';
+import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
 import { Stack, useRouter, useLocalSearchParams } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Haptics from 'expo-haptics';
@@ -59,12 +60,12 @@ export default function InventoryScreen() {
     <View style={styles.screen}>
       <Stack.Screen options={{ headerShown: false }} />
       <ToolHeader tool={tool} dirty={dirty} onCommit={commit} />
-      <ScrollView
+      <KeyboardAwareScrollView
         style={styles.flex}
         contentContainerStyle={styles.scroll}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
-        automaticallyAdjustKeyboardInsets
+        bottomOffset={24}
       >
         <ToolIntro tool={tool} variant="bar">Pause. Breathe. Name what&rsquo;s driving it — then turn it around.</ToolIntro>
 
@@ -122,7 +123,7 @@ export default function InventoryScreen() {
             </View>
           )}
         </View>
-      </ScrollView>
+      </KeyboardAwareScrollView>
     </View>
   );
 }

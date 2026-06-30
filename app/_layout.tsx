@@ -5,6 +5,7 @@ import React, { useEffect, useCallback, useState } from "react";
 import { Text, StyleSheet, TouchableOpacity, Platform, View, StatusBar } from 'react-native';
 import { ChevronLeft } from "lucide-react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
+import { KeyboardProvider, KeyboardToolbar } from "react-native-keyboard-controller";
 import { HamburgerMenuProvider } from "@/hooks/useHamburgerMenu";
 import HamburgerMenu from "@/components/navigation/HamburgerMenu";
 import { AudioPlayerProvider } from "@/hooks/useGlobalAudioPlayer";
@@ -379,6 +380,7 @@ export default function RootLayout() {
                     <SpeakerFavoritesProvider>
                     <ImmersiveProvider>
                       <GestureHandlerRootView style={{ flex: 1 }}>
+                        <KeyboardProvider>
                         {Platform.OS === 'android' && (
                           <StatusBar translucent backgroundColor="transparent" barStyle="light-content" />
                         )}
@@ -393,6 +395,9 @@ export default function RootLayout() {
                             </AudioPlayerProvider>
                           </ErrorBoundary>
                         </ActionSheetProvider>
+                        {/* Global accessory bar above every keyboard: Done + field nav */}
+                        <KeyboardToolbar />
+                        </KeyboardProvider>
                       </GestureHandlerRootView>
                     </ImmersiveProvider>
                     </SpeakerFavoritesProvider>

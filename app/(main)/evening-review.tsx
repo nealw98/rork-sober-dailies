@@ -4,7 +4,8 @@
 // the old screen is dropped). Saving writes to the evening-review store
 // (local-first) and, when opened from a Today daily, checks it off.
 import React, { useState } from 'react';
-import { View, Text, TextInput, ScrollView, StyleSheet, Keyboard } from 'react-native';
+import { View, Text, TextInput, StyleSheet, Keyboard } from 'react-native';
+import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
 import { Stack, useRouter, useLocalSearchParams } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import { useEveningReviewStore } from '@/hooks/use-evening-review-store';
@@ -80,12 +81,12 @@ export default function NightlyReviewScreen() {
     <View style={styles.screen}>
       <Stack.Screen options={{ headerShown: false }} />
       <ToolHeader tool={tool} dirty={dirty} onCommit={commit} />
-      <ScrollView
+      <KeyboardAwareScrollView
         style={styles.flex}
         contentContainerStyle={styles.scroll}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
-        automaticallyAdjustKeyboardInsets
+        bottomOffset={24}
       >
         <ToolIntro tool={tool} variant="bar">
           {'“Continued to take personal inventory and when we were wrong promptly admitted it.” — Step Ten'}
@@ -103,7 +104,7 @@ export default function NightlyReviewScreen() {
           </View>
           <Text style={styles.privacy}>Saved only on your device. Nothing is uploaded or shared.</Text>
         </View>
-      </ScrollView>
+      </KeyboardAwareScrollView>
     </View>
   );
 }

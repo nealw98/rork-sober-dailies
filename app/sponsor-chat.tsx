@@ -6,7 +6,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import {
   View, Text, TextInput, Pressable, FlatList, ScrollView, KeyboardAvoidingView,
-  Platform, ActivityIndicator, Alert, StyleSheet,
+  Platform, ActivityIndicator, Alert, StyleSheet, Keyboard,
 } from 'react-native';
 import { Image } from 'expo-image';
 import { useRouter, useLocalSearchParams, Stack } from 'expo-router';
@@ -183,6 +183,7 @@ function SponsorChatContent({ initialSponsor }: { initialSponsor: string }) {
       }
     }
     setInputText('');
+    Keyboard.dismiss();
     featureUse(`SponsorMessage_${getSponsorDisplayName(sponsorType)}`);
     await sendMessage(trimmed);
   };

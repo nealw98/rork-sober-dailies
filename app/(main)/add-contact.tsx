@@ -1,4 +1,5 @@
-import { StyleSheet, Text, View, TextInput, TouchableOpacity, Alert, Platform, KeyboardAvoidingView, ScrollView } from "react-native";
+import { StyleSheet, Text, View, TextInput, TouchableOpacity, Alert, Platform } from "react-native";
+import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useSobriety } from '@/hooks/useSobrietyStore';
 import { useRouter, Stack } from 'expo-router';
@@ -49,12 +50,11 @@ export default function AddContactScreen() {
         headerBackTitleVisible: false
       }} />
       <SafeAreaView style={styles.container}>
-      <KeyboardAvoidingView
-        style={{ flex: 1 }}
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
-        keyboardVerticalOffset={Platform.OS === "ios" ? 120 : 0}
-      >
-        <ScrollView style={{ flex: 1 }} keyboardShouldPersistTaps="handled">
+        <KeyboardAwareScrollView
+          style={{ flex: 1 }}
+          keyboardShouldPersistTaps="handled"
+          bottomOffset={24}
+        >
           <View style={styles.content}>
         <View style={styles.iconContainer}>
           <UserPlus size={48} color="#6B46C1" />
@@ -125,8 +125,7 @@ export default function AddContactScreen() {
           <Text style={styles.cancelButtonText}>Cancel</Text>
         </TouchableOpacity>
       </View>
-        </ScrollView>
-      </KeyboardAvoidingView>
+        </KeyboardAwareScrollView>
     </SafeAreaView>
     </>
   );

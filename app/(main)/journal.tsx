@@ -3,7 +3,8 @@
 // appends an entry to the journal store (local-first) and, when opened from a
 // Today daily, checks it off. Entries surface in the deferred Journey "Notebook".
 import React, { useState } from 'react';
-import { View, Text, TextInput, ScrollView, StyleSheet, Keyboard } from 'react-native';
+import { View, Text, TextInput, StyleSheet, Keyboard } from 'react-native';
+import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
 import { Stack, useRouter, useLocalSearchParams } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import { useJournal } from '@/hooks/use-journal-store';
@@ -36,12 +37,12 @@ export default function JournalScreen() {
     <View style={styles.screen}>
       <Stack.Screen options={{ headerShown: false }} />
       <ToolHeader tool={tool} dirty={dirty} onCommit={commit} />
-      <ScrollView
+      <KeyboardAwareScrollView
         style={styles.flex}
         contentContainerStyle={styles.scroll}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
-        automaticallyAdjustKeyboardInsets
+        bottomOffset={24}
       >
         <ToolIntro tool={tool} variant="bar">Write freely — whatever&rsquo;s on your mind. No rules, no audience.</ToolIntro>
         <View style={styles.body}>
@@ -57,7 +58,7 @@ export default function JournalScreen() {
             />
           </View>
         </View>
-      </ScrollView>
+      </KeyboardAwareScrollView>
     </View>
   );
 }
