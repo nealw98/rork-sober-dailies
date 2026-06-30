@@ -2,11 +2,17 @@
 //
 // Production backend for AI Sponsors.
 //
+// Supports two AI engines, selectable per request via `provider`:
+//   - 'openai'    (default) — OpenAI Responses API
+//   - 'anthropic'           — Anthropic Messages API
+//
 // Required Supabase Secrets:
-// - OPENAI_API_KEY
+// - OPENAI_API_KEY      (for provider 'openai')
+// - ANTHROPIC_API_KEY   (for provider 'anthropic')
 // Optional:
-// - SPONSOR_CHAT_MODEL defaults to gpt-5.4-mini
-// - SPONSOR_CHAT_TEMPERATURE defaults to 0.8
+// - SPONSOR_CHAT_MODEL             OpenAI model, defaults to gpt-5.4-mini
+// - SPONSOR_CHAT_ANTHROPIC_MODEL   Anthropic model, defaults to claude-haiku-4-5
+// - SPONSOR_CHAT_TEMPERATURE       defaults to 0.8
 // - SPONSOR_CHAT_MAX_OUTPUT_TOKENS defaults to 260
 
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
@@ -18,6 +24,7 @@ const corsHeaders = {
 };
 
 type SponsorId = 'salty' | 'supportive' | 'grace';
+type Provider = 'openai' | 'anthropic';
 type ChatRole = 'user' | 'assistant';
 
 interface ConversationItem {
@@ -31,13 +38,16 @@ interface RequestBody {
   conversation?: ConversationItem[];
   temperature?: number;
   maxOutputTokens?: number;
+  provider?: Provider;
   anonymous_id?: string | null;
 }
 
-const MODEL = Deno.env.get('SPONSOR_CHAT_MODEL') || 'gpt-5.4-mini';
+const OPENAI_MODEL = Deno.env.get('SPONSOR_CHAT_MODEL') || 'gpt-5.4-mini';
+const ANTHROPIC_MODEL = Deno.env.get('SPONSOR_CHAT_ANTHROPIC_MODEL') || 'claude-haiku-4-5';
 const DEFAULT_TEMPERATURE = numberFromEnv('SPONSOR_CHAT_TEMPERATURE', 0.8);
 const DEFAULT_MAX_OUTPUT_TOKENS = numberFromEnv('SPONSOR_CHAT_MAX_OUTPUT_TOKENS', 260);
 const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY');
+const ANTHROPIC_API_KEY = Deno.env.get('ANTHROPIC_API_KEY');
 
 const TUNING_APPENDIX = `
 
@@ -161,7 +171,46 @@ function getSponsor(id: unknown): { id: SponsorId; name: string; prompt: string 
   return { id: sponsorId, ...SPONSORS[sponsorId] };
 }
 
-function extractOutputText(data: any): string {
+function getProvider(value: unknown): Provider {
+  return value === 'anthropic' ? 'anthropic' : 'openai';
+}
+
+interface RequestContext {
+  sponsor: { id: SponsorId; name: string; prompt: string };
+  prompt: string;
+  message: string;
+  conversation: ConversationItem[];
+  temperature: number;
+  maxOutputTokens: number;
+}
+
+interface ProviderResult {
+  model: string;
+  outputText: string;
+  usage: { input_tokens?: number; output_tokens?: number; total_tokens?: number } | null;
+}
+
+function buildContext(body: RequestBody): RequestContext {
+  const sponsor = getSponsor(body.sponsorId);
+  const message = String(body.message || '').trim();
+  if (!message) throw new Error('Message is required.');
+  if (message.length > 2000) throw new Error('Message is too long.');
+
+  const temperature = clamp(Number(body.temperature ?? DEFAULT_TEMPERATURE), 0, 1.2);
+  const maxOutputTokens = Math.round(clamp(Number(body.maxOutputTokens ?? DEFAULT_MAX_OUTPUT_TOKENS), 80, 500));
+  const conversation = Array.isArray(body.conversation) ? body.conversation.slice(-10) : [];
+
+  return {
+    sponsor,
+    prompt: `${sponsor.prompt}${TUNING_APPENDIX}`,
+    message,
+    conversation,
+    temperature,
+    maxOutputTokens,
+  };
+}
+
+function extractOpenAIText(data: any): string {
   if (typeof data?.output_text === 'string') return data.output_text.trim();
 
   const parts: string[] = [];
@@ -173,42 +222,26 @@ function extractOutputText(data: any): string {
   return parts.join('\n').trim();
 }
 
-async function logUsage(payload: Record<string, unknown>) {
-  try {
-    const supabaseUrl = Deno.env.get('SUPABASE_URL');
-    const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
-    if (!supabaseUrl || !serviceKey) return;
-
-    const supabase = createClient(supabaseUrl, serviceKey);
-    const { error } = await supabase.from('sponsor_chat_usage').insert(payload);
-    if (error) console.warn('[sponsor-chat] usage insert failed:', error.message);
-  } catch (error) {
-    console.warn('[sponsor-chat] usage logging failed:', error);
+function extractAnthropicText(data: any): string {
+  const parts: string[] = [];
+  for (const block of data?.content || []) {
+    if (block?.type === 'text' && typeof block?.text === 'string') parts.push(block.text);
   }
+  return parts.join('\n').trim();
 }
 
-async function callOpenAI(body: RequestBody) {
+async function callOpenAI(ctx: RequestContext): Promise<ProviderResult> {
   if (!OPENAI_API_KEY) {
     throw new Error('OPENAI_API_KEY is not configured for sponsor-chat.');
   }
 
-  const sponsor = getSponsor(body.sponsorId);
-  const message = String(body.message || '').trim();
-  if (!message) throw new Error('Message is required.');
-  if (message.length > 2000) throw new Error('Message is too long.');
-
-  const temperature = clamp(Number(body.temperature ?? DEFAULT_TEMPERATURE), 0, 1.2);
-  const maxOutputTokens = Math.round(clamp(Number(body.maxOutputTokens ?? DEFAULT_MAX_OUTPUT_TOKENS), 80, 500));
-  const conversation = Array.isArray(body.conversation) ? body.conversation.slice(-10) : [];
-  const prompt = `${sponsor.prompt}${TUNING_APPENDIX}`;
-
   const input = [
-    { role: 'developer', content: prompt },
-    ...conversation.map((item) => ({
+    { role: 'developer', content: ctx.prompt },
+    ...ctx.conversation.map((item) => ({
       role: item.role === 'assistant' ? 'assistant' : 'user',
       content: String(item.content || '').slice(0, 2000),
     })),
-    { role: 'user', content: message },
+    { role: 'user', content: ctx.message },
   ];
 
   const response = await fetch('https://api.openai.com/v1/responses', {
@@ -218,10 +251,10 @@ async function callOpenAI(body: RequestBody) {
       'content-type': 'application/json',
     },
     body: JSON.stringify({
-      model: MODEL,
+      model: OPENAI_MODEL,
       input,
-      temperature,
-      max_output_tokens: maxOutputTokens,
+      temperature: ctx.temperature,
+      max_output_tokens: ctx.maxOutputTokens,
       reasoning: { effort: 'none' },
     }),
   });
@@ -238,26 +271,108 @@ async function callOpenAI(body: RequestBody) {
     throw new Error(data?.error?.message || responseText || `OpenAI request failed with ${response.status}`);
   }
 
-  const outputText = extractOutputText(data);
-  const usage = data?.usage || null;
+  return {
+    model: data?.model || OPENAI_MODEL,
+    outputText: extractOpenAIText(data),
+    usage: data?.usage || null,
+  };
+}
+
+async function callAnthropic(ctx: RequestContext): Promise<ProviderResult> {
+  if (!ANTHROPIC_API_KEY) {
+    throw new Error('ANTHROPIC_API_KEY is not configured for sponsor-chat.');
+  }
+
+  const messages = [
+    ...ctx.conversation.map((item) => ({
+      role: item.role === 'assistant' ? 'assistant' : 'user',
+      content: String(item.content || '').slice(0, 2000),
+    })),
+    { role: 'user', content: ctx.message },
+  ];
+
+  const response = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: {
+      'x-api-key': ANTHROPIC_API_KEY,
+      'anthropic-version': '2023-06-01',
+      'content-type': 'application/json',
+    },
+    body: JSON.stringify({
+      model: ANTHROPIC_MODEL,
+      max_tokens: ctx.maxOutputTokens,
+      system: ctx.prompt,
+      // Anthropic temperature range is 0–1 (OpenAI allows up to 1.2).
+      temperature: clamp(ctx.temperature, 0, 1),
+      messages,
+    }),
+  });
+
+  const responseText = await response.text();
+  let data: any;
+  try {
+    data = JSON.parse(responseText);
+  } catch {
+    data = { raw: responseText };
+  }
+
+  if (!response.ok) {
+    throw new Error(data?.error?.message || responseText || `Anthropic request failed with ${response.status}`);
+  }
+
+  const inputTokens = data?.usage?.input_tokens ?? null;
+  const outputTokens = data?.usage?.output_tokens ?? null;
+
+  return {
+    model: data?.model || ANTHROPIC_MODEL,
+    outputText: extractAnthropicText(data),
+    usage: {
+      input_tokens: inputTokens ?? undefined,
+      output_tokens: outputTokens ?? undefined,
+      total_tokens:
+        inputTokens != null && outputTokens != null ? inputTokens + outputTokens : undefined,
+    },
+  };
+}
+
+async function logUsage(payload: Record<string, unknown>) {
+  try {
+    const supabaseUrl = Deno.env.get('SUPABASE_URL');
+    const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+    if (!supabaseUrl || !serviceKey) return;
+
+    const supabase = createClient(supabaseUrl, serviceKey);
+    const { error } = await supabase.from('sponsor_chat_usage').insert(payload);
+    if (error) console.warn('[sponsor-chat] usage insert failed:', error.message);
+  } catch (error) {
+    console.warn('[sponsor-chat] usage logging failed:', error);
+  }
+}
+
+async function handleChat(body: RequestBody) {
+  const provider = getProvider(body.provider);
+  const ctx = buildContext(body);
+
+  const result = provider === 'anthropic' ? await callAnthropic(ctx) : await callOpenAI(ctx);
 
   await logUsage({
     anonymous_id: body.anonymous_id || null,
-    sponsor_id: sponsor.id,
-    model: data?.model || MODEL,
-    input_tokens: usage?.input_tokens ?? null,
-    output_tokens: usage?.output_tokens ?? null,
-    total_tokens: usage?.total_tokens ?? null,
-    temperature,
-    max_output_tokens: maxOutputTokens,
+    sponsor_id: ctx.sponsor.id,
+    model: result.model,
+    input_tokens: result.usage?.input_tokens ?? null,
+    output_tokens: result.usage?.output_tokens ?? null,
+    total_tokens: result.usage?.total_tokens ?? null,
+    temperature: ctx.temperature,
+    max_output_tokens: ctx.maxOutputTokens,
     request_status: 'success',
   });
 
   return {
-    model: data?.model || MODEL,
-    sponsor: { id: sponsor.id, name: sponsor.name },
-    outputText,
-    usage,
+    provider,
+    model: result.model,
+    sponsor: { id: ctx.sponsor.id, name: ctx.sponsor.name },
+    outputText: result.outputText,
+    usage: result.usage,
   };
 }
 
@@ -270,8 +385,11 @@ serve(async (req: Request) => {
     return new Response(
       JSON.stringify({
         ok: true,
-        model: MODEL,
-        hasApiKey: Boolean(OPENAI_API_KEY),
+        defaultProvider: 'openai',
+        providers: {
+          openai: { model: OPENAI_MODEL, hasApiKey: Boolean(OPENAI_API_KEY) },
+          anthropic: { model: ANTHROPIC_MODEL, hasApiKey: Boolean(ANTHROPIC_API_KEY) },
+        },
         sponsors: Object.entries(SPONSORS).map(([id, sponsor]) => ({ id, name: sponsor.name })),
       }),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -296,7 +414,7 @@ serve(async (req: Request) => {
   }
 
   try {
-    const result = await callOpenAI(body);
+    const result = await handleChat(body);
     return new Response(JSON.stringify(result), {
       status: 200,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -306,7 +424,7 @@ serve(async (req: Request) => {
     await logUsage({
       anonymous_id: body?.anonymous_id || null,
       sponsor_id: getSponsor(body?.sponsorId).id,
-      model: MODEL,
+      model: getProvider(body?.provider) === 'anthropic' ? ANTHROPIC_MODEL : OPENAI_MODEL,
       request_status: 'error',
       error_message: message.slice(0, 500),
     });

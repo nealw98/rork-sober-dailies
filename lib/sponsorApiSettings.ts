@@ -4,6 +4,10 @@ export const SPONSOR_API_TEMPERATURE_KEY = 'sponsor_api_temperature';
 export const DEFAULT_SPONSOR_API_TEMPERATURE = 0.8;
 export const MIN_SPONSOR_API_TEMPERATURE = 0;
 export const MAX_SPONSOR_API_TEMPERATURE = 1.2;
+
+export type SponsorApiProvider = 'openai' | 'anthropic';
+export const SPONSOR_API_PROVIDER_KEY = 'sponsor_api_provider';
+export const DEFAULT_SPONSOR_API_PROVIDER: SponsorApiProvider = 'openai';
 export const SPONSOR_API_URL =
   process.env.EXPO_PUBLIC_SPONSOR_API_URL ||
   'https://uzfqabcjxjqufpipdcla.supabase.co/functions/v1/sponsor-chat';
@@ -28,6 +32,23 @@ export const getSponsorApiTemperature = async (): Promise<number> => {
 export const setSponsorApiTemperature = async (value: number): Promise<number> => {
   const next = clampSponsorApiTemperature(value);
   await AsyncStorage.setItem(SPONSOR_API_TEMPERATURE_KEY, String(next));
+  return next;
+};
+
+export const getSponsorApiProvider = async (): Promise<SponsorApiProvider> => {
+  try {
+    const stored = await AsyncStorage.getItem(SPONSOR_API_PROVIDER_KEY);
+    return stored === 'anthropic' ? 'anthropic' : DEFAULT_SPONSOR_API_PROVIDER;
+  } catch {
+    return DEFAULT_SPONSOR_API_PROVIDER;
+  }
+};
+
+export const setSponsorApiProvider = async (
+  value: SponsorApiProvider
+): Promise<SponsorApiProvider> => {
+  const next: SponsorApiProvider = value === 'anthropic' ? 'anthropic' : 'openai';
+  await AsyncStorage.setItem(SPONSOR_API_PROVIDER_KEY, next);
   return next;
 };
 

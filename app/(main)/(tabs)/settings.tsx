@@ -39,11 +39,15 @@ import { useOnboarding } from '@/hooks/useOnboardingStore';
 import { clearUserData } from '@/lib/userDataSync';
 import { setSyncPaused } from '@/lib/icloudSync';
 import {
+  DEFAULT_SPONSOR_API_PROVIDER,
   DEFAULT_SPONSOR_API_TEMPERATURE,
   MAX_SPONSOR_API_TEMPERATURE,
   MIN_SPONSOR_API_TEMPERATURE,
+  getSponsorApiProvider,
   getSponsorApiTemperature,
+  setSponsorApiProvider,
   setSponsorApiTemperature,
+  type SponsorApiProvider,
 } from '@/lib/sponsorApiSettings';
 
 const c = getSemanticColors('light');
@@ -101,6 +105,7 @@ export default function SettingsScreen() {
   const [logsText, setLogsText] = useState('');
   const [isDeveloperMode, setIsDeveloperMode] = useState(false);
   const [sponsorApiTemperature, setSponsorApiTemperatureState] = useState(DEFAULT_SPONSOR_API_TEMPERATURE);
+  const [sponsorApiProvider, setSponsorApiProviderState] = useState<SponsorApiProvider>(DEFAULT_SPONSOR_API_PROVIDER);
 
   // Feedback modal state
   const [feedbackVisible, setFeedbackVisible] = useState(false);
@@ -132,6 +137,14 @@ export default function SettingsScreen() {
       .then(setSponsorApiTemperatureState)
       .catch(() => {
         setSponsorApiTemperatureState(DEFAULT_SPONSOR_API_TEMPERATURE);
+      });
+  }, []);
+
+  useEffect(() => {
+    getSponsorApiProvider()
+      .then(setSponsorApiProviderState)
+      .catch(() => {
+        setSponsorApiProviderState(DEFAULT_SPONSOR_API_PROVIDER);
       });
   }, []);
 
@@ -167,6 +180,17 @@ export default function SettingsScreen() {
       setSponsorApiTemperatureState(next);
     } catch (error) {
       console.error('[Settings] Failed to reset sponsor API temperature:', error);
+    }
+  };
+
+  const changeSponsorApiProvider = async (provider: SponsorApiProvider) => {
+    if (provider === sponsorApiProvider) return;
+    setSponsorApiProviderState(provider);
+    try {
+      await setSponsorApiProvider(provider);
+    } catch (error) {
+      console.error('[Settings] Failed to save sponsor API provider:', error);
+      Alert.alert('Error', 'Failed to save AI engine setting.');
     }
   };
 
@@ -454,6 +478,29 @@ export default function SettingsScreen() {
         {
           <CardGroup label="Developer">
             <View style={[styles.devControl, styles.rowDivider]}>
+              <View style={styles.rowText}>
+                <Text style={styles.rowLabel}>Sponsor AI engine</Text>
+                <Text style={styles.rowSub}>Engine behind Steady Eddie 2, Salty Sam 2, and Gentle Grace 2</Text>
+              </View>
+              <View style={styles.devSegment}>
+                {(['openai', 'anthropic'] as SponsorApiProvider[]).map((option) => {
+                  const active = sponsorApiProvider === option;
+                  return (
+                    <TouchableOpacity
+                      key={option}
+                      style={[styles.devSegmentBtn, active && styles.devSegmentBtnActive]}
+                      onPress={() => changeSponsorApiProvider(option)}
+                      activeOpacity={0.7}
+                    >
+                      <Text style={[styles.devSegmentText, active && styles.devSegmentTextActive]}>
+                        {option === 'openai' ? 'OpenAI' : 'Anthropic'}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            </View>
+            <View style={[styles.devControl, styles.rowDivider]}>
               <View style={styles.devControlHeader}>
                 <View style={styles.rowText}>
                   <Text style={styles.rowLabel}>Sponsor API temperature</Text>
@@ -686,6 +733,27 @@ const styles = StyleSheet.create({
   },
   devControl: { paddingHorizontal: 16, paddingVertical: 14 },
   devControlHeader: { flexDirection: 'row', alignItems: 'flex-start', gap: 12 },
+  devSegment: {
+    flexDirection: 'row',
+    gap: 8,
+    marginTop: 12,
+  },
+  devSegmentBtn: {
+    flex: 1,
+    height: 38,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: c.background,
+    borderWidth: 1,
+    borderColor: c.border,
+  },
+  devSegmentBtnActive: {
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
+  },
+  devSegmentText: { fontFamily: fontFamily.bold, fontSize: 14, color: c.textSecondary },
+  devSegmentTextActive: { color: '#fff' },
   devValue: { fontFamily: fontFamily.bold, fontSize: 16, color: c.text, marginTop: 1 },
   devStepperRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 12 },
   devStepBtn: {
