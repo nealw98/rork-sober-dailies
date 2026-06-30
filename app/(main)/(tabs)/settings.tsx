@@ -38,6 +38,13 @@ import { useScreenTimeTracking } from '@/hooks/useScreenTimeTracking';
 import { useOnboarding } from '@/hooks/useOnboardingStore';
 import { clearUserData } from '@/lib/userDataSync';
 import { setSyncPaused } from '@/lib/icloudSync';
+import {
+  DEFAULT_SPONSOR_API_TEMPERATURE,
+  MAX_SPONSOR_API_TEMPERATURE,
+  MIN_SPONSOR_API_TEMPERATURE,
+  getSponsorApiTemperature,
+  setSponsorApiTemperature,
+} from '@/lib/sponsorApiSettings';
 
 const c = getSemanticColors('light');
 const DEVELOPER_MODE_KEY = 'developer_mode_enabled';
@@ -93,6 +100,7 @@ export default function SettingsScreen() {
   const [logsVisible, setLogsVisible] = useState(false);
   const [logsText, setLogsText] = useState('');
   const [isDeveloperMode, setIsDeveloperMode] = useState(false);
+  const [sponsorApiTemperature, setSponsorApiTemperatureState] = useState(DEFAULT_SPONSOR_API_TEMPERATURE);
 
   // Feedback modal state
   const [feedbackVisible, setFeedbackVisible] = useState(false);
@@ -119,6 +127,14 @@ export default function SettingsScreen() {
     loadDeveloperMode();
   }, []);
 
+  useEffect(() => {
+    getSponsorApiTemperature()
+      .then(setSponsorApiTemperatureState)
+      .catch(() => {
+        setSponsorApiTemperatureState(DEFAULT_SPONSOR_API_TEMPERATURE);
+      });
+  }, []);
+
   const toggleDeveloperMode = async () => {
     const newValue = !isDeveloperMode;
     setIsDeveloperMode(newValue);
@@ -134,6 +150,25 @@ export default function SettingsScreen() {
   const step = 2;
   const increase = () => setFontSize(fontSize + step);
   const decrease = () => setFontSize(fontSize - step);
+
+  const adjustSponsorApiTemperature = async (delta: number) => {
+    try {
+      const next = await setSponsorApiTemperature(Number((sponsorApiTemperature + delta).toFixed(2)));
+      setSponsorApiTemperatureState(next);
+    } catch (error) {
+      console.error('[Settings] Failed to save sponsor API temperature:', error);
+      Alert.alert('Error', 'Failed to save sponsor API temperature.');
+    }
+  };
+
+  const resetSponsorApiTemperature = async () => {
+    try {
+      const next = await setSponsorApiTemperature(DEFAULT_SPONSOR_API_TEMPERATURE);
+      setSponsorApiTemperatureState(next);
+    } catch (error) {
+      console.error('[Settings] Failed to reset sponsor API temperature:', error);
+    }
+  };
 
   // Version info
   const appVersion = Constants.expoConfig?.version ?? '—';
@@ -415,9 +450,39 @@ export default function SettingsScreen() {
           <CardRow label="About Sober Dailies" last onPress={() => router.push('/about')} />
         </CardGroup>
 
-        {/* Developer / testing — dev builds only */}
-        {__DEV__ && (
+        {/* Developer / testing — visible in this sponsor API test branch */}
+        {
           <CardGroup label="Developer">
+            <View style={[styles.devControl, styles.rowDivider]}>
+              <View style={styles.devControlHeader}>
+                <View style={styles.rowText}>
+                  <Text style={styles.rowLabel}>Sponsor API temperature</Text>
+                  <Text style={styles.rowSub}>Used by Steady Eddie 2, Salty Sam 2, and Gentle Grace 2</Text>
+                </View>
+                <Text style={styles.devValue}>{sponsorApiTemperature.toFixed(2)}</Text>
+              </View>
+              <View style={styles.devStepperRow}>
+                <TouchableOpacity
+                  style={[styles.devStepBtn, sponsorApiTemperature <= MIN_SPONSOR_API_TEMPERATURE && styles.devStepBtnDisabled]}
+                  onPress={() => adjustSponsorApiTemperature(-0.1)}
+                  disabled={sponsorApiTemperature <= MIN_SPONSOR_API_TEMPERATURE}
+                  activeOpacity={0.7}
+                >
+                  <Text style={styles.devStepBtnText}>−</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.devResetBtn} onPress={resetSponsorApiTemperature} activeOpacity={0.7}>
+                  <Text style={styles.devResetBtnText}>Reset</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.devStepBtn, sponsorApiTemperature >= MAX_SPONSOR_API_TEMPERATURE && styles.devStepBtnDisabled]}
+                  onPress={() => adjustSponsorApiTemperature(0.1)}
+                  disabled={sponsorApiTemperature >= MAX_SPONSOR_API_TEMPERATURE}
+                  activeOpacity={0.7}
+                >
+                  <Text style={styles.devStepBtnText}>+</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
             <CardRow
               label="Run onboarding again"
               sub="Replays the welcome flow · keeps all data"
@@ -430,7 +495,7 @@ export default function SettingsScreen() {
               onPress={clearAll}
             />
           </CardGroup>
-        )}
+        }
 
         {/* Legal links — external */}
         <View style={styles.legalRow}>
@@ -619,6 +684,31 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     ...shadows.sm,
   },
+  devControl: { paddingHorizontal: 16, paddingVertical: 14 },
+  devControlHeader: { flexDirection: 'row', alignItems: 'flex-start', gap: 12 },
+  devValue: { fontFamily: fontFamily.bold, fontSize: 16, color: c.text, marginTop: 1 },
+  devStepperRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 12 },
+  devStepBtn: {
+    width: 44,
+    height: 36,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.primary,
+  },
+  devStepBtnDisabled: { backgroundColor: c.border },
+  devStepBtnText: { fontFamily: fontFamily.bold, fontSize: 20, color: '#fff', lineHeight: 22 },
+  devResetBtn: {
+    height: 36,
+    paddingHorizontal: 14,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: c.background,
+    borderWidth: 1,
+    borderColor: c.border,
+  },
+  devResetBtnText: { fontFamily: fontFamily.bold, fontSize: 13, color: c.textSecondary },
   row: {
     flexDirection: 'row',
     alignItems: 'center',
