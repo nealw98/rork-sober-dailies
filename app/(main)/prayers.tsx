@@ -23,11 +23,22 @@ type Rect = { x: number; y: number; w: number; h: number };
 type Mode = 'list' | 'opening' | 'read' | 'closing';
 
 // The prayer body — shared by the morph overlay (it IS the read view once open).
+const MORNING_INTRO = 'As I begin this day, I ask my Higher Power:';
+
 function PrayerBody({ prayer }: { prayer: (typeof aaPrayers)[number] }) {
+  const paras = prayer.content.split(/\n\s*\n/);
+  // Morning Prayer: pull the opening line out as its own italic intro with a
+  // gap below it (in the data it sits on the first line of the first block).
+  let intro: string | null = null;
+  if (prayer.title === 'Morning Prayer' && paras[0]?.startsWith(MORNING_INTRO)) {
+    intro = MORNING_INTRO;
+    paras[0] = paras[0].slice(MORNING_INTRO.length).trim();
+  }
   return (
     <>
       <View style={styles.readDivider} />
-      {prayer.content.split(/\n\s*\n/).map((para, i) => (
+      {intro && <Text style={[styles.prayerPara, styles.prayerIntro]}>{intro}</Text>}
+      {paras.map((para, i) => (
         <Text key={i} style={styles.prayerPara}>{para.trim()}</Text>
       ))}
       {prayer.source && (
@@ -240,6 +251,7 @@ const styles = StyleSheet.create({
   readCardTitle: { flex: 1, fontFamily: fontFamily.semiBold, fontSize: 18, letterSpacing: -0.3, color: c.text },
   readDivider: { height: 1, backgroundColor: c.divider, marginTop: 14, marginBottom: 16 },
   prayerPara: { fontFamily: fontFamily.regular, fontSize: 17, lineHeight: 26, color: c.text, marginBottom: 14 },
+  prayerIntro: { fontFamily: fontFamily.regularItalic, marginBottom: 18 },
   sourceRow: { flexDirection: 'row', alignItems: 'center', gap: 7, marginTop: 8, paddingTop: 16, borderTopWidth: 1, borderTopColor: c.border },
   sourceText: { fontFamily: fontFamily.medium, fontSize: 12.5, color: c.textMuted },
 });

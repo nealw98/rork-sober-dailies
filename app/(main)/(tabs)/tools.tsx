@@ -43,8 +43,8 @@ type GlyphComponent = React.ComponentType<{ size?: number; color?: string }>;
 
 // ─── Flagship cards (Speaker Tapes · AI Sponsor) ─────────────────────────────
 type Flag = { bg: string; circle: string; ink: string };
-const SPEAKER: Flag = { bg: lighten(colors.steel, 0.46), circle: colors.steel, ink: colors.steelDark };
-const SPONSOR: Flag = { bg: lighten(colors.tertiary, 0.4), circle: colors.tertiary, ink: colors.tertiaryDark };
+const SPEAKER: Flag = { bg: lighten(colors.steel, 0.62), circle: colors.steel, ink: colors.steelDark };
+const SPONSOR: Flag = { bg: lighten(colors.tertiary, 0.56), circle: colors.tertiary, ink: colors.tertiaryDark };
 
 // ─── Grid tools — white tile + line icon in the tool's tone ──────────────────
 type AppDef = { id: string; name: string; color: string; Icon: GlyphComponent; route: Href };
