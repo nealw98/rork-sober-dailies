@@ -41,15 +41,16 @@ import { useOnboarding } from '@/hooks/useOnboardingStore';
 import { clearUserData } from '@/lib/userDataSync';
 import { setSyncPaused } from '@/lib/icloudSync';
 import {
-  DEFAULT_SPONSOR_API_PROVIDER,
+  DEFAULT_SPONSOR_API_ENGINE,
   DEFAULT_SPONSOR_API_TEMPERATURE,
   MAX_SPONSOR_API_TEMPERATURE,
   MIN_SPONSOR_API_TEMPERATURE,
-  getSponsorApiProvider,
+  SPONSOR_API_ENGINES,
+  getSponsorApiEngine,
   getSponsorApiTemperature,
-  setSponsorApiProvider,
+  setSponsorApiEngine,
   setSponsorApiTemperature,
-  type SponsorApiProvider,
+  type SponsorApiEngine,
 } from '@/lib/sponsorApiSettings';
 
 const c = getSemanticColors('light');
@@ -107,7 +108,7 @@ export default function SettingsScreen() {
   const [logsText, setLogsText] = useState('');
   const [isDeveloperMode, setIsDeveloperMode] = useState(false);
   const [sponsorApiTemperature, setSponsorApiTemperatureState] = useState(DEFAULT_SPONSOR_API_TEMPERATURE);
-  const [sponsorApiProvider, setSponsorApiProviderState] = useState<SponsorApiProvider>(DEFAULT_SPONSOR_API_PROVIDER);
+  const [sponsorApiEngine, setSponsorApiEngineState] = useState<SponsorApiEngine>(DEFAULT_SPONSOR_API_ENGINE);
 
   // Feedback modal state
   const [feedbackVisible, setFeedbackVisible] = useState(false);
@@ -143,10 +144,10 @@ export default function SettingsScreen() {
   }, []);
 
   useEffect(() => {
-    getSponsorApiProvider()
-      .then(setSponsorApiProviderState)
+    getSponsorApiEngine()
+      .then(setSponsorApiEngineState)
       .catch(() => {
-        setSponsorApiProviderState(DEFAULT_SPONSOR_API_PROVIDER);
+        setSponsorApiEngineState(DEFAULT_SPONSOR_API_ENGINE);
       });
   }, []);
 
@@ -185,13 +186,13 @@ export default function SettingsScreen() {
     }
   };
 
-  const changeSponsorApiProvider = async (provider: SponsorApiProvider) => {
-    if (provider === sponsorApiProvider) return;
-    setSponsorApiProviderState(provider);
+  const changeSponsorApiEngine = async (engine: SponsorApiEngine) => {
+    if (engine === sponsorApiEngine) return;
+    setSponsorApiEngineState(engine);
     try {
-      await setSponsorApiProvider(provider);
+      await setSponsorApiEngine(engine);
     } catch (error) {
-      console.error('[Settings] Failed to save sponsor API provider:', error);
+      console.error('[Settings] Failed to save sponsor API engine:', error);
       Alert.alert('Error', 'Failed to save AI engine setting.');
     }
   };
@@ -485,17 +486,21 @@ export default function SettingsScreen() {
                 <Text style={styles.rowSub}>Engine behind Steady Eddie 2, Salty Sam 2, and Gentle Grace 2</Text>
               </View>
               <View style={styles.devSegment}>
-                {(['openai', 'anthropic'] as SponsorApiProvider[]).map((option) => {
-                  const active = sponsorApiProvider === option;
+                {SPONSOR_API_ENGINES.map((option) => {
+                  const active = sponsorApiEngine === option.id;
                   return (
                     <TouchableOpacity
-                      key={option}
+                      key={option.id}
                       style={[styles.devSegmentBtn, active && styles.devSegmentBtnActive]}
-                      onPress={() => changeSponsorApiProvider(option)}
+                      onPress={() => changeSponsorApiEngine(option.id)}
                       activeOpacity={0.7}
                     >
-                      <Text style={[styles.devSegmentText, active && styles.devSegmentTextActive]}>
-                        {option === 'openai' ? 'OpenAI' : 'Anthropic'}
+                      <Text
+                        style={[styles.devSegmentText, active && styles.devSegmentTextActive]}
+                        numberOfLines={1}
+                        adjustsFontSizeToFit
+                      >
+                        {option.label}
                       </Text>
                     </TouchableOpacity>
                   );

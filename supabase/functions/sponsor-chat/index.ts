@@ -39,11 +39,15 @@ interface RequestBody {
   temperature?: number;
   maxOutputTokens?: number;
   provider?: Provider;
+  model?: string;
   anonymous_id?: string | null;
 }
 
 const OPENAI_MODEL = Deno.env.get('SPONSOR_CHAT_MODEL') || 'gpt-5.4-mini';
 const ANTHROPIC_MODEL = Deno.env.get('SPONSOR_CHAT_ANTHROPIC_MODEL') || 'claude-haiku-4-5';
+// Allowlist for the client-selectable Anthropic model (public endpoint — never
+// trust an arbitrary model string, which could be an expensive model on our key).
+const ANTHROPIC_MODELS = ['claude-haiku-4-5', 'claude-sonnet-4-6'];
 const DEFAULT_TEMPERATURE = numberFromEnv('SPONSOR_CHAT_TEMPERATURE', 0.8);
 const DEFAULT_MAX_OUTPUT_TOKENS = numberFromEnv('SPONSOR_CHAT_MAX_OUTPUT_TOKENS', 260);
 const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY');
@@ -175,6 +179,10 @@ function getProvider(value: unknown): Provider {
   return value === 'anthropic' ? 'anthropic' : 'openai';
 }
 
+function resolveAnthropicModel(requested: unknown): string {
+  return typeof requested === 'string' && ANTHROPIC_MODELS.includes(requested) ? requested : ANTHROPIC_MODEL;
+}
+
 interface RequestContext {
   sponsor: { id: SponsorId; name: string; prompt: string };
   prompt: string;
@@ -182,6 +190,7 @@ interface RequestContext {
   conversation: ConversationItem[];
   temperature: number;
   maxOutputTokens: number;
+  requestedModel?: string;
 }
 
 interface ProviderResult {
@@ -207,6 +216,7 @@ function buildContext(body: RequestBody): RequestContext {
     conversation,
     temperature,
     maxOutputTokens,
+    requestedModel: typeof body.model === 'string' ? body.model : undefined,
   };
 }
 
@@ -283,6 +293,8 @@ async function callAnthropic(ctx: RequestContext): Promise<ProviderResult> {
     throw new Error('ANTHROPIC_API_KEY is not configured for sponsor-chat.');
   }
 
+  const model = resolveAnthropicModel(ctx.requestedModel);
+
   const messages = [
     ...ctx.conversation.map((item) => ({
       role: item.role === 'assistant' ? 'assistant' : 'user',
@@ -299,7 +311,7 @@ async function callAnthropic(ctx: RequestContext): Promise<ProviderResult> {
       'content-type': 'application/json',
     },
     body: JSON.stringify({
-      model: ANTHROPIC_MODEL,
+      model,
       max_tokens: ctx.maxOutputTokens,
       system: ctx.prompt,
       // Anthropic temperature range is 0–1 (OpenAI allows up to 1.2).
@@ -324,7 +336,7 @@ async function callAnthropic(ctx: RequestContext): Promise<ProviderResult> {
   const outputTokens = data?.usage?.output_tokens ?? null;
 
   return {
-    model: data?.model || ANTHROPIC_MODEL,
+    model: data?.model || model,
     outputText: extractAnthropicText(data),
     usage: {
       input_tokens: inputTokens ?? undefined,

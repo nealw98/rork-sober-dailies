@@ -35,8 +35,9 @@ import {
 import { getSponsorById } from "@/constants/sponsors";
 import {
   SUPABASE_ANON_KEY,
+  engineToRequest,
   getSponsorApiChatUrl,
-  getSponsorApiProvider,
+  getSponsorApiEngine,
   getSponsorApiTemperature,
   getSponsorApiUrl,
 } from "@/lib/sponsorApiSettings";
@@ -119,7 +120,7 @@ async function callSponsorAPI(
   const sponsor = getSponsorById(sponsorType);
   const apiSponsorId = sponsor?.apiSponsorId ?? sponsorType;
   const temperature = await getSponsorApiTemperature();
-  const provider = await getSponsorApiProvider();
+  const { provider, model } = engineToRequest(await getSponsorApiEngine());
   const sponsorApiUrl = await getSponsorApiUrl();
   const sponsorApiChatUrl = getSponsorApiChatUrl(sponsorApiUrl);
   const anonymousId = await getAnonymousIdForSponsorApi();
@@ -145,6 +146,7 @@ async function callSponsorAPI(
       temperature,
       maxOutputTokens: 260,
       provider,
+      model,
       anonymous_id: anonymousId,
     }),
   });
