@@ -8,6 +8,7 @@ import {
   StyleSheet,
   Platform,
 } from 'react-native';
+import { KeyboardModalScope } from '@/components/KeyboardModalScope';
 import Colors from '@/constants/colors';
 import { adjustFontWeight } from '@/constants/fonts';
 
@@ -37,6 +38,7 @@ export default function PageNumberInput({ visible, onClose, onSubmit }: PageNumb
       animationType="fade"
       onRequestClose={handleClose}
     >
+      <KeyboardModalScope>
       <View style={styles.modalOverlay}>
         <View style={styles.modalContent}>
           <Text style={styles.title}>Go to Page</Text>
@@ -71,6 +73,7 @@ export default function PageNumberInput({ visible, onClose, onSubmit }: PageNumb
           </View>
         </View>
       </View>
+      </KeyboardModalScope>
     </Modal>
   );
 }

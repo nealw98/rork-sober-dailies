@@ -5,6 +5,7 @@
 // real BOOK pages and per-page bookmarks. A bookmarks list lives in the header.
 import React, { useEffect, useMemo, useState } from 'react';
 import { View, Text, Pressable, StyleSheet, ScrollView, Modal, TextInput, Keyboard } from 'react-native';
+import { KeyboardModalScope } from '@/components/KeyboardModalScope';
 import { SafeAreaView, SafeAreaProvider, initialWindowMetrics } from 'react-native-safe-area-context';
 import { Stack, useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -159,6 +160,7 @@ export default function TwelveAndTwelveScreen() {
 
       {/* Search */}
       <Modal visible={showSearch} animationType="slide" presentationStyle="fullScreen" onRequestClose={() => setShowSearch(false)}>
+        <KeyboardModalScope>
         <SafeAreaProvider initialMetrics={initialWindowMetrics}>
           <SafeAreaView style={styles.sheet} edges={['top']}>
             <View style={styles.searchHeader}>
@@ -195,10 +197,12 @@ export default function TwelveAndTwelveScreen() {
             </ScrollView>
           </SafeAreaView>
         </SafeAreaProvider>
+        </KeyboardModalScope>
       </Modal>
 
       {/* Go to page */}
       <Modal visible={showGoTo} transparent animationType="fade" onRequestClose={() => setShowGoTo(false)}>
+        <KeyboardModalScope>
         <Pressable style={styles.goToBackdrop} onPress={() => { Keyboard.dismiss(); setShowGoTo(false); }}>
           <Pressable style={styles.goToCard} onPress={() => {}}>
             <Text style={styles.goToTitle}>Go to page</Text>
@@ -207,6 +211,7 @@ export default function TwelveAndTwelveScreen() {
             <Pressable onPress={submitGoTo} style={styles.goToBtn}><Text style={styles.goToBtnText}>Go</Text></Pressable>
           </Pressable>
         </Pressable>
+        </KeyboardModalScope>
       </Modal>
 
       {/* Bookmarks sheet */}

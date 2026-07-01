@@ -5,6 +5,8 @@
 // from the saved list + the device clock (no extra storage).
 import React, { useEffect, useRef, useState } from 'react';
 import { View, Text, ScrollView, Pressable, StyleSheet, Modal, TextInput, Linking, Platform, ActivityIndicator, Alert } from 'react-native';
+import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
+import { KeyboardModalScope } from '@/components/KeyboardModalScope';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Stack, useRouter } from 'expo-router';
 import DateTimePicker from '@react-native-community/datetimepicker';
@@ -306,6 +308,7 @@ function AddMeetingSheet({ visible, meeting, onClose, onSave }: { visible: boole
 
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={requestClose}>
+      <KeyboardModalScope>
       <Pressable style={styles.sheetBackdrop} onPress={requestClose} />
       <View style={styles.sheet}>
         <View style={styles.grabber} />
@@ -324,7 +327,7 @@ function AddMeetingSheet({ visible, meeting, onClose, onSave }: { visible: boole
           </View>
         )}
 
-        <ScrollView keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+        <KeyboardAwareScrollView keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false} bottomOffset={24}>
           {tab === 'scan' ? (
             <View>
               <View style={styles.pasteHint}>
@@ -430,8 +433,9 @@ function AddMeetingSheet({ visible, meeting, onClose, onSave }: { visible: boole
               </Pressable>
             </View>
           )}
-        </ScrollView>
+        </KeyboardAwareScrollView>
       </View>
+      </KeyboardModalScope>
     </Modal>
   );
 }

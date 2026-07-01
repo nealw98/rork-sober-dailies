@@ -14,6 +14,7 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
+import { KeyboardModalScope } from '@/components/KeyboardModalScope';
 import { X, Plus, Trash2, Check } from 'lucide-react-native';
 import { colors, fontFamily, fontSize, radii, shadows, getSemanticColors } from '@/constants/designTokens';
 
@@ -165,6 +166,7 @@ export function CreateSheet({ section, onClose, onCreate }: { section: WhenBucke
   const canSave = name.trim().length > 0;
   return (
     <Modal transparent visible animationType="slide" onRequestClose={onClose}>
+      <KeyboardModalScope>
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.sheetWrap}>
         <SheetBackdrop onPress={onClose} />
         <View style={styles.sheet}>
@@ -192,6 +194,7 @@ export function CreateSheet({ section, onClose, onCreate }: { section: WhenBucke
           </View>
         </View>
       </KeyboardAvoidingView>
+      </KeyboardModalScope>
     </Modal>
   );
 }
@@ -203,6 +206,7 @@ export function SettingsSheet({ item, onClose, onSave, onRemove }: { item: Daily
   const changed = name.trim().length > 0 && (name.trim() !== item.label || when !== item.when);
   return (
     <Modal transparent visible animationType="slide" onRequestClose={onClose}>
+      <KeyboardModalScope>
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.sheetWrap}>
         <SheetBackdrop onPress={onClose} />
         <View style={styles.sheet}>
@@ -239,6 +243,7 @@ export function SettingsSheet({ item, onClose, onSave, onRemove }: { item: Daily
           </View>
         </View>
       </KeyboardAvoidingView>
+      </KeyboardModalScope>
     </Modal>
   );
 }

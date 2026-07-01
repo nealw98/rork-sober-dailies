@@ -15,6 +15,7 @@ import {
   Modal,
   TextInput,
 } from 'react-native';
+import { KeyboardModalScope } from '@/components/KeyboardModalScope';
 import { X, Search as SearchIcon } from 'lucide-react-native';
 import Colors from '@/constants/colors';
 import { adjustFontWeight } from '@/constants/fonts';
@@ -75,6 +76,7 @@ export function BigBookSearchModal({
       presentationStyle="pageSheet"
       onRequestClose={handleDone}
     >
+      <KeyboardModalScope>
       <View style={styles.container}>
         {/* Teal Header */}
         <View style={styles.header}>
@@ -174,6 +176,7 @@ export function BigBookSearchModal({
           )}
         </ScrollView>
       </View>
+      </KeyboardModalScope>
     </Modal>
   );
 }

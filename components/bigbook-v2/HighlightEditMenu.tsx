@@ -15,6 +15,7 @@ import {
   TextInput,
   Alert,
 } from 'react-native';
+import { KeyboardModalScope } from '@/components/KeyboardModalScope';
 import { X, Trash2 } from 'lucide-react-native';
 import { BigBookHighlight } from '@/types/bigbook-v2';
 import Colors from '@/constants/colors';
@@ -73,6 +74,7 @@ export function HighlightEditMenu({
       transparent={true}
       onRequestClose={onClose}
     >
+      <KeyboardModalScope>
       <View style={styles.overlay}>
         <View style={styles.container}>
           {/* Header */}
@@ -121,6 +123,7 @@ export function HighlightEditMenu({
           </View>
         </View>
       </View>
+      </KeyboardModalScope>
     </Modal>
   );
 }

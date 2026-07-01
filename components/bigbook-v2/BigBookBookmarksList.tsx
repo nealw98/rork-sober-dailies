@@ -24,6 +24,7 @@ import {
   TextInput,
   Keyboard,
 } from 'react-native';
+import { KeyboardModalScope } from '@/components/KeyboardModalScope';
 import { X, Trash2 } from 'lucide-react-native';
 import Colors from '@/constants/colors';
 import { adjustFontWeight } from '@/constants/fonts';
@@ -124,6 +125,7 @@ export function BigBookBookmarksList({
       presentationStyle="pageSheet"
       onRequestClose={onClose}
     >
+      <KeyboardModalScope>
       <View style={styles.container}>
         {/* Teal Header */}
         <View style={styles.header}>
@@ -211,6 +213,7 @@ export function BigBookBookmarksList({
           )}
         </ScrollView>
       </View>
+      </KeyboardModalScope>
     </Modal>
   );
 }

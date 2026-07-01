@@ -21,6 +21,7 @@ import {
   TextInput,
   ScrollView,
 } from 'react-native';
+import { KeyboardModalScope } from '@/components/KeyboardModalScope';
 import { X } from 'lucide-react-native';
 import Colors from '@/constants/colors';
 import { adjustFontWeight } from '@/constants/fonts';
@@ -106,8 +107,9 @@ export function BigBookPageNavigation({
       transparent={true}
       onRequestClose={handleClose}
     >
-      <TouchableOpacity 
-        style={styles.overlay} 
+      <KeyboardModalScope>
+      <TouchableOpacity
+        style={styles.overlay}
         activeOpacity={1} 
         onPress={handleClose}
       >
@@ -166,6 +168,7 @@ export function BigBookPageNavigation({
           </View>
         </TouchableOpacity>
       </TouchableOpacity>
+      </KeyboardModalScope>
     </Modal>
   );
 }

@@ -6,6 +6,7 @@
 // merges text + PDF bookmarks; both jump into the correct format at the page.
 import React, { useEffect, useMemo, useState } from 'react';
 import { View, Text, Pressable, StyleSheet, ScrollView, Modal, TextInput, Keyboard } from 'react-native';
+import { KeyboardModalScope } from '@/components/KeyboardModalScope';
 import { SafeAreaView, SafeAreaProvider, initialWindowMetrics } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -199,6 +200,7 @@ export function BigBookContents({ onOpenText, onOpenPdf }: {
 
       {/* Search — in-app text + PDF stories */}
       <Modal visible={showSearch} animationType="slide" presentationStyle="fullScreen" onRequestClose={() => setShowSearch(false)}>
+        <KeyboardModalScope>
         <SafeAreaProvider initialMetrics={initialWindowMetrics}>
           <SafeAreaView style={styles.sheet} edges={['top']}>
             <View style={styles.searchHeader}>
@@ -254,10 +256,12 @@ export function BigBookContents({ onOpenText, onOpenPdf }: {
             </ScrollView>
           </SafeAreaView>
         </SafeAreaProvider>
+        </KeyboardModalScope>
       </Modal>
 
       {/* Go to page */}
       <Modal visible={showGoTo} transparent animationType="fade" onRequestClose={() => setShowGoTo(false)}>
+        <KeyboardModalScope>
         <Pressable style={styles.goToBackdrop} onPress={() => { Keyboard.dismiss(); setShowGoTo(false); }}>
           <Pressable style={styles.goToCard} onPress={() => {}}>
             <Text style={styles.goToTitle}>Go to page</Text>
@@ -276,6 +280,7 @@ export function BigBookContents({ onOpenText, onOpenPdf }: {
             <Pressable onPress={submitGoTo} style={styles.goToBtn}><Text style={styles.goToBtnText}>Go</Text></Pressable>
           </Pressable>
         </Pressable>
+        </KeyboardModalScope>
       </Modal>
     </SafeAreaView>
   );

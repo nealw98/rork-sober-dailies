@@ -11,8 +11,10 @@ import React, { useState, useEffect, useRef } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, Platform, Linking, Share, ScrollView,
   Modal, SafeAreaView as RNSafeAreaView, Alert, TextInput, ActivityIndicator,
-  KeyboardAvoidingView, Switch,
+  Switch,
 } from 'react-native';
+import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
+import { KeyboardModalScope } from '@/components/KeyboardModalScope';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router, Stack, type Href } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -640,7 +642,8 @@ export default function SettingsScreen() {
 
       {/* Feedback Modal */}
       <Modal visible={feedbackVisible} animationType="slide" presentationStyle="pageSheet" onRequestClose={handleFeedbackClose}>
-        <KeyboardAvoidingView style={styles.feedbackContainer} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+        <KeyboardModalScope>
+        <View style={styles.feedbackContainer}>
           <View style={styles.feedbackHeader}>
             <Text style={styles.feedbackHeaderTitle}>Send Feedback</Text>
             <TouchableOpacity onPress={handleFeedbackClose} style={styles.feedbackCloseButton}>
@@ -648,7 +651,7 @@ export default function SettingsScreen() {
             </TouchableOpacity>
           </View>
 
-          <ScrollView style={styles.feedbackContent} contentContainerStyle={styles.feedbackScrollContent} keyboardShouldPersistTaps="handled">
+          <KeyboardAwareScrollView style={styles.feedbackContent} contentContainerStyle={styles.feedbackScrollContent} keyboardShouldPersistTaps="handled" bottomOffset={24}>
             <Text style={styles.feedbackLabel}>What&rsquo;s on your mind?</Text>
             <TextInput
               style={styles.feedbackInput}
@@ -679,8 +682,9 @@ export default function SettingsScreen() {
             >
               {isSubmitting ? <ActivityIndicator color="#fff" /> : <Text style={styles.feedbackSubmitButtonText}>Submit Feedback</Text>}
             </TouchableOpacity>
-          </ScrollView>
-        </KeyboardAvoidingView>
+          </KeyboardAwareScrollView>
+        </View>
+        </KeyboardModalScope>
       </Modal>
 
       {/* Support ID Modal (hidden — 7 version taps) */}
