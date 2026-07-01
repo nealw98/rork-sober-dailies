@@ -387,7 +387,9 @@ export function BigBookHtmlReader({ visible, initialChapterId, scrollToPage, sea
       scrollToPage,
       searchTerm,
     });
-  }, [currentChapter, displayTitle, chapterLabel, currentHighlights, fontSize, lineHeight, useRoman, highlightMode, scrollToPage, searchTerm, renderVersion]);
+  }, [currentChapter, chapterLabel, fontSize, lineHeight, useRoman, scrollToPage, searchTerm, renderVersion]);
+
+  const webSource = useMemo(() => ({ html }), [html]);
 
   const handleBookmarkPress = async () => {
     if (!currentPageNumber || !currentChapterId) return;
@@ -521,7 +523,7 @@ export function BigBookHtmlReader({ visible, initialChapterId, scrollToPage, sea
             key={`bb-html-${currentChapterId}-${renderVersion}-${fontSize}`}
             ref={webViewRef}
             originWhitelist={['*']}
-            source={{ html }}
+            source={webSource}
             style={styles.webView}
             scrollEnabled
             showsVerticalScrollIndicator={false}
