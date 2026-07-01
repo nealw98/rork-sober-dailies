@@ -189,11 +189,6 @@ export function BigBookReader({ visible, initialChapterId, scrollToParagraphId, 
 
   const displayTitle = (currentChapter?.title ?? '').replace(/^\d+\.\s*/, '');
   const subtitle = chapterNumber ? `Big Book · Chapter ${chapterNumber}` : 'Big Book';
-  const range = currentChapter
-    ? `pp. ${formatPageNumber(currentChapter.pageRange[0], useRoman)}–${formatPageNumber(currentChapter.pageRange[1], useRoman)}`
-    : '';
-  const chapterLabel = `${chapterNumber ? `CHAPTER ${chapterNumber} · ` : ''}${range}`;
-
   return (
     <Modal visible={visible} animationType="slide" presentationStyle="fullScreen" onRequestClose={onClose}>
       <SafeAreaProvider initialMetrics={initialWindowMetrics}>
@@ -252,8 +247,6 @@ export function BigBookReader({ visible, initialChapterId, scrollToParagraphId, 
               onScroll={handleScroll}
               scrollEventThrottle={150}
             >
-              {!!chapterLabel.trim() && <Text style={styles.chapterLabel}>{chapterLabel}</Text>}
-
               {currentChapter?.paragraphs.map((paragraph, index) => {
                 const prev = index > 0 ? currentChapter.paragraphs[index - 1] : null;
                 const isPageBreak = !!prev && prev.pageNumber !== paragraph.pageNumber;
@@ -266,13 +259,13 @@ export function BigBookReader({ visible, initialChapterId, scrollToParagraphId, 
                   >
                     <BigBookParagraph
                       paragraph={paragraph}
-                      showPageNumber={false}
                       isPageBreak={isPageBreak}
                       fontSize={fontSize}
                       lineHeight={lineHeight}
                       highlightMode={highlightMode}
                       searchTerm={searchTerm || undefined}
                       useRomanNumerals={useRoman}
+                      showPageNumber={index === 0}
                       onSentenceTap={(si, st) => handleSentenceTap(paragraph.id, si, st)}
                       onHighlightTap={(si) => handleHighlightTap(paragraph.id, si)}
                     />
@@ -330,7 +323,6 @@ const styles = StyleSheet.create({
 
   body: { flex: 1 },
   content: { paddingHorizontal: 26, paddingTop: 16, paddingBottom: 32 },
-  chapterLabel: { fontFamily: fontFamily.bold, fontSize: 10.5, letterSpacing: 1.6, color: AMBER_INK, marginBottom: 16 },
   footnote: { fontFamily: fontFamily.serifItalic, fontSize: 12, lineHeight: 18, color: c.textMuted, textAlign: 'center', marginTop: 18, paddingHorizontal: 16, paddingVertical: 12, backgroundColor: c.background, borderRadius: 12 },
   copyright: { fontFamily: fontFamily.regular, fontSize: 10, color: c.textMuted, textAlign: 'center', marginTop: 14 },
 

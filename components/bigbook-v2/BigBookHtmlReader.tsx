@@ -5,10 +5,11 @@
  * available as the Classic fallback while this path proves out range highlights.
  */
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Alert, BackHandler, Modal, Pressable, StyleSheet, Text, View } from 'react-native';
-import { SafeAreaProvider, SafeAreaView, initialWindowMetrics } from 'react-native-safe-area-context';
+import { Alert, BackHandler, Modal, Pressable, Share, StyleSheet, Text, View } from 'react-native';
+import { SafeAreaProvider, SafeAreaView, initialWindowMetrics, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { WebView, WebViewMessageEvent } from 'react-native-webview';
-import { Bookmark as BookmarkIcon, ChevronLeft, ChevronRight, FileText, Highlighter } from 'lucide-react-native';
+import * as Clipboard from 'expo-clipboard';
+import { Bookmark as BookmarkIcon, ChevronLeft, ChevronRight, FileText } from 'lucide-react-native';
 import { useTextSettings } from '@/hooks/use-text-settings';
 import { useBigBookContent } from '@/hooks/use-bigbook-content';
 import { useBigBookBookmarks } from '@/hooks/use-bigbook-bookmarks';
@@ -25,8 +26,13 @@ const ACCENT = colors.steel;
 const ACCENT_INK = colors.steelDark;
 const HIGHLIGHT_COLOR = HighlightColor.YELLOW;
 const HL_FILL = '#FCE9A8';
-const HL_BORDER = '#E6C766';
 const HL_INK = '#7A5B12';
+const SIZE_BUCKETS: { k: string; size: number }[] = [
+  { k: 'S', size: 14 },
+  { k: 'M', size: 18 },
+  { k: 'L', size: 24 },
+  { k: 'XL', size: 30 },
+];
 
 interface BigBookHtmlReaderProps {
   visible: boolean;
@@ -40,6 +46,8 @@ interface BigBookHtmlReaderProps {
 type WebMessage =
   | { type: 'page'; pageNumber: number }
   | { type: 'selection'; paragraphId: string; startOffset: number; endOffset: number; text: string }
+  | { type: 'selectionRanges'; text: string; ranges: Array<{ paragraphId: string; startOffset: number; endOffset: number }> }
+  | { type: 'selectionAction'; action: 'highlight' | 'copy' | 'share'; text: string; ranges: Array<{ paragraphId: string; startOffset: number; endOffset: number }> }
   | { type: 'highlightTap'; highlightId: string }
   | { type: 'unsupportedSelection'; reason: string };
 
@@ -98,20 +106,18 @@ function sentenceRanges(text: string): Array<{ start: number; end: number }> {
 }
 
 function buildHtml(params: {
-  chapterLabel: string;
   paragraphs: BigBookParagraph[];
   highlights: BigBookHighlight[];
   fontSize: number;
   lineHeight: number;
   useRoman: boolean;
-  highlightMode: boolean;
   scrollToPage?: number | null;
   searchTerm?: string | null;
 }) {
   const body = params.paragraphs
     .map((paragraph, index) => {
       const prev = index > 0 ? params.paragraphs[index - 1] : null;
-      return renderParagraph(paragraph, params.useRoman, !!prev && prev.pageNumber !== paragraph.pageNumber, params.fontSize, params.lineHeight);
+      return renderParagraph(paragraph, params.useRoman, index === 0 || (!!prev && prev.pageNumber !== paragraph.pageNumber), params.fontSize, params.lineHeight);
     })
     .join('\n');
 
@@ -121,6 +127,7 @@ function buildHtml(params: {
       if (h.startOffset !== undefined && h.endOffset !== undefined) {
         return {
           id: h.id,
+          groupId: h.groupId,
           paragraphId: h.paragraphId,
           startOffset: h.startOffset,
           endOffset: h.endOffset,
@@ -133,6 +140,7 @@ function buildHtml(params: {
         if (range) {
           return {
             id: h.id,
+            groupId: h.groupId,
             paragraphId: h.paragraphId,
             startOffset: range.start,
             endOffset: range.end,
@@ -142,9 +150,10 @@ function buildHtml(params: {
       }
       return null;
     })
-    .filter((h): h is { id: string; paragraphId: string; startOffset: number; endOffset: number; color: HighlightColor } => h !== null)
+    .filter((h): h is { id: string; groupId?: string; paragraphId: string; startOffset: number; endOffset: number; color: HighlightColor } => h !== null)
     .map((h) => ({
       id: h.id,
+      groupId: h.groupId,
       paragraphId: h.paragraphId,
       startOffset: h.startOffset,
       endOffset: h.endOffset,
@@ -170,18 +179,27 @@ function buildHtml(params: {
   .page-marker strong { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; color: ${c.textMuted}; font-size: 10.5px; letter-spacing: 1.5px; }
   .bb-highlight { background: ${HL_FILL}; border-radius: 3px; padding: 0 1px; }
   .search-hit { background: ${colors.primarySoft}; border-radius: 3px; }
-  body.highlight-mode .bb-paragraph { cursor: text; }
+  .bb-paragraph { cursor: text; }
+  .selection-toolbar { position: fixed; left: 16px; top: 16px; z-index: 9999; display: none; gap: 0; align-items: center; overflow: hidden; border-radius: 18px; background: rgba(255,255,255,0.98); box-shadow: 0 12px 28px rgba(0,0,0,0.18); border: 1px solid rgba(0,0,0,0.08); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+  .selection-toolbar.visible { display: flex; }
+  .selection-toolbar button { appearance: none; -webkit-appearance: none; border: 0; background: transparent; padding: 11px 13px 10px; color: ${c.text}; font-size: 13px; line-height: 16px; font-weight: 700; }
+  .selection-toolbar button + button { border-left: 1px solid ${c.divider}; }
+  .selection-toolbar button:first-child { color: ${HL_INK}; background: ${HL_FILL}; }
   .footnote { margin: 22px 16px 0; padding: 12px 14px; border-radius: 12px; background: ${c.background}; color: ${c.textMuted}; text-align: center; font-size: 12px; line-height: 18px; font-style: italic; }
 </style>
 </head>
-<body class="${params.highlightMode ? 'highlight-mode' : ''}">
-  ${params.chapterLabel.trim() ? `<div class="chapter-label">${escapeHtml(params.chapterLabel)}</div>` : ''}
+<body>
+  <div id="selection-toolbar" class="selection-toolbar" aria-hidden="true">
+    <button data-action="highlight" type="button">Highlight</button>
+    <button data-action="copy" type="button">Copy</button>
+    <button data-action="share" type="button">Share</button>
+  </div>
   ${body}
-  <div class="footnote">Turn Highlight on, select words, and the selected passage will be saved.</div>
+  <div class="footnote">Select a passage to highlight, copy, or share it.</div>
 <script>
-  window.__highlightMode = ${JSON.stringify(params.highlightMode)};
   window.__savedHighlights = ${JSON.stringify(rangeHighlights)};
   window.__searchTerm = ${JSON.stringify(params.searchTerm || '')};
+  window.__pendingSelection = null;
 
   function post(payload) {
     window.ReactNativeWebView && window.ReactNativeWebView.postMessage(JSON.stringify(payload));
@@ -232,6 +250,7 @@ function buildHtml(params: {
     const span = document.createElement('span');
     span.className = 'bb-highlight';
     span.dataset.highlightId = highlight.id;
+    if (highlight.groupId) span.dataset.groupId = highlight.groupId;
     try {
       const contents = range.extractContents();
       span.appendChild(contents);
@@ -279,44 +298,123 @@ function buildHtml(params: {
     if (active) post({ type: 'page', pageNumber: Number(active.dataset.page) });
   }
 
+  function hideSelectionToolbar(clearSelection) {
+    const toolbar = document.getElementById('selection-toolbar');
+    toolbar.classList.remove('visible');
+    toolbar.setAttribute('aria-hidden', 'true');
+    window.__pendingSelection = null;
+    if (clearSelection) {
+      const selection = window.getSelection();
+      selection && selection.removeAllRanges();
+    }
+  }
+
+  function positionSelectionToolbar(range) {
+    const toolbar = document.getElementById('selection-toolbar');
+    const rect = range.getBoundingClientRect();
+    toolbar.classList.add('visible');
+    toolbar.setAttribute('aria-hidden', 'false');
+    const width = toolbar.offsetWidth || 230;
+    const height = toolbar.offsetHeight || 42;
+    const left = Math.max(10, Math.min(window.innerWidth - width - 10, rect.left + (rect.width / 2) - (width / 2)));
+    const above = rect.top - height - 10;
+    const top = above > 10 ? above : Math.min(window.innerHeight - height - 10, rect.bottom + 10);
+    toolbar.style.left = left + 'px';
+    toolbar.style.top = top + 'px';
+  }
+
   function readSelection() {
-    if (!window.__highlightMode) return;
     const selection = window.getSelection();
-    if (!selection || selection.rangeCount === 0 || selection.isCollapsed) return;
+    if (!selection || selection.rangeCount === 0 || selection.isCollapsed) {
+      hideSelectionToolbar(false);
+      return;
+    }
     const range = selection.getRangeAt(0);
     const startParagraph = range.startContainer.parentElement && range.startContainer.parentElement.closest('.bb-paragraph');
     const endParagraph = range.endContainer.parentElement && range.endContainer.parentElement.closest('.bb-paragraph');
-    if (!startParagraph || !endParagraph || startParagraph !== endParagraph) {
+    if (!startParagraph || !endParagraph) {
       selection.removeAllRanges();
-      post({ type: 'unsupportedSelection', reason: 'Select text inside one paragraph for now.' });
+      hideSelectionToolbar(false);
+      post({ type: 'unsupportedSelection', reason: 'Select text inside the Big Book passage.' });
       return;
     }
-    const preStart = document.createRange();
-    preStart.selectNodeContents(startParagraph);
-    preStart.setEnd(range.startContainer, range.startOffset);
-    const preEnd = document.createRange();
-    preEnd.selectNodeContents(startParagraph);
-    preEnd.setEnd(range.endContainer, range.endOffset);
-    const startOffset = preStart.toString().length;
-    const endOffset = preEnd.toString().length;
+
+    const paragraphs = Array.from(document.querySelectorAll('.bb-paragraph'));
+    const startIndex = paragraphs.indexOf(startParagraph);
+    const endIndex = paragraphs.indexOf(endParagraph);
+    if (startIndex < 0 || endIndex < 0 || endIndex < startIndex) {
+      selection.removeAllRanges();
+      hideSelectionToolbar(false);
+      post({ type: 'unsupportedSelection', reason: 'Select text from top to bottom in the passage.' });
+      return;
+    }
+
+    function offsetInParagraph(paragraph, node, offset) {
+      const pre = document.createRange();
+      pre.selectNodeContents(paragraph);
+      pre.setEnd(node, offset);
+      return pre.toString().length;
+    }
+
+    const startOffset = offsetInParagraph(startParagraph, range.startContainer, range.startOffset);
+    const endOffset = offsetInParagraph(endParagraph, range.endContainer, range.endOffset);
     const text = selection.toString().trim();
-    selection.removeAllRanges();
-    if (!text || endOffset <= startOffset) return;
-    post({ type: 'selection', paragraphId: startParagraph.dataset.pid, startOffset, endOffset, text });
+    const ranges = [];
+
+    if (startParagraph === endParagraph) {
+      ranges.push({
+        paragraphId: startParagraph.dataset.pid,
+        startOffset,
+        endOffset
+      });
+    } else {
+      for (let index = startIndex; index <= endIndex; index++) {
+        const paragraph = paragraphs[index];
+        const paragraphTextLength = paragraph.textContent.length;
+        const segmentStart = index === startIndex ? startOffset : 0;
+        const segmentEnd = index === endIndex ? endOffset : paragraphTextLength;
+        if (segmentEnd > segmentStart) {
+          ranges.push({
+            paragraphId: paragraph.dataset.pid,
+            startOffset: segmentStart,
+            endOffset: segmentEnd
+          });
+        }
+      }
+    }
+
+    if (!text || ranges.length === 0) {
+      hideSelectionToolbar(false);
+      return;
+    }
+    window.__pendingSelection = { text, ranges };
+    positionSelectionToolbar(range);
   }
 
   document.addEventListener('click', (event) => {
     const target = event.target.closest && event.target.closest('.bb-highlight');
     if (target && target.dataset.highlightId) post({ type: 'highlightTap', highlightId: target.dataset.highlightId });
   });
+  function runSelectionAction(event) {
+    event.preventDefault();
+    const button = event.target.closest && event.target.closest('button[data-action]');
+    if (!button || !window.__pendingSelection) return;
+    if (window.__toolbarActionInFlight) return;
+    window.__toolbarActionInFlight = true;
+    post({ type: 'selectionAction', action: button.dataset.action, text: window.__pendingSelection.text, ranges: window.__pendingSelection.ranges });
+    hideSelectionToolbar(true);
+    setTimeout(() => { window.__toolbarActionInFlight = false; }, 300);
+  }
+
+  const toolbar = document.getElementById('selection-toolbar');
+  toolbar.addEventListener('touchstart', (event) => event.preventDefault());
+  toolbar.addEventListener('mousedown', (event) => event.preventDefault());
+  toolbar.addEventListener('touchend', runSelectionAction);
+  toolbar.addEventListener('click', runSelectionAction);
   document.addEventListener('selectionchange', () => clearTimeout(window.__selectionTimer));
   document.addEventListener('touchend', () => { clearTimeout(window.__selectionTimer); window.__selectionTimer = setTimeout(readSelection, 180); });
   document.addEventListener('mouseup', () => { clearTimeout(window.__selectionTimer); window.__selectionTimer = setTimeout(readSelection, 120); });
-  window.addEventListener('scroll', () => { clearTimeout(window.__pageTimer); window.__pageTimer = setTimeout(currentPage, 100); });
-  window.__setHighlightMode = function(value) {
-    window.__highlightMode = !!value;
-    document.body.classList.toggle('highlight-mode', window.__highlightMode);
-  };
+  window.addEventListener('scroll', () => { hideSelectionToolbar(true); clearTimeout(window.__pageTimer); window.__pageTimer = setTimeout(currentPage, 100); });
   window.__addSavedHighlight = function(highlight) { applyHighlight(highlight); };
 
   applySearch(window.__searchTerm);
@@ -332,14 +430,15 @@ function buildHtml(params: {
 
 export function BigBookHtmlReader({ visible, initialChapterId, scrollToPage, searchTerm, onClose, onSwitchToClassic }: BigBookHtmlReaderProps) {
   const webViewRef = useRef<WebView>(null);
+  const insets = useSafeAreaInsets();
   const { currentChapter, currentChapterId, loadChapter, goToNextChapter, goToPreviousChapter } = useBigBookContent();
-  const { fontSize, lineHeight } = useTextSettings();
+  const { fontSize, lineHeight, setFontSize } = useTextSettings();
   const { addBookmark, deleteBookmark, isPageBookmarked, getBookmarkForPage } = useBigBookBookmarks();
-  const { highlights, addRangeHighlight, updateHighlightNote, deleteHighlight } = useBigBookHighlights();
+  const { highlights, addRangeHighlight, updateHighlight, updateHighlightNote, deleteHighlight } = useBigBookHighlights();
   const [currentPageNumber, setCurrentPageNumber] = useState<number | null>(null);
-  const [highlightMode, setHighlightMode] = useState(false);
   const [editingHighlight, setEditingHighlight] = useState<BigBookHighlight | null>(null);
   const [showHighlightEditMenu, setShowHighlightEditMenu] = useState(false);
+  const [showDisplaySheet, setShowDisplaySheet] = useState(false);
   const [renderVersion, setRenderVersion] = useState(0);
 
   const meta = currentChapterId ? getChapterMeta(currentChapterId) : undefined;
@@ -358,10 +457,6 @@ export function BigBookHtmlReader({ visible, initialChapterId, scrollToPage, sea
     if (currentChapter) setCurrentPageNumber(currentChapter.pageRange[0]);
   }, [currentChapter]);
 
-  useEffect(() => {
-    webViewRef.current?.injectJavaScript(`window.__setHighlightMode && window.__setHighlightMode(${highlightMode ? 'true' : 'false'}); true;`);
-  }, [highlightMode]);
-
   const currentHighlights = useMemo(() => {
     if (!currentChapterId) return [];
     return highlights.filter((highlight) => highlight.chapterId === currentChapterId);
@@ -369,25 +464,18 @@ export function BigBookHtmlReader({ visible, initialChapterId, scrollToPage, sea
 
   const displayTitle = (currentChapter?.title ?? '').replace(/^\d+\.\s*/, '');
   const subtitle = chapterNumber ? `Big Book · Chapter ${chapterNumber}` : 'Big Book';
-  const range = currentChapter
-    ? `pp. ${formatPageNumber(currentChapter.pageRange[0], useRoman)}-${formatPageNumber(currentChapter.pageRange[1], useRoman)}`
-    : '';
-  const chapterLabel = `${chapterNumber ? `CHAPTER ${chapterNumber} · ` : ''}${range}`;
-
   const html = useMemo(() => {
     if (!currentChapter) return '<html><body></body></html>';
     return buildHtml({
-      chapterLabel,
       paragraphs: currentChapter.paragraphs,
       highlights: currentHighlights,
       fontSize,
       lineHeight,
       useRoman,
-      highlightMode,
       scrollToPage,
       searchTerm,
     });
-  }, [currentChapter, chapterLabel, fontSize, lineHeight, useRoman, scrollToPage, searchTerm, renderVersion]);
+  }, [currentChapter, fontSize, lineHeight, useRoman, scrollToPage, searchTerm, renderVersion]);
 
   const webSource = useMemo(() => ({ html }), [html]);
 
@@ -401,6 +489,35 @@ export function BigBookHtmlReader({ visible, initialChapterId, scrollToPage, sea
       console.error('[BigBookHtmlReader] bookmark toggle', error);
     }
   };
+
+  const createRangeHighlights = useCallback(async (
+    ranges: Array<{ paragraphId: string; startOffset: number; endOffset: number }>,
+    text: string
+  ) => {
+    if (!currentChapterId || ranges.length === 0) return;
+    const groupId = `highlight_group_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    const created = await Promise.all(ranges.map((item) =>
+      addRangeHighlight(
+        item.paragraphId,
+        currentChapterId,
+        item.startOffset,
+        item.endOffset,
+        HIGHLIGHT_COLOR,
+        text,
+        groupId
+      )
+    ));
+    created.forEach((highlight) => {
+      webViewRef.current?.injectJavaScript(`window.__addSavedHighlight && window.__addSavedHighlight(${JSON.stringify({
+        id: highlight.id,
+        groupId: highlight.groupId,
+        paragraphId: highlight.paragraphId,
+        startOffset: highlight.startOffset,
+        endOffset: highlight.endOffset,
+        color: highlight.color,
+      })}); true;`);
+    });
+  }, [addRangeHighlight, currentChapterId]);
 
   const handleWebMessage = useCallback(async (event: WebViewMessageEvent) => {
     let message: WebMessage;
@@ -429,34 +546,58 @@ export function BigBookHtmlReader({ visible, initialChapterId, scrollToPage, sea
       return;
     }
 
+    if (message.type === 'selectionAction') {
+      try {
+        if (message.action === 'highlight') {
+          await createRangeHighlights(message.ranges, message.text);
+          return;
+        }
+        if (message.action === 'copy') {
+          await Clipboard.setStringAsync(message.text);
+          return;
+        }
+        if (message.action === 'share') {
+          await Share.share({ message: message.text });
+        }
+      } catch (error) {
+        console.error('[BigBookHtmlReader] selection action', error);
+        Alert.alert('Selection action failed', 'Please try again.');
+      }
+      return;
+    }
+
     if (message.type === 'selection') {
       if (!currentChapterId) return;
       try {
-        const highlight = await addRangeHighlight(
-          message.paragraphId,
-          currentChapterId,
-          message.startOffset,
-          message.endOffset,
-          HIGHLIGHT_COLOR,
-          message.text
-        );
-        webViewRef.current?.injectJavaScript(`window.__addSavedHighlight && window.__addSavedHighlight(${JSON.stringify({
-          id: highlight.id,
-          paragraphId: highlight.paragraphId,
-          startOffset: highlight.startOffset,
-          endOffset: highlight.endOffset,
-          color: highlight.color,
-        })}); true;`);
+        await createRangeHighlights([{
+          paragraphId: message.paragraphId,
+          startOffset: message.startOffset,
+          endOffset: message.endOffset,
+        }], message.text);
       } catch (error) {
         console.error('[BigBookHtmlReader] create range highlight', error);
       }
     }
-  }, [addRangeHighlight, currentChapterId, highlights]);
+
+    if (message.type === 'selectionRanges') {
+      if (!currentChapterId) return;
+      try {
+        await createRangeHighlights(message.ranges, message.text);
+      } catch (error) {
+        console.error('[BigBookHtmlReader] create grouped range highlight', error);
+      }
+    }
+  }, [createRangeHighlights, currentChapterId, highlights]);
 
   const handleUpdateHighlightNote = async (note: string) => {
     if (!editingHighlight) return;
     try {
-      await updateHighlightNote(editingHighlight.id, note);
+      if (editingHighlight.groupId) {
+        const group = highlights.filter((item) => item.groupId === editingHighlight.groupId);
+        await Promise.all(group.map((item) => updateHighlight(item.id, { note })));
+      } else {
+        await updateHighlightNote(editingHighlight.id, note);
+      }
       setShowHighlightEditMenu(false);
       setEditingHighlight(null);
     } catch (error) {
@@ -467,7 +608,12 @@ export function BigBookHtmlReader({ visible, initialChapterId, scrollToPage, sea
   const handleRemoveHighlight = async () => {
     if (!editingHighlight) return;
     try {
-      await deleteHighlight(editingHighlight.id);
+      if (editingHighlight.groupId) {
+        const group = highlights.filter((item) => item.groupId === editingHighlight.groupId);
+        await Promise.all(group.map((item) => deleteHighlight(item.id)));
+      } else {
+        await deleteHighlight(editingHighlight.id);
+      }
       setShowHighlightEditMenu(false);
       setEditingHighlight(null);
       setRenderVersion((value) => value + 1);
@@ -505,13 +651,12 @@ export function BigBookHtmlReader({ visible, initialChapterId, scrollToPage, sea
                 <Text style={styles.modeText}>Classic</Text>
               </Pressable>
               <Pressable
-                onPress={() => setHighlightMode((value) => !value)}
-                style={[styles.hlPill, highlightMode ? { backgroundColor: HL_FILL, borderColor: HL_BORDER } : { borderColor: c.border }]}
+                onPress={() => setShowDisplaySheet(true)}
+                style={[styles.textSizeBtn, { borderColor: c.border }]}
                 accessibilityRole="button"
-                accessibilityLabel="Toggle highlight mode"
+                accessibilityLabel="Text size"
               >
-                <Highlighter size={14} color={highlightMode ? HL_INK : c.textSecondary} strokeWidth={2} />
-                <Text style={[styles.hlText, { color: highlightMode ? HL_INK : c.textSecondary }]}>Highlight</Text>
+                <Text style={styles.textSizeLabel}>aA</Text>
               </Pressable>
               <Pressable onPress={handleBookmarkPress} hitSlop={6} style={[styles.bmBtn, { borderColor: isCurrentPageBookmarked ? ACCENT : c.border }]} accessibilityRole="button" accessibilityLabel="Bookmark this page">
                 <BookmarkIcon size={16} color={isCurrentPageBookmarked ? ACCENT_INK : c.textSecondary} fill={isCurrentPageBookmarked ? ACCENT : 'transparent'} strokeWidth={2} />
@@ -551,8 +696,59 @@ export function BigBookHtmlReader({ visible, initialChapterId, scrollToPage, sea
             onRemove={handleRemoveHighlight}
             onClose={() => { setShowHighlightEditMenu(false); setEditingHighlight(null); }}
           />
+          <DisplaySheet
+            visible={showDisplaySheet}
+            current={fontSize}
+            onSize={setFontSize}
+            onClose={() => setShowDisplaySheet(false)}
+            bottomInset={insets.bottom}
+          />
         </SafeAreaView>
       </SafeAreaProvider>
+    </Modal>
+  );
+}
+
+function DisplaySheet({ visible, current, onSize, onClose, bottomInset }: {
+  visible: boolean;
+  current: number;
+  onSize: (n: number) => void;
+  onClose: () => void;
+  bottomInset: number;
+}) {
+  const selected = SIZE_BUCKETS.reduce((best, bucket) => (
+    Math.abs(bucket.size - current) < Math.abs(best.size - current) ? bucket : best
+  ), SIZE_BUCKETS[0]).k;
+
+  return (
+    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
+      <Pressable style={styles.sheetBackdrop} onPress={onClose} />
+      <View style={[styles.displaySheet, { paddingBottom: bottomInset + 28 }]}>
+        <View style={styles.grabber} />
+        <Text style={styles.sheetLabel}>TEXT SIZE</Text>
+        <View style={styles.sizeRow}>
+          <View style={styles.sizeBtns}>
+            {SIZE_BUCKETS.map((bucket) => {
+              const active = bucket.k === selected;
+              const labelSize = bucket.k === 'S' ? 11 : bucket.k === 'M' ? 13 : bucket.k === 'L' ? 15 : 17;
+              return (
+                <Pressable
+                  key={bucket.k}
+                  onPress={() => onSize(bucket.size)}
+                  style={[styles.sizeBtn, active ? styles.sizeBtnOn : styles.sizeBtnOff]}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Set text size ${bucket.k}`}
+                >
+                  <Text style={[styles.sizeBtnText, { fontSize: labelSize, color: active ? '#fff' : c.textSecondary }]}>{bucket.k}</Text>
+                </Pressable>
+              );
+            })}
+          </View>
+        </View>
+        <Pressable style={styles.sheetCancel} onPress={onClose}>
+          <Text style={styles.sheetCancelText}>Done</Text>
+        </Pressable>
+      </View>
     </Modal>
   );
 }
@@ -567,14 +763,26 @@ const styles = StyleSheet.create({
   actionRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 18, paddingBottom: 8, borderBottomWidth: 1, borderBottomColor: c.divider },
   pageLabel: { fontFamily: fontFamily.semiBold, fontSize: 12.5, color: c.textSecondary },
   actions: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  hlPill: { flexDirection: 'row', alignItems: 'center', gap: 5, height: 30, paddingHorizontal: 11, borderRadius: 15, borderWidth: 1 },
-  hlText: { fontFamily: fontFamily.semiBold, fontSize: 12 },
   modePill: { flexDirection: 'row', alignItems: 'center', gap: 5, height: 30, paddingHorizontal: 10, borderRadius: 15, borderWidth: 1 },
   modeText: { fontFamily: fontFamily.semiBold, fontSize: 12, color: c.textSecondary },
+  textSizeBtn: { width: 30, height: 30, borderRadius: 15, borderWidth: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: c.surface },
+  textSizeLabel: { fontFamily: fontFamily.bold, fontSize: 12.5, color: c.textSecondary, letterSpacing: -0.2 },
   bmBtn: { width: 30, height: 30, borderRadius: 15, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
   webView: { flex: 1, backgroundColor: PAPER },
   footer: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingTop: 8, borderTopWidth: 1, borderTopColor: c.divider },
   navBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingVertical: 6 },
   navText: { fontFamily: fontFamily.semiBold, fontSize: 13.5, color: ACCENT_INK },
   footerCenter: { fontFamily: fontFamily.semiBold, fontSize: 12, color: c.textMuted },
+  sheetBackdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(26,26,46,0.32)' },
+  displaySheet: { position: 'absolute', left: 0, right: 0, bottom: 0, backgroundColor: c.surface, borderTopLeftRadius: 28, borderTopRightRadius: 28, paddingHorizontal: 20, paddingTop: 14, shadowColor: '#000', shadowOpacity: 0.18, shadowRadius: 40, shadowOffset: { width: 0, height: -10 }, elevation: 12 },
+  grabber: { width: 40, height: 4, borderRadius: 999, backgroundColor: c.border, alignSelf: 'center', marginBottom: 16 },
+  sheetLabel: { fontFamily: fontFamily.bold, fontSize: 11, letterSpacing: 1.4, color: c.textMuted },
+  sizeRow: { flexDirection: 'row', alignItems: 'center', marginTop: 12, paddingHorizontal: 14, paddingVertical: 10, borderRadius: 16, backgroundColor: c.background, borderWidth: 1, borderColor: c.border },
+  sizeBtns: { flex: 1, flexDirection: 'row', gap: 6 },
+  sizeBtn: { flex: 1, paddingVertical: 8, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
+  sizeBtnOn: { backgroundColor: colors.primary },
+  sizeBtnOff: { borderWidth: 1, borderColor: c.border },
+  sizeBtnText: { fontFamily: fontFamily.semiBold },
+  sheetCancel: { marginTop: 22, paddingVertical: 12, borderRadius: 999, borderWidth: 1, borderColor: c.border, alignItems: 'center' },
+  sheetCancelText: { fontFamily: fontFamily.semiBold, fontSize: 14, color: c.textSecondary },
 });

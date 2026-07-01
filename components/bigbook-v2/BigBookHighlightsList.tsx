@@ -58,6 +58,7 @@ interface BigBookHighlightsListProps {
 // A merged highlight group for display purposes
 interface MergedHighlight {
   ids: string[];              // All highlight IDs in this group
+  groupId?: string;           // Shared ID for cross-paragraph range highlights
   paragraphId: string;
   chapterId: string;
   color: string;
@@ -108,15 +109,16 @@ export function BigBookHighlightsList({
           currentGroup.push(highlight);
         } else {
           const lastInGroup = currentGroup[currentGroup.length - 1];
+          const isSameRangeGroup = !!highlight.groupId && highlight.groupId === lastInGroup.groupId;
           // Check if this highlight is consecutive (same paragraph, next sentence index, same color)
-          const isConsecutive = 
+          const isConsecutiveSentence = 
             highlight.paragraphId === lastInGroup.paragraphId &&
             highlight.sentenceIndex !== undefined &&
             lastInGroup.sentenceIndex !== undefined &&
             highlight.sentenceIndex === lastInGroup.sentenceIndex + 1 &&
             highlight.color === lastInGroup.color;
           
-          if (isConsecutive) {
+          if (isSameRangeGroup || isConsecutiveSentence) {
             // Add to current group
             currentGroup.push(highlight);
           } else {
@@ -158,8 +160,7 @@ export function BigBookHighlightsList({
   
   // Helper to create a merged highlight from a group of consecutive highlights
   function createMergedHighlight(group: BigBookHighlight[]): MergedHighlight {
-    // Combine text with space between sentences
-    const combinedText = group.map(h => h.textSnapshot).join(' ');
+    const combinedText = group[0].groupId ? group[0].textSnapshot : group.map(h => h.textSnapshot).join(' ');
     // Find the first note
     const note = group.find(h => h.note)?.note;
     // Use earliest createdAt
@@ -167,6 +168,7 @@ export function BigBookHighlightsList({
     
     return {
       ids: group.map(h => h.id),
+      groupId: group[0].groupId,
       paragraphId: group[0].paragraphId,
       chapterId: group[0].chapterId,
       color: group[0].color,

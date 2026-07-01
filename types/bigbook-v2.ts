@@ -33,6 +33,7 @@ export interface BigBookHighlight {
   id: string;              // UUID
   paragraphId: string;
   chapterId: string;
+  groupId?: string;        // Shared by range segments from one cross-paragraph selection
   sentenceIndex?: number;  // Legacy sentence highlight index (0-based)
   startOffset?: number;    // Text-range highlight start in paragraph textContent
   endOffset?: number;      // Text-range highlight end in paragraph textContent

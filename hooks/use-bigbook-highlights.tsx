@@ -27,7 +27,8 @@ interface HighlightsContextValue {
     startOffset: number,
     endOffset: number,
     color: HighlightColor,
-    textSnapshot: string
+    textSnapshot: string,
+    groupId?: string
   ) => Promise<BigBookHighlight>;
   updateHighlight: (id: string, updates: Partial<BigBookHighlight>) => Promise<void>;
   updateHighlightNote: (id: string, note: string) => Promise<void>;
@@ -110,7 +111,8 @@ export function BigBookHighlightsProvider({ children }: { children: ReactNode })
     startOffset: number,
     endOffset: number,
     color: HighlightColor,
-    textSnapshot: string
+    textSnapshot: string,
+    groupId?: string
   ): Promise<BigBookHighlight> => {
     try {
       const now = Date.now();
@@ -118,6 +120,7 @@ export function BigBookHighlightsProvider({ children }: { children: ReactNode })
         id: `highlight_${now}_${Math.random().toString(36).substr(2, 9)}`,
         paragraphId,
         chapterId,
+        groupId,
         startOffset,
         endOffset,
         color,
@@ -214,7 +217,8 @@ export interface UseBigBookHighlightsReturn {
     startOffset: number,
     endOffset: number,
     color: HighlightColor,
-    textSnapshot: string
+    textSnapshot: string,
+    groupId?: string
   ) => Promise<BigBookHighlight>;
   updateHighlight: (id: string, updates: Partial<BigBookHighlight>) => Promise<void>;
   updateHighlightNote: (id: string, note: string) => Promise<void>;
