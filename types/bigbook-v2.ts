@@ -33,10 +33,12 @@ export interface BigBookHighlight {
   id: string;              // UUID
   paragraphId: string;
   chapterId: string;
-  sentenceIndex: number;   // Which sentence in the paragraph (0-based)
+  sentenceIndex?: number;  // Legacy sentence highlight index (0-based)
+  startOffset?: number;    // Text-range highlight start in paragraph textContent
+  endOffset?: number;      // Text-range highlight end in paragraph textContent
   color: HighlightColor;
   note?: string;           // Optional user note
-  textSnapshot: string;    // Copy of highlighted sentence
+  textSnapshot: string;    // Copy of highlighted sentence or selected range
   createdAt: number;       // Timestamp
   updatedAt: number;
 }
@@ -60,4 +62,3 @@ export interface BigBookChapterMeta {
   description?: string;
   useRomanNumerals?: boolean;  // True for front matter (forewords, preface, doctor's opinion)
 }
-

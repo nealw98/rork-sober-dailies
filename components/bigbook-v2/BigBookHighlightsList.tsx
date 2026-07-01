@@ -94,7 +94,9 @@ export function BigBookHighlightsList({
         if (a.paragraphId !== b.paragraphId) {
           return a.paragraphId.localeCompare(b.paragraphId);
         }
-        return a.sentenceIndex - b.sentenceIndex;
+        const aIndex = a.sentenceIndex ?? a.startOffset ?? 0;
+        const bIndex = b.sentenceIndex ?? b.startOffset ?? 0;
+        return aIndex - bIndex;
       });
       
       const merged: MergedHighlight[] = [];
@@ -109,6 +111,8 @@ export function BigBookHighlightsList({
           // Check if this highlight is consecutive (same paragraph, next sentence index, same color)
           const isConsecutive = 
             highlight.paragraphId === lastInGroup.paragraphId &&
+            highlight.sentenceIndex !== undefined &&
+            lastInGroup.sentenceIndex !== undefined &&
             highlight.sentenceIndex === lastInGroup.sentenceIndex + 1 &&
             highlight.color === lastInGroup.color;
           
@@ -424,4 +428,3 @@ const styles = StyleSheet.create({
     marginLeft: 8,
   },
 });
-

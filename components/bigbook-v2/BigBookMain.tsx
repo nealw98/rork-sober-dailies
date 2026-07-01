@@ -12,6 +12,7 @@ import React, { useState } from 'react';
 import { View, Modal } from 'react-native';
 import { BigBookContents } from './BigBookContents';
 import { BigBookReader } from './BigBookReader';
+import { BigBookHtmlReader } from './BigBookHtmlReader';
 import { BigBookHighlightsProvider } from '@/hooks/use-bigbook-highlights';
 import PdfReader from '@/components/PdfReader';
 import { BIGBOOK_PDFS } from '@/constants/bigbook-pdfs';
@@ -28,6 +29,7 @@ export function BigBookMain() {
   const [scrollToPage, setScrollToPage] = useState<number | null>(null);
   const [searchTerm, setSearchTerm] = useState<string | null>(null);
   const [showReader, setShowReader] = useState(false);
+  const [readerMode, setReaderMode] = useState<'html' | 'classic'>('html');
   const [pdf, setPdf] = useState<OpenPdf | null>(null);
 
   // text entry → open the in-app reader, optionally scrolled to a page and
@@ -59,13 +61,25 @@ export function BigBookMain() {
         <BigBookContents onOpenText={openText} onOpenPdf={openPdf} />
 
         {chapterId && (
-          <BigBookReader
-            visible={showReader}
-            initialChapterId={chapterId}
-            scrollToPage={scrollToPage}
-            searchTerm={searchTerm}
-            onClose={handleCloseReader}
-          />
+          readerMode === 'html' ? (
+            <BigBookHtmlReader
+              visible={showReader}
+              initialChapterId={chapterId}
+              scrollToPage={scrollToPage}
+              searchTerm={searchTerm}
+              onClose={handleCloseReader}
+              onSwitchToClassic={() => setReaderMode('classic')}
+            />
+          ) : (
+            <BigBookReader
+              visible={showReader}
+              initialChapterId={chapterId}
+              scrollToPage={scrollToPage}
+              searchTerm={searchTerm}
+              onClose={handleCloseReader}
+              onSwitchToHtml={() => setReaderMode('html')}
+            />
+          )
         )}
 
         <Modal visible={!!pdf} animationType="slide" presentationStyle="fullScreen" onRequestClose={() => setPdf(null)}>

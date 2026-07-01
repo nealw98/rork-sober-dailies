@@ -21,6 +21,14 @@ interface HighlightsContextValue {
     color: HighlightColor,
     textSnapshot: string
   ) => Promise<BigBookHighlight>;
+  addRangeHighlight: (
+    paragraphId: string,
+    chapterId: string,
+    startOffset: number,
+    endOffset: number,
+    color: HighlightColor,
+    textSnapshot: string
+  ) => Promise<BigBookHighlight>;
   updateHighlight: (id: string, updates: Partial<BigBookHighlight>) => Promise<void>;
   updateHighlightNote: (id: string, note: string) => Promise<void>;
   deleteHighlight: (id: string) => Promise<void>;
@@ -95,6 +103,40 @@ export function BigBookHighlightsProvider({ children }: { children: ReactNode })
       throw err;
     }
   }, [storage]);
+
+  const addRangeHighlight = useCallback(async (
+    paragraphId: string,
+    chapterId: string,
+    startOffset: number,
+    endOffset: number,
+    color: HighlightColor,
+    textSnapshot: string
+  ): Promise<BigBookHighlight> => {
+    try {
+      const now = Date.now();
+      const newHighlight: BigBookHighlight = {
+        id: `highlight_${now}_${Math.random().toString(36).substr(2, 9)}`,
+        paragraphId,
+        chapterId,
+        startOffset,
+        endOffset,
+        color,
+        textSnapshot,
+        createdAt: now,
+        updatedAt: now,
+      };
+
+      console.log('[HighlightsProvider] Adding range highlight:', newHighlight);
+      await storage.saveHighlight(newHighlight);
+
+      setHighlights(prev => [newHighlight, ...prev]);
+
+      return newHighlight;
+    } catch (err) {
+      console.error('[HighlightsProvider] Error adding range highlight:', err);
+      throw err;
+    }
+  }, [storage]);
   
   const updateHighlight = useCallback(async (
     id: string,
@@ -141,6 +183,7 @@ export function BigBookHighlightsProvider({ children }: { children: ReactNode })
     isLoading,
     error,
     addHighlight,
+    addRangeHighlight,
     updateHighlight,
     updateHighlightNote,
     deleteHighlight,
@@ -162,6 +205,14 @@ export interface UseBigBookHighlightsReturn {
     paragraphId: string,
     chapterId: string,
     sentenceIndex: number,
+    color: HighlightColor,
+    textSnapshot: string
+  ) => Promise<BigBookHighlight>;
+  addRangeHighlight: (
+    paragraphId: string,
+    chapterId: string,
+    startOffset: number,
+    endOffset: number,
     color: HighlightColor,
     textSnapshot: string
   ) => Promise<BigBookHighlight>;
@@ -212,6 +263,7 @@ export function useBigBookHighlights(): UseBigBookHighlightsReturn {
     isLoading: context.isLoading,
     error: context.error,
     addHighlight: context.addHighlight,
+    addRangeHighlight: context.addRangeHighlight,
     updateHighlight: context.updateHighlight,
     updateHighlightNote: context.updateHighlightNote,
     deleteHighlight: context.deleteHighlight,
@@ -249,4 +301,3 @@ export function useParagraphHighlights(paragraphId: string): {
     isLoading: context.isLoading,
   };
 }
-

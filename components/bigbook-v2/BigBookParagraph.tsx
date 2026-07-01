@@ -275,6 +275,7 @@ export function BigBookParagraph({
   const highlightMap = useMemo(() => {
     const map = new Map<number, { color: string; highlightId: string; note?: string }>();
     highlights.forEach(highlight => {
+      if (highlight.sentenceIndex === undefined) return;
       map.set(highlight.sentenceIndex, {
         color: HIGHLIGHT_COLORS[highlight.color],
         highlightId: highlight.id,

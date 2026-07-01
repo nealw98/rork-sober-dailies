@@ -8,7 +8,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { View, Text, StyleSheet, ScrollView, Pressable, Modal, Platform, BackHandler, UIManager } from 'react-native';
 import { SafeAreaProvider, SafeAreaView, initialWindowMetrics } from 'react-native-safe-area-context';
-import { ChevronLeft, ChevronRight, Highlighter, Bookmark as BookmarkIcon } from 'lucide-react-native';
+import { ChevronLeft, ChevronRight, Highlighter, Bookmark as BookmarkIcon, FileText } from 'lucide-react-native';
 import { useTextSettings } from '@/hooks/use-text-settings';
 import { useBigBookContent } from '@/hooks/use-bigbook-content';
 import { useBigBookBookmarks } from '@/hooks/use-bigbook-bookmarks';
@@ -42,9 +42,10 @@ interface BigBookReaderProps {
   scrollToPage?: number | null;
   searchTerm?: string | null;
   onClose: () => void;
+  onSwitchToHtml?: () => void;
 }
 
-export function BigBookReader({ visible, initialChapterId, scrollToParagraphId, scrollToPage, searchTerm, onClose }: BigBookReaderProps) {
+export function BigBookReader({ visible, initialChapterId, scrollToParagraphId, scrollToPage, searchTerm, onClose, onSwitchToHtml }: BigBookReaderProps) {
   const { currentChapter, currentChapterId, loadChapter, goToNextChapter, goToPreviousChapter } = useBigBookContent();
   const { fontSize, lineHeight } = useTextSettings();
 
@@ -214,6 +215,17 @@ export function BigBookReader({ visible, initialChapterId, scrollToParagraphId, 
               {currentPageNumber ? `Page ${formatPageNumber(currentPageNumber, useRoman)}` : ' '}
             </Text>
             <View style={styles.actions}>
+              {onSwitchToHtml && (
+                <Pressable
+                  onPress={onSwitchToHtml}
+                  style={[styles.modePill, { borderColor: c.border }]}
+                  accessibilityRole="button"
+                  accessibilityLabel="Use selectable text reader"
+                >
+                  <FileText size={14} color={c.textSecondary} strokeWidth={2} />
+                  <Text style={styles.modeText}>Select</Text>
+                </Pressable>
+              )}
               <Pressable
                 onPress={() => setHighlightMode((v) => !v)}
                 style={[styles.hlPill, highlightMode ? { backgroundColor: HL_FILL, borderColor: HL_BORDER } : { borderColor: c.border }]}
@@ -312,6 +324,8 @@ const styles = StyleSheet.create({
   actions: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   hlPill: { flexDirection: 'row', alignItems: 'center', gap: 5, height: 30, paddingHorizontal: 11, borderRadius: 15, borderWidth: 1 },
   hlText: { fontFamily: fontFamily.semiBold, fontSize: 12 },
+  modePill: { flexDirection: 'row', alignItems: 'center', gap: 5, height: 30, paddingHorizontal: 10, borderRadius: 15, borderWidth: 1 },
+  modeText: { fontFamily: fontFamily.semiBold, fontSize: 12, color: c.textSecondary },
   bmBtn: { width: 30, height: 30, borderRadius: 15, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
 
   body: { flex: 1 },
