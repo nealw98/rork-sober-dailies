@@ -40,18 +40,6 @@ import { useScreenTimeTracking } from '@/hooks/useScreenTimeTracking';
 import { useOnboarding } from '@/hooks/useOnboardingStore';
 import { clearUserData } from '@/lib/userDataSync';
 import { setSyncPaused } from '@/lib/icloudSync';
-import {
-  DEFAULT_SPONSOR_API_ENGINE,
-  DEFAULT_SPONSOR_API_TEMPERATURE,
-  MAX_SPONSOR_API_TEMPERATURE,
-  MIN_SPONSOR_API_TEMPERATURE,
-  SPONSOR_API_ENGINES,
-  getSponsorApiEngine,
-  getSponsorApiTemperature,
-  setSponsorApiEngine,
-  setSponsorApiTemperature,
-  type SponsorApiEngine,
-} from '@/lib/sponsorApiSettings';
 
 const c = getSemanticColors('light');
 const DEVELOPER_MODE_KEY = 'developer_mode_enabled';
@@ -107,8 +95,6 @@ export default function SettingsScreen() {
   const [logsVisible, setLogsVisible] = useState(false);
   const [logsText, setLogsText] = useState('');
   const [isDeveloperMode, setIsDeveloperMode] = useState(false);
-  const [sponsorApiTemperature, setSponsorApiTemperatureState] = useState(DEFAULT_SPONSOR_API_TEMPERATURE);
-  const [sponsorApiEngine, setSponsorApiEngineState] = useState<SponsorApiEngine>(DEFAULT_SPONSOR_API_ENGINE);
 
   // Feedback modal state
   const [feedbackVisible, setFeedbackVisible] = useState(false);
@@ -135,22 +121,6 @@ export default function SettingsScreen() {
     loadDeveloperMode();
   }, []);
 
-  useEffect(() => {
-    getSponsorApiTemperature()
-      .then(setSponsorApiTemperatureState)
-      .catch(() => {
-        setSponsorApiTemperatureState(DEFAULT_SPONSOR_API_TEMPERATURE);
-      });
-  }, []);
-
-  useEffect(() => {
-    getSponsorApiEngine()
-      .then(setSponsorApiEngineState)
-      .catch(() => {
-        setSponsorApiEngineState(DEFAULT_SPONSOR_API_ENGINE);
-      });
-  }, []);
-
   const toggleDeveloperMode = async () => {
     const newValue = !isDeveloperMode;
     setIsDeveloperMode(newValue);
@@ -167,35 +137,6 @@ export default function SettingsScreen() {
   const increase = () => setFontSize(fontSize + step);
   const decrease = () => setFontSize(fontSize - step);
 
-  const adjustSponsorApiTemperature = async (delta: number) => {
-    try {
-      const next = await setSponsorApiTemperature(Number((sponsorApiTemperature + delta).toFixed(2)));
-      setSponsorApiTemperatureState(next);
-    } catch (error) {
-      console.error('[Settings] Failed to save sponsor API temperature:', error);
-      Alert.alert('Error', 'Failed to save sponsor API temperature.');
-    }
-  };
-
-  const resetSponsorApiTemperature = async () => {
-    try {
-      const next = await setSponsorApiTemperature(DEFAULT_SPONSOR_API_TEMPERATURE);
-      setSponsorApiTemperatureState(next);
-    } catch (error) {
-      console.error('[Settings] Failed to reset sponsor API temperature:', error);
-    }
-  };
-
-  const changeSponsorApiEngine = async (engine: SponsorApiEngine) => {
-    if (engine === sponsorApiEngine) return;
-    setSponsorApiEngineState(engine);
-    try {
-      await setSponsorApiEngine(engine);
-    } catch (error) {
-      console.error('[Settings] Failed to save sponsor API engine:', error);
-      Alert.alert('Error', 'Failed to save AI engine setting.');
-    }
-  };
 
   // Version info
   const appVersion = Constants.expoConfig?.version ?? '—';
@@ -480,63 +421,6 @@ export default function SettingsScreen() {
         {/* Developer / testing — visible in this sponsor API test branch */}
         {
           <CardGroup label="Developer">
-            <View style={[styles.devControl, styles.rowDivider]}>
-              <View style={styles.rowText}>
-                <Text style={styles.rowLabel}>Sponsor AI engine</Text>
-                <Text style={styles.rowSub}>Engine behind Steady Eddie 2, Salty Sam 2, and Gentle Grace 2</Text>
-              </View>
-              <View style={styles.devSegment}>
-                {SPONSOR_API_ENGINES.map((option) => {
-                  const active = sponsorApiEngine === option.id;
-                  return (
-                    <TouchableOpacity
-                      key={option.id}
-                      style={[styles.devSegmentBtn, active && styles.devSegmentBtnActive]}
-                      onPress={() => changeSponsorApiEngine(option.id)}
-                      activeOpacity={0.7}
-                    >
-                      <Text
-                        style={[styles.devSegmentText, active && styles.devSegmentTextActive]}
-                        numberOfLines={1}
-                        adjustsFontSizeToFit
-                      >
-                        {option.label}
-                      </Text>
-                    </TouchableOpacity>
-                  );
-                })}
-              </View>
-            </View>
-            <View style={[styles.devControl, styles.rowDivider]}>
-              <View style={styles.devControlHeader}>
-                <View style={styles.rowText}>
-                  <Text style={styles.rowLabel}>Sponsor API temperature</Text>
-                  <Text style={styles.rowSub}>Used by Steady Eddie 2, Salty Sam 2, and Gentle Grace 2</Text>
-                </View>
-                <Text style={styles.devValue}>{sponsorApiTemperature.toFixed(2)}</Text>
-              </View>
-              <View style={styles.devStepperRow}>
-                <TouchableOpacity
-                  style={[styles.devStepBtn, sponsorApiTemperature <= MIN_SPONSOR_API_TEMPERATURE && styles.devStepBtnDisabled]}
-                  onPress={() => adjustSponsorApiTemperature(-0.1)}
-                  disabled={sponsorApiTemperature <= MIN_SPONSOR_API_TEMPERATURE}
-                  activeOpacity={0.7}
-                >
-                  <Text style={styles.devStepBtnText}>−</Text>
-                </TouchableOpacity>
-                <TouchableOpacity style={styles.devResetBtn} onPress={resetSponsorApiTemperature} activeOpacity={0.7}>
-                  <Text style={styles.devResetBtnText}>Reset</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={[styles.devStepBtn, sponsorApiTemperature >= MAX_SPONSOR_API_TEMPERATURE && styles.devStepBtnDisabled]}
-                  onPress={() => adjustSponsorApiTemperature(0.1)}
-                  disabled={sponsorApiTemperature >= MAX_SPONSOR_API_TEMPERATURE}
-                  activeOpacity={0.7}
-                >
-                  <Text style={styles.devStepBtnText}>+</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
             <CardRow
               label="Run onboarding again"
               sub="Replays the welcome flow · keeps all data"

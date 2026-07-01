@@ -136,7 +136,7 @@ export function BigBookContents({ onOpenText, onOpenPdf }: {
         <LinearGradient colors={[AMBER_SOFT, 'rgba(252,240,222,0)']} style={styles.hero}>
           <BigBookCover w={72} h={101} />
           <View style={styles.flex}>
-            <Text style={styles.heroText}>Also known as the “Big Book,” Alcoholics Anonymous presents the A.A. program for recovery from alcoholism. First published in 1939, it set out to show other alcoholics how A.A.’s first 100 members got sober.</Text>
+            <Text style={styles.heroText}>Also known as the “Big Book,” Alcoholics Anonymous presents the A.A. program for recovery from alcoholism. First published in 1939, it sets out to show other alcoholics how A.A.’s first 100 members got sober.</Text>
           </View>
         </LinearGradient>
 

@@ -116,7 +116,7 @@ async function callSponsorAPI(
   sponsorType: SponsorType,
   chatMessages: ChatMessage[],
   message: string
-): Promise<string> {
+): Promise<{ text: string; model?: string; temperature?: number }> {
   const sponsor = getSponsorById(sponsorType);
   const apiSponsorId = sponsor?.apiSponsorId ?? sponsorType;
   const temperature = await getSponsorApiTemperature();
@@ -156,7 +156,11 @@ async function callSponsorAPI(
     throw new Error(data?.error || `Sponsor API request failed: ${response.status}`);
   }
 
-  return data.outputText || "Sorry, I'm having trouble right now. Try again in a minute.";
+  return {
+    text: data.outputText || "Sorry, I'm having trouble right now. Try again in a minute.",
+    model: typeof data.model === "string" ? data.model : undefined,
+    temperature,
+  };
 }
 
 async function getAnonymousIdForSponsorApi(): Promise<string | null> {
@@ -778,16 +782,19 @@ export const [ChatStoreProvider, useChatStore] = createContextHook(() => {
     }
     
     try {
-      // Prepare messages for API call
-      const sponsor = getSponsorById(sponsorType);
-      const response = sponsor?.backend === "sponsor-api"
-        ? await callSponsorAPI(sponsorType, updatedMessages, text)
-        : await callAI(convertToAPIMessages(updatedMessages, sponsorType));
-      
+      // Route by the selected test engine: 'rork' → legacy backend (callAI),
+      // everything else → the Supabase sponsor-chat function (OpenAI / Anthropic).
+      const { provider } = engineToRequest(await getSponsorApiEngine());
+      const result = provider === "rork"
+        ? { text: await callAI(convertToAPIMessages(updatedMessages, sponsorType)), model: "rork" as string | undefined, temperature: undefined as number | undefined }
+        : await callSponsorAPI(sponsorType, updatedMessages, text);
+
       // Add bot response
       const botResponse: ChatMessage = {
         id: (Date.now() + 1).toString(),
-        text: response,
+        text: result.text,
+        model: result.model,
+        temperature: result.temperature,
         sender: "bot",
         timestamp: Date.now() + 1,
       };

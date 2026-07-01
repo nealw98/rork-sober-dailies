@@ -5,13 +5,14 @@ export const DEFAULT_SPONSOR_API_TEMPERATURE = 0.8;
 export const MIN_SPONSOR_API_TEMPERATURE = 0;
 export const MAX_SPONSOR_API_TEMPERATURE = 1.2;
 
-export type SponsorApiProvider = 'openai' | 'anthropic';
+export type SponsorApiProvider = 'openai' | 'anthropic' | 'rork';
 export const SPONSOR_API_PROVIDER_KEY = 'sponsor_api_provider'; // legacy key (openai | anthropic)
 
-// The engine picks both the provider and the specific test model.
-export type SponsorApiEngine = 'openai-mini' | 'openai-5-4' | 'anthropic-haiku' | 'anthropic-sonnet';
+// The engine picks both the backend and the specific test model. 'rork' routes
+// to the legacy backend (callAI); the rest hit the Supabase sponsor-chat function.
+export type SponsorApiEngine = 'rork' | 'openai-mini' | 'openai-5-4' | 'anthropic-haiku' | 'anthropic-sonnet';
 export const SPONSOR_API_ENGINE_KEY = 'sponsor_api_engine';
-export const DEFAULT_SPONSOR_API_ENGINE: SponsorApiEngine = 'openai-mini';
+export const DEFAULT_SPONSOR_API_ENGINE: SponsorApiEngine = 'rork';
 
 export interface SponsorApiEngineOption {
   id: SponsorApiEngine;
@@ -21,6 +22,7 @@ export interface SponsorApiEngineOption {
 }
 
 export const SPONSOR_API_ENGINES: SponsorApiEngineOption[] = [
+  { id: 'rork', label: 'Rork', provider: 'rork', model: 'rork' },
   { id: 'openai-mini', label: 'GPT-5.4 mini', provider: 'openai', model: 'gpt-5.4-mini' },
   { id: 'openai-5-4', label: 'GPT-5.4', provider: 'openai', model: 'gpt-5.4' },
   { id: 'anthropic-haiku', label: 'Haiku 4.5', provider: 'anthropic', model: 'claude-haiku-4-5' },
@@ -28,7 +30,7 @@ export const SPONSOR_API_ENGINES: SponsorApiEngineOption[] = [
 ];
 
 const isSponsorApiEngine = (v: unknown): v is SponsorApiEngine =>
-  v === 'openai-mini' || v === 'openai-5-4' || v === 'anthropic-haiku' || v === 'anthropic-sonnet';
+  v === 'rork' || v === 'openai-mini' || v === 'openai-5-4' || v === 'anthropic-haiku' || v === 'anthropic-sonnet';
 
 export const engineToRequest = (
   engine: SponsorApiEngine

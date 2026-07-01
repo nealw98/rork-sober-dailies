@@ -37,7 +37,7 @@ export default function SponsorSelectScreen() {
         <BackButton onPress={() => router.back()} style={{ marginBottom: 12 }} />
         <Text style={styles.h1}>Choose your AI Sponsor</Text>
         <Text style={styles.sub}>
-          Each sponsor gives the same solid AA guidance — in their own unmistakable voice. The “2” sponsors use the new API test backend.
+          Each sponsor gives the same solid AA guidance — in their own unmistakable voice.
         </Text>
       </View>
 

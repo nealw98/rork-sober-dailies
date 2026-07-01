@@ -13,6 +13,8 @@ export interface ChatMessage {
   text: string;
   sender: "user" | "bot";
   timestamp: number;
+  model?: string; // dev: the model that produced this bot reply (sponsor-api backend)
+  temperature?: number; // dev: the temperature setting used for this reply
 }
 
 export interface EveningReviewEntry {

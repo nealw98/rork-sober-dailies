@@ -30,6 +30,10 @@ const AMBER = colors.steel;       // Steel Navy — Big Book accent
 const AMBER_SOFT = colors.steelSoft;
 const AMBER_INK = colors.steelDark;
 const HIGHLIGHT_COLOR = HighlightColor.YELLOW;
+// Highlight button matches the yellow highlight underlay (#FCE9A8) when active.
+const HL_FILL = '#FCE9A8';
+const HL_BORDER = '#E6C766';
+const HL_INK = '#7A5B12';
 
 interface BigBookReaderProps {
   visible: boolean;
@@ -212,12 +216,12 @@ export function BigBookReader({ visible, initialChapterId, scrollToParagraphId, 
             <View style={styles.actions}>
               <Pressable
                 onPress={() => setHighlightMode((v) => !v)}
-                style={[styles.hlPill, highlightMode ? { backgroundColor: AMBER_SOFT, borderColor: AMBER } : { borderColor: c.border }]}
+                style={[styles.hlPill, highlightMode ? { backgroundColor: HL_FILL, borderColor: HL_BORDER } : { borderColor: c.border }]}
                 accessibilityRole="button"
                 accessibilityLabel="Toggle highlight mode"
               >
-                <Highlighter size={14} color={highlightMode ? AMBER_INK : c.textSecondary} strokeWidth={2} />
-                <Text style={[styles.hlText, { color: highlightMode ? AMBER_INK : c.textSecondary }]}>Highlight</Text>
+                <Highlighter size={14} color={highlightMode ? HL_INK : c.textSecondary} strokeWidth={2} />
+                <Text style={[styles.hlText, { color: highlightMode ? HL_INK : c.textSecondary }]}>Highlight</Text>
               </Pressable>
               <Pressable onPress={handleBookmarkPress} hitSlop={6} style={[styles.bmBtn, { borderColor: isCurrentPageBookmarked ? AMBER : c.border }]} accessibilityRole="button" accessibilityLabel="Bookmark this page">
                 <BookmarkIcon size={16} color={isCurrentPageBookmarked ? AMBER_INK : c.textSecondary} fill={isCurrentPageBookmarked ? AMBER : 'transparent'} strokeWidth={2} />
