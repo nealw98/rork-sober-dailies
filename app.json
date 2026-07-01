@@ -122,7 +122,7 @@
       [
         "react-native-cloud-storage",
         {
-          "iCloudContainerEnvironment": "Development"
+          "iCloudContainerEnvironment": "Production"
         }
       ],
       "expo-asset"
