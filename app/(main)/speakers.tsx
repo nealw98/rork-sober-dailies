@@ -279,13 +279,13 @@ export default function SpeakersScreen() {
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: c.background },
-  header: { paddingHorizontal: 20, paddingTop: 8, paddingBottom: 4 },
+  header: { paddingHorizontal: 22, paddingTop: 8, paddingBottom: 4 },
   headerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   title: { fontFamily: fontFamily.displayBold, fontSize: 30, letterSpacing: -0.5, color: c.text },
   searchToggle: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center', backgroundColor: c.surface, borderWidth: 1, borderColor: c.border },
   searchToggleOn: { backgroundColor: c.text, borderColor: c.text },
 
-  listContent: { paddingHorizontal: 20, paddingBottom: 120 },
+  listContent: { paddingHorizontal: 16, paddingBottom: 120 },
 
   // search
   searchWrap: { paddingTop: 6, paddingBottom: 2 },

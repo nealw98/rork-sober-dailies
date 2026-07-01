@@ -65,11 +65,11 @@ function SponsorCard({ s, onPress }: { s: SponsorConfig; onPress: () => void }) 
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: c.background },
-  header: { paddingHorizontal: 20, paddingTop: 8, paddingBottom: 6 },
+  header: { paddingHorizontal: 22, paddingTop: 8, paddingBottom: 16 },
   h1: { fontFamily: fontFamily.display, fontSize: 28, lineHeight: 32, letterSpacing: -0.4, color: c.text },
   sub: { fontFamily: fontFamily.regular, fontSize: 13.5, lineHeight: 19, color: c.textMuted, marginTop: 8 },
 
-  scroll: { paddingHorizontal: 16, paddingTop: 14, paddingBottom: 40 },
+  scroll: { paddingHorizontal: 16, paddingTop: 0, paddingBottom: 40 },
 
   card: { flexDirection: 'row', alignItems: 'center', gap: 14, padding: 14, backgroundColor: c.surface, borderRadius: 24, marginBottom: 14, ...shadows.md },
   avatar: { width: 72, height: 72, borderRadius: 16, borderWidth: 2, borderColor: '#fff', backgroundColor: BR_SOFT, ...shadows.sm },

@@ -317,9 +317,9 @@ const styles = StyleSheet.create({
   dateChev: { width: 30, height: 30, alignItems: 'center', justifyContent: 'center' },
   dateBtn: { width: 38, height: 38, borderRadius: 19, alignItems: 'center', justifyContent: 'center', backgroundColor: c.surface, borderWidth: 1, borderColor: c.border },
 
-  scroll: { paddingHorizontal: 20, paddingBottom: 24 },
+  scroll: { paddingHorizontal: 16, paddingBottom: 24 },
 
-  pageTitle: { fontFamily: fontFamily.display, fontSize: 28, letterSpacing: -0.5, color: c.text, paddingHorizontal: 20, paddingTop: 2, paddingBottom: 2 },
+  pageTitle: { fontFamily: fontFamily.display, fontSize: 28, letterSpacing: -0.5, color: c.text, paddingHorizontal: 22, paddingTop: 2, paddingBottom: 2 },
 
   hero: { height: 168, borderRadius: 22, overflow: 'hidden', backgroundColor: colors.primary },
   heroInner: { ...StyleSheet.absoluteFillObject, padding: 18, justifyContent: 'flex-end' },

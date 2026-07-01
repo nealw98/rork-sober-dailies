@@ -62,7 +62,7 @@ export default function MeetingsScreen() {
       <ScrollView style={styles.flex} contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
         {/* ── My meetings ── */}
         <View style={styles.sectionHead}>
-          <Text style={styles.myTitle}>My meetings</Text>
+          <Text style={styles.sectionLabel}>MY MEETINGS</Text>
           {meetings.length > 0 && <Text style={styles.savedCount}>{meetings.length} saved</Text>}
         </View>
 
@@ -452,13 +452,13 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: c.background },
   flex: { flex: 1 },
-  header: { paddingHorizontal: 16, paddingTop: 8, paddingBottom: 6 },
+  header: { paddingHorizontal: 22, paddingTop: 8, paddingBottom: 24 },
   title: { fontFamily: fontFamily.display, fontSize: 30, letterSpacing: -0.5, color: c.text, lineHeight: 34 },
   sub: { fontFamily: fontFamily.regular, fontSize: 13, color: c.textMuted, marginTop: 3 },
   scroll: { paddingHorizontal: 16, paddingBottom: 40 },
 
-  sectionHead: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', marginTop: 4, marginBottom: 12, paddingHorizontal: 4 },
-  myTitle: { fontFamily: fontFamily.display, fontSize: 22, color: c.text, letterSpacing: -0.3 },
+  sectionHead: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', marginTop: 0, marginBottom: 10, paddingHorizontal: 4 },
+  sectionLabel: { fontFamily: fontFamily.bold, fontSize: 11, letterSpacing: 1.4, color: c.textMuted },
   savedCount: { fontFamily: fontFamily.medium, fontSize: 12.5, color: c.textMuted },
 
   // next-up

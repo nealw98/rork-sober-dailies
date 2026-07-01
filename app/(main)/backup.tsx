@@ -209,10 +209,10 @@ function Row({ icon, title, sub, onPress, disabled, danger }: {
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: c.background },
   flex: { flex: 1 },
-  header: { paddingHorizontal: 20, paddingTop: 8, paddingBottom: 6 },
+  header: { paddingHorizontal: 22, paddingTop: 8, paddingBottom: 16 },
   title: { fontFamily: fontFamily.display, fontSize: 28, letterSpacing: -0.4, color: c.text },
   sub: { fontFamily: fontFamily.regular, fontSize: 13.5, lineHeight: 19, color: c.textMuted, marginTop: 6 },
-  scroll: { paddingHorizontal: 16, paddingTop: 12, paddingBottom: 40 },
+  scroll: { paddingHorizontal: 16, paddingTop: 0, paddingBottom: 40 },
   label: { fontFamily: fontFamily.bold, fontSize: 11, letterSpacing: 1.4, color: c.textMuted, marginTop: 14, marginBottom: 8, paddingHorizontal: 4 },
   pausedNote: { fontFamily: fontFamily.regular, fontSize: 12, lineHeight: 17, color: TEAL, paddingHorizontal: 4, marginBottom: 8 },
   row: { flexDirection: 'row', alignItems: 'center', gap: 14, padding: 14, marginBottom: 8, borderRadius: 16, backgroundColor: c.surface, borderWidth: 1, borderColor: c.border, ...shadows.sm },

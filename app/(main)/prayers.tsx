@@ -226,13 +226,13 @@ const styles = StyleSheet.create({
   flex: { flex: 1 },
 
   // library header
-  header: { paddingHorizontal: 20, paddingTop: 8, paddingBottom: 8 },
+  header: { paddingHorizontal: 22, paddingTop: 8, paddingBottom: 8 },
   headerBack: { marginBottom: 10 },
   bigTitle: { fontFamily: fontFamily.display, fontSize: 30, letterSpacing: -0.5, color: c.text, lineHeight: 34 },
   bigSub: { fontFamily: fontFamily.regular, fontSize: 13, color: c.textMuted, marginTop: 3 },
 
-  listBody: { paddingHorizontal: 20, paddingBottom: 40 },
-  sectionRow: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', marginTop: 14, marginBottom: 8 },
+  listBody: { paddingHorizontal: 16, paddingBottom: 40 },
+  sectionRow: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', marginTop: 8, marginBottom: 8 },
   sectionLabel: { fontFamily: fontFamily.bold, fontSize: 11, letterSpacing: 1.4, color: c.textMuted },
   sectionHint: { fontFamily: fontFamily.regular, fontSize: 11, color: c.textMuted },
 

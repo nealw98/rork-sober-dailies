@@ -93,7 +93,7 @@ export function ToolIntro({ tool, children, variant = 'plain' }: { tool: ToolMet
 }
 
 const styles = StyleSheet.create({
-  header: { paddingHorizontal: 20, paddingBottom: 8 },
+  header: { paddingHorizontal: 22, paddingBottom: 8 },
   backRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 },
   saveBtn: { paddingHorizontal: 18, paddingVertical: 9, borderRadius: 999 },
   saveBtnGhost: { borderWidth: 1.5, borderColor: c.border },

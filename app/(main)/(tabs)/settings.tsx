@@ -714,7 +714,7 @@ const styles = StyleSheet.create({
   subtitle: { fontFamily: fontFamily.serifItalic, fontSize: 15, color: c.textSecondary, marginTop: 2 },
 
   content: { flex: 1 },
-  scrollContent: { paddingHorizontal: 18, paddingTop: 10, paddingBottom: 150 },
+  scrollContent: { paddingHorizontal: 16, paddingTop: 8, paddingBottom: 150 },
 
   // Section label + card chrome
   section: { marginBottom: 18 },
