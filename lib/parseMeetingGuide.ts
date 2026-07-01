@@ -40,6 +40,9 @@ const BACK_RE = /^[<‹›‹❮\s]*back\b/i;
 // Common inter-app return-chip labels — stripped from the title as a backstop
 // when the "Back" line itself wasn't captured by OCR.
 const RETURN_CHIP_RE = /^(?:app store|safari|messages|photos|mail|chrome|maps|home)\s+/i;
+// A leading list-index the OCR sometimes lifts from Meeting Guide's list view —
+// e.g. "25) Name", or a misread "I 25) Name". Never part of the meeting title.
+const LEADING_INDEX_RE = /^\s*[A-Za-z|]?\s*\d{1,3}\s*[).\]]\s*/;
 const STOP_RE = /(mi from current location|navigation distance|^english$|^open$|^closed$|in-?person meeting|online meeting|open meetings are available|temporarily closed|wheelchair)/i;
 // Timezone abbreviation the Meeting Guide share text adds on its own line.
 const TZ_RE = /^(?:A[KS]?[DS]?T|[CEMP][DS]?T|H[AS]?[DS]?T|UTC|GMT)$/;
@@ -78,6 +81,7 @@ export function parseMeetingGuide(rawLines: string[]): MeetingDraft {
   const name = nameLines
     .join(' ')
     .replace(/\s+/g, ' ')
+    .replace(LEADING_INDEX_RE, '') // strip a leading OCR list index like "I 25)"
     .replace(RETURN_CHIP_RE, '') // backstop: leading "App Store"/"Safari"/… return chip
     .replace(/\s*[-–]?\s*(in[-\s]*person|online)(\s+meeting)?$/i, '') // Meeting Guide appends the modality (tolerate line-wrap)
     .trim();
@@ -112,7 +116,7 @@ export function parseMeetingGuide(rawLines: string[]): MeetingDraft {
 export function parseBestEffort(rawLines: string[]): MeetingDraft {
   const lines = rawLines.map((l) => l.trim()).filter(Boolean).filter((l) => !JUNK_RE.test(l));
 
-  const name = (lines[0] ?? '').replace(/\s+/g, ' ').trim();
+  const name = (lines[0] ?? '').replace(/\s+/g, ' ').replace(LEADING_INDEX_RE, '').trim();
 
   let day: MeetingDay | null = null;
   for (const l of lines) {
