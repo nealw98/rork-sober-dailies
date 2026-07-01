@@ -8,26 +8,27 @@ export const MAX_SPONSOR_API_TEMPERATURE = 1.2;
 export type SponsorApiProvider = 'openai' | 'anthropic';
 export const SPONSOR_API_PROVIDER_KEY = 'sponsor_api_provider'; // legacy key (openai | anthropic)
 
-// The engine picks both the provider and, for Anthropic, the specific model.
-export type SponsorApiEngine = 'openai' | 'anthropic-haiku' | 'anthropic-sonnet';
+// The engine picks both the provider and the specific test model.
+export type SponsorApiEngine = 'openai-mini' | 'openai-5-4' | 'anthropic-haiku' | 'anthropic-sonnet';
 export const SPONSOR_API_ENGINE_KEY = 'sponsor_api_engine';
-export const DEFAULT_SPONSOR_API_ENGINE: SponsorApiEngine = 'openai';
+export const DEFAULT_SPONSOR_API_ENGINE: SponsorApiEngine = 'openai-mini';
 
 export interface SponsorApiEngineOption {
   id: SponsorApiEngine;
   label: string;
   provider: SponsorApiProvider;
-  model?: string; // omitted for OpenAI (backend picks its own model)
+  model: string;
 }
 
 export const SPONSOR_API_ENGINES: SponsorApiEngineOption[] = [
-  { id: 'openai', label: 'OpenAI', provider: 'openai' },
+  { id: 'openai-mini', label: 'GPT-5.4 mini', provider: 'openai', model: 'gpt-5.4-mini' },
+  { id: 'openai-5-4', label: 'GPT-5.4', provider: 'openai', model: 'gpt-5.4' },
   { id: 'anthropic-haiku', label: 'Haiku 4.5', provider: 'anthropic', model: 'claude-haiku-4-5' },
   { id: 'anthropic-sonnet', label: 'Sonnet 4.6', provider: 'anthropic', model: 'claude-sonnet-4-6' },
 ];
 
 const isSponsorApiEngine = (v: unknown): v is SponsorApiEngine =>
-  v === 'openai' || v === 'anthropic-haiku' || v === 'anthropic-sonnet';
+  v === 'openai-mini' || v === 'openai-5-4' || v === 'anthropic-haiku' || v === 'anthropic-sonnet';
 
 export const engineToRequest = (
   engine: SponsorApiEngine
@@ -66,8 +67,10 @@ export const getSponsorApiEngine = async (): Promise<SponsorApiEngine> => {
   try {
     const stored = await AsyncStorage.getItem(SPONSOR_API_ENGINE_KEY);
     if (isSponsorApiEngine(stored)) return stored;
+    if (stored === 'openai') return 'openai-mini';
     // Migrate the older openai/anthropic provider setting (anthropic → Haiku).
     const legacy = await AsyncStorage.getItem(SPONSOR_API_PROVIDER_KEY);
+    if (legacy === 'openai') return 'openai-mini';
     if (legacy === 'anthropic') return 'anthropic-haiku';
     return DEFAULT_SPONSOR_API_ENGINE;
   } catch {

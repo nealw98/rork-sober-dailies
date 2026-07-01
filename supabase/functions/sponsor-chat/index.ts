@@ -45,8 +45,9 @@ interface RequestBody {
 
 const OPENAI_MODEL = Deno.env.get('SPONSOR_CHAT_MODEL') || 'gpt-5.4-mini';
 const ANTHROPIC_MODEL = Deno.env.get('SPONSOR_CHAT_ANTHROPIC_MODEL') || 'claude-haiku-4-5';
-// Allowlist for the client-selectable Anthropic model (public endpoint — never
-// trust an arbitrary model string, which could be an expensive model on our key).
+// Allowlists for client-selectable models (public endpoint — never trust an
+// arbitrary model string, which could be an expensive model on our key).
+const OPENAI_MODELS = ['gpt-5.4-mini', 'gpt-5.4'];
 const ANTHROPIC_MODELS = ['claude-haiku-4-5', 'claude-sonnet-4-6'];
 const DEFAULT_TEMPERATURE = numberFromEnv('SPONSOR_CHAT_TEMPERATURE', 0.8);
 const DEFAULT_MAX_OUTPUT_TOKENS = numberFromEnv('SPONSOR_CHAT_MAX_OUTPUT_TOKENS', 260);
@@ -183,6 +184,10 @@ function resolveAnthropicModel(requested: unknown): string {
   return typeof requested === 'string' && ANTHROPIC_MODELS.includes(requested) ? requested : ANTHROPIC_MODEL;
 }
 
+function resolveOpenAIModel(requested: unknown): string {
+  return typeof requested === 'string' && OPENAI_MODELS.includes(requested) ? requested : OPENAI_MODEL;
+}
+
 interface RequestContext {
   sponsor: { id: SponsorId; name: string; prompt: string };
   prompt: string;
@@ -245,6 +250,8 @@ async function callOpenAI(ctx: RequestContext): Promise<ProviderResult> {
     throw new Error('OPENAI_API_KEY is not configured for sponsor-chat.');
   }
 
+  const model = resolveOpenAIModel(ctx.requestedModel);
+
   const input = [
     { role: 'developer', content: ctx.prompt },
     ...ctx.conversation.map((item) => ({
@@ -261,7 +268,7 @@ async function callOpenAI(ctx: RequestContext): Promise<ProviderResult> {
       'content-type': 'application/json',
     },
     body: JSON.stringify({
-      model: OPENAI_MODEL,
+      model,
       input,
       temperature: ctx.temperature,
       max_output_tokens: ctx.maxOutputTokens,
@@ -282,7 +289,7 @@ async function callOpenAI(ctx: RequestContext): Promise<ProviderResult> {
   }
 
   return {
-    model: data?.model || OPENAI_MODEL,
+    model: data?.model || model,
     outputText: extractOpenAIText(data),
     usage: data?.usage || null,
   };
@@ -399,7 +406,7 @@ serve(async (req: Request) => {
         ok: true,
         defaultProvider: 'openai',
         providers: {
-          openai: { model: OPENAI_MODEL, hasApiKey: Boolean(OPENAI_API_KEY) },
+          openai: { model: OPENAI_MODEL, allowedModels: OPENAI_MODELS, hasApiKey: Boolean(OPENAI_API_KEY) },
           anthropic: { model: ANTHROPIC_MODEL, hasApiKey: Boolean(ANTHROPIC_API_KEY) },
         },
         sponsors: Object.entries(SPONSORS).map(([id, sponsor]) => ({ id, name: sponsor.name })),
@@ -436,7 +443,10 @@ serve(async (req: Request) => {
     await logUsage({
       anonymous_id: body?.anonymous_id || null,
       sponsor_id: getSponsor(body?.sponsorId).id,
-      model: getProvider(body?.provider) === 'anthropic' ? ANTHROPIC_MODEL : OPENAI_MODEL,
+      model:
+        getProvider(body?.provider) === 'anthropic'
+          ? resolveAnthropicModel(body?.model)
+          : resolveOpenAIModel(body?.model),
       request_status: 'error',
       error_message: message.slice(0, 500),
     });

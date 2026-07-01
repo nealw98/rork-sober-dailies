@@ -744,11 +744,13 @@ const styles = StyleSheet.create({
   devControlHeader: { flexDirection: 'row', alignItems: 'flex-start', gap: 12 },
   devSegment: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     gap: 8,
     marginTop: 12,
   },
   devSegmentBtn: {
-    flex: 1,
+    flexGrow: 1,
+    flexBasis: '47%',
     height: 38,
     borderRadius: 10,
     alignItems: 'center',
