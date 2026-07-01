@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { View, Text, Pressable, StyleSheet, Animated, Easing, FlatList, useWindowDimensions } from 'react-native';
 import { Image } from 'expo-image';
+import { Audio } from 'expo-av';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -241,10 +242,33 @@ export default function MeditationScreen() {
   };
 
 
+  // Single bell when the timer runs out (plays even in silent mode).
+  const bellRef = useRef<Audio.Sound | null>(null);
+  const playBell = async () => {
+    try {
+      await Audio.setAudioModeAsync({ playsInSilentModeIOS: true });
+      const { sound: bell } = await Audio.Sound.createAsync(
+        require('@/assets/soundreality-bell-fx-410608.mp3'),
+      );
+      bellRef.current = bell;
+      bell.setOnPlaybackStatusUpdate((status) => {
+        if (status.isLoaded && status.didJustFinish) {
+          bell.unloadAsync().catch(() => {});
+          if (bellRef.current === bell) bellRef.current = null;
+        }
+      });
+      await bell.playAsync();
+    } catch {
+      // A missing/failed bell must never break the timer.
+    }
+  };
+  useEffect(() => () => { bellRef.current?.unloadAsync().catch(() => {}); }, []);
+
   // countdown
   useEffect(() => {
     if (phase !== 'active' || paused) return;
     if (remaining <= 0) {
+      playBell();
       setDoneMin(minutes);
       setPhase('complete');
       return;
