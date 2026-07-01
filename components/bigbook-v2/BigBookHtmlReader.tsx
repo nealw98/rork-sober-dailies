@@ -9,7 +9,8 @@ import { Alert, BackHandler, Modal, Pressable, Share, StyleSheet, Text, View } f
 import { SafeAreaProvider, SafeAreaView, initialWindowMetrics, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { WebView, WebViewMessageEvent } from 'react-native-webview';
 import * as Clipboard from 'expo-clipboard';
-import { Bookmark as BookmarkIcon, ChevronLeft, ChevronRight, FileText } from 'lucide-react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Bookmark as BookmarkIcon, ChevronLeft, ChevronRight, FileText, X } from 'lucide-react-native';
 import { useTextSettings } from '@/hooks/use-text-settings';
 import { useBigBookContent } from '@/hooks/use-bigbook-content';
 import { useBigBookBookmarks } from '@/hooks/use-bigbook-bookmarks';
@@ -27,6 +28,7 @@ const ACCENT_INK = colors.steelDark;
 const HIGHLIGHT_COLOR = HighlightColor.YELLOW;
 const HL_FILL = '#FCE9A8';
 const HL_INK = '#7A5B12';
+const HINT_SEEN_KEY = 'bb_highlight_hint_seen';
 const SIZE_BUCKETS: { k: string; size: number }[] = [
   { k: 'S', size: 14 },
   { k: 'M', size: 18 },
@@ -180,22 +182,23 @@ function buildHtml(params: {
   .bb-highlight { background: ${HL_FILL}; border-radius: 3px; padding: 0 1px; }
   .search-hit { background: ${colors.primarySoft}; border-radius: 3px; }
   .bb-paragraph { cursor: text; }
-  .selection-toolbar { position: fixed; left: 16px; top: 16px; z-index: 9999; display: none; gap: 0; align-items: center; overflow: hidden; border-radius: 18px; background: rgba(255,255,255,0.98); box-shadow: 0 12px 28px rgba(0,0,0,0.18); border: 1px solid rgba(0,0,0,0.08); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+  .selection-toolbar { position: fixed; left: 16px; top: 16px; z-index: 9999; display: none; gap: 2px; align-items: stretch; padding: 6px; border-radius: 16px; background: rgba(255,255,255,0.99); box-shadow: 0 12px 30px rgba(0,0,0,0.20); border: 1px solid rgba(0,0,0,0.06); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
   .selection-toolbar.visible { display: flex; }
-  .selection-toolbar button { appearance: none; -webkit-appearance: none; border: 0; background: transparent; padding: 11px 13px 10px; color: ${c.text}; font-size: 13px; line-height: 16px; font-weight: 700; }
-  .selection-toolbar button + button { border-left: 1px solid ${c.divider}; }
-  .selection-toolbar button:first-child { color: ${HL_INK}; background: ${HL_FILL}; }
-  .footnote { margin: 22px 16px 0; padding: 12px 14px; border-radius: 12px; background: ${c.background}; color: ${c.textMuted}; text-align: center; font-size: 12px; line-height: 18px; font-style: italic; }
+  .selection-toolbar button { appearance: none; -webkit-appearance: none; border: 0; background: transparent; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; gap: 5px; min-width: 60px; padding: 9px 8px 7px; color: ${c.text}; font-size: 11px; line-height: 12px; font-weight: 600; border-radius: 11px; }
+  .selection-toolbar button:active { background: rgba(0,0,0,0.06); }
+  .selection-toolbar .ic { width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; }
+  .selection-toolbar .ic svg { width: 21px; height: 21px; display: block; }
+  .selection-toolbar .ic, .selection-toolbar .ic * { pointer-events: none; }
+  .selection-toolbar .hl-swatch { width: 20px; height: 20px; border-radius: 50%; background: ${HL_FILL}; border: 1.5px solid #E6C766; box-sizing: border-box; }
 </style>
 </head>
 <body>
   <div id="selection-toolbar" class="selection-toolbar" aria-hidden="true">
-    <button data-action="highlight" type="button">Highlight</button>
-    <button data-action="copy" type="button">Copy</button>
-    <button data-action="share" type="button">Share</button>
+    <button data-action="highlight" type="button"><span class="ic"><span class="hl-swatch"></span></span>Highlight</button>
+    <button data-action="copy" type="button"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg></span>Copy</button>
+    <button data-action="share" type="button"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15V3"/><path d="M8.5 6.5L12 3l3.5 3.5"/><path d="M5 12v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6"/></svg></span>Share</button>
   </div>
   ${body}
-  <div class="footnote">Select a passage to highlight, copy, or share it.</div>
 <script>
   window.__savedHighlights = ${JSON.stringify(rangeHighlights)};
   window.__searchTerm = ${JSON.stringify(params.searchTerm || '')};
@@ -411,7 +414,10 @@ function buildHtml(params: {
   toolbar.addEventListener('mousedown', (event) => event.preventDefault());
   toolbar.addEventListener('touchend', runSelectionAction);
   toolbar.addEventListener('click', runSelectionAction);
-  document.addEventListener('selectionchange', () => clearTimeout(window.__selectionTimer));
+  document.addEventListener('selectionchange', () => {
+    clearTimeout(window.__selectionTimer);
+    window.__selectionTimer = setTimeout(readSelection, 260);
+  });
   document.addEventListener('touchend', () => { clearTimeout(window.__selectionTimer); window.__selectionTimer = setTimeout(readSelection, 180); });
   document.addEventListener('mouseup', () => { clearTimeout(window.__selectionTimer); window.__selectionTimer = setTimeout(readSelection, 120); });
   window.addEventListener('scroll', () => { hideSelectionToolbar(true); clearTimeout(window.__pageTimer); window.__pageTimer = setTimeout(currentPage, 100); });
@@ -440,6 +446,18 @@ export function BigBookHtmlReader({ visible, initialChapterId, scrollToPage, sea
   const [showHighlightEditMenu, setShowHighlightEditMenu] = useState(false);
   const [showDisplaySheet, setShowDisplaySheet] = useState(false);
   const [renderVersion, setRenderVersion] = useState(0);
+  const [showHint, setShowHint] = useState(false);
+
+  // First-use hint: teach the press-and-hold gesture once, then never again.
+  useEffect(() => {
+    AsyncStorage.getItem(HINT_SEEN_KEY)
+      .then((v) => { if (v !== '1') setShowHint(true); })
+      .catch(() => {});
+  }, []);
+  const dismissHint = useCallback(() => {
+    setShowHint(false);
+    AsyncStorage.setItem(HINT_SEEN_KEY, '1').catch(() => {});
+  }, []);
 
   const meta = currentChapterId ? getChapterMeta(currentChapterId) : undefined;
   const useRoman = meta?.useRomanNumerals || false;
@@ -675,7 +693,20 @@ export function BigBookHtmlReader({ visible, initialChapterId, scrollToPage, sea
             onMessage={handleWebMessage}
             javaScriptEnabled
             allowsLinkPreview={false}
+            // Suppress the native iOS selection menu (Copy/Look Up/Translate) so
+            // only our custom Kindle-style toolbar shows. Empty = no native items.
+            menuItems={[]}
+            onCustomMenuSelection={() => {}}
           />
+
+          {showHint && (
+            <View style={styles.hintBar}>
+              <Text style={styles.hintText}>Press and hold any passage to highlight, copy, or share it.</Text>
+              <Pressable onPress={dismissHint} hitSlop={10} style={styles.hintClose} accessibilityRole="button" accessibilityLabel="Dismiss tip">
+                <X size={16} color="#fff" strokeWidth={2.4} />
+              </Pressable>
+            </View>
+          )}
 
           <View style={styles.footer}>
             <Pressable onPress={goToPreviousChapter} style={styles.navBtn} hitSlop={8}>
@@ -769,6 +800,9 @@ const styles = StyleSheet.create({
   textSizeLabel: { fontFamily: fontFamily.bold, fontSize: 12.5, color: c.textSecondary, letterSpacing: -0.2 },
   bmBtn: { width: 30, height: 30, borderRadius: 15, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
   webView: { flex: 1, backgroundColor: PAPER },
+  hintBar: { flexDirection: 'row', alignItems: 'center', gap: 12, marginHorizontal: 12, marginBottom: 8, backgroundColor: ACCENT_INK, borderRadius: 14, paddingVertical: 12, paddingLeft: 16, paddingRight: 10 },
+  hintText: { flex: 1, color: '#fff', fontFamily: fontFamily.medium, fontSize: 13, lineHeight: 18 },
+  hintClose: { width: 28, height: 28, borderRadius: 14, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(255,255,255,0.18)' },
   footer: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingTop: 8, borderTopWidth: 1, borderTopColor: c.divider },
   navBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingVertical: 6 },
   navText: { fontFamily: fontFamily.semiBold, fontSize: 13.5, color: ACCENT_INK },

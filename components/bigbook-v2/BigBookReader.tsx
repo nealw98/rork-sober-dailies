@@ -273,7 +273,6 @@ export function BigBookReader({ visible, initialChapterId, scrollToParagraphId, 
                 );
               })}
 
-              <Text style={styles.footnote}>Tap any sentence with Highlight on to mark it. Bookmarks save your place automatically.</Text>
               <Text style={styles.copyright}>Copyright © Alcoholics Anonymous World Services, Inc.</Text>
             </ScrollView>
           </View>
@@ -323,7 +322,6 @@ const styles = StyleSheet.create({
 
   body: { flex: 1 },
   content: { paddingHorizontal: 26, paddingTop: 16, paddingBottom: 32 },
-  footnote: { fontFamily: fontFamily.serifItalic, fontSize: 12, lineHeight: 18, color: c.textMuted, textAlign: 'center', marginTop: 18, paddingHorizontal: 16, paddingVertical: 12, backgroundColor: c.background, borderRadius: 12 },
   copyright: { fontFamily: fontFamily.regular, fontSize: 10, color: c.textMuted, textAlign: 'center', marginTop: 14 },
 
   footer: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingTop: 8, borderTopWidth: 1, borderTopColor: c.divider },
