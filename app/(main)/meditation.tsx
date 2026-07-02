@@ -210,16 +210,17 @@ export default function MeditationScreen() {
   const isCustom = !PRESETS.includes(minutes);
 
   // Scenes — from Supabase when loaded, else the bundled defaults so the carousel
-  // is never empty. The selected scene drives the background still.
+  // is never empty. The selected scene drives the background still + soundtrack.
   const scenes = useMeditationScenes();
   const sceneList = Object.values(scenes);
   const carouselScenes: MeditationScene[] =
     sceneList.length > 0
       ? sceneList
       : SOUNDS.map((s) => ({ key: s.id, name: s.label, stillUri: null, animatedUri: null, audioUri: null }));
-  const sceneStill = scenes[sound]?.stillUri ?? null;
-  const sceneAnimated = scenes[sound]?.animatedUri ?? null; // animated webp/video, if any
   const currentScene = carouselScenes.find((s) => s.key === sound);
+  const sceneStill = currentScene?.stillUri ?? null;
+  const sceneAnimated = currentScene?.animatedUri ?? null; // animated webp/video, if any
+  const sceneAudioUri = currentScene?.audioUri ?? null;
 
   // Ken Burns — slow continuous pan/zoom that gives the still life.
   const kb = useRef(new Animated.Value(0)).current;
@@ -263,6 +264,39 @@ export default function MeditationScreen() {
     }
   };
   useEffect(() => () => { bellRef.current?.unloadAsync().catch(() => {}); }, []);
+
+  // Looping scene soundtrack — plays the selected scene's audio for the whole sit,
+  // looping to fill any length, and stops when the sit ends or the screen leaves.
+  const sceneSoundRef = useRef<Audio.Sound | null>(null);
+  useEffect(() => {
+    if (phase !== 'active' || !sceneAudioUri) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        await Audio.setAudioModeAsync({ playsInSilentModeIOS: true });
+        const { sound: s } = await Audio.Sound.createAsync({ uri: sceneAudioUri }, { isLooping: true, shouldPlay: true });
+        if (cancelled) { s.unloadAsync().catch(() => {}); return; }
+        sceneSoundRef.current = s;
+      } catch {
+        // A missing/failed soundtrack must never break the sit.
+      }
+    })();
+    return () => {
+      cancelled = true;
+      const s = sceneSoundRef.current;
+      sceneSoundRef.current = null;
+      s?.unloadAsync().catch(() => {});
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [phase, sceneAudioUri]);
+
+  // Pause/resume the soundtrack alongside the timer, without reloading it.
+  useEffect(() => {
+    const s = sceneSoundRef.current;
+    if (!s) return;
+    if (paused) s.pauseAsync().catch(() => {});
+    else s.playAsync().catch(() => {});
+  }, [paused]);
 
   // countdown
   useEffect(() => {
