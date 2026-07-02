@@ -28,11 +28,13 @@ export const SOUND_LABEL: Record<SoundId, string> = {
 interface MeditationSettings {
   source: 'timer' | 'youtube' | 'app' | null; // null = unconfigured → timer
   hintSeen: boolean;
-  timer: { minutes: number; sound: string }; // sound = selected scene key (dynamic)
+  timer: { minutes: number; sound: string; volume: number }; // sound = scene key; volume 0..1
 }
 
 const KEY = 'meditation_settings';
-const DEFAULT: MeditationSettings = { source: null, hintSeen: false, timer: { minutes: 10, sound: 'silence' } };
+// Soundtracks are mastered loud — start gentle (0.35) so a background scene never
+// overwhelms; the in-sit volume slider persists any change from here.
+const DEFAULT: MeditationSettings = { source: null, hintSeen: false, timer: { minutes: 10, sound: 'silence', volume: 0.35 } };
 
 export const [MeditationProvider, useMeditation] = createContextHook(() => {
   const [settings, setSettings] = useState<MeditationSettings>(DEFAULT);

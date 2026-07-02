@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { View, Text, Pressable, StyleSheet, Animated, Easing, FlatList, useWindowDimensions } from 'react-native';
+import { View, Text, Pressable, StyleSheet, Animated, Easing, FlatList, PanResponder, useWindowDimensions } from 'react-native';
 import { Image } from 'expo-image';
 import { Audio } from 'expo-av';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -7,7 +7,7 @@ import { StatusBar } from 'expo-status-bar';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import Svg, { Circle, Defs, LinearGradient as SvgGradient, Stop } from 'react-native-svg';
-import { ChevronLeft, Play, Pause, Plus, Minus, X } from 'lucide-react-native';
+import { ChevronLeft, Play, Pause, Plus, Minus, X, Volume1, Volume2 } from 'lucide-react-native';
 
 import { fontFamily } from '@/constants/designTokens';
 import { useMeditation, SOUNDS } from '@/hooks/use-meditation-store';
@@ -125,6 +125,42 @@ function Stepper({ value, onChange }: { value: number; onChange: (n: number) => 
   );
 }
 
+// Drag-anywhere volume slider (PanResponder — no native dep, so this stays OTA-able).
+// onChange fires live during the drag (for immediate audible feedback); onComplete
+// fires once on release with the final value (for persistence).
+function VolumeSlider({ value, onChange, onComplete }: { value: number; onChange: (v: number) => void; onComplete: (v: number) => void }) {
+  const trackW = useRef(0);
+  const last = useRef(value);
+  const apply = (x: number) => {
+    const w = trackW.current || 1;
+    const v = Math.max(0, Math.min(1, x / w));
+    last.current = v;
+    onChange(v);
+  };
+  const responder = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => true,
+      onMoveShouldSetPanResponder: () => true,
+      onPanResponderGrant: (e) => apply(e.nativeEvent.locationX),
+      onPanResponderMove: (e) => apply(e.nativeEvent.locationX),
+      onPanResponderRelease: () => onComplete(last.current),
+      onPanResponderTerminate: () => onComplete(last.current),
+    }),
+  ).current;
+  const pct = `${Math.round(value * 100)}%` as `${number}%`;
+  return (
+    <View style={styles.volRow}>
+      <Volume1 size={16} color={TH.ink2} strokeWidth={2} />
+      <View style={styles.volTrack} onLayout={(e) => { trackW.current = e.nativeEvent.layout.width; }} {...responder.panHandlers}>
+        <View style={styles.volBar} />
+        <View style={[styles.volFill, { width: pct }]} />
+        <View style={[styles.volKnob, { left: pct }]} />
+      </View>
+      <Volume2 size={18} color={TH.ink2} strokeWidth={2} />
+    </View>
+  );
+}
+
 function TopBar({ onClose }: { onClose: () => void }) {
   return (
     <View style={styles.topBar}>
@@ -207,6 +243,9 @@ export default function MeditationScreen() {
   const [paused, setPaused] = useState(false);
   const [doneMin, setDoneMin] = useState(cfg.minutes);
   const [hintDismissed, setHintDismissed] = useState(false);
+  const [volume, setVolume] = useState(cfg.volume ?? 0.35);
+  const volumeRef = useRef(volume);
+  volumeRef.current = volume;
   const isCustom = !PRESETS.includes(minutes);
 
   // Scenes — from Supabase when loaded, else the bundled defaults so the carousel
@@ -274,7 +313,7 @@ export default function MeditationScreen() {
     (async () => {
       try {
         await Audio.setAudioModeAsync({ playsInSilentModeIOS: true });
-        const { sound: s } = await Audio.Sound.createAsync({ uri: sceneAudioUri }, { isLooping: true, shouldPlay: true });
+        const { sound: s } = await Audio.Sound.createAsync({ uri: sceneAudioUri }, { isLooping: true, shouldPlay: true, volume: volumeRef.current });
         if (cancelled) { s.unloadAsync().catch(() => {}); return; }
         sceneSoundRef.current = s;
       } catch {
@@ -298,6 +337,11 @@ export default function MeditationScreen() {
     else s.playAsync().catch(() => {});
   }, [paused]);
 
+  // Live volume — apply slider changes to the playing soundtrack immediately.
+  useEffect(() => {
+    sceneSoundRef.current?.setVolumeAsync(volume).catch(() => {});
+  }, [volume]);
+
   // countdown
   useEffect(() => {
     if (phase !== 'active' || paused) return;
@@ -313,7 +357,7 @@ export default function MeditationScreen() {
   }, [phase, paused, remaining]);
 
   const begin = () => {
-    med.setTimer({ minutes, sound });
+    med.setTimer({ minutes, sound, volume });
     if (firstTime) med.markHintSeen();
     setRemaining(minutes * 60);
     setPaused(false);
@@ -424,6 +468,9 @@ export default function MeditationScreen() {
               ) : (
                 <View style={{ height: 35 }} />
               )}
+              {sceneAudioUri ? (
+                <VolumeSlider value={volume} onChange={setVolume} onComplete={(v) => med.setTimer({ volume: v })} />
+              ) : null}
             </View>
             <View style={styles.controls}>
               <Pressable style={styles.endBtn} onPress={endEarly} accessibilityLabel="End">
@@ -512,6 +559,12 @@ const styles = StyleSheet.create({
   breatheLabel: { fontFamily: fontFamily.semiBold, fontSize: 12.5, letterSpacing: 2.5, color: TH.ink2 },
   soundPill: { flexDirection: 'row', alignItems: 'center', gap: 9, paddingVertical: 8, paddingHorizontal: 16, borderRadius: 999, backgroundColor: TH.soundSelBg, borderWidth: 1, borderColor: TH.soundSelBorder },
   soundPillText: { fontFamily: fontFamily.semiBold, fontSize: 13, color: TH.ink },
+
+  volRow: { flexDirection: 'row', alignItems: 'center', gap: 12, width: 240, alignSelf: 'center' },
+  volTrack: { flex: 1, height: 34, justifyContent: 'center' },
+  volBar: { position: 'absolute', left: 0, right: 0, top: 15, height: 4, borderRadius: 2, backgroundColor: TH.ringTrack },
+  volFill: { position: 'absolute', left: 0, top: 15, height: 4, borderRadius: 2, backgroundColor: TH.ink },
+  volKnob: { position: 'absolute', top: 8, width: 18, height: 18, borderRadius: 9, marginLeft: -9, backgroundColor: TH.ink },
 
   controls: { paddingHorizontal: 22, paddingBottom: 34, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 22 },
   endBtn: { width: 60, height: 60, borderRadius: 30, borderWidth: 1, borderColor: TH.ghostBorder, backgroundColor: TH.glassBg, alignItems: 'center', justifyContent: 'center' },
