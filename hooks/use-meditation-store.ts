@@ -29,12 +29,18 @@ interface MeditationSettings {
   source: 'timer' | 'youtube' | 'app' | null; // null = unconfigured → timer
   hintSeen: boolean;
   timer: { minutes: number; sound: string; volume: number }; // sound = scene key; volume 0..1
+  playOutsidePage: boolean; // keep the scene playing when you leave the meditation page
 }
 
 const KEY = 'meditation_settings';
 // Soundtracks are mastered loud — start gentle (0.35) so a background scene never
-// overwhelms; the in-sit volume slider persists any change from here.
-const DEFAULT: MeditationSettings = { source: null, hintSeen: false, timer: { minutes: 10, sound: 'silence', volume: 0.35 } };
+// overwhelms; the Scene Volume slider persists any change from here.
+const DEFAULT: MeditationSettings = {
+  source: null,
+  hintSeen: false,
+  timer: { minutes: 10, sound: 'silence', volume: 0.35 },
+  playOutsidePage: false,
+};
 
 export const [MeditationProvider, useMeditation] = createContextHook(() => {
   const [settings, setSettings] = useState<MeditationSettings>(DEFAULT);
@@ -70,8 +76,13 @@ export const [MeditationProvider, useMeditation] = createContextHook(() => {
 
   const markHintSeen = useCallback(() => update((p) => ({ ...p, hintSeen: true })), [update]);
 
+  const setPlayOutsidePage = useCallback(
+    (v: boolean) => update((p) => ({ ...p, playOutsidePage: v })),
+    [update],
+  );
+
   return useMemo(
-    () => ({ settings, isLoading, setTimer, markHintSeen }),
-    [settings, isLoading, setTimer, markHintSeen],
+    () => ({ settings, isLoading, setTimer, markHintSeen, setPlayOutsidePage }),
+    [settings, isLoading, setTimer, markHintSeen, setPlayOutsidePage],
   );
 });

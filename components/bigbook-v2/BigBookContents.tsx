@@ -270,8 +270,8 @@ export function BigBookContents({ onOpenText, onOpenPdf }: {
               value={pageInput}
               onChangeText={setPageInput}
               keyboardType="number-pad"
-              placeholder="58"
-              placeholderTextColor={c.textMuted}
+              placeholder="e.g., 58"
+              placeholderTextColor="#B7B9C0"
               style={styles.goToInput}
               autoFocus
               returnKeyType="go"

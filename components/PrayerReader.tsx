@@ -25,21 +25,29 @@ import { aaPrayers } from '@/constants/prayers';
 import { useScreenTimeTracking } from '@/hooks/useScreenTimeTracking';
 import { ResolvedPalette } from '@/types/theme';
 
+interface ReaderPrayer {
+  title: string;
+  content: string;
+  source?: string;
+}
+
 interface PrayerReaderProps {
   visible: boolean;
   prayerIndex: number;
   onClose: () => void;
   onPrayerChange: (index: number) => void;
   palette: ResolvedPalette;
+  // The full list to read/navigate; defaults to the built-in AA prayers.
+  prayers?: ReaderPrayer[];
 }
 
-export function PrayerReader({ visible, prayerIndex, onClose, onPrayerChange, palette }: PrayerReaderProps) {
+export function PrayerReader({ visible, prayerIndex, onClose, onPrayerChange, palette, prayers = aaPrayers }: PrayerReaderProps) {
   const insets = useSafeAreaInsets();
   const { fontSize, lineHeight } = useTextSettings();
   const scrollViewRef = useRef<ScrollView>(null);
   
   // Get current prayer for tracking
-  const currentPrayer = aaPrayers[prayerIndex];
+  const currentPrayer = prayers[prayerIndex];
   const prayerTitle = currentPrayer?.title || 'Prayer';
   
   // Track screen time for individual prayers (only when visible)
@@ -74,10 +82,10 @@ export function PrayerReader({ visible, prayerIndex, onClose, onPrayerChange, pa
   }, [visible, prayerIndex]);
   
   const hasPrevious = prayerIndex > 0;
-  const hasNext = prayerIndex < aaPrayers.length - 1;
+  const hasNext = prayerIndex < prayers.length - 1;
   
-  const previousPrayer = hasPrevious ? aaPrayers[prayerIndex - 1] : null;
-  const nextPrayer = hasNext ? aaPrayers[prayerIndex + 1] : null;
+  const previousPrayer = hasPrevious ? prayers[prayerIndex - 1] : null;
+  const nextPrayer = hasNext ? prayers[prayerIndex + 1] : null;
 
   // Handle Android back button
   useEffect(() => {

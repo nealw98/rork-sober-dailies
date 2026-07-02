@@ -4,22 +4,23 @@ import { Audio } from 'expo-av';
 import createContextHook from '@nkzw/create-context-hook';
 
 /**
- * Global meditation session (timer + looping soundtrack + completion bell).
+ * Global meditation session — two decoupled layers (Calm-style):
  *
- * Lives at the app root (_layout.tsx), NOT in the meditation screen, so a sit
- * keeps running — audio playing, timer counting — while you navigate away, lock
- * the phone, or background the app. It stops only on pause, stop/Done, or when
- * the app is killed. Mirrors the background-audio setup in useGlobalAudioPlayer
- * (staysActiveInBackground + re-applying the audio mode on every foreground).
+ *  1. AMBIENCE: the looping scene soundtrack. It's the "space" you're in, tied to
+ *     the meditation SCREEN and the selected scene — NOT to the timer. The screen
+ *     starts it on focus / scene change and stops it on blur (navigating away), so
+ *     it never bleeds into the rest of the app. Because it's owned here at the root
+ *     with background audio enabled, it keeps playing while the phone is locked /
+ *     app is backgrounded (you're still "on" the meditation screen navigationally).
  *
- * The countdown is anchored to an absolute end timestamp rather than a per-second
- * decrement, so it stays accurate even though JS timers freeze while backgrounded.
+ *  2. TIMER: the countdown + completion bell. Controlled ONLY by begin/pause/stop.
+ *     Pausing or stopping the timer does not touch the ambience. The countdown is
+ *     anchored to an absolute end timestamp, so it stays accurate across backgrounding.
  */
 
 export type SessionPhase = 'ready' | 'active' | 'complete';
 
-export interface BeginOpts {
-  minutes: number;
+export interface AmbienceOpts {
   sceneKey: string;
   sceneName: string | null;
   audioUri: string | null;
@@ -38,19 +39,23 @@ const applyAudioMode = () =>
   }).catch(() => {});
 
 export const [MeditationSessionProvider, useMeditationSession] = createContextHook(() => {
+  // Timer layer
   const [phase, setPhase] = useState<SessionPhase>('ready');
   const [minutes, setMinutes] = useState(0);
   const [remaining, setRemaining] = useState(0);
   const [paused, setPaused] = useState(false);
+  const [doneMin, setDoneMin] = useState(0);
+
+  // Ambience layer
   const [sceneKey, setSceneKey] = useState<string | null>(null);
   const [sceneName, setSceneName] = useState<string | null>(null);
   const [volume, setVolumeState] = useState(0.35);
-  const [doneMin, setDoneMin] = useState(0);
 
-  const soundRef = useRef<Audio.Sound | null>(null);
+  const soundRef = useRef<Audio.Sound | null>(null); // the looping ambience
+  const ambienceUriRef = useRef<string | null>(null);
+  const ambienceTokenRef = useRef(0); // invalidates in-flight loads on swap/stop
   const bellRef = useRef<Audio.Sound | null>(null);
   const endAtRef = useRef<number | null>(null); // ms timestamp the sit ends at
-  const audioTokenRef = useRef(0); // invalidates in-flight loads on stop/restart
 
   const phaseRef = useRef(phase);
   phaseRef.current = phase;
@@ -60,11 +65,66 @@ export const [MeditationSessionProvider, useMeditationSession] = createContextHo
   remainingRef.current = remaining;
   const minutesRef = useRef(minutes);
   minutesRef.current = minutes;
+  const volumeRef = useRef(volume);
+  volumeRef.current = volume;
 
+  // ─── Ambience ──────────────────────────────────────────────────────────────
+  const stopAmbience = useCallback(async () => {
+    ambienceTokenRef.current += 1; // any in-flight load will bail
+    ambienceUriRef.current = null;
+    const s = soundRef.current;
+    soundRef.current = null;
+    if (s) await s.unloadAsync().catch(() => {});
+  }, []);
+
+  // Start (or swap to) the ambience for a scene. Idempotent: re-calling with the
+  // scene that's already loaded just resumes it (no reload gap on re-focus).
+  const startAmbience = useCallback(
+    async (opts: AmbienceOpts) => {
+      setSceneKey(opts.sceneKey);
+      setSceneName(opts.sceneName);
+      setVolumeState(opts.volume);
+
+      if (!opts.audioUri) {
+        await stopAmbience();
+        return;
+      }
+      if (ambienceUriRef.current === opts.audioUri && soundRef.current) {
+        soundRef.current.playAsync().catch(() => {});
+        return;
+      }
+      await stopAmbience();
+      const token = ++ambienceTokenRef.current;
+      ambienceUriRef.current = opts.audioUri;
+      try {
+        applyAudioMode();
+        const { sound } = await Audio.Sound.createAsync(
+          { uri: opts.audioUri },
+          { isLooping: true, shouldPlay: true, volume: opts.volume },
+        );
+        if (ambienceTokenRef.current !== token) {
+          sound.unloadAsync().catch(() => {});
+          return;
+        }
+        soundRef.current = sound;
+      } catch {
+        // A missing/failed soundtrack must never break the screen.
+      }
+    },
+    [stopAmbience],
+  );
+
+  const setVolume = useCallback((v: number) => {
+    setVolumeState(v);
+    soundRef.current?.setVolumeAsync(v).catch(() => {});
+  }, []);
+
+  // ─── Timer ─────────────────────────────────────────────────────────────────
   const playBell = useCallback(async () => {
     try {
       applyAudioMode();
-      const { sound } = await Audio.Sound.createAsync(BELL);
+      // Bell follows the scene volume so it isn't jarring at low levels.
+      const { sound } = await Audio.Sound.createAsync(BELL, { volume: volumeRef.current });
       bellRef.current = sound;
       sound.setOnPlaybackStatusUpdate((s) => {
         if (s.isLoaded && s.didJustFinish) {
@@ -78,17 +138,10 @@ export const [MeditationSessionProvider, useMeditationSession] = createContextHo
     }
   }, []);
 
-  const unloadSoundtrack = useCallback(async () => {
-    audioTokenRef.current += 1; // any in-flight load will see the token changed and bail
-    const s = soundRef.current;
-    soundRef.current = null;
-    if (s) await s.unloadAsync().catch(() => {});
-  }, []);
-
   const complete = useCallback(() => {
     endAtRef.current = null;
     setDoneMin(minutesRef.current);
-    setPhase('complete'); // NOTE: soundtrack keeps playing through the complete screen
+    setPhase('complete');
     playBell();
   }, [playBell]);
 
@@ -101,7 +154,6 @@ export const [MeditationSessionProvider, useMeditationSession] = createContextHo
     if (rem <= 0) complete();
   }, [complete]);
 
-  // Countdown loop — runs at the provider level so it survives screen unmounts.
   useEffect(() => {
     if (phase !== 'active' || paused) return;
     tick();
@@ -109,8 +161,8 @@ export const [MeditationSessionProvider, useMeditationSession] = createContextHo
     return () => clearInterval(id);
   }, [phase, paused, tick]);
 
-  // Keep the audio session alive across interruptions and catch the timer up when
-  // returning to the foreground (JS timers are frozen while the app is backgrounded).
+  // Keep the audio session alive across interruptions; catch the timer up on the
+  // return to foreground (JS timers freeze while backgrounded).
   useEffect(() => {
     applyAudioMode();
     const sub = AppState.addEventListener('change', (st) => {
@@ -122,7 +174,6 @@ export const [MeditationSessionProvider, useMeditationSession] = createContextHo
     return () => sub.remove();
   }, [tick]);
 
-  // Final safety net if the whole app tree tears down.
   useEffect(
     () => () => {
       soundRef.current?.unloadAsync().catch(() => {});
@@ -131,66 +182,33 @@ export const [MeditationSessionProvider, useMeditationSession] = createContextHo
     [],
   );
 
-  const begin = useCallback(
-    async (opts: BeginOpts) => {
-      await unloadSoundtrack();
-      minutesRef.current = opts.minutes;
-      setMinutes(opts.minutes);
-      setDoneMin(opts.minutes);
-      setSceneKey(opts.sceneKey);
-      setSceneName(opts.sceneName);
-      setVolumeState(opts.volume);
-      setPaused(false);
-      setRemaining(opts.minutes * 60);
-      endAtRef.current = Date.now() + opts.minutes * 60 * 1000;
-      setPhase('active');
-
-      if (opts.audioUri) {
-        const token = ++audioTokenRef.current;
-        try {
-          applyAudioMode();
-          const { sound } = await Audio.Sound.createAsync(
-            { uri: opts.audioUri },
-            { isLooping: true, shouldPlay: true, volume: opts.volume },
-          );
-          if (audioTokenRef.current !== token) {
-            sound.unloadAsync().catch(() => {});
-            return;
-          }
-          soundRef.current = sound;
-        } catch {
-          // A missing/failed soundtrack must never break the sit.
-        }
-      }
-    },
-    [unloadSoundtrack],
-  );
+  // Begin only starts the countdown — the ambience is already playing on its own.
+  const begin = useCallback((mins: number) => {
+    minutesRef.current = mins;
+    setMinutes(mins);
+    setDoneMin(mins);
+    setPaused(false);
+    setRemaining(mins * 60);
+    endAtRef.current = Date.now() + mins * 60 * 1000;
+    setPhase('active');
+  }, []);
 
   const setPausedTo = useCallback((p: boolean) => {
     setPaused(p);
-    if (p) {
-      endAtRef.current = null; // freeze; remaining is preserved in state
-      soundRef.current?.pauseAsync().catch(() => {});
-    } else {
-      endAtRef.current = Date.now() + remainingRef.current * 1000;
-      soundRef.current?.playAsync().catch(() => {});
-    }
+    // Pause only the COUNTDOWN — the ambience keeps flowing.
+    endAtRef.current = p ? null : Date.now() + remainingRef.current * 1000;
   }, []);
 
   const togglePause = useCallback(() => setPausedTo(!pausedRef.current), [setPausedTo]);
 
-  // Stop = end the sit and drop the soundtrack, back to setup (no complete screen).
-  const stop = useCallback(async () => {
+  // Stop the countdown, back to setup. Ambience is untouched (you're still here).
+  const stop = useCallback(() => {
     endAtRef.current = null;
     setPaused(false);
     setPhase('ready');
     setRemaining(0);
-    setSceneKey(null);
-    setSceneName(null);
-    await unloadSoundtrack();
-  }, [unloadSoundtrack]);
+  }, []);
 
-  // From the complete screen — keep the (already playing) soundtrack, restart 5 min.
   const sitLonger = useCallback(() => {
     const m = 5;
     minutesRef.current = m;
@@ -200,12 +218,6 @@ export const [MeditationSessionProvider, useMeditationSession] = createContextHo
     setRemaining(m * 60);
     endAtRef.current = Date.now() + m * 60 * 1000;
     setPhase('active');
-    soundRef.current?.playAsync().catch(() => {});
-  }, []);
-
-  const setVolume = useCallback((v: number) => {
-    setVolumeState(v);
-    soundRef.current?.setVolumeAsync(v).catch(() => {});
   }, []);
 
   return useMemo(
@@ -214,16 +226,18 @@ export const [MeditationSessionProvider, useMeditationSession] = createContextHo
       minutes,
       remaining,
       paused,
+      doneMin,
       sceneKey,
       sceneName,
       volume,
-      doneMin,
+      startAmbience,
+      stopAmbience,
+      setVolume,
       begin,
       togglePause,
       stop,
       sitLonger,
-      setVolume,
     }),
-    [phase, minutes, remaining, paused, sceneKey, sceneName, volume, doneMin, begin, togglePause, stop, sitLonger, setVolume],
+    [phase, minutes, remaining, paused, doneMin, sceneKey, sceneName, volume, startAmbience, stopAmbience, setVolume, begin, togglePause, stop, sitLonger],
   );
 });

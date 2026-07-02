@@ -57,6 +57,7 @@ import { GratitudeProvider } from "@/hooks/use-gratitude-store";
 import { DailiesProvider } from "@/hooks/use-dailies-store";
 import { MeditationProvider } from "@/hooks/use-meditation-store";
 import { MeditationSessionProvider } from "@/hooks/use-meditation-session";
+import { UserPrayersProvider } from "@/hooks/use-user-prayers-store";
 import { OnboardingProvider, useOnboarding } from "@/hooks/useOnboardingStore";
 import { SobrietyProvider } from "@/hooks/useSobrietyStore";
 import { EveningReviewProvider } from "@/hooks/use-evening-review-store";
@@ -373,6 +374,7 @@ export default function RootLayout() {
                     <DailiesProvider>
                     <MeditationProvider>
                     <MeditationSessionProvider>
+                    <UserPrayersProvider>
                     <EveningReviewProvider>
                     <MeetingsProvider>
                     <JournalProvider>
@@ -409,6 +411,7 @@ export default function RootLayout() {
                     </JournalProvider>
                     </MeetingsProvider>
                     </EveningReviewProvider>
+                    </UserPrayersProvider>
                     </MeditationSessionProvider>
                     </MeditationProvider>
                     </DailiesProvider>

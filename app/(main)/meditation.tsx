@@ -1,12 +1,12 @@
-import React, { useEffect, useRef, useState } from 'react';
-import { View, Text, Pressable, StyleSheet, Animated, Easing, FlatList, PanResponder, useWindowDimensions } from 'react-native';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { View, Text, TextInput, Pressable, StyleSheet, Animated, Easing, FlatList, PanResponder, Switch, Keyboard, useWindowDimensions } from 'react-native';
 import { Image } from 'expo-image';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useRouter } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router';
 import Svg, { Circle, Defs, LinearGradient as SvgGradient, Stop } from 'react-native-svg';
-import { ChevronLeft, Play, Pause, Plus, Minus, X, Volume1, Volume2 } from 'lucide-react-native';
+import { ChevronLeft, Play, Pause, Plus, Minus, X, Volume1, Volume2, SlidersHorizontal } from 'lucide-react-native';
 
 import { fontFamily } from '@/constants/designTokens';
 import { useMeditation, SOUNDS } from '@/hooks/use-meditation-store';
@@ -109,15 +109,37 @@ function Chip({ label, on, onPress, wide }: { label: string; on: boolean; onPres
   );
 }
 
+// Custom length: type a value in the field OR nudge it with +/-. Both paths clamp
+// to 1–90. The field keeps its own text while editing (so it can be briefly empty)
+// and commits a clamped number on blur/submit.
 function Stepper({ value, onChange }: { value: number; onChange: (n: number) => void }) {
+  const [text, setText] = useState(String(value));
+  useEffect(() => { setText(String(value)); }, [value]);
+  const commit = () => {
+    const n = parseInt(text, 10);
+    const clamped = clampMin(Number.isFinite(n) ? n : value);
+    setText(String(clamped));
+    onChange(clamped);
+  };
   return (
     <View style={styles.stepper}>
       <Pressable style={styles.stepBtn} onPress={() => onChange(clampMin(value - 1))}>
         <Minus size={17} color={TH.ink} strokeWidth={2.4} />
       </Pressable>
-      <View style={styles.stepValue}>
-        <Text style={styles.stepNum}>{value}</Text>
-      </View>
+      <TextInput
+        style={styles.stepInput}
+        value={text}
+        onChangeText={(t) => setText(t.replace(/[^0-9]/g, '').slice(0, 2))}
+        onEndEditing={commit}
+        onBlur={commit}
+        keyboardType="number-pad"
+        returnKeyType="done"
+        maxLength={2}
+        selectTextOnFocus
+        textAlign="center"
+        selectionColor={TH.ink}
+        accessibilityLabel="Custom minutes"
+      />
       <Pressable style={styles.stepBtn} onPress={() => onChange(clampMin(value + 1))}>
         <Plus size={17} color={TH.ink} strokeWidth={2.4} />
       </Pressable>
@@ -161,14 +183,16 @@ function VolumeSlider({ value, onChange, onComplete }: { value: number; onChange
   );
 }
 
-function TopBar({ onClose }: { onClose: () => void }) {
+function TopBar({ onClose, onPrefs }: { onClose: () => void; onPrefs: () => void }) {
   return (
     <View style={styles.topBar}>
       <Pressable style={styles.topBtn} onPress={onClose} accessibilityLabel="Close">
         <ChevronLeft size={20} color={TH.ink} />
       </Pressable>
       <Text style={styles.topTitle}>Meditation</Text>
-      <View style={{ width: 40 }} />
+      <Pressable style={styles.topBtn} onPress={onPrefs} accessibilityLabel="Preferences">
+        <SlidersHorizontal size={18} color={TH.ink} />
+      </Pressable>
     </View>
   );
 }
@@ -241,23 +265,38 @@ export default function MeditationScreen() {
   const [selMinutes, setSelMinutes] = useState(cfg.minutes);
   const [selKey, setSelKey] = useState<string>(cfg.sound);
   const [hintDismissed, setHintDismissed] = useState(false);
+  const [showPrefs, setShowPrefs] = useState(false);
 
   const isSetup = session.phase === 'ready';
   const isCustom = !PRESETS.includes(selMinutes);
 
   // Scenes — from Supabase when loaded, else the bundled defaults so the carousel
-  // is never empty. A running sit's scene wins over the local pick for the bg.
+  // is never empty. The selected scene drives the background AND the ambience bed.
   const scenes = useMeditationScenes();
   const sceneList = Object.values(scenes);
   const carouselScenes: MeditationScene[] =
     sceneList.length > 0
       ? sceneList
       : SOUNDS.map((s) => ({ key: s.id, name: s.label, stillUri: null, animatedUri: null, audioUri: null }));
-  const activeKey = isSetup ? selKey : session.sceneKey ?? selKey;
-  const bgScene = carouselScenes.find((s) => s.key === activeKey);
-  const sceneStill = bgScene?.stillUri ?? null;
-  const sceneAnimated = bgScene?.animatedUri ?? null; // animated webp/video, if any
-  const activeHasAudio = !!bgScene?.audioUri;
+
+  // First-time users land on a real background scene (the experience should begin
+  // immediately) — default to the first scene that actually has a soundtrack.
+  const firstAudioKey = carouselScenes.find((s) => s.audioUri)?.key ?? null;
+  const didInitDefault = useRef(false);
+  useEffect(() => {
+    if (didInitDefault.current) return;
+    if (!firstTime) { didInitDefault.current = true; return; }
+    if (firstAudioKey) {
+      setSelKey(firstAudioKey);
+      didInitDefault.current = true;
+    }
+  }, [firstTime, firstAudioKey]);
+
+  const selScene = carouselScenes.find((s) => s.key === selKey);
+  const sceneStill = selScene?.stillUri ?? null;
+  const sceneAnimated = selScene?.animatedUri ?? null; // animated webp/video, if any
+  const selAudioUri = selScene?.audioUri ?? null;
+  const selName = selScene?.name ?? selKey;
 
   const minutes = isSetup ? selMinutes : session.minutes;
   const paused = session.paused;
@@ -282,18 +321,33 @@ export default function MeditationScreen() {
     ],
   };
 
+  // Ambience follows the meditation SCREEN + selected scene: start/swap on focus
+  // and on scene change, stop when navigating away. Locking the phone keeps the
+  // screen focused, so the bed keeps playing then (background audio in the provider).
+  // The saved volume preference seeds the session via startAmbience's volume arg.
+  const { startAmbience, stopAmbience } = session;
+  const startVolumeRef = useRef(cfg.volume ?? 0.35);
+  startVolumeRef.current = cfg.volume ?? 0.35;
+  const playOutsideRef = useRef(med.settings.playOutsidePage);
+  playOutsideRef.current = med.settings.playOutsidePage;
+  useFocusEffect(
+    useCallback(() => {
+      if (selAudioUri) {
+        startAmbience({ sceneKey: selKey, sceneName: selName, audioUri: selAudioUri, volume: startVolumeRef.current });
+      } else {
+        stopAmbience();
+      }
+      // Leaving the page stops the bed — unless "play outside this page" is on.
+      // (Device sleep/lock keeps the page focused, so this cleanup doesn't run then.)
+      return () => { if (!playOutsideRef.current) stopAmbience(); };
+    }, [selKey, selAudioUri, selName, startAmbience, stopAmbience]),
+  );
+
+  // Begin only starts the countdown — the ambience is already playing.
   const begin = () => {
-    const scene = carouselScenes.find((s) => s.key === selKey);
-    const startVolume = cfg.volume ?? 0.35;
-    med.setTimer({ minutes: selMinutes, sound: selKey, volume: startVolume });
+    med.setTimer({ minutes: selMinutes, sound: selKey, volume: session.volume });
     if (firstTime) med.markHintSeen();
-    session.begin({
-      minutes: selMinutes,
-      sceneKey: selKey,
-      sceneName: scene?.name ?? selKey,
-      audioUri: scene?.audioUri ?? null,
-      volume: startVolume,
-    });
+    session.begin(selMinutes);
   };
   const done = () => {
     session.stop();
@@ -332,7 +386,7 @@ export default function MeditationScreen() {
       />
 
       <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
-        <TopBar onClose={() => router.back()} />
+        <TopBar onClose={() => router.back()} onPrefs={() => setShowPrefs(true)} />
 
         {isSetup && (
           <>
@@ -347,7 +401,7 @@ export default function MeditationScreen() {
                 </Pressable>
               </View>
             )}
-            <View style={styles.center}>
+            <Pressable style={styles.center} onPress={() => Keyboard.dismiss()} accessible={false}>
               <TimerRing progress={1} big={fmtMin(minutes)} label="MINUTES" />
               <View style={styles.section}>
                 <Text style={styles.sectionLabel}>LENGTH</Text>
@@ -367,7 +421,7 @@ export default function MeditationScreen() {
                 <Text style={styles.sectionLabel}>SCENE</Text>
                 <SceneCarousel scenes={carouselScenes} selectedKey={selKey} onSelect={setSelKey} />
               </View>
-            </View>
+            </Pressable>
             <View style={styles.footer}>
               <Pressable style={styles.primaryBtn} onPress={begin}>
                 <Play size={17} color={TH.primaryText} />
@@ -382,16 +436,13 @@ export default function MeditationScreen() {
             <View style={styles.center}>
               <Text style={styles.breatheLabel}>{paused ? 'PAUSED' : 'BREATHE'}</Text>
               <TimerRing progress={session.minutes ? session.remaining / (session.minutes * 60) : 0} big={fmtMMSS(session.remaining)} pulsing={!paused} />
-              {session.sceneKey !== 'silence' ? (
+              {selKey !== 'silence' ? (
                 <View style={styles.soundPill}>
-                  <Text style={styles.soundPillText}>{session.sceneName ?? session.sceneKey}</Text>
+                  <Text style={styles.soundPillText}>{selName}</Text>
                 </View>
               ) : (
                 <View style={{ height: 35 }} />
               )}
-              {activeHasAudio ? (
-                <VolumeSlider value={session.volume} onChange={session.setVolume} onComplete={(v) => med.setTimer({ volume: v })} />
-              ) : null}
             </View>
             <View style={styles.controls}>
               <Pressable style={styles.endBtn} onPress={session.stop} accessibilityLabel="Stop">
@@ -430,6 +481,39 @@ export default function MeditationScreen() {
           </>
         )}
       </SafeAreaView>
+
+      {showPrefs && (
+        <View style={styles.prefsOverlay}>
+          <Pressable style={StyleSheet.absoluteFill} onPress={() => setShowPrefs(false)} accessibilityLabel="Close preferences" />
+          <SafeAreaView edges={['bottom']} style={styles.prefsPanel}>
+            <View style={styles.prefsHeader}>
+              <Text style={styles.prefsTitle}>Preferences</Text>
+              <Pressable onPress={() => setShowPrefs(false)} hitSlop={10}>
+                <X size={18} color={TH.ink2} />
+              </Pressable>
+            </View>
+
+            <Text style={styles.prefsLabel}>SCENE VOLUME</Text>
+            <VolumeSlider value={session.volume} onChange={session.setVolume} onComplete={(v) => med.setTimer({ volume: v })} />
+
+            <View style={styles.prefsDivider} />
+
+            <View style={styles.prefsRow}>
+              <View style={{ flex: 1, paddingRight: 14 }}>
+                <Text style={styles.prefsRowTitle}>Play outside this page</Text>
+                <Text style={styles.prefsRowSub}>Keep the scene playing as you move around the app. It always stops when the app closes.</Text>
+              </View>
+              <Switch
+                value={med.settings.playOutsidePage}
+                onValueChange={med.setPlayOutsidePage}
+                trackColor={{ false: 'rgba(255,255,255,0.20)', true: 'rgba(255,255,255,0.55)' }}
+                thumbColor={TH.ink}
+                ios_backgroundColor="rgba(255,255,255,0.20)"
+              />
+            </View>
+          </SafeAreaView>
+        </View>
+      )}
     </View>
   );
 }
@@ -461,6 +545,16 @@ const styles = StyleSheet.create({
   chipText: { fontFamily: fontFamily.bold, fontSize: 14 },
 
   sceneSection: { width: '100%' },
+
+  prefsOverlay: { ...StyleSheet.absoluteFillObject, justifyContent: 'flex-end', backgroundColor: 'rgba(6,12,26,0.55)' },
+  prefsPanel: { backgroundColor: '#16223C', borderTopLeftRadius: 22, borderTopRightRadius: 22, paddingHorizontal: 22, paddingTop: 18, paddingBottom: 10, borderTopWidth: 1, borderColor: TH.glassBorder },
+  prefsHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 },
+  prefsTitle: { fontFamily: fontFamily.display, fontSize: 20, color: TH.ink },
+  prefsLabel: { fontFamily: fontFamily.bold, fontSize: 11, letterSpacing: 1.8, color: TH.ink2, textAlign: 'center', marginBottom: 14 },
+  prefsDivider: { height: 1, backgroundColor: TH.glassBorder, marginVertical: 22 },
+  prefsRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  prefsRowTitle: { fontFamily: fontFamily.semiBold, fontSize: 15, color: TH.ink },
+  prefsRowSub: { fontFamily: fontFamily.regular, fontSize: 12.5, color: TH.ink2, marginTop: 4, lineHeight: 17 },
   sceneItem: { alignItems: 'center', justifyContent: 'center', paddingVertical: 4 },
   sceneName: { fontFamily: fontFamily.display, textAlign: 'center', letterSpacing: -0.2 },
   dots: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 6, marginTop: 12 },
@@ -469,8 +563,7 @@ const styles = StyleSheet.create({
 
   stepper: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 18 },
   stepBtn: { width: 40, height: 40, borderRadius: 20, borderWidth: 1, borderColor: TH.glassBorder, backgroundColor: TH.glassBg, alignItems: 'center', justifyContent: 'center' },
-  stepValue: { alignItems: 'center', flexDirection: 'row', gap: 5 },
-  stepNum: { fontFamily: fontFamily.display, fontSize: 26, color: TH.ink, fontVariant: ['tabular-nums'] },
+  stepInput: { minWidth: 64, paddingVertical: 0, textAlign: 'center', fontFamily: fontFamily.display, fontSize: 26, color: TH.ink, fontVariant: ['tabular-nums'] },
 
   primaryBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 9, paddingVertical: 17, borderRadius: 999, backgroundColor: TH.primaryBg },
   primaryText: { fontFamily: fontFamily.bold, fontSize: 16, color: TH.primaryText, letterSpacing: 0.2 },

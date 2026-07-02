@@ -7,7 +7,7 @@
  * - Modal conditionally rendered when prayer is selected
  */
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
@@ -15,7 +15,7 @@ import {
   ScrollView,
   TouchableOpacity,
 } from 'react-native';
-import { ChevronRight, ChevronLeft } from 'lucide-react-native';
+import { ChevronRight, ChevronLeft, Plus, Pencil } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -23,6 +23,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { aaPrayers } from '@/constants/prayers';
 import { adjustFontWeight } from '@/constants/fonts';
 import { PrayerReader } from './PrayerReader';
+import { PrayerEditSheet } from './PrayerEditSheet';
+import { useUserPrayers, type UserPrayer } from '@/hooks/use-user-prayers-store';
 import { useTextSettings } from '@/hooks/use-text-settings';
 import { logEvent } from '@/lib/usageLogger';
 import { useTheme } from '@/hooks/useTheme';
@@ -36,6 +38,14 @@ export function PrayersMain() {
   
   const [selectedPrayerIndex, setSelectedPrayerIndex] = useState<number | null>(null);
   const [showReaderModal, setShowReaderModal] = useState(false);
+
+  // User-created prayers + the combined list the reader navigates across.
+  const { prayers: userPrayers, addPrayer, updatePrayer, removePrayer } = useUserPrayers();
+  const allPrayers = useMemo(
+    () => [...aaPrayers, ...userPrayers.map((p) => ({ title: p.title, content: p.content }))],
+    [userPrayers],
+  );
+  const [sheet, setSheet] = useState<{ mode: 'add' } | { mode: 'edit'; prayer: UserPrayer } | null>(null);
 
   // Handle deep link navigation (from Home screen tiles)
   useEffect(() => {
@@ -56,16 +66,16 @@ export function PrayersMain() {
 
   // Handle prayer selection - open modal (matching BigBookMain pattern)
   const handleSelectPrayer = useCallback((index: number) => {
-    const selectedPrayer = aaPrayers[index];
+    const selectedPrayer = allPrayers[index];
 
     logEvent('prayer_viewed', {
       screen: 'Prayers',
-      prayer_title: selectedPrayer.title
+      prayer_title: selectedPrayer?.title,
     });
-    
+
     setSelectedPrayerIndex(index);
     setShowReaderModal(true);
-  }, []);
+  }, [allPrayers]);
 
   // Handle closing reader modal (matching BigBookMain pattern)
   const handleCloseReader = useCallback(() => {
@@ -100,7 +110,7 @@ export function PrayersMain() {
           </TouchableOpacity>
           <View style={{ width: 60 }} />
         </View>
-        <Text style={[styles.headerTitle, { color: palette.headerText }]}>AA Prayers</Text>
+        <Text style={[styles.headerTitle, { color: palette.headerText }]}>Prayers</Text>
       </LinearGradient>
       
       {/* Prayer List */}
@@ -109,6 +119,7 @@ export function PrayersMain() {
         contentContainerStyle={styles.contentContainer}
         showsVerticalScrollIndicator={false}
       >
+        <Text style={[styles.sectionLabel, { color: palette.muted }]}>AA PRAYERS</Text>
         <View style={styles.listContainer}>
           {aaPrayers.map((prayerItem, index) => (
             <TouchableOpacity
@@ -126,6 +137,34 @@ export function PrayersMain() {
             </TouchableOpacity>
           ))}
         </View>
+
+        {/* My Prayers — user-created, editable/deletable */}
+        <View style={styles.sectionHeaderRow}>
+          <Text style={[styles.sectionLabel, { color: palette.muted, marginBottom: 0 }]}>MY PRAYERS</Text>
+          <TouchableOpacity onPress={() => setSheet({ mode: 'add' })} style={[styles.addBtn, { backgroundColor: palette.accent }]} activeOpacity={0.85}>
+            <Plus size={15} color="#fff" />
+            <Text style={styles.addBtnText}>Add</Text>
+          </TouchableOpacity>
+        </View>
+        {userPrayers.length === 0 ? (
+          <Text style={[styles.emptyText, { color: palette.muted }]}>Save a prayer that&rsquo;s meaningful to you — it&rsquo;ll appear here.</Text>
+        ) : (
+          <View style={styles.listContainer}>
+            {userPrayers.map((p, j) => (
+              <View
+                key={p.id}
+                style={[styles.listRow, { borderBottomColor: palette.divider }, j === userPrayers.length - 1 && styles.listRowLast]}
+              >
+                <TouchableOpacity style={styles.rowMain} onPress={() => handleSelectPrayer(aaPrayers.length + j)} activeOpacity={0.7}>
+                  <Text style={[styles.rowTitle, { fontSize, color: palette.text }]} numberOfLines={1}>{p.title}</Text>
+                </TouchableOpacity>
+                <TouchableOpacity onPress={() => setSheet({ mode: 'edit', prayer: p })} hitSlop={10} style={styles.editBtn} activeOpacity={0.7}>
+                  <Pencil size={16} color={palette.muted} />
+                </TouchableOpacity>
+              </View>
+            ))}
+          </View>
+        )}
       </ScrollView>
 
       {/* Reader Modal - only rendered when prayer is selected (matching BigBookMain pattern) */}
@@ -133,9 +172,29 @@ export function PrayersMain() {
         <PrayerReader
           visible={showReaderModal}
           prayerIndex={selectedPrayerIndex}
+          prayers={allPrayers}
           onClose={handleCloseReader}
           onPrayerChange={handlePrayerChange}
           palette={palette}
+        />
+      )}
+
+      {sheet?.mode === 'add' && (
+        <PrayerEditSheet
+          palette={palette}
+          onSave={(title, content) => { addPrayer(title, content); setSheet(null); }}
+          onClose={() => setSheet(null)}
+        />
+      )}
+      {sheet?.mode === 'edit' && (
+        <PrayerEditSheet
+          palette={palette}
+          initialTitle={sheet.prayer.title}
+          initialContent={sheet.prayer.content}
+          canDelete
+          onSave={(title, content) => { updatePrayer(sheet.prayer.id, title, content); setSheet(null); }}
+          onDelete={() => { removePrayer(sheet.prayer.id); setSheet(null); }}
+          onClose={() => setSheet(null)}
         />
       )}
     </View>
@@ -178,6 +237,47 @@ const styles = StyleSheet.create({
     paddingBottom: 40,
   },
   listContainer: {
+  },
+  sectionLabel: {
+    fontSize: 11,
+    fontWeight: adjustFontWeight('700'),
+    letterSpacing: 1.2,
+    marginBottom: 8,
+    marginLeft: 4,
+  },
+  sectionHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginTop: 28,
+    marginBottom: 8,
+    paddingLeft: 4,
+  },
+  addBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingVertical: 7,
+    paddingHorizontal: 12,
+    borderRadius: 16,
+  },
+  addBtnText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: adjustFontWeight('600'),
+  },
+  rowMain: {
+    flex: 1,
+    paddingRight: 10,
+  },
+  editBtn: {
+    padding: 4,
+  },
+  emptyText: {
+    fontSize: 14,
+    lineHeight: 20,
+    paddingHorizontal: 4,
+    paddingVertical: 8,
   },
   listRow: {
     flexDirection: 'row',
