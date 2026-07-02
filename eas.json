@@ -26,7 +26,8 @@
       "distribution": "store",
       "channel": "production",
       "ios": {
-        "resourceClass": "medium"
+        "resourceClass": "medium",
+        "image": "latest"
       },
       "android": {
         "resourceClass": "medium",
