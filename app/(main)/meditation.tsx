@@ -1,7 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { View, Text, Pressable, StyleSheet, Animated, Easing, FlatList, PanResponder, useWindowDimensions } from 'react-native';
 import { Image } from 'expo-image';
-import { Audio } from 'expo-av';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -11,6 +10,7 @@ import { ChevronLeft, Play, Pause, Plus, Minus, X, Volume1, Volume2 } from 'luci
 
 import { fontFamily } from '@/constants/designTokens';
 import { useMeditation, SOUNDS } from '@/hooks/use-meditation-store';
+import { useMeditationSession } from '@/hooks/use-meditation-session';
 import { useMeditationScenes, type MeditationScene } from '@/hooks/useMeditationScenes';
 
 // Bundled offline/loading fallback for the scene background.
@@ -227,39 +227,40 @@ function SceneCarousel({ scenes, selectedKey, onSelect }: { scenes: MeditationSc
   );
 }
 
-type Phase = 'ready' | 'active' | 'complete';
-
 export default function MeditationScreen() {
   const router = useRouter();
   const med = useMeditation();
+  const session = useMeditationSession();
 
   const cfg = med.settings.timer;
   const firstTime = med.settings.source === null && !med.settings.hintSeen;
 
-  const [phase, setPhase] = useState<Phase>('ready');
-  const [minutes, setMinutes] = useState(cfg.minutes);
-  const [sound, setSound] = useState<string>(cfg.sound);
-  const [remaining, setRemaining] = useState(cfg.minutes * 60);
-  const [paused, setPaused] = useState(false);
-  const [doneMin, setDoneMin] = useState(cfg.minutes);
+  // Setup-screen selections — only used while no sit is running. Once a sit is
+  // live the UI reads everything from the global session (so returning to this
+  // screen mid-sit shows the running timer, not a fresh setup).
+  const [selMinutes, setSelMinutes] = useState(cfg.minutes);
+  const [selKey, setSelKey] = useState<string>(cfg.sound);
   const [hintDismissed, setHintDismissed] = useState(false);
-  const [volume, setVolume] = useState(cfg.volume ?? 0.35);
-  const volumeRef = useRef(volume);
-  volumeRef.current = volume;
-  const isCustom = !PRESETS.includes(minutes);
+
+  const isSetup = session.phase === 'ready';
+  const isCustom = !PRESETS.includes(selMinutes);
 
   // Scenes — from Supabase when loaded, else the bundled defaults so the carousel
-  // is never empty. The selected scene drives the background still + soundtrack.
+  // is never empty. A running sit's scene wins over the local pick for the bg.
   const scenes = useMeditationScenes();
   const sceneList = Object.values(scenes);
   const carouselScenes: MeditationScene[] =
     sceneList.length > 0
       ? sceneList
       : SOUNDS.map((s) => ({ key: s.id, name: s.label, stillUri: null, animatedUri: null, audioUri: null }));
-  const currentScene = carouselScenes.find((s) => s.key === sound);
-  const sceneStill = currentScene?.stillUri ?? null;
-  const sceneAnimated = currentScene?.animatedUri ?? null; // animated webp/video, if any
-  const sceneAudioUri = currentScene?.audioUri ?? null;
+  const activeKey = isSetup ? selKey : session.sceneKey ?? selKey;
+  const bgScene = carouselScenes.find((s) => s.key === activeKey);
+  const sceneStill = bgScene?.stillUri ?? null;
+  const sceneAnimated = bgScene?.animatedUri ?? null; // animated webp/video, if any
+  const activeHasAudio = !!bgScene?.audioUri;
+
+  const minutes = isSetup ? selMinutes : session.minutes;
+  const paused = session.paused;
 
   // Ken Burns — slow continuous pan/zoom that gives the still life.
   const kb = useRef(new Animated.Value(0)).current;
@@ -281,104 +282,24 @@ export default function MeditationScreen() {
     ],
   };
 
-
-  // Single bell when the timer runs out (plays even in silent mode).
-  const bellRef = useRef<Audio.Sound | null>(null);
-  const playBell = async () => {
-    try {
-      await Audio.setAudioModeAsync({ playsInSilentModeIOS: true });
-      const { sound: bell } = await Audio.Sound.createAsync(
-        require('@/assets/soundreality-bell-fx-410608.mp3'),
-      );
-      bellRef.current = bell;
-      bell.setOnPlaybackStatusUpdate((status) => {
-        if (status.isLoaded && status.didJustFinish) {
-          bell.unloadAsync().catch(() => {});
-          if (bellRef.current === bell) bellRef.current = null;
-        }
-      });
-      await bell.playAsync();
-    } catch {
-      // A missing/failed bell must never break the timer.
-    }
-  };
-  useEffect(() => () => { bellRef.current?.unloadAsync().catch(() => {}); }, []);
-
-  // Looping scene soundtrack — plays the selected scene's audio for the whole sit,
-  // looping to fill any length, and stops when the sit ends or the screen leaves.
-  const sceneSoundRef = useRef<Audio.Sound | null>(null);
-  useEffect(() => {
-    if (phase !== 'active' || !sceneAudioUri) return;
-    let cancelled = false;
-    (async () => {
-      try {
-        await Audio.setAudioModeAsync({ playsInSilentModeIOS: true });
-        const { sound: s } = await Audio.Sound.createAsync({ uri: sceneAudioUri }, { isLooping: true, shouldPlay: true, volume: volumeRef.current });
-        if (cancelled) { s.unloadAsync().catch(() => {}); return; }
-        sceneSoundRef.current = s;
-      } catch {
-        // A missing/failed soundtrack must never break the sit.
-      }
-    })();
-    return () => {
-      cancelled = true;
-      const s = sceneSoundRef.current;
-      sceneSoundRef.current = null;
-      s?.unloadAsync().catch(() => {});
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [phase, sceneAudioUri]);
-
-  // Pause/resume the soundtrack alongside the timer, without reloading it.
-  useEffect(() => {
-    const s = sceneSoundRef.current;
-    if (!s) return;
-    if (paused) s.pauseAsync().catch(() => {});
-    else s.playAsync().catch(() => {});
-  }, [paused]);
-
-  // Live volume — apply slider changes to the playing soundtrack immediately.
-  useEffect(() => {
-    sceneSoundRef.current?.setVolumeAsync(volume).catch(() => {});
-  }, [volume]);
-
-  // countdown
-  useEffect(() => {
-    if (phase !== 'active' || paused) return;
-    if (remaining <= 0) {
-      playBell();
-      setDoneMin(minutes);
-      setPhase('complete');
-      return;
-    }
-    const t = setTimeout(() => setRemaining((r) => r - 1), 1000);
-    return () => clearTimeout(t);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [phase, paused, remaining]);
-
   const begin = () => {
-    med.setTimer({ minutes, sound, volume });
+    const scene = carouselScenes.find((s) => s.key === selKey);
+    const startVolume = cfg.volume ?? 0.35;
+    med.setTimer({ minutes: selMinutes, sound: selKey, volume: startVolume });
     if (firstTime) med.markHintSeen();
-    setRemaining(minutes * 60);
-    setPaused(false);
-    setPhase('active');
+    session.begin({
+      minutes: selMinutes,
+      sceneKey: selKey,
+      sceneName: scene?.name ?? selKey,
+      audioUri: scene?.audioUri ?? null,
+      volume: startVolume,
+    });
   };
-  const endEarly = () => {
-    setDoneMin(minutes);
-    setPhase('complete');
+  const done = () => {
+    session.stop();
+    router.back();
   };
-  const sitLonger = () => {
-    setMinutes(5);
-    setRemaining(5 * 60);
-    setDoneMin(5);
-    setPaused(false);
-    setPhase('active');
-  };
-
-  const pickMinutes = (n: number) => {
-    setMinutes(n);
-    setRemaining(n * 60);
-  };
+  const pickMinutes = (n: number) => setSelMinutes(n);
 
   return (
     <View style={styles.root}>
@@ -413,7 +334,7 @@ export default function MeditationScreen() {
       <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
         <TopBar onClose={() => router.back()} />
 
-        {phase === 'ready' && (
+        {isSetup && (
           <>
             {firstTime && !hintDismissed && (
               <View style={styles.hint}>
@@ -444,7 +365,7 @@ export default function MeditationScreen() {
               </View>
               <View style={styles.sceneSection}>
                 <Text style={styles.sectionLabel}>SCENE</Text>
-                <SceneCarousel scenes={carouselScenes} selectedKey={sound} onSelect={setSound} />
+                <SceneCarousel scenes={carouselScenes} selectedKey={selKey} onSelect={setSelKey} />
               </View>
             </View>
             <View style={styles.footer}>
@@ -456,27 +377,27 @@ export default function MeditationScreen() {
           </>
         )}
 
-        {phase === 'active' && (
+        {session.phase === 'active' && (
           <>
             <View style={styles.center}>
               <Text style={styles.breatheLabel}>{paused ? 'PAUSED' : 'BREATHE'}</Text>
-              <TimerRing progress={minutes ? remaining / (minutes * 60) : 0} big={fmtMMSS(remaining)} pulsing={!paused} />
-              {sound !== 'silence' ? (
+              <TimerRing progress={session.minutes ? session.remaining / (session.minutes * 60) : 0} big={fmtMMSS(session.remaining)} pulsing={!paused} />
+              {session.sceneKey !== 'silence' ? (
                 <View style={styles.soundPill}>
-                  <Text style={styles.soundPillText}>{currentScene?.name ?? sound}</Text>
+                  <Text style={styles.soundPillText}>{session.sceneName ?? session.sceneKey}</Text>
                 </View>
               ) : (
                 <View style={{ height: 35 }} />
               )}
-              {sceneAudioUri ? (
-                <VolumeSlider value={volume} onChange={setVolume} onComplete={(v) => med.setTimer({ volume: v })} />
+              {activeHasAudio ? (
+                <VolumeSlider value={session.volume} onChange={session.setVolume} onComplete={(v) => med.setTimer({ volume: v })} />
               ) : null}
             </View>
             <View style={styles.controls}>
-              <Pressable style={styles.endBtn} onPress={endEarly} accessibilityLabel="End">
+              <Pressable style={styles.endBtn} onPress={session.stop} accessibilityLabel="Stop">
                 <View style={styles.stopSquare} />
               </Pressable>
-              <Pressable style={styles.playBtn} onPress={() => setPaused((p) => !p)} accessibilityLabel={paused ? 'Resume' : 'Pause'}>
+              <Pressable style={styles.playBtn} onPress={session.togglePause} accessibilityLabel={paused ? 'Resume' : 'Pause'}>
                 {paused ? <Play size={30} color={TH.primaryText} /> : <Pause size={30} color={TH.primaryText} />}
               </Pressable>
               <View style={{ width: 60 }} />
@@ -484,7 +405,7 @@ export default function MeditationScreen() {
           </>
         )}
 
-        {phase === 'complete' && (
+        {session.phase === 'complete' && (
           <>
             <View style={[styles.center, { paddingHorizontal: 30 }]}>
               <View style={styles.completeBadgeWrap}>
@@ -495,14 +416,14 @@ export default function MeditationScreen() {
               </View>
               <Text style={styles.completeTitle}>Nicely done</Text>
               <Text style={styles.completeBody}>
-                {doneMin} minute{doneMin === 1 ? '' : 's'} of stillness.{'\n'}Marked complete on Today.
+                {session.doneMin} minute{session.doneMin === 1 ? '' : 's'} of stillness.{'\n'}Marked complete on Today.
               </Text>
             </View>
             <View style={[styles.footer, { gap: 11 }]}>
-              <Pressable style={styles.primaryBtn} onPress={() => router.back()}>
+              <Pressable style={styles.primaryBtn} onPress={done}>
                 <Text style={styles.primaryText}>Done</Text>
               </Pressable>
-              <Pressable style={styles.ghostBtn} onPress={sitLonger}>
+              <Pressable style={styles.ghostBtn} onPress={session.sitLonger}>
                 <Text style={styles.ghostText}>Sit a little longer</Text>
               </Pressable>
             </View>
