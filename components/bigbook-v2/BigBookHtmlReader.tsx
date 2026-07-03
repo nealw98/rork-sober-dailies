@@ -10,7 +10,7 @@ import { SafeAreaProvider, SafeAreaView, initialWindowMetrics, useSafeAreaInsets
 import { WebView, WebViewMessageEvent } from 'react-native-webview';
 import * as Clipboard from 'expo-clipboard';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Bookmark as BookmarkIcon, ChevronLeft, ChevronRight, FileText, X } from 'lucide-react-native';
+import { Bookmark as BookmarkIcon, ChevronLeft, ChevronRight, X } from 'lucide-react-native';
 import { useTextSettings } from '@/hooks/use-text-settings';
 import { useBigBookContent } from '@/hooks/use-bigbook-content';
 import { useBigBookBookmarks } from '@/hooks/use-bigbook-bookmarks';
@@ -43,7 +43,6 @@ interface BigBookHtmlReaderProps {
   scrollToParagraphId?: string | null;
   searchTerm?: string | null;
   onClose: () => void;
-  onSwitchToClassic: () => void;
 }
 
 type WebMessage =
@@ -182,8 +181,8 @@ function buildHtml(params: {
   .page-marker span { flex: 1; height: 1px; background: ${c.divider}; }
   .page-marker strong { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; color: ${c.textMuted}; font-size: 10.5px; letter-spacing: 1.5px; }
   .bb-highlight { background: ${HL_FILL}; border-radius: 3px; padding: 0 1px; }
-  .bb-flash { animation: bbflash 1.7s ease-out; border-radius: 4px; }
-  @keyframes bbflash { 0%, 15% { background-color: ${HL_FILL}; } 100% { background-color: transparent; } }
+  .bb-hl-pulse { animation: bbpulse 1.5s ease-out; border-radius: 3px; }
+  @keyframes bbpulse { 0%, 22% { box-shadow: 0 0 0 3px rgba(214,158,0,0.55); } 100% { box-shadow: 0 0 0 0 rgba(214,158,0,0); } }
   .search-hit { background: ${colors.primarySoft}; border-radius: 3px; }
   .bb-paragraph { cursor: text; }
   .selection-toolbar { position: fixed; left: 16px; top: 16px; z-index: 9999; display: none; gap: 2px; align-items: stretch; padding: 6px; border-radius: 16px; background: rgba(255,255,255,0.99); box-shadow: 0 12px 30px rgba(0,0,0,0.20); border: 1px solid rgba(0,0,0,0.06); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
@@ -431,7 +430,7 @@ function buildHtml(params: {
   window.__savedHighlights.forEach(applyHighlight);
   setTimeout(() => {
     ${params.scrollToParagraphId
-      ? `var __hl = document.querySelector('[data-pid="${escapeHtml(params.scrollToParagraphId)}"]'); if (__hl) { __hl.scrollIntoView({ block: 'center' }); __hl.classList.add('bb-flash'); setTimeout(function(){ __hl.classList.remove('bb-flash'); }, 1700); }`
+      ? `var __p = document.querySelector('[data-pid="${escapeHtml(params.scrollToParagraphId)}"]'); if (__p) { __p.scrollIntoView({ block: 'center' }); var __hls = __p.querySelectorAll('.bb-highlight'); for (var __i=0;__i<__hls.length;__i++) __hls[__i].classList.add('bb-hl-pulse'); setTimeout(function(){ for (var __j=0;__j<__hls.length;__j++) __hls[__j].classList.remove('bb-hl-pulse'); }, 1500); }`
       : params.scrollToPage
       ? `const target = document.querySelector('[data-page="${params.scrollToPage}"]'); if (target) target.scrollIntoView();`
       : ''}
@@ -442,7 +441,7 @@ function buildHtml(params: {
 </html>`;
 }
 
-export function BigBookHtmlReader({ visible, initialChapterId, scrollToPage, scrollToParagraphId, searchTerm, onClose, onSwitchToClassic }: BigBookHtmlReaderProps) {
+export function BigBookHtmlReader({ visible, initialChapterId, scrollToPage, scrollToParagraphId, searchTerm, onClose }: BigBookHtmlReaderProps) {
   const webViewRef = useRef<WebView>(null);
   const insets = useSafeAreaInsets();
   const { currentChapter, currentChapterId, loadChapter, goToNextChapter, goToPreviousChapter } = useBigBookContent();
@@ -669,15 +668,6 @@ export function BigBookHtmlReader({ visible, initialChapterId, scrollToPage, scr
             <Text style={styles.pageLabel}>{currentPageNumber ? `Page ${formatPageNumber(currentPageNumber, useRoman)}` : ' '}</Text>
             <View style={styles.actions}>
               <Pressable
-                onPress={onSwitchToClassic}
-                style={[styles.modePill, { borderColor: c.border }]}
-                accessibilityRole="button"
-                accessibilityLabel="Use classic reader"
-              >
-                <FileText size={14} color={c.textSecondary} strokeWidth={2} />
-                <Text style={styles.modeText}>Classic</Text>
-              </Pressable>
-              <Pressable
                 onPress={() => setShowDisplaySheet(true)}
                 style={[styles.textSizeBtn, { borderColor: c.border }]}
                 accessibilityRole="button"
@@ -803,8 +793,6 @@ const styles = StyleSheet.create({
   actionRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 18, paddingBottom: 8, borderBottomWidth: 1, borderBottomColor: c.divider },
   pageLabel: { fontFamily: fontFamily.semiBold, fontSize: 12.5, color: c.textSecondary },
   actions: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  modePill: { flexDirection: 'row', alignItems: 'center', gap: 5, height: 30, paddingHorizontal: 10, borderRadius: 15, borderWidth: 1 },
-  modeText: { fontFamily: fontFamily.semiBold, fontSize: 12, color: c.textSecondary },
   textSizeBtn: { width: 30, height: 30, borderRadius: 15, borderWidth: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: c.surface },
   textSizeLabel: { fontFamily: fontFamily.bold, fontSize: 12.5, color: c.textSecondary, letterSpacing: -0.2 },
   bmBtn: { width: 30, height: 30, borderRadius: 15, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },

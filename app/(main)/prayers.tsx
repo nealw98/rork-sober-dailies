@@ -7,12 +7,15 @@ import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { View, Text, ScrollView, Pressable, StyleSheet, BackHandler, useWindowDimensions } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Stack, useRouter, useLocalSearchParams } from 'expo-router';
-import { ChevronRight, BookOpen, X } from 'lucide-react-native';
+import { ChevronRight, BookOpen, X, Plus, Pencil } from 'lucide-react-native';
 import BackButton from '@/components/BackButton';
+import { useUserPrayers, type UserPrayer } from '@/hooks/use-user-prayers-store';
+import { PrayerEditSheet } from '@/components/PrayerEditSheet';
+import { useTheme } from '@/hooks/useTheme';
 import Animated, { useSharedValue, useAnimatedStyle, withTiming, Easing, interpolate, runOnJS, Extrapolation } from 'react-native-reanimated';
 import { useScreenTimeTracking } from '@/hooks/useScreenTimeTracking';
 import { aaPrayers } from '@/constants/prayers';
-import { fontFamily, getSemanticColors, shadows } from '@/constants/designTokens';
+import { colors, fontFamily, getSemanticColors, shadows } from '@/constants/designTokens';
 
 const c = getSemanticColors('light');
 const TOP_GAP = 8; // small inset above the read container (the X close sits inside it)
@@ -25,7 +28,9 @@ type Mode = 'list' | 'opening' | 'read' | 'closing';
 // The prayer body — shared by the morph overlay (it IS the read view once open).
 const MORNING_INTRO = 'As I begin this day, I ask my Higher Power:';
 
-function PrayerBody({ prayer }: { prayer: (typeof aaPrayers)[number] }) {
+type ReadPrayer = { title: string; content: string; source?: string };
+
+function PrayerBody({ prayer }: { prayer: ReadPrayer }) {
   const paras = prayer.content.split(/\n\s*\n/);
   // Morning Prayer: pull the opening line out as its own italic intro with a
   // gap below it (in the data it sits on the first line of the first block).
@@ -63,6 +68,14 @@ export default function PrayersScreen() {
   const cardRefs = useRef<Array<View | null>>([]);
 
   useScreenTimeTracking('Prayers');
+
+  const { palette } = useTheme();
+  const { prayers: userPrayers, addPrayer, updatePrayer, removePrayer } = useUserPrayers();
+  const allPrayers = useMemo<ReadPrayer[]>(
+    () => [...aaPrayers, ...userPrayers.map((p) => ({ title: p.title, content: p.content }))],
+    [userPrayers],
+  );
+  const [sheet, setSheet] = useState<{ mode: 'add' } | { mode: 'edit'; prayer: UserPrayer } | null>(null);
 
   // 0 = sitting on the source list card · 1 = the full-size read container.
   const progress = useSharedValue(0);
@@ -127,7 +140,7 @@ export default function PrayersScreen() {
     return () => sub.remove();
   }, [mode, source]);
 
-  const prayer = selected !== null ? aaPrayers[selected] : null;
+  const prayer = selected !== null ? allPrayers[selected] : null;
 
   const overlayStyle = useAnimatedStyle(() => {
     const s = source ?? target;
@@ -162,6 +175,38 @@ export default function PrayersScreen() {
           </View>
           <ScrollView contentContainerStyle={styles.listBody} showsVerticalScrollIndicator={false}>
             <View style={styles.sectionRow}>
+              <Text style={styles.sectionLabel}>MY PRAYERS</Text>
+            </View>
+            {userPrayers.length > 0 && (
+              <View style={[styles.list, { marginBottom: 10 }]}>
+                {userPrayers.map((p, j) => {
+                  const idx = aaPrayers.length + j;
+                  return (
+                    <Pressable
+                      key={p.id}
+                      ref={(r) => { cardRefs.current[idx] = r; }}
+                      onPress={() => openFromCard(idx)}
+                      style={styles.card}
+                      accessibilityRole="button"
+                    >
+                      <View style={styles.cardTitleRow}>
+                        <Text style={styles.cardTitle} numberOfLines={1}>{p.title}</Text>
+                        <Pressable onPress={() => setSheet({ mode: 'edit', prayer: p })} hitSlop={10} style={styles.editBtn} accessibilityLabel="Edit prayer">
+                          <Pencil size={16} color={c.textMuted} />
+                        </Pressable>
+                      </View>
+                      <Text style={styles.preview} numberOfLines={3}>{p.content}</Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
+            )}
+            <Pressable style={styles.addBtn} onPress={() => setSheet({ mode: 'add' })} accessibilityRole="button">
+              <Plus size={16} color={colors.primary} strokeWidth={2.2} />
+              <Text style={styles.addBtnText}>Add a prayer</Text>
+            </Pressable>
+
+            <View style={[styles.sectionRow, { marginTop: 24 }]}>
               <Text style={styles.sectionLabel}>ALL PRAYERS</Text>
               <Text style={styles.sectionHint}>{aaPrayers.length} prayers</Text>
             </View>
@@ -216,6 +261,25 @@ export default function PrayersScreen() {
           </Animated.View>
         </Animated.View>
       )}
+
+      {sheet?.mode === 'add' && (
+        <PrayerEditSheet
+          palette={palette}
+          onSave={(title, content) => { addPrayer(title, content); setSheet(null); }}
+          onClose={() => setSheet(null)}
+        />
+      )}
+      {sheet?.mode === 'edit' && (
+        <PrayerEditSheet
+          palette={palette}
+          initialTitle={sheet.prayer.title}
+          initialContent={sheet.prayer.content}
+          canDelete
+          onSave={(title, content) => { updatePrayer(sheet.prayer.id, title, content); setSheet(null); }}
+          onDelete={() => { removePrayer(sheet.prayer.id); setSheet(null); }}
+          onClose={() => setSheet(null)}
+        />
+      )}
     </View>
   );
 }
@@ -235,6 +299,9 @@ const styles = StyleSheet.create({
   sectionRow: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', marginTop: 8, marginBottom: 8 },
   sectionLabel: { fontFamily: fontFamily.bold, fontSize: 11, letterSpacing: 1.4, color: c.textMuted },
   sectionHint: { fontFamily: fontFamily.regular, fontSize: 11, color: c.textMuted },
+  editBtn: { padding: 2 },
+  addBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 13, borderRadius: 16, borderWidth: 1.5, borderColor: colors.primary + '77', borderStyle: 'dashed' },
+  addBtnText: { fontFamily: fontFamily.semiBold, fontSize: 14, color: colors.primary },
 
   list: { gap: 10 },
   card: { backgroundColor: c.surface, borderRadius: 16, paddingHorizontal: 16, paddingVertical: 16, ...shadows.sm },

@@ -107,7 +107,7 @@ export default function TrendsScreen() {
           )}
           {activeStreaks.length > 3 && (
             <Pressable onPress={toggleStreaks} style={styles.seeAll}>
-              <Text style={styles.seeAllText}>{expanded ? 'Show less' : `See all ${activeStreaks.length} streaks`}</Text>
+              <Text style={styles.seeAllText}>{expanded ? 'Less' : 'More'}</Text>
               {expanded ? <ChevronUp size={16} color={colors.primary} /> : <ChevronDown size={16} color={colors.primary} />}
             </Pressable>
           )}

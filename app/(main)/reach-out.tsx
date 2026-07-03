@@ -4,7 +4,8 @@
 // Prototype: frames/hifi-connect-tools.jsx (ScreenCallAnother). Local-first
 // store: hooks/use-contacts-store.ts.
 import React, { useRef, useState } from 'react';
-import { View, Text, ScrollView, Pressable, StyleSheet, Linking, Alert } from 'react-native';
+import { View, Text, ScrollView, Pressable, StyleSheet, Linking, Alert, TextInput, Modal, Platform } from 'react-native';
+import { KeyboardProvider, KeyboardAvoidingView } from 'react-native-keyboard-controller';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useActionSheet } from '@expo/react-native-action-sheet';
 import { Stack, useRouter } from 'expo-router';
@@ -29,7 +30,18 @@ export default function ReachOutScreen() {
   const [justAdded, setJustAdded] = useState<string | null>(null);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const onAdd = async () => {
+  const [showManual, setShowManual] = useState(false);
+  const [manualName, setManualName] = useState('');
+  const [manualPhone, setManualPhone] = useState('');
+  const canSaveManual = manualName.trim().length > 0 && manualPhone.trim().length > 0;
+
+  const flashAdded = (id: string) => {
+    setJustAdded(id);
+    if (timer.current) clearTimeout(timer.current);
+    timer.current = setTimeout(() => setJustAdded(null), 1400);
+  };
+
+  const pickFromContacts = async () => {
     const picked = await pickContact();
     if (!picked) return; // cancelled / unavailable
     if (!picked.phone) {
@@ -41,9 +53,30 @@ export default function ReachOutScreen() {
       Alert.alert('Already saved', `${picked.name} is already in your list.`);
       return;
     }
-    setJustAdded(id);
-    if (timer.current) clearTimeout(timer.current);
-    timer.current = setTimeout(() => setJustAdded(null), 1400);
+    flashAdded(id);
+  };
+
+  const saveManual = () => {
+    const name = manualName.trim();
+    const phone = manualPhone.trim();
+    if (!name || !phone) return;
+    const id = addContact({ name, phone });
+    setShowManual(false);
+    setManualName('');
+    setManualPhone('');
+    if (id) flashAdded(id);
+    else Alert.alert('Already saved', `${name} is already in your list.`);
+  };
+
+  // Add → choose the native picker or manual entry.
+  const onAdd = () => {
+    showActionSheetWithOptions(
+      { title: 'Add a contact', options: ['Choose from Contacts', 'Enter manually', 'Cancel'], cancelButtonIndex: 2 },
+      (i) => {
+        if (i === 0) pickFromContacts();
+        else if (i === 1) setShowManual(true);
+      },
+    );
   };
 
   // Tap a contact → bottom action sheet: Call / Text / Delete.
@@ -95,6 +128,44 @@ export default function ReachOutScreen() {
           </Pressable>
         )}
       </ScrollView>
+
+      <Modal visible={showManual} transparent animationType="slide" onRequestClose={() => setShowManual(false)}>
+        <KeyboardProvider>
+          <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.manualWrap}>
+            <Pressable style={StyleSheet.absoluteFill} onPress={() => setShowManual(false)} accessibilityLabel="Close" />
+            <View style={styles.manualSheet}>
+              <View style={styles.manualHead}>
+                <Pressable onPress={() => setShowManual(false)} hitSlop={8}><Text style={styles.manualCancel}>Cancel</Text></Pressable>
+                <Text style={styles.manualTitle}>New contact</Text>
+                <Pressable onPress={saveManual} hitSlop={8} disabled={!canSaveManual}>
+                  <Text style={[styles.manualSave, { opacity: canSaveManual ? 1 : 0.4 }]}>Save</Text>
+                </Pressable>
+              </View>
+              <View style={styles.manualBody}>
+                <Text style={styles.manualLabel}>NAME</Text>
+                <TextInput
+                  value={manualName}
+                  onChangeText={setManualName}
+                  placeholder="e.g. Sarah M."
+                  placeholderTextColor={c.textMuted}
+                  style={styles.manualInput}
+                  autoFocus
+                  returnKeyType="next"
+                />
+                <Text style={[styles.manualLabel, { marginTop: 16 }]}>PHONE</Text>
+                <TextInput
+                  value={manualPhone}
+                  onChangeText={setManualPhone}
+                  placeholder="(555) 123-4567"
+                  placeholderTextColor={c.textMuted}
+                  style={styles.manualInput}
+                  keyboardType="phone-pad"
+                />
+              </View>
+            </View>
+          </KeyboardAvoidingView>
+        </KeyboardProvider>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -135,6 +206,16 @@ const styles = StyleSheet.create({
 
   addBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, marginTop: 4, paddingVertical: 13, borderRadius: 16, borderWidth: 1.5, borderColor: CO + '77', borderStyle: 'dashed' },
   addBtnText: { fontFamily: fontFamily.semiBold, fontSize: 14, color: CO_DARK },
+
+  manualWrap: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.35)' },
+  manualSheet: { backgroundColor: c.background, borderTopLeftRadius: 20, borderTopRightRadius: 20, paddingBottom: 28 },
+  manualHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingTop: 16, paddingBottom: 6 },
+  manualCancel: { fontFamily: fontFamily.regular, fontSize: 16, color: c.textMuted },
+  manualTitle: { fontFamily: fontFamily.semiBold, fontSize: 16, color: c.text },
+  manualSave: { fontFamily: fontFamily.bold, fontSize: 16, color: CO_DARK },
+  manualBody: { paddingHorizontal: 20, paddingTop: 8 },
+  manualLabel: { fontFamily: fontFamily.bold, fontSize: 11, letterSpacing: 1, color: c.textMuted, marginBottom: 8 },
+  manualInput: { borderWidth: 1, borderColor: c.border, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 12, fontSize: 16, fontFamily: fontFamily.regular, color: c.text, backgroundColor: c.surface },
 
   emptyCard: { flexDirection: 'row', alignItems: 'center', gap: 13, padding: 14, borderRadius: 16, borderWidth: 1.5, borderColor: CO + '77', borderStyle: 'dashed' },
   emptyMedallion: { width: 38, height: 38, borderRadius: 19, backgroundColor: CO_SOFT, alignItems: 'center', justifyContent: 'center' },
