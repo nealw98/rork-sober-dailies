@@ -24,6 +24,7 @@ export default function GlobalSponsorFab() {
   if (
     (segments as string[]).includes('(tabs)') ||
     (segments as string[]).includes('meditation') ||
+    (segments as string[]).includes('trends') ||
     immersive
   ) {
     return null;

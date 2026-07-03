@@ -40,6 +40,7 @@ export default function MainLayout() {
       <Stack.Screen name="check-in" />
       <Stack.Screen name="add-contact" />
       <Stack.Screen name="meditation" />
+      <Stack.Screen name="trends" />
       <Stack.Screen name="sober-date" />
       <Stack.Screen name="modal" />
     </Stack>
