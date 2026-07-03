@@ -10,11 +10,13 @@ import { KeyboardModalScope } from '@/components/KeyboardModalScope';
 import { SafeAreaView, SafeAreaProvider, initialWindowMetrics } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
-import { ChevronRight, Bookmark, Hash, X, Trash2, Search } from 'lucide-react-native';
+import { ChevronRight, Bookmark, Hash, X, Trash2, Search, Highlighter } from 'lucide-react-native';
 import BackButton from '@/components/BackButton';
 import { BigBookCover, FindCard } from '@/components/literature/literature-ui';
 import { BIGBOOK_TOC, findEntryById, findEntryByPdfKey, findEntryForPage, type TocEntry } from '@/constants/bigbook-toc';
 import { useBigBookBookmarks } from '@/hooks/use-bigbook-bookmarks';
+import { useBigBookHighlights } from '@/hooks/use-bigbook-highlights';
+import { BigBookHighlightsList } from './BigBookHighlightsList';
 import { usePdfBookmarks } from '@/hooks/use-pdf-bookmarks';
 import { useBigBookContent } from '@/hooks/use-bigbook-content';
 import { searchBigBookPdfs } from '@/lib/pdf-search';
@@ -27,15 +29,18 @@ const AMBER_SOFT = colors.steelSoft;  // Steel Navy — Big Book accent
 const AMBER_INK = colors.steelDark;
 const BOOK = 'bigbook';
 
-export function BigBookContents({ onOpenText, onOpenPdf }: {
+export function BigBookContents({ onOpenText, onOpenPdf, onOpenTextAtParagraph }: {
   onOpenText: (chapterId: string, page?: number, searchTerm?: string) => void;
   onOpenPdf: (entry: TocEntry, initialPage?: number) => void;
+  onOpenTextAtParagraph: (chapterId: string, paragraphId: string) => void;
 }) {
   const router = useRouter();
   const { bookmarks: textBookmarks, deleteBookmark: deleteTextBookmark, refresh: refreshText } = useBigBookBookmarks();
   const { forBook, remove: removePdfBookmark } = usePdfBookmarks();
   const { searchContent } = useBigBookContent();
+  const { highlights } = useBigBookHighlights();
   const [showBookmarks, setShowBookmarks] = useState(false);
+  const [showHighlights, setShowHighlights] = useState(false);
   const [showGoTo, setShowGoTo] = useState(false);
   const [pageInput, setPageInput] = useState('');
   const [showSearch, setShowSearch] = useState(false);
@@ -79,7 +84,7 @@ export function BigBookContents({ onOpenText, onOpenPdf }: {
   }, [textBookmarks, forBook, onOpenText, onOpenPdf, deleteTextBookmark, removePdfBookmark]);
 
   // Dismiss a sheet/modal before presenting a reader (avoids modal clash).
-  const jump = (fn: () => void) => { setShowBookmarks(false); setShowGoTo(false); setShowSearch(false); setTimeout(fn, 300); };
+  const jump = (fn: () => void) => { setShowBookmarks(false); setShowHighlights(false); setShowGoTo(false); setShowSearch(false); setTimeout(fn, 300); };
 
   // Unified search — in-app text + the bundled PDF index. One list, each result
   // opens its own format at the matched page.
@@ -145,6 +150,7 @@ export function BigBookContents({ onOpenText, onOpenPdf }: {
           <FindCard Icon={Search} label="Search" accent={AMBER_INK} soft={AMBER_SOFT} onPress={() => setShowSearch(true)} />
           <FindCard Icon={Hash} label="Go to page" accent={AMBER_INK} soft={AMBER_SOFT} onPress={() => setShowGoTo(true)} />
           <FindCard Icon={Bookmark} label="Bookmarks" count={unified.length} accent={AMBER_INK} soft={AMBER_SOFT} onPress={openBookmarks} />
+          <FindCard Icon={Highlighter} label="Highlights" count={highlights.length} accent={AMBER_INK} soft={AMBER_SOFT} onPress={() => setShowHighlights(true)} />
         </View>
 
         <View style={styles.body}>
@@ -258,6 +264,13 @@ export function BigBookContents({ onOpenText, onOpenPdf }: {
         </SafeAreaProvider>
         </KeyboardModalScope>
       </Modal>
+
+      {/* Highlights — jump straight to the highlighted paragraph in the reader */}
+      <BigBookHighlightsList
+        visible={showHighlights}
+        onClose={() => setShowHighlights(false)}
+        onNavigateToHighlight={(chapterId, paragraphId) => jump(() => onOpenTextAtParagraph(chapterId, paragraphId))}
+      />
 
       {/* Go to page */}
       <Modal visible={showGoTo} transparent animationType="fade" onRequestClose={() => setShowGoTo(false)}>

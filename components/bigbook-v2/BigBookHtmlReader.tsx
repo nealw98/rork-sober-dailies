@@ -40,6 +40,7 @@ interface BigBookHtmlReaderProps {
   visible: boolean;
   initialChapterId: string;
   scrollToPage?: number | null;
+  scrollToParagraphId?: string | null;
   searchTerm?: string | null;
   onClose: () => void;
   onSwitchToClassic: () => void;
@@ -114,6 +115,7 @@ function buildHtml(params: {
   lineHeight: number;
   useRoman: boolean;
   scrollToPage?: number | null;
+  scrollToParagraphId?: string | null;
   searchTerm?: string | null;
 }) {
   const body = params.paragraphs
@@ -180,6 +182,8 @@ function buildHtml(params: {
   .page-marker span { flex: 1; height: 1px; background: ${c.divider}; }
   .page-marker strong { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; color: ${c.textMuted}; font-size: 10.5px; letter-spacing: 1.5px; }
   .bb-highlight { background: ${HL_FILL}; border-radius: 3px; padding: 0 1px; }
+  .bb-flash { animation: bbflash 1.7s ease-out; border-radius: 4px; }
+  @keyframes bbflash { 0%, 15% { background-color: ${HL_FILL}; } 100% { background-color: transparent; } }
   .search-hit { background: ${colors.primarySoft}; border-radius: 3px; }
   .bb-paragraph { cursor: text; }
   .selection-toolbar { position: fixed; left: 16px; top: 16px; z-index: 9999; display: none; gap: 2px; align-items: stretch; padding: 6px; border-radius: 16px; background: rgba(255,255,255,0.99); box-shadow: 0 12px 30px rgba(0,0,0,0.20); border: 1px solid rgba(0,0,0,0.06); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
@@ -426,7 +430,11 @@ function buildHtml(params: {
   applySearch(window.__searchTerm);
   window.__savedHighlights.forEach(applyHighlight);
   setTimeout(() => {
-    ${params.scrollToPage ? `const target = document.querySelector('[data-page="${params.scrollToPage}"]'); if (target) target.scrollIntoView();` : ''}
+    ${params.scrollToParagraphId
+      ? `var __hl = document.querySelector('[data-pid="${escapeHtml(params.scrollToParagraphId)}"]'); if (__hl) { __hl.scrollIntoView({ block: 'center' }); __hl.classList.add('bb-flash'); setTimeout(function(){ __hl.classList.remove('bb-flash'); }, 1700); }`
+      : params.scrollToPage
+      ? `const target = document.querySelector('[data-page="${params.scrollToPage}"]'); if (target) target.scrollIntoView();`
+      : ''}
     currentPage();
   }, 60);
 </script>
@@ -434,7 +442,7 @@ function buildHtml(params: {
 </html>`;
 }
 
-export function BigBookHtmlReader({ visible, initialChapterId, scrollToPage, searchTerm, onClose, onSwitchToClassic }: BigBookHtmlReaderProps) {
+export function BigBookHtmlReader({ visible, initialChapterId, scrollToPage, scrollToParagraphId, searchTerm, onClose, onSwitchToClassic }: BigBookHtmlReaderProps) {
   const webViewRef = useRef<WebView>(null);
   const insets = useSafeAreaInsets();
   const { currentChapter, currentChapterId, loadChapter, goToNextChapter, goToPreviousChapter } = useBigBookContent();
@@ -491,9 +499,10 @@ export function BigBookHtmlReader({ visible, initialChapterId, scrollToPage, sea
       lineHeight,
       useRoman,
       scrollToPage,
+      scrollToParagraphId,
       searchTerm,
     });
-  }, [currentChapter, fontSize, lineHeight, useRoman, scrollToPage, searchTerm, renderVersion]);
+  }, [currentChapter, fontSize, lineHeight, useRoman, scrollToPage, scrollToParagraphId, searchTerm, renderVersion]);
 
   const webSource = useMemo(() => ({ html }), [html]);
 

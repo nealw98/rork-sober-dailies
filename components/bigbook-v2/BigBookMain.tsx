@@ -27,6 +27,7 @@ type OpenPdf = { id: string; title: string; pdfKey: string; startPage: number; i
 export function BigBookMain() {
   const [chapterId, setChapterId] = useState<string | null>(null);
   const [scrollToPage, setScrollToPage] = useState<number | null>(null);
+  const [scrollToParagraphId, setScrollToParagraphId] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState<string | null>(null);
   const [showReader, setShowReader] = useState(false);
   const [readerMode, setReaderMode] = useState<'html' | 'classic'>('html');
@@ -37,7 +38,19 @@ export function BigBookMain() {
   const openText = (id: string, page?: number, term?: string) => {
     setChapterId(id);
     setScrollToPage(page ?? null);
+    setScrollToParagraphId(null);
     setSearchTerm(term ?? null);
+    setShowReader(true);
+  };
+
+  // highlight nav → open the (HTML) reader at the highlight's chapter and scroll
+  // to its paragraph. Paragraph scroll is HTML-reader only, so force that mode.
+  const openTextAtParagraph = (id: string, paragraphId: string) => {
+    setReaderMode('html');
+    setChapterId(id);
+    setScrollToPage(null);
+    setSearchTerm(null);
+    setScrollToParagraphId(paragraphId);
     setShowReader(true);
   };
 
@@ -52,13 +65,13 @@ export function BigBookMain() {
     recordLiteratureReaderOpen()
       .then(() => maybeAskForReview('literature'))
       .catch((error) => console.warn('[reviewPrompt] Literature trigger failed', error));
-    setTimeout(() => { setChapterId(null); setScrollToPage(null); setSearchTerm(null); }, 300);
+    setTimeout(() => { setChapterId(null); setScrollToPage(null); setScrollToParagraphId(null); setSearchTerm(null); }, 300);
   };
 
   return (
     <BigBookHighlightsProvider>
       <View style={{ flex: 1 }}>
-        <BigBookContents onOpenText={openText} onOpenPdf={openPdf} />
+        <BigBookContents onOpenText={openText} onOpenPdf={openPdf} onOpenTextAtParagraph={openTextAtParagraph} />
 
         {chapterId && (
           readerMode === 'html' ? (
@@ -66,6 +79,7 @@ export function BigBookMain() {
               visible={showReader}
               initialChapterId={chapterId}
               scrollToPage={scrollToPage}
+              scrollToParagraphId={scrollToParagraphId}
               searchTerm={searchTerm}
               onClose={handleCloseReader}
               onSwitchToClassic={() => setReaderMode('classic')}
