@@ -12,8 +12,12 @@ import Pdf from 'react-native-pdf';
 import { X, Bookmark } from 'lucide-react-native';
 import { colors, fontFamily, getSemanticColors } from '@/constants/designTokens';
 import { usePdfBookmarks } from '@/hooks/use-pdf-bookmarks';
+import { useReadingTime } from '@/hooks/useReadingTime';
 
 const c = getSemanticColors('light');
+
+// bookmark-namespace → display name for analytics
+const BOOK_NAMES: Record<string, string> = { bigbook: 'Big Book', twelve: '12 & 12' };
 
 export default function PdfReader({
   assetModule, title, book, sectionId, startPage, initialPage, accent = colors.primary, onClose,
@@ -28,6 +32,7 @@ export default function PdfReader({
   onClose: () => void;
 }) {
   const { isBookmarked, toggle } = usePdfBookmarks();
+  useReadingTime(BOOK_NAMES[book] ?? book, { format: 'pdf', section: sectionId });
   const pdfRef = useRef<any>(null);
   const [uri, setUri] = useState<string | null>(null);
   const [failed, setFailed] = useState(false);

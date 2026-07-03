@@ -5,6 +5,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import createContextHook from '@nkzw/create-context-hook';
+import { setProfile } from '@/lib/analytics';
 
 export type Contact = { id: string; name: string; phone: string };
 
@@ -43,14 +44,22 @@ export const [ContactsProvider, useContacts] = createContextHook(() => {
       const key = normalizePhone(c.phone);
       if (key && contacts.some((x) => normalizePhone(x.phone) === key)) return null;
       const id = `c${Date.now()}${Math.floor(Math.random() * 999)}`;
-      setContacts((prev) => [...prev, { ...c, id }]);
+      setContacts((prev) => {
+        const next = [...prev, { ...c, id }];
+        setProfile({ contacts_count: next.length }); // names/numbers never leave the device
+        return next;
+      });
       return id;
     },
     [contacts],
   );
 
   const removeContact = useCallback((id: string) => {
-    setContacts((prev) => prev.filter((x) => x.id !== id));
+    setContacts((prev) => {
+      const next = prev.filter((x) => x.id !== id);
+      setProfile({ contacts_count: next.length });
+      return next;
+    });
   }, []);
 
   return useMemo(

@@ -17,6 +17,7 @@ import PdfReader from '@/components/PdfReader';
 import { BIGBOOK_PDFS } from '@/constants/bigbook-pdfs';
 import type { TocEntry } from '@/constants/bigbook-toc';
 import { recordLiteratureReaderOpen, maybeAskForReview } from '@/lib/reviewPrompt';
+import { logEvent } from '@/lib/analytics';
 import { colors } from '@/constants/designTokens';
 
 const PDF_ACCENT = colors.steelDark; // Steel Navy ink for the Big Book
@@ -34,6 +35,7 @@ export function BigBookMain() {
   // text entry → open the in-app reader, optionally scrolled to a page and
   // highlighting a search term.
   const openText = (id: string, page?: number, term?: string) => {
+    logEvent('literature_opened', { book: 'Big Book', format: 'text', section: id });
     setChapterId(id);
     setScrollToPage(page ?? null);
     setScrollToParagraphId(null);
@@ -54,6 +56,7 @@ export function BigBookMain() {
   // pdf entry → open the bundled PDF, optionally at a page
   const openPdf = (entry: TocEntry, initialPage?: number) => {
     if (!entry.pdfKey) return;
+    logEvent('literature_opened', { book: 'Big Book', format: 'pdf', section: entry.id });
     setPdf({ id: entry.id, title: entry.title, pdfKey: entry.pdfKey, startPage: entry.startPage ?? 0, initialPage });
   };
 

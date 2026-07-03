@@ -11,6 +11,7 @@ import { Stack, useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { ChevronRight, Bookmark, Trash2, X, Search, Hash } from 'lucide-react-native';
 import BackButton from '@/components/BackButton';
+import { logEvent } from '@/lib/analytics';
 import PdfReader from '@/components/PdfReader';
 import { TwelveCover, FindCard } from '@/components/literature/literature-ui';
 import { twelveAndTwelveData } from '@/constants/twelve-and-twelve';
@@ -55,6 +56,11 @@ export default function TwelveAndTwelveScreen() {
   const router = useRouter();
   const { forBook, remove } = usePdfBookmarks();
   const [pdf, setPdf] = useState<OpenPdf | null>(null);
+
+  // Analytics: one site covers every way a section opens (row, bookmark, search, go-to).
+  useEffect(() => {
+    if (pdf) logEvent('literature_opened', { book: '12 & 12', format: 'pdf', section: pdf.id });
+  }, [pdf]);
   const [showBookmarks, setShowBookmarks] = useState(false);
   const [showSearch, setShowSearch] = useState(false);
   const [showGoTo, setShowGoTo] = useState(false);

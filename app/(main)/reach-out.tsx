@@ -14,14 +14,21 @@ import BackButton from '@/components/BackButton';
 import { useContacts, normalizePhone, type Contact } from '@/hooks/use-contacts-store';
 import { pickContact } from '@/lib/pickContact';
 import { colors, fontFamily, getSemanticColors, shadows } from '@/constants/designTokens';
+import { logEvent } from '@/lib/analytics';
 
 const c = getSemanticColors('light');
 const CO = colors.steel;           // Steel Navy — Reach Out tone (people & connection)
 const CO_SOFT = colors.steelSoft;
 const CO_DARK = colors.steelDark;
 
-const call = (phone: string) => Linking.openURL(`tel:${normalizePhone(phone)}`).catch(() => {});
-const text = (phone: string) => Linking.openURL(`sms:${normalizePhone(phone)}`).catch(() => {});
+const call = (phone: string) => {
+  logEvent('reach_out', { action: 'call' });
+  Linking.openURL(`tel:${normalizePhone(phone)}`).catch(() => {});
+};
+const text = (phone: string) => {
+  logEvent('reach_out', { action: 'text' });
+  Linking.openURL(`sms:${normalizePhone(phone)}`).catch(() => {});
+};
 
 export default function ReachOutScreen() {
   const router = useRouter();
@@ -53,6 +60,7 @@ export default function ReachOutScreen() {
       Alert.alert('Already saved', `${picked.name} is already in your list.`);
       return;
     }
+    logEvent('contact_added', { method: 'picker' });
     flashAdded(id);
   };
 
@@ -64,8 +72,12 @@ export default function ReachOutScreen() {
     setShowManual(false);
     setManualName('');
     setManualPhone('');
-    if (id) flashAdded(id);
-    else Alert.alert('Already saved', `${name} is already in your list.`);
+    if (id) {
+      logEvent('contact_added', { method: 'manual' });
+      flashAdded(id);
+    } else {
+      Alert.alert('Already saved', `${name} is already in your list.`);
+    }
   };
 
   // Add → choose the native picker or manual entry.

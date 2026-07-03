@@ -23,7 +23,7 @@ import { useLastSponsor } from '@/hooks/use-last-sponsor';
 import { SponsorType, ChatMessage } from '@/types';
 import { ChatMarkdownRenderer } from '@/components/ChatMarkdownRenderer';
 import BackButton from '@/components/BackButton';
-import { featureUse } from '@/lib/analytics';
+import { logEvent } from '@/lib/analytics';
 import { getAnonymousId } from '@/lib/anonymousId';
 import { supabase } from '@/lib/supabase';
 import { fontFamily, getSemanticColors, shadows } from '@/constants/designTokens';
@@ -208,7 +208,9 @@ function SponsorChatContent({ initialSponsor }: { initialSponsor: string }) {
     }
     setInputText('');
     Keyboard.dismiss();
-    featureUse(`SponsorMessage_${getSponsorDisplayName(sponsorType)}`);
+    // Which sponsor personas actually get used — sponsor as a property so
+    // Mixpanel can segment one event instead of counting name-suffixed ones.
+    logEvent('sponsor_message_sent', { sponsor: getSponsorDisplayName(sponsorType) });
     await sendMessage(trimmed);
   };
 

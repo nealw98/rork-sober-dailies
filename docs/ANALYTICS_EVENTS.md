@@ -1,289 +1,160 @@
-# Sober Dailies Analytics Events
+# Sober Dailies — Mixpanel Analytics Reference
 
-This document describes all usage events sent to the `usage_events` table in Supabase.
-
----
-
-## Table Schema
-
-| Column | Type | Description |
-|--------|------|-------------|
-| `id` | UUID | Auto-generated primary key |
-| `ts` | TIMESTAMP | Event timestamp (ISO 8601) |
-| `event` | TEXT | Event type (see below) |
-| `screen` | TEXT | Screen name where event occurred |
-| `feature` | TEXT | Feature identifier (for `feature_use` events) |
-| `duration_seconds` | INTEGER | Time spent on screen (for `screen_close` events) |
-| `session_id` | UUID | Unique session identifier |
-| `anonymous_id` | TEXT | Persistent user identifier (survives reinstalls via SecureStore) |
-| `app_version` | TEXT | App version (e.g., "2.0.0") |
-| `platform` | TEXT | `ios` or `android` |
+Everything the app sends to Mixpanel, written for building reports/boards.
+Client: `lib/analytics.ts` (raw HTTP ingestion API, no native SDK — ships via OTA).
 
 ---
 
-## Event Types
+## Setup & identity
 
-### 1. System Events
+| Thing | Value |
+|---|---|
+| Token | `EXPO_PUBLIC_MIXPANEL_TOKEN` in `.env` (baked in at bundle time) |
+| `distinct_id` | The per-device anonymous ID (`lib/anonymousId.ts`) — same ID used for grandfather checks / support ID; survives reinstalls on iOS via SecureStore |
+| `session_id` | New UUID per cold launch **and** per foreground (a background→foreground cycle = new session) |
+| Geo | Derived by Mixpanel from request IP (city/country work automatically) |
+| Profiles | People profiles exist (see bottom) — `$set` via the engage API |
 
-| Event | When Logged | Fields |
-|-------|-------------|--------|
-| `app_launch` | App opened from closed state | `platform`, `app_version` |
-| `app_background` | App moved to background | `platform`, `screen` |
-| `app_foreground` | App returned from background | `platform`, `previous_session_id`, `new_session_id` |
-| `session_change` | Manual session change | `previous_session_id`, `new_session_id`, `reason` |
-| `daily_check_in` | First app open of the day | `date`, `platform` |
+### ⚠️ Environment filtering (do this first)
 
-### 2. Screen Events
+Every event and profile carries **`environment`**: `dev` (dev client) · `test` (all builds until a release candidate) · `production`.
 
-| Event | When Logged | Fields |
-|-------|-------------|--------|
-| `screen_open` | User navigates to a screen | `screen`, `reason` (optional) |
-| `screen_close` | User leaves a screen | `screen`, `duration_seconds`, `reason` (optional) |
+Controlled by `EXPO_PUBLIC_ANALYTICS_ENV` in `.env` — currently **`test`**. Flip to `production` when cutting the RC (takes effect on the next OTA/build).
 
-**Reason values:**
-- `app_background` - Screen closed because app went to background
-- `app_foreground` - Screen opened because app returned from background
+**In Mixpanel:** add `environment = production` as a default board filter (or look at `= test` while testing). Pre-release data shares the same project, so filter every report.
 
-### 3. Feature Events
+### Properties on every event
 
-| Event | When Logged | Fields |
-|-------|-------------|--------|
-| `feature_use` | User performs a tracked action | `feature`, `screen` |
+`environment`, `session_id`, `screen` (current screen name), `app_version`, `platform` (`ios`/`android`), plus Mixpanel reserved: `$os`, `$os_version`, `$model`, `$manufacturer`, `$app_version_string`, `$insert_id` (dedupe).
 
 ---
 
-## Screen Names
+## Event catalog
 
-Screen names are derived from route paths:
+### Sessions & lifecycle
 
-| Route | Screen Name | Description |
-|-------|-------------|-------------|
-| `/` or `/(tabs)/index` | `Home` | Home screen with sobriety counter |
-| `/(tabs)/chat` | `Chat` | Sponsor selection grid |
-| `/sponsor-chat` | `SponsorChat` | Active chat with a specific sponsor |
-| `/(tabs)/literature` | `Literature` | Literature menu |
-| `/(tabs)/bigbook` | `Bigbook` | Big Book chapter list + reader |
-| `/(tabs)/twelve-and-twelve` | `TwelveAndTwelve` | 12&12 reader |
-| `/(tabs)/prayers` | `Prayers` | Morning/Evening prayer reader |
-| `/(tabs)/gratitude` | `Gratitude` | Gratitude list |
-| `/(tabs)/evening-review` | `EveningReview` | Nightly review |
-| `/(tabs)/inventory` | `Inventory` | Spot check inventory |
-| `/(tabs)/daily-reflections` | `DailyReflections` | Daily reflection |
-| `/(tabs)/meeting-pocket` | `MeetingPocket` | Meeting pocket/contacts |
-| `/(tabs)/settings` | `Settings` | Settings screen |
-| `/about` | `About` | About modal |
-| `/support-developer` | `SupportDeveloper` | Support modal |
-| `/privacy` | `Privacy` | Privacy policy |
-| `/terms` | `Terms` | Terms of service |
+| Event | Properties | Notes |
+|---|---|---|
+| `app_launch` | — | Cold start |
+| `app_foreground` | `previous_session_id`, `new_session_id` | Return from background |
+| `app_background` | `session_duration_seconds`, `screen` | Session length lives here |
+| `daily_check_in` | `date` | Once per calendar day — **DAU proxy** |
+| `session_change` | `reason` | Rare, manual resets |
 
----
+### Screen usage (generic utilization)
 
-## Feature Values
+| Event | Properties | Notes |
+|---|---|---|
+| `screen_opened` | `screen` | Per screen focus |
+| `screen_closed` | `screen`, `duration_seconds` | Visits under 2s ignored |
+| `screen_time_completed` | `screen`, `duration_seconds`, `open_timestamp`, `close_timestamp` | Duplicate of closed — use one or the other in reports, not both |
 
-### Sponsor Chat Features
+**Reports:** screen popularity = count `screen_opened` by `screen`; time by area = sum `duration_seconds` on `screen_closed` by `screen`.
 
-| Feature | Description |
-|---------|-------------|
-| `SponsorMessage_SteadyEddie` | Message sent to Steady Eddie |
-| `SponsorMessage_SaltySam` | Message sent to Salty Sam |
-| `SponsorMessage_GentleGrace` | Message sent to Gentle Grace |
-| `SponsorMessage_CowboyPete` | Message sent to Cowboy Pete |
-| `SponsorMessage_CoSignSally` | Message sent to Co-Sign Sally |
-| `SponsorMessage_FreshFreddie` | Message sent to Fresh Freddie |
-| `SponsorMessage_MamaJo` | Message sent to Mama Jo |
+### Today page / Dailies
 
----
+| Event | Properties | Question it answers |
+|---|---|---|
+| `daily_added` | `daily` (label), `when` (Morning/Anytime/Evening), `custom` | What people put on their Today page |
+| `daily_removed` | `daily` | What they take off |
+| `daily_completed` | `daily`, `when`, `custom` | **What actually gets done.** Fires only on the off→on transition (toggling can't double-count). Daily Reflection included (`daily = "Daily Reflection"`) |
 
-## Understanding Sponsor Chat Analytics
+**Reports:** completion leaderboard = count `daily_completed` by `daily`. Adds-vs-removes per daily. Profile property `dailies_program` (below) gives current composition per user with no event math.
 
-Sponsor chat has multiple tracking points:
+### AI Sponsor
 
-```
-1. User taps "AI Sponsor" on Home → screen_open: Chat
-2. User browses sponsor grid → (no event)
-3. User taps a sponsor → screen_close: Chat, screen_open: SponsorChat
-4. User reads greeting → (no event)
-5. User sends message → feature_use: SponsorMessage_[SponsorName]
-6. User sends another message → feature_use: SponsorMessage_[SponsorName]
-7. User leaves → screen_close: SponsorChat (with duration_seconds)
-```
+| Event | Properties | Question |
+|---|---|---|
+| `sponsor_message_sent` | `sponsor` (SteadyEddie, SaltySam, GentleGrace, CowboyPete, CoSignSally, FreshFreddie, MamaJo) | Chat utilization AND persona popularity — one event, break down by `sponsor` |
+| `sponsor_selected` | `sponsor_id`, `sponsor_name` | Picker choices (sponsor-select screen) |
 
-**Key Metrics You Can Calculate:**
+### Meditation
 
-| Metric | Query Logic |
-|--------|-------------|
-| Sponsor selection page views | `screen = 'Chat' AND event = 'screen_open'` |
-| Sponsor chat opens (any sponsor) | `screen = 'SponsorChat' AND event = 'screen_open'` |
-| Messages by sponsor | `feature LIKE 'SponsorMessage_%' GROUP BY feature` |
-| Chat engagement rate | Messages ÷ Chat opens |
-| Avg time in sponsor chat | `AVG(duration_seconds) WHERE screen = 'SponsorChat'` |
+| Event | Properties | Question |
+|---|---|---|
+| `meditation_started` | `scene`, `minutes` | Scene popularity, chosen lengths |
+| `meditation_completed` | `scene`, `minutes` | Finished sits |
+| `meditation_stopped` | `scene`, `minutes_planned`, `seconds_elapsed` | Abandoned sits + how far they got |
 
----
+**Reports:** completion rate = funnel `meditation_started` → `meditation_completed`; scene popularity by `scene`.
 
-## Understanding Literature Analytics
+### Prayers
 
-Literature has limited granularity:
+| Event | Properties |
+|---|---|
+| `prayer_viewed` | `prayer` (title), `custom` (user-created vs built-in) |
+| `prayer_created` | — (custom-prayer adoption) |
 
-```
-1. User taps "Literature" on Home → screen_open: Literature
-2. User taps "Big Book" → screen_close: Literature, screen_open: Bigbook
-3. User browses chapters → (no event - same screen)
-4. User opens chapter → (no event - modal, same screen)
-5. User reads for 5 minutes → (no event)
-6. User closes reader → (no event - modal close)
-7. User leaves Big Book → screen_close: Bigbook (duration includes ALL time)
-```
+### Literature
 
-**Current Limitations:**
-- Cannot distinguish chapter list browsing vs reading
-- Cannot track which chapters are popular
-- Cannot track bookmark/highlight creation
+| Event | Properties | Question |
+|---|---|---|
+| `literature_opened` | `book` ("Big Book" / "12 & 12"), `format` (text/pdf), `section` (chapter/essay id) | Which book & section, how often |
+| `literature_read` | `book`, `format`, `section` (pdf only), `duration_seconds` | **Time reading, by book.** Fires when a reader closes; clock pauses while backgrounded; <5s ignored |
+| `highlight_created` | `book`, `chapter` | Engagement depth |
+| `bookmark_added` | `book`, `page` | Fires on add only (not remove) |
 
-**What You CAN Calculate:**
+**Report:** minutes by book = sum `duration_seconds` on `literature_read` by `book` ÷ 60.
 
-| Metric | Query Logic |
-|--------|-------------|
-| Literature menu visits | `screen = 'Literature' AND event = 'screen_open'` |
-| Big Book sessions | `screen = 'Bigbook' AND event = 'screen_open'` |
-| Avg Big Book session length | `AVG(duration_seconds) WHERE screen = 'Bigbook'` |
-| 12&12 sessions | `screen = 'TwelveAndTwelve' AND event = 'screen_open'` |
+### Speakers
 
----
+| Event | Properties | Question |
+|---|---|---|
+| `speaker_played` | `speaker` (talk id) | Plays per talk |
+| `speaker_listened` | `speaker`, `duration_seconds`, `position_seconds`, `talk_seconds`, `percent_complete` | One event per listen, fired when it ends (finish / switch talk / stop / player closed). `duration_seconds` = actual playing wall-clock — immune to the ±15/30s skip buttons and playback speed; <5s ignored. `percent_complete` = final position ÷ talk length |
 
-## What's NOT Currently Tracked
+**Reports:** minutes per talk = sum `duration_seconds` by `speaker`; drop-off = avg `percent_complete` by `speaker` (high plays + low % = people bail on that talk).
+**Caveat:** a force-killed app loses the final unlogged chunk (backgrounding is fine — audio keeps playing and counting).
 
-| Screen/Feature | Gap | Potential Enhancement |
-|----------------|-----|----------------------|
-| Big Book | Which chapter opened | `BigBook_ChapterOpen_[Name]` |
-| Big Book | Chapter reading time | `BigBook_ChapterClose_[Name]` with duration |
-| Big Book | Bookmark created | `BigBook_Bookmark` |
-| Big Book | Highlight created | `BigBook_Highlight` |
-| Big Book | Search used | `BigBook_Search` |
-| Daily Reflections | Which date viewed | `DailyReflection_[Date]` |
-| Daily Reflections | Date navigation | `DailyReflection_DateChange` |
-| Gratitude | Entry saved | `Gratitude_EntrySaved` |
-| Evening Review | Review completed | `EveningReview_Completed` |
-| Prayers | Which prayer viewed | `Prayer_Morning` / `Prayer_Evening` |
-| Sponsor Chat | Which sponsor opened | `SponsorOpen_[Name]` |
+### Writing tools
+
+| Event | Properties |
+|---|---|
+| `entry_saved` | `type`: `gratitude` (+`item_count`) / `journal` / `nightly_review` / `spot_check` (+`defect_count`) |
+
+**Report:** one chart, count by `type` — all four writing tools comparable. Saving from a Today daily also fires `daily_completed` (different question; both fire by design).
+
+### Reach Out
+
+| Event | Properties |
+|---|---|
+| `reach_out` | `action`: `call` / `text` |
+| `contact_added` | `method`: `picker` / `manual` |
+
+### Misc
+
+| Event | Properties |
+|---|---|
+| `feature_use` | `feature` — generic hook, superseded by the specific events above; may appear from older bundles |
+| `developer_mode_toggled` | `is_developer` |
 
 ---
 
-## Sample SQL Queries
+## People profile properties
 
-### Daily Active Users
-```sql
-SELECT 
-  DATE(ts) as date,
-  COUNT(DISTINCT anonymous_id) as dau
-FROM usage_events
-WHERE event = 'app_launch'
-GROUP BY DATE(ts)
-ORDER BY date DESC;
-```
+Set via `$set`; view under Users, or break any event down by user property.
 
-### Average Session Duration
-```sql
-SELECT 
-  anonymous_id,
-  session_id,
-  SUM(duration_seconds) as session_seconds
-FROM usage_events
-WHERE duration_seconds IS NOT NULL
-GROUP BY anonymous_id, session_id;
-```
-
-### Screen Popularity
-```sql
-SELECT 
-  screen,
-  COUNT(*) as visits,
-  AVG(duration_seconds) as avg_seconds
-FROM usage_events
-WHERE event = 'screen_close' 
-  AND duration_seconds IS NOT NULL
-GROUP BY screen
-ORDER BY visits DESC;
-```
-
-### Sponsor Popularity
-```sql
-SELECT 
-  REPLACE(feature, 'SponsorMessage_', '') as sponsor,
-  COUNT(*) as messages,
-  COUNT(DISTINCT anonymous_id) as unique_users
-FROM usage_events
-WHERE feature LIKE 'SponsorMessage_%'
-GROUP BY feature
-ORDER BY messages DESC;
-```
-
-### User Engagement Funnel
-```sql
-WITH user_actions AS (
-  SELECT 
-    anonymous_id,
-    MAX(CASE WHEN event = 'app_launch' THEN 1 ELSE 0 END) as launched,
-    MAX(CASE WHEN screen = 'Chat' THEN 1 ELSE 0 END) as visited_sponsor_selection,
-    MAX(CASE WHEN screen = 'SponsorChat' THEN 1 ELSE 0 END) as opened_sponsor_chat,
-    MAX(CASE WHEN feature LIKE 'SponsorMessage_%' THEN 1 ELSE 0 END) as sent_message
-  FROM usage_events
-  GROUP BY anonymous_id
-)
-SELECT 
-  COUNT(*) as total_users,
-  SUM(launched) as launched,
-  SUM(visited_sponsor_selection) as visited_sponsors,
-  SUM(opened_sponsor_chat) as opened_chat,
-  SUM(sent_message) as sent_message
-FROM user_actions;
-```
-
-### Daily Usage Per User
-```sql
-SELECT 
-  anonymous_id,
-  DATE(ts) as date,
-  SUM(duration_seconds) as total_seconds,
-  COUNT(*) FILTER (WHERE event = 'screen_open') as screens_visited,
-  COUNT(*) FILTER (WHERE feature LIKE 'SponsorMessage_%') as messages_sent
-FROM usage_events
-GROUP BY anonymous_id, DATE(ts)
-ORDER BY date DESC, total_seconds DESC;
-```
+| Property | Meaning | Updated |
+|---|---|---|
+| `environment` | dev / test / production | Every launch |
+| `platform`, `$os`, `$model`, `$app_version_string` | Device facts | Every launch |
+| `dailies_program` | Array of labels currently on the user's Today page | Every daily add/remove |
+| `dailies_count` | Program size incl. Daily Reflection | Same |
+| `contacts_count` | # of Reach Out contacts (count only — names/numbers never leave the device) | On add/remove |
 
 ---
 
-## Anonymous ID Behavior
+## Suggested starter board
 
-- **Storage:** iOS Keychain / Android Keystore via `expo-secure-store`
-- **Persistence:** Survives app reinstalls on iOS (usually on Android too)
-- **Migration:** Existing AsyncStorage IDs auto-migrate to SecureStore
-- **Format:** UUID v4
+1. **DAU** — unique users on `daily_check_in`, filtered `environment = production`
+2. **Feature leaderboards** — one report each: `daily_completed` by `daily` · `sponsor_message_sent` by `sponsor` · `entry_saved` by `type` · `meditation_started` by `scene` · `prayer_viewed` by `prayer` · `speaker_played` by `speaker`
+3. **Time spent** — `literature_read` sum `duration_seconds` by `book` · `speaker_listened` sum by `speaker` · `screen_closed` sum by `screen`
+4. **Completion** — funnel `meditation_started` → `meditation_completed` · avg `percent_complete` on `speaker_listened` by `speaker`
+5. **Today-page composition** — Users broken down by `dailies_program` / `dailies_count`
 
----
+## Gotchas
 
-## Session Behavior
-
-- **New session created on:**
-  - App launch from closed state
-  - App returns from background
-  
-- **Session ID format:** UUID v4
-
-- **Session boundaries:**
-  - Each background/foreground cycle = new session
-  - Useful for calculating "sessions per user" and "time per session"
-
----
-
-## Notes
-
-1. **Event throttling:** Non-screen events are throttled to max 1 per second to prevent spam
-2. **Orphaned opens:** If app crashes, `screen_close` may not be logged (duration will be null)
-3. **Duration precision:** Rounded to nearest second
-4. **Batch sending:** Events are queued and flushed every 2 seconds
-
----
-
-*Last updated: January 2026*
-
+- **Filter `environment` on every report** until the RC ships, then flip `.env` to `production`.
+- Events batch every ~2s with retry; queued events are lost only if the app is force-killed before flush.
+- No People profile exists for a device until it launches a post-Mixpanel build; `distinct_id` continuity is preserved for all existing users.
+- The `environment` value is baked at bundle time — changing `.env` requires an `eas update` to take effect.

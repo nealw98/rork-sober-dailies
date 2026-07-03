@@ -12,6 +12,7 @@ import { useEveningReviewStore } from '@/hooks/use-evening-review-store';
 import { useDailies } from '@/hooks/use-dailies-store';
 import { ToolHeader, ToolIntro, TOOLS } from '@/components/ToolScreen';
 import { colors, fontFamily, getSemanticColors } from '@/constants/designTokens';
+import { logEvent } from '@/lib/analytics';
 
 const c = getSemanticColors('light');
 const tool = TOOLS.nightly;
@@ -72,6 +73,7 @@ export default function NightlyReviewScreen() {
         spiritualFlag: '', spiritualNote: '',
         prayerMeditationFlag: '',
       });
+      logEvent('entry_saved', { type: 'nightly_review' });
       if (dailyId) dailies.markDone(dailyId);
     }
     router.back();

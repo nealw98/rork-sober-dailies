@@ -13,6 +13,7 @@ import { useGratitudeStore } from '@/hooks/use-gratitude-store';
 import { useDailies } from '@/hooks/use-dailies-store';
 import { ToolHeader, ToolIntro, TOOLS } from '@/components/ToolScreen';
 import { colors, fontFamily, getSemanticColors } from '@/constants/designTokens';
+import { logEvent } from '@/lib/analytics';
 
 const c = getSemanticColors('light');
 const tool = TOOLS.gratitude;
@@ -34,6 +35,7 @@ export default function GratitudeScreen() {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       gratitude.saveDetailedEntry(items);
       gratitude.completeToday(items);
+      logEvent('entry_saved', { type: 'gratitude', item_count: items.length });
       if (dailyId) dailies.markDone(dailyId);
     }
     router.back();

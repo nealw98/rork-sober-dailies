@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef, createContext, useContext } from 'react';
 import { AppState, AppStateStatus } from 'react-native';
 import { Audio, AVPlaybackStatus } from 'expo-av';
+import { logEvent } from '@/lib/analytics';
 
 /**
  * Global audio player context + hook.
@@ -97,6 +98,43 @@ export function AudioPlayerProvider({ children }: { children: React.ReactNode })
     return () => sub.remove();
   }, [applyAudioMode]);
 
+  // ── Listen-time analytics ────────────────────────────────────────────────
+  // Accumulates actual PLAYING time (pauses/buffering excluded) per talk and
+  // fires one `speaker_listened` {speaker, duration_seconds} when the listen
+  // ends: talk finishes, a different talk loads, stop, or unmount.
+  const listenSpeakerRef = useRef<string | null>(null);
+  const listenAccumMsRef = useRef(0);
+  const playStartRef = useRef<number | null>(null);
+  const lastPositionMsRef = useRef(0);
+  const lastDurationMsRef = useRef(0);
+
+  const pauseListenClock = useCallback(() => {
+    if (playStartRef.current != null) {
+      listenAccumMsRef.current += Date.now() - playStartRef.current;
+      playStartRef.current = null;
+    }
+  }, []);
+
+  const flushListenTime = useCallback(() => {
+    pauseListenClock();
+    const seconds = Math.round(listenAccumMsRef.current / 1000);
+    if (listenSpeakerRef.current && seconds >= 5) {
+      // duration_seconds = actual time spent listening (wall clock while playing;
+      // immune to skip buttons and playback speed). position/percent = how far
+      // through the talk they got, for completion-rate analysis.
+      const dur = lastDurationMsRef.current;
+      logEvent('speaker_listened', {
+        speaker: listenSpeakerRef.current,
+        duration_seconds: seconds,
+        position_seconds: Math.round(lastPositionMsRef.current / 1000),
+        talk_seconds: dur > 0 ? Math.round(dur / 1000) : undefined,
+        percent_complete: dur > 0 ? Math.min(100, Math.round((lastPositionMsRef.current / dur) * 100)) : undefined,
+      });
+    }
+    listenAccumMsRef.current = 0;
+    lastPositionMsRef.current = 0;
+  }, [pauseListenClock]);
+
   // Playback status callback
   const onStatusUpdate = useCallback((status: AVPlaybackStatus) => {
     if (!status.isLoaded) {
@@ -114,7 +152,18 @@ export function AudioPlayerProvider({ children }: { children: React.ReactNode })
     setDurationMs(status.durationMillis ?? 0);
     setLoadError(null);
     setDidJustFinish(status.didJustFinish ?? false);
-  }, []);
+    lastPositionMsRef.current = status.positionMillis;
+    if (status.durationMillis) lastDurationMsRef.current = status.durationMillis;
+
+    // Listen clock: run only while actually playing; flush when the talk ends.
+    if (status.didJustFinish) {
+      flushListenTime();
+    } else if (status.isPlaying && playStartRef.current == null) {
+      playStartRef.current = Date.now();
+    } else if (!status.isPlaying) {
+      pauseListenClock();
+    }
+  }, [flushListenTime, pauseListenClock]);
 
   // Load audio for a speaker
   const load = useCallback(
@@ -135,6 +184,9 @@ export function AudioPlayerProvider({ children }: { children: React.ReactNode })
         setPositionMs(0);
         setDurationMs(0);
         setCurrentSpeakerId(speakerId);
+        flushListenTime(); // close out the previous talk's listen time
+        listenSpeakerRef.current = speakerId;
+        logEvent('speaker_played', { speaker: speakerId });
 
         // Unload previous sound
         if (soundRef.current) {
@@ -169,7 +221,7 @@ export function AudioPlayerProvider({ children }: { children: React.ReactNode })
         setIsBuffering(false);
       }
     },
-    [rate, onStatusUpdate]
+    [rate, onStatusUpdate, flushListenTime]
   );
 
   const play = useCallback(async () => {
@@ -191,6 +243,7 @@ export function AudioPlayerProvider({ children }: { children: React.ReactNode })
   // Stop = full unload, reset everything
   const stop = useCallback(async () => {
     try {
+      flushListenTime();
       if (soundRef.current) {
         await soundRef.current.unloadAsync();
         soundRef.current = null;
@@ -206,7 +259,7 @@ export function AudioPlayerProvider({ children }: { children: React.ReactNode })
     } catch (err) {
       console.error('[AudioPlayer] Stop failed:', err);
     }
-  }, []);
+  }, [flushListenTime]);
 
   const seekTo = useCallback(async (ms: number) => {
     try {
@@ -240,9 +293,10 @@ export function AudioPlayerProvider({ children }: { children: React.ReactNode })
   // Cleanup on unmount
   useEffect(() => {
     return () => {
+      flushListenTime();
       soundRef.current?.unloadAsync();
     };
-  }, []);
+  }, [flushListenTime]);
 
   const value: AudioPlayerContextType = {
     currentSpeakerId,

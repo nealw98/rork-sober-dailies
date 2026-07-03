@@ -20,6 +20,8 @@ import { formatPageNumber, isPageMarker } from '@/lib/bigbook-page-utils';
 import { BigBookHighlight, BigBookParagraph, HighlightColor } from '@/types/bigbook-v2';
 import { HighlightEditMenu } from './HighlightEditMenu';
 import { colors, fontFamily, getSemanticColors } from '@/constants/designTokens';
+import { logEvent } from '@/lib/analytics';
+import { useReadingTime } from '@/hooks/useReadingTime';
 
 const c = getSemanticColors('light');
 const PAPER = '#FCFBF8';
@@ -442,6 +444,7 @@ function buildHtml(params: {
 }
 
 export function BigBookHtmlReader({ visible, initialChapterId, scrollToPage, scrollToParagraphId, searchTerm, onClose }: BigBookHtmlReaderProps) {
+  useReadingTime('Big Book', { format: 'text' });
   const webViewRef = useRef<WebView>(null);
   const insets = useSafeAreaInsets();
   const { currentChapter, currentChapterId, loadChapter, goToNextChapter, goToPreviousChapter } = useBigBookContent();
@@ -509,8 +512,12 @@ export function BigBookHtmlReader({ visible, initialChapterId, scrollToPage, scr
     if (!currentPageNumber || !currentChapterId) return;
     try {
       const existing = getBookmarkForPage(currentPageNumber);
-      if (existing) await deleteBookmark(existing.id);
-      else await addBookmark(currentPageNumber, currentChapterId, '');
+      if (existing) {
+        await deleteBookmark(existing.id);
+      } else {
+        await addBookmark(currentPageNumber, currentChapterId, '');
+        logEvent('bookmark_added', { book: 'Big Book', page: currentPageNumber });
+      }
     } catch (error) {
       console.error('[BigBookHtmlReader] bookmark toggle', error);
     }
@@ -521,6 +528,7 @@ export function BigBookHtmlReader({ visible, initialChapterId, scrollToPage, scr
     text: string
   ) => {
     if (!currentChapterId || ranges.length === 0) return;
+    logEvent('highlight_created', { book: 'Big Book', chapter: currentChapterId });
     const groupId = `highlight_group_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
     const created = await Promise.all(ranges.map((item) =>
       addRangeHighlight(

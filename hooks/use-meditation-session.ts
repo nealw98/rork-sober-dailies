@@ -3,6 +3,7 @@ import { AppState } from 'react-native';
 import { Audio } from 'expo-av';
 import createContextHook from '@nkzw/create-context-hook';
 import { useMeditationLog } from '@/hooks/use-meditation-log';
+import { logEvent } from '@/lib/analytics';
 
 /**
  * Global meditation session — two decoupled layers (Calm-style):
@@ -68,6 +69,8 @@ export const [MeditationSessionProvider, useMeditationSession] = createContextHo
   minutesRef.current = minutes;
   const volumeRef = useRef(volume);
   volumeRef.current = volume;
+  const sceneNameRef = useRef(sceneName);
+  sceneNameRef.current = sceneName;
 
   // Records actual sat time (from Begin, excluding pauses) to the per-day log.
   const { addSeconds } = useMeditationLog();
@@ -147,6 +150,7 @@ export const [MeditationSessionProvider, useMeditationSession] = createContextHo
     setDoneMin(minutesRef.current);
     setPhase('complete');
     addSeconds(minutesRef.current * 60); // full sit
+    logEvent('meditation_completed', { scene: sceneNameRef.current ?? 'Silence', minutes: minutesRef.current });
     playBell();
   }, [playBell, addSeconds]);
 
@@ -196,6 +200,7 @@ export const [MeditationSessionProvider, useMeditationSession] = createContextHo
     setRemaining(mins * 60);
     endAtRef.current = Date.now() + mins * 60 * 1000;
     setPhase('active');
+    logEvent('meditation_started', { scene: sceneNameRef.current ?? 'Silence', minutes: mins });
   }, []);
 
   const setPausedTo = useCallback((p: boolean) => {
@@ -211,7 +216,9 @@ export const [MeditationSessionProvider, useMeditationSession] = createContextHo
     // Log the elapsed active time only for a running sit — not when Done is tapped
     // from the completion screen (that sit was already logged in complete()).
     if (phaseRef.current === 'active') {
-      addSeconds(minutesRef.current * 60 - remainingRef.current);
+      const elapsed = minutesRef.current * 60 - remainingRef.current;
+      addSeconds(elapsed);
+      logEvent('meditation_stopped', { scene: sceneNameRef.current ?? 'Silence', minutes_planned: minutesRef.current, seconds_elapsed: elapsed });
     }
     endAtRef.current = null;
     setPaused(false);

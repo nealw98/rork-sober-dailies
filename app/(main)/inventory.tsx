@@ -15,6 +15,7 @@ import { useDailies } from '@/hooks/use-dailies-store';
 import { ToolHeader, ToolIntro, TOOLS } from '@/components/ToolScreen';
 import { colors, fontFamily, getSemanticColors } from '@/constants/designTokens';
 import { SPOT_PAIRS } from '@/constants/spotCheckPairs';
+import { logEvent } from '@/lib/analytics';
 
 const c = getSemanticColors('light');
 const tool = TOOLS.spotcheck;
@@ -48,6 +49,7 @@ export default function InventoryScreen() {
         records.unshift(record);
         await AsyncStorage.setItem(INVENTORY_STORAGE_KEY, JSON.stringify(records));
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        logEvent('entry_saved', { type: 'spot_check', defect_count: chosen.length });
         if (dailyId) dailies.markDone(dailyId);
       } catch (error) {
         console.error('Error saving spot check:', error);

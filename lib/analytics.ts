@@ -1,6 +1,7 @@
 import { Platform, AppState, AppStateStatus } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Constants from 'expo-constants';
+import * as Device from 'expo-device';
 import { getAnonymousId, getAnonymousIdSync } from './anonymousId';
 
 /**
@@ -15,7 +16,26 @@ import { getAnonymousId, getAnonymousIdSync } from './anonymousId';
 
 const MIXPANEL_TOKEN = process.env.EXPO_PUBLIC_MIXPANEL_TOKEN || '';
 const MIXPANEL_TRACK_URL = 'https://api.mixpanel.com/track';
+const MIXPANEL_ENGAGE_URL = 'https://api.mixpanel.com/engage';
 const MAX_BATCH_SIZE = 50; // Mixpanel's per-request event limit
+
+// Environment tag on every event/profile so pre-release data can be filtered
+// out of reports. Set EXPO_PUBLIC_ANALYTICS_ENV in .env ('test' until there's a
+// release candidate, then 'production'); dev-client sessions default to 'dev'.
+const ANALYTICS_ENV = process.env.EXPO_PUBLIC_ANALYTICS_ENV || (__DEV__ ? 'dev' : 'production');
+
+// Mixpanel reserved properties — attached to every event so the built-in
+// device/version reports work (the native SDKs send these automatically; the
+// HTTP API sends nothing unless we do).
+const DEVICE_PROPS = {
+  $os: Platform.OS === 'ios' ? 'iOS' : 'Android',
+  $os_version: Device.osVersion ?? undefined,
+  $model: Device.modelName ?? undefined,
+  $manufacturer: Device.manufacturer ?? undefined,
+  $app_version_string: Constants.expoConfig?.version ?? undefined,
+  mp_lib: 'http',
+  environment: ANALYTICS_ENV,
+};
 
 interface QueuedEvent {
   event: string;
@@ -49,6 +69,29 @@ class Analytics {
     this.sessionStartTime = Date.now();
     this.logEvent('app_launch', { platform: Platform.OS, app_version: Constants.expoConfig?.version });
     this.checkDailyStreak().catch((e) => console.error('[Analytics] Daily streak check failed:', e));
+    // Keep the People profile's device/version facts fresh.
+    this.setProfile({
+      platform: Platform.OS,
+      $os: DEVICE_PROPS.$os,
+      $app_version_string: DEVICE_PROPS.$app_version_string,
+      $model: DEVICE_PROPS.$model,
+      environment: ANALYTICS_ENV,
+    });
+  }
+
+  /** Merge properties into this device's Mixpanel People profile ($set). Fire-and-forget. */
+  async setProfile(props: Record<string, any>): Promise<void> {
+    if (!MIXPANEL_TOKEN) return;
+    try {
+      const anonymousId = getAnonymousIdSync() ?? (await getAnonymousId());
+      await fetch(MIXPANEL_ENGAGE_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Accept: 'text/plain' },
+        body: JSON.stringify([{ $token: MIXPANEL_TOKEN, $distinct_id: anonymousId, $set: props }]),
+      });
+    } catch (error) {
+      console.warn('[Analytics] Profile update failed (non-fatal):', error);
+    }
   }
 
   private generateId(): string {
@@ -77,8 +120,9 @@ class Analytics {
     }
 
     const now = Date.now();
-    // Throttle to max 1/sec, but let screen_* events through for accurate navigation tracking.
-    if (now - this.lastEventTime < 1000 && !event.startsWith('screen_')) return;
+    // No cross-event throttling — real flows fire related events back-to-back
+    // (e.g. entry_saved → daily_completed) and dropping the second would skew
+    // feature-use counts. The 2s batch window + $insert_id dedupe handle bursts.
     this.lastEventTime = now;
 
     const { screen, feature, duration_seconds, ...otherProps } = props || {};
@@ -97,6 +141,7 @@ class Analytics {
         duration_seconds,
         app_version: Constants.expoConfig?.version || undefined,
         platform: Platform.OS,
+        ...DEVICE_PROPS,
         ...otherProps,
       },
     });
@@ -214,6 +259,7 @@ export const analytics = new Analytics();
 
 export const initAnalytics = () => analytics.init();
 export const logEvent = (event: string, props?: Record<string, any>) => analytics.logEvent(event, props);
+export const setProfile = (props: Record<string, any>) => analytics.setProfile(props);
 export const featureUse = (feature: string, screen?: string) => analytics.featureUse(feature, screen);
 export const setCurrentScreen = (screenName: string) => analytics.setCurrentScreen(screenName);
 export const getCurrentSessionId = () => analytics.getSessionId();

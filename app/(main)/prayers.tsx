@@ -14,6 +14,7 @@ import { PrayerEditSheet } from '@/components/PrayerEditSheet';
 import { useTheme } from '@/hooks/useTheme';
 import Animated, { useSharedValue, useAnimatedStyle, withTiming, Easing, interpolate, runOnJS, Extrapolation } from 'react-native-reanimated';
 import { useScreenTimeTracking } from '@/hooks/useScreenTimeTracking';
+import { logEvent } from '@/lib/analytics';
 import { aaPrayers } from '@/constants/prayers';
 import { colors, fontFamily, getSemanticColors, shadows } from '@/constants/designTokens';
 
@@ -91,6 +92,8 @@ export default function PrayersScreen() {
   const finishClose = () => { setMode('list'); setSelected(null); setSource(null); };
 
   const openFromCard = (i: number) => {
+    const opened = allPrayers[i];
+    if (opened) logEvent('prayer_viewed', { prayer: opened.title, custom: i >= aaPrayers.length });
     const node = cardRefs.current[i];
     if (!node) { setSelected(i); setMode('read'); progress.value = 1; return; }
     node.measureInWindow((x, y, w, h) => {
@@ -265,7 +268,7 @@ export default function PrayersScreen() {
       {sheet?.mode === 'add' && (
         <PrayerEditSheet
           palette={palette}
-          onSave={(title, content) => { addPrayer(title, content); setSheet(null); }}
+          onSave={(title, content) => { addPrayer(title, content); logEvent('prayer_created'); setSheet(null); }}
           onClose={() => setSheet(null)}
         />
       )}

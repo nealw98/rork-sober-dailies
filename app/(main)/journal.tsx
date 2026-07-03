@@ -11,6 +11,7 @@ import { useJournal } from '@/hooks/use-journal-store';
 import { useDailies } from '@/hooks/use-dailies-store';
 import { ToolHeader, ToolIntro, TOOLS } from '@/components/ToolScreen';
 import { colors, fontFamily, getSemanticColors } from '@/constants/designTokens';
+import { logEvent } from '@/lib/analytics';
 
 const c = getSemanticColors('light');
 const tool = TOOLS.journal;
@@ -28,6 +29,7 @@ export default function JournalScreen() {
     if (dirty && journal) {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       journal.addEntry(text.trim());
+      logEvent('entry_saved', { type: 'journal' });
       if (dailyId) dailies.markDone(dailyId);
     }
     router.back();

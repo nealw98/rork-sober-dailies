@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo, useCallback } from 'react';
 import { AppState } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import createContextHook from '@nkzw/create-context-hook';
+import { logEvent, setProfile } from '@/lib/analytics';
 
 /**
  * My Dailies — the customizable daily-action program (NET-NEW, local-first).
@@ -157,16 +158,34 @@ export const [DailiesProvider, useDailies] = createContextHook(() => {
   // ── Program ──────────────────────────────────────────────────────────
   const section = useCallback((when: WhenBucket) => program.filter((d) => d.when === when), [program]);
 
+  // Analytics: mirror the current program onto the Mixpanel People profile so
+  // "what's on users' Today pages" is visible without event math.
+  const syncProgramProfile = useCallback((items: DailyItem[]) => {
+    setProfile({ dailies_program: items.map((d) => d.label), dailies_count: items.length + 1 });
+  }, []);
+
   const addDaily = useCallback(
     (item: Omit<DailyItem, 'id' | 'when'>, when: WhenBucket) => {
       const id = `d${Date.now()}${Math.floor(Math.random() * 999)}`;
-      persistProgram([...program, { ...item, id, when }]);
+      const next = [...program, { ...item, id, when }];
+      persistProgram(next);
+      logEvent('daily_added', { daily: item.label, when, custom: !!item.custom });
+      syncProgramProfile(next);
       return id;
     },
-    [program, persistProgram],
+    [program, persistProgram, syncProgramProfile],
   );
 
-  const removeDaily = useCallback((id: string) => persistProgram(program.filter((d) => d.id !== id)), [program, persistProgram]);
+  const removeDaily = useCallback(
+    (id: string) => {
+      const removed = program.find((d) => d.id === id);
+      const next = program.filter((d) => d.id !== id);
+      persistProgram(next);
+      if (removed) logEvent('daily_removed', { daily: removed.label });
+      syncProgramProfile(next);
+    },
+    [program, persistProgram, syncProgramProfile],
+  );
 
   const setWhen = useCallback(
     (id: string, when: WhenBucket) => persistProgram(program.map((d) => (d.id === id ? { ...d, when } : d))),
@@ -188,29 +207,51 @@ export const [DailiesProvider, useDailies] = createContextHook(() => {
     [completion, dayKey],
   );
 
+  // Analytics: which dailies users actually complete (fires only on the OFF→ON
+  // transition, never on uncheck, so counts aren't inflated by toggling).
+  const logCompleted = useCallback(
+    (id: string) => {
+      const item = program.find((d) => d.id === id);
+      if (item) logEvent('daily_completed', { daily: item.label, when: item.when, custom: !!item.custom });
+    },
+    [program],
+  );
+
   const toggleDone = useCallback(
-    (id: string) =>
+    (id: string) => {
+      const turningOn = !(completion[dayKey]?.done ?? []).includes(id);
       updateToday((day) => ({
         ...day,
         done: day.done.includes(id) ? day.done.filter((x) => x !== id) : [...day.done, id],
-      })),
-    [updateToday],
+      }));
+      if (turningOn) logCompleted(id);
+    },
+    [updateToday, completion, dayKey, logCompleted],
   );
 
   const markDone = useCallback(
-    (id: string) => updateToday((day) => (day.done.includes(id) ? day : { ...day, done: [...day.done, id] })),
-    [updateToday],
+    (id: string) => {
+      const turningOn = !(completion[dayKey]?.done ?? []).includes(id);
+      updateToday((day) => (day.done.includes(id) ? day : { ...day, done: [...day.done, id] }));
+      if (turningOn) logCompleted(id);
+    },
+    [updateToday, completion, dayKey, logCompleted],
   );
 
   const setReflectionDone = useCallback(
-    (value: boolean = true) => updateToday((day) => ({ ...day, reflection: value })),
-    [updateToday],
+    (value: boolean = true) => {
+      const turningOn = value && !completion[dayKey]?.reflection;
+      updateToday((day) => ({ ...day, reflection: value }));
+      if (turningOn) logEvent('daily_completed', { daily: 'Daily Reflection', when: 'Morning' });
+    },
+    [updateToday, completion, dayKey],
   );
 
-  const toggleReflection = useCallback(
-    () => updateToday((day) => ({ ...day, reflection: !day.reflection })),
-    [updateToday],
-  );
+  const toggleReflection = useCallback(() => {
+    const turningOn = !completion[dayKey]?.reflection;
+    updateToday((day) => ({ ...day, reflection: !day.reflection }));
+    if (turningOn) logEvent('daily_completed', { daily: 'Daily Reflection', when: 'Morning' });
+  }, [updateToday, completion, dayKey]);
 
   // Overwrite a specific day's completion record. Lets Journey edit past days
   // (check off dailies the user forgot), keyed by that day's local date.
