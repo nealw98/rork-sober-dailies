@@ -19,7 +19,7 @@ import Constants from 'expo-constants';
 import { RefreshCw, MessageCircle, BookOpen, Sparkles, Check, X } from 'lucide-react-native';
 import { adjustFontWeight } from '@/constants/fonts';
 import { useSubscription } from '@/hooks/useSubscription';
-import { usageLogger } from '@/lib/usageLogger';
+import { getAnonymousId } from '@/lib/anonymousId';
 
 const DEVELOPER_MODE_KEY = 'sober_dailies_developer_mode';
 const PREMIUM_OVERRIDE_KEY = 'sober_dailies_premium_override';
@@ -125,7 +125,7 @@ export default function PaywallScreen({ onDismiss }: PaywallScreenProps) {
     if (newCount >= 7) {
       setVersionTapCount(0);
       // Fetch and show Support ID
-      const id = await usageLogger.getAnonymousId();
+      const id = await getAnonymousId();
       setSupportId(id);
       setShowSupportId(true);
     } else {
@@ -145,7 +145,7 @@ export default function PaywallScreen({ onDismiss }: PaywallScreenProps) {
 
   // Open email with Support ID
   const emailWithSupportId = async () => {
-    const id = supportId || await usageLogger.getAnonymousId() || 'Not available';
+    const id = supportId || await getAnonymousId() || 'Not available';
     const subject = encodeURIComponent('Sober Dailies Support Request');
     const body = encodeURIComponent(`Support ID: ${id}\n\n[Please describe your issue here]`);
     const mailtoUrl = `mailto:support@soberdailies.org?subject=${subject}&body=${body}`;

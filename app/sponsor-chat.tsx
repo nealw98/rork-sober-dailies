@@ -23,7 +23,8 @@ import { useLastSponsor } from '@/hooks/use-last-sponsor';
 import { SponsorType, ChatMessage } from '@/types';
 import { ChatMarkdownRenderer } from '@/components/ChatMarkdownRenderer';
 import BackButton from '@/components/BackButton';
-import { featureUse, getAnonymousId } from '@/lib/usageLogger';
+import { featureUse } from '@/lib/analytics';
+import { getAnonymousId } from '@/lib/anonymousId';
 import { supabase } from '@/lib/supabase';
 import { fontFamily, getSemanticColors, shadows } from '@/constants/designTokens';
 import {
@@ -66,6 +67,13 @@ type LimitCheckResult =
   | { allowed: false; reason: 'daily' | 'monthly'; count: number }
   | { allowed: false; error: string };
 
+// Counts against sponsor_chat_usage (written server-side by the sponsor-chat
+// edge function on every OpenAI/Anthropic-backed reply) rather than the old
+// usage_events table, which no longer receives writes now that analytics moved
+// to Mixpanel. This only counts the paid-API engines — not Rork, which never
+// touches this edge function — but that's the traffic that actually costs
+// OpenAI/Anthropic credit, so it's a tighter fit for a cost-control limit than
+// the old count (which mixed in Rork messages that don't cost anything here).
 const checkSponsorMessageLimits = async (): Promise<LimitCheckResult> => {
   try {
     const anonymousId = await getAnonymousId();
@@ -73,20 +81,18 @@ const checkSponsorMessageLimits = async (): Promise<LimitCheckResult> => {
     const startOfDay = new Date(now);
     startOfDay.setHours(0, 0, 0, 0);
     const { count: dailyCount, error: dailyError } = await supabase
-      .from('usage_events')
+      .from('sponsor_chat_usage')
       .select('*', { count: 'exact', head: true })
       .eq('anonymous_id', anonymousId)
-      .like('feature', 'SponsorMessage_%')
       .gte('created_at', startOfDay.toISOString());
     if (dailyError) return { allowed: false, error: dailyError.message };
     if ((dailyCount ?? 0) >= DAILY_SPONSOR_LIMIT) return { allowed: false, reason: 'daily', count: dailyCount ?? 0 };
 
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
     const { count: monthlyCount, error: monthlyError } = await supabase
-      .from('usage_events')
+      .from('sponsor_chat_usage')
       .select('*', { count: 'exact', head: true })
       .eq('anonymous_id', anonymousId)
-      .like('feature', 'SponsorMessage_%')
       .gte('created_at', startOfMonth.toISOString());
     if (monthlyError) return { allowed: false, error: monthlyError.message };
     if ((monthlyCount ?? 0) >= MONTHLY_SPONSOR_LIMIT) return { allowed: false, reason: 'monthly', count: monthlyCount ?? 0 };

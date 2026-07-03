@@ -90,62 +90,6 @@ export type Database = {
           // is_grandfathered is computed, not updatable
         };
       };
-      usage_events: {
-        Row: {
-          id: string;
-          ts: string;
-          event: string;
-          screen: string | null;
-          feature: string | null;
-          session_id: string;
-          app_version: string | null;
-          platform: string | null;
-          day_utc: string | null; // Computed column
-          anonymous_id: string | null;
-          exclude_from_analytics: boolean;
-          duration_seconds: number | null;
-          properties: Record<string, any> | null;
-          city: string | null;
-          region: string | null;
-          country: string | null;
-        };
-        Insert: {
-          id?: string;
-          ts?: string;
-          event: string;
-          screen?: string | null;
-          feature?: string | null;
-          session_id: string;
-          app_version?: string | null;
-          platform?: string | null;
-          anonymous_id?: string | null;
-          exclude_from_analytics?: boolean;
-          duration_seconds?: number | null;
-          properties?: Record<string, any> | null;
-          city?: string | null;
-          region?: string | null;
-          country?: string | null;
-          // day_utc is computed, not insertable
-        };
-        Update: {
-          id?: string;
-          ts?: string;
-          event?: string;
-          screen?: string | null;
-          feature?: string | null;
-          session_id?: string;
-          app_version?: string | null;
-          platform?: string | null;
-          anonymous_id?: string | null;
-          exclude_from_analytics?: boolean;
-          duration_seconds?: number | null;
-          properties?: Record<string, any> | null;
-          city?: string | null;
-          region?: string | null;
-          country?: string | null;
-          // day_utc is computed, not updatable
-        };
-      };
       app_feedback: {
         Row: {
           id: string;

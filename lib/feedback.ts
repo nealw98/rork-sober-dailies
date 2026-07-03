@@ -1,7 +1,7 @@
 import { Platform } from 'react-native';
 import Constants from 'expo-constants';
 import { supabase } from './supabase';
-import { getAnonymousId } from './usageLogger';
+import { getAnonymousId } from './anonymousId';
 
 export interface FeedbackSubmission {
   feedbackText: string;

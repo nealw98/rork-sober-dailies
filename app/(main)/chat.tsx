@@ -10,7 +10,7 @@ import { Stack, useRouter } from 'expo-router';
 import BackButton from '@/components/BackButton';
 import { SPONSORS, type SponsorConfig } from '@/constants/sponsors';
 import { SELECTION_SPONSOR_IDS, BR_SOFT } from '@/constants/sponsorTones';
-import { logEvent } from '@/lib/usageLogger';
+import { logEvent } from '@/lib/analytics';
 import { useScreenTimeTracking } from '@/hooks/useScreenTimeTracking';
 import { fontFamily, getSemanticColors, shadows } from '@/constants/designTokens';
 

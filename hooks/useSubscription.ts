@@ -9,7 +9,7 @@ import Purchases, {
   Package,
 } from 'react-native-purchases';
 import { supabase } from '@/lib/supabase';
-import { usageLogger } from '@/lib/usageLogger';
+import { getAnonymousId } from '@/lib/anonymousId';
 
 // ============================================================================
 // CONFIGURATION
@@ -78,7 +78,7 @@ async function ensurePurchasesConfigured(): Promise<{ ok: true } | { ok: false; 
 async function checkGrandfatherStatus(): Promise<boolean> {
   try {
     // Get the anonymous ID from usage logger
-    const anonymousId = await usageLogger.getAnonymousId();
+    const anonymousId = await getAnonymousId();
     if (!anonymousId) {
       console.log('[Subscription] No anonymous ID available - not grandfathered');
       return false;

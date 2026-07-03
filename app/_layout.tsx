@@ -80,7 +80,7 @@ import OnboardingFlow from "@/components/OnboardingFlow";
 import PaywallScreen from "@/components/PaywallScreen";
 import OTASnackbar from "@/components/OTASnackbar";
 import { Logger } from "@/lib/logger";
-import { initUsageLogger } from "@/lib/usageLogger";
+import { initAnalytics } from "@/lib/analytics";
 import { recordAppOpen } from "@/lib/reviewPrompt";
 import { useExpoRouterTracking } from "@/hooks/useExpoRouterTracking";
 import { SessionProvider } from "@/hooks/useSessionContext";
@@ -207,8 +207,8 @@ function RootLayoutNav() {
     // Initialize in-app logger
     Logger.initialize();
 
-    // Initialize usage logger
-    initUsageLogger();
+    // Initialize analytics (Mixpanel)
+    initAnalytics();
 
     recordAppOpen().catch((error) => {
       console.warn('[reviewPrompt] Failed to record app open from root layout', error);

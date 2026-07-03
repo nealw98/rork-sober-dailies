@@ -1,7 +1,7 @@
 import { useEffect, useRef, useCallback } from 'react';
 import { AppState, AppStateStatus } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
-import { logEvent } from '@/lib/usageLogger';
+import { logEvent } from '@/lib/analytics';
 
 /**
  * Hook to track time spent on a screen

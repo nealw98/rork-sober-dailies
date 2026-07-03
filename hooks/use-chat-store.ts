@@ -1,7 +1,7 @@
 import createContextHook from "@nkzw/create-context-hook";
 import { useState, useEffect } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import * as SecureStore from "expo-secure-store";
+import { getAnonymousId } from "@/lib/anonymousId";
 import { ChatMessage, SponsorType } from "@/types";
 import { detectCrisis, crisisResponses } from "@/constants/crisisTriggers";
 import { 
@@ -123,7 +123,7 @@ async function callSponsorAPI(
   const { provider, model } = engineToRequest(await getSponsorApiEngine());
   const sponsorApiUrl = await getSponsorApiUrl();
   const sponsorApiChatUrl = getSponsorApiChatUrl(sponsorApiUrl);
-  const anonymousId = await getAnonymousIdForSponsorApi();
+  const anonymousId = await getAnonymousId().catch(() => null);
   const conversation = chatMessages
     .slice(1, -1)
     .slice(-10)
@@ -161,17 +161,6 @@ async function callSponsorAPI(
     model: typeof data.model === "string" ? data.model : undefined,
     temperature,
   };
-}
-
-async function getAnonymousIdForSponsorApi(): Promise<string | null> {
-  try {
-    return (
-      (await SecureStore.getItemAsync("sober_dailies_anonymous_id")) ||
-      (await AsyncStorage.getItem("anonymous_id"))
-    );
-  } catch {
-    return null;
-  }
 }
 
 // Convert chat messages to API format

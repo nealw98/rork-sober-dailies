@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { usePathname } from 'expo-router';
-import { usageLogger } from '@/lib/usageLogger';
+import { setCurrentScreen } from '@/lib/analytics';
 import { setPreviousRoute } from '@/lib/previousRoute';
 
 // Hook to track screen changes in Expo Router
@@ -21,13 +21,13 @@ export const useExpoRouterTracking = () => {
       if (isInitialLoad.current) {
         // On initial app load, log screen_open for the first screen
         console.log('[ScreenTracking] Initial load - logging screen_open for:', screenName);
-        usageLogger.setCurrentScreen(screenName);
+        setCurrentScreen(screenName);
         isInitialLoad.current = false;
       } else if (previousPathname.current && previousPathname.current !== pathname) {
         // On route change, log screen_close for previous and screen_open for current
         const previousScreenName = getScreenNameFromPathname(previousPathname.current);
         console.log('[ScreenTracking] Route change - logging screen_close for:', previousScreenName, 'and screen_open for:', screenName);
-        usageLogger.setCurrentScreen(screenName);
+        setCurrentScreen(screenName);
       }
 
       previousPathname.current = pathname;

@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { AppState, AppStateStatus } from 'react-native';
-import { getCurrentSessionId, startNewSession } from '@/lib/usageLogger';
+import { getCurrentSessionId, startNewSession } from '@/lib/analytics';
 
 interface SessionContextType {
   sessionId: string | null;
@@ -76,7 +76,7 @@ export const useSessionContext = (): SessionContextType => {
 
 /**
  * Simple hook to get current session ID
- * Falls back to direct usageLogger call if not in context
+ * Falls back to a direct analytics call if not in context
  */
 export const useSessionId = (): string | null => {
   try {

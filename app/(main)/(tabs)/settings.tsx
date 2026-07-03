@@ -35,7 +35,8 @@ import Purchases from 'react-native-purchases';
 import { useTextSettings } from '@/hooks/use-text-settings';
 import { Logger } from '@/lib/logger';
 import { submitFeedback } from '@/lib/feedback';
-import { usageLogger } from '@/lib/usageLogger';
+import { logEvent } from '@/lib/analytics';
+import { getAnonymousId } from '@/lib/anonymousId';
 import { useScreenTimeTracking } from '@/hooks/useScreenTimeTracking';
 import { useOnboarding } from '@/hooks/useOnboardingStore';
 import { clearUserData } from '@/lib/userDataSync';
@@ -126,7 +127,7 @@ export default function SettingsScreen() {
     setIsDeveloperMode(newValue);
     try {
       await AsyncStorage.setItem(DEVELOPER_MODE_KEY, newValue.toString());
-      usageLogger.logEvent('developer_mode_toggled', { screen: 'Settings', is_developer: newValue });
+      logEvent('developer_mode_toggled', { screen: 'Settings', is_developer: newValue });
     } catch (error) {
       console.error('[Settings] Failed to save developer mode:', error);
       Alert.alert('Error', 'Failed to save developer mode setting');
@@ -307,7 +308,7 @@ export default function SettingsScreen() {
   useEffect(() => () => { if (versionTapTimeoutRef.current) clearTimeout(versionTapTimeoutRef.current); }, []);
 
   const showSupportIdModal = async () => {
-    const id = await usageLogger.getAnonymousId();
+    const id = await getAnonymousId();
     setSupportId(id);
     setSupportIdModalVisible(true);
   };

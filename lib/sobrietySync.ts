@@ -1,11 +1,11 @@
 import { supabase } from './supabase';
-import { usageLogger } from './usageLogger';
+import { getAnonymousId } from './anonymousId';
 
 // Simple function to sync sobriety date to Supabase (optional - won't block app if it fails)
 export async function syncSobrietyDate(sobrietyDate: string | null): Promise<void> {
   try {
     // Get anonymous ID
-    const anonymousId = await usageLogger.getAnonymousId();
+    const anonymousId = await getAnonymousId();
     if (!anonymousId) {
       console.warn('[SobrietySync] No anonymous ID available');
       return;
