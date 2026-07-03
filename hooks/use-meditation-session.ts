@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { AppState } from 'react-native';
 import { Audio } from 'expo-av';
 import createContextHook from '@nkzw/create-context-hook';
+import { useMeditationLog } from '@/hooks/use-meditation-log';
 
 /**
  * Global meditation session — two decoupled layers (Calm-style):
@@ -67,6 +68,9 @@ export const [MeditationSessionProvider, useMeditationSession] = createContextHo
   minutesRef.current = minutes;
   const volumeRef = useRef(volume);
   volumeRef.current = volume;
+
+  // Records actual sat time (from Begin, excluding pauses) to the per-day log.
+  const { addSeconds } = useMeditationLog();
 
   // ─── Ambience ──────────────────────────────────────────────────────────────
   const stopAmbience = useCallback(async () => {
@@ -142,8 +146,9 @@ export const [MeditationSessionProvider, useMeditationSession] = createContextHo
     endAtRef.current = null;
     setDoneMin(minutesRef.current);
     setPhase('complete');
+    addSeconds(minutesRef.current * 60); // full sit
     playBell();
-  }, [playBell]);
+  }, [playBell, addSeconds]);
 
   const tick = useCallback(() => {
     if (phaseRef.current !== 'active' || pausedRef.current) return;
@@ -203,11 +208,16 @@ export const [MeditationSessionProvider, useMeditationSession] = createContextHo
 
   // Stop the countdown, back to setup. Ambience is untouched (you're still here).
   const stop = useCallback(() => {
+    // Log the elapsed active time only for a running sit — not when Done is tapped
+    // from the completion screen (that sit was already logged in complete()).
+    if (phaseRef.current === 'active') {
+      addSeconds(minutesRef.current * 60 - remainingRef.current);
+    }
     endAtRef.current = null;
     setPaused(false);
     setPhase('ready');
     setRemaining(0);
-  }, []);
+  }, [addSeconds]);
 
   const sitLonger = useCallback(() => {
     const m = 5;

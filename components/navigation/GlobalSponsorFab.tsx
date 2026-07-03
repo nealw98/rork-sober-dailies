@@ -19,7 +19,15 @@ export default function GlobalSponsorFab() {
   const insets = useSafeAreaInsets();
 
   // The tab bar owns the FAB on the four tabs; skip here to avoid doubling up.
-  if ((segments as string[]).includes('(tabs)') || immersive) return null;
+  // Also skip on the meditation screen — it's its own immersive UI, and the FAB
+  // would sit over its controls / Preferences sheet.
+  if (
+    (segments as string[]).includes('(tabs)') ||
+    (segments as string[]).includes('meditation') ||
+    immersive
+  ) {
+    return null;
+  }
 
   const sponsor = getSponsorById(lastSponsorId) ?? getSponsorById('supportive');
   return (

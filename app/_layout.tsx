@@ -5,7 +5,7 @@ import React, { useEffect, useCallback, useState } from "react";
 import { Text, StyleSheet, TouchableOpacity, Platform, View, StatusBar } from 'react-native';
 import { ChevronLeft } from "lucide-react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
-import { KeyboardProvider, KeyboardToolbar } from "react-native-keyboard-controller";
+import { KeyboardProvider } from "react-native-keyboard-controller";
 import { HamburgerMenuProvider } from "@/hooks/useHamburgerMenu";
 import HamburgerMenu from "@/components/navigation/HamburgerMenu";
 import { AudioPlayerProvider } from "@/hooks/useGlobalAudioPlayer";
@@ -57,6 +57,7 @@ import { GratitudeProvider } from "@/hooks/use-gratitude-store";
 import { DailiesProvider } from "@/hooks/use-dailies-store";
 import { MeditationProvider } from "@/hooks/use-meditation-store";
 import { MeditationSessionProvider } from "@/hooks/use-meditation-session";
+import { MeditationLogProvider } from "@/hooks/use-meditation-log";
 import { UserPrayersProvider } from "@/hooks/use-user-prayers-store";
 import { OnboardingProvider, useOnboarding } from "@/hooks/useOnboardingStore";
 import { SobrietyProvider } from "@/hooks/useSobrietyStore";
@@ -373,6 +374,7 @@ export default function RootLayout() {
                   <SobrietyProvider>
                     <DailiesProvider>
                     <MeditationProvider>
+                    <MeditationLogProvider>
                     <MeditationSessionProvider>
                     <UserPrayersProvider>
                     <EveningReviewProvider>
@@ -399,8 +401,6 @@ export default function RootLayout() {
                             </AudioPlayerProvider>
                           </ErrorBoundary>
                         </ActionSheetProvider>
-                        {/* Global accessory bar above every keyboard: Done + field nav */}
-                        <KeyboardToolbar />
                         </KeyboardProvider>
                       </GestureHandlerRootView>
                     </ImmersiveProvider>
@@ -413,6 +413,7 @@ export default function RootLayout() {
                     </EveningReviewProvider>
                     </UserPrayersProvider>
                     </MeditationSessionProvider>
+                    </MeditationLogProvider>
                     </MeditationProvider>
                     </DailiesProvider>
                   </SobrietyProvider>

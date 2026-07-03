@@ -10,8 +10,10 @@ import { View, Text, ScrollView, Pressable, StyleSheet, BackHandler, useWindowDi
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, { useSharedValue, useAnimatedStyle, withTiming, Easing, interpolate, runOnJS, Extrapolation } from 'react-native-reanimated';
 import { ChevronRight, PenLine, Heart, Moon, CircleCheck, NotebookPen, Check, X, Plus, Trash2 } from 'lucide-react-native';
+import { FlowerLotus } from 'phosphor-react-native';
 import Svg, { Path } from 'react-native-svg';
 import { useNotebook, type NotebookEntry, type NotebookType } from '@/hooks/use-notebook';
+import { useMeditationLog } from '@/hooks/use-meditation-log';
 import { useDailies, type DailyItem } from '@/hooks/use-dailies-store';
 import { useSobriety } from '@/hooks/useSobrietyStore';
 import { useGratitudeStore } from '@/hooks/use-gratitude-store';
@@ -79,8 +81,18 @@ function dayNFor(key: string, sobrietyDate: string | null): number | null {
   return diff >= 0 ? diff + 1 : null;
 }
 function timeLabel(ts: number): string { return new Date(ts).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }); }
+function fmtMeditated(sec: number): string {
+  const s = Math.round(sec);
+  if (s < 60) return `${s} sec`;
+  const m = Math.floor(s / 60);
+  const rs = s % 60;
+  if (m < 60) return rs ? `${m} min ${rs} sec` : `${m} min`;
+  const h = Math.floor(m / 60);
+  const rm = m % 60;
+  return rm ? `${h} hr ${rm} min` : `${h} hr`;
+}
 
-type DayBlockData = { key: string; label: string; dayN: number | null; done: number; total: number; isToday: boolean; entries: NotebookEntry[] };
+type DayBlockData = { key: string; label: string; dayN: number | null; done: number; total: number; isToday: boolean; entries: NotebookEntry[]; medSeconds: number };
 type MorphTarget = { kind: 'entry'; entry: NotebookEntry } | { kind: 'day'; day: DayBlockData };
 
 export default function JourneyScreen() {
@@ -88,6 +100,7 @@ export default function JourneyScreen() {
   const { entries, updateSpotRecord } = useNotebook();
   const dailies = useDailies();
   const { sobrietyDate } = useSobriety();
+  const { byDate: medByDate } = useMeditationLog();
   const { setImmersive } = useImmersive();
   const insets = useSafeAreaInsets();
   const { width: screenW, height: screenH } = useWindowDimensions();
@@ -145,19 +158,19 @@ export default function JourneyScreen() {
       arr.push(e);
       byDay.set(k, arr);
     });
-    const keys = new Set<string>([todayKey, ...byDay.keys(), ...Object.keys(completion)]);
+    const keys = new Set<string>([todayKey, ...byDay.keys(), ...Object.keys(completion), ...Object.keys(medByDate)]);
     return [...keys]
       .sort((a, b) => (a < b ? 1 : -1))
       .map((k) => {
         const comp = completion[k];
         const isToday = k === todayKey;
         const done = isToday ? dailies.doneCount : (comp?.done.length ?? 0) + (comp?.reflection ? 1 : 0);
-        return { key: k, label: dateLabel(k, todayKey), dayN: dayNFor(k, sobrietyDate ?? null), done, total: dailies.totalCount, isToday, entries: byDay.get(k) ?? [] };
+        return { key: k, label: dateLabel(k, todayKey), dayN: dayNFor(k, sobrietyDate ?? null), done, total: dailies.totalCount, isToday, entries: byDay.get(k) ?? [], medSeconds: medByDate[k] ?? 0 };
       })
-      .filter((d) => d.isToday || d.entries.length > 0 || d.done > 0);
-  }, [entries, completion, todayKey, dailies.doneCount, dailies.totalCount, sobrietyDate]);
+      .filter((d) => d.isToday || d.entries.length > 0 || d.done > 0 || d.medSeconds > 0);
+  }, [entries, completion, todayKey, dailies.doneCount, dailies.totalCount, sobrietyDate, medByDate]);
 
-  const hasAny = feed.some((d) => d.entries.length > 0 || d.done > 0);
+  const hasAny = feed.some((d) => d.entries.length > 0 || d.done > 0 || d.medSeconds > 0);
 
   const overlayStyle = useAnimatedStyle(() => {
     const s = source ?? target;
@@ -269,10 +282,22 @@ function DayBlock({ day, onOpenDay, onOpenEntry }: { day: DayBlockData; onOpenDa
         {day.dayN != null && <Text style={styles.dayN}>Day {day.dayN}</Text>}
       </View>
       <View style={styles.cards}>
-        <Pressable ref={ref} style={[styles.summary, day.entries.length > 0 && { marginBottom: 12 }]} onPress={press}>
+        <Pressable ref={ref} style={[styles.summary, (day.entries.length > 0 || day.medSeconds > 0) && { marginBottom: 12 }]} onPress={press}>
           <SummaryContent day={day} />
         </Pressable>
         {day.entries.map((e) => <EntryRow key={e.key} entry={e} onOpen={onOpenEntry} />)}
+        {day.medSeconds > 0 && (
+          // Read-only stat (not tappable, no chevron) — actual sat time that day.
+          <View style={styles.entryRow}>
+            <View style={[styles.med, { backgroundColor: colors.tertiarySoft }]}>
+              <FlowerLotus size={22} color={colors.tertiary} />
+            </View>
+            <View style={styles.flex}>
+              <Text style={[styles.entryLabel, { color: colors.tertiary }]}>Meditation</Text>
+              <Text style={styles.entryPreview}>Meditated {fmtMeditated(day.medSeconds)}</Text>
+            </View>
+          </View>
+        )}
       </View>
     </View>
   );

@@ -1,12 +1,14 @@
-import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 
 /**
- * Meditation scenes (ambiences) from Supabase `meditation_scenes`. Each scene
- * bundles a still image + optional animated version + optional audio loop, keyed
- * by `scene_key` (= the app's persisted soundtrack id). Read-only content; the
- * app resolves public URLs and falls back to the bundled image when a path is
- * null. See `sql/create_meditation_scenes.sql`.
+ * Meditation scenes (ambiences). With only a handful of scenes there's no need
+ * for a DB table — the list is hardcoded here and just points at the files in the
+ * public Supabase buckets. To add a scene: upload its image (and optional audio)
+ * to the buckets and add a row to SCENE_DEFS below.
+ *
+ *   image bucket: meditation-images   ·   audio bucket: meditation-audio
+ *
+ * `still`/`animated`/`audio` are object paths within those buckets (null = none).
  */
 
 export interface MeditationScene {
@@ -17,40 +19,32 @@ export interface MeditationScene {
   audioUri: string | null;
 }
 
-function publicUrl(bucket: string, path: string | null): string | null {
-  if (!path) return null;
-  return supabase.storage.from(bucket).getPublicUrl(path).data.publicUrl;
-}
+const IMAGE_BUCKET = 'meditation-images';
+const AUDIO_BUCKET = 'meditation-audio';
 
-async function fetchScenes(): Promise<Record<string, MeditationScene>> {
-  const { data, error } = await supabase
-    .from('meditation_scenes')
-    .select('scene_key, name, image_bucket, still_path, animated_path, audio_bucket, audio_path')
-    .eq('is_active', true)
-    .order('sort_order', { ascending: true });
+const publicUrl = (bucket: string, path: string | null): string | null =>
+  path ? supabase.storage.from(bucket).getPublicUrl(path).data.publicUrl : null;
 
-  if (error) throw error;
+// The scenes. `still`/`animated` live in meditation-images; `audio` in meditation-audio.
+const SCENE_DEFS: { key: string; name: string; still: string | null; animated: string | null; audio: string | null }[] = [
+  { key: 'silence', name: 'Silence', still: null, animated: null, audio: null },
+  { key: 'autumn-sky', name: 'Autumn Sky', still: 'autumn-sunrise.webp', animated: null, audio: 'autumn-sky-meditation.m4a' },
+];
 
-  const byKey: Record<string, MeditationScene> = {};
-  for (const row of data ?? []) {
-    byKey[row.scene_key] = {
-      key: row.scene_key,
-      name: row.name,
-      stillUri: publicUrl(row.image_bucket, row.still_path),
-      animatedUri: publicUrl(row.image_bucket, row.animated_path),
-      audioUri: publicUrl(row.audio_bucket, row.audio_path),
-    };
-  }
-  return byKey;
-}
+const SCENES: Record<string, MeditationScene> = Object.fromEntries(
+  SCENE_DEFS.map((s) => [
+    s.key,
+    {
+      key: s.key,
+      name: s.name,
+      stillUri: publicUrl(IMAGE_BUCKET, s.still),
+      animatedUri: publicUrl(IMAGE_BUCKET, s.animated),
+      audioUri: publicUrl(AUDIO_BUCKET, s.audio),
+    },
+  ]),
+);
 
-/** Scenes keyed by `scene_key` (empty while loading / offline). */
+/** Scenes keyed by `key`. Static — no fetch, no loading state. */
 export function useMeditationScenes(): Record<string, MeditationScene> {
-  const { data } = useQuery({
-    queryKey: ['meditationScenes'],
-    queryFn: fetchScenes,
-    staleTime: 1000 * 60 * 60 * 12,
-    gcTime: 1000 * 60 * 60 * 24,
-  });
-  return data ?? {};
+  return SCENES;
 }

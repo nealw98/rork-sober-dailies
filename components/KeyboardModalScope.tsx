@@ -1,11 +1,11 @@
 // Keyboard scope for React Native <Modal> content.
 //
 // RN <Modal> renders in a separate native window, so the app-root
-// KeyboardProvider (in app/_layout.tsx) does NOT reach inside it — the global
-// KeyboardToolbar and KeyboardAwareScrollView won't work for modal forms.
-// Wrap a modal's content in this to give it its own keyboard scope: the Done
-// bar appears above the keyboard/number pad, and KeyboardAwareScrollView inside
-// can auto-scroll the focused input above the keyboard.
+// KeyboardProvider (in app/_layout.tsx) does NOT reach inside it — a
+// KeyboardAwareScrollView inside a modal won't lift the focused input without
+// its own provider. Wrap a modal's content in this to give it that scope.
+// (No Done bar — inputs dismiss via their own Save/Send/Go buttons, backdrop
+// taps, and keyboardShouldPersistTaps.)
 //
 // Usage:
 //   <Modal ...>
@@ -14,13 +14,8 @@
 //     </KeyboardModalScope>
 //   </Modal>
 import React from 'react';
-import { KeyboardProvider, KeyboardToolbar } from 'react-native-keyboard-controller';
+import { KeyboardProvider } from 'react-native-keyboard-controller';
 
 export function KeyboardModalScope({ children }: { children: React.ReactNode }) {
-  return (
-    <KeyboardProvider>
-      {children}
-      <KeyboardToolbar />
-    </KeyboardProvider>
-  );
+  return <KeyboardProvider>{children}</KeyboardProvider>;
 }
