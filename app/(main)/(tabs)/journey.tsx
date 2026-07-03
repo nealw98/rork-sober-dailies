@@ -9,8 +9,9 @@ import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react'
 import { View, Text, ScrollView, Pressable, StyleSheet, BackHandler, useWindowDimensions, TextInput } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, { useSharedValue, useAnimatedStyle, withTiming, Easing, interpolate, runOnJS, Extrapolation } from 'react-native-reanimated';
-import { ChevronRight, PenLine, Heart, Moon, CircleCheck, NotebookPen, Check, X, Plus, Trash2 } from 'lucide-react-native';
+import { ChevronRight, PenLine, Heart, Moon, CircleCheck, NotebookPen, Check, X, Plus, Trash2, BarChart3 } from 'lucide-react-native';
 import { FlowerLotus } from 'phosphor-react-native';
+import { useRouter } from 'expo-router';
 import Svg, { Path } from 'react-native-svg';
 import { useNotebook, type NotebookEntry, type NotebookType } from '@/hooks/use-notebook';
 import { useMeditationLog } from '@/hooks/use-meditation-log';
@@ -97,6 +98,7 @@ type MorphTarget = { kind: 'entry'; entry: NotebookEntry } | { kind: 'day'; day:
 
 export default function JourneyScreen() {
   useScreenTimeTracking('Journey');
+  const router = useRouter();
   const { entries, updateSpotRecord } = useNotebook();
   const dailies = useDailies();
   const { sobrietyDate } = useSobriety();
@@ -192,8 +194,14 @@ export default function JourneyScreen() {
       <Animated.View style={[styles.flexFill, baseFade]} pointerEvents={mode === 'list' ? 'auto' : 'none'}>
         <SafeAreaView style={styles.screen} edges={['top']}>
           <View style={styles.header}>
-            <Text style={styles.title}>Journey</Text>
-            <Text style={styles.subtitle}>Your path of recovery</Text>
+            <View style={styles.flexFill}>
+              <Text style={styles.title}>Journey</Text>
+              <Text style={styles.subtitle}>Your path of recovery</Text>
+            </View>
+            <Pressable style={styles.trendsBtn} onPress={() => router.push('/(main)/trends' as never)} accessibilityRole="button" accessibilityLabel="Trends">
+              <BarChart3 size={16} color={colors.primary} strokeWidth={2.2} />
+              <Text style={styles.trendsBtnText}>Trends</Text>
+            </Pressable>
           </View>
           <ScrollView contentContainerStyle={styles.feed} showsVerticalScrollIndicator={false}>
             {!hasAny ? (
@@ -693,7 +701,9 @@ const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: c.background },
   flex: { flex: 1, minWidth: 0 },
   flexFill: { flex: 1 },
-  header: { paddingHorizontal: 22, paddingTop: 8, paddingBottom: 8 },
+  header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 22, paddingTop: 8, paddingBottom: 8 },
+  trendsBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 8, paddingHorizontal: 14, borderRadius: 999, borderWidth: 1, borderColor: c.border, backgroundColor: c.surface, ...shadows.sm },
+  trendsBtnText: { fontFamily: fontFamily.semiBold, fontSize: 14, color: c.text },
   title: { fontFamily: fontFamily.displayBold, fontSize: 30, letterSpacing: -0.5, color: c.text },
   subtitle: { fontFamily: fontFamily.serifItalic, fontSize: 15, color: c.textSecondary, marginTop: 2 },
 
