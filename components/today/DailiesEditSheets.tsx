@@ -17,8 +17,8 @@ import {
 // native window). Use react-native-keyboard-controller inside a KeyboardProvider
 // (no toolbar — these sheets have their own Add/Save button that dismisses).
 import { KeyboardProvider, KeyboardAvoidingView } from 'react-native-keyboard-controller';
-import { X, Plus, Trash2, Check } from 'lucide-react-native';
-import { colors, fontFamily, fontSize, radii, shadows, getSemanticColors } from '@/constants/designTokens';
+import { X, Plus, Check } from 'lucide-react-native';
+import { colors, fontFamily, fontSize, shadows, getSemanticColors } from '@/constants/designTokens';
 
 const SHEET_BG = getSemanticColors('light').background;
 import { resolveGlyph, resolveTone, resolveSubtitle } from '@/components/dailyTokens';
@@ -201,55 +201,6 @@ export function CreateSheet({ section, onClose, onCreate }: { section: WhenBucke
   );
 }
 
-export function SettingsSheet({ item, onClose, onSave, onRemove }: { item: DailyItem; onClose: () => void; onSave: (label: string, when: WhenBucket) => void; onRemove: () => void }) {
-  const [name, setName] = useState(item.label);
-  const [when, setWhen] = useState<WhenBucket>(item.when);
-  const tone = resolveTone(item.color);
-  const changed = name.trim().length > 0 && (name.trim() !== item.label || when !== item.when);
-  return (
-    <Modal transparent visible animationType="slide" onRequestClose={onClose}>
-      <KeyboardProvider>
-      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.sheetWrap}>
-        <SheetBackdrop onPress={onClose} />
-        <View style={styles.sheet}>
-          <View style={styles.grabber} />
-          <View style={styles.sheetHeadRow}>
-            <Pressable onPress={onClose}><Text style={styles.cancel}>Cancel</Text></Pressable>
-            <Pressable disabled={!changed} onPress={() => onSave(name.trim(), when)}>
-              <Text style={[styles.save, { color: changed ? colors.primary : '#8A8A9A' }]}>Save</Text>
-            </Pressable>
-          </View>
-
-          <View style={styles.settingsHead}>
-            <Medallion icon={item.icon} tone={item.color} soft />
-            <View style={{ flex: 1 }}>
-              <Text style={styles.settingsTitle} numberOfLines={1}>{item.label}</Text>
-              {item.custom && <Text style={styles.customBadge}>CUSTOM</Text>}
-            </View>
-          </View>
-
-          <View style={{ paddingHorizontal: 22, paddingBottom: 24 }}>
-            <Text style={styles.groupLabelTight}>NAME</Text>
-            <TextInput value={name} onChangeText={setName} style={styles.input} placeholderTextColor="#8A8A9A" />
-
-            <Text style={[styles.groupLabelTight, { marginTop: 18 }]}>WHEN</Text>
-            <WhenPicker value={when} onChange={setWhen} accent={tone.ink} />
-
-            <Pressable style={styles.removeAction} onPress={onRemove}>
-              <Trash2 size={16} color="#C9462E" strokeWidth={2} />
-              <View style={{ flex: 1 }}>
-                <Text style={styles.removeActionLabel}>{item.custom ? 'Delete custom action' : 'Remove from Today'}</Text>
-                <Text style={styles.removeActionSub}>{item.custom ? 'Removes it entirely. Cannot undo.' : 'Stays in your Tools library.'}</Text>
-              </View>
-            </Pressable>
-          </View>
-        </View>
-      </KeyboardAvoidingView>
-      </KeyboardProvider>
-    </Modal>
-  );
-}
-
 const styles = StyleSheet.create({
   medallion: { width: 40, height: 40, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
 
@@ -282,15 +233,8 @@ const styles = StyleSheet.create({
     backgroundColor: colors.primary + '12', borderRadius: 14, borderWidth: 1.5, borderColor: colors.primary + '55', borderStyle: 'dashed', padding: 14,
   },
   createIcon: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#fff', borderWidth: 1.5, borderColor: colors.primary + '66', borderStyle: 'dashed', alignItems: 'center', justifyContent: 'center' },
-  customBadge: { fontFamily: fontFamily.bold, fontSize: 9.5, letterSpacing: 0.6, color: '#7A4A1F', backgroundColor: '#F6E5C8', paddingHorizontal: 7, paddingVertical: 2, borderRadius: radii.full, overflow: 'hidden', alignSelf: 'flex-start', marginTop: 4 },
-
-  settingsHead: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 22, paddingBottom: 14 },
-  settingsTitle: { fontFamily: fontFamily.display, fontSize: 20, color: '#2B2A30', letterSpacing: -0.3 },
   input: { fontFamily: fontFamily.regular, fontSize: fontSize.lg, color: '#2B2A30', backgroundColor: colors.white, borderRadius: 12, borderWidth: 1, borderColor: '#EDEAE2', paddingHorizontal: 14, paddingVertical: 12 },
   segment: { flexDirection: 'row', gap: 8 },
   segmentBtn: { flex: 1, paddingVertical: 10, borderRadius: 12, alignItems: 'center' },
   segmentText: { fontFamily: fontFamily.semiBold, fontSize: fontSize.md },
-  removeAction: { flexDirection: 'row', alignItems: 'center', gap: 12, marginTop: 22, backgroundColor: '#FBE7E1', borderRadius: 12, padding: 14 },
-  removeActionLabel: { fontFamily: fontFamily.semiBold, fontSize: fontSize.md, color: '#C9462E' },
-  removeActionSub: { fontFamily: fontFamily.regular, fontSize: fontSize.sm, color: '#9A6A5A', marginTop: 1 },
 });

@@ -6,10 +6,10 @@
 // ✕ reverse-morphs it back. The summary opens the day's dailies checklist; an
 // entry opens its read-only detail.
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
-import { View, Text, ScrollView, Pressable, StyleSheet, BackHandler, useWindowDimensions, TextInput } from 'react-native';
+import { View, Text, ScrollView, Pressable, StyleSheet, BackHandler, useWindowDimensions, TextInput, Share } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, { useSharedValue, useAnimatedStyle, withTiming, Easing, interpolate, runOnJS, Extrapolation } from 'react-native-reanimated';
-import { ChevronRight, PenLine, Heart, Moon, CircleCheck, NotebookPen, Check, X, Plus, Trash2, BarChart3 } from 'lucide-react-native';
+import { ChevronRight, PenLine, Heart, Moon, CircleCheck, NotebookPen, Check, X, Plus, Trash2, BarChart3, Share as ShareIcon } from 'lucide-react-native';
 import { FlowerLotus } from 'phosphor-react-native';
 import { useRouter } from 'expo-router';
 import Svg, { Path } from 'react-native-svg';
@@ -93,6 +93,33 @@ function fmtMeditated(sec: number): string {
   return rm ? `${h} hr ${rm} min` : `${h} hr`;
 }
 
+// Build shareable plain text for a journey entry (Share sheet body).
+function buildShareText(entry: NotebookEntry): string {
+  const dateStr = new Date(entry.ts).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
+  const header = `${TYPE_LABEL[entry.type]} · ${dateStr}`;
+  let body = '';
+  switch (entry.type) {
+    case 'gratitude':
+      body = (entry.gratitude ?? []).map((g, i) => `${i + 1}. ${g}`).join('\n');
+      break;
+    case 'journal':
+      body = entry.journal ?? '';
+      break;
+    case 'nightly':
+      body = (entry.nightly ?? []).map((p) => `${p.q}\n${p.a}`).join('\n\n');
+      break;
+    case 'spotcheck': {
+      const chosen = SPOT_PAIRS.filter((p) => entry.spot?.selected.includes(p.id));
+      const parts: string[] = [];
+      if (entry.spot?.situation) parts.push(`What was disturbing me?\n${entry.spot.situation}`);
+      if (chosen.length > 0) parts.push(`Where I was off the beam:\n${chosen.map((p) => `• ${p.off} → ${p.on}`).join('\n')}`);
+      body = parts.join('\n\n');
+      break;
+    }
+  }
+  return body ? `${header}\n\n${body}` : header;
+}
+
 type DayBlockData = { key: string; label: string; dayN: number | null; done: number; total: number; isToday: boolean; entries: NotebookEntry[]; medSeconds: number };
 type MorphTarget = { kind: 'entry'; entry: NotebookEntry } | { kind: 'day'; day: DayBlockData };
 
@@ -167,7 +194,10 @@ export default function JourneyScreen() {
         const comp = completion[k];
         const isToday = k === todayKey;
         const done = isToday ? dailies.doneCount : (comp?.done.length ?? 0) + (comp?.reflection ? 1 : 0);
-        return { key: k, label: dateLabel(k, todayKey), dayN: dayNFor(k, sobrietyDate ?? null), done, total: dailies.totalCount, isToday, entries: byDay.get(k) ?? [], medSeconds: medByDate[k] ?? 0 };
+        // "of N" reflects that day's own setup (stamped on the record); today and
+        // older records without a stamp fall back to the current program size.
+        const total = isToday ? dailies.totalCount : (comp?.total ?? dailies.totalCount);
+        return { key: k, label: dateLabel(k, todayKey), dayN: dayNFor(k, sobrietyDate ?? null), done, total, isToday, entries: byDay.get(k) ?? [], medSeconds: medByDate[k] ?? 0 };
       })
       .filter((d) => d.isToday || d.entries.length > 0 || d.done > 0 || d.medSeconds > 0);
   }, [entries, completion, todayKey, dailies.doneCount, dailies.totalCount, sobrietyDate, medByDate]);
@@ -496,6 +526,11 @@ function EntrySheet({ entry, onClose, scrollEnabled = true, updateSpotRecord }: 
     setEditing(false);
   };
 
+  const shareEntry = async () => {
+    try { await Share.share({ message: buildShareText(view) }); }
+    catch (e) { console.warn('[journey] share failed', e); }
+  };
+
   return (
     <View style={styles.flexFill}>
       <View style={styles.sheetHead}>
@@ -512,6 +547,9 @@ function EntrySheet({ entry, onClose, scrollEnabled = true, updateSpotRecord }: 
         ) : (
           <>
             <Pressable onPress={beginEdit} hitSlop={8} style={styles.headTextBtn} accessibilityRole="button" accessibilityLabel={`Edit ${TYPE_LABEL[view.type]}`}><Text style={styles.headEdit}>Edit</Text></Pressable>
+            <Pressable style={styles.iconHeadBtn} onPress={shareEntry} hitSlop={8} accessibilityRole="button" accessibilityLabel={`Share ${TYPE_LABEL[view.type]}`}>
+              <ShareIcon size={16} color={c.textSecondary} strokeWidth={2} />
+            </Pressable>
             <Pressable style={styles.closeBtn} onPress={onClose} hitSlop={8} accessibilityRole="button" accessibilityLabel="Close">
               <X size={18} color={c.textSecondary} strokeWidth={2} />
             </Pressable>
@@ -745,6 +783,7 @@ const styles = StyleSheet.create({
   sheetTitle: { fontFamily: fontFamily.display, fontSize: 22, letterSpacing: -0.4, color: c.text },
   sheetTime: { fontFamily: fontFamily.regular, fontSize: 13, color: c.textMuted, marginTop: 1 },
   closeBtn: { width: 34, height: 34, borderRadius: 17, borderWidth: 1, borderColor: c.border, alignItems: 'center', justifyContent: 'center' },
+  iconHeadBtn: { width: 34, height: 34, borderRadius: 17, borderWidth: 1, borderColor: c.border, backgroundColor: c.surface, alignItems: 'center', justifyContent: 'center', marginRight: 8 },
   headTextBtn: { paddingHorizontal: 8, paddingVertical: 4 },
   headEdit: { fontFamily: fontFamily.semiBold, fontSize: 14, color: colors.primary },
   headCancel: { fontFamily: fontFamily.semiBold, fontSize: 14, color: c.textMuted },

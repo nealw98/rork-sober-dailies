@@ -35,7 +35,7 @@ import Purchases from 'react-native-purchases';
 import { useTextSettings } from '@/hooks/use-text-settings';
 import { Logger } from '@/lib/logger';
 import { submitFeedback } from '@/lib/feedback';
-import { logEvent } from '@/lib/analytics';
+import { logEvent, setAnalyticsDeveloperMode, DEVELOPER_MODE_KEY } from '@/lib/analytics';
 import { getAnonymousId } from '@/lib/anonymousId';
 import { useScreenTimeTracking } from '@/hooks/useScreenTimeTracking';
 import { useOnboarding } from '@/hooks/useOnboardingStore';
@@ -43,7 +43,6 @@ import { clearUserData } from '@/lib/userDataSync';
 import { setSyncPaused } from '@/lib/icloudSync';
 
 const c = getSemanticColors('light');
-const DEVELOPER_MODE_KEY = 'developer_mode_enabled';
 
 // ─── Token-based building blocks (mirror the prototype) ──────────────────────
 
@@ -115,6 +114,7 @@ export default function SettingsScreen() {
       try {
         const value = await AsyncStorage.getItem(DEVELOPER_MODE_KEY);
         setIsDeveloperMode(value === 'true');
+        setAnalyticsDeveloperMode(value === 'true');
       } catch (error) {
         console.error('[Settings] Failed to load developer mode:', error);
       }
@@ -125,6 +125,9 @@ export default function SettingsScreen() {
   const toggleDeveloperMode = async () => {
     const newValue = !isDeveloperMode;
     setIsDeveloperMode(newValue);
+    // Update the analytics gate BEFORE logging: turning dev mode ON suppresses
+    // even this toggle event; turning it OFF lets the event through.
+    setAnalyticsDeveloperMode(newValue);
     try {
       await AsyncStorage.setItem(DEVELOPER_MODE_KEY, newValue.toString());
       logEvent('developer_mode_toggled', { screen: 'Settings', is_developer: newValue });
@@ -484,7 +487,7 @@ export default function SettingsScreen() {
             <View style={styles.logsDeveloperToggle}>
               <View>
                 <Text style={styles.logsDeveloperLabel}>Developer Mode</Text>
-                <Text style={styles.logsDeveloperSubtext}>Tag your activity as developer in analytics</Text>
+                <Text style={styles.logsDeveloperSubtext}>Stops all analytics from this device</Text>
               </View>
               <Switch
                 value={isDeveloperMode}

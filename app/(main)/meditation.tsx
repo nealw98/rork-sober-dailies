@@ -350,9 +350,10 @@ export default function MeditationScreen() {
     if (firstTime) med.markHintSeen();
     session.begin(selMinutes);
   };
+  // "Done" just clears the completion message back to the setup screen — it does
+  // not navigate away (the ambience bed keeps playing on this page).
   const done = () => {
     session.stop();
-    router.back();
   };
   const pickMinutes = (n: number) => setSelMinutes(n);
 
@@ -472,12 +473,9 @@ export default function MeditationScreen() {
                 {session.doneMin} minute{session.doneMin === 1 ? '' : 's'} of stillness.{'\n'}Marked complete on Today.
               </Text>
             </View>
-            <View style={[styles.footer, { gap: 11 }]}>
+            <View style={styles.footer}>
               <Pressable style={styles.primaryBtn} onPress={done}>
                 <Text style={styles.primaryText}>Done</Text>
-              </Pressable>
-              <Pressable style={styles.ghostBtn} onPress={session.sitLonger}>
-                <Text style={styles.ghostText}>Sit a little longer</Text>
               </Pressable>
             </View>
           </>
@@ -570,8 +568,6 @@ const styles = StyleSheet.create({
 
   primaryBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 9, paddingVertical: 17, borderRadius: 999, backgroundColor: TH.primaryBg },
   primaryText: { fontFamily: fontFamily.bold, fontSize: 16, color: TH.primaryText, letterSpacing: 0.2 },
-  ghostBtn: { alignItems: 'center', justifyContent: 'center', paddingVertical: 14, borderRadius: 999, borderWidth: 1, borderColor: TH.ghostBorder },
-  ghostText: { fontFamily: fontFamily.semiBold, fontSize: 14, color: TH.ink2 },
 
   breatheLabel: { fontFamily: fontFamily.semiBold, fontSize: 12.5, letterSpacing: 2.5, color: TH.ink2 },
   soundPill: { flexDirection: 'row', alignItems: 'center', gap: 9, paddingVertical: 8, paddingHorizontal: 16, borderRadius: 999, backgroundColor: TH.soundSelBg, borderWidth: 1, borderColor: TH.soundSelBorder },

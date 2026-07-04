@@ -19,6 +19,11 @@ const MIXPANEL_TRACK_URL = 'https://api.mixpanel.com/track';
 const MIXPANEL_ENGAGE_URL = 'https://api.mixpanel.com/engage';
 const MAX_BATCH_SIZE = 50; // Mixpanel's per-request event limit
 
+// When Developer Mode is on (Settings toggle, persisted here) the app sends NO
+// analytics — no events, no People-profile writes. Used to keep simulator / dev
+// device activity out of Mixpanel entirely.
+export const DEVELOPER_MODE_KEY = 'developer_mode_enabled';
+
 // Environment tag on every event/profile so pre-release data can be filtered
 // out of reports. Set EXPO_PUBLIC_ANALYTICS_ENV in .env ('test' until there's a
 // release candidate, then 'production'); dev-client sessions default to 'dev'.
@@ -53,8 +58,14 @@ class Analytics {
   private sessionStartTime = Date.now();
   private lastBackgroundEventTime = 0;
   private warnedNoToken = false;
+  // Developer Mode gate. `developerMode` is the cached flag; `developerModeLoaded`
+  // resolves once the persisted value has been read, so the flush path can close
+  // the startup race (events fired before the async read finishes).
+  private developerMode = false;
+  private developerModeLoaded: Promise<void>;
 
   constructor() {
+    this.developerModeLoaded = this.loadDeveloperMode();
     try {
       this.sessionId = this.generateId();
       this.setupAppStateListener();
@@ -62,6 +73,21 @@ class Analytics {
       console.error('[Analytics] Constructor error (non-fatal):', error);
       if (!this.sessionId) this.sessionId = this.generateId();
     }
+  }
+
+  private async loadDeveloperMode(): Promise<void> {
+    try {
+      const value = await AsyncStorage.getItem(DEVELOPER_MODE_KEY);
+      this.developerMode = value === 'true';
+    } catch (error) {
+      console.warn('[Analytics] Failed to read developer mode (non-fatal):', error);
+    }
+  }
+
+  /** Live-update the Developer Mode gate (called by the Settings toggle). */
+  setDeveloperMode(enabled: boolean): void {
+    this.developerMode = enabled;
+    if (enabled) this.eventQueue = []; // drop anything already queued
   }
 
   init(): void {
@@ -82,6 +108,8 @@ class Analytics {
   /** Merge properties into this device's Mixpanel People profile ($set). Fire-and-forget. */
   async setProfile(props: Record<string, any>): Promise<void> {
     if (!MIXPANEL_TOKEN) return;
+    await this.developerModeLoaded;
+    if (this.developerMode) return; // Developer Mode: no profile writes
     try {
       const anonymousId = getAnonymousIdSync() ?? (await getAnonymousId());
       await fetch(MIXPANEL_ENGAGE_URL, {
@@ -107,6 +135,7 @@ class Analytics {
   }
 
   async logEvent(event: string, props?: Record<string, any>): Promise<void> {
+    if (this.developerMode) return; // Developer Mode: send nothing
     if (!MIXPANEL_TOKEN) {
       if (!this.warnedNoToken) {
         console.warn('[Analytics] EXPO_PUBLIC_MIXPANEL_TOKEN not set — events are dropped, not queued.');
@@ -156,6 +185,10 @@ class Analytics {
 
   async flushEvents(): Promise<void> {
     if (this.isFlushing || this.eventQueue.length === 0) return;
+    // Close the startup race: events may have queued before the persisted flag
+    // was read. If Developer Mode is on, drop the queue without sending.
+    await this.developerModeLoaded;
+    if (this.developerMode) { this.eventQueue = []; return; }
     this.isFlushing = true;
 
     const batch = this.eventQueue.slice(0, MAX_BATCH_SIZE);
@@ -260,6 +293,7 @@ export const analytics = new Analytics();
 export const initAnalytics = () => analytics.init();
 export const logEvent = (event: string, props?: Record<string, any>) => analytics.logEvent(event, props);
 export const setProfile = (props: Record<string, any>) => analytics.setProfile(props);
+export const setAnalyticsDeveloperMode = (enabled: boolean) => analytics.setDeveloperMode(enabled);
 export const featureUse = (feature: string, screen?: string) => analytics.featureUse(feature, screen);
 export const setCurrentScreen = (screenName: string) => analytics.setCurrentScreen(screenName);
 export const getCurrentSessionId = () => analytics.getSessionId();

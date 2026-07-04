@@ -172,7 +172,7 @@ export default function TrendsScreen() {
           <InsightRow label="Strongest section" value={insights.strongestSection ?? '—'} />
           <InsightRow label="Most active month" value={insights.mostActiveMonth ?? '—'} />
           <InsightRow label="Longest streak ever" value={insights.longest.days > 0 ? `${insights.longest.label} · ${insights.longest.days} days` : '—'} />
-          <InsightRow label="Average Dailies per day" value={`${insights.avgDailies} of ${insights.totalCount}`} last />
+          <InsightRow label="Average completion rate" value={`${insights.completionRate}%`} last />
         </View>
       </ScrollView>
     </View>

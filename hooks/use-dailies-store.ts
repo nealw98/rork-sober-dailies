@@ -29,11 +29,14 @@ export interface DailyItem {
   when: WhenBucket;
   action: string; // open key, resolved to a route in the UI
   custom?: boolean;
+  subtitle?: string; // user override for the row's subtitle; falls back to the action default
 }
 
 interface DayCompletion {
   done: string[];      // daily ids completed that day
   reflection: boolean; // Daily Reflection hero done that day
+  total?: number;      // possible dailies that day (program.length + 1), stamped on write.
+                       // Optional: records written before this existed won't have it.
 }
 
 const PROGRAM_KEY = 'dailies_program';
@@ -150,9 +153,11 @@ export const [DailiesProvider, useDailies] = createContextHook(() => {
     (mutate: (day: DayCompletion) => DayCompletion) => {
       const key = getTodayDateString();
       const current = completion[key] ?? EMPTY_DAY;
-      persistCompletion({ ...completion, [key]: mutate(current) });
+      // Stamp the day's possible total so Trends can compute a true completion
+      // rate even if the program size changes later.
+      persistCompletion({ ...completion, [key]: { ...mutate(current), total: program.length + 1 } });
     },
-    [completion, persistCompletion],
+    [completion, persistCompletion, program],
   );
 
   // ── Program ──────────────────────────────────────────────────────────
@@ -194,6 +199,14 @@ export const [DailiesProvider, useDailies] = createContextHook(() => {
 
   const renameDaily = useCallback(
     (id: string, label: string) => persistProgram(program.map((d) => (d.id === id ? { ...d, label } : d))),
+    [program, persistProgram],
+  );
+
+  // Edit a daily's title and/or subtitle (long-press on Today). An empty subtitle
+  // string is kept as-is so a user can deliberately clear the default subtitle.
+  const editDaily = useCallback(
+    (id: string, patch: { label?: string; subtitle?: string }) =>
+      persistProgram(program.map((d) => (d.id === id ? { ...d, ...patch } : d))),
     [program, persistProgram],
   );
 
@@ -256,8 +269,9 @@ export const [DailiesProvider, useDailies] = createContextHook(() => {
   // Overwrite a specific day's completion record. Lets Journey edit past days
   // (check off dailies the user forgot), keyed by that day's local date.
   const setDayCompletion = useCallback(
-    (dateKey: string, day: DayCompletion) => persistCompletion({ ...completion, [dateKey]: day }),
-    [completion, persistCompletion],
+    (dateKey: string, day: DayCompletion) =>
+      persistCompletion({ ...completion, [dateKey]: { ...day, total: program.length + 1 } }),
+    [completion, persistCompletion, program],
   );
 
   // Consecutive days (ending today) the Daily Reflection was marked read.
@@ -285,6 +299,7 @@ export const [DailiesProvider, useDailies] = createContextHook(() => {
       removeDaily,
       setWhen,
       renameDaily,
+      editDaily,
       setAll,
       isDone,
       toggleDone,
@@ -299,6 +314,6 @@ export const [DailiesProvider, useDailies] = createContextHook(() => {
       doneCount,
       totalCount,
     }),
-    [program, isLoading, section, addDaily, removeDaily, setWhen, renameDaily, setAll, isDone, toggleDone, markDone, todayDone.reflection, setReflectionDone, toggleReflection, setDayCompletion, reflectionStreak, dayKey, completion, doneCount, totalCount],
+    [program, isLoading, section, addDaily, removeDaily, setWhen, renameDaily, editDaily, setAll, isDone, toggleDone, markDone, todayDone.reflection, setReflectionDone, toggleReflection, setDayCompletion, reflectionStreak, dayKey, completion, doneCount, totalCount],
   );
 });

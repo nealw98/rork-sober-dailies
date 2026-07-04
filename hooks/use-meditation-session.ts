@@ -226,17 +226,6 @@ export const [MeditationSessionProvider, useMeditationSession] = createContextHo
     setRemaining(0);
   }, [addSeconds]);
 
-  const sitLonger = useCallback(() => {
-    const m = 5;
-    minutesRef.current = m;
-    setMinutes(m);
-    setDoneMin(m);
-    setPaused(false);
-    setRemaining(m * 60);
-    endAtRef.current = Date.now() + m * 60 * 1000;
-    setPhase('active');
-  }, []);
-
   return useMemo(
     () => ({
       phase,
@@ -253,8 +242,7 @@ export const [MeditationSessionProvider, useMeditationSession] = createContextHo
       begin,
       togglePause,
       stop,
-      sitLonger,
     }),
-    [phase, minutes, remaining, paused, doneMin, sceneKey, sceneName, volume, startAmbience, stopAmbience, setVolume, begin, togglePause, stop, sitLonger],
+    [phase, minutes, remaining, paused, doneMin, sceneKey, sceneName, volume, startAmbience, stopAmbience, setVolume, begin, togglePause, stop],
   );
 });

@@ -8,7 +8,7 @@ import type { DailyItem } from '@/hooks/use-dailies-store';
  * insights. No new tracking needed; nothing is faked.
  */
 
-export interface DayCompletion { done: string[]; reflection: boolean }
+export interface DayCompletion { done: string[]; reflection: boolean; total?: number }
 export type Completion = Record<string, DayCompletion>;
 
 const REFLECTION_ID = '__reflection';
@@ -112,8 +112,7 @@ export interface Insights {
   strongestSection: string | null;
   mostActiveMonth: string | null;
   longest: { label: string; days: number };
-  avgDailies: number;
-  totalCount: number;
+  completionRate: number; // avg % of that day's dailies completed, over active days
 }
 
 export function computeInsights(program: DailyItem[], completion: Completion): Insights {
@@ -123,14 +122,18 @@ export function computeInsights(program: DailyItem[], completion: Completion): I
   const weekdayScore = [0, 0, 0, 0, 0, 0, 0];
   const sectionScore: Record<string, number> = { Morning: 0, Anytime: 0, Evening: 0 };
   const monthScore: Record<string, number> = {};
-  let sumDone = 0;
+  const currentTotal = program.length + 1; // + permanent Daily Reflection
+  let sumRate = 0;
   let activeDays = 0;
 
   for (const [key, day] of Object.entries(completion)) {
     const done = day.done.length + (day.reflection ? 1 : 0);
-    if (done === 0) continue;
+    if (done === 0) continue;              // omit days with no activity
     activeDays++;
-    sumDone += done;
+    // Rate against that day's own possible total when we have it (older records
+    // fall back to today's program size). Clamp so the fallback can't exceed 100%.
+    const possible = day.total ?? currentTotal;
+    sumRate += Math.min(1, done / possible);
     const d = parseLocalDate(key);
     weekdayScore[d.getDay()] += done;
     const mk = `${d.getFullYear()}-${d.getMonth()}`;
@@ -154,8 +157,7 @@ export function computeInsights(program: DailyItem[], completion: Completion): I
     strongestSection,
     mostActiveMonth,
     longest: longestStreakEver(program, completion),
-    avgDailies: activeDays ? Math.round((sumDone / activeDays) * 10) / 10 : 0,
-    totalCount: program.length + 1,
+    completionRate: activeDays ? Math.round((sumRate / activeDays) * 100) : 0,
   };
 }
 

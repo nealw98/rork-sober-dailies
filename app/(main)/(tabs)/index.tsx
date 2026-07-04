@@ -1,23 +1,31 @@
-import React, { useEffect, useState, useMemo, useCallback } from 'react';
+import React, { useEffect, useState, useMemo, useCallback, useRef } from 'react';
 import {
   StyleSheet,
   View,
   Text,
   ScrollView,
   Pressable,
+  TextInput,
   Alert,
+  Keyboard,
+  useWindowDimensions,
 } from 'react-native';
 import { Image } from 'expo-image';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
+import Animated, { useSharedValue, useAnimatedStyle, withTiming, Easing, interpolate, Extrapolation, runOnJS, useAnimatedKeyboard, type SharedValue } from 'react-native-reanimated';
+import { BlurView } from 'expo-blur';
 import DraggableFlatList, { ScaleDecorator, type RenderItemParams } from 'react-native-draggable-flatlist';
 import { useRouter, type Href } from 'expo-router';
-import { BookOpen, Check, Settings, Minus, Plus, GripVertical } from 'lucide-react-native';
+import { BookOpen, Check, Minus, Plus, GripVertical, X } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
+
+const AnimatedBlur = Animated.createAnimatedComponent(BlurView);
+type Rect = { x: number; y: number; w: number; h: number };
 
 import { colors, fontFamily, fontSize, spacing, radii, shadows, getSemanticColors } from '@/constants/designTokens';
 import { ROW_TONES, resolveGlyph, resolveTone, resolveSubtitle } from '@/components/dailyTokens';
-import { AddSheet, CreateSheet, SettingsSheet, type Template } from '@/components/today/DailiesEditSheets';
+import { AddSheet, CreateSheet, type Template } from '@/components/today/DailiesEditSheets';
 import { useScreenTimeTracking } from '@/hooks/useScreenTimeTracking';
 import { useDailies, type DailyItem, type WhenBucket } from '@/hooks/use-dailies-store';
 import { useReflectionHeroImage } from '@/hooks/useReflectionHeroImage';
@@ -83,46 +91,142 @@ function DoneButton({ done, tone, onPress }: { done: boolean; tone: { ink: strin
   );
 }
 
+// ─── Edit overlay — the row expands in place into an editable card ─────────────
+// Long-pressing a row's label in edit mode measures its on-screen rect; this
+// overlay blurs the rest of the page and the same card — anchored exactly where
+// the row sits — grows downward to reveal the subtitle field. `progress` drives
+// the morph (0 = collapsed on the row, 1 = expanded/in focus). It only slides up
+// if the keyboard would otherwise cover it. Mounts fresh per item so the input
+// state seeds correctly.
+const SUBTITLE_BLOCK = 48; // subtitle input (40) + gap (8)
+
+function EditOverlay({ item, rect, progress, screenH, onSave, onCancel }: {
+  item: DailyItem; rect: Rect; progress: SharedValue<number>; screenH: number;
+  onSave: (label: string, subtitle: string) => void; onCancel: () => void;
+}) {
+  const defaultSub = item.subtitle !== undefined ? item.subtitle : (resolveSubtitle(item.action) ?? '');
+  const [label, setLabel] = useState(item.label);
+  const [subtitle, setSubtitle] = useState(defaultSub);
+  const canSave = label.trim().length > 0;
+  const commit = () => { if (canSave) onSave(label.trim(), subtitle.trim()); };
+
+  const keyboard = useAnimatedKeyboard();
+  const collapsedH = rect.h;
+  const expandedH = rect.h + SUBTITLE_BLOCK;
+
+  const backdropStyle = useAnimatedStyle(() => ({ opacity: progress.value }));
+  const cardStyle = useAnimatedStyle(() => {
+    const p = progress.value;
+    const height = interpolate(p, [0, 1], [collapsedH, expandedH]);
+    // Slide up only enough to sit above the keyboard, if it overlaps.
+    const overlap = Math.max(0, rect.y + height + 16 - (screenH - keyboard.height.value));
+    return {
+      height,
+      transform: [
+        { translateY: interpolate(p, [0, 1], [0, -2]) - overlap },
+        { scale: interpolate(p, [0, 1], [1, 1.02]) },
+      ],
+    };
+  });
+  const subtitleStyle = useAnimatedStyle(() => ({ opacity: interpolate(progress.value, [0.45, 1], [0, 1], Extrapolation.CLAMP) }));
+
+  return (
+    <View style={StyleSheet.absoluteFill}>
+      <AnimatedBlur intensity={22} tint="light" style={[StyleSheet.absoluteFill, backdropStyle]}>
+        <Pressable style={StyleSheet.absoluteFill} onPress={onCancel} accessibilityLabel="Dismiss editor" />
+      </AnimatedBlur>
+      <Animated.View style={[styles.editCard, { left: rect.x, top: rect.y, width: rect.w }, cardStyle]}>
+        <View style={styles.editHeaderRow}>
+          <TextInput
+            value={label}
+            onChangeText={setLabel}
+            placeholder="Title"
+            placeholderTextColor="#8A8A9A"
+            style={styles.editInput}
+            autoFocus
+            returnKeyType="next"
+          />
+          <Pressable onPress={onCancel} style={[styles.editActionBtn, styles.editCancelBtn]} accessibilityLabel="Cancel edit">
+            <X size={16} color="#8A8A9A" strokeWidth={2.5} />
+          </Pressable>
+          <Pressable disabled={!canSave} onPress={commit} style={[styles.editActionBtn, styles.editSaveBtn, !canSave && styles.editSaveBtnOff]} accessibilityLabel="Save edit">
+            <Check size={16} color="#fff" strokeWidth={3} />
+          </Pressable>
+        </View>
+        <Animated.View style={subtitleStyle}>
+          <TextInput
+            value={subtitle}
+            onChangeText={setSubtitle}
+            placeholder="Subtitle"
+            placeholderTextColor="#8A8A9A"
+            style={styles.editSubInput}
+            returnKeyType="done"
+            onSubmitEditing={commit}
+          />
+        </Animated.View>
+      </Animated.View>
+    </View>
+  );
+}
+
 // ─── Daily row — flat ledger line: accent bar · glyph · title · Done ──────────
-// In edit mode the Done button is swapped for a drag handle (long-press to
-// reorder / move between sections) plus the gear (rename) and remove controls.
+// In edit mode the Done button is swapped for the remove control; the grip-handle
+// medallion long-presses to reorder, and long-pressing the label lifts the row
+// into the floating editor (rename title + subtitle). Outside edit mode: tap to
+// open the tool.
 function DailyRow({
-  item, done, isLast, editing, onOpen, onToggle, onGear, onRemove, onDragStart, dragging,
+  item, done, isLast, editing, hidden, onOpen, onToggle, onStartEdit, onRemove, onDragStart, dragging,
 }: {
-  item: DailyItem; done: boolean; isLast: boolean; editing: boolean;
-  onOpen: () => void; onToggle: () => void; onGear: () => void; onRemove: () => void;
+  item: DailyItem; done: boolean; isLast: boolean; editing: boolean; hidden?: boolean;
+  onOpen: () => void; onToggle: () => void; onRemove: () => void;
+  onStartEdit?: (rect: Rect) => void;
   onDragStart?: () => void; dragging?: boolean;
 }) {
   const tone = resolveTone(item.color);
   const Glyph = resolveGlyph(item.icon);
-  const sub = resolveSubtitle(item.action);
+  const sub = item.subtitle !== undefined ? item.subtitle : resolveSubtitle(item.action);
+  const rowRef = useRef<View>(null);
+
+  const startEdit = () => {
+    const node = rowRef.current;
+    if (!node) { onStartEdit?.({ x: 0, y: 0, w: 0, h: 0 }); return; }
+    node.measureInWindow((x, y, w, h) => onStartEdit?.({ x, y, w, h }));
+  };
+
+  if (editing) {
+    // `hidden` = this is the row being edited; drop it out of sight so the
+    // floating card isn't duplicated behind the blur (it still holds its slot).
+    return (
+      <View ref={rowRef} style={[styles.row, dragging && styles.rowDragging, hidden && styles.rowHidden]}>
+        {/* Grip handle → long-press to drag/reorder. Label → long-press to edit. */}
+        <Pressable style={[styles.med, { backgroundColor: tone.soft }]} onLongPress={onDragStart} delayLongPress={150} accessibilityLabel={`Drag ${item.label} to reorder`}>
+          <GripVertical size={20} color={tone.ink} strokeWidth={2} />
+        </Pressable>
+        <Pressable style={styles.rowText} onLongPress={startEdit} delayLongPress={300} accessibilityLabel={`Edit ${item.label}`}>
+          <Text style={styles.rowLabel} numberOfLines={2}>{item.label}</Text>
+          {sub ? <Text style={styles.rowSub} numberOfLines={1}>{sub}</Text> : null}
+        </Pressable>
+        <View style={styles.editControls}>
+          <Pressable hitSlop={6} style={styles.removeBtn} onPress={onRemove} accessibilityLabel={`Remove ${item.label}`}>
+            <Minus size={14} color="#fff" strokeWidth={3} />
+          </Pressable>
+        </View>
+      </View>
+    );
+  }
+
   return (
-    <View style={[styles.row, dragging && styles.rowDragging]}>
-      {/* Edit mode: the leading icon medallion becomes a drag handle; long-press
-          the row (or the handle) to reorder / move between sections. */}
-      <Pressable style={styles.rowMain} onPress={onOpen} onLongPress={editing ? onDragStart : undefined} delayLongPress={150} disabled={editing && !onDragStart}>
-        <View style={[styles.med, { backgroundColor: tone.soft }]} accessibilityLabel={editing ? `Drag ${item.label} to reorder` : undefined}>
-          {editing
-            ? <GripVertical size={20} color={tone.ink} strokeWidth={2} />
-            : <Glyph size={20} color={tone.ink} />}
+    <View style={styles.row}>
+      <Pressable style={styles.rowMain} onPress={onOpen}>
+        <View style={[styles.med, { backgroundColor: tone.soft }]}>
+          <Glyph size={20} color={tone.ink} />
         </View>
         <View style={styles.rowText}>
           <Text style={styles.rowLabel} numberOfLines={2}>{item.label}</Text>
           {sub ? <Text style={styles.rowSub} numberOfLines={1}>{sub}</Text> : null}
         </View>
       </Pressable>
-      {editing ? (
-        <View style={styles.editControls}>
-          <Pressable hitSlop={6} style={styles.gearBtn} onPress={onGear} accessibilityLabel={`Edit ${item.label}`}>
-            <Settings size={15} color="#4A4A5E" strokeWidth={2} />
-          </Pressable>
-          <Pressable hitSlop={6} style={styles.removeBtn} onPress={onRemove} accessibilityLabel={`Remove ${item.label}`}>
-            <Minus size={14} color="#fff" strokeWidth={3} />
-          </Pressable>
-        </View>
-      ) : (
-        <DoneButton done={done} tone={tone} onPress={onToggle} />
-      )}
+      <DoneButton done={done} tone={tone} onPress={onToggle} />
     </View>
   );
 }
@@ -182,8 +286,37 @@ export default function TodayScreen() {
   const [editing, setEditing] = useState(false);
   const [addSection, setAddSection] = useState<WhenBucket | null>(null);
   const [createSection, setCreateSection] = useState<WhenBucket | null>(null);
-  const [settingsItem, setSettingsItem] = useState<DailyItem | null>(null);
+  const [editTarget, setEditTarget] = useState<{ item: DailyItem; rect: Rect } | null>(null);
+  const editP = useSharedValue(0);
+  const { height: screenH } = useWindowDimensions();
   useScreenTimeTracking('Today');
+
+  // Lift a row into the floating editor: blur in + rise, driven by editP 0→1.
+  const openEditor = useCallback((item: DailyItem, rect: Rect) => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setEditTarget({ item, rect });
+    editP.value = 0;
+    editP.value = withTiming(1, { duration: 300, easing: Easing.out(Easing.cubic) });
+  }, [editP]);
+
+  const closeEditor = useCallback(() => {
+    Keyboard.dismiss();
+    editP.value = withTiming(0, { duration: 200, easing: Easing.in(Easing.cubic) }, (fin) => {
+      if (fin) runOnJS(setEditTarget)(null);
+    });
+  }, [editP]);
+
+  const saveEditor = useCallback((label: string, subtitle: string) => {
+    if (editTarget) dailies.editDaily(editTarget.item.id, { label, subtitle });
+    closeEditor();
+  }, [editTarget, dailies, closeEditor]);
+
+  // Leaving edit mode dismisses any open editor immediately (no animation).
+  const toggleEditing = useCallback(() => {
+    setEditing((v) => !v);
+    setEditTarget(null);
+    editP.value = 0;
+  }, [editP]);
 
   useEffect(() => {
     getTodaysReflection().then(setReflection).catch((e) => console.error('[today] reflection', e));
@@ -302,25 +435,27 @@ export default function TodayScreen() {
           done={false}
           isLast={row.isLast}
           editing
+          hidden={editTarget?.item.id === row.item.id}
           onOpen={() => {}}
           onToggle={() => {}}
-          onGear={() => setSettingsItem(row.item)}
+          onStartEdit={(rect) => openEditor(row.item, rect)}
           onRemove={() => dailies.removeDaily(row.item.id)}
           onDragStart={drag}
           dragging={isActive}
         />
       </ScaleDecorator>
     );
-  }, [c.text, dailies]);
+  }, [c.text, dailies, editTarget, openEditor]);
 
   return (
-    <SafeAreaView style={[styles.safe, { backgroundColor: c.background }]} edges={['top']}>
+    <View style={[styles.root, { backgroundColor: c.background }]}>
+    <SafeAreaView style={styles.safe} edges={['top']}>
       <View style={styles.header}>
         <View style={{ flex: 1 }}>
           <Text style={[styles.title, { color: c.text }]}>Today</Text>
           <Text style={[styles.date, { color: c.textMuted }]}>{dateLabel}</Text>
         </View>
-        <Pressable hitSlop={10} onPress={() => setEditing((v) => !v)} accessibilityRole="button">
+        <Pressable hitSlop={10} onPress={toggleEditing} accessibilityRole="button">
           <Text style={styles.editToggle}>{editing ? 'Done' : 'Edit'}</Text>
         </Pressable>
       </View>
@@ -336,6 +471,7 @@ export default function TodayScreen() {
           containerStyle={styles.flex}
           contentContainerStyle={styles.scroll}
           showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
         />
       ) : (
         <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
@@ -356,7 +492,6 @@ export default function TodayScreen() {
                       editing={false}
                       onOpen={() => openDaily(item)}
                       onToggle={() => toggleDaily(item.id)}
-                      onGear={() => {}}
                       onRemove={() => {}}
                     />
                   ))}
@@ -395,26 +530,25 @@ export default function TodayScreen() {
         />
       )}
 
-      {settingsItem && (
-        <SettingsSheet
-          item={settingsItem}
-          onClose={() => setSettingsItem(null)}
-          onSave={(label, when) => {
-            if (label !== settingsItem.label) dailies.renameDaily(settingsItem.id, label);
-            if (when !== settingsItem.when) dailies.setWhen(settingsItem.id, when);
-            setSettingsItem(null);
-          }}
-          onRemove={() => {
-            dailies.removeDaily(settingsItem.id);
-            setSettingsItem(null);
-          }}
-        />
-      )}
     </SafeAreaView>
+
+    {editTarget && (
+      <EditOverlay
+        key={editTarget.item.id}
+        item={editTarget.item}
+        rect={editTarget.rect}
+        progress={editP}
+        screenH={screenH}
+        onSave={saveEditor}
+        onCancel={closeEditor}
+      />
+    )}
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
+  root: { flex: 1 },
   safe: { flex: 1 },
   flex: { flex: 1 },
   header: { flexDirection: 'row', alignItems: 'flex-start', paddingHorizontal: 22, paddingTop: spacing.sm, paddingBottom: spacing.sm },
@@ -450,6 +584,7 @@ const styles = StyleSheet.create({
     ...shadows.sm,
   },
   rowDragging: { ...shadows.md },
+  rowHidden: { opacity: 0 },
   med: { width: 42, height: 42, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
   rowMain: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 12 },
   rowText: { flex: 1 },
@@ -470,8 +605,26 @@ const styles = StyleSheet.create({
 
   // Edit-mode controls
   editControls: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  gearBtn: { width: 28, height: 28, borderRadius: 14, borderWidth: 1, borderColor: '#D8D3C7', backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center' },
   removeBtn: { width: 24, height: 24, borderRadius: 12, backgroundColor: '#D8584E', alignItems: 'center', justifyContent: 'center' },
+
+  // In-place editor card (long-press a row in edit mode → expands where it sits)
+  editCard: {
+    position: 'absolute',
+    backgroundColor: colors.white,
+    borderWidth: 1,
+    borderColor: '#E8E4DA',
+    borderRadius: 14,
+    paddingVertical: 12,
+    paddingHorizontal: 13,
+    overflow: 'hidden',
+  },
+  editHeaderRow: { flexDirection: 'row', alignItems: 'center', gap: 8, height: 40 },
+  editInput: { flex: 1, height: 40, fontFamily: fontFamily.semiBold, fontSize: fontSize.lg, color: '#2B2A30', backgroundColor: '#F6F4EF', borderRadius: 10, borderWidth: 1, borderColor: '#E8E4DA', paddingHorizontal: 12, paddingVertical: 0 },
+  editSubInput: { height: 40, marginTop: 8, fontFamily: fontFamily.regular, fontSize: 13.5, color: '#4A4A5E', backgroundColor: '#F6F4EF', borderRadius: 10, borderWidth: 1, borderColor: '#E8E4DA', paddingHorizontal: 12, paddingVertical: 0 },
+  editActionBtn: { width: 34, height: 34, borderRadius: 17, alignItems: 'center', justifyContent: 'center' },
+  editCancelBtn: { borderWidth: 1, borderColor: '#E8E4DA', backgroundColor: '#fff' },
+  editSaveBtn: { backgroundColor: colors.primary },
+  editSaveBtnOff: { opacity: 0.4 },
 
   // "+ Add to {section}" dashed button
   addPill: {

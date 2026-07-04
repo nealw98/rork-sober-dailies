@@ -14,7 +14,7 @@ import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import { ChevronLeft, ChevronRight, MoreHorizontal, Share2, Calendar, Sparkles } from 'lucide-react-native';
+import { ChevronLeft, ChevronRight, Calendar, Sparkles, Share as ShareIcon } from 'lucide-react-native';
 
 import BackButton from '@/components/BackButton';
 import { getReflectionForDate } from '@/constants/reflections';
@@ -55,7 +55,6 @@ export default function DailyReflection({ fontSize = 18, lineHeight, jumpToDate 
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [reflection, setReflection] = useState<Reflection | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [menuOpen, setMenuOpen] = useState(false);
   const [sheet, setSheet] = useState<null | 'calendar' | 'display'>(null);
   const [calendarMonth, setCalendarMonth] = useState<Date>(new Date());
 
@@ -119,9 +118,14 @@ export default function DailyReflection({ fontSize = 18, lineHeight, jumpToDate 
       {/* Top bar */}
       <View style={styles.topBar}>
         <BackButton onPress={() => router.back()} />
-        <Pressable onPress={() => setMenuOpen(true)} accessibilityLabel="More" style={[styles.iconBtn, menuOpen && styles.iconBtnActive]}>
-          <MoreHorizontal size={20} color={menuOpen ? colors.primary : c.textSecondary} />
-        </Pressable>
+        <View style={styles.topActions}>
+          <Pressable onPress={() => setSheet('display')} accessibilityLabel="Text size" style={styles.hdrBtn}>
+            <Text style={styles.hdrAa}>aA</Text>
+          </Pressable>
+          <Pressable onPress={shareReflection} accessibilityLabel="Share" style={styles.hdrBtn}>
+            <ShareIcon size={16} color={c.textSecondary} strokeWidth={2} />
+          </Pressable>
+        </View>
       </View>
 
       {/* Page title */}
@@ -206,20 +210,6 @@ export default function DailyReflection({ fontSize = 18, lineHeight, jumpToDate 
         onClose={() => setSheet(null)}
         bottomInset={insets.bottom}
       />
-
-      <Modal visible={menuOpen} transparent animationType="fade" onRequestClose={() => setMenuOpen(false)}>
-        <Pressable style={styles.menuOverlay} onPress={() => setMenuOpen(false)} />
-        <View style={[styles.menu, { top: insets.top + 50 }]}>
-          <Pressable style={styles.menuRow} onPress={() => { setMenuOpen(false); shareReflection(); }}>
-            <Share2 size={17} color={c.textSecondary} />
-            <Text style={styles.menuLabel}>Share</Text>
-          </Pressable>
-          <Pressable style={styles.menuRow} onPress={() => { setMenuOpen(false); setSheet('display'); }}>
-            <Text style={styles.aA}>aA</Text>
-            <Text style={styles.menuLabel}>Text size</Text>
-          </Pressable>
-        </View>
-      </Modal>
     </SafeAreaView>
   );
 }
@@ -305,13 +295,9 @@ const styles = StyleSheet.create({
   flex: { flex: 1 },
 
   topBar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 14, paddingTop: 6, paddingBottom: 8 },
-  iconBtn: { width: 38, height: 38, borderRadius: 19, backgroundColor: c.surface, borderWidth: 1, borderColor: c.border, alignItems: 'center', justifyContent: 'center' },
-  iconBtnActive: { backgroundColor: colors.primarySoft, borderColor: colors.primary + '40' },
-  menuOverlay: { ...StyleSheet.absoluteFillObject },
-  menu: { position: 'absolute', right: 14, minWidth: 168, backgroundColor: c.surface, borderWidth: 1, borderColor: c.border, borderRadius: 14, padding: 6, shadowColor: '#000', shadowOpacity: 0.16, shadowRadius: 30, shadowOffset: { width: 0, height: 12 }, elevation: 8 },
-  menuRow: { flexDirection: 'row', alignItems: 'center', gap: 11, paddingHorizontal: 12, paddingVertical: 10, borderRadius: 10 },
-  menuLabel: { fontFamily: fontFamily.semiBold, fontSize: 13.5, color: c.text },
-  aA: { width: 17, textAlign: 'center', fontFamily: fontFamily.bold, fontSize: 13, color: c.textSecondary },
+  topActions: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  hdrBtn: { width: 34, height: 34, borderRadius: 17, backgroundColor: c.surface, borderWidth: 1, borderColor: c.border, alignItems: 'center', justifyContent: 'center' },
+  hdrAa: { fontFamily: fontFamily.bold, fontSize: 13, color: c.textSecondary, letterSpacing: -0.2 },
 
   dateRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingTop: 4, paddingBottom: 14 },
   dateChev: { width: 30, height: 30, alignItems: 'center', justifyContent: 'center' },
