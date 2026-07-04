@@ -2,7 +2,7 @@
 // tape utilities + scrubber + transport). All playback/download logic is
 // unchanged (expo-av via useGlobalAudioPlayer + useSpeakerDownload); only the UI
 // is new. The detail screen passes Save/Share so the action row is complete.
-import React, { useEffect, useCallback, useRef } from 'react';
+import React, { useEffect, useCallback, useRef, useMemo } from 'react';
 import { StyleSheet, View, Text, Pressable, ActivityIndicator, Alert } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { activateKeepAwakeAsync, deactivateKeepAwake } from 'expo-keep-awake';
@@ -23,6 +23,8 @@ const SPEEDS = [1, 1.25, 1.5, 2];
 
 interface SpeakerPlayerProps {
   speakerId: string;
+  speakerName?: string;
+  title?: string;
   audioUrl?: string | null;
   youtubeId: string;
   saved: boolean;
@@ -57,11 +59,12 @@ function SkipBtn({ dir, n, onPress }: { dir: 'back' | 'fwd'; n: string; onPress:
   );
 }
 
-export function SpeakerPlayer({ speakerId, audioUrl, youtubeId, saved, onToggleSave, onShare, autoplay }: SpeakerPlayerProps) {
+export function SpeakerPlayer({ speakerId, speakerName, title, audioUrl, youtubeId, saved, onToggleSave, onShare, autoplay }: SpeakerPlayerProps) {
   const player = useGlobalAudioPlayer();
   const barWidthRef = useRef(0);
   const remoteUri = audioUrl || `${SUPABASE_AUDIO_BASE}/${youtubeId}.m4a`;
   const download = useSpeakerDownload(speakerId, remoteUri);
+  const meta = useMemo(() => ({ name: speakerName, title }), [speakerName, title]);
 
   const isThisSpeaker = player.currentSpeakerId === speakerId;
   const isPlaying = isThisSpeaker && player.isPlaying;
@@ -79,7 +82,7 @@ export function SpeakerPlayer({ speakerId, audioUrl, youtubeId, saved, onToggleS
       hasPreloadedRef.current = true;
       (async () => {
         const uri = await resolveAudioUri(speakerId, remoteUri);
-        player.load(speakerId, uri, !!autoplay);
+        player.load(speakerId, uri, !!autoplay, meta);
       })();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -94,7 +97,7 @@ export function SpeakerPlayer({ speakerId, audioUrl, youtubeId, saved, onToggleS
   const togglePlay = useCallback(async () => {
     if (!isLoaded) {
       const uri = await resolveAudioUri(speakerId, remoteUri);
-      await player.load(speakerId, uri, true);
+      await player.load(speakerId, uri, true, meta);
       return;
     }
     if (isPlaying) await player.pause();
@@ -114,8 +117,8 @@ export function SpeakerPlayer({ speakerId, audioUrl, youtubeId, saved, onToggleS
 
   const retry = useCallback(async () => {
     const uri = await resolveAudioUri(speakerId, remoteUri);
-    await player.load(speakerId, uri);
-  }, [speakerId, remoteUri]);
+    await player.load(speakerId, uri, false, meta);
+  }, [speakerId, remoteUri, meta]);
 
   const fmtSpeed = (s: number) => `${s.toString().replace(/\.0+$/, '')}× speed`;
 

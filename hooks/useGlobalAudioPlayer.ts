@@ -27,7 +27,7 @@ interface AudioPlayerState {
 }
 
 interface AudioPlayerActions {
-  load: (speakerId: string, uri: string, autoPlay?: boolean) => Promise<void>;
+  load: (speakerId: string, uri: string, autoPlay?: boolean, meta?: { name?: string; title?: string }) => Promise<void>;
   play: () => Promise<void>;
   pause: () => Promise<void>;
   stop: () => Promise<void>;
@@ -103,6 +103,8 @@ export function AudioPlayerProvider({ children }: { children: React.ReactNode })
   // fires one `speaker_listened` {speaker, duration_seconds} when the listen
   // ends: talk finishes, a different talk loads, stop, or unmount.
   const listenSpeakerRef = useRef<string | null>(null);
+  const listenNameRef = useRef<string | null>(null);
+  const listenTitleRef = useRef<string | null>(null);
   const listenAccumMsRef = useRef(0);
   const playStartRef = useRef<number | null>(null);
   const lastPositionMsRef = useRef(0);
@@ -125,6 +127,8 @@ export function AudioPlayerProvider({ children }: { children: React.ReactNode })
       const dur = lastDurationMsRef.current;
       logEvent('speaker_listened', {
         speaker: listenSpeakerRef.current,
+        speaker_name: listenNameRef.current ?? undefined,
+        title: listenTitleRef.current ?? undefined,
         duration_seconds: seconds,
         position_seconds: Math.round(lastPositionMsRef.current / 1000),
         talk_seconds: dur > 0 ? Math.round(dur / 1000) : undefined,
@@ -167,7 +171,7 @@ export function AudioPlayerProvider({ children }: { children: React.ReactNode })
 
   // Load audio for a speaker
   const load = useCallback(
-    async (speakerId: string, uri: string, autoPlay = false) => {
+    async (speakerId: string, uri: string, autoPlay = false, meta?: { name?: string; title?: string }) => {
       try {
         // If the same URI is already loaded, just toggle play
         if (currentUriRef.current === uri && soundRef.current) {
@@ -186,7 +190,9 @@ export function AudioPlayerProvider({ children }: { children: React.ReactNode })
         setCurrentSpeakerId(speakerId);
         flushListenTime(); // close out the previous talk's listen time
         listenSpeakerRef.current = speakerId;
-        logEvent('speaker_played', { speaker: speakerId });
+        listenNameRef.current = meta?.name ?? null;
+        listenTitleRef.current = meta?.title ?? null;
+        logEvent('speaker_played', { speaker: speakerId, speaker_name: meta?.name, title: meta?.title });
 
         // Unload previous sound
         if (soundRef.current) {

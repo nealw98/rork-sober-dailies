@@ -88,12 +88,11 @@ export function longestStreakEver(program: DailyItem[], completion: Completion):
 export interface HeatCell { key: string; day: number; done: number; total: number; intensity: number }
 export interface HeatMonth { cells: (HeatCell | null)[]; daysWithProgress: number; daysInMonth: number }
 
-// month is 0-based. Cells are Monday-first with leading nulls for the offset.
+// month is 0-based. Cells are Sunday-first (US) with leading nulls for the offset.
 export function monthHeatmap(year: number, month: number, program: DailyItem[], completion: Completion): HeatMonth {
   const total = program.length + 1;
   const daysInMonth = new Date(year, month + 1, 0).getDate();
-  const jsDow = new Date(year, month, 1).getDay(); // 0=Sun..6=Sat
-  const offset = (jsDow + 6) % 7; // Monday-first
+  const offset = new Date(year, month, 1).getDay(); // 0=Sun..6=Sat, Sunday-first
   const cells: (HeatCell | null)[] = [];
   for (let i = 0; i < offset; i++) cells.push(null);
   let daysWithProgress = 0;

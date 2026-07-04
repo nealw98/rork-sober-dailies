@@ -14,6 +14,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import type { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import { LinearGradient } from 'expo-linear-gradient';
+import { BlurView } from 'expo-blur';
 import Svg, { Path, Defs, RadialGradient, Stop, Circle } from 'react-native-svg';
 import { BookOpen, PenLine, UserRound } from 'lucide-react-native';
 import { colors, fontFamily, shadows } from '@/constants/designTokens';
@@ -166,11 +167,14 @@ export default function FloatingTabBar({ state, navigation }: BottomTabBarProps)
   return (
     <View
       pointerEvents="box-none"
-      style={[styles.container, { paddingBottom: bottomPad, height: BAR_HEIGHT + bottomPad + 16 }]}
+      style={[styles.container, { paddingBottom: bottomPad, height: BAR_HEIGHT + bottomPad }]}
     >
-      {showFab && <SponsorFab />}
-
       <View style={styles.bar}>
+        {/* Frosted glass: the BlurView samples the real screen behind it (the bar
+            itself is transparent, so nothing muddies the blur), then a thin tint
+            sits ON TOP of the blur for the frosted-white cast. */}
+        <BlurView intensity={50} tint="light" style={styles.barGlass} />
+        <View pointerEvents="none" style={styles.barTint} />
         {state.routes.map((route, index) => {
           const meta = TAB_META[route.name as TabKey];
           if (!meta) return null;
@@ -193,6 +197,8 @@ export default function FloatingTabBar({ state, navigation }: BottomTabBarProps)
           );
         })}
       </View>
+
+      {showFab && <SponsorFab />}
     </View>
   );
 }
@@ -212,18 +218,37 @@ const styles = StyleSheet.create({
     right: 0,
     bottom: 0,
     paddingHorizontal: 16,
-    justifyContent: 'flex-end',
+    // Row: the pill flexes to fill, the FAB sits on the same line to its right.
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
   },
   bar: {
+    flex: 1,
     height: BAR_HEIGHT,
     borderRadius: 30,
-    backgroundColor: '#FFFDF8',
+    // Transparent: the BlurView is the fill, so nothing sits behind the blur to
+    // muddy it. (The pill still reads as floating via the shadow + the tint.)
+    backgroundColor: 'transparent',
     borderWidth: 1,
-    borderColor: 'rgba(120,98,60,0.13)',
+    borderColor: 'rgba(255,255,255,0.55)',
     flexDirection: 'row',
     alignItems: 'stretch',
-    paddingHorizontal: 6,
+    paddingHorizontal: 4,
     ...shadows.lg,
+  },
+  // BlurView clipped to the pill; the real fill, behind the tint + tab buttons.
+  barGlass: {
+    ...StyleSheet.absoluteFillObject,
+    borderRadius: 30,
+    overflow: 'hidden',
+  },
+  // Thin frosted-white cast ON TOP of the blur (keeps the glass warm without
+  // hiding the blur underneath).
+  barTint: {
+    ...StyleSheet.absoluteFillObject,
+    borderRadius: 30,
+    backgroundColor: 'rgba(255,253,248,0.3)',
   },
   tab: {
     flex: 1,
@@ -265,12 +290,9 @@ const styles = StyleSheet.create({
     letterSpacing: -0.1,
   },
   fab: {
-    position: 'absolute',
-    right: 20,
-    bottom: BAR_HEIGHT + 36,
-    width: 56,
-    height: 56,
-    borderRadius: 28,
+    width: 58,
+    height: 58,
+    borderRadius: 29,
     borderWidth: 2,
     borderColor: '#fff',
     overflow: 'hidden',

@@ -18,7 +18,6 @@ import {
   Moon,
   Phone,
   Users,
-  Settings,
   Mic,
   ChevronRight,
 } from 'lucide-react-native';
@@ -104,15 +103,6 @@ export default function ToolsScreen() {
           <Text style={styles.title}>Tools</Text>
           <Text style={styles.subtitle}>Open the support you need</Text>
         </View>
-        <Pressable
-          onPress={() => router.push('/settings')}
-          style={styles.gear}
-          accessibilityRole="button"
-          accessibilityLabel="Settings"
-          hitSlop={8}
-        >
-          <Settings size={18} color={c.textSecondary} strokeWidth={2} />
-        </Pressable>
       </View>
 
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
@@ -156,7 +146,6 @@ const styles = StyleSheet.create({
   header: { flexDirection: 'row', alignItems: 'flex-start', paddingHorizontal: H_PAD, paddingTop: 8, paddingBottom: 12 },
   title: { fontFamily: fontFamily.display, fontSize: 30, letterSpacing: -0.5, color: c.text },
   subtitle: { fontFamily: fontFamily.regular, fontSize: fontSize.md, color: c.textMuted, marginTop: 2 },
-  gear: { width: 40, height: 40, borderRadius: 20, borderWidth: 1, borderColor: c.border, backgroundColor: c.surface, alignItems: 'center', justifyContent: 'center' },
 
   scroll: { paddingHorizontal: H_PAD, paddingTop: 6, paddingBottom: 130 },
 

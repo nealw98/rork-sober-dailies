@@ -115,6 +115,8 @@ export default function SpeakerDetailScreen() {
           {/* Player */}
           <SpeakerPlayer
             speakerId={speaker.id}
+            speakerName={speaker.speaker}
+            title={speaker.title}
             youtubeId={speaker.youtube_id}
             audioUrl={speaker.audio_url}
             saved={isSaved(speaker.id)}

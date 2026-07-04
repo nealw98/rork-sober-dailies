@@ -36,7 +36,10 @@ export default function GlobalSponsorFab() {
       accessibilityLabel={`Chat with ${sponsor?.name ?? 'your sponsor'}`}
       accessibilityRole="button"
       onPress={() => router.push(`/sponsor-chat?sponsor=${sponsor?.id ?? 'supportive'}`)}
-      style={({ pressed }) => [styles.fab, { bottom: insets.bottom + 18 }, pressed && { opacity: 0.85 }]}
+      // Locked to the same spot the FloatingTabBar's inline FAB occupies, so it
+      // doesn't jump when moving between tab and pushed screens: centered in the
+      // 68px bar row that sits above the safe-area pad → bottom = pad + 5.
+      style={({ pressed }) => [styles.fab, { bottom: Math.max(insets.bottom, 16) + 5 }, pressed && { opacity: 0.85 }]}
     >
       {sponsor?.avatar ? (
         <Image source={sponsor.avatar} style={styles.fabImg} />
@@ -50,10 +53,10 @@ export default function GlobalSponsorFab() {
 const styles = StyleSheet.create({
   fab: {
     position: 'absolute',
-    right: 20,
-    width: 56,
-    height: 56,
-    borderRadius: 28,
+    right: 16,
+    width: 58,
+    height: 58,
+    borderRadius: 29,
     borderWidth: 2,
     borderColor: '#fff',
     overflow: 'hidden',

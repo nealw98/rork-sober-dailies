@@ -14,7 +14,7 @@ if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental
 }
 
 const c = getSemanticColors('light');
-const WEEK_HEADERS = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
+const WEEK_HEADERS = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
 const HEAT_FILL = ['#FFFFFF', colors.primarySoft, colors.primary, colors.primaryDark]; // level 0..3
 
 function heatLevel(done: number, intensity: number): number {

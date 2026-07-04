@@ -100,8 +100,8 @@ Controlled by `EXPO_PUBLIC_ANALYTICS_ENV` in `.env` — currently **`test`**. Fl
 
 | Event | Properties | Question |
 |---|---|---|
-| `speaker_played` | `speaker` (talk id) | Plays per talk |
-| `speaker_listened` | `speaker`, `duration_seconds`, `position_seconds`, `talk_seconds`, `percent_complete` | One event per listen, fired when it ends (finish / switch talk / stop / player closed). `duration_seconds` = actual playing wall-clock — immune to the ±15/30s skip buttons and playback speed; <5s ignored. `percent_complete` = final position ÷ talk length |
+| `speaker_played` | `speaker` (talk id), `speaker_name`, `title` | Plays per talk |
+| `speaker_listened` | `speaker` (talk id), `speaker_name`, `title`, `duration_seconds`, `position_seconds`, `talk_seconds`, `percent_complete` | One event per listen, fired when it ends (finish / switch talk / stop / player closed). `duration_seconds` = actual playing wall-clock — immune to the ±15/30s skip buttons and playback speed; <5s ignored. `percent_complete` = final position ÷ talk length |
 
 **Reports:** minutes per talk = sum `duration_seconds` by `speaker`; drop-off = avg `percent_complete` by `speaker` (high plays + low % = people bail on that talk).
 **Caveat:** a force-killed app loses the final unlogged chunk (backgrounding is fine — audio keeps playing and counting).
