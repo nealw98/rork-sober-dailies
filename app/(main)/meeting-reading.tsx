@@ -28,7 +28,8 @@ export default function MeetingReadingScreen() {
   const ts = useTextSettings();
   const size = ts?.fontSize ?? 18;
   const lineHeight = Math.round(size * (ts?.lineHeightMultiplier ?? 1.5));
-  const body = { fontFamily: fontFamily.serif, fontSize: size, lineHeight, color: c.text } as const;
+  // Georgia matches the Big Book reader's optical size (Lora reads a step larger).
+  const body = { fontFamily: 'Georgia', fontSize: size, lineHeight, color: c.text } as const;
 
   if (!reading) {
     return (

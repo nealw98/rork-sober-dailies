@@ -852,7 +852,7 @@ const makeStyles = (tk: Tokens) => {
 
     spotHeading: { fontFamily: fontFamily.semiBold, fontSize: 16, color: c.text, letterSpacing: -0.2, marginBottom: 9 },
     paperBox: { backgroundColor: paperFill, borderWidth: 1, borderColor: c.border, borderRadius: 12, paddingHorizontal: 15, paddingVertical: 13 },
-    paperText: { fontFamily: fontFamily.regular, fontSize: 16, lineHeight: 23, color: c.textSecondary },
+    paperText: { fontFamily: fontFamily.regular, fontSize: 16, lineHeight: 23, color: c.text },
     chipsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 16 },
     chip: { paddingHorizontal: 14, paddingVertical: 9, borderRadius: 999, backgroundColor: colors.accent },
     chipText: { fontFamily: fontFamily.semiBold, fontSize: 14, color: '#fff' },

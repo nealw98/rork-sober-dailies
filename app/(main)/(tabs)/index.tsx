@@ -1,27 +1,19 @@
-import React, { useEffect, useState, useMemo, useCallback, useRef } from 'react';
+import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import {
   StyleSheet,
   View,
   Text,
   ScrollView,
   Pressable,
-  TextInput,
   Alert,
-  Keyboard,
-  useWindowDimensions,
 } from 'react-native';
 import { Image } from 'expo-image';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
-import Animated, { useSharedValue, useAnimatedStyle, withTiming, Easing, interpolate, Extrapolation, runOnJS, useAnimatedKeyboard, type SharedValue } from 'react-native-reanimated';
-import { BlurView } from 'expo-blur';
 import DraggableFlatList, { ScaleDecorator, type RenderItemParams } from 'react-native-draggable-flatlist';
 import { useRouter, type Href } from 'expo-router';
-import { BookOpen, Check, Minus, Plus, GripVertical, X } from 'lucide-react-native';
+import { BookOpen, Check, Minus, Plus, GripVertical } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
-
-const AnimatedBlur = Animated.createAnimatedComponent(BlurView);
-type Rect = { x: number; y: number; w: number; h: number };
 
 import { fontFamily, fontSize, spacing, radii, shadows, type Tokens } from '@/constants/designTokens';
 import { useTokens, useThemedStyles } from '@/hooks/useTokens';
@@ -93,97 +85,15 @@ function DoneButton({ done, tone, onPress }: { done: boolean; tone: { ink: strin
   );
 }
 
-// ─── Edit overlay — the row expands in place into an editable card ─────────────
-// Long-pressing a row's label in edit mode measures its on-screen rect; this
-// overlay blurs the rest of the page and the same card — anchored exactly where
-// the row sits — grows downward to reveal the subtitle field. `progress` drives
-// the morph (0 = collapsed on the row, 1 = expanded/in focus). It only slides up
-// if the keyboard would otherwise cover it. Mounts fresh per item so the input
-// state seeds correctly.
-const SUBTITLE_BLOCK = 48; // subtitle input (40) + gap (8)
-
-function EditOverlay({ item, rect, progress, screenH, onSave, onCancel }: {
-  item: DailyItem; rect: Rect; progress: SharedValue<number>; screenH: number;
-  onSave: (label: string, subtitle: string) => void; onCancel: () => void;
-}) {
-  const styles = useThemedStyles(makeStyles);
-  const { isDark, c } = useTokens();
-  const defaultSub = item.subtitle !== undefined ? item.subtitle : (resolveSubtitle(item.action) ?? '');
-  const [label, setLabel] = useState(item.label);
-  const [subtitle, setSubtitle] = useState(defaultSub);
-  const canSave = label.trim().length > 0;
-  const commit = () => { if (canSave) onSave(label.trim(), subtitle.trim()); };
-
-  const keyboard = useAnimatedKeyboard();
-  const collapsedH = rect.h;
-  const expandedH = rect.h + SUBTITLE_BLOCK;
-
-  const backdropStyle = useAnimatedStyle(() => ({ opacity: progress.value }));
-  const cardStyle = useAnimatedStyle(() => {
-    const p = progress.value;
-    const height = interpolate(p, [0, 1], [collapsedH, expandedH]);
-    // Slide up only enough to sit above the keyboard, if it overlaps.
-    const overlap = Math.max(0, rect.y + height + 16 - (screenH - keyboard.height.value));
-    return {
-      height,
-      transform: [
-        { translateY: interpolate(p, [0, 1], [0, -2]) - overlap },
-        { scale: interpolate(p, [0, 1], [1, 1.02]) },
-      ],
-    };
-  });
-  const subtitleStyle = useAnimatedStyle(() => ({ opacity: interpolate(progress.value, [0.45, 1], [0, 1], Extrapolation.CLAMP) }));
-
-  return (
-    <View style={StyleSheet.absoluteFill}>
-      <AnimatedBlur intensity={22} tint={isDark ? 'dark' : 'light'} style={[StyleSheet.absoluteFill, backdropStyle]}>
-        <Pressable style={StyleSheet.absoluteFill} onPress={onCancel} accessibilityLabel="Dismiss editor" />
-      </AnimatedBlur>
-      <Animated.View style={[styles.editCard, { left: rect.x, top: rect.y, width: rect.w }, cardStyle]}>
-        <View style={styles.editHeaderRow}>
-          <TextInput
-            value={label}
-            onChangeText={setLabel}
-            placeholder="Title"
-            placeholderTextColor={c.textMuted}
-            style={styles.editInput}
-            autoFocus
-            returnKeyType="next"
-          />
-          <Pressable onPress={onCancel} style={[styles.editActionBtn, styles.editCancelBtn]} accessibilityLabel="Cancel edit">
-            <X size={16} color={c.textMuted} strokeWidth={2.5} />
-          </Pressable>
-          <Pressable disabled={!canSave} onPress={commit} style={[styles.editActionBtn, styles.editSaveBtn, !canSave && styles.editSaveBtnOff]} accessibilityLabel="Save edit">
-            <Check size={16} color="#fff" strokeWidth={3} />
-          </Pressable>
-        </View>
-        <Animated.View style={subtitleStyle}>
-          <TextInput
-            value={subtitle}
-            onChangeText={setSubtitle}
-            placeholder="Subtitle"
-            placeholderTextColor={c.textMuted}
-            style={styles.editSubInput}
-            returnKeyType="done"
-            onSubmitEditing={commit}
-          />
-        </Animated.View>
-      </Animated.View>
-    </View>
-  );
-}
-
 // ─── Daily row — flat ledger line: accent bar · glyph · title · Done ──────────
-// In edit mode the Done button is swapped for the remove control; the grip-handle
-// medallion long-presses to reorder, and long-pressing the label lifts the row
-// into the floating editor (rename title + subtitle). Outside edit mode: tap to
+// In edit mode the Done button is swapped for the remove control and the
+// grip-handle medallion long-presses to reorder. Outside edit mode: tap to
 // open the tool.
 function DailyRow({
-  item, done, isLast, editing, hidden, onOpen, onToggle, onStartEdit, onRemove, onDragStart, dragging,
+  item, done, isLast, editing, onOpen, onToggle, onRemove, onDragStart, dragging,
 }: {
-  item: DailyItem; done: boolean; isLast: boolean; editing: boolean; hidden?: boolean;
+  item: DailyItem; done: boolean; isLast: boolean; editing: boolean;
   onOpen: () => void; onToggle: () => void; onRemove: () => void;
-  onStartEdit?: (rect: Rect) => void;
   onDragStart?: () => void; dragging?: boolean;
 }) {
   const styles = useThemedStyles(makeStyles);
@@ -191,27 +101,18 @@ function DailyRow({
   const tone = resolveTone(item.color, mode);
   const Glyph = resolveGlyph(item.icon);
   const sub = item.subtitle !== undefined ? item.subtitle : resolveSubtitle(item.action);
-  const rowRef = useRef<View>(null);
-
-  const startEdit = () => {
-    const node = rowRef.current;
-    if (!node) { onStartEdit?.({ x: 0, y: 0, w: 0, h: 0 }); return; }
-    node.measureInWindow((x, y, w, h) => onStartEdit?.({ x, y, w, h }));
-  };
 
   if (editing) {
-    // `hidden` = this is the row being edited; drop it out of sight so the
-    // floating card isn't duplicated behind the blur (it still holds its slot).
     return (
-      <View ref={rowRef} style={[styles.row, dragging && styles.rowDragging, hidden && styles.rowHidden]}>
-        {/* Grip handle → long-press to drag/reorder. Label → long-press to edit. */}
+      <View style={[styles.row, dragging && styles.rowDragging]}>
+        {/* Grip handle → long-press to drag/reorder. */}
         <Pressable style={[styles.med, { backgroundColor: tone.soft }]} onLongPress={onDragStart} delayLongPress={150} accessibilityLabel={`Drag ${item.label} to reorder`}>
           <GripVertical size={20} color={tone.ink} strokeWidth={2} />
         </Pressable>
-        <Pressable style={styles.rowText} onLongPress={startEdit} delayLongPress={300} accessibilityLabel={`Edit ${item.label}`}>
+        <View style={styles.rowText}>
           <Text style={styles.rowLabel} numberOfLines={2}>{item.label}</Text>
           {sub ? <Text style={styles.rowSub} numberOfLines={1}>{sub}</Text> : null}
-        </Pressable>
+        </View>
         <View style={styles.editControls}>
           <Pressable hitSlop={6} style={styles.removeBtn} onPress={onRemove} accessibilityLabel={`Remove ${item.label}`}>
             <Minus size={14} color="#fff" strokeWidth={3} />
@@ -295,37 +196,9 @@ export default function TodayScreen() {
   const [editing, setEditing] = useState(false);
   const [addSection, setAddSection] = useState<WhenBucket | null>(null);
   const [createSection, setCreateSection] = useState<WhenBucket | null>(null);
-  const [editTarget, setEditTarget] = useState<{ item: DailyItem; rect: Rect } | null>(null);
-  const editP = useSharedValue(0);
-  const { height: screenH } = useWindowDimensions();
   useScreenTimeTracking('Today');
 
-  // Lift a row into the floating editor: blur in + rise, driven by editP 0→1.
-  const openEditor = useCallback((item: DailyItem, rect: Rect) => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    setEditTarget({ item, rect });
-    editP.value = 0;
-    editP.value = withTiming(1, { duration: 300, easing: Easing.out(Easing.cubic) });
-  }, [editP]);
-
-  const closeEditor = useCallback(() => {
-    Keyboard.dismiss();
-    editP.value = withTiming(0, { duration: 200, easing: Easing.in(Easing.cubic) }, (fin) => {
-      if (fin) runOnJS(setEditTarget)(null);
-    });
-  }, [editP]);
-
-  const saveEditor = useCallback((label: string, subtitle: string) => {
-    if (editTarget) dailies.editDaily(editTarget.item.id, { label, subtitle });
-    closeEditor();
-  }, [editTarget, dailies, closeEditor]);
-
-  // Leaving edit mode dismisses any open editor immediately (no animation).
-  const toggleEditing = useCallback(() => {
-    setEditing((v) => !v);
-    setEditTarget(null);
-    editP.value = 0;
-  }, [editP]);
+  const toggleEditing = useCallback(() => setEditing((v) => !v), []);
 
   useEffect(() => {
     getTodaysReflection().then(setReflection).catch((e) => console.error('[today] reflection', e));
@@ -444,17 +317,15 @@ export default function TodayScreen() {
           done={false}
           isLast={row.isLast}
           editing
-          hidden={editTarget?.item.id === row.item.id}
           onOpen={() => {}}
           onToggle={() => {}}
-          onStartEdit={(rect) => openEditor(row.item, rect)}
           onRemove={() => dailies.removeDaily(row.item.id)}
           onDragStart={drag}
           dragging={isActive}
         />
       </ScaleDecorator>
     );
-  }, [c.text, dailies, editTarget, openEditor]);
+  }, [c.text, dailies]);
 
   return (
     <View style={[styles.root, { backgroundColor: c.background }]}>
@@ -532,26 +403,14 @@ export default function TodayScreen() {
         <CreateSheet
           section={createSection}
           onClose={() => setCreateSection(null)}
-          onCreate={(label, when) => {
-            dailies.addDaily({ label, icon: 'circle', color: 'gray', action: 'custom', custom: true }, when);
+          onCreate={(label, when, notes) => {
+            dailies.addDaily({ label, subtitle: notes || undefined, icon: 'circle', color: 'gray', action: 'custom', custom: true }, when);
             setCreateSection(null);
           }}
         />
       )}
 
     </SafeAreaView>
-
-    {editTarget && (
-      <EditOverlay
-        key={editTarget.item.id}
-        item={editTarget.item}
-        rect={editTarget.rect}
-        progress={editP}
-        screenH={screenH}
-        onSave={saveEditor}
-        onCancel={closeEditor}
-      />
-    )}
     </View>
   );
 }
@@ -602,7 +461,6 @@ const makeStyles = (tk: Tokens) => {
     ...darkCard,
   },
   rowDragging: { ...shadows.md },
-  rowHidden: { opacity: 0 },
   med: { width: 42, height: 42, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
   rowMain: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 12 },
   rowText: { flex: 1 },
@@ -625,26 +483,6 @@ const makeStyles = (tk: Tokens) => {
   editControls: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   removeBtn: { width: 24, height: 24, borderRadius: 12, backgroundColor: '#D8584E', alignItems: 'center', justifyContent: 'center' },
 
-  // In-place editor card (long-press a row in edit mode → expands where it sits)
-  editCard: {
-    position: 'absolute',
-    backgroundColor: isDark ? c.surfaceRaised : c.surface,
-    borderWidth: 1,
-    borderColor: c.border,
-    borderRadius: 14,
-    paddingVertical: 12,
-    paddingHorizontal: 13,
-    overflow: 'hidden',
-    ...darkCard,
-  },
-  editHeaderRow: { flexDirection: 'row', alignItems: 'center', gap: 8, height: 40 },
-  editInput: { flex: 1, height: 40, fontFamily: fontFamily.semiBold, fontSize: fontSize.lg, color: c.text, backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : '#F6F4EF', borderRadius: 10, borderWidth: 1, borderColor: c.border, paddingHorizontal: 12, paddingVertical: 0 },
-  editSubInput: { height: 40, marginTop: 8, fontFamily: fontFamily.regular, fontSize: 13.5, color: c.textSecondary, backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : '#F6F4EF', borderRadius: 10, borderWidth: 1, borderColor: c.border, paddingHorizontal: 12, paddingVertical: 0 },
-  editActionBtn: { width: 34, height: 34, borderRadius: 17, alignItems: 'center', justifyContent: 'center' },
-  editCancelBtn: { borderWidth: 1, borderColor: c.border, backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : '#fff' },
-  editSaveBtn: { backgroundColor: colors.primary },
-  editSaveBtnOff: { opacity: 0.4 },
-
   // "+ Add to {section}" dashed button
   addPill: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6,
@@ -654,7 +492,9 @@ const makeStyles = (tk: Tokens) => {
   addPillText: { fontFamily: fontFamily.semiBold, fontSize: fontSize.md, color: colors.primaryDark },
 
   // Reflection hero
-  hero: { borderRadius: 16, borderWidth: 1, borderColor: c.border, backgroundColor: c.surface, overflow: 'hidden', marginBottom: 4, ...shadows.sm, ...darkCard },
+  // Photo jewel — no card-treatment hairline on dark (it reads as a white
+  // outline around the image); the photo edge + meta band define the card.
+  hero: { borderRadius: 16, borderWidth: isDark ? 0 : 1, borderColor: c.border, backgroundColor: c.surface, overflow: 'hidden', marginBottom: 4, ...shadows.sm },
   heroCover: { height: 150, justifyContent: 'flex-end', overflow: 'hidden' },
   heroTitle: {
     fontFamily: fontFamily.serifMedium,

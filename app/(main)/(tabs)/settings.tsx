@@ -5,8 +5,7 @@
 // + steppers), Your Data, Support Sober Dailies, About, and a dev-only group.
 // Legal links + version live at the foot of the scroll (the floating tab bar +
 // FAB sit above). Hidden QA: tap the version 7× for the Support ID; long-press for
-// the Debug Console. Reminders (notifications) + Light/Dark/System theme from the
-// prototype are deferred — see the team note in the PR.
+// the Debug Console. Reminders (notifications) from the prototype are deferred.
 import React, { useState, useEffect, useRef } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, Platform, Linking, Share, ScrollView,

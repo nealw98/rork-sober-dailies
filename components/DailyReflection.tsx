@@ -192,7 +192,7 @@ export default function DailyReflection({ fontSize = 18, lineHeight, jumpToDate 
                 <Sparkles size={11} color={colors.primaryDark} strokeWidth={2} />
                 <Text style={styles.medLabel}>MEDITATION</Text>
               </View>
-              <Text style={styles.medText}>&ldquo;{reflection.thought}&rdquo;</Text>
+              <Text style={[styles.medText, { fontSize: readSize, lineHeight: Math.round(readSize * 1.4) }]}>&ldquo;{reflection.thought}&rdquo;</Text>
             </View>
 
             <Text style={styles.copyright}>Copyright © 1990 by Alcoholics Anonymous World Services, Inc. All rights reserved.</Text>
@@ -334,17 +334,20 @@ const makeStyles = (tk: Tokens) => {
   readingCard: { marginTop: 16, paddingHorizontal: 18, paddingTop: 0, paddingBottom: 26, borderRadius: 18, backgroundColor: c.surface, borderWidth: 1, borderColor: c.border, ...darkCard },
 
   quoteWrap: { marginTop: 32, paddingLeft: 18, borderLeftWidth: 2, borderLeftColor: colors.primary },
-  quote: { fontFamily: fontFamily.serifItalic, color: isDark ? c.text : c.textSecondary, letterSpacing: -0.05 },
+  // Reading text is Georgia (iOS system serif) to match the Big Book reader's
+  // optical size — Lora at the same pt reads a step larger.
+  quote: { fontFamily: 'Georgia', fontStyle: 'italic', color: c.text, letterSpacing: -0.05 },
   source: { fontFamily: fontFamily.semiBold, fontSize: 11, color: c.textMuted, marginTop: 10, letterSpacing: 1, textTransform: 'uppercase' },
 
   bodyWrap: { marginTop: 32 },
-  body: { fontFamily: fontFamily.serif, color: isDark ? c.text : c.textSecondary, letterSpacing: -0.05 },
+  body: { fontFamily: 'Georgia', color: c.text, letterSpacing: -0.05 },
 
   medTile: { marginTop: 24, padding: 18, backgroundColor: colors.primarySoft, borderRadius: 18, borderWidth: 1, borderColor: colors.primary + '28', overflow: 'hidden' },
   medOrb: { position: 'absolute', top: -30, right: -30, width: 140, height: 140, borderRadius: 70, backgroundColor: colors.primary + '14' },
   medLabelRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   medLabel: { fontFamily: fontFamily.bold, fontSize: 10, letterSpacing: 1.4, color: colors.primaryDark },
-  medText: { fontFamily: fontFamily.serifItalic, fontSize: 18, color: isDark ? c.text : c.textSecondary, marginTop: 8, lineHeight: 25, letterSpacing: -0.3 },
+  // fontSize/lineHeight follow the reading-size setting (set inline).
+  medText: { fontFamily: 'Georgia', fontStyle: 'italic', color: c.text, marginTop: 8, letterSpacing: -0.3 },
 
 
   copyright: { marginTop: 18, fontFamily: fontFamily.regular, fontSize: 10, color: c.textMuted, lineHeight: 15, textAlign: 'center' },

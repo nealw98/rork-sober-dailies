@@ -114,12 +114,23 @@ export interface Insights {
   completionRate: number; // avg % of that day's dailies completed, over active days
 }
 
+const SECTIONS = ['Morning', 'Anytime', 'Evening'] as const;
+
 export function computeInsights(program: DailyItem[], completion: Completion): Insights {
   const whenById: Record<string, string> = {};
   for (const it of program) whenById[it.id] = it.when;
 
-  const weekdayScore = [0, 0, 0, 0, 0, 0, 0];
-  const sectionScore: Record<string, number> = { Morning: 0, Anytime: 0, Evening: 0 };
+  // Current section sizes — the denominator for each section's completion rate,
+  // so a bigger bucket doesn't automatically "win". (Reflection isn't sectioned.)
+  const sectionSize: Record<string, number> = { Morning: 0, Anytime: 0, Evening: 0 };
+  for (const it of program) if (sectionSize[it.when] !== undefined) sectionSize[it.when]++;
+
+  // Both "strongest" insights are now average completion RATE within the bucket
+  // (how completely you finish), not raw volume — accumulate rate sums + counts.
+  const weekdayRate = [0, 0, 0, 0, 0, 0, 0];
+  const weekdayDays = [0, 0, 0, 0, 0, 0, 0];
+  const sectionRate: Record<string, number> = { Morning: 0, Anytime: 0, Evening: 0 };
+  const sectionDays: Record<string, number> = { Morning: 0, Anytime: 0, Evening: 0 };
   const monthScore: Record<string, number> = {};
   const currentTotal = program.length + 1; // + permanent Daily Reflection
   let sumRate = 0;
@@ -132,17 +143,40 @@ export function computeInsights(program: DailyItem[], completion: Completion): I
     // Rate against that day's own possible total when we have it (older records
     // fall back to today's program size). Clamp so the fallback can't exceed 100%.
     const possible = day.total ?? currentTotal;
-    sumRate += Math.min(1, done / possible);
+    const dayRate = Math.min(1, done / possible);
+    sumRate += dayRate;
     const d = parseLocalDate(key);
-    weekdayScore[d.getDay()] += done;
+    weekdayRate[d.getDay()] += dayRate;
+    weekdayDays[d.getDay()] += 1;
     const mk = `${d.getFullYear()}-${d.getMonth()}`;
     monthScore[mk] = (monthScore[mk] ?? 0) + done;
-    for (const id of day.done) { const w = whenById[id]; if (w) sectionScore[w] += 1; }
+    // Per-section rate for the day = completed-in-section ÷ that section's size.
+    const secDone: Record<string, number> = { Morning: 0, Anytime: 0, Evening: 0 };
+    for (const id of day.done) { const w = whenById[id]; if (w !== undefined) secDone[w] += 1; }
+    for (const s of SECTIONS) {
+      if (sectionSize[s] > 0) {
+        sectionRate[s] += Math.min(1, secDone[s] / sectionSize[s]);
+        sectionDays[s] += 1;
+      }
+    }
   }
 
-  const strongestWeekday = activeDays ? WEEKDAYS[weekdayScore.indexOf(Math.max(...weekdayScore))] : null;
-  const secMax = Math.max(sectionScore.Morning, sectionScore.Anytime, sectionScore.Evening);
-  const strongestSection = secMax > 0 ? (['Morning', 'Anytime', 'Evening'] as const).find((s) => sectionScore[s] === secMax) ?? null : null;
+  // Pick the bucket with the highest average rate (ties break by first-in-order).
+  const bestByAvg = <T extends string | number>(keys: readonly T[], sums: Record<T, number> | number[], counts: Record<T, number> | number[]): T | null => {
+    let best: T | null = null;
+    let bestAvg = -1;
+    for (const k of keys) {
+      const cnt = (counts as any)[k as any];
+      if (!cnt) continue;
+      const avg = (sums as any)[k as any] / cnt;
+      if (avg > bestAvg) { bestAvg = avg; best = k; }
+    }
+    return best;
+  };
+
+  const bestWeekdayIdx = bestByAvg([0, 1, 2, 3, 4, 5, 6] as const, weekdayRate, weekdayDays);
+  const strongestWeekday = bestWeekdayIdx === null ? null : WEEKDAYS[bestWeekdayIdx];
+  const strongestSection = bestByAvg(SECTIONS, sectionRate, sectionDays);
   let mostActiveMonth: string | null = null;
   const monthEntries = Object.entries(monthScore);
   if (monthEntries.length) {

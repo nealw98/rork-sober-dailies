@@ -25,28 +25,26 @@ import { type DailyItem, type WhenBucket } from '@/hooks/use-dailies-store';
 
 export type Template = Omit<DailyItem, 'id' | 'when'>;
 
-export const BUCKETS: WhenBucket[] = ['Morning', 'Anytime', 'Evening'];
-
-// "From your tools" catalog (canonical add list — matches the prototype).
+// "From your tools" catalog (canonical add list) — alphabetical by label.
 export const TOOL_CATALOG: Template[] = [
-  { label: 'Morning Prayer', icon: 'pray', color: 'amber', action: 'prayerMorning' },
-  { label: 'Evening Prayer', icon: 'pray', color: 'amber', action: 'prayerEvening' },
-  { label: 'Write my Gratitude List', icon: 'heart', color: 'amber', action: 'gratitude' },
-  { label: 'Read the literature', icon: 'library', color: 'teal', action: 'lit' },
-  { label: 'Nightly Review', icon: 'moon', color: 'lavender', action: 'nightly' },
-  { label: 'Listen to a speaker tape', icon: 'play', color: 'lavender', action: 'speaker' },
   { label: 'Attend a meeting', icon: 'users', color: 'lavender', action: 'meeting' },
-  { label: 'Write in my journal', icon: 'journal', color: 'blue', action: 'journal' },
-  { label: 'Spot Check Inventory', icon: 'check', color: 'coral', action: 'spotcheck' },
+  { label: 'Evening Prayer', icon: 'pray', color: 'amber', action: 'prayerEvening' },
+  { label: 'Listen to a speaker tape', icon: 'play', color: 'lavender', action: 'speaker' },
   { label: 'Meditation', icon: 'lotus', color: 'lavender', action: 'meditation' },
+  { label: 'Morning Prayer', icon: 'pray', color: 'amber', action: 'prayerMorning' },
+  { label: 'Nightly Review', icon: 'moon', color: 'lavender', action: 'nightly' },
+  { label: 'Read the literature', icon: 'library', color: 'teal', action: 'lit' },
+  { label: 'Spot Check Inventory', icon: 'check', color: 'coral', action: 'spotcheck' },
   { label: 'Talk with another alcoholic', icon: 'phone', color: 'blue', action: 'callAnother' },
+  { label: 'Write in my journal', icon: 'journal', color: 'blue', action: 'journal' },
+  { label: 'Write my Gratitude List', icon: 'heart', color: 'amber', action: 'gratitude' },
 ];
 
-// "Quick actions" — no tool, just check off.
+// "Quick actions" — no tool, just check off. Alphabetical by label.
 export const QUICK_CATALOG: Template[] = [
-  { label: 'Make my bed', icon: 'home', color: 'amber', action: 'makeBed' },
-  { label: 'Get some exercise', icon: 'heart', color: 'coral', action: 'exercise' },
   { label: 'Do some service', icon: 'users', color: 'teal', action: 'service' },
+  { label: 'Get some exercise', icon: 'heart', color: 'coral', action: 'exercise' },
+  { label: 'Make my bed', icon: 'home', color: 'amber', action: 'makeBed' },
 ];
 
 export function Medallion({ icon, tone, soft }: { icon: string; tone: string; soft?: boolean }) {
@@ -64,27 +62,6 @@ export function Medallion({ icon, tone, soft }: { icon: string; tone: string; so
 function SheetBackdrop({ onPress }: { onPress: () => void }) {
   const styles = useThemedStyles(makeStyles);
   return <Pressable style={styles.backdrop} onPress={onPress} />;
-}
-
-function WhenPicker({ value, onChange, accent }: { value: WhenBucket; onChange: (w: WhenBucket) => void; accent: string }) {
-  const styles = useThemedStyles(makeStyles);
-  const { c } = useTokens();
-  return (
-    <View style={styles.segment}>
-      {BUCKETS.map((w) => {
-        const on = w === value;
-        return (
-          <Pressable
-            key={w}
-            onPress={() => onChange(w)}
-            style={[styles.segmentBtn, on ? { backgroundColor: accent } : { borderWidth: 1.5, borderColor: c.border }]}
-          >
-            <Text style={[styles.segmentText, { color: on ? '#fff' : c.text }]}>{w}</Text>
-          </Pressable>
-        );
-      })}
-    </View>
-  );
 }
 
 export function AddSheet({ section, added, onClose, onAdd, onCreate }: { section: WhenBucket; added: Set<string>; onClose: () => void; onAdd: (t: Template) => void; onCreate: () => void }) {
@@ -168,11 +145,13 @@ export function AddSheet({ section, added, onClose, onAdd, onCreate }: { section
   );
 }
 
-export function CreateSheet({ section, onClose, onCreate }: { section: WhenBucket; onClose: () => void; onCreate: (label: string, when: WhenBucket) => void }) {
+// Creates into the section the "+ Add" was tapped in (no When picker — the
+// placement is already implied by where you started).
+export function CreateSheet({ section, onClose, onCreate }: { section: WhenBucket; onClose: () => void; onCreate: (label: string, when: WhenBucket, notes: string) => void }) {
   const styles = useThemedStyles(makeStyles);
   const { c, colors, isDark } = useTokens();
   const [name, setName] = useState('');
-  const [when, setWhen] = useState<WhenBucket>(section);
+  const [notes, setNotes] = useState('');
   const canSave = name.trim().length > 0;
   return (
     <Modal transparent visible animationType="slide" onRequestClose={onClose}>
@@ -183,11 +162,11 @@ export function CreateSheet({ section, onClose, onCreate }: { section: WhenBucke
           <View style={styles.grabber} />
           <View style={styles.sheetHeadRow}>
             <Pressable onPress={onClose}><Text style={styles.cancel}>Cancel</Text></Pressable>
-            <Pressable disabled={!canSave} onPress={() => onCreate(name.trim(), when)}>
+            <Pressable disabled={!canSave} onPress={() => onCreate(name.trim(), section, notes.trim())}>
               <Text style={[styles.save, { color: canSave ? colors.primary : c.textMuted }]}>Add</Text>
             </Pressable>
           </View>
-          <Text style={[styles.sheetTitle, { paddingHorizontal: 22 }]}>Custom action</Text>
+          <Text style={[styles.sheetTitle, { paddingHorizontal: 22 }]}>Define your own daily</Text>
 
           <View style={{ padding: 22 }}>
             <Text style={styles.groupLabelTight}>NAME</Text>
@@ -200,8 +179,15 @@ export function CreateSheet({ section, onClose, onCreate }: { section: WhenBucke
               autoFocus
               keyboardAppearance={isDark ? 'dark' : 'light'}
             />
-            <Text style={[styles.groupLabelTight, { marginTop: 18 }]}>WHEN</Text>
-            <WhenPicker value={when} onChange={setWhen} accent={colors.primary} />
+            <Text style={[styles.groupLabelTight, { marginTop: 18 }]}>NOTES</Text>
+            <TextInput
+              value={notes}
+              onChangeText={setNotes}
+              placeholder="Optional — shows under the name"
+              placeholderTextColor={c.textMuted}
+              style={styles.input}
+              keyboardAppearance={isDark ? 'dark' : 'light'}
+            />
           </View>
         </View>
       </KeyboardAvoidingView>
@@ -250,8 +236,5 @@ const makeStyles = (tk: Tokens) => {
     },
     createIcon: { width: 40, height: 40, borderRadius: 20, backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : '#fff', borderWidth: 1.5, borderColor: colors.primary + '66', borderStyle: 'dashed', alignItems: 'center', justifyContent: 'center' },
     input: { fontFamily: fontFamily.regular, fontSize: fontSize.lg, color: c.text, backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : colors.white, borderRadius: 12, borderWidth: 1, borderColor: c.border, paddingHorizontal: 14, paddingVertical: 12 },
-    segment: { flexDirection: 'row', gap: 8 },
-    segmentBtn: { flex: 1, paddingVertical: 10, borderRadius: 12, alignItems: 'center' },
-    segmentText: { fontFamily: fontFamily.semiBold, fontSize: fontSize.md },
   });
 };

@@ -529,7 +529,7 @@ const makeStyles = (tk: Tokens) => {
   onlineBadge: { fontFamily: fontFamily.bold, fontSize: 10, letterSpacing: 0.4, color: st.ink, backgroundColor: st.soft, paddingHorizontal: 7, paddingVertical: 2, borderRadius: 999, overflow: 'hidden' },
   rowWhen: { fontFamily: fontFamily.regular, fontSize: 12.5, color: c.textMuted, marginTop: 3 },
   rowWhere: { fontFamily: fontFamily.regular, fontSize: 12, color: c.textMuted, marginTop: 1 },
-  rowNotes: { fontFamily: fontFamily.serifItalic, fontSize: 12, color: c.textSecondary, marginTop: 5, lineHeight: 17 },
+  rowNotes: { fontFamily: fontFamily.regularItalic, fontSize: 12, color: c.textSecondary, marginTop: 5, lineHeight: 17 },
   rowRemove: { padding: 4 },
 
   addBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, marginTop: 2, paddingVertical: 13, borderRadius: 16, borderWidth: 1.5, borderColor: st.accent + '77', borderStyle: 'dashed' },

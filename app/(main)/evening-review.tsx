@@ -144,7 +144,7 @@ const makeStyles = (tk: Tokens) => {
   },
 
   sourceWrap: { marginTop: 22, paddingTop: 16, borderTopWidth: 1, borderTopColor: c.divider },
-  source: { fontFamily: fontFamily.serifItalic, fontSize: 13.5, lineHeight: 20, color: c.textMuted, textAlign: 'center' },
+  source: { fontFamily: fontFamily.regularItalic, fontSize: 13.5, lineHeight: 20, color: c.textMuted, textAlign: 'center' },
   sourceStrong: { color: c.textSecondary },
   privacy: { marginTop: 10, fontFamily: fontFamily.regular, fontSize: 11.5, lineHeight: 17, color: c.textMuted, textAlign: 'center', paddingHorizontal: 16 },
   });
