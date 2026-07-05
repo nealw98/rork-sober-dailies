@@ -1,19 +1,22 @@
 import { Stack } from "expo-router";
 import React from "react";
 import { View } from "react-native";
-import { useTheme } from "@/hooks/useTheme";
+import { StatusBar } from "expo-status-bar";
+import { useTokens } from "@/hooks/useTokens";
 import GlobalSponsorFab from "@/components/navigation/GlobalSponsorFab";
 
 export default function MainLayout() {
-  const { palette } = useTheme();
+  const { c, isDark } = useTokens();
 
   return (
     <View style={{ flex: 1 }}>
+    {/* Follow the app's appearance setting (which may differ from the system's) */}
+    <StatusBar style={isDark ? "light" : "dark"} />
     <Stack
       initialRouteName="(tabs)"
       screenOptions={{
         headerShown: false,
-        contentStyle: { backgroundColor: palette.background },
+        contentStyle: { backgroundColor: c.background },
         animation: "slide_from_right",
       }}
     >
@@ -23,7 +26,6 @@ export default function MainLayout() {
       <Stack.Screen name="chat" />
       <Stack.Screen name="speakers" />
       <Stack.Screen name="speaker-detail" />
-      <Stack.Screen name="literature" />
       <Stack.Screen name="bigbook" />
       <Stack.Screen name="twelve-and-twelve" />
       <Stack.Screen name="meeting-readings" />

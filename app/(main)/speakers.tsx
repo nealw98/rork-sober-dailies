@@ -14,14 +14,20 @@ import { useScreenTimeTracking } from '@/hooks/useScreenTimeTracking';
 import { useGlobalAudioPlayer } from '@/hooks/useGlobalAudioPlayer';
 import { useDownloadedSpeakerIds } from '@/hooks/useSpeakerDownload';
 import { useSpeakerFavorites } from '@/hooks/use-speaker-favorites';
-import { colors, fontFamily, getSemanticColors, shadows, families } from '@/constants/designTokens';
+import { fontFamily, shadows, families, steelFill, steelPlay, type Tokens } from '@/constants/designTokens';
+import { useTokens, useThemedStyles } from '@/hooks/useTokens';
 
-const c = getSemanticColors('light');
-// Steel Navy, one ramp step lighter than the global steel — the speaker pages
-// read too dark at the full strength.
-const MT = families.steel[400];           // was steel[500]
-const MT_DARK = families.steel[600];      // was steel[700]
-const MT_SOFT = families.steel[100];
+// Speaker-page steel, mode-resolved. Light keeps the "one ramp step lighter"
+// values (steel[400]/[600]/[100]); dark uses the handoff specials: steelFill for
+// solids under white, the brightened steel for inks/accents, low-alpha soft wash,
+// and steelPlay for the play triangles.
+const steelSp = (tk: Tokens) => ({
+  fill: tk.isDark ? steelFill.dark : families.steel[400],      // solid fills carrying white
+  ink: tk.isDark ? tk.colors.steelDark : families.steel[600],  // text/icon ink (was MT_DARK)
+  soft: tk.isDark ? tk.colors.steelSoft : families.steel[100],
+  accent: tk.isDark ? tk.colors.steel : families.steel[400],   // saved bookmark, spinners
+  play: tk.isDark ? steelPlay.dark : families.steel[600],      // play triangle
+});
 
 // Mic-art is a flat Steel Navy fill (gradient removed).
 
@@ -52,8 +58,9 @@ function sortSpeakers(list: Speaker[], sortBy: SortKey): Speaker[] {
 
 // ─── Gradient mic-art thumbnail ──────────────────────────────────────────────
 function MicThumb({ size, radius }: { id: string; size: number; radius: number }) {
+  const sp = steelSp(useTokens());
   return (
-    <View style={{ width: size, height: size, borderRadius: radius, backgroundColor: MT, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
+    <View style={{ width: size, height: size, borderRadius: radius, backgroundColor: sp.fill, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
       <Mic size={size * 0.42} color="rgba(255,255,255,0.55)" strokeWidth={1.3} />
     </View>
   );
@@ -61,10 +68,12 @@ function MicThumb({ size, radius }: { id: string; size: number; radius: number }
 
 // ─── Featured hero (gradient quote card) ─────────────────────────────────────
 function FeaturedHero({ tape, onOpen, onPlay }: { tape: Speaker; onOpen: () => void; onPlay: () => void }) {
+  const styles = useThemedStyles(makeStyles);
+  const sp = steelSp(useTokens());
   const quote = stripQuote(tape.quote) || tape.subtitle || '';
   return (
     <Pressable onPress={onOpen} style={styles.featuredWrap}>
-      <View style={[styles.featuredCard, { backgroundColor: MT }]}>
+      <View style={[styles.featuredCard, { backgroundColor: sp.fill }]}>
         <View style={styles.featuredTop}>
           <Text style={styles.featuredEyebrow}>FEATURED · THIS WEEK</Text>
           <Text style={styles.featuredMeta} numberOfLines={1}>{[tape.hometown, fmtDate(tape.date)].filter(Boolean).join(' · ')}</Text>
@@ -80,7 +89,7 @@ function FeaturedHero({ tape, onOpen, onPlay }: { tape: Speaker; onOpen: () => v
             <Text style={styles.featuredTitle} numberOfLines={1}>{tape.title}</Text>
           </View>
           <Pressable onPress={onPlay} hitSlop={6} style={styles.featuredPlay} accessibilityLabel={`Play ${tape.speaker}`}>
-            <Play size={22} color={MT_DARK} fill={MT_DARK} style={{ marginLeft: 2 }} />
+            <Play size={22} color={sp.play} fill={sp.play} style={{ marginLeft: 2 }} />
           </Pressable>
         </View>
       </View>
@@ -90,6 +99,9 @@ function FeaturedHero({ tape, onOpen, onPlay }: { tape: Speaker; onOpen: () => v
 
 // ─── Tape row ────────────────────────────────────────────────────────────────
 function TapeRow({ tape, saved, downloaded, onOpen, onPlay, onToggleSave }: { tape: Speaker; saved: boolean; downloaded: boolean; onOpen: () => void; onPlay: () => void; onToggleSave: () => void }) {
+  const styles = useThemedStyles(makeStyles);
+  const tk = useTokens();
+  const sp = steelSp(tk);
   return (
     <View style={styles.row}>
       <Pressable style={styles.rowBody} onPress={onOpen}>
@@ -103,15 +115,15 @@ function TapeRow({ tape, saved, downloaded, onOpen, onPlay, onToggleSave }: { ta
           {tape.subtitle ? <Text style={styles.rowSubtitle} numberOfLines={2}>{tape.subtitle}</Text> : null}
           <View style={styles.rowMeta}>
             {fmtDate(tape.date) ? <Text style={styles.rowMetaText}>{fmtDate(tape.date)}</Text> : null}
-            {downloaded ? <CircleCheck size={13} color={colors.primary} /> : null}
+            {downloaded ? <CircleCheck size={13} color={tk.colors.primary} /> : null}
             <Pressable onPress={onToggleSave} hitSlop={10} accessibilityLabel={saved ? `Unsave ${tape.speaker}` : `Save ${tape.speaker}`}>
-              <Bookmark size={14} color={saved ? MT : c.textMuted} fill={saved ? MT : 'transparent'} strokeWidth={2} />
+              <Bookmark size={14} color={saved ? sp.accent : tk.c.textMuted} fill={saved ? sp.accent : 'transparent'} strokeWidth={2} />
             </Pressable>
           </View>
         </View>
       </Pressable>
       <Pressable onPress={onPlay} hitSlop={6} style={styles.rowPlay} accessibilityLabel={`Play ${tape.speaker}`}>
-        <Play size={15} color={MT_DARK} fill={MT_DARK} style={{ marginLeft: 2 }} />
+        <Play size={15} color={sp.play} fill={sp.play} style={{ marginLeft: 2 }} />
       </Pressable>
     </View>
   );
@@ -124,6 +136,11 @@ export default function SpeakersScreen() {
   const [filter, setFilter] = useState<Filter>('All');
   const [sortBy, setSortBy] = useState<SortKey>('newest');
   const [sortOpen, setSortOpen] = useState(false);
+
+  const styles = useThemedStyles(makeStyles);
+  const tk = useTokens();
+  const { c, isDark } = tk;
+  const sp = steelSp(tk);
 
   const player = useGlobalAudioPlayer();
   const { downloadedIds, refresh: refreshDownloads } = useDownloadedSpeakerIds();
@@ -175,6 +192,11 @@ export default function SpeakersScreen() {
     />
   ), [savedSet, downloadedIds, openDetail, toggleSaved]);
 
+  // Filter-chip inversion (handoff): active = ink-black bg + white text on light;
+  // on dark it flips to the bright steel with dark ink so it doesn't fight the glow.
+  const chipOnText = isDark ? '#12100C' : '#fff';
+  const chipOnCount = isDark ? 'rgba(18,16,12,0.7)' : 'rgba(255,255,255,0.75)';
+
   const ListHeader = (
     <View>
       {searchOpen && (
@@ -191,6 +213,7 @@ export default function SpeakersScreen() {
               autoCorrect={false}
               autoCapitalize="none"
               returnKeyType="search"
+              keyboardAppearance={isDark ? 'dark' : 'light'}
             />
             {q ? <Pressable hitSlop={8} onPress={() => setQ('')}><X size={15} color={c.textMuted} strokeWidth={2.2} /></Pressable> : null}
           </View>
@@ -202,8 +225,8 @@ export default function SpeakersScreen() {
           const on = filter === f;
           return (
             <Pressable key={f} onPress={() => setFilter(f)} style={[styles.filterChip, on ? styles.filterChipOn : styles.filterChipOff]}>
-              <Text style={[styles.filterText, { color: on ? '#fff' : c.textSecondary }]}>{f}</Text>
-              <Text style={[styles.filterCount, { color: on ? 'rgba(255,255,255,0.75)' : c.textMuted }]}>{counts[f]}</Text>
+              <Text style={[styles.filterText, { color: on ? chipOnText : c.textSecondary }]}>{f}</Text>
+              <Text style={[styles.filterCount, { color: on ? chipOnCount : c.textMuted }]}>{counts[f]}</Text>
             </Pressable>
           );
         })}
@@ -215,7 +238,7 @@ export default function SpeakersScreen() {
         <Text style={styles.listLabel}>{showFeatured ? 'RECENTLY ADDED' : `${rows.length} ${rows.length === 1 ? 'TAPE' : 'TAPES'}`}</Text>
         <Pressable onPress={() => setSortOpen(true)} style={styles.sortBtn} hitSlop={8}>
           <Text style={styles.sortBtnText}>{SORT_LABEL[sortBy]}</Text>
-          <ChevronDown size={14} color={MT_DARK} />
+          <ChevronDown size={14} color={sp.ink} />
         </Pressable>
       </View>
     </View>
@@ -229,13 +252,13 @@ export default function SpeakersScreen() {
         <View style={styles.headerRow}>
           <Text style={styles.title}>Speaker Tapes</Text>
           <Pressable onPress={() => setSearchOpen((o) => !o)} style={[styles.searchToggle, searchOpen && styles.searchToggleOn]} hitSlop={6} accessibilityLabel="Search">
-            <Search size={17} color={searchOpen ? '#fff' : c.textSecondary} />
+            <Search size={17} color={searchOpen ? (isDark ? '#0B0C0E' : '#fff') : c.textSecondary} />
           </Pressable>
         </View>
       </View>
 
       {isLoading ? (
-        <View style={styles.loading}><ActivityIndicator size="large" color={MT} /></View>
+        <View style={styles.loading}><ActivityIndicator size="large" color={sp.accent} /></View>
       ) : (
         <FlatList
           data={rows}
@@ -264,9 +287,9 @@ export default function SpeakersScreen() {
             {(Object.keys(SORT_LABEL) as SortKey[]).map((k, i) => {
               const on = sortBy === k;
               return (
-                <Pressable key={k} onPress={() => { setSortBy(k); setSortOpen(false); }} style={[styles.sortItem, i > 0 && styles.sortItemDivider, on && { backgroundColor: MT_SOFT }]}>
-                  <Text style={[styles.sortItemText, { color: on ? MT_DARK : c.text }]}>{SORT_LABEL[k]}</Text>
-                  {on ? <Check size={15} color={MT_DARK} strokeWidth={2.4} /> : null}
+                <Pressable key={k} onPress={() => { setSortBy(k); setSortOpen(false); }} style={[styles.sortItem, i > 0 && styles.sortItemDivider, on && { backgroundColor: sp.soft }]}>
+                  <Text style={[styles.sortItemText, { color: on ? sp.ink : c.text }]}>{SORT_LABEL[k]}</Text>
+                  {on ? <Check size={15} color={sp.ink} strokeWidth={2.4} /> : null}
                 </Pressable>
               );
             })}
@@ -277,32 +300,39 @@ export default function SpeakersScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (tk: Tokens) => {
+  const { c, isDark } = tk;
+  const sp = steelSp(tk);
+  // Cheap dark card chrome — lit top hairline + hairline border (handoff).
+  const darkCard = isDark
+    ? { borderColor: 'rgba(255,255,255,0.06)', borderTopColor: 'rgba(255,255,255,0.12)' }
+    : null;
+  return StyleSheet.create({
   screen: { flex: 1, backgroundColor: c.background },
   header: { paddingHorizontal: 22, paddingTop: 8, paddingBottom: 4 },
   headerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   title: { fontFamily: fontFamily.displayBold, fontSize: 30, letterSpacing: -0.5, color: c.text },
-  searchToggle: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center', backgroundColor: c.surface, borderWidth: 1, borderColor: c.border },
+  searchToggle: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center', backgroundColor: c.surface, borderWidth: 1, borderColor: c.border, ...darkCard },
   searchToggleOn: { backgroundColor: c.text, borderColor: c.text },
 
   listContent: { paddingHorizontal: 16, paddingBottom: 120 },
 
   // search
   searchWrap: { paddingTop: 6, paddingBottom: 2 },
-  searchBar: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 14, paddingVertical: 10, borderRadius: 12, backgroundColor: c.surface, borderWidth: 1, borderColor: c.border },
+  searchBar: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 14, paddingVertical: 10, borderRadius: 12, backgroundColor: c.surface, borderWidth: 1, borderColor: c.border, ...darkCard },
   searchInput: { flex: 1, fontFamily: fontFamily.regular, fontSize: 14, color: c.text, padding: 0 },
 
-  // segment filter
+  // segment filter — active chip inverts on dark (bright steel + dark ink)
   filterRow: { flexDirection: 'row', gap: 8, paddingTop: 12, paddingBottom: 2 },
   filterChip: { flexDirection: 'row', alignItems: 'baseline', gap: 6, paddingHorizontal: 14, paddingVertical: 8, borderRadius: 10 },
-  filterChipOn: { backgroundColor: c.text },
-  filterChipOff: { backgroundColor: c.surface, borderWidth: 1, borderColor: c.border },
+  filterChipOn: { backgroundColor: isDark ? tk.colors.steel : c.text },
+  filterChipOff: { backgroundColor: c.surface, borderWidth: 1, borderColor: c.border, ...darkCard },
   filterText: { fontFamily: fontFamily.semiBold, fontSize: 13 },
   filterCount: { fontFamily: fontFamily.regular, fontSize: 11 },
 
-  // featured hero
+  // featured hero — solid steel fill carrying white (steelFill.dark on dark)
   featuredWrap: { marginTop: 14 },
-  featuredCard: { borderRadius: 20, overflow: 'hidden', paddingTop: 16, ...shadows.lg, shadowColor: MT },
+  featuredCard: { borderRadius: 20, overflow: 'hidden', paddingTop: 16, ...shadows.lg, shadowColor: isDark ? '#000' : sp.fill },
   featuredTop: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', gap: 12, paddingHorizontal: 20 },
   featuredEyebrow: { fontFamily: fontFamily.bold, fontSize: 10, letterSpacing: 1.6, color: 'rgba(255,255,255,0.92)' },
   featuredMeta: { fontFamily: fontFamily.semiBold, fontSize: 9.5, letterSpacing: 1, color: 'rgba(255,255,255,0.7)', textTransform: 'uppercase' },
@@ -311,13 +341,15 @@ const styles = StyleSheet.create({
   featuredFooter: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12, paddingHorizontal: 20, paddingTop: 12, paddingBottom: 16, borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.18)' },
   featuredSpeaker: { fontFamily: fontFamily.displayBold, fontSize: 22, letterSpacing: -0.4, color: '#fff' },
   featuredTitle: { fontFamily: fontFamily.serifItalic, fontSize: 13, color: 'rgba(255,255,255,0.9)', marginTop: 3 },
-  featuredPlay: { width: 52, height: 52, borderRadius: 26, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center', ...shadows.md },
+  // Play chip: white circle w/ dark triangle on light; on dark it becomes a lit
+  // surface chip and the triangle flips to steelPlay.dark (handoff).
+  featuredPlay: { width: 52, height: 52, borderRadius: 26, backgroundColor: isDark ? c.surface : '#fff', alignItems: 'center', justifyContent: 'center', ...shadows.md, ...(isDark ? { borderWidth: 1, ...darkCard } : null) },
 
   // list label + sort
   listLabelRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 18, marginBottom: 4 },
   listLabel: { fontFamily: fontFamily.bold, fontSize: 10, letterSpacing: 1.6, color: c.textMuted },
   sortBtn: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  sortBtnText: { fontFamily: fontFamily.semiBold, fontSize: 11.5, color: MT_DARK },
+  sortBtnText: { fontFamily: fontFamily.semiBold, fontSize: 11.5, color: sp.ink },
 
   // tape row
   row: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 13, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: c.divider },
@@ -329,11 +361,11 @@ const styles = StyleSheet.create({
   rowSubtitle: { fontFamily: fontFamily.regular, fontSize: 13, lineHeight: 18, color: c.textMuted, marginTop: 5 },
   rowMeta: { flexDirection: 'row', alignItems: 'center', gap: 7, marginTop: 6 },
   rowMetaText: { fontFamily: fontFamily.regular, fontSize: 11, color: c.textMuted, letterSpacing: 0.3 },
-  rowPlay: { width: 38, height: 38, borderRadius: 19, borderWidth: 1.5, borderColor: MT, backgroundColor: MT_SOFT, alignItems: 'center', justifyContent: 'center' },
+  rowPlay: { width: 38, height: 38, borderRadius: 19, borderWidth: 1.5, borderColor: sp.accent, backgroundColor: sp.soft, alignItems: 'center', justifyContent: 'center' },
 
   // sort menu
-  sortBackdrop: { flex: 1, backgroundColor: 'rgba(20,18,30,0.18)', alignItems: 'flex-end', justifyContent: 'flex-start', paddingTop: 150, paddingHorizontal: 20 },
-  sortCard: { width: 210, backgroundColor: '#fff', borderRadius: 12, borderWidth: 1, borderColor: c.border, overflow: 'hidden', ...shadows.lg },
+  sortBackdrop: { flex: 1, backgroundColor: isDark ? c.overlay : 'rgba(20,18,30,0.18)', alignItems: 'flex-end', justifyContent: 'flex-start', paddingTop: 150, paddingHorizontal: 20 },
+  sortCard: { width: 210, backgroundColor: isDark ? c.surface : '#fff', borderRadius: 12, borderWidth: 1, borderColor: c.border, overflow: 'hidden', ...shadows.lg, ...darkCard },
   sortItem: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 14, paddingVertical: 12 },
   sortItemDivider: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: c.divider },
   sortItemText: { fontFamily: fontFamily.semiBold, fontSize: 13 },
@@ -343,4 +375,5 @@ const styles = StyleSheet.create({
   empty: { alignItems: 'center', paddingTop: 48, paddingHorizontal: 30 },
   emptyTitle: { fontFamily: fontFamily.serifItalic, fontSize: 17, color: c.textSecondary, textAlign: 'center' },
   emptySub: { fontFamily: fontFamily.regular, fontSize: 13, color: c.textMuted, marginTop: 6, textAlign: 'center' },
-});
+  });
+};

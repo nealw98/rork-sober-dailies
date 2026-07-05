@@ -20,19 +20,19 @@ import { router, Stack, type Href } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { ChevronRight, X, Code2, RefreshCw } from 'lucide-react-native';
 import {
-  colors,
-  getSemanticColors,
-  spacing,
-  radii,
   fontFamily,
   shadows,
+  type Tokens,
 } from '@/constants/designTokens';
+import { useTokens, useThemedStyles } from '@/hooks/useTokens';
+import { ThemedCard } from '@/components/ThemedCard';
 import Constants from 'expo-constants';
 import * as Clipboard from 'expo-clipboard';
 import * as SecureStore from 'expo-secure-store';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Purchases from 'react-native-purchases';
 import { useTextSettings } from '@/hooks/use-text-settings';
+import { useTheme } from '@/hooks/useTheme';
 import { Logger } from '@/lib/logger';
 import { submitFeedback } from '@/lib/feedback';
 import { logEvent, setAnalyticsDeveloperMode, DEVELOPER_MODE_KEY } from '@/lib/analytics';
@@ -42,16 +42,16 @@ import { useOnboarding } from '@/hooks/useOnboardingStore';
 import { clearUserData } from '@/lib/userDataSync';
 import { setSyncPaused } from '@/lib/icloudSync';
 
-const c = getSemanticColors('light');
-
 // ─── Token-based building blocks (mirror the prototype) ──────────────────────
 
-// A labelled card containing one or more rows (surface fill, hairline border).
+// A labelled card containing one or more rows. Uses the full ThemedCard
+// treatment so on OLED it reads as a lit surface, not an outline on black.
 function CardGroup({ label, children }: { label: string; children: React.ReactNode }) {
+  const styles = useThemedStyles(makeStyles);
   return (
     <View style={styles.section}>
       <Text style={styles.sectionLabel}>{label}</Text>
-      <View style={styles.card}>{children}</View>
+      <ThemedCard radius={14} shadow="sm" contentStyle={styles.cardInner}>{children}</ThemedCard>
     </View>
   );
 }
@@ -60,6 +60,8 @@ function CardGroup({ label, children }: { label: string; children: React.ReactNo
 function CardRow({
   label, value, sub, last, onPress,
 }: { label: string; value?: string; sub?: string; last?: boolean; onPress?: () => void }) {
+  const styles = useThemedStyles(makeStyles);
+  const { c } = useTokens();
   return (
     <TouchableOpacity
       style={[styles.row, !last && styles.rowDivider]}
@@ -78,6 +80,7 @@ function CardRow({
 
 // A labelled section that holds an inline control (no card chrome).
 function SettingSection({ label, children }: { label: string; children: React.ReactNode }) {
+  const styles = useThemedStyles(makeStyles);
   return (
     <View style={styles.section}>
       <Text style={styles.sectionLabel}>{label}</Text>
@@ -86,9 +89,18 @@ function SettingSection({ label, children }: { label: string; children: React.Re
   );
 }
 
+const APPEARANCE_OPTIONS = [
+  { key: 'light', label: 'Light' },
+  { key: 'dark', label: 'Dark' },
+  { key: 'system', label: 'System' },
+] as const;
+
 export default function SettingsScreen() {
+  const styles = useThemedStyles(makeStyles);
+  const { c } = useTokens();
   const { fontSize, setFontSize, minFontSize, maxFontSize, resetDefaults, defaultFontSize } = useTextSettings();
   const { resetOnboarding } = useOnboarding();
+  const { colorScheme, setColorScheme } = useTheme();
 
   useScreenTimeTracking('Settings');
 
@@ -373,13 +385,34 @@ export default function SettingsScreen() {
 
       <ScrollView style={styles.content} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
 
+        {/* Appearance — Light / Dark / System */}
+        <SettingSection label="Appearance">
+          <View style={styles.segmentRow}>
+            {APPEARANCE_OPTIONS.map((opt) => {
+              const active = colorScheme === opt.key;
+              return (
+                <TouchableOpacity
+                  key={opt.key}
+                  style={[styles.segment, active && styles.segmentActive]}
+                  onPress={() => setColorScheme(opt.key)}
+                  activeOpacity={0.7}
+                  accessibilityRole="button"
+                  accessibilityState={active ? { selected: true } : {}}
+                >
+                  <Text style={[styles.segmentText, active && styles.segmentTextActive]}>{opt.label}</Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+        </SettingSection>
+
         {/* Text Size — live preview + steppers */}
         <SettingSection label="Text Size">
-          <View style={styles.previewCard}>
+          <ThemedCard radius={14} shadow="sm" contentStyle={styles.previewCardInner}>
             <Text style={[styles.previewText, { fontSize, lineHeight: fontSize * 1.5 }]}>
               &ldquo;Daily progress one day at a time.&rdquo;
             </Text>
-          </View>
+          </ThemedCard>
           <View style={styles.stepperRow}>
             <TouchableOpacity
               style={[styles.stepBtn, fontSize <= minFontSize && styles.stepBtnDisabled]}
@@ -599,7 +632,13 @@ export default function SettingsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (tk: Tokens) => {
+  const { c, colors, isDark } = tk;
+  // Cheap dark card chrome (lit top hairline) for the small settings cards.
+  const darkCard = isDark
+    ? { borderColor: 'rgba(255,255,255,0.06)', borderTopColor: 'rgba(255,255,255,0.12)' }
+    : null;
+  return StyleSheet.create({
   container: { flex: 1, backgroundColor: c.background },
   headerSafe: { backgroundColor: c.background },
   header: { paddingHorizontal: 22, paddingTop: 8, paddingBottom: 8 },
@@ -620,14 +659,29 @@ const styles = StyleSheet.create({
     marginLeft: 6,
     marginBottom: 9,
   },
-  card: {
+  // ThemedCard owns the card chrome; this just clips row press-highlights.
+  cardInner: { overflow: 'hidden' },
+  // Appearance segmented control (Light / Dark / System)
+  segmentRow: { flexDirection: 'row', gap: 8 },
+  segment: {
+    flex: 1,
+    height: 40,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
     backgroundColor: c.surface,
     borderWidth: 1,
     borderColor: c.border,
-    borderRadius: 14,
-    overflow: 'hidden',
-    ...shadows.sm,
+    ...darkCard,
   },
+  segmentActive: {
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
+    ...(isDark ? { borderTopColor: colors.primary } : null),
+  },
+  segmentText: { fontFamily: fontFamily.semiBold, fontSize: 14, color: c.textSecondary },
+  segmentTextActive: { color: '#fff' },
+
   devControl: { paddingHorizontal: 16, paddingVertical: 14 },
   devControlHeader: { flexDirection: 'row', alignItems: 'flex-start', gap: 12 },
   devSegment: {
@@ -689,16 +743,11 @@ const styles = StyleSheet.create({
   rowSub: { fontFamily: fontFamily.regular, fontSize: 12, color: c.textMuted, marginTop: 2 },
   rowValue: { fontFamily: fontFamily.regular, fontSize: 13, color: c.textMuted },
 
-  // Text Size control
-  previewCard: {
-    backgroundColor: c.surface,
-    borderWidth: 1,
-    borderColor: c.border,
-    borderRadius: 14,
+  // Text Size control (ThemedCard owns the card chrome)
+  previewCardInner: {
     paddingVertical: 22,
     paddingHorizontal: 16,
     alignItems: 'center',
-    ...shadows.sm,
   },
   previewText: { fontFamily: fontFamily.serifItalic, color: c.text, textAlign: 'center' },
   stepperRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 16, marginTop: 14 },
@@ -784,4 +833,5 @@ const styles = StyleSheet.create({
   supportIdModalHint: { fontFamily: fontFamily.regular, fontSize: 12, color: c.textMuted, marginTop: 8, marginBottom: 20 },
   supportIdModalDoneButton: { backgroundColor: colors.primary, paddingVertical: 12, paddingHorizontal: 32, borderRadius: 8 },
   supportIdModalDoneText: { fontFamily: fontFamily.semiBold, fontSize: 16, color: '#fff' },
-});
+  });
+};

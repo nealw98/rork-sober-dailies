@@ -10,15 +10,17 @@ import * as Haptics from 'expo-haptics';
 import { useJournal } from '@/hooks/use-journal-store';
 import { useDailies } from '@/hooks/use-dailies-store';
 import { ToolHeader, ToolIntro, TOOLS } from '@/components/ToolScreen';
-import { colors, fontFamily, getSemanticColors } from '@/constants/designTokens';
+import { fontFamily, type Tokens } from '@/constants/designTokens';
+import { useTokens, useThemedStyles } from '@/hooks/useTokens';
 import { logEvent } from '@/lib/analytics';
 
-const c = getSemanticColors('light');
 const tool = TOOLS.journal;
 
 export default function JournalScreen() {
   const router = useRouter();
   const { dailyId } = useLocalSearchParams<{ dailyId?: string }>();
+  const styles = useThemedStyles(makeStyles);
+  const { c, isDark } = useTokens();
   const journal = useJournal();
   const dailies = useDailies();
   const [text, setText] = useState('');
@@ -57,6 +59,7 @@ export default function JournalScreen() {
               style={styles.input}
               multiline
               autoFocus
+              keyboardAppearance={isDark ? 'dark' : 'light'}
             />
           </View>
         </View>
@@ -65,11 +68,17 @@ export default function JournalScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (tk: Tokens) => {
+  const { c, isDark } = tk;
+  const darkCard = isDark
+    ? { borderColor: 'rgba(255,255,255,0.06)', borderTopColor: 'rgba(255,255,255,0.12)' }
+    : null;
+  return StyleSheet.create({
   screen: { flex: 1, backgroundColor: c.background },
   flex: { flex: 1 },
   scroll: { paddingBottom: 40 },
   body: { paddingHorizontal: 18 },
-  card: { backgroundColor: colors.white, borderWidth: 1, borderColor: c.border, borderRadius: 16, paddingHorizontal: 18, paddingVertical: 16, minHeight: 240 },
+  card: { backgroundColor: c.surface, borderWidth: 1, borderColor: c.border, borderRadius: 16, paddingHorizontal: 18, paddingVertical: 16, minHeight: 240, ...darkCard },
   input: { fontFamily: fontFamily.regular, fontSize: 16.5, lineHeight: 25, color: c.text, minHeight: 200, textAlignVertical: 'top' },
-});
+  });
+};

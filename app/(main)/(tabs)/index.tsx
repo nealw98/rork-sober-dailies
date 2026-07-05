@@ -23,8 +23,9 @@ import * as Haptics from 'expo-haptics';
 const AnimatedBlur = Animated.createAnimatedComponent(BlurView);
 type Rect = { x: number; y: number; w: number; h: number };
 
-import { colors, fontFamily, fontSize, spacing, radii, shadows, getSemanticColors } from '@/constants/designTokens';
-import { ROW_TONES, resolveGlyph, resolveTone, resolveSubtitle } from '@/components/dailyTokens';
+import { fontFamily, fontSize, spacing, radii, shadows, type Tokens } from '@/constants/designTokens';
+import { useTokens, useThemedStyles } from '@/hooks/useTokens';
+import { getRowTones, resolveGlyph, resolveTone, resolveSubtitle } from '@/components/dailyTokens';
 import { AddSheet, CreateSheet, type Template } from '@/components/today/DailiesEditSheets';
 import { useScreenTimeTracking } from '@/hooks/useScreenTimeTracking';
 import { useDailies, type DailyItem, type WhenBucket } from '@/hooks/use-dailies-store';
@@ -50,7 +51,7 @@ const ACTION_ROUTE: Record<string, Href | null> = {
   speaker: '/(main)/speakers',
   meditation: '/(main)/meditation',
   callAnother: '/(main)/reach-out' as Href,
-  lit: '/(main)/literature',
+  lit: '/(main)/(tabs)/literature',
   meeting: '/(main)/meetings',
 };
 
@@ -72,6 +73,7 @@ type EditRow =
 // ─── Done button — the completion control, in the row's accent (tool) color:
 // outline when undone, filled + check when done.
 function DoneButton({ done, tone, onPress }: { done: boolean; tone: { ink: string }; onPress: () => void }) {
+  const styles = useThemedStyles(makeStyles);
   return (
     <Pressable
       onPress={onPress}
@@ -104,6 +106,8 @@ function EditOverlay({ item, rect, progress, screenH, onSave, onCancel }: {
   item: DailyItem; rect: Rect; progress: SharedValue<number>; screenH: number;
   onSave: (label: string, subtitle: string) => void; onCancel: () => void;
 }) {
+  const styles = useThemedStyles(makeStyles);
+  const { isDark, c } = useTokens();
   const defaultSub = item.subtitle !== undefined ? item.subtitle : (resolveSubtitle(item.action) ?? '');
   const [label, setLabel] = useState(item.label);
   const [subtitle, setSubtitle] = useState(defaultSub);
@@ -132,7 +136,7 @@ function EditOverlay({ item, rect, progress, screenH, onSave, onCancel }: {
 
   return (
     <View style={StyleSheet.absoluteFill}>
-      <AnimatedBlur intensity={22} tint="light" style={[StyleSheet.absoluteFill, backdropStyle]}>
+      <AnimatedBlur intensity={22} tint={isDark ? 'dark' : 'light'} style={[StyleSheet.absoluteFill, backdropStyle]}>
         <Pressable style={StyleSheet.absoluteFill} onPress={onCancel} accessibilityLabel="Dismiss editor" />
       </AnimatedBlur>
       <Animated.View style={[styles.editCard, { left: rect.x, top: rect.y, width: rect.w }, cardStyle]}>
@@ -141,13 +145,13 @@ function EditOverlay({ item, rect, progress, screenH, onSave, onCancel }: {
             value={label}
             onChangeText={setLabel}
             placeholder="Title"
-            placeholderTextColor="#8A8A9A"
+            placeholderTextColor={c.textMuted}
             style={styles.editInput}
             autoFocus
             returnKeyType="next"
           />
           <Pressable onPress={onCancel} style={[styles.editActionBtn, styles.editCancelBtn]} accessibilityLabel="Cancel edit">
-            <X size={16} color="#8A8A9A" strokeWidth={2.5} />
+            <X size={16} color={c.textMuted} strokeWidth={2.5} />
           </Pressable>
           <Pressable disabled={!canSave} onPress={commit} style={[styles.editActionBtn, styles.editSaveBtn, !canSave && styles.editSaveBtnOff]} accessibilityLabel="Save edit">
             <Check size={16} color="#fff" strokeWidth={3} />
@@ -158,7 +162,7 @@ function EditOverlay({ item, rect, progress, screenH, onSave, onCancel }: {
             value={subtitle}
             onChangeText={setSubtitle}
             placeholder="Subtitle"
-            placeholderTextColor="#8A8A9A"
+            placeholderTextColor={c.textMuted}
             style={styles.editSubInput}
             returnKeyType="done"
             onSubmitEditing={commit}
@@ -182,7 +186,9 @@ function DailyRow({
   onStartEdit?: (rect: Rect) => void;
   onDragStart?: () => void; dragging?: boolean;
 }) {
-  const tone = resolveTone(item.color);
+  const styles = useThemedStyles(makeStyles);
+  const { mode } = useTokens();
+  const tone = resolveTone(item.color, mode);
   const Glyph = resolveGlyph(item.icon);
   const sub = item.subtitle !== undefined ? item.subtitle : resolveSubtitle(item.action);
   const rowRef = useRef<View>(null);
@@ -241,7 +247,9 @@ const ROTATE_HERO = false;
 const STATIC_HERO = require('@/assets/images/reflection_bg2.webp');
 
 function ReflectionHero({ title, imageUri, alt, staticSource, done, onRead, onToggle }: { title: string; imageUri?: string; alt?: string; staticSource?: number; done: boolean; onRead: () => void; onToggle: () => void }) {
-  const teal = ROW_TONES.teal;
+  const styles = useThemedStyles(makeStyles);
+  const { mode } = useTokens();
+  const teal = getRowTones(mode).teal;
   const fallback = staticSource ?? HERO_FALLBACK;
   return (
     <View style={styles.hero}>
@@ -279,7 +287,8 @@ function ReflectionHero({ title, imageUri, alt, staticSource, done, onRead, onTo
 
 export default function TodayScreen() {
   const router = useRouter();
-  const c = getSemanticColors('light');
+  const styles = useThemedStyles(makeStyles);
+  const { c, colors } = useTokens();
   const dailies = useDailies();
   const heroImage = useReflectionHeroImage();
   const [reflection, setReflection] = useState<Reflection | null>(null);
@@ -547,7 +556,15 @@ export default function TodayScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (tk: Tokens) => {
+  const { c, colors, isDark } = tk;
+  // Dark card chrome — the "cheap" variant of the handoff's card treatment for
+  // the many small ledger rows: lit top hairline + soft drop into the black.
+  // (The big surfaces use the full ThemedCard treatment.)
+  const darkCard = isDark
+    ? { borderColor: 'rgba(255,255,255,0.06)', borderTopColor: 'rgba(255,255,255,0.12)' }
+    : null;
+  return StyleSheet.create({
   root: { flex: 1 },
   safe: { flex: 1 },
   flex: { flex: 1 },
@@ -574,22 +591,23 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
-    backgroundColor: colors.white,
+    backgroundColor: c.surface,
     borderWidth: 1,
-    borderColor: '#E8E4DA',
+    borderColor: c.border,
     borderRadius: 14,
     paddingVertical: 11,
     paddingHorizontal: 13,
     marginBottom: 12,
     ...shadows.sm,
+    ...darkCard,
   },
   rowDragging: { ...shadows.md },
   rowHidden: { opacity: 0 },
   med: { width: 42, height: 42, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
   rowMain: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 12 },
   rowText: { flex: 1 },
-  rowLabel: { fontFamily: fontFamily.semiBold, fontSize: fontSize.lg, lineHeight: 20, color: '#2B2A30' },
-  rowSub: { fontFamily: fontFamily.regular, fontSize: 12, color: '#8A8A9A', marginTop: 2 },
+  rowLabel: { fontFamily: fontFamily.semiBold, fontSize: fontSize.lg, lineHeight: 20, color: c.text },
+  rowSub: { fontFamily: fontFamily.regular, fontSize: 12, color: c.textMuted, marginTop: 2 },
 
   // Done button
   doneBtn: {
@@ -610,19 +628,20 @@ const styles = StyleSheet.create({
   // In-place editor card (long-press a row in edit mode → expands where it sits)
   editCard: {
     position: 'absolute',
-    backgroundColor: colors.white,
+    backgroundColor: isDark ? c.surfaceRaised : c.surface,
     borderWidth: 1,
-    borderColor: '#E8E4DA',
+    borderColor: c.border,
     borderRadius: 14,
     paddingVertical: 12,
     paddingHorizontal: 13,
     overflow: 'hidden',
+    ...darkCard,
   },
   editHeaderRow: { flexDirection: 'row', alignItems: 'center', gap: 8, height: 40 },
-  editInput: { flex: 1, height: 40, fontFamily: fontFamily.semiBold, fontSize: fontSize.lg, color: '#2B2A30', backgroundColor: '#F6F4EF', borderRadius: 10, borderWidth: 1, borderColor: '#E8E4DA', paddingHorizontal: 12, paddingVertical: 0 },
-  editSubInput: { height: 40, marginTop: 8, fontFamily: fontFamily.regular, fontSize: 13.5, color: '#4A4A5E', backgroundColor: '#F6F4EF', borderRadius: 10, borderWidth: 1, borderColor: '#E8E4DA', paddingHorizontal: 12, paddingVertical: 0 },
+  editInput: { flex: 1, height: 40, fontFamily: fontFamily.semiBold, fontSize: fontSize.lg, color: c.text, backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : '#F6F4EF', borderRadius: 10, borderWidth: 1, borderColor: c.border, paddingHorizontal: 12, paddingVertical: 0 },
+  editSubInput: { height: 40, marginTop: 8, fontFamily: fontFamily.regular, fontSize: 13.5, color: c.textSecondary, backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : '#F6F4EF', borderRadius: 10, borderWidth: 1, borderColor: c.border, paddingHorizontal: 12, paddingVertical: 0 },
   editActionBtn: { width: 34, height: 34, borderRadius: 17, alignItems: 'center', justifyContent: 'center' },
-  editCancelBtn: { borderWidth: 1, borderColor: '#E8E4DA', backgroundColor: '#fff' },
+  editCancelBtn: { borderWidth: 1, borderColor: c.border, backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : '#fff' },
   editSaveBtn: { backgroundColor: colors.primary },
   editSaveBtnOff: { opacity: 0.4 },
 
@@ -635,7 +654,7 @@ const styles = StyleSheet.create({
   addPillText: { fontFamily: fontFamily.semiBold, fontSize: fontSize.md, color: colors.primaryDark },
 
   // Reflection hero
-  hero: { borderRadius: 16, borderWidth: 1, borderColor: '#E8E4DA', backgroundColor: colors.white, overflow: 'hidden', marginBottom: 4, ...shadows.sm },
+  hero: { borderRadius: 16, borderWidth: 1, borderColor: c.border, backgroundColor: c.surface, overflow: 'hidden', marginBottom: 4, ...shadows.sm, ...darkCard },
   heroCover: { height: 150, justifyContent: 'flex-end', overflow: 'hidden' },
   heroTitle: {
     fontFamily: fontFamily.serifMedium,
@@ -650,4 +669,5 @@ const styles = StyleSheet.create({
     textShadowRadius: 12,
   },
   heroMeta: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 12, paddingHorizontal: 14 },
-});
+  });
+};

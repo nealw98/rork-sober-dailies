@@ -9,14 +9,19 @@ import { activateKeepAwakeAsync, deactivateKeepAwake } from 'expo-keep-awake';
 import { Bookmark, Download, Check, Share2, Play, Pause, RotateCcw, RotateCw, X } from 'lucide-react-native';
 import { useGlobalAudioPlayer } from '@/hooks/useGlobalAudioPlayer';
 import { useSpeakerDownload, resolveAudioUri } from '@/hooks/useSpeakerDownload';
-import { colors, fontFamily, getSemanticColors, shadows, families } from '@/constants/designTokens';
+import { fontFamily, shadows, families, steelFill, type Tokens } from '@/constants/designTokens';
+import { useTokens, useThemedStyles } from '@/hooks/useTokens';
 
-const c = getSemanticColors('light');
-// Steel Navy, one ramp step lighter than the global steel (speaker pages read too dark at full strength).
-const MT = families.steel[400];           // was steel[500]
-const MT_DARK = families.steel[600];      // was steel[700]
-const MT_SOFT = families.steel[100];
-const SECONDARY = families.steel[200];
+// Speaker-page steel, mode-resolved. Light keeps the "one ramp step lighter"
+// values (steel[400]/[600]/[100]/[200]); dark brightens inks/accents and uses
+// steelFill for the solid play button (white glyph needs a mid-steel on dark).
+const steelSp = (tk: Tokens) => ({
+  fill: tk.isDark ? steelFill.dark : families.steel[400],
+  ink: tk.isDark ? tk.colors.steelDark : families.steel[600],
+  soft: tk.isDark ? tk.colors.steelSoft : families.steel[100],
+  accent: tk.isDark ? tk.colors.steel : families.steel[400],
+  secondary: tk.isDark ? tk.colors.steelLight : families.steel[200],
+});
 
 const SUPABASE_AUDIO_BASE = 'https://uzfqabcjxjqufpipdcla.supabase.co/storage/v1/object/public/speaker-audio';
 const SPEEDS = [1, 1.25, 1.5, 2];
@@ -41,15 +46,20 @@ function fmtTime(seconds: number): string {
 }
 
 function ActionBtn({ Icon, label, active, onPress }: { Icon: any; label: string; active?: boolean; onPress: () => void }) {
+  const styles = useThemedStyles(makeStyles);
+  const tk = useTokens();
+  const sp = steelSp(tk);
   return (
     <Pressable onPress={onPress} style={[styles.actionBtn, active ? styles.actionBtnOn : styles.actionBtnOff]}>
-      <Icon size={14} color={active ? MT_DARK : c.textSecondary} fill={active && Icon === Bookmark ? MT_DARK : 'transparent'} strokeWidth={2} />
-      <Text style={[styles.actionLabel, { color: active ? MT_DARK : c.textSecondary }]}>{label}</Text>
+      <Icon size={14} color={active ? sp.ink : tk.c.textSecondary} fill={active && Icon === Bookmark ? sp.ink : 'transparent'} strokeWidth={2} />
+      <Text style={[styles.actionLabel, { color: active ? sp.ink : tk.c.textSecondary }]}>{label}</Text>
     </Pressable>
   );
 }
 
 function SkipBtn({ dir, n, onPress }: { dir: 'back' | 'fwd'; n: string; onPress: () => void }) {
+  const styles = useThemedStyles(makeStyles);
+  const { c } = useTokens();
   const Icon = dir === 'back' ? RotateCcw : RotateCw;
   return (
     <Pressable onPress={onPress} style={styles.skipBtn} accessibilityLabel={dir === 'back' ? `Back ${n} seconds` : `Forward ${n} seconds`}>
@@ -65,6 +75,10 @@ export function SpeakerPlayer({ speakerId, speakerName, title, audioUrl, youtube
   const remoteUri = audioUrl || `${SUPABASE_AUDIO_BASE}/${youtubeId}.m4a`;
   const download = useSpeakerDownload(speakerId, remoteUri);
   const meta = useMemo(() => ({ name: speakerName, title }), [speakerName, title]);
+
+  const styles = useThemedStyles(makeStyles);
+  const tk = useTokens();
+  const sp = steelSp(tk);
 
   const isThisSpeaker = player.currentSpeakerId === speakerId;
   const isPlaying = isThisSpeaker && player.isPlaying;
@@ -122,6 +136,11 @@ export function SpeakerPlayer({ speakerId, speakerName, title, audioUrl, youtube
 
   const fmtSpeed = (s: number) => `${s.toString().replace(/\.0+$/, '')}× speed`;
 
+  // Scrubber + play-button gradients: light keeps the ramp pair; dark keeps the
+  // scrub fill saturated (brightened steel) and the play button on steelFill.
+  const scrubGrad: [string, string] = tk.isDark ? [sp.accent, sp.secondary] : [families.steel[400], families.steel[200]];
+  const playGrad: [string, string] = tk.isDark ? [steelFill.dark, steelFill.dark] : [families.steel[400], families.steel[600]];
+
   return (
     <View style={styles.container}>
       {/* Tape utilities */}
@@ -130,9 +149,9 @@ export function SpeakerPlayer({ speakerId, speakerName, title, audioUrl, youtube
         {download.downloadStatus === 'not_downloaded' && <ActionBtn Icon={Download} label="Download" onPress={download.startDownload} />}
         {download.downloadStatus === 'downloading' && (
           <Pressable onPress={download.cancelDownload} style={[styles.actionBtn, styles.actionBtnOn]}>
-            <ActivityIndicator size="small" color={MT_DARK} />
-            <Text style={[styles.actionLabel, { color: MT_DARK }]}>{download.downloadProgress}%</Text>
-            <X size={13} color={MT_DARK} strokeWidth={2} />
+            <ActivityIndicator size="small" color={sp.ink} />
+            <Text style={[styles.actionLabel, { color: sp.ink }]}>{download.downloadProgress}%</Text>
+            <X size={13} color={sp.ink} strokeWidth={2} />
           </Pressable>
         )}
         {download.downloadStatus === 'downloaded' && (
@@ -153,7 +172,7 @@ export function SpeakerPlayer({ speakerId, speakerName, title, audioUrl, youtube
       {/* Scrubber */}
       <Pressable onPress={onScrub} style={styles.scrubWrap}>
         <View style={styles.track} onLayout={(e) => { barWidthRef.current = e.nativeEvent.layout.width; }}>
-          <LinearGradient colors={[MT, SECONDARY]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={[styles.fill, { width: `${Math.round(progress * 100)}%` }]} />
+          <LinearGradient colors={scrubGrad} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={[styles.fill, { width: `${Math.round(progress * 100)}%` }]} />
         </View>
         <View style={styles.timeRow}>
           <Text style={styles.timeText}>{fmtTime(currentTime)}</Text>
@@ -166,7 +185,7 @@ export function SpeakerPlayer({ speakerId, speakerName, title, audioUrl, youtube
         <SkipBtn dir="back" n="15" onPress={() => player.seekBy(-15)} />
         <View style={styles.playWrap}>
           <Pressable onPress={togglePlay} accessibilityLabel={isPlaying ? 'Pause' : 'Play'}>
-            <LinearGradient colors={[MT, MT_DARK]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.playBtn}>
+            <LinearGradient colors={playGrad} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.playBtn}>
               {isPlaying ? <Pause size={24} color="#fff" fill="#fff" /> : <Play size={25} color="#fff" fill="#fff" style={{ marginLeft: 3 }} />}
             </LinearGradient>
           </Pressable>
@@ -180,14 +199,21 @@ export function SpeakerPlayer({ speakerId, speakerName, title, audioUrl, youtube
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (tk: Tokens) => {
+  const { c, isDark } = tk;
+  const sp = steelSp(tk);
+  // Cheap dark card chrome — lit top hairline + hairline border (handoff).
+  const darkCard = isDark
+    ? { borderColor: 'rgba(255,255,255,0.06)', borderTopColor: 'rgba(255,255,255,0.12)' }
+    : null;
+  return StyleSheet.create({
   container: { marginTop: 24 },
 
   // action row
   actionRow: { flexDirection: 'row', justifyContent: 'center', gap: 10, paddingBottom: 14, borderBottomWidth: 1, borderBottomColor: c.divider },
   actionBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 11, paddingVertical: 7, borderRadius: 999 },
-  actionBtnOn: { backgroundColor: MT_SOFT, borderWidth: 1, borderColor: MT + '55' },
-  actionBtnOff: { backgroundColor: c.surface, borderWidth: 1, borderColor: c.border },
+  actionBtnOn: { backgroundColor: sp.soft, borderWidth: 1, borderColor: sp.accent + '55' },
+  actionBtnOff: { backgroundColor: c.surface, borderWidth: 1, borderColor: c.border, ...darkCard },
   actionLabel: { fontFamily: fontFamily.semiBold, fontSize: 11.5 },
 
   errorRow: { paddingVertical: 10 },
@@ -203,10 +229,11 @@ const styles = StyleSheet.create({
 
   // transport
   transport: { marginTop: 14, flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between' },
-  skipBtn: { width: 52, height: 52, borderRadius: 26, backgroundColor: c.surface, borderWidth: 1, borderColor: c.border, alignItems: 'center', justifyContent: 'center', ...shadows.sm },
+  skipBtn: { width: 52, height: 52, borderRadius: 26, backgroundColor: c.surface, borderWidth: 1, borderColor: c.border, alignItems: 'center', justifyContent: 'center', ...shadows.sm, ...darkCard },
   skipNum: { fontFamily: fontFamily.bold, fontSize: 8.5, color: c.textMuted, marginTop: 1 },
   playWrap: { alignItems: 'center' },
-  playBtn: { width: 62, height: 62, borderRadius: 31, alignItems: 'center', justifyContent: 'center', ...shadows.lg, shadowColor: MT },
-  speedPill: { marginTop: 8, paddingHorizontal: 12, paddingVertical: 4, borderRadius: 999, backgroundColor: c.surface, borderWidth: 1, borderColor: c.border },
+  playBtn: { width: 62, height: 62, borderRadius: 31, alignItems: 'center', justifyContent: 'center', ...shadows.lg, shadowColor: isDark ? '#000' : families.steel[400] },
+  speedPill: { marginTop: 8, paddingHorizontal: 12, paddingVertical: 4, borderRadius: 999, backgroundColor: c.surface, borderWidth: 1, borderColor: c.border, ...darkCard },
   speedText: { fontFamily: fontFamily.bold, fontSize: 12, color: c.textSecondary, letterSpacing: 0.3 },
-});
+  });
+};

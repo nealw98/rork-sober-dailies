@@ -12,15 +12,17 @@ import { Plus } from 'lucide-react-native';
 import { useGratitudeStore } from '@/hooks/use-gratitude-store';
 import { useDailies } from '@/hooks/use-dailies-store';
 import { ToolHeader, ToolIntro, TOOLS } from '@/components/ToolScreen';
-import { colors, fontFamily, getSemanticColors } from '@/constants/designTokens';
+import { fontFamily, type Tokens } from '@/constants/designTokens';
+import { useTokens, useThemedStyles } from '@/hooks/useTokens';
 import { logEvent } from '@/lib/analytics';
 
-const c = getSemanticColors('light');
 const tool = TOOLS.gratitude;
 
 export default function GratitudeScreen() {
   const router = useRouter();
   const { dailyId } = useLocalSearchParams<{ dailyId?: string }>();
+  const styles = useThemedStyles(makeStyles);
+  const { c, colors, isDark } = useTokens();
   const gratitude = useGratitudeStore();
   const dailies = useDailies();
 
@@ -66,12 +68,13 @@ export default function GratitudeScreen() {
               placeholderTextColor={c.textMuted}
               style={[styles.field, i === 0 && val === '' ? styles.fieldItalic : null]}
               multiline
+              keyboardAppearance={isDark ? 'dark' : 'light'}
             />
           ))}
 
           <Pressable onPress={() => setVals((v) => [...v, ''])} style={styles.addAnother} hitSlop={6}>
-            <Plus size={16} color={tool.dark} strokeWidth={2.4} />
-            <Text style={[styles.addAnotherText, { color: tool.dark }]}>Add another</Text>
+            <Plus size={16} color={colors.accentDark} strokeWidth={2.4} />
+            <Text style={[styles.addAnotherText, { color: colors.accentDark }]}>Add another</Text>
           </Pressable>
         </View>
       </KeyboardAwareScrollView>
@@ -79,14 +82,19 @@ export default function GratitudeScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (tk: Tokens) => {
+  const { c, isDark } = tk;
+  const darkCard = isDark
+    ? { borderColor: 'rgba(255,255,255,0.06)', borderTopColor: 'rgba(255,255,255,0.12)' }
+    : null;
+  return StyleSheet.create({
   screen: { flex: 1, backgroundColor: c.background },
   flex: { flex: 1 },
   scroll: { paddingBottom: 32 },
   body: { paddingHorizontal: 18 },
   heading: { fontFamily: fontFamily.semiBold, fontSize: 17, color: c.text, letterSpacing: -0.2, marginBottom: 16 },
   field: {
-    backgroundColor: colors.white,
+    backgroundColor: c.surface,
     borderWidth: 1,
     borderColor: c.border,
     borderRadius: 12,
@@ -98,8 +106,10 @@ const styles = StyleSheet.create({
     lineHeight: 22,
     color: c.text,
     marginBottom: 12,
+    ...darkCard,
   },
   fieldItalic: { fontFamily: fontFamily.regularItalic },
   addAnother: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 8, marginTop: 4 },
   addAnotherText: { fontFamily: fontFamily.semiBold, fontSize: 15 },
-});
+  });
+};

@@ -16,12 +16,14 @@ import { useSpeakers } from '@/hooks/useSpeakers';
 import { useScreenTimeTracking } from '@/hooks/useScreenTimeTracking';
 import { useGlobalAudioPlayer } from '@/hooks/useGlobalAudioPlayer';
 import { useSpeakerFavorites } from '@/hooks/use-speaker-favorites';
-import { colors, fontFamily, getSemanticColors, shadows, families } from '@/constants/designTokens';
+import { fontFamily, shadows, families, type Tokens } from '@/constants/designTokens';
+import { useTokens, useThemedStyles } from '@/hooks/useTokens';
 
-const c = getSemanticColors('light');
-// Steel Navy, one ramp step lighter than the global steel (speaker pages read too dark at full strength).
+// Steel Navy, one ramp step lighter than the global steel (speaker pages read too
+// dark at full strength). The gradient hero is a "jewel" — it keeps full chroma
+// on dark; only the ink (badge text/eq bars) brightens.
 const MT = families.steel[400];
-const MT_DARK = families.steel[600];
+const spInk = (tk: Tokens) => (tk.isDark ? tk.colors.steelDark : families.steel[600]);
 
 // Steel Navy mic-art gradient (token-derived), one step lighter.
 const HERO_GRAD: readonly string[] = [families.steel[200], families.steel[400], families.steel[600]];
@@ -43,6 +45,10 @@ export default function SpeakerDetailScreen() {
   const player = useGlobalAudioPlayer();
   const { isSaved, toggleSaved } = useSpeakerFavorites();
   useScreenTimeTracking('SpeakerDetail');
+
+  const styles = useThemedStyles(makeStyles);
+  const tk = useTokens();
+  const ink = spInk(tk);
 
   const speaker = useMemo(() => speakers.find((s) => s.id === id), [speakers, id]);
 
@@ -79,7 +85,7 @@ export default function SpeakerDetailScreen() {
         <BackButton onPress={() => router.back()} />
         {isActive && (
           <View style={styles.playingBadge}>
-            <View style={styles.eq}><EqualizerOverlay isPlaying={player.isPlaying} barCount={3} barColor={MT_DARK} /></View>
+            <View style={styles.eq}><EqualizerOverlay isPlaying={player.isPlaying} barCount={3} barColor={ink} /></View>
             <Text style={styles.playingText}>{player.isPlaying ? 'Playing' : 'Paused'}</Text>
           </View>
         )}
@@ -132,17 +138,20 @@ export default function SpeakerDetailScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (tk: Tokens) => {
+  const { c, isDark } = tk;
+  const ink = spInk(tk);
+  return StyleSheet.create({
   screen: { flex: 1, backgroundColor: c.background },
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingTop: 8, paddingBottom: 4 },
   playingBadge: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   eq: { width: 18, height: 16 },
-  playingText: { fontFamily: fontFamily.semiBold, fontSize: 11, color: MT_DARK, textTransform: 'uppercase', letterSpacing: 0.5 },
+  playingText: { fontFamily: fontFamily.semiBold, fontSize: 11, color: ink, textTransform: 'uppercase', letterSpacing: 0.5 },
 
   scroll: { paddingHorizontal: 22, paddingTop: 4 },
 
-  // hero
-  hero: { borderRadius: 20, overflow: 'hidden', paddingHorizontal: 22, paddingTop: 18, paddingBottom: 22, ...shadows.lg, shadowColor: MT },
+  // hero — full-chroma steel gradient in both modes (jewel)
+  hero: { borderRadius: 20, overflow: 'hidden', paddingHorizontal: 22, paddingTop: 18, paddingBottom: 22, ...shadows.lg, shadowColor: isDark ? '#000' : MT },
   heroWatermark: { position: 'absolute', right: -28, bottom: -30 },
   heroMetaRow: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', gap: 10 },
   heroMeta: { fontFamily: fontFamily.bold, fontSize: 10, letterSpacing: 1.4, color: 'rgba(255,255,255,0.9)', textTransform: 'uppercase', flexShrink: 1 },
@@ -163,4 +172,5 @@ const styles = StyleSheet.create({
 
   loading: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   loadingText: { fontFamily: fontFamily.regular, fontSize: 16, color: c.textMuted },
-});
+  });
+};

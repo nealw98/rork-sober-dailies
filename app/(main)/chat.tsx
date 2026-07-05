@@ -12,9 +12,9 @@ import { SPONSORS, type SponsorConfig } from '@/constants/sponsors';
 import { SELECTION_SPONSOR_IDS, BR_SOFT } from '@/constants/sponsorTones';
 import { logEvent } from '@/lib/analytics';
 import { useScreenTimeTracking } from '@/hooks/useScreenTimeTracking';
-import { fontFamily, getSemanticColors, shadows } from '@/constants/designTokens';
+import { fontFamily, shadows, type Tokens } from '@/constants/designTokens';
+import { useTokens, useThemedStyles } from '@/hooks/useTokens';
 
-const c = getSemanticColors('light');
 
 // The sponsors, in the picker's fixed order.
 const SELECTION = SELECTION_SPONSOR_IDS
@@ -23,6 +23,7 @@ const SELECTION = SELECTION_SPONSOR_IDS
 
 export default function SponsorSelectScreen() {
   const router = useRouter();
+  const styles = useThemedStyles(makeStyles);
   useScreenTimeTracking('AI Sponsor Selection');
 
   const select = (s: SponsorConfig) => {
@@ -52,6 +53,7 @@ export default function SponsorSelectScreen() {
 }
 
 function SponsorCard({ s, onPress }: { s: SponsorConfig; onPress: () => void }) {
+  const styles = useThemedStyles(makeStyles);
   return (
     <Pressable style={styles.card} onPress={onPress} accessibilityRole="button" accessibilityLabel={`Chat with ${s.name}`}>
       <Image source={s.avatar} style={styles.avatar} contentFit="cover" />
@@ -63,7 +65,12 @@ function SponsorCard({ s, onPress }: { s: SponsorConfig; onPress: () => void }) 
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (tk: Tokens) => {
+  const { c, isDark } = tk;
+  const darkCard = isDark
+    ? { borderColor: 'rgba(255,255,255,0.06)', borderTopColor: 'rgba(255,255,255,0.12)' }
+    : null;
+  return StyleSheet.create({
   screen: { flex: 1, backgroundColor: c.background },
   header: { paddingHorizontal: 22, paddingTop: 8, paddingBottom: 16 },
   h1: { fontFamily: fontFamily.display, fontSize: 28, lineHeight: 32, letterSpacing: -0.4, color: c.text },
@@ -71,11 +78,12 @@ const styles = StyleSheet.create({
 
   scroll: { paddingHorizontal: 16, paddingTop: 0, paddingBottom: 40 },
 
-  card: { flexDirection: 'row', alignItems: 'center', gap: 14, padding: 14, backgroundColor: c.surface, borderRadius: 24, marginBottom: 14, ...shadows.md },
-  avatar: { width: 72, height: 72, borderRadius: 16, borderWidth: 2, borderColor: '#fff', backgroundColor: BR_SOFT, ...shadows.sm },
+  card: { flexDirection: 'row', alignItems: 'center', gap: 14, padding: 14, backgroundColor: c.surface, borderRadius: 24, marginBottom: 14, borderWidth: isDark ? 1 : 0, borderColor: 'transparent', ...shadows.md, ...darkCard },
+  avatar: { width: 72, height: 72, borderRadius: 16, borderWidth: 2, borderColor: isDark ? 'rgba(255,255,255,0.18)' : '#fff', backgroundColor: BR_SOFT, ...shadows.sm },
   cardText: { flex: 1 },
   name: { fontFamily: fontFamily.bold, fontSize: 19, color: c.text, letterSpacing: -0.3 },
-  descriptor: { fontFamily: fontFamily.regular, fontSize: 14, lineHeight: 19, color: '#4A4A5E', marginTop: 4 },
+  descriptor: { fontFamily: fontFamily.regular, fontSize: 14, lineHeight: 19, color: isDark ? c.textSecondary : '#4A4A5E', marginTop: 4 },
 
   disclaimer: { fontFamily: fontFamily.regular, fontSize: 11.5, lineHeight: 17, color: c.textMuted, textAlign: 'center', paddingHorizontal: 20, marginTop: 8 },
-});
+  });
+};

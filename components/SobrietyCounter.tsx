@@ -6,9 +6,8 @@ import Svg, { Path } from 'react-native-svg';
 import { Pencil } from 'lucide-react-native';
 import { useSobriety } from '@/hooks/useSobrietyStore';
 import { formatStoredDateForDisplay, parseLocalDate } from '@/lib/dateUtils';
-import { colors, fontFamily, fontSize, radii, shadows, getSemanticColors } from '@/constants/designTokens';
-
-const c = getSemanticColors('light');
+import { colors, fontFamily, fontSize, radii, shadows, darkGlow, type Tokens } from '@/constants/designTokens';
+import { useTokens, useThemedStyles } from '@/hooks/useTokens';
 
 // Brand sunrise glyph (matches the tab bar) — used in the no-date coin.
 function SunriseGlyph({ size = 38, color = '#fff' }: { size?: number; color?: string }) {
@@ -23,8 +22,11 @@ function SunriseGlyph({ size = 38, color = '#fff' }: { size?: number; color?: st
   );
 }
 
-// 84px sobriety coin — teal sheen, inset ring, soft glow.
+// 84px sobriety coin — teal sheen, inset ring, soft glow. The gradient is the
+// same full-chroma teal in both modes (it's a "jewel" — Dark Mode Handoff);
+// on dark the drop shadow becomes a luminous teal glow, strongest on OLED.
 function Coin({ children }: { children: React.ReactNode }) {
+  const styles = useThemedStyles(makeStyles);
   return (
     <View style={styles.coinWrap}>
       <LinearGradient colors={[colors.primaryLight, colors.primary, colors.primaryDark]} start={{ x: 0.5, y: 0 }} end={{ x: 0.5, y: 1 }} style={styles.coin}>
@@ -36,6 +38,8 @@ function Coin({ children }: { children: React.ReactNode }) {
 }
 
 const SobrietyCounter = () => {
+  const styles = useThemedStyles(makeStyles);
+  const { c } = useTokens();
   const router = useRouter();
   const { sobrietyDate, shouldShowPrompt, shouldShowAddButton, dismissPrompt, calculateDaysSober, isLoading } = useSobriety();
   const openDate = () => router.push('/(main)/sober-date');
@@ -112,34 +116,42 @@ const SobrietyCounter = () => {
   return null;
 };
 
-const styles = StyleSheet.create({
+const makeStyles = (tk: Tokens) => {
+  const { c, isDark, colors: tc } = tk;
+  return StyleSheet.create({
   row: { flexDirection: 'row', alignItems: 'center', gap: 15, paddingVertical: 4 },
   rowText: { flex: 1, minWidth: 0 },
 
   // coin
-  coinWrap: { width: 84, height: 84, borderRadius: 42, shadowColor: colors.primary, shadowOpacity: 0.4, shadowRadius: 14, shadowOffset: { width: 0, height: 8 }, elevation: 6 },
+  coinWrap: {
+    width: 84, height: 84, borderRadius: 42,
+    ...(isDark
+      ? darkGlow.coin
+      : { shadowColor: colors.primary, shadowOpacity: 0.4, shadowRadius: 14, shadowOffset: { width: 0, height: 8 }, elevation: 6 }),
+  },
   coin: { width: 84, height: 84, borderRadius: 42, alignItems: 'center', justifyContent: 'center' },
   coinRing: { position: 'absolute', top: 6, left: 6, right: 6, bottom: 6, borderRadius: 36, borderWidth: 1.5, borderColor: 'rgba(255,255,255,0.42)' },
   coinNumber: { fontFamily: fontFamily.bold, color: '#fff', letterSpacing: -1, fontVariant: ['tabular-nums'], maxWidth: 66, textAlign: 'center' },
 
   // medallion text
   daysSoberRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  daysSober: { fontFamily: fontFamily.serifMediumItalic, fontSize: fontSize.xl, color: colors.primary },
+  daysSober: { fontFamily: fontFamily.serifMediumItalic, fontSize: fontSize.xl, color: tc.primary },
   breakdown: { fontFamily: fontFamily.regular, fontSize: 13, color: c.textMuted, marginTop: 5, lineHeight: 18 },
 
   // affirmation (no-date)
   affirmationRow: { flexDirection: 'row', alignItems: 'center', gap: 7 },
-  affirmationInline: { fontFamily: fontFamily.serifMediumItalic, fontSize: fontSize['2xl'], color: colors.primary, lineHeight: 26 },
+  affirmationInline: { fontFamily: fontFamily.serifMediumItalic, fontSize: fontSize['2xl'], color: tc.primary, lineHeight: 26 },
 
   // invitation card
   inviteCard: { backgroundColor: c.surface, borderWidth: 1, borderColor: c.border, borderRadius: radii.lg, padding: 18, ...shadows.sm },
-  affirmation: { fontFamily: fontFamily.serifMediumItalic, fontSize: fontSize['2xl'], color: colors.primary, lineHeight: 26 },
+  affirmation: { fontFamily: fontFamily.serifMediumItalic, fontSize: fontSize['2xl'], color: tc.primary, lineHeight: 26 },
   inviteBody: { fontFamily: fontFamily.regular, fontSize: fontSize.md, color: c.textMuted, marginTop: 6, lineHeight: 20 },
   inviteButtons: { flexDirection: 'row', gap: 10, marginTop: 16 },
   addPill: { paddingHorizontal: 18, paddingVertical: 9, borderRadius: radii.full, backgroundColor: colors.primary },
   addPillText: { fontFamily: fontFamily.semiBold, fontSize: fontSize.md, color: '#fff' },
   notNowPill: { paddingHorizontal: 18, paddingVertical: 9, borderRadius: radii.full, borderWidth: 1.5, borderColor: c.border },
   notNowText: { fontFamily: fontFamily.semiBold, fontSize: fontSize.md, color: c.textSecondary },
-});
+  });
+};
 
 export default SobrietyCounter;

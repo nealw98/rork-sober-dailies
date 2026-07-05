@@ -19,17 +19,38 @@ import { getChapterMeta } from '@/constants/bigbook-v2/metadata';
 import { formatPageNumber, isPageMarker } from '@/lib/bigbook-page-utils';
 import { BigBookHighlight, BigBookParagraph, HighlightColor } from '@/types/bigbook-v2';
 import { HighlightEditMenu } from './HighlightEditMenu';
-import { colors, fontFamily, getSemanticColors } from '@/constants/designTokens';
+import { colors as lightColors, semanticColors, fontFamily, type Tokens } from '@/constants/designTokens';
+import { useTokens, useThemedStyles } from '@/hooks/useTokens';
 import { logEvent } from '@/lib/analytics';
 import { useReadingTime } from '@/hooks/useReadingTime';
 
-const c = getSemanticColors('light');
 const PAPER = '#FCFBF8';
-const ACCENT = colors.steel;
-const ACCENT_INK = colors.steelDark;
 const HIGHLIGHT_COLOR = HighlightColor.YELLOW;
 const HL_FILL = '#FCE9A8';
-const HL_INK = '#7A5B12';
+
+// Reading-surface palette injected into the book HTML. Light is the original
+// paper look; dark is the handoff's dark reading surface.
+type ReaderPalette = {
+  paper: string; ink: string; inkSecondary: string; muted: string; divider: string;
+  accentInk: string; hlFill: string; searchHit: string; toolbarBg: string; toolbarBorder: string;
+  colorScheme: 'light' | 'dark';
+};
+const READER_PALETTES: Record<'light' | 'dark', ReaderPalette> = {
+  light: {
+    paper: PAPER, ink: semanticColors.light.text, inkSecondary: semanticColors.light.textSecondary,
+    muted: semanticColors.light.textMuted,
+    divider: semanticColors.light.divider, accentInk: lightColors.steelDark, hlFill: HL_FILL,
+    searchHit: lightColors.primarySoft, toolbarBg: 'rgba(255,255,255,0.99)',
+    toolbarBorder: 'rgba(0,0,0,0.06)', colorScheme: 'light',
+  },
+  dark: {
+    paper: '#101216', ink: '#F4F4F6', inkSecondary: '#C7C8CD', muted: '#C7C8CD',
+    divider: 'rgba(255,255,255,0.10)', accentInk: '#4FB3AC',
+    hlFill: 'rgba(79,179,172,0.38)', searchHit: 'rgba(79,179,172,0.38)',
+    toolbarBg: 'rgba(28,30,36,0.99)', toolbarBorder: 'rgba(255,255,255,0.10)',
+    colorScheme: 'dark',
+  },
+};
 const HINT_SEEN_KEY = 'bb_highlight_hint_seen';
 const SIZE_BUCKETS: { k: string; size: number }[] = [
   { k: 'S', size: 14 },
@@ -118,7 +139,9 @@ function buildHtml(params: {
   scrollToPage?: number | null;
   scrollToParagraphId?: string | null;
   searchTerm?: string | null;
+  pal: ReaderPalette;
 }) {
+  const pal = params.pal;
   const body = params.paragraphs
     .map((paragraph, index) => {
       const prev = index > 0 ? params.paragraphs[index - 1] : null;
@@ -170,31 +193,31 @@ function buildHtml(params: {
 <head>
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 <style>
-  :root { color-scheme: light; }
-  html, body { margin: 0; padding: 0; background: ${PAPER}; color: ${c.text}; -webkit-text-size-adjust: none; }
+  :root { color-scheme: ${pal.colorScheme}; }
+  html, body { margin: 0; padding: 0; background: ${pal.paper}; color: ${pal.ink}; -webkit-text-size-adjust: none; }
   body { font-family: Georgia, "Times New Roman", serif; padding: 16px 26px 36px; user-select: text; -webkit-user-select: text; }
-  .chapter-label { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; font-size: 10.5px; line-height: 15px; letter-spacing: 1.6px; text-transform: uppercase; color: ${ACCENT_INK}; font-weight: 700; margin: 0 0 16px; }
+  .chapter-label { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; font-size: 10.5px; line-height: 15px; letter-spacing: 1.6px; text-transform: uppercase; color: ${pal.accentInk}; font-weight: 700; margin: 0 0 16px; }
   .bb-paragraph { margin: 0 0 18px; letter-spacing: 0; }
   .bb-paragraph.verse { margin-left: 24px; font-style: italic; }
   .bb-paragraph.italic { font-style: italic; }
   .bb-paragraph.numbered, .bb-paragraph.lettered { padding-left: 18px; text-indent: -18px; }
   em { font-style: italic; }
   .page-marker { display: flex; align-items: center; gap: 10px; margin: 6px 0 16px; }
-  .page-marker span { flex: 1; height: 1px; background: ${c.divider}; }
-  .page-marker strong { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; color: ${c.textMuted}; font-size: 10.5px; letter-spacing: 1.5px; }
-  .bb-highlight { background: ${HL_FILL}; border-radius: 3px; padding: 0 1px; }
+  .page-marker span { flex: 1; height: 1px; background: ${pal.divider}; }
+  .page-marker strong { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; color: ${pal.muted}; font-size: 10.5px; letter-spacing: 1.5px; }
+  .bb-highlight { background: ${pal.hlFill}; color: inherit; border-radius: 3px; padding: 0 1px; ${pal.colorScheme === 'dark' ? 'box-shadow: inset 0 -2px 0 rgba(79,179,172,0.85);' : ''} }
   .bb-hl-pulse { animation: bbpulse 1.5s ease-out; border-radius: 3px; }
-  @keyframes bbpulse { 0%, 22% { box-shadow: 0 0 0 3px rgba(214,158,0,0.55); } 100% { box-shadow: 0 0 0 0 rgba(214,158,0,0); } }
-  .search-hit { background: ${colors.primarySoft}; border-radius: 3px; }
+  @keyframes bbpulse { 0%, 22% { box-shadow: 0 0 0 3px ${pal.colorScheme === 'dark' ? 'rgba(79,179,172,0.55)' : 'rgba(214,158,0,0.55)'}; } 100% { box-shadow: 0 0 0 0 ${pal.colorScheme === 'dark' ? 'rgba(79,179,172,0)' : 'rgba(214,158,0,0)'}; } }
+  .search-hit { background: ${pal.searchHit}; color: inherit; border-radius: 3px; }
   .bb-paragraph { cursor: text; }
-  .selection-toolbar { position: fixed; left: 16px; top: 16px; z-index: 9999; display: none; gap: 2px; align-items: stretch; padding: 6px; border-radius: 16px; background: rgba(255,255,255,0.99); box-shadow: 0 12px 30px rgba(0,0,0,0.20); border: 1px solid rgba(0,0,0,0.06); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+  .selection-toolbar { position: fixed; left: 16px; top: 16px; z-index: 9999; display: none; gap: 2px; align-items: stretch; padding: 6px; border-radius: 16px; background: ${pal.toolbarBg}; box-shadow: 0 12px 30px rgba(0,0,0,0.20); border: 1px solid ${pal.toolbarBorder}; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
   .selection-toolbar.visible { display: flex; }
-  .selection-toolbar button { appearance: none; -webkit-appearance: none; border: 0; background: transparent; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; gap: 5px; min-width: 60px; padding: 9px 8px 7px; color: ${c.text}; font-size: 11px; line-height: 12px; font-weight: 600; border-radius: 11px; }
-  .selection-toolbar button:active { background: rgba(0,0,0,0.06); }
+  .selection-toolbar button { appearance: none; -webkit-appearance: none; border: 0; background: transparent; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; gap: 5px; min-width: 60px; padding: 9px 8px 7px; color: ${pal.ink}; font-size: 11px; line-height: 12px; font-weight: 600; border-radius: 11px; }
+  .selection-toolbar button:active { background: ${pal.colorScheme === 'dark' ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)'}; }
   .selection-toolbar .ic { width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; }
   .selection-toolbar .ic svg { width: 21px; height: 21px; display: block; }
   .selection-toolbar .ic, .selection-toolbar .ic * { pointer-events: none; }
-  .selection-toolbar .hl-swatch { width: 20px; height: 20px; border-radius: 50%; background: ${HL_FILL}; border: 1.5px solid #E6C766; box-sizing: border-box; }
+  .selection-toolbar .hl-swatch { width: 20px; height: 20px; border-radius: 50%; background: ${pal.colorScheme === 'dark' ? 'rgba(79,179,172,0.45)' : HL_FILL}; border: 1.5px solid ${pal.colorScheme === 'dark' ? '#4FB3AC' : '#E6C766'}; box-sizing: border-box; }
 </style>
 </head>
 <body>
@@ -445,6 +468,11 @@ function buildHtml(params: {
 
 export function BigBookHtmlReader({ visible, initialChapterId, scrollToPage, scrollToParagraphId, searchTerm, onClose }: BigBookHtmlReaderProps) {
   useReadingTime('Big Book', { format: 'text' });
+  const styles = useThemedStyles(makeStyles);
+  const { c, colors, isDark, mode } = useTokens();
+  const ACCENT = colors.steel;
+  const ACCENT_INK = colors.steelDark;
+  const pal = READER_PALETTES[mode];
   const webViewRef = useRef<WebView>(null);
   const insets = useSafeAreaInsets();
   const { currentChapter, currentChapterId, loadChapter, goToNextChapter, goToPreviousChapter } = useBigBookContent();
@@ -493,7 +521,7 @@ export function BigBookHtmlReader({ visible, initialChapterId, scrollToPage, scr
   const displayTitle = (currentChapter?.title ?? '').replace(/^\d+\.\s*/, '');
   const subtitle = chapterNumber ? `Big Book · Chapter ${chapterNumber}` : 'Big Book';
   const html = useMemo(() => {
-    if (!currentChapter) return '<html><body></body></html>';
+    if (!currentChapter) return `<html><body style="background:${pal.paper}"></body></html>`;
     return buildHtml({
       paragraphs: currentChapter.paragraphs,
       highlights: currentHighlights,
@@ -503,8 +531,9 @@ export function BigBookHtmlReader({ visible, initialChapterId, scrollToPage, scr
       scrollToPage,
       scrollToParagraphId,
       searchTerm,
+      pal,
     });
-  }, [currentChapter, fontSize, lineHeight, useRoman, scrollToPage, scrollToParagraphId, searchTerm, renderVersion]);
+  }, [currentChapter, fontSize, lineHeight, useRoman, scrollToPage, scrollToParagraphId, searchTerm, renderVersion, pal]);
 
   const webSource = useMemo(() => ({ html }), [html]);
 
@@ -754,6 +783,8 @@ function DisplaySheet({ visible, current, onSize, onClose, bottomInset }: {
   onClose: () => void;
   bottomInset: number;
 }) {
+  const styles = useThemedStyles(makeStyles);
+  const { c } = useTokens();
   const selected = SIZE_BUCKETS.reduce((best, bucket) => (
     Math.abs(bucket.size - current) < Math.abs(best.size - current) ? bucket : best
   ), SIZE_BUCKETS[0]).k;
@@ -791,11 +822,15 @@ function DisplaySheet({ visible, current, onSize, onClose, bottomInset }: {
   );
 }
 
-const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: PAPER },
+const makeStyles = (tk: Tokens) => {
+  const { c, colors, isDark } = tk;
+  const ACCENT_INK = colors.steelDark;
+  const PAGE = isDark ? '#101216' : PAPER;
+  return StyleSheet.create({
+  screen: { flex: 1, backgroundColor: isDark ? c.background : PAPER },
   flex: { flex: 1, minWidth: 0 },
   header: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 14, paddingTop: 8, paddingBottom: 10 },
-  backBtn: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(0,0,0,0.04)' },
+  backBtn: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center', backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.04)' },
   title: { fontFamily: fontFamily.displayBold, fontSize: 20, letterSpacing: -0.4, color: c.text },
   subtitle: { fontFamily: fontFamily.regular, fontSize: 12.5, color: c.textMuted, marginTop: 1 },
   actionRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 18, paddingBottom: 8, borderBottomWidth: 1, borderBottomColor: c.divider },
@@ -804,7 +839,7 @@ const styles = StyleSheet.create({
   textSizeBtn: { width: 30, height: 30, borderRadius: 15, borderWidth: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: c.surface },
   textSizeLabel: { fontFamily: fontFamily.bold, fontSize: 12.5, color: c.textSecondary, letterSpacing: -0.2 },
   bmBtn: { width: 30, height: 30, borderRadius: 15, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
-  webView: { flex: 1, backgroundColor: PAPER },
+  webView: { flex: 1, backgroundColor: PAGE },
   hintBar: { flexDirection: 'row', alignItems: 'center', gap: 12, marginHorizontal: 12, marginBottom: 8, backgroundColor: ACCENT_INK, borderRadius: 14, paddingVertical: 12, paddingLeft: 16, paddingRight: 10 },
   hintText: { flex: 1, color: '#fff', fontFamily: fontFamily.medium, fontSize: 13, lineHeight: 18 },
   hintClose: { width: 28, height: 28, borderRadius: 14, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(255,255,255,0.18)' },
@@ -812,7 +847,7 @@ const styles = StyleSheet.create({
   navBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingVertical: 6 },
   navText: { fontFamily: fontFamily.semiBold, fontSize: 13.5, color: ACCENT_INK },
   footerCenter: { fontFamily: fontFamily.semiBold, fontSize: 12, color: c.textMuted },
-  sheetBackdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(26,26,46,0.32)' },
+  sheetBackdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: isDark ? c.overlay : 'rgba(26,26,46,0.32)' },
   displaySheet: { position: 'absolute', left: 0, right: 0, bottom: 0, backgroundColor: c.surface, borderTopLeftRadius: 28, borderTopRightRadius: 28, paddingHorizontal: 20, paddingTop: 14, shadowColor: '#000', shadowOpacity: 0.18, shadowRadius: 40, shadowOffset: { width: 0, height: -10 }, elevation: 12 },
   grabber: { width: 40, height: 4, borderRadius: 999, backgroundColor: c.border, alignSelf: 'center', marginBottom: 16 },
   sheetLabel: { fontFamily: fontFamily.bold, fontSize: 11, letterSpacing: 1.4, color: c.textMuted },
@@ -825,3 +860,4 @@ const styles = StyleSheet.create({
   sheetCancel: { marginTop: 22, paddingVertical: 12, borderRadius: 999, borderWidth: 1, borderColor: c.border, alignItems: 'center' },
   sheetCancelText: { fontFamily: fontFamily.semiBold, fontSize: 14, color: c.textSecondary },
 });
+};

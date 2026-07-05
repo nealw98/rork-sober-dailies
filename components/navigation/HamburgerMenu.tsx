@@ -47,7 +47,7 @@ const MENU_ITEMS: MenuItem[] = [
   { label: 'Reflections', icon: Sparkles, route: '/(main)/daily-reflections' },
   { label: 'AI Sponsor', icon: MessageCircle, route: '/(main)/chat' },
   { label: 'Speakers', icon: Mic, route: '/(main)/speakers' },
-  { label: 'Literature', icon: BookOpen, route: '/(main)/literature' },
+  { label: 'Literature', icon: BookOpen, route: '/(main)/(tabs)/literature' },
   { label: 'Prayers', icon: Heart, route: '/(main)/prayers' },
   { label: 'Notebook', icon: NotebookPen, route: null, disabled: true },
   { label: 'Settings', icon: Settings, route: '/settings' },

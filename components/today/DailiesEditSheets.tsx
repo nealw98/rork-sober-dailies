@@ -18,9 +18,8 @@ import {
 // (no toolbar — these sheets have their own Add/Save button that dismisses).
 import { KeyboardProvider, KeyboardAvoidingView } from 'react-native-keyboard-controller';
 import { X, Plus, Check } from 'lucide-react-native';
-import { colors, fontFamily, fontSize, shadows, getSemanticColors } from '@/constants/designTokens';
-
-const SHEET_BG = getSemanticColors('light').background;
+import { fontFamily, fontSize, shadows, type Tokens } from '@/constants/designTokens';
+import { useTokens, useThemedStyles } from '@/hooks/useTokens';
 import { resolveGlyph, resolveTone, resolveSubtitle } from '@/components/dailyTokens';
 import { type DailyItem, type WhenBucket } from '@/hooks/use-dailies-store';
 
@@ -51,7 +50,9 @@ export const QUICK_CATALOG: Template[] = [
 ];
 
 export function Medallion({ icon, tone, soft }: { icon: string; tone: string; soft?: boolean }) {
-  const t = resolveTone(tone);
+  const styles = useThemedStyles(makeStyles);
+  const { mode } = useTokens();
+  const t = resolveTone(tone, mode);
   const Glyph = resolveGlyph(icon);
   return (
     <View style={[styles.medallion, soft ? { backgroundColor: t.ink + '22' } : { backgroundColor: t.ink, ...shadows.sm, shadowColor: t.ink }]}>
@@ -61,10 +62,13 @@ export function Medallion({ icon, tone, soft }: { icon: string; tone: string; so
 }
 
 function SheetBackdrop({ onPress }: { onPress: () => void }) {
+  const styles = useThemedStyles(makeStyles);
   return <Pressable style={styles.backdrop} onPress={onPress} />;
 }
 
 function WhenPicker({ value, onChange, accent }: { value: WhenBucket; onChange: (w: WhenBucket) => void; accent: string }) {
+  const styles = useThemedStyles(makeStyles);
+  const { c } = useTokens();
   return (
     <View style={styles.segment}>
       {BUCKETS.map((w) => {
@@ -73,9 +77,9 @@ function WhenPicker({ value, onChange, accent }: { value: WhenBucket; onChange: 
           <Pressable
             key={w}
             onPress={() => onChange(w)}
-            style={[styles.segmentBtn, on ? { backgroundColor: accent } : { borderWidth: 1.5, borderColor: '#EDEAE2' }]}
+            style={[styles.segmentBtn, on ? { backgroundColor: accent } : { borderWidth: 1.5, borderColor: c.border }]}
           >
-            <Text style={[styles.segmentText, { color: on ? '#fff' : '#2B2A30' }]}>{w}</Text>
+            <Text style={[styles.segmentText, { color: on ? '#fff' : c.text }]}>{w}</Text>
           </Pressable>
         );
       })}
@@ -84,6 +88,8 @@ function WhenPicker({ value, onChange, accent }: { value: WhenBucket; onChange: 
 }
 
 export function AddSheet({ section, added, onClose, onAdd, onCreate }: { section: WhenBucket; added: Set<string>; onClose: () => void; onAdd: (t: Template) => void; onCreate: () => void }) {
+  const styles = useThemedStyles(makeStyles);
+  const { c, colors } = useTokens();
   return (
     <Modal transparent visible animationType="slide" onRequestClose={onClose}>
       <View style={styles.sheetWrap}>
@@ -96,7 +102,7 @@ export function AddSheet({ section, added, onClose, onAdd, onCreate }: { section
               <Text style={styles.sheetSub}>Pick from your tools, a quick action, or make your own.</Text>
             </View>
             <Pressable style={styles.closeBtn} onPress={onClose}>
-              <X size={16} color="#4A4A5E" strokeWidth={2.2} />
+              <X size={16} color={c.textSecondary} strokeWidth={2.2} />
             </Pressable>
           </View>
 
@@ -163,6 +169,8 @@ export function AddSheet({ section, added, onClose, onAdd, onCreate }: { section
 }
 
 export function CreateSheet({ section, onClose, onCreate }: { section: WhenBucket; onClose: () => void; onCreate: (label: string, when: WhenBucket) => void }) {
+  const styles = useThemedStyles(makeStyles);
+  const { c, colors, isDark } = useTokens();
   const [name, setName] = useState('');
   const [when, setWhen] = useState<WhenBucket>(section);
   const canSave = name.trim().length > 0;
@@ -176,7 +184,7 @@ export function CreateSheet({ section, onClose, onCreate }: { section: WhenBucke
           <View style={styles.sheetHeadRow}>
             <Pressable onPress={onClose}><Text style={styles.cancel}>Cancel</Text></Pressable>
             <Pressable disabled={!canSave} onPress={() => onCreate(name.trim(), when)}>
-              <Text style={[styles.save, { color: canSave ? colors.primary : '#8A8A9A' }]}>Add</Text>
+              <Text style={[styles.save, { color: canSave ? colors.primary : c.textMuted }]}>Add</Text>
             </Pressable>
           </View>
           <Text style={[styles.sheetTitle, { paddingHorizontal: 22 }]}>Custom action</Text>
@@ -187,9 +195,10 @@ export function CreateSheet({ section, onClose, onCreate }: { section: WhenBucke
               value={name}
               onChangeText={setName}
               placeholder="e.g. Call my sponsor"
-              placeholderTextColor="#8A8A9A"
+              placeholderTextColor={c.textMuted}
               style={styles.input}
               autoFocus
+              keyboardAppearance={isDark ? 'dark' : 'light'}
             />
             <Text style={[styles.groupLabelTight, { marginTop: 18 }]}>WHEN</Text>
             <WhenPicker value={when} onChange={setWhen} accent={colors.primary} />
@@ -201,40 +210,48 @@ export function CreateSheet({ section, onClose, onCreate }: { section: WhenBucke
   );
 }
 
-const styles = StyleSheet.create({
-  medallion: { width: 40, height: 40, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
+const makeStyles = (tk: Tokens) => {
+  const { c, colors, isDark } = tk;
+  // Cheap dark card treatment for the small catalog rows (lit top hairline).
+  const darkCard = isDark
+    ? { borderWidth: 1, borderColor: 'rgba(255,255,255,0.06)', borderTopColor: 'rgba(255,255,255,0.12)' }
+    : null;
+  return StyleSheet.create({
+    medallion: { width: 40, height: 40, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
 
-  sheetWrap: { flex: 1, justifyContent: 'flex-end' },
-  backdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(20,20,30,0.35)' },
-  sheet: { backgroundColor: SHEET_BG, borderTopLeftRadius: 28, borderTopRightRadius: 28, paddingTop: 10, maxHeight: '88%' },
-  grabber: { width: 38, height: 4, borderRadius: 2, backgroundColor: '#EDEAE2', alignSelf: 'center', marginBottom: 10 },
-  sheetHead: { flexDirection: 'row', alignItems: 'flex-start', gap: 12, paddingHorizontal: 22, paddingBottom: 8 },
-  sheetHeadRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 22, paddingBottom: 6 },
-  sheetTitle: { fontFamily: fontFamily.display, fontSize: 22, color: '#2B2A30', letterSpacing: -0.4 },
-  sheetSub: { fontFamily: fontFamily.regular, fontSize: fontSize.sm, color: '#8A8A9A', marginTop: 3 },
-  closeBtn: { width: 32, height: 32, borderRadius: 16, backgroundColor: '#EFEBE1', alignItems: 'center', justifyContent: 'center' },
-  cancel: { fontFamily: fontFamily.regular, fontSize: fontSize.lg, color: '#4A4A5E' },
-  save: { fontFamily: fontFamily.semiBold, fontSize: fontSize.lg },
+    sheetWrap: { flex: 1, justifyContent: 'flex-end' },
+    backdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: isDark ? c.overlay : 'rgba(20,20,30,0.35)' },
+    sheet: { backgroundColor: isDark ? c.surface : c.background, borderTopLeftRadius: 28, borderTopRightRadius: 28, paddingTop: 10, maxHeight: '88%', ...(isDark ? { borderWidth: 1, borderColor: 'rgba(255,255,255,0.06)', borderTopColor: 'rgba(255,255,255,0.12)', borderBottomWidth: 0 } : null) },
+    grabber: { width: 38, height: 4, borderRadius: 2, backgroundColor: isDark ? 'rgba(255,255,255,0.18)' : '#EDEAE2', alignSelf: 'center', marginBottom: 10 },
+    sheetHead: { flexDirection: 'row', alignItems: 'flex-start', gap: 12, paddingHorizontal: 22, paddingBottom: 8 },
+    sheetHeadRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 22, paddingBottom: 6 },
+    sheetTitle: { fontFamily: fontFamily.display, fontSize: 22, color: c.text, letterSpacing: -0.4 },
+    sheetSub: { fontFamily: fontFamily.regular, fontSize: fontSize.sm, color: c.textMuted, marginTop: 3 },
+    closeBtn: { width: 32, height: 32, borderRadius: 16, backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : '#EFEBE1', alignItems: 'center', justifyContent: 'center' },
+    cancel: { fontFamily: fontFamily.regular, fontSize: fontSize.lg, color: c.textSecondary },
+    save: { fontFamily: fontFamily.semiBold, fontSize: fontSize.lg },
 
-  groupLabel: { fontFamily: fontFamily.bold, fontSize: fontSize.xs, letterSpacing: 1.4, color: '#8A8A9A', marginTop: 18, marginBottom: 8, paddingHorizontal: 22 },
-  groupLabelTight: { fontFamily: fontFamily.bold, fontSize: fontSize.xs, letterSpacing: 1.4, color: '#8A8A9A', marginBottom: 8 },
+    groupLabel: { fontFamily: fontFamily.bold, fontSize: fontSize.xs, letterSpacing: 1.4, color: c.textMuted, marginTop: 18, marginBottom: 8, paddingHorizontal: 22 },
+    groupLabelTight: { fontFamily: fontFamily.bold, fontSize: fontSize.xs, letterSpacing: 1.4, color: c.textMuted, marginBottom: 8 },
 
-  addRow: {
-    flexDirection: 'row', alignItems: 'center', gap: 12, marginHorizontal: 22, marginBottom: 10,
-    backgroundColor: colors.white, borderRadius: 16, paddingVertical: 12, paddingHorizontal: 14, ...shadows.sm,
-  },
-  addRowText: { flex: 1 },
-  addRowName: { fontFamily: fontFamily.semiBold, fontSize: fontSize.lg, color: '#2B2A30' },
-  editRowSub: { fontFamily: fontFamily.regular, fontSize: 12, color: '#8A8A9A', marginTop: 2 },
-  addPlus: { width: 22, height: 22, borderRadius: 11, borderWidth: 1.5, borderColor: colors.primary, alignItems: 'center', justifyContent: 'center' },
-  addedCheck: { width: 22, height: 22, borderRadius: 11, backgroundColor: colors.primary, alignItems: 'center', justifyContent: 'center' },
-  createRow: {
-    flexDirection: 'row', alignItems: 'center', gap: 12, marginHorizontal: 22,
-    backgroundColor: colors.primary + '12', borderRadius: 14, borderWidth: 1.5, borderColor: colors.primary + '55', borderStyle: 'dashed', padding: 14,
-  },
-  createIcon: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#fff', borderWidth: 1.5, borderColor: colors.primary + '66', borderStyle: 'dashed', alignItems: 'center', justifyContent: 'center' },
-  input: { fontFamily: fontFamily.regular, fontSize: fontSize.lg, color: '#2B2A30', backgroundColor: colors.white, borderRadius: 12, borderWidth: 1, borderColor: '#EDEAE2', paddingHorizontal: 14, paddingVertical: 12 },
-  segment: { flexDirection: 'row', gap: 8 },
-  segmentBtn: { flex: 1, paddingVertical: 10, borderRadius: 12, alignItems: 'center' },
-  segmentText: { fontFamily: fontFamily.semiBold, fontSize: fontSize.md },
-});
+    addRow: {
+      flexDirection: 'row', alignItems: 'center', gap: 12, marginHorizontal: 22, marginBottom: 10,
+      backgroundColor: isDark ? c.surfaceRaised : colors.white, borderRadius: 16, paddingVertical: 12, paddingHorizontal: 14, ...shadows.sm,
+      ...darkCard,
+    },
+    addRowText: { flex: 1 },
+    addRowName: { fontFamily: fontFamily.semiBold, fontSize: fontSize.lg, color: c.text },
+    editRowSub: { fontFamily: fontFamily.regular, fontSize: 12, color: c.textMuted, marginTop: 2 },
+    addPlus: { width: 22, height: 22, borderRadius: 11, borderWidth: 1.5, borderColor: colors.primary, alignItems: 'center', justifyContent: 'center' },
+    addedCheck: { width: 22, height: 22, borderRadius: 11, backgroundColor: colors.primary, alignItems: 'center', justifyContent: 'center' },
+    createRow: {
+      flexDirection: 'row', alignItems: 'center', gap: 12, marginHorizontal: 22,
+      backgroundColor: isDark ? colors.primarySoft : colors.primary + '12', borderRadius: 14, borderWidth: 1.5, borderColor: colors.primary + '55', borderStyle: 'dashed', padding: 14,
+    },
+    createIcon: { width: 40, height: 40, borderRadius: 20, backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : '#fff', borderWidth: 1.5, borderColor: colors.primary + '66', borderStyle: 'dashed', alignItems: 'center', justifyContent: 'center' },
+    input: { fontFamily: fontFamily.regular, fontSize: fontSize.lg, color: c.text, backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : colors.white, borderRadius: 12, borderWidth: 1, borderColor: c.border, paddingHorizontal: 14, paddingVertical: 12 },
+    segment: { flexDirection: 'row', gap: 8 },
+    segmentBtn: { flex: 1, paddingVertical: 10, borderRadius: 12, alignItems: 'center' },
+    segmentText: { fontFamily: fontFamily.semiBold, fontSize: fontSize.md },
+  });
+};

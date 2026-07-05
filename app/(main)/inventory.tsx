@@ -13,13 +13,12 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Haptics from 'expo-haptics';
 import { useDailies } from '@/hooks/use-dailies-store';
 import { ToolHeader, ToolIntro, TOOLS } from '@/components/ToolScreen';
-import { colors, fontFamily, getSemanticColors } from '@/constants/designTokens';
+import { fontFamily, type Tokens } from '@/constants/designTokens';
+import { useTokens, useThemedStyles } from '@/hooks/useTokens';
 import { SPOT_PAIRS } from '@/constants/spotCheckPairs';
 import { logEvent } from '@/lib/analytics';
 
-const c = getSemanticColors('light');
 const tool = TOOLS.spotcheck;
-const ON = { ink: colors.primary, soft: colors.primarySoft, dark: colors.primaryDark };
 
 const INVENTORY_STORAGE_KEY = 'spot_check_inventories';
 
@@ -27,6 +26,8 @@ export default function InventoryScreen() {
   const router = useRouter();
   const { dailyId } = useLocalSearchParams<{ dailyId?: string }>();
   const dailies = useDailies();
+  const styles = useThemedStyles(makeStyles);
+  const { c, colors, isDark } = useTokens();
 
   const [situation, setSituation] = useState('');
   const [sel, setSel] = useState<Record<string, boolean>>({});
@@ -81,6 +82,7 @@ export default function InventoryScreen() {
             placeholderTextColor={c.textMuted}
             style={styles.situation}
             multiline
+            keyboardAppearance={isDark ? 'dark' : 'light'}
           />
 
           {/* Off the beam */}
@@ -96,7 +98,7 @@ export default function InventoryScreen() {
                 <Pressable
                   key={p.id}
                   onPress={() => toggle(p.id)}
-                  style={[styles.chip, on ? { backgroundColor: tool.accent, borderColor: tool.accent } : styles.chipOff]}
+                  style={[styles.chip, on ? { backgroundColor: colors.accent, borderColor: colors.accent } : styles.chipOff]}
                 >
                   <Text style={[styles.chipText, { color: on ? '#fff' : c.textSecondary }]}>{p.off}</Text>
                 </Pressable>
@@ -130,7 +132,13 @@ export default function InventoryScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (tk: Tokens) => {
+  const { c, colors, isDark } = tk;
+  const ON = { ink: colors.primary, soft: colors.primarySoft, dark: colors.primaryDark };
+  const darkCard = isDark
+    ? { borderColor: 'rgba(255,255,255,0.06)', borderTopColor: 'rgba(255,255,255,0.12)' }
+    : null;
+  return StyleSheet.create({
   screen: { flex: 1, backgroundColor: c.background },
   flex: { flex: 1 },
   scroll: { paddingBottom: 40 },
@@ -141,7 +149,7 @@ const styles = StyleSheet.create({
 
   situation: {
     marginTop: 7,
-    backgroundColor: colors.white,
+    backgroundColor: c.surface,
     borderWidth: 1,
     borderColor: c.border,
     borderRadius: 12,
@@ -152,13 +160,14 @@ const styles = StyleSheet.create({
     fontSize: 16.5,
     lineHeight: 23,
     color: c.text,
+    ...darkCard,
   },
 
   offHead: { marginTop: 20, marginBottom: 12 },
 
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   chip: { paddingHorizontal: 14, paddingVertical: 9, borderRadius: 999, borderWidth: 1.5 },
-  chipOff: { backgroundColor: colors.white, borderColor: c.border },
+  chipOff: { backgroundColor: c.surface, borderColor: c.border, ...(isDark ? { borderColor: 'rgba(255,255,255,0.12)' } : null) },
   chipShowAll: { backgroundColor: 'transparent', borderColor: c.textMuted + '66', borderStyle: 'dashed' },
   chipText: { fontFamily: fontFamily.semiBold, fontSize: 14 },
 
@@ -173,10 +182,11 @@ const styles = StyleSheet.create({
     borderColor: ON.ink + '33',
   },
   striveHeadRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 10 },
-  watchLabel: { fontFamily: fontFamily.bold, fontSize: 10.5, letterSpacing: 1.1, color: tool.dark, flex: 1 },
+  watchLabel: { fontFamily: fontFamily.bold, fontSize: 10.5, letterSpacing: 1.1, color: colors.accentDark, flex: 1 },
   striveLabel: { fontFamily: fontFamily.bold, fontSize: 10.5, letterSpacing: 1.1, color: ON.dark, flex: 1, textAlign: 'right' },
   striveList: { gap: 11 },
   striveRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 },
-  striveOff: { fontFamily: fontFamily.semiBold, fontSize: 15, color: tool.dark, flex: 1 },
+  striveOff: { fontFamily: fontFamily.semiBold, fontSize: 15, color: colors.accentDark, flex: 1 },
   striveOn: { fontFamily: fontFamily.semiBoldItalic, fontSize: 15, color: ON.dark, flex: 1, textAlign: 'right' },
-});
+  });
+};

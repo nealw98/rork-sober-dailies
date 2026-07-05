@@ -26,10 +26,9 @@ import { SPOT_PAIRS } from '@/constants/spotCheckPairs';
 import { NIGHTLY_QUESTIONS } from '@/constants/nightlyQuestions';
 import { parseLocalDate } from '@/lib/dateUtils';
 import { useScreenTimeTracking } from '@/hooks/useScreenTimeTracking';
-import { colors, fontFamily, getSemanticColors, shadows } from '@/constants/designTokens';
+import { fontFamily, getColors, shadows, type ColorMode, type Tokens } from '@/constants/designTokens';
+import { useTokens, useThemedStyles } from '@/hooks/useTokens';
 
-const c = getSemanticColors('light');
-const TEAL = { ink: colors.primary, soft: colors.primarySoft, dark: colors.primaryDark };
 const SIDE = 14;
 const DUR = 340;
 
@@ -38,12 +37,17 @@ type Mode = 'list' | 'opening' | 'read' | 'closing';
 
 type GlyphIcon = React.ComponentType<{ size?: number; color?: string; strokeWidth?: number }>;
 // Collapsed to the brand palette (June 2026), token-driven: gratitude → teal,
-// nightly → periwinkle, spot check / journal → cyan.
-const J_TOOL: Record<NotebookType, { Icon: GlyphIcon; ink: string; soft: string; dark: string }> = {
-  gratitude: { Icon: Heart, ink: colors.accent, soft: colors.accentSoft, dark: colors.accentDark },             // terracotta
-  nightly: { Icon: Moon, ink: colors.tertiary, soft: colors.tertiarySoft, dark: colors.tertiaryDark },          // periwinkle
-  spotcheck: { Icon: CircleCheck, ink: colors.accent, soft: colors.accentSoft, dark: colors.accentDark },       // terracotta
-  journal: { Icon: NotebookPen, ink: colors.primary, soft: colors.primarySoft, dark: colors.primaryDark },      // teal
+// nightly → periwinkle, spot check / journal → cyan. Family tones route through
+// the mode-aware color set so they brighten on dark.
+const jToolFor = (cs: ReturnType<typeof getColors>): Record<NotebookType, { Icon: GlyphIcon; ink: string; soft: string; dark: string }> => ({
+  gratitude: { Icon: Heart, ink: cs.accent, soft: cs.accentSoft, dark: cs.accentDark },             // terracotta
+  nightly: { Icon: Moon, ink: cs.tertiary, soft: cs.tertiarySoft, dark: cs.tertiaryDark },          // periwinkle
+  spotcheck: { Icon: CircleCheck, ink: cs.accent, soft: cs.accentSoft, dark: cs.accentDark },       // terracotta
+  journal: { Icon: NotebookPen, ink: cs.primary, soft: cs.primarySoft, dark: cs.primaryDark },      // teal
+});
+const J_TOOL_BY_MODE: Record<ColorMode, ReturnType<typeof jToolFor>> = {
+  light: jToolFor(getColors('light')),
+  dark: jToolFor(getColors('dark')),
 };
 const TYPE_LABEL: Record<NotebookType, string> = {
   gratitude: 'Gratitude', nightly: 'Nightly Review', spotcheck: 'Spot Check', journal: 'Journal',
@@ -126,6 +130,8 @@ type MorphTarget = { kind: 'entry'; entry: NotebookEntry } | { kind: 'day'; day:
 export default function JourneyScreen() {
   useScreenTimeTracking('Journey');
   const router = useRouter();
+  const styles = useThemedStyles(makeStyles);
+  const { c, colors } = useTokens();
   const { entries, updateSpotRecord } = useNotebook();
   const dailies = useDailies();
   const { sobrietyDate } = useSobriety();
@@ -276,7 +282,9 @@ export default function JourneyScreen() {
 }
 
 function RowContent({ entry }: { entry: NotebookEntry }) {
-  const t = J_TOOL[entry.type];
+  const styles = useThemedStyles(makeStyles);
+  const { mode } = useTokens();
+  const t = J_TOOL_BY_MODE[mode][entry.type];
   return (
     <>
       <View style={[styles.med, { backgroundColor: t.soft }]}><t.Icon size={20} color={t.ink} strokeWidth={2} /></View>
@@ -292,6 +300,8 @@ function RowContent({ entry }: { entry: NotebookEntry }) {
 }
 
 function SummaryContent({ day }: { day: DayBlockData }) {
+  const styles = useThemedStyles(makeStyles);
+  const { c, colors } = useTokens();
   return (
     <>
       <View style={[styles.med, { backgroundColor: colors.primarySoft }]}><SunriseGlyph size={20} color={colors.primary} /></View>
@@ -304,6 +314,8 @@ function SummaryContent({ day }: { day: DayBlockData }) {
 }
 
 function DayBlock({ day, onOpenDay, onOpenEntry }: { day: DayBlockData; onOpenDay: (rect: Rect | null) => void; onOpenEntry: (entry: NotebookEntry, rect: Rect | null) => void }) {
+  const styles = useThemedStyles(makeStyles);
+  const { colors } = useTokens();
   const ref = useRef<View>(null);
   const press = () => {
     const node = ref.current;
@@ -342,6 +354,8 @@ function DayBlock({ day, onOpenDay, onOpenEntry }: { day: DayBlockData; onOpenDa
 }
 
 function EntryRow({ entry, onOpen }: { entry: NotebookEntry; onOpen: (entry: NotebookEntry, rect: Rect | null) => void }) {
+  const styles = useThemedStyles(makeStyles);
+  const { c } = useTokens();
   const ref = useRef<View>(null);
   const press = () => {
     const node = ref.current;
@@ -357,6 +371,7 @@ function EntryRow({ entry, onOpen }: { entry: NotebookEntry; onOpen: (entry: Not
 }
 
 function JourneyEmpty() {
+  const styles = useThemedStyles(makeStyles);
   return (
     <View style={styles.empty}>
       <View style={styles.emptyMedallion}><PenLine size={28} color="#fff" strokeWidth={2} /></View>
@@ -373,6 +388,8 @@ function DaySheet({ day, program, completion, onClose, onSave, scrollEnabled = t
   day: DayBlockData; program: DailyItem[]; completion?: { done: string[]; reflection: boolean };
   onClose: () => void; onSave: (rec: { done: string[]; reflection: boolean }) => void; scrollEnabled?: boolean;
 }) {
+  const styles = useThemedStyles(makeStyles);
+  const { c, colors } = useTokens();
   const [editing, setEditing] = useState(false);
   const [draftDone, setDraftDone] = useState<Set<string>>(new Set());
   const [draftReflection, setDraftReflection] = useState(false);
@@ -446,7 +463,9 @@ function DailyCheckRow({ item, first, dim, editable, onToggle }: {
   item: { label: string; icon: string; color: string; done: boolean };
   first: boolean; dim?: boolean; editable?: boolean; onToggle?: () => void;
 }) {
-  const tone = resolveTone(item.color);
+  const styles = useThemedStyles(makeStyles);
+  const { c, mode } = useTokens();
+  const tone = resolveTone(item.color, mode);
   const Glyph = resolveGlyph(item.icon);
   const Row: any = editable ? Pressable : View;
   return (
@@ -468,7 +487,9 @@ function EntrySheet({ entry, onClose, scrollEnabled = true, updateSpotRecord }: 
   entry: NotebookEntry; onClose: () => void; scrollEnabled?: boolean;
   updateSpotRecord: (id: string, next: { situation: string; selected: string[] }) => void;
 }) {
-  const t = J_TOOL[entry.type];
+  const styles = useThemedStyles(makeStyles);
+  const { c, mode } = useTokens();
+  const t = J_TOOL_BY_MODE[mode][entry.type];
   const gratitudeStore = useGratitudeStore();
   const eveningStore = useEveningReviewStore();
   const journal = useJournal();
@@ -588,6 +609,8 @@ function EntrySheet({ entry, onClose, scrollEnabled = true, updateSpotRecord }: 
 
 // ── Editable bodies ────────────────────────────────────────────────────
 function GratitudeEdit({ items, setItems, tool }: { items: string[]; setItems: (v: string[]) => void; tool: Tool }) {
+  const styles = useThemedStyles(makeStyles);
+  const { c } = useTokens();
   const setAt = (i: number, val: string) => setItems(items.map((it, idx) => (idx === i ? val : it)));
   const removeAt = (i: number) => setItems(items.filter((_, idx) => idx !== i));
   const add = () => setItems([...items, '']);
@@ -611,6 +634,8 @@ function GratitudeEdit({ items, setItems, tool }: { items: string[]; setItems: (
 }
 
 function NightlyEdit({ answers, setAnswers, tool }: { answers: Record<string, string>; setAnswers: (v: Record<string, string>) => void; tool: Tool }) {
+  const styles = useThemedStyles(makeStyles);
+  const { c } = useTokens();
   return (
     <View>
       {NIGHTLY_QUESTIONS.map((q, i) => (
@@ -636,6 +661,8 @@ function SpotEdit({ situation, setSituation, selected, setSelected, showAll, set
   selected: Set<string>; setSelected: (v: Set<string>) => void;
   showAll: boolean; setShowAll: (v: boolean) => void;
 }) {
+  const styles = useThemedStyles(makeStyles);
+  const { c } = useTokens();
   const toggle = (id: string) => {
     const n = new Set(selected);
     if (n.has(id)) n.delete(id); else n.add(id);
@@ -667,6 +694,7 @@ function SpotEdit({ situation, setSituation, selected, setSelected, showAll, set
 type Tool = { ink: string; soft: string; dark: string };
 
 function GratitudeBody({ items, tool }: { items: string[]; tool: Tool }) {
+  const styles = useThemedStyles(makeStyles);
   return (
     <View>
       {items.map((it, i) => (
@@ -683,6 +711,7 @@ function GratitudeBody({ items, tool }: { items: string[]; tool: Tool }) {
 }
 
 function NightlyBody({ pairs, tool }: { pairs: { q: string; a: string }[]; tool: Tool }) {
+  const styles = useThemedStyles(makeStyles);
   return (
     <View>
       {pairs.map((p, i) => (
@@ -699,6 +728,7 @@ function NightlyBody({ pairs, tool }: { pairs: { q: string; a: string }[]; tool:
 }
 
 function SpotSheetBody({ spot }: { spot: { situation: string; selected: string[] } }) {
+  const styles = useThemedStyles(makeStyles);
   const chosen = SPOT_PAIRS.filter((p) => spot.selected.includes(p.id));
   return (
     <View>
@@ -734,110 +764,120 @@ function SpotSheetBody({ spot }: { spot: { situation: string; selected: string[]
   );
 }
 
-const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: c.background },
-  screen: { flex: 1, backgroundColor: c.background },
-  flex: { flex: 1, minWidth: 0 },
-  flexFill: { flex: 1 },
-  header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 22, paddingTop: 8, paddingBottom: 8 },
-  trendsBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 8, paddingHorizontal: 14, borderRadius: 999, borderWidth: 1, borderColor: c.border, backgroundColor: c.surface, ...shadows.sm },
-  trendsBtnText: { fontFamily: fontFamily.semiBold, fontSize: 14, color: c.text },
-  title: { fontFamily: fontFamily.displayBold, fontSize: 30, letterSpacing: -0.5, color: c.text },
-  subtitle: { fontFamily: fontFamily.serifItalic, fontSize: 15, color: c.textSecondary, marginTop: 2 },
+const makeStyles = (tk: Tokens) => {
+  const { c, colors, isDark } = tk;
+  // Cheap dark card chrome (lit top hairline) for the many small tiles; the
+  // WATCH FOR terracotta ink brightens on dark for contrast.
+  const darkCard = isDark
+    ? { borderColor: 'rgba(255,255,255,0.06)', borderTopColor: 'rgba(255,255,255,0.12)' }
+    : null;
+  const watchInk = isDark ? '#E6A184' : '#A8493A';
+  const paperFill = isDark ? 'rgba(255,255,255,0.06)' : '#F4F1EA';
+  return StyleSheet.create({
+    root: { flex: 1, backgroundColor: c.background },
+    screen: { flex: 1, backgroundColor: c.background },
+    flex: { flex: 1, minWidth: 0 },
+    flexFill: { flex: 1 },
+    header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 22, paddingTop: 8, paddingBottom: 8 },
+    trendsBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 8, paddingHorizontal: 14, borderRadius: 999, borderWidth: 1, borderColor: c.border, backgroundColor: c.surface, ...shadows.sm, ...darkCard },
+    trendsBtnText: { fontFamily: fontFamily.semiBold, fontSize: 14, color: c.text },
+    title: { fontFamily: fontFamily.displayBold, fontSize: 30, letterSpacing: -0.5, color: c.text },
+    subtitle: { fontFamily: fontFamily.serifItalic, fontSize: 15, color: c.textSecondary, marginTop: 2 },
 
-  feed: { paddingHorizontal: 22, paddingBottom: 48 },
+    feed: { paddingHorizontal: 22, paddingBottom: 48 },
 
-  // Each day block carries a continuous left timeline line (paddingBottom bridges
-  // to the next day's node, so the line reads as one); a dark node sits on it.
-  dayBlock: { position: 'relative', paddingBottom: 24 },
-  railLine: { position: 'absolute', left: 6, top: 10, bottom: 0, width: 2, backgroundColor: c.border },
-  dayHead: { flexDirection: 'row', alignItems: 'center', marginBottom: 12 },
-  dayNode: { width: 14, height: 14, borderRadius: 7, backgroundColor: colors.primaryDark, marginRight: 12 },
-  dayDate: { fontFamily: fontFamily.semiBold, fontSize: 16, color: c.text },
-  dayN: { fontFamily: fontFamily.regular, fontSize: 11, color: c.textMuted, marginLeft: 'auto' },
+    // Each day block carries a continuous left timeline line (paddingBottom bridges
+    // to the next day's node, so the line reads as one); a dark node sits on it.
+    dayBlock: { position: 'relative', paddingBottom: 24 },
+    railLine: { position: 'absolute', left: 6, top: 10, bottom: 0, width: 2, backgroundColor: c.border },
+    dayHead: { flexDirection: 'row', alignItems: 'center', marginBottom: 12 },
+    dayNode: { width: 14, height: 14, borderRadius: 7, backgroundColor: colors.primaryDark, marginRight: 12 },
+    dayDate: { fontFamily: fontFamily.semiBold, fontSize: 16, color: c.text },
+    dayN: { fontFamily: fontFamily.regular, fontSize: 11, color: c.textMuted, marginLeft: 'auto' },
 
-  cards: { paddingLeft: 28 },
-  // icon tile — light tone tint fill, icon in the tool color
-  med: { width: 44, height: 44, borderRadius: 13, alignItems: 'center', justifyContent: 'center' },
+    cards: { paddingLeft: 28 },
+    // icon tile — light tone tint fill, icon in the tool color
+    med: { width: 44, height: 44, borderRadius: 13, alignItems: 'center', justifyContent: 'center' },
 
-  // white tiles (summary + entries)
-  summary: { flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: c.surface, borderWidth: 1, borderColor: c.border, borderRadius: 14, paddingVertical: 12, paddingHorizontal: 14, ...shadows.sm },
-  summaryTitle: { fontFamily: fontFamily.semiBold, fontSize: 15, color: colors.primary },
+    // surface tiles (summary + entries)
+    summary: { flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: c.surface, borderWidth: 1, borderColor: c.border, borderRadius: 14, paddingVertical: 12, paddingHorizontal: 14, ...shadows.sm, ...darkCard },
+    summaryTitle: { fontFamily: fontFamily.semiBold, fontSize: 15, color: colors.primary },
 
-  entryRow: { flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: c.surface, borderWidth: 1, borderColor: c.border, borderRadius: 14, paddingVertical: 12, paddingHorizontal: 14, marginBottom: 12, ...shadows.sm },
-  entryTitleRow: { flexDirection: 'row', alignItems: 'baseline', gap: 7 },
-  entryLabel: { fontFamily: fontFamily.semiBold, fontSize: 15 },
-  entryTime: { fontFamily: fontFamily.regular, fontSize: 11, color: c.textMuted },
-  entryPreview: { fontFamily: fontFamily.regular, fontSize: 14.5, lineHeight: 20, color: c.textSecondary, marginTop: 3 },
+    entryRow: { flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: c.surface, borderWidth: 1, borderColor: c.border, borderRadius: 14, paddingVertical: 12, paddingHorizontal: 14, marginBottom: 12, ...shadows.sm, ...darkCard },
+    entryTitleRow: { flexDirection: 'row', alignItems: 'baseline', gap: 7 },
+    entryLabel: { fontFamily: fontFamily.semiBold, fontSize: 15 },
+    entryTime: { fontFamily: fontFamily.regular, fontSize: 11, color: c.textMuted },
+    entryPreview: { fontFamily: fontFamily.regular, fontSize: 14.5, lineHeight: 20, color: c.textSecondary, marginTop: 3 },
 
-  empty: { alignItems: 'center', paddingTop: 64, paddingHorizontal: 30, gap: 12 },
-  emptyMedallion: { width: 60, height: 60, borderRadius: 18, backgroundColor: colors.secondary, alignItems: 'center', justifyContent: 'center', marginBottom: 4 },
-  emptyTitle: { fontFamily: fontFamily.display, fontSize: 21, color: c.text },
-  emptyBody: { fontFamily: fontFamily.regular, fontSize: 14, lineHeight: 21, color: c.textMuted, textAlign: 'center', maxWidth: 290 },
+    empty: { alignItems: 'center', paddingTop: 64, paddingHorizontal: 30, gap: 12 },
+    emptyMedallion: { width: 60, height: 60, borderRadius: 18, backgroundColor: colors.secondary, alignItems: 'center', justifyContent: 'center', marginBottom: 4 },
+    emptyTitle: { fontFamily: fontFamily.display, fontSize: 21, color: c.text },
+    emptyBody: { fontFamily: fontFamily.regular, fontSize: 14, lineHeight: 21, color: c.textMuted, textAlign: 'center', maxWidth: 290 },
 
-  // morph overlay + sheets (Option B)
-  overlayCard: { position: 'absolute', backgroundColor: colors.white, borderWidth: 1, borderColor: c.border, overflow: 'hidden', ...shadows.md },
-  overlayRow: { position: 'absolute', top: 0, left: 0, flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 12, paddingHorizontal: 14 },
-  sheetHead: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 14, paddingTop: 12, paddingBottom: 14 },
-  sheetMed: { width: 44, height: 44, borderRadius: 13, alignItems: 'center', justifyContent: 'center' },
-  sheetTitle: { fontFamily: fontFamily.display, fontSize: 22, letterSpacing: -0.4, color: c.text },
-  sheetTime: { fontFamily: fontFamily.regular, fontSize: 13, color: c.textMuted, marginTop: 1 },
-  closeBtn: { width: 34, height: 34, borderRadius: 17, borderWidth: 1, borderColor: c.border, alignItems: 'center', justifyContent: 'center' },
-  iconHeadBtn: { width: 34, height: 34, borderRadius: 17, borderWidth: 1, borderColor: c.border, backgroundColor: c.surface, alignItems: 'center', justifyContent: 'center', marginRight: 8 },
-  headTextBtn: { paddingHorizontal: 8, paddingVertical: 4 },
-  headEdit: { fontFamily: fontFamily.semiBold, fontSize: 14, color: colors.primary },
-  headCancel: { fontFamily: fontFamily.semiBold, fontSize: 14, color: c.textMuted },
-  headSave: { fontFamily: fontFamily.bold, fontSize: 14, color: colors.primary },
-  sheetDivider: { height: 1, backgroundColor: c.divider, marginHorizontal: 18 },
-  sheetBody: { paddingHorizontal: 18, paddingTop: 6, paddingBottom: 32 },
+    // morph overlay + sheets (Option B)
+    overlayCard: { position: 'absolute', backgroundColor: isDark ? c.surface : colors.white, borderWidth: 1, borderColor: c.border, overflow: 'hidden', ...shadows.md, ...darkCard },
+    overlayRow: { position: 'absolute', top: 0, left: 0, flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 12, paddingHorizontal: 14 },
+    sheetHead: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 14, paddingTop: 12, paddingBottom: 14 },
+    sheetMed: { width: 44, height: 44, borderRadius: 13, alignItems: 'center', justifyContent: 'center' },
+    sheetTitle: { fontFamily: fontFamily.display, fontSize: 22, letterSpacing: -0.4, color: c.text },
+    sheetTime: { fontFamily: fontFamily.regular, fontSize: 13, color: c.textMuted, marginTop: 1 },
+    closeBtn: { width: 34, height: 34, borderRadius: 17, borderWidth: 1, borderColor: c.border, alignItems: 'center', justifyContent: 'center' },
+    iconHeadBtn: { width: 34, height: 34, borderRadius: 17, borderWidth: 1, borderColor: c.border, backgroundColor: isDark ? c.surfaceRaised : c.surface, alignItems: 'center', justifyContent: 'center', marginRight: 8 },
+    headTextBtn: { paddingHorizontal: 8, paddingVertical: 4 },
+    headEdit: { fontFamily: fontFamily.semiBold, fontSize: 14, color: colors.primary },
+    headCancel: { fontFamily: fontFamily.semiBold, fontSize: 14, color: c.textMuted },
+    headSave: { fontFamily: fontFamily.bold, fontSize: 14, color: colors.primary },
+    sheetDivider: { height: 1, backgroundColor: c.divider, marginHorizontal: 18 },
+    sheetBody: { paddingHorizontal: 18, paddingTop: 6, paddingBottom: 32 },
 
-  // day checklist
-  notDoneLabel: { fontFamily: fontFamily.bold, fontSize: 11, letterSpacing: 1.4, color: c.textMuted, marginTop: 20, marginBottom: 4 },
-  dRow: { flexDirection: 'row', alignItems: 'center', gap: 14, paddingVertical: 13 },
-  dMed: { width: 40, height: 40, borderRadius: 11, alignItems: 'center', justifyContent: 'center' },
-  dLabel: { flex: 1, fontFamily: fontFamily.semiBold, fontSize: 16, color: c.text },
-  dCheck: { width: 26, height: 26, borderRadius: 13, borderWidth: 2, alignItems: 'center', justifyContent: 'center' },
+    // day checklist
+    notDoneLabel: { fontFamily: fontFamily.bold, fontSize: 11, letterSpacing: 1.4, color: c.textMuted, marginTop: 20, marginBottom: 4 },
+    dRow: { flexDirection: 'row', alignItems: 'center', gap: 14, paddingVertical: 13 },
+    dMed: { width: 40, height: 40, borderRadius: 11, alignItems: 'center', justifyContent: 'center' },
+    dLabel: { flex: 1, fontFamily: fontFamily.semiBold, fontSize: 16, color: c.text },
+    dCheck: { width: 26, height: 26, borderRadius: 13, borderWidth: 2, alignItems: 'center', justifyContent: 'center' },
 
-  // entry bodies
-  hairline: { height: 1, backgroundColor: c.divider },
-  gRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 14, paddingVertical: 14 },
-  gNum: { width: 28, height: 28, borderRadius: 14, alignItems: 'center', justifyContent: 'center', marginTop: 1 },
-  gNumText: { fontFamily: fontFamily.bold, fontSize: 12 },
-  gText: { flex: 1, fontFamily: fontFamily.regular, fontSize: 17, lineHeight: 24, color: c.text },
+    // entry bodies
+    hairline: { height: 1, backgroundColor: c.divider },
+    gRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 14, paddingVertical: 14 },
+    gNum: { width: 28, height: 28, borderRadius: 14, alignItems: 'center', justifyContent: 'center', marginTop: 1 },
+    gNumText: { fontFamily: fontFamily.bold, fontSize: 12 },
+    gText: { flex: 1, fontFamily: fontFamily.regular, fontSize: 17, lineHeight: 24, color: c.text },
 
-  journalProse: { fontFamily: fontFamily.regular, fontSize: 16.5, lineHeight: 25, color: c.text },
+    journalProse: { fontFamily: fontFamily.regular, fontSize: 16.5, lineHeight: 25, color: c.text },
 
-  nBlock: { paddingVertical: 16 },
-  nQ: { fontFamily: fontFamily.semiBold, fontSize: 15.5, lineHeight: 21, letterSpacing: -0.2, marginBottom: 7 },
-  nA: { fontFamily: fontFamily.regular, fontSize: 16, lineHeight: 24, color: c.text },
+    nBlock: { paddingVertical: 16 },
+    nQ: { fontFamily: fontFamily.semiBold, fontSize: 15.5, lineHeight: 21, letterSpacing: -0.2, marginBottom: 7 },
+    nA: { fontFamily: fontFamily.regular, fontSize: 16, lineHeight: 24, color: c.text },
 
-  spotHeading: { fontFamily: fontFamily.semiBold, fontSize: 16, color: c.text, letterSpacing: -0.2, marginBottom: 9 },
-  paperBox: { backgroundColor: '#F4F1EA', borderWidth: 1, borderColor: c.border, borderRadius: 12, paddingHorizontal: 15, paddingVertical: 13 },
-  paperText: { fontFamily: fontFamily.regular, fontSize: 16, lineHeight: 23, color: c.textSecondary },
-  chipsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 16 },
-  chip: { paddingHorizontal: 14, paddingVertical: 9, borderRadius: 999, backgroundColor: colors.accent },
-  chipText: { fontFamily: fontFamily.semiBold, fontSize: 14, color: '#fff' },
-  striveCard: { paddingHorizontal: 16, paddingTop: 16, paddingBottom: 14, borderRadius: 16, backgroundColor: TEAL.soft, borderWidth: 1, borderColor: TEAL.ink + '33' },
-  striveHeadRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 10 },
-  watchLabel: { fontFamily: fontFamily.bold, fontSize: 10.5, letterSpacing: 1.1, color: '#A8493A', flex: 1 },
-  striveLabel: { fontFamily: fontFamily.bold, fontSize: 10.5, letterSpacing: 1.1, color: TEAL.dark, flex: 1, textAlign: 'right' },
-  striveList: { gap: 11 },
-  striveRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 },
-  striveOff: { fontFamily: fontFamily.semiBold, fontSize: 15, color: '#A8493A', flex: 1 },
-  striveOn: { fontFamily: fontFamily.semiBoldItalic, fontSize: 15, color: TEAL.dark, flex: 1, textAlign: 'right' },
+    spotHeading: { fontFamily: fontFamily.semiBold, fontSize: 16, color: c.text, letterSpacing: -0.2, marginBottom: 9 },
+    paperBox: { backgroundColor: paperFill, borderWidth: 1, borderColor: c.border, borderRadius: 12, paddingHorizontal: 15, paddingVertical: 13 },
+    paperText: { fontFamily: fontFamily.regular, fontSize: 16, lineHeight: 23, color: c.textSecondary },
+    chipsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 16 },
+    chip: { paddingHorizontal: 14, paddingVertical: 9, borderRadius: 999, backgroundColor: colors.accent },
+    chipText: { fontFamily: fontFamily.semiBold, fontSize: 14, color: '#fff' },
+    striveCard: { paddingHorizontal: 16, paddingTop: 16, paddingBottom: 14, borderRadius: 16, backgroundColor: colors.primarySoft, borderWidth: 1, borderColor: colors.primary + '33' },
+    striveHeadRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 10 },
+    watchLabel: { fontFamily: fontFamily.bold, fontSize: 10.5, letterSpacing: 1.1, color: watchInk, flex: 1 },
+    striveLabel: { fontFamily: fontFamily.bold, fontSize: 10.5, letterSpacing: 1.1, color: colors.primaryDark, flex: 1, textAlign: 'right' },
+    striveList: { gap: 11 },
+    striveRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 },
+    striveOff: { fontFamily: fontFamily.semiBold, fontSize: 15, color: watchInk, flex: 1 },
+    striveOn: { fontFamily: fontFamily.semiBoldItalic, fontSize: 15, color: colors.primaryDark, flex: 1, textAlign: 'right' },
 
-  // editable bodies
-  journalInput: { fontFamily: fontFamily.regular, fontSize: 16.5, lineHeight: 25, color: c.text, minHeight: 200, textAlignVertical: 'top' },
-  gEditRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 12, paddingVertical: 10 },
-  gInput: { flex: 1, fontFamily: fontFamily.regular, fontSize: 17, lineHeight: 24, color: c.text, paddingVertical: 2, paddingHorizontal: 12, backgroundColor: '#F4F1EA', borderRadius: 10, minHeight: 40 },
-  gDelete: { width: 32, height: 32, alignItems: 'center', justifyContent: 'center', marginTop: 2 },
-  addRow: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 14, paddingHorizontal: 2, marginTop: 4 },
-  addText: { fontFamily: fontFamily.semiBold, fontSize: 15 },
-  nInput: { fontFamily: fontFamily.regular, fontSize: 16, lineHeight: 23, color: c.text, marginTop: 2, paddingHorizontal: 13, paddingVertical: 11, backgroundColor: '#F4F1EA', borderRadius: 10, minHeight: 56, textAlignVertical: 'top' },
-  situationInput: { marginTop: 7, backgroundColor: '#F4F1EA', borderWidth: 1, borderColor: c.border, borderRadius: 12, paddingHorizontal: 15, paddingVertical: 13, minHeight: 70, fontFamily: fontFamily.regular, fontSize: 16, lineHeight: 23, color: c.text, textAlignVertical: 'top' },
-  editChip: { paddingHorizontal: 14, paddingVertical: 9, borderRadius: 999, borderWidth: 1.5 },
-  editChipOn: { backgroundColor: colors.accent, borderColor: colors.accent },
-  editChipOff: { backgroundColor: colors.white, borderColor: c.border },
-  editChipText: { fontFamily: fontFamily.semiBold, fontSize: 14 },
-  chipShowAll: { backgroundColor: 'transparent', borderColor: c.textMuted + '66', borderStyle: 'dashed' },
-});
+    // editable bodies
+    journalInput: { fontFamily: fontFamily.regular, fontSize: 16.5, lineHeight: 25, color: c.text, minHeight: 200, textAlignVertical: 'top' },
+    gEditRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 12, paddingVertical: 10 },
+    gInput: { flex: 1, fontFamily: fontFamily.regular, fontSize: 17, lineHeight: 24, color: c.text, paddingVertical: 2, paddingHorizontal: 12, backgroundColor: paperFill, borderRadius: 10, minHeight: 40 },
+    gDelete: { width: 32, height: 32, alignItems: 'center', justifyContent: 'center', marginTop: 2 },
+    addRow: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 14, paddingHorizontal: 2, marginTop: 4 },
+    addText: { fontFamily: fontFamily.semiBold, fontSize: 15 },
+    nInput: { fontFamily: fontFamily.regular, fontSize: 16, lineHeight: 23, color: c.text, marginTop: 2, paddingHorizontal: 13, paddingVertical: 11, backgroundColor: paperFill, borderRadius: 10, minHeight: 56, textAlignVertical: 'top' },
+    situationInput: { marginTop: 7, backgroundColor: paperFill, borderWidth: 1, borderColor: c.border, borderRadius: 12, paddingHorizontal: 15, paddingVertical: 13, minHeight: 70, fontFamily: fontFamily.regular, fontSize: 16, lineHeight: 23, color: c.text, textAlignVertical: 'top' },
+    editChip: { paddingHorizontal: 14, paddingVertical: 9, borderRadius: 999, borderWidth: 1.5 },
+    editChipOn: { backgroundColor: colors.accent, borderColor: colors.accent },
+    editChipOff: { backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : colors.white, borderColor: c.border },
+    editChipText: { fontFamily: fontFamily.semiBold, fontSize: 14 },
+    chipShowAll: { backgroundColor: 'transparent', borderColor: c.textMuted + '66', borderStyle: 'dashed' },
+  });
+};

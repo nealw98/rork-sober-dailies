@@ -16,9 +16,9 @@ import Animated, { useSharedValue, useAnimatedStyle, withTiming, Easing, interpo
 import { useScreenTimeTracking } from '@/hooks/useScreenTimeTracking';
 import { logEvent } from '@/lib/analytics';
 import { aaPrayers } from '@/constants/prayers';
-import { colors, fontFamily, getSemanticColors, shadows } from '@/constants/designTokens';
+import { fontFamily, shadows, type Tokens } from '@/constants/designTokens';
+import { useTokens, useThemedStyles } from '@/hooks/useTokens';
 
-const c = getSemanticColors('light');
 const TOP_GAP = 8; // small inset above the read container (the X close sits inside it)
 const SIDE = 20; // horizontal page margin = the read container's left/right inset
 const DUR = 340;
@@ -32,6 +32,8 @@ const MORNING_INTRO = 'As I begin this day, I ask my Higher Power:';
 type ReadPrayer = { title: string; content: string; source?: string };
 
 function PrayerBody({ prayer }: { prayer: ReadPrayer }) {
+  const styles = useThemedStyles(makeStyles);
+  const { c } = useTokens();
   const paras = prayer.content.split(/\n\s*\n/);
   // Morning Prayer: pull the opening line out as its own italic intro with a
   // gap below it (in the data it sits on the first line of the first block).
@@ -61,6 +63,8 @@ export default function PrayersScreen() {
   const router = useRouter();
   const params = useLocalSearchParams<{ prayer?: string }>();
   const { width: screenW, height: screenH } = useWindowDimensions();
+  const styles = useThemedStyles(makeStyles);
+  const { c, colors } = useTokens();
   const insets = useSafeAreaInsets();
 
   const [selected, setSelected] = useState<number | null>(null);
@@ -287,7 +291,12 @@ export default function PrayersScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (tk: Tokens) => {
+  const { c, colors, isDark } = tk;
+  const darkCard = isDark
+    ? { borderColor: 'rgba(255,255,255,0.06)', borderTopColor: 'rgba(255,255,255,0.12)' }
+    : null;
+  return StyleSheet.create({
   root: { flex: 1, backgroundColor: c.background },
   screen: { flex: 1 },
   flex: { flex: 1 },
@@ -307,16 +316,16 @@ const styles = StyleSheet.create({
   addBtnText: { fontFamily: fontFamily.semiBold, fontSize: 14, color: colors.primary },
 
   list: { gap: 10 },
-  card: { backgroundColor: c.surface, borderRadius: 16, paddingHorizontal: 16, paddingVertical: 16, ...shadows.sm },
+  card: { backgroundColor: c.surface, borderRadius: 16, paddingHorizontal: 16, paddingVertical: 16, borderWidth: isDark ? 1 : 0, borderColor: 'transparent', ...shadows.sm, ...darkCard },
   cardTitleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10 },
   cardTitle: { flex: 1, fontFamily: fontFamily.semiBold, fontSize: 18, color: c.text, letterSpacing: -0.3 },
   preview: { fontFamily: fontFamily.regular, fontSize: 14, color: c.textSecondary, lineHeight: 20, marginTop: 6 },
 
   // read view (morph overlay is the read container)
-  overlayCard: { position: 'absolute', backgroundColor: c.surface, overflow: 'hidden', ...shadows.md },
+  overlayCard: { position: 'absolute', backgroundColor: c.surface, overflow: 'hidden', borderWidth: isDark ? 1 : 0, borderColor: 'transparent', ...shadows.md, ...darkCard },
   overlayRow: { position: 'absolute', top: 0, left: 0, padding: 16 },
   readHead: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: 10, paddingHorizontal: 16, paddingTop: 16 },
-  closeBtn: { width: 32, height: 32, borderRadius: 16, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(0,0,0,0.05)' },
+  closeBtn: { width: 32, height: 32, borderRadius: 16, alignItems: 'center', justifyContent: 'center', backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)' },
   overlayScroll: { paddingHorizontal: 16, paddingTop: 2, paddingBottom: 28 },
   readCardTitle: { flex: 1, fontFamily: fontFamily.semiBold, fontSize: 18, letterSpacing: -0.3, color: c.text },
   readDivider: { height: 1, backgroundColor: c.divider, marginTop: 14, marginBottom: 16 },
@@ -324,4 +333,5 @@ const styles = StyleSheet.create({
   prayerIntro: { fontFamily: fontFamily.regularItalic, marginBottom: 18 },
   sourceRow: { flexDirection: 'row', alignItems: 'center', gap: 7, marginTop: 8, paddingTop: 16, borderTopWidth: 1, borderTopColor: c.border },
   sourceText: { fontFamily: fontFamily.medium, fontSize: 12.5, color: c.textMuted },
-});
+  });
+};

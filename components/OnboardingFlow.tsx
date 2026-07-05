@@ -6,16 +6,16 @@ import { StatusBar } from 'expo-status-bar';
 import Svg, { Path } from 'react-native-svg';
 import { Check, ArrowRight, BookOpen, PenLine, MessageCircle } from 'lucide-react-native';
 
-import { colors, fontFamily, fontSize, spacing, radii, shadows, gradients, getSemanticColors } from '@/constants/designTokens';
+import { fontFamily, fontSize, shadows, type Tokens } from '@/constants/designTokens';
+import { useTokens, useThemedStyles } from '@/hooks/useTokens';
 import BackButton from '@/components/BackButton';
-import { resolveGlyph } from '@/components/dailyTokens';
+import { resolveGlyph, resolveTone } from '@/components/dailyTokens';
 import { useOnboarding } from '@/hooks/useOnboardingStore';
 import { useSobriety } from '@/hooks/useSobrietyStore';
 import { useDailies, type DailyItem, type WhenBucket } from '@/hooks/use-dailies-store';
 import { formatLocalDate } from '@/lib/dateUtils';
 import SoberDateEditor from '@/components/SoberDateEditor';
 
-const c = getSemanticColors('light');
 
 // App-icon gradient → interior bridge (prototype `obvGrad`). t=0 = vivid app icon,
 // t=1 = muted interior. Onboarding stays icon-leaning (the retiring teal header
@@ -54,6 +54,7 @@ const BULLETS = [
 ];
 
 function ConsentStep({ onContinue }: { onContinue: () => void }) {
+  const styles = useThemedStyles(makeStyles);
   const [agreed, setAgreed] = useState(false);
   const openTerms = () => Linking.openURL('https://www.apple.com/legal/internet-services/itunes/dev/stdeula/').catch(() => {});
   const openPrivacy = () => Linking.openURL('https://soberdailies.com/privacy').catch(() => {});
@@ -105,14 +106,16 @@ function ConsentStep({ onContinue }: { onContinue: () => void }) {
 }
 
 // ─── Step 2 · What's inside (ObvOutline — gradient band + paper rows) ───────
-const FEATURES: { Icon: React.ComponentType<{ size?: number; color?: string }>; iconColor: string; title: string; sub: string }[] = [
-  { Icon: Sunrise, iconColor: '#2E6F6F', title: 'Today', sub: 'The heart of your program — where you define your dailies and track your progress one day at a time.' },
-  { Icon: BookOpen, iconColor: '#B07A33', title: 'Tools', sub: 'The tools you reach for each day — literature, speakers, prayers, meetings — linked right to your dailies as you work through them.' },
-  { Icon: PenLine, iconColor: '#3A6AE0', title: 'Journey', sub: 'The record of your program — your notebook entries and daily progress, to look back on and keep yourself accountable.' },
-  { Icon: MessageCircle, iconColor: '#7A5FB5', title: 'Your AI Sponsor, anytime', sub: 'Bring real questions, get real advice and support from distinct sponsor personalities, day or night.' },
+const FEATURES: { Icon: React.ComponentType<{ size?: number; color?: string }>; iconColor: string; tone: string; title: string; sub: string }[] = [
+  { Icon: Sunrise, iconColor: '#2E6F6F', tone: 'teal', title: 'Today', sub: 'The heart of your program — where you define your dailies and track your progress one day at a time.' },
+  { Icon: BookOpen, iconColor: '#B07A33', tone: 'amber', title: 'Tools', sub: 'The tools you reach for each day — literature, speakers, prayers, meetings — linked right to your dailies as you work through them.' },
+  { Icon: PenLine, iconColor: '#3A6AE0', tone: 'blue', title: 'Journey', sub: 'The record of your program — your notebook entries and daily progress, to look back on and keep yourself accountable.' },
+  { Icon: MessageCircle, iconColor: '#7A5FB5', tone: 'lavender', title: 'Your AI Sponsor, anytime', sub: 'Bring real questions, get real advice and support from distinct sponsor personalities, day or night.' },
 ];
 
 function WhatsInsideStep({ onBack, onContinue }: { onBack: () => void; onContinue: () => void }) {
+  const styles = useThemedStyles(makeStyles);
+  const { c, isDark, mode } = useTokens();
   return (
     <View style={{ flex: 1, backgroundColor: c.background }}>
       <StatusBar style="light" />
@@ -130,7 +133,7 @@ function WhatsInsideStep({ onBack, onContinue }: { onBack: () => void; onContinu
             {FEATURES.map((f) => (
               <View key={f.title} style={styles.outlineRow}>
                 <View style={styles.outlineIconBox}>
-                  <f.Icon size={23} color={f.iconColor} />
+                  <f.Icon size={23} color={isDark ? resolveTone(f.tone, mode).ink : f.iconColor} />
                 </View>
                 <View style={{ flex: 1 }}>
                   <Text style={styles.outlineTitle}>{f.title}</Text>
@@ -187,6 +190,8 @@ const DEF_TONE: Record<string, { solid: string; ink: string }> = {
 };
 
 function DefineDailiesStep({ onBack, onStart }: { onBack: () => void; onStart: (items: DailyItem[]) => void }) {
+  const styles = useThemedStyles(makeStyles);
+  const { c, colors, isDark, mode } = useTokens();
   const [selected, setSelected] = useState<Set<string>>(
     () => new Set(STARTER.flatMap((s) => s.items.filter((i) => i.on).map((i) => i.id))),
   );
@@ -206,7 +211,7 @@ function DefineDailiesStep({ onBack, onStart }: { onBack: () => void; onStart: (
 
   return (
     <SafeAreaView style={styles.paper} edges={['top', 'bottom']}>
-      <StatusBar style="dark" />
+      <StatusBar style={isDark ? 'light' : 'dark'} />
       <View style={styles.topBar}>
         <BackButton onPress={onBack} />
       </View>
@@ -230,12 +235,17 @@ function DefineDailiesStep({ onBack, onStart }: { onBack: () => void; onStart: (
               </View>
               {section.items.map((item) => {
                 const on = selected.has(item.id);
-                const tone = DEF_TONE[item.color] ?? DEF_TONE.gray;
+                const def = DEF_TONE[item.color] ?? DEF_TONE.gray;
+                // Dark: brightened mode-aware family tones; light: the prototype's static inks.
+                const dark = isDark ? resolveTone(item.color, mode) : null;
+                const ink = dark ? dark.ink : def.ink;
+                const boxBg = dark ? dark.soft : def.solid + '22';
+                const onBorder = dark ? dark.ink + '55' : def.solid + '55';
                 const Glyph = resolveGlyph(item.icon);
                 return (
-                  <Pressable key={item.id} style={[styles.dailyRow, { borderColor: on ? tone.solid + '55' : c.border }]} onPress={() => toggle(item.id)}>
-                    <View style={[styles.dailyIconBox, { backgroundColor: tone.solid + '22' }]}>
-                      <Glyph size={18} color={tone.ink} />
+                  <Pressable key={item.id} style={[styles.dailyRow, { borderColor: on ? onBorder : c.border }]} onPress={() => toggle(item.id)}>
+                    <View style={[styles.dailyIconBox, { backgroundColor: boxBg }]}>
+                      <Glyph size={18} color={ink} />
                     </View>
                     <Text style={styles.dailyLabel}>{item.label}</Text>
                     <View style={[styles.dailyCheck, on ? { backgroundColor: colors.primary, borderColor: colors.primary } : { borderColor: c.border }]}>
@@ -289,7 +299,12 @@ export default function OnboardingFlow() {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (tk: Tokens) => {
+  const { c, colors, isDark } = tk;
+  const darkCard = isDark
+    ? { borderColor: 'rgba(255,255,255,0.06)', borderTopColor: 'rgba(255,255,255,0.12)' }
+    : null;
+  return StyleSheet.create({
   // consent
   consentScroll: { flexGrow: 1, justifyContent: 'center', paddingHorizontal: 24, paddingVertical: 24 },
   consentMark: { width: 60, height: 60, borderRadius: 18, alignSelf: 'center', backgroundColor: 'rgba(255,255,255,0.16)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.32)', alignItems: 'center', justifyContent: 'center', marginBottom: 16 },
@@ -324,7 +339,7 @@ const styles = StyleSheet.create({
   insideSheet: { flex: 1, backgroundColor: c.background, borderTopLeftRadius: 26, borderTopRightRadius: 26 },
   insideSheetScroll: { paddingHorizontal: 20, paddingTop: 20, paddingBottom: 8 },
   outlineRow: { flexDirection: 'row', gap: 14, alignItems: 'flex-start', marginBottom: 18 },
-  outlineIconBox: { width: 46, height: 46, borderRadius: 14, backgroundColor: c.background, borderWidth: 1, borderColor: c.border, alignItems: 'center', justifyContent: 'center' },
+  outlineIconBox: { width: 46, height: 46, borderRadius: 14, backgroundColor: isDark ? c.surface : c.background, borderWidth: 1, borderColor: c.border, alignItems: 'center', justifyContent: 'center', ...darkCard },
   outlineTitle: { fontFamily: fontFamily.display, fontSize: 18, color: c.text, letterSpacing: -0.2 },
   outlineSub: { fontFamily: fontFamily.serif, fontSize: 14.5, color: c.textSecondary, lineHeight: 22, marginTop: 3 },
 
@@ -349,4 +364,5 @@ const styles = StyleSheet.create({
   primaryBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 9, paddingVertical: 16, borderRadius: 16, backgroundColor: colors.primary, ...shadows.md },
   primaryBtnOff: { backgroundColor: '#C7C9C4', shadowOpacity: 0 },
   primaryText: { fontFamily: fontFamily.semiBold, fontSize: fontSize.xl, color: '#fff' },
-});
+  });
+};

@@ -13,16 +13,28 @@ import { BigBookCover, TwelveCover, MeetingReadingCard } from '@/components/lite
 import { MEETING_READINGS, PREVIEW_READING_IDS, getMeetingReading } from '@/constants/meeting-readings';
 import { useReadingSession } from '@/hooks/useReadingSession';
 import { useScreenTimeTracking } from '@/hooks/useScreenTimeTracking';
-import { fontFamily, getSemanticColors, families } from '@/constants/designTokens';
-
-const c = getSemanticColors('light');
-const LINK_INK = families.steel[700]; // literature is a Steel Navy tool
+import { fontFamily, families, type Tokens } from '@/constants/designTokens';
+import { useTokens, useThemedStyles } from '@/hooks/useTokens';
 
 export default function LiteratureScreen() {
   useReadingSession('literature');
   useScreenTimeTracking('Literature');
   const router = useRouter();
+  const styles = useThemedStyles(makeStyles);
+  const { isDark, colors, tone } = useTokens();
   const previews = PREVIEW_READING_IDS.map(getMeetingReading).filter(Boolean);
+
+  // Literature is a Steel Navy tool; brighten the link ink on dark.
+  const linkInk = isDark ? colors.steel : families.steel[700];
+
+  // Book-cover cards: tinted gradients in light; soft family washes on dark
+  // (neutral surfaces never take opaque tints on dark — handoff).
+  const steelCard = isDark
+    ? { grad: [tone('steel').soft, tone('steel').soft] as const, border: 'rgba(124,155,219,0.30)' }
+    : { grad: [families.steel[100], families.steel[200]] as const, border: families.steel[300] };
+  const tealCard = isDark
+    ? { grad: [tone('teal').soft, tone('teal').soft] as const, border: 'rgba(79,179,172,0.30)' }
+    : { grad: [families.teal[100], families.teal[200]] as const, border: families.teal[300] };
 
   return (
     <SafeAreaView style={styles.screen} edges={['top']}>
@@ -37,7 +49,7 @@ export default function LiteratureScreen() {
         {/* Hero books */}
         <View style={styles.grid}>
           <Pressable onPress={() => router.push('/(main)/bigbook')} style={({ pressed }) => [styles.bookCardWrap, pressed && { opacity: 0.9 }]}>
-            <LinearGradient colors={[families.steel[50], families.steel[100]]} start={{ x: 0.2, y: 0 }} end={{ x: 0.8, y: 1 }} style={[styles.bookCard, { borderColor: families.steel[200] }]}>
+            <LinearGradient colors={steelCard.grad} start={{ x: 0.2, y: 0 }} end={{ x: 0.8, y: 1 }} style={[styles.bookCard, { borderColor: steelCard.border }]}>
               <BigBookCover w={92} h={128} />
               <View style={styles.bookText}>
                 <Text style={styles.bookTitle}>Alcoholics{'\n'}Anonymous</Text>
@@ -47,7 +59,7 @@ export default function LiteratureScreen() {
           </Pressable>
 
           <Pressable onPress={() => router.push('/(main)/twelve-and-twelve')} style={({ pressed }) => [styles.bookCardWrap, pressed && { opacity: 0.9 }]}>
-            <LinearGradient colors={[families.teal[50], families.teal[100]]} start={{ x: 0.2, y: 0 }} end={{ x: 0.8, y: 1 }} style={[styles.bookCard, { borderColor: families.teal[200] }]}>
+            <LinearGradient colors={tealCard.grad} start={{ x: 0.2, y: 0 }} end={{ x: 0.8, y: 1 }} style={[styles.bookCard, { borderColor: tealCard.border }]}>
               <TwelveCover w={92} h={128} />
               <View style={styles.bookText}>
                 <Text style={styles.bookTitle}>Twelve Steps{'\n'}& Traditions</Text>
@@ -69,8 +81,8 @@ export default function LiteratureScreen() {
             <MeetingReadingCard key={r!.id} reading={r!} onPress={() => router.push(`/(main)/meeting-reading?id=${r!.id}`)} />
           ))}
           <Pressable onPress={() => router.push('/(main)/meeting-readings')} style={({ pressed }) => [styles.seeAll, pressed && { opacity: 0.7 }]}>
-            <Text style={styles.seeAllText}>See all {MEETING_READINGS.length} readings</Text>
-            <ChevronRight size={13} color={LINK_INK} />
+            <Text style={[styles.seeAllText, { color: linkInk }]}>See all {MEETING_READINGS.length} readings</Text>
+            <ChevronRight size={13} color={linkInk} />
           </Pressable>
         </View>
       </ScrollView>
@@ -78,26 +90,30 @@ export default function LiteratureScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: c.background },
-  header: { paddingHorizontal: 22, paddingTop: 8, paddingBottom: 6 },
-  title: { fontFamily: fontFamily.displayBold, fontSize: 32, letterSpacing: -0.6, color: c.text },
-  sub: { fontFamily: fontFamily.regular, fontSize: 13.5, color: c.textSecondary, marginTop: 4 },
+const makeStyles = (tk: Tokens) => {
+  const { c } = tk;
+  return StyleSheet.create({
+    screen: { flex: 1, backgroundColor: c.background },
+    header: { paddingHorizontal: 22, paddingTop: 8, paddingBottom: 6 },
+    title: { fontFamily: fontFamily.displayBold, fontSize: 32, letterSpacing: -0.6, color: c.text },
+    sub: { fontFamily: fontFamily.regular, fontSize: 13.5, color: c.textSecondary, marginTop: 4 },
 
-  scroll: { paddingBottom: 40 },
-  grid: { flexDirection: 'row', gap: 12, paddingHorizontal: 16, paddingTop: 6 },
-  bookCardWrap: { flex: 1 },
-  bookCard: { flex: 1, borderWidth: 1, borderRadius: 18, padding: 16, alignItems: 'center', gap: 12 },
-  bookText: { alignItems: 'center', width: '100%' },
-  bookTitle: { fontFamily: fontFamily.display, fontSize: 16, color: c.text, lineHeight: 19, letterSpacing: -0.2, textAlign: 'center' },
-  bookMeta: { fontFamily: fontFamily.regular, fontSize: 11, color: c.textMuted, marginTop: 6, textAlign: 'center' },
+    // Clears the floating tab bar (Literature lives in the tab group now).
+    scroll: { paddingBottom: 130 },
+    grid: { flexDirection: 'row', gap: 12, paddingHorizontal: 16, paddingTop: 6 },
+    bookCardWrap: { flex: 1 },
+    bookCard: { flex: 1, borderWidth: 1, borderRadius: 18, padding: 16, alignItems: 'center', gap: 12 },
+    bookText: { alignItems: 'center', width: '100%' },
+    bookTitle: { fontFamily: fontFamily.display, fontSize: 16, color: c.text, lineHeight: 19, letterSpacing: -0.2, textAlign: 'center' },
+    bookMeta: { fontFamily: fontFamily.regular, fontSize: 11, color: c.textMuted, marginTop: 6, textAlign: 'center' },
 
-  divider: { height: 1, backgroundColor: c.divider, marginHorizontal: 16, marginTop: 18 },
-  catHead: { paddingHorizontal: 22, paddingTop: 16, paddingBottom: 10 },
-  catTitle: { fontFamily: fontFamily.displayBold, fontSize: 26, letterSpacing: -0.5, color: c.text },
-  catSub: { fontFamily: fontFamily.regular, fontSize: 13, color: c.textSecondary, marginTop: 4 },
+    divider: { height: 1, backgroundColor: c.divider, marginHorizontal: 16, marginTop: 18 },
+    catHead: { paddingHorizontal: 22, paddingTop: 16, paddingBottom: 10 },
+    catTitle: { fontFamily: fontFamily.displayBold, fontSize: 26, letterSpacing: -0.5, color: c.text },
+    catSub: { fontFamily: fontFamily.regular, fontSize: 13, color: c.textSecondary, marginTop: 4 },
 
-  readingList: { paddingHorizontal: 16, gap: 8 },
-  seeAll: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 12, marginTop: 2, borderRadius: 12, borderWidth: 1, borderColor: c.border, borderStyle: 'dashed' },
-  seeAllText: { fontFamily: fontFamily.semiBold, fontSize: 13, color: LINK_INK },
-});
+    readingList: { paddingHorizontal: 16, gap: 8 },
+    seeAll: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 12, marginTop: 2, borderRadius: 12, borderWidth: 1, borderColor: c.border, borderStyle: 'dashed' },
+    seeAllText: { fontFamily: fontFamily.semiBold, fontSize: 13 },
+  });
+};

@@ -75,7 +75,7 @@ import { TextSettingsProvider } from "@/hooks/use-text-settings";
 import { SubscriptionProvider, useSubscription } from "@/hooks/useSubscription";
 import { useOTAUpdates } from "@/hooks/useOTAUpdates";
 import { adjustFontWeight } from "@/constants/fonts";
-import { useTheme } from "@/hooks/useTheme";
+import { useTokens } from "@/hooks/useTokens";
 import OnboardingFlow from "@/components/OnboardingFlow";
 import PaywallScreen from "@/components/PaywallScreen";
 import OTASnackbar from "@/components/OTASnackbar";
@@ -116,7 +116,7 @@ const hideSplashScreenSafely = async () => {
 };
 
 function RootLayoutNav() {
-  const { palette } = useTheme();
+  const tokens = useTokens();
   const { isOnboardingComplete, isLoading } = useOnboarding();
   const { showSnackbar, dismissSnackbar, restartApp } = useOTAUpdates();
   const { showBirthdayModal, closeBirthdayModal } = useSobrietyBirthday();
@@ -289,13 +289,13 @@ function RootLayoutNav() {
             onPress={() => router.back()}
             activeOpacity={0.7}
           >
-            <ChevronLeft color={palette.tint} size={20} />
-            <Text style={[styles.backText, { color: palette.tint }]}>Back</Text>
+            <ChevronLeft color={tokens.colors.primary} size={20} />
+            <Text style={[styles.backText, { color: tokens.colors.primary }]}>Back</Text>
           </TouchableOpacity>
         ) : null,
-        contentStyle: { backgroundColor: palette.cardBackground },
+        contentStyle: { backgroundColor: tokens.c.background },
         headerStyle: {
-          backgroundColor: palette.cardBackground,
+          backgroundColor: tokens.isDark ? tokens.c.surface : tokens.c.surface,
         },
         headerTitleStyle: {
           fontWeight: adjustFontWeight("600", true),

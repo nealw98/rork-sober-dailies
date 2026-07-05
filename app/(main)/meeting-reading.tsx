@@ -11,9 +11,9 @@ import BackButton from '@/components/BackButton';
 import { getMeetingReading } from '@/constants/meeting-readings';
 import { useTextSettings } from '@/hooks/use-text-settings';
 import { useScreenTimeTracking } from '@/hooks/useScreenTimeTracking';
-import { fontFamily, getSemanticColors } from '@/constants/designTokens';
+import { fontFamily, type Tokens } from '@/constants/designTokens';
+import { useTokens, useThemedStyles } from '@/hooks/useTokens';
 
-const c = getSemanticColors('light');
 const AMBER_INK = '#B27330';
 
 export default function MeetingReadingScreen() {
@@ -21,6 +21,9 @@ export default function MeetingReadingScreen() {
   const { id } = useLocalSearchParams<{ id?: string }>();
   const reading = id ? getMeetingReading(id) : undefined;
   useScreenTimeTracking('Meeting Reading');
+
+  const styles = useThemedStyles(makeStyles);
+  const { c } = useTokens();
 
   const ts = useTextSettings();
   const size = ts?.fontSize ?? 18;
@@ -91,7 +94,9 @@ export default function MeetingReadingScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (tk: Tokens) => {
+  const { c, colors, isDark } = tk;
+  return StyleSheet.create({
   screen: { flex: 1, backgroundColor: c.background },
   flex: { flex: 1, minWidth: 0 },
   headerBar: { paddingHorizontal: 14, paddingTop: 6, paddingBottom: 8 },
@@ -103,5 +108,8 @@ const styles = StyleSheet.create({
 
   numRow: { flexDirection: 'row' },
   numLabel: { textAlign: 'left' },
-  blockLabel: { fontFamily: fontFamily.bold, fontSize: 11.5, letterSpacing: 1.2, color: AMBER_INK },
-});
+  // Section labels: warm amber on light; on dark the amber alias is the
+  // brightened teal (tokens.md — legacy amber alias = teal in the ramp).
+  blockLabel: { fontFamily: fontFamily.bold, fontSize: 11.5, letterSpacing: 1.2, color: isDark ? colors.amber : AMBER_INK },
+  });
+};

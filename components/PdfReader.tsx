@@ -10,11 +10,10 @@ import { SafeAreaProvider, SafeAreaView, initialWindowMetrics } from 'react-nati
 import { Asset } from 'expo-asset';
 import Pdf from 'react-native-pdf';
 import { X, Bookmark } from 'lucide-react-native';
-import { colors, fontFamily, getSemanticColors } from '@/constants/designTokens';
+import { colors, fontFamily, type Tokens } from '@/constants/designTokens';
+import { useTokens, useThemedStyles } from '@/hooks/useTokens';
 import { usePdfBookmarks } from '@/hooks/use-pdf-bookmarks';
 import { useReadingTime } from '@/hooks/useReadingTime';
-
-const c = getSemanticColors('light');
 
 // bookmark-namespace → display name for analytics
 const BOOK_NAMES: Record<string, string> = { bigbook: 'Big Book', twelve: '12 & 12' };
@@ -31,6 +30,8 @@ export default function PdfReader({
   accent?: string;
   onClose: () => void;
 }) {
+  const styles = useThemedStyles(makeStyles);
+  const { c } = useTokens();
   const { isBookmarked, toggle } = usePdfBookmarks();
   useReadingTime(BOOK_NAMES[book] ?? book, { format: 'pdf', section: sectionId });
   const pdfRef = useRef<any>(null);
@@ -117,7 +118,9 @@ export default function PdfReader({
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (tk: Tokens) => {
+  const { c, isDark } = tk;
+  return StyleSheet.create({
   screen: { flex: 1, backgroundColor: c.background },
   flex: { flex: 1, minWidth: 0 },
   header: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 16, paddingTop: 10, paddingBottom: 8 },
@@ -129,7 +132,8 @@ const styles = StyleSheet.create({
   bmBtn: { flexDirection: 'row', alignItems: 'center', gap: 5, height: 30, paddingHorizontal: 11, borderRadius: 15, borderWidth: 1 },
   bmText: { fontFamily: fontFamily.semiBold, fontSize: 12 },
 
-  body: { flex: 1, backgroundColor: '#E6E1D7' },
-  pdf: { flex: 1, width: '100%', height: '100%', backgroundColor: '#E6E1D7' },
+  body: { flex: 1, backgroundColor: isDark ? c.background : '#E6E1D7' },
+  pdf: { flex: 1, width: '100%', height: '100%', backgroundColor: isDark ? c.background : '#E6E1D7' },
   msg: { fontFamily: fontFamily.regular, fontSize: 15, color: c.textMuted, textAlign: 'center', marginTop: 48 },
 });
+};

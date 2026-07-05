@@ -23,9 +23,9 @@ import { recordDailyReflectionDay } from '@/lib/reviewPrompt';
 import { titleCase } from '@/lib/titleCase';
 import { useDailies } from '@/hooks/use-dailies-store';
 import { useTextSettings } from '@/hooks/use-text-settings';
-import { colors, fontFamily, getSemanticColors } from '@/constants/designTokens';
+import { fontFamily, type Tokens } from '@/constants/designTokens';
+import { useTokens, useThemedStyles } from '@/hooks/useTokens';
 
-const c = getSemanticColors('light');
 const HERO = require('../assets/images/reflection_bg2.webp');
 const WEEKDAYS = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
 const SIZE_BUCKETS: { k: string; size: number }[] = [
@@ -51,6 +51,9 @@ export default function DailyReflection({ fontSize = 18, lineHeight, jumpToDate 
   const insets = useSafeAreaInsets();
   const dailies = useDailies();
   const { setFontSize } = useTextSettings();
+
+  const styles = useThemedStyles(makeStyles);
+  const { c, colors, isDark } = useTokens();
 
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [reflection, setReflection] = useState<Reflection | null>(null);
@@ -150,7 +153,7 @@ export default function DailyReflection({ fontSize = 18, lineHeight, jumpToDate 
         showsVerticalScrollIndicator={false}
         {...panResponder.panHandlers}
       >
-        {/* Hero */}
+        {/* Hero — photo + scrim stay full-color in both modes */}
         <View style={styles.hero}>
           <LinearGradient colors={[colors.primary, colors.secondary]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFill} />
           <Image source={HERO} style={StyleSheet.absoluteFill} contentFit="cover" />
@@ -165,17 +168,21 @@ export default function DailyReflection({ fontSize = 18, lineHeight, jumpToDate 
 
         {reflection && (
           <>
-            {/* Pull-quote — start of the reading */}
-            <View style={styles.quoteWrap}>
-              <Text style={[styles.quote, { fontSize: readSize, lineHeight: readLine - readSize * 0.1 }]}>{reflection.quote}</Text>
-              <Text style={styles.source}>— {reflection.source}</Text>
-            </View>
+            {/* Reading surface — plain page on light; on dark the quote + body sit
+                on a gently lit surface card so the serif text doesn't float on black. */}
+            <View style={isDark ? styles.readingCard : undefined}>
+              {/* Pull-quote — start of the reading */}
+              <View style={styles.quoteWrap}>
+                <Text style={[styles.quote, { fontSize: readSize, lineHeight: readLine - readSize * 0.1 }]}>{reflection.quote}</Text>
+                <Text style={styles.source}>— {reflection.source}</Text>
+              </View>
 
-            {/* Reflection body */}
-            <View style={styles.bodyWrap}>
-              {reflection.reflection.split('\n\n').map((p, i) => (
-                <Text key={i} style={[styles.body, { fontSize: readSize, lineHeight: readLine, marginTop: i === 0 ? 0 : 14 }]}>{p}</Text>
-              ))}
+              {/* Reflection body */}
+              <View style={styles.bodyWrap}>
+                {reflection.reflection.split('\n\n').map((p, i) => (
+                  <Text key={i} style={[styles.body, { fontSize: readSize, lineHeight: readLine, marginTop: i === 0 ? 0 : 14 }]}>{p}</Text>
+                ))}
+              </View>
             </View>
 
             {/* Meditation tile (separate, app-added section) */}
@@ -219,6 +226,8 @@ function CalendarSheet({ visible, month, selected, onMonth, onPick, onToday, onC
   visible: boolean; month: Date; selected: Date; onMonth: (d: 'prev' | 'next') => void;
   onPick: (d: Date) => void; onToday: () => void; onClose: () => void; bottomInset: number;
 }) {
+  const styles = useThemedStyles(makeStyles);
+  const { colors } = useTokens();
   const year = month.getFullYear();
   const m = month.getMonth();
   const lead = new Date(year, m, 1).getDay();
@@ -265,6 +274,8 @@ function CalendarSheet({ visible, month, selected, onMonth, onPick, onToday, onC
 function DisplaySheet({ visible, current, onSize, onClose, bottomInset }: {
   visible: boolean; current: number; onSize: (n: number) => void; onClose: () => void; bottomInset: number;
 }) {
+  const styles = useThemedStyles(makeStyles);
+  const { c, isDark } = useTokens();
   const selected = SIZE_BUCKETS.reduce((best, b) => (Math.abs(b.size - current) < Math.abs(best.size - current) ? b : best), SIZE_BUCKETS[0]).k;
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
@@ -278,7 +289,7 @@ function DisplaySheet({ visible, current, onSize, onClose, bottomInset }: {
               const on = b.k === selected;
               return (
                 <Pressable key={b.k} onPress={() => onSize(b.size)} style={[styles.sizeBtn, on ? styles.sizeBtnOn : styles.sizeBtnOff]}>
-                  <Text style={[styles.sizeBtnText, { fontSize: b.k === 'S' ? 11 : b.k === 'M' ? 13 : b.k === 'L' ? 15 : 17, color: on ? '#fff' : c.textSecondary }]}>{b.k}</Text>
+                  <Text style={[styles.sizeBtnText, { fontSize: b.k === 'S' ? 11 : b.k === 'M' ? 13 : b.k === 'L' ? 15 : 17, color: on ? (isDark ? '#0B0C0E' : '#fff') : c.textSecondary }]}>{b.k}</Text>
                 </Pressable>
               );
             })}
@@ -290,18 +301,24 @@ function DisplaySheet({ visible, current, onSize, onClose, bottomInset }: {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (tk: Tokens) => {
+  const { c, colors, isDark } = tk;
+  // Cheap dark card chrome — lit top hairline + hairline border (handoff).
+  const darkCard = isDark
+    ? { borderColor: 'rgba(255,255,255,0.06)', borderTopColor: 'rgba(255,255,255,0.12)' }
+    : null;
+  return StyleSheet.create({
   screen: { flex: 1, backgroundColor: c.background },
   flex: { flex: 1 },
 
   topBar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 14, paddingTop: 6, paddingBottom: 8 },
   topActions: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  hdrBtn: { width: 34, height: 34, borderRadius: 17, backgroundColor: c.surface, borderWidth: 1, borderColor: c.border, alignItems: 'center', justifyContent: 'center' },
+  hdrBtn: { width: 34, height: 34, borderRadius: 17, backgroundColor: c.surface, borderWidth: 1, borderColor: c.border, alignItems: 'center', justifyContent: 'center', ...darkCard },
   hdrAa: { fontFamily: fontFamily.bold, fontSize: 13, color: c.textSecondary, letterSpacing: -0.2 },
 
   dateRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingTop: 4, paddingBottom: 14 },
   dateChev: { width: 30, height: 30, alignItems: 'center', justifyContent: 'center' },
-  dateBtn: { width: 38, height: 38, borderRadius: 19, alignItems: 'center', justifyContent: 'center', backgroundColor: c.surface, borderWidth: 1, borderColor: c.border },
+  dateBtn: { width: 38, height: 38, borderRadius: 19, alignItems: 'center', justifyContent: 'center', backgroundColor: c.surface, borderWidth: 1, borderColor: c.border, ...darkCard },
 
   scroll: { paddingHorizontal: 16, paddingBottom: 24 },
 
@@ -313,27 +330,30 @@ const styles = StyleSheet.create({
   heroTitle: { fontFamily: fontFamily.serifMedium, fontSize: 22, color: '#fff', lineHeight: 28, letterSpacing: 0, textShadowColor: 'rgba(0,0,0,0.45)', textShadowRadius: 12, textShadowOffset: { width: 0, height: 2 } },
   heroDate: { fontFamily: fontFamily.regular, fontSize: 11, color: 'rgba(255,255,255,0.92)', marginTop: 6, textShadowColor: 'rgba(0,0,0,0.4)', textShadowRadius: 6, textShadowOffset: { width: 0, height: 1 } },
 
+  // dark-only reading surface (quote + body)
+  readingCard: { marginTop: 16, paddingHorizontal: 18, paddingTop: 0, paddingBottom: 26, borderRadius: 18, backgroundColor: c.surface, borderWidth: 1, borderColor: c.border, ...darkCard },
+
   quoteWrap: { marginTop: 32, paddingLeft: 18, borderLeftWidth: 2, borderLeftColor: colors.primary },
-  quote: { fontFamily: fontFamily.serifItalic, color: c.textSecondary, letterSpacing: -0.05 },
+  quote: { fontFamily: fontFamily.serifItalic, color: isDark ? c.text : c.textSecondary, letterSpacing: -0.05 },
   source: { fontFamily: fontFamily.semiBold, fontSize: 11, color: c.textMuted, marginTop: 10, letterSpacing: 1, textTransform: 'uppercase' },
 
   bodyWrap: { marginTop: 32 },
-  body: { fontFamily: fontFamily.serif, color: c.textSecondary, letterSpacing: -0.05 },
+  body: { fontFamily: fontFamily.serif, color: isDark ? c.text : c.textSecondary, letterSpacing: -0.05 },
 
   medTile: { marginTop: 24, padding: 18, backgroundColor: colors.primarySoft, borderRadius: 18, borderWidth: 1, borderColor: colors.primary + '28', overflow: 'hidden' },
   medOrb: { position: 'absolute', top: -30, right: -30, width: 140, height: 140, borderRadius: 70, backgroundColor: colors.primary + '14' },
   medLabelRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   medLabel: { fontFamily: fontFamily.bold, fontSize: 10, letterSpacing: 1.4, color: colors.primaryDark },
-  medText: { fontFamily: fontFamily.serifItalic, fontSize: 18, color: c.textSecondary, marginTop: 8, lineHeight: 25, letterSpacing: -0.3 },
+  medText: { fontFamily: fontFamily.serifItalic, fontSize: 18, color: isDark ? c.text : c.textSecondary, marginTop: 8, lineHeight: 25, letterSpacing: -0.3 },
 
 
   copyright: { marginTop: 18, fontFamily: fontFamily.regular, fontSize: 10, color: c.textMuted, lineHeight: 15, textAlign: 'center' },
 
   // sheets
-  sheetBackdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(26,26,46,0.32)' },
-  calSheet: { position: 'absolute', left: 12, right: 12, bottom: 18, backgroundColor: c.surface, borderRadius: 24, padding: 18, shadowColor: '#000', shadowOpacity: 0.18, shadowRadius: 60, shadowOffset: { width: 0, height: 24 }, elevation: 12 },
+  sheetBackdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: isDark ? c.overlay : 'rgba(26,26,46,0.32)' },
+  calSheet: { position: 'absolute', left: 12, right: 12, bottom: 18, backgroundColor: c.surface, borderRadius: 24, padding: 18, shadowColor: '#000', shadowOpacity: 0.18, shadowRadius: 60, shadowOffset: { width: 0, height: 24 }, elevation: 12, ...(isDark ? { borderWidth: 1, ...darkCard } : null) },
   calHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 },
-  calNav: { width: 32, height: 32, borderRadius: 16, backgroundColor: c.surface, borderWidth: 1, borderColor: c.border, alignItems: 'center', justifyContent: 'center' },
+  calNav: { width: 32, height: 32, borderRadius: 16, backgroundColor: c.surface, borderWidth: 1, borderColor: c.border, alignItems: 'center', justifyContent: 'center', ...darkCard },
   calMonth: { fontFamily: fontFamily.display, fontSize: 19, color: c.text, letterSpacing: -0.2 },
   calGrid: { flexDirection: 'row', flexWrap: 'wrap' },
   calWeekday: { width: `${100 / 7}%`, textAlign: 'center', fontFamily: fontFamily.semiBold, fontSize: 10, color: c.textMuted, marginBottom: 6 },
@@ -342,17 +362,17 @@ const styles = StyleSheet.create({
   calDaySel: { backgroundColor: colors.primary },
   calDayToday: { borderWidth: 1.5, borderColor: colors.primary },
   calDayText: { fontFamily: fontFamily.medium, fontSize: 13, color: c.textSecondary },
-  calDayTextSel: { color: '#fff', fontFamily: fontFamily.semiBold },
+  calDayTextSel: { color: isDark ? '#0B0C0E' : '#fff', fontFamily: fontFamily.semiBold },
   calDayTextToday: { color: colors.primary, fontFamily: fontFamily.semiBold },
   calFoot: { flexDirection: 'row', justifyContent: 'flex-end', alignItems: 'center', gap: 8, marginTop: 14, paddingTop: 12, borderTopWidth: 1, borderTopColor: c.divider },
   calCancel: { fontFamily: fontFamily.semiBold, fontSize: 13, color: c.textMuted, paddingHorizontal: 14, paddingVertical: 8 },
   calTodayBtn: { paddingHorizontal: 16, paddingVertical: 8, borderRadius: 999, backgroundColor: colors.primary },
-  calTodayText: { fontFamily: fontFamily.semiBold, fontSize: 13, color: '#fff' },
+  calTodayText: { fontFamily: fontFamily.semiBold, fontSize: 13, color: isDark ? '#0B0C0E' : '#fff' },
 
-  dispSheet: { position: 'absolute', left: 0, right: 0, bottom: 0, backgroundColor: c.surface, borderTopLeftRadius: 28, borderTopRightRadius: 28, paddingHorizontal: 20, paddingTop: 14, shadowColor: '#000', shadowOpacity: 0.18, shadowRadius: 40, shadowOffset: { width: 0, height: -10 }, elevation: 12 },
+  dispSheet: { position: 'absolute', left: 0, right: 0, bottom: 0, backgroundColor: c.surface, borderTopLeftRadius: 28, borderTopRightRadius: 28, paddingHorizontal: 20, paddingTop: 14, shadowColor: '#000', shadowOpacity: 0.18, shadowRadius: 40, shadowOffset: { width: 0, height: -10 }, elevation: 12, ...(isDark ? { borderWidth: 1, ...darkCard } : null) },
   grabber: { width: 40, height: 4, borderRadius: 999, backgroundColor: c.border, alignSelf: 'center', marginBottom: 16 },
   sheetLabel: { fontFamily: fontFamily.bold, fontSize: 11, letterSpacing: 1.4, color: c.textMuted },
-  sizeRow: { flexDirection: 'row', alignItems: 'center', marginTop: 12, paddingHorizontal: 14, paddingVertical: 10, borderRadius: 16, backgroundColor: c.background, borderWidth: 1, borderColor: c.border },
+  sizeRow: { flexDirection: 'row', alignItems: 'center', marginTop: 12, paddingHorizontal: 14, paddingVertical: 10, borderRadius: 16, backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : c.background, borderWidth: 1, borderColor: c.border },
   sizeBtns: { flex: 1, flexDirection: 'row', gap: 6 },
   sizeBtn: { flex: 1, paddingVertical: 8, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
   sizeBtnOn: { backgroundColor: colors.primary },
@@ -360,4 +380,5 @@ const styles = StyleSheet.create({
   sizeBtnText: { fontFamily: fontFamily.semiBold },
   sheetCancel: { marginTop: 22, paddingVertical: 12, borderRadius: 999, borderWidth: 1, borderColor: c.border, alignItems: 'center' },
   sheetCancelText: { fontFamily: fontFamily.semiBold, fontSize: 14, color: c.textSecondary },
-});
+  });
+};

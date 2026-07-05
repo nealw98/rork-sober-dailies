@@ -16,7 +16,7 @@ import * as Haptics from 'expo-haptics';
 import * as Clipboard from 'expo-clipboard';
 import { ChatStoreProvider, useChatStore } from '@/hooks/use-chat-store';
 import { getSponsorById, SPONSORS, type SponsorConfig } from '@/constants/sponsors';
-import { SELECTION_SPONSOR_IDS, BR_INK, BR_SOFT } from '@/constants/sponsorTones';
+import { SELECTION_SPONSOR_IDS, BR_INK as BR_INK_LIGHT, BR_SOFT as BR_SOFT_LIGHT } from '@/constants/sponsorTones';
 import { useScreenTimeTracking } from '@/hooks/useScreenTimeTracking';
 import { useTextSettings } from '@/hooks/use-text-settings';
 import { useLastSponsor } from '@/hooks/use-last-sponsor';
@@ -26,7 +26,8 @@ import BackButton from '@/components/BackButton';
 import { logEvent } from '@/lib/analytics';
 import { getAnonymousId } from '@/lib/anonymousId';
 import { supabase } from '@/lib/supabase';
-import { fontFamily, getSemanticColors, shadows } from '@/constants/designTokens';
+import { fontFamily, shadows, type Tokens } from '@/constants/designTokens';
+import { useTokens, useThemedStyles } from '@/hooks/useTokens';
 import {
   DEFAULT_SPONSOR_API_ENGINE,
   DEFAULT_SPONSOR_API_TEMPERATURE,
@@ -40,9 +41,8 @@ import {
   type SponsorApiEngine,
 } from '@/lib/sponsorApiSettings';
 
-const c = getSemanticColors('light');
-const PAPER = '#FCFBF8';  // conversation background
-const LINEN = '#F5F1E9';  // header + input dock
+const PAPER = '#FCFBF8';  // conversation background (light)
+const LINEN = '#F5F1E9';  // header + input dock (light)
 
 const DAILY_SPONSOR_LIMIT = 50;
 const MONTHLY_SPONSOR_LIMIT = 200;
@@ -130,6 +130,8 @@ const copyMessage = async (text: string) => {
 // ── Message: user = white bubble; sponsor = flat text (assistant style) ──
 // `size` follows the global reading size, Lora-scaled (see LORA_SCALE).
 function Bubble({ message, size }: { message: ChatMessage; size: number }) {
+  const styles = useThemedStyles(makeStyles);
+  const { c } = useTokens();
   if (message.sender === 'user') {
     return (
       <View style={styles.userRow}>
@@ -143,7 +145,7 @@ function Bubble({ message, size }: { message: ChatMessage; size: number }) {
     <Pressable onLongPress={() => copyMessage(message.text)} style={styles.botBlock}>
       <ChatMarkdownRenderer
         content={message.text}
-        style={{ color: '#2B2A30', fontSize: size, fontFamily: fontFamily.regular, lineHeight: Math.round(size * 1.55) }}
+        style={{ color: c.text, fontSize: size, fontFamily: fontFamily.regular, lineHeight: Math.round(size * 1.55) }}
       />
       {/* dev: which model produced this reply (+ temperature when it applies) */}
       {message.model ? (
@@ -159,6 +161,10 @@ function Bubble({ message, size }: { message: ChatMessage; size: number }) {
 function SponsorChatContent({ initialSponsor }: { initialSponsor: string }) {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const styles = useThemedStyles(makeStyles);
+  const { c, colors, isDark } = useTokens();
+  const BR_INK = isDark ? colors.primaryDark : BR_INK_LIGHT;
+  const BR_SOFT = isDark ? colors.primarySoft : BR_SOFT_LIGHT;
   const textSettings = useTextSettings();
   const size = (textSettings?.fontSize ?? 18) * LORA_SCALE; // chat text, Lora-matched
   const { messages, isLoading, sendMessage, clearChat, changeSponsor, sponsorType } = useChatStore();
@@ -274,7 +280,7 @@ function SponsorChatContent({ initialSponsor }: { initialSponsor: string }) {
               <ChevronDown size={13} color={BR_INK} strokeWidth={2.2} />
             </Pressable>
             <Pressable onPress={handleRefresh} style={styles.resetBtn} accessibilityLabel="Reset conversation">
-              <RotateCcw size={16} color="#4A4A5E" strokeWidth={2} />
+              <RotateCcw size={16} color={isDark ? c.textSecondary : '#4A4A5E'} strokeWidth={2} />
             </Pressable>
             <Pressable onPress={() => { setSwitchOpen((o) => !o); setEngineOpen(false); }} style={styles.switchBtn} accessibilityLabel="Switch sponsor">
               <ArrowLeftRight size={16} color={BR_INK} strokeWidth={2.2} />
@@ -395,6 +401,7 @@ function SponsorChatContent({ initialSponsor }: { initialSponsor: string }) {
             multiline
             maxLength={500}
             returnKeyType="default"
+            keyboardAppearance={isDark ? 'dark' : 'light'}
           />
           <Pressable
             style={[styles.sendBtn, isSendDisabled && styles.sendDisabled]}
@@ -420,69 +427,82 @@ export default function SponsorChatScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: PAPER },
+const makeStyles = (tk: Tokens) => {
+  const { c, colors, isDark } = tk;
+  const BR_INK = isDark ? colors.primaryDark : BR_INK_LIGHT;
+  const BR_SOFT = isDark ? colors.primarySoft : BR_SOFT_LIGHT;
+  const paper = isDark ? c.background : PAPER;
+  const linen = isDark ? c.surface : LINEN;
+  const hairline = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(26,26,46,0.06)';
+  const darkCard = isDark
+    ? { borderColor: 'rgba(255,255,255,0.06)', borderTopColor: 'rgba(255,255,255,0.12)' }
+    : null;
+  return StyleSheet.create({
+  container: { flex: 1, backgroundColor: paper },
   flex: { flex: 1 },
 
   // header
-  header: { backgroundColor: LINEN, paddingHorizontal: 14, paddingBottom: 12, borderBottomWidth: 1, borderBottomColor: 'rgba(26,26,46,0.06)' },
+  header: { backgroundColor: linen, paddingHorizontal: 14, paddingBottom: 12, borderBottomWidth: 1, borderBottomColor: hairline },
   sponsorRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  hAvatar: { width: 46, height: 46, borderRadius: 23, borderWidth: 2, borderColor: '#fff', backgroundColor: BR_SOFT, ...shadows.sm },
+  hAvatar: { width: 46, height: 46, borderRadius: 23, borderWidth: 2, borderColor: isDark ? 'rgba(255,255,255,0.18)' : '#fff', backgroundColor: BR_SOFT, ...shadows.sm },
   hName: { fontFamily: fontFamily.display, fontSize: 22, letterSpacing: -0.3, color: c.text },
   vibe: { fontFamily: fontFamily.semiBold, fontSize: 11, color: c.textMuted, marginTop: 2 },
   headActions: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  enginePill: { flexDirection: 'row', alignItems: 'center', gap: 3, height: 34, paddingHorizontal: 10, borderRadius: 17, backgroundColor: c.surface, borderWidth: 1, borderColor: BR_INK + '40' },
+  enginePill: { flexDirection: 'row', alignItems: 'center', gap: 3, height: 34, paddingHorizontal: 10, borderRadius: 17, backgroundColor: isDark ? c.surfaceRaised : c.surface, borderWidth: 1, borderColor: BR_INK + '40' },
   enginePillText: { fontFamily: fontFamily.semiBold, fontSize: 12, color: BR_INK, maxWidth: 92 },
   tempRow: { flexDirection: 'row', alignItems: 'center', gap: 8, alignSelf: 'flex-end', marginTop: 8 },
   tempLabel: { fontFamily: fontFamily.bold, fontSize: 10, letterSpacing: 1, color: c.textMuted, marginRight: 2 },
-  tempBtn: { width: 30, height: 28, borderRadius: 9, alignItems: 'center', justifyContent: 'center', backgroundColor: c.surface, borderWidth: 1, borderColor: BR_INK + '40' },
+  tempBtn: { width: 30, height: 28, borderRadius: 9, alignItems: 'center', justifyContent: 'center', backgroundColor: isDark ? c.surfaceRaised : c.surface, borderWidth: 1, borderColor: BR_INK + '40' },
   tempBtnDisabled: { opacity: 0.4 },
   tempBtnText: { fontFamily: fontFamily.bold, fontSize: 17, color: BR_INK, lineHeight: 19 },
   tempValue: { fontFamily: fontFamily.bold, fontSize: 14, color: c.text, minWidth: 42, textAlign: 'center' },
-  resetBtn: { width: 34, height: 34, borderRadius: 17, alignItems: 'center', justifyContent: 'center', backgroundColor: c.surface, borderWidth: 1, borderColor: 'rgba(26,26,46,0.12)' },
+  resetBtn: { width: 34, height: 34, borderRadius: 17, alignItems: 'center', justifyContent: 'center', backgroundColor: isDark ? c.surfaceRaised : c.surface, borderWidth: 1, borderColor: isDark ? 'rgba(255,255,255,0.12)' : 'rgba(26,26,46,0.12)' },
   switchBtn: { width: 34, height: 34, borderRadius: 17, alignItems: 'center', justifyContent: 'center', backgroundColor: BR_SOFT, borderWidth: 1, borderColor: BR_INK + '40' },
 
   // switch dropdown
   ddBackdrop: { ...StyleSheet.absoluteFillObject, zIndex: 20 },
-  dropdown: { position: 'absolute', right: 14, width: 232, zIndex: 30, backgroundColor: c.surface, borderRadius: 16, borderWidth: 1, borderColor: 'rgba(26,26,46,0.06)', padding: 6, ...shadows.lg },
+  dropdown: { position: 'absolute', right: 14, width: 232, zIndex: 30, backgroundColor: isDark ? c.surfaceRaised : c.surface, borderRadius: 16, borderWidth: 1, borderColor: hairline, padding: 6, ...shadows.lg },
   ddHead: { fontFamily: fontFamily.bold, fontSize: 10, letterSpacing: 1, color: c.textMuted, paddingHorizontal: 10, paddingTop: 8, paddingBottom: 6 },
   ddRow: { flexDirection: 'row', alignItems: 'center', gap: 10, padding: 8, borderRadius: 11 },
-  ddAvatar: { width: 34, height: 34, borderRadius: 17, borderWidth: 2, borderColor: '#fff' },
+  ddAvatar: { width: 34, height: 34, borderRadius: 17, borderWidth: 2, borderColor: isDark ? 'rgba(255,255,255,0.18)' : '#fff' },
   ddName: { flex: 1, fontFamily: fontFamily.bold, fontSize: 14, color: c.text },
-  ddDivider: { height: 1, backgroundColor: 'rgba(26,26,46,0.07)', marginHorizontal: 8, marginVertical: 6 },
+  ddDivider: { height: 1, backgroundColor: isDark ? c.divider : 'rgba(26,26,46,0.07)', marginHorizontal: 8, marginVertical: 6 },
   ddAction: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8, paddingHorizontal: 10, paddingVertical: 9, borderRadius: 11 },
   ddActionText: { fontFamily: fontFamily.semiBold, fontSize: 13, color: c.textSecondary },
 
   // conversation
   list: { paddingHorizontal: 16, paddingTop: 14, paddingBottom: 14 },
   dayDivider: { alignItems: 'center', marginBottom: 16 },
-  dayText: { fontFamily: fontFamily.regular, fontSize: 11, color: c.textMuted, backgroundColor: c.surface, paddingHorizontal: 12, paddingVertical: 4, borderRadius: 999, overflow: 'hidden', ...shadows.sm },
+  dayText: { fontFamily: fontFamily.regular, fontSize: 11, color: c.textMuted, backgroundColor: isDark ? c.surfaceRaised : c.surface, paddingHorizontal: 12, paddingVertical: 4, borderRadius: 999, overflow: 'hidden', ...shadows.sm },
 
   botBlock: { marginBottom: 18 },
   modelTag: { fontFamily: fontFamily.regular, fontSize: 10.5, color: c.textMuted, marginTop: 5, opacity: 0.8 },
 
   userRow: { alignItems: 'flex-end', marginBottom: 18 },
-  userBubble: { maxWidth: '78%', backgroundColor: c.surface, paddingVertical: 10, paddingHorizontal: 14, borderRadius: 18, borderBottomRightRadius: 4, ...shadows.sm },
-  userText: { fontFamily: fontFamily.regular, color: '#2B2A30' },
+  // Styled like the suggestion chips ("I'm struggling today" …): surface fill,
+  // teal hairline, teal text — the user's words read in the brand voice.
+  userBubble: { maxWidth: '78%', backgroundColor: isDark ? c.surfaceRaised : c.surface, paddingVertical: 10, paddingHorizontal: 14, borderRadius: 18, borderBottomRightRadius: 4, borderWidth: 1, borderColor: BR_INK + '55', ...shadows.sm },
+  userText: { fontFamily: fontFamily.regular, color: BR_INK },
 
   // suggestion chips (above composer)
-  chipsStrip: { backgroundColor: LINEN, height: 52, flexShrink: 0, flexGrow: 0 },
+  chipsStrip: { backgroundColor: linen, height: 52, flexShrink: 0, flexGrow: 0 },
   chipsStripContent: { paddingHorizontal: 14, gap: 6, alignItems: 'center' },
-  chip: { backgroundColor: c.surface, paddingVertical: 7, paddingHorizontal: 12, borderRadius: 999, borderWidth: 1, borderColor: BR_INK + '55', ...shadows.sm },
+  chip: { backgroundColor: isDark ? c.surfaceRaised : c.surface, paddingVertical: 7, paddingHorizontal: 12, borderRadius: 999, borderWidth: 1, borderColor: BR_INK + '55', ...shadows.sm },
   chipText: { fontFamily: fontFamily.medium, fontSize: 12, color: BR_INK },
 
   loadingRow: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 18, paddingBottom: 6 },
   loadingText: { fontFamily: fontFamily.regularItalic, fontSize: 12.5, color: c.textMuted },
 
   // input dock
-  inputDock: { flexShrink: 0, flexDirection: 'row', alignItems: 'flex-end', gap: 8, backgroundColor: LINEN, paddingHorizontal: 14, paddingTop: 10, borderTopWidth: 1, borderTopColor: 'rgba(26,26,46,0.06)' },
-  input: { flex: 1, maxHeight: 120, backgroundColor: c.surface, borderWidth: 1, borderColor: 'rgba(26,26,46,0.07)', borderRadius: 22, paddingHorizontal: 16, paddingVertical: Platform.OS === 'ios' ? 10 : 6, fontFamily: fontFamily.regular, color: c.text },
+  inputDock: { flexShrink: 0, flexDirection: 'row', alignItems: 'flex-end', gap: 8, backgroundColor: linen, paddingHorizontal: 14, paddingTop: 10, borderTopWidth: 1, borderTopColor: hairline },
+  input: { flex: 1, maxHeight: 120, backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : c.surface, borderWidth: 1, borderColor: isDark ? 'rgba(255,255,255,0.10)' : 'rgba(26,26,46,0.07)', borderRadius: 22, paddingHorizontal: 16, paddingVertical: Platform.OS === 'ios' ? 10 : 6, fontFamily: fontFamily.regular, color: c.text },
   sendBtn: { width: 38, height: 38, borderRadius: 19, alignItems: 'center', justifyContent: 'center', backgroundColor: BR_INK },
   sendDisabled: { opacity: 0.4 },
 
   // error
-  errorBox: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 16, backgroundColor: PAPER },
+  errorBox: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 16, backgroundColor: paper },
   errorText: { fontFamily: fontFamily.semiBold, fontSize: 16, color: c.text },
   errorBtn: { paddingHorizontal: 20, paddingVertical: 10, borderRadius: 12, backgroundColor: c.text },
-  errorBtnText: { fontFamily: fontFamily.semiBold, fontSize: 14, color: '#fff' },
-});
+  errorBtnText: { fontFamily: fontFamily.semiBold, fontSize: 14, color: isDark ? '#000' : '#fff' },
+  });
+};

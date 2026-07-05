@@ -13,13 +13,10 @@ import { Plus, ChevronRight } from 'lucide-react-native';
 import BackButton from '@/components/BackButton';
 import { useContacts, normalizePhone, type Contact } from '@/hooks/use-contacts-store';
 import { pickContact } from '@/lib/pickContact';
-import { colors, fontFamily, getSemanticColors, shadows } from '@/constants/designTokens';
+import { fontFamily, shadows, type Tokens } from '@/constants/designTokens';
+import { useTokens, useThemedStyles } from '@/hooks/useTokens';
 import { logEvent } from '@/lib/analytics';
 
-const c = getSemanticColors('light');
-const CO = colors.steel;           // Steel Navy — Reach Out tone (people & connection)
-const CO_SOFT = colors.steelSoft;
-const CO_DARK = colors.steelDark;
 
 const call = (phone: string) => {
   logEvent('reach_out', { action: 'call' });
@@ -32,6 +29,9 @@ const text = (phone: string) => {
 
 export default function ReachOutScreen() {
   const router = useRouter();
+  const styles = useThemedStyles(makeStyles);
+  const { c, colors, isDark } = useTokens();
+  const CO_DARK = colors.steelDark;
   const { contacts, addContact, removeContact } = useContacts();
   const { showActionSheetWithOptions } = useActionSheet();
   const [justAdded, setJustAdded] = useState<string | null>(null);
@@ -163,6 +163,7 @@ export default function ReachOutScreen() {
                   style={styles.manualInput}
                   autoFocus
                   returnKeyType="next"
+                  keyboardAppearance={isDark ? 'dark' : 'light'}
                 />
                 <Text style={[styles.manualLabel, { marginTop: 16 }]}>PHONE</Text>
                 <TextInput
@@ -172,6 +173,7 @@ export default function ReachOutScreen() {
                   placeholderTextColor={c.textMuted}
                   style={styles.manualInput}
                   keyboardType="phone-pad"
+                  keyboardAppearance={isDark ? 'dark' : 'light'}
                 />
               </View>
             </View>
@@ -183,6 +185,8 @@ export default function ReachOutScreen() {
 }
 
 function ContactRow({ ct, highlight, onPress }: { ct: Contact; highlight: boolean; onPress: () => void }) {
+  const styles = useThemedStyles(makeStyles);
+  const { c } = useTokens();
   const initial = ct.name.trim()[0]?.toUpperCase() || '?';
   return (
     <Pressable
@@ -201,7 +205,15 @@ function ContactRow({ ct, highlight, onPress }: { ct: Contact; highlight: boolea
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (tk: Tokens) => {
+  const { c, colors, isDark } = tk;
+  const CO = colors.steel;           // Steel Navy — Reach Out tone (people & connection)
+  const CO_SOFT = colors.steelSoft;
+  const CO_DARK = colors.steelDark;
+  const darkCard = isDark
+    ? { borderColor: 'rgba(255,255,255,0.06)', borderTopColor: 'rgba(255,255,255,0.12)' }
+    : null;
+  return StyleSheet.create({
   screen: { flex: 1, backgroundColor: c.background },
   flex: { flex: 1 },
   header: { paddingHorizontal: 22, paddingTop: 8, paddingBottom: 8 },
@@ -209,7 +221,7 @@ const styles = StyleSheet.create({
   sub: { fontFamily: fontFamily.regular, fontSize: 13, color: c.textMuted, marginTop: 3 },
   scroll: { paddingHorizontal: 16, paddingTop: 16, paddingBottom: 40 },
 
-  row: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 10, marginBottom: 8, borderRadius: 16, backgroundColor: c.surface, borderWidth: 1, borderColor: c.border, ...shadows.sm },
+  row: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 10, marginBottom: 8, borderRadius: 16, backgroundColor: c.surface, borderWidth: 1, borderColor: c.border, ...shadows.sm, ...darkCard },
   rowHighlight: { backgroundColor: CO_SOFT, borderColor: CO },
   avatar: { width: 44, height: 44, borderRadius: 22, backgroundColor: CO_SOFT, alignItems: 'center', justifyContent: 'center' },
   avatarText: { fontFamily: fontFamily.display, fontSize: 18, color: CO_DARK, letterSpacing: -0.3 },
@@ -219,18 +231,19 @@ const styles = StyleSheet.create({
   addBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, marginTop: 4, paddingVertical: 13, borderRadius: 16, borderWidth: 1.5, borderColor: CO + '77', borderStyle: 'dashed' },
   addBtnText: { fontFamily: fontFamily.semiBold, fontSize: 14, color: CO_DARK },
 
-  manualWrap: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.35)' },
-  manualSheet: { backgroundColor: c.background, borderTopLeftRadius: 20, borderTopRightRadius: 20, paddingBottom: 28 },
+  manualWrap: { flex: 1, justifyContent: 'flex-end', backgroundColor: isDark ? c.overlay : 'rgba(0,0,0,0.35)' },
+  manualSheet: { backgroundColor: isDark ? c.surface : c.background, borderTopLeftRadius: 20, borderTopRightRadius: 20, paddingBottom: 28 },
   manualHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingTop: 16, paddingBottom: 6 },
   manualCancel: { fontFamily: fontFamily.regular, fontSize: 16, color: c.textMuted },
   manualTitle: { fontFamily: fontFamily.semiBold, fontSize: 16, color: c.text },
   manualSave: { fontFamily: fontFamily.bold, fontSize: 16, color: CO_DARK },
   manualBody: { paddingHorizontal: 20, paddingTop: 8 },
   manualLabel: { fontFamily: fontFamily.bold, fontSize: 11, letterSpacing: 1, color: c.textMuted, marginBottom: 8 },
-  manualInput: { borderWidth: 1, borderColor: c.border, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 12, fontSize: 16, fontFamily: fontFamily.regular, color: c.text, backgroundColor: c.surface },
+  manualInput: { borderWidth: 1, borderColor: c.border, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 12, fontSize: 16, fontFamily: fontFamily.regular, color: c.text, backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : c.surface },
 
   emptyCard: { flexDirection: 'row', alignItems: 'center', gap: 13, padding: 14, borderRadius: 16, borderWidth: 1.5, borderColor: CO + '77', borderStyle: 'dashed' },
   emptyMedallion: { width: 38, height: 38, borderRadius: 19, backgroundColor: CO_SOFT, alignItems: 'center', justifyContent: 'center' },
   emptyTitle: { fontFamily: fontFamily.semiBold, fontSize: 15, color: c.text },
   emptySub: { fontFamily: fontFamily.regular, fontSize: 12.5, color: c.textMuted, marginTop: 2, lineHeight: 17 },
-});
+  });
+};

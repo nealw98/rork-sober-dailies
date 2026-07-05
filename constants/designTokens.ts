@@ -199,27 +199,37 @@ export const toolColors = {
 } as const;
 
 // ─── Semantic Colors (mode-aware) ────────────────────────────────────────────
+// Dark = the OLED theme from the Dark Mode Handoff: pure-black base, near-black
+// cards that read as "gently lit" via the card treatment (see components/ThemedCard).
 
 export const semanticColors = {
   light: {
     background: ACTIVE_THEME.neutrals.background,
     surface: ACTIVE_THEME.neutrals.surface,
+    surfaceRaised: '#FFFFFF',
     text: ACTIVE_THEME.neutrals.ink,
     textSecondary: ACTIVE_THEME.neutrals.ink2,
     textMuted: ACTIVE_THEME.neutrals.ink3,
     border: ACTIVE_THEME.neutrals.border,
     divider: ACTIVE_THEME.neutrals.divider,
     overlay: 'rgba(0, 0, 0, 0.45)',
+    tabBg: '#FFFDF8',
+    tabBorder: 'rgba(120,98,60,0.13)',
+    tabInactive: '#A79B86',
   },
   dark: {
-    background: '#121218',
-    surface: '#1E1E2A',
-    text: '#F0F0F5',
-    textSecondary: '#A0A0B0',
-    textMuted: '#6B6B80',
-    border: '#2E2E40',
-    divider: '#252535',
+    background: '#000000',
+    surface: '#101216',
+    surfaceRaised: '#181B21',
+    text: '#F4F4F6',
+    textSecondary: '#C7C8CD',
+    textMuted: '#92949A',
+    border: 'rgba(255,255,255,0.10)',
+    divider: 'rgba(255,255,255,0.07)',
     overlay: 'rgba(0, 0, 0, 0.6)',
+    tabBg: 'rgba(8,8,10,0.82)',
+    tabBorder: 'rgba(255,255,255,0.10)',
+    tabInactive: '#7C7E84',
   },
 };
 
@@ -339,9 +349,97 @@ export const gradients = {
   tertiary: ['#A386D5', '#6DBEBF'] as const,
 };
 
+// ─── Dark family tones ───────────────────────────────────────────────────────
+// On dark surfaces the [500] bases go muddy, so each family brightens (≈ the
+// [300]–[400] step nudged for chroma — values from the Dark Mode Handoff) and
+// the opaque [100] soft tints flip to low-alpha washes of the brightened base.
+
+export const darkFamilies: Record<FamilyName, Tone> = {
+  teal: { base: '#4FB3AC', soft: 'rgba(79,179,172,0.15)', light: '#7BC9C3', dark: '#63C8C0' },
+  steel: { base: '#7C9BDB', soft: 'rgba(124,155,219,0.16)', light: '#9DB4E6', dark: '#9DB4E6' },
+  periwinkle: { base: '#B197E4', soft: 'rgba(177,151,228,0.16)', light: '#C7B2EE', dark: '#C7B2EE' },
+  terracotta: { base: '#DA845F', soft: 'rgba(218,132,95,0.15)', light: '#E6A184', dark: '#E6A184' },
+};
+
+// Steel specials (handoff): a mid-steel solid that can carry white text/icons on
+// dark ("fill"), and the play-triangle ink that sits on a white circle.
+export const steelFill = { light: '#6483A3', dark: '#3C5C89' } as const;
+export const steelPlay = { light: '#294E73', dark: '#CDDCF2' } as const;
+
+export const toneForMode = (family: FamilyName, mode: ColorMode): Tone =>
+  mode === 'dark' ? darkFamilies[family] : toneFor(family);
+
+// ─── Mode-aware flat colors ──────────────────────────────────────────────────
+// The same shape as `colors`, resolved per mode. Screens migrate from the flat
+// `colors` import to `useTokens().colors` so every tone brightens on dark.
+
+const darkColors: typeof colors = {
+  ...colors,
+  primary: darkFamilies.teal.base,
+  primaryLight: darkFamilies.teal.light,
+  primaryDark: darkFamilies.teal.dark,
+  primarySoft: darkFamilies.teal.soft,
+
+  secondary: darkFamilies.periwinkle.base,
+  secondaryLight: darkFamilies.periwinkle.light,
+  secondaryDark: darkFamilies.periwinkle.dark,
+  secondarySoft: darkFamilies.periwinkle.soft,
+
+  tertiary: darkFamilies.periwinkle.base,
+  tertiaryLight: darkFamilies.periwinkle.light,
+  tertiaryExtraLight: 'rgba(177,151,228,0.10)',
+  tertiaryDark: darkFamilies.periwinkle.dark,
+  tertiaryExtraDark: '#D8C9F4',
+  tertiarySoft: darkFamilies.periwinkle.soft,
+
+  steel: darkFamilies.steel.base,
+  steelLight: darkFamilies.steel.light,
+  steelDark: darkFamilies.steel.dark,
+  steelSoft: darkFamilies.steel.soft,
+
+  accent: darkFamilies.terracotta.base,
+  accentLight: darkFamilies.terracotta.light,
+  accentDark: darkFamilies.terracotta.dark,
+  accentSoft: darkFamilies.terracotta.soft,
+
+  amber: darkFamilies.teal.base,
+  amberSoft: darkFamilies.teal.soft,
+  coral: darkFamilies.periwinkle.base,
+
+  destructive: '#F87171',
+  success: '#4ADE80',
+  warning: '#FBBF24',
+};
+
+// ─── Signature elements (dark) ───────────────────────────────────────────────
+// The "jewels" keep full chroma on dark; these are their glows (handoff values).
+
+export const darkGlow = {
+  coin: { shadowColor: '#4FB3AC', shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.5, shadowRadius: 19, elevation: 12 },
+  tabMedallion: { shadowColor: '#4FB3AC', shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.6, shadowRadius: 11, elevation: 8 },
+} as const;
+
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
 export type ColorMode = 'light' | 'dark';
 
 export const getSemanticColors = (mode: ColorMode) => semanticColors[mode];
 export const getCardColors = (mode: ColorMode) => cardColors[mode];
+export const getColors = (mode: ColorMode) => (mode === 'dark' ? darkColors : colors);
+
+// Everything a screen needs for one mode, bundled. Prefer `useTokens()` from
+// hooks/useTokens.ts, which resolves this against the live appearance setting.
+export type Tokens = {
+  mode: ColorMode;
+  isDark: boolean;
+  c: (typeof semanticColors)['light'];
+  colors: typeof colors;
+  tone: (family: FamilyName) => Tone;
+};
+
+const tokensByMode: Record<ColorMode, Tokens> = {
+  light: { mode: 'light', isDark: false, c: semanticColors.light, colors, tone: (f) => toneFor(f) },
+  dark: { mode: 'dark', isDark: true, c: semanticColors.dark, colors: darkColors, tone: (f) => darkFamilies[f] },
+};
+
+export const getTokens = (mode: ColorMode): Tokens => tokensByMode[mode];

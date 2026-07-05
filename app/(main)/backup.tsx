@@ -11,11 +11,9 @@ import { CloudUpload, CloudDownload } from 'lucide-react-native';
 import BackButton from '@/components/BackButton';
 import { countStoredItems } from '@/lib/userDataSync';
 import { iCloudSupported, iCloudAvailable, pushToICloud, pullFromICloud, isSyncPaused, setSyncPaused } from '@/lib/icloudSync';
-import { colors, fontFamily, getSemanticColors, shadows } from '@/constants/designTokens';
+import { fontFamily, shadows, type Tokens } from '@/constants/designTokens';
+import { useTokens, useThemedStyles } from '@/hooks/useTokens';
 
-const c = getSemanticColors('light');
-const TEAL = colors.primaryDark ?? '#2E6F6F';
-const TEAL_SOFT = colors.primarySoft ?? '#D8E8E8';
 
 const reloadApp = async () => {
   try { const U = await import('expo-updates'); await U.reloadAsync(); } catch { /* dev / no updates module */ }
@@ -23,6 +21,9 @@ const reloadApp = async () => {
 
 export default function BackupScreen() {
   const router = useRouter();
+  const styles = useThemedStyles(makeStyles);
+  const { colors } = useTokens();
+  const TEAL = colors.primaryDark;
   const [busy, setBusy] = useState(false);
   const [count, setCount] = useState<number | null>(null);
   const [icloud, setIcloud] = useState<boolean | null>(null);
@@ -98,6 +99,7 @@ export default function BackupScreen() {
 function Row({ icon, title, sub, onPress, disabled }: {
   icon: React.ReactNode; title: string; sub: string; onPress: () => void; disabled?: boolean;
 }) {
+  const styles = useThemedStyles(makeStyles);
   return (
     <Pressable style={[styles.row, disabled && { opacity: 0.5 }]} onPress={onPress} disabled={disabled} accessibilityRole="button">
       <View style={styles.rowIcon}>{icon}</View>
@@ -109,7 +111,14 @@ function Row({ icon, title, sub, onPress, disabled }: {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (tk: Tokens) => {
+  const { c, colors, isDark } = tk;
+  const TEAL = colors.primaryDark;
+  const TEAL_SOFT = colors.primarySoft;
+  const darkCard = isDark
+    ? { borderColor: 'rgba(255,255,255,0.06)', borderTopColor: 'rgba(255,255,255,0.12)' }
+    : null;
+  return StyleSheet.create({
   screen: { flex: 1, backgroundColor: c.background },
   flex: { flex: 1 },
   header: { paddingHorizontal: 22, paddingTop: 8, paddingBottom: 16 },
@@ -118,9 +127,10 @@ const styles = StyleSheet.create({
   scroll: { paddingHorizontal: 16, paddingTop: 0, paddingBottom: 40 },
   label: { fontFamily: fontFamily.bold, fontSize: 11, letterSpacing: 1.4, color: c.textMuted, marginTop: 14, marginBottom: 8, paddingHorizontal: 4 },
   pausedNote: { fontFamily: fontFamily.regular, fontSize: 12, lineHeight: 17, color: TEAL, paddingHorizontal: 4, marginBottom: 8 },
-  row: { flexDirection: 'row', alignItems: 'center', gap: 14, padding: 14, marginBottom: 8, borderRadius: 16, backgroundColor: c.surface, borderWidth: 1, borderColor: c.border, ...shadows.sm },
+  row: { flexDirection: 'row', alignItems: 'center', gap: 14, padding: 14, marginBottom: 8, borderRadius: 16, backgroundColor: c.surface, borderWidth: 1, borderColor: c.border, ...shadows.sm, ...darkCard },
   rowIcon: { width: 40, height: 40, borderRadius: 12, backgroundColor: TEAL_SOFT, alignItems: 'center', justifyContent: 'center' },
   rowTitle: { fontFamily: fontFamily.semiBold, fontSize: 15, color: c.text },
   rowSub: { fontFamily: fontFamily.regular, fontSize: 12.5, lineHeight: 17, color: c.textMuted, marginTop: 2 },
   note: { fontFamily: fontFamily.regular, fontSize: 12, lineHeight: 18, color: c.textMuted, paddingHorizontal: 4, marginTop: 16 },
-});
+  });
+};

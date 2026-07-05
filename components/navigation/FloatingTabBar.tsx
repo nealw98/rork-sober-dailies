@@ -17,7 +17,8 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
 import Svg, { Path, Defs, RadialGradient, Stop, Circle } from 'react-native-svg';
 import { BookOpen, PenLine, UserRound } from 'lucide-react-native';
-import { colors, fontFamily, shadows } from '@/constants/designTokens';
+import { colors, fontFamily, shadows, darkGlow } from '@/constants/designTokens';
+import { useTokens } from '@/hooks/useTokens';
 import { getSponsorById } from '@/constants/sponsors';
 import { useImmersive } from '@/hooks/use-immersive';
 import { useLastSponsor } from '@/hooks/use-last-sponsor';
@@ -61,15 +62,16 @@ function SunriseGlyph({ size = 24, color = '#000', strokeWidth = 2 }: GlyphProps
 type TabKey = 'index' | 'tools' | 'journey' | 'settings';
 
 // June 2026 re-theme: the active-tab indicator is brand teal on every tab.
-const TAB_META: Record<TabKey, { label: string; Glyph: GlyphComponent; tone: string }> = {
-  index: { label: 'Today', Glyph: SunriseGlyph, tone: colors.primary },
-  tools: { label: 'Tools', Glyph: BookOpen, tone: colors.primary },
-  journey: { label: 'Journey', Glyph: PenLine, tone: colors.primary },
-  settings: { label: 'Settings', Glyph: UserRound, tone: colors.primary },
+// The medallion fill stays the full-chroma teal in both modes (it's a "jewel" —
+// Dark Mode Handoff); the label/halo tone brightens on dark for legibility.
+const TAB_META: Record<TabKey, { label: string; Glyph: GlyphComponent }> = {
+  index: { label: 'Today', Glyph: SunriseGlyph },
+  tools: { label: 'Tools', Glyph: BookOpen },
+  journey: { label: 'Journey', Glyph: PenLine },
+  settings: { label: 'Settings', Glyph: UserRound },
 };
 
 const BAR_HEIGHT = 68;
-const INACTIVE = '#A79B86';
 
 // FAB hidden on Settings (per product decision). Last-used persona TODO: wire to
 // use-chat-store `aa-chat-sponsor-type`; default to Steady Eddie for now.
@@ -99,12 +101,16 @@ function SponsorFab() {
 function TabButton({
   focused,
   tone,
+  inactive,
+  isDark,
   label,
   Glyph,
   onPress,
 }: {
   focused: boolean;
   tone: string;
+  inactive: string;
+  isDark: boolean;
   label: string;
   Glyph: GlyphComponent;
   onPress: () => void;
@@ -134,7 +140,10 @@ function TabButton({
         <Animated.View
           style={[
             styles.medallion,
-            focused && { backgroundColor: tone, shadowColor: tone, ...activeGlow },
+            // Medallion fill stays full-chroma teal in both modes; on dark it
+            // gains the handoff's soft outer glow instead of the drop shadow.
+            focused && { backgroundColor: colors.primary },
+            focused && (isDark ? darkGlow.tabMedallion : { shadowColor: colors.primary, ...activeGlow }),
             { transform: [{ scale }] },
           ]}
         >
@@ -146,10 +155,10 @@ function TabButton({
               style={styles.bevel}
             />
           )}
-          <Glyph size={focused ? 19 : 23} color={focused ? '#fff' : INACTIVE} strokeWidth={focused ? 2 : 1.9} />
+          <Glyph size={focused ? 19 : 23} color={focused ? '#fff' : inactive} strokeWidth={focused ? 2 : 1.9} />
         </Animated.View>
       </View>
-      <Text style={[styles.label, { color: focused ? tone : INACTIVE }]}>{label}</Text>
+      <Text style={[styles.label, { color: focused ? tone : inactive }]}>{label}</Text>
     </Pressable>
   );
 }
@@ -157,6 +166,7 @@ function TabButton({
 export default function FloatingTabBar({ state, navigation }: BottomTabBarProps) {
   const insets = useSafeAreaInsets();
   const { immersive } = useImmersive();
+  const { c, colors: tc, isDark } = useTokens();
   const activeKey = state.routes[state.index]?.name as TabKey;
   const showFab = !FAB_HIDDEN_ON.includes(activeKey);
   const bottomPad = Math.max(insets.bottom, 16);
@@ -169,12 +179,15 @@ export default function FloatingTabBar({ state, navigation }: BottomTabBarProps)
       pointerEvents="box-none"
       style={[styles.container, { paddingBottom: bottomPad, height: BAR_HEIGHT + bottomPad }]}
     >
-      <View style={styles.bar}>
+      <View style={[styles.bar, { borderColor: isDark ? c.tabBorder : 'rgba(255,255,255,0.55)' }]}>
         {/* Frosted glass: the BlurView samples the real screen behind it (the bar
             itself is transparent, so nothing muddies the blur), then a thin tint
-            sits ON TOP of the blur for the frosted-white cast. */}
-        <BlurView intensity={50} tint="light" style={styles.barGlass} />
-        <View pointerEvents="none" style={styles.barTint} />
+            sits ON TOP of the blur — frosted-white on light, deep glass on dark. */}
+        <BlurView intensity={50} tint={isDark ? 'dark' : 'light'} style={styles.barGlass} />
+        <View
+          pointerEvents="none"
+          style={[styles.barTint, { backgroundColor: isDark ? 'rgba(8,8,10,0.55)' : 'rgba(255,253,248,0.3)' }]}
+        />
         {state.routes.map((route, index) => {
           const meta = TAB_META[route.name as TabKey];
           if (!meta) return null;
@@ -189,7 +202,9 @@ export default function FloatingTabBar({ state, navigation }: BottomTabBarProps)
             <TabButton
               key={route.key}
               focused={focused}
-              tone={meta.tone}
+              tone={tc.primary}
+              inactive={c.tabInactive}
+              isDark={isDark}
               label={meta.label}
               Glyph={meta.Glyph}
               onPress={onPress}
@@ -231,7 +246,6 @@ const styles = StyleSheet.create({
     // muddy it. (The pill still reads as floating via the shadow + the tint.)
     backgroundColor: 'transparent',
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.55)',
     flexDirection: 'row',
     alignItems: 'stretch',
     paddingHorizontal: 4,
@@ -243,12 +257,11 @@ const styles = StyleSheet.create({
     borderRadius: 30,
     overflow: 'hidden',
   },
-  // Thin frosted-white cast ON TOP of the blur (keeps the glass warm without
-  // hiding the blur underneath).
+  // Thin cast ON TOP of the blur (frosted-white on light, deep glass on dark) —
+  // color set inline per mode.
   barTint: {
     ...StyleSheet.absoluteFillObject,
     borderRadius: 30,
-    backgroundColor: 'rgba(255,253,248,0.3)',
   },
   tab: {
     flex: 1,

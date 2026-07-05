@@ -22,11 +22,9 @@ import { useBigBookContent } from '@/hooks/use-bigbook-content';
 import { searchBigBookPdfs } from '@/lib/pdf-search';
 import { getChapterMeta } from '@/constants/bigbook-v2/metadata';
 import { formatPageNumber } from '@/lib/bigbook-page-utils';
-import { colors, fontFamily, getSemanticColors } from '@/constants/designTokens';
+import { fontFamily, type Tokens } from '@/constants/designTokens';
+import { useTokens, useThemedStyles } from '@/hooks/useTokens';
 
-const c = getSemanticColors('light');
-const AMBER_SOFT = colors.steelSoft;  // Steel Navy — Big Book accent
-const AMBER_INK = colors.steelDark;
 const BOOK = 'bigbook';
 
 export function BigBookContents({ onOpenText, onOpenPdf, onOpenTextAtParagraph }: {
@@ -35,6 +33,11 @@ export function BigBookContents({ onOpenText, onOpenPdf, onOpenTextAtParagraph }
   onOpenTextAtParagraph: (chapterId: string, paragraphId: string) => void;
 }) {
   const router = useRouter();
+  const styles = useThemedStyles(makeStyles);
+  const { c, colors, isDark } = useTokens();
+  // Steel Navy — Big Book accent (brightens automatically on dark).
+  const AMBER_SOFT = colors.steelSoft;
+  const AMBER_INK = colors.steelDark;
   const { bookmarks: textBookmarks, deleteBookmark: deleteTextBookmark, refresh: refreshText } = useBigBookBookmarks();
   const { forBook, remove: removePdfBookmark } = usePdfBookmarks();
   const { searchContent } = useBigBookContent();
@@ -298,6 +301,7 @@ export function BigBookContents({ onOpenText, onOpenPdf, onOpenTextAtParagraph }
 }
 
 function Row({ entry, last, onPress }: { entry: TocEntry; last: boolean; onPress: () => void }) {
+  const styles = useThemedStyles(makeStyles);
   return (
     <Pressable onPress={onPress} style={({ pressed }) => [styles.row, !last && styles.rowBorder, pressed && { opacity: 0.6 }]}>
       <Text style={[styles.rowTitle, styles.flex]} numberOfLines={2}>{entry.title}</Text>
@@ -306,7 +310,12 @@ function Row({ entry, last, onPress }: { entry: TocEntry; last: boolean; onPress
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (tk: Tokens) => {
+  const { c, colors, isDark } = tk;
+  const AMBER_SOFT = colors.steelSoft;
+  const AMBER_INK = colors.steelDark;
+  const darkCard = isDark ? { borderColor: 'rgba(255,255,255,0.06)', borderTopColor: 'rgba(255,255,255,0.12)' } : null;
+  return StyleSheet.create({
   screen: { flex: 1, backgroundColor: c.background },
   flex: { flex: 1, minWidth: 0 },
   header: { paddingHorizontal: 22, paddingTop: 8, paddingBottom: 6 },
@@ -338,7 +347,7 @@ const styles = StyleSheet.create({
   sheetTitle: { fontFamily: fontFamily.displayBold, fontSize: 22, letterSpacing: -0.4, color: c.text },
   closeBtn: { width: 34, height: 34, borderRadius: 17, borderWidth: 1, borderColor: c.border, alignItems: 'center', justifyContent: 'center' },
   sheetList: { paddingHorizontal: 16, paddingTop: 10, paddingBottom: 32 },
-  bmRow: { flexDirection: 'row', alignItems: 'center', backgroundColor: c.surface, borderWidth: 1, borderColor: c.border, borderRadius: 14, marginBottom: 8 },
+  bmRow: { flexDirection: 'row', alignItems: 'center', backgroundColor: c.surface, borderWidth: 1, borderColor: c.border, borderRadius: 14, marginBottom: 8, ...darkCard },
   bmMain: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 13, paddingLeft: 15, paddingRight: 8 },
   bmTitle: { fontFamily: fontFamily.semiBold, fontSize: 15, color: c.text },
   bmMeta: { flexDirection: 'row', alignItems: 'center', gap: 7, marginTop: 3 },
@@ -357,20 +366,21 @@ const styles = StyleSheet.create({
   searchHint: { fontFamily: fontFamily.regular, fontSize: 14, lineHeight: 20, color: c.textMuted, textAlign: 'center', marginTop: 48, paddingHorizontal: 40 },
   searchEmpty: { fontFamily: fontFamily.regular, fontSize: 14, color: c.textMuted, textAlign: 'center', marginTop: 40 },
   searchCount: { fontFamily: fontFamily.bold, fontSize: 11, letterSpacing: 1, color: c.textMuted, marginBottom: 10, marginLeft: 2 },
-  resultCard: { flexDirection: 'row', backgroundColor: c.surface, borderWidth: 1, borderColor: c.border, borderRadius: 12, padding: 12, marginBottom: 8, overflow: 'hidden' },
+  resultCard: { flexDirection: 'row', backgroundColor: c.surface, borderWidth: 1, borderColor: c.border, borderRadius: 12, padding: 12, marginBottom: 8, overflow: 'hidden', ...darkCard },
   resultBar: { position: 'absolute', left: 0, top: 0, bottom: 0, width: 4, backgroundColor: AMBER_INK },
   resultHead: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingLeft: 6 },
   resultTitle: { fontFamily: fontFamily.semiBold, fontSize: 13.5, color: AMBER_INK, flexShrink: 1 },
   resultSnippet: { fontFamily: fontFamily.serif, fontSize: 14.5, lineHeight: 21, color: c.text, marginTop: 5, paddingLeft: 6 },
-  resultMatch: { backgroundColor: '#FCE9A8', color: c.text },
+  resultMatch: { backgroundColor: isDark ? 'rgba(79,179,172,0.25)' : '#FCE9A8', color: c.text },
   resultMeta: { fontFamily: fontFamily.regular, fontSize: 11.5, color: c.textMuted, marginTop: 6, paddingLeft: 6 },
 
   // go to page
-  goToBackdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.35)', alignItems: 'center', justifyContent: 'center', paddingHorizontal: 40 },
-  goToCard: { width: '100%', backgroundColor: c.background, borderRadius: 18, padding: 20 },
+  goToBackdrop: { flex: 1, backgroundColor: isDark ? c.overlay : 'rgba(0,0,0,0.35)', alignItems: 'center', justifyContent: 'center', paddingHorizontal: 40 },
+  goToCard: { width: '100%', backgroundColor: isDark ? c.surface : c.background, borderRadius: 18, padding: 20, ...(isDark ? { borderWidth: 1, ...darkCard } : null) },
   goToTitle: { fontFamily: fontFamily.displayBold, fontSize: 19, color: c.text },
   goToSub: { fontFamily: fontFamily.regular, fontSize: 12.5, color: c.textMuted, marginTop: 3 },
   goToInput: { marginTop: 14, borderWidth: 1, borderColor: c.border, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 12, fontFamily: fontFamily.semiBold, fontSize: 20, color: c.text, textAlign: 'center', backgroundColor: c.surface },
   goToBtn: { marginTop: 14, backgroundColor: AMBER_INK, borderRadius: 12, paddingVertical: 13, alignItems: 'center' },
   goToBtnText: { fontFamily: fontFamily.bold, fontSize: 15, color: '#fff' },
 });
+};

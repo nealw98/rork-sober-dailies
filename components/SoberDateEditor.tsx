@@ -3,7 +3,8 @@ import { StyleSheet, View, Text, TextInput, Pressable, ScrollView, KeyboardAvoid
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { ArrowRight } from 'lucide-react-native';
-import { colors, fontFamily, fontSize, radii, shadows, getSemanticColors } from '@/constants/designTokens';
+import { fontFamily, fontSize, shadows, getSemanticColors, type Tokens } from '@/constants/designTokens';
+import { useTokens, useThemedStyles } from '@/hooks/useTokens';
 import BackButton from '@/components/BackButton';
 
 /**
@@ -14,7 +15,9 @@ import BackButton from '@/components/BackButton';
  * (onboarding).
  */
 
-const c = getSemanticColors('light');
+// The date field sits on a white pill inside the teal card in BOTH modes, so its
+// ink/placeholder stay the light-mode values.
+const lightC = getSemanticColors('light');
 
 function formatDateInput(text: string) {
   const n = text.replace(/\D/g, '');
@@ -59,6 +62,8 @@ export interface SoberDateEditorProps {
 }
 
 export default function SoberDateEditor({ current, onSave, onBack, onRemove, onSkip, primaryLabel = 'Save date', skipLabel }: SoberDateEditorProps) {
+  const styles = useThemedStyles(makeStyles);
+  const { colors } = useTokens();
   const initial = current
     ? `${String(current.getMonth() + 1).padStart(2, '0')}/${String(current.getDate()).padStart(2, '0')}/${current.getFullYear()}`
     : '';
@@ -93,7 +98,7 @@ export default function SoberDateEditor({ current, onSave, onBack, onRemove, onS
               value={value}
               onChangeText={(t) => setValue(formatDateInput(t))}
               placeholder="mm/dd/yyyy"
-              placeholderTextColor={c.textMuted}
+              placeholderTextColor={lightC.textMuted}
               keyboardType="numeric"
               maxLength={10}
             />
@@ -128,27 +133,31 @@ export default function SoberDateEditor({ current, onSave, onBack, onRemove, onS
   );
 }
 
-const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: c.background },
-  topBar: { paddingHorizontal: 16, paddingTop: 4, paddingBottom: 4 },
+const makeStyles = (tk: Tokens) => {
+  const { c, colors, isDark } = tk;
+  return StyleSheet.create({
+    safe: { flex: 1, backgroundColor: c.background },
+    topBar: { paddingHorizontal: 16, paddingTop: 4, paddingBottom: 4 },
 
-  scroll: { paddingHorizontal: 26, paddingTop: 10, paddingBottom: 24 },
-  affirmation: { fontFamily: fontFamily.serifMediumItalic, fontSize: fontSize['3xl'], color: colors.primary, lineHeight: 28 },
-  heading: { fontFamily: fontFamily.displayBold, fontSize: 29, color: c.text, letterSpacing: -0.6, lineHeight: 33, marginTop: 10 },
-  body: { fontFamily: fontFamily.regular, fontSize: fontSize.md, color: c.textSecondary, lineHeight: 22, marginTop: 12 },
+    scroll: { paddingHorizontal: 26, paddingTop: 10, paddingBottom: 24 },
+    affirmation: { fontFamily: fontFamily.serifMediumItalic, fontSize: fontSize['3xl'], color: colors.primary, lineHeight: 28 },
+    heading: { fontFamily: fontFamily.displayBold, fontSize: 29, color: c.text, letterSpacing: -0.6, lineHeight: 33, marginTop: 10 },
+    body: { fontFamily: fontFamily.regular, fontSize: fontSize.md, color: c.textSecondary, lineHeight: 22, marginTop: 12 },
 
-  card: { borderRadius: 20, padding: 18, marginTop: 22, shadowColor: colors.primary, shadowOpacity: 0.25, shadowRadius: 28, shadowOffset: { width: 0, height: 14 }, elevation: 6 },
-  cardLabel: { fontFamily: fontFamily.bold, fontSize: 10.5, letterSpacing: 2, color: 'rgba(255,255,255,0.85)', textAlign: 'center', marginBottom: 10 },
-  input: { backgroundColor: '#fff', borderRadius: 12, borderWidth: 2, borderColor: 'transparent', paddingVertical: 14, paddingHorizontal: 16, fontFamily: fontFamily.medium, fontSize: 19, color: c.text, textAlign: 'center' },
-  inputBad: { borderColor: '#E66A52' },
-  preview: { minHeight: 34, alignItems: 'center', justifyContent: 'center', marginTop: 12 },
-  previewText: { fontFamily: fontFamily.bold, fontSize: fontSize.lg, color: '#fff' },
-  previewBad: { fontFamily: fontFamily.semiBold, fontSize: fontSize.md, color: '#FFE3DB' },
+    card: { borderRadius: 20, padding: 18, marginTop: 22, shadowColor: colors.primary, shadowOpacity: 0.25, shadowRadius: 28, shadowOffset: { width: 0, height: 14 }, elevation: 6 },
+    cardLabel: { fontFamily: fontFamily.bold, fontSize: 10.5, letterSpacing: 2, color: 'rgba(255,255,255,0.85)', textAlign: 'center', marginBottom: 10 },
+    // The input pill stays white with light ink in both modes (sits on the teal jewel).
+    input: { backgroundColor: '#fff', borderRadius: 12, borderWidth: 2, borderColor: 'transparent', paddingVertical: 14, paddingHorizontal: 16, fontFamily: fontFamily.medium, fontSize: 19, color: lightC.text, textAlign: 'center' },
+    inputBad: { borderColor: '#E66A52' },
+    preview: { minHeight: 34, alignItems: 'center', justifyContent: 'center', marginTop: 12 },
+    previewText: { fontFamily: fontFamily.bold, fontSize: fontSize.lg, color: '#fff' },
+    previewBad: { fontFamily: fontFamily.semiBold, fontSize: fontSize.md, color: '#FFE3DB' },
 
-  footer: { paddingHorizontal: 24, paddingTop: 12, paddingBottom: 12 },
-  saveBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 9, paddingVertical: 16, borderRadius: 16, backgroundColor: colors.primary, ...shadows.md },
-  saveBtnDisabled: { backgroundColor: '#C7C9C4', shadowOpacity: 0 },
-  saveText: { fontFamily: fontFamily.semiBold, fontSize: fontSize.xl, color: '#fff' },
-  ghost: { alignItems: 'center', justifyContent: 'center', paddingVertical: 14 },
-  ghostText: { fontFamily: fontFamily.semiBold, fontSize: fontSize.lg, color: c.textSecondary },
-});
+    footer: { paddingHorizontal: 24, paddingTop: 12, paddingBottom: 12 },
+    saveBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 9, paddingVertical: 16, borderRadius: 16, backgroundColor: colors.primary, ...shadows.md },
+    saveBtnDisabled: { backgroundColor: isDark ? '#3A3D42' : '#C7C9C4', shadowOpacity: 0 },
+    saveText: { fontFamily: fontFamily.semiBold, fontSize: fontSize.xl, color: '#fff' },
+    ghost: { alignItems: 'center', justifyContent: 'center', paddingVertical: 14 },
+    ghostText: { fontFamily: fontFamily.semiBold, fontSize: fontSize.lg, color: c.textSecondary },
+  });
+};

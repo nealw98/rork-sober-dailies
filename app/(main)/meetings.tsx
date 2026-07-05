@@ -13,15 +13,23 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import { Plus, X, Globe, MapPin, BookOpen, ChevronRight, ExternalLink, ClipboardList, Sparkles, ImagePlus, Camera } from 'lucide-react-native';
 import { Image } from 'expo-image';
 import BackButton from '@/components/BackButton';
+import { ThemedCard } from '@/components/ThemedCard';
 import { useMeetings, nextUpMeeting, whenLabel, formatTime, WEEKDAY_ABBR, type Meeting } from '@/hooks/use-meetings-store';
 import { scanMeetingScreenshot } from '@/lib/meetingOcr';
 import { parseMeetingGuide, type MeetingDraft } from '@/lib/parseMeetingGuide';
-import { colors, fontFamily, getSemanticColors } from '@/constants/designTokens';
+import { fontFamily, steelFill, type Tokens } from '@/constants/designTokens';
+import { useTokens, useThemedStyles } from '@/hooks/useTokens';
 
-const c = getSemanticColors('light');
-const MT = colors.steel;          // Steel Navy — Meetings tone
-const MT_SOFT = colors.steelSoft;
-const MT_DARK = colors.steelDark;
+// Meetings steel, mode-resolved. `solid` carries white text/icons (medallions,
+// action buttons, day chips) so on dark it drops to steelFill; ink + soft come
+// from the mode-aware colors (brightened / low-alpha wash on dark).
+const steelUi = (tk: Tokens) => ({
+  solid: tk.isDark ? steelFill.dark : tk.colors.steel,
+  accent: tk.colors.steel,
+  soft: tk.colors.steelSoft,
+  ink: tk.colors.steelDark,
+});
+
 // Meeting Guide (AAWS) is an iOS-only app; Android users get the official site.
 const MEETING_GUIDE_URL = Platform.OS === 'android'
   ? 'https://meetingguide.org'
@@ -47,8 +55,38 @@ export default function MeetingsScreen() {
   // null = closed · {mode:'add'} = new · {mode:'edit', meeting} = editing a saved one
   const [sheet, setSheet] = useState<{ mode: 'add' } | { mode: 'edit'; meeting: Meeting } | null>(null);
 
+  const styles = useThemedStyles(makeStyles);
+  const tk = useTokens();
+  const { isDark, tone, colors } = tk;
+  const st = steelUi(tk);
+
   const nx = nextUpMeeting(meetings);
   const rest = meetings.filter((m) => !nx || m.id !== nx.meeting.id);
+
+  const nextCardBody = nx && (
+    <>
+      <View style={styles.nextTop}>
+        <Text style={styles.nextEyebrow}>NEXT UP</Text>
+        <Pressable hitSlop={8} onPress={() => removeMeeting(nx.meeting.id)} accessibilityLabel="Remove">
+          <X size={16} color={st.ink} strokeWidth={2} />
+        </Pressable>
+      </View>
+      <Pressable style={styles.nextRow} onPress={() => setSheet({ mode: 'edit', meeting: nx.meeting })} accessibilityLabel={`Edit ${nx.meeting.name}`}>
+        <View style={styles.nextMedallion}>
+          {nx.meeting.online ? <Globe size={20} color="#fff" strokeWidth={2} /> : <MapPin size={20} color="#fff" strokeWidth={2} />}
+        </View>
+        <View style={styles.flex}>
+          <Text style={styles.nextName}>{nx.meeting.name}</Text>
+          <Text style={styles.nextLabel}>{nx.label}</Text>
+          {!!nx.meeting.where && <Text style={styles.nextWhere}>{nx.meeting.where}</Text>}
+        </View>
+      </Pressable>
+      <Pressable style={styles.nextAction} onPress={() => (nx.meeting.online ? openOnline(nx.meeting) : openDirections(nx.meeting))}>
+        {nx.meeting.online ? <Globe size={16} color="#fff" strokeWidth={2} /> : <MapPin size={16} color="#fff" strokeWidth={2} />}
+        <Text style={styles.nextActionText}>{nx.meeting.online ? 'Join online' : 'Get directions'}</Text>
+      </Pressable>
+    </>
+  );
 
   return (
     <SafeAreaView style={styles.screen} edges={['top']}>
@@ -69,28 +107,15 @@ export default function MeetingsScreen() {
         {meetings.length > 0 ? (
           <>
             {nx && (
-              <View style={styles.nextCard}>
-                <View style={styles.nextTop}>
-                  <Text style={styles.nextEyebrow}>NEXT UP</Text>
-                  <Pressable hitSlop={8} onPress={() => removeMeeting(nx.meeting.id)} accessibilityLabel="Remove">
-                    <X size={16} color={MT_DARK} strokeWidth={2} />
-                  </Pressable>
-                </View>
-                <Pressable style={styles.nextRow} onPress={() => setSheet({ mode: 'edit', meeting: nx.meeting })} accessibilityLabel={`Edit ${nx.meeting.name}`}>
-                  <View style={styles.nextMedallion}>
-                    {nx.meeting.online ? <Globe size={20} color="#fff" strokeWidth={2} /> : <MapPin size={20} color="#fff" strokeWidth={2} />}
-                  </View>
-                  <View style={styles.flex}>
-                    <Text style={styles.nextName}>{nx.meeting.name}</Text>
-                    <Text style={styles.nextLabel}>{nx.label}</Text>
-                    {!!nx.meeting.where && <Text style={styles.nextWhere}>{nx.meeting.where}</Text>}
-                  </View>
-                </Pressable>
-                <Pressable style={styles.nextAction} onPress={() => (nx.meeting.online ? openOnline(nx.meeting) : openDirections(nx.meeting))}>
-                  {nx.meeting.online ? <Globe size={16} color="#fff" strokeWidth={2} /> : <MapPin size={16} color="#fff" strokeWidth={2} />}
-                  <Text style={styles.nextActionText}>{nx.meeting.online ? 'Join online' : 'Get directions'}</Text>
-                </Pressable>
-              </View>
+              // Tinted card that must keep its Meetings identity: on dark it uses
+              // ThemedCard's tinted variant (steel soft wash + steel-mixed hairline).
+              isDark ? (
+                <ThemedCard radius={18} tint={tone('steel').soft} tintBorder="rgba(124,155,219,0.30)" style={styles.nextCardDarkWrap} contentStyle={styles.nextCardInner}>
+                  {nextCardBody}
+                </ThemedCard>
+              ) : (
+                <View style={styles.nextCard}>{nextCardBody}</View>
+              )
             )}
 
             {rest.map((m) => (
@@ -98,13 +123,13 @@ export default function MeetingsScreen() {
             ))}
 
             <Pressable style={styles.addBtn} onPress={() => setSheet({ mode: 'add' })}>
-              <Plus size={16} color={MT_DARK} strokeWidth={2.2} />
+              <Plus size={16} color={st.ink} strokeWidth={2.2} />
               <Text style={styles.addBtnText}>Add a meeting</Text>
             </Pressable>
           </>
         ) : (
           <Pressable style={styles.emptyCard} onPress={() => setSheet({ mode: 'add' })}>
-            <View style={styles.emptyMedallion}><Plus size={19} color={MT_DARK} strokeWidth={2.2} /></View>
+            <View style={styles.emptyMedallion}><Plus size={19} color={st.ink} strokeWidth={2.2} /></View>
             <View style={styles.flex}>
               <Text style={styles.emptyTitle}>Add a meeting</Text>
               <Text style={styles.emptySub}>Save your home group and regulars so the day, time, and place are always one tap away.</Text>
@@ -171,10 +196,13 @@ export default function MeetingsScreen() {
 }
 
 function MeetingRow({ m, onEdit, onRemove }: { m: Meeting; onEdit: () => void; onRemove: () => void }) {
+  const styles = useThemedStyles(makeStyles);
+  const tk = useTokens();
+  const st = steelUi(tk);
   return (
     <Pressable style={styles.row} onPress={onEdit} accessibilityLabel={`Edit ${m.name}`}>
       <View style={styles.rowMedallion}>
-        {m.online ? <Globe size={18} color={MT_DARK} strokeWidth={2} /> : <MapPin size={18} color={MT_DARK} strokeWidth={2} />}
+        {m.online ? <Globe size={18} color={st.ink} strokeWidth={2} /> : <MapPin size={18} color={st.ink} strokeWidth={2} />}
       </View>
       <View style={styles.flex}>
         <View style={styles.rowNameLine}>
@@ -186,13 +214,15 @@ function MeetingRow({ m, onEdit, onRemove }: { m: Meeting; onEdit: () => void; o
         {!!m.notes && <Text style={styles.rowNotes}>{m.notes}</Text>}
       </View>
       <Pressable hitSlop={8} onPress={onRemove} accessibilityLabel="Remove" style={styles.rowRemove}>
-        <X size={17} color={c.textMuted} strokeWidth={2} />
+        <X size={17} color={tk.c.textMuted} strokeWidth={2} />
       </Pressable>
     </Pressable>
   );
 }
 
 function Fn({ tone, icon, title, sub, badge, onPress }: { tone: string; icon: React.ReactNode; title: string; sub: string; badge?: string; onPress: () => void }) {
+  const styles = useThemedStyles(makeStyles);
+  const { c } = useTokens();
   return (
     <Pressable style={styles.fn} onPress={onPress}>
       <View style={[styles.fnIcon, { backgroundColor: tone }]}>{icon}</View>
@@ -227,6 +257,12 @@ function AddMeetingSheet({ visible, meeting, onClose, onSave }: { visible: boole
   const [filledFrom, setFilledFrom] = useState<'scan-exact' | 'scan-guess' | 'paste' | null>(null);
   // Snapshot of the values when the sheet opened — for "unsaved changes" detection.
   const initialRef = useRef('');
+
+  const styles = useThemedStyles(makeStyles);
+  const tk = useTokens();
+  const { c, isDark } = tk;
+  const st = steelUi(tk);
+  const kbAppearance = isDark ? 'dark' as const : 'light' as const;
 
   const reset = () => {
     setTab('details'); setName(''); setDays([]); setTime(null); setWhere(''); setNotes('');
@@ -331,25 +367,25 @@ function AddMeetingSheet({ visible, meeting, onClose, onSave }: { visible: boole
           {tab === 'scan' ? (
             <View>
               <View style={styles.pasteHint}>
-                <Sparkles size={15} color={MT_DARK} strokeWidth={2} />
+                <Sparkles size={15} color={st.ink} strokeWidth={2} />
                 <Text style={styles.pasteHintText}>Screenshot a meeting in Meeting Guide for best results — or use the camera to snap a flyer.</Text>
               </View>
               <Pressable style={styles.scanBox} onPress={() => runScan('library')} disabled={scanState === 'reading'}>
                 {scanState === 'reading' ? (
                   <>
-                    <ActivityIndicator color={MT} />
+                    <ActivityIndicator color={st.accent} />
                     <Text style={styles.scanReading}>Reading image…</Text>
                   </>
                 ) : (
                   <>
-                    <View style={styles.scanIcon}><ImagePlus size={24} color={MT_DARK} strokeWidth={1.9} /></View>
+                    <View style={styles.scanIcon}><ImagePlus size={24} color={st.ink} strokeWidth={1.9} /></View>
                     <Text style={styles.scanTitle}>Choose a screenshot</Text>
                     <Text style={styles.scanSub}>From your photo library</Text>
                   </>
                 )}
               </Pressable>
               <Pressable style={styles.scanPhotoBtn} onPress={() => runScan('camera')} disabled={scanState === 'reading'}>
-                <Camera size={16} color={MT_DARK} strokeWidth={2} />
+                <Camera size={16} color={st.ink} strokeWidth={2} />
                 <Text style={styles.scanPhotoText}>Take a photo of a flyer</Text>
               </Pressable>
               {!!scanMsg && <Text style={styles.scanMsg}>{scanMsg}</Text>}
@@ -360,16 +396,16 @@ function AddMeetingSheet({ visible, meeting, onClose, onSave }: { visible: boole
                 <ClipboardList size={15} color={c.textMuted} strokeWidth={2} />
                 <Text style={styles.pasteHintText}>Paste details from a website, email, or message.</Text>
               </View>
-              <TextInput value={pasted} onChangeText={setPasted} placeholder={'Sunrise Sobriety\nDaily · 7:00 AM\nAlano Club, 142 Oak St'} placeholderTextColor={c.textMuted} style={styles.pasteBox} multiline />
+              <TextInput value={pasted} onChangeText={setPasted} placeholder={'Sunrise Sobriety\nDaily · 7:00 AM\nAlano Club, 142 Oak St'} placeholderTextColor={c.textMuted} style={styles.pasteBox} multiline keyboardAppearance={kbAppearance} />
               <Pressable style={[styles.pasteBtn, !pasted.trim() && styles.btnDisabled]} disabled={!pasted.trim()} onPress={applyPaste}>
-                <Text style={[styles.pasteBtnText, { color: pasted.trim() ? MT_DARK : c.textMuted }]}>Use these details</Text>
+                <Text style={[styles.pasteBtnText, { color: pasted.trim() ? st.ink : c.textMuted }]}>Use these details</Text>
               </Pressable>
             </View>
           ) : (
             <View style={{ gap: 14 }}>
               {filledFrom && (
                 <View style={styles.filledBanner}>
-                  <Sparkles size={15} color={MT_DARK} strokeWidth={2} />
+                  <Sparkles size={15} color={st.ink} strokeWidth={2} />
                   <Text style={styles.filledBannerText}>
                     {filledFrom === 'scan-exact'
                       ? 'Filled from your screenshot — check the details below.'
@@ -380,7 +416,7 @@ function AddMeetingSheet({ visible, meeting, onClose, onSave }: { visible: boole
                 </View>
               )}
               <Field label="Meeting name">
-                <TextInput value={name} onChangeText={setName} placeholder="Meeting name" placeholderTextColor={c.textMuted} style={styles.input} />
+                <TextInput value={name} onChangeText={setName} placeholder="Meeting name" placeholderTextColor={c.textMuted} style={styles.input} keyboardAppearance={kbAppearance} />
               </Field>
               <Field label="Days">
                 <View style={styles.dayWrap}>
@@ -417,13 +453,13 @@ function AddMeetingSheet({ visible, meeting, onClose, onSave }: { visible: boole
                 )}
               </Field>
               <Field label={online ? 'Link or platform' : 'Location'}>
-                <TextInput value={where} onChangeText={setWhere} placeholder={online ? 'Link or platform' : 'Location'} placeholderTextColor={c.textMuted} style={styles.input} autoCapitalize={online ? 'none' : 'sentences'} />
+                <TextInput value={where} onChangeText={setWhere} placeholder={online ? 'Link or platform' : 'Location'} placeholderTextColor={c.textMuted} style={styles.input} autoCapitalize={online ? 'none' : 'sentences'} keyboardAppearance={kbAppearance} />
               </Field>
               <Field label="Notes">
-                <TextInput value={notes} onChangeText={setNotes} placeholder="Open meeting, home group, who to ask for…" placeholderTextColor={c.textMuted} style={[styles.input, styles.inputMultiline]} multiline />
+                <TextInput value={notes} onChangeText={setNotes} placeholder="Open meeting, home group, who to ask for…" placeholderTextColor={c.textMuted} style={[styles.input, styles.inputMultiline]} multiline keyboardAppearance={kbAppearance} />
               </Field>
               <Pressable style={styles.onlineToggle} onPress={() => setOnline((o) => !o)}>
-                <View style={[styles.switchTrack, { backgroundColor: online ? MT : '#D8D3C8' }]}>
+                <View style={[styles.switchTrack, { backgroundColor: online ? st.solid : (isDark ? 'rgba(255,255,255,0.16)' : '#D8D3C8') }]}>
                   <View style={[styles.switchThumb, { left: online ? 21 : 3 }]} />
                 </View>
                 <Text style={styles.onlineToggleText}>Online meeting</Text>
@@ -441,6 +477,7 @@ function AddMeetingSheet({ visible, meeting, onClose, onSave }: { visible: boole
 }
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
+  const styles = useThemedStyles(makeStyles);
   return (
     <View>
       <Text style={styles.fieldLabel}>{label.toUpperCase()}</Text>
@@ -449,7 +486,16 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (tk: Tokens) => {
+  const { c, colors, isDark } = tk;
+  const st = steelUi(tk);
+  // Cheap dark card chrome — lit top hairline + hairline border (handoff).
+  const darkCard = isDark
+    ? { borderColor: 'rgba(255,255,255,0.06)', borderTopColor: 'rgba(255,255,255,0.12)' }
+    : null;
+  // Input field fill: white on light, faint lift on dark.
+  const inputBg = isDark ? 'rgba(255,255,255,0.06)' : '#fff';
+  return StyleSheet.create({
   screen: { flex: 1, backgroundColor: c.background },
   flex: { flex: 1 },
   header: { paddingHorizontal: 22, paddingTop: 8, paddingBottom: 24 },
@@ -461,52 +507,54 @@ const styles = StyleSheet.create({
   sectionLabel: { fontFamily: fontFamily.bold, fontSize: 11, letterSpacing: 1.4, color: c.textMuted },
   savedCount: { fontFamily: fontFamily.medium, fontSize: 12.5, color: c.textMuted },
 
-  // next-up
-  nextCard: { marginBottom: 8, paddingHorizontal: 15, paddingTop: 14, paddingBottom: 15, borderRadius: 18, backgroundColor: MT_SOFT, borderWidth: 1, borderColor: MT + '44' },
+  // next-up — light: opaque steel tint; dark: ThemedCard tinted variant (below)
+  nextCard: { marginBottom: 8, paddingHorizontal: 15, paddingTop: 14, paddingBottom: 15, borderRadius: 18, backgroundColor: st.soft, borderWidth: 1, borderColor: st.accent + '44' },
+  nextCardDarkWrap: { marginBottom: 8 },
+  nextCardInner: { paddingHorizontal: 15, paddingTop: 14, paddingBottom: 15 },
   nextTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 },
-  nextEyebrow: { fontFamily: fontFamily.bold, fontSize: 10.5, letterSpacing: 1.4, color: MT_DARK },
+  nextEyebrow: { fontFamily: fontFamily.bold, fontSize: 10.5, letterSpacing: 1.4, color: st.ink },
   nextRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  nextMedallion: { width: 42, height: 42, borderRadius: 12, backgroundColor: MT, alignItems: 'center', justifyContent: 'center' },
+  nextMedallion: { width: 42, height: 42, borderRadius: 12, backgroundColor: st.solid, alignItems: 'center', justifyContent: 'center' },
   nextName: { fontFamily: fontFamily.semiBold, fontSize: 16.5, color: c.text },
-  nextLabel: { fontFamily: fontFamily.semiBold, fontSize: 13, color: MT_DARK, marginTop: 3 },
+  nextLabel: { fontFamily: fontFamily.semiBold, fontSize: 13, color: st.ink, marginTop: 3 },
   nextWhere: { fontFamily: fontFamily.regular, fontSize: 12.5, color: c.textMuted, marginTop: 1 },
-  nextAction: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, marginTop: 13, paddingVertical: 12, borderRadius: 13, backgroundColor: MT },
+  nextAction: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, marginTop: 13, paddingVertical: 12, borderRadius: 13, backgroundColor: st.solid },
   nextActionText: { fontFamily: fontFamily.semiBold, fontSize: 14.5, color: '#fff' },
 
   // saved row
-  row: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 13, marginBottom: 8, borderRadius: 16, backgroundColor: c.surface, borderWidth: 1, borderColor: c.border },
-  rowMedallion: { width: 38, height: 38, borderRadius: 11, backgroundColor: MT_SOFT, alignItems: 'center', justifyContent: 'center' },
+  row: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 13, marginBottom: 8, borderRadius: 16, backgroundColor: c.surface, borderWidth: 1, borderColor: c.border, ...darkCard },
+  rowMedallion: { width: 38, height: 38, borderRadius: 11, backgroundColor: st.soft, alignItems: 'center', justifyContent: 'center' },
   rowNameLine: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   rowName: { fontFamily: fontFamily.semiBold, fontSize: 15, color: c.text },
-  onlineBadge: { fontFamily: fontFamily.bold, fontSize: 10, letterSpacing: 0.4, color: MT_DARK, backgroundColor: MT_SOFT, paddingHorizontal: 7, paddingVertical: 2, borderRadius: 999, overflow: 'hidden' },
+  onlineBadge: { fontFamily: fontFamily.bold, fontSize: 10, letterSpacing: 0.4, color: st.ink, backgroundColor: st.soft, paddingHorizontal: 7, paddingVertical: 2, borderRadius: 999, overflow: 'hidden' },
   rowWhen: { fontFamily: fontFamily.regular, fontSize: 12.5, color: c.textMuted, marginTop: 3 },
   rowWhere: { fontFamily: fontFamily.regular, fontSize: 12, color: c.textMuted, marginTop: 1 },
   rowNotes: { fontFamily: fontFamily.serifItalic, fontSize: 12, color: c.textSecondary, marginTop: 5, lineHeight: 17 },
   rowRemove: { padding: 4 },
 
-  addBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, marginTop: 2, paddingVertical: 13, borderRadius: 16, borderWidth: 1.5, borderColor: MT + '77', borderStyle: 'dashed' },
-  addBtnText: { fontFamily: fontFamily.semiBold, fontSize: 14, color: MT_DARK },
+  addBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, marginTop: 2, paddingVertical: 13, borderRadius: 16, borderWidth: 1.5, borderColor: st.accent + '77', borderStyle: 'dashed' },
+  addBtnText: { fontFamily: fontFamily.semiBold, fontSize: 14, color: st.ink },
 
-  emptyCard: { flexDirection: 'row', alignItems: 'center', gap: 13, padding: 14, borderRadius: 16, borderWidth: 1.5, borderColor: MT + '77', borderStyle: 'dashed' },
-  emptyMedallion: { width: 38, height: 38, borderRadius: 12, backgroundColor: MT_SOFT, alignItems: 'center', justifyContent: 'center' },
+  emptyCard: { flexDirection: 'row', alignItems: 'center', gap: 13, padding: 14, borderRadius: 16, borderWidth: 1.5, borderColor: st.accent + '77', borderStyle: 'dashed' },
+  emptyMedallion: { width: 38, height: 38, borderRadius: 12, backgroundColor: st.soft, alignItems: 'center', justifyContent: 'center' },
   emptyTitle: { fontFamily: fontFamily.semiBold, fontSize: 15, color: c.text },
   emptySub: { fontFamily: fontFamily.regular, fontSize: 12.5, color: c.textMuted, marginTop: 2, lineHeight: 17 },
 
   label: { fontFamily: fontFamily.bold, fontSize: 11, letterSpacing: 1.4, color: c.textMuted, marginTop: 26, marginBottom: 10, paddingHorizontal: 4 },
 
-  // meeting guide
-  guideCard: { padding: 16, borderRadius: 18, backgroundColor: c.surface, borderWidth: 1, borderColor: c.border },
+  // meeting guide — navy CTAs keep white text; dark navy steps from tokens.md
+  guideCard: { padding: 16, borderRadius: 18, backgroundColor: c.surface, borderWidth: 1, borderColor: c.border, ...darkCard },
   guideTopRow: { flexDirection: 'row', alignItems: 'center', gap: 13 },
   guideIcon: { width: 44, height: 44, borderRadius: 13, alignItems: 'center', justifyContent: 'center' },
   guideName: { fontFamily: fontFamily.semiBold, fontSize: 16, color: c.text },
   guideSub: { fontFamily: fontFamily.regular, fontSize: 12.5, color: c.textMuted, marginTop: 2 },
   guideBody: { fontFamily: fontFamily.regular, fontSize: 13.5, color: c.textSecondary, lineHeight: 21, marginTop: 13 },
-  guideBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, marginTop: 15, paddingVertical: 13, borderRadius: 13, backgroundColor: '#1E4E86' },
-  onlineBtn: { backgroundColor: '#16205A' },
+  guideBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, marginTop: 15, paddingVertical: 13, borderRadius: 13, backgroundColor: isDark ? '#2C5C99' : '#1E4E86' },
+  onlineBtn: { backgroundColor: isDark ? '#334A86' : '#16205A' },
   guideBtnText: { fontFamily: fontFamily.semiBold, fontSize: 14.5, color: '#fff' },
 
   // function row
-  fn: { flexDirection: 'row', alignItems: 'center', gap: 13, padding: 14, marginBottom: 10, borderRadius: 18, backgroundColor: c.surface, borderWidth: 1, borderColor: c.border },
+  fn: { flexDirection: 'row', alignItems: 'center', gap: 13, padding: 14, marginBottom: 10, borderRadius: 18, backgroundColor: c.surface, borderWidth: 1, borderColor: c.border, ...darkCard },
   fnIcon: { width: 44, height: 44, borderRadius: 13, alignItems: 'center', justifyContent: 'center' },
   fnTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 7 },
   fnTitle: { fontFamily: fontFamily.semiBold, fontSize: 15.5, color: c.text },
@@ -514,47 +562,48 @@ const styles = StyleSheet.create({
   fnSub: { fontFamily: fontFamily.regular, fontSize: 12.5, color: c.textMuted, marginTop: 3 },
 
   // add sheet
-  sheetBackdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(20,18,14,0.4)' },
-  sheet: { position: 'absolute', left: 0, right: 0, bottom: 0, maxHeight: '90%', backgroundColor: c.background, borderTopLeftRadius: 22, borderTopRightRadius: 22, paddingHorizontal: 18, paddingTop: 14, paddingBottom: 24 },
-  grabber: { width: 36, height: 4, borderRadius: 2, backgroundColor: '#D8D3C8', alignSelf: 'center', marginBottom: 16 },
+  sheetBackdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: isDark ? c.overlay : 'rgba(20,18,14,0.4)' },
+  sheet: { position: 'absolute', left: 0, right: 0, bottom: 0, maxHeight: '90%', backgroundColor: isDark ? c.surface : c.background, borderTopLeftRadius: 22, borderTopRightRadius: 22, paddingHorizontal: 18, paddingTop: 14, paddingBottom: 24, ...(isDark ? { borderWidth: 1, ...darkCard } : null) },
+  grabber: { width: 36, height: 4, borderRadius: 2, backgroundColor: isDark ? 'rgba(255,255,255,0.16)' : '#D8D3C8', alignSelf: 'center', marginBottom: 16 },
   sheetHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 },
   sheetTitle: { fontFamily: fontFamily.display, fontSize: 19, color: c.text },
   sheetCancel: { fontFamily: fontFamily.semiBold, fontSize: 14, color: c.textMuted },
-  tabs: { flexDirection: 'row', gap: 6, padding: 4, borderRadius: 12, backgroundColor: '#EDEAE2', marginBottom: 18 },
+  tabs: { flexDirection: 'row', gap: 6, padding: 4, borderRadius: 12, backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : '#EDEAE2', marginBottom: 18 },
   tab: { flex: 1, paddingVertical: 9, borderRadius: 9, alignItems: 'center' },
-  tabOn: { backgroundColor: '#fff' },
+  tabOn: { backgroundColor: isDark ? 'rgba(255,255,255,0.14)' : '#fff' },
   tabText: { fontFamily: fontFamily.semiBold, fontSize: 14 },
 
   pasteHint: { flexDirection: 'row', alignItems: 'center', gap: 7, marginBottom: 8 },
   pasteHintText: { fontFamily: fontFamily.regular, fontSize: 12.5, color: c.textMuted, flex: 1 },
-  pasteBox: { minHeight: 110, borderRadius: 12, borderWidth: 1, borderColor: c.border, backgroundColor: '#fff', paddingHorizontal: 14, paddingVertical: 12, fontFamily: fontFamily.regular, fontSize: 15, color: c.text, textAlignVertical: 'top', lineHeight: 22 },
-  pasteBtn: { marginTop: 12, paddingVertical: 12, borderRadius: 12, alignItems: 'center', backgroundColor: MT_SOFT },
+  pasteBox: { minHeight: 110, borderRadius: 12, borderWidth: 1, borderColor: c.border, backgroundColor: inputBg, paddingHorizontal: 14, paddingVertical: 12, fontFamily: fontFamily.regular, fontSize: 15, color: c.text, textAlignVertical: 'top', lineHeight: 22 },
+  pasteBtn: { marginTop: 12, paddingVertical: 12, borderRadius: 12, alignItems: 'center', backgroundColor: st.soft },
   pasteBtnText: { fontFamily: fontFamily.semiBold, fontSize: 14 },
 
-  scanBox: { alignItems: 'center', justifyContent: 'center', gap: 12, paddingVertical: 34, paddingHorizontal: 20, borderRadius: 16, borderWidth: 1.5, borderColor: MT + '77', borderStyle: 'dashed', backgroundColor: MT_SOFT },
-  scanIcon: { width: 52, height: 52, borderRadius: 14, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center' },
+  scanBox: { alignItems: 'center', justifyContent: 'center', gap: 12, paddingVertical: 34, paddingHorizontal: 20, borderRadius: 16, borderWidth: 1.5, borderColor: st.accent + '77', borderStyle: 'dashed', backgroundColor: st.soft },
+  scanIcon: { width: 52, height: 52, borderRadius: 14, backgroundColor: isDark ? c.surfaceRaised : '#fff', alignItems: 'center', justifyContent: 'center' },
   scanTitle: { fontFamily: fontFamily.semiBold, fontSize: 15, color: c.text },
   scanSub: { fontFamily: fontFamily.regular, fontSize: 12.5, color: c.textMuted },
-  scanReading: { fontFamily: fontFamily.semiBold, fontSize: 14, color: MT_DARK },
-  scanPhotoBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, marginTop: 10, paddingVertical: 11, borderRadius: 12, borderWidth: 1, borderColor: c.border, backgroundColor: '#fff' },
-  scanPhotoText: { fontFamily: fontFamily.semiBold, fontSize: 14, color: MT_DARK },
+  scanReading: { fontFamily: fontFamily.semiBold, fontSize: 14, color: st.ink },
+  scanPhotoBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, marginTop: 10, paddingVertical: 11, borderRadius: 12, borderWidth: 1, borderColor: c.border, backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : '#fff' },
+  scanPhotoText: { fontFamily: fontFamily.semiBold, fontSize: 14, color: st.ink },
   scanMsg: { fontFamily: fontFamily.regular, fontSize: 12.5, color: c.textSecondary, marginTop: 12, textAlign: 'center', lineHeight: 18 },
-  filledBanner: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 12, paddingVertical: 10, borderRadius: 12, backgroundColor: MT_SOFT },
-  filledBannerText: { flex: 1, fontFamily: fontFamily.medium, fontSize: 12.5, color: MT_DARK, lineHeight: 17 },
+  filledBanner: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 12, paddingVertical: 10, borderRadius: 12, backgroundColor: st.soft },
+  filledBannerText: { flex: 1, fontFamily: fontFamily.medium, fontSize: 12.5, color: st.ink, lineHeight: 17 },
 
   fieldLabel: { fontFamily: fontFamily.bold, fontSize: 11, letterSpacing: 0.8, color: c.textMuted, marginBottom: 6 },
-  input: { borderRadius: 12, borderWidth: 1, borderColor: c.border, backgroundColor: '#fff', paddingHorizontal: 14, paddingVertical: 12, fontFamily: fontFamily.regular, fontSize: 15, color: c.text, justifyContent: 'center' },
+  input: { borderRadius: 12, borderWidth: 1, borderColor: c.border, backgroundColor: inputBg, paddingHorizontal: 14, paddingVertical: 12, fontFamily: fontFamily.regular, fontSize: 15, color: c.text, justifyContent: 'center' },
   inputMultiline: { minHeight: 64, textAlignVertical: 'top' },
   dayWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
   dayChip: { paddingHorizontal: 13, paddingVertical: 8, borderRadius: 999 },
-  dayChipOn: { backgroundColor: MT },
-  dayChipOff: { backgroundColor: '#fff', borderWidth: 1, borderColor: c.border },
+  dayChipOn: { backgroundColor: st.solid },
+  dayChipOff: { backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : '#fff', borderWidth: 1, borderColor: c.border },
   dayChipText: { fontFamily: fontFamily.semiBold, fontSize: 13 },
   onlineToggle: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 2 },
   switchTrack: { width: 44, height: 26, borderRadius: 13, justifyContent: 'center' },
   switchThumb: { position: 'absolute', top: 3, width: 20, height: 20, borderRadius: 10, backgroundColor: '#fff' },
   onlineToggleText: { fontFamily: fontFamily.medium, fontSize: 14, color: c.textSecondary },
-  saveBtn: { marginTop: 6, paddingVertical: 14, borderRadius: 14, alignItems: 'center', backgroundColor: MT },
+  saveBtn: { marginTop: 6, paddingVertical: 14, borderRadius: 14, alignItems: 'center', backgroundColor: st.solid },
   saveBtnText: { fontFamily: fontFamily.semiBold, fontSize: 15, color: '#fff' },
   btnDisabled: { opacity: 0.5 },
-});
+  });
+};

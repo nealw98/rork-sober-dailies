@@ -7,14 +7,16 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Stack, useRouter } from 'expo-router';
 import { WebView } from 'react-native-webview';
 import BackButton from '@/components/BackButton';
-import { colors, fontFamily, getSemanticColors } from '@/constants/designTokens';
+import { fontFamily, type Tokens } from '@/constants/designTokens';
+import { useTokens, useThemedStyles } from '@/hooks/useTokens';
 
-const c = getSemanticColors('light');
 const ONLINE_AA_URL = 'https://aa-intergroup.org/meetings/';
 
 export default function OnlineMeetingsScreen() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
+  const styles = useThemedStyles(makeStyles);
+  const { colors } = useTokens();
   return (
     <SafeAreaView style={styles.screen} edges={['top']}>
       <Stack.Screen options={{ headerShown: false }} />
@@ -37,11 +39,14 @@ export default function OnlineMeetingsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (tk: Tokens) => {
+  const { c } = tk;
+  return StyleSheet.create({
   screen: { flex: 1, backgroundColor: c.background },
   flex: { flex: 1 },
   header: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 16, paddingVertical: 8 },
   title: { fontFamily: fontFamily.display, fontSize: 18, color: c.text, letterSpacing: -0.3 },
   sub: { fontFamily: fontFamily.regular, fontSize: 12, color: c.textMuted, marginTop: 1 },
   loading: { ...StyleSheet.absoluteFillObject, alignItems: 'center', justifyContent: 'center', backgroundColor: c.background },
-});
+  });
+};

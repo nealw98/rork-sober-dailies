@@ -11,15 +11,17 @@ import * as Haptics from 'expo-haptics';
 import { useEveningReviewStore } from '@/hooks/use-evening-review-store';
 import { useDailies } from '@/hooks/use-dailies-store';
 import { ToolHeader, ToolIntro, TOOLS } from '@/components/ToolScreen';
-import { colors, fontFamily, getSemanticColors } from '@/constants/designTokens';
+import { fontFamily, type Tokens } from '@/constants/designTokens';
+import { useTokens, useThemedStyles } from '@/hooks/useTokens';
 import { logEvent } from '@/lib/analytics';
 
-const c = getSemanticColors('light');
 const tool = TOOLS.nightly;
 
 import { NIGHTLY_QUESTIONS as QUESTIONS } from '@/constants/nightlyQuestions';
 
 function PromptCard({ q, value, onChange }: { q: string; value: string; onChange: (v: string) => void }) {
+  const styles = useThemedStyles(makeStyles);
+  const { c, colors, isDark } = useTokens();
   const filled = value.trim() !== '';
   return (
     <View style={styles.prompt}>
@@ -29,8 +31,9 @@ function PromptCard({ q, value, onChange }: { q: string; value: string; onChange
         onChangeText={onChange}
         placeholder="Write your reflection here…"
         placeholderTextColor={c.textMuted}
-        style={[styles.answer, filled && { borderColor: tool.accent + '44' }]}
+        style={[styles.answer, filled && { borderColor: colors.tertiary + '44' }]}
         multiline
+        keyboardAppearance={isDark ? 'dark' : 'light'}
       />
     </View>
   );
@@ -39,6 +42,7 @@ function PromptCard({ q, value, onChange }: { q: string; value: string; onChange
 export default function NightlyReviewScreen() {
   const router = useRouter();
   const { dailyId } = useLocalSearchParams<{ dailyId?: string }>();
+  const styles = useThemedStyles(makeStyles);
   const store = useEveningReviewStore();
   const dailies = useDailies();
 
@@ -111,7 +115,12 @@ export default function NightlyReviewScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (tk: Tokens) => {
+  const { c, isDark } = tk;
+  const darkCard = isDark
+    ? { borderColor: 'rgba(255,255,255,0.06)', borderTopColor: 'rgba(255,255,255,0.12)' }
+    : null;
+  return StyleSheet.create({
   screen: { flex: 1, backgroundColor: c.background },
   flex: { flex: 1 },
   scroll: { paddingBottom: 40 },
@@ -120,7 +129,7 @@ const styles = StyleSheet.create({
   prompt: { marginBottom: 24 },
   question: { fontFamily: fontFamily.semiBold, fontSize: 17, lineHeight: 23, color: c.text, letterSpacing: -0.2, marginBottom: 11 },
   answer: {
-    backgroundColor: colors.white,
+    backgroundColor: c.surface,
     borderWidth: 1,
     borderColor: c.border,
     borderRadius: 12,
@@ -131,10 +140,12 @@ const styles = StyleSheet.create({
     fontSize: 16.5,
     lineHeight: 23,
     color: c.text,
+    ...darkCard,
   },
 
   sourceWrap: { marginTop: 22, paddingTop: 16, borderTopWidth: 1, borderTopColor: c.divider },
   source: { fontFamily: fontFamily.serifItalic, fontSize: 13.5, lineHeight: 20, color: c.textMuted, textAlign: 'center' },
   sourceStrong: { color: c.textSecondary },
   privacy: { marginTop: 10, fontFamily: fontFamily.regular, fontSize: 11.5, lineHeight: 17, color: c.textMuted, textAlign: 'center', paddingHorizontal: 16 },
-});
+  });
+};

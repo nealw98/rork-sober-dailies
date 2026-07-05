@@ -3,7 +3,8 @@ import { View, Text, ScrollView, Pressable, StyleSheet, LayoutAnimation, Platfor
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { ChevronLeft, ChevronRight, ChevronDown, ChevronUp, BookOpen } from 'lucide-react-native';
-import { colors, fontFamily, getSemanticColors, shadows } from '@/constants/designTokens';
+import { fontFamily, shadows, type Tokens } from '@/constants/designTokens';
+import { useTokens, useThemedStyles } from '@/hooks/useTokens';
 import { resolveGlyph, resolveTone } from '@/components/dailyTokens';
 import { useDailies } from '@/hooks/use-dailies-store';
 import { useScreenTimeTracking } from '@/hooks/useScreenTimeTracking';
@@ -13,9 +14,17 @@ if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental
   UIManager.setLayoutAnimationEnabledExperimental(true);
 }
 
-const c = getSemanticColors('light');
 const WEEK_HEADERS = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
-const HEAT_FILL = ['#FFFFFF', colors.primarySoft, colors.primary, colors.primaryDark]; // level 0..3
+
+// Heatmap fills, level 0..3 — teal ramp from the mode-aware colors so it
+// brightens on dark; level 0 is an empty cell (white / faint wash).
+function useHeatFill(): string[] {
+  const { colors, isDark } = useTokens();
+  return useMemo(
+    () => [isDark ? 'rgba(255,255,255,0.05)' : '#FFFFFF', colors.primarySoft, colors.primary, colors.primaryDark],
+    [colors, isDark],
+  );
+}
 
 function heatLevel(done: number, intensity: number): number {
   if (done === 0) return 0;
@@ -25,7 +34,9 @@ function heatLevel(done: number, intensity: number): number {
 }
 
 function StreakRowView({ row, last }: { row: StreakRow; last?: boolean }) {
-  const tone = resolveTone(row.color ?? 'gray');
+  const styles = useThemedStyles(makeStyles);
+  const { mode } = useTokens();
+  const tone = resolveTone(row.color ?? 'gray', mode);
   const Glyph = row.id === '__reflection' ? BookOpen : resolveGlyph(row.icon ?? '');
   return (
     <View style={[styles.streakRow, !last && styles.rowBorder]}>
@@ -41,6 +52,7 @@ function StreakRowView({ row, last }: { row: StreakRow; last?: boolean }) {
 }
 
 function InsightRow({ label, value, last }: { label: string; value: string; last?: boolean }) {
+  const styles = useThemedStyles(makeStyles);
   return (
     <View style={[styles.insightRow, !last && styles.rowBorder]}>
       <Text style={styles.insightLabel}>{label}</Text>
@@ -52,6 +64,9 @@ function InsightRow({ label, value, last }: { label: string; value: string; last
 export default function TrendsScreen() {
   useScreenTimeTracking('Trends');
   const router = useRouter();
+  const styles = useThemedStyles(makeStyles);
+  const { c, colors } = useTokens();
+  const heatFill = useHeatFill();
   const { program, completion } = useDailies();
 
   const streaks = useMemo(() => computeStreaks(program, completion), [program, completion]);
@@ -144,7 +159,7 @@ export default function TrendsScreen() {
                 {cell ? (
                   (() => {
                     const lvl = heatLevel(cell.done, cell.intensity);
-                    return <View style={[styles.cell, { backgroundColor: HEAT_FILL[lvl], borderColor: lvl === 0 ? c.border : 'transparent' }]} />;
+                    return <View style={[styles.cell, { backgroundColor: heatFill[lvl], borderColor: lvl === 0 ? c.border : 'transparent' }]} />;
                   })()
                 ) : null}
               </View>
@@ -152,7 +167,7 @@ export default function TrendsScreen() {
           </View>
           <View style={styles.legend}>
             <Text style={styles.legendText}>Less</Text>
-            {HEAT_FILL.map((col, i) => (
+            {heatFill.map((col, i) => (
               <View key={i} style={[styles.legendSwatch, { backgroundColor: col, borderColor: i === 0 ? c.border : 'transparent' }]} />
             ))}
             <Text style={styles.legendText}>More</Text>
@@ -179,46 +194,53 @@ export default function TrendsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: c.background },
-  flex: { flex: 1 },
-  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 14, paddingTop: 4, paddingBottom: 6 },
-  backBtn: { width: 40, height: 40, borderRadius: 20, borderWidth: 1, borderColor: c.border, backgroundColor: c.surface, alignItems: 'center', justifyContent: 'center' },
-  headerTitle: { fontFamily: fontFamily.displayBold, fontSize: 24, color: c.text },
+const makeStyles = (tk: Tokens) => {
+  const { c, colors, isDark } = tk;
+  // Cheap dark card chrome — lit top hairline on the neutral stat cards.
+  const darkCard = isDark
+    ? { borderColor: 'rgba(255,255,255,0.06)', borderTopColor: 'rgba(255,255,255,0.12)' }
+    : null;
+  return StyleSheet.create({
+    root: { flex: 1, backgroundColor: c.background },
+    flex: { flex: 1 },
+    header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 14, paddingTop: 4, paddingBottom: 6 },
+    backBtn: { width: 40, height: 40, borderRadius: 20, borderWidth: 1, borderColor: c.border, backgroundColor: c.surface, alignItems: 'center', justifyContent: 'center' },
+    headerTitle: { fontFamily: fontFamily.displayBold, fontSize: 24, color: c.text },
 
-  scroll: { paddingHorizontal: 16, paddingBottom: 32, gap: 12 },
-  card: { backgroundColor: c.surface, borderRadius: 16, padding: 14, borderWidth: 1, borderColor: c.border, ...shadows.sm },
-  cardHead: { flexDirection: 'row', alignItems: 'flex-start', marginBottom: 2 },
-  accent: { width: 3, height: 15, borderRadius: 2, marginRight: 9, marginTop: 3 },
-  cardTitle: { fontFamily: fontFamily.semiBold, fontSize: 16, color: c.text },
-  cardSub: { fontFamily: fontFamily.regular, fontSize: 12.5, color: c.textSecondary, marginTop: 2 },
+    scroll: { paddingHorizontal: 16, paddingBottom: 32, gap: 12 },
+    card: { backgroundColor: c.surface, borderRadius: 16, padding: 14, borderWidth: 1, borderColor: c.border, ...shadows.sm, ...darkCard },
+    cardHead: { flexDirection: 'row', alignItems: 'flex-start', marginBottom: 2 },
+    accent: { width: 3, height: 15, borderRadius: 2, marginRight: 9, marginTop: 3 },
+    cardTitle: { fontFamily: fontFamily.semiBold, fontSize: 16, color: c.text },
+    cardSub: { fontFamily: fontFamily.regular, fontSize: 12.5, color: c.textSecondary, marginTop: 2 },
 
-  streakRow: { flexDirection: 'row', alignItems: 'center', gap: 11, paddingVertical: 8 },
-  rowBorder: { borderBottomWidth: 1, borderBottomColor: c.divider },
-  streakIcon: { width: 28, height: 28, borderRadius: 9, alignItems: 'center', justifyContent: 'center' },
-  streakLabel: { flex: 1, fontFamily: fontFamily.semiBold, fontSize: 15, color: c.text },
-  streakDays: { fontFamily: fontFamily.regular, fontSize: 12.5, color: c.textMuted },
-  streakNum: { fontFamily: fontFamily.bold, fontSize: 17, color: colors.primary },
+    streakRow: { flexDirection: 'row', alignItems: 'center', gap: 11, paddingVertical: 8 },
+    rowBorder: { borderBottomWidth: 1, borderBottomColor: c.divider },
+    streakIcon: { width: 28, height: 28, borderRadius: 9, alignItems: 'center', justifyContent: 'center' },
+    streakLabel: { flex: 1, fontFamily: fontFamily.semiBold, fontSize: 15, color: c.text },
+    streakDays: { fontFamily: fontFamily.regular, fontSize: 12.5, color: c.textMuted },
+    streakNum: { fontFamily: fontFamily.bold, fontSize: 17, color: colors.primary },
 
-  emptyStreak: { fontFamily: fontFamily.regular, fontSize: 13.5, lineHeight: 19, color: c.textMuted, paddingVertical: 10 },
-  seeAll: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 3, paddingTop: 10, paddingBottom: 1 },
-  seeAllText: { fontFamily: fontFamily.semiBold, fontSize: 14, color: colors.primary },
+    emptyStreak: { fontFamily: fontFamily.regular, fontSize: 13.5, lineHeight: 19, color: c.textMuted, paddingVertical: 10 },
+    seeAll: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 3, paddingTop: 10, paddingBottom: 1 },
+    seeAllText: { fontFamily: fontFamily.semiBold, fontSize: 14, color: colors.primary },
 
-  monthNav: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 12, marginBottom: 8 },
-  monthBtn: { flexDirection: 'row', alignItems: 'center', gap: 2, minWidth: 60 },
-  monthBtnText: { fontFamily: fontFamily.semiBold, fontSize: 13.5, color: c.textSecondary },
-  monthTitle: { fontFamily: fontFamily.semiBold, fontSize: 16, color: c.text },
+    monthNav: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 12, marginBottom: 8 },
+    monthBtn: { flexDirection: 'row', alignItems: 'center', gap: 2, minWidth: 60 },
+    monthBtnText: { fontFamily: fontFamily.semiBold, fontSize: 13.5, color: c.textSecondary },
+    monthTitle: { fontFamily: fontFamily.semiBold, fontSize: 16, color: c.text },
 
-  weekHeader: { flexDirection: 'row', marginBottom: 3 },
-  weekHeaderText: { flex: 1, textAlign: 'center', fontFamily: fontFamily.semiBold, fontSize: 10.5, color: c.textMuted },
-  grid: { flexDirection: 'row', flexWrap: 'wrap' },
-  cellWrap: { width: `${100 / 7}%`, height: 34, padding: 2.5 },
-  cell: { flex: 1, borderRadius: 6, borderWidth: 1 },
-  legend: { flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', gap: 4, marginTop: 10 },
-  legendText: { fontFamily: fontFamily.regular, fontSize: 11, color: c.textMuted },
-  legendSwatch: { width: 14, height: 14, borderRadius: 4, borderWidth: 1 },
+    weekHeader: { flexDirection: 'row', marginBottom: 3 },
+    weekHeaderText: { flex: 1, textAlign: 'center', fontFamily: fontFamily.semiBold, fontSize: 10.5, color: c.textMuted },
+    grid: { flexDirection: 'row', flexWrap: 'wrap' },
+    cellWrap: { width: `${100 / 7}%`, height: 34, padding: 2.5 },
+    cell: { flex: 1, borderRadius: 6, borderWidth: 1 },
+    legend: { flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', gap: 4, marginTop: 10 },
+    legendText: { fontFamily: fontFamily.regular, fontSize: 11, color: c.textMuted },
+    legendSwatch: { width: 14, height: 14, borderRadius: 4, borderWidth: 1 },
 
-  insightRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 9, gap: 12 },
-  insightLabel: { flex: 1, fontFamily: fontFamily.regular, fontSize: 14.5, color: c.textSecondary },
-  insightValue: { fontFamily: fontFamily.semiBold, fontSize: 14.5, color: c.text, textAlign: 'right' },
-});
+    insightRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 9, gap: 12 },
+    insightLabel: { flex: 1, fontFamily: fontFamily.regular, fontSize: 14.5, color: c.textSecondary },
+    insightValue: { fontFamily: fontFamily.semiBold, fontSize: 14.5, color: c.text, textAlign: 'right' },
+  });
+};
