@@ -1,17 +1,18 @@
 // Single Meeting Reading (redesign 3.0), per hifi-literature.jsx
 // ScreenMeetingReading: a distraction-free Lora reader for the public-domain
 // passages. Renders numbered lists (Steps/Traditions) with a hanging indent,
-// "Header\nbody" blocks (the format guide), and prose. Respects the app's
-// global reading text size.
+// "Header\nbody" blocks (the format guide), and prose. Reading text scales
+// with the OS text-size (Dynamic Type) via the fixed base.
 import React from 'react';
 import { View, Text, StyleSheet, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Stack, useRouter, useLocalSearchParams } from 'expo-router';
 import BackButton from '@/components/BackButton';
 import { getMeetingReading } from '@/constants/meeting-readings';
-import { useTextSettings } from '@/hooks/use-text-settings';
 import { useScreenTimeTracking } from '@/hooks/useScreenTimeTracking';
 import { fontFamily, type Tokens } from '@/constants/designTokens';
+import { readerSerif } from '@/constants/fonts';
+import { useReadingSize } from '@/hooks/use-reading-size';
 import { useTokens, useThemedStyles } from '@/hooks/useTokens';
 
 const AMBER_INK = '#B27330';
@@ -25,11 +26,9 @@ export default function MeetingReadingScreen() {
   const styles = useThemedStyles(makeStyles);
   const { c } = useTokens();
 
-  const ts = useTextSettings();
-  const size = ts?.fontSize ?? 18;
-  const lineHeight = Math.round(size * (ts?.lineHeightMultiplier ?? 1.5));
-  // Georgia matches the Big Book reader's optical size (Lora reads a step larger).
-  const body = { fontFamily: 'Georgia', fontSize: size, lineHeight, color: c.text } as const;
+  const { readingSize: size, readingLineHeight: lineHeight } = useReadingSize();
+  // The reader serif matches the Big Book reader's optical size (Lora reads a step larger).
+  const body = { fontFamily: readerSerif, fontSize: size, lineHeight, color: c.text } as const;
 
   if (!reading) {
     return (

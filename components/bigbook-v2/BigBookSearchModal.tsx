@@ -19,8 +19,8 @@ import { KeyboardModalScope } from '@/components/KeyboardModalScope';
 import { X, Search as SearchIcon } from 'lucide-react-native';
 import Colors from '@/constants/colors';
 import { adjustFontWeight } from '@/constants/fonts';
+import { useReadingSize } from '@/hooks/use-reading-size';
 import { useBigBookContent, SearchResult } from '@/hooks/use-bigbook-content';
-import { useTextSettings } from '@/hooks/use-text-settings';
 import { parseMarkdownItalics } from './markdownUtils';
 
 interface BigBookSearchModalProps {
@@ -37,7 +37,7 @@ export function BigBookSearchModal({
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
   const { searchContent } = useBigBookContent();
-  const { fontSize, lineHeight } = useTextSettings();
+  const { readingSize: fontSize, readingLineHeight: lineHeight } = useReadingSize();
 
   const handleSearch = (query: string) => {
     setSearchQuery(query);

@@ -22,15 +22,14 @@ import { Reflection } from '@/types';
 import { recordDailyReflectionDay } from '@/lib/reviewPrompt';
 import { titleCase } from '@/lib/titleCase';
 import { useDailies } from '@/hooks/use-dailies-store';
-import { useTextSettings } from '@/hooks/use-text-settings';
 import { fontFamily, type Tokens } from '@/constants/designTokens';
+import { readerSerif, readerSerifItalic } from '@/constants/fonts';
+import { useReadingSize } from '@/hooks/use-reading-size';
+import { ReadingSizeSheet } from '@/components/ReadingSizeSheet';
 import { useTokens, useThemedStyles } from '@/hooks/useTokens';
 
 const HERO = require('../assets/images/reflection_bg2.webp');
 const WEEKDAYS = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
-const SIZE_BUCKETS: { k: string; size: number }[] = [
-  { k: 'S', size: 14 }, { k: 'M', size: 18 }, { k: 'L', size: 24 }, { k: 'XL', size: 30 },
-];
 
 const isSameDay = (a: Date, b: Date) =>
   a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
@@ -38,19 +37,16 @@ const heroDate = (d: Date) =>
   `${d.toLocaleDateString('en-US', { weekday: 'long' })} · ${d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`;
 
 interface DailyReflectionProps {
-  fontSize?: number;
-  lineHeight?: number;
   jumpToDate?: Date | null;
   onJumpApplied?: () => void;
 }
 
-export default function DailyReflection({ fontSize = 18, lineHeight, jumpToDate = null, onJumpApplied }: DailyReflectionProps) {
-  const readSize = fontSize;
-  const readLine = lineHeight ?? fontSize * 1.6;
+export default function DailyReflection({ jumpToDate = null, onJumpApplied }: DailyReflectionProps) {
+  // Reading text = the shared "Aa" size, layered on the OS text-size.
+  const { readingSize: readSize, readingLineHeight: readLine } = useReadingSize();
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const dailies = useDailies();
-  const { setFontSize } = useTextSettings();
 
   const styles = useThemedStyles(makeStyles);
   const { c, colors, isDark } = useTokens();
@@ -210,13 +206,7 @@ export default function DailyReflection({ fontSize = 18, lineHeight, jumpToDate 
         onClose={() => setSheet(null)}
         bottomInset={insets.bottom}
       />
-      <DisplaySheet
-        visible={sheet === 'display'}
-        current={readSize}
-        onSize={setFontSize}
-        onClose={() => setSheet(null)}
-        bottomInset={insets.bottom}
-      />
+      <ReadingSizeSheet visible={sheet === 'display'} onClose={() => setSheet(null)} bottomInset={insets.bottom} />
     </SafeAreaView>
   );
 }
@@ -270,37 +260,6 @@ function CalendarSheet({ visible, month, selected, onMonth, onPick, onToday, onC
   );
 }
 
-// ── Text size sheet ────────────────────────────────────────────────────
-function DisplaySheet({ visible, current, onSize, onClose, bottomInset }: {
-  visible: boolean; current: number; onSize: (n: number) => void; onClose: () => void; bottomInset: number;
-}) {
-  const styles = useThemedStyles(makeStyles);
-  const { c, isDark } = useTokens();
-  const selected = SIZE_BUCKETS.reduce((best, b) => (Math.abs(b.size - current) < Math.abs(best.size - current) ? b : best), SIZE_BUCKETS[0]).k;
-  return (
-    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
-      <Pressable style={styles.sheetBackdrop} onPress={onClose} />
-      <View style={[styles.dispSheet, { paddingBottom: bottomInset + 28 }]}>
-        <View style={styles.grabber} />
-        <Text style={styles.sheetLabel}>TEXT SIZE</Text>
-        <View style={styles.sizeRow}>
-          <View style={styles.sizeBtns}>
-            {SIZE_BUCKETS.map((b) => {
-              const on = b.k === selected;
-              return (
-                <Pressable key={b.k} onPress={() => onSize(b.size)} style={[styles.sizeBtn, on ? styles.sizeBtnOn : styles.sizeBtnOff]}>
-                  <Text style={[styles.sizeBtnText, { fontSize: b.k === 'S' ? 11 : b.k === 'M' ? 13 : b.k === 'L' ? 15 : 17, color: on ? (isDark ? '#0B0C0E' : '#fff') : c.textSecondary }]}>{b.k}</Text>
-                </Pressable>
-              );
-            })}
-          </View>
-        </View>
-        <Pressable style={styles.sheetCancel} onPress={onClose}><Text style={styles.sheetCancelText}>Done</Text></Pressable>
-      </View>
-    </Modal>
-  );
-}
-
 const makeStyles = (tk: Tokens) => {
   const { c, colors, isDark } = tk;
   // Cheap dark card chrome — lit top hairline + hairline border (handoff).
@@ -334,20 +293,20 @@ const makeStyles = (tk: Tokens) => {
   readingCard: { marginTop: 16, paddingHorizontal: 18, paddingTop: 0, paddingBottom: 26, borderRadius: 18, backgroundColor: c.surface, borderWidth: 1, borderColor: c.border, ...darkCard },
 
   quoteWrap: { marginTop: 32, paddingLeft: 18, borderLeftWidth: 2, borderLeftColor: colors.primary },
-  // Reading text is Georgia (iOS system serif) to match the Big Book reader's
-  // optical size — Lora at the same pt reads a step larger.
-  quote: { fontFamily: 'Georgia', fontStyle: 'italic', color: c.text, letterSpacing: -0.05 },
+  // Reading text is the reader serif (Georgia on iOS, Gelasio on Android) to
+  // match the Big Book reader's optical size — Lora at the same pt reads a step larger.
+  quote: { ...readerSerifItalic, color: c.text, letterSpacing: -0.05 },
   source: { fontFamily: fontFamily.semiBold, fontSize: 11, color: c.textMuted, marginTop: 10, letterSpacing: 1, textTransform: 'uppercase' },
 
   bodyWrap: { marginTop: 32 },
-  body: { fontFamily: 'Georgia', color: c.text, letterSpacing: -0.05 },
+  body: { fontFamily: readerSerif, color: c.text, letterSpacing: -0.05 },
 
   medTile: { marginTop: 24, padding: 18, backgroundColor: colors.primarySoft, borderRadius: 18, borderWidth: 1, borderColor: colors.primary + '28', overflow: 'hidden' },
   medOrb: { position: 'absolute', top: -30, right: -30, width: 140, height: 140, borderRadius: 70, backgroundColor: colors.primary + '14' },
   medLabelRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   medLabel: { fontFamily: fontFamily.bold, fontSize: 10, letterSpacing: 1.4, color: colors.primaryDark },
   // fontSize/lineHeight follow the reading-size setting (set inline).
-  medText: { fontFamily: 'Georgia', fontStyle: 'italic', color: c.text, marginTop: 8, letterSpacing: -0.3 },
+  medText: { ...readerSerifItalic, color: c.text, marginTop: 8, letterSpacing: -0.3 },
 
 
   copyright: { marginTop: 18, fontFamily: fontFamily.regular, fontSize: 10, color: c.textMuted, lineHeight: 15, textAlign: 'center' },
@@ -371,17 +330,5 @@ const makeStyles = (tk: Tokens) => {
   calCancel: { fontFamily: fontFamily.semiBold, fontSize: 13, color: c.textMuted, paddingHorizontal: 14, paddingVertical: 8 },
   calTodayBtn: { paddingHorizontal: 16, paddingVertical: 8, borderRadius: 999, backgroundColor: colors.primary },
   calTodayText: { fontFamily: fontFamily.semiBold, fontSize: 13, color: isDark ? '#0B0C0E' : '#fff' },
-
-  dispSheet: { position: 'absolute', left: 0, right: 0, bottom: 0, backgroundColor: c.surface, borderTopLeftRadius: 28, borderTopRightRadius: 28, paddingHorizontal: 20, paddingTop: 14, shadowColor: '#000', shadowOpacity: 0.18, shadowRadius: 40, shadowOffset: { width: 0, height: -10 }, elevation: 12, ...(isDark ? { borderWidth: 1, ...darkCard } : null) },
-  grabber: { width: 40, height: 4, borderRadius: 999, backgroundColor: c.border, alignSelf: 'center', marginBottom: 16 },
-  sheetLabel: { fontFamily: fontFamily.bold, fontSize: 11, letterSpacing: 1.4, color: c.textMuted },
-  sizeRow: { flexDirection: 'row', alignItems: 'center', marginTop: 12, paddingHorizontal: 14, paddingVertical: 10, borderRadius: 16, backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : c.background, borderWidth: 1, borderColor: c.border },
-  sizeBtns: { flex: 1, flexDirection: 'row', gap: 6 },
-  sizeBtn: { flex: 1, paddingVertical: 8, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
-  sizeBtnOn: { backgroundColor: colors.primary },
-  sizeBtnOff: { borderWidth: 1, borderColor: c.border },
-  sizeBtnText: { fontFamily: fontFamily.semiBold },
-  sheetCancel: { marginTop: 22, paddingVertical: 12, borderRadius: 999, borderWidth: 1, borderColor: c.border, alignItems: 'center' },
-  sheetCancelText: { fontFamily: fontFamily.semiBold, fontSize: 14, color: c.textSecondary },
   });
 };

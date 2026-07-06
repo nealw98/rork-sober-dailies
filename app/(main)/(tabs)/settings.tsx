@@ -1,8 +1,9 @@
 // Settings — rebuilt from the prototype (frames/hifi-profile-v2.jsx · ProfileHiFiB).
 // Tab-style header (large "Settings" title + serif subtitle, matching Today /
 // Journey / Tools — no TopLevelHeader, no Home/hamburger, no eyebrow). Content is
-// token-based CardGroup / CardRow / SettingSection blocks: Text Size (live preview
-// + steppers), Your Data, Support Sober Dailies, About, and a dev-only group.
+// token-based CardGroup / CardRow / SettingSection blocks: Appearance, Your
+// Data, Support Sober Dailies, About, and a dev-only group. (Text size follows
+// the OS system setting / Dynamic Type — there is no in-app control.)
 // Legal links + version live at the foot of the scroll (the floating tab bar +
 // FAB sit above). Hidden QA: tap the version 7× for the Support ID; long-press for
 // the Debug Console. Reminders (notifications) from the prototype are deferred.
@@ -30,7 +31,6 @@ import * as Clipboard from 'expo-clipboard';
 import * as SecureStore from 'expo-secure-store';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Purchases from 'react-native-purchases';
-import { useTextSettings } from '@/hooks/use-text-settings';
 import { useTheme } from '@/hooks/useTheme';
 import { Logger } from '@/lib/logger';
 import { submitFeedback } from '@/lib/feedback';
@@ -97,7 +97,6 @@ const APPEARANCE_OPTIONS = [
 export default function SettingsScreen() {
   const styles = useThemedStyles(makeStyles);
   const { c } = useTokens();
-  const { fontSize, setFontSize, minFontSize, maxFontSize, resetDefaults, defaultFontSize } = useTextSettings();
   const { resetOnboarding } = useOnboarding();
   const { colorScheme, setColorScheme } = useTheme();
 
@@ -147,11 +146,6 @@ export default function SettingsScreen() {
       Alert.alert('Error', 'Failed to save developer mode setting');
     }
   };
-
-  const step = 2;
-  const increase = () => setFontSize(fontSize + step);
-  const decrease = () => setFontSize(fontSize - step);
-
 
   // Version info
   const appVersion = Constants.expoConfig?.version ?? '—';
@@ -405,42 +399,17 @@ export default function SettingsScreen() {
           </View>
         </SettingSection>
 
-        {/* Text Size — live preview + steppers */}
-        <SettingSection label="Text Size">
-          <ThemedCard radius={14} shadow="sm" contentStyle={styles.previewCardInner}>
-            <Text style={[styles.previewText, { fontSize, lineHeight: fontSize * 1.5 }]}>
-              &ldquo;Daily progress one day at a time.&rdquo;
-            </Text>
-          </ThemedCard>
-          <View style={styles.stepperRow}>
-            <TouchableOpacity
-              style={[styles.stepBtn, fontSize <= minFontSize && styles.stepBtnDisabled]}
-              onPress={decrease}
-              disabled={fontSize <= minFontSize}
-              activeOpacity={0.7}
-            >
-              <Text style={[styles.stepBtnText, fontSize <= minFontSize && styles.stepBtnTextDisabled]}>−</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.stepBtn, fontSize >= maxFontSize && styles.stepBtnDisabled]}
-              onPress={increase}
-              disabled={fontSize >= maxFontSize}
-              activeOpacity={0.7}
-            >
-              <Text style={[styles.stepBtnText, fontSize >= maxFontSize && styles.stepBtnTextDisabled]}>+</Text>
-            </TouchableOpacity>
-          </View>
-          {fontSize !== defaultFontSize && (
-            <TouchableOpacity style={styles.resetBtn} onPress={resetDefaults} activeOpacity={0.7}>
-              <Text style={styles.resetBtnText}>Reset to default</Text>
-            </TouchableOpacity>
-          )}
-        </SettingSection>
+        {/* Text size follows the device's system text-size (Dynamic Type) —
+            no in-app control. */}
 
-        {/* Your Data */}
-        <CardGroup label="Your Data">
-          <CardRow label="Backup & Restore" last onPress={() => router.push('/(main)/backup' as Href)} />
-        </CardGroup>
+        {/* Your Data — backup is iCloud-only, so the entry is iOS-only until
+            Android gets a cloud backup (the screen itself has an Android
+            empty state for deep links). */}
+        {Platform.OS === 'ios' && (
+          <CardGroup label="Your Data">
+            <CardRow label="Backup & Restore" last onPress={() => router.push('/(main)/backup' as Href)} />
+          </CardGroup>
+        )}
 
         {/* Support Sober Dailies */}
         <CardGroup label="Support Sober Dailies">
@@ -742,28 +711,6 @@ const makeStyles = (tk: Tokens) => {
   rowSub: { fontFamily: fontFamily.regular, fontSize: 12, color: c.textMuted, marginTop: 2 },
   rowValue: { fontFamily: fontFamily.regular, fontSize: 13, color: c.textMuted },
 
-  // Text Size control (ThemedCard owns the card chrome)
-  previewCardInner: {
-    paddingVertical: 22,
-    paddingHorizontal: 16,
-    alignItems: 'center',
-  },
-  previewText: { fontFamily: fontFamily.serifItalic, color: c.text, textAlign: 'center' },
-  stepperRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 16, marginTop: 14 },
-  stepBtn: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: colors.primary,
-    alignItems: 'center',
-    justifyContent: 'center',
-    ...shadows.sm,
-  },
-  stepBtnDisabled: { backgroundColor: c.divider, shadowOpacity: 0, elevation: 0 },
-  stepBtnText: { fontFamily: fontFamily.semiBold, fontSize: 24, lineHeight: 28, color: '#fff' },
-  stepBtnTextDisabled: { color: c.textMuted },
-  resetBtn: { alignSelf: 'center', marginTop: 10, paddingVertical: 4, paddingHorizontal: 10 },
-  resetBtnText: { fontFamily: fontFamily.semiBold, fontSize: 13, color: colors.primary },
 
   // Legal + version
   legalRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 12, marginTop: 4 },

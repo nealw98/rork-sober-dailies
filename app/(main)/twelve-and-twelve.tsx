@@ -21,6 +21,7 @@ import { usePdfBookmarks, type PdfBookmark } from '@/hooks/use-pdf-bookmarks';
 import { useReadingSession } from '@/hooks/useReadingSession';
 import { useScreenTimeTracking } from '@/hooks/useScreenTimeTracking';
 import { fontFamily, type Tokens } from '@/constants/designTokens';
+import { readerSerif } from '@/constants/fonts';
 import { useTokens, useThemedStyles } from '@/hooks/useTokens';
 
 const BOOK = 'twelve';
@@ -328,7 +329,7 @@ const makeStyles = (tk: Tokens) => {
   resultCard: { flexDirection: 'row', backgroundColor: c.surface, borderWidth: 1, borderColor: c.border, borderRadius: 12, padding: 12, marginBottom: 8, overflow: 'hidden', ...darkCard },
   resultBar: { position: 'absolute', left: 0, top: 0, bottom: 0, width: 4, backgroundColor: TT_INK },
   resultTitle: { fontFamily: fontFamily.semiBold, fontSize: 13.5, color: TT_INK, paddingLeft: 6 },
-  resultSnippet: { fontFamily: 'Georgia', fontSize: 14.5, lineHeight: 21, color: c.text, marginTop: 5, paddingLeft: 6 },
+  resultSnippet: { fontFamily: readerSerif, fontSize: 14.5, lineHeight: 21, color: c.text, marginTop: 5, paddingLeft: 6 },
   resultMatch: { backgroundColor: isDark ? 'rgba(79,179,172,0.25)' : '#FCE9A8', color: c.text },
   resultMeta: { fontFamily: fontFamily.regular, fontSize: 11.5, color: c.textMuted, marginTop: 6, paddingLeft: 6 },
 

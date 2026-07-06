@@ -18,7 +18,7 @@ import { ChatStoreProvider, useChatStore } from '@/hooks/use-chat-store';
 import { getSponsorById, SPONSORS, type SponsorConfig } from '@/constants/sponsors';
 import { SELECTION_SPONSOR_IDS, BR_INK as BR_INK_LIGHT, BR_SOFT as BR_SOFT_LIGHT } from '@/constants/sponsorTones';
 import { useScreenTimeTracking } from '@/hooks/useScreenTimeTracking';
-import { useTextSettings } from '@/hooks/use-text-settings';
+import { useReadingSize } from '@/hooks/use-reading-size';
 import { useLastSponsor } from '@/hooks/use-last-sponsor';
 import { SponsorType, ChatMessage } from '@/types';
 import { ChatMarkdownRenderer } from '@/components/ChatMarkdownRenderer';
@@ -128,7 +128,8 @@ const copyMessage = async (text: string) => {
 };
 
 // ── Message: user = white bubble; sponsor = flat text (assistant style) ──
-// `size` follows the global reading size, Lora-scaled (see LORA_SCALE).
+// `size` is the fixed reading base, Lora-scaled (see LORA_SCALE); it scales
+// with the OS text-size via RN's default font scaling.
 function Bubble({ message, size }: { message: ChatMessage; size: number }) {
   const styles = useThemedStyles(makeStyles);
   const { c } = useTokens();
@@ -165,8 +166,8 @@ function SponsorChatContent({ initialSponsor }: { initialSponsor: string }) {
   const { c, colors, isDark } = useTokens();
   const BR_INK = isDark ? colors.primaryDark : BR_INK_LIGHT;
   const BR_SOFT = isDark ? colors.primarySoft : BR_SOFT_LIGHT;
-  const textSettings = useTextSettings();
-  const size = (textSettings?.fontSize ?? 18) * LORA_SCALE; // chat text, Lora-matched
+  const { readingSize } = useReadingSize();
+  const size = readingSize * LORA_SCALE; // chat text, Lora-matched; follows the shared reading size
   const { messages, isLoading, sendMessage, clearChat, changeSponsor, sponsorType } = useChatStore();
   const [inputText, setInputText] = useState('');
   const [isCheckingLimits, setIsCheckingLimits] = useState(false);

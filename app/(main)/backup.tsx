@@ -68,7 +68,7 @@ export default function BackupScreen() {
         <BackButton onPress={() => router.back()} style={{ marginBottom: 8 }} />
         <Text style={styles.title}>Backup & Restore</Text>
         <Text style={styles.sub}>
-          Save a copy of your data and bring it back after reinstalling or on another device.{count != null ? ` Currently storing ${count} item${count === 1 ? '' : 's'}.` : ''}
+          {iCloudSupported() ? 'Save a copy of your data and bring it back after reinstalling or on another device.' : 'Your data is saved on this device.'}{count != null ? ` Currently storing ${count} item${count === 1 ? '' : 's'}.` : ''}
         </Text>
       </View>
 
@@ -88,9 +88,24 @@ export default function BackupScreen() {
           </>
         )}
 
-        <Text style={styles.note}>
-          Backups include your dailies, sober date, gratitude, spot checks, nightly reviews, journal, meetings, contacts, AI Sponsor chats, and reading progress. Device-only settings and caches aren't included.
-        </Text>
+        {/* Android (and any non-iCloud platform): cloud backup isn't built yet —
+            say so plainly instead of rendering an empty screen. The Settings
+            entry row is also hidden on Android; this covers deep links. */}
+        {!iCloudSupported() && (
+          <View style={styles.emptyCard}>
+            <View style={styles.rowIcon}><CloudUpload size={20} color={TEAL} strokeWidth={2} /></View>
+            <Text style={styles.emptyTitle}>Cloud backup isn't available on Android yet</Text>
+            <Text style={styles.emptyBody}>
+              Your data is stored safely on this device. Cloud backup for Android is coming in a future update — until then, keep the app installed to keep your history.
+            </Text>
+          </View>
+        )}
+
+        {iCloudSupported() && (
+          <Text style={styles.note}>
+            Backups include your dailies, sober date, gratitude, spot checks, nightly reviews, journal, meetings, contacts, AI Sponsor chats, and reading progress. Device-only settings and caches aren't included.
+          </Text>
+        )}
       </ScrollView>
     </SafeAreaView>
   );
@@ -132,5 +147,8 @@ const makeStyles = (tk: Tokens) => {
   rowTitle: { fontFamily: fontFamily.semiBold, fontSize: 15, color: c.text },
   rowSub: { fontFamily: fontFamily.regular, fontSize: 12.5, lineHeight: 17, color: c.textMuted, marginTop: 2 },
   note: { fontFamily: fontFamily.regular, fontSize: 12, lineHeight: 18, color: c.textMuted, paddingHorizontal: 4, marginTop: 16 },
+  emptyCard: { alignItems: 'flex-start', gap: 10, padding: 18, marginTop: 14, borderRadius: 16, backgroundColor: c.surface, borderWidth: 1, borderColor: c.border, ...shadows.sm, ...darkCard },
+  emptyTitle: { fontFamily: fontFamily.semiBold, fontSize: 15, color: c.text },
+  emptyBody: { fontFamily: fontFamily.regular, fontSize: 12.5, lineHeight: 18, color: c.textMuted },
   });
 };

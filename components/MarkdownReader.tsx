@@ -17,10 +17,10 @@ import { ScrollView } from 'react-native';
 import { ChevronLeft, Search } from 'lucide-react-native';
 import Colors from '@/constants/colors';
 import { adjustFontWeight } from '@/constants/fonts';
+import { useReadingSize } from '@/hooks/use-reading-size';
 import { CustomTextRenderer } from './CustomTextRenderer';
 import { getChapterPages, findPageIndex, PageItem } from '@/constants/bigbook/content';
 import { useLastPageStore } from '@/hooks/use-last-page-store';
-import { useTextSettings } from '@/hooks/use-text-settings';
 
 // Convert Roman numerals to Arabic numbers
 const romanToArabic = (roman: string): number => {
@@ -96,7 +96,7 @@ const MarkdownReader = ({
   initialScrollPosition,
   targetPageNumber
 }: MarkdownReaderProps) => {
-  const { fontSize, lineHeight } = useTextSettings();
+  const { readingSize: fontSize, readingLineHeight: lineHeight } = useReadingSize();
   const scrollViewRef = useRef<ScrollView>(null);
   const pageRefs = useRef<{ [pageNumber: string]: View | null }>({});
   const pageYPositions = useRef<{ [pageNumber: string]: number }>({});
@@ -962,7 +962,8 @@ const markdownStyles = {
     marginVertical: 12
   } as ViewStyle,
   code_inline: {
-    fontFamily: 'Courier',
+    // Courier is iOS-only; Android's generic monospace maps to a real face.
+    fontFamily: Platform.select({ ios: 'Courier', default: 'monospace' }),
     backgroundColor: 'rgba(0, 0, 0, 0.05)',
     padding: 4,
     borderRadius: 4

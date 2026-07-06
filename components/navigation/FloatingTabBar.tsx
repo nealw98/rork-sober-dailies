@@ -9,7 +9,7 @@
  * inset bevel shadow + halo ring) and `frames/proto-app.jsx` shell FAB.
  */
 import React, { useEffect, useRef } from 'react';
-import { View, Text, Pressable, StyleSheet, Image, Animated, Easing } from 'react-native';
+import { View, Text, Pressable, StyleSheet, Image, Animated, Easing, Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import type { BottomTabBarProps } from '@react-navigation/bottom-tabs';
@@ -180,13 +180,30 @@ export default function FloatingTabBar({ state, navigation }: BottomTabBarProps)
       style={[styles.container, { paddingBottom: bottomPad, height: BAR_HEIGHT + bottomPad }]}
     >
       <View style={[styles.bar, { borderColor: isDark ? c.tabBorder : 'rgba(255,255,255,0.55)' }]}>
-        {/* Frosted glass: the BlurView samples the real screen behind it (the bar
-            itself is transparent, so nothing muddies the blur), then a thin tint
-            sits ON TOP of the blur — frosted-white on light, deep glass on dark. */}
-        <BlurView intensity={50} tint={isDark ? 'dark' : 'light'} style={styles.barGlass} />
+        {/* Frosted glass. On iOS the BlurView samples the real screen behind it
+            (the bar is transparent so nothing muddies the blur) under a thin
+            tint. Android has no cheap system blur — expo-blur's dimezis method
+            renders to a window texture that blanks out pushed screens (it turned
+            the sponsor chat white), so we DON'T use it. Instead Android falls
+            back to a near-opaque frosted panel: the tint carries the surface. */}
+        <BlurView
+          intensity={Platform.OS === 'ios' ? 50 : 0}
+          tint={isDark ? 'dark' : 'light'}
+          style={styles.barGlass}
+        />
         <View
           pointerEvents="none"
-          style={[styles.barTint, { backgroundColor: isDark ? 'rgba(8,8,10,0.55)' : 'rgba(255,253,248,0.3)' }]}
+          style={[
+            styles.barTint,
+            {
+              backgroundColor: Platform.select({
+                // iOS: thin tint over a real blur. Android: a solid-ish frosted
+                // fill that reads as glass without any blur.
+                ios: isDark ? 'rgba(8,8,10,0.55)' : 'rgba(255,253,248,0.3)',
+                default: isDark ? 'rgba(18,18,20,0.92)' : 'rgba(255,253,248,0.92)',
+              }),
+            },
+          ]}
         />
         {state.routes.map((route, index) => {
           const meta = TAB_META[route.name as TabKey];

@@ -6,6 +6,7 @@
       "dependencies": {
         "@expo-google-fonts/archivo": "^0.4.2",
         "@expo-google-fonts/barlow-condensed": "^0.4.1",
+        "@expo-google-fonts/gelasio": "^0.4.1",
         "@expo-google-fonts/inter": "^0.4.2",
         "@expo-google-fonts/inter-tight": "^0.4.2",
         "@expo-google-fonts/lora": "^0.4.2",
@@ -306,6 +307,8 @@
     "@expo-google-fonts/archivo": ["@expo-google-fonts/archivo@0.4.2", "", {}, "sha512-FLhI4/ZVIFSHHxx15Z7Rr4QX/4ZrJozEebBEFSdHSRRwULGCuSIpbb3dz56Hslux6LZEnJ1mVpZ6CyVpUzLwIg=="],
 
     "@expo-google-fonts/barlow-condensed": ["@expo-google-fonts/barlow-condensed@0.4.1", "", {}, "sha512-9yuXU1MpI4Dw/8rR4pj2EXcT4/31H5+DrrT47auF8IzD9r7SZPRoNVq8clRq7zxOTh7v1gJk3pBhydDVf2x/dA=="],
+
+    "@expo-google-fonts/gelasio": ["@expo-google-fonts/gelasio@0.4.1", "", {}, "sha512-mqSxj6OCIHnyRxqYYd3HSgDyWw9bI+DBWdyQRw9sNrqoceEh+3f43mY6yTrCKrBXqq0a1q9z76IvAp3HKHZQBw=="],
 
     "@expo-google-fonts/inter": ["@expo-google-fonts/inter@0.4.2", "", {}, "sha512-syfiImMaDmq7cFi0of+waE2M4uSCyd16zgyWxdPOY7fN2VBmSLKEzkfbZgeOjJq61kSqPBNNtXjggiQiSD6gMQ=="],
 

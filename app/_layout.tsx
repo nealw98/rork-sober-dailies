@@ -46,6 +46,10 @@ import {
   WixMadeforDisplay_800ExtraBold,
 } from '@expo-google-fonts/wix-madefor-display';
 import {
+  Gelasio_400Regular,
+  Gelasio_400Regular_Italic,
+} from '@expo-google-fonts/gelasio';
+import {
   WixMadeforText_400Regular,
   WixMadeforText_400Regular_Italic,
   WixMadeforText_500Medium,
@@ -53,6 +57,7 @@ import {
   WixMadeforText_600SemiBold,
 } from '@expo-google-fonts/wix-madefor-text';
 
+import { ReadingSizeProvider } from "@/hooks/use-reading-size";
 import { GratitudeProvider } from "@/hooks/use-gratitude-store";
 import { DailiesProvider } from "@/hooks/use-dailies-store";
 import { MeditationProvider } from "@/hooks/use-meditation-store";
@@ -71,7 +76,6 @@ import { SpeakerFavoritesProvider } from "@/hooks/use-speaker-favorites";
 import { ICloudSyncGate } from "@/hooks/use-icloud-sync";
 import { ActionSheetProvider } from "@expo/react-native-action-sheet";
 import { ImmersiveProvider } from "@/hooks/use-immersive";
-import { TextSettingsProvider } from "@/hooks/use-text-settings";
 import { SubscriptionProvider, useSubscription } from "@/hooks/useSubscription";
 import { useOTAUpdates } from "@/hooks/useOTAUpdates";
 import { adjustFontWeight } from "@/constants/fonts";
@@ -148,6 +152,8 @@ function RootLayoutNav() {
     WixMadeforText_500Medium,
     WixMadeforText_500Medium_Italic,
     WixMadeforText_600SemiBold,
+    Gelasio_400Regular,
+    Gelasio_400Regular_Italic,
   });
 
   // Enable screen tracking for Expo Router
@@ -369,7 +375,7 @@ export default function RootLayout() {
         <SessionProvider>
           <SubscriptionProvider>
             <OnboardingProvider>
-              <TextSettingsProvider>
+              <ReadingSizeProvider>
                 <GratitudeProvider>
                   <SobrietyProvider>
                     <DailiesProvider>
@@ -418,7 +424,7 @@ export default function RootLayout() {
                     </DailiesProvider>
                   </SobrietyProvider>
                 </GratitudeProvider>
-              </TextSettingsProvider>
+              </ReadingSizeProvider>
             </OnboardingProvider>
           </SubscriptionProvider>
         </SessionProvider>

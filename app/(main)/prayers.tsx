@@ -14,6 +14,8 @@ import { PrayerEditSheet } from '@/components/PrayerEditSheet';
 import { useTheme } from '@/hooks/useTheme';
 import Animated, { useSharedValue, useAnimatedStyle, withTiming, Easing, interpolate, runOnJS, Extrapolation } from 'react-native-reanimated';
 import { useScreenTimeTracking } from '@/hooks/useScreenTimeTracking';
+import { useReadingSize } from '@/hooks/use-reading-size';
+import { ReadingSizeSheet } from '@/components/ReadingSizeSheet';
 import { logEvent } from '@/lib/analytics';
 import { aaPrayers } from '@/constants/prayers';
 import { fontFamily, shadows, type Tokens } from '@/constants/designTokens';
@@ -34,6 +36,9 @@ type ReadPrayer = { title: string; content: string; source?: string };
 function PrayerBody({ prayer }: { prayer: ReadPrayer }) {
   const styles = useThemedStyles(makeStyles);
   const { c } = useTokens();
+  // Prayer body = the shared "Aa" reading size, layered on the OS text-size.
+  const { readingSize, readingLineHeight } = useReadingSize();
+  const bodyType = { fontSize: readingSize, lineHeight: readingLineHeight };
   const paras = prayer.content.split(/\n\s*\n/);
   // Morning Prayer: pull the opening line out as its own italic intro with a
   // gap below it (in the data it sits on the first line of the first block).
@@ -45,9 +50,9 @@ function PrayerBody({ prayer }: { prayer: ReadPrayer }) {
   return (
     <>
       <View style={styles.readDivider} />
-      {intro && <Text style={[styles.prayerPara, styles.prayerIntro]}>{intro}</Text>}
+      {intro && <Text style={[styles.prayerPara, styles.prayerIntro, bodyType]}>{intro}</Text>}
       {paras.map((para, i) => (
-        <Text key={i} style={styles.prayerPara}>{para.trim()}</Text>
+        <Text key={i} style={[styles.prayerPara, bodyType]}>{para.trim()}</Text>
       ))}
       {prayer.source && (
         <View style={styles.sourceRow}>
@@ -70,6 +75,7 @@ export default function PrayersScreen() {
   const [selected, setSelected] = useState<number | null>(null);
   const [mode, setMode] = useState<Mode>('list');
   const [source, setSource] = useState<Rect | null>(null);
+  const [sizeSheetOpen, setSizeSheetOpen] = useState(false);
   const cardRefs = useRef<Array<View | null>>([]);
 
   useScreenTimeTracking('Prayers');
@@ -257,9 +263,14 @@ export default function PrayersScreen() {
             <View style={styles.flex}>
               <View style={styles.readHead}>
                 <Text style={styles.readCardTitle} numberOfLines={2}>{prayer.title}</Text>
-                <Pressable onPress={closeRead} hitSlop={8} accessibilityRole="button" accessibilityLabel="Close prayer" style={styles.closeBtn}>
-                  <X size={18} color={c.textMuted} strokeWidth={2} />
-                </Pressable>
+                <View style={styles.readActions}>
+                  <Pressable onPress={() => setSizeSheetOpen(true)} hitSlop={8} accessibilityRole="button" accessibilityLabel="Text size" style={styles.aaBtn}>
+                    <Text style={styles.aaLabel}>aA</Text>
+                  </Pressable>
+                  <Pressable onPress={closeRead} hitSlop={8} accessibilityRole="button" accessibilityLabel="Close prayer" style={styles.closeBtn}>
+                    <X size={18} color={c.textMuted} strokeWidth={2} />
+                  </Pressable>
+                </View>
               </View>
               <ScrollView scrollEnabled={mode === 'read'} showsVerticalScrollIndicator={mode === 'read'} contentContainerStyle={styles.overlayScroll}>
                 <PrayerBody prayer={prayer} />
@@ -287,6 +298,8 @@ export default function PrayersScreen() {
           onClose={() => setSheet(null)}
         />
       )}
+
+      <ReadingSizeSheet visible={sizeSheetOpen} onClose={() => setSizeSheetOpen(false)} bottomInset={insets.bottom} />
     </View>
   );
 }
@@ -325,6 +338,9 @@ const makeStyles = (tk: Tokens) => {
   overlayCard: { position: 'absolute', backgroundColor: c.surface, overflow: 'hidden', borderWidth: isDark ? 1 : 0, borderColor: 'transparent', ...shadows.md, ...darkCard },
   overlayRow: { position: 'absolute', top: 0, left: 0, padding: 16 },
   readHead: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: 10, paddingHorizontal: 16, paddingTop: 16 },
+  readActions: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  aaBtn: { width: 32, height: 32, borderRadius: 16, alignItems: 'center', justifyContent: 'center', backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)' },
+  aaLabel: { fontFamily: fontFamily.bold, fontSize: 13, color: c.textSecondary, letterSpacing: -0.2 },
   closeBtn: { width: 32, height: 32, borderRadius: 16, alignItems: 'center', justifyContent: 'center', backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)' },
   overlayScroll: { paddingHorizontal: 16, paddingTop: 2, paddingBottom: 28 },
   readCardTitle: { flex: 1, fontFamily: fontFamily.semiBold, fontSize: 18, letterSpacing: -0.3, color: c.text },

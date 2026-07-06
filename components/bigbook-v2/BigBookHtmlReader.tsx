@@ -11,7 +11,8 @@ import { WebView, WebViewMessageEvent } from 'react-native-webview';
 import * as Clipboard from 'expo-clipboard';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Bookmark as BookmarkIcon, ChevronLeft, ChevronRight, X } from 'lucide-react-native';
-import { useTextSettings } from '@/hooks/use-text-settings';
+import { useReadingSize } from '@/hooks/use-reading-size';
+import { ReadingSizeSheet } from '@/components/ReadingSizeSheet';
 import { useBigBookContent } from '@/hooks/use-bigbook-content';
 import { useBigBookBookmarks } from '@/hooks/use-bigbook-bookmarks';
 import { useBigBookHighlights } from '@/hooks/use-bigbook-highlights';
@@ -52,12 +53,6 @@ const READER_PALETTES: Record<'light' | 'dark', ReaderPalette> = {
   },
 };
 const HINT_SEEN_KEY = 'bb_highlight_hint_seen';
-const SIZE_BUCKETS: { k: string; size: number }[] = [
-  { k: 'S', size: 14 },
-  { k: 'M', size: 18 },
-  { k: 'L', size: 24 },
-  { k: 'XL', size: 30 },
-];
 
 interface BigBookHtmlReaderProps {
   visible: boolean;
@@ -476,7 +471,8 @@ export function BigBookHtmlReader({ visible, initialChapterId, scrollToPage, scr
   const webViewRef = useRef<WebView>(null);
   const insets = useSafeAreaInsets();
   const { currentChapter, currentChapterId, loadChapter, goToNextChapter, goToPreviousChapter } = useBigBookContent();
-  const { fontSize, lineHeight, setFontSize } = useTextSettings();
+  // Reading text = the shared "Aa" size, layered on the OS text-size.
+  const { readingSize: fontSize, readingLineHeight: lineHeight } = useReadingSize();
   const { addBookmark, deleteBookmark, isPageBookmarked, getBookmarkForPage } = useBigBookBookmarks();
   const { highlights, addRangeHighlight, updateHighlight, updateHighlightNote, deleteHighlight } = useBigBookHighlights();
   const [currentPageNumber, setCurrentPageNumber] = useState<number | null>(null);
@@ -763,61 +759,13 @@ export function BigBookHtmlReader({ visible, initialChapterId, scrollToPage, scr
             onRemove={handleRemoveHighlight}
             onClose={() => { setShowHighlightEditMenu(false); setEditingHighlight(null); }}
           />
-          <DisplaySheet
+          <ReadingSizeSheet
             visible={showDisplaySheet}
-            current={fontSize}
-            onSize={setFontSize}
             onClose={() => setShowDisplaySheet(false)}
             bottomInset={insets.bottom}
           />
         </SafeAreaView>
       </SafeAreaProvider>
-    </Modal>
-  );
-}
-
-function DisplaySheet({ visible, current, onSize, onClose, bottomInset }: {
-  visible: boolean;
-  current: number;
-  onSize: (n: number) => void;
-  onClose: () => void;
-  bottomInset: number;
-}) {
-  const styles = useThemedStyles(makeStyles);
-  const { c } = useTokens();
-  const selected = SIZE_BUCKETS.reduce((best, bucket) => (
-    Math.abs(bucket.size - current) < Math.abs(best.size - current) ? bucket : best
-  ), SIZE_BUCKETS[0]).k;
-
-  return (
-    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
-      <Pressable style={styles.sheetBackdrop} onPress={onClose} />
-      <View style={[styles.displaySheet, { paddingBottom: bottomInset + 28 }]}>
-        <View style={styles.grabber} />
-        <Text style={styles.sheetLabel}>TEXT SIZE</Text>
-        <View style={styles.sizeRow}>
-          <View style={styles.sizeBtns}>
-            {SIZE_BUCKETS.map((bucket) => {
-              const active = bucket.k === selected;
-              const labelSize = bucket.k === 'S' ? 11 : bucket.k === 'M' ? 13 : bucket.k === 'L' ? 15 : 17;
-              return (
-                <Pressable
-                  key={bucket.k}
-                  onPress={() => onSize(bucket.size)}
-                  style={[styles.sizeBtn, active ? styles.sizeBtnOn : styles.sizeBtnOff]}
-                  accessibilityRole="button"
-                  accessibilityLabel={`Set text size ${bucket.k}`}
-                >
-                  <Text style={[styles.sizeBtnText, { fontSize: labelSize, color: active ? '#fff' : c.textSecondary }]}>{bucket.k}</Text>
-                </Pressable>
-              );
-            })}
-          </View>
-        </View>
-        <Pressable style={styles.sheetCancel} onPress={onClose}>
-          <Text style={styles.sheetCancelText}>Done</Text>
-        </Pressable>
-      </View>
     </Modal>
   );
 }
@@ -836,8 +784,6 @@ const makeStyles = (tk: Tokens) => {
   actionRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 18, paddingBottom: 8, borderBottomWidth: 1, borderBottomColor: c.divider },
   pageLabel: { fontFamily: fontFamily.semiBold, fontSize: 12.5, color: c.textSecondary },
   actions: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  textSizeBtn: { width: 30, height: 30, borderRadius: 15, borderWidth: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: c.surface },
-  textSizeLabel: { fontFamily: fontFamily.bold, fontSize: 12.5, color: c.textSecondary, letterSpacing: -0.2 },
   bmBtn: { width: 30, height: 30, borderRadius: 15, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
   webView: { flex: 1, backgroundColor: PAGE },
   hintBar: { flexDirection: 'row', alignItems: 'center', gap: 12, marginHorizontal: 12, marginBottom: 8, backgroundColor: ACCENT_INK, borderRadius: 14, paddingVertical: 12, paddingLeft: 16, paddingRight: 10 },
@@ -847,17 +793,7 @@ const makeStyles = (tk: Tokens) => {
   navBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingVertical: 6 },
   navText: { fontFamily: fontFamily.semiBold, fontSize: 13.5, color: ACCENT_INK },
   footerCenter: { fontFamily: fontFamily.semiBold, fontSize: 12, color: c.textMuted },
-  sheetBackdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: isDark ? c.overlay : 'rgba(26,26,46,0.32)' },
-  displaySheet: { position: 'absolute', left: 0, right: 0, bottom: 0, backgroundColor: c.surface, borderTopLeftRadius: 28, borderTopRightRadius: 28, paddingHorizontal: 20, paddingTop: 14, shadowColor: '#000', shadowOpacity: 0.18, shadowRadius: 40, shadowOffset: { width: 0, height: -10 }, elevation: 12 },
-  grabber: { width: 40, height: 4, borderRadius: 999, backgroundColor: c.border, alignSelf: 'center', marginBottom: 16 },
-  sheetLabel: { fontFamily: fontFamily.bold, fontSize: 11, letterSpacing: 1.4, color: c.textMuted },
-  sizeRow: { flexDirection: 'row', alignItems: 'center', marginTop: 12, paddingHorizontal: 14, paddingVertical: 10, borderRadius: 16, backgroundColor: c.background, borderWidth: 1, borderColor: c.border },
-  sizeBtns: { flex: 1, flexDirection: 'row', gap: 6 },
-  sizeBtn: { flex: 1, paddingVertical: 8, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
-  sizeBtnOn: { backgroundColor: colors.primary },
-  sizeBtnOff: { borderWidth: 1, borderColor: c.border },
-  sizeBtnText: { fontFamily: fontFamily.semiBold },
-  sheetCancel: { marginTop: 22, paddingVertical: 12, borderRadius: 999, borderWidth: 1, borderColor: c.border, alignItems: 'center' },
-  sheetCancelText: { fontFamily: fontFamily.semiBold, fontSize: 14, color: c.textSecondary },
+  textSizeBtn: { width: 30, height: 30, borderRadius: 15, borderWidth: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: c.surface },
+  textSizeLabel: { fontFamily: fontFamily.bold, fontSize: 12.5, color: c.textSecondary, letterSpacing: -0.2 },
 });
 };
