@@ -5,7 +5,7 @@
  * available as the Classic fallback while this path proves out range highlights.
  */
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Alert, BackHandler, Modal, Pressable, Share, StyleSheet, Text, View } from 'react-native';
+import { Alert, BackHandler, Modal, PixelRatio, Pressable, Share, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaProvider, SafeAreaView, initialWindowMetrics, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { WebView, WebViewMessageEvent } from 'react-native-webview';
 import * as Clipboard from 'expo-clipboard';
@@ -471,8 +471,15 @@ export function BigBookHtmlReader({ visible, initialChapterId, scrollToPage, scr
   const webViewRef = useRef<WebView>(null);
   const insets = useSafeAreaInsets();
   const { currentChapter, currentChapterId, loadChapter, goToNextChapter, goToPreviousChapter } = useBigBookContent();
-  // Reading text = the shared "Aa" size, layered on the OS text-size.
+  // Reading text = the shared "Aa" size, layered on the OS text-size. The WebView
+  // ignores Dynamic Type (CSS has -webkit-text-size-adjust:none), so unlike the
+  // native readers it wouldn't grow with the system text-size — we apply the OS
+  // font scale to the HTML px ourselves so the Big Book matches Daily Reflection
+  // et al. at the same "Aa" step.
   const { readingSize: fontSize, readingLineHeight: lineHeight } = useReadingSize();
+  const fontScale = PixelRatio.getFontScale();
+  const scaledFontSize = Math.round(fontSize * fontScale);
+  const scaledLineHeight = Math.round(lineHeight * fontScale);
   const { addBookmark, deleteBookmark, isPageBookmarked, getBookmarkForPage } = useBigBookBookmarks();
   const { highlights, addRangeHighlight, updateHighlight, updateHighlightNote, deleteHighlight } = useBigBookHighlights();
   const [currentPageNumber, setCurrentPageNumber] = useState<number | null>(null);
@@ -521,15 +528,15 @@ export function BigBookHtmlReader({ visible, initialChapterId, scrollToPage, scr
     return buildHtml({
       paragraphs: currentChapter.paragraphs,
       highlights: currentHighlights,
-      fontSize,
-      lineHeight,
+      fontSize: scaledFontSize,
+      lineHeight: scaledLineHeight,
       useRoman,
       scrollToPage,
       scrollToParagraphId,
       searchTerm,
       pal,
     });
-  }, [currentChapter, fontSize, lineHeight, useRoman, scrollToPage, scrollToParagraphId, searchTerm, renderVersion, pal]);
+  }, [currentChapter, scaledFontSize, scaledLineHeight, useRoman, scrollToPage, scrollToParagraphId, searchTerm, renderVersion, pal]);
 
   const webSource = useMemo(() => ({ html }), [html]);
 
@@ -715,11 +722,14 @@ export function BigBookHtmlReader({ visible, initialChapterId, scrollToPage, scr
           </View>
 
           <WebView
-            key={`bb-html-${currentChapterId}-${renderVersion}-${fontSize}`}
+            key={`bb-html-${currentChapterId}-${renderVersion}-${scaledFontSize}`}
             ref={webViewRef}
             originWhitelist={['*']}
             source={webSource}
             style={styles.webView}
+            // Pin Android WebView zoom to 100% so the system font scale isn't
+            // applied twice (we already fold it into the HTML px above).
+            textZoom={100}
             scrollEnabled
             showsVerticalScrollIndicator={false}
             onMessage={handleWebMessage}
