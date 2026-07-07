@@ -26,25 +26,29 @@ import { type DailyItem, type WhenBucket } from '@/hooks/use-dailies-store';
 export type Template = Omit<DailyItem, 'id' | 'when'>;
 
 // "From your tools" catalog (canonical add list) — alphabetical by label.
+// Colors use the canonical palette families (steel / teal / periwinkle /
+// terracotta) so each item matches how the same daily is tinted on the Today
+// list (DEFAULT_PROGRAM + toolFamily): people/reading = steel, spiritual
+// practice + writing = teal/terracotta, wind-down = periwinkle.
 export const TOOL_CATALOG: Template[] = [
-  { label: 'Attend a meeting', icon: 'users', color: 'lavender', action: 'meeting' },
-  { label: 'Evening Prayer', icon: 'pray', color: 'amber', action: 'prayerEvening' },
-  { label: 'Listen to a speaker tape', icon: 'play', color: 'lavender', action: 'speaker' },
-  { label: 'Meditation', icon: 'lotus', color: 'lavender', action: 'meditation' },
-  { label: 'Morning Prayer', icon: 'pray', color: 'amber', action: 'prayerMorning' },
-  { label: 'Nightly Review', icon: 'moon', color: 'lavender', action: 'nightly' },
-  { label: 'Read the literature', icon: 'library', color: 'teal', action: 'lit' },
-  { label: 'Spot Check Inventory', icon: 'check', color: 'coral', action: 'spotcheck' },
-  { label: 'Talk with another alcoholic', icon: 'phone', color: 'blue', action: 'callAnother' },
-  { label: 'Write in my journal', icon: 'journal', color: 'blue', action: 'journal' },
-  { label: 'Write my Gratitude List', icon: 'heart', color: 'amber', action: 'gratitude' },
+  { label: 'Attend a meeting', icon: 'users', color: 'steel', action: 'meeting' },
+  { label: 'Evening Prayer', icon: 'pray', color: 'periwinkle', action: 'prayerEvening' },
+  { label: 'Listen to a speaker tape', icon: 'play', color: 'steel', action: 'speaker' },
+  { label: 'Meditation', icon: 'lotus', color: 'periwinkle', action: 'meditation' },
+  { label: 'Morning Prayer', icon: 'pray', color: 'terracotta', action: 'prayerMorning' },
+  { label: 'Nightly Review', icon: 'moon', color: 'periwinkle', action: 'nightly' },
+  { label: 'Read the literature', icon: 'library', color: 'steel', action: 'lit' },
+  { label: 'Spot Check Inventory', icon: 'check', color: 'terracotta', action: 'spotcheck' },
+  { label: 'Talk with another alcoholic', icon: 'phone', color: 'steel', action: 'callAnother' },
+  { label: 'Write in my journal', icon: 'journal', color: 'teal', action: 'journal' },
+  { label: 'Write my Gratitude List', icon: 'heart', color: 'terracotta', action: 'gratitude' },
 ];
 
 // "Quick actions" — no tool, just check off. Alphabetical by label.
 export const QUICK_CATALOG: Template[] = [
-  { label: 'Do some service', icon: 'users', color: 'teal', action: 'service' },
-  { label: 'Get some exercise', icon: 'heart', color: 'coral', action: 'exercise' },
-  { label: 'Make my bed', icon: 'home', color: 'amber', action: 'makeBed' },
+  { label: 'Do some service', icon: 'users', color: 'steel', action: 'service' },
+  { label: 'Get some exercise', icon: 'heart', color: 'terracotta', action: 'exercise' },
+  { label: 'Make my bed', icon: 'home', color: 'periwinkle', action: 'makeBed' },
 ];
 
 export function Medallion({ icon, tone, soft }: { icon: string; tone: string; soft?: boolean }) {
