@@ -268,22 +268,19 @@ export const [SubscriptionProvider, useSubscription] = createContextHook(() => {
           // Continue without premium override - not critical
         }
 
-        // Step 1: Check grandfather status directly from Supabase
-        try {
-          const grandfathered = await checkGrandfatherStatus();
-          if (!didCancel) {
-            setIsGrandfathered(grandfathered);
-            if (grandfathered) {
-              console.log('[Subscription] User is grandfathered - unlocking premium features');
-            }
+        // Steps 1+2: the Supabase grandfather check and the RevenueCat refresh
+        // are independent network calls — run them concurrently. Both handle
+        // their own errors internally (grandfather failure just means false).
+        const [grandfathered] = await Promise.all([
+          checkGrandfatherStatus(),
+          refresh(),
+        ]);
+        if (!didCancel) {
+          setIsGrandfathered(grandfathered);
+          if (grandfathered) {
+            console.log('[Subscription] User is grandfathered - unlocking premium features');
           }
-        } catch (grandfatherError) {
-          console.warn('[Subscription] Grandfather check failed (non-fatal):', grandfatherError);
-          // Continue without grandfather status - user can still purchase
         }
-
-        // Step 2: Refresh RevenueCat status for paid subscriptions
-        await refresh();
       } catch (error) {
         console.error('[Subscription] Initialization error:', error);
       } finally {

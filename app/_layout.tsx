@@ -98,11 +98,15 @@ SplashScreen.preventAutoHideAsync().catch(() => {
 
 const queryClient = new QueryClient();
 
+// Entire app is subscription-only after onboarding.
+// PAYWALL TEMPORARILY DISABLED for preview builds — flip back to true to re-enable.
+// While disabled, launch does NOT wait on the subscription load (RevenueCat +
+// grandfather check are network calls); it resolves in the background instead.
+const PAYWALL_ENABLED = false;
+
 
 // Global flag to track if splash screen has been hidden
 let splashHidden = false;
-// Global flag to ensure we only perform the early OTA check once per launch
-let otaCheckedThisLaunch = false;
 
 // Single function to hide splash screen
 const hideSplashScreenSafely = async () => {
@@ -162,50 +166,10 @@ function RootLayoutNav() {
   const [appReady, setAppReady] = useState(false);
   // Dev-only: allow dismissing the paywall
   const [paywallDismissed, setPaywallDismissed] = useState(false);
-  // Ensure OTA selection/check completes before we hide splash
-  const [otaChecked, setOtaChecked] = useState(false);
 
-  // Early OTA check while splash is still shown - mirrors earlier stable behavior
-  useEffect(() => {
-    let didCancel = false;
-    (async () => {
-      if (otaCheckedThisLaunch) {
-        setOtaChecked(true);
-        return;
-      }
-      try {
-        const Updates = await import('expo-updates');
-        // Short timeout to avoid blocking launch
-        const timeout = new Promise<null>(resolve => setTimeout(() => resolve(null), 1500));
-        const checkPromise = (async () => {
-          try {
-            const result = await Updates.checkForUpdateAsync();
-            if (result.isAvailable) {
-              console.log('[OTA] Early splash check: update available, fetching');
-              const fetched = await Updates.fetchUpdateAsync();
-              if (fetched.isNew) {
-                otaCheckedThisLaunch = true;
-                if (!didCancel) {
-                  await Updates.reloadAsync();
-                }
-                return null;
-              }
-            }
-          } catch (e) {
-            console.log('[OTA] Early splash check error:', (e as any)?.message || e);
-          }
-          return null;
-        })();
-        await Promise.race([timeout, checkPromise]);
-      } finally {
-        if (!didCancel) {
-          otaCheckedThisLaunch = true;
-          setOtaChecked(true);
-        }
-      }
-    })();
-    return () => { didCancel = true; };
-  }, []);
+  // No OTA check at launch: useOTAUpdates handles updates in the background
+  // (initial check shortly after mount + on every foreground) and surfaces the
+  // snackbar; an un-applied download takes effect on the next launch.
 
   // Initialize app services
   useEffect(() => {
@@ -236,13 +200,13 @@ function RootLayoutNav() {
     })();
   }, []);
 
-  // Handle splash screen hiding based on app state. Wait for the subscription
-  // load too (RevenueCat + grandfather check are network calls) — otherwise the
-  // splash lifts while the render gate below still returns the fallback, which
-  // is the "white period" between splash and app on reopen.
+  // Handle splash screen hiding based on app state. When the paywall is
+  // enabled, wait for the subscription load too — otherwise the splash lifts
+  // while the render gate below still returns the fallback, which is the
+  // "white period" between splash and app on reopen.
   useEffect(() => {
     // Only proceed when we know the loading state
-    if (isLoading === false && otaChecked && fontsLoaded && !isSubscriptionLoading) {
+    if (isLoading === false && fontsLoaded && !(PAYWALL_ENABLED && isSubscriptionLoading)) {
       console.log('🟢 SPLASH: App ready, isOnboardingComplete:', isOnboardingComplete);
 
       // App is ready to render
@@ -251,7 +215,7 @@ function RootLayoutNav() {
       // Hide splash screen
       hideSplashScreenSafely();
     }
-  }, [isLoading, isOnboardingComplete, otaChecked, fontsLoaded, isSubscriptionLoading]);
+  }, [isLoading, isOnboardingComplete, fontsLoaded, isSubscriptionLoading]);
 
   // Failsafe: hide splash screen after timeout
   useEffect(() => {
@@ -272,13 +236,10 @@ function RootLayoutNav() {
   // Only show main app after consent is complete AND other initialization is
   // done. Return a brand-teal fill (matches the native splash background) rather
   // than null, so any brief gate never flashes white.
-  if (!appReady || isLoading || isSubscriptionLoading) {
+  if (!appReady || isLoading || (PAYWALL_ENABLED && isSubscriptionLoading)) {
     return <View style={{ flex: 1, backgroundColor: '#3D8B8B' }} />;
   }
 
-  // Entire app is subscription-only after onboarding.
-  // PAYWALL TEMPORARILY DISABLED for preview builds — flip back to true to re-enable.
-  const PAYWALL_ENABLED = false;
   if (PAYWALL_ENABLED && !isPremium && !paywallDismissed) {
     return <PaywallScreen onDismiss={__DEV__ ? () => setPaywallDismissed(true) : undefined} />;
   }
