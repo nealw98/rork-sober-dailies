@@ -4,6 +4,7 @@ import { Audio } from 'expo-av';
 import createContextHook from '@nkzw/create-context-hook';
 import { useMeditationLog } from '@/hooks/use-meditation-log';
 import { logEvent } from '@/lib/analytics';
+import { maybeAskForReview } from '@/lib/reviewPrompt';
 
 /**
  * Global meditation session — two decoupled layers (Calm-style):
@@ -151,6 +152,9 @@ export const [MeditationSessionProvider, useMeditationSession] = createContextHo
     setPhase('complete');
     addSeconds(minutesRef.current * 60); // full sit
     logEvent('meditation_completed', { scene: sceneNameRef.current ?? 'Silence', minutes: minutesRef.current });
+    // Review trigger: finishing a meditation is a genuine positive moment
+    // (fires only on a natural completion, not when a sit is cut short).
+    maybeAskForReview('meditation').catch(() => {});
     playBell();
   }, [playBell, addSeconds]);
 

@@ -3,6 +3,7 @@ import { AppState } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import createContextHook from '@nkzw/create-context-hook';
 import { logEvent, setProfile } from '@/lib/analytics';
+import { recordDailyCompletionDay } from '@/lib/reviewPrompt';
 
 /**
  * My Dailies — the customizable daily-action program (NET-NEW, local-first).
@@ -221,11 +222,13 @@ export const [DailiesProvider, useDailies] = createContextHook(() => {
   );
 
   // Analytics: which dailies users actually complete (fires only on the OFF→ON
-  // transition, never on uncheck, so counts aren't inflated by toggling).
+  // transition, never on uncheck, so counts aren't inflated by toggling). Also
+  // records the day toward the review-prompt eligibility gate (any daily done).
   const logCompleted = useCallback(
     (id: string) => {
       const item = program.find((d) => d.id === id);
       if (item) logEvent('daily_completed', { daily: item.label, when: item.when, custom: !!item.custom });
+      recordDailyCompletionDay().catch(() => {});
     },
     [program],
   );
@@ -255,7 +258,10 @@ export const [DailiesProvider, useDailies] = createContextHook(() => {
     (value: boolean = true) => {
       const turningOn = value && !completion[dayKey]?.reflection;
       updateToday((day) => ({ ...day, reflection: value }));
-      if (turningOn) logEvent('daily_completed', { daily: 'Daily Reflection', when: 'Morning' });
+      if (turningOn) {
+        logEvent('daily_completed', { daily: 'Daily Reflection', when: 'Morning' });
+        recordDailyCompletionDay().catch(() => {});
+      }
     },
     [updateToday, completion, dayKey],
   );
@@ -263,7 +269,10 @@ export const [DailiesProvider, useDailies] = createContextHook(() => {
   const toggleReflection = useCallback(() => {
     const turningOn = !completion[dayKey]?.reflection;
     updateToday((day) => ({ ...day, reflection: !day.reflection }));
-    if (turningOn) logEvent('daily_completed', { daily: 'Daily Reflection', when: 'Morning' });
+    if (turningOn) {
+      logEvent('daily_completed', { daily: 'Daily Reflection', when: 'Morning' });
+      recordDailyCompletionDay().catch(() => {});
+    }
   }, [updateToday, completion, dayKey]);
 
   // Overwrite a specific day's completion record. Lets Journey edit past days

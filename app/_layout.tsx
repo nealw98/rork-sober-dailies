@@ -85,7 +85,6 @@ import PaywallScreen from "@/components/PaywallScreen";
 import OTASnackbar from "@/components/OTASnackbar";
 import { Logger } from "@/lib/logger";
 import { initAnalytics } from "@/lib/analytics";
-import { recordAppOpen } from "@/lib/reviewPrompt";
 import { useExpoRouterTracking } from "@/hooks/useExpoRouterTracking";
 import { SessionProvider } from "@/hooks/useSessionContext";
 import { ThemeProvider } from "@/hooks/useTheme";
@@ -216,10 +215,6 @@ function RootLayoutNav() {
     // Initialize analytics (Mixpanel)
     initAnalytics();
 
-    recordAppOpen().catch((error) => {
-      console.warn('[reviewPrompt] Failed to record app open from root layout', error);
-    });
-
     
     // Log OTA diagnostics with safe fallback
     (async () => {
@@ -241,10 +236,13 @@ function RootLayoutNav() {
     })();
   }, []);
 
-  // Handle splash screen hiding based on app state
+  // Handle splash screen hiding based on app state. Wait for the subscription
+  // load too (RevenueCat + grandfather check are network calls) — otherwise the
+  // splash lifts while the render gate below still returns the fallback, which
+  // is the "white period" between splash and app on reopen.
   useEffect(() => {
     // Only proceed when we know the loading state
-    if (isLoading === false && otaChecked && fontsLoaded) {
+    if (isLoading === false && otaChecked && fontsLoaded && !isSubscriptionLoading) {
       console.log('🟢 SPLASH: App ready, isOnboardingComplete:', isOnboardingComplete);
 
       // App is ready to render
@@ -253,7 +251,7 @@ function RootLayoutNav() {
       // Hide splash screen
       hideSplashScreenSafely();
     }
-  }, [isLoading, isOnboardingComplete, otaChecked, fontsLoaded]);
+  }, [isLoading, isOnboardingComplete, otaChecked, fontsLoaded, isSubscriptionLoading]);
 
   // Failsafe: hide splash screen after timeout
   useEffect(() => {
@@ -271,9 +269,11 @@ function RootLayoutNav() {
     return <OnboardingFlow />;
   }
 
-  // Only show main app after consent is complete AND other initialization is done
+  // Only show main app after consent is complete AND other initialization is
+  // done. Return a brand-teal fill (matches the native splash background) rather
+  // than null, so any brief gate never flashes white.
   if (!appReady || isLoading || isSubscriptionLoading) {
-    return null; // Let splash screen remain visible
+    return <View style={{ flex: 1, backgroundColor: '#3D8B8B' }} />;
   }
 
   // Entire app is subscription-only after onboarding.

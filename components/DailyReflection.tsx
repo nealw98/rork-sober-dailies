@@ -19,7 +19,7 @@ import { ChevronLeft, ChevronRight, Calendar, Sparkles, Share as ShareIcon } fro
 import BackButton from '@/components/BackButton';
 import { getReflectionForDate } from '@/constants/reflections';
 import { Reflection } from '@/types';
-import { recordDailyReflectionDay } from '@/lib/reviewPrompt';
+import { maybeAskForReview } from '@/lib/reviewPrompt';
 import { titleCase } from '@/lib/titleCase';
 import { useDailies } from '@/hooks/use-dailies-store';
 import { fontFamily, type Tokens } from '@/constants/designTokens';
@@ -95,8 +95,10 @@ export default function DailyReflection({ jumpToDate = null, onJumpApplied }: Da
     return () => sub.remove();
   }, [selectedDate]);
 
+  // Review trigger: viewing a Daily Reflection (the most-used feature). Gated
+  // inside maybeAskForReview, so it no-ops unless the user is eligible.
   useEffect(() => {
-    recordDailyReflectionDay(selectedDate).catch((e) => console.warn('[reviewPrompt] record failed', e));
+    maybeAskForReview('dailyReflection').catch((e) => console.warn('[reviewPrompt] trigger failed', e));
   }, [selectedDate]);
 
   useEffect(() => {

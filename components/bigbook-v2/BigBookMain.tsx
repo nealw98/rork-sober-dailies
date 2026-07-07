@@ -16,7 +16,7 @@ import { BigBookHighlightsProvider } from '@/hooks/use-bigbook-highlights';
 import PdfReader from '@/components/PdfReader';
 import { BIGBOOK_PDFS } from '@/constants/bigbook-pdfs';
 import type { TocEntry } from '@/constants/bigbook-toc';
-import { recordLiteratureReaderOpen, maybeAskForReview } from '@/lib/reviewPrompt';
+import { maybeAskForReview } from '@/lib/reviewPrompt';
 import { logEvent } from '@/lib/analytics';
 import { colors } from '@/constants/designTokens';
 
@@ -62,9 +62,8 @@ export function BigBookMain() {
 
   const handleCloseReader = () => {
     setShowReader(false);
-    recordLiteratureReaderOpen()
-      .then(() => maybeAskForReview('literature'))
-      .catch((error) => console.warn('[reviewPrompt] Literature trigger failed', error));
+    // Review trigger: finishing a Big Book reading session.
+    maybeAskForReview('literature').catch((error) => console.warn('[reviewPrompt] Literature trigger failed', error));
     setTimeout(() => { setChapterId(null); setScrollToPage(null); setScrollToParagraphId(null); setSearchTerm(null); }, 300);
   };
 

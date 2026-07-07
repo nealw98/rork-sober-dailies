@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback, useRef, createContext, useCont
 import { AppState, AppStateStatus } from 'react-native';
 import { Audio, AVPlaybackStatus } from 'expo-av';
 import { logEvent } from '@/lib/analytics';
+import { maybeAskForReview } from '@/lib/reviewPrompt';
 
 /**
  * Global audio player context + hook.
@@ -125,6 +126,7 @@ export function AudioPlayerProvider({ children }: { children: React.ReactNode })
       // immune to skip buttons and playback speed). position/percent = how far
       // through the talk they got, for completion-rate analysis.
       const dur = lastDurationMsRef.current;
+      const pct = dur > 0 ? Math.min(100, Math.round((lastPositionMsRef.current / dur) * 100)) : 0;
       logEvent('speaker_listened', {
         speaker: listenSpeakerRef.current,
         speaker_name: listenNameRef.current ?? undefined,
@@ -132,8 +134,13 @@ export function AudioPlayerProvider({ children }: { children: React.ReactNode })
         duration_seconds: seconds,
         position_seconds: Math.round(lastPositionMsRef.current / 1000),
         talk_seconds: dur > 0 ? Math.round(dur / 1000) : undefined,
-        percent_complete: dur > 0 ? Math.min(100, Math.round((lastPositionMsRef.current / dur) * 100)) : undefined,
+        percent_complete: dur > 0 ? pct : undefined,
       });
+      // Review trigger: only on a meaningful listen (>= 2 min or half the talk),
+      // so tapping in and bailing doesn't count. Gated inside maybeAskForReview.
+      if (seconds >= 120 || pct >= 50) {
+        maybeAskForReview('speaker').catch(() => {});
+      }
     }
     listenAccumMsRef.current = 0;
     lastPositionMsRef.current = 0;

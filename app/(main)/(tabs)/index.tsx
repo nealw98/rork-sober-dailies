@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo, useCallback } from 'react';
+import React, { useEffect, useState, useMemo, useCallback, useRef } from 'react';
 import {
   StyleSheet,
   View,
@@ -22,6 +22,7 @@ import { AddSheet, CreateSheet, type Template } from '@/components/today/Dailies
 import { useScreenTimeTracking } from '@/hooks/useScreenTimeTracking';
 import { useDailies, type DailyItem, type WhenBucket } from '@/hooks/use-dailies-store';
 import { useReflectionHeroImage } from '@/hooks/useReflectionHeroImage';
+import { maybeAskForReview } from '@/lib/reviewPrompt';
 import SobrietyCounter from '@/components/SobrietyCounter';
 import { getTodaysReflection } from '@/constants/reflections';
 import { titleCase } from '@/lib/titleCase';
@@ -203,6 +204,21 @@ export default function TodayScreen() {
   useEffect(() => {
     getTodaysReflection().then(setReflection).catch((e) => console.error('[today] reflection', e));
   }, [dailies.dayKey]);
+
+  // Review trigger: the "I finished my program today" moment. Fire once when the
+  // last daily is checked off (resets if they uncheck, or on a new day). Gated
+  // inside maybeAskForReview, so it silently no-ops unless the user is eligible.
+  const allDoneFiredRef = useRef(false);
+  useEffect(() => { allDoneFiredRef.current = false; }, [dailies.dayKey]);
+  useEffect(() => {
+    const allDone = dailies.totalCount > 0 && dailies.doneCount >= dailies.totalCount;
+    if (allDone && !allDoneFiredRef.current) {
+      allDoneFiredRef.current = true;
+      maybeAskForReview('allDailies').catch(() => {});
+    } else if (!allDone) {
+      allDoneFiredRef.current = false;
+    }
+  }, [dailies.doneCount, dailies.totalCount]);
 
   const dateLabel = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
 
