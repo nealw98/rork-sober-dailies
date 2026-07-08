@@ -1,19 +1,20 @@
-// About Sober Dailies — a plain reading page (redesign 3.0). Matches the reader
-// surfaces (Daily Reflection, Big Book): themed tokens, a BackButton top bar
-// (no colored header), and long-form body set in the reader serif (Georgia on
+// About Sober Dailies — a plain reading page (redesign 3.0). Presented as a
+// modal, so it dismisses via an X "close" button / swipe-down. Matches
+// the reader surfaces (Daily Reflection, Big Book): themed tokens, no colored
+// header, and long-form body set in the reader serif (Georgia on
 // iOS, Gelasio on Android) at a fixed 16pt. Opens with a centered brand hero
 // (app logo → wordmark → tagline); the closing "one day at a time" paragraph is
 // pulled out as a teal callout, echoing the Daily Reflection meditation tile.
 import React from 'react';
-import { View, Text, StyleSheet, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Pressable } from 'react-native';
 import { Image } from 'expo-image';
 import { Stack, useRouter } from 'expo-router';
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { X } from 'lucide-react-native';
 
-import BackButton from '@/components/BackButton';
 import { fontFamily, type Tokens } from '@/constants/designTokens';
 import { readerSerif, readerSerifItalic } from '@/constants/fonts';
-import { useThemedStyles } from '@/hooks/useTokens';
+import { useTokens, useThemedStyles } from '@/hooks/useTokens';
 
 const LOGO = require('../assets/images/icon.png');
 
@@ -32,15 +33,25 @@ export default function AboutScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const styles = useThemedStyles(makeStyles);
+  const { c } = useTokens();
 
   return (
-    <SafeAreaView style={styles.screen} edges={['top']}>
+    <View style={styles.screen}>
       <Stack.Screen options={{ headerShown: false }} />
 
-      {/* Top bar */}
-      <View style={styles.topBar}>
-        <BackButton onPress={() => router.back()} />
-        <Text style={styles.topTitle}>About</Text>
+      {/* Top bar — this screen is a modal, so the affordance is an X "close"
+          button (swipe-down also dismisses on iOS), not a back arrow.
+          Placement matches the tool pages' ToolHeader (insets.top + 8). */}
+      <View style={[styles.topBar, { paddingTop: insets.top + 8 }]}>
+        <Pressable
+          onPress={() => router.back()}
+          hitSlop={8}
+          accessibilityRole="button"
+          accessibilityLabel="Close"
+          style={styles.closeBtn}
+        >
+          <X size={20} color={c.textSecondary} strokeWidth={2} />
+        </Pressable>
       </View>
 
       <ScrollView
@@ -71,7 +82,7 @@ export default function AboutScreen() {
           ),
         )}
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 }
 
@@ -81,8 +92,14 @@ const makeStyles = (tk: Tokens) => {
     screen: { flex: 1, backgroundColor: c.background },
     flex: { flex: 1 },
 
-    topBar: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 14, paddingTop: 6, paddingBottom: 8 },
-    topTitle: { fontFamily: fontFamily.display, fontSize: 20, letterSpacing: -0.3, color: c.text },
+    topBar: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 22, paddingBottom: 8 },
+    // Close pill — mirrors BackButton's 38px circle (surface + hairline, or a
+    // translucent fill in dark mode) but carries an X for the modal.
+    closeBtn: {
+      width: 38, height: 38, borderRadius: 19, alignItems: 'center', justifyContent: 'center', borderWidth: 1,
+      backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : c.surface,
+      borderColor: isDark ? 'rgba(255,255,255,0.16)' : c.border,
+    },
 
     scroll: { paddingHorizontal: 22, paddingTop: 8 },
 

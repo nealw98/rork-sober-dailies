@@ -294,12 +294,13 @@ function RootLayoutNav() {
             headerShown: false,
           }} 
         />
-        <Stack.Screen 
-          name="about" 
-          options={{ 
+        <Stack.Screen
+          name="about"
+          options={{
             presentation: 'modal',
             headerShown: false,
-          }} 
+            gestureEnabled: true,       // swipe-down to dismiss the sheet (iOS)
+          }}
         />
         
       </Stack>
