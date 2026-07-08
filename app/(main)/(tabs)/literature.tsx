@@ -57,7 +57,6 @@ export default function LiteratureScreen() {
               <BigBookCover w={92} h={128} />
               <View style={styles.bookText}>
                 <Text style={styles.bookTitle}>Alcoholics{'\n'}Anonymous</Text>
-                <Text style={styles.bookMeta}>Big Book · 164 pp</Text>
               </View>
             </LinearGradient>
           </Pressable>
@@ -66,8 +65,7 @@ export default function LiteratureScreen() {
             <LinearGradient colors={tealCard.grad} start={{ x: 0.2, y: 0 }} end={{ x: 0.8, y: 1 }} style={[styles.bookCard, { borderColor: tealCard.border }]}>
               <TwelveCover w={92} h={128} />
               <View style={styles.bookText}>
-                <Text style={styles.bookTitle}>Twelve Steps{'\n'}& Traditions</Text>
-                <Text style={styles.bookMeta}>24 chapters</Text>
+                <Text style={styles.bookTitle}>Twelve Steps &{'\n'}Twelve Traditions</Text>
               </View>
             </LinearGradient>
           </Pressable>
@@ -77,7 +75,7 @@ export default function LiteratureScreen() {
         <View style={styles.divider} />
         <View style={styles.catHead}>
           <Text style={styles.catTitle}>Meeting Readings</Text>
-          <Text style={styles.catSub}>Readings frequently read at most meetings.</Text>
+          <Text style={styles.catSub}>Everything you need to host a meeting.</Text>
         </View>
 
         <View style={styles.readingList}>
@@ -110,9 +108,8 @@ const makeStyles = (tk: Tokens) => {
     bookCard: { flex: 1, borderWidth: 1, borderRadius: 18, padding: 16, alignItems: 'center', gap: 12 },
     bookText: { alignItems: 'center', width: '100%' },
     bookTitle: { fontFamily: fontFamily.display, fontSize: 16, color: c.text, lineHeight: 19, letterSpacing: -0.2, textAlign: 'center' },
-    bookMeta: { fontFamily: fontFamily.regular, fontSize: 11, color: c.textMuted, marginTop: 6, textAlign: 'center' },
 
-    divider: { height: 1, backgroundColor: c.divider, marginHorizontal: 16, marginTop: 18 },
+    divider: { height: 1, backgroundColor: c.divider, marginHorizontal: 16, marginTop: 34 },
     catHead: { paddingHorizontal: 22, paddingTop: 16, paddingBottom: 10 },
     catTitle: { fontFamily: fontFamily.displayBold, fontSize: 26, letterSpacing: -0.5, color: c.text },
     catSub: { fontFamily: fontFamily.regular, fontSize: 13, color: c.textSecondary, marginTop: 4 },

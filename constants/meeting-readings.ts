@@ -21,7 +21,6 @@ export type MeetingReading = {
 const AMBER = colors.amber;       // #E8A95D — Big Book passages
 const LAV = colors.tertiary;      // #A386D5 — Traditions
 const GREEN = '#5E8C6A';          // Preamble
-const TAN = '#B0A48E';            // Format guide
 
 export const MEETING_READINGS: MeetingReading[] = [
   {
@@ -120,10 +119,12 @@ The only requirement for membership is a desire to stop drinking. There are no d
   },
   {
     id: 'generic-format',
-    title: 'Generic Meeting Format',
+    title: 'Meeting Script',
     cite: 'Adapt to your group',
-    source: 'Meeting format guide — not from official A.A. literature',
-    tone: TAN,
+    source: 'A format you can adapt for any meeting',
+    // True amber/gold — the Steel Navy theme remaps colors.amber → teal, so a
+    // literal gold here keeps this utility guide distinct from the teal readings.
+    tone: '#E8A95D',
     content: `Use this as a basic outline to be adapted to your local tradition.
 
 Opening
@@ -156,7 +157,7 @@ Anonymity Statement
 ];
 
 // The three shown as a preview on the Literature home.
-export const PREVIEW_READING_IDS = ['how-it-works', 'traditions', 'promises'];
+export const PREVIEW_READING_IDS = ['generic-format', 'how-it-works', 'traditions'];
 
 export function getMeetingReading(id: string): MeetingReading | undefined {
   return MEETING_READINGS.find((r) => r.id === id);
