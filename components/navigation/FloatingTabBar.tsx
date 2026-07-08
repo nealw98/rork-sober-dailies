@@ -75,6 +75,9 @@ const TAB_META: Record<TabKey, { label: string; Glyph: GlyphComponent }> = {
 };
 
 const BAR_HEIGHT = 68;
+// How far the frosted band rises above the pill before the content behind it
+// becomes sharp again.
+const BAND_TOP_EXTRA = 12;
 
 // FAB hidden on Settings (per product decision). Last-used persona TODO: wire to
 // use-chat-store `aa-chat-sponsor-type`; default to Steady Eddie for now.
@@ -180,60 +183,71 @@ export default function FloatingTabBar({ state, navigation }: BottomTabBarProps)
   return (
     <View
       pointerEvents="box-none"
-      style={[styles.container, { paddingBottom: bottomPad, height: BAR_HEIGHT + bottomPad }]}
+      style={[styles.container, { height: BAR_HEIGHT + bottomPad + BAND_TOP_EXTRA }]}
     >
-      <View style={[styles.bar, { borderColor: isDark ? c.tabBorder : 'rgba(255,255,255,0.55)' }]}>
-        {/* Frosted glass. On iOS the BlurView samples the real screen behind it
-            (the bar is transparent so nothing muddies the blur) under a thin
-            tint. Android has no cheap system blur — expo-blur's dimezis method
-            renders to a window texture that blanks out pushed screens (it turned
-            the sponsor chat white), so we DON'T use it. Instead Android falls
-            back to a near-opaque frosted panel: the tint carries the surface. */}
-        <BlurView
-          intensity={Platform.OS === 'ios' ? 50 : 0}
-          tint={isDark ? 'dark' : 'light'}
-          style={styles.barGlass}
-        />
+      {/* Full-width frosted band pinned to the bottom: blurs the content that
+          scrolls into the nav zone and gives a clean separation from the sharp
+          content above, while the pill still floats on top of it. On iOS it's a
+          real blur; Android (no cheap blur — dimezis blanks pushed screens) uses
+          a near-opaque frosted fill instead. */}
+      <BlurView
+        intensity={Platform.OS === 'ios' ? 40 : 0}
+        tint={isDark ? 'dark' : 'light'}
+        style={styles.band}
+        pointerEvents="none"
+      />
+      <View
+        pointerEvents="none"
+        style={[
+          styles.band,
+          {
+            backgroundColor: Platform.select({
+              // A cream cast over the blur (matches the page); Android is solid.
+              ios: isDark ? 'rgba(10,10,12,0.42)' : 'rgba(250,246,239,0.55)',
+              default: isDark ? 'rgba(18,18,20,0.92)' : 'rgba(250,246,239,0.92)',
+            }),
+          },
+        ]}
+      />
+
+      {/* Floating white pill + FAB, sitting on the band */}
+      <View pointerEvents="box-none" style={[styles.pillRow, { paddingBottom: bottomPad }]}>
         <View
-          pointerEvents="none"
           style={[
-            styles.barTint,
+            styles.bar,
             {
-              backgroundColor: Platform.select({
-                // iOS: thin tint over a real blur. Android: a solid-ish frosted
-                // fill that reads as glass without any blur.
-                ios: isDark ? 'rgba(8,8,10,0.55)' : 'rgba(255,253,248,0.3)',
-                default: isDark ? 'rgba(18,18,20,0.92)' : 'rgba(255,253,248,0.92)',
-              }),
+              backgroundColor: isDark ? c.surface : '#FFFFFF',
+              borderColor: isDark ? c.tabBorder : 'rgba(0,0,0,0.06)',
             },
           ]}
-        />
-        {state.routes.map((route, index) => {
-          const meta = TAB_META[route.name as TabKey];
-          if (!meta) return null;
-          const focused = state.index === index;
+        >
+          {state.routes.map((route, index) => {
+            const meta = TAB_META[route.name as TabKey];
+            if (!meta) return null;
+            const focused = state.index === index;
 
-          const onPress = () => {
-            const event = navigation.emit({ type: 'tabPress', target: route.key, canPreventDefault: true });
-            if (!focused && !event.defaultPrevented) navigation.navigate(route.name);
-          };
+            const onPress = () => {
+              const event = navigation.emit({ type: 'tabPress', target: route.key, canPreventDefault: true });
+              if (!focused && !event.defaultPrevented) navigation.navigate(route.name);
+            };
 
-          return (
-            <TabButton
-              key={route.key}
-              focused={focused}
-              tone={tc.primary}
-              inactive={c.tabInactive}
-              isDark={isDark}
-              label={meta.label}
-              Glyph={meta.Glyph}
-              onPress={onPress}
-            />
-          );
-        })}
+            return (
+              <TabButton
+                key={route.key}
+                focused={focused}
+                tone={tc.primary}
+                inactive={c.tabInactive}
+                isDark={isDark}
+                label={meta.label}
+                Glyph={meta.Glyph}
+                onPress={onPress}
+              />
+            );
+          })}
+        </View>
+
+        {showFab && <SponsorFab />}
       </View>
-
-      {showFab && <SponsorFab />}
     </View>
   );
 }
@@ -247,13 +261,24 @@ const activeGlow = {
 };
 
 const styles = StyleSheet.create({
+  // Positioning wrapper (box-none); height set inline to span the band.
   container: {
     position: 'absolute',
     left: 0,
     right: 0,
     bottom: 0,
+  },
+  // Full-width frosted band behind the pill — fills the wrapper edge to edge.
+  band: {
+    ...StyleSheet.absoluteFillObject,
+  },
+  // The floating pill + FAB row, pinned to the bottom of the band.
+  pillRow: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
     paddingHorizontal: 16,
-    // Row: the pill flexes to fill, the FAB sits on the same line to its right.
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
@@ -262,26 +287,17 @@ const styles = StyleSheet.create({
     flex: 1,
     height: BAR_HEIGHT,
     borderRadius: 30,
-    // Transparent: the BlurView is the fill, so nothing sits behind the blur to
-    // muddy it. (The pill still reads as floating via the shadow + the tint.)
-    backgroundColor: 'transparent',
+    // Solid fill (color set inline per mode) so the pill reads as a distinct
+    // floating element resting on the frosted band; the deeper shadow lifts it.
     borderWidth: 1,
     flexDirection: 'row',
     alignItems: 'stretch',
     paddingHorizontal: 4,
-    ...shadows.lg,
-  },
-  // BlurView clipped to the pill; the real fill, behind the tint + tab buttons.
-  barGlass: {
-    ...StyleSheet.absoluteFillObject,
-    borderRadius: 30,
-    overflow: 'hidden',
-  },
-  // Thin cast ON TOP of the blur (frosted-white on light, deep glass on dark) —
-  // color set inline per mode.
-  barTint: {
-    ...StyleSheet.absoluteFillObject,
-    borderRadius: 30,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.16,
+    shadowRadius: 20,
+    elevation: 12,
   },
   tab: {
     flex: 1,
