@@ -26,6 +26,7 @@ import { SPOT_PAIRS } from '@/constants/spotCheckPairs';
 import { NIGHTLY_QUESTIONS } from '@/constants/nightlyQuestions';
 import { parseLocalDate } from '@/lib/dateUtils';
 import { useScreenTimeTracking } from '@/hooks/useScreenTimeTracking';
+import SettingsGear from '@/components/navigation/SettingsGear';
 import { fontFamily, getColors, shadows, type ColorMode, type Tokens } from '@/constants/designTokens';
 import { useTokens, useThemedStyles } from '@/hooks/useTokens';
 
@@ -199,14 +200,21 @@ export default function JourneyScreen() {
       .map((k) => {
         const comp = completion[k];
         const isToday = k === todayKey;
-        const done = isToday ? dailies.doneCount : (comp?.done.length ?? 0) + (comp?.reflection ? 1 : 0);
-        // "of N" reflects that day's own setup (stamped on the record); today and
-        // older records without a stamp fall back to the current program size.
-        const total = isToday ? dailies.totalCount : (comp?.total ?? dailies.totalCount);
+        // Count a past day on the SAME basis as the detail sheet (DaySheet),
+        // which reconstructs the checklist from the CURRENT program + the
+        // reflection hero. Counting comp.done raw would include completions for
+        // dailies since removed from the program — inflating the tally past the
+        // total (the "11 of 10" bug) and disagreeing with what the opened day
+        // shows. So the total is the current program size and done only counts
+        // completions whose ids are still in the program.
+        const total = isToday ? dailies.totalCount : dailies.program.length + 1;
+        const done = isToday
+          ? dailies.doneCount
+          : (comp?.reflection ? 1 : 0) + (comp ? dailies.program.filter((p) => comp.done.includes(p.id)).length : 0);
         return { key: k, label: dateLabel(k, todayKey), dayN: dayNFor(k, sobrietyDate ?? null), done, total, isToday, entries: byDay.get(k) ?? [], medSeconds: medByDate[k] ?? 0 };
       })
       .filter((d) => d.isToday || d.entries.length > 0 || d.done > 0 || d.medSeconds > 0);
-  }, [entries, completion, todayKey, dailies.doneCount, dailies.totalCount, sobrietyDate, medByDate]);
+  }, [entries, completion, todayKey, dailies.doneCount, dailies.totalCount, dailies.program, sobrietyDate, medByDate]);
 
   const hasAny = feed.some((d) => d.entries.length > 0 || d.done > 0 || d.medSeconds > 0);
 
@@ -238,6 +246,7 @@ export default function JourneyScreen() {
               <BarChart3 size={16} color={colors.primary} strokeWidth={2.2} />
               <Text style={styles.trendsBtnText}>Trends</Text>
             </Pressable>
+            <SettingsGear style={styles.gear} />
           </View>
           <ScrollView contentContainerStyle={styles.feed} showsVerticalScrollIndicator={false}>
             {!hasAny ? (
@@ -779,6 +788,7 @@ const makeStyles = (tk: Tokens) => {
     flex: { flex: 1, minWidth: 0 },
     flexFill: { flex: 1 },
     header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 22, paddingTop: 8, paddingBottom: 8 },
+    gear: { marginLeft: 14 },
     trendsBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 8, paddingHorizontal: 14, borderRadius: 999, borderWidth: 1, borderColor: c.border, backgroundColor: c.surface, ...shadows.sm, ...darkCard },
     trendsBtnText: { fontFamily: fontFamily.semiBold, fontSize: 14, color: c.text },
     title: { fontFamily: fontFamily.displayBold, fontSize: 30, letterSpacing: -0.5, color: c.text },

@@ -25,6 +25,7 @@ import { HandsPraying, FlowerLotus } from 'phosphor-react-native';
 import { fontFamily, fontSize, shadows, lighten, steelFill, type Tokens } from '@/constants/designTokens';
 import { useTokens, useThemedStyles } from '@/hooks/useTokens';
 import { ThemedCard } from '@/components/ThemedCard';
+import SettingsGear from '@/components/navigation/SettingsGear';
 import { useScreenTimeTracking } from '@/hooks/useScreenTimeTracking';
 
 /**
@@ -137,6 +138,7 @@ export default function ToolsScreen() {
           <Text style={styles.title}>Tools</Text>
           <Text style={styles.subtitle}>Open the support you need</Text>
         </View>
+        <SettingsGear style={styles.gear} />
       </View>
 
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
@@ -177,6 +179,7 @@ const makeStyles = (tk: Tokens) => {
   return StyleSheet.create({
       safe: { flex: 1, backgroundColor: c.background },
       header: { flexDirection: 'row', alignItems: 'flex-start', paddingHorizontal: H_PAD, paddingTop: 8, paddingBottom: 12 },
+      gear: { paddingTop: 4 },
       title: { fontFamily: fontFamily.display, fontSize: 30, letterSpacing: -0.5, color: c.text },
       subtitle: { fontFamily: fontFamily.regular, fontSize: fontSize.md, color: c.textMuted, marginTop: 2 },
 

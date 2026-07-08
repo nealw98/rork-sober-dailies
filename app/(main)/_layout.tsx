@@ -20,8 +20,11 @@ export default function MainLayout() {
         animation: "slide_from_right",
       }}
     >
-      {/* Today · Tools · Journey · Settings live inside the tab group */}
+      {/* Today · Tools · Literature · Journey live inside the tab group */}
       <Stack.Screen name="(tabs)" />
+      {/* Settings is no longer a tab — pushed from each tab's header gear so it
+          covers the bar like every other leaf destination (handoff-tab-nav). */}
+      <Stack.Screen name="settings" />
       <Stack.Screen name="daily-reflections" />
       <Stack.Screen name="chat" />
       <Stack.Screen name="speakers" />

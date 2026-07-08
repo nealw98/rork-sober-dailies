@@ -24,6 +24,7 @@ import { useDailies, type DailyItem, type WhenBucket } from '@/hooks/use-dailies
 import { useReflectionHeroImage } from '@/hooks/useReflectionHeroImage';
 import { maybeAskForReview } from '@/lib/reviewPrompt';
 import SobrietyCounter from '@/components/SobrietyCounter';
+import SettingsGear from '@/components/navigation/SettingsGear';
 import { getTodaysReflection } from '@/constants/reflections';
 import { titleCase } from '@/lib/titleCase';
 import { Reflection } from '@/types';
@@ -351,9 +352,12 @@ export default function TodayScreen() {
           <Text style={[styles.title, { color: c.text }]}>Today</Text>
           <Text style={[styles.date, { color: c.textMuted }]}>{dateLabel}</Text>
         </View>
-        <Pressable hitSlop={10} onPress={toggleEditing} accessibilityRole="button">
-          <Text style={styles.editToggle}>{editing ? 'Done' : 'Edit'}</Text>
-        </Pressable>
+        <View style={styles.headerActions}>
+          <Pressable hitSlop={10} onPress={toggleEditing} accessibilityRole="button">
+            <Text style={styles.editToggle}>{editing ? 'Done' : 'Edit'}</Text>
+          </Pressable>
+          <SettingsGear />
+        </View>
       </View>
 
       {editing ? (
@@ -446,7 +450,10 @@ const makeStyles = (tk: Tokens) => {
   header: { flexDirection: 'row', alignItems: 'flex-start', paddingHorizontal: 22, paddingTop: spacing.sm, paddingBottom: spacing.sm },
   title: { fontFamily: fontFamily.display, fontSize: 30, letterSpacing: -0.4 },
   date: { fontFamily: fontFamily.regular, fontSize: fontSize.md, marginTop: 2 },
-  editToggle: { fontFamily: fontFamily.semiBold, fontSize: fontSize.lg, color: colors.primaryDark, paddingTop: 6 },
+  // Edit + the settings gear share the top-right; the gear is the outermost
+  // (far-corner) control (handoff-tab-nav).
+  headerActions: { flexDirection: 'row', alignItems: 'center', gap: 16, paddingTop: 6 },
+  editToggle: { fontFamily: fontFamily.semiBold, fontSize: fontSize.lg, color: colors.primaryDark },
   scroll: { paddingHorizontal: 22, paddingBottom: 120 },
 
   heroTop: { marginTop: spacing.xl },

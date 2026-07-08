@@ -9,6 +9,7 @@ import { Stack, useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { ChevronRight } from 'lucide-react-native';
 import BackButton from '@/components/BackButton';
+import SettingsGear from '@/components/navigation/SettingsGear';
 import { BigBookCover, TwelveCover, MeetingReadingCard } from '@/components/literature/literature-ui';
 import { MEETING_READINGS, PREVIEW_READING_IDS, getMeetingReading } from '@/constants/meeting-readings';
 import { useReadingSession } from '@/hooks/useReadingSession';
@@ -40,7 +41,10 @@ export default function LiteratureScreen() {
     <SafeAreaView style={styles.screen} edges={['top']}>
       <Stack.Screen options={{ headerShown: false }} />
       <View style={styles.header}>
-        <BackButton onPress={() => router.back()} style={{ marginBottom: 8 }} />
+        <View style={styles.headerRow}>
+          <BackButton onPress={() => router.back()} />
+          <SettingsGear />
+        </View>
         <Text style={styles.title}>Literature</Text>
         <Text style={styles.sub}>Read A.A. recovery texts.</Text>
       </View>
@@ -95,6 +99,7 @@ const makeStyles = (tk: Tokens) => {
   return StyleSheet.create({
     screen: { flex: 1, backgroundColor: c.background },
     header: { paddingHorizontal: 22, paddingTop: 8, paddingBottom: 6 },
+    headerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 },
     title: { fontFamily: fontFamily.displayBold, fontSize: 32, letterSpacing: -0.6, color: c.text },
     sub: { fontFamily: fontFamily.regular, fontSize: 13.5, color: c.textSecondary, marginTop: 4 },
 

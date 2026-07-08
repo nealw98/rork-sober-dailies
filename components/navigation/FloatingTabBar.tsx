@@ -16,7 +16,7 @@ import type { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
 import Svg, { Path, Defs, RadialGradient, Stop, Circle } from 'react-native-svg';
-import { BookOpen, PenLine, UserRound } from 'lucide-react-native';
+import { BookOpen, Library, PenLine } from 'lucide-react-native';
 import { colors, fontFamily, shadows, darkGlow } from '@/constants/designTokens';
 import { useTokens } from '@/hooks/useTokens';
 import { getSponsorById } from '@/constants/sponsors';
@@ -59,16 +59,19 @@ function SunriseGlyph({ size = 24, color = '#000', strokeWidth = 2 }: GlyphProps
   );
 }
 
-type TabKey = 'index' | 'tools' | 'journey' | 'settings';
+type TabKey = 'index' | 'tools' | 'literature' | 'journey';
 
 // June 2026 re-theme: the active-tab indicator is brand teal on every tab.
 // The medallion fill stays the full-chroma teal in both modes (it's a "jewel" —
 // Dark Mode Handoff); the label/halo tone brightens on dark for legibility.
+// Nav model (handoff-tab-nav): Literature is a real tab between Tools and
+// Journey; Settings moved off the bar to a header gear. Tools takes the
+// `Library` glyph so Literature can own the `BookOpen` book glyph.
 const TAB_META: Record<TabKey, { label: string; Glyph: GlyphComponent }> = {
   index: { label: 'Today', Glyph: SunriseGlyph },
-  tools: { label: 'Tools', Glyph: BookOpen },
+  tools: { label: 'Tools', Glyph: Library },
+  literature: { label: 'Literature', Glyph: BookOpen },
   journey: { label: 'Journey', Glyph: PenLine },
-  settings: { label: 'Settings', Glyph: UserRound },
 };
 
 const BAR_HEIGHT = 68;

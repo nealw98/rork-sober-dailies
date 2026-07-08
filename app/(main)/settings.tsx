@@ -26,6 +26,7 @@ import {
 } from '@/constants/designTokens';
 import { useTokens, useThemedStyles } from '@/hooks/useTokens';
 import { ThemedCard } from '@/components/ThemedCard';
+import BackButton from '@/components/BackButton';
 import Constants from 'expo-constants';
 import * as Clipboard from 'expo-clipboard';
 import * as SecureStore from 'expo-secure-store';
@@ -368,9 +369,11 @@ export default function SettingsScreen() {
     <View style={styles.container}>
       <Stack.Screen options={{ headerShown: false }} />
 
-      {/* Header — matches Today / Journey / Tools */}
+      {/* Header — pushed leaf screen now, so it leads with a back button
+          (matches Literature). */}
       <SafeAreaView edges={['top']} style={styles.headerSafe}>
         <View style={styles.header}>
+          <BackButton onPress={() => router.back()} style={{ marginBottom: 8 }} />
           <Text style={styles.title}>Settings</Text>
           <Text style={styles.subtitle}>Preferences and support</Text>
         </View>
