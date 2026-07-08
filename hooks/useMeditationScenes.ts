@@ -27,8 +27,8 @@ const publicUrl = (bucket: string, path: string | null): string | null =>
 
 // The scenes. `still`/`animated` live in meditation-images; `audio` in meditation-audio.
 const SCENE_DEFS: { key: string; name: string; still: string | null; animated: string | null; audio: string | null }[] = [
-  { key: 'silence', name: 'Silence', still: null, animated: null, audio: null },
-  { key: 'autumn-sky', name: 'Autumn Sky', still: 'autumn-sunrise.webp', animated: null, audio: 'autumn-sky-meditation.m4a' },
+  { key: 'silence', name: 'Silence', still: 'silence.webp', animated: null, audio: null },
+  { key: 'autumn-sky', name: 'Autumn Sky', still: 'autumn-sky.webp', animated: null, audio: 'autumn-sky-meditation.m4a' },
 ];
 
 const SCENES: Record<string, MeditationScene> = Object.fromEntries(

@@ -307,8 +307,8 @@ export default function MeditationScreen() {
   useEffect(() => {
     const loop = Animated.loop(
       Animated.sequence([
-        Animated.timing(kb, { toValue: 1, duration: 22000, easing: Easing.inOut(Easing.quad), useNativeDriver: true }),
-        Animated.timing(kb, { toValue: 0, duration: 22000, easing: Easing.inOut(Easing.quad), useNativeDriver: true }),
+        Animated.timing(kb, { toValue: 1, duration: 34000, easing: Easing.inOut(Easing.quad), useNativeDriver: true }),
+        Animated.timing(kb, { toValue: 0, duration: 34000, easing: Easing.inOut(Easing.quad), useNativeDriver: true }),
       ]),
     );
     loop.start();
@@ -316,9 +316,9 @@ export default function MeditationScreen() {
   }, [kb]);
   const kbStyle = {
     transform: [
-      { scale: kb.interpolate({ inputRange: [0, 1], outputRange: [1.06, 1.18] }) },
-      { translateX: kb.interpolate({ inputRange: [0, 1], outputRange: [-6, 6] }) },
-      { translateY: kb.interpolate({ inputRange: [0, 1], outputRange: [8, -8] }) },
+      { scale: kb.interpolate({ inputRange: [0, 1], outputRange: [1.06, 1.20] }) },
+      { translateX: kb.interpolate({ inputRange: [0, 1], outputRange: [-12, 12] }) },
+      { translateY: kb.interpolate({ inputRange: [0, 1], outputRange: [10, -10] }) },
     ],
   };
 
