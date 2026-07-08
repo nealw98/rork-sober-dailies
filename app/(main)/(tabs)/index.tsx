@@ -65,8 +65,10 @@ type EditRow =
   | { type: 'add'; key: string; when: WhenBucket };
 
 // ─── Done button — the completion control, in the row's accent (tool) color:
-// outline when undone, filled + check when done.
-function DoneButton({ done, tone, onPress }: { done: boolean; tone: { ink: string }; onPress: () => void }) {
+// outline when undone, filled + check when done. `onDark` is a white treatment
+// for use over a photo (the reflection hero): the button stays transparent with
+// a white outline + white text in both states; a white check is added when done.
+function DoneButton({ done, tone, onPress, onDark }: { done: boolean; tone: { ink: string }; onPress: () => void; onDark?: boolean }) {
   const styles = useThemedStyles(makeStyles);
   return (
     <Pressable
@@ -76,13 +78,15 @@ function DoneButton({ done, tone, onPress }: { done: boolean; tone: { ink: strin
       accessibilityState={{ checked: done }}
       style={[
         styles.doneBtn,
-        done
-          ? { backgroundColor: tone.ink, borderColor: tone.ink }
-          : { backgroundColor: 'transparent', borderColor: tone.ink + '99' },
+        onDark
+          ? { backgroundColor: 'transparent', borderColor: 'rgba(255,255,255,0.85)' }
+          : done
+            ? { backgroundColor: tone.ink, borderColor: tone.ink }
+            : { backgroundColor: 'transparent', borderColor: tone.ink + '99' },
       ]}
     >
       {done && <Check size={12} color="#fff" strokeWidth={3} />}
-      <Text style={[styles.doneText, { color: done ? '#fff' : tone.ink }]}>Done</Text>
+      <Text style={[styles.doneText, { color: onDark ? '#fff' : done ? '#fff' : tone.ink }]}>Done</Text>
     </Pressable>
   );
 }
@@ -173,9 +177,10 @@ function ReflectionHero({ title, imageUri, alt, staticSource, done, onRead, onTo
           <Text style={styles.heroTitle} numberOfLines={2}>{title}</Text>
         </View>
       </Pressable>
-      {/* Done ON the image, bottom-right — aligned with the ledger rows' buttons. */}
+      {/* Done ON the image, bottom-right — aligned with the ledger rows' buttons.
+          White "on-dark" treatment so it reads on the photo's gradient. */}
       <View style={styles.heroDone}>
-        <DoneButton done={done} tone={teal} onPress={onToggle} />
+        <DoneButton done={done} tone={teal} onPress={onToggle} onDark />
       </View>
     </View>
   );
@@ -535,8 +540,7 @@ const makeStyles = (tk: Tokens) => {
     textShadowRadius: 12,
   },
   // Done button overlaid on the image, aligned to the ledger rows' right inset
-  // (13). A frosted-white chip behind it keeps the teal Done readable over any
-  // photo — matching the "teal Done on white" look of the ledger rows.
-  heroDone: { position: 'absolute', right: 13, bottom: 13, backgroundColor: 'rgba(255,255,255,0.9)', borderRadius: radii.full, ...shadows.sm },
+  // (13). The button uses the white on-dark treatment (see DoneButton onDark).
+  heroDone: { position: 'absolute', right: 13, bottom: 13 },
   });
 };
