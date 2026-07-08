@@ -410,7 +410,9 @@ function DaySheet({ day, program, completion, onClose, onSave, scrollEnabled = t
   };
   const save = () => {
     onSave({ done: [...draftDone], reflection: draftReflection });
-    setEditing(false);
+    // Saving dismisses the whole day sheet back to the Journey list (not just
+    // the editor) — same close path as the X button.
+    onClose();
   };
   const toggle = (id: string) => {
     if (id === REFLECTION_ITEM.id) { setDraftReflection((v) => !v); return; }
