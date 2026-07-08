@@ -12,7 +12,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import DraggableFlatList, { ScaleDecorator, type RenderItemParams } from 'react-native-draggable-flatlist';
 import { useRouter, type Href } from 'expo-router';
-import { BookOpen, Check, Minus, Plus, GripVertical } from 'lucide-react-native';
+import { Check, Minus, Plus, GripVertical } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 
 import { fontFamily, fontSize, spacing, radii, shadows, type Tokens } from '@/constants/designTokens';
@@ -156,32 +156,25 @@ function ReflectionHero({ title, imageUri, alt, staticSource, done, onRead, onTo
   const fallback = staticSource ?? HERO_FALLBACK;
   return (
     <View style={styles.hero}>
-      <Pressable onPress={onRead}>
-        <View style={styles.heroCover}>
-          <Image
-            source={imageUri ? { uri: imageUri } : fallback}
-            placeholder={fallback}
-            contentFit="cover"
-            transition={250}
-            cachePolicy="memory-disk"
-            accessibilityLabel={alt}
-            style={StyleSheet.absoluteFill}
-          />
-          <LinearGradient colors={['rgba(0,0,0,0)', 'rgba(0,0,0,0.55)']} locations={[0.35, 1]} style={StyleSheet.absoluteFill} />
+      {/* The card IS the image now — no meta band. Eyebrow + title bottom-left. */}
+      <Pressable style={styles.heroCover} onPress={onRead}>
+        <Image
+          source={imageUri ? { uri: imageUri } : fallback}
+          placeholder={fallback}
+          contentFit="cover"
+          transition={250}
+          cachePolicy="memory-disk"
+          accessibilityLabel={alt}
+          style={StyleSheet.absoluteFill}
+        />
+        <LinearGradient colors={['rgba(0,0,0,0)', 'rgba(0,0,0,0.6)']} locations={[0.3, 1]} style={StyleSheet.absoluteFill} />
+        <View style={styles.heroTextBlock}>
+          <Text style={styles.heroEyebrow}>Daily Reflections</Text>
           <Text style={styles.heroTitle} numberOfLines={2}>{title}</Text>
         </View>
       </Pressable>
-      {/* Meta band — white, with a teal medallion + teal Done button */}
-      <View style={styles.heroMeta}>
-        <Pressable style={styles.rowMain} onPress={onRead}>
-          <View style={[styles.med, { backgroundColor: teal.soft }]}>
-            <BookOpen size={20} color={teal.ink} />
-          </View>
-          <View style={styles.rowText}>
-            <Text style={styles.rowLabel}>Daily Reflection</Text>
-            <Text style={styles.rowSub} numberOfLines={1}>{resolveSubtitle('reflection')}</Text>
-          </View>
-        </Pressable>
+      {/* Done ON the image, bottom-right — aligned with the ledger rows' buttons. */}
+      <View style={styles.heroDone}>
         <DoneButton done={done} tone={teal} onPress={onToggle} />
       </View>
     </View>
@@ -518,19 +511,32 @@ const makeStyles = (tk: Tokens) => {
   // Photo jewel — no card-treatment hairline on dark (it reads as a white
   // outline around the image); the photo edge + meta band define the card.
   hero: { borderRadius: 16, borderWidth: isDark ? 0 : 1, borderColor: c.border, backgroundColor: c.surface, overflow: 'hidden', marginBottom: 4, ...shadows.sm },
-  heroCover: { height: 150, justifyContent: 'flex-end', overflow: 'hidden' },
+  heroCover: { height: 168, justifyContent: 'flex-end', overflow: 'hidden' },
+  // Eyebrow + title block, bottom-left, kept in the left ~2/3 clear of the Done button.
+  heroTextBlock: { maxWidth: '72%', paddingHorizontal: 14, paddingBottom: 14 },
+  heroEyebrow: {
+    fontFamily: fontFamily.bold,
+    fontSize: 11,
+    letterSpacing: 1.3,
+    textTransform: 'uppercase',
+    color: 'rgba(255,255,255,0.92)',
+    marginBottom: 5,
+    textShadowColor: 'rgba(0,0,0,0.4)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 6,
+  },
   heroTitle: {
     fontFamily: fontFamily.serifMedium,
     fontSize: 22,
     color: '#fff',
     lineHeight: 27,
-    width: '66%',            // title sits in the left 2/3 — weight to the left
-    paddingHorizontal: 14,
-    paddingBottom: 12,
     textShadowColor: 'rgba(0,0,0,0.45)',
     textShadowOffset: { width: 0, height: 2 },
     textShadowRadius: 12,
   },
-  heroMeta: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 12, paddingHorizontal: 14 },
+  // Done button overlaid on the image, aligned to the ledger rows' right inset
+  // (13). A frosted-white chip behind it keeps the teal Done readable over any
+  // photo — matching the "teal Done on white" look of the ledger rows.
+  heroDone: { position: 'absolute', right: 13, bottom: 13, backgroundColor: 'rgba(255,255,255,0.9)', borderRadius: radii.full, ...shadows.sm },
   });
 };
