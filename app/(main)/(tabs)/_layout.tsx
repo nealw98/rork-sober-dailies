@@ -24,6 +24,10 @@ export default function TabsLayout() {
       <Tabs.Screen name="tools" options={{ title: 'Tools' }} />
       <Tabs.Screen name="literature" options={{ title: 'Literature' }} />
       <Tabs.Screen name="journey" options={{ title: 'Journey' }} />
+      {/* Settings lives in the tab group but has NO bar button (not in
+          FloatingTabBar's TAB_META) — reached from each tab's header gear. It
+          stays in the group so the floating tab bar remains visible on it. */}
+      <Tabs.Screen name="settings" options={{ title: 'Settings' }} />
     </Tabs>
   );
 }
