@@ -1,17 +1,18 @@
 // Daily Reflection — reading page (redesign 3.0). Per the design handoff
-// (design_handoff_daily_reflection): photographic hero, the day's pull-quote
-// (Lora italic) + reflection (Lora roman), a separate Meditation tile, a Done
-// strip (shown only when today's reflection is read), and copyright. No audio,
+// (design_handoff_daily_reflection 2 — "Title masthead"): a typographic
+// masthead (seedling-photo chip + live date kicker, then the day's title in
+// Lora 500), the day's pull-quote (reader serif italic) + reflection body,
+// a separate Meditation tile, and copyright. (The handoff's Lora drop cap was
+// dropped — a true floated drop cap isn't achievable cleanly in RN.) No audio,
 // no in-reader "Mark as read" CTA (that's done from the Today checklist).
 // Bookmarks were intentionally cut. Reflection text + date come from Supabase
-// (constants/reflections.ts); the hero is a fixed bundled photo.
+// (constants/reflections.ts); the chip reuses the Today photo.
 import React, { useEffect, useState, useCallback, useRef } from 'react';
 import {
   View, Text, ScrollView, Pressable, StyleSheet, Modal, Share, Platform,
   AppState, AppStateStatus, PanResponder,
 } from 'react-native';
 import { Image } from 'expo-image';
-import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { ChevronLeft, ChevronRight, Calendar, Sparkles, Share as ShareIcon } from 'lucide-react-native';
@@ -151,17 +152,18 @@ export default function DailyReflection({ jumpToDate = null, onJumpApplied }: Da
         showsVerticalScrollIndicator={false}
         {...panResponder.panHandlers}
       >
-        {/* Hero — photo + scrim stay full-color in both modes */}
-        <View style={styles.hero}>
-          <LinearGradient colors={[colors.primary, colors.secondary]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFill} />
-          <Image source={HERO} style={StyleSheet.absoluteFill} contentFit="cover" />
-          <LinearGradient colors={['transparent', 'rgba(0,0,0,0.62)']} locations={[0.3, 1]} style={StyleSheet.absoluteFill} />
-          <View style={styles.heroInner}>
-            <View style={styles.heroTextBlock}>
-              <Text style={styles.heroTitle}>{reflection?.title ? titleCase(reflection.title) : ' '}</Text>
-              <Text style={styles.heroDate}>{heroDate(selectedDate)}</Text>
-            </View>
+        {/* Masthead — kicker (seedling chip + live date) + Lora title + hairline.
+            Replaces the photographic hero: the reader is now a distinct reading
+            surface, tied to the Today card via the shared Lora face + the chip. */}
+        <View style={styles.masthead}>
+          <View style={styles.kicker}>
+            {/* Seedling-photo chip — a shrunk echo of the tapped Today card */}
+            <Image source={HERO} style={styles.chip} contentFit="cover" />
+            <Text style={styles.kickerDate}>{heroDate(selectedDate)}</Text>
           </View>
+          {/* Title in Lora 500 — same face as the Today hero title */}
+          <Text style={styles.mastheadTitle}>{reflection?.title ? titleCase(reflection.title) : ' '}</Text>
+          <View style={styles.hairline} />
         </View>
 
         {reflection && (
@@ -285,11 +287,13 @@ const makeStyles = (tk: Tokens) => {
 
   pageTitle: { fontFamily: fontFamily.display, fontSize: 28, letterSpacing: -0.5, color: c.text, paddingHorizontal: 22, paddingTop: 2, paddingBottom: 2 },
 
-  hero: { height: 168, borderRadius: 22, overflow: 'hidden', backgroundColor: colors.primary },
-  heroInner: { ...StyleSheet.absoluteFillObject, padding: 18, justifyContent: 'flex-end' },
-  heroTextBlock: { maxWidth: '66%' },   // title sits in the left 2/3 — weight to the left
-  heroTitle: { fontFamily: fontFamily.serifMedium, fontSize: 22, color: '#fff', lineHeight: 28, letterSpacing: 0, textShadowColor: 'rgba(0,0,0,0.45)', textShadowRadius: 12, textShadowOffset: { width: 0, height: 2 } },
-  heroDate: { fontFamily: fontFamily.regular, fontSize: 11, color: 'rgba(255,255,255,0.92)', marginTop: 6, textShadowColor: 'rgba(0,0,0,0.4)', textShadowRadius: 6, textShadowOffset: { width: 0, height: 1 } },
+  // Typographic masthead (replaces the photo hero)
+  masthead: { paddingTop: 4 },
+  kicker: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  chip: { width: 30, height: 30, borderRadius: 8, borderWidth: 1, borderColor: c.border },
+  kickerDate: { fontFamily: fontFamily.bold, fontSize: 11.5, letterSpacing: 1.6, color: colors.primary, textTransform: 'uppercase' },
+  mastheadTitle: { fontFamily: fontFamily.serifMedium, fontSize: 32, lineHeight: 36, letterSpacing: -0.3, color: c.text, marginTop: 12 },
+  hairline: { height: 1, backgroundColor: c.border, marginTop: 22 },
 
   // dark-only reading surface (quote + body)
   readingCard: { marginTop: 16, paddingHorizontal: 18, paddingTop: 0, paddingBottom: 26, borderRadius: 18, backgroundColor: c.surface, borderWidth: 1, borderColor: c.border, ...darkCard },
