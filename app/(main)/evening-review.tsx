@@ -108,7 +108,6 @@ export default function NightlyReviewScreen() {
               The Tenth Step daily inventory — <Text style={styles.sourceStrong}>Alcoholics Anonymous, p.&nbsp;86</Text>
             </Text>
           </View>
-          <Text style={styles.privacy}>Saved only on your device. Nothing is uploaded or shared.</Text>
         </View>
       </KeyboardAwareScrollView>
     </View>
@@ -146,6 +145,5 @@ const makeStyles = (tk: Tokens) => {
   sourceWrap: { marginTop: 22, paddingTop: 16, borderTopWidth: 1, borderTopColor: c.divider },
   source: { fontFamily: fontFamily.regularItalic, fontSize: 13.5, lineHeight: 20, color: c.textMuted, textAlign: 'center' },
   sourceStrong: { color: c.textSecondary },
-  privacy: { marginTop: 10, fontFamily: fontFamily.regular, fontSize: 11.5, lineHeight: 17, color: c.textMuted, textAlign: 'center', paddingHorizontal: 16 },
   });
 };
