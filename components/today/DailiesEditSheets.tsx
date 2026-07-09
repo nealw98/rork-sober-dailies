@@ -215,7 +215,7 @@ const makeStyles = (tk: Tokens) => {
     grabber: { width: 38, height: 4, borderRadius: 2, backgroundColor: isDark ? 'rgba(255,255,255,0.18)' : '#EDEAE2', alignSelf: 'center', marginBottom: 10 },
     sheetHead: { flexDirection: 'row', alignItems: 'flex-start', gap: 12, paddingHorizontal: 22, paddingBottom: 8 },
     sheetHeadRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 22, paddingBottom: 6 },
-    sheetTitle: { fontFamily: fontFamily.display, fontSize: 22, color: c.text, letterSpacing: -0.4 },
+    sheetTitle: { fontFamily: fontFamily.display, fontSize: 20, color: c.text, letterSpacing: -0.3 },
     sheetSub: { fontFamily: fontFamily.regular, fontSize: fontSize.sm, color: c.textMuted, marginTop: 3 },
     closeBtn: { width: 32, height: 32, borderRadius: 16, backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : '#EFEBE1', alignItems: 'center', justifyContent: 'center' },
     cancel: { fontFamily: fontFamily.regular, fontSize: fontSize.lg, color: c.textSecondary },

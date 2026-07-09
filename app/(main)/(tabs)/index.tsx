@@ -346,14 +346,16 @@ export default function TodayScreen() {
     <View style={[styles.root, { backgroundColor: c.background }]}>
     <SafeAreaView style={styles.safe} edges={['top']}>
       <View style={styles.header}>
+        <View style={{ flex: 1 }}>
+          <Text style={[styles.title, { color: c.text }]}>Today</Text>
+          <Text style={[styles.date, { color: c.textMuted }]}>{dateLabel}</Text>
+        </View>
         <View style={styles.headerActions}>
           <Pressable hitSlop={10} onPress={toggleEditing} accessibilityRole="button">
             <Text style={styles.editToggle}>{editing ? 'Done' : 'Edit'}</Text>
           </Pressable>
           <SettingsGear />
         </View>
-        <Text style={[styles.title, { color: c.text }]}>Today</Text>
-        <Text style={[styles.date, { color: c.textMuted }]}>{dateLabel}</Text>
       </View>
 
       {editing ? (
@@ -443,15 +445,15 @@ const makeStyles = (tk: Tokens) => {
   root: { flex: 1 },
   safe: { flex: 1 },
   flex: { flex: 1 },
-  // Tab header: actions row up top (where back-button screens put their 38px
-  // circles), title below — so the title lands at the same y as every other
-  // screen — and a real paddingBottom so the header reads as a header.
-  header: { paddingHorizontal: 22, paddingTop: spacing.sm, paddingBottom: 16 },
-  title: { fontFamily: fontFamily.display, fontSize: 30, letterSpacing: -0.4 },
-  date: { fontFamily: fontFamily.regular, fontSize: fontSize.md, marginTop: 2 },
+  // Tab header: title row starts at paddingTop 54 — the y where back-button
+  // screens' titles land (8 padding + 38 button + 8 margin) — with the actions
+  // inline beside it, and a real paddingBottom so the header reads as a header.
+  header: { flexDirection: 'row', alignItems: 'flex-start', paddingHorizontal: 22, paddingTop: 54, paddingBottom: 28 },
+  title: { fontFamily: fontFamily.display, fontSize: 28, letterSpacing: -0.5, lineHeight: 29 },
+  date: { fontFamily: fontFamily.regular, fontSize: 14, marginTop: 2 },
   // Edit + the settings gear share the top-right; the gear is the outermost
   // (far-corner) control (handoff-tab-nav).
-  headerActions: { flexDirection: 'row', justifyContent: 'flex-end', alignItems: 'center', gap: 16, minHeight: 38, marginBottom: 8 },
+  headerActions: { flexDirection: 'row', alignItems: 'center', gap: 16, paddingTop: 6 },
   editToggle: { fontFamily: fontFamily.semiBold, fontSize: fontSize.lg, color: colors.primaryDark },
   scroll: { paddingHorizontal: 22, paddingBottom: 120 },
 

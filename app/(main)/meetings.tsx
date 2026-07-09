@@ -498,9 +498,9 @@ const makeStyles = (tk: Tokens) => {
   return StyleSheet.create({
   screen: { flex: 1, backgroundColor: c.background },
   flex: { flex: 1 },
-  header: { paddingHorizontal: 22, paddingTop: 8, paddingBottom: 24 },
-  title: { fontFamily: fontFamily.display, fontSize: 30, letterSpacing: -0.5, color: c.text, lineHeight: 34 },
-  sub: { fontFamily: fontFamily.regular, fontSize: 13, color: c.textMuted, marginTop: 3 },
+  header: { paddingHorizontal: 22, paddingTop: 8, paddingBottom: 28 },
+  title: { fontFamily: fontFamily.display, fontSize: 28, letterSpacing: -0.5, color: c.text, lineHeight: 29 },
+  sub: { fontFamily: fontFamily.regular, fontSize: 14, color: c.textMuted, marginTop: 3 },
   scroll: { paddingHorizontal: 16, paddingBottom: 40 },
 
   sectionHead: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', marginTop: 0, marginBottom: 10, paddingHorizontal: 4 },

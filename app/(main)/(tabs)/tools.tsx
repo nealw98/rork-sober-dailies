@@ -134,11 +134,11 @@ export default function ToolsScreen() {
     <SafeAreaView style={styles.safe} edges={['top']}>
       {/* Header */}
       <View style={styles.header}>
-        <View style={styles.headerActions}>
-          <SettingsGear />
+        <View style={{ flex: 1 }}>
+          <Text style={styles.title}>Tools</Text>
+          <Text style={styles.subtitle}>Open the support you need</Text>
         </View>
-        <Text style={styles.title}>Tools</Text>
-        <Text style={styles.subtitle}>Open the support you need</Text>
+        <SettingsGear style={styles.gear} />
       </View>
 
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
@@ -178,12 +178,12 @@ const makeStyles = (tk: Tokens) => {
   const { c, colors } = tk;
   return StyleSheet.create({
       safe: { flex: 1, backgroundColor: c.background },
-      // Tab header: actions row up top (matching back-button screens' 38px
-      // control row), title below at the shared y, roomy paddingBottom.
-      header: { paddingHorizontal: H_PAD, paddingTop: 8, paddingBottom: 16 },
-      headerActions: { flexDirection: 'row', justifyContent: 'flex-end', alignItems: 'center', minHeight: 38, marginBottom: 8 },
-      title: { fontFamily: fontFamily.display, fontSize: 30, letterSpacing: -0.5, color: c.text },
-      subtitle: { fontFamily: fontFamily.regular, fontSize: fontSize.md, color: c.textMuted, marginTop: 2 },
+      // Tab header: title row starts at paddingTop 54 — the y where back-button
+      // screens' titles land — with the gear inline, and a roomy paddingBottom.
+      header: { flexDirection: 'row', alignItems: 'flex-start', paddingHorizontal: H_PAD, paddingTop: 54, paddingBottom: 28 },
+      gear: { paddingTop: 4 },
+      title: { fontFamily: fontFamily.display, fontSize: 28, letterSpacing: -0.5, color: c.text, lineHeight: 29 },
+      subtitle: { fontFamily: fontFamily.regular, fontSize: 14, color: c.textMuted, marginTop: 2 },
 
       scroll: { paddingHorizontal: H_PAD, paddingTop: 6, paddingBottom: 130 },
 
@@ -192,7 +192,7 @@ const makeStyles = (tk: Tokens) => {
       featured: { position: 'absolute', top: 16, left: 16, flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: 'rgba(0,0,0,0.45)', paddingHorizontal: 11, paddingVertical: 5, borderRadius: 999 },
       featuredText: { fontFamily: fontFamily.bold, fontSize: 10.5, letterSpacing: 1, color: '#fff' },
       heroBottom: { position: 'absolute', left: 0, right: 0, bottom: 0, flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 18, paddingBottom: 18 },
-      heroTitle: { fontFamily: fontFamily.displayBold, fontSize: 30, color: '#fff', letterSpacing: -0.6, textShadowColor: 'rgba(0,0,0,0.4)', textShadowOffset: { width: 0, height: 2 }, textShadowRadius: 10 },
+      heroTitle: { fontFamily: fontFamily.displayBold, fontSize: 32, color: '#fff', letterSpacing: -0.6, textShadowColor: 'rgba(0,0,0,0.4)', textShadowOffset: { width: 0, height: 2 }, textShadowRadius: 10 },
       heroSub: { fontFamily: fontFamily.medium, fontSize: 14, color: 'rgba(255,255,255,0.92)', marginTop: 2, textShadowColor: 'rgba(0,0,0,0.4)', textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 6 },
 
       // Flagship cards

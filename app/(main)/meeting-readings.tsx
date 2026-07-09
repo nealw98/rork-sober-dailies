@@ -38,9 +38,9 @@ const makeStyles = (tk: Tokens) => {
   const { c } = tk;
   return StyleSheet.create({
   screen: { flex: 1, backgroundColor: c.background },
-  header: { paddingHorizontal: 22, paddingTop: 8, paddingBottom: 6 },
-  title: { fontFamily: fontFamily.displayBold, fontSize: 28, letterSpacing: -0.5, color: c.text },
-  sub: { fontFamily: fontFamily.regular, fontSize: 13, color: c.textSecondary, marginTop: 4 },
+  header: { paddingHorizontal: 22, paddingTop: 8, paddingBottom: 28 },
+  title: { fontFamily: fontFamily.display, fontSize: 28, letterSpacing: -0.5, color: c.text, lineHeight: 29 },
+  sub: { fontFamily: fontFamily.regular, fontSize: 14, color: c.textMuted, marginTop: 4 },
   scroll: { paddingHorizontal: 16, paddingTop: 8, paddingBottom: 40, gap: 8 },
   });
 };

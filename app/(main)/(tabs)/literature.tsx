@@ -40,11 +40,11 @@ export default function LiteratureScreen() {
     <SafeAreaView style={styles.screen} edges={['top']}>
       <Stack.Screen options={{ headerShown: false }} />
       <View style={styles.header}>
-        <View style={styles.headerActions}>
-          <SettingsGear />
+        <View style={styles.flexFill}>
+          <Text style={styles.title}>Literature</Text>
+          <Text style={styles.sub}>Read A.A. recovery texts.</Text>
         </View>
-        <Text style={styles.title}>Literature</Text>
-        <Text style={styles.sub}>Read A.A. recovery texts.</Text>
+        <SettingsGear style={styles.gear} />
       </View>
 
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
@@ -94,12 +94,13 @@ const makeStyles = (tk: Tokens) => {
   const { c } = tk;
   return StyleSheet.create({
     screen: { flex: 1, backgroundColor: c.background },
-    // Tab header: actions row up top (matching back-button screens' 38px
-    // control row), title below at the shared y, roomy paddingBottom.
-    header: { paddingHorizontal: 22, paddingTop: 8, paddingBottom: 16 },
-    headerActions: { flexDirection: 'row', justifyContent: 'flex-end', alignItems: 'center', minHeight: 38, marginBottom: 8 },
-    title: { fontFamily: fontFamily.displayBold, fontSize: 30, letterSpacing: -0.5, color: c.text },
-    sub: { fontFamily: fontFamily.regular, fontSize: 13.5, color: c.textSecondary, marginTop: 4 },
+    // Tab header: title row starts at paddingTop 54 — the y where back-button
+    // screens' titles land — with the gear inline, and a roomy paddingBottom.
+    header: { flexDirection: 'row', alignItems: 'flex-start', paddingHorizontal: 22, paddingTop: 54, paddingBottom: 28 },
+    flexFill: { flex: 1 },
+    gear: { paddingTop: 4 },
+    title: { fontFamily: fontFamily.display, fontSize: 28, letterSpacing: -0.5, color: c.text, lineHeight: 29 },
+    sub: { fontFamily: fontFamily.regular, fontSize: 14, color: c.textMuted, marginTop: 4 },
 
     // Clears the floating tab bar (Literature lives in the tab group now).
     scroll: { paddingBottom: 130 },

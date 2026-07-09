@@ -285,7 +285,7 @@ const makeStyles = (tk: Tokens) => {
 
   scroll: { paddingHorizontal: 16, paddingBottom: 24 },
 
-  pageTitle: { fontFamily: fontFamily.display, fontSize: 28, letterSpacing: -0.5, color: c.text, paddingHorizontal: 22, paddingTop: 2, paddingBottom: 2 },
+  pageTitle: { fontFamily: fontFamily.display, fontSize: 28, letterSpacing: -0.5, color: c.text, lineHeight: 29, paddingHorizontal: 22, paddingTop: 2, paddingBottom: 2 },
 
   // Typographic masthead (replaces the photo hero)
   masthead: { paddingTop: 4 },
@@ -322,7 +322,7 @@ const makeStyles = (tk: Tokens) => {
   calSheet: { position: 'absolute', left: 12, right: 12, bottom: 18, backgroundColor: c.surface, borderRadius: 24, padding: 18, shadowColor: '#000', shadowOpacity: 0.18, shadowRadius: 60, shadowOffset: { width: 0, height: 24 }, elevation: 12, ...(isDark ? { borderWidth: 1, ...darkCard } : null) },
   calHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 },
   calNav: { width: 32, height: 32, borderRadius: 16, backgroundColor: c.surface, borderWidth: 1, borderColor: c.border, alignItems: 'center', justifyContent: 'center', ...darkCard },
-  calMonth: { fontFamily: fontFamily.display, fontSize: 19, color: c.text, letterSpacing: -0.2 },
+  calMonth: { fontFamily: fontFamily.display, fontSize: 20, color: c.text, letterSpacing: -0.3 },
   calGrid: { flexDirection: 'row', flexWrap: 'wrap' },
   calWeekday: { width: `${100 / 7}%`, textAlign: 'center', fontFamily: fontFamily.semiBold, fontSize: 10, color: c.textMuted, marginBottom: 6 },
   calCell: { width: `${100 / 7}%`, height: 40, alignItems: 'center', justifyContent: 'center' },

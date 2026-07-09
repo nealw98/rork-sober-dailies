@@ -115,13 +115,13 @@ export function ToolIntro({ tool, children, variant = 'plain' }: { tool: ToolMet
 const makeStyles = (tk: Tokens) => {
   const { c } = tk;
   return StyleSheet.create({
-    header: { paddingHorizontal: 22, paddingBottom: 8 },
+    header: { paddingHorizontal: 22, paddingBottom: 28 },
     backRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 },
     saveBtn: { paddingHorizontal: 18, paddingVertical: 9, borderRadius: 999 },
     saveBtnGhost: { borderWidth: 1.5, borderColor: c.border },
     saveText: { fontFamily: fontFamily.semiBold, fontSize: 13.5 },
-    title: { fontFamily: fontFamily.display, fontSize: 30, letterSpacing: -0.5, color: c.text, lineHeight: 34 },
-    subtitle: { fontFamily: fontFamily.regular, fontSize: 13, color: c.textMuted, marginTop: 3 },
+    title: { fontFamily: fontFamily.display, fontSize: 28, letterSpacing: -0.5, color: c.text, lineHeight: 29 },
+    subtitle: { fontFamily: fontFamily.regular, fontSize: 14, color: c.textMuted, marginTop: 3 },
 
     introWrap: { paddingHorizontal: 20, paddingTop: 20, paddingBottom: 30 },
     introLine: { fontFamily: fontFamily.medium, fontSize: 16, lineHeight: 24, color: c.text },

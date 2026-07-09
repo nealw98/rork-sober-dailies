@@ -238,15 +238,15 @@ export default function JourneyScreen() {
       <Animated.View style={[styles.flexFill, baseFade]} pointerEvents={mode === 'list' ? 'auto' : 'none'}>
         <SafeAreaView style={styles.screen} edges={['top']}>
           <View style={styles.header}>
-            <View style={styles.headerActions}>
-              <Pressable style={styles.trendsBtn} onPress={() => router.push('/(main)/trends' as never)} accessibilityRole="button" accessibilityLabel="Trends">
-                <BarChart3 size={16} color={colors.primary} strokeWidth={2.2} />
-                <Text style={styles.trendsBtnText}>Trends</Text>
-              </Pressable>
-              <SettingsGear style={styles.gear} />
+            <View style={styles.flexFill}>
+              <Text style={styles.title}>Journey</Text>
+              <Text style={styles.subtitle}>Your path of recovery</Text>
             </View>
-            <Text style={styles.title}>Journey</Text>
-            <Text style={styles.subtitle}>Your path of recovery</Text>
+            <Pressable style={styles.trendsBtn} onPress={() => router.push('/(main)/trends' as never)} accessibilityRole="button" accessibilityLabel="Trends">
+              <BarChart3 size={16} color={colors.primary} strokeWidth={2.2} />
+              <Text style={styles.trendsBtnText}>Trends</Text>
+            </Pressable>
+            <SettingsGear style={styles.gear} />
           </View>
           <ScrollView contentContainerStyle={styles.feed} showsVerticalScrollIndicator={false}>
             {!hasAny ? (
@@ -789,15 +789,14 @@ const makeStyles = (tk: Tokens) => {
     screen: { flex: 1, backgroundColor: c.background },
     flex: { flex: 1, minWidth: 0 },
     flexFill: { flex: 1 },
-    // Tab header: actions row up top (matching back-button screens' 38px
-    // control row), title below at the shared y, roomy paddingBottom.
-    header: { paddingHorizontal: 22, paddingTop: 8, paddingBottom: 16 },
-    headerActions: { flexDirection: 'row', justifyContent: 'flex-end', alignItems: 'center', minHeight: 38, marginBottom: 8 },
+    // Tab header: title row starts at paddingTop 54 — the y where back-button
+    // screens' titles land — with the actions inline, and a roomy paddingBottom.
+    header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 22, paddingTop: 54, paddingBottom: 28 },
     gear: { marginLeft: 14 },
     trendsBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 8, paddingHorizontal: 14, borderRadius: 999, borderWidth: 1, borderColor: c.border, backgroundColor: c.surface, ...shadows.sm, ...darkCard },
     trendsBtnText: { fontFamily: fontFamily.semiBold, fontSize: 14, color: c.text },
-    title: { fontFamily: fontFamily.displayBold, fontSize: 30, letterSpacing: -0.5, color: c.text },
-    subtitle: { fontFamily: fontFamily.serifItalic, fontSize: 15, color: c.textSecondary, marginTop: 2 },
+    title: { fontFamily: fontFamily.display, fontSize: 28, letterSpacing: -0.5, color: c.text, lineHeight: 29 },
+    subtitle: { fontFamily: fontFamily.regular, fontSize: 14, color: c.textMuted, marginTop: 2 },
 
     feed: { paddingHorizontal: 22, paddingBottom: 48 },
 
