@@ -40,7 +40,7 @@ import { getAnonymousId } from '@/lib/anonymousId';
 import { useScreenTimeTracking } from '@/hooks/useScreenTimeTracking';
 import { useOnboarding } from '@/hooks/useOnboardingStore';
 import { clearUserData } from '@/lib/userDataSync';
-import { setSyncPaused } from '@/lib/icloudSync';
+import { setSyncPaused, cloudBackupSupported } from '@/lib/cloudSync';
 
 // ─── Token-based building blocks (mirror the prototype) ──────────────────────
 
@@ -330,7 +330,7 @@ export default function SettingsScreen() {
   };
 
   // ── Testing tools (dev) — mirror Backup & Restore's Start Fresh flows ──
-  // Re-run onboarding while keeping all current data (incl. the iCloud backup):
+  // Re-run onboarding while keeping all current data (incl. the cloud backup):
   // the root layout swaps to onboarding the moment the flag flips.
   const onboardKeep = () => {
     Alert.alert('Run onboarding again?', 'The welcome flow will run again. Your current data is kept.', [
@@ -340,11 +340,11 @@ export default function SettingsScreen() {
   };
 
   // Wipe everything on this device and onboard fresh (clean-install test). Pauses
-  // iCloud sync first so the empty state can't overwrite or auto-restore the backup.
+  // cloud sync first so the empty state can't overwrite or auto-restore the backup.
   const clearAll = () => {
     Alert.alert(
       'Clear all data?',
-      'Wipes ALL your data on this device and runs onboarding again. Your iCloud backup is kept and sync is paused, so nothing comes back until you restore.',
+      'Wipes ALL your data on this device and runs onboarding again. Your cloud backup is kept and sync is paused, so nothing comes back until you restore.',
       [
         { text: 'Cancel', style: 'cancel' },
         {
@@ -405,10 +405,10 @@ export default function SettingsScreen() {
         {/* Text size follows the device's system text-size (Dynamic Type) —
             no in-app control. */}
 
-        {/* Your Data — backup is iCloud-only, so the entry is iOS-only until
-            Android gets a cloud backup (the screen itself has an Android
-            empty state for deep links). */}
-        {Platform.OS === 'ios' && (
+        {/* Your Data — iCloud on iOS, Google Drive on Android. Hidden only on a
+            binary without the cloud modules (e.g. an OTA onto an older build);
+            the screen itself has a matching empty state for deep links. */}
+        {cloudBackupSupported() && (
           <CardGroup label="Your Data">
             <CardRow label="Backup & Restore" last onPress={() => router.push('/(main)/backup' as Href)} />
           </CardGroup>
@@ -436,7 +436,7 @@ export default function SettingsScreen() {
             />
             <CardRow
               label="Clear all data & start over"
-              sub="Clean-install test · iCloud backup kept"
+              sub="Clean-install test · cloud backup kept"
               last
               onPress={clearAll}
             />
@@ -612,7 +612,7 @@ const makeStyles = (tk: Tokens) => {
   return StyleSheet.create({
   container: { flex: 1, backgroundColor: c.background },
   headerSafe: { backgroundColor: c.background },
-  header: { paddingHorizontal: 22, paddingTop: 8, paddingBottom: 8 },
+  header: { paddingHorizontal: 22, paddingTop: 8, paddingBottom: 16 },
   title: { fontFamily: fontFamily.displayBold, fontSize: 30, letterSpacing: -0.5, color: c.text },
   subtitle: { fontFamily: fontFamily.serifItalic, fontSize: 15, color: c.textSecondary, marginTop: 2 },
 

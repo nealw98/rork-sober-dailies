@@ -1,16 +1,18 @@
-// Backup & Restore (redesign 3.0). iCloud back up / restore (file-blob, whole
-// snapshot incl. chat) — the clipboard copy/restore fallback was retired once
-// iCloud sync was working. (Start Fresh — re-run onboarding / wipe data — lives
-// in Settings › Developer.)
-// Core: lib/userDataSync.ts + lib/icloudSync.ts.
+// Backup & Restore (redesign 3.0). Cloud back up / restore (file-blob, whole
+// snapshot incl. chat): iCloud on iOS (no sign-in), Google Drive on Android
+// (connect a Google account once; auto sync runs silently after). The
+// clipboard copy/restore fallback was retired once iCloud sync was working.
+// (Start Fresh — re-run onboarding / wipe data — lives in Settings › Developer.)
+// Core: lib/userDataSync.ts + lib/cloudSync.ts (+ lib/googleDriveAuth.ts).
 import React, { useEffect, useState } from 'react';
-import { View, Text, Pressable, StyleSheet, Alert, ScrollView } from 'react-native';
+import { View, Text, Pressable, StyleSheet, Alert, ScrollView, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Stack, useRouter } from 'expo-router';
-import { CloudUpload, CloudDownload } from 'lucide-react-native';
+import { CloudUpload, CloudDownload, LogIn } from 'lucide-react-native';
 import BackButton from '@/components/BackButton';
 import { countStoredItems } from '@/lib/userDataSync';
-import { iCloudSupported, iCloudAvailable, pushToICloud, pullFromICloud, isSyncPaused, setSyncPaused } from '@/lib/icloudSync';
+import { cloudBackupSupported, cloudAvailable, pushToCloud, pullFromCloud, isSyncPaused, setSyncPaused, CLOUD_NAME } from '@/lib/cloudSync';
+import { isDriveSignedIn, getDriveAccountEmail, getDriveAccessToken, signOutDrive } from '@/lib/googleDriveAuth';
 import { fontFamily, shadows, type Tokens } from '@/constants/designTokens';
 import { useTokens, useThemedStyles } from '@/hooks/useTokens';
 
@@ -24,42 +26,90 @@ export default function BackupScreen() {
   const styles = useThemedStyles(makeStyles);
   const { colors } = useTokens();
   const TEAL = colors.primaryDark;
+  const isAndroid = Platform.OS === 'android';
+  const supported = cloudBackupSupported();
   const [busy, setBusy] = useState(false);
   const [count, setCount] = useState<number | null>(null);
-  const [icloud, setIcloud] = useState<boolean | null>(null);
+  const [available, setAvailable] = useState<boolean | null>(null); // iOS: iCloud signed in
+  const [connected, setConnected] = useState<boolean | null>(null); // Android: Google account
+  const [email, setEmail] = useState<string | null>(null);
   const [paused, setPaused] = useState(false);
 
   useEffect(() => {
     countStoredItems().then(setCount).catch(() => {});
     isSyncPaused().then(setPaused).catch(() => {});
-    if (iCloudSupported()) iCloudAvailable().then(setIcloud).catch(() => setIcloud(false));
-  }, []);
+    if (!supported) return;
+    if (isAndroid) {
+      isDriveSignedIn().then((s) => {
+        setConnected(s);
+        if (s) getDriveAccountEmail().then(setEmail).catch(() => {});
+      }).catch(() => setConnected(false));
+    } else {
+      cloudAvailable().then(setAvailable).catch(() => setAvailable(false));
+    }
+  }, [supported, isAndroid]);
 
-  const backupICloud = async () => {
+  const backupNow = async () => {
     setBusy(true);
     try {
       await setSyncPaused(false); setPaused(false); // an explicit backup resumes sync
-      const ok = await pushToICloud();
-      Alert.alert(ok ? 'Backed up to iCloud' : 'iCloud unavailable', ok
-        ? 'Your data is in iCloud. It will restore automatically on a reinstall or another device signed into the same iCloud.'
-        : 'Sign into iCloud in Settings, then try again.');
+      const ok = await pushToCloud(true);
+      Alert.alert(ok ? `Backed up to ${CLOUD_NAME}` : `${CLOUD_NAME} unavailable`, ok
+        ? `Your data is in ${CLOUD_NAME}. It will restore automatically on a reinstall or another device signed into the same account.`
+        : isAndroid ? 'Connect your Google account, then try again.' : 'Sign into iCloud in Settings, then try again.');
     } finally { setBusy(false); }
   };
 
-  const restoreICloud = async () => {
+  const restoreNow = async () => {
     setBusy(true);
     try {
-      const restored = await pullFromICloud(true); // force: ignore the newer-than gate + pause
+      const restored = await pullFromCloud(true); // force: ignore the newer-than gate + pause
       setPaused(false);
       if (restored) {
-        Alert.alert('Restored from iCloud', 'The app will reload.', [
+        Alert.alert(`Restored from ${CLOUD_NAME}`, 'The app will reload.', [
           { text: 'OK', onPress: reloadApp },
         ]);
       } else {
-        Alert.alert('Nothing to restore', 'No iCloud backup was found for this app yet.');
+        Alert.alert('Nothing to restore', `No ${CLOUD_NAME} backup was found for this app yet.`);
       }
     } finally { setBusy(false); }
   };
+
+  // Android: connect a Google account, then immediately do the right thing —
+  // restore if this account already holds a backup this device hasn't synced
+  // (the reinstall / new-phone case), otherwise start the backup. Auto sync
+  // (push on background, pull on launch) takes over from here.
+  const connectDrive = async () => {
+    setBusy(true);
+    try {
+      const token = await getDriveAccessToken(true);
+      if (!token) {
+        Alert.alert("Couldn't connect", 'Google sign-in did not complete. Please try again.');
+        return;
+      }
+      setConnected(true);
+      getDriveAccountEmail().then(setEmail).catch(() => {});
+      const restored = await pullFromCloud();
+      if (restored) {
+        Alert.alert('Backup found', 'Your data was restored from Google Drive. The app will reload.', [
+          { text: 'OK', onPress: reloadApp },
+        ]);
+      } else {
+        await setSyncPaused(false); setPaused(false);
+        const ok = await pushToCloud(true);
+        if (ok) Alert.alert('Google Drive connected', 'Your data is backed up and will now stay backed up automatically.');
+      }
+    } finally { setBusy(false); }
+  };
+
+  const disconnectDrive = async () => {
+    await signOutDrive();
+    setConnected(false); setEmail(null);
+  };
+
+  const statusTag = isAndroid
+    ? (connected === false ? ' · NOT CONNECTED' : connected ? ' · ON' : '')
+    : (available === false ? ' · NOT SIGNED IN' : available ? ' · ON' : '');
 
   return (
     <SafeAreaView style={styles.screen} edges={['top']}>
@@ -68,42 +118,55 @@ export default function BackupScreen() {
         <BackButton onPress={() => router.back()} style={{ marginBottom: 8 }} />
         <Text style={styles.title}>Backup & Restore</Text>
         <Text style={styles.sub}>
-          {iCloudSupported() ? 'Save a copy of your data and bring it back after reinstalling or on another device.' : 'Your data is saved on this device.'}{count != null ? ` Currently storing ${count} item${count === 1 ? '' : 's'}.` : ''}
+          {supported ? 'Save a copy of your data and bring it back after reinstalling or on another device.' : 'Your data is saved on this device.'}{count != null ? ` Currently storing ${count} item${count === 1 ? '' : 's'}.` : ''}
         </Text>
       </View>
 
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
-        {iCloudSupported() && (
+        {supported && (
           <>
-            <Text style={styles.label}>iCLOUD{icloud === false ? ' · NOT SIGNED IN' : icloud ? ' · ON' : ''}{paused ? ' · PAUSED' : ''}</Text>
+            <Text style={styles.label}>{CLOUD_NAME.toUpperCase()}{statusTag}{paused ? ' · PAUSED' : ''}</Text>
             {paused && (
               <Text style={styles.pausedNote}>
-                Sync is paused after a reset, so your iCloud backup is protected. Restoring or backing up resumes it.
+                Sync is paused after a reset, so your {CLOUD_NAME} backup is protected. Restoring or backing up resumes it.
               </Text>
             )}
-            <Row icon={<CloudUpload size={20} color={TEAL} strokeWidth={2} />} title="Back up to iCloud now"
-              sub="Auto-restores on reinstall or another device on the same iCloud." onPress={backupICloud} disabled={busy} />
-            <Row icon={<CloudDownload size={20} color={TEAL} strokeWidth={2} />} title="Restore from iCloud"
-              sub="Pull the latest iCloud backup onto this device." onPress={restoreICloud} disabled={busy} />
+            {isAndroid && !connected ? (
+              <Row icon={<LogIn size={20} color={TEAL} strokeWidth={2} />} title="Connect Google Drive"
+                sub="Sign in with Google once. Your data then backs up automatically and follows you to a new phone." onPress={connectDrive} disabled={busy} />
+            ) : (
+              <>
+                <Row icon={<CloudUpload size={20} color={TEAL} strokeWidth={2} />} title={`Back up to ${CLOUD_NAME} now`}
+                  sub="Auto-restores on reinstall or another device on the same account." onPress={backupNow} disabled={busy} />
+                <Row icon={<CloudDownload size={20} color={TEAL} strokeWidth={2} />} title={`Restore from ${CLOUD_NAME}`}
+                  sub={`Pull the latest ${CLOUD_NAME} backup onto this device.`} onPress={restoreNow} disabled={busy} />
+                {isAndroid && (
+                  <Pressable onPress={disconnectDrive} disabled={busy} accessibilityRole="button">
+                    <Text style={styles.disconnect}>Disconnect{email ? ` ${email}` : ' Google Drive'}</Text>
+                  </Pressable>
+                )}
+              </>
+            )}
           </>
         )}
 
-        {/* Android (and any non-iCloud platform): cloud backup isn't built yet —
+        {/* A binary without the cloud modules (e.g. an OTA onto an older build):
             say so plainly instead of rendering an empty screen. The Settings
-            entry row is also hidden on Android; this covers deep links. */}
-        {!iCloudSupported() && (
+            entry row is also hidden then; this covers deep links. */}
+        {!supported && (
           <View style={styles.emptyCard}>
             <View style={styles.rowIcon}><CloudUpload size={20} color={TEAL} strokeWidth={2} /></View>
-            <Text style={styles.emptyTitle}>Cloud backup isn't available on Android yet</Text>
+            <Text style={styles.emptyTitle}>Cloud backup needs an app update</Text>
             <Text style={styles.emptyBody}>
-              Your data is stored safely on this device. Cloud backup for Android is coming in a future update — until then, keep the app installed to keep your history.
+              Your data is stored safely on this device. Update the app from the store to turn on cloud backup.
             </Text>
           </View>
         )}
 
-        {iCloudSupported() && (
+        {supported && (
           <Text style={styles.note}>
             Backups include your dailies, sober date, gratitude, spot checks, nightly reviews, journal, meetings, contacts, AI Sponsor chats, and reading progress. Device-only settings and caches aren't included.
+            {isAndroid ? ' Backups live in a private app folder in your Google Drive that only this app can see.' : ''}
           </Text>
         )}
       </ScrollView>
@@ -146,6 +209,7 @@ const makeStyles = (tk: Tokens) => {
   rowIcon: { width: 40, height: 40, borderRadius: 12, backgroundColor: TEAL_SOFT, alignItems: 'center', justifyContent: 'center' },
   rowTitle: { fontFamily: fontFamily.semiBold, fontSize: 15, color: c.text },
   rowSub: { fontFamily: fontFamily.regular, fontSize: 12.5, lineHeight: 17, color: c.textMuted, marginTop: 2 },
+  disconnect: { fontFamily: fontFamily.semiBold, fontSize: 12.5, color: c.textMuted, textAlign: 'center', paddingVertical: 10 },
   note: { fontFamily: fontFamily.regular, fontSize: 12, lineHeight: 18, color: c.textMuted, paddingHorizontal: 4, marginTop: 16 },
   emptyCard: { alignItems: 'flex-start', gap: 10, padding: 18, marginTop: 14, borderRadius: 16, backgroundColor: c.surface, borderWidth: 1, borderColor: c.border, ...shadows.sm, ...darkCard },
   emptyTitle: { fontFamily: fontFamily.semiBold, fontSize: 15, color: c.text },

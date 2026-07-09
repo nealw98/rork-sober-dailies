@@ -73,7 +73,7 @@ import { ContactsProvider } from "@/hooks/use-contacts-store";
 import { LastSponsorProvider } from "@/hooks/use-last-sponsor";
 import { PdfBookmarksProvider } from "@/hooks/use-pdf-bookmarks";
 import { SpeakerFavoritesProvider } from "@/hooks/use-speaker-favorites";
-import { ICloudSyncGate } from "@/hooks/use-icloud-sync";
+import { CloudSyncGate } from "@/hooks/use-cloud-sync";
 import { ActionSheetProvider } from "@expo/react-native-action-sheet";
 import { ImmersiveProvider } from "@/hooks/use-immersive";
 import { SubscriptionProvider, useSubscription } from "@/hooks/useSubscription";
@@ -363,7 +363,7 @@ export default function RootLayout() {
                             <AudioPlayerProvider>
                               <HamburgerMenuProvider>
                                 <RootLayoutNav />
-                                <ICloudSyncGate />
+                                <CloudSyncGate />
                                 <HamburgerMenu />
                               </HamburgerMenuProvider>
                             </AudioPlayerProvider>
