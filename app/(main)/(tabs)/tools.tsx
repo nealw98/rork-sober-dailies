@@ -134,11 +134,11 @@ export default function ToolsScreen() {
     <SafeAreaView style={styles.safe} edges={['top']}>
       {/* Header */}
       <View style={styles.header}>
-        <View style={{ flex: 1 }}>
-          <Text style={styles.title}>Tools</Text>
-          <Text style={styles.subtitle}>Open the support you need</Text>
+        <View style={styles.headerActions}>
+          <SettingsGear />
         </View>
-        <SettingsGear style={styles.gear} />
+        <Text style={styles.title}>Tools</Text>
+        <Text style={styles.subtitle}>Open the support you need</Text>
       </View>
 
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
@@ -178,8 +178,10 @@ const makeStyles = (tk: Tokens) => {
   const { c, colors } = tk;
   return StyleSheet.create({
       safe: { flex: 1, backgroundColor: c.background },
-      header: { flexDirection: 'row', alignItems: 'flex-start', paddingHorizontal: H_PAD, paddingTop: 8, paddingBottom: 12 },
-      gear: { paddingTop: 4 },
+      // Tab header: actions row up top (matching back-button screens' 38px
+      // control row), title below at the shared y, roomy paddingBottom.
+      header: { paddingHorizontal: H_PAD, paddingTop: 8, paddingBottom: 16 },
+      headerActions: { flexDirection: 'row', justifyContent: 'flex-end', alignItems: 'center', minHeight: 38, marginBottom: 8 },
       title: { fontFamily: fontFamily.display, fontSize: 30, letterSpacing: -0.5, color: c.text },
       subtitle: { fontFamily: fontFamily.regular, fontSize: fontSize.md, color: c.textMuted, marginTop: 2 },
 

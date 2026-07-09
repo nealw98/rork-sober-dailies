@@ -8,7 +8,6 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Stack, useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { ChevronRight } from 'lucide-react-native';
-import BackButton from '@/components/BackButton';
 import SettingsGear from '@/components/navigation/SettingsGear';
 import { BigBookCover, TwelveCover, MeetingReadingCard } from '@/components/literature/literature-ui';
 import { MEETING_READINGS, PREVIEW_READING_IDS, getMeetingReading } from '@/constants/meeting-readings';
@@ -41,8 +40,7 @@ export default function LiteratureScreen() {
     <SafeAreaView style={styles.screen} edges={['top']}>
       <Stack.Screen options={{ headerShown: false }} />
       <View style={styles.header}>
-        <View style={styles.headerRow}>
-          <BackButton onPress={() => router.back()} />
+        <View style={styles.headerActions}>
           <SettingsGear />
         </View>
         <Text style={styles.title}>Literature</Text>
@@ -96,9 +94,11 @@ const makeStyles = (tk: Tokens) => {
   const { c } = tk;
   return StyleSheet.create({
     screen: { flex: 1, backgroundColor: c.background },
-    header: { paddingHorizontal: 22, paddingTop: 8, paddingBottom: 6 },
-    headerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 },
-    title: { fontFamily: fontFamily.displayBold, fontSize: 32, letterSpacing: -0.6, color: c.text },
+    // Tab header: actions row up top (matching back-button screens' 38px
+    // control row), title below at the shared y, roomy paddingBottom.
+    header: { paddingHorizontal: 22, paddingTop: 8, paddingBottom: 16 },
+    headerActions: { flexDirection: 'row', justifyContent: 'flex-end', alignItems: 'center', minHeight: 38, marginBottom: 8 },
+    title: { fontFamily: fontFamily.displayBold, fontSize: 30, letterSpacing: -0.5, color: c.text },
     sub: { fontFamily: fontFamily.regular, fontSize: 13.5, color: c.textSecondary, marginTop: 4 },
 
     // Clears the floating tab bar (Literature lives in the tab group now).
