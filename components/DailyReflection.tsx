@@ -12,7 +12,6 @@ import {
   View, Text, ScrollView, Pressable, StyleSheet, Modal, Share, Platform,
   AppState, AppStateStatus, PanResponder,
 } from 'react-native';
-import { Image } from 'expo-image';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { ChevronLeft, ChevronRight, Calendar, Sparkles, Share as ShareIcon } from 'lucide-react-native';
@@ -29,7 +28,6 @@ import { useReadingSize } from '@/hooks/use-reading-size';
 import { ReadingSizeSheet } from '@/components/ReadingSizeSheet';
 import { useTokens, useThemedStyles } from '@/hooks/useTokens';
 
-const HERO = require('../assets/images/reflection_bg2.webp');
 const WEEKDAYS = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
 
 const isSameDay = (a: Date, b: Date) =>
@@ -157,8 +155,6 @@ export default function DailyReflection({ jumpToDate = null, onJumpApplied }: Da
             surface, tied to the Today card via the shared Lora face + the chip. */}
         <View style={styles.masthead}>
           <View style={styles.kicker}>
-            {/* Seedling-photo chip — a shrunk echo of the tapped Today card */}
-            <Image source={HERO} style={styles.chip} contentFit="cover" />
             <Text style={styles.kickerDate}>{heroDate(selectedDate)}</Text>
           </View>
           {/* Title in Lora 500 — same face as the Today hero title */}
@@ -289,8 +285,7 @@ const makeStyles = (tk: Tokens) => {
 
   // Typographic masthead (replaces the photo hero)
   masthead: { paddingTop: 4 },
-  kicker: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  chip: { width: 30, height: 30, borderRadius: 8, borderWidth: 1, borderColor: c.border },
+  kicker: { flexDirection: 'row', alignItems: 'center' },
   kickerDate: { fontFamily: fontFamily.bold, fontSize: 11.5, letterSpacing: 1.6, color: colors.primary, textTransform: 'uppercase' },
   mastheadTitle: { fontFamily: fontFamily.serifMedium, fontSize: 32, lineHeight: 36, letterSpacing: -0.3, color: c.text, marginTop: 12 },
   hairline: { height: 1, backgroundColor: c.border, marginTop: 22 },

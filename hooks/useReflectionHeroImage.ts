@@ -1,19 +1,34 @@
 import { useQuery } from '@tanstack/react-query';
+import { Image } from 'expo-image';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase } from '@/lib/supabase';
 
 /**
- * Daily Reflection hero image — rotates daily from a pool in Supabase.
+ * Daily Reflection hero image — rotates daily from the images in Supabase
+ * Storage, and keeps rotating with a poor or no connection.
  *
- * Pool = active rows of `app_image_assets` in the `daily-reflection-images` bucket.
- * We pick `rows[dayOfYear % rows.length]`, so the image changes once per day,
- * is stable within the day, and grows automatically as more rows are added
- * (one row → always that one). Read-only Supabase content (DATA-SOURCES.md).
+ * The pool is the image files in `${BUCKET}/${FOLDER}`, listed straight from
+ * Storage — no DB table. We pick `images[dayOfYear % images.length]`, so the
+ * hero changes once per day, is stable within the day, cycles back to the first
+ * image once the list is exhausted, and grows automatically as files are added.
  *
- * The bundled `reflection_bg7.webp` stays the offline/loading placeholder on
- * the Today hero, so a failed/empty fetch (returns null) degrades gracefully.
+ * Offline durability (two layers, both refreshed on every successful online
+ * fetch):
+ *  1. The whole pool is prefetched into expo-image's on-disk cache, so any
+ *     upcoming day's image is already downloaded — not just the ones shown so
+ *     far. Rotation then continues with no connection.
+ *  2. The URL list is persisted to AsyncStorage, so a cold offline start still
+ *     knows the pool (and can compute today's pick) even though the Storage
+ *     list request fails. `fetchHeroImages` falls back to it on any error.
+ *
+ * The bundled `reflection_bg7.webp` stays the offline/loading placeholder on the
+ * Today hero, so a truly empty cache (returns null) still degrades gracefully.
  */
 
 const BUCKET = 'daily-reflection-images';
+const FOLDER = 'daily-reflections';
+const IMAGE_RE = /\.(webp|jpe?g|png)$/i;
+const CACHE_KEY = 'reflection-hero-images-v1';
 
 export interface HeroImage {
   uri: string;
@@ -25,29 +40,48 @@ function getDayOfYear(date = new Date()): number {
   return Math.floor((date.getTime() - start.getTime()) / 86_400_000); // 1..366
 }
 
-// Trailing number in a path (e.g. ".../reflections-12.webp" → 12) for a clean
-// numeric daily cycle; paths without one (the old placeholder) sort to the end.
-function pathOrder(path: string): number {
-  const m = path.match(/(\d+)(?=\.\w+$)/);
+// Trailing number in a filename (e.g. "reflections-12.webp" → 12) for a clean,
+// sequential daily cycle; names without one sort to the end.
+function nameOrder(name: string): number {
+  const m = name.match(/(\d+)(?=\.\w+$)/);
   return m ? parseInt(m[1], 10) : Number.MAX_SAFE_INTEGER;
 }
 
 async function fetchHeroImages(): Promise<HeroImage[]> {
-  const { data, error } = await supabase
-    .from('app_image_assets')
-    .select('asset_key, bucket, object_path, alt_text')
-    .eq('bucket', BUCKET)
-    .eq('is_active', true);
+  try {
+    const { data, error } = await supabase.storage
+      .from(BUCKET)
+      .list(FOLDER, { limit: 1000, sortBy: { column: 'name', order: 'asc' } });
+    if (error) throw error;
 
-  if (error) throw error;
+    const images: HeroImage[] = (data ?? [])
+      .filter((f) => f.id != null && IMAGE_RE.test(f.name)) // real files only (folders have a null id)
+      .sort((a, b) => nameOrder(a.name) - nameOrder(b.name)) // numeric, sequential
+      .map((f) => ({
+        uri: supabase.storage.from(BUCKET).getPublicUrl(`${FOLDER}/${f.name}`).data.publicUrl,
+        alt: 'Daily reflection',
+      }));
 
-  return (data ?? [])
-    .slice()
-    .sort((a, b) => pathOrder(a.object_path) - pathOrder(b.object_path)) // numeric, sequential
-    .map((row) => ({
-      uri: supabase.storage.from(row.bucket).getPublicUrl(row.object_path).data.publicUrl,
-      alt: row.alt_text || '',
-    }));
+    if (images.length === 0) throw new Error('empty hero pool');
+
+    // Persist the list + pull the whole pool onto disk so rotation survives a
+    // dropped connection. Both are best-effort — don't fail the fetch on them.
+    AsyncStorage.setItem(CACHE_KEY, JSON.stringify(images)).catch(() => {});
+    Image.prefetch(images.map((i) => i.uri), { cachePolicy: 'memory-disk' }).catch(() => {});
+
+    return images;
+  } catch (err) {
+    // Offline / list failed: reuse the last-known pool if we ever fetched one.
+    // The bytes are already on disk (layer 1), so the daily pick still renders.
+    const cached = await AsyncStorage.getItem(CACHE_KEY).catch(() => null);
+    if (cached) {
+      try {
+        const parsed = JSON.parse(cached) as HeroImage[];
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      } catch { /* corrupt cache — fall through */ }
+    }
+    throw err;
+  }
 }
 
 /** Today's hero image, or null while loading / if the pool is empty or offline. */

@@ -15,6 +15,7 @@ import { router } from 'expo-router';
 import type { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
+import MaskedView from '@react-native-masked-view/masked-view';
 import Svg, { Path, Defs, RadialGradient, Stop, Circle } from 'react-native-svg';
 import { BookOpen, Library, PenLine } from 'lucide-react-native';
 import { colors, fontFamily, shadows, darkGlow } from '@/constants/designTokens';
@@ -74,10 +75,20 @@ const TAB_META: Record<TabKey, { label: string; Glyph: GlyphComponent }> = {
   journey: { label: 'Journey', Glyph: PenLine },
 };
 
+// "#RRGGBB" (or shorthand) → "r, g, b" so we can build rgba() tint stops from a
+// token colour and keep the band's colour locked to the page background.
+function hexToRgb(hex: string): string {
+  const h = hex.replace('#', '');
+  const full = h.length === 3 ? h.split('').map((ch) => ch + ch).join('') : h;
+  const n = parseInt(full, 16);
+  return `${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255}`;
+}
+
 const BAR_HEIGHT = 68;
-// How far the frosted band rises above the pill before the content behind it
-// becomes sharp again.
-const BAND_TOP_EXTRA = 12;
+// How far the frosted band rises above the pill. Taller than the pill gap on
+// purpose: it gives the progressive blur + gradient tint room to fade out into
+// the page instead of ending on a hard rectangular edge.
+const BAND_TOP_EXTRA = 48;
 
 // FAB hidden on Settings (per product decision). Last-used persona TODO: wire to
 // use-chat-store `aa-chat-sponsor-type`; default to Steady Eddie for now.
@@ -180,34 +191,53 @@ export default function FloatingTabBar({ state, navigation }: BottomTabBarProps)
   // Hidden while a full-screen overlay (e.g. a Journey entry sheet) is open.
   if (immersive) return null;
 
+  // Progressive frosted band. A single blur is masked by a vertical gradient
+  // (transparent at top → opaque behind the pill), so the REAL blur fades out
+  // smoothly with no hard top edge — the mask, not the blur intensity, controls
+  // how high the frost reaches, so we can blur hard behind the pill without the
+  // band looking taller. A gradient tint (transparent at top → cream/ink at the
+  // bar) fades the colour cast the same way. Android has no cheap blur (dimezis
+  // blanks pushed screens) so it leans on the gradient tint alone.
+  const blurTint = isDark ? 'dark' : 'light';
+  // Tint the band with the PAGE background colour (c.background) so it reads as
+  // the page dissolving upward, not a separate panel. Only the alpha ramps —
+  // kept per platform: iOS is lighter since the blur adds its own coverage,
+  // Android has no blur so it leans on the tint alone.
+  const bg = hexToRgb(c.background);
+  const bandAlpha = Platform.OS === 'ios'
+    ? (isDark ? [0, 0.2, 0.48] : [0, 0.16, 0.44])
+    : (isDark ? [0, 0.66, 0.97] : [0, 0.6, 0.97]);
+  const bandTint: readonly [string, string, string] = [
+    `rgba(${bg}, ${bandAlpha[0]})`,
+    `rgba(${bg}, ${bandAlpha[1]})`,
+    `rgba(${bg}, ${bandAlpha[2]})`,
+  ];
+
   return (
     <View
       pointerEvents="box-none"
       style={[styles.container, { height: BAR_HEIGHT + bottomPad + BAND_TOP_EXTRA }]}
     >
-      {/* Full-width frosted band pinned to the bottom: blurs the content that
-          scrolls into the nav zone and gives a clean separation from the sharp
-          content above, while the pill still floats on top of it. On iOS it's a
-          real blur; Android (no cheap blur — dimezis blanks pushed screens) uses
-          a near-opaque frosted fill instead. */}
-      <BlurView
-        intensity={Platform.OS === 'ios' ? 40 : 0}
-        tint={isDark ? 'dark' : 'light'}
+      {Platform.OS === 'ios' && (
+        <MaskedView
+          style={styles.band}
+          pointerEvents="none"
+          maskElement={
+            <LinearGradient
+              colors={['transparent', 'rgba(0,0,0,0.85)', '#000']}
+              locations={[0, 0.45, 0.7]}
+              style={StyleSheet.absoluteFill}
+            />
+          }
+        >
+          <BlurView intensity={55} tint={blurTint} style={StyleSheet.absoluteFill} />
+        </MaskedView>
+      )}
+      <LinearGradient
+        pointerEvents="none"
+        colors={bandTint}
+        locations={[0, 0.5, 1]}
         style={styles.band}
-        pointerEvents="none"
-      />
-      <View
-        pointerEvents="none"
-        style={[
-          styles.band,
-          {
-            backgroundColor: Platform.select({
-              // A cream cast over the blur (matches the page); Android is solid.
-              ios: isDark ? 'rgba(10,10,12,0.42)' : 'rgba(250,246,239,0.55)',
-              default: isDark ? 'rgba(18,18,20,0.92)' : 'rgba(250,246,239,0.92)',
-            }),
-          },
-        ]}
       />
 
       {/* Floating white pill + FAB, sitting on the band */}

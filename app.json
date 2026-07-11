@@ -120,6 +120,7 @@
       ],
       "expo-secure-store",
       "./plugins/withFmtConstevalFix.js",
+    "./plugins/withModularHeaders.js",
       [
         "react-native-cloud-storage",
         {

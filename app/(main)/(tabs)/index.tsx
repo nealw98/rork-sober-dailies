@@ -149,10 +149,10 @@ function DailyRow({
 // Bundled offline/loading placeholder for the hero.
 const HERO_FALLBACK = require('@/assets/reflections_images/reflection_bg7.webp');
 
-// TEMP: the rotating Supabase hero pool is still placeholder art, so the Today
-// hero is pinned to the seedling photo. Flip ROTATE_HERO back to true once real
-// images are loaded in Supabase.
-const ROTATE_HERO = false;
+// The Today hero rotates daily through the real images in the Supabase
+// `daily-reflection-images/daily-reflections` bucket (see useReflectionHeroImage).
+// Set ROTATE_HERO=false to pin it back to the bundled seedling photo if needed.
+const ROTATE_HERO = true;
 const STATIC_HERO = require('@/assets/images/reflection_bg2.webp');
 
 function ReflectionHero({ title, imageUri, alt, staticSource, done, onRead, onToggle }: { title: string; imageUri?: string; alt?: string; staticSource?: number; done: boolean; onRead: () => void; onToggle: () => void }) {
