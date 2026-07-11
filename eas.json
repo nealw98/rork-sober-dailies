@@ -1,7 +1,7 @@
 {
   "cli": {
     "version": ">= 12.5.0",
-    "appVersionSource": "local"
+    "appVersionSource": "remote"
   },
   "build": {
     "development": {
@@ -9,6 +9,7 @@
       "distribution": "internal"
     },
     "preview": {
+      "autoIncrement": true,
       "distribution": "internal",
       "channel": "dev",
       "android": {
@@ -16,6 +17,7 @@
       }
     },
     "androidPreview": {
+      "autoIncrement": true,
       "distribution": "internal",
       "credentialsSource": "local",
       "android": {
@@ -23,6 +25,7 @@
       }
     },
     "production": {
+      "autoIncrement": true,
       "distribution": "store",
       "channel": "production",
       "ios": {
