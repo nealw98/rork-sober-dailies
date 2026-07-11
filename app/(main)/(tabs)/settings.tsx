@@ -27,6 +27,8 @@ import {
 import { useTokens, useThemedStyles } from '@/hooks/useTokens';
 import { ThemedCard } from '@/components/ThemedCard';
 import BackButton from '@/components/BackButton';
+import GiftGlyph from '@/components/GiftGlyph';
+import { useGiftWallet } from '@/hooks/use-gift-wallet';
 import Constants from 'expo-constants';
 import * as Clipboard from 'expo-clipboard';
 import * as SecureStore from 'expo-secure-store';
@@ -56,10 +58,14 @@ function CardGroup({ label, children }: { label: string; children: React.ReactNo
   );
 }
 
-// A tappable row inside a CardGroup: label (+ optional sub / value) + chevron.
+// A tappable row inside a CardGroup: optional leading icon + label (+ optional
+// sub / value) + chevron. `valueColor` lets a row tint its value (Pass It On).
 function CardRow({
-  label, value, sub, last, onPress,
-}: { label: string; value?: string; sub?: string; last?: boolean; onPress?: () => void }) {
+  label, value, sub, last, onPress, icon, valueColor,
+}: {
+  label: string; value?: string; sub?: string; last?: boolean; onPress?: () => void;
+  icon?: React.ReactNode; valueColor?: string;
+}) {
   const styles = useThemedStyles(makeStyles);
   const { c } = useTokens();
   return (
@@ -68,11 +74,16 @@ function CardRow({
       onPress={onPress}
       activeOpacity={0.6}
     >
+      {icon}
       <View style={styles.rowText}>
         <Text style={styles.rowLabel}>{label}</Text>
         {sub ? <Text style={styles.rowSub}>{sub}</Text> : null}
       </View>
-      {value ? <Text style={styles.rowValue}>{value}</Text> : null}
+      {value ? (
+        <Text style={[styles.rowValue, valueColor ? { color: valueColor, fontFamily: fontFamily.semiBold } : null]}>
+          {value}
+        </Text>
+      ) : null}
       <ChevronRight size={18} color={c.textMuted} />
     </TouchableOpacity>
   );
@@ -97,7 +108,8 @@ const APPEARANCE_OPTIONS = [
 
 export default function SettingsScreen() {
   const styles = useThemedStyles(makeStyles);
-  const { c } = useTokens();
+  const { c, colors } = useTokens();
+  const { hasEverBought, availableCount } = useGiftWallet();
   const { resetOnboarding } = useOnboarding();
   const { colorScheme, setColorScheme } = useTheme();
 
@@ -414,6 +426,37 @@ export default function SettingsScreen() {
           </CardGroup>
         )}
 
+        {/* Pass It On — gift codes (Pass It On Handoff 2). The give row is the
+            permanent entry; the wallet row appears once codes exist. Redeem
+            deliberately does NOT live here — it belongs to the paywall. */}
+        <CardGroup label="Pass It On">
+          <CardRow
+            label="Give Sober Dailies"
+            sub="3 months for a sponsee or newcomer"
+            last={!hasEverBought}
+            icon={
+              <View style={styles.giftIconSquare}>
+                <GiftGlyph size={19} color={colors.roseDark} />
+              </View>
+            }
+            onPress={() => router.push('/(main)/pass-it-on' as Href)}
+          />
+          {hasEverBought && (
+            <CardRow
+              label="Gifts to give"
+              value={`${availableCount} left`}
+              valueColor={colors.roseDark}
+              last
+              icon={
+                <View style={styles.giftIconSquare}>
+                  <GiftGlyph size={19} color={colors.roseDark} />
+                </View>
+              }
+              onPress={() => router.push('/(main)/gift-wallet' as Href)}
+            />
+          )}
+        </CardGroup>
+
         {/* Support Sober Dailies */}
         <CardGroup label="Support Sober Dailies">
           <CardRow label="Rate & Review" onPress={handleRateAppPress} />
@@ -710,6 +753,11 @@ const makeStyles = (tk: Tokens) => {
   },
   rowDivider: { borderBottomWidth: 1, borderBottomColor: c.divider },
   rowText: { flex: 1, minWidth: 0 },
+  // Pass It On rows — 34px rose-soft leading square (handoff Settings group)
+  giftIconSquare: {
+    width: 34, height: 34, borderRadius: 10, backgroundColor: colors.roseSoft,
+    alignItems: 'center', justifyContent: 'center',
+  },
   rowLabel: { fontFamily: fontFamily.medium, fontSize: 15, color: c.text },
   rowSub: { fontFamily: fontFamily.regular, fontSize: 12, color: c.textMuted, marginTop: 2 },
   rowValue: { fontFamily: fontFamily.regular, fontSize: 13, color: c.textMuted },

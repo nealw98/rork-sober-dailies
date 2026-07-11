@@ -1,0 +1,265 @@
+// Pass It On — purchase screen (Pass It On Handoff 2, frames-v2/hifi-passiton.jsx).
+// Three consumable gift SKUs (1 / 5 / 10 × 3-month codes), 5-pack preselected.
+// The CTA runs the REAL RevenueCat purchase when the store products resolve
+// (ASC products exist as drafts; RC offering pending). Until then, __DEV__
+// builds offer a mock purchase so the whole flow is testable on device.
+// Codes are minted locally into the wallet for now — when the backend gift
+// service lands, the mint moves server-side behind receipt verification.
+// Confirmation is a sheet over this screen (decided design), never a screen.
+import React, { useEffect, useState } from 'react';
+import {
+  View, Text, StyleSheet, ScrollView, Pressable, TouchableOpacity, Modal, Alert, Platform,
+} from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { Stack, useRouter } from 'expo-router';
+import Purchases, { PurchasesStoreProduct } from 'react-native-purchases';
+import BackButton from '@/components/BackButton';
+import GiftGlyph from '@/components/GiftGlyph';
+import { fontFamily, shadows, colors as lightColors, type Tokens } from '@/constants/designTokens';
+import { useTokens, useThemedStyles } from '@/hooks/useTokens';
+import { useGiftWallet } from '@/hooks/use-gift-wallet';
+import { GIFT_SKUS, fetchGiftProducts, type GiftSku } from '@/lib/giftProducts';
+import { logEvent } from '@/lib/analytics';
+
+// The CTA keeps full rose chroma in both modes (jewel treatment, like the
+// photo heroes) — mode-aware rose is for tints and icons, not the fill.
+const ROSE_FILL = lightColors.rose;
+
+function SkuCard({ sku, price, on, onPick }: {
+  sku: GiftSku; price: string; on: boolean; onPick: () => void;
+}) {
+  const styles = useThemedStyles(makeStyles);
+  const { colors } = useTokens();
+  return (
+    <Pressable
+      style={[styles.skuCard, on && styles.skuCardOn]}
+      onPress={onPick}
+      accessibilityRole="radio"
+      accessibilityState={{ selected: on }}
+    >
+      <View style={[styles.radio, on && { borderColor: colors.rose, borderWidth: 6.5 }]} />
+      <View style={{ flex: 1, minWidth: 0 }}>
+        <View style={styles.skuLabelRow}>
+          <Text style={styles.skuLabel}>{sku.label}</Text>
+          {sku.each ? <Text style={styles.skuEach}>{sku.each}</Text> : null}
+        </View>
+        <Text style={styles.skuSub}>{sku.sub}</Text>
+      </View>
+      <Text style={styles.skuPrice}>{price}</Text>
+    </Pressable>
+  );
+}
+
+function ConfirmSheet({ n, onSeeGifts, onDone }: { n: number; onSeeGifts: () => void; onDone: () => void }) {
+  const styles = useThemedStyles(makeStyles);
+  const { colors } = useTokens();
+  return (
+    <Modal visible transparent animationType="slide" onRequestClose={onDone}>
+      <Pressable style={styles.sheetScrim} onPress={onDone} />
+      <View style={styles.sheet}>
+        <View style={styles.sheetHandle} />
+        <View style={{ alignItems: 'center' }}>
+          <View style={styles.sheetCoin}>
+            <GiftGlyph size={30} color={colors.roseDark} strokeWidth={1.6} />
+          </View>
+          <Text style={styles.sheetTitle}>{n === 1 ? '1 gift added' : `${n} gifts added`}</Text>
+          <Text style={styles.sheetBody}>
+            Your codes are ready in <Text style={styles.sheetBodyBold}>Gifts to give</Text>. Each one
+            unlocks three months for whoever redeems it.
+          </Text>
+        </View>
+        <TouchableOpacity style={styles.cta} onPress={onSeeGifts} activeOpacity={0.85} accessibilityRole="button">
+          <Text style={styles.ctaText}>See your gifts</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.quietBtn} onPress={onDone} activeOpacity={0.6} accessibilityRole="button">
+          <Text style={styles.quietBtnText}>Done</Text>
+        </TouchableOpacity>
+      </View>
+    </Modal>
+  );
+}
+
+export default function PassItOnScreen() {
+  const router = useRouter();
+  const styles = useThemedStyles(makeStyles);
+  const { mintCodes } = useGiftWallet();
+
+  const [pick, setPick] = useState(1);          // 5-pack preselected (decided design)
+  const [products, setProducts] = useState<Record<string, PurchasesStoreProduct>>({});
+  const [busy, setBusy] = useState(false);
+  const [bought, setBought] = useState<number | null>(null);
+
+  useEffect(() => {
+    fetchGiftProducts().then(setProducts).catch(() => {});
+  }, []);
+
+  const sku = GIFT_SKUS[pick];
+  const product = products[sku.productId];
+  const priceFor = (s: GiftSku) => products[s.productId]?.priceString ?? s.price;
+  // Per-gift caption follows the LIVE store price when it resolves, so it can
+  // never contradict the price on the card (static fallback otherwise).
+  const eachFor = (s: GiftSku) => {
+    if (s.n === 1) return null;
+    const p = products[s.productId];
+    if (!p) return s.each;
+    try {
+      return `${new Intl.NumberFormat(undefined, { style: 'currency', currency: p.currencyCode }).format(p.price / s.n)} each`;
+    } catch {
+      return s.each;
+    }
+  };
+
+  const completePurchase = async (n: number) => {
+    // TODO(backend): POST /gifts/purchase with the receipt — server mints.
+    await mintCodes(n);
+    logEvent('gift_purchase_completed', { product_id: sku.productId, codes: n });
+    setBought(n);
+  };
+
+  const buy = async () => {
+    if (busy) return;
+    if (product) {
+      setBusy(true);
+      try {
+        await Purchases.purchaseStoreProduct(product);
+        await completePurchase(sku.n);
+      } catch (e: any) {
+        if (!e?.userCancelled) {
+          console.error('[Gifts] Purchase error:', e);
+          Alert.alert('Purchase didn’t go through', e?.message || 'Please try again.');
+        }
+      } finally {
+        setBusy(false);
+      }
+      return;
+    }
+    if (__DEV__ || Platform.OS === 'web') {
+      // Store products aren't live yet (RC offering pending) — test the flow.
+      Alert.alert(
+        'Test purchase',
+        `The App Store products aren’t live yet. Mint ${sku.n === 1 ? '1 test code' : `${sku.n} test codes`} locally?`,
+        [
+          { text: 'Cancel', style: 'cancel' },
+          { text: 'Mint codes', onPress: () => { completePurchase(sku.n); } },
+        ],
+      );
+      return;
+    }
+    Alert.alert('Not available yet', 'Gifts aren’t available right now. Please try again later.');
+  };
+
+  return (
+    <SafeAreaView style={styles.screen} edges={['top']}>
+      <Stack.Screen options={{ headerShown: false }} />
+      <View style={styles.header}>
+        <BackButton onPress={() => router.back()} style={{ marginBottom: 8 }} />
+        <Text style={styles.title}>Pass It On</Text>
+        <Text style={styles.sub}>Give someone their first 90 days</Text>
+      </View>
+
+      <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
+        {/* Framing quote — service, never referral (spec §10.1) */}
+        <View style={styles.quoteRow}>
+          <View style={styles.quoteBar} />
+          <Text style={styles.quoteText}>
+            Give a sponsee or newcomer three months of Sober Dailies — and help them develop the
+            daily habits that build long-term sobriety.
+          </Text>
+        </View>
+
+        <View style={{ gap: 10 }}>
+          {GIFT_SKUS.map((s, i) => (
+            <SkuCard
+              key={s.productId}
+              sku={{ ...s, each: eachFor(s) }}
+              price={priceFor(s)}
+              on={i === pick}
+              onPick={() => setPick(i)}
+            />
+          ))}
+        </View>
+
+        <Text style={styles.footnote}>
+          Each gift is a code you hand out however you like — in person, by text, at a meeting.
+          One-time purchase. Nothing renews, for you or for them.
+        </Text>
+
+        <TouchableOpacity
+          style={[styles.cta, { marginTop: 20 }, busy && { opacity: 0.6 }]}
+          onPress={buy}
+          disabled={busy}
+          activeOpacity={0.85}
+          accessibilityRole="button"
+        >
+          <Text style={styles.ctaText}>
+            {busy ? 'One moment…' : `Give ${sku.n === 1 ? 'a gift' : `${sku.n} gifts`} · ${priceFor(sku)}`}
+          </Text>
+        </TouchableOpacity>
+        <Text style={styles.billedNote}>Billed once through the App Store</Text>
+      </ScrollView>
+
+      {bought != null && (
+        <ConfirmSheet
+          n={bought}
+          onSeeGifts={() => { setBought(null); router.replace('/(main)/gift-wallet'); }}
+          onDone={() => setBought(null)}
+        />
+      )}
+    </SafeAreaView>
+  );
+}
+
+const makeStyles = (tk: Tokens) => {
+  const { c, colors } = tk;
+  return StyleSheet.create({
+    screen: { flex: 1, backgroundColor: c.background },
+    header: { paddingHorizontal: 22, paddingTop: 8, paddingBottom: 22 },
+    title: { fontFamily: fontFamily.display, fontSize: 28, letterSpacing: -0.5, color: c.text, lineHeight: 29 },
+    sub: { fontFamily: fontFamily.regular, fontSize: 14, lineHeight: 19, color: c.textMuted, marginTop: 6 },
+    scroll: { paddingHorizontal: 20, paddingTop: 4, paddingBottom: 48 },
+
+    quoteRow: { flexDirection: 'row', alignItems: 'stretch', gap: 12, marginHorizontal: 2, marginTop: 4, marginBottom: 22 },
+    quoteBar: { width: 3, borderRadius: 2, backgroundColor: colors.rose },
+    quoteText: { flex: 1, fontFamily: fontFamily.serifItalic, fontSize: 16.5, lineHeight: 25, color: c.textSecondary },
+
+    skuCard: {
+      flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 15, paddingHorizontal: 16,
+      borderRadius: 14, backgroundColor: c.surface, borderWidth: 1, borderColor: c.border, ...shadows.sm,
+    },
+    skuCardOn: {
+      borderWidth: 2, borderColor: colors.rose,
+      shadowColor: ROSE_FILL, shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.15, shadowRadius: 12, elevation: 4,
+      // 2px border replaces the 1px one — pull padding in so the row doesn't jump.
+      paddingVertical: 14, paddingHorizontal: 15,
+    },
+    radio: { width: 20, height: 20, borderRadius: 10, borderWidth: 1.5, borderColor: c.textMuted, backgroundColor: c.surface },
+    skuLabelRow: { flexDirection: 'row', alignItems: 'baseline', gap: 8 },
+    skuLabel: { fontFamily: fontFamily.semiBold, fontSize: 16, color: c.text },
+    skuEach: { fontFamily: fontFamily.semiBold, fontSize: 12, color: colors.roseDark },
+    skuSub: { fontFamily: fontFamily.regular, fontSize: 12, color: c.textMuted, marginTop: 2 },
+    skuPrice: { fontFamily: fontFamily.display, fontSize: 18, color: c.text, fontVariant: ['tabular-nums'] },
+
+    footnote: { fontFamily: fontFamily.regular, fontSize: 12.5, lineHeight: 19, color: c.textMuted, marginTop: 16, marginHorizontal: 6 },
+
+    cta: {
+      width: '100%', paddingVertical: 15, borderRadius: 14, backgroundColor: ROSE_FILL,
+      alignItems: 'center', justifyContent: 'center',
+      shadowColor: ROSE_FILL, shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.3, shadowRadius: 10, elevation: 4,
+    },
+    ctaText: { fontFamily: fontFamily.semiBold, fontSize: 15.5, color: '#FFFFFF' },
+    billedNote: { fontFamily: fontFamily.regular, fontSize: 11.5, color: c.textMuted, textAlign: 'center', marginTop: 10 },
+
+    sheetScrim: { flex: 1, backgroundColor: c.overlay },
+    sheet: {
+      backgroundColor: c.surface, borderTopLeftRadius: 28, borderTopRightRadius: 28,
+      paddingTop: 10, paddingHorizontal: 26, paddingBottom: 40, ...shadows.lg,
+    },
+    sheetHandle: { width: 40, height: 4.5, borderRadius: 3, backgroundColor: c.divider, alignSelf: 'center', marginBottom: 22 },
+    sheetCoin: { width: 64, height: 64, borderRadius: 32, backgroundColor: colors.roseSoft, alignItems: 'center', justifyContent: 'center' },
+    sheetTitle: { fontFamily: fontFamily.displayBold, fontSize: 24, letterSpacing: -0.4, color: c.text, marginTop: 16 },
+    sheetBody: { fontFamily: fontFamily.regular, fontSize: 14, lineHeight: 22, color: c.textSecondary, textAlign: 'center', maxWidth: 280, marginTop: 8, marginBottom: 22 },
+    sheetBodyBold: { fontFamily: fontFamily.semiBold, color: c.text },
+    quietBtn: { paddingVertical: 13, alignItems: 'center', marginTop: 6 },
+    quietBtnText: { fontFamily: fontFamily.semiBold, fontSize: 15.5, color: c.textMuted },
+  });
+};

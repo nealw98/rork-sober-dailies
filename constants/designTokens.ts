@@ -97,6 +97,11 @@ export const families = {
 };
 export type FamilyName = keyof typeof families;
 
+// Rose — the Pass It On (gift) accent. Deliberately OUTSIDE the four tool
+// families (Pass It On handoff 2): gifts read as their own act, not a tool.
+// Same ramp math: 700 = #824652, 100 = #F4E6E8.
+const roseRamp = ramp('#B55A68');
+
 // ─── Role assignments (tool → family) ────────────────────────────────────────
 // THE assignment table. Edit a line to re-tint that tool everywhere it's drawn.
 
@@ -168,6 +173,12 @@ export const colors = {
   accentLight: families.terracotta[300],
   accentDark: families.terracotta[700],
   accentSoft: families.terracotta[100],
+
+  // Rose — Pass It On gifts only
+  rose: roseRamp[500],
+  roseLight: roseRamp[300],
+  roseDark: roseRamp[700],
+  roseSoft: roseRamp[100],
 
   // Legacy accent aliases — collapsed into the palette so old imports keep
   // working. amber → teal, coral → azure.
@@ -401,6 +412,13 @@ const darkColors: typeof colors = {
   accentLight: darkFamilies.terracotta.light,
   accentDark: darkFamilies.terracotta.dark,
   accentSoft: darkFamilies.terracotta.soft,
+
+  // Rose brightens on dark like the families do (base ≈ [300]-nudged, soft
+  // flips to a low-alpha wash) so gift chrome stays legible on OLED black.
+  rose: '#D9838F',
+  roseLight: '#E5A4AD',
+  roseDark: '#E5A4AD',
+  roseSoft: 'rgba(217,131,143,0.16)',
 
   amber: darkFamilies.teal.base,
   amberSoft: darkFamilies.teal.soft,

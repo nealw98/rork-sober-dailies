@@ -25,8 +25,10 @@ import { HandsPraying, FlowerLotus } from 'phosphor-react-native';
 import { fontFamily, fontSize, shadows, lighten, steelFill, type Tokens } from '@/constants/designTokens';
 import { useTokens, useThemedStyles } from '@/hooks/useTokens';
 import { ThemedCard } from '@/components/ThemedCard';
+import GiftGlyph from '@/components/GiftGlyph';
 import SettingsGear from '@/components/navigation/SettingsGear';
 import { useScreenTimeTracking } from '@/hooks/useScreenTimeTracking';
+import { useGiftWallet } from '@/hooks/use-gift-wallet';
 
 /**
  * Tools — the app's launcher (redesign 3.0). A featured Literature hero, the two
@@ -47,7 +49,7 @@ type GlyphComponent = React.ComponentType<{ size?: number; color?: string }>;
 type Flag = { bg: string; circle: string };
 
 // ─── Grid tools — tile + line icon in the tool's tone ────────────────────────
-type AppDef = { id: string; name: string; tone: 'primary' | 'tertiary' | 'accent' | 'steel'; Icon: GlyphComponent; route: Href };
+type AppDef = { id: string; name: string; tone: 'primary' | 'tertiary' | 'accent' | 'steel' | 'rose'; Icon: GlyphComponent; route: Href };
 
 const APPS: AppDef[] = [
   { id: 'prayers', name: 'Prayers', tone: 'primary', Icon: HandsPraying, route: '/(main)/prayers' },
@@ -58,6 +60,9 @@ const APPS: AppDef[] = [
   { id: 'nightly', name: 'Nightly Review', tone: 'tertiary', Icon: Moon, route: '/(main)/evening-review' },
   { id: 'another', name: 'Reach Out', tone: 'steel', Icon: Phone, route: '/(main)/reach-out' as Href },
   { id: 'meeting', name: 'Meetings', tone: 'steel', Icon: Users, route: '/(main)/meetings' },
+  // 9th tile (3×3) — Pass It On. Rose is deliberately outside the four tool
+  // families; the route flips to the wallet once codes exist (handoff Phase 4).
+  { id: 'passiton', name: 'Pass It On', tone: 'rose', Icon: GiftGlyph, route: '/(main)/pass-it-on' as Href },
 ];
 
 function FlagCard({ flag, Icon, title, subtitle, onPress, isDark, styles }: {
@@ -123,6 +128,7 @@ export default function ToolsScreen() {
   const { width: screenW } = useWindowDimensions();
   const styles = useThemedStyles(makeStyles);
   const { isDark, colors, c } = useTokens();
+  const { hasEverBought } = useGiftWallet();
   useScreenTimeTracking('Tools');
 
   const heroH = Math.round((screenW - H_PAD * 2) * 0.55);
@@ -175,7 +181,17 @@ export default function ToolsScreen() {
         {/* Tool grid */}
         <View style={styles.grid}>
           {APPS.map((app) => (
-            <AppTile key={app.id} app={app} color={colors[app.tone]} width={tileW} onPress={() => router.push(app.route)} isDark={isDark} styles={styles} />
+            <AppTile
+              key={app.id}
+              app={app}
+              color={colors[app.tone]}
+              width={tileW}
+              onPress={() => router.push(
+                app.id === 'passiton' && hasEverBought ? ('/(main)/gift-wallet' as Href) : app.route
+              )}
+              isDark={isDark}
+              styles={styles}
+            />
           ))}
         </View>
       </ScrollView>
