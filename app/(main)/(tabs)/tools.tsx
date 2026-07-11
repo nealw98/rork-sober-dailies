@@ -92,22 +92,28 @@ function FlagCard({ flag, Icon, title, subtitle, onPress, isDark, styles }: {
   );
 }
 
-function AppTile({ app, color, onPress, isDark, styles }: {
-  app: AppDef; color: string; onPress: () => void; isDark: boolean; styles: ReturnType<typeof makeStyles>;
+// Grid tile — a white card holding a solid family coin (white glyph) + label.
+// Dark mode swaps the white card for the neutral lit surface; the coin keeps its
+// solid family color so the tools stay legible and on-family in both modes.
+function AppTile({ app, color, width, onPress, isDark, styles }: {
+  app: AppDef; color: string; width: number; onPress: () => void; isDark: boolean; styles: ReturnType<typeof makeStyles>;
 }) {
   const { Icon } = app;
-  return (
-    <Pressable style={styles.gridCell} onPress={onPress} accessibilityRole="button" accessibilityLabel={app.name}>
-      {isDark ? (
-        <ThemedCard radius={18} shadow="sm" contentStyle={styles.tileInner}>
-          <Icon size={26} color={color} />
-        </ThemedCard>
-      ) : (
-        <View style={styles.tile}>
-          <Icon size={26} color={color} />
-        </View>
-      )}
+  const body = (
+    <>
+      <View style={[styles.coin, { backgroundColor: color }]}>
+        <Icon size={24} color="#fff" />
+      </View>
       <Text style={styles.tileLabel} numberOfLines={2}>{app.name}</Text>
+    </>
+  );
+  return (
+    <Pressable style={{ width }} onPress={onPress} accessibilityRole="button" accessibilityLabel={app.name}>
+      {isDark ? (
+        <ThemedCard radius={20} shadow="sm" contentStyle={styles.tileInner}>{body}</ThemedCard>
+      ) : (
+        <View style={styles.tileCard}>{body}</View>
+      )}
     </Pressable>
   );
 }
@@ -129,6 +135,9 @@ export default function ToolsScreen() {
   const SPONSOR: Flag = isDark
     ? { bg: c.surface, circle: '#8273B5' }
     : { bg: lighten(colors.tertiary, 0.56), circle: colors.tertiary };
+
+  // 3-column grid: each tile's width fits three across the padded content with a CARD_GAP between.
+  const tileW = Math.floor((screenW - H_PAD * 2 - CARD_GAP * 2) / 3);
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
@@ -166,7 +175,7 @@ export default function ToolsScreen() {
         {/* Tool grid */}
         <View style={styles.grid}>
           {APPS.map((app) => (
-            <AppTile key={app.id} app={app} color={colors[app.tone]} onPress={() => router.push(app.route)} isDark={isDark} styles={styles} />
+            <AppTile key={app.id} app={app} color={colors[app.tone]} width={tileW} onPress={() => router.push(app.route)} isDark={isDark} styles={styles} />
           ))}
         </View>
       </ScrollView>
@@ -204,11 +213,11 @@ const makeStyles = (tk: Tokens) => {
       flagTitle: { fontFamily: fontFamily.semiBold, fontSize: 16.5, color: c.text, letterSpacing: -0.2 },
       flagSub: { fontFamily: fontFamily.regular, fontSize: 12.5, color: c.textSecondary, marginTop: 3, lineHeight: 17 },
 
-      // Tool grid — tiles with a line icon, label beneath
-      grid: { flexDirection: 'row', flexWrap: 'wrap' },
-      gridCell: { width: '25%', alignItems: 'center', marginBottom: 16 },
-      tile: { width: 64, height: 64, borderRadius: 18, backgroundColor: c.surface, borderWidth: 1, borderColor: c.border, alignItems: 'center', justifyContent: 'center', ...shadows.sm },
-      tileInner: { width: 64, height: 64, alignItems: 'center', justifyContent: 'center' },
-      tileLabel: { fontFamily: fontFamily.medium, fontSize: 12, color: c.text, textAlign: 'center', marginTop: 8, width: 80 },
+      // Tool grid — 3 columns of white cards: a solid family coin + label.
+      grid: { flexDirection: 'row', flexWrap: 'wrap', gap: CARD_GAP },
+      tileCard: { height: 112, borderRadius: 20, backgroundColor: c.surface, borderWidth: 1, borderColor: c.border, alignItems: 'center', justifyContent: 'center', ...shadows.sm },
+      tileInner: { height: 112, alignItems: 'center', justifyContent: 'center' },
+      coin: { width: 50, height: 50, borderRadius: 25, alignItems: 'center', justifyContent: 'center', marginBottom: 11 },
+      tileLabel: { fontFamily: fontFamily.semiBold, fontSize: 12.5, color: c.text, textAlign: 'center', lineHeight: 15, paddingHorizontal: 4 },
   });
 };

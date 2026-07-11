@@ -66,8 +66,8 @@ type EditRow =
 
 // ─── Done button — the completion control, in the row's accent (tool) color:
 // outline when undone, filled + check when done. `onDark` is a white treatment
-// for use over a photo (the reflection hero): the button stays transparent with
-// a white outline + white text in both states; a white check is added when done.
+// for use over a photo (the reflection hero): transparent with a white outline
+// + white text when undone, and fills white (with an accent check + text) when done.
 function DoneButton({ done, tone, onPress, onDark }: { done: boolean; tone: { ink: string }; onPress: () => void; onDark?: boolean }) {
   const styles = useThemedStyles(makeStyles);
   return (
@@ -79,14 +79,16 @@ function DoneButton({ done, tone, onPress, onDark }: { done: boolean; tone: { in
       style={[
         styles.doneBtn,
         onDark
-          ? { backgroundColor: 'transparent', borderColor: 'rgba(255,255,255,0.85)' }
+          ? done
+            ? { backgroundColor: '#fff', borderColor: '#fff' }
+            : { backgroundColor: 'transparent', borderColor: 'rgba(255,255,255,0.85)' }
           : done
             ? { backgroundColor: tone.ink, borderColor: tone.ink }
             : { backgroundColor: 'transparent', borderColor: tone.ink + '99' },
       ]}
     >
-      {done && <Check size={12} color="#fff" strokeWidth={3} />}
-      <Text style={[styles.doneText, { color: onDark ? '#fff' : done ? '#fff' : tone.ink }]}>Done</Text>
+      {done && <Check size={12} color={onDark ? tone.ink : '#fff'} strokeWidth={3} />}
+      <Text style={[styles.doneText, { color: onDark ? (done ? tone.ink : '#fff') : done ? '#fff' : tone.ink }]}>Done</Text>
     </Pressable>
   );
 }
