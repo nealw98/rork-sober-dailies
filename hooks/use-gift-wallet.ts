@@ -20,6 +20,7 @@ export interface GiftCode {
   status: GiftCodeStatus;
   purchasedAt: string;          // ISO — when the code was minted
   redeemedAt?: string;          // ISO — set exactly once, server-side later
+  note?: string;                // private, local-only — who the giver gave it to
 }
 
 const STORAGE_KEY = 'gift_wallet_v1';
@@ -84,6 +85,16 @@ export const [GiftWalletProvider, useGiftWallet] = createContextHook(() => {
     ));
   }, [codes, persist]);
 
+  // A private, local-only reminder of who a code went to (spec §6.2 originally
+  // said "no notes"; Neal reversed that — it's a personal memory aid, never
+  // synced or shared). Empty string clears it.
+  const setNote = useCallback(async (code: string, note: string) => {
+    const trimmed = note.trim();
+    await persist(codes.map((c) =>
+      c.code === code ? { ...c, note: trimmed.length ? trimmed : undefined } : c
+    ));
+  }, [codes, persist]);
+
   const available = useMemo(() => codes.filter((c) => c.status === 'available'), [codes]);
   const redeemed = useMemo(() => codes.filter((c) => c.status === 'redeemed'), [codes]);
 
@@ -97,5 +108,6 @@ export const [GiftWalletProvider, useGiftWallet] = createContextHook(() => {
     hasEverBought: codes.length > 0,
     mintCodes,
     markRedeemed,
-  }), [isLoading, codes, available, redeemed, mintCodes, markRedeemed]);
+    setNote,
+  }), [isLoading, codes, available, redeemed, mintCodes, markRedeemed, setNote]);
 });

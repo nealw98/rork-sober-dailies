@@ -22,9 +22,9 @@ export interface GiftSku {
 // $9 → $8 per gift, all above yearly's per-month so self-serve stays yearly.
 // LIVE prices come from ASC — these are display fallbacks only.
 export const GIFT_SKUS: GiftSku[] = [
-  { productId: 'gift_3mo_single', n: 1,  label: '1 gift',   price: '$9.99',  each: null,         sub: 'Three months for one person' },
-  { productId: 'gift_3mo_pack5',  n: 5,  label: '5 gifts',  price: '$44.99', each: '$9.00 each', sub: 'For a sponsor with sponsees' },
-  { productId: 'gift_3mo_pack10', n: 10, label: '10 gifts', price: '$79.99', each: '$8.00 each', sub: 'For a homegroup' },
+  { productId: 'gift_3mo_single', n: 1,  label: '1 gift',   price: '$9.99',  each: null,         sub: 'One code · 3 months of full access' },
+  { productId: 'gift_3mo_pack5',  n: 5,  label: '5 gifts',  price: '$44.99', each: '$9.00 each', sub: 'Five codes · 3 months of full access each' },
+  { productId: 'gift_3mo_pack10', n: 10, label: '10 gifts', price: '$79.99', each: '$8.00 each', sub: 'Ten codes · 3 months of full access each' },
 ];
 
 // Store products keyed by productId — empty until RevenueCat + ASC are live.

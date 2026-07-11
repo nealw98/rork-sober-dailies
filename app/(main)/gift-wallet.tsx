@@ -1,19 +1,21 @@
 // Gifts to give — the Pass It On wallet (Pass It On Handoff 2, decided design:
 // LEDGER, not chip grid). One row per code with a mini 3-month medallion.
 // Cumulative counter: available-of-all-ever-purchased — buying more appends to
-// one pool, no batches. Two states only (available / redeemed + date); the app
-// never tracks who a code went to (spec §6.2/§9). Running out is the success
-// state ("Every gift found a home."). Codes appear here and nowhere else.
+// one pool, no batches. Two states (available / redeemed + date). Sharing is the
+// single action (the native share sheet includes Copy). Each available code also
+// carries an optional PRIVATE note — a local-only reminder of who it went to
+// (Neal's addition; never synced/shared). Running out is the success state.
 import React, { useRef, useState } from 'react';
 import {
-  View, Text, StyleSheet, ScrollView, TouchableOpacity, Share, Platform,
+  View, Text, StyleSheet, ScrollView, TouchableOpacity, Pressable, TextInput,
+  Modal, KeyboardAvoidingView, Share, Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Stack, useRouter } from 'expo-router';
-import * as Clipboard from 'expo-clipboard';
-import { Copy, Share as ShareIcon, CircleCheck } from 'lucide-react-native';
+import { Share as ShareIcon, CircleCheck, HelpCircle } from 'lucide-react-native';
 import BackButton from '@/components/BackButton';
 import GiftGlyph from '@/components/GiftGlyph';
+import GiftInfoSheet from '@/components/GiftInfoSheet';
 import { fontFamily, shadows, colors as lightColors, type Tokens } from '@/constants/designTokens';
 import { useTokens, useThemedStyles } from '@/hooks/useTokens';
 import { useGiftWallet, type GiftCode } from '@/hooks/use-gift-wallet';
@@ -39,8 +41,8 @@ function MiniMedallion({ dim }: { dim?: boolean }) {
   );
 }
 
-function LedgerRow({ item, last, onCopy, onShare, onDevRedeem }: {
-  item: GiftCode; last: boolean; onCopy?: () => void; onShare?: () => void; onDevRedeem?: () => void;
+function LedgerRow({ item, last, onShare, onEditNote, onDevRedeem }: {
+  item: GiftCode; last: boolean; onShare?: () => void; onEditNote?: () => void; onDevRedeem?: () => void;
 }) {
   const styles = useThemedStyles(makeStyles);
   const { c, colors } = useTokens();
@@ -48,13 +50,24 @@ function LedgerRow({ item, last, onCopy, onShare, onDevRedeem }: {
   return (
     <View style={[styles.row, !last && styles.rowDivider, done && { opacity: 0.68 }]}>
       <MiniMedallion dim={done} />
-      <Text
-        style={[styles.code, done && { color: c.textMuted }]}
-        numberOfLines={1}
-        onLongPress={__DEV__ && !done ? onDevRedeem : undefined}
-      >
-        {item.code}
-      </Text>
+      <View style={styles.rowBody}>
+        <Text
+          style={[styles.code, done && { color: c.textMuted }]}
+          numberOfLines={1}
+          onLongPress={__DEV__ && !done ? onDevRedeem : undefined}
+        >
+          {item.code}
+        </Text>
+        {done ? (
+          item.note ? <Text style={styles.noteText} numberOfLines={1}>{item.note}</Text> : null
+        ) : (
+          <TouchableOpacity onPress={onEditNote} activeOpacity={0.6} hitSlop={{ top: 4, bottom: 6 }} accessibilityRole="button" accessibilityLabel={item.note ? 'Edit note' : 'Add a note'}>
+            <Text style={item.note ? styles.noteText : styles.notePlaceholder} numberOfLines={1}>
+              {item.note ? item.note : '+ Add a note'}
+            </Text>
+          </TouchableOpacity>
+        )}
+      </View>
       <View style={styles.rowActions}>
         {done ? (
           <View style={styles.redeemedTag}>
@@ -62,26 +75,63 @@ function LedgerRow({ item, last, onCopy, onShare, onDevRedeem }: {
             <Text style={styles.redeemedText}>{redeemedLabel(item.redeemedAt)}</Text>
           </View>
         ) : (
-          <>
-            <TouchableOpacity style={styles.iconBtn} onPress={onCopy} activeOpacity={0.6} accessibilityRole="button" accessibilityLabel="Copy code">
-              <Copy size={16.5} color={c.textSecondary} strokeWidth={1.9} />
-            </TouchableOpacity>
-            <TouchableOpacity style={[styles.iconBtn, styles.iconBtnRose]} onPress={onShare} activeOpacity={0.6} accessibilityRole="button" accessibilityLabel="Share code">
-              <ShareIcon size={16.5} color={colors.roseDark} strokeWidth={1.9} />
-            </TouchableOpacity>
-          </>
+          <TouchableOpacity style={styles.sharePill} onPress={onShare} activeOpacity={0.7} accessibilityRole="button" accessibilityLabel="Share code">
+            <ShareIcon size={15} color={colors.roseDark} strokeWidth={1.9} />
+            <Text style={styles.sharePillText}>Share</Text>
+          </TouchableOpacity>
         )}
       </View>
     </View>
   );
 }
 
+// Private note editor — a bottom sheet with a single text field. The note is a
+// personal memory aid (who a code is for); it lives only in local storage.
+function NoteSheet({ initial, onSave, onCancel }: {
+  initial: string; onSave: (text: string) => void; onCancel: () => void;
+}) {
+  const styles = useThemedStyles(makeStyles);
+  const { c } = useTokens();
+  const [text, setText] = useState(initial);
+  return (
+    <Modal visible transparent animationType="slide" onRequestClose={onCancel}>
+      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.sheetWrap}>
+        <Pressable style={styles.sheetScrim} onPress={onCancel} />
+        <View style={styles.noteSheet}>
+          <View style={styles.sheetHandle} />
+          <Text style={styles.noteSheetTitle}>Who’s this code for?</Text>
+          <Text style={styles.noteSheetSub}>A private note, just for you — it stays on this device.</Text>
+          <TextInput
+            style={styles.noteInput}
+            value={text}
+            onChangeText={setText}
+            placeholder="e.g. John — Tuesday men’s group"
+            placeholderTextColor={c.textMuted}
+            autoFocus
+            returnKeyType="done"
+            maxLength={80}
+            onSubmitEditing={() => onSave(text)}
+          />
+          <TouchableOpacity style={styles.cta} onPress={() => onSave(text)} activeOpacity={0.85} accessibilityRole="button">
+            <Text style={styles.ctaText}>Save note</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.quietBtn} onPress={onCancel} activeOpacity={0.6} accessibilityRole="button">
+            <Text style={styles.quietBtnText}>Cancel</Text>
+          </TouchableOpacity>
+        </View>
+      </KeyboardAvoidingView>
+    </Modal>
+  );
+}
+
 export default function GiftWalletScreen() {
   const router = useRouter();
   const styles = useThemedStyles(makeStyles);
-  const { colors } = useTokens();
-  const { codes, available, redeemed, totalCount, markRedeemed } = useGiftWallet();
+  const { c, colors } = useTokens();
+  const { codes, available, redeemed, totalCount, markRedeemed, setNote } = useGiftWallet();
 
+  const [editing, setEditing] = useState<GiftCode | null>(null);
+  const [infoVisible, setInfoVisible] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const showToast = (msg: string) => {
@@ -90,15 +140,19 @@ export default function GiftWalletScreen() {
     toastTimer.current = setTimeout(() => setToast(null), 2000);
   };
 
-  const copyCode = async (code: string) => {
-    await Clipboard.setStringAsync(code);
-    logEvent('gift_code_copied');
-    showToast('Code copied');
+  const saveNote = (text: string) => {
+    if (!editing) return;
+    const had = !!editing.note;
+    setNote(editing.code, text);
+    setEditing(null);
+    const has = !!text.trim();
+    logEvent('gift_code_note_set', { cleared: had && !has });
+    showToast(has ? 'Note saved' : had ? 'Note removed' : 'Note saved');
   };
 
-  // Untracked by design — nothing is recorded about the share itself.
-  // TODO(backend): include the https://soberdailies.com/gift/<code> universal
-  // link once the redeem deep link exists.
+  // Sharing opens the native sheet (Copy lives there). Nothing about the share
+  // itself is recorded. TODO(backend): include the
+  // https://soberdailies.com/gift/<code> universal link once redeem deep-links exist.
   const shareCode = async (code: string) => {
     logEvent('gift_code_share_opened');
     try {
@@ -112,9 +166,22 @@ export default function GiftWalletScreen() {
     <SafeAreaView style={styles.screen} edges={['top']}>
       <Stack.Screen options={{ headerShown: false }} />
       <View style={styles.header}>
-        <BackButton onPress={() => router.back()} style={{ marginBottom: 8 }} />
+        <View style={styles.headerTop}>
+          <BackButton onPress={() => router.back()} />
+          <TouchableOpacity
+            style={styles.howBtn}
+            onPress={() => setInfoVisible(true)}
+            activeOpacity={0.7}
+            accessibilityRole="button"
+            accessibilityLabel="How Pass It On works"
+          >
+            <HelpCircle size={15} color={colors.roseDark} strokeWidth={2} />
+            <Text style={styles.howBtnText}>Learn more</Text>
+          </TouchableOpacity>
+        </View>
         <Text style={styles.eyebrow}>PASS IT ON</Text>
         <Text style={styles.title}>Gifts to give</Text>
+        <Text style={styles.headerSub}>This is where you pass it on.</Text>
       </View>
 
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
@@ -126,8 +193,8 @@ export default function GiftWalletScreen() {
             </View>
             <Text style={styles.emptyTitle}>No gifts yet</Text>
             <Text style={styles.emptyBody}>
-              Buy gift codes and hand them to a sponsee or newcomer — each one unlocks three months
-              of everything.
+              When you buy gift codes, they’ll show up here — each one ready to share, with a note
+              for who it’s for and a check when it’s redeemed.
             </Text>
             <TouchableOpacity style={[styles.cta, { alignSelf: 'stretch' }]} onPress={() => router.replace('/(main)/pass-it-on')} activeOpacity={0.85} accessibilityRole="button">
               <Text style={styles.ctaText}>Give Sober Dailies</Text>
@@ -160,8 +227,8 @@ export default function GiftWalletScreen() {
                       key={item.code}
                       item={item}
                       last={i === available.length - 1}
-                      onCopy={() => copyCode(item.code)}
                       onShare={() => shareCode(item.code)}
+                      onEditNote={() => setEditing(item)}
                       onDevRedeem={() => markRedeemed(item.code)}
                     />
                   ))}
@@ -184,12 +251,22 @@ export default function GiftWalletScreen() {
               <Text style={styles.ctaText}>Give more</Text>
             </TouchableOpacity>
             <Text style={styles.footnote}>
-              The app doesn’t track who you give a code to — that stays between you and them. A code
-              is live until someone redeems it.
+              Notes are private to you and stay on this device. A code is live until someone
+              redeems it.
             </Text>
           </>
         )}
       </ScrollView>
+
+      {editing && (
+        <NoteSheet
+          initial={editing.note ?? ''}
+          onSave={saveNote}
+          onCancel={() => setEditing(null)}
+        />
+      )}
+
+      <GiftInfoSheet visible={infoVisible} onClose={() => setInfoVisible(false)} />
 
       {toast && (
         <View style={styles.toast} pointerEvents="none">
@@ -205,8 +282,16 @@ const makeStyles = (tk: Tokens) => {
   return StyleSheet.create({
     screen: { flex: 1, backgroundColor: c.background },
     header: { paddingHorizontal: 22, paddingTop: 8, paddingBottom: 20 },
+    headerTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 },
+    howBtn: {
+      flexDirection: 'row', alignItems: 'center', gap: 5, height: 34, paddingHorizontal: 12,
+      borderRadius: 999, backgroundColor: colors.roseSoft, borderWidth: 1,
+      borderColor: isDark ? 'rgba(217,131,143,0.4)' : '#E3BCC3',
+    },
+    howBtnText: { fontFamily: fontFamily.semiBold, fontSize: 13, color: colors.roseDark },
     eyebrow: { fontFamily: fontFamily.bold, fontSize: 11, letterSpacing: 1.4, color: colors.roseDark, marginBottom: 4 },
     title: { fontFamily: fontFamily.display, fontSize: 28, letterSpacing: -0.5, color: c.text, lineHeight: 29 },
+    headerSub: { fontFamily: fontFamily.regular, fontSize: 14, lineHeight: 20, color: c.textMuted, marginTop: 6 },
     scroll: { paddingHorizontal: 18, paddingTop: 2, paddingBottom: 48 },
 
     counterCard: {
@@ -225,19 +310,23 @@ const makeStyles = (tk: Tokens) => {
 
     row: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 11, paddingHorizontal: 16 },
     rowDivider: { borderBottomWidth: 1, borderBottomColor: c.divider },
+    rowBody: { flex: 1, minWidth: 0 },
     medallion: {
       width: 32, height: 32, borderRadius: 16, backgroundColor: colors.roseSoft,
       borderWidth: 1.5, borderColor: colors.rose, alignItems: 'center', justifyContent: 'center',
     },
     medallionNum: { fontFamily: fontFamily.displayBold, fontSize: 11.5, lineHeight: 12, color: colors.roseDark },
     medallionUnit: { fontFamily: fontFamily.bold, fontSize: 5.5, letterSpacing: 0.6, lineHeight: 7, color: colors.roseDark },
-    code: { flex: 1, fontFamily: fontFamily.semiBold, fontSize: 15, letterSpacing: 1.5, color: c.text, fontVariant: ['tabular-nums'] },
+    code: { fontFamily: fontFamily.semiBold, fontSize: 15, letterSpacing: 1.5, color: c.text, fontVariant: ['tabular-nums'] },
+    noteText: { fontFamily: fontFamily.regular, fontSize: 12, color: c.textSecondary, marginTop: 3 },
+    notePlaceholder: { fontFamily: fontFamily.medium, fontSize: 12, color: colors.roseDark, marginTop: 3 },
     rowActions: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-    iconBtn: {
-      width: 34, height: 34, borderRadius: 10, alignItems: 'center', justifyContent: 'center',
-      backgroundColor: c.surface, borderWidth: 1, borderColor: c.border,
+    sharePill: {
+      flexDirection: 'row', alignItems: 'center', gap: 5, paddingVertical: 7, paddingHorizontal: 12,
+      borderRadius: 10, backgroundColor: colors.roseSoft, borderWidth: 1,
+      borderColor: isDark ? 'rgba(217,131,143,0.4)' : '#E3BCC3',
     },
-    iconBtnRose: { backgroundColor: colors.roseSoft, borderColor: isDark ? 'rgba(217,131,143,0.4)' : '#E3BCC3' },
+    sharePillText: { fontFamily: fontFamily.semiBold, fontSize: 13, color: colors.roseDark },
     redeemedTag: { flexDirection: 'row', alignItems: 'center', gap: 6 },
     redeemedText: { fontFamily: fontFamily.semiBold, fontSize: 12, color: c.textMuted },
 
@@ -260,5 +349,23 @@ const makeStyles = (tk: Tokens) => {
       borderRadius: 999, ...shadows.lg,
     },
     toastText: { fontFamily: fontFamily.medium, fontSize: 12.5, color: isDark ? c.text : '#FFFFFF' },
+
+    // Note editor bottom sheet
+    sheetWrap: { flex: 1, justifyContent: 'flex-end' },
+    sheetScrim: { flex: 1, backgroundColor: c.overlay },
+    noteSheet: {
+      backgroundColor: c.surface, borderTopLeftRadius: 28, borderTopRightRadius: 28,
+      paddingTop: 10, paddingHorizontal: 24, paddingBottom: 32, ...shadows.lg,
+    },
+    sheetHandle: { width: 40, height: 4.5, borderRadius: 3, backgroundColor: c.divider, alignSelf: 'center', marginBottom: 18 },
+    noteSheetTitle: { fontFamily: fontFamily.displayBold, fontSize: 20, color: c.text, textAlign: 'center' },
+    noteSheetSub: { fontFamily: fontFamily.regular, fontSize: 13, lineHeight: 19, color: c.textMuted, textAlign: 'center', marginTop: 6, marginBottom: 18 },
+    noteInput: {
+      fontFamily: fontFamily.regular, fontSize: 15, color: c.text,
+      backgroundColor: isDark ? c.surfaceRaised : c.background, borderWidth: 1, borderColor: c.border,
+      borderRadius: 12, paddingHorizontal: 14, paddingVertical: 12, marginBottom: 16,
+    },
+    quietBtn: { paddingVertical: 12, alignItems: 'center', marginTop: 4 },
+    quietBtnText: { fontFamily: fontFamily.semiBold, fontSize: 15, color: c.textMuted },
   });
 };

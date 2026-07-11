@@ -13,8 +13,10 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Stack, useRouter } from 'expo-router';
 import Purchases, { PurchasesStoreProduct } from 'react-native-purchases';
+import { ChevronRight, HelpCircle } from 'lucide-react-native';
 import BackButton from '@/components/BackButton';
 import GiftGlyph from '@/components/GiftGlyph';
+import GiftInfoSheet from '@/components/GiftInfoSheet';
 import { fontFamily, shadows, colors as lightColors, type Tokens } from '@/constants/designTokens';
 import { useTokens, useThemedStyles } from '@/hooks/useTokens';
 import { useGiftWallet } from '@/hooks/use-gift-wallet';
@@ -82,12 +84,14 @@ function ConfirmSheet({ n, onSeeGifts, onDone }: { n: number; onSeeGifts: () => 
 export default function PassItOnScreen() {
   const router = useRouter();
   const styles = useThemedStyles(makeStyles);
-  const { mintCodes } = useGiftWallet();
+  const { c, colors } = useTokens();
+  const { mintCodes, availableCount } = useGiftWallet();
 
   const [pick, setPick] = useState(1);          // 5-pack preselected (decided design)
   const [products, setProducts] = useState<Record<string, PurchasesStoreProduct>>({});
   const [busy, setBusy] = useState(false);
   const [bought, setBought] = useState<number | null>(null);
+  const [infoVisible, setInfoVisible] = useState(false);
 
   useEffect(() => {
     fetchGiftProducts().then(setProducts).catch(() => {});
@@ -152,20 +156,48 @@ export default function PassItOnScreen() {
     <SafeAreaView style={styles.screen} edges={['top']}>
       <Stack.Screen options={{ headerShown: false }} />
       <View style={styles.header}>
-        <BackButton onPress={() => router.back()} style={{ marginBottom: 8 }} />
+        <View style={styles.headerTop}>
+          <BackButton onPress={() => router.back()} />
+          <TouchableOpacity
+            style={styles.howBtn}
+            onPress={() => setInfoVisible(true)}
+            activeOpacity={0.7}
+            accessibilityRole="button"
+            accessibilityLabel="How Pass It On works"
+          >
+            <HelpCircle size={15} color={colors.roseDark} strokeWidth={2} />
+            <Text style={styles.howBtnText}>Learn more</Text>
+          </TouchableOpacity>
+        </View>
         <Text style={styles.title}>Pass It On</Text>
         <Text style={styles.sub}>Give someone their first 90 days</Text>
       </View>
 
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
-        {/* Framing quote — service, never referral (spec §10.1) */}
-        <View style={styles.quoteRow}>
-          <View style={styles.quoteBar} />
-          <Text style={styles.quoteText}>
-            Give a sponsee or newcomer three months of Sober Dailies — and help them develop the
-            daily habits that build long-term sobriety.
+        {/* What it is + how it works — lead with the mechanics, this is new to most people */}
+        <Text style={styles.intro}>
+          A gift is a code that unlocks three months of Sober Dailies for someone else — a sponsee,
+          a newcomer, anyone who could use it. Buy codes below and share them; they redeem the code
+          in the app. New to this? Tap <Text style={styles.introLink} onPress={() => setInfoVisible(true)}>Learn more</Text>.
+        </Text>
+
+        {/* Always visible — lets anyone see the wallet, even before buying */}
+        <TouchableOpacity
+          style={styles.walletLink}
+          onPress={() => router.push('/(main)/gift-wallet')}
+          activeOpacity={0.7}
+          accessibilityRole="button"
+        >
+          <View style={styles.walletLinkIcon}>
+            <GiftGlyph size={18} color={colors.roseDark} strokeWidth={1.7} />
+          </View>
+          <Text style={styles.walletLinkText}>
+            {availableCount > 0
+              ? `You have ${availableCount} ${availableCount === 1 ? 'gift' : 'gifts'} to give`
+              : 'See your gift wallet'}
           </Text>
-        </View>
+          <ChevronRight size={18} color={c.textMuted} />
+        </TouchableOpacity>
 
         <View style={{ gap: 10 }}>
           {GIFT_SKUS.map((s, i) => (
@@ -180,8 +212,8 @@ export default function PassItOnScreen() {
         </View>
 
         <Text style={styles.footnote}>
-          Each gift is a code you hand out however you like — in person, by text, at a meeting.
-          One-time purchase. Nothing renews, for you or for them.
+          Once you buy, your codes are saved in a wallet where you can share them and see which
+          ones have been redeemed. One-time purchase — nothing renews, for you or for them.
         </Text>
 
         <TouchableOpacity
@@ -205,22 +237,38 @@ export default function PassItOnScreen() {
           onDone={() => setBought(null)}
         />
       )}
+
+      <GiftInfoSheet visible={infoVisible} onClose={() => setInfoVisible(false)} />
     </SafeAreaView>
   );
 }
 
 const makeStyles = (tk: Tokens) => {
-  const { c, colors } = tk;
+  const { c, colors, isDark } = tk;
   return StyleSheet.create({
     screen: { flex: 1, backgroundColor: c.background },
     header: { paddingHorizontal: 22, paddingTop: 8, paddingBottom: 22 },
+    headerTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 },
+    howBtn: {
+      flexDirection: 'row', alignItems: 'center', gap: 5, height: 34, paddingHorizontal: 12,
+      borderRadius: 999, backgroundColor: colors.roseSoft, borderWidth: 1,
+      borderColor: isDark ? 'rgba(217,131,143,0.4)' : '#E3BCC3',
+    },
+    howBtnText: { fontFamily: fontFamily.semiBold, fontSize: 13, color: colors.roseDark },
     title: { fontFamily: fontFamily.display, fontSize: 28, letterSpacing: -0.5, color: c.text, lineHeight: 29 },
     sub: { fontFamily: fontFamily.regular, fontSize: 14, lineHeight: 19, color: c.textMuted, marginTop: 6 },
     scroll: { paddingHorizontal: 20, paddingTop: 4, paddingBottom: 48 },
 
-    quoteRow: { flexDirection: 'row', alignItems: 'stretch', gap: 12, marginHorizontal: 2, marginTop: 4, marginBottom: 22 },
-    quoteBar: { width: 3, borderRadius: 2, backgroundColor: colors.rose },
-    quoteText: { flex: 1, fontFamily: fontFamily.serifItalic, fontSize: 16.5, lineHeight: 25, color: c.textSecondary },
+    intro: { fontFamily: fontFamily.regular, fontSize: 14.5, lineHeight: 22, color: c.textSecondary, marginHorizontal: 2, marginTop: 4, marginBottom: 16 },
+    introLink: { fontFamily: fontFamily.bold, color: colors.roseDark },
+
+    // Wallet shortcut — rose-soft pill row, only when the user holds codes
+    walletLink: {
+      flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 12, paddingHorizontal: 14,
+      borderRadius: 12, backgroundColor: colors.roseSoft, marginBottom: 18,
+    },
+    walletLinkIcon: { width: 30, height: 30, borderRadius: 9, backgroundColor: c.surface, alignItems: 'center', justifyContent: 'center' },
+    walletLinkText: { flex: 1, fontFamily: fontFamily.semiBold, fontSize: 14, color: colors.roseDark },
 
     skuCard: {
       flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 15, paddingHorizontal: 16,
