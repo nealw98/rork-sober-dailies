@@ -771,12 +771,15 @@ export const [ChatStoreProvider, useChatStore] = createContextHook(() => {
     }
     
     try {
-      // Route by the selected test engine: 'rork' → legacy backend (callAI),
-      // everything else → the Supabase sponsor-chat function (OpenAI / Anthropic).
-      const { provider } = engineToRequest(await getSponsorApiEngine());
-      const result = provider === "rork"
-        ? { text: await callAI(convertToAPIMessages(updatedMessages, sponsorType)), model: "rork" as string | undefined, temperature: undefined as number | undefined }
-        : await callSponsorAPI(sponsorType, updatedMessages, text);
+      // Model selector removed — chat is pinned to the Rork backend (callAI)
+      // while gathering utilization data. callSponsorAPI + the engine/temperature
+      // settings (lib/sponsorApiSettings) are kept in place to re-enable the
+      // selector later; no path currently routes to the paid Supabase function.
+      const result = {
+        text: await callAI(convertToAPIMessages(updatedMessages, sponsorType)),
+        model: "rork" as string | undefined,
+        temperature: undefined as number | undefined,
+      };
 
       // Add bot response
       const botResponse: ChatMessage = {

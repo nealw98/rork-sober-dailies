@@ -10,7 +10,7 @@ import {
 } from 'react-native';
 import { Image } from 'expo-image';
 import { useRouter, useLocalSearchParams, Stack } from 'expo-router';
-import { ArrowLeftRight, ChevronRight, ChevronDown, Check, RotateCcw, Send } from 'lucide-react-native';
+import { ArrowLeftRight, ChevronRight, Check, RotateCcw, Send } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
 import * as Clipboard from 'expo-clipboard';
@@ -22,24 +22,13 @@ import { useReadingSize } from '@/hooks/use-reading-size';
 import { useLastSponsor } from '@/hooks/use-last-sponsor';
 import { SponsorType, ChatMessage } from '@/types';
 import { ChatMarkdownRenderer } from '@/components/ChatMarkdownRenderer';
+import { ReadingSizeSheet } from '@/components/ReadingSizeSheet';
 import BackButton from '@/components/BackButton';
 import { logEvent } from '@/lib/analytics';
 import { getAnonymousId } from '@/lib/anonymousId';
 import { supabase } from '@/lib/supabase';
 import { fontFamily, shadows, type Tokens } from '@/constants/designTokens';
 import { useTokens, useThemedStyles } from '@/hooks/useTokens';
-import {
-  DEFAULT_SPONSOR_API_ENGINE,
-  DEFAULT_SPONSOR_API_TEMPERATURE,
-  MAX_SPONSOR_API_TEMPERATURE,
-  MIN_SPONSOR_API_TEMPERATURE,
-  SPONSOR_API_ENGINES,
-  getSponsorApiEngine,
-  getSponsorApiTemperature,
-  setSponsorApiEngine,
-  setSponsorApiTemperature,
-  type SponsorApiEngine,
-} from '@/lib/sponsorApiSettings';
 
 const PAPER = '#FCFBF8';  // conversation background (light)
 const LINEN = '#F5F1E9';  // header + input dock (light)
@@ -148,12 +137,6 @@ function Bubble({ message, size }: { message: ChatMessage; size: number }) {
         content={message.text}
         style={{ color: c.text, fontSize: size, fontFamily: fontFamily.regular, lineHeight: Math.round(size * 1.55) }}
       />
-      {/* dev: which model produced this reply (+ temperature when it applies) */}
-      {message.model ? (
-        <Text style={styles.modelTag}>
-          {message.model}{message.temperature != null ? ` · temp ${message.temperature.toFixed(2)}` : ''}
-        </Text>
-      ) : null}
     </Pressable>
   );
 }
@@ -172,9 +155,7 @@ function SponsorChatContent({ initialSponsor }: { initialSponsor: string }) {
   const [inputText, setInputText] = useState('');
   const [isCheckingLimits, setIsCheckingLimits] = useState(false);
   const [switchOpen, setSwitchOpen] = useState(false);
-  const [engineOpen, setEngineOpen] = useState(false);
-  const [engine, setEngine] = useState<SponsorApiEngine>(DEFAULT_SPONSOR_API_ENGINE);
-  const [temperature, setTemperature] = useState(DEFAULT_SPONSOR_API_TEMPERATURE);
+  const [sizeSheetOpen, setSizeSheetOpen] = useState(false);
   const listRef = useRef<FlatList>(null);
 
   const { setLastSponsor } = useLastSponsor();
@@ -226,27 +207,6 @@ function SponsorChatContent({ initialSponsor }: { initialSponsor: string }) {
     if (id !== initialSponsor) router.replace(`/sponsor-chat?sponsor=${id}`);
   };
 
-  // Load the saved test engine + temperature; the chat header changes both (dev).
-  useEffect(() => {
-    getSponsorApiEngine().then(setEngine).catch(() => {});
-    getSponsorApiTemperature().then(setTemperature).catch(() => {});
-  }, []);
-
-  const onPickEngine = async (id: SponsorApiEngine) => {
-    setEngineOpen(false);
-    setEngine(id);
-    try { await setSponsorApiEngine(id); } catch { /* ignore */ }
-  };
-
-  const adjustTemp = async (delta: number) => {
-    try {
-      const next = await setSponsorApiTemperature(Number((temperature + delta).toFixed(2)));
-      setTemperature(next);
-    } catch { /* ignore */ }
-  };
-
-  const engineLabel = SPONSOR_API_ENGINES.find((e) => e.id === engine)?.label ?? 'Engine';
-
   if (sponsorType !== initialSponsor) return null;
 
   if (!sponsor || !sponsor.isAvailable) {
@@ -276,36 +236,16 @@ function SponsorChatContent({ initialSponsor }: { initialSponsor: string }) {
             <Text style={styles.vibe} numberOfLines={1}>{vibeString(sponsor.tags)}</Text>
           </View>
           <View style={styles.headActions}>
-            <Pressable onPress={() => { setEngineOpen((o) => !o); setSwitchOpen(false); }} style={styles.enginePill} accessibilityLabel="Change test engine">
-              <Text style={styles.enginePillText} numberOfLines={1}>{engineLabel}</Text>
-              <ChevronDown size={13} color={BR_INK} strokeWidth={2.2} />
+            <Pressable onPress={() => { setSizeSheetOpen(true); setSwitchOpen(false); }} style={styles.aaBtn} accessibilityLabel="Text size">
+              <Text style={styles.aaGlyph}>aA</Text>
             </Pressable>
             <Pressable onPress={handleRefresh} style={styles.resetBtn} accessibilityLabel="Reset conversation">
               <RotateCcw size={16} color={isDark ? c.textSecondary : '#4A4A5E'} strokeWidth={2} />
             </Pressable>
-            <Pressable onPress={() => { setSwitchOpen((o) => !o); setEngineOpen(false); }} style={styles.switchBtn} accessibilityLabel="Switch sponsor">
+            <Pressable onPress={() => setSwitchOpen((o) => !o)} style={styles.switchBtn} accessibilityLabel="Switch sponsor">
               <ArrowLeftRight size={16} color={BR_INK} strokeWidth={2.2} />
             </Pressable>
           </View>
-        </View>
-        {/* ── Temperature stepper (dev) ── */}
-        <View style={styles.tempRow}>
-          <Text style={styles.tempLabel}>TEMP</Text>
-          <Pressable
-            onPress={() => adjustTemp(-0.1)}
-            disabled={temperature <= MIN_SPONSOR_API_TEMPERATURE}
-            style={[styles.tempBtn, temperature <= MIN_SPONSOR_API_TEMPERATURE && styles.tempBtnDisabled]}
-          >
-            <Text style={styles.tempBtnText}>−</Text>
-          </Pressable>
-          <Text style={styles.tempValue}>{temperature.toFixed(2)}</Text>
-          <Pressable
-            onPress={() => adjustTemp(0.1)}
-            disabled={temperature >= MAX_SPONSOR_API_TEMPERATURE}
-            style={[styles.tempBtn, temperature >= MAX_SPONSOR_API_TEMPERATURE && styles.tempBtnDisabled]}
-          >
-            <Text style={styles.tempBtnText}>+</Text>
-          </Pressable>
         </View>
       </View>
 
@@ -330,25 +270,6 @@ function SponsorChatContent({ initialSponsor }: { initialSponsor: string }) {
               <Text style={styles.ddActionText}>Meet all three</Text>
               <ChevronRight size={15} color={c.textMuted} strokeWidth={2} />
             </Pressable>
-          </View>
-        </>
-      )}
-
-      {/* ── Engine dropdown (dev) ── */}
-      {engineOpen && (
-        <>
-          <Pressable style={styles.ddBackdrop} onPress={() => setEngineOpen(false)} />
-          <View style={[styles.dropdown, { top: insets.top + 96 }]}>
-            <Text style={styles.ddHead}>TEST ENGINE</Text>
-            {SPONSOR_API_ENGINES.map((e) => {
-              const current = e.id === engine;
-              return (
-                <Pressable key={e.id} style={[styles.ddRow, current && { backgroundColor: BR_SOFT }]} onPress={() => onPickEngine(e.id)}>
-                  <Text style={styles.ddName}>{e.label}</Text>
-                  {current && <Check size={16} color={BR_INK} strokeWidth={2.4} />}
-                </Pressable>
-              );
-            })}
           </View>
         </>
       )}
@@ -414,6 +335,8 @@ function SponsorChatContent({ initialSponsor }: { initialSponsor: string }) {
           </Pressable>
         </View>
       </KeyboardAvoidingView>
+
+      <ReadingSizeSheet visible={sizeSheetOpen} onClose={() => setSizeSheetOpen(false)} bottomInset={insets.bottom} />
     </View>
   );
 }
@@ -449,14 +372,8 @@ const makeStyles = (tk: Tokens) => {
   hName: { fontFamily: fontFamily.display, fontSize: 22, letterSpacing: -0.3, color: c.text },
   vibe: { fontFamily: fontFamily.semiBold, fontSize: 11, color: c.textMuted, marginTop: 2 },
   headActions: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  enginePill: { flexDirection: 'row', alignItems: 'center', gap: 3, height: 34, paddingHorizontal: 10, borderRadius: 17, backgroundColor: isDark ? c.surfaceRaised : c.surface, borderWidth: 1, borderColor: BR_INK + '40' },
-  enginePillText: { fontFamily: fontFamily.semiBold, fontSize: 12, color: BR_INK, maxWidth: 92 },
-  tempRow: { flexDirection: 'row', alignItems: 'center', gap: 8, alignSelf: 'flex-end', marginTop: 8 },
-  tempLabel: { fontFamily: fontFamily.bold, fontSize: 10, letterSpacing: 1, color: c.textMuted, marginRight: 2 },
-  tempBtn: { width: 30, height: 28, borderRadius: 9, alignItems: 'center', justifyContent: 'center', backgroundColor: isDark ? c.surfaceRaised : c.surface, borderWidth: 1, borderColor: BR_INK + '40' },
-  tempBtnDisabled: { opacity: 0.4 },
-  tempBtnText: { fontFamily: fontFamily.bold, fontSize: 17, color: BR_INK, lineHeight: 19 },
-  tempValue: { fontFamily: fontFamily.bold, fontSize: 14, color: c.text, minWidth: 42, textAlign: 'center' },
+  aaBtn: { width: 34, height: 34, borderRadius: 17, alignItems: 'center', justifyContent: 'center', backgroundColor: isDark ? c.surfaceRaised : c.surface, borderWidth: 1, borderColor: isDark ? 'rgba(255,255,255,0.12)' : 'rgba(26,26,46,0.12)' },
+  aaGlyph: { fontFamily: fontFamily.bold, fontSize: 13, color: isDark ? c.textSecondary : '#4A4A5E', letterSpacing: -0.2 },
   resetBtn: { width: 34, height: 34, borderRadius: 17, alignItems: 'center', justifyContent: 'center', backgroundColor: isDark ? c.surfaceRaised : c.surface, borderWidth: 1, borderColor: isDark ? 'rgba(255,255,255,0.12)' : 'rgba(26,26,46,0.12)' },
   switchBtn: { width: 34, height: 34, borderRadius: 17, alignItems: 'center', justifyContent: 'center', backgroundColor: BR_SOFT, borderWidth: 1, borderColor: BR_INK + '40' },
 
@@ -477,7 +394,6 @@ const makeStyles = (tk: Tokens) => {
   dayText: { fontFamily: fontFamily.regular, fontSize: 11, color: c.textMuted, backgroundColor: isDark ? c.surfaceRaised : c.surface, paddingHorizontal: 12, paddingVertical: 4, borderRadius: 999, overflow: 'hidden', ...shadows.sm },
 
   botBlock: { marginBottom: 18 },
-  modelTag: { fontFamily: fontFamily.regular, fontSize: 10.5, color: c.textMuted, marginTop: 5, opacity: 0.8 },
 
   userRow: { alignItems: 'flex-end', marginBottom: 18 },
   // Styled like the suggestion chips ("I'm struggling today" …): surface fill,
