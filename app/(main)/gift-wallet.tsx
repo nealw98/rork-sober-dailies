@@ -181,7 +181,7 @@ export default function GiftWalletScreen() {
         </View>
         <Text style={styles.eyebrow}>PASS IT ON</Text>
         <Text style={styles.title}>Gifts to give</Text>
-        <Text style={styles.headerSub}>This is where you pass it on.</Text>
+        <Text style={styles.headerSub}>Carry the message — one code at a time.</Text>
       </View>
 
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>

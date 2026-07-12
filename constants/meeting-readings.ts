@@ -54,7 +54,13 @@ Here are the steps we took, which are suggested as a program of recovery:
 11. Sought through prayer and meditation to improve our conscious contact with God as we understood Him, praying only for knowledge of His will for us and the power to carry that out.
 12. Having had a spiritual awakening as the result of these steps, we tried to carry this message to alcoholics, and to practice these principles in all our affairs.
 
-Many of us exclaimed, "What an order! I can't go through with it." Do not be discouraged. No one among us has been able to maintain anything like perfect adherence to these principles. We are not saints. The point is, that we are willing to grow along spiritual lines. The principles we have set down are guides to progress. We claim spiritual progress rather than spiritual perfection.`,
+Many of us exclaimed, "What an order! I can't go through with it." Do not be discouraged. No one among us has been able to maintain anything like perfect adherence to these principles. We are not saints. The point is, that we are willing to grow along spiritual lines. The principles we have set down are guides to progress. We claim spiritual progress rather than spiritual perfection.
+
+Our description of the alcoholic, the chapter to the agnostic, and our personal adventures before and after make clear three pertinent ideas:
+
+(a) That we were alcoholic and could not manage our own lives.
+(b) That probably no human power could have relieved our alcoholism.
+(c) That God could and would if He were sought.`,
   },
   {
     id: 'there-is-a-solution',

@@ -10,15 +10,14 @@ import {
 import { Image } from 'expo-image';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
-import DraggableFlatList, { ScaleDecorator, type RenderItemParams } from 'react-native-draggable-flatlist';
 import { useRouter, type Href } from 'expo-router';
-import { Check, Minus, Plus, GripVertical } from 'lucide-react-native';
+import { Check, Minus, GripVertical } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 
 import { fontFamily, fontSize, spacing, radii, shadows, type Tokens } from '@/constants/designTokens';
 import { useTokens, useThemedStyles } from '@/hooks/useTokens';
 import { getRowTones, resolveGlyph, resolveTone, resolveSubtitle } from '@/components/dailyTokens';
-import { AddSheet, CreateSheet, type Template } from '@/components/today/DailiesEditSheets';
+import DailiesEditor from '@/components/today/DailiesEditor';
 import { useScreenTimeTracking } from '@/hooks/useScreenTimeTracking';
 import { useDailies, type DailyItem, type WhenBucket } from '@/hooks/use-dailies-store';
 import { useReflectionHeroImage } from '@/hooks/useReflectionHeroImage';
@@ -196,8 +195,6 @@ export default function TodayScreen() {
   const heroImage = useReflectionHeroImage();
   const [reflection, setReflection] = useState<Reflection | null>(null);
   const [editing, setEditing] = useState(false);
-  const [addSection, setAddSection] = useState<WhenBucket | null>(null);
-  const [createSection, setCreateSection] = useState<WhenBucket | null>(null);
   useScreenTimeTracking('Today');
 
   const toggleEditing = useCallback(() => setEditing((v) => !v), []);
@@ -249,8 +246,6 @@ export default function TodayScreen() {
 
   const openReflection = () => router.push('/daily-reflections');
 
-  const addedActions = new Set(dailies.program.map((i) => i.action));
-
   // Counter + Daily Reflection hero — shown above the list in both modes.
   const topContent = (
     <>
@@ -269,81 +264,6 @@ export default function TodayScreen() {
     </>
   );
 
-  // Edit mode: one flat drag list across all three sections. The FIRST section's
-  // header (Morning) is pinned in the list header instead of the data, so a row
-  // can never be dragged above it.
-  const editData = useMemo<EditRow[]>(() => {
-    const rows: EditRow[] = [];
-    SECTIONS.forEach((when, si) => {
-      if (si > 0) rows.push({ type: 'header', key: `h-${when}`, when });
-      dailies.program
-        .filter((d) => d.when === when)
-        .forEach((item, idx, arr) => rows.push({ type: 'daily', key: `d-${item.id}`, item, isLast: idx === arr.length - 1 }));
-      rows.push({ type: 'add', key: `a-${when}`, when });
-    });
-    return rows;
-  }, [dailies.program]);
-
-  // Counter + hero + the pinned Morning header (rows can't go above this).
-  const editListHeader = (
-    <>
-      {topContent}
-      <View style={styles.dragHeader}>
-        <Text style={[styles.sectionTitle, styles.dragHeaderText, { color: c.text }]}>{SECTIONS[0]}</Text>
-      </View>
-    </>
-  );
-
-  // Rebuild the program from the dropped order; a daily's bucket = the section
-  // header above it in the list.
-  const handleDragEnd = useCallback(({ data }: { data: EditRow[] }) => {
-    const next: DailyItem[] = [];
-    let when: WhenBucket = SECTIONS[0];
-    data.forEach((row) => {
-      if (row.type === 'header') when = row.when;
-      else if (row.type === 'daily') next.push({ ...row.item, when });
-    });
-    dailies.setAll(next);
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-  }, [dailies]);
-
-  const renderEditRow = useCallback(({ item: row, drag, isActive }: RenderItemParams<EditRow>) => {
-    // Cell spacing must be PADDING, not margin — draggable-flatlist measures cell
-    // height via onLayout, which excludes margins, so margins desync the list.
-    if (row.type === 'header') {
-      return (
-        <View style={styles.dragHeader}>
-          <Text style={[styles.sectionTitle, styles.dragHeaderText, { color: c.text }]}>{row.when}</Text>
-        </View>
-      );
-    }
-    if (row.type === 'add') {
-      return (
-        <View style={styles.dragAdd}>
-          <Pressable style={[styles.addPill, styles.addPillFlush]} onPress={() => setAddSection(row.when)}>
-            <Plus size={16} color={colors.primary} strokeWidth={2.4} />
-            <Text style={styles.addPillText}>Add to {row.when}</Text>
-          </Pressable>
-        </View>
-      );
-    }
-    return (
-      <ScaleDecorator activeScale={1.03}>
-        <DailyRow
-          item={row.item}
-          done={false}
-          isLast={row.isLast}
-          editing
-          onOpen={() => {}}
-          onToggle={() => {}}
-          onRemove={() => dailies.removeDaily(row.item.id)}
-          onDragStart={drag}
-          dragging={isActive}
-        />
-      </ScaleDecorator>
-    );
-  }, [c.text, dailies]);
-
   return (
     <View style={[styles.root, { backgroundColor: c.background }]}>
     <SafeAreaView style={styles.safe} edges={['top']}>
@@ -361,18 +281,7 @@ export default function TodayScreen() {
       </View>
 
       {editing ? (
-        <DraggableFlatList
-          data={editData}
-          keyExtractor={(row) => row.key}
-          renderItem={renderEditRow}
-          onDragEnd={handleDragEnd}
-          onDragBegin={() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium)}
-          ListHeaderComponent={editListHeader}
-          containerStyle={styles.flex}
-          contentContainerStyle={styles.scroll}
-          showsVerticalScrollIndicator={false}
-          keyboardShouldPersistTaps="handled"
-        />
+        <DailiesEditor header={topContent} />
       ) : (
         <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
           {topContent}
@@ -400,34 +309,6 @@ export default function TodayScreen() {
             );
           })}
         </ScrollView>
-      )}
-
-      {addSection && (
-        <AddSheet
-          section={addSection}
-          added={addedActions}
-          onClose={() => setAddSection(null)}
-          onAdd={(t: Template) => {
-            dailies.addDaily(t, addSection);
-            setAddSection(null);
-          }}
-          onCreate={() => {
-            const s = addSection;
-            setAddSection(null);
-            setCreateSection(s);
-          }}
-        />
-      )}
-
-      {createSection && (
-        <CreateSheet
-          section={createSection}
-          onClose={() => setCreateSection(null)}
-          onCreate={(label, when, notes) => {
-            dailies.addDaily({ label, subtitle: notes || undefined, icon: 'circle', color: 'gray', action: 'custom', custom: true }, when);
-            setCreateSection(null);
-          }}
-        />
       )}
 
     </SafeAreaView>

@@ -45,7 +45,9 @@ export default function SponsorSelectScreen() {
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
         {SELECTION.map((s) => <SponsorCard key={s.id} s={s} onPress={() => select(s)} />)}
         <Text style={styles.disclaimer}>
-          Private by default · AI companions, not a substitute for a human sponsor or a meeting.
+          Private by default. Your AI sponsor offers encouragement, but it isn&apos;t human — and it isn&apos;t
+          a substitute for a human sponsor, a meeting, therapy, or medical advice. If you&apos;re in immediate
+          danger or distress, contact emergency services or a crisis line.
         </Text>
       </ScrollView>
     </SafeAreaView>

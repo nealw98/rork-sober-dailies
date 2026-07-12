@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, Pressable, ScrollView, Linking } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -15,6 +15,7 @@ import { useSobriety } from '@/hooks/useSobrietyStore';
 import { useDailies, type DailyItem, type WhenBucket } from '@/hooks/use-dailies-store';
 import { formatLocalDate } from '@/lib/dateUtils';
 import SoberDateEditor from '@/components/SoberDateEditor';
+import DailiesEditor from '@/components/today/DailiesEditor';
 
 
 // App-icon gradient → interior bridge (prototype `obvGrad`). t=0 = vivid app icon,
@@ -34,6 +35,11 @@ function obvInk(t: number): string {
   return lerpHex('#0086C2', '#2F6E6E', t);
 }
 
+// Legal links — Apple's standard EULA + our Privacy Policy. The consent page was
+// removed; implied agreement now rides the first onboarding CTA (What's Inside).
+const openTerms = () => Linking.openURL('https://www.apple.com/legal/internet-services/itunes/dev/stdeula/').catch(() => {});
+const openPrivacy = () => Linking.openURL('https://soberdailies.com/privacy').catch(() => {});
+
 function Sunrise({ size = 32, color = '#fff' }: { size?: number; color?: string }) {
   return (
     <Svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
@@ -46,66 +52,7 @@ function Sunrise({ size = 32, color = '#fff' }: { size?: number; color?: string 
   );
 }
 
-// ─── Step 1 · Consent (identity gradient) ───────────────────────────────────
-const BULLETS = [
-  'This app is not a substitute for therapy, medical advice, or emergency support.',
-  'The AI sponsor chat offers encouragement, but it is not human and cannot provide crisis support or clinical help.',
-  "If you're in immediate danger or emotional distress, please contact emergency services or a crisis hotline.",
-];
-
-function ConsentStep({ onContinue }: { onContinue: () => void }) {
-  const styles = useThemedStyles(makeStyles);
-  const [agreed, setAgreed] = useState(false);
-  const openTerms = () => Linking.openURL('https://www.apple.com/legal/internet-services/itunes/dev/stdeula/').catch(() => {});
-  const openPrivacy = () => Linking.openURL('https://soberdailies.com/privacy').catch(() => {});
-
-  return (
-    <View style={{ flex: 1 }}>
-      <StatusBar style="light" />
-      <LinearGradient colors={obvGrad(0.3)} start={{ x: 0.1, y: 0 }} end={{ x: 0.9, y: 1 }} style={StyleSheet.absoluteFill} />
-      <SafeAreaView style={{ flex: 1 }}>
-        <ScrollView contentContainerStyle={styles.consentScroll} showsVerticalScrollIndicator={false}>
-          <View style={styles.consentMark}>
-            <Sunrise size={32} />
-          </View>
-          <Text style={styles.consentTitle}>Welcome to{'\n'}Sober Dailies</Text>
-          <Text style={styles.consentDesc}>Practice the daily exercises that keep you in fit spiritual condition.</Text>
-
-          <View style={styles.consentCard}>
-            <Text style={styles.consentNote}>Please note:</Text>
-            {BULLETS.map((b, i) => (
-              <View key={i} style={[styles.consentBullet, i < 2 && { marginBottom: 12 }]}>
-                <Text style={styles.consentBulletDot}>•</Text>
-                <Text style={styles.consentBulletText}>{b}</Text>
-              </View>
-            ))}
-          </View>
-
-          <Text style={styles.consentAgree}>
-            By continuing, you agree to our <Text style={styles.consentLink} onPress={openTerms}>Terms of Use</Text> and <Text style={styles.consentLink} onPress={openPrivacy}>Privacy Policy</Text>.
-          </Text>
-
-          <Pressable style={styles.consentCheckRow} onPress={() => setAgreed((a) => !a)}>
-            <View style={[styles.consentCheckbox, agreed && styles.consentCheckboxOn]}>
-              {agreed && <Check size={15} color="#fff" strokeWidth={3} />}
-            </View>
-            <Text style={styles.consentCheckText}>I have read and agree to the Terms of Use and Privacy Policy.</Text>
-          </Pressable>
-
-          <Pressable
-            style={[styles.consentContinue, !agreed && styles.consentContinueOff]}
-            onPress={() => agreed && onContinue()}
-            disabled={!agreed}
-          >
-            <Text style={[styles.consentContinueText, { color: obvInk(0.3) }, !agreed && { color: 'rgba(255,255,255,0.7)' }]}>Continue</Text>
-          </Pressable>
-        </ScrollView>
-      </SafeAreaView>
-    </View>
-  );
-}
-
-// ─── Step 2 · What's inside (ObvOutline — gradient band + paper rows) ───────
+// ─── Step 1 · What's inside (ObvOutline — gradient band + paper rows) ───────
 const FEATURES: { Icon: React.ComponentType<{ size?: number; color?: string }>; iconColor: string; tone: string; title: string; sub: string }[] = [
   { Icon: Sunrise, iconColor: '#2E6F6F', tone: 'teal', title: 'Today', sub: 'The heart of your program — where you define your dailies and track your progress one day at a time.' },
   { Icon: BookOpen, iconColor: '#B07A33', tone: 'amber', title: 'Tools', sub: 'The tools you reach for each day — literature, speakers, prayers, meetings — linked right to your dailies as you work through them.' },
@@ -113,7 +60,7 @@ const FEATURES: { Icon: React.ComponentType<{ size?: number; color?: string }>; 
   { Icon: MessageCircle, iconColor: '#7A5FB5', tone: 'lavender', title: 'Your AI Sponsor, anytime', sub: 'Bring real questions, get real advice and support from distinct sponsor personalities, day or night.' },
 ];
 
-function WhatsInsideStep({ onBack, onContinue }: { onBack: () => void; onContinue: () => void }) {
+function WhatsInsideStep({ onBack, onContinue }: { onBack?: () => void; onContinue: () => void }) {
   const styles = useThemedStyles(makeStyles);
   const { c, isDark, mode } = useTokens();
   return (
@@ -122,7 +69,7 @@ function WhatsInsideStep({ onBack, onContinue }: { onBack: () => void; onContinu
       <LinearGradient colors={obvGrad(0.4)} start={{ x: 0.1, y: 0 }} end={{ x: 0.9, y: 1 }} style={styles.insideBand} />
       <SafeAreaView style={{ flex: 1 }} edges={['top', 'bottom']}>
         <View style={styles.topBar}>
-          <BackButton onPress={onBack} dark />
+          {onBack ? <BackButton onPress={onBack} dark /> : null}
         </View>
         <View style={styles.insideHeader}>
           <Text style={styles.insideOverline}>EVERYTHING YOU NEED</Text>
@@ -147,6 +94,9 @@ function WhatsInsideStep({ onBack, onContinue }: { onBack: () => void; onContinu
               <Text style={styles.primaryText}>Set up my app</Text>
               <ArrowRight size={18} color="#fff" />
             </Pressable>
+            <Text style={styles.agreeLine}>
+              By continuing, you agree to our <Text style={styles.agreeLink} onPress={openTerms}>Terms of Use</Text> and <Text style={styles.agreeLink} onPress={openPrivacy}>Privacy Policy</Text>.
+            </Text>
           </View>
         </View>
       </SafeAreaView>
@@ -189,25 +139,33 @@ const DEF_TONE: Record<string, { solid: string; ink: string }> = {
   gray: { solid: '#9A98A4', ink: '#5A5A68' },
 };
 
-function DefineDailiesStep({ onBack, onStart }: { onBack: () => void; onStart: (items: DailyItem[]) => void }) {
+function DefineDailiesStep({ onBack, onComplete }: { onBack: () => void; onComplete: () => void }) {
   const styles = useThemedStyles(makeStyles);
-  const { c, colors, isDark, mode } = useTokens();
-  const [selected, setSelected] = useState<Set<string>>(
-    () => new Set(STARTER.flatMap((s) => s.items.filter((i) => i.on).map((i) => i.id))),
-  );
-  const toggle = (id: string) => setSelected((prev) => {
-    const next = new Set(prev);
-    next.has(id) ? next.delete(id) : next.add(id);
-    return next;
-  });
-  const total = 1 + selected.size; // + the permanent Daily Reflection hero
+  const { isDark } = useTokens();
+  const dailies = useDailies();
 
-  const start = () => {
-    const items: DailyItem[] = STARTER.flatMap((s) =>
-      s.items.filter((i) => selected.has(i.id)).map((i) => ({ id: i.id, label: i.label, icon: i.icon, color: i.color, when: s.when, action: i.action })),
+  // Seed the store with the default-on starter set once, on entry. From here the
+  // user shapes it with the SAME editor as the Today screen (drag / remove / add),
+  // so onboarding and Today are one interface.
+  useEffect(() => {
+    const defaults: DailyItem[] = STARTER.flatMap((s) =>
+      s.items.filter((i) => i.on).map((i) => ({ id: i.id, label: i.label, icon: i.icon, color: i.color, when: s.when, action: i.action })),
     );
-    onStart(items);
-  };
+    dailies.setAll(defaults);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const header = (
+    <>
+      <Text style={styles.insideTitle}>Define your dailies</Text>
+      <Text style={styles.dailiesSubtitle}>The practices you&apos;ll start with</Text>
+      <View style={styles.infoCard}>
+        <Text style={styles.infoText}>
+          We&apos;ve checked the <Text style={styles.infoBold}>basics</Text> to get you started. Drag to reorder, tap <Text style={styles.infoBold}>−</Text> to remove, or <Text style={styles.infoBold}>+ Add</Text> to bring in more — it&apos;s the same editor you&apos;ll find behind <Text style={styles.infoBold}>Edit</Text> on the Today screen.
+        </Text>
+      </View>
+    </>
+  );
 
   return (
     <SafeAreaView style={styles.paper} edges={['top', 'bottom']}>
@@ -215,52 +173,10 @@ function DefineDailiesStep({ onBack, onStart }: { onBack: () => void; onStart: (
       <View style={styles.topBar}>
         <BackButton onPress={onBack} />
       </View>
-      <ScrollView contentContainerStyle={styles.dailiesScroll} showsVerticalScrollIndicator={false}>
-        <Text style={styles.insideTitle}>Define your dailies</Text>
-        <Text style={styles.dailiesSubtitle}>The practices you&apos;ll start with</Text>
-
-        <View style={styles.infoCard}>
-          <Text style={styles.infoText}>
-            We&apos;ve checked the <Text style={styles.infoBold}>basics</Text> to get you started. Tap any practice to add or remove it — you can change everything later in <Text style={styles.infoBold}>My Dailies</Text>.
-          </Text>
-        </View>
-
-        {STARTER.map((section) => {
-          const sel = section.items.filter((i) => selected.has(i.id)).length;
-          return (
-            <View key={section.when} style={styles.dailiesSection}>
-              <View style={styles.sectionLabelRow}>
-                <Text style={styles.sectionLabelName}>{section.when}</Text>
-                <Text style={styles.sectionLabelCount}>{sel} of {section.items.length}</Text>
-              </View>
-              {section.items.map((item) => {
-                const on = selected.has(item.id);
-                const def = DEF_TONE[item.color] ?? DEF_TONE.gray;
-                // Dark: brightened mode-aware family tones; light: the prototype's static inks.
-                const dark = isDark ? resolveTone(item.color, mode) : null;
-                const ink = dark ? dark.ink : def.ink;
-                const boxBg = dark ? dark.soft : def.solid + '22';
-                const onBorder = dark ? dark.ink + '55' : def.solid + '55';
-                const Glyph = resolveGlyph(item.icon);
-                return (
-                  <Pressable key={item.id} style={[styles.dailyRow, { borderColor: on ? onBorder : c.border }]} onPress={() => toggle(item.id)}>
-                    <View style={[styles.dailyIconBox, { backgroundColor: boxBg }]}>
-                      <Glyph size={18} color={ink} />
-                    </View>
-                    <Text style={styles.dailyLabel}>{item.label}</Text>
-                    <View style={[styles.dailyCheck, on ? { backgroundColor: colors.primary, borderColor: colors.primary } : { borderColor: c.border }]}>
-                      {on && <Check size={15} color="#fff" strokeWidth={3} />}
-                    </View>
-                  </Pressable>
-                );
-              })}
-            </View>
-          );
-        })}
-      </ScrollView>
+      <DailiesEditor header={header} contentContainerStyle={styles.dailiesScroll} />
       <View style={styles.footerBordered}>
-        <Pressable style={styles.primaryBtn} onPress={start}>
-          <Text style={styles.primaryText}>Start my program · {total} {total === 1 ? 'daily' : 'dailies'}</Text>
+        <Pressable style={styles.primaryBtn} onPress={onComplete}>
+          <Text style={styles.primaryText}>Start my free week</Text>
           <ArrowRight size={18} color="#fff" />
         </Pressable>
       </View>
@@ -269,16 +185,14 @@ function DefineDailiesStep({ onBack, onStart }: { onBack: () => void; onStart: (
 }
 
 // ─── The flow ───────────────────────────────────────────────────────────────
-type Step = 'consent' | 'inside' | 'date' | 'dailies';
+type Step = 'inside' | 'date' | 'dailies';
 
 export default function OnboardingFlow() {
-  const [step, setStep] = useState<Step>('consent');
+  const [step, setStep] = useState<Step>('inside');
   const { completeOnboarding } = useOnboarding();
   const { setSobrietyDate } = useSobriety();
-  const dailies = useDailies();
 
-  if (step === 'consent') return <ConsentStep onContinue={() => setStep('inside')} />;
-  if (step === 'inside') return <WhatsInsideStep onBack={() => setStep('consent')} onContinue={() => setStep('date')} />;
+  if (step === 'inside') return <WhatsInsideStep onContinue={() => setStep('date')} />;
   if (step === 'date') {
     return (
       <SoberDateEditor
@@ -294,7 +208,7 @@ export default function OnboardingFlow() {
   return (
     <DefineDailiesStep
       onBack={() => setStep('date')}
-      onStart={(items) => { dailies.setAll(items); completeOnboarding(); }}
+      onComplete={completeOnboarding}
     />
   );
 }
@@ -364,5 +278,7 @@ const makeStyles = (tk: Tokens) => {
   primaryBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 9, paddingVertical: 16, borderRadius: 16, backgroundColor: colors.primary, ...shadows.md },
   primaryBtnOff: { backgroundColor: '#C7C9C4', shadowOpacity: 0 },
   primaryText: { fontFamily: fontFamily.semiBold, fontSize: fontSize.xl, color: '#fff' },
+  agreeLine: { fontFamily: fontFamily.regular, fontSize: 11.5, lineHeight: 16, color: c.textMuted, textAlign: 'center', marginTop: 12, paddingHorizontal: 8 },
+  agreeLink: { fontFamily: fontFamily.semiBold, color: colors.primaryDark },
   });
 };
