@@ -10,7 +10,7 @@ import {
 } from 'react-native';
 import { Image } from 'expo-image';
 import { useRouter, useLocalSearchParams, Stack } from 'expo-router';
-import { ArrowLeftRight, ChevronRight, Check, RotateCcw, Send } from 'lucide-react-native';
+import { ChevronDown, ChevronRight, Check, RotateCcw, Send } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
 import * as Clipboard from 'expo-clipboard';
@@ -154,8 +154,8 @@ function SponsorChatContent({ initialSponsor }: { initialSponsor: string }) {
   const { messages, isLoading, sendMessage, clearChat, changeSponsor, sponsorType } = useChatStore();
   const [inputText, setInputText] = useState('');
   const [isCheckingLimits, setIsCheckingLimits] = useState(false);
-  const [switchOpen, setSwitchOpen] = useState(false);
   const [sizeSheetOpen, setSizeSheetOpen] = useState(false);
+  const [switchOpen, setSwitchOpen] = useState(false);
   const listRef = useRef<FlatList>(null);
 
   const { setLastSponsor } = useLastSponsor();
@@ -230,11 +230,18 @@ function SponsorChatContent({ initialSponsor }: { initialSponsor: string }) {
       <View style={[styles.header, { paddingTop: insets.top + 6 }]}>
         <BackButton onPress={() => router.back()} style={{ marginBottom: 10 }} />
         <View style={styles.sponsorRow}>
-          <Image source={sponsor.avatar} style={styles.hAvatar} contentFit="cover" />
-          <View style={styles.flex}>
-            <Text style={styles.hName} numberOfLines={1}>{sponsor.name}</Text>
-            <Text style={styles.vibe} numberOfLines={1}>{vibeString(sponsor.tags)}</Text>
-          </View>
+          {/* The identity IS the switch affordance — tap the avatar/name (chevron
+              cue) to open the sponsor menu (quick-switch + "Meet all three"). */}
+          <Pressable style={styles.identity} onPress={() => setSwitchOpen((o) => !o)} accessibilityRole="button" accessibilityLabel="Switch sponsor">
+            <Image source={sponsor.avatar} style={styles.hAvatar} contentFit="cover" />
+            <View style={styles.flex}>
+              <View style={styles.nameRow}>
+                <Text style={styles.hName} numberOfLines={1}>{sponsor.name}</Text>
+                <ChevronDown size={18} color={c.textMuted} strokeWidth={2.4} style={switchOpen && { transform: [{ rotate: '180deg' }] }} />
+              </View>
+              <Text style={styles.vibe} numberOfLines={1}>{vibeString(sponsor.tags)}</Text>
+            </View>
+          </Pressable>
           <View style={styles.headActions}>
             <Pressable onPress={() => { setSizeSheetOpen(true); setSwitchOpen(false); }} style={styles.aaBtn} accessibilityLabel="Text size">
               <Text style={styles.aaGlyph}>aA</Text>
@@ -242,14 +249,11 @@ function SponsorChatContent({ initialSponsor }: { initialSponsor: string }) {
             <Pressable onPress={handleRefresh} style={styles.resetBtn} accessibilityLabel="Reset conversation">
               <RotateCcw size={16} color={isDark ? c.textSecondary : '#4A4A5E'} strokeWidth={2} />
             </Pressable>
-            <Pressable onPress={() => setSwitchOpen((o) => !o)} style={styles.switchBtn} accessibilityLabel="Switch sponsor">
-              <ArrowLeftRight size={16} color={BR_INK} strokeWidth={2.2} />
-            </Pressable>
           </View>
         </View>
       </View>
 
-      {/* ── Switch dropdown ── */}
+      {/* ── Switch dropdown (opened from the sponsor identity) ── */}
       {switchOpen && (
         <>
           <Pressable style={styles.ddBackdrop} onPress={() => setSwitchOpen(false)} />
@@ -368,8 +372,10 @@ const makeStyles = (tk: Tokens) => {
   // header
   header: { backgroundColor: linen, paddingHorizontal: 14, paddingBottom: 12, borderBottomWidth: 1, borderBottomColor: hairline },
   sponsorRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  identity: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 12 },
   hAvatar: { width: 46, height: 46, borderRadius: 23, borderWidth: 2, borderColor: isDark ? 'rgba(255,255,255,0.18)' : '#fff', backgroundColor: BR_SOFT, ...shadows.sm },
-  hName: { fontFamily: fontFamily.display, fontSize: 22, letterSpacing: -0.3, color: c.text },
+  nameRow: { flexDirection: 'row', alignItems: 'center', gap: 5 },
+  hName: { flexShrink: 1, fontFamily: fontFamily.display, fontSize: 22, letterSpacing: -0.3, color: c.text },
   vibe: { fontFamily: fontFamily.semiBold, fontSize: 11, color: c.textMuted, marginTop: 2 },
   headActions: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   aaBtn: { width: 34, height: 34, borderRadius: 17, alignItems: 'center', justifyContent: 'center', backgroundColor: isDark ? c.surfaceRaised : c.surface, borderWidth: 1, borderColor: isDark ? 'rgba(255,255,255,0.12)' : 'rgba(26,26,46,0.12)' },
@@ -379,7 +385,7 @@ const makeStyles = (tk: Tokens) => {
 
   // switch dropdown
   ddBackdrop: { ...StyleSheet.absoluteFillObject, zIndex: 20 },
-  dropdown: { position: 'absolute', right: 14, width: 232, zIndex: 30, backgroundColor: isDark ? c.surfaceRaised : c.surface, borderRadius: 16, borderWidth: 1, borderColor: hairline, padding: 6, ...shadows.lg },
+  dropdown: { position: 'absolute', left: 14, width: 232, zIndex: 30, backgroundColor: isDark ? c.surfaceRaised : c.surface, borderRadius: 16, borderWidth: 1, borderColor: hairline, padding: 6, ...shadows.lg },
   ddHead: { fontFamily: fontFamily.bold, fontSize: 10, letterSpacing: 1, color: c.textMuted, paddingHorizontal: 10, paddingTop: 8, paddingBottom: 6 },
   ddRow: { flexDirection: 'row', alignItems: 'center', gap: 10, padding: 8, borderRadius: 11 },
   ddAvatar: { width: 34, height: 34, borderRadius: 17, borderWidth: 2, borderColor: isDark ? 'rgba(255,255,255,0.18)' : '#fff' },
