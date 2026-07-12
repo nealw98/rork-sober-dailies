@@ -6,7 +6,7 @@ import Svg, { Path } from 'react-native-svg';
 import { Pencil } from 'lucide-react-native';
 import { useSobriety } from '@/hooks/useSobrietyStore';
 import { formatStoredDateForDisplay, parseLocalDate } from '@/lib/dateUtils';
-import { colors, fontFamily, fontSize, radii, shadows, darkGlow, type Tokens } from '@/constants/designTokens';
+import { colors, fontFamily, fontSize, darkGlow, type Tokens } from '@/constants/designTokens';
 import { useTokens, useThemedStyles } from '@/hooks/useTokens';
 
 // Brand sunrise glyph (matches the tab bar) — used in the no-date coin.
@@ -41,31 +41,13 @@ const SobrietyCounter = () => {
   const styles = useThemedStyles(makeStyles);
   const { c } = useTokens();
   const router = useRouter();
-  const { sobrietyDate, shouldShowPrompt, shouldShowAddButton, dismissPrompt, calculateDaysSober, isLoading } = useSobriety();
+  const { sobrietyDate, calculateDaysSober, isLoading } = useSobriety();
   const openDate = () => router.push('/(main)/sober-date');
 
   if (isLoading) return null;
 
-  // ── No date, first invitation (soft, never a demand) ──
-  if (shouldShowPrompt()) {
-    return (
-      <View style={styles.inviteCard}>
-        <Text style={styles.affirmation}>One day at a time.</Text>
-        <Text style={styles.inviteBody}>Counting days helps some people. Add your sober date whenever you’re ready — no pressure.</Text>
-        <View style={styles.inviteButtons}>
-          <Pressable style={styles.addPill} onPress={openDate}>
-            <Text style={styles.addPillText}>Add date</Text>
-          </Pressable>
-          <Pressable style={styles.notNowPill} onPress={() => dismissPrompt()}>
-            <Text style={styles.notNowText}>Not now</Text>
-          </Pressable>
-        </View>
-      </View>
-    );
-  }
-
-  // ── No date, after "Not now" — quiet affirmation + a way back in ──
-  if (shouldShowAddButton()) {
+  // ── No date — quiet affirmation + a way back in ──
+  if (!sobrietyDate) {
     return (
       <Pressable style={styles.row} onPress={openDate}>
         <Coin>
@@ -112,8 +94,6 @@ const SobrietyCounter = () => {
       </Pressable>
     );
   }
-
-  return null;
 };
 
 const makeStyles = (tk: Tokens) => {
@@ -142,15 +122,6 @@ const makeStyles = (tk: Tokens) => {
   affirmationRow: { flexDirection: 'row', alignItems: 'center', gap: 7 },
   affirmationInline: { fontFamily: fontFamily.serifMediumItalic, fontSize: fontSize['2xl'], color: tc.primary, lineHeight: 26 },
 
-  // invitation card
-  inviteCard: { backgroundColor: c.surface, borderWidth: 1, borderColor: c.border, borderRadius: radii.lg, padding: 18, ...shadows.sm },
-  affirmation: { fontFamily: fontFamily.serifMediumItalic, fontSize: fontSize['2xl'], color: tc.primary, lineHeight: 26 },
-  inviteBody: { fontFamily: fontFamily.regular, fontSize: fontSize.md, color: c.textMuted, marginTop: 6, lineHeight: 20 },
-  inviteButtons: { flexDirection: 'row', gap: 10, marginTop: 16 },
-  addPill: { paddingHorizontal: 18, paddingVertical: 9, borderRadius: radii.full, backgroundColor: colors.primary },
-  addPillText: { fontFamily: fontFamily.semiBold, fontSize: fontSize.md, color: '#fff' },
-  notNowPill: { paddingHorizontal: 18, paddingVertical: 9, borderRadius: radii.full, borderWidth: 1.5, borderColor: c.border },
-  notNowText: { fontFamily: fontFamily.semiBold, fontSize: fontSize.md, color: c.textSecondary },
   });
 };
 

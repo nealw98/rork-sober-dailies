@@ -7,6 +7,7 @@ import React from 'react';
 import { Pressable, View, Image, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router, useSegments } from 'expo-router';
+import { Users } from 'lucide-react-native';
 import { colors, shadows } from '@/constants/designTokens';
 import { getSponsorById } from '@/constants/sponsors';
 import { useImmersive } from '@/hooks/use-immersive';
@@ -30,12 +31,17 @@ export default function GlobalSponsorFab() {
     return null;
   }
 
-  const sponsor = getSponsorById(lastSponsorId) ?? getSponsorById('supportive');
+  const sponsor = lastSponsorId ? getSponsorById(lastSponsorId) : null;
+  const openSponsor = () => {
+    if (sponsor) router.push(`/sponsor-chat?sponsor=${sponsor.id}`);
+    else router.push('/(main)/chat');
+  };
+
   return (
     <Pressable
-      accessibilityLabel={`Chat with ${sponsor?.name ?? 'your sponsor'}`}
+      accessibilityLabel={sponsor ? `Chat with ${sponsor.name}` : 'Choose your AI Sponsor'}
       accessibilityRole="button"
-      onPress={() => router.push(`/sponsor-chat?sponsor=${sponsor?.id ?? 'supportive'}`)}
+      onPress={openSponsor}
       // Locked to the same spot the FloatingTabBar's inline FAB occupies, so it
       // doesn't jump when moving between tab and pushed screens: centered in the
       // 68px bar row that sits above the safe-area pad → bottom = pad + 5.
@@ -44,7 +50,9 @@ export default function GlobalSponsorFab() {
       {sponsor?.avatar ? (
         <Image source={sponsor.avatar} style={styles.fabImg} />
       ) : (
-        <View style={[styles.fabImg, { backgroundColor: colors.tertiary }]} />
+        <View style={[styles.fabImg, styles.unselectedFab]}>
+          <Users size={25} color="#fff" strokeWidth={2.2} />
+        </View>
       )}
     </Pressable>
   );
@@ -64,4 +72,5 @@ const styles = StyleSheet.create({
     ...shadows.lg,
   },
   fabImg: { width: '100%', height: '100%', resizeMode: 'cover' },
+  unselectedFab: { alignItems: 'center', justifyContent: 'center', backgroundColor: colors.tertiary },
 });

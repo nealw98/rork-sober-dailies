@@ -7,6 +7,7 @@ import {
   Pressable,
   Alert,
 } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Image } from 'expo-image';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -55,6 +56,8 @@ const PRAYER_PARAM: Record<string, string> = {
 };
 
 const SECTIONS: WhenBucket[] = ['Morning', 'Anytime', 'Evening'];
+const TODAY_EDIT_TIP_PENDING_KEY = 'today_edit_tip_pending';
+const TODAY_EDIT_TIP_SEEN_KEY = 'today_edit_tip_seen';
 
 // Flattened rows for the edit-mode drag list: a section header, its dailies, and
 // a "+ Add" row, per bucket. Dropping a daily under a different header re-buckets it.
@@ -195,9 +198,32 @@ export default function TodayScreen() {
   const heroImage = useReflectionHeroImage();
   const [reflection, setReflection] = useState<Reflection | null>(null);
   const [editing, setEditing] = useState(false);
+  const [showEditTip, setShowEditTip] = useState(false);
   useScreenTimeTracking('Today');
 
-  const toggleEditing = useCallback(() => setEditing((v) => !v), []);
+  const dismissEditTip = useCallback(() => {
+    setShowEditTip(false);
+    AsyncStorage.multiSet([[TODAY_EDIT_TIP_SEEN_KEY, '1']])
+      .then(() => AsyncStorage.removeItem(TODAY_EDIT_TIP_PENDING_KEY))
+      .catch(() => {});
+  }, []);
+
+  const toggleEditing = useCallback(() => {
+    if (showEditTip) dismissEditTip();
+    setEditing((v) => !v);
+  }, [dismissEditTip, showEditTip]);
+
+  useEffect(() => {
+    let mounted = true;
+    AsyncStorage.multiGet([TODAY_EDIT_TIP_PENDING_KEY, TODAY_EDIT_TIP_SEEN_KEY])
+      .then((pairs) => {
+        const pending = pairs[0]?.[1] === '1';
+        const seen = pairs[1]?.[1] === '1';
+        if (mounted && pending && !seen) setShowEditTip(true);
+      })
+      .catch(() => {});
+    return () => { mounted = false; };
+  }, []);
 
   useEffect(() => {
     getTodaysReflection().then(setReflection).catch((e) => console.error('[today] reflection', e));
@@ -279,6 +305,18 @@ export default function TodayScreen() {
           <SettingsGear />
         </View>
       </View>
+      {showEditTip && !editing ? (
+        <View style={styles.editTipWrap} pointerEvents="box-none">
+          <View style={styles.editTipArrow} />
+          <View style={styles.editTipCard}>
+            <Text style={styles.editTipTitle}>Edit your dailies</Text>
+            <Text style={styles.editTipText}>Change, add, remove, or reorder these anytime.</Text>
+            <Pressable hitSlop={8} onPress={dismissEditTip} accessibilityRole="button" style={styles.editTipButton}>
+              <Text style={styles.editTipButtonText}>Got it</Text>
+            </Pressable>
+          </View>
+        </View>
+      ) : null}
 
       {editing ? (
         <DailiesEditor header={topContent} />
@@ -338,6 +376,32 @@ const makeStyles = (tk: Tokens) => {
   // (far-corner) control (handoff-tab-nav).
   headerActions: { flexDirection: 'row', alignItems: 'center', gap: 16, paddingTop: 6 },
   editToggle: { fontFamily: fontFamily.semiBold, fontSize: fontSize.lg, color: colors.primaryDark },
+  editTipWrap: { marginTop: -18, marginHorizontal: 22, marginBottom: 12, alignItems: 'flex-end' },
+  editTipArrow: {
+    width: 14,
+    height: 14,
+    backgroundColor: colors.primarySoft,
+    borderLeftWidth: 1,
+    borderTopWidth: 1,
+    borderColor: colors.primary + '33',
+    transform: [{ rotate: '45deg' }],
+    marginRight: 46,
+    marginBottom: -7,
+    zIndex: 1,
+  },
+  editTipCard: {
+    alignSelf: 'stretch',
+    backgroundColor: colors.primarySoft,
+    borderWidth: 1,
+    borderColor: colors.primary + '33',
+    borderRadius: 14,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+  },
+  editTipTitle: { fontFamily: fontFamily.semiBold, fontSize: fontSize.md, color: c.text },
+  editTipText: { fontFamily: fontFamily.regular, fontSize: 13, lineHeight: 18, color: c.textSecondary, marginTop: 3, paddingRight: 74 },
+  editTipButton: { position: 'absolute', right: 12, bottom: 11, paddingVertical: 5, paddingHorizontal: 10, borderRadius: radii.full, backgroundColor: colors.primary },
+  editTipButtonText: { fontFamily: fontFamily.semiBold, fontSize: 12, color: '#fff' },
   scroll: { paddingHorizontal: 22, paddingBottom: 120 },
 
   heroTop: { marginTop: spacing.xl },

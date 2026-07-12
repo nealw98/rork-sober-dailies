@@ -17,7 +17,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
 import MaskedView from '@react-native-masked-view/masked-view';
 import Svg, { Path, Defs, RadialGradient, Stop, Circle } from 'react-native-svg';
-import { BookOpen, Library, PenLine } from 'lucide-react-native';
+import { BookOpen, Library, PenLine, Users } from 'lucide-react-native';
 import { colors, fontFamily, shadows, darkGlow } from '@/constants/designTokens';
 import { useTokens } from '@/hooks/useTokens';
 import { getSponsorById } from '@/constants/sponsors';
@@ -90,26 +90,32 @@ const BAR_HEIGHT = 68;
 // the page instead of ending on a hard rectangular edge.
 const BAND_TOP_EXTRA = 48;
 
-// FAB hidden on Settings (per product decision). Last-used persona TODO: wire to
-// use-chat-store `aa-chat-sponsor-type`; default to Steady Eddie for now.
+// FAB hidden on Settings (per product decision).
 const FAB_HIDDEN_ON: TabKey[] = [];
 
 function SponsorFab() {
-  // Show the last-chatted sponsor and tap straight back into that chat
-  // (defaults to Steady Eddie when there's no prior conversation).
+  // Show the last-opened sponsor and tap straight back into that chat. Before a
+  // sponsor is opened, use an anonymous picker state so Eddie is not implied.
   const { lastSponsorId } = useLastSponsor();
-  const sponsor = getSponsorById(lastSponsorId) ?? getSponsorById('supportive');
+  const sponsor = lastSponsorId ? getSponsorById(lastSponsorId) : null;
+  const openSponsor = () => {
+    if (sponsor) router.push(`/sponsor-chat?sponsor=${sponsor.id}`);
+    else router.push('/(main)/chat');
+  };
+
   return (
     <Pressable
-      accessibilityLabel={`Chat with ${sponsor?.name ?? 'your sponsor'}`}
+      accessibilityLabel={sponsor ? `Chat with ${sponsor.name}` : 'Choose your AI Sponsor'}
       accessibilityRole="button"
-      onPress={() => router.push(`/sponsor-chat?sponsor=${sponsor?.id ?? 'supportive'}`)}
+      onPress={openSponsor}
       style={({ pressed }) => [styles.fab, pressed && { opacity: 0.85 }]}
     >
       {sponsor?.avatar ? (
         <Image source={sponsor.avatar} style={styles.fabImg} />
       ) : (
-        <View style={[styles.fabImg, { backgroundColor: colors.tertiary }]} />
+        <View style={[styles.fabImg, styles.unselectedFab]}>
+          <Users size={25} color="#fff" strokeWidth={2.2} />
+        </View>
       )}
     </Pressable>
   );
@@ -382,5 +388,10 @@ const styles = StyleSheet.create({
     width: '100%',
     height: '100%',
     resizeMode: 'cover',
+  },
+  unselectedFab: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.tertiary,
   },
 });

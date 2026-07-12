@@ -1,8 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, Pressable, ScrollView, Linking } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { StatusBar } from 'expo-status-bar';
+import { useRouter } from 'expo-router';
+import { Image } from 'expo-image';
 import Svg, { Path } from 'react-native-svg';
 import { Check, ArrowRight, BookOpen, PenLine, MessageCircle } from 'lucide-react-native';
 
@@ -17,6 +20,7 @@ import { formatLocalDate } from '@/lib/dateUtils';
 import SoberDateEditor from '@/components/SoberDateEditor';
 import DailiesEditor from '@/components/today/DailiesEditor';
 
+const TODAY_EDIT_TIP_PENDING_KEY = 'today_edit_tip_pending';
 
 // App-icon gradient → interior bridge (prototype `obvGrad`). t=0 = vivid app icon,
 // t=1 = muted interior. Onboarding stays icon-leaning (the retiring teal header
@@ -36,7 +40,7 @@ function obvInk(t: number): string {
 }
 
 // Legal links — Apple's standard EULA + our Privacy Policy. The consent page was
-// removed; implied agreement now rides the first onboarding CTA (What's Inside).
+// removed; implied agreement now rides the first onboarding CTA.
 const openTerms = () => Linking.openURL('https://www.apple.com/legal/internet-services/itunes/dev/stdeula/').catch(() => {});
 const openPrivacy = () => Linking.openURL('https://soberdailies.com/privacy').catch(() => {});
 
@@ -52,7 +56,33 @@ function Sunrise({ size = 32, color = '#fff' }: { size?: number; color?: string 
   );
 }
 
-// ─── Step 1 · What's inside (ObvOutline — gradient band + paper rows) ───────
+// ─── Step 1 · Welcome (logo + promise) ──────────────────────────────────────
+function WelcomeStep({ onContinue }: { onContinue: () => void }) {
+  const styles = useThemedStyles(makeStyles);
+  return (
+    <View style={styles.welcomeRoot}>
+      <StatusBar style="light" />
+      <LinearGradient colors={obvGrad(0.18)} start={{ x: 0.05, y: 0 }} end={{ x: 0.95, y: 1 }} style={StyleSheet.absoluteFill} />
+      <SafeAreaView style={styles.welcomeSafe} edges={['top', 'bottom']}>
+        <View style={styles.welcomeCenter}>
+          <Image source={require('@/assets/images/icon.png')} style={styles.welcomeLogo} contentFit="cover" />
+          <Text style={styles.welcomePromise}>Daily habits build long-term sobriety</Text>
+        </View>
+        <View style={styles.welcomeFooter}>
+          <Pressable style={styles.welcomeBtn} onPress={onContinue}>
+            <Text style={styles.welcomeBtnText}>Get started</Text>
+            <ArrowRight size={18} color={obvInk(0.55)} />
+          </Pressable>
+          <Text style={styles.welcomeAgreeLine}>
+            By continuing, you agree to our <Text style={styles.welcomeAgreeLink} onPress={openTerms}>Terms of Use</Text> and <Text style={styles.welcomeAgreeLink} onPress={openPrivacy}>Privacy Policy</Text>.
+          </Text>
+        </View>
+      </SafeAreaView>
+    </View>
+  );
+}
+
+// ─── Step 2 · What's inside (ObvOutline — gradient band + paper rows) ───────
 const FEATURES: { Icon: React.ComponentType<{ size?: number; color?: string }>; iconColor: string; tone: string; title: string; sub: string }[] = [
   { Icon: Sunrise, iconColor: '#2E6F6F', tone: 'teal', title: 'Today', sub: 'The heart of your program — where you define your dailies and track your progress one day at a time.' },
   { Icon: BookOpen, iconColor: '#B07A33', tone: 'amber', title: 'Tools', sub: 'The tools you reach for each day — literature, speakers, prayers, meetings — linked right to your dailies as you work through them.' },
@@ -94,9 +124,6 @@ function WhatsInsideStep({ onBack, onContinue }: { onBack?: () => void; onContin
               <Text style={styles.primaryText}>Set up my app</Text>
               <ArrowRight size={18} color="#fff" />
             </Pressable>
-            <Text style={styles.agreeLine}>
-              By continuing, you agree to our <Text style={styles.agreeLink} onPress={openTerms}>Terms of Use</Text> and <Text style={styles.agreeLink} onPress={openPrivacy}>Privacy Policy</Text>.
-            </Text>
           </View>
         </View>
       </SafeAreaView>
@@ -139,7 +166,7 @@ const DEF_TONE: Record<string, { solid: string; ink: string }> = {
   gray: { solid: '#9A98A4', ink: '#5A5A68' },
 };
 
-function DefineDailiesStep({ onBack, onComplete }: { onBack: () => void; onComplete: () => void }) {
+function DefineDailiesStep({ onBack, onComplete }: { onBack: () => void; onComplete: () => void | Promise<void> }) {
   const styles = useThemedStyles(makeStyles);
   const { isDark } = useTokens();
   const dailies = useDailies();
@@ -155,13 +182,18 @@ function DefineDailiesStep({ onBack, onComplete }: { onBack: () => void; onCompl
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  const handleComplete = async () => {
+    await AsyncStorage.setItem(TODAY_EDIT_TIP_PENDING_KEY, '1').catch(() => {});
+    await onComplete();
+  };
+
   const header = (
     <>
       <Text style={styles.insideTitle}>Define your dailies</Text>
       <Text style={styles.dailiesSubtitle}>The practices you&apos;ll start with</Text>
       <View style={styles.infoCard}>
         <Text style={styles.infoText}>
-          We&apos;ve checked the <Text style={styles.infoBold}>basics</Text> to get you started. Drag to reorder, tap <Text style={styles.infoBold}>−</Text> to remove, or <Text style={styles.infoBold}>+ Add</Text> to bring in more — it&apos;s the same editor you&apos;ll find behind <Text style={styles.infoBold}>Edit</Text> on the Today screen.
+          These are the practices that will appear on your Today page every day. Add the ones you want, remove what doesn&apos;t fit, and reorder them into a rhythm you&apos;ll actually follow. Once setup is done, each of these dailies on your Today page will open a tool or reading, and you&apos;ll check it off when you complete it.
         </Text>
       </View>
     </>
@@ -175,7 +207,7 @@ function DefineDailiesStep({ onBack, onComplete }: { onBack: () => void; onCompl
       </View>
       <DailiesEditor header={header} contentContainerStyle={styles.dailiesScroll} />
       <View style={styles.footerBordered}>
-        <Pressable style={styles.primaryBtn} onPress={onComplete}>
+        <Pressable style={styles.primaryBtn} onPress={handleComplete}>
           <Text style={styles.primaryText}>Start my free week</Text>
           <ArrowRight size={18} color="#fff" />
         </Pressable>
@@ -185,14 +217,16 @@ function DefineDailiesStep({ onBack, onComplete }: { onBack: () => void; onCompl
 }
 
 // ─── The flow ───────────────────────────────────────────────────────────────
-type Step = 'inside' | 'date' | 'dailies';
+type Step = 'welcome' | 'inside' | 'date' | 'dailies';
 
 export default function OnboardingFlow() {
-  const [step, setStep] = useState<Step>('inside');
+  const [step, setStep] = useState<Step>('welcome');
+  const router = useRouter();
   const { completeOnboarding } = useOnboarding();
   const { setSobrietyDate } = useSobriety();
 
-  if (step === 'inside') return <WhatsInsideStep onContinue={() => setStep('date')} />;
+  if (step === 'welcome') return <WelcomeStep onContinue={() => setStep('inside')} />;
+  if (step === 'inside') return <WhatsInsideStep onBack={() => setStep('welcome')} onContinue={() => setStep('date')} />;
   if (step === 'date') {
     return (
       <SoberDateEditor
@@ -208,7 +242,10 @@ export default function OnboardingFlow() {
   return (
     <DefineDailiesStep
       onBack={() => setStep('date')}
-      onComplete={completeOnboarding}
+      onComplete={async () => {
+        await completeOnboarding();
+        router.replace('/');
+      }}
     />
   );
 }
@@ -238,6 +275,45 @@ const makeStyles = (tk: Tokens) => {
   consentContinue: { alignSelf: 'center', backgroundColor: '#fff', paddingVertical: 15, paddingHorizontal: 48, borderRadius: 26, minWidth: 200, alignItems: 'center' },
   consentContinueOff: { backgroundColor: 'rgba(255,255,255,0.3)' },
   consentContinueText: { fontFamily: fontFamily.semiBold, fontSize: fontSize.xl, color: colors.primaryDark },
+
+  // welcome
+  welcomeRoot: { flex: 1 },
+  welcomeSafe: { flex: 1, paddingHorizontal: 28 },
+  welcomeCenter: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingBottom: 42 },
+  welcomeLogo: {
+    width: 126,
+    height: 126,
+    borderRadius: 29,
+    marginBottom: 34,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.42)',
+    ...shadows.lg,
+  },
+  welcomePromise: {
+    fontFamily: fontFamily.displayBold,
+    fontSize: 35,
+    lineHeight: 39,
+    color: '#fff',
+    textAlign: 'center',
+    letterSpacing: -0.5,
+    textShadowColor: 'rgba(0,0,0,0.18)',
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 12,
+  },
+  welcomeFooter: { paddingBottom: 14 },
+  welcomeBtn: {
+    minHeight: 56,
+    borderRadius: 18,
+    backgroundColor: '#fff',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 9,
+    ...shadows.md,
+  },
+  welcomeBtnText: { fontFamily: fontFamily.semiBold, fontSize: fontSize.xl, color: obvInk(0.55) },
+  welcomeAgreeLine: { fontFamily: fontFamily.regular, fontSize: 11.5, lineHeight: 16, color: 'rgba(255,255,255,0.86)', textAlign: 'center', marginTop: 12, paddingHorizontal: 8 },
+  welcomeAgreeLink: { fontFamily: fontFamily.semiBold, color: '#fff', textDecorationLine: 'underline' },
 
   // paper screens (inside + dailies)
   paper: { flex: 1, backgroundColor: c.background },

@@ -4,6 +4,11 @@ import { Platform } from 'react-native';
 import createContextHook from '@nkzw/create-context-hook';
 
 const ONBOARDING_KEY = 'sober_dailies_onboarding_complete';
+const ONBOARDING_RESET_KEYS = [
+  ONBOARDING_KEY,
+  'today_edit_tip_pending',
+  'today_edit_tip_seen',
+];
 
 export const [OnboardingProvider, useOnboarding] = createContextHook(() => {
   const [isOnboardingComplete, setIsOnboardingComplete] = useState<boolean>(false);
@@ -48,7 +53,7 @@ export const [OnboardingProvider, useOnboarding] = createContextHook(() => {
   // Dev-only: clear the flag so the onboarding flow re-appears on next render.
   const resetOnboarding = useCallback(async () => {
     try {
-      await AsyncStorage.removeItem(ONBOARDING_KEY);
+      await AsyncStorage.multiRemove(ONBOARDING_RESET_KEYS);
       setIsOnboardingComplete(false);
     } catch (error) {
       console.log('Error resetting onboarding status:', error);

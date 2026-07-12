@@ -160,6 +160,14 @@ function SponsorChatContent({ initialSponsor }: { initialSponsor: string }) {
 
   const { setLastSponsor } = useLastSponsor();
 
+  const exitChat = () => {
+    if (router.canGoBack()) {
+      router.back();
+    } else {
+      router.replace('/');
+    }
+  };
+
   useEffect(() => {
     const target = initialSponsor as SponsorType;
     if (target !== sponsorType) changeSponsor(target);
@@ -213,7 +221,7 @@ function SponsorChatContent({ initialSponsor }: { initialSponsor: string }) {
     return (
       <View style={styles.errorBox}>
         <Text style={styles.errorText}>Sponsor not found</Text>
-        <Pressable onPress={() => router.back()} style={styles.errorBtn}><Text style={styles.errorBtnText}>Go Back</Text></Pressable>
+        <Pressable onPress={exitChat} style={styles.errorBtn}><Text style={styles.errorBtnText}>Go Back</Text></Pressable>
       </View>
     );
   }
@@ -228,7 +236,7 @@ function SponsorChatContent({ initialSponsor }: { initialSponsor: string }) {
 
       {/* ── Header ── */}
       <View style={[styles.header, { paddingTop: insets.top + 6 }]}>
-        <BackButton onPress={() => router.back()} style={{ marginBottom: 10 }} />
+        <BackButton onPress={exitChat} style={{ marginBottom: 10 }} />
         <View style={styles.sponsorRow}>
           {/* The identity IS the switch affordance — tap the avatar/name (chevron
               cue) to open the sponsor menu (quick-switch + "Meet all three"). */}

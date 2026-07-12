@@ -39,6 +39,12 @@ export const SYNC_KEYS: string[] = [
   'sober_dailies_onboarding_complete',
 ];
 
+const LOCAL_RESET_KEYS: string[] = [
+  'today_edit_tip_pending',
+  'today_edit_tip_seen',
+  'aa-last-opened-sponsor',
+];
+
 export const BACKUP_SCHEMA_VERSION = 1;
 
 export type BackupSnapshot = {
@@ -93,5 +99,5 @@ export async function countStoredItems(): Promise<number> {
 // The app should reload afterward so every store re-initialises empty. Device-
 // local keys (anonymous_id, caches, entitlements) are untouched.
 export async function clearUserData(): Promise<void> {
-  await AsyncStorage.multiRemove(SYNC_KEYS);
+  await AsyncStorage.multiRemove([...SYNC_KEYS, ...LOCAL_RESET_KEYS]);
 }
