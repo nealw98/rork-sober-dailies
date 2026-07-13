@@ -66,7 +66,8 @@ function WelcomeStep({ onContinue }: { onContinue: () => void }) {
       <SafeAreaView style={styles.welcomeSafe} edges={['top', 'bottom']}>
         <View style={styles.welcomeCenter}>
           <Image source={require('@/assets/images/icon.png')} style={styles.welcomeLogo} contentFit="cover" />
-          <Text style={styles.welcomePromise}>Daily habits build long-term sobriety</Text>
+          <Text style={styles.welcomePromise}>The habits that build long-term sobriety</Text>
+          <Text style={styles.welcomeSubtitle}>One day. Every day.</Text>
         </View>
         <View style={styles.welcomeFooter}>
           <Pressable style={styles.welcomeBtn} onPress={onContinue}>
@@ -287,7 +288,14 @@ const makeStyles = (tk: Tokens) => {
     marginBottom: 34,
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.42)',
-    ...shadows.lg,
+    // Soft, ambient shadow — spreads fairly evenly around the icon with a gentle
+    // downward weight (large blur, small offset), so it floats without a heavy
+    // bottom-drop.
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 11 },
+    shadowOpacity: 0.4,
+    shadowRadius: 40,
+    elevation: 22,
   },
   welcomePromise: {
     fontFamily: fontFamily.displayBold,
@@ -296,9 +304,15 @@ const makeStyles = (tk: Tokens) => {
     color: '#fff',
     textAlign: 'center',
     letterSpacing: -0.5,
-    textShadowColor: 'rgba(0,0,0,0.18)',
-    textShadowOffset: { width: 0, height: 2 },
-    textShadowRadius: 12,
+  },
+  welcomeSubtitle: {
+    fontFamily: fontFamily.serifItalic,
+    fontSize: 18,
+    lineHeight: 24,
+    color: '#fff',
+    textAlign: 'center',
+    marginTop: 16,
+    opacity: 0.95,
   },
   welcomeFooter: { paddingBottom: 14 },
   welcomeBtn: {
