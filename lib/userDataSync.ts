@@ -4,9 +4,17 @@
 // (and later Supabase/Android) transport reuses the same serialize/restore.
 //
 // IMPORTANT: this is an explicit ALLOWLIST of user-created data — never "sync
-// everything". Device-local things (anonymous_id, caches, premium/entitlement
-// flags, dev flags) are deliberately excluded so they never travel.
+// everything". Device-local things (caches, premium/entitlement flags, dev
+// flags) are deliberately excluded so they never travel.
+//
+// The one intentional identity exception is `anonymous_id` (carried in the
+// snapshot's top-level `identity` field, NOT in `data`): it's what maps a device
+// to its server-side gift wallet, grandfather status, and synced data, so it
+// must follow the user across a reinstall / new device. It's SecureStore-backed,
+// so restore adopts it via adoptAnonymousId() rather than a plain AsyncStorage
+// write. See the Pass It On wallet-portability decision.
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { getAnonymousId, adoptAnonymousId } from './anonymousId';
 
 export const SYNC_KEYS: string[] = [
   // ── recovery data ──
@@ -37,6 +45,11 @@ export const SYNC_KEYS: string[] = [
   'meditation_settings',
   'sd-text-settings-v1',
   'sober_dailies_onboarding_complete',
+  // ── Pass It On ──
+  // Private, local-only gift notes ("who's this for"). The gift CODES live in
+  // Supabase and re-sync from the adopted identity, so they aren't backed up
+  // here; the notes exist only on-device and would otherwise be lost.
+  'gift_notes_v1',
 ];
 
 const LOCAL_RESET_KEYS: string[] = [
@@ -52,6 +65,7 @@ export type BackupSnapshot = {
   schemaVersion: number;
   exportedAt: number;
   data: Record<string, string>;
+  identity?: string; // anonymous_id — see the allowlist note above
 };
 
 // Read the given keys (default: all allowlisted) into a JSON backup string.
@@ -64,13 +78,15 @@ export async function serializeUserData(keys: string[] = SYNC_KEYS): Promise<str
     schemaVersion: BACKUP_SCHEMA_VERSION,
     exportedAt: Date.now(),
     data,
+    identity: await getAnonymousId(),
   };
   return JSON.stringify(snapshot);
 }
 
 // Restore a backup string into AsyncStorage (overwrites the allowlisted keys
 // present in the backup). Returns the count written. The app should reload after
-// so each store re-reads from storage.
+// so each store re-reads from storage — that reload is also what makes the
+// adopted identity take hold cleanly.
 export async function restoreUserData(json: string, allowed: string[] = SYNC_KEYS): Promise<number> {
   let snapshot: any;
   try {
@@ -81,10 +97,16 @@ export async function restoreUserData(json: string, allowed: string[] = SYNC_KEY
   if (!snapshot || snapshot.app !== 'sober-dailies' || typeof snapshot.data !== 'object') {
     throw new Error('That isn’t a Sober Dailies backup.');
   }
+  const hasIdentity = typeof snapshot.identity === 'string' && snapshot.identity.trim().length > 0;
   const entries = Object.entries(snapshot.data)
     .filter(([k, v]) => allowed.includes(k) && typeof v === 'string') as [string, string][];
-  if (entries.length === 0) throw new Error('The backup had no recognizable data.');
-  await AsyncStorage.multiSet(entries);
+  // A valid snapshot carries data in practice; guard only truly empty input.
+  if (entries.length === 0 && !hasIdentity) throw new Error('The backup had no recognizable data.');
+
+  // Adopt the identity FIRST so it's in place before the app reloads and starts
+  // re-fetching identity-scoped data (the gift wallet, grandfather status).
+  if (hasIdentity) await adoptAnonymousId(snapshot.identity);
+  if (entries.length) await AsyncStorage.multiSet(entries);
   return entries.length;
 }
 

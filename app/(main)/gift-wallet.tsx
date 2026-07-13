@@ -5,13 +5,13 @@
 // single action (the native share sheet includes Copy). Each available code also
 // carries an optional PRIVATE note — a local-only reminder of who it went to
 // (Neal's addition; never synced/shared). Running out is the success state.
-import React, { useRef, useState } from 'react';
+import React, { useCallback, useRef, useState } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity, Pressable, TextInput,
   Modal, KeyboardAvoidingView, Share, Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Stack, useRouter } from 'expo-router';
+import { Stack, useRouter, useFocusEffect } from 'expo-router';
 import { Share as ShareIcon, CircleCheck, HelpCircle } from 'lucide-react-native';
 import BackButton from '@/components/BackButton';
 import GiftGlyph from '@/components/GiftGlyph';
@@ -41,8 +41,8 @@ function MiniMedallion({ dim }: { dim?: boolean }) {
   );
 }
 
-function LedgerRow({ item, last, onShare, onEditNote, onDevRedeem }: {
-  item: GiftCode; last: boolean; onShare?: () => void; onEditNote?: () => void; onDevRedeem?: () => void;
+function LedgerRow({ item, last, onShare, onEditNote }: {
+  item: GiftCode; last: boolean; onShare?: () => void; onEditNote?: () => void;
 }) {
   const styles = useThemedStyles(makeStyles);
   const { c, colors } = useTokens();
@@ -51,11 +51,7 @@ function LedgerRow({ item, last, onShare, onEditNote, onDevRedeem }: {
     <View style={[styles.row, !last && styles.rowDivider, done && { opacity: 0.68 }]}>
       <MiniMedallion dim={done} />
       <View style={styles.rowBody}>
-        <Text
-          style={[styles.code, done && { color: c.textMuted }]}
-          numberOfLines={1}
-          onLongPress={__DEV__ && !done ? onDevRedeem : undefined}
-        >
+        <Text style={[styles.code, done && { color: c.textMuted }]} numberOfLines={1}>
           {item.code}
         </Text>
         {done ? (
@@ -128,7 +124,11 @@ export default function GiftWalletScreen() {
   const router = useRouter();
   const styles = useThemedStyles(makeStyles);
   const { c, colors } = useTokens();
-  const { codes, available, redeemed, totalCount, markRedeemed, setNote } = useGiftWallet();
+  const { codes, available, redeemed, totalCount, setNote, syncWallet } = useGiftWallet();
+
+  // Redeemed states flip on the recipient's device — refresh whenever this
+  // screen comes into focus so the giver sees "Redeemed" without restarting.
+  useFocusEffect(useCallback(() => { syncWallet(); }, [syncWallet]));
 
   const [editing, setEditing] = useState<GiftCode | null>(null);
   const [infoVisible, setInfoVisible] = useState(false);
@@ -229,7 +229,6 @@ export default function GiftWalletScreen() {
                       last={i === available.length - 1}
                       onShare={() => shareCode(item.code)}
                       onEditNote={() => setEditing(item)}
-                      onDevRedeem={() => markRedeemed(item.code)}
                     />
                   ))}
                 </View>

@@ -27,6 +27,10 @@ import { logEvent } from '@/lib/analytics';
 // photo heroes) — mode-aware rose is for tints and icons, not the fill.
 const ROSE_FILL = lightColors.rose;
 
+// Store name for billing copy — the gift consumables sell through each platform's
+// own store (App Store / Google Play).
+const STORE_NAME = Platform.OS === 'ios' ? 'the App Store' : 'Google Play';
+
 function SkuCard({ sku, price, on, onPick }: {
   sku: GiftSku; price: string; on: boolean; onPick: () => void;
 }) {
@@ -85,7 +89,7 @@ export default function PassItOnScreen() {
   const router = useRouter();
   const styles = useThemedStyles(makeStyles);
   const { c, colors } = useTokens();
-  const { mintCodes, availableCount } = useGiftWallet();
+  const { applyPurchase, mintLocalDev, availableCount } = useGiftWallet();
 
   const [pick, setPick] = useState(1);          // 5-pack preselected (decided design)
   const [products, setProducts] = useState<Record<string, PurchasesStoreProduct>>({});
@@ -113,38 +117,55 @@ export default function PassItOnScreen() {
     }
   };
 
-  const completePurchase = async (n: number) => {
-    // TODO(backend): POST /gifts/purchase with the receipt — server mints.
-    await mintCodes(n);
-    logEvent('gift_purchase_completed', { product_id: sku.productId, codes: n });
-    setBought(n);
-  };
-
   const buy = async () => {
     if (busy) return;
     if (product) {
       setBusy(true);
+      // 1) The native payment sheet. A cancel here is not an error.
       try {
         await Purchases.purchaseStoreProduct(product);
-        await completePurchase(sku.n);
       } catch (e: any) {
         if (!e?.userCancelled) {
           console.error('[Gifts] Purchase error:', e);
           Alert.alert('Purchase didn’t go through', e?.message || 'Please try again.');
         }
+        setBusy(false);
+        return;
+      }
+      // 2) The purchase succeeded — verify it server-side and mint the codes.
+      //    Minting is idempotent, so if RC hasn't propagated the transaction
+      //    yet the wallet's next sync (or a re-tap) picks the codes up.
+      try {
+        await applyPurchase(sku.productId);
+        logEvent('gift_purchase_completed', { product_id: sku.productId, codes: sku.n });
+        setBought(sku.n);
+      } catch (e: any) {
+        console.error('[Gifts] Mint error after purchase:', e);
+        Alert.alert(
+          'Almost there',
+          'Your purchase went through. We couldn’t add the codes just yet — open your wallet in a moment and they’ll appear.',
+        );
       } finally {
         setBusy(false);
       }
       return;
     }
     if (__DEV__ || Platform.OS === 'web') {
-      // Store products aren't live yet (RC offering pending) — test the flow.
+      // Store products aren't resolving (no sandbox / web) — seed local codes so
+      // the wallet UI is testable. These never touch the server.
       Alert.alert(
         'Test purchase',
-        `The App Store products aren’t live yet. Mint ${sku.n === 1 ? '1 test code' : `${sku.n} test codes`} locally?`,
+        `The store products aren’t resolving here. Seed ${sku.n === 1 ? '1 test code' : `${sku.n} test codes`} locally?`,
         [
           { text: 'Cancel', style: 'cancel' },
-          { text: 'Mint codes', onPress: () => { completePurchase(sku.n); } },
+          {
+            text: 'Seed codes',
+            onPress: async () => {
+              await mintLocalDev(sku.n);
+              logEvent('gift_purchase_completed', { product_id: sku.productId, codes: sku.n, dev: true });
+              setBought(sku.n);
+            },
+          },
         ],
       );
       return;
@@ -227,7 +248,7 @@ export default function PassItOnScreen() {
             {busy ? 'One moment…' : `Give ${sku.n === 1 ? 'a gift' : `${sku.n} gifts`} · ${priceFor(sku)}`}
           </Text>
         </TouchableOpacity>
-        <Text style={styles.billedNote}>Billed once through the App Store</Text>
+        <Text style={styles.billedNote}>Billed once through {STORE_NAME}</Text>
       </ScrollView>
 
       {bought != null && (

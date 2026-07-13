@@ -18,7 +18,7 @@ import { KeyboardModalScope } from '@/components/KeyboardModalScope';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router, Stack, type Href } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
-import { ChevronRight, X, Code2, RefreshCw } from 'lucide-react-native';
+import { ChevronRight, X, Code2, RefreshCw, Ticket } from 'lucide-react-native';
 import {
   fontFamily,
   shadows,
@@ -427,13 +427,13 @@ export default function SettingsScreen() {
         )}
 
         {/* Pass It On — gift codes (Pass It On Handoff 2). The give row is the
-            permanent entry; the wallet row appears once codes exist. Redeem
-            deliberately does NOT live here — it belongs to the paywall. */}
+            permanent giver entry; the wallet row appears once codes exist. The
+            "Have a code?" redeem row is the recipient entry — it lives here for
+            now (the RC paywall that will also host it is deferred). */}
         <CardGroup label="Pass It On">
           <CardRow
             label="Give Sober Dailies"
             sub="3 months for a sponsee or newcomer"
-            last={!hasEverBought}
             icon={
               <View style={styles.giftIconSquare}>
                 <GiftGlyph size={19} color={colors.roseDark} />
@@ -446,7 +446,6 @@ export default function SettingsScreen() {
               label="Gifts to give"
               value={`${availableCount} left`}
               valueColor={colors.roseDark}
-              last
               icon={
                 <View style={styles.giftIconSquare}>
                   <GiftGlyph size={19} color={colors.roseDark} />
@@ -455,6 +454,17 @@ export default function SettingsScreen() {
               onPress={() => router.push('/(main)/gift-wallet' as Href)}
             />
           )}
+          <CardRow
+            label="Have a code?"
+            sub="Redeem a gift someone gave you"
+            last
+            icon={
+              <View style={styles.giftIconSquare}>
+                <Ticket size={19} color={colors.roseDark} strokeWidth={2} />
+              </View>
+            }
+            onPress={() => router.push('/(main)/redeem' as Href)}
+          />
         </CardGroup>
 
         {/* Support Sober Dailies */}

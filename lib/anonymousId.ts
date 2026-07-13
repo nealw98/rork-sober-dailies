@@ -63,3 +63,23 @@ export async function getAnonymousId(): Promise<string> {
 export function getAnonymousIdSync(): string | null {
   return cachedId;
 }
+
+/**
+ * Adopt an anonymous ID carried in a restored backup (iCloud/Drive/manual), so
+ * the user's identity — and therefore their gift wallet, grandfather status,
+ * and synced data — follows them to a new device or survives a reinstall.
+ *
+ * getAnonymousId() reads SecureStore FIRST, so a restore that only wrote the
+ * AsyncStorage mirror would be ignored. This writes SecureStore (the winner),
+ * refreshes the mirror, and updates the in-memory cache. The app reloads after
+ * a restore, so the reloaded session reads the adopted ID cleanly.
+ *
+ * No-ops on an empty/blank value or if it already matches the current ID.
+ */
+export async function adoptAnonymousId(id: string): Promise<void> {
+  const next = (id || '').trim();
+  if (!next || next === cachedId) return;
+  cachedId = next;
+  await SecureStore.setItemAsync(ANONYMOUS_ID_KEY, next).catch(() => {});
+  await AsyncStorage.setItem(LEGACY_ASYNC_KEY, next).catch(() => {});
+}

@@ -1,17 +1,23 @@
 // Pass It On — the giver's gift-code wallet (Pass It On Handoff 2).
 //
-// Local-first for this sprint: codes live in AsyncStorage on this device,
-// anchored conceptually to the same anonymous identity as everything else.
-// When the backend gift service exists (gift_codes table + mint/wallet/redeem
-// endpoints), `mintCodes` becomes "POST /gifts/purchase with the receipt" and
-// `reload` becomes "GET /gifts/wallet" — the shape below is the wire shape.
+// SERVER-AUTHORITATIVE. Codes are minted server-side after a verified purchase
+// (lib/giftService → gifts-purchase) and their redeemed state flips on the
+// RECIPIENT's device, so this device can only ever mirror what the backend
+// reports. We keep a local cache of the last-known wallet (AsyncStorage) purely
+// for instant/offline first paint; `syncWallet()` refreshes it from the server
+// and only overwrites when the server actually answers (a network error leaves
+// the cache intact rather than blanking the wallet).
 //
-// Deliberate product constraints (spec §6.2/§9): exactly TWO states —
-// available | redeemed. No "sent/given" state, no notes, no share tracking.
-// The counter is cumulative: available-of-all-ever-purchased, never batches.
+// Notes are the one local-only, never-synced field (spec §6.2 reversed by Neal —
+// a private "who's this for" reminder). They live in a separate AsyncStorage map
+// keyed by code and are merged onto the server rows for display.
+//
+// Two code states only (spec §6.2/§9): available | redeemed. No "sent/given",
+// no share tracking. The counter is cumulative: available-of-all-ever-purchased.
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import createContextHook from '@nkzw/create-context-hook';
+import { fetchGiftWallet, purchaseGiftCodes, type WalletCode } from '@/lib/giftService';
 
 export type GiftCodeStatus = 'available' | 'redeemed';
 
@@ -19,82 +25,102 @@ export interface GiftCode {
   code: string;                 // SD-XXXX-XXXX
   status: GiftCodeStatus;
   purchasedAt: string;          // ISO — when the code was minted
-  redeemedAt?: string;          // ISO — set exactly once, server-side later
+  redeemedAt?: string;          // ISO — set exactly once, server-side
   note?: string;                // private, local-only — who the giver gave it to
 }
 
-const STORAGE_KEY = 'gift_wallet_v1';
+const WALLET_CACHE_KEY = 'gift_wallet_v1'; // mirror of the server wallet
+const NOTES_KEY = 'gift_notes_v1';         // local-only { [code]: note }
 
-// No 0/O/1/I/L — codes get read aloud at meetings (spec / handoff Phase 3).
+// No 0/O/1/I/L — dev-only local codes read like the real ones for UI testing.
 const CODE_CHARS = 'ABCDEFGHJKMNPQRSTVWXYZ23456789';
-
 const randomBlock = (): string =>
   Array.from({ length: 4 }, () => CODE_CHARS[Math.floor(Math.random() * CODE_CHARS.length)]).join('');
-
-const generateCode = (): string => `SD-${randomBlock()}-${randomBlock()}`;
+const devCode = (): string => `SD-${randomBlock()}-${randomBlock()}`;
 
 export const [GiftWalletProvider, useGiftWallet] = createContextHook(() => {
-  const [codes, setCodes] = useState<GiftCode[]>([]);
+  const [serverCodes, setServerCodes] = useState<WalletCode[]>([]);
+  const [notes, setNotes] = useState<Record<string, string>>({});
   const [isLoading, setIsLoading] = useState(true);
+
+  const cacheWallet = useCallback(async (wallet: WalletCode[]) => {
+    setServerCodes(wallet);
+    try {
+      await AsyncStorage.setItem(WALLET_CACHE_KEY, JSON.stringify(wallet));
+    } catch (e) {
+      console.error('[GiftWallet] Failed to cache wallet:', e);
+    }
+  }, []);
+
+  // Pull the authoritative wallet. Returns silently on failure so a blip never
+  // blanks the cached wallet (fetchGiftWallet returns null when the server
+  // didn't answer with a wallet).
+  const syncWallet = useCallback(async () => {
+    const wallet = await fetchGiftWallet();
+    if (wallet) await cacheWallet(wallet);
+  }, [cacheWallet]);
 
   useEffect(() => {
     (async () => {
       try {
-        const stored = await AsyncStorage.getItem(STORAGE_KEY);
-        if (stored) setCodes(JSON.parse(stored));
+        const [cached, storedNotes] = await Promise.all([
+          AsyncStorage.getItem(WALLET_CACHE_KEY),
+          AsyncStorage.getItem(NOTES_KEY),
+        ]);
+        if (cached) setServerCodes(JSON.parse(cached));
+        if (storedNotes) setNotes(JSON.parse(storedNotes));
       } catch (e) {
-        console.error('[GiftWallet] Failed to load wallet:', e);
+        console.error('[GiftWallet] Failed to load wallet cache:', e);
       } finally {
         setIsLoading(false);
       }
+      syncWallet(); // fire-and-forget server refresh
     })();
-  }, []);
+  }, [syncWallet]);
 
-  const persist = useCallback(async (next: GiftCode[]) => {
-    setCodes(next);
-    try {
-      await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(next));
-    } catch (e) {
-      console.error('[GiftWallet] Failed to persist wallet:', e);
-    }
-  }, []);
+  // Called by the purchase screen after a real store purchase completes. Hits
+  // gifts-purchase (verifies the receipt with RC, mints server-side) and adopts
+  // the returned wallet. Throws on failure so the caller can show an error.
+  const applyPurchase = useCallback(async (productId: string): Promise<WalletCode[]> => {
+    const wallet = await purchaseGiftCodes(productId);
+    await cacheWallet(wallet);
+    return wallet;
+  }, [cacheWallet]);
 
-  // Mint n fresh codes into the wallet (newest first, matching the design's
-  // ledger order). Locally generated until the backend mints from the receipt.
-  const mintCodes = useCallback(async (n: number): Promise<GiftCode[]> => {
-    const existing = new Set(codes.map((c) => c.code));
-    const fresh: GiftCode[] = [];
+  // __DEV__ only: seed local codes so the wallet UI is testable before the
+  // backend is reachable / without a sandbox purchase. Never hits the server;
+  // a successful syncWallet() will replace these with the real wallet.
+  const mintLocalDev = useCallback(async (n: number): Promise<void> => {
+    const existing = new Set(serverCodes.map((c) => c.code));
+    const fresh: WalletCode[] = [];
     while (fresh.length < n) {
-      const code = generateCode();
+      const code = devCode();
       if (!existing.has(code)) {
         existing.add(code);
         fresh.push({ code, status: 'available', purchasedAt: new Date().toISOString() });
       }
     }
-    await persist([...fresh, ...codes]);
-    return fresh;
-  }, [codes, persist]);
+    await cacheWallet([...fresh, ...serverCodes]);
+  }, [serverCodes, cacheWallet]);
 
-  // Dev/QA helper — redemption is server-side in real life; this lets the
-  // wallet's Received group be exercised before the backend exists.
-  const markRedeemed = useCallback(async (code: string) => {
-    await persist(codes.map((c) =>
-      c.code === code && c.status === 'available'
-        ? { ...c, status: 'redeemed' as const, redeemedAt: new Date().toISOString() }
-        : c
-    ));
-  }, [codes, persist]);
-
-  // A private, local-only reminder of who a code went to (spec §6.2 originally
-  // said "no notes"; Neal reversed that — it's a personal memory aid, never
-  // synced or shared). Empty string clears it.
+  // Private, local-only reminder of who a code went to. Empty string clears it.
   const setNote = useCallback(async (code: string, note: string) => {
     const trimmed = note.trim();
-    await persist(codes.map((c) =>
-      c.code === code ? { ...c, note: trimmed.length ? trimmed : undefined } : c
-    ));
-  }, [codes, persist]);
+    setNotes((prev) => {
+      const next = { ...prev };
+      if (trimmed.length) next[code] = trimmed;
+      else delete next[code];
+      AsyncStorage.setItem(NOTES_KEY, JSON.stringify(next)).catch((e) =>
+        console.error('[GiftWallet] Failed to persist notes:', e),
+      );
+      return next;
+    });
+  }, []);
 
+  const codes = useMemo<GiftCode[]>(
+    () => serverCodes.map((c) => ({ ...c, note: notes[c.code] })),
+    [serverCodes, notes],
+  );
   const available = useMemo(() => codes.filter((c) => c.status === 'available'), [codes]);
   const redeemed = useMemo(() => codes.filter((c) => c.status === 'redeemed'), [codes]);
 
@@ -106,8 +132,9 @@ export const [GiftWalletProvider, useGiftWallet] = createContextHook(() => {
     availableCount: available.length,
     totalCount: codes.length,
     hasEverBought: codes.length > 0,
-    mintCodes,
-    markRedeemed,
+    syncWallet,
+    applyPurchase,
+    mintLocalDev,
     setNote,
-  }), [isLoading, codes, available, redeemed, mintCodes, markRedeemed, setNote]);
+  }), [isLoading, codes, available, redeemed, syncWallet, applyPurchase, mintLocalDev, setNote]);
 });
