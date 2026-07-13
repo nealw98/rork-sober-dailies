@@ -6,7 +6,14 @@
 import { createClient, SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 export const ENTITLEMENT_ID = 'premium';
-export const GIFT_ENTITLEMENT_DURATION = 'three_month'; // RC promotional duration
+// RC promotional duration a redeemed gift grants. Defaults to the real 3 months;
+// override with the GIFT_ENTITLEMENT_DURATION secret for lifecycle testing
+// (e.g. 'daily' = 24h) without a code change:
+//   supabase secrets set GIFT_ENTITLEMENT_DURATION=daily   # test
+//   supabase secrets unset GIFT_ENTITLEMENT_DURATION       # back to 3 months
+// Valid values: daily | three_day | weekly | monthly | two_month | three_month
+//               | six_month | yearly | lifetime.
+export const GIFT_ENTITLEMENT_DURATION = Deno.env.get('GIFT_ENTITLEMENT_DURATION') ?? 'three_month';
 export const REVENUECAT_API_URL = 'https://api.revenuecat.com/v1';
 
 // Server-side source of truth for how many codes each SKU mints. Mirrors

@@ -105,6 +105,17 @@ const queryClient = new QueryClient();
 // grandfather check are network calls); it resolves in the background instead.
 const PAYWALL_ENABLED = false;
 
+// RevenueCat's remote paywall is a NATIVE view (react-native-purchases-ui).
+// Defensively require it so a binary without the module (or an OTA onto such a
+// build) falls back to the custom PaywallScreen instead of crashing at import —
+// same guard pattern as lib/cloudSync.ts. Only ever rendered when PAYWALL_ENABLED.
+let RevenueCatUI: any = null;
+try {
+  RevenueCatUI = require('react-native-purchases-ui').default ?? require('react-native-purchases-ui');
+} catch {
+  RevenueCatUI = null;
+}
+
 
 // Global flag to track if splash screen has been hidden
 let splashHidden = false;
@@ -128,7 +139,7 @@ function RootLayoutNav() {
   const { isOnboardingComplete, isLoading } = useOnboarding();
   const { showSnackbar, dismissSnackbar, restartApp } = useOTAUpdates();
   const { showBirthdayModal, closeBirthdayModal } = useSobrietyBirthday();
-  const { isLoading: isSubscriptionLoading, isPremium } = useSubscription();
+  const { isLoading: isSubscriptionLoading, isPremium, offerings, refresh } = useSubscription();
   const [fontsLoaded] = useFonts({
     Inter_400Regular,
     Inter_400Regular_Italic,
@@ -242,6 +253,21 @@ function RootLayoutNav() {
   }
 
   if (PAYWALL_ENABLED && !isPremium && !paywallDismissed) {
+    // Prefer RevenueCat's remote "Sober Dailies" paywall on the `default`
+    // offering; on a purchase/restore, refresh entitlement so isPremium flips
+    // and this gate falls through to the app. Fall back to the custom screen if
+    // the native module or the offering isn't available.
+    const paywallOffering = offerings?.all?.['default'] ?? offerings?.current ?? null;
+    if (RevenueCatUI?.Paywall && paywallOffering) {
+      return (
+        <RevenueCatUI.Paywall
+          style={{ flex: 1 }}
+          options={{ offering: paywallOffering }}
+          onPurchaseCompleted={() => { refresh(); }}
+          onRestoreCompleted={() => { refresh(); }}
+        />
+      );
+    }
     return <PaywallScreen onDismiss={__DEV__ ? () => setPaywallDismissed(true) : undefined} />;
   }
 
