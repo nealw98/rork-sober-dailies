@@ -258,17 +258,36 @@ function RootLayoutNav() {
     // and this gate falls through to the app. Fall back to the custom screen if
     // the native module or the offering isn't available.
     const paywallOffering = offerings?.all?.['default'] ?? offerings?.current ?? null;
-    if (RevenueCatUI?.Paywall && paywallOffering) {
+    const paywallNode = (RevenueCatUI?.Paywall && paywallOffering) ? (
+      <RevenueCatUI.Paywall
+        style={{ flex: 1 }}
+        options={{ offering: paywallOffering, displayCloseButton: __DEV__ }}
+        onPurchaseCompleted={() => { refresh(); }}
+        onRestoreCompleted={() => { refresh(); }}
+        onDismiss={__DEV__ ? () => setPaywallDismissed(true) : undefined}
+      />
+    ) : (
+      <PaywallScreen onDismiss={__DEV__ ? () => setPaywallDismissed(true) : undefined} />
+    );
+    // __DEV__ ONLY: a guaranteed RN overlay to skip the wall in the
+    // simulator/emulator, where a purchase can't complete and the paywall's own
+    // close button may not render. Bundled out of production (__DEV__ === false),
+    // so real testers/users never see it and the wall stays hard.
+    if (__DEV__) {
       return (
-        <RevenueCatUI.Paywall
-          style={{ flex: 1 }}
-          options={{ offering: paywallOffering }}
-          onPurchaseCompleted={() => { refresh(); }}
-          onRestoreCompleted={() => { refresh(); }}
-        />
+        <View style={{ flex: 1 }}>
+          {paywallNode}
+          <TouchableOpacity
+            onPress={() => setPaywallDismissed(true)}
+            style={styles.devSkipPaywall}
+            activeOpacity={0.8}
+          >
+            <Text style={styles.devSkipPaywallText}>DEV · Skip ✕</Text>
+          </TouchableOpacity>
+        </View>
       );
     }
-    return <PaywallScreen onDismiss={__DEV__ ? () => setPaywallDismissed(true) : undefined} />;
+    return paywallNode;
   }
 
   return (
@@ -338,6 +357,25 @@ function RootLayoutNav() {
 }
 
 const styles = StyleSheet.create({
+  // __DEV__ overlay to bypass the paywall in the sim/emulator (see the gate).
+  devSkipPaywall: {
+    position: 'absolute',
+    top: 56,
+    right: 14,
+    zIndex: 9999,
+    elevation: 24,
+    backgroundColor: 'rgba(0,0,0,0.82)',
+    paddingVertical: 9,
+    paddingHorizontal: 15,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.55)',
+  },
+  devSkipPaywallText: {
+    color: '#fff',
+    fontSize: 13,
+    fontWeight: '700',
+  },
   backButton: {
     flexDirection: 'row',
     alignItems: 'center',
