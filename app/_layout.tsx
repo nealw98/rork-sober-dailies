@@ -99,11 +99,11 @@ SplashScreen.preventAutoHideAsync().catch(() => {
 
 const queryClient = new QueryClient();
 
-// Entire app is subscription-only after onboarding.
-// PAYWALL TEMPORARILY DISABLED for preview builds — flip back to true to re-enable.
-// While disabled, launch does NOT wait on the subscription load (RevenueCat +
-// grandfather check are network calls); it resolves in the background instead.
-const PAYWALL_ENABLED = false;
+// Entire app is subscription-only after onboarding. ENABLED for 3.0.7 testing —
+// renders the RevenueCat "Sober Dailies" paywall on the `default` offering (see
+// the gate below); flip to false to disable. When enabled, launch waits on the
+// subscription load (RevenueCat + grandfather check) before the gate resolves.
+const PAYWALL_ENABLED = true;
 
 // RevenueCat's remote paywall is a NATIVE view (react-native-purchases-ui).
 // Defensively require it so a binary without the module (or an OTA onto such a
