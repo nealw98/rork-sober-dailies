@@ -24,7 +24,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Bell, Check, Lock, RefreshCw, Star, X } from 'lucide-react-native';
+import { Bell, Check, Lock, MessageCircle, RefreshCw, SlidersHorizontal, Star, TrendingUp, Wrench, X } from 'lucide-react-native';
 import { type PurchasesPackage } from 'react-native-purchases';
 import { useSubscription } from '@/hooks/useSubscription';
 import { redeemGiftCode, type RedeemReason } from '@/lib/giftService';
@@ -39,18 +39,15 @@ const PRIVACY_URL = 'https://soberdailies.com/privacy';
 const RAIL_GREEN = '#86CBA6';
 const RAIL_TEAL = '#74C7D3';
 const RAIL_LAV = '#BCB3EA';
-const CIRCLE = 56;       // timeline bead diameter
-const RAIL_WIDTH = 38;   // rail runs behind the beads
-const RAIL_FADE = 80;    // extra length past the last bead center, fading out below the star
+const CIRCLE = 48;       // timeline bead diameter
+const RAIL_WIDTH = 32;   // rail runs behind the beads
+const RAIL_FADE = 72;    // extra length past the last bead center, fading out below the star
+const CARD_PAD_H = 20;   // timeline card horizontal padding (rail left aligns to this)
+const TILE = 48;         // no-trial benefit icon circle (matches the trial bead)
+const BENEFIT_FADE = 56; // rail length past the last tile center, fading out
 
-// Shown in the no-trial (ineligible) view in place of the trial timeline.
-const BENEFITS = [
-  'Daily reflections & gratitude journal',
-  'Big Book & Twelve & Twelve reader',
-  'AI Sponsor conversations',
-  'Speaker tapes & guided meditations',
-  'Evening review & spot-check inventory',
-];
+// Soft rail colors for the no-trial card, each pinned to its tile's family.
+const BENEFIT_RAIL = ['#7BC5BE', '#A9B8D9', '#BCB3EA', '#E3A9B1'];
 
 // ── helpers ──────────────────────────────────────────────────────────────
 const isYearlyPkg = (p: PurchasesPackage) => {
@@ -104,6 +101,7 @@ export default function PaywallScreen({ onDismiss, preview, forceTrial }: Paywal
   // Measured top of each timeline row (relative to the card) so the continuous
   // gradient rail can be positioned to pass through the circle centers exactly.
   const [rowY, setRowY] = useState<number[]>([]);
+  const [benefitY, setBenefitY] = useState<number[]>([]); // same, for the no-trial tiles
 
   const offering = offerings?.all?.['default'] ?? offerings?.current ?? null;
   const packages = offering?.availablePackages ?? [];
@@ -126,24 +124,53 @@ export default function PaywallScreen({ onDismiss, preview, forceTrial }: Paywal
   const STEPS = [
     {
       key: 'today',
-      icon: <Lock size={23} color="#2E7A5F" strokeWidth={2.2} />,
+      icon: <Lock size={19} color="#2E7A5F" strokeWidth={2.2} />,
       ring: RAIL_GREEN,
       title: 'Today',
       body: 'Everything unlocks — your dailies, literature, speaker tapes, your AI sponsor, and more.',
     },
     {
       key: 'day5',
-      icon: <Bell size={22} color={colors.primaryDark} strokeWidth={2} fill={colors.primaryDark} />,
+      icon: <Bell size={18} color={colors.primaryDark} strokeWidth={2} fill={colors.primaryDark} />,
       ring: RAIL_TEAL,
       title: 'Day 5',
       body: "We'll notify you that your trial is ending soon.",
     },
     {
       key: 'day7',
-      icon: <Star size={22} color={colors.primary} strokeWidth={2} fill={colors.primary} />,
+      icon: <Star size={18} color={colors.primary} strokeWidth={2} fill={colors.primary} />,
       ring: RAIL_LAV,
       title: 'Day 7',
       body: 'Your subscription starts. Cancel before then and you pay nothing.',
+    },
+  ];
+
+  // No-trial (ineligible) view — emotional value props. Icons match the trial
+  // beads: white circle, bold colored ring (BENEFIT_RAIL[i]), solid glyph.
+  const BENEFITS = [
+    {
+      key: 'fits',
+      icon: <SlidersHorizontal size={20} color={colors.primary} strokeWidth={2} fill={colors.primary} />,
+      title: 'A practice that fits your life',
+      body: 'Choose the reflections, prayers, and daily actions that fit your program.',
+    },
+    {
+      key: 'tool',
+      icon: <Wrench size={19} color={colors.steelDark} strokeWidth={2} fill={colors.steelDark} />,
+      title: 'The right tool at every step',
+      body: 'Each daily action is paired with the tool that supports it — right where you need it.',
+    },
+    {
+      key: 'sponsor',
+      icon: <MessageCircle size={20} color={colors.tertiary} strokeWidth={2} fill={colors.tertiary} />,
+      title: 'Never alone, day or night',
+      body: 'An AI sponsor is there to talk it through — guidance and encouragement whenever you reach for it.',
+    },
+    {
+      key: 'progress',
+      icon: <TrendingUp size={21} color={colors.roseDark} strokeWidth={2.5} />,
+      title: 'See your progress add up',
+      body: 'Check off each action and watch your consistency grow, day by day.',
     },
   ];
 
@@ -184,26 +211,53 @@ export default function PaywallScreen({ onDismiss, preview, forceTrial }: Paywal
   return (
     <SafeAreaView style={styles.screen} edges={['top', 'bottom']}>
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
-        {(preview || __DEV__) && onDismiss && (
-          <Pressable style={styles.close} onPress={onDismiss} hitSlop={10}>
-            <X size={24} color={c.textMuted} strokeWidth={2} />
-          </Pressable>
-        )}
+        {/* Header — close (dev/preview) on the right */}
+        <View style={styles.header}>
+          <View style={styles.flex} />
+          {(preview || __DEV__) && onDismiss && (
+            <Pressable style={styles.close} onPress={onDismiss} hitSlop={10}>
+              <X size={24} color={c.textMuted} strokeWidth={2} />
+            </Pressable>
+          )}
+        </View>
 
-        <Text style={styles.title}>{showTrial ? 'Your first week is free' : 'Unlock everything'}</Text>
+        <Text style={styles.title}>{showTrial ? 'Your first week is free' : 'Start your journey'}</Text>
         <Text style={styles.subtitle}>
           {showTrial
             ? 'Your program is set up and waiting. Start the trial to open it.'
-            : 'Get full access to every tool in Sober Dailies.'}
+            : 'Recovery is built one day at a time — through the practices you return to every day.'}
         </Text>
 
-        {/* No-trial (ineligible) view — benefits list instead of the trial timeline */}
+        {/* No-trial (ineligible) view — emotional value props with tinted icon tiles */}
         {!showTrial && (
           <View style={styles.benefits}>
-            {BENEFITS.map((b) => (
-              <View key={b} style={styles.benefitRow}>
-                <View style={styles.benefitCheck}><Check size={13} color="#fff" strokeWidth={3} /></View>
-                <Text style={styles.benefitText}>{b}</Text>
+            {benefitY[0] != null && benefitY[1] != null && benefitY[2] != null && benefitY[3] != null && (() => {
+              const height = benefitY[3] - benefitY[0] + BENEFIT_FADE;
+              return (
+                <LinearGradient
+                  colors={[BENEFIT_RAIL[0], BENEFIT_RAIL[1], BENEFIT_RAIL[2], BENEFIT_RAIL[3], 'rgba(227,169,177,0)']}
+                  locations={[0, (benefitY[1] - benefitY[0]) / height, (benefitY[2] - benefitY[0]) / height, (benefitY[3] - benefitY[0]) / height, 1]}
+                  start={{ x: 0.5, y: 0 }}
+                  end={{ x: 0.5, y: 1 }}
+                  pointerEvents="none"
+                  style={[styles.benefitRail, { top: benefitY[0] + TILE / 2, height }]}
+                />
+              );
+            })()}
+            {BENEFITS.map((b, i) => (
+              <View
+                key={b.key}
+                style={styles.benefitRow}
+                onLayout={(e) => {
+                  const y = e.nativeEvent.layout.y;
+                  setBenefitY((prev) => (prev[i] === y ? prev : Object.assign([...prev], { [i]: y })));
+                }}
+              >
+                <View style={[styles.benefitTile, { borderColor: BENEFIT_RAIL[i] }]}>{b.icon}</View>
+                <View style={styles.flex}>
+                  <Text style={styles.benefitTitle}>{b.title}</Text>
+                  <Text style={styles.benefitBody}>{b.body}</Text>
+                </View>
               </View>
             ))}
           </View>
@@ -298,6 +352,13 @@ export default function PaywallScreen({ onDismiss, preview, forceTrial }: Paywal
         <Pressable style={[styles.cta, (!chosen || processing) && styles.ctaDisabled]} onPress={buy} disabled={!chosen || processing}>
           {busy ? <ActivityIndicator color="#fff" /> : <Text style={styles.ctaText}>{showTrial ? 'Start my free week' : 'Subscribe'}</Text>}
         </Pressable>
+
+        {/* Billing disclosure — no-trial only (the trial timeline already explains billing) */}
+        {!showTrial && !!chosen && (
+          <Text style={styles.billing}>
+            Billed {chosen.product.priceString}/{selected === 'yearly' ? 'year' : 'month'}. Cancel anytime in Settings.
+          </Text>
+        )}
 
         {/* Have a code? */}
         <Pressable onPress={() => setShowRedeem(true)} style={styles.haveCode} hitSlop={8}>
@@ -407,28 +468,32 @@ const makeStyles = (tk: Tokens) => {
   const darkCard = isDark ? { borderColor: 'rgba(255,255,255,0.06)', borderTopColor: 'rgba(255,255,255,0.12)' } : null;
   return StyleSheet.create({
     screen: { flex: 1, backgroundColor: c.background },
-    scroll: { paddingHorizontal: 24, paddingTop: 20, paddingBottom: 28 },
-    close: { alignSelf: 'flex-end', width: 32, height: 32, alignItems: 'center', justifyContent: 'center', marginBottom: 4 },
+    flex: { flex: 1 },
+    scroll: { paddingHorizontal: 26, paddingTop: 20, paddingBottom: 36 },
+    header: { flexDirection: 'row', alignItems: 'center' },
+    close: { width: 32, height: 32, alignItems: 'center', justifyContent: 'center' },
 
-    title: { fontFamily: fontFamily.displayBold, fontSize: 40, lineHeight: 44, letterSpacing: -1, color: c.text },
-    subtitle: { fontFamily: fontFamily.regularItalic, fontSize: 18, lineHeight: 25, color: c.textSecondary, marginTop: 14 },
+    title: { fontFamily: fontFamily.displayBold, fontSize: 32, lineHeight: 36, letterSpacing: -0.8, color: c.text },
+    subtitle: { fontFamily: fontFamily.serifItalic, fontSize: 16, lineHeight: 23, color: c.textSecondary, marginTop: 10 },
 
     // timeline card
-    timeline: { position: 'relative', overflow: 'hidden', marginTop: 26, backgroundColor: c.surface, borderRadius: 24, borderWidth: 1, borderColor: c.border, paddingVertical: 24, paddingHorizontal: 22, ...shadows.sm, ...darkCard },
-    rail: { position: 'absolute', left: 22 + CIRCLE / 2 - RAIL_WIDTH / 2, width: RAIL_WIDTH, borderTopLeftRadius: RAIL_WIDTH / 2, borderTopRightRadius: RAIL_WIDTH / 2, zIndex: 0 },
-    step: { flexDirection: 'row', gap: 16 },
-    stepGap: { marginBottom: 20 },
+    timeline: { position: 'relative', overflow: 'hidden', marginTop: 30, backgroundColor: c.surface, borderRadius: 22, borderWidth: 1, borderColor: c.border, paddingVertical: 22, paddingHorizontal: CARD_PAD_H, ...shadows.sm, ...darkCard },
+    rail: { position: 'absolute', left: CARD_PAD_H + CIRCLE / 2 - RAIL_WIDTH / 2, width: RAIL_WIDTH, borderTopLeftRadius: RAIL_WIDTH / 2, borderTopRightRadius: RAIL_WIDTH / 2, zIndex: 0 },
+    step: { flexDirection: 'row', gap: 15 },
+    stepGap: { marginBottom: 22 },
     iconCol: { width: CIRCLE, alignItems: 'center' },
-    circle: { width: CIRCLE, height: CIRCLE, borderRadius: CIRCLE / 2, borderWidth: 4, backgroundColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center', zIndex: 2, ...shadows.sm },
-    stepText: { flex: 1, paddingTop: 13 },
-    stepTitle: { fontFamily: fontFamily.displayBold, fontSize: 21, letterSpacing: -0.3, color: c.text },
-    stepBody: { fontFamily: fontFamily.regular, fontSize: 15.5, lineHeight: 22, color: c.textSecondary, marginTop: 4 },
+    circle: { width: CIRCLE, height: CIRCLE, borderRadius: CIRCLE / 2, borderWidth: 3, backgroundColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center', zIndex: 2, ...shadows.sm },
+    stepText: { flex: 1, paddingTop: 10 },
+    stepTitle: { fontFamily: fontFamily.displayBold, fontSize: 18, letterSpacing: -0.2, color: c.text },
+    stepBody: { fontFamily: fontFamily.regular, fontSize: 14, lineHeight: 20, color: c.textSecondary, marginTop: 3 },
 
-    // no-trial benefits list
-    benefits: { marginTop: 26, backgroundColor: c.surface, borderRadius: 24, borderWidth: 1, borderColor: c.border, paddingVertical: 20, paddingHorizontal: 20, gap: 16, ...shadows.sm, ...darkCard },
-    benefitRow: { flexDirection: 'row', alignItems: 'center', gap: 13 },
-    benefitCheck: { width: 24, height: 24, borderRadius: 12, backgroundColor: colors.primary, alignItems: 'center', justifyContent: 'center' },
-    benefitText: { flex: 1, fontFamily: fontFamily.medium, fontSize: 15.5, lineHeight: 21, color: c.text },
+    // no-trial benefits — tinted icon tiles inside the same card as the trial timeline
+    benefits: { position: 'relative', overflow: 'hidden', marginTop: 30, backgroundColor: c.surface, borderRadius: 22, borderWidth: 1, borderColor: c.border, paddingVertical: 22, paddingHorizontal: CARD_PAD_H, gap: 20, ...shadows.sm, ...darkCard },
+    benefitRail: { position: 'absolute', left: CARD_PAD_H + TILE / 2 - RAIL_WIDTH / 2, width: RAIL_WIDTH, borderTopLeftRadius: RAIL_WIDTH / 2, borderTopRightRadius: RAIL_WIDTH / 2, zIndex: 0 },
+    benefitRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 14 },
+    benefitTile: { width: TILE, height: TILE, borderRadius: TILE / 2, borderWidth: 3, backgroundColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center', zIndex: 2, ...shadows.sm },
+    benefitTitle: { fontFamily: fontFamily.bold, fontSize: 16.5, letterSpacing: -0.2, color: c.text },
+    benefitBody: { fontFamily: fontFamily.regular, fontSize: 14, lineHeight: 20, color: c.textSecondary, marginTop: 2 },
 
     // error / retry
     errorCard: { marginTop: 20, padding: 16, borderRadius: 14, backgroundColor: c.surface, borderWidth: 1, borderColor: c.border, ...darkCard },
@@ -437,31 +502,33 @@ const makeStyles = (tk: Tokens) => {
     retryText: { fontFamily: fontFamily.semiBold, fontSize: 14, color: colors.primary },
 
     // plans
-    plans: { marginTop: 26, gap: 12 },
-    plan: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 18, paddingHorizontal: 18, borderRadius: 16, borderWidth: 1.5, borderColor: c.border, backgroundColor: c.surface, ...darkCard },
+    plans: { marginTop: 30, gap: 11 },
+    plan: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 15, paddingHorizontal: 18, borderRadius: 16, borderWidth: 1.5, borderColor: c.border, backgroundColor: c.surface, ...darkCard },
     planOn: { borderWidth: 2, borderColor: colors.primary },
-    planLeft: { flexDirection: 'row', alignItems: 'center', gap: 14 },
-    planName: { fontFamily: fontFamily.bold, fontSize: 18, color: c.text },
+    planLeft: { flexDirection: 'row', alignItems: 'center', gap: 13 },
+    planName: { fontFamily: fontFamily.bold, fontSize: 16.5, color: c.text },
     planRight: { alignItems: 'flex-end' },
-    planPrice: { fontFamily: fontFamily.bold, fontSize: 18, color: c.text },
-    planSub: { fontFamily: fontFamily.regular, fontSize: 14, color: c.textMuted, marginTop: 2 },
-    planSubOnly: { fontFamily: fontFamily.regular, fontSize: 16, color: c.textMuted },
-    radio: { width: 24, height: 24, borderRadius: 12, borderWidth: 2, borderColor: c.border, alignItems: 'center', justifyContent: 'center' },
+    planPrice: { fontFamily: fontFamily.bold, fontSize: 16.5, color: c.text },
+    planSub: { fontFamily: fontFamily.regular, fontSize: 13, color: c.textMuted, marginTop: 2 },
+    planSubOnly: { fontFamily: fontFamily.regular, fontSize: 14.5, color: c.textMuted },
+    radio: { width: 22, height: 22, borderRadius: 11, borderWidth: 2, borderColor: c.border, alignItems: 'center', justifyContent: 'center' },
     radioOn: { backgroundColor: colors.primary, borderColor: colors.primary },
-    saveBadge: { position: 'absolute', top: -11, left: '50%', marginLeft: -46, width: 92, backgroundColor: colors.primary, borderRadius: 999, paddingVertical: 4, alignItems: 'center' },
-    saveBadgeText: { fontFamily: fontFamily.bold, fontSize: 11, letterSpacing: 0.6, color: '#fff' },
+    saveBadge: { position: 'absolute', top: -10, left: '50%', marginLeft: -46, width: 92, backgroundColor: colors.primary, borderRadius: 999, paddingVertical: 4, alignItems: 'center' },
+    saveBadgeText: { fontFamily: fontFamily.bold, fontSize: 10.5, letterSpacing: 0.6, color: '#fff' },
 
     // cta
-    cta: { marginTop: 22, paddingVertical: 18, borderRadius: 16, backgroundColor: colors.primary, alignItems: 'center', justifyContent: 'center', shadowColor: colors.primary, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.28, shadowRadius: 12, elevation: 4 },
+    cta: { marginTop: 28, paddingVertical: 16, borderRadius: 16, backgroundColor: colors.primary, alignItems: 'center', justifyContent: 'center', shadowColor: colors.primary, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.28, shadowRadius: 12, elevation: 4 },
     ctaDisabled: { opacity: 0.5 },
-    ctaText: { fontFamily: fontFamily.semiBold, fontSize: 18, color: '#fff' },
+    ctaText: { fontFamily: fontFamily.semiBold, fontSize: 16.5, color: '#fff' },
 
-    haveCode: { alignSelf: 'center', marginTop: 18, paddingVertical: 6 },
-    haveCodeText: { fontFamily: fontFamily.semiBold, fontSize: 15, color: c.text },
+    billing: { fontFamily: fontFamily.regular, fontSize: 12.5, lineHeight: 18, color: c.textMuted, textAlign: 'center', marginTop: 12 },
 
-    footer: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, marginTop: 14 },
-    footerLink: { fontFamily: fontFamily.medium, fontSize: 13.5, color: c.textMuted },
-    footerDot: { color: c.textMuted, fontSize: 13.5 },
+    haveCode: { alignSelf: 'center', marginTop: 20, paddingVertical: 6 },
+    haveCodeText: { fontFamily: fontFamily.semiBold, fontSize: 14.5, color: c.text },
+
+    footer: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, marginTop: 18 },
+    footerLink: { fontFamily: fontFamily.medium, fontSize: 13, color: c.textMuted },
+    footerDot: { color: c.textMuted, fontSize: 13 },
 
     // have-a-code sheet
     sheetBackdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: isDark ? c.overlay : 'rgba(20,18,14,0.4)' },

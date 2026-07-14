@@ -15,10 +15,10 @@ import {
 } from 'react-native';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
 import { KeyboardModalScope } from '@/components/KeyboardModalScope';
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { SafeAreaView, SafeAreaProvider, initialWindowMetrics, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router, Stack, type Href } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
-import { ChevronRight, X, Code2, RefreshCw, Ticket } from 'lucide-react-native';
+import { ChevronRight, X, Code2, RefreshCw } from 'lucide-react-native';
 import {
   fontFamily,
   shadows,
@@ -118,8 +118,14 @@ export default function SettingsScreen() {
 
   const [logsVisible, setLogsVisible] = useState(false);
   const [logsText, setLogsText] = useState('');
-  // QA: preview the paywall in either state ('trial' | 'notrial')
+  // QA: preview the paywall in either state ('trial' | 'notrial'). Close the
+  // Debug Console first, else the preview modal opens behind it (iOS stacks
+  // modals — a second modal presented under an open one never shows).
   const [paywallPreview, setPaywallPreview] = useState<'trial' | 'notrial' | null>(null);
+  const openPaywallPreview = (mode: 'trial' | 'notrial') => {
+    setLogsVisible(false);
+    setTimeout(() => setPaywallPreview(mode), 350);
+  };
   const [isDeveloperMode, setIsDeveloperMode] = useState(false);
 
   // Feedback modal state
@@ -430,13 +436,14 @@ export default function SettingsScreen() {
         )}
 
         {/* Pass It On — gift codes (Pass It On Handoff 2). The give row is the
-            permanent giver entry; the wallet row appears once codes exist. The
-            "Have a code?" redeem row is the recipient entry — it lives here for
-            now (the RC paywall that will also host it is deferred). */}
+            permanent giver entry; the wallet row appears once codes exist.
+            Redeeming a code now lives on the paywall ("Have a code?"), so it's
+            no longer surfaced here. */}
         <CardGroup label="Pass It On">
           <CardRow
             label="Give Sober Dailies"
             sub="3 months for a sponsee or newcomer"
+            last={!hasEverBought}
             icon={
               <View style={styles.giftIconSquare}>
                 <GiftGlyph size={19} color={colors.roseDark} />
@@ -449,6 +456,7 @@ export default function SettingsScreen() {
               label="Gifts to give"
               value={`${availableCount} left`}
               valueColor={colors.roseDark}
+              last
               icon={
                 <View style={styles.giftIconSquare}>
                   <GiftGlyph size={19} color={colors.roseDark} />
@@ -457,17 +465,6 @@ export default function SettingsScreen() {
               onPress={() => router.push('/(main)/gift-wallet' as Href)}
             />
           )}
-          <CardRow
-            label="Have a code?"
-            sub="Redeem a gift someone gave you"
-            last
-            icon={
-              <View style={styles.giftIconSquare}>
-                <Ticket size={19} color={colors.roseDark} strokeWidth={2} />
-              </View>
-            }
-            onPress={() => router.push('/(main)/redeem' as Href)}
-          />
         </CardGroup>
 
         {/* Support Sober Dailies */}
@@ -574,10 +571,10 @@ export default function SettingsScreen() {
           </View>
 
           <View style={styles.logsActionsRow}>
-            <TouchableOpacity onPress={() => setPaywallPreview('trial')} style={styles.logsActionButton}>
+            <TouchableOpacity onPress={() => openPaywallPreview('trial')} style={styles.logsActionButton}>
               <Text style={styles.logsActionButtonText}>Preview Paywall · Trial</Text>
             </TouchableOpacity>
-            <TouchableOpacity onPress={() => setPaywallPreview('notrial')} style={styles.logsActionButton}>
+            <TouchableOpacity onPress={() => openPaywallPreview('notrial')} style={styles.logsActionButton}>
               <Text style={styles.logsActionButtonText}>Preview Paywall · No Trial</Text>
             </TouchableOpacity>
           </View>
@@ -604,7 +601,20 @@ export default function SettingsScreen() {
 
       {/* QA: paywall preview (trial / no-trial), forced regardless of real eligibility */}
       <Modal visible={!!paywallPreview} animationType="slide" onRequestClose={() => setPaywallPreview(null)}>
-        <PaywallScreen preview forceTrial={paywallPreview === 'trial'} onDismiss={() => setPaywallPreview(null)} />
+        <SafeAreaProvider initialMetrics={initialWindowMetrics}>
+        <View style={{ flex: 1 }}>
+          <PaywallScreen preview forceTrial={paywallPreview === 'trial'} onDismiss={() => setPaywallPreview(null)} />
+          <TouchableOpacity
+            onPress={() => setPaywallPreview(null)}
+            style={styles.previewCloseButton}
+            activeOpacity={0.8}
+            hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+          >
+            <X size={22} color="#fff" />
+            <Text style={styles.previewCloseText}>Close preview</Text>
+          </TouchableOpacity>
+        </View>
+        </SafeAreaProvider>
       </Modal>
 
       {/* Feedback Modal */}
@@ -816,6 +826,8 @@ const makeStyles = (tk: Tokens) => {
   logsActionsRow: { flexDirection: 'row', paddingHorizontal: 16, paddingBottom: 16, gap: 12 },
   logsActionButton: { flex: 1, backgroundColor: '#1e293b', paddingVertical: 12, borderRadius: 8, alignItems: 'center', borderWidth: 1, borderColor: '#334155' },
   logsActionButtonText: { color: '#60a5fa', fontSize: 14, fontWeight: '600' },
+  previewCloseButton: { position: 'absolute', top: 54, right: 16, flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: 'rgba(0,0,0,0.78)', paddingVertical: 9, paddingHorizontal: 14, borderRadius: 999, borderWidth: 1, borderColor: 'rgba(255,255,255,0.5)', zIndex: 9999, elevation: 24 },
+  previewCloseText: { color: '#fff', fontSize: 13, fontWeight: '700' },
   logsDisplayContainer: { flex: 1, marginHorizontal: 16, marginBottom: 16, backgroundColor: '#1e293b', borderRadius: 12, borderWidth: 1, borderColor: '#334155', overflow: 'hidden' },
   logsDisplayLabel: { fontSize: 13, fontWeight: '600', color: '#94a3b8', paddingHorizontal: 16, paddingTop: 12, paddingBottom: 8, borderBottomWidth: 1, borderBottomColor: '#334155' },
   logsScrollView: { flex: 1 },
