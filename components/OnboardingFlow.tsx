@@ -1,18 +1,16 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, Pressable, ScrollView, Linking } from 'react-native';
+import { View, Text, StyleSheet, Pressable, Linking, ActivityIndicator } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { StatusBar } from 'expo-status-bar';
-import { useRouter } from 'expo-router';
 import { Image } from 'expo-image';
-import Svg, { Path } from 'react-native-svg';
-import { Check, ArrowRight, BookOpen, PenLine, MessageCircle } from 'lucide-react-native';
+import { ArrowRight } from 'lucide-react-native';
 
 import { fontFamily, fontSize, shadows, type Tokens } from '@/constants/designTokens';
 import { useTokens, useThemedStyles } from '@/hooks/useTokens';
 import BackButton from '@/components/BackButton';
-import { resolveGlyph, resolveTone } from '@/components/dailyTokens';
+import WhatsInsideCarousel from '@/components/onboarding/WhatsInsideCarousel';
 import { useOnboarding } from '@/hooks/useOnboardingStore';
 import { useSobriety } from '@/hooks/useSobrietyStore';
 import { useDailies, type DailyItem, type WhenBucket } from '@/hooks/use-dailies-store';
@@ -44,18 +42,6 @@ function obvInk(t: number): string {
 const openTerms = () => Linking.openURL('https://www.apple.com/legal/internet-services/itunes/dev/stdeula/').catch(() => {});
 const openPrivacy = () => Linking.openURL('https://soberdailies.com/privacy').catch(() => {});
 
-function Sunrise({ size = 32, color = '#fff' }: { size?: number; color?: string }) {
-  return (
-    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-      <Path d="M12 2.6v2.5" />
-      <Path d="M5.9 6 7.7 7.8" />
-      <Path d="M18.1 6 16.3 7.8" />
-      <Path d="M7.4 14.5a4.6 4.6 0 0 1 9.2 0" />
-      <Path d="M3.5 19q8.5-2.9 17 0" />
-    </Svg>
-  );
-}
-
 // ─── Step 1 · Welcome (logo + promise) ──────────────────────────────────────
 function WelcomeStep({ onContinue }: { onContinue: () => void }) {
   const styles = useThemedStyles(makeStyles);
@@ -77,55 +63,6 @@ function WelcomeStep({ onContinue }: { onContinue: () => void }) {
           <Text style={styles.welcomeAgreeLine}>
             By continuing, you agree to our <Text style={styles.welcomeAgreeLink} onPress={openTerms}>Terms of Use</Text> and <Text style={styles.welcomeAgreeLink} onPress={openPrivacy}>Privacy Policy</Text>.
           </Text>
-        </View>
-      </SafeAreaView>
-    </View>
-  );
-}
-
-// ─── Step 2 · What's inside (ObvOutline — gradient band + paper rows) ───────
-const FEATURES: { Icon: React.ComponentType<{ size?: number; color?: string }>; iconColor: string; tone: string; title: string; sub: string }[] = [
-  { Icon: Sunrise, iconColor: '#2E6F6F', tone: 'teal', title: 'Today', sub: 'The heart of your program — where you define your dailies and track your progress one day at a time.' },
-  { Icon: BookOpen, iconColor: '#B07A33', tone: 'amber', title: 'Tools', sub: 'The tools you reach for each day — literature, speakers, prayers, meetings — linked right to your dailies as you work through them.' },
-  { Icon: PenLine, iconColor: '#3A6AE0', tone: 'blue', title: 'Journey', sub: 'The record of your program — your notebook entries and daily progress, to look back on and keep yourself accountable.' },
-  { Icon: MessageCircle, iconColor: '#7A5FB5', tone: 'lavender', title: 'Your AI Sponsor, anytime', sub: 'Bring real questions, get real advice and support from distinct sponsor personalities, day or night.' },
-];
-
-function WhatsInsideStep({ onBack, onContinue }: { onBack?: () => void; onContinue: () => void }) {
-  const styles = useThemedStyles(makeStyles);
-  const { c, isDark, mode } = useTokens();
-  return (
-    <View style={{ flex: 1, backgroundColor: c.background }}>
-      <StatusBar style="light" />
-      <LinearGradient colors={obvGrad(0.4)} start={{ x: 0.1, y: 0 }} end={{ x: 0.9, y: 1 }} style={styles.insideBand} />
-      <SafeAreaView style={{ flex: 1 }} edges={['top', 'bottom']}>
-        <View style={styles.topBar}>
-          {onBack ? <BackButton onPress={onBack} dark /> : null}
-        </View>
-        <View style={styles.insideHeader}>
-          <Text style={styles.insideOverline}>EVERYTHING YOU NEED</Text>
-          <Text style={styles.insideHeadline}>Your whole program, all in one place</Text>
-        </View>
-        <View style={styles.insideSheet}>
-          <ScrollView contentContainerStyle={styles.insideSheetScroll} showsVerticalScrollIndicator={false}>
-            {FEATURES.map((f) => (
-              <View key={f.title} style={styles.outlineRow}>
-                <View style={styles.outlineIconBox}>
-                  <f.Icon size={23} color={isDark ? resolveTone(f.tone, mode).ink : f.iconColor} />
-                </View>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.outlineTitle}>{f.title}</Text>
-                  <Text style={styles.outlineSub}>{f.sub}</Text>
-                </View>
-              </View>
-            ))}
-          </ScrollView>
-          <View style={styles.footer}>
-            <Pressable style={styles.primaryBtn} onPress={onContinue}>
-              <Text style={styles.primaryText}>Set up my app</Text>
-              <ArrowRight size={18} color="#fff" />
-            </Pressable>
-          </View>
         </View>
       </SafeAreaView>
     </View>
@@ -171,6 +108,9 @@ function DefineDailiesStep({ onBack, onComplete }: { onBack: () => void; onCompl
   const styles = useThemedStyles(makeStyles);
   const { isDark } = useTokens();
   const dailies = useDailies();
+  // Completing writes AsyncStorage and swaps in the paywall/app, which takes a
+  // beat — show a spinner so the tap doesn't feel dead. No reset: we unmount.
+  const [saving, setSaving] = useState(false);
 
   // Seed the store with the default-on starter set once, on entry. From here the
   // user shapes it with the SAME editor as the Today screen (drag / remove / add),
@@ -184,6 +124,8 @@ function DefineDailiesStep({ onBack, onComplete }: { onBack: () => void; onCompl
   }, []);
 
   const handleComplete = async () => {
+    if (saving) return;
+    setSaving(true);
     await AsyncStorage.setItem(TODAY_EDIT_TIP_PENDING_KEY, '1').catch(() => {});
     await onComplete();
   };
@@ -208,9 +150,15 @@ function DefineDailiesStep({ onBack, onComplete }: { onBack: () => void; onCompl
       </View>
       <DailiesEditor header={header} contentContainerStyle={styles.dailiesScroll} />
       <View style={styles.footerBordered}>
-        <Pressable style={styles.primaryBtn} onPress={handleComplete}>
-          <Text style={styles.primaryText}>Start my free week</Text>
-          <ArrowRight size={18} color="#fff" />
+        <Pressable style={styles.primaryBtn} onPress={handleComplete} disabled={saving}>
+          {saving ? (
+            <ActivityIndicator color="#fff" />
+          ) : (
+            <>
+              <Text style={styles.primaryText}>Start my free week</Text>
+              <ArrowRight size={18} color="#fff" />
+            </>
+          )}
         </Pressable>
       </View>
     </SafeAreaView>
@@ -222,12 +170,11 @@ type Step = 'welcome' | 'inside' | 'date' | 'dailies';
 
 export default function OnboardingFlow() {
   const [step, setStep] = useState<Step>('welcome');
-  const router = useRouter();
   const { completeOnboarding } = useOnboarding();
   const { setSobrietyDate } = useSobriety();
 
   if (step === 'welcome') return <WelcomeStep onContinue={() => setStep('inside')} />;
-  if (step === 'inside') return <WhatsInsideStep onBack={() => setStep('welcome')} onContinue={() => setStep('date')} />;
+  if (step === 'inside') return <WhatsInsideCarousel onSkip={() => setStep('date')} onContinue={() => setStep('date')} />;
   if (step === 'date') {
     return (
       <SoberDateEditor
@@ -245,17 +192,17 @@ export default function OnboardingFlow() {
       onBack={() => setStep('date')}
       onComplete={async () => {
         await completeOnboarding();
-        router.replace('/');
+        // No router.replace here: onboarding is a render gate in app/_layout, not a
+        // route. When the flag flips, the gate swaps this flow out for the paywall/
+        // Stack (which mounts at '/' anyway); navigating while no navigator is
+        // mounted forces a root re-mount that flashes the teal loading fill.
       }}
     />
   );
 }
 
 const makeStyles = (tk: Tokens) => {
-  const { c, colors, isDark } = tk;
-  const darkCard = isDark
-    ? { borderColor: 'rgba(255,255,255,0.06)', borderTopColor: 'rgba(255,255,255,0.12)' }
-    : null;
+  const { c, colors } = tk;
   return StyleSheet.create({
   // consent
   consentScroll: { flexGrow: 1, justifyContent: 'center', paddingHorizontal: 24, paddingVertical: 24 },
@@ -334,18 +281,6 @@ const makeStyles = (tk: Tokens) => {
   topBar: { paddingHorizontal: 16, paddingTop: 4, paddingBottom: 4 },
   insideTitle: { fontFamily: fontFamily.displayBold, fontSize: fontSize.hero, color: c.text, letterSpacing: -0.5 },
   insideSub: { fontFamily: fontFamily.regular, fontSize: fontSize.md, color: c.textSecondary, lineHeight: 21, marginTop: 8, marginBottom: 8 },
-
-  // What's inside — gradient band + paper sheet + outline rows
-  insideBand: { position: 'absolute', top: 0, left: 0, right: 0, height: 240 },
-  insideHeader: { paddingHorizontal: 26, paddingTop: 8, paddingBottom: 18 },
-  insideOverline: { fontFamily: fontFamily.bold, fontSize: 11, letterSpacing: 2, color: 'rgba(255,255,255,0.9)' },
-  insideHeadline: { fontFamily: fontFamily.display, fontSize: 27, color: '#fff', letterSpacing: -0.5, lineHeight: 31, marginTop: 9 },
-  insideSheet: { flex: 1, backgroundColor: c.background, borderTopLeftRadius: 26, borderTopRightRadius: 26 },
-  insideSheetScroll: { paddingHorizontal: 20, paddingTop: 20, paddingBottom: 8 },
-  outlineRow: { flexDirection: 'row', gap: 14, alignItems: 'flex-start', marginBottom: 18 },
-  outlineIconBox: { width: 46, height: 46, borderRadius: 14, backgroundColor: isDark ? c.surface : c.background, borderWidth: 1, borderColor: c.border, alignItems: 'center', justifyContent: 'center', ...darkCard },
-  outlineTitle: { fontFamily: fontFamily.display, fontSize: 18, color: c.text, letterSpacing: -0.2 },
-  outlineSub: { fontFamily: fontFamily.serif, fontSize: 14.5, color: c.textSecondary, lineHeight: 22, marginTop: 3 },
 
   // define dailies
   dailiesScroll: { paddingHorizontal: 22, paddingTop: 6, paddingBottom: 16 },
