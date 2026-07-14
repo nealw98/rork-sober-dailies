@@ -128,6 +128,7 @@ export type SubscriptionState = {
   customerInfo: CustomerInfo | null;
 
   refresh: () => Promise<void>;
+  applyCustomerInfo: (info: CustomerInfo) => void;
   purchasePackage: (pkg: Package) => Promise<CustomerInfo | null>;
   restorePurchases: () => Promise<CustomerInfo | null>;
 };
@@ -195,6 +196,15 @@ export const [SubscriptionProvider, useSubscription] = createContextHook(() => {
       console.error('[Subscription] Refresh error:', e);
       setError(e?.message || 'Failed to refresh subscription status.');
     }
+  }, []);
+
+  // Apply a CustomerInfo handed to us by a paywall callback (purchase/restore
+  // completed). The RC paywall delivers the post-purchase entitlement in its
+  // callback args — applying it directly flips isPremium on the next render,
+  // instead of leaving the finished paywall on screen while a network refresh
+  // re-fetches what we were already given.
+  const applyCustomerInfo = useCallback((info: CustomerInfo) => {
+    setCustomerInfo(info);
   }, []);
 
   // Purchase a subscription package
@@ -326,6 +336,7 @@ export const [SubscriptionProvider, useSubscription] = createContextHook(() => {
       customerInfo,
 
       refresh,
+      applyCustomerInfo,
       purchasePackage,
       restorePurchases,
     }),
@@ -338,6 +349,7 @@ export const [SubscriptionProvider, useSubscription] = createContextHook(() => {
       offerings,
       customerInfo,
       refresh,
+      applyCustomerInfo,
       purchasePackage,
       restorePurchases,
     ]

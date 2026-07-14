@@ -78,6 +78,7 @@ import { CloudSyncGate } from "@/hooks/use-cloud-sync";
 import { ActionSheetProvider } from "@expo/react-native-action-sheet";
 import { ImmersiveProvider } from "@/hooks/use-immersive";
 import { SubscriptionProvider, useSubscription } from "@/hooks/useSubscription";
+import type { CustomerInfo } from "react-native-purchases";
 import { useOTAUpdates } from "@/hooks/useOTAUpdates";
 import { adjustFontWeight } from "@/constants/fonts";
 import { useTokens } from "@/hooks/useTokens";
@@ -139,7 +140,7 @@ function RootLayoutNav() {
   const { isOnboardingComplete, isLoading } = useOnboarding();
   const { showSnackbar, dismissSnackbar, restartApp } = useOTAUpdates();
   const { showBirthdayModal, closeBirthdayModal } = useSobrietyBirthday();
-  const { isLoading: isSubscriptionLoading, isPremium, offerings, refresh } = useSubscription();
+  const { isLoading: isSubscriptionLoading, isPremium, offerings, refresh, applyCustomerInfo } = useSubscription();
   const [fontsLoaded] = useFonts({
     Inter_400Regular,
     Inter_400Regular_Italic,
@@ -254,16 +255,19 @@ function RootLayoutNav() {
 
   if (PAYWALL_ENABLED && !isPremium && !paywallDismissed) {
     // Prefer RevenueCat's remote "Sober Dailies" paywall on the `default`
-    // offering; on a purchase/restore, refresh entitlement so isPremium flips
-    // and this gate falls through to the app. Fall back to the custom screen if
-    // the native module or the offering isn't available.
+    // offering. On purchase/restore, apply the CustomerInfo the callback hands
+    // us so isPremium flips on the next render and the gate falls straight
+    // through to Today — waiting on refresh() instead leaves the finished
+    // (blank) paywall on screen for the network round-trip. refresh() still
+    // runs in the background to reconcile with the server. Fall back to the
+    // custom screen if the native module or the offering isn't available.
     const paywallOffering = offerings?.all?.['default'] ?? offerings?.current ?? null;
     const paywallNode = (RevenueCatUI?.Paywall && paywallOffering) ? (
       <RevenueCatUI.Paywall
         style={{ flex: 1 }}
         options={{ offering: paywallOffering, displayCloseButton: __DEV__ }}
-        onPurchaseCompleted={() => { refresh(); }}
-        onRestoreCompleted={() => { refresh(); }}
+        onPurchaseCompleted={({ customerInfo }: { customerInfo: CustomerInfo }) => { applyCustomerInfo(customerInfo); refresh(); }}
+        onRestoreCompleted={({ customerInfo }: { customerInfo: CustomerInfo }) => { applyCustomerInfo(customerInfo); refresh(); }}
         onDismiss={__DEV__ ? () => setPaywallDismissed(true) : undefined}
       />
     ) : (
