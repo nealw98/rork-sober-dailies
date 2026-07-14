@@ -62,6 +62,7 @@ function SponsorCard({ s, onPress }: { s: SponsorConfig; onPress: () => void }) 
       <View style={styles.cardText}>
         <Text style={styles.name}>{s.name}</Text>
         <Text style={styles.descriptor}>{s.description}</Text>
+        {!!s.hookQuote && <Text style={styles.quote}>&ldquo;{s.hookQuote}&rdquo;</Text>}
       </View>
     </Pressable>
   );
@@ -80,11 +81,12 @@ const makeStyles = (tk: Tokens) => {
 
   scroll: { paddingHorizontal: 16, paddingTop: 0, paddingBottom: 40 },
 
-  card: { flexDirection: 'row', alignItems: 'center', gap: 14, padding: 14, backgroundColor: c.surface, borderRadius: 24, marginBottom: 14, borderWidth: isDark ? 1 : 0, borderColor: 'transparent', ...shadows.md, ...darkCard },
+  card: { flexDirection: 'row', alignItems: 'flex-start', gap: 14, padding: 14, backgroundColor: c.surface, borderRadius: 24, marginBottom: 14, borderWidth: isDark ? 1 : 0, borderColor: 'transparent', ...shadows.md, ...darkCard },
   avatar: { width: 72, height: 72, borderRadius: 16, borderWidth: 2, borderColor: isDark ? 'rgba(255,255,255,0.18)' : '#fff', backgroundColor: BR_SOFT, ...shadows.sm },
   cardText: { flex: 1 },
   name: { fontFamily: fontFamily.bold, fontSize: 19, color: c.text, letterSpacing: -0.3 },
   descriptor: { fontFamily: fontFamily.regular, fontSize: 14, lineHeight: 19, color: isDark ? c.textSecondary : '#4A4A5E', marginTop: 4 },
+  quote: { fontFamily: fontFamily.regularItalic, fontSize: 13.5, lineHeight: 19, color: c.textMuted, marginTop: 8 },
 
   disclaimer: { fontFamily: fontFamily.regular, fontSize: 11.5, lineHeight: 17, color: c.textMuted, textAlign: 'center', paddingHorizontal: 20, marginTop: 8 },
   });

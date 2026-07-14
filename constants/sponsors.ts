@@ -47,7 +47,7 @@ export const SPONSORS: SponsorConfig[] = [
     bubbleColor: "#d0e8d0",
     tileColor: "#a8d8a8",
     tags: ["PATIENT", "STEADY", "WISE"],
-    hookQuote: "One day at a time. That's all any of us have.",
+    hookQuote: "Hi there, I'm Steady Eddie. I know that recovery isn't always easy, but you don't have to do it alone.",
     chatPlaceholder: "What's on your mind...",
   },
   {
@@ -63,7 +63,7 @@ export const SPONSORS: SponsorConfig[] = [
     bubbleColor: "#fff0d4",
     tileColor: "#ffeca7",
     tags: ["OLD SCHOOL", "DIRECT", "UNVARNISHED"],
-    hookQuote: "If you want the truth, sit down. If you want a hug, call your mom.",
+    hookQuote: "I'm Salty Sam. If you want the truth, sit down. If you want a hug, call your mom.",
     chatPlaceholder: "Give it to me straight...",
   },
   {
@@ -79,7 +79,7 @@ export const SPONSORS: SponsorConfig[] = [
     bubbleColor: "#e8d4f0",
     tileColor: "#d8b8e8",
     tags: ["COMPASSIONATE", "GENTLE", "ENCOURAGING"],
-    hookQuote: "You're here. That's already brave.",
+    hookQuote: "Welcome, I'm Gentle Grace. Recovery has taught me that healing comes gently, one breath at a time. So you're not behind — you're exactly where you're meant to be.",
     chatPlaceholder: "What's in your heart...",
   },
 ];

@@ -183,7 +183,6 @@ export default function DailyReflection({ jumpToDate = null, onJumpApplied }: Da
 
             {/* Meditation tile (separate, app-added section) */}
             <View style={styles.medTile}>
-              <View style={styles.medOrb} />
               <View style={styles.medLabelRow}>
                 <Sparkles size={11} color={colors.primaryDark} strokeWidth={2} />
                 <Text style={styles.medLabel}>MEDITATION</Text>
@@ -302,8 +301,7 @@ const makeStyles = (tk: Tokens) => {
   bodyWrap: { marginTop: 32 },
   body: { fontFamily: readerSerif, color: c.text, letterSpacing: -0.05 },
 
-  medTile: { marginTop: 24, padding: 18, backgroundColor: colors.primarySoft, borderRadius: 18, borderWidth: 1, borderColor: colors.primary + '28', overflow: 'hidden' },
-  medOrb: { position: 'absolute', top: -30, right: -30, width: 140, height: 140, borderRadius: 70, backgroundColor: colors.primary + '14' },
+  medTile: { marginTop: 24, padding: 18, backgroundColor: colors.primarySoft, borderRadius: 18, borderWidth: 1, borderColor: colors.primary + '28' },
   medLabelRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   medLabel: { fontFamily: fontFamily.bold, fontSize: 10, letterSpacing: 1.4, color: colors.primaryDark },
   // fontSize/lineHeight follow the reading-size setting (set inline).

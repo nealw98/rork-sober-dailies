@@ -20,9 +20,47 @@ export type MeetingReading = {
 
 const AMBER = colors.amber;       // #E8A95D — Big Book passages
 const LAV = colors.tertiary;      // #A386D5 — Traditions
-const GREEN = '#5E8C6A';          // Preamble
 
 export const MEETING_READINGS: MeetingReading[] = [
+  {
+    id: 'generic-format',
+    title: 'Meeting Script',
+    cite: 'Adapt to your group',
+    source: 'A format you can adapt for any meeting',
+    // True amber/gold — the Steel Navy theme remaps colors.amber → teal, so a
+    // literal gold here keeps this utility guide distinct from the teal readings.
+    tone: '#E8A95D',
+    content: `Use this as a basic outline to be adapted to your local tradition.
+
+Opening
+Welcome to the __________ Meeting of Alcoholics Anonymous. My name is __________ and I am an alcoholic. Let's begin with a moment of silence followed by the Serenity Prayer.
+
+Preamble
+Alcoholics Anonymous is a fellowship of men and women who share their experience, strength and hope with each other that they may solve their common problem and help others to recover from alcoholism.
+
+The only requirement for membership is a desire to stop drinking. There are no dues or fees for AA membership; we are self-supporting through our own contributions. AA is not allied with any sect, denomination, politics, organization or institution; does not wish to engage in any controversy, neither endorses nor opposes any causes. Our primary purpose is to stay sober and help other alcoholics to achieve sobriety.
+
+Readings
+I've asked a friend to read "How It Works" (Chapter 5). I've asked a friend to read the Twelve Traditions.
+
+Introductions & Newcomers
+Is anyone in their first 30 days of sobriety who would like to introduce themselves?
+
+Announcements
+Are there any AA-related announcements? Any anniversaries being celebrated this week?
+
+Meeting Format
+This is a __________ meeting (open/closed, discussion, speaker, step study). Please keep shares to about 3–5 minutes so everyone has time.
+
+Seventh Tradition
+We will now practice the 7th Tradition: Every A.A. group ought to be fully self-supporting, declining outside contributions.
+
+Closing
+That's all the time we have. Thank you to everyone who shared. After a moment of silence, please join me in the closing prayer.
+
+Anonymity Statement
+"Who you see here, what you hear here, when you leave here, let it stay here."`,
+  },
   {
     id: 'how-it-works',
     title: 'How It Works',
@@ -112,53 +150,6 @@ May God bless you and keep you—until then.`,
 10. Alcoholics Anonymous has no opinion on outside issues; hence the A.A. name ought never be drawn into public controversy.
 11. Our public relations policy is based upon attraction rather than promotion; we need always maintain personal anonymity at the level of press, radio and films.
 12. Anonymity is the spiritual foundation of all our Traditions, ever reminding us to place principles before personalities.`,
-  },
-  {
-    id: 'preamble',
-    title: 'The A.A. Preamble',
-    cite: 'Read at most meetings',
-    source: 'The A.A. Preamble',
-    tone: GREEN,
-    content: `Alcoholics Anonymous is a fellowship of men and women who share their experience, strength and hope with each other that they may solve their common problem and help others to recover from alcoholism.
-
-The only requirement for membership is a desire to stop drinking. There are no dues or fees for AA membership; we are self-supporting through our own contributions. AA is not allied with any sect, denomination, politics, organization or institution; does not wish to engage in any controversy, neither endorses nor opposes any causes. Our primary purpose is to stay sober and help other alcoholics to achieve sobriety.`,
-  },
-  {
-    id: 'generic-format',
-    title: 'Meeting Script',
-    cite: 'Adapt to your group',
-    source: 'A format you can adapt for any meeting',
-    // True amber/gold — the Steel Navy theme remaps colors.amber → teal, so a
-    // literal gold here keeps this utility guide distinct from the teal readings.
-    tone: '#E8A95D',
-    content: `Use this as a basic outline to be adapted to your local tradition.
-
-Opening
-Welcome to the __________ Meeting of Alcoholics Anonymous. My name is __________ and I am an alcoholic. Let's begin with a moment of silence followed by the Serenity Prayer.
-
-Preamble
-(Read the A.A. Preamble.)
-
-Readings
-I've asked a friend to read "How It Works" (Chapter 5). I've asked a friend to read the Twelve Traditions.
-
-Introductions & Newcomers
-Is anyone in their first 30 days of sobriety who would like to introduce themselves?
-
-Announcements
-Are there any AA-related announcements? Any anniversaries being celebrated this week?
-
-Meeting Format
-This is a __________ meeting (open/closed, discussion, speaker, step study). Please keep shares to about 3–5 minutes so everyone has time.
-
-Seventh Tradition
-We will now practice the 7th Tradition: AA is self-supporting through our own contributions, declining outside contributions.
-
-Closing
-That's all the time we have. Thank you to everyone who shared. After a moment of silence, please join me in the closing prayer.
-
-Anonymity Statement
-"Who you see here, what you hear here, when you leave here, let it stay here."`,
   },
 ];
 

@@ -19,18 +19,19 @@ import {
   Text,
   StyleSheet,
   ScrollView,
-  TouchableOpacity,
+  Pressable,
   Modal,
 } from 'react-native';
-import { X, Trash2 } from 'lucide-react-native';
-import Colors from '@/constants/colors';
-import { adjustFontWeight } from '@/constants/fonts';
+import { X, Trash2, Highlighter } from 'lucide-react-native';
 import { useReadingSize } from '@/hooks/use-reading-size';
 import { useBigBookHighlights } from '@/hooks/use-bigbook-highlights';
 import { getChapterMeta, bigBookChapterMetadata } from '@/constants/bigbook-v2/metadata';
 import { bigBookContent } from '@/constants/bigbook-v2/content';
 import { BigBookHighlight } from '@/types/bigbook-v2';
 import { parseMarkdownItalics } from './markdownUtils';
+import { fontFamily, type Tokens } from '@/constants/designTokens';
+import { readerSerif } from '@/constants/fonts';
+import { useTokens, useThemedStyles } from '@/hooks/useTokens';
 
 // Helper to get page number from paragraph ID
 function getPageNumber(paragraphId: string): number | null {
@@ -74,6 +75,8 @@ export function BigBookHighlightsList({
 }: BigBookHighlightsListProps) {
   const { highlights, deleteHighlight, isLoading } = useBigBookHighlights();
   const { readingSize: fontSize, readingLineHeight: lineHeight } = useReadingSize();
+  const styles = useThemedStyles(makeStyles);
+  const { c } = useTokens();
 
   // Group highlights by chapter, then merge consecutive sentences within same paragraph
   const groupedHighlights = useMemo(() => {
@@ -217,216 +220,94 @@ export function BigBookHighlightsList({
       presentationStyle="pageSheet"
       onRequestClose={onClose}
     >
-      <View style={styles.container}>
-        {/* Teal Header */}
-        <View style={styles.header}>
-          <Text style={styles.headerTitle}>My Highlights</Text>
-          <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-            <X size={24} color="#fff" />
-          </TouchableOpacity>
+      <View style={styles.sheet}>
+        <View style={styles.sheetHead}>
+          <Text style={styles.sheetTitle}>Highlights</Text>
+          <Pressable onPress={onClose} hitSlop={8} style={styles.closeBtn}>
+            <X size={18} color={c.textSecondary} strokeWidth={2} />
+          </Pressable>
         </View>
 
-        {/* Content */}
-        <ScrollView style={styles.content} contentContainerStyle={styles.contentContainer}>
-          {totalMergedCount === 0 ? (
-            // Empty State
-            <View style={styles.emptyState}>
-              <Text style={styles.emptyStateIcon}>✏️</Text>
-              <Text style={styles.emptyStateTitle}>No Highlights Yet</Text>
-              <Text style={styles.emptyStateDescription}>
-                Long-press and select text in the Big Book to create your first highlight.
-              </Text>
-              <Text style={styles.emptyStateHint}>
-                Highlights help you remember important passages and insights.
-              </Text>
-            </View>
-          ) : (
-            // Highlights List
-            <>
-              {sortedChapterIds.map(chapterId => {
-                const mergedHighlights = groupedHighlights[chapterId];
-                
+        {totalMergedCount === 0 ? (
+          <View style={styles.empty}>
+            <Highlighter size={30} color={c.textMuted} strokeWidth={1.6} />
+            <Text style={styles.emptyTitle}>No highlights yet</Text>
+            <Text style={styles.emptyBody}>
+              Long-press and select text in the Big Book to create your first highlight.
+            </Text>
+          </View>
+        ) : (
+          <ScrollView contentContainerStyle={styles.sheetList} showsVerticalScrollIndicator={false}>
+            {sortedChapterIds.map(chapterId =>
+              groupedHighlights[chapterId].map(merged => {
+                const key = merged.ids.join('-');
                 return (
-                  <View key={chapterId} style={styles.chapterGroup}>
-                    {mergedHighlights.map(merged => {
-                      const key = merged.ids.join('-');
-                      
-                      return (
-                        <TouchableOpacity
-                          key={key}
-                          style={styles.highlightItem}
-                          onPress={() => {
-                            handleNavigate(merged.chapterId, merged.paragraphId);
-                          }}
-                          activeOpacity={0.7}
-                        >
-                        {/* Color Indicator */}
-                        <View style={styles.colorIndicator} />
-                        
-                        <View style={styles.highlightContent}>
-                          {/* Chapter and Page Info */}
-                          <Text style={[styles.chapterInfo, { fontSize }]}>
-                            {getChapterTitleWithoutNumber(merged.chapterId)} — Page {getPageNumber(merged.paragraphId) ?? '?'}
-                          </Text>
-                          
-                          {/* Highlighted Text (combined from consecutive sentences) */}
-                          <Text style={[styles.highlightText, { fontSize, lineHeight }]} numberOfLines={3}>
-                            {parseMarkdownItalics(merged.combinedText, merged.ids[0])}
-                          </Text>
-                          
-                          {/* Note (if exists) */}
-                          {merged.note && (
-                            <View style={styles.noteContainer}>
-                              <Text style={styles.noteLabel}>Note:</Text>
-                              <Text style={styles.noteText}>{merged.note}</Text>
-                            </View>
-                          )}
-                          
-                          {/* Metadata */}
-                          <View style={styles.metadata}>
-                            <Text style={styles.metadataText}>
-                              {new Date(merged.createdAt).toLocaleDateString()}
-                            </Text>
-                          </View>
+                  <View key={key} style={styles.hlRow}>
+                    <View style={[styles.colorBar, { backgroundColor: merged.color }]} />
+                    <Pressable
+                      style={styles.hlMain}
+                      onPress={() => handleNavigate(merged.chapterId, merged.paragraphId)}
+                    >
+                      <Text style={styles.hlChapter} numberOfLines={1}>
+                        {getChapterTitleWithoutNumber(merged.chapterId)} · p. {getPageNumber(merged.paragraphId) ?? '?'}
+                      </Text>
+                      <Text style={[styles.hlText, { fontSize, lineHeight }]} numberOfLines={3}>
+                        {parseMarkdownItalics(merged.combinedText, merged.ids[0])}
+                      </Text>
+                      {merged.note && (
+                        <View style={styles.noteContainer}>
+                          <Text style={styles.noteLabel}>NOTE</Text>
+                          <Text style={styles.noteText}>{merged.note}</Text>
                         </View>
-                        
-                        {/* Delete Button */}
-                        <TouchableOpacity
-                          style={styles.deleteButton}
-                          onPress={() => handleDeleteMerged(merged.ids)}
-                          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                        >
-                          <Trash2 size={18} color={Colors.light.muted} />
-                        </TouchableOpacity>
-                      </TouchableOpacity>
-                      );
-                    })}
+                      )}
+                      <Text style={styles.hlDate}>
+                        {new Date(merged.createdAt).toLocaleDateString()}
+                      </Text>
+                    </Pressable>
+                    <Pressable
+                      style={styles.hlDelete}
+                      onPress={() => handleDeleteMerged(merged.ids)}
+                      hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                    >
+                      <Trash2 size={17} color={c.textMuted} strokeWidth={2} />
+                    </Pressable>
                   </View>
                 );
-              })}
-            </>
-          )}
-        </ScrollView>
+              })
+            )}
+          </ScrollView>
+        )}
       </View>
     </Modal>
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#f5f6f8',
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 16,
-    backgroundColor: '#3D8B8B',
-  },
-  headerTitle: {
-    fontSize: 24,
-    fontWeight: adjustFontWeight('400'),
-    color: '#fff',
-  },
-  closeButton: {
-    padding: 8,
-  },
-  content: {
-    flex: 1,
-  },
-  contentContainer: {
-    padding: 16,
-  },
-  emptyState: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 80,
-    paddingHorizontal: 32,
-  },
-  emptyStateIcon: {
-    fontSize: 64,
-    marginBottom: 16,
-  },
-  emptyStateTitle: {
-    fontSize: 20,
-    fontWeight: adjustFontWeight('600'),
-    color: Colors.light.text,
-    marginBottom: 12,
-    textAlign: 'center',
-  },
-  emptyStateDescription: {
-    fontSize: 16,
-    color: Colors.light.muted,
-    textAlign: 'center',
-    lineHeight: 24,
-    marginBottom: 8,
-  },
-  emptyStateHint: {
-    fontSize: 14,
-    color: Colors.light.muted,
-    textAlign: 'center',
-    fontStyle: 'italic',
-    lineHeight: 20,
-  },
-  chapterGroup: {
-    marginBottom: 8,
-  },
-  highlightItem: {
-    flexDirection: 'row',
-    backgroundColor: Colors.light.cardBackground,
-    borderRadius: 8,
-    padding: 12,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: Colors.light.border || '#E5E7EB',
-  },
-  colorIndicator: {
-    width: 4,
-    borderRadius: 2,
-    marginRight: 12,
-    backgroundColor: '#3D8B8B',
-  },
-  highlightContent: {
-    flex: 1,
-  },
-  chapterInfo: {
-    fontWeight: adjustFontWeight('600'),
-    color: '#3D8B8B',
-    marginBottom: 6,
-  },
-  highlightText: {
-    color: Colors.light.text,
-    marginBottom: 8,
-  },
-  noteContainer: {
-    backgroundColor: Colors.light.background,
-    padding: 8,
-    borderRadius: 6,
-    marginBottom: 8,
-  },
-  noteLabel: {
-    fontSize: 12,
-    fontWeight: adjustFontWeight('600'),
-    color: Colors.light.muted,
-    marginBottom: 4,
-  },
-  noteText: {
-    fontSize: 14,
-    lineHeight: 20,
-    color: Colors.light.text,
-  },
-  metadata: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  metadataText: {
-    fontSize: 12,
-    color: Colors.light.muted,
-  },
-  deleteButton: {
-    padding: 8,
-    marginLeft: 8,
-  },
-});
+const makeStyles = (tk: Tokens) => {
+  const { c, colors, isDark } = tk;
+  const ACCENT = colors.steelDark;
+  const darkCard = isDark ? { borderColor: 'rgba(255,255,255,0.06)', borderTopColor: 'rgba(255,255,255,0.12)' } : null;
+  return StyleSheet.create({
+    sheet: { flex: 1, backgroundColor: c.background },
+    sheetHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingTop: 18, paddingBottom: 12, borderBottomWidth: 1, borderBottomColor: c.divider },
+    sheetTitle: { fontFamily: fontFamily.displayBold, fontSize: 22, letterSpacing: -0.4, color: c.text },
+    closeBtn: { width: 34, height: 34, borderRadius: 17, borderWidth: 1, borderColor: c.border, alignItems: 'center', justifyContent: 'center' },
+    sheetList: { paddingHorizontal: 16, paddingTop: 10, paddingBottom: 32 },
+
+    // empty state
+    empty: { alignItems: 'center', paddingTop: 60, paddingHorizontal: 36, gap: 10 },
+    emptyTitle: { fontFamily: fontFamily.display, fontSize: 18, color: c.text, marginTop: 4 },
+    emptyBody: { fontFamily: fontFamily.regular, fontSize: 13.5, lineHeight: 20, color: c.textMuted, textAlign: 'center' },
+
+    // highlight row
+    hlRow: { flexDirection: 'row', backgroundColor: c.surface, borderWidth: 1, borderColor: c.border, borderRadius: 14, marginBottom: 8, overflow: 'hidden', ...darkCard },
+    colorBar: { width: 4, alignSelf: 'stretch' },
+    hlMain: { flex: 1, paddingVertical: 13, paddingLeft: 14, paddingRight: 8 },
+    hlChapter: { fontFamily: fontFamily.semiBold, fontSize: 13.5, color: ACCENT, marginBottom: 5 },
+    hlText: { fontFamily: readerSerif, color: c.text, marginBottom: 8 },
+    noteContainer: { backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : c.background, padding: 9, borderRadius: 8, marginBottom: 8 },
+    noteLabel: { fontFamily: fontFamily.bold, fontSize: 10, letterSpacing: 0.6, color: c.textMuted, marginBottom: 3 },
+    noteText: { fontFamily: fontFamily.regular, fontSize: 13.5, lineHeight: 19, color: c.text },
+    hlDate: { fontFamily: fontFamily.regular, fontSize: 12, color: c.textMuted },
+    hlDelete: { width: 44, alignItems: 'center', justifyContent: 'center', alignSelf: 'stretch' },
+  });
+};

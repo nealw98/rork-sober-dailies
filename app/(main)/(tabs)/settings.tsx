@@ -28,6 +28,7 @@ import { useTokens, useThemedStyles } from '@/hooks/useTokens';
 import { ThemedCard } from '@/components/ThemedCard';
 import BackButton from '@/components/BackButton';
 import GiftGlyph from '@/components/GiftGlyph';
+import PaywallScreen from '@/components/PaywallScreen';
 import { useGiftWallet } from '@/hooks/use-gift-wallet';
 import Constants from 'expo-constants';
 import * as Clipboard from 'expo-clipboard';
@@ -117,6 +118,8 @@ export default function SettingsScreen() {
 
   const [logsVisible, setLogsVisible] = useState(false);
   const [logsText, setLogsText] = useState('');
+  // QA: preview the paywall in either state ('trial' | 'notrial')
+  const [paywallPreview, setPaywallPreview] = useState<'trial' | 'notrial' | null>(null);
   const [isDeveloperMode, setIsDeveloperMode] = useState(false);
 
   // Feedback modal state
@@ -570,6 +573,15 @@ export default function SettingsScreen() {
             </TouchableOpacity>
           </View>
 
+          <View style={styles.logsActionsRow}>
+            <TouchableOpacity onPress={() => setPaywallPreview('trial')} style={styles.logsActionButton}>
+              <Text style={styles.logsActionButtonText}>Preview Paywall · Trial</Text>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={() => setPaywallPreview('notrial')} style={styles.logsActionButton}>
+              <Text style={styles.logsActionButtonText}>Preview Paywall · No Trial</Text>
+            </TouchableOpacity>
+          </View>
+
           <View style={styles.logsDisplayContainer}>
             <Text style={styles.logsDisplayLabel}>Application Logs</Text>
             <ScrollView style={styles.logsScrollView} contentContainerStyle={styles.logsScrollContent}>
@@ -588,6 +600,11 @@ export default function SettingsScreen() {
             </TouchableOpacity>
           </View>
         </RNSafeAreaView>
+      </Modal>
+
+      {/* QA: paywall preview (trial / no-trial), forced regardless of real eligibility */}
+      <Modal visible={!!paywallPreview} animationType="slide" onRequestClose={() => setPaywallPreview(null)}>
+        <PaywallScreen preview forceTrial={paywallPreview === 'trial'} onDismiss={() => setPaywallPreview(null)} />
       </Modal>
 
       {/* Feedback Modal */}

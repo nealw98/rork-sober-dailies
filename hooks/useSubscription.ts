@@ -126,6 +126,7 @@ export type SubscriptionState = {
 
   offerings: Offerings | null;
   customerInfo: CustomerInfo | null;
+  trialEligible: boolean | null;
 
   refresh: () => Promise<void>;
   applyCustomerInfo: (info: CustomerInfo) => void;
@@ -141,6 +142,10 @@ export const [SubscriptionProvider, useSubscription] = createContextHook(() => {
   const [customerInfo, setCustomerInfo] = useState<CustomerInfo | null>(null);
   const [isPremiumOverride, setIsPremiumOverride] = useState(false);
   const [isGrandfathered, setIsGrandfathered] = useState(false);
+  // Free-trial eligibility for the `default` offering. null = not yet resolved.
+  // Determined once, early (as soon as offerings load — during onboarding), so
+  // the paywall can pick the trial vs. no-trial layout with no on-mount flash.
+  const [trialEligible, setTrialEligible] = useState<boolean | null>(null);
 
   // Check if user has the "premium" entitlement from RevenueCat (paid subscriptions)
   const isEntitled = useMemo(() => {
@@ -323,6 +328,38 @@ export const [SubscriptionProvider, useSubscription] = createContextHook(() => {
     };
   }, [refresh]);
 
+  // Resolve free-trial eligibility as soon as offerings are available (which
+  // happens at launch, during onboarding). Apple grants the intro offer once
+  // per account, so a returning/lapsed user comes back INELIGIBLE. Android can't
+  // be checked ahead of purchase (always UNKNOWN → treated as eligible; Google
+  // enforces it). On error we fall back to ineligible (honest > false "free").
+  useEffect(() => {
+    if (Platform.OS === 'web') { setTrialEligible(false); return; }
+    if (!offerings) return;
+    const offering = offerings.all?.['default'] ?? offerings.current ?? null;
+    const trialPkgs = ((offering?.availablePackages ?? []) as any[]).filter((p: any) => {
+      const ip = p?.product?.introPrice;
+      return !!ip && ip.price === 0;
+    });
+    if (!trialPkgs.length) { setTrialEligible(false); return; }
+    let cancelled = false;
+    (async () => {
+      try {
+        const ids = trialPkgs.map((p: any) => p.product.identifier as string);
+        const map = await Purchases.checkTrialOrIntroductoryPriceEligibility(ids);
+        const INELIGIBLE = Purchases.INTRO_ELIGIBILITY_STATUS.INTRO_ELIGIBILITY_STATUS_INELIGIBLE;
+        // Yearly/Monthly share a subscription group → same status; eligible
+        // unless the store explicitly says INELIGIBLE.
+        const eligible = ids.some((id: string) => map[id]?.status !== INELIGIBLE);
+        if (!cancelled) setTrialEligible(eligible);
+      } catch (e) {
+        console.warn('[Subscription] Trial eligibility check failed:', e);
+        if (!cancelled) setTrialEligible(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [offerings]);
+
   return useMemo(
     () => ({
       isLoading,
@@ -334,6 +371,7 @@ export const [SubscriptionProvider, useSubscription] = createContextHook(() => {
 
       offerings,
       customerInfo,
+      trialEligible,
 
       refresh,
       applyCustomerInfo,
@@ -348,6 +386,7 @@ export const [SubscriptionProvider, useSubscription] = createContextHook(() => {
       isPremium,
       offerings,
       customerInfo,
+      trialEligible,
       refresh,
       applyCustomerInfo,
       purchasePackage,

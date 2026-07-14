@@ -289,8 +289,6 @@ export function BigBookContents({ onOpenText, onOpenPdf, onOpenTextAtParagraph }
               keyboardType="number-pad"
               style={styles.goToInput}
               autoFocus
-              returnKeyType="go"
-              onSubmitEditing={submitGoTo}
             />
             <Pressable onPress={submitGoTo} style={styles.goToBtn}><Text style={styles.goToBtnText}>Go</Text></Pressable>
           </Pressable>

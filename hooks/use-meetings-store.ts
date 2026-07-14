@@ -61,7 +61,7 @@ function startOfDay(d: Date): Date {
 
 // The soonest timestamp this meeting next occurs, on or after `now` — the min
 // across all of its days. Infinity if it has no days.
-function nextOccurrence(m: Meeting, now: Date): number {
+export function nextOccurrence(m: Meeting, now: Date = new Date()): number {
   const days = m.days ?? [];
   if (days.length === 0) return Infinity;
   const time = m.time ?? 0;

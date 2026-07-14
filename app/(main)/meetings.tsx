@@ -14,7 +14,7 @@ import { Plus, X, Globe, MapPin, BookOpen, ChevronRight, ExternalLink, Clipboard
 import { Image } from 'expo-image';
 import BackButton from '@/components/BackButton';
 import { ThemedCard } from '@/components/ThemedCard';
-import { useMeetings, nextUpMeeting, whenLabel, formatTime, WEEKDAY_ABBR, type Meeting } from '@/hooks/use-meetings-store';
+import { useMeetings, nextUpMeeting, nextOccurrence, whenLabel, formatTime, WEEKDAY_ABBR, type Meeting } from '@/hooks/use-meetings-store';
 import { scanMeetingScreenshot } from '@/lib/meetingOcr';
 import { parseMeetingGuide, type MeetingDraft } from '@/lib/parseMeetingGuide';
 import { fontFamily, steelFill, type Tokens } from '@/constants/designTokens';
@@ -61,7 +61,11 @@ export default function MeetingsScreen() {
   const st = steelUi(tk);
 
   const nx = nextUpMeeting(meetings);
-  const rest = meetings.filter((m) => !nx || m.id !== nx.meeting.id);
+  // Order the remaining saved meetings by whichever comes up next.
+  const now = new Date();
+  const rest = meetings
+    .filter((m) => !nx || m.id !== nx.meeting.id)
+    .sort((a, b) => nextOccurrence(a, now) - nextOccurrence(b, now));
 
   const nextCardBody = nx && (
     <>
@@ -151,7 +155,7 @@ export default function MeetingsScreen() {
             Find the closest in-person and online meetings by location, day, and time — and get directions to the next one near you. Free on the App Store.
           </Text>
           <Pressable style={styles.guideBtn} onPress={() => Linking.openURL(MEETING_GUIDE_URL).catch(() => {})}>
-            <Text style={styles.guideBtnText}>Download the app</Text>
+            <Text style={styles.guideBtnText}>Open the app</Text>
             <ExternalLink size={15} color="#fff" strokeWidth={2} />
           </Pressable>
         </View>

@@ -155,7 +155,7 @@ function DefineDailiesStep({ onBack, onComplete }: { onBack: () => void; onCompl
             <ActivityIndicator color="#fff" />
           ) : (
             <>
-              <Text style={styles.primaryText}>Start my free week</Text>
+              <Text style={styles.primaryText}>Let's get started</Text>
               <ArrowRight size={18} color="#fff" />
             </>
           )}

@@ -78,7 +78,6 @@ import { CloudSyncGate } from "@/hooks/use-cloud-sync";
 import { ActionSheetProvider } from "@expo/react-native-action-sheet";
 import { ImmersiveProvider } from "@/hooks/use-immersive";
 import { SubscriptionProvider, useSubscription } from "@/hooks/useSubscription";
-import type { CustomerInfo } from "react-native-purchases";
 import { useOTAUpdates } from "@/hooks/useOTAUpdates";
 import { adjustFontWeight } from "@/constants/fonts";
 import { useTokens } from "@/hooks/useTokens";
@@ -106,16 +105,6 @@ const queryClient = new QueryClient();
 // subscription load (RevenueCat + grandfather check) before the gate resolves.
 const PAYWALL_ENABLED = true;
 
-// RevenueCat's remote paywall is a NATIVE view (react-native-purchases-ui).
-// Defensively require it so a binary without the module (or an OTA onto such a
-// build) falls back to the custom PaywallScreen instead of crashing at import —
-// same guard pattern as lib/cloudSync.ts. Only ever rendered when PAYWALL_ENABLED.
-let RevenueCatUI: any = null;
-try {
-  RevenueCatUI = require('react-native-purchases-ui').default ?? require('react-native-purchases-ui');
-} catch {
-  RevenueCatUI = null;
-}
 
 
 // Global flag to track if splash screen has been hidden
@@ -140,7 +129,7 @@ function RootLayoutNav() {
   const { isOnboardingComplete, isLoading } = useOnboarding();
   const { showSnackbar, dismissSnackbar, restartApp } = useOTAUpdates();
   const { showBirthdayModal, closeBirthdayModal } = useSobrietyBirthday();
-  const { isLoading: isSubscriptionLoading, isPremium, offerings, refresh, applyCustomerInfo } = useSubscription();
+  const { isLoading: isSubscriptionLoading, isPremium } = useSubscription();
   const [fontsLoaded] = useFonts({
     Inter_400Regular,
     Inter_400Regular_Italic,
@@ -254,44 +243,14 @@ function RootLayoutNav() {
   }
 
   if (PAYWALL_ENABLED && !isPremium && !paywallDismissed) {
-    // Prefer RevenueCat's remote "Sober Dailies" paywall on the `default`
-    // offering. On purchase/restore, apply the CustomerInfo the callback hands
-    // us so isPremium flips on the next render and the gate falls straight
-    // through to Today — waiting on refresh() instead leaves the finished
-    // (blank) paywall on screen for the network round-trip. refresh() still
-    // runs in the background to reconcile with the server. Fall back to the
-    // custom screen if the native module or the offering isn't available.
-    const paywallOffering = offerings?.all?.['default'] ?? offerings?.current ?? null;
-    const paywallNode = (RevenueCatUI?.Paywall && paywallOffering) ? (
-      <RevenueCatUI.Paywall
-        style={{ flex: 1 }}
-        options={{ offering: paywallOffering, displayCloseButton: __DEV__ }}
-        onPurchaseCompleted={({ customerInfo }: { customerInfo: CustomerInfo }) => { applyCustomerInfo(customerInfo); refresh(); }}
-        onRestoreCompleted={({ customerInfo }: { customerInfo: CustomerInfo }) => { applyCustomerInfo(customerInfo); refresh(); }}
-        onDismiss={__DEV__ ? () => setPaywallDismissed(true) : undefined}
-      />
-    ) : (
-      <PaywallScreen onDismiss={__DEV__ ? () => setPaywallDismissed(true) : undefined} />
-    );
-    // __DEV__ ONLY: a guaranteed RN overlay to skip the wall in the
-    // simulator/emulator, where a purchase can't complete and the paywall's own
-    // close button may not render. Bundled out of production (__DEV__ === false),
-    // so real testers/users never see it and the wall stays hard.
-    if (__DEV__) {
-      return (
-        <View style={{ flex: 1 }}>
-          {paywallNode}
-          <TouchableOpacity
-            onPress={() => setPaywallDismissed(true)}
-            style={styles.devSkipPaywall}
-            activeOpacity={0.8}
-          >
-            <Text style={styles.devSkipPaywallText}>DEV · Skip ✕</Text>
-          </TouchableOpacity>
-        </View>
-      );
-    }
-    return paywallNode;
+    // Our own RN paywall (components/PaywallScreen) — replaces RevenueCat's
+    // hosted Paywall UI so we control the layout and can host a "Have a code?"
+    // entry wired to gift redemption. Purchases/entitlements still run through
+    // react-native-purchases; PaywallScreen applies the returned CustomerInfo
+    // itself so isPremium flips and the gate falls straight through to Today.
+    // PaywallScreen renders its own __DEV__-only close (X) that calls onDismiss;
+    // in production onDismiss is undefined, so the wall stays hard.
+    return <PaywallScreen onDismiss={__DEV__ ? () => setPaywallDismissed(true) : undefined} />;
   }
 
   return (
@@ -361,25 +320,6 @@ function RootLayoutNav() {
 }
 
 const styles = StyleSheet.create({
-  // __DEV__ overlay to bypass the paywall in the sim/emulator (see the gate).
-  devSkipPaywall: {
-    position: 'absolute',
-    top: 56,
-    right: 14,
-    zIndex: 9999,
-    elevation: 24,
-    backgroundColor: 'rgba(0,0,0,0.82)',
-    paddingVertical: 9,
-    paddingHorizontal: 15,
-    borderRadius: 999,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.55)',
-  },
-  devSkipPaywallText: {
-    color: '#fff',
-    fontSize: 13,
-    fontWeight: '700',
-  },
   backButton: {
     flexDirection: 'row',
     alignItems: 'center',

@@ -217,7 +217,7 @@ export default function TwelveAndTwelveScreen() {
           <Pressable style={styles.goToCard} onPress={() => {}}>
             <Text style={styles.goToTitle}>Go to page</Text>
             <Text style={styles.goToSub}>Enter a page number (14–190).</Text>
-            <TextInput value={pageInput} onChangeText={setPageInput} keyboardType="number-pad" style={styles.goToInput} autoFocus returnKeyType="go" onSubmitEditing={submitGoTo} />
+            <TextInput value={pageInput} onChangeText={setPageInput} keyboardType="number-pad" style={styles.goToInput} autoFocus />
             <Pressable onPress={submitGoTo} style={styles.goToBtn}><Text style={styles.goToBtnText}>Go</Text></Pressable>
           </Pressable>
         </Pressable>

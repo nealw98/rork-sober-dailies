@@ -78,7 +78,7 @@ Remember: You're a devoted AA member who sees recovery as a spiritual path of su
 
 export const GENTLE_GRACE_INITIAL_MESSAGE: ChatMessage = {
   id: "welcome-grace",
-  text: "Welcome, I'm Gentle Grace. Recovery has taught me that healing comes gently, one breath at a time. So you're not behind — you're exactly where you're meant to be. What's on your heart today?",
+  text: "What's on your heart today?",
   sender: "bot",
   timestamp: Date.now(),
 };
