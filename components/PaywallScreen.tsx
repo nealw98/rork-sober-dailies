@@ -46,8 +46,9 @@ const CARD_PAD_H = 20;   // timeline card horizontal padding (rail left aligns t
 const TILE = 48;         // no-trial benefit icon circle (matches the trial bead)
 const BENEFIT_FADE = 56; // rail length past the last tile center, fading out
 
-// Soft rail colors for the no-trial card, each pinned to its tile's family.
-const BENEFIT_RAIL = ['#7BC5BE', '#A9B8D9', '#BCB3EA', '#E3A9B1'];
+// No-trial rail: the SAME green → teal → lavender sweep as the trial rail,
+// sampled at the four tile centers.
+const BENEFIT_RAIL = ['#86CBA6', '#7AC8C4', '#8CC0DB', '#BCB3EA'];
 
 // ── helpers ──────────────────────────────────────────────────────────────
 const isYearlyPkg = (p: PurchasesPackage) => {
@@ -152,19 +153,19 @@ export default function PaywallScreen({ onDismiss, preview, forceTrial }: Paywal
       key: 'fits',
       icon: <SlidersHorizontal size={20} color={colors.primary} strokeWidth={2} fill={colors.primary} />,
       title: 'A practice that fits your life',
-      body: 'Choose the reflections, prayers, and daily actions that fit your program.',
+      body: 'Choose the daily habits that fit your program.',
     },
     {
       key: 'tool',
       icon: <Wrench size={19} color={colors.steelDark} strokeWidth={2} fill={colors.steelDark} />,
       title: 'The right tool at every step',
-      body: 'Each daily action is paired with the tool that supports it — right where you need it.',
+      body: 'Each daily action is paired with its tool — right when you need it.',
     },
     {
       key: 'sponsor',
       icon: <MessageCircle size={20} color={colors.tertiary} strokeWidth={2} fill={colors.tertiary} />,
       title: 'Never alone, day or night',
-      body: 'An AI sponsor is there to talk it through — guidance and encouragement whenever you reach for it.',
+      body: 'An AI sponsor is always there to talk it through.',
     },
     {
       key: 'progress',
@@ -235,7 +236,7 @@ export default function PaywallScreen({ onDismiss, preview, forceTrial }: Paywal
               const height = benefitY[3] - benefitY[0] + BENEFIT_FADE;
               return (
                 <LinearGradient
-                  colors={[BENEFIT_RAIL[0], BENEFIT_RAIL[1], BENEFIT_RAIL[2], BENEFIT_RAIL[3], 'rgba(227,169,177,0)']}
+                  colors={[BENEFIT_RAIL[0], BENEFIT_RAIL[1], BENEFIT_RAIL[2], BENEFIT_RAIL[3], 'rgba(188,179,234,0)']}
                   locations={[0, (benefitY[1] - benefitY[0]) / height, (benefitY[2] - benefitY[0]) / height, (benefitY[3] - benefitY[0]) / height, 1]}
                   start={{ x: 0.5, y: 0 }}
                   end={{ x: 0.5, y: 1 }}
@@ -394,6 +395,15 @@ function Radio({ on }: { on: boolean }) {
 }
 
 // ── "Have a code?" redemption — bottom sheet over the gate ─────────────────
+// Auto-insert the SD-XXXX-XXXX dashes as the user types (the server looks the
+// code up dashed, so free-typed "SDABCD1234" would otherwise never match).
+// Reformatting from the stripped characters keeps deletion natural: removing
+// a trailing dash also drops the group it introduced.
+function formatGiftCode(raw: string): string {
+  const chars = raw.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 10);
+  return [chars.slice(0, 2), chars.slice(2, 6), chars.slice(6, 10)].filter(Boolean).join('-');
+}
+
 function HaveACodeModal({ visible, onClose, onRedeemed }: { visible: boolean; onClose: () => void; onRedeemed: () => void }) {
   const styles = useThemedStyles(makeStyles);
   const { c } = useTokens();
@@ -436,7 +446,7 @@ function HaveACodeModal({ visible, onClose, onRedeemed }: { visible: boolean; on
         <TextInput
           style={[styles.codeField, error && styles.codeFieldError]}
           value={code}
-          onChangeText={(t) => { setCode(t.toUpperCase()); if (error) setError(null); }}
+          onChangeText={(t) => { setCode(formatGiftCode(t)); if (error) setError(null); }}
           placeholder="SD-XXXX-XXXX"
           placeholderTextColor={c.textMuted}
           autoCapitalize="characters"
@@ -504,7 +514,9 @@ const makeStyles = (tk: Tokens) => {
     // plans
     plans: { marginTop: 30, gap: 11 },
     plan: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 15, paddingHorizontal: 18, borderRadius: 16, borderWidth: 1.5, borderColor: c.border, backgroundColor: c.surface, ...darkCard },
-    planOn: { borderWidth: 2, borderColor: colors.primary },
+    // borderTopColor must be set explicitly: the darkCard spread on `plan`
+    // pins a lighter top edge, and the specific side color beats borderColor.
+    planOn: { borderWidth: 2, borderColor: colors.primary, borderTopColor: colors.primary },
     planLeft: { flexDirection: 'row', alignItems: 'center', gap: 13 },
     planName: { fontFamily: fontFamily.bold, fontSize: 16.5, color: c.text },
     planRight: { alignItems: 'flex-end' },

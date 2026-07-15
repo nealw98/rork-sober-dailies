@@ -9,7 +9,7 @@ import { View, Text, Pressable, StyleSheet, ActivityIndicator } from 'react-nati
 import { SafeAreaProvider, SafeAreaView, initialWindowMetrics } from 'react-native-safe-area-context';
 import { Asset } from 'expo-asset';
 import Pdf from 'react-native-pdf';
-import { X, Bookmark } from 'lucide-react-native';
+import { ChevronLeft, Bookmark } from 'lucide-react-native';
 import { colors, fontFamily, type Tokens } from '@/constants/designTokens';
 import { useTokens, useThemedStyles } from '@/hooks/useTokens';
 import { usePdfBookmarks } from '@/hooks/use-pdf-bookmarks';
@@ -17,6 +17,14 @@ import { useReadingTime } from '@/hooks/useReadingTime';
 
 // bookmark-namespace → display name for analytics
 const BOOK_NAMES: Record<string, string> = { bigbook: 'Big Book', twelve: '12 & 12' };
+
+// PDF pages are fixed-layout — the only way to read them bigger is landscape.
+// The app is otherwise portrait-locked (see app/_layout.tsx), so this reader
+// unlocks rotation while open and re-locks portrait on close. Guarded require:
+// on binaries without the native module (≤126) the calls reject and the reader
+// simply stays portrait.
+let ScreenOrientation: any = null;
+try { ScreenOrientation = require('expo-screen-orientation'); } catch {}
 
 export default function PdfReader({
   assetModule, title, book, sectionId, startPage, initialPage, accent = colors.primary, onClose,
@@ -39,6 +47,14 @@ export default function PdfReader({
   const [failed, setFailed] = useState(false);
   const [pdfPage, setPdfPage] = useState(initialPage ?? 1);
   const [pageCount, setPageCount] = useState(0);
+
+  useEffect(() => {
+    if (!ScreenOrientation) return;
+    ScreenOrientation.unlockAsync().catch(() => {});
+    return () => {
+      ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP).catch(() => {});
+    };
+  }, []);
 
   useEffect(() => {
     let alive = true;
@@ -68,12 +84,12 @@ export default function PdfReader({
 
   return (
     <SafeAreaProvider initialMetrics={initialWindowMetrics}>
-      <SafeAreaView style={styles.screen} edges={['top', 'bottom']}>
+      <SafeAreaView style={styles.screen} edges={['top', 'bottom', 'left', 'right']}>
         <View style={styles.header}>
-          <Text style={[styles.title, styles.flex]} numberOfLines={1}>{title}</Text>
-          <Pressable onPress={onClose} hitSlop={8} style={styles.closeBtn} accessibilityRole="button" accessibilityLabel="Close">
-            <X size={18} color={c.textSecondary} strokeWidth={2} />
+          <Pressable onPress={onClose} hitSlop={8} style={styles.backBtn} accessibilityRole="button" accessibilityLabel="Close">
+            <ChevronLeft size={22} color={c.text} strokeWidth={2} />
           </Pressable>
+          <Text style={[styles.title, styles.flex]} numberOfLines={1}>{title}</Text>
         </View>
 
         {/* Action row — live BOOK page + bookmark toggle */}
@@ -123,9 +139,10 @@ const makeStyles = (tk: Tokens) => {
   return StyleSheet.create({
   screen: { flex: 1, backgroundColor: c.background },
   flex: { flex: 1, minWidth: 0 },
-  header: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 16, paddingTop: 10, paddingBottom: 8 },
-  closeBtn: { width: 34, height: 34, borderRadius: 17, borderWidth: 1, borderColor: c.border, alignItems: 'center', justifyContent: 'center' },
-  title: { fontFamily: fontFamily.display, fontSize: 17, color: c.text, letterSpacing: -0.2 },
+  // Header matches the Big Book text reader: back chevron + displayBold title.
+  header: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 14, paddingTop: 8, paddingBottom: 10 },
+  backBtn: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center', backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.04)' },
+  title: { fontFamily: fontFamily.displayBold, fontSize: 20, letterSpacing: -0.4, color: c.text },
 
   actionRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 18, paddingBottom: 10, borderBottomWidth: 1, borderBottomColor: c.divider },
   pageLabel: { fontFamily: fontFamily.semiBold, fontSize: 12.5, color: c.textSecondary },

@@ -25,7 +25,8 @@ import { useTokens, useThemedStyles } from '@/hooks/useTokens';
 import { logEvent } from '@/lib/analytics';
 import { useReadingTime } from '@/hooks/useReadingTime';
 
-const PAPER = '#FCFBF8';
+const PAPER = '#FCFBF8';        // header/chrome
+const READING_BG = '#FFFFFF';   // the text reading surface
 const HIGHLIGHT_COLOR = HighlightColor.YELLOW;
 const HL_FILL = '#FCE9A8';
 
@@ -38,7 +39,7 @@ type ReaderPalette = {
 };
 const READER_PALETTES: Record<'light' | 'dark', ReaderPalette> = {
   light: {
-    paper: PAPER, ink: semanticColors.light.text, inkSecondary: semanticColors.light.textSecondary,
+    paper: READING_BG, ink: semanticColors.light.text, inkSecondary: semanticColors.light.textSecondary,
     muted: semanticColors.light.textMuted,
     divider: semanticColors.light.divider, accentInk: lightColors.steelDark, hlFill: HL_FILL,
     searchHit: lightColors.primarySoft, toolbarBg: 'rgba(255,255,255,0.99)',
@@ -356,26 +357,36 @@ function buildHtml(params: {
       return;
     }
     const range = selection.getRangeAt(0);
-    const startParagraph = range.startContainer.parentElement && range.startContainer.parentElement.closest('.bb-paragraph');
-    const endParagraph = range.endContainer.parentElement && range.endContainer.parentElement.closest('.bb-paragraph');
+    const paragraphs = Array.from(document.querySelectorAll('.bb-paragraph'));
+    // A selection edge can land outside a paragraph (page markers, the chapter
+    // label, whitespace between blocks) while the user drags a handle. Never
+    // cancel the selection for that — clamp to the paragraphs the range
+    // actually touches so the drag keeps going.
+    let startParagraph = range.startContainer.parentElement && range.startContainer.parentElement.closest('.bb-paragraph');
+    let endParagraph = range.endContainer.parentElement && range.endContainer.parentElement.closest('.bb-paragraph');
     if (!startParagraph || !endParagraph) {
-      selection.removeAllRanges();
-      hideSelectionToolbar(false);
-      post({ type: 'unsupportedSelection', reason: 'Select text inside the Big Book passage.' });
-      return;
+      const touched = paragraphs.filter((paragraph) => range.intersectsNode(paragraph));
+      if (touched.length === 0) {
+        hideSelectionToolbar(false);
+        return;
+      }
+      if (!startParagraph) startParagraph = touched[0];
+      if (!endParagraph) endParagraph = touched[touched.length - 1];
     }
 
-    const paragraphs = Array.from(document.querySelectorAll('.bb-paragraph'));
     const startIndex = paragraphs.indexOf(startParagraph);
     const endIndex = paragraphs.indexOf(endParagraph);
     if (startIndex < 0 || endIndex < 0 || endIndex < startIndex) {
-      selection.removeAllRanges();
       hideSelectionToolbar(false);
-      post({ type: 'unsupportedSelection', reason: 'Select text from top to bottom in the passage.' });
       return;
     }
 
     function offsetInParagraph(paragraph, node, offset) {
+      if (!paragraph.contains(node)) {
+        // Edge sits outside the clamped paragraph: snap to its start or end.
+        const position = paragraph.compareDocumentPosition(node);
+        return (position & Node.DOCUMENT_POSITION_PRECEDING) ? 0 : paragraph.textContent.length;
+      }
       const pre = document.createRange();
       pre.selectNodeContents(paragraph);
       pre.setEnd(node, offset);
@@ -437,13 +448,36 @@ function buildHtml(params: {
   toolbar.addEventListener('mousedown', (event) => event.preventDefault());
   toolbar.addEventListener('touchend', runSelectionAction);
   toolbar.addEventListener('click', runSelectionAction);
-  document.addEventListener('selectionchange', () => {
+
+  // The toolbar waits until the user lets go: while a finger is down or the
+  // selection is still changing (handle drags), keep it hidden; show it only
+  // once the gesture ends. If touch events don't reach the page during a
+  // native handle drag, the settle delay covers it — and any further
+  // selectionchange hides the toolbar again until the next quiet moment.
+  window.__touchDown = false;
+  function scheduleToolbar(delay) {
     clearTimeout(window.__selectionTimer);
-    window.__selectionTimer = setTimeout(readSelection, 260);
+    window.__selectionTimer = setTimeout(() => {
+      if (window.__touchDown) { scheduleToolbar(300); return; }
+      readSelection();
+    }, delay);
+  }
+  document.addEventListener('touchstart', () => { window.__touchDown = true; }, true);
+  document.addEventListener('touchcancel', () => { window.__touchDown = false; }, true);
+  document.addEventListener('selectionchange', () => {
+    hideSelectionToolbar(false);
+    scheduleToolbar(600);
   });
-  document.addEventListener('touchend', () => { clearTimeout(window.__selectionTimer); window.__selectionTimer = setTimeout(readSelection, 180); });
-  document.addEventListener('mouseup', () => { clearTimeout(window.__selectionTimer); window.__selectionTimer = setTimeout(readSelection, 120); });
-  window.addEventListener('scroll', () => { hideSelectionToolbar(true); clearTimeout(window.__pageTimer); window.__pageTimer = setTimeout(currentPage, 100); });
+  document.addEventListener('touchend', () => { window.__touchDown = false; scheduleToolbar(180); }, true);
+  document.addEventListener('mouseup', () => { scheduleToolbar(120); });
+  // Scrolling must not kill an in-progress selection (dragging a handle near
+  // the screen edge scrolls the page). Hide the toolbar while moving, keep the
+  // selection, and reposition the toolbar once the scroll settles.
+  window.addEventListener('scroll', () => {
+    hideSelectionToolbar(false);
+    clearTimeout(window.__pageTimer); window.__pageTimer = setTimeout(currentPage, 100);
+    scheduleToolbar(600);
+  });
   window.__addSavedHighlight = function(highlight) { applyHighlight(highlight); };
 
   applySearch(window.__searchTerm);
@@ -522,7 +556,6 @@ export function BigBookHtmlReader({ visible, initialChapterId, scrollToPage, scr
   }, [currentChapterId, highlights]);
 
   const displayTitle = (currentChapter?.title ?? '').replace(/^\d+\.\s*/, '');
-  const subtitle = chapterNumber ? `Big Book · Chapter ${chapterNumber}` : 'Big Book';
   const html = useMemo(() => {
     if (!currentChapter) return `<html><body style="background:${pal.paper}"></body></html>`;
     return buildHtml({
@@ -700,7 +733,6 @@ export function BigBookHtmlReader({ visible, initialChapterId, scrollToPage, scr
             </Pressable>
             <View style={styles.flex}>
               <Text style={styles.title} numberOfLines={1}>{displayTitle || 'Loading...'}</Text>
-              <Text style={styles.subtitle}>{subtitle}</Text>
             </View>
           </View>
 
@@ -783,14 +815,13 @@ export function BigBookHtmlReader({ visible, initialChapterId, scrollToPage, scr
 const makeStyles = (tk: Tokens) => {
   const { c, colors, isDark } = tk;
   const ACCENT_INK = colors.steelDark;
-  const PAGE = isDark ? '#101216' : PAPER;
+  const PAGE = isDark ? '#101216' : READING_BG;
   return StyleSheet.create({
   screen: { flex: 1, backgroundColor: isDark ? c.background : PAPER },
   flex: { flex: 1, minWidth: 0 },
   header: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 14, paddingTop: 8, paddingBottom: 10 },
   backBtn: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center', backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.04)' },
   title: { fontFamily: fontFamily.displayBold, fontSize: 20, letterSpacing: -0.4, color: c.text },
-  subtitle: { fontFamily: fontFamily.regular, fontSize: 12.5, color: c.textMuted, marginTop: 1 },
   actionRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 18, paddingBottom: 8, borderBottomWidth: 1, borderBottomColor: c.divider },
   pageLabel: { fontFamily: fontFamily.semiBold, fontSize: 12.5, color: c.textSecondary },
   actions: { flexDirection: 'row', alignItems: 'center', gap: 8 },

@@ -1,6 +1,6 @@
 /**
  * Highlight Edit Menu Modal
- * 
+ *
  * Modal for editing or removing existing highlights.
  * Shows when user taps a highlighted sentence outside of highlight mode.
  */
@@ -18,8 +18,9 @@ import {
 import { KeyboardModalScope } from '@/components/KeyboardModalScope';
 import { X, Trash2 } from 'lucide-react-native';
 import { BigBookHighlight } from '@/types/bigbook-v2';
-import Colors from '@/constants/colors';
 import { adjustFontWeight } from '@/constants/fonts';
+import { type Tokens } from '@/constants/designTokens';
+import { useTokens, useThemedStyles } from '@/hooks/useTokens';
 
 interface HighlightEditMenuProps {
   visible: boolean;
@@ -36,6 +37,8 @@ export function HighlightEditMenu({
   onRemove,
   onClose,
 }: HighlightEditMenuProps) {
+  const styles = useThemedStyles(makeStyles);
+  const { c } = useTokens();
   const [noteText, setNoteText] = useState(highlight?.note || '');
 
   React.useEffect(() => {
@@ -81,7 +84,7 @@ export function HighlightEditMenu({
           <View style={styles.header}>
             <Text style={styles.headerTitle}>Edit Highlight</Text>
             <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-              <X size={24} color={Colors.light.text} />
+              <X size={24} color={c.text} />
             </TouchableOpacity>
           </View>
 
@@ -101,7 +104,7 @@ export function HighlightEditMenu({
               value={noteText}
               onChangeText={setNoteText}
               placeholder="Add your thoughts or notes here..."
-              placeholderTextColor={Colors.light.muted}
+              placeholderTextColor={c.textMuted}
               multiline
               numberOfLines={4}
               textAlignVertical="top"
@@ -117,7 +120,7 @@ export function HighlightEditMenu({
             </TouchableOpacity>
 
             <TouchableOpacity style={styles.removeButton} onPress={handleRemove}>
-              <Trash2 size={18} color={Colors.light.destructive || '#EF4444'} />
+              <Trash2 size={18} color={styles.removeButtonText.color} />
               <Text style={styles.removeButtonText}>Remove Highlight</Text>
             </TouchableOpacity>
           </View>
@@ -128,7 +131,10 @@ export function HighlightEditMenu({
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (tk: Tokens) => {
+  const { c, colors, isDark } = tk;
+  const destructive = isDark ? '#F87171' : '#EF4444';
+  return StyleSheet.create({
   overlay: {
     flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
@@ -137,11 +143,13 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   container: {
-    backgroundColor: Colors.light.background,
+    backgroundColor: c.surface,
     borderRadius: 12,
     width: '100%',
     maxWidth: 400,
     padding: 20,
+    borderWidth: isDark ? 1 : 0,
+    borderColor: 'rgba(255,255,255,0.10)',
   },
   header: {
     flexDirection: 'row',
@@ -152,23 +160,23 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 18,
     fontWeight: adjustFontWeight('600'),
-    color: Colors.light.text,
+    color: c.text,
   },
   closeButton: {
     padding: 4,
   },
   previewContainer: {
-    backgroundColor: Colors.light.cardBackground || '#F9FAFB',
+    backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : c.background,
     padding: 12,
     borderRadius: 8,
     marginBottom: 16,
     borderWidth: 1,
-    borderColor: Colors.light.border || '#E5E7EB',
+    borderColor: c.border,
   },
   previewLabel: {
     fontSize: 12,
     fontWeight: adjustFontWeight('600'),
-    color: Colors.light.muted,
+    color: c.textMuted,
     marginBottom: 4,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
@@ -176,7 +184,7 @@ const styles = StyleSheet.create({
   previewText: {
     fontSize: 14,
     fontWeight: adjustFontWeight('400'),
-    color: Colors.light.text,
+    color: c.text,
     lineHeight: 20,
   },
   noteContainer: {
@@ -185,16 +193,16 @@ const styles = StyleSheet.create({
   noteLabel: {
     fontSize: 14,
     fontWeight: adjustFontWeight('500'),
-    color: Colors.light.text,
+    color: c.text,
     marginBottom: 8,
   },
   noteInput: {
     borderWidth: 1,
-    borderColor: Colors.light.border || '#E5E7EB',
+    borderColor: c.border,
     borderRadius: 8,
     padding: 12,
     fontSize: 14,
-    color: Colors.light.text,
+    color: c.text,
     minHeight: 100,
     maxHeight: 150,
   },
@@ -202,7 +210,7 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   saveButton: {
-    backgroundColor: Colors.light.tint,
+    backgroundColor: colors.primary,
     paddingVertical: 12,
     paddingHorizontal: 24,
     borderRadius: 8,
@@ -221,12 +229,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: Colors.light.destructive || '#EF4444',
+    borderColor: destructive,
     gap: 8,
   },
   removeButtonText: {
     fontSize: 14,
     fontWeight: adjustFontWeight('600'),
-    color: Colors.light.destructive || '#EF4444',
+    color: destructive,
   },
-});
+  });
+};

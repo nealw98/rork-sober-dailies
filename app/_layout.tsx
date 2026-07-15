@@ -97,6 +97,17 @@ SplashScreen.preventAutoHideAsync().catch(() => {
   console.log('🟢 SPLASH: Failed to prevent auto-hide, continuing anyway');
 });
 
+// The app is portrait-only EXCEPT the PDF reader (which unlocks rotation so
+// landscape can render pages larger — PDF text can't reflow like the readers).
+// app.json orientation is "default" so the native shell allows landscape; this
+// runtime lock keeps everything portrait until a screen opts out. Guarded:
+// binaries older than the one bundling expo-screen-orientation (≤126) reject
+// the call — they're natively portrait-locked anyway, so it's a no-op there.
+try {
+  const ScreenOrientation = require('expo-screen-orientation');
+  ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP).catch(() => {});
+} catch {}
+
 const queryClient = new QueryClient();
 
 // Entire app is subscription-only after onboarding. ENABLED for 3.0.7 testing —

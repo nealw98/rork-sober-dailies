@@ -3,7 +3,7 @@
     "name": "Sober Dailies",
     "slug": "sober-dailies",
     "version": "3.0.7",
-    "orientation": "portrait",
+    "orientation": "default",
     "icon": "./assets/images/icon.png",
     "scheme": "myapp",
     "userInterfaceStyle": "automatic",

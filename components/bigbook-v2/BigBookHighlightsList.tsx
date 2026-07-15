@@ -42,6 +42,14 @@ function getPageNumber(paragraphId: string): number | null {
   return paragraph?.pageNumber ?? null;
 }
 
+// A highlight dragged across a page break captures the reader's rendered
+// page-marker ("PAGE 24" / "PAGE xii") inside its text snapshot. Strip it for
+// the preview — it's reader chrome, not book text (which never uses the
+// all-caps "PAGE n" form).
+function stripPageMarkers(text: string): string {
+  return text.replace(/\s*PAGE\s+(?:\d+|[xivlcdm]+)(?=\s|$)/g, ' ').replace(/\s{2,}/g, ' ').trim();
+}
+
 // Helper to get chapter title without the number prefix (e.g., "1. Bill's Story" -> "Bill's Story")
 function getChapterTitleWithoutNumber(chapterId: string): string {
   const meta = getChapterMeta(chapterId);
@@ -163,7 +171,7 @@ export function BigBookHighlightsList({
   
   // Helper to create a merged highlight from a group of consecutive highlights
   function createMergedHighlight(group: BigBookHighlight[]): MergedHighlight {
-    const combinedText = group[0].groupId ? group[0].textSnapshot : group.map(h => h.textSnapshot).join(' ');
+    const combinedText = stripPageMarkers(group[0].groupId ? group[0].textSnapshot : group.map(h => h.textSnapshot).join(' '));
     // Find the first note
     const note = group.find(h => h.note)?.note;
     // Use earliest createdAt

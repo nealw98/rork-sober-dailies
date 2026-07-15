@@ -73,6 +73,7 @@
     "expo-localization": "~16.1.6",
     "expo-location": "~18.1.6",
     "expo-router": "~5.1.5",
+    "expo-screen-orientation": "~8.1.7",
     "expo-secure-store": "~14.2.4",
     "expo-splash-screen": "~0.30.10",
     "expo-sqlite": "~15.2.14",
