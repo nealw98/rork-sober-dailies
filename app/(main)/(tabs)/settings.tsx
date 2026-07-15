@@ -111,7 +111,7 @@ export default function SettingsScreen() {
   const styles = useThemedStyles(makeStyles);
   const { c, colors } = useTokens();
   const { hasEverBought, availableCount } = useGiftWallet();
-  const { resetOnboarding } = useOnboarding();
+  const { resetOnboarding, resetOnboardingAsUpgrader } = useOnboarding();
   const { colorScheme, setColorScheme } = useTheme();
 
   useScreenTimeTracking('Settings');
@@ -237,7 +237,7 @@ export default function SettingsScreen() {
               await SecureStore.deleteItemAsync('sober_dailies_premium_override');
               await SecureStore.deleteItemAsync('sober_dailies_anonymous_id');
               await AsyncStorage.removeItem('anonymous_id');
-              await AsyncStorage.removeItem('sober_dailies_onboarding_complete');
+              await AsyncStorage.multiRemove(['sober_dailies_onboarding_complete', 'sober_dailies_onboarding_v3_complete']);
               try {
                 await Purchases.logOut();
                 console.log('[Settings] RevenueCat user logged out');
@@ -357,6 +357,14 @@ export default function SettingsScreen() {
     Alert.alert('Run onboarding again?', 'The welcome flow will run again. Your current data is kept.', [
       { text: 'Cancel', style: 'cancel' },
       { text: 'Run onboarding', onPress: () => { resetOnboarding(); } },
+    ]);
+  };
+
+  // Replay the v2-upgrader ("What's new") variant of onboarding.
+  const onboardAsUpgrader = () => {
+    Alert.alert('Run onboarding as v2 upgrader?', "The What's-new welcome flow will run, as a v2 user sees it after the store update. Your current data is kept.", [
+      { text: 'Cancel', style: 'cancel' },
+      { text: 'Run onboarding', onPress: () => { resetOnboardingAsUpgrader(); } },
     ]);
   };
 
@@ -486,6 +494,11 @@ export default function SettingsScreen() {
               label="Run onboarding again"
               sub="Replays the welcome flow · keeps all data"
               onPress={onboardKeep}
+            />
+            <CardRow
+              label="Run onboarding as v2 upgrader"
+              sub="Replays the What's-new variant · keeps all data"
+              onPress={onboardAsUpgrader}
             />
             <CardRow
               label="Clear all data & start over"

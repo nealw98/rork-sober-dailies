@@ -262,9 +262,10 @@ function useCards(): CardDef[] {
 
 // ─── the carousel ─────────────────────────────────────────────────────────────
 
-export default function WhatsInsideCarousel({ onSkip, onContinue }: {
+export default function WhatsInsideCarousel({ onSkip, onContinue, overline }: {
   onSkip: () => void;
   onContinue: () => void;
+  overline?: string; // e.g. "WHAT'S NEW" for the v2-upgrader flow
 }) {
   const styles = useThemedStyles(makeStyles);
   const cards = useCards();
@@ -288,7 +289,7 @@ export default function WhatsInsideCarousel({ onSkip, onContinue }: {
       <LinearGradient colors={[...WI_GRAD]} start={{ x: 0.1, y: 0 }} end={{ x: 0.9, y: 1 }} style={StyleSheet.absoluteFill} />
       <SafeAreaView style={{ flex: 1 }} edges={['top', 'bottom']}>
         <View style={styles.headerRow}>
-          <Text style={styles.overline}>WHAT&rsquo;S INSIDE</Text>
+          <Text style={styles.overline}>{overline ?? 'WHAT’S INSIDE'}</Text>
           <Pressable onPress={onSkip} hitSlop={8} style={styles.skipPill} accessibilityRole="button" accessibilityLabel="Skip">
             <Text style={styles.skipText}>Skip</Text>
           </Pressable>

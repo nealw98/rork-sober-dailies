@@ -43,7 +43,9 @@ const openTerms = () => Linking.openURL('https://www.apple.com/legal/internet-se
 const openPrivacy = () => Linking.openURL('https://soberdailies.com/privacy').catch(() => {});
 
 // ─── Step 1 · Welcome (logo + promise) ──────────────────────────────────────
-function WelcomeStep({ onContinue }: { onContinue: () => void }) {
+// `upgrader` = v2 user whose device data carried through the store update; the
+// copy welcomes them back instead of pitching the app they already use.
+function WelcomeStep({ upgrader, onContinue }: { upgrader: boolean; onContinue: () => void }) {
   const styles = useThemedStyles(makeStyles);
   return (
     <View style={styles.welcomeRoot}>
@@ -52,12 +54,16 @@ function WelcomeStep({ onContinue }: { onContinue: () => void }) {
       <SafeAreaView style={styles.welcomeSafe} edges={['top', 'bottom']}>
         <View style={styles.welcomeCenter}>
           <Image source={require('@/assets/images/icon.png')} style={styles.welcomeLogo} contentFit="cover" />
-          <Text style={styles.welcomePromise}>The habits that build long-term sobriety</Text>
-          <Text style={styles.welcomeSubtitle}>One day. Every day.</Text>
+          <Text style={styles.welcomePromise}>
+            {upgrader ? 'Welcome to the new Sober Dailies' : 'The habits that build long-term sobriety'}
+          </Text>
+          <Text style={styles.welcomeSubtitle}>
+            {upgrader ? 'Everything you saved is still here. New in this version: speaker tapes, meditation, and a whole new Today.' : 'One day. Every day.'}
+          </Text>
         </View>
         <View style={styles.welcomeFooter}>
           <Pressable style={styles.welcomeBtn} onPress={onContinue}>
-            <Text style={styles.welcomeBtnText}>Get started</Text>
+            <Text style={styles.welcomeBtnText}>{upgrader ? "See what's new" : 'Get started'}</Text>
             <ArrowRight size={18} color={obvInk(0.55)} />
           </Pressable>
           <Text style={styles.welcomeAgreeLine}>
@@ -170,11 +176,24 @@ type Step = 'welcome' | 'inside' | 'date' | 'dailies';
 
 export default function OnboardingFlow() {
   const [step, setStep] = useState<Step>('welcome');
-  const { completeOnboarding } = useOnboarding();
-  const { setSobrietyDate } = useSobriety();
+  const { completeOnboarding, isUpgrader } = useOnboarding();
+  const { setSobrietyDate, sobrietyDate } = useSobriety();
 
-  if (step === 'welcome') return <WelcomeStep onContinue={() => setStep('inside')} />;
-  if (step === 'inside') return <WhatsInsideCarousel onSkip={() => setStep('date')} onContinue={() => setStep('date')} />;
+  // Upgraders carried their sobriety date over from v2 — don't ask again.
+  // (An upgrader who never set one still gets the date step.)
+  const skipDateStep = isUpgrader && !!sobrietyDate;
+  const afterCarousel: Step = skipDateStep ? 'dailies' : 'date';
+
+  if (step === 'welcome') return <WelcomeStep upgrader={isUpgrader} onContinue={() => setStep('inside')} />;
+  if (step === 'inside') {
+    return (
+      <WhatsInsideCarousel
+        overline={isUpgrader ? 'WHAT’S NEW' : undefined}
+        onSkip={() => setStep(afterCarousel)}
+        onContinue={() => setStep(afterCarousel)}
+      />
+    );
+  }
   if (step === 'date') {
     return (
       <SoberDateEditor
@@ -189,7 +208,7 @@ export default function OnboardingFlow() {
   }
   return (
     <DefineDailiesStep
-      onBack={() => setStep('date')}
+      onBack={() => setStep(skipDateStep ? 'inside' : 'date')}
       onComplete={async () => {
         await completeOnboarding();
         // No router.replace here: onboarding is a render gate in app/_layout, not a

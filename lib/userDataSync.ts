@@ -44,7 +44,8 @@ export const SYNC_KEYS: string[] = [
   'daily-reflection-bookmarks-v1',
   'meditation_settings',
   'sd-text-settings-v1',
-  'sober_dailies_onboarding_complete',
+  'sober_dailies_onboarding_complete',      // legacy (v2) flag — written, never read
+  'sober_dailies_onboarding_v3_complete',   // the flag the v3 gate actually reads
   // ── Pass It On ──
   // Private, local-only gift notes ("who's this for"). The gift CODES live in
   // Supabase and re-sync from the adopted identity, so they aren't backed up
