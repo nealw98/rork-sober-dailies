@@ -6,7 +6,7 @@
 // ✕ reverse-morphs it back. The summary opens the day's dailies checklist; an
 // entry opens its read-only detail.
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
-import { View, Text, ScrollView, Pressable, StyleSheet, BackHandler, useWindowDimensions, TextInput, Share } from 'react-native';
+import { View, Text, ScrollView, Pressable, StyleSheet, BackHandler, useWindowDimensions, TextInput, Share, Alert } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, { useSharedValue, useAnimatedStyle, withTiming, Easing, interpolate, runOnJS, Extrapolation } from 'react-native-reanimated';
 import { ChevronRight, PenLine, Heart, Moon, CircleCheck, NotebookPen, Check, X, Plus, Trash2, BarChart3, Share as ShareIcon } from 'lucide-react-native';
@@ -15,7 +15,7 @@ import { useRouter } from 'expo-router';
 import Svg, { Path } from 'react-native-svg';
 import { useNotebook, type NotebookEntry, type NotebookType } from '@/hooks/use-notebook';
 import { useMeditationLog } from '@/hooks/use-meditation-log';
-import { useDailies, type DailyItem } from '@/hooks/use-dailies-store';
+import { useDailies, V2_DAILIES, type DailyItem } from '@/hooks/use-dailies-store';
 import { useSobriety } from '@/hooks/useSobrietyStore';
 import { useGratitudeStore } from '@/hooks/use-gratitude-store';
 import { useEveningReviewStore } from '@/hooks/use-evening-review-store';
@@ -125,7 +125,7 @@ function buildShareText(entry: NotebookEntry): string {
   return body ? `${header}\n\n${body}` : header;
 }
 
-type DayBlockData = { key: string; label: string; dayN: number | null; done: number; total: number; isToday: boolean; entries: NotebookEntry[]; medSeconds: number };
+type DayBlockData = { key: string; label: string; dayN: number | null; done: number; total: number; isToday: boolean; isYesterday: boolean; entries: NotebookEntry[]; medSeconds: number };
 type MorphTarget = { kind: 'entry'; entry: NotebookEntry } | { kind: 'day'; day: DayBlockData };
 
 export default function JourneyScreen() {
@@ -133,7 +133,7 @@ export default function JourneyScreen() {
   const router = useRouter();
   const styles = useThemedStyles(makeStyles);
   const { c, colors } = useTokens();
-  const { entries, updateSpotRecord } = useNotebook();
+  const { entries, updateSpotRecord, deleteSpotRecord } = useNotebook();
   const dailies = useDailies();
   const { sobrietyDate } = useSobriety();
   const { byDate: medByDate } = useMeditationLog();
@@ -194,6 +194,9 @@ export default function JourneyScreen() {
       arr.push(e);
       byDay.set(k, arr);
     });
+    const yd = keyToDate(todayKey);
+    yd.setDate(yd.getDate() - 1);
+    const yesterdayKey = dayKeyOf(yd.getTime());
     const keys = new Set<string>([todayKey, ...byDay.keys(), ...Object.keys(completion), ...Object.keys(medByDate)]);
     return [...keys]
       .sort((a, b) => (a < b ? 1 : -1))
@@ -207,13 +210,16 @@ export default function JourneyScreen() {
         // total (the "11 of 10" bug) and disagreeing with what the opened day
         // shows. So the total is the current program size and done only counts
         // completions whose ids are still in the program.
-        const total = isToday ? dailies.totalCount : dailies.program.length + 1;
-        const done = isToday
-          ? dailies.doneCount
-          : (comp?.reflection ? 1 : 0) + (comp ? dailies.program.filter((p) => comp.done.includes(p.id)).length : 0);
-        return { key: k, label: dateLabel(k, todayKey), dayN: dayNFor(k, sobrietyDate ?? null), done, total, isToday, entries: byDay.get(k) ?? [], medSeconds: medByDate[k] ?? 0 };
+        // Legacy v2 days carry their own fixed six-item checklist — count as recorded.
+        const total = comp?.v2 ? (comp.total ?? V2_DAILIES.length) : isToday ? dailies.totalCount : dailies.program.length + 1;
+        const done = comp?.v2
+          ? comp.done.length
+          : isToday
+            ? dailies.doneCount
+            : (comp?.reflection ? 1 : 0) + (comp ? dailies.program.filter((p) => comp.done.includes(p.id)).length : 0);
+        return { key: k, label: dateLabel(k, todayKey), dayN: dayNFor(k, sobrietyDate ?? null), done, total, isToday, isYesterday: k === yesterdayKey, entries: byDay.get(k) ?? [], medSeconds: medByDate[k] ?? 0 };
       })
-      .filter((d) => d.isToday || d.entries.length > 0 || d.done > 0 || d.medSeconds > 0);
+      .filter((d) => d.isToday || d.isYesterday || d.entries.length > 0 || d.done > 0 || d.medSeconds > 0);
   }, [entries, completion, todayKey, dailies.doneCount, dailies.totalCount, dailies.program, sobrietyDate, medByDate]);
 
   const hasAny = feed.some((d) => d.entries.length > 0 || d.done > 0 || d.medSeconds > 0);
@@ -279,7 +285,7 @@ export default function JourneyScreen() {
           </Animated.View>
           <Animated.View style={[StyleSheet.absoluteFill, sheetFade]}>
             {morph.kind === 'entry' ? (
-              <EntrySheet entry={morph.entry} onClose={closeMorph} scrollEnabled={mode === 'read'} updateSpotRecord={updateSpotRecord} />
+              <EntrySheet entry={morph.entry} onClose={closeMorph} scrollEnabled={mode === 'read'} updateSpotRecord={updateSpotRecord} deleteSpotRecord={deleteSpotRecord} />
             ) : (
               <DaySheet day={morph.day} program={dailies.program} completion={completion[morph.day.key]} onClose={closeMorph} onSave={(rec) => dailies.setDayCompletion(morph.day.key, rec)} scrollEnabled={mode === 'read'} />
             )}
@@ -341,9 +347,15 @@ function DayBlock({ day, onOpenDay, onOpenEntry }: { day: DayBlockData; onOpenDa
         {day.dayN != null && <Text style={styles.dayN}>Day {day.dayN}</Text>}
       </View>
       <View style={styles.cards}>
-        <Pressable ref={ref} style={[styles.summary, (day.entries.length > 0 || day.medSeconds > 0) && { marginBottom: 12 }]} onPress={press}>
-          <SummaryContent day={day} />
-        </Pressable>
+        {/* Past days with nothing recorded don't get a "0 of N done" card — a
+            missing record means nothing was tracked, not that the user failed
+            that day's program. Today and yesterday always show: today is live,
+            yesterday stays editable ("forgot to check off last night"). */}
+        {(day.isToday || day.isYesterday || day.done > 0) && (
+          <Pressable ref={ref} style={[styles.summary, (day.entries.length > 0 || day.medSeconds > 0) && { marginBottom: 12 }]} onPress={press}>
+            <SummaryContent day={day} />
+          </Pressable>
+        )}
         {day.entries.map((e) => <EntryRow key={e.key} entry={e} onOpen={onOpenEntry} />)}
         {day.medSeconds > 0 && (
           // Read-only stat (not tappable, no chevron) — actual sat time that day.
@@ -394,7 +406,7 @@ function JourneyEmpty() {
 const REFLECTION_ITEM = { id: '__reflection', label: 'Daily Reflection', icon: 'book', color: 'teal' };
 
 function DaySheet({ day, program, completion, onClose, onSave, scrollEnabled = true }: {
-  day: DayBlockData; program: DailyItem[]; completion?: { done: string[]; reflection: boolean };
+  day: DayBlockData; program: DailyItem[]; completion?: { done: string[]; reflection: boolean; v2?: boolean };
   onClose: () => void; onSave: (rec: { done: string[]; reflection: boolean }) => void; scrollEnabled?: boolean;
 }) {
   const styles = useThemedStyles(makeStyles);
@@ -402,6 +414,9 @@ function DaySheet({ day, program, completion, onClose, onSave, scrollEnabled = t
   const [editing, setEditing] = useState(false);
   const [draftDone, setDraftDone] = useState<Set<string>>(new Set());
   const [draftReflection, setDraftReflection] = useState(false);
+  // Legacy v2 day: the fixed Nightly Review checklist, shown as recorded — no
+  // Daily Reflection row (v2 didn't track it per day) and no editing.
+  const isLegacy = !!completion?.v2;
 
   const beginEdit = () => {
     setDraftDone(new Set(completion?.done ?? []));
@@ -419,10 +434,12 @@ function DaySheet({ day, program, completion, onClose, onSave, scrollEnabled = t
     setDraftDone((prev) => { const n = new Set(prev); if (n.has(id)) n.delete(id); else n.add(id); return n; });
   };
 
-  const all = [
-    { id: REFLECTION_ITEM.id, label: REFLECTION_ITEM.label, icon: REFLECTION_ITEM.icon, color: REFLECTION_ITEM.color },
-    ...program.map((p) => ({ id: p.id, label: p.label, icon: p.icon, color: p.color })),
-  ];
+  const all = isLegacy
+    ? V2_DAILIES.map((p) => ({ id: p.id, label: p.label, icon: p.icon, color: p.color }))
+    : [
+        { id: REFLECTION_ITEM.id, label: REFLECTION_ITEM.label, icon: REFLECTION_ITEM.icon, color: REFLECTION_ITEM.color },
+        ...program.map((p) => ({ id: p.id, label: p.label, icon: p.icon, color: p.color })),
+      ];
   const isDone = (id: string) =>
     editing
       ? id === REFLECTION_ITEM.id ? draftReflection : draftDone.has(id)
@@ -447,7 +464,9 @@ function DaySheet({ day, program, completion, onClose, onSave, scrollEnabled = t
           </>
         ) : (
           <>
-            <Pressable onPress={beginEdit} hitSlop={8} style={styles.headTextBtn} accessibilityRole="button" accessibilityLabel="Edit dailies"><Text style={styles.headEdit}>Edit</Text></Pressable>
+            {!isLegacy && (
+              <Pressable onPress={beginEdit} hitSlop={8} style={styles.headTextBtn} accessibilityRole="button" accessibilityLabel="Edit dailies"><Text style={styles.headEdit}>Edit</Text></Pressable>
+            )}
             <Pressable style={styles.closeBtn} onPress={onClose} hitSlop={8} accessibilityRole="button" accessibilityLabel="Close">
               <X size={18} color={c.textSecondary} strokeWidth={2} />
             </Pressable>
@@ -494,9 +513,10 @@ function DailyCheckRow({ item, first, dim, editable, onToggle }: {
 }
 
 // ── Entry sheet (read + edit, "Option B" card content) ─────────────────
-function EntrySheet({ entry, onClose, scrollEnabled = true, updateSpotRecord }: {
+function EntrySheet({ entry, onClose, scrollEnabled = true, updateSpotRecord, deleteSpotRecord }: {
   entry: NotebookEntry; onClose: () => void; scrollEnabled?: boolean;
   updateSpotRecord: (id: string, next: { situation: string; selected: string[] }) => void;
+  deleteSpotRecord: (id: string) => void;
 }) {
   const styles = useThemedStyles(makeStyles);
   const { c, mode } = useTokens();
@@ -563,6 +583,24 @@ function EntrySheet({ entry, onClose, scrollEnabled = true, updateSpotRecord }: 
     catch (e) { console.warn('[journey] share failed', e); }
   };
 
+  // Delete the entry from its backing store, then close the sheet. (Legacy v2
+  // checklist days live in dailies_completion, not here — deleting a Nightly
+  // Review never touches them.)
+  const performDelete = () => {
+    if (view.type === 'journal' && view.id) journal.removeEntry(view.id);
+    else if (view.type === 'gratitude' && view.date) gratitudeStore.deleteSavedEntry(view.date);
+    else if (view.type === 'spotcheck' && view.id) deleteSpotRecord(view.id);
+    else if (view.type === 'nightly' && view.date) eveningStore.deleteSavedEntry(view.date);
+    onClose();
+  };
+
+  const confirmDelete = () => {
+    Alert.alert(`Delete this ${TYPE_LABEL[view.type]}?`, 'This can’t be undone.', [
+      { text: 'Cancel', style: 'cancel' },
+      { text: 'Delete', style: 'destructive', onPress: performDelete },
+    ]);
+  };
+
   return (
     <View style={styles.flexFill}>
       <View style={styles.sheetHead}>
@@ -581,6 +619,9 @@ function EntrySheet({ entry, onClose, scrollEnabled = true, updateSpotRecord }: 
             <Pressable onPress={beginEdit} hitSlop={8} style={styles.headTextBtn} accessibilityRole="button" accessibilityLabel={`Edit ${TYPE_LABEL[view.type]}`}><Text style={styles.headEdit}>Edit</Text></Pressable>
             <Pressable style={styles.iconHeadBtn} onPress={shareEntry} hitSlop={8} accessibilityRole="button" accessibilityLabel={`Share ${TYPE_LABEL[view.type]}`}>
               <ShareIcon size={16} color={c.textSecondary} strokeWidth={2} />
+            </Pressable>
+            <Pressable style={styles.iconHeadBtn} onPress={confirmDelete} hitSlop={8} accessibilityRole="button" accessibilityLabel={`Delete ${TYPE_LABEL[view.type]}`}>
+              <Trash2 size={16} color={c.textSecondary} strokeWidth={2} />
             </Pressable>
             <Pressable style={styles.closeBtn} onPress={onClose} hitSlop={8} accessibilityRole="button" accessibilityLabel="Close">
               <X size={18} color={c.textSecondary} strokeWidth={2} />

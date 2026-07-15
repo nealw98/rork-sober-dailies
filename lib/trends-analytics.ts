@@ -1,5 +1,5 @@
 import { formatLocalDate, parseLocalDate } from '@/lib/dateUtils';
-import type { DailyItem } from '@/hooks/use-dailies-store';
+import { V2_DAILIES, type DailyItem } from '@/hooks/use-dailies-store';
 
 /**
  * Trends analytics — pure computations over the locally-stored dailies completion
@@ -8,11 +8,25 @@ import type { DailyItem } from '@/hooks/use-dailies-store';
  * insights. No new tracking needed; nothing is faked.
  */
 
-export interface DayCompletion { done: string[]; reflection: boolean; total?: number }
+export interface DayCompletion { done: string[]; reflection: boolean; total?: number; v2?: boolean }
 export type Completion = Record<string, DayCompletion>;
 
 const REFLECTION_ID = '__reflection';
 const REFLECTION_LABEL = 'Daily Reflection';
+
+// action → the v2 checklist ids that count as doing it, so streaks and history
+// bridge the v2→v3 upgrade (e.g. "Practiced gratitude" continues a Gratitude
+// streak). Legacy days are marked `v2` and store V2_DAILIES ids in `done`.
+const V2_IDS_BY_ACTION: Record<string, string[]> = {};
+for (const it of V2_DAILIES) {
+  for (const a of it.actions) (V2_IDS_BY_ACTION[a] ??= []).push(it.id);
+}
+
+function didOn(day: DayCompletion | undefined, item: DailyItem): boolean {
+  if (!day) return false;
+  if (day.done.includes(item.id)) return true;
+  return !!day.v2 && (V2_IDS_BY_ACTION[item.action] ?? []).some((id) => day.done.includes(id));
+}
 
 const WEEKDAYS = ['Sundays', 'Mondays', 'Tuesdays', 'Wednesdays', 'Thursdays', 'Fridays', 'Saturdays'];
 const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
@@ -51,7 +65,7 @@ export function computeStreaks(program: DailyItem[], completion: Completion, tod
       label: shortLabel(it.label),
       color: it.color,
       icon: it.icon,
-      streak: currentStreak((k) => (completion[k]?.done ?? []).includes(it.id), today),
+      streak: currentStreak((k) => didOn(completion[k], it), today),
     });
   }
   return rows.sort((a, b) => b.streak - a.streak);
@@ -76,7 +90,11 @@ export function longestStreakEver(program: DailyItem[], completion: Completion):
   for (const it of program) { byActivity[it.id] = []; labels[it.id] = shortLabel(it.label); }
   for (const [key, day] of Object.entries(completion)) {
     if (day.reflection) byActivity[REFLECTION_ID].push(key);
-    for (const id of day.done) { if (byActivity[id]) byActivity[id].push(key); }
+    if (day.v2) {
+      for (const it of program) { if (didOn(day, it)) byActivity[it.id].push(key); }
+    } else {
+      for (const id of day.done) { if (byActivity[id]) byActivity[id].push(key); }
+    }
   }
   let best = { label: REFLECTION_LABEL, days: 0 };
   for (const [id, dates] of Object.entries(byActivity)) {
@@ -102,7 +120,9 @@ export function monthHeatmap(year: number, month: number, program: DailyItem[], 
     const c = completion[key];
     const done = (c?.done.length ?? 0) + (c?.reflection ? 1 : 0);
     if (done > 0) daysWithProgress++;
-    cells.push({ key, day: d, done, total, intensity: total ? done / total : 0 });
+    // Intensity against that day's own possible total (legacy v2 days have 6).
+    const possible = c?.total ?? total;
+    cells.push({ key, day: d, done, total: possible, intensity: possible ? Math.min(1, done / possible) : 0 });
   }
   return { cells, daysWithProgress, daysInMonth };
 }
@@ -152,6 +172,8 @@ export function computeInsights(program: DailyItem[], completion: Completion): I
     const mk = `${d.getFullYear()}-${d.getMonth()}`;
     monthScore[mk] = (monthScore[mk] ?? 0) + done;
     // Per-section rate for the day = completed-in-section ÷ that section's size.
+    // Legacy v2 days predate Morning/Anytime/Evening buckets — skip them here.
+    if (day.v2) continue;
     const secDone: Record<string, number> = { Morning: 0, Anytime: 0, Evening: 0 };
     for (const id of day.done) { const w = whenById[id]; if (w !== undefined) secDone[w] += 1; }
     for (const s of SECTIONS) {

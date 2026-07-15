@@ -38,10 +38,52 @@ interface DayCompletion {
   reflection: boolean; // Daily Reflection hero done that day
   total?: number;      // possible dailies that day (program.length + 1), stamped on write.
                        // Optional: records written before this existed won't have it.
+  v2?: boolean;        // legacy day backfilled from the v2 Nightly Review checklist:
+                       // done holds V2_DAILIES ids, total is 6, and the day is read-only.
 }
 
 const PROGRAM_KEY = 'dailies_program';
 const COMPLETION_KEY = 'dailies_completion';
+const V2_BACKFILL_FLAG = 'dailies_v2_backfill_v1';
+const V2_SAVED_REVIEWS_KEY = 'saved_evening_review_entries';
+
+// The v2 Nightly Review's "Daily Actions" checkboxes — the fixed precursor to
+// the user-defined program. Backfilled days keep these exact six items;
+// `actions` maps each onto today's dailies so Trends streaks bridge the upgrade.
+export const V2_DAILIES: { id: string; label: string; icon: string; color: string; actions: string[] }[] = [
+  { id: 'stayedSober', label: 'Stayed sober', icon: 'check', color: 'teal', actions: [] },
+  { id: 'prayedOrMeditated', label: 'Prayed or meditated', icon: 'pray', color: 'terracotta', actions: ['prayerMorning', 'prayerEvening', 'meditation'] },
+  { id: 'practicedGratitude', label: 'Practiced gratitude', icon: 'heart', color: 'terracotta', actions: ['gratitude'] },
+  { id: 'readAALiterature', label: 'Read AA literature', icon: 'library', color: 'steel', actions: ['lit'] },
+  { id: 'talkedToAlcoholic', label: 'Talked with another alcoholic', icon: 'phone', color: 'steel', actions: ['callAnother'] },
+  { id: 'didSomethingForOthers', label: 'Did something for someone else', icon: 'users', color: 'steel', actions: ['service'] },
+];
+
+// One-time: turn v2 Nightly Review checklists into legacy completion records so
+// Journey day cards and Trends treat those days as real (read-only) dailies.
+// Never overwrites a date that already has v3 completion.
+async function backfillV2Checklists(existing: Record<string, DayCompletion>): Promise<Record<string, DayCompletion> | null> {
+  const done = await AsyncStorage.getItem(V2_BACKFILL_FLAG);
+  if (done) return null;
+  let changed = false;
+  const next = { ...existing };
+  try {
+    const raw = await AsyncStorage.getItem(V2_SAVED_REVIEWS_KEY);
+    const saved: { date?: string; data?: Record<string, unknown> }[] = raw ? JSON.parse(raw) : [];
+    for (const e of saved) {
+      if (!e?.date || next[e.date]) continue;
+      const checked = V2_DAILIES.filter((it) => !!e.data?.[it.id]).map((it) => it.id);
+      if (checked.length === 0) continue;
+      next[e.date] = { done: checked, reflection: false, total: V2_DAILIES.length, v2: true };
+      changed = true;
+    }
+  } catch (error) {
+    console.error('[dailies] v2 checklist backfill failed:', error);
+    return null; // leave the flag unset so a later launch retries
+  }
+  AsyncStorage.setItem(V2_BACKFILL_FLAG, '1').catch(() => {});
+  return changed ? next : null;
+}
 
 // Default program = the same pre-checked set onboarding's "Define your dailies"
 // ships, so skipping onboarding lands on identical defaults (CLAUDE.md). Daily
@@ -122,7 +164,14 @@ export const [DailiesProvider, useDailies] = createContextHook(() => {
           // One-time migration: re-tint a saved program to the current palette.
           if (JSON.stringify(parsed) !== p) AsyncStorage.setItem(PROGRAM_KEY, JSON.stringify(parsed)).catch(() => {});
         }
-        if (c) setCompletion(JSON.parse(c));
+        const loaded: Record<string, DayCompletion> = c ? JSON.parse(c) : {};
+        setCompletion(loaded);
+        // Backfill v2 Nightly Review checklists into legacy day records (once).
+        const backfilled = await backfillV2Checklists(loaded);
+        if (backfilled) {
+          setCompletion(backfilled);
+          AsyncStorage.setItem(COMPLETION_KEY, JSON.stringify(backfilled)).catch(() => {});
+        }
       } catch (error) {
         console.error('[dailies] Error loading store:', error);
       } finally {

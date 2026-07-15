@@ -35,6 +35,7 @@ export type NotebookApi = {
   // Edit a spot-check record in place (situation + chosen defects), keeping its
   // id + ts. Persists to AsyncStorage and refreshes the in-memory feed.
   updateSpotRecord: (id: string, next: { situation: string; selected: string[] }) => void;
+  deleteSpotRecord: (id: string) => void;
 };
 
 export function useNotebook(): NotebookApi {
@@ -66,6 +67,14 @@ export function useNotebook(): NotebookApi {
     });
   }, []);
 
+  const deleteSpotRecord = useCallback((id: string) => {
+    setSpot((prev) => {
+      const updated = prev.filter((r) => r.id !== id);
+      AsyncStorage.setItem(SPOT_KEY, JSON.stringify(updated)).catch(() => {});
+      return updated;
+    });
+  }, []);
+
   const gratitudeEntries = gratitude?.savedEntries;
   const eveningEntries = evening?.savedEntries;
   const journalEntries = journal?.entries;
@@ -90,12 +99,16 @@ export function useNotebook(): NotebookApi {
       const data = e.data ?? {};
       const pairs = NIGHTLY_QUESTIONS.map((q) => ({ q: q.q, a: String(data[q.key] ?? '').trim() }));
       const firstAnswered = pairs.find((p) => p.a);
+      // v2 entries could be checklist-only (no reflections written) — those
+      // days surface as a legacy Dailies record instead (use-dailies-store
+      // backfill), so an empty Nightly Review card would just be noise.
+      if (!firstAnswered) return;
       out.push({
         key: `n-${e.timestamp ?? e.date}`,
         type: 'nightly',
         ts: e.timestamp ?? (Date.parse(e.date) || 0),
         date: e.date,
-        preview: firstAnswered?.a ?? '',
+        preview: firstAnswered.a,
         count: '10th Step',
         nightly: pairs.filter((p) => p.a),
       });
@@ -131,5 +144,5 @@ export function useNotebook(): NotebookApi {
     return out.sort((a, b) => b.ts - a.ts);
   }, [gratitudeEntries, eveningEntries, journalEntries, spot]);
 
-  return { entries, updateSpotRecord };
+  return { entries, updateSpotRecord, deleteSpotRecord };
 }
