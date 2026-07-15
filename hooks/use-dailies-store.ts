@@ -47,12 +47,12 @@ const COMPLETION_KEY = 'dailies_completion';
 // ships, so skipping onboarding lands on identical defaults (CLAUDE.md). Daily
 // Reflection is the permanent hero, not listed here.
 export const DEFAULT_PROGRAM: DailyItem[] = [
-  { id: 'prayerM', label: 'Say my Morning Prayer', icon: 'pray', color: 'terracotta', when: 'Morning', action: 'prayerMorning' },
-  { id: 'grat', label: 'Write my Gratitude List', icon: 'heart', color: 'terracotta', when: 'Morning', action: 'gratitude' },
+  { id: 'prayerM', label: 'Say my morning prayers', icon: 'pray', color: 'terracotta', when: 'Morning', action: 'prayerMorning' },
+  { id: 'grat', label: 'Write a gratitude list', icon: 'heart', color: 'terracotta', when: 'Morning', action: 'gratitude' },
   { id: 'meeting', label: 'Attend a meeting', icon: 'users', color: 'steel', when: 'Anytime', action: 'meeting' },
   { id: 'lit', label: 'Read the literature', icon: 'library', color: 'steel', when: 'Anytime', action: 'lit' },
-  { id: 'nightly', label: 'Nightly Review', icon: 'moon', color: 'lavender', when: 'Evening', action: 'nightly' },
-  { id: 'prayerE', label: 'Say my Evening Prayer', icon: 'pray', color: 'periwinkle', when: 'Evening', action: 'prayerEvening' },
+  { id: 'nightly', label: 'Do my nightly review', icon: 'moon', color: 'lavender', when: 'Evening', action: 'nightly' },
+  { id: 'prayerE', label: 'Say my evening prayers', icon: 'pray', color: 'periwinkle', when: 'Evening', action: 'prayerEvening' },
 ];
 
 // A daily's tone is derived from its ACTION (the canonical family assignment),

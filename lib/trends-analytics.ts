@@ -19,9 +19,10 @@ const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 
 
 function addDays(d: Date, n: number): Date { const x = new Date(d); x.setDate(x.getDate() + n); return x; }
 
-// "Say my Morning Prayer" → "Morning Prayer", "Write my Gratitude List" → "Gratitude"
+// "Say my morning prayers" → "Morning prayers", "Write a gratitude list" → "Gratitude"
 export function shortLabel(label: string): string {
   const s = label
+    .replace(/^Take\s+time\s+to\s+/i, '') // "Take time to meditate" → "Meditate"
     .replace(/^(Say|Write|Read|Attend|Do|Make|Take)\s+(my|the|a|an)\s+/i, '')
     .replace(/\s+List$/i, '')
     .trim();

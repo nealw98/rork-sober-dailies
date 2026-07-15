@@ -63,7 +63,7 @@ function VigRow({ Glyph, ink, soft, label, done }: {
       <View style={[styles.vigRowCoin, { backgroundColor: soft }]}>
         <Glyph size={14} color={ink} />
       </View>
-      <Text style={styles.vigRowLabel}>{label}</Text>
+      <Text style={styles.vigRowLabel} numberOfLines={1}>{label}</Text>
       {done ? (
         <View style={styles.vigDonePillOn}>
           <Check size={10} color="#fff" strokeWidth={3.4} />
@@ -94,9 +94,9 @@ function VigToday() {
           <Text style={styles.vigCounterSub}>Your count, front and center</Text>
         </View>
       </View>
-      <VigRow Glyph={HandsPraying} ink={colors.primaryDark} soft={colors.primarySoft} label="Morning Prayer" done />
-      <VigRow Glyph={Heart} ink={colors.accentDark} soft={colors.accentSoft} label="Gratitude list" />
-      <VigRow Glyph={Moon} ink={colors.tertiaryDark} soft={colors.tertiarySoft} label="Nightly Review" />
+      <VigRow Glyph={HandsPraying} ink={colors.primaryDark} soft={colors.primarySoft} label="Say my morning prayers" done />
+      <VigRow Glyph={Heart} ink={colors.accentDark} soft={colors.accentSoft} label="Write a gratitude list" />
+      <VigRow Glyph={Moon} ink={colors.tertiaryDark} soft={colors.tertiarySoft} label="Do my nightly review" />
       {/* the add affordance — the program is yours to build */}
       <View style={styles.vigAddRow}>
         <Plus size={13} color={colors.primaryDark} strokeWidth={2.4} />
@@ -196,7 +196,7 @@ function VigJourney() {
   const { colors } = useTokens();
   const streaks: [React.ComponentType<{ size?: number; color?: string }>, string, string, string, number][] = [
     [BookOpen, colors.primaryDark, colors.primarySoft, 'Daily Reflection', 21],
-    [HandsPraying, colors.accentDark, colors.accentSoft, 'Morning Prayer', 14],
+    [HandsPraying, colors.accentDark, colors.accentSoft, 'Morning prayers', 14],
     [Heart, colors.accentDark, colors.accentSoft, 'Gratitude', 9],
   ];
   return (

@@ -79,24 +79,24 @@ function WelcomeStep({ upgrader, onContinue }: { upgrader: boolean; onContinue: 
 type StarterItem = { id: string; label: string; icon: string; color: string; action: string; on: boolean };
 const STARTER: { when: WhenBucket; items: StarterItem[] }[] = [
   { when: 'Morning', items: [
-    { id: 'prayerM', label: 'Morning Prayer', icon: 'pray', color: 'amber', action: 'prayerMorning', on: true },
-    { id: 'grat', label: 'Gratitude list', icon: 'heart', color: 'amber', action: 'gratitude', on: true },
+    { id: 'prayerM', label: 'Say my morning prayers', icon: 'pray', color: 'amber', action: 'prayerMorning', on: true },
+    { id: 'grat', label: 'Write a gratitude list', icon: 'heart', color: 'amber', action: 'gratitude', on: true },
     { id: 'bed', label: 'Make my bed', icon: 'home', color: 'gray', action: 'makeBed', on: false },
     { id: 'exAM', label: 'Get some exercise', icon: 'heart', color: 'coral', action: 'exercise', on: false },
   ] },
   { when: 'Anytime', items: [
     { id: 'meeting', label: 'Attend a meeting', icon: 'users', color: 'lavender', action: 'meeting', on: true },
     { id: 'lit', label: 'Read the literature', icon: 'library', color: 'teal', action: 'lit', on: true },
-    { id: 'med', label: 'Meditation', icon: 'lotus', color: 'lavender', action: 'meditation', on: false },
+    { id: 'med', label: 'Take time to meditate', icon: 'lotus', color: 'lavender', action: 'meditation', on: false },
     { id: 'call', label: 'Talk with another alcoholic', icon: 'phone', color: 'blue', action: 'callAnother', on: false },
     { id: 'speaker', label: 'Listen to a speaker', icon: 'play', color: 'lavender', action: 'speaker', on: false },
     { id: 'journal', label: 'Write in my journal', icon: 'journal', color: 'blue', action: 'journal', on: false },
-    { id: 'spotcheck', label: 'Spot Check Inventory', icon: 'check', color: 'coral', action: 'spotcheck', on: false },
-    { id: 'service', label: 'Do some service', icon: 'users', color: 'teal', action: 'service', on: false },
+    { id: 'spotcheck', label: 'Take a spot check inventory', icon: 'check', color: 'coral', action: 'spotcheck', on: false },
+    { id: 'service', label: 'Be of service', icon: 'users', color: 'teal', action: 'service', on: false },
   ] },
   { when: 'Evening', items: [
-    { id: 'nightly', label: 'Nightly Review', icon: 'moon', color: 'lavender', action: 'nightly', on: true },
-    { id: 'prayerE', label: 'Evening Prayer', icon: 'pray', color: 'amber', action: 'prayerEvening', on: true },
+    { id: 'nightly', label: 'Do my nightly review', icon: 'moon', color: 'lavender', action: 'nightly', on: true },
+    { id: 'prayerE', label: 'Say my evening prayers', icon: 'pray', color: 'amber', action: 'prayerEvening', on: true },
   ] },
 ];
 

@@ -32,21 +32,21 @@ export type Template = Omit<DailyItem, 'id' | 'when'>;
 // practice + writing = teal/terracotta, wind-down = periwinkle.
 export const TOOL_CATALOG: Template[] = [
   { label: 'Attend a meeting', icon: 'users', color: 'steel', action: 'meeting' },
-  { label: 'Evening Prayer', icon: 'pray', color: 'periwinkle', action: 'prayerEvening' },
+  { label: 'Do my nightly review', icon: 'moon', color: 'periwinkle', action: 'nightly' },
   { label: 'Listen to a speaker tape', icon: 'play', color: 'steel', action: 'speaker' },
-  { label: 'Meditation', icon: 'lotus', color: 'periwinkle', action: 'meditation' },
-  { label: 'Morning Prayer', icon: 'pray', color: 'terracotta', action: 'prayerMorning' },
-  { label: 'Nightly Review', icon: 'moon', color: 'periwinkle', action: 'nightly' },
   { label: 'Read the literature', icon: 'library', color: 'steel', action: 'lit' },
-  { label: 'Spot Check Inventory', icon: 'check', color: 'terracotta', action: 'spotcheck' },
+  { label: 'Say my evening prayers', icon: 'pray', color: 'periwinkle', action: 'prayerEvening' },
+  { label: 'Say my morning prayers', icon: 'pray', color: 'terracotta', action: 'prayerMorning' },
+  { label: 'Take a spot check inventory', icon: 'check', color: 'terracotta', action: 'spotcheck' },
+  { label: 'Take time to meditate', icon: 'lotus', color: 'periwinkle', action: 'meditation' },
   { label: 'Talk with another alcoholic', icon: 'phone', color: 'steel', action: 'callAnother' },
+  { label: 'Write a gratitude list', icon: 'heart', color: 'terracotta', action: 'gratitude' },
   { label: 'Write in my journal', icon: 'journal', color: 'teal', action: 'journal' },
-  { label: 'Write my Gratitude List', icon: 'heart', color: 'terracotta', action: 'gratitude' },
 ];
 
 // "Quick actions" — no tool, just check off. Alphabetical by label.
 export const QUICK_CATALOG: Template[] = [
-  { label: 'Do some service', icon: 'users', color: 'steel', action: 'service' },
+  { label: 'Be of service', icon: 'users', color: 'steel', action: 'service' },
   { label: 'Get some exercise', icon: 'heart', color: 'terracotta', action: 'exercise' },
   { label: 'Make my bed', icon: 'home', color: 'periwinkle', action: 'makeBed' },
 ];
