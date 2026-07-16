@@ -3,7 +3,6 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import createContextHook from '@nkzw/create-context-hook';
 import { calculateDaysBetween } from '@/lib/dateUtils';
 import { DailyCheckIn, EmergencyContact } from '@/types/sobriety';
-import { syncSobrietyDate } from '@/lib/sobrietySync';
 
 interface SobrietyData {
   sobrietyDate: string | null;
@@ -72,11 +71,8 @@ export const [SobrietyProvider, useSobriety] = createContextHook(() => {
     setSobrietyDate(date);
     setHasSeenPrompt(true);
     
-    // Save locally first
+    // Sober date is local-only — never leaves the device.
     await saveData(date, true);
-    
-    // Sync to Supabase for community stats
-    await syncSobrietyDate(date);
 
     console.log('[Sobriety] Date saved successfully.');
   }, [saveData]);
