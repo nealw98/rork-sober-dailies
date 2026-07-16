@@ -19,6 +19,12 @@ const ENTITLEMENT_ID = 'premium';
 
 // SecureStore keys
 const PREMIUM_OVERRIDE_KEY = 'sober_dailies_premium_override';
+// QA: when set, the app ignores grandfather + dev override + any PRE-EXISTING
+// entitlement so the paywall gates like a brand-new install — lets a
+// grandfathered tester exercise the real paywall + a sandbox purchase. A
+// purchase/restore completed during the SAME session still unlocks (so the
+// post-paywall transition is testable). Toggle it from the Debug Console.
+export const QA_FORCE_NEW_USER_KEY = 'sober_dailies_qa_force_new_user';
 
 // ============================================================================
 // REVENUECAT CONFIGURATION
@@ -142,6 +148,11 @@ export const [SubscriptionProvider, useSubscription] = createContextHook(() => {
   const [customerInfo, setCustomerInfo] = useState<CustomerInfo | null>(null);
   const [isPremiumOverride, setIsPremiumOverride] = useState(false);
   const [isGrandfathered, setIsGrandfathered] = useState(false);
+  // QA "force new-user" (see QA_FORCE_NEW_USER_KEY). `sessionPurchaseUnlock`
+  // records a purchase/restore made THIS session so the gate still drops after a
+  // real sandbox buy even while the flag ignores the standing entitlement.
+  const [forceNewUser, setForceNewUser] = useState(false);
+  const [sessionPurchaseUnlock, setSessionPurchaseUnlock] = useState(false);
   // Free-trial eligibility for the `default` offering. null = not yet resolved.
   // Determined once, early (as soon as offerings load — during onboarding), so
   // the paywall can pick the trial vs. no-trial layout with no on-mount flash.
@@ -153,8 +164,15 @@ export const [SubscriptionProvider, useSubscription] = createContextHook(() => {
     return !!customerInfo.entitlements.active?.[ENTITLEMENT_ID];
   }, [customerInfo]);
 
-  // User is premium if: entitled (paid) OR grandfathered OR premium override (dev mode) OR on web
-  const isPremium = isEntitled || isGrandfathered || isPremiumOverride || Platform.OS === 'web';
+  // User is premium if: entitled (paid) OR grandfathered OR premium override (dev mode) OR on web.
+  // QA "force new-user" overrides all of that to non-premium, except a purchase
+  // made during this session — so the paywall gates and its unlock is testable.
+  const isPremium =
+    Platform.OS === 'web'
+      ? true
+      : forceNewUser
+        ? sessionPurchaseUnlock
+        : isEntitled || isGrandfathered || isPremiumOverride;
 
   // Refresh subscription status from RevenueCat
   const refresh = useCallback(async () => {
@@ -210,6 +228,9 @@ export const [SubscriptionProvider, useSubscription] = createContextHook(() => {
   // re-fetches what we were already given.
   const applyCustomerInfo = useCallback((info: CustomerInfo) => {
     setCustomerInfo(info);
+    // A user-driven purchase/restore that lands premium unlocks even under the
+    // QA force-new-user flag (which otherwise ignores the standing entitlement).
+    if (info.entitlements.active?.[ENTITLEMENT_ID]) setSessionPurchaseUnlock(true);
   }, []);
 
   // Purchase a subscription package
@@ -227,6 +248,7 @@ export const [SubscriptionProvider, useSubscription] = createContextHook(() => {
     try {
       const result = await Purchases.purchasePackage(pkg);
       setCustomerInfo(result.customerInfo);
+      if (result.customerInfo.entitlements.active?.[ENTITLEMENT_ID]) setSessionPurchaseUnlock(true);
       return result.customerInfo;
     } catch (e: any) {
       // RevenueCat throws for cancellations too; don't treat that as a fatal error.
@@ -255,6 +277,7 @@ export const [SubscriptionProvider, useSubscription] = createContextHook(() => {
     try {
       const info = await Purchases.restorePurchases();
       setCustomerInfo(info);
+      if (info.entitlements.active?.[ENTITLEMENT_ID]) setSessionPurchaseUnlock(true);
       return info;
     } catch (e: any) {
       console.error('[Subscription] Restore error:', e);
@@ -281,6 +304,18 @@ export const [SubscriptionProvider, useSubscription] = createContextHook(() => {
         } catch (secureStoreError) {
           console.warn('[Subscription] SecureStore read failed (non-fatal):', secureStoreError);
           // Continue without premium override - not critical
+        }
+
+        // QA: force-new-user flag (Debug Console) — makes a grandfathered device
+        // gate like a fresh install so the paywall can be tested.
+        try {
+          const forced = await SecureStore.getItemAsync(QA_FORCE_NEW_USER_KEY);
+          if (forced === 'true') {
+            console.log('[Subscription] QA force-new-user enabled — ignoring grandfather/entitlement');
+            if (!didCancel) setForceNewUser(true);
+          }
+        } catch (qaError) {
+          console.warn('[Subscription] SecureStore QA flag read failed (non-fatal):', qaError);
         }
 
         // Steps 1+2: the Supabase grandfather check and the RevenueCat refresh

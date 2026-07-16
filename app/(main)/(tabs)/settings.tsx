@@ -30,6 +30,7 @@ import BackButton from '@/components/BackButton';
 import GiftGlyph from '@/components/GiftGlyph';
 import PaywallScreen from '@/components/PaywallScreen';
 import { useGiftWallet } from '@/hooks/use-gift-wallet';
+import { QA_FORCE_NEW_USER_KEY } from '@/hooks/useSubscription';
 import Constants from 'expo-constants';
 import * as Clipboard from 'expo-clipboard';
 import * as SecureStore from 'expo-secure-store';
@@ -127,6 +128,40 @@ export default function SettingsScreen() {
     setTimeout(() => setPaywallPreview(mode), 350);
   };
   const [isDeveloperMode, setIsDeveloperMode] = useState(false);
+  // QA: force-new-user flag mirror (so the toggle button shows ON/OFF).
+  const [forceNewUser, setForceNewUser] = useState(false);
+  useEffect(() => {
+    SecureStore.getItemAsync(QA_FORCE_NEW_USER_KEY)
+      .then((v) => setForceNewUser(v === 'true'))
+      .catch(() => {});
+  }, []);
+  const toggleForceNewUser = async () => {
+    const next = !forceNewUser;
+    Alert.alert(
+      next ? 'Force New-User: ON' : 'Force New-User: OFF',
+      next
+        ? 'The app will ignore your grandfather status and any existing subscription, so the paywall gates like a fresh install. A sandbox purchase this session still unlocks. Restart now to apply.'
+        : 'Grandfather / subscription status will be honored again. Restart now to apply.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Apply & Restart',
+          onPress: async () => {
+            try {
+              if (next) await SecureStore.setItemAsync(QA_FORCE_NEW_USER_KEY, 'true');
+              else await SecureStore.deleteItemAsync(QA_FORCE_NEW_USER_KEY);
+              setForceNewUser(next);
+              const Updates = await import('expo-updates');
+              await Updates.reloadAsync();
+            } catch (e) {
+              console.error('[Settings] toggle force-new-user failed', e);
+              Alert.alert('Error', 'Could not toggle the flag. You may need to restart the app manually.');
+            }
+          },
+        },
+      ]
+    );
+  };
 
   // Feedback modal state
   const [feedbackVisible, setFeedbackVisible] = useState(false);
@@ -580,6 +615,12 @@ export default function SettingsScreen() {
           <View style={styles.logsActionsRow}>
             <TouchableOpacity onPress={resetSubscriptionState} style={[styles.logsActionButton, { backgroundColor: '#7f1d1d' }]}>
               <Text style={styles.logsActionButtonText}>Reset Subscription State</Text>
+            </TouchableOpacity>
+          </View>
+
+          <View style={styles.logsActionsRow}>
+            <TouchableOpacity onPress={toggleForceNewUser} style={[styles.logsActionButton, forceNewUser && { backgroundColor: '#166534' }]}>
+              <Text style={styles.logsActionButtonText}>Force New-User (paywall): {forceNewUser ? 'ON' : 'OFF'}</Text>
             </TouchableOpacity>
           </View>
 
