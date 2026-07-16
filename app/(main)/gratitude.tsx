@@ -10,6 +10,7 @@ import { Stack, useRouter, useLocalSearchParams } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import { Plus } from 'lucide-react-native';
 import { useGratitudeStore } from '@/hooks/use-gratitude-store';
+import { useGratitudeQuote } from '@/hooks/useGratitudeQuote';
 import { useDailies } from '@/hooks/use-dailies-store';
 import { ToolHeader, ToolIntro, TOOLS } from '@/components/ToolScreen';
 import { fontFamily, type Tokens } from '@/constants/designTokens';
@@ -25,6 +26,10 @@ export default function GratitudeScreen() {
   const { c, colors, isDark } = useTokens();
   const gratitude = useGratitudeStore();
   const dailies = useDailies();
+  // Daily gratitude quote from Supabase (gratitude_quotes, matched on day-of-year,
+  // cached locally with a built-in fallback), shown in place of the static line.
+  // Source is passed separately so it sits on its own line (like Daily Reflection).
+  const { quote: dailyQuote, source: quoteSource } = useGratitudeQuote();
 
   const [vals, setVals] = useState<string[]>(['', '', '']);
   const dirty = vals.some((v) => v.trim() !== '');
@@ -54,7 +59,7 @@ export default function GratitudeScreen() {
         showsVerticalScrollIndicator={false}
         bottomOffset={24}
       >
-        <ToolIntro tool={tool} variant="bar">It isn&rsquo;t about having more, but noticing what&rsquo;s already there. Name three things, big or small.</ToolIntro>
+        {dailyQuote ? <ToolIntro tool={tool} variant="bar" attribution={quoteSource ?? undefined}>{dailyQuote}</ToolIntro> : null}
 
         <View style={styles.body}>
           <Text style={styles.heading}>Today I&rsquo;m grateful for&hellip;</Text>

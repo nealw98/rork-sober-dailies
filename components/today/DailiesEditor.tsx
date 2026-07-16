@@ -9,11 +9,11 @@
 import React, { useMemo, useState, useCallback } from 'react';
 import { View, Text, Pressable, StyleSheet, type StyleProp, type ViewStyle } from 'react-native';
 import DraggableFlatList, { ScaleDecorator, type RenderItemParams } from 'react-native-draggable-flatlist';
-import { Minus, Plus, GripVertical } from 'lucide-react-native';
+import { Minus, Plus, Menu } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 import { fontFamily, fontSize, spacing, shadows, type Tokens } from '@/constants/designTokens';
 import { useTokens, useThemedStyles } from '@/hooks/useTokens';
-import { resolveTone, resolveSubtitle } from '@/components/dailyTokens';
+import { resolveTone, resolveSubtitle, resolveGlyph } from '@/components/dailyTokens';
 import { AddSheet, CreateSheet, type Template } from '@/components/today/DailiesEditSheets';
 import { useDailies, type DailyItem, type WhenBucket } from '@/hooks/use-dailies-store';
 
@@ -26,19 +26,24 @@ type EditRow =
   | { type: 'daily'; key: string; item: DailyItem; isLast: boolean }
   | { type: 'add'; key: string; when: WhenBucket };
 
-// A single editable daily row: grip handle (long-press to drag) + label + remove.
+// A single editable daily row: drag handle (long-press to reorder) + the action's
+// own icon + label + remove.
 function EditDailyRow({ item, dragging, onRemove, onDragStart }: {
   item: DailyItem; dragging: boolean; onRemove: () => void; onDragStart: () => void;
 }) {
   const styles = useThemedStyles(makeStyles);
-  const { mode } = useTokens();
+  const { c, mode } = useTokens();
   const tone = resolveTone(item.color, mode);
+  const Glyph = resolveGlyph(item.icon);
   const sub = item.subtitle !== undefined ? item.subtitle : resolveSubtitle(item.action);
   return (
     <View style={[styles.row, dragging && styles.rowDragging]}>
-      <Pressable style={[styles.med, { backgroundColor: tone.soft }]} onLongPress={onDragStart} delayLongPress={150} accessibilityLabel={`Drag ${item.label} to reorder`}>
-        <GripVertical size={20} color={tone.ink} strokeWidth={2} />
+      <Pressable style={styles.dragHandle} onLongPress={onDragStart} delayLongPress={150} accessibilityLabel={`Drag ${item.label} to reorder`}>
+        <Menu size={22} color={c.textMuted} strokeWidth={2} />
       </Pressable>
+      <View style={[styles.med, { backgroundColor: tone.soft }]}>
+        <Glyph size={20} color={tone.ink} />
+      </View>
       <View style={styles.rowText}>
         <Text style={styles.rowLabel} numberOfLines={2}>{item.label}</Text>
         {sub ? <Text style={styles.rowSub} numberOfLines={1}>{sub}</Text> : null}
@@ -190,6 +195,9 @@ const makeStyles = (tk: Tokens) => {
       paddingVertical: 11, paddingHorizontal: 13, marginBottom: 12, ...shadows.sm, ...darkCard,
     },
     rowDragging: { ...shadows.md },
+    // Plain hamburger handle sitting to the left of the action icon; long-press
+    // to drag. Muted so the action icon stays the row's visual anchor.
+    dragHandle: { paddingVertical: 6, paddingHorizontal: 2, marginLeft: -2, marginRight: -2, alignItems: 'center', justifyContent: 'center' },
     med: { width: 42, height: 42, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
     rowText: { flex: 1 },
     rowLabel: { fontFamily: fontFamily.semiBold, fontSize: fontSize.lg, lineHeight: 20, color: c.text },

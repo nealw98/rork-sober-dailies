@@ -16,6 +16,7 @@ import {
   Alert,
 } from 'react-native';
 import { KeyboardModalScope } from '@/components/KeyboardModalScope';
+import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
 import { X, Trash2 } from 'lucide-react-native';
 import { BigBookHighlight } from '@/types/bigbook-v2';
 import { adjustFontWeight } from '@/constants/fonts';
@@ -78,6 +79,7 @@ export function HighlightEditMenu({
       onRequestClose={onClose}
     >
       <KeyboardModalScope>
+      <KeyboardAvoidingView style={styles.avoider} behavior="padding">
       <View style={styles.overlay}>
         <View style={styles.container}>
           {/* Header */}
@@ -126,6 +128,7 @@ export function HighlightEditMenu({
           </View>
         </View>
       </View>
+      </KeyboardAvoidingView>
       </KeyboardModalScope>
     </Modal>
   );
@@ -135,6 +138,9 @@ const makeStyles = (tk: Tokens) => {
   const { c, colors, isDark } = tk;
   const destructive = isDark ? '#F87171' : '#EF4444';
   return StyleSheet.create({
+  avoider: {
+    flex: 1,
+  },
   overlay: {
     flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.5)',

@@ -29,6 +29,9 @@ const PAPER = '#FCFBF8';        // header/chrome
 const READING_BG = '#FFFFFF';   // the text reading surface
 const HIGHLIGHT_COLOR = HighlightColor.YELLOW;
 const HL_FILL = '#FCE9A8';
+// Dark reading surface is near-black, where a low-opacity teal highlight reads
+// as gray. Orange stays legibly "highlighted" against the dark paper.
+const HL_ORANGE = '251,146,60'; // #FB923C, as rgb parts for rgba() opacity tuning
 
 // Reading-surface palette injected into the book HTML. Light is the original
 // paper look; dark is the handoff's dark reading surface.
@@ -48,7 +51,7 @@ const READER_PALETTES: Record<'light' | 'dark', ReaderPalette> = {
   dark: {
     paper: '#101216', ink: '#F4F4F6', inkSecondary: '#C7C8CD', muted: '#C7C8CD',
     divider: 'rgba(255,255,255,0.10)', accentInk: '#4FB3AC',
-    hlFill: 'rgba(79,179,172,0.38)', searchHit: 'rgba(79,179,172,0.38)',
+    hlFill: `rgba(${HL_ORANGE},0.50)`, searchHit: 'rgba(79,179,172,0.38)',
     toolbarBg: 'rgba(28,30,36,0.99)', toolbarBorder: 'rgba(255,255,255,0.10)',
     colorScheme: 'dark',
   },
@@ -201,9 +204,9 @@ function buildHtml(params: {
   .page-marker { display: flex; align-items: center; gap: 10px; margin: 6px 0 16px; }
   .page-marker span { flex: 1; height: 1px; background: ${pal.divider}; }
   .page-marker strong { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; color: ${pal.muted}; font-size: 10.5px; letter-spacing: 1.5px; }
-  .bb-highlight { background: ${pal.hlFill}; color: inherit; border-radius: 3px; padding: 0 1px; ${pal.colorScheme === 'dark' ? 'box-shadow: inset 0 -2px 0 rgba(79,179,172,0.85);' : ''} }
+  .bb-highlight { background: ${pal.hlFill}; color: inherit; border-radius: 3px; padding: 0 1px; ${pal.colorScheme === 'dark' ? `box-shadow: inset 0 -2px 0 rgba(${HL_ORANGE},0.90);` : ''} }
   .bb-hl-pulse { animation: bbpulse 1.5s ease-out; border-radius: 3px; }
-  @keyframes bbpulse { 0%, 22% { box-shadow: 0 0 0 3px ${pal.colorScheme === 'dark' ? 'rgba(79,179,172,0.55)' : 'rgba(214,158,0,0.55)'}; } 100% { box-shadow: 0 0 0 0 ${pal.colorScheme === 'dark' ? 'rgba(79,179,172,0)' : 'rgba(214,158,0,0)'}; } }
+  @keyframes bbpulse { 0%, 22% { box-shadow: 0 0 0 3px ${pal.colorScheme === 'dark' ? `rgba(${HL_ORANGE},0.65)` : 'rgba(214,158,0,0.55)'}; } 100% { box-shadow: 0 0 0 0 ${pal.colorScheme === 'dark' ? `rgba(${HL_ORANGE},0)` : 'rgba(214,158,0,0)'}; } }
   .search-hit { background: ${pal.searchHit}; color: inherit; border-radius: 3px; }
   .bb-paragraph { cursor: text; }
   .selection-toolbar { position: fixed; left: 16px; top: 16px; z-index: 9999; display: none; gap: 2px; align-items: stretch; padding: 6px; border-radius: 16px; background: ${pal.toolbarBg}; box-shadow: 0 12px 30px rgba(0,0,0,0.20); border: 1px solid ${pal.toolbarBorder}; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
@@ -213,7 +216,7 @@ function buildHtml(params: {
   .selection-toolbar .ic { width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; }
   .selection-toolbar .ic svg { width: 21px; height: 21px; display: block; }
   .selection-toolbar .ic, .selection-toolbar .ic * { pointer-events: none; }
-  .selection-toolbar .hl-swatch { width: 20px; height: 20px; border-radius: 50%; background: ${pal.colorScheme === 'dark' ? 'rgba(79,179,172,0.45)' : HL_FILL}; border: 1.5px solid ${pal.colorScheme === 'dark' ? '#4FB3AC' : '#E6C766'}; box-sizing: border-box; }
+  .selection-toolbar .hl-swatch { width: 20px; height: 20px; border-radius: 50%; background: ${pal.colorScheme === 'dark' ? `rgba(${HL_ORANGE},0.55)` : HL_FILL}; border: 1.5px solid ${pal.colorScheme === 'dark' ? '#FB923C' : '#E6C766'}; box-sizing: border-box; }
 </style>
 </head>
 <body>
@@ -592,7 +595,7 @@ export function BigBookHtmlReader({ visible, initialChapterId, scrollToPage, scr
     ranges: Array<{ paragraphId: string; startOffset: number; endOffset: number }>,
     text: string
   ) => {
-    if (!currentChapterId || ranges.length === 0) return;
+    if (!currentChapterId || ranges.length === 0) return [];
     logEvent('highlight_created', { book: 'Big Book', chapter: currentChapterId });
     const groupId = `highlight_group_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
     const created = await Promise.all(ranges.map((item) =>
@@ -616,6 +619,7 @@ export function BigBookHtmlReader({ visible, initialChapterId, scrollToPage, scr
         color: highlight.color,
       })}); true;`);
     });
+    return created;
   }, [addRangeHighlight, currentChapterId]);
 
   const handleWebMessage = useCallback(async (event: WebViewMessageEvent) => {
@@ -648,7 +652,12 @@ export function BigBookHtmlReader({ visible, initialChapterId, scrollToPage, scr
     if (message.type === 'selectionAction') {
       try {
         if (message.action === 'highlight') {
-          await createRangeHighlights(message.ranges, message.text);
+          const created = await createRangeHighlights(message.ranges, message.text);
+          // Immediately offer the note editor for the highlight just made.
+          if (created && created.length > 0) {
+            setEditingHighlight(created[0]);
+            setShowHighlightEditMenu(true);
+          }
           return;
         }
         if (message.action === 'copy') {

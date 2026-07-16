@@ -78,9 +78,22 @@ export function ToolHeader({ tool, dirty, onCommit }: { tool: ToolMeta; dirty: b
 //   plain — quiet italic line, no accent
 export type IntroVariant = 'plain' | 'mark' | 'rule' | 'bar';
 
-export function ToolIntro({ tool, children, variant = 'plain' }: { tool: ToolMeta; children: React.ReactNode; variant?: IntroVariant }) {
+export function ToolIntro({ tool, children, variant = 'plain', attribution }: { tool: ToolMeta; children: React.ReactNode; variant?: IntroVariant; attribution?: string }) {
   const styles = useThemedStyles(makeStyles);
   const accent = useToolAccent(tool);
+  if (variant === 'bar') {
+    // Blockquote: accent rule + italic line, with an optional attribution on its
+    // own line (small caps, like the Daily Reflection source).
+    return (
+      <View style={[styles.introWrap, styles.introBarRow]}>
+        <View style={[styles.introBar, { backgroundColor: accent }]} />
+        <View style={styles.introFlex}>
+          <Text style={[styles.introLine, styles.introItalic]}>{children}</Text>
+          {attribution ? <Text style={styles.introAttribution}>&mdash; {attribution}</Text> : null}
+        </View>
+      </View>
+    );
+  }
   if (variant === 'mark') {
     return (
       <View style={styles.introWrap}>
@@ -94,14 +107,6 @@ export function ToolIntro({ tool, children, variant = 'plain' }: { tool: ToolMet
       <View style={styles.introWrap}>
         <View style={[styles.introRule, { backgroundColor: accent }]} />
         <Text style={styles.introLine}>{children}</Text>
-      </View>
-    );
-  }
-  if (variant === 'bar') {
-    return (
-      <View style={[styles.introWrap, styles.introBarRow]}>
-        <View style={[styles.introBar, { backgroundColor: accent }]} />
-        <Text style={[styles.introLine, styles.introItalic, styles.introFlex]}>{children}</Text>
       </View>
     );
   }
@@ -128,6 +133,8 @@ const makeStyles = (tk: Tokens) => {
     introItalic: { fontFamily: fontFamily.regularItalic },
     introMuted: { color: c.textSecondary },
     introFlex: { flex: 1 },
+    // attribution line under a bar-variant quote (matches Daily Reflection source)
+    introAttribution: { fontFamily: fontFamily.semiBold, fontSize: 11, color: c.textMuted, marginTop: 10, letterSpacing: 1, textTransform: 'uppercase' },
     // mark
     introMark: { fontFamily: fontFamily.displayBold, fontSize: 42, lineHeight: 34, marginBottom: 2 },
     introQuote: { fontFamily: fontFamily.medium, fontSize: 17, lineHeight: 25, color: c.text },
