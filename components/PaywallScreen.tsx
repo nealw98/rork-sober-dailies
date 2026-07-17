@@ -13,8 +13,10 @@ import React, { useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
+  KeyboardAvoidingView,
   Linking,
   Modal,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -349,7 +351,8 @@ export default function PaywallScreen({ onDismiss, preview, forceTrial }: Paywal
           </View>
         )}
 
-        {/* CTA */}
+        {/* CTA — kept directly under the plans so the whole action cluster
+            (CTA + "Have a code?" + footer) sits together, no dead space. */}
         <Pressable style={[styles.cta, (!chosen || processing) && styles.ctaDisabled]} onPress={buy} disabled={!chosen || processing}>
           {busy ? <ActivityIndicator color="#fff" /> : <Text style={styles.ctaText}>{showTrial ? 'Start my free week' : 'Subscribe'}</Text>}
         </Pressable>
@@ -437,6 +440,11 @@ function HaveACodeModal({ visible, onClose, onRedeemed }: { visible: boolean; on
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={close}>
       <Pressable style={styles.sheetBackdrop} onPress={close} />
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        style={styles.sheetKav}
+        pointerEvents="box-none"
+      >
       <View style={styles.sheet}>
         <View style={styles.sheetHead}>
           <Text style={styles.sheetTitle}>Have a code?</Text>
@@ -463,6 +471,7 @@ function HaveACodeModal({ visible, onClose, onRedeemed }: { visible: boolean; on
         </Pressable>
         <Text style={styles.sheetNote}>Nothing to pay. Nothing renews.</Text>
       </View>
+      </KeyboardAvoidingView>
     </Modal>
   );
 }
@@ -479,7 +488,7 @@ const makeStyles = (tk: Tokens) => {
   return StyleSheet.create({
     screen: { flex: 1, backgroundColor: c.background },
     flex: { flex: 1 },
-    scroll: { paddingHorizontal: 26, paddingTop: 20, paddingBottom: 36 },
+    scroll: { paddingHorizontal: 26, paddingTop: 20, paddingBottom: 32 },
     header: { flexDirection: 'row', alignItems: 'center' },
     close: { width: 32, height: 32, alignItems: 'center', justifyContent: 'center' },
 
@@ -528,23 +537,27 @@ const makeStyles = (tk: Tokens) => {
     saveBadge: { position: 'absolute', top: -10, left: '50%', marginLeft: -46, width: 92, backgroundColor: colors.primary, borderRadius: 999, paddingVertical: 4, alignItems: 'center' },
     saveBadgeText: { fontFamily: fontFamily.bold, fontSize: 10.5, letterSpacing: 0.6, color: '#fff' },
 
-    // cta
-    cta: { marginTop: 28, paddingVertical: 16, borderRadius: 16, backgroundColor: colors.primary, alignItems: 'center', justifyContent: 'center', shadowColor: colors.primary, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.28, shadowRadius: 12, elevation: 4 },
+    // cta — sits just below the plans (tighter than the old 28 so there's no
+    // dead space between Monthly and the CTA).
+    cta: { marginTop: 20, paddingVertical: 16, borderRadius: 16, backgroundColor: colors.primary, alignItems: 'center', justifyContent: 'center', shadowColor: colors.primary, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.28, shadowRadius: 12, elevation: 4 },
     ctaDisabled: { opacity: 0.5 },
     ctaText: { fontFamily: fontFamily.semiBold, fontSize: 16.5, color: '#fff' },
 
-    billing: { fontFamily: fontFamily.regular, fontSize: 12.5, lineHeight: 18, color: c.textMuted, textAlign: 'center', marginTop: 12 },
+    billing: { fontFamily: fontFamily.regular, fontSize: 12.5, lineHeight: 18, color: c.textMuted, textAlign: 'center', marginTop: 10 },
 
-    haveCode: { alignSelf: 'center', marginTop: 20, paddingVertical: 6 },
-    haveCodeText: { fontFamily: fontFamily.semiBold, fontSize: 14.5, color: c.text },
+    haveCode: { alignSelf: 'center', marginTop: 12, paddingVertical: 6 },
+    haveCodeText: { fontFamily: fontFamily.semiBold, fontSize: 14.5, color: c.text, textDecorationLine: 'underline' },
 
-    footer: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, marginTop: 18 },
+    footer: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, marginTop: 10 },
     footerLink: { fontFamily: fontFamily.medium, fontSize: 13, color: c.textMuted },
     footerDot: { color: c.textMuted, fontSize: 13 },
 
     // have-a-code sheet
     sheetBackdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: isDark ? c.overlay : 'rgba(20,18,14,0.4)' },
-    sheet: { position: 'absolute', left: 0, right: 0, bottom: 0, backgroundColor: isDark ? c.surface : c.background, borderTopLeftRadius: 22, borderTopRightRadius: 22, paddingHorizontal: 22, paddingTop: 18, paddingBottom: 34, ...(isDark ? { borderWidth: 1, ...darkCard } : null) },
+    // Full-screen container that bottom-aligns the sheet; KeyboardAvoidingView
+    // pads it up so the field + Redeem button clear the keyboard.
+    sheetKav: { flex: 1, justifyContent: 'flex-end' },
+    sheet: { backgroundColor: isDark ? c.surface : c.background, borderTopLeftRadius: 22, borderTopRightRadius: 22, paddingHorizontal: 22, paddingTop: 18, paddingBottom: 34, ...(isDark ? { borderWidth: 1, ...darkCard } : null) },
     sheetHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
     sheetTitle: { fontFamily: fontFamily.displayBold, fontSize: 20, letterSpacing: -0.3, color: c.text },
     sheetClose: { width: 34, height: 34, borderRadius: 17, borderWidth: 1, borderColor: c.border, alignItems: 'center', justifyContent: 'center' },

@@ -27,6 +27,7 @@ import { NIGHTLY_QUESTIONS } from '@/constants/nightlyQuestions';
 import { parseLocalDate } from '@/lib/dateUtils';
 import { useScreenTimeTracking } from '@/hooks/useScreenTimeTracking';
 import SettingsGear from '@/components/navigation/SettingsGear';
+import PassItOnGift from '@/components/navigation/PassItOnGift';
 import { fontFamily, getColors, shadows, type ColorMode, type Tokens } from '@/constants/designTokens';
 import { useTokens, useThemedStyles } from '@/hooks/useTokens';
 
@@ -252,6 +253,7 @@ export default function JourneyScreen() {
               <BarChart3 size={16} color={colors.primary} strokeWidth={2.2} />
               <Text style={styles.trendsBtnText}>Trends</Text>
             </Pressable>
+            <PassItOnGift style={styles.gear} />
             <SettingsGear style={styles.gear} />
           </View>
           <ScrollView contentContainerStyle={styles.feed} showsVerticalScrollIndicator={false}>

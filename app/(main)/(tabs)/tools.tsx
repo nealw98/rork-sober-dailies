@@ -27,6 +27,7 @@ import { useTokens, useThemedStyles } from '@/hooks/useTokens';
 import { ThemedCard } from '@/components/ThemedCard';
 import GiftGlyph from '@/components/GiftGlyph';
 import SettingsGear from '@/components/navigation/SettingsGear';
+import PassItOnGift from '@/components/navigation/PassItOnGift';
 import { useScreenTimeTracking } from '@/hooks/useScreenTimeTracking';
 import { useGiftWallet } from '@/hooks/use-gift-wallet';
 
@@ -153,6 +154,7 @@ export default function ToolsScreen() {
           <Text style={styles.title}>Tools</Text>
           <Text style={styles.subtitle}>Open the support you need</Text>
         </View>
+        <PassItOnGift style={styles.giftBtn} />
         <SettingsGear style={styles.gear} />
       </View>
 
@@ -207,6 +209,7 @@ const makeStyles = (tk: Tokens) => {
       // screens' titles land — with the gear inline, and a roomy paddingBottom.
       header: { flexDirection: 'row', alignItems: 'flex-start', paddingHorizontal: H_PAD, paddingTop: 54, paddingBottom: 28 },
       gear: { paddingTop: 4 },
+      giftBtn: { paddingTop: 4, marginRight: 16 },
       title: { fontFamily: fontFamily.display, fontSize: 28, letterSpacing: -0.5, color: c.text, lineHeight: 29 },
       subtitle: { fontFamily: fontFamily.regular, fontSize: 14, color: c.textMuted, marginTop: 2 },
 

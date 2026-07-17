@@ -9,6 +9,7 @@ import { Stack, useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { ChevronRight } from 'lucide-react-native';
 import SettingsGear from '@/components/navigation/SettingsGear';
+import PassItOnGift from '@/components/navigation/PassItOnGift';
 import { BigBookCover, TwelveCover, MeetingReadingCard } from '@/components/literature/literature-ui';
 import { MEETING_READINGS, PREVIEW_READING_IDS, getMeetingReading } from '@/constants/meeting-readings';
 import { useReadingSession } from '@/hooks/useReadingSession';
@@ -44,6 +45,7 @@ export default function LiteratureScreen() {
           <Text style={styles.title}>Literature</Text>
           <Text style={styles.sub}>Read A.A. recovery texts.</Text>
         </View>
+        <PassItOnGift style={styles.giftBtn} />
         <SettingsGear style={styles.gear} />
       </View>
 
@@ -99,6 +101,7 @@ const makeStyles = (tk: Tokens) => {
     header: { flexDirection: 'row', alignItems: 'flex-start', paddingHorizontal: 22, paddingTop: 54, paddingBottom: 28 },
     flexFill: { flex: 1 },
     gear: { paddingTop: 4 },
+    giftBtn: { paddingTop: 4, marginRight: 16 },
     title: { fontFamily: fontFamily.display, fontSize: 28, letterSpacing: -0.5, color: c.text, lineHeight: 29 },
     sub: { fontFamily: fontFamily.regular, fontSize: 14, color: c.textMuted, marginTop: 4 },
 

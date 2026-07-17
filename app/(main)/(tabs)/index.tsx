@@ -12,7 +12,7 @@ import { Image } from 'expo-image';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter, type Href } from 'expo-router';
-import { Check, Minus, GripVertical } from 'lucide-react-native';
+import { Check, Minus, GripVertical, Pencil } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 
 import { fontFamily, fontSize, spacing, radii, shadows, type Tokens } from '@/constants/designTokens';
@@ -25,6 +25,7 @@ import { useReflectionHeroImage } from '@/hooks/useReflectionHeroImage';
 import { maybeAskForReview } from '@/lib/reviewPrompt';
 import SobrietyCounter from '@/components/SobrietyCounter';
 import SettingsGear from '@/components/navigation/SettingsGear';
+import PassItOnGift from '@/components/navigation/PassItOnGift';
 import { getTodaysReflection } from '@/constants/reflections';
 import { titleCase } from '@/lib/titleCase';
 import { Reflection } from '@/types';
@@ -56,8 +57,6 @@ const PRAYER_PARAM: Record<string, string> = {
 };
 
 const SECTIONS: WhenBucket[] = ['Morning', 'Anytime', 'Evening'];
-const TODAY_EDIT_TIP_PENDING_KEY = 'today_edit_tip_pending';
-const TODAY_EDIT_TIP_SEEN_KEY = 'today_edit_tip_seen';
 
 // Flattened rows for the edit-mode drag list: a section header, its dailies, and
 // a "+ Add" row, per bucket. Dropping a daily under a different header re-buckets it.
@@ -199,31 +198,10 @@ export default function TodayScreen() {
   const heroImage = useReflectionHeroImage();
   const [reflection, setReflection] = useState<Reflection | null>(null);
   const [editing, setEditing] = useState(false);
-  const [showEditTip, setShowEditTip] = useState(false);
   useScreenTimeTracking('Today');
 
-  const dismissEditTip = useCallback(() => {
-    setShowEditTip(false);
-    AsyncStorage.multiSet([[TODAY_EDIT_TIP_SEEN_KEY, '1']])
-      .then(() => AsyncStorage.removeItem(TODAY_EDIT_TIP_PENDING_KEY))
-      .catch(() => {});
-  }, []);
-
   const toggleEditing = useCallback(() => {
-    if (showEditTip) dismissEditTip();
     setEditing((v) => !v);
-  }, [dismissEditTip, showEditTip]);
-
-  useEffect(() => {
-    let mounted = true;
-    AsyncStorage.multiGet([TODAY_EDIT_TIP_PENDING_KEY, TODAY_EDIT_TIP_SEEN_KEY])
-      .then((pairs) => {
-        const pending = pairs[0]?.[1] === '1';
-        const seen = pairs[1]?.[1] === '1';
-        if (mounted && pending && !seen) setShowEditTip(true);
-      })
-      .catch(() => {});
-    return () => { mounted = false; };
   }, []);
 
   useEffect(() => {
@@ -288,6 +266,24 @@ export default function TodayScreen() {
           onToggle={dailies.toggleReflection}
         />
       </View>
+      {/* Edit control lives with the dailies list (not the page): a pencil above
+          the first section, toggling to "Save" while editing. ("Done" is reserved
+          for the per-daily completion buttons.) */}
+      <View style={styles.editBar}>
+        <Pressable
+          hitSlop={12}
+          onPress={toggleEditing}
+          accessibilityRole="button"
+          accessibilityLabel={editing ? 'Save dailies' : 'Edit dailies'}
+          style={styles.editBtn}
+        >
+          {editing ? (
+            <Text style={styles.editToggle}>Save</Text>
+          ) : (
+            <Pencil size={20} color={colors.primaryDark} strokeWidth={2} />
+          )}
+        </Pressable>
+      </View>
     </>
   );
 
@@ -300,25 +296,10 @@ export default function TodayScreen() {
           <Text style={[styles.date, { color: c.textMuted }]}>{dateLabel}</Text>
         </View>
         <View style={styles.headerActions}>
-          <Pressable hitSlop={10} onPress={toggleEditing} accessibilityRole="button">
-            <Text style={styles.editToggle}>{editing ? 'Done' : 'Edit'}</Text>
-          </Pressable>
+          <PassItOnGift />
           <SettingsGear />
         </View>
       </View>
-      {showEditTip && !editing ? (
-        <View style={styles.editTipWrap} pointerEvents="box-none">
-          <View style={styles.editTipArrow} />
-          <View style={styles.editTipCard}>
-            <Text style={styles.editTipTitle}>Edit your dailies</Text>
-            <Text style={styles.editTipText}>Change, add, remove, or reorder these anytime.</Text>
-            <Pressable hitSlop={8} onPress={dismissEditTip} accessibilityRole="button" style={styles.editTipButton}>
-              <Text style={styles.editTipButtonText}>Got it</Text>
-            </Pressable>
-          </View>
-        </View>
-      ) : null}
-
       {editing ? (
         <DailiesEditor header={topContent} />
       ) : (
@@ -377,32 +358,12 @@ const makeStyles = (tk: Tokens) => {
   // (far-corner) control (handoff-tab-nav).
   headerActions: { flexDirection: 'row', alignItems: 'center', gap: 16, paddingTop: 6 },
   editToggle: { fontFamily: fontFamily.semiBold, fontSize: fontSize.lg, color: colors.primaryDark },
-  editTipWrap: { marginTop: -18, marginHorizontal: 22, marginBottom: 12, alignItems: 'flex-end' },
-  editTipArrow: {
-    width: 14,
-    height: 14,
-    backgroundColor: colors.primarySoft,
-    borderLeftWidth: 1,
-    borderTopWidth: 1,
-    borderColor: colors.primary + '33',
-    transform: [{ rotate: '45deg' }],
-    marginRight: 46,
-    marginBottom: -7,
-    zIndex: 1,
-  },
-  editTipCard: {
-    alignSelf: 'stretch',
-    backgroundColor: colors.primarySoft,
-    borderWidth: 1,
-    borderColor: colors.primary + '33',
-    borderRadius: 14,
-    paddingVertical: 12,
-    paddingHorizontal: 14,
-  },
-  editTipTitle: { fontFamily: fontFamily.semiBold, fontSize: fontSize.md, color: c.text },
-  editTipText: { fontFamily: fontFamily.regular, fontSize: 13, lineHeight: 18, color: c.textSecondary, marginTop: 3, paddingRight: 74 },
-  editTipButton: { position: 'absolute', right: 12, bottom: 11, paddingVertical: 5, paddingHorizontal: 10, borderRadius: radii.full, backgroundColor: colors.primary },
-  editTipButtonText: { fontFamily: fontFamily.semiBold, fontSize: 12, color: '#fff' },
+  // Pencil (→ "Save") sits with the dailies list, right-aligned above the first
+  // section. Negative marginBottom trims the following section's own marginTop.
+  editBar: { alignItems: 'flex-end', marginTop: spacing.md, marginBottom: -34, zIndex: 1 },
+  // Roomy hit area so the pencil / "Save" is easy to tap (was a bare glyph before).
+  // The negative editBar marginBottom above pulls Morning up close under it.
+  editBtn: { paddingVertical: 6, paddingHorizontal: 12, marginRight: -4 },
   scroll: { paddingHorizontal: 22, paddingBottom: 120 },
 
   heroTop: { marginTop: spacing.xl },

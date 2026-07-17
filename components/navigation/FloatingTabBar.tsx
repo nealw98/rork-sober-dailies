@@ -17,7 +17,8 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
 import MaskedView from '@react-native-masked-view/masked-view';
 import Svg, { Path, Defs, RadialGradient, Stop, Circle } from 'react-native-svg';
-import { BookOpen, Library, PenLine, Users } from 'lucide-react-native';
+import { BookOpen, Library, PenLine } from 'lucide-react-native';
+import { ChatCircle } from 'phosphor-react-native';
 import { colors, fontFamily, shadows, darkGlow } from '@/constants/designTokens';
 import { useTokens } from '@/hooks/useTokens';
 import { getSponsorById } from '@/constants/sponsors';
@@ -114,7 +115,7 @@ function SponsorFab() {
         <Image source={sponsor.avatar} style={styles.fabImg} />
       ) : (
         <View style={[styles.fabImg, styles.unselectedFab]}>
-          <Users size={25} color="#fff" strokeWidth={2.2} />
+          <ChatCircle size={26} color="#fff" weight="regular" />
         </View>
       )}
     </Pressable>

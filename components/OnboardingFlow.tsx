@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, Pressable, Linking, ActivityIndicator } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { StatusBar } from 'expo-status-bar';
@@ -17,8 +16,6 @@ import { useDailies, type DailyItem, type WhenBucket } from '@/hooks/use-dailies
 import { formatLocalDate } from '@/lib/dateUtils';
 import SoberDateEditor from '@/components/SoberDateEditor';
 import DailiesEditor from '@/components/today/DailiesEditor';
-
-const TODAY_EDIT_TIP_PENDING_KEY = 'today_edit_tip_pending';
 
 // App-icon gradient → interior bridge (prototype `obvGrad`). t=0 = vivid app icon,
 // t=1 = muted interior. Onboarding stays icon-leaning (the retiring teal header
@@ -132,7 +129,6 @@ function DefineDailiesStep({ onBack, onComplete }: { onBack: () => void; onCompl
   const handleComplete = async () => {
     if (saving) return;
     setSaving(true);
-    await AsyncStorage.setItem(TODAY_EDIT_TIP_PENDING_KEY, '1').catch(() => {});
     await onComplete();
   };
 
