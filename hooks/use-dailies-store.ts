@@ -114,6 +114,7 @@ const ACTION_TONE: Record<string, string> = {
   meeting: 'steel',
   speaker: 'steel',
   callAnother: 'steel',
+  callSponsor: 'steel',
   lit: 'steel',
   journal: 'teal',
   prayers: 'teal',

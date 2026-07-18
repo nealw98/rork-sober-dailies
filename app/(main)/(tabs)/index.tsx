@@ -6,7 +6,9 @@ import {
   ScrollView,
   Pressable,
   Alert,
+  Linking,
 } from 'react-native';
+import { useActionSheet } from '@expo/react-native-action-sheet';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Image } from 'expo-image';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -25,6 +27,10 @@ import { useReflectionHeroImage } from '@/hooks/useReflectionHeroImage';
 import { maybeAskForReview } from '@/lib/reviewPrompt';
 import SobrietyCounter from '@/components/SobrietyCounter';
 import GrowthNudges from '@/components/GrowthNudges';
+import { pickContact } from '@/lib/pickContact';
+import { getSponsorContact, setSponsorContact, type SponsorContact } from '@/lib/sponsorContact';
+import { normalizePhone } from '@/hooks/use-contacts-store';
+import { logEvent } from '@/lib/analytics';
 import SettingsGear from '@/components/navigation/SettingsGear';
 import PassItOnGift from '@/components/navigation/PassItOnGift';
 import { getTodaysReflection } from '@/constants/reflections';
@@ -200,6 +206,53 @@ export default function TodayScreen() {
   const [reflection, setReflection] = useState<Reflection | null>(null);
   const [editing, setEditing] = useState(false);
   useScreenTimeTracking('Today');
+  const { showActionSheetWithOptions } = useActionSheet();
+
+  // "Call my sponsor" daily — the saved sponsor rides under the row as its
+  // subtitle; pressing the row offers Call / Text (completion stays manual,
+  // like every daily).
+  const [sponsor, setSponsor] = useState<SponsorContact | null>(null);
+  useEffect(() => {
+    getSponsorContact().then(setSponsor).catch(() => {});
+  }, []);
+
+  const chooseSponsor = async (thenSheet: boolean) => {
+    const picked = await pickContact();
+    if (!picked) return;
+    if (!picked.phone) {
+      Alert.alert('No phone number', `${picked.name} doesn’t have a phone number to call or text.`);
+      return;
+    }
+    await setSponsorContact(picked);
+    setSponsor(picked);
+    logEvent('sponsor_contact_set');
+    if (thenSheet) sponsorSheet(picked);
+  };
+
+  const sponsorSheet = (s: SponsorContact) => {
+    showActionSheetWithOptions(
+      { title: s.name, message: s.phone || undefined, options: ['Call', 'Text', 'Change sponsor', 'Cancel'], cancelButtonIndex: 3 },
+      (i) => {
+        if (i === 0) {
+          logEvent('sponsor_reached', { action: 'call' });
+          Linking.openURL(`tel:${normalizePhone(s.phone)}`).catch(() => {});
+        } else if (i === 1) {
+          logEvent('sponsor_reached', { action: 'text' });
+          Linking.openURL(`sms:${normalizePhone(s.phone)}`).catch(() => {});
+        } else if (i === 2) {
+          chooseSponsor(false);
+        }
+      },
+    );
+  };
+
+  const handleSponsorPress = () => {
+    if (sponsor) sponsorSheet(sponsor);
+    else {
+      // First press: pick who your sponsor is, then go straight to Call/Text.
+      chooseSponsor(true);
+    }
+  };
 
   const toggleEditing = useCallback(() => {
     setEditing((v) => !v);
@@ -227,6 +280,10 @@ export default function TodayScreen() {
   const dateLabel = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
 
   const openDaily = (item: DailyItem) => {
+    if (item.action === 'callSponsor') {
+      handleSponsorPress();
+      return;
+    }
     const route = ACTION_ROUTE[item.action];
     if (route === undefined) {
       // No-tool action: tapping the row just checks it.
@@ -319,7 +376,7 @@ export default function TodayScreen() {
                   {items.map((item, idx) => (
                     <DailyRow
                       key={item.id}
-                      item={item}
+                      item={item.action === 'callSponsor' && sponsor ? { ...item, subtitle: sponsor.name } : item}
                       done={dailies.isDone(item.id)}
                       isLast={idx === items.length - 1}
                       editing={false}

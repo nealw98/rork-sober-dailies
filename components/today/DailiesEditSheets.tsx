@@ -25,23 +25,28 @@ import { type DailyItem, type WhenBucket } from '@/hooks/use-dailies-store';
 
 export type Template = Omit<DailyItem, 'id' | 'when'>;
 
-// "From your tools" catalog (canonical add list) — alphabetical by label.
+// "From your tools" catalog (canonical add list) — alphabetical by the TOOL
+// each action belongs to, not the verb-led label (labels all start with
+// verbs, so label-alphabetical was meaningless): Another alcoholic, Evening
+// prayers, Gratitude, Journal, Literature, Meditation, Meeting, Morning
+// prayers, Nightly Review, Speaker Tapes, Sponsor, Spot Check.
 // Colors use the canonical palette families (steel / teal / periwinkle /
 // terracotta) so each item matches how the same daily is tinted on the Today
 // list (DEFAULT_PROGRAM + toolFamily): people/reading = steel, spiritual
 // practice + writing = teal/terracotta, wind-down = periwinkle.
 export const TOOL_CATALOG: Template[] = [
-  { label: 'Attend a meeting', icon: 'users', color: 'steel', action: 'meeting' },
-  { label: 'Do my nightly review', icon: 'moon', color: 'periwinkle', action: 'nightly' },
-  { label: 'Listen to a speaker tape', icon: 'play', color: 'steel', action: 'speaker' },
-  { label: 'Read the literature', icon: 'library', color: 'steel', action: 'lit' },
-  { label: 'Say my evening prayers', icon: 'pray', color: 'periwinkle', action: 'prayerEvening' },
-  { label: 'Say my morning prayers', icon: 'pray', color: 'terracotta', action: 'prayerMorning' },
-  { label: 'Take a spot check inventory', icon: 'check', color: 'terracotta', action: 'spotcheck' },
-  { label: 'Take time to meditate', icon: 'lotus', color: 'periwinkle', action: 'meditation' },
   { label: 'Talk with another alcoholic', icon: 'phone', color: 'steel', action: 'callAnother' },
+  { label: 'Say my evening prayers', icon: 'pray', color: 'periwinkle', action: 'prayerEvening' },
   { label: 'Write a gratitude list', icon: 'heart', color: 'terracotta', action: 'gratitude' },
   { label: 'Write in my journal', icon: 'journal', color: 'teal', action: 'journal' },
+  { label: 'Read the literature', icon: 'library', color: 'steel', action: 'lit' },
+  { label: 'Take time to meditate', icon: 'lotus', color: 'periwinkle', action: 'meditation' },
+  { label: 'Attend a meeting', icon: 'users', color: 'steel', action: 'meeting' },
+  { label: 'Say my morning prayers', icon: 'pray', color: 'terracotta', action: 'prayerMorning' },
+  { label: 'Do my nightly review', icon: 'moon', color: 'periwinkle', action: 'nightly' },
+  { label: 'Listen to a speaker tape', icon: 'play', color: 'steel', action: 'speaker' },
+  { label: 'Call my sponsor', icon: 'phone', color: 'steel', action: 'callSponsor' },
+  { label: 'Take a spot check inventory', icon: 'check', color: 'terracotta', action: 'spotcheck' },
 ];
 
 // "Quick actions" — no tool, just check off. Alphabetical by label.
@@ -88,6 +93,19 @@ export function AddSheet({ section, added, onClose, onAdd, onCreate }: { section
           </View>
 
           <ScrollView contentContainerStyle={{ paddingBottom: 28 }} showsVerticalScrollIndicator={false}>
+            {/* Create-your-own leads the sheet — at the bottom it was easy to
+                miss below two catalogs (decided Jul 18). */}
+            <Text style={styles.groupLabel}>CREATE YOUR OWN</Text>
+            <Pressable style={styles.createRow} onPress={onCreate}>
+              <View style={styles.createIcon}>
+                <Plus size={20} color={colors.primary} strokeWidth={2.2} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.addRowName}>Make a custom action</Text>
+                <Text style={styles.sheetSub}>Something only on your list — name it.</Text>
+              </View>
+            </Pressable>
+
             <Text style={styles.groupLabel}>FROM YOUR TOOLS</Text>
             {TOOL_CATALOG.map((t) => (
               <Pressable key={t.action} style={styles.addRow} disabled={added.has(t.action)} onPress={() => onAdd(t)}>
@@ -131,17 +149,6 @@ export function AddSheet({ section, added, onClose, onAdd, onCreate }: { section
                 )}
               </Pressable>
             ))}
-
-            <Text style={styles.groupLabel}>CREATE YOUR OWN</Text>
-            <Pressable style={styles.createRow} onPress={onCreate}>
-              <View style={styles.createIcon}>
-                <Plus size={20} color={colors.primary} strokeWidth={2.2} />
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.addRowName}>Make a custom action</Text>
-                <Text style={styles.sheetSub}>Something only on your list — name it.</Text>
-              </View>
-            </Pressable>
           </ScrollView>
         </View>
       </View>

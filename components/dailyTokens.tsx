@@ -84,6 +84,7 @@ export const ACTION_SUBTITLE: Record<string, string> = {
   meeting: 'Stay connected',
   lit: 'Keep the program close',
   callAnother: 'Don’t do it alone',
+  callSponsor: 'A call or a text counts',
   speaker: 'Listen and learn',
   aiSponsor: 'Talk it through',
   journal: 'Write freely',

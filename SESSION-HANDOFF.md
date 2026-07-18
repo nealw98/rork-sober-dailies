@@ -1,7 +1,7 @@
 # Session Handoff — Sober Dailies
 
 _For a fresh chat. Branch `3.0.5-redesign` (tracks `origin/3.0.5-redesign`)._
-_Last big session (2026-07-18): Invite Friends + Pass It On pricing rework + nudge system + v2-migration fixes. Build bumped to **127** (native rebuild required — see §1)._
+_Last big session (2026-07-18): Invite Friends + Pass It On pricing rework + nudge system + v2-migration fixes + Debug Console redesign + Call-my-sponsor daily. Build bumped to **127** (native rebuild required — see §1); Neal has built/tested 127 on device (multi-select picker works)._
 
 ---
 
@@ -49,6 +49,11 @@ _Last big session (2026-07-18): Invite Friends + Pass It On pricing rework + nud
 - **Meditation:** scene carousel → **pills** (all scenes visible; chip row like LENGTH). **Opening bell** rings 0.5s after Begin (phase-guarded), same bell as completion.
 - **Big Book selection toolbar:** iOS swallows the touchend when a native handle-drag takes over → the "finger down" latch stuck and the action bar never reappeared. Fixed with pointerup/pointercancel listeners + a bounded defer (~1s). Device-test.
 - Contacts permission string in app.json updated (covers inviting; contacts never leave the device). No flow requests full contacts access anymore.
+- **Debug Console redesigned** (commit `3cd1d0e3`): ALL developer/QA actions moved off the Settings page into the hidden console (long-press the version number) — app-styled per Neal's mock: version/platform cards, THIS DEVICE (dev-mode toggle, check-update/restart), PAYWALL & SUBSCRIPTION (force-new-user w/ ON/OFF badge, reset subscription, paywall previews), ONBOARDING & DATA (the three former Settings rows; they close the console before firing — iOS modal stacking), log feed w/ Copy/Clear pills.
+- **"Call my sponsor" daily** (`callSponsor` in TOOL_CATALOG, steel/phone): sponsor = ONE contact stored in `lib/sponsorContact.ts` (`sponsor_contact_v1`, in Backup SYNC_KEYS; separate from Reach Out's list). First press → permissionless contact picker, then straight into the sheet; after that → action sheet Call / Text / Change sponsor. Sponsor's name renders as the row subtitle on Today. Completion stays manual. Mixpanel `sponsor_reached`.
+- **Add-daily sheet:** "Create your own" moved to the TOP (was buried under both catalogs). TOOL_CATALOG re-sorted **alphabetically by TOOL noun**, not verb label: Another alcoholic, Evening prayers, Gratitude, Journal, Literature, Meditation, Meeting, Morning prayers, Nightly review, Speaker tapes, Sponsor, Spot check.
+- **Pass It On:** "Give more and save" reveals BOTH pack cards at once (two-stage "Want more?" removed).
+- **KNOWN LIMITATION (accepted):** Apple's multi-select contact picker has **no search field** (single-select does) — uncustomizable system UI; the A–Z index rail is the navigation. Package labels ("3/9/15 months") are HARD-CODED in `GIFT_SKUS`; only prices come live from the store.
 
 ## 6. Open items / next actions
 

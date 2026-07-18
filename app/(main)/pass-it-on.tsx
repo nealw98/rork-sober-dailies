@@ -99,10 +99,9 @@ export default function PassItOnScreen() {
   const { applyPurchase, mintLocalDev, availableCount } = useGiftWallet();
 
   const [pick, setPick] = useState(0);          // single gift preselected — $9.99 is the first price anyone sees
-  // Tiers reveal one at a time: load → 3 months only; "Give more and save" →
-  // 15 months; "Want more?" → 30 months. The bigger number never appears
-  // before it's asked for.
-  const [shown, setShown] = useState(1);
+  // Load shows only the 3-month card; "Give more and save" reveals BOTH packs
+  // at once. Bigger numbers never appear before they're asked for.
+  const [moreOpen, setMoreOpen] = useState(false);
   const [monthly, setMonthly] = useState<{ price: number; currency: string } | null>(null);
   const [products, setProducts] = useState<Record<string, PurchasesStoreProduct>>({});
   const [busy, setBusy] = useState(false);
@@ -251,7 +250,7 @@ export default function PassItOnScreen() {
         </TouchableOpacity>
 
         <View style={{ gap: 10 }}>
-          {GIFT_SKUS.slice(0, shown).map((s, i) => (
+          {(moreOpen ? GIFT_SKUS : GIFT_SKUS.slice(0, 1)).map((s, i) => (
             <SkuCard
               key={s.productId}
               sku={s}
@@ -263,14 +262,14 @@ export default function PassItOnScreen() {
           ))}
         </View>
 
-        {shown < GIFT_SKUS.length && (
+        {!moreOpen && (
           <TouchableOpacity
             style={styles.moreLink}
-            onPress={() => setShown(shown + 1)}
+            onPress={() => setMoreOpen(true)}
             activeOpacity={0.7}
             accessibilityRole="button"
           >
-            <Text style={styles.moreLinkText}>{shown === 1 ? 'Give more and save' : 'Want more?'}</Text>
+            <Text style={styles.moreLinkText}>Give more and save</Text>
             <ChevronRight size={15} color={colors.roseDark} strokeWidth={2} />
           </TouchableOpacity>
         )}
