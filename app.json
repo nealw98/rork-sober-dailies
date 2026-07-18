@@ -98,7 +98,7 @@
       [
         "expo-contacts",
         {
-          "contactsPermission": "Sober Dailies uses your contacts so you can save people to call or text when you need to reach out."
+          "contactsPermission": "Sober Dailies uses your contacts so you can save people to call or text when you need to reach out, and choose friends to invite to the app. Your contacts never leave your device."
         }
       ],
       "expo-web-browser",

@@ -9,7 +9,7 @@
 // the Debug Console. Reminders (notifications) from the prototype are deferred.
 import React, { useState, useEffect, useRef } from 'react';
 import {
-  View, Text, StyleSheet, TouchableOpacity, Platform, Linking, Share, ScrollView,
+  View, Text, StyleSheet, TouchableOpacity, Platform, Linking, ScrollView,
   Modal, SafeAreaView as RNSafeAreaView, Alert, TextInput, ActivityIndicator,
   Switch,
 } from 'react-native';
@@ -30,6 +30,7 @@ import BackButton from '@/components/BackButton';
 import GiftGlyph from '@/components/GiftGlyph';
 import PaywallScreen from '@/components/PaywallScreen';
 import { useGiftWallet } from '@/hooks/use-gift-wallet';
+import { GIFT_MONTHS } from '@/lib/giftProducts';
 import { QA_FORCE_NEW_USER_KEY } from '@/hooks/useSubscription';
 import Constants from 'expo-constants';
 import * as Clipboard from 'expo-clipboard';
@@ -307,16 +308,6 @@ export default function SettingsScreen() {
     }
   };
 
-  const handleSharePress = async () => {
-    try {
-      const appStoreUrl =
-        Platform.OS === 'ios'
-          ? 'https://apps.apple.com/app/sober-dailies/id6749869819'
-          : 'https://play.google.com/store/apps/details?id=com.nealwagner.soberdailies';
-      await Share.share({ message: 'Sober Dailies helps me stay sober one day at a time. Check it out: ' + appStoreUrl });
-    } catch {}
-  };
-
   const handleFeedbackSubmit = async () => {
     if (!feedbackText.trim()) {
       Alert.alert('Please enter your feedback', 'Let us know what you think!');
@@ -497,7 +488,7 @@ export default function SettingsScreen() {
           {hasEverBought && (
             <CardRow
               label="Gifts to give"
-              value={`${availableCount} left`}
+              value={`${availableCount * GIFT_MONTHS} months`}
               valueColor={colors.roseDark}
               last
               icon={
@@ -513,7 +504,6 @@ export default function SettingsScreen() {
         {/* Support Sober Dailies */}
         <CardGroup label="Support Sober Dailies">
           <CardRow label="Rate & Review" onPress={handleRateAppPress} />
-          <CardRow label="Share the App" onPress={handleSharePress} />
           <CardRow label="Send Feedback" last onPress={() => setFeedbackVisible(true)} />
         </CardGroup>
 

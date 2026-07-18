@@ -11,7 +11,7 @@ import { useTokens, useThemedStyles } from '@/hooks/useTokens';
 const ROSE_FILL = lightColors.rose; // CTA keeps full chroma in both modes
 
 const STEPS: { t: string; d: string }[] = [
-  { t: 'Buy gift codes', d: 'One, five, or ten at a time. Each code is a 3-month pass to everything in the app.' },
+  { t: 'Fill your bank of months', d: 'Buy 3, 15, or 30 months at a time. You give them out as codes — each code is a 3-month pass to everything in the app.' },
   { t: 'Share a code', d: 'Hand it out however you like — in person, by text, or at a meeting.' },
   { t: 'They redeem it', d: 'They install the free Sober Dailies app and tap “Have a code?” on the subscribe screen, then enter the code. Three months of full access unlock right away — no charge, and nothing renews.' },
   { t: 'When it runs out', d: 'After three months, they’re asked to subscribe on their own — or redeem another code from you.' },

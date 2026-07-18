@@ -1,5 +1,9 @@
 // Pass It On — purchase screen (Pass It On Handoff 2, frames-v2/hifi-passiton.jsx).
-// Three consumable gift SKUs (1 / 5 / 10 × 3-month codes), 5-pack preselected.
+// The single $9.99 gift is the only tier on screen at first; the 5/10 packs
+// sit behind a "Give more and save" reveal (decided Jul 18 — no big number in
+// anyone's face on load). The pricing unit is the MONTH, not the gift: each
+// tier leads with its per-month rate ($3.33 → $2.67 → $2.00/month, 10-pack
+// badged "Best deal"), which quietly undercuts the $3.99 monthly subscription.
 // The CTA runs the REAL RevenueCat purchase when the store products resolve
 // (ASC products exist as drafts; RC offering pending). Until then, __DEV__
 // builds offer a mock purchase so the whole flow is testable on device.
@@ -13,14 +17,14 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Stack, useRouter } from 'expo-router';
 import Purchases, { PurchasesStoreProduct } from 'react-native-purchases';
-import { ChevronRight, HelpCircle } from 'lucide-react-native';
+import { ChevronRight, HelpCircle, MessageCircle } from 'lucide-react-native';
 import BackButton from '@/components/BackButton';
 import GiftGlyph from '@/components/GiftGlyph';
 import GiftInfoSheet from '@/components/GiftInfoSheet';
 import { fontFamily, shadows, colors as lightColors, type Tokens } from '@/constants/designTokens';
 import { useTokens, useThemedStyles } from '@/hooks/useTokens';
 import { useGiftWallet } from '@/hooks/use-gift-wallet';
-import { GIFT_SKUS, fetchGiftProducts, type GiftSku } from '@/lib/giftProducts';
+import { GIFT_SKUS, GIFT_MONTHS, MONTHLY_PRICE_FALLBACK, fetchGiftProducts, type GiftSku } from '@/lib/giftProducts';
 import { logEvent } from '@/lib/analytics';
 
 // The CTA keeps full rose chroma in both modes (jewel treatment, like the
@@ -31,8 +35,8 @@ const ROSE_FILL = lightColors.rose;
 // own store (App Store / Google Play).
 const STORE_NAME = Platform.OS === 'ios' ? 'the App Store' : 'Google Play';
 
-function SkuCard({ sku, price, on, onPick }: {
-  sku: GiftSku; price: string; on: boolean; onPick: () => void;
+function SkuCard({ sku, price, perMonth, on, onPick }: {
+  sku: GiftSku; price: string; perMonth: string; on: boolean; onPick: () => void;
 }) {
   const styles = useThemedStyles(makeStyles);
   const { colors } = useTokens();
@@ -47,11 +51,14 @@ function SkuCard({ sku, price, on, onPick }: {
       <View style={{ flex: 1, minWidth: 0 }}>
         <View style={styles.skuLabelRow}>
           <Text style={styles.skuLabel}>{sku.label}</Text>
-          {sku.each ? <Text style={styles.skuEach}>{sku.each}</Text> : null}
+          {sku.badge ? <Text style={styles.skuBadge}>{sku.badge}</Text> : null}
         </View>
         <Text style={styles.skuSub}>{sku.sub}</Text>
       </View>
-      <Text style={styles.skuPrice}>{price}</Text>
+      <View style={styles.skuPriceCol}>
+        <Text style={styles.skuPrice}>{price}</Text>
+        <Text style={styles.skuPerMonth}>{perMonth}</Text>
+      </View>
     </Pressable>
   );
 }
@@ -68,10 +75,10 @@ function ConfirmSheet({ n, onSeeGifts, onDone }: { n: number; onSeeGifts: () => 
           <View style={styles.sheetCoin}>
             <GiftGlyph size={30} color={colors.roseDark} strokeWidth={1.6} />
           </View>
-          <Text style={styles.sheetTitle}>{n === 1 ? '1 gift added' : `${n} gifts added`}</Text>
+          <Text style={styles.sheetTitle}>{n * GIFT_MONTHS} months added</Text>
           <Text style={styles.sheetBody}>
-            Your codes are ready in <Text style={styles.sheetBodyBold}>Gifts to give</Text>. Each one
-            unlocks three months for whoever redeems it.
+            Your {n === 1 ? 'code is' : 'codes are'} ready in <Text style={styles.sheetBodyBold}>Gifts to give</Text>.
+            Each code unlocks three months for whoever redeems it.
           </Text>
         </View>
         <TouchableOpacity style={styles.cta} onPress={onSeeGifts} activeOpacity={0.85} accessibilityRole="button">
@@ -91,7 +98,12 @@ export default function PassItOnScreen() {
   const { c, colors } = useTokens();
   const { applyPurchase, mintLocalDev, availableCount } = useGiftWallet();
 
-  const [pick, setPick] = useState(1);          // 5-pack preselected (decided design)
+  const [pick, setPick] = useState(0);          // single gift preselected — $9.99 is the first price anyone sees
+  // Tiers reveal one at a time: load → 3 months only; "Give more and save" →
+  // 15 months; "Want more?" → 30 months. The bigger number never appears
+  // before it's asked for.
+  const [shown, setShown] = useState(1);
+  const [monthly, setMonthly] = useState<{ price: number; currency: string } | null>(null);
   const [products, setProducts] = useState<Record<string, PurchasesStoreProduct>>({});
   const [busy, setBusy] = useState(false);
   const [bought, setBought] = useState<number | null>(null);
@@ -99,22 +111,40 @@ export default function PassItOnScreen() {
 
   useEffect(() => {
     fetchGiftProducts().then(setProducts).catch(() => {});
+    // Live monthly subscription price — feeds the crossed-out anchors so the
+    // savings math always matches the real paywall price.
+    if (Platform.OS !== 'web') {
+      Purchases.getOfferings()
+        .then((o) => {
+          const p = o.current?.monthly?.product;
+          if (p) setMonthly({ price: p.price, currency: p.currencyCode });
+        })
+        .catch(() => {});
+    }
   }, []);
 
   const sku = GIFT_SKUS[pick];
   const product = products[sku.productId];
   const priceFor = (s: GiftSku) => products[s.productId]?.priceString ?? s.price;
-  // Per-gift caption follows the LIVE store price when it resolves, so it can
-  // never contradict the price on the card (static fallback otherwise).
-  const eachFor = (s: GiftSku) => {
-    if (s.n === 1) return null;
-    const p = products[s.productId];
-    if (!p) return s.each;
-    try {
-      return `${new Intl.NumberFormat(undefined, { style: 'currency', currency: p.currencyCode }).format(p.price / s.n)} each`;
-    } catch {
-      return s.each;
+
+  const monthlyPrice = monthly?.price ?? MONTHLY_PRICE_FALLBACK;
+  const fmt = (amount: number, currency?: string) => {
+    const cur = currency ?? monthly?.currency;
+    if (cur) {
+      try {
+        return new Intl.NumberFormat(undefined, { style: 'currency', currency: cur }).format(amount);
+      } catch {}
     }
+    return `$${amount.toFixed(2)}`;
+  };
+  // The buyer's unit is the month: $9.99 buys 3 months, so "$3.33/month".
+  // Follows the LIVE gift price when it resolves. Packs get an "only" —
+  // the single's rate sets the ladder they undercut.
+  const perMonthFor = (s: GiftSku) => {
+    const p = products[s.productId];
+    const price = p?.price ?? parseFloat(s.price.replace(/[^0-9.]/g, ''));
+    const rate = fmt(price / (s.n * GIFT_MONTHS), p?.currencyCode);
+    return s.n === 1 ? `${rate}/month` : `only ${rate}/month`;
   };
 
   const buy = async () => {
@@ -197,9 +227,9 @@ export default function PassItOnScreen() {
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
         {/* What it is + how it works — lead with the mechanics, this is new to most people */}
         <Text style={styles.intro}>
-          A gift is a code that unlocks three months of Sober Dailies for someone else — a sponsee,
-          a newcomer, anyone who could use it. Buy codes below and share them; they redeem the code
-          in the app. New to this? Tap <Text style={styles.introLink} onPress={() => setInfoVisible(true)}>Learn more</Text>.
+          You’re filling a bank of months to give away. Each code you share unlocks three months of
+          Sober Dailies for someone else — a sponsee, a newcomer, anyone who could use it.
+          New to this? Tap <Text style={styles.introLink} onPress={() => setInfoVisible(true)}>Learn more</Text>.
         </Text>
 
         {/* Always visible — lets anyone see the wallet, even before buying */}
@@ -214,27 +244,41 @@ export default function PassItOnScreen() {
           </View>
           <Text style={styles.walletLinkText}>
             {availableCount > 0
-              ? `You have ${availableCount} ${availableCount === 1 ? 'gift' : 'gifts'} to give`
+              ? `You have ${availableCount * GIFT_MONTHS} months to give`
               : 'See your gift wallet'}
           </Text>
           <ChevronRight size={18} color={c.textMuted} />
         </TouchableOpacity>
 
         <View style={{ gap: 10 }}>
-          {GIFT_SKUS.map((s, i) => (
+          {GIFT_SKUS.slice(0, shown).map((s, i) => (
             <SkuCard
               key={s.productId}
-              sku={{ ...s, each: eachFor(s) }}
+              sku={s}
               price={priceFor(s)}
+              perMonth={perMonthFor(s)}
               on={i === pick}
               onPick={() => setPick(i)}
             />
           ))}
         </View>
 
+        {shown < GIFT_SKUS.length && (
+          <TouchableOpacity
+            style={styles.moreLink}
+            onPress={() => setShown(shown + 1)}
+            activeOpacity={0.7}
+            accessibilityRole="button"
+          >
+            <Text style={styles.moreLinkText}>{shown === 1 ? 'Give more and save' : 'Want more?'}</Text>
+            <ChevronRight size={15} color={colors.roseDark} strokeWidth={2} />
+          </TouchableOpacity>
+        )}
+
         <Text style={styles.footnote}>
           Once you buy, your codes are saved in a wallet where you can share them and see which
           ones have been redeemed. One-time purchase — nothing renews, for you or for them.
+          (The regular subscription is {fmt(monthlyPrice)}/month.)
         </Text>
 
         <TouchableOpacity
@@ -245,10 +289,33 @@ export default function PassItOnScreen() {
           accessibilityRole="button"
         >
           <Text style={styles.ctaText}>
-            {busy ? 'One moment…' : `Give ${sku.n === 1 ? 'a gift' : `${sku.n} gifts`} · ${priceFor(sku)}`}
+            {busy ? 'One moment…' : `Add ${sku.n * GIFT_MONTHS} months · ${priceFor(sku)}`}
           </Text>
         </TouchableOpacity>
         <Text style={styles.billedNote}>Billed once through {STORE_NAME}</Text>
+
+        {/* Free path — a personal invite is passing it on too (steel tone: people & connection) */}
+        <View style={styles.inviteDividerRow}>
+          <View style={styles.inviteDivider} />
+          <Text style={styles.inviteDividerText}>or</Text>
+          <View style={styles.inviteDivider} />
+        </View>
+        <TouchableOpacity
+          style={styles.inviteRow}
+          onPress={() => router.push('/(main)/invite')}
+          activeOpacity={0.7}
+          accessibilityRole="button"
+          accessibilityLabel="Invite friends"
+        >
+          <View style={styles.inviteIcon}>
+            <MessageCircle size={18} color={colors.steelDark} strokeWidth={1.9} />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.inviteTitle}>Invite friends</Text>
+            <Text style={styles.inviteSub}>A personal text with a link to the app — free.</Text>
+          </View>
+          <ChevronRight size={18} color={c.textMuted} />
+        </TouchableOpacity>
       </ScrollView>
 
       {bought != null && (
@@ -302,11 +369,20 @@ const makeStyles = (tk: Tokens) => {
       paddingVertical: 14, paddingHorizontal: 15,
     },
     radio: { width: 20, height: 20, borderRadius: 10, borderWidth: 1.5, borderColor: c.textMuted, backgroundColor: c.surface },
-    skuLabelRow: { flexDirection: 'row', alignItems: 'baseline', gap: 8 },
+    skuLabelRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
     skuLabel: { fontFamily: fontFamily.semiBold, fontSize: 16, color: c.text },
-    skuEach: { fontFamily: fontFamily.semiBold, fontSize: 12, color: colors.roseDark },
+    skuBadge: {
+      fontFamily: fontFamily.semiBold, fontSize: 11, color: colors.roseDark,
+      backgroundColor: colors.roseSoft, paddingHorizontal: 8, paddingVertical: 2.5, borderRadius: 999,
+      overflow: 'hidden',
+    },
     skuSub: { fontFamily: fontFamily.regular, fontSize: 12, color: c.textMuted, marginTop: 2 },
+    skuPriceCol: { alignItems: 'flex-end' },
     skuPrice: { fontFamily: fontFamily.display, fontSize: 18, color: c.text, fontVariant: ['tabular-nums'] },
+    skuPerMonth: { fontFamily: fontFamily.semiBold, fontSize: 12, color: colors.roseDark, marginTop: 2 },
+
+    moreLink: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 4, paddingVertical: 12, marginTop: 2 },
+    moreLinkText: { fontFamily: fontFamily.semiBold, fontSize: 13.5, color: colors.roseDark },
 
     footnote: { fontFamily: fontFamily.regular, fontSize: 12.5, lineHeight: 19, color: c.textMuted, marginTop: 16, marginHorizontal: 6 },
 
@@ -317,6 +393,17 @@ const makeStyles = (tk: Tokens) => {
     },
     ctaText: { fontFamily: fontFamily.semiBold, fontSize: 15.5, color: '#FFFFFF' },
     billedNote: { fontFamily: fontFamily.regular, fontSize: 11.5, color: c.textMuted, textAlign: 'center', marginTop: 10 },
+
+    inviteDividerRow: { flexDirection: 'row', alignItems: 'center', gap: 12, marginTop: 26, marginBottom: 16, marginHorizontal: 6 },
+    inviteDivider: { flex: 1, height: StyleSheet.hairlineWidth, backgroundColor: c.divider },
+    inviteDividerText: { fontFamily: fontFamily.regular, fontSize: 12.5, color: c.textMuted },
+    inviteRow: {
+      flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 12, paddingHorizontal: 14,
+      borderRadius: 12, backgroundColor: colors.steelSoft,
+    },
+    inviteIcon: { width: 30, height: 30, borderRadius: 9, backgroundColor: c.surface, alignItems: 'center', justifyContent: 'center' },
+    inviteTitle: { fontFamily: fontFamily.semiBold, fontSize: 14, color: colors.steelDark },
+    inviteSub: { fontFamily: fontFamily.regular, fontSize: 12, color: c.textMuted, marginTop: 1 },
 
     sheetScrim: { flex: 1, backgroundColor: c.overlay },
     sheet: {

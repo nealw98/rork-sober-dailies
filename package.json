@@ -75,6 +75,7 @@
     "expo-router": "~5.1.5",
     "expo-screen-orientation": "~8.1.7",
     "expo-secure-store": "~14.2.4",
+    "expo-sms": "~13.1.4",
     "expo-splash-screen": "~0.30.10",
     "expo-sqlite": "~15.2.14",
     "expo-status-bar": "~2.2.3",

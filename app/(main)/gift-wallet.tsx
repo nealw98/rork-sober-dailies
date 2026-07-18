@@ -19,6 +19,8 @@ import GiftInfoSheet from '@/components/GiftInfoSheet';
 import { fontFamily, shadows, colors as lightColors, type Tokens } from '@/constants/designTokens';
 import { useTokens, useThemedStyles } from '@/hooks/useTokens';
 import { useGiftWallet, type GiftCode } from '@/hooks/use-gift-wallet';
+import { GIFT_MONTHS } from '@/lib/giftProducts';
+import { getUrl } from '@/lib/storeLinks';
 import { logEvent } from '@/lib/analytics';
 
 const ROSE_FILL = lightColors.rose; // CTA keeps full chroma in both modes
@@ -151,13 +153,15 @@ export default function GiftWalletScreen() {
   };
 
   // Sharing opens the native sheet (Copy lives there). Nothing about the share
-  // itself is recorded. TODO(backend): include the
-  // https://soberdailies.com/gift/<code> universal link once redeem deep-links exist.
+  // itself is recorded. The link lands on soberdailies.com/get?code=<code>, which
+  // shows the code + the right store button for the recipient's device.
   const shareCode = async (code: string) => {
     logEvent('gift_code_share_opened');
     try {
       await Share.share({
-        message: `Three months of Sober Dailies, on me — everything in the app, nothing to pay. Get the app and enter this code: ${code}`,
+        message:
+          `Three months of Sober Dailies, on me — everything in the app, nothing to pay. ` +
+          `Get the app and enter this code: ${code}\n\n${getUrl(code)}`,
       });
     } catch {}
   };
@@ -209,8 +213,8 @@ export default function GiftWalletScreen() {
               </View>
               <View style={{ flex: 1 }}>
                 <View style={styles.counterNumRow}>
-                  <Text style={styles.counterNum}>{available.length}</Text>
-                  <Text style={styles.counterOf}>of {totalCount} left to give</Text>
+                  <Text style={styles.counterNum}>{available.length * GIFT_MONTHS}</Text>
+                  <Text style={styles.counterOf}>of {totalCount * GIFT_MONTHS} months to give</Text>
                 </View>
                 <Text style={styles.counterSub}>
                   {available.length === 0 ? 'Every gift found a home.' : 'Each code unlocks 3 months'}
