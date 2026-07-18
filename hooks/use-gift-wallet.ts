@@ -142,13 +142,20 @@ export const [GiftWalletProvider, useGiftWallet] = createContextHook(() => {
   );
   const available = useMemo(() => codes.filter((c) => c.status === 'available'), [codes]);
   const redeemed = useMemo(() => codes.filter((c) => c.status === 'redeemed'), [codes]);
+  // "To give" means codes that haven't gone out yet — a shared (but not yet
+  // redeemed) code is in flight, not givable again.
+  const unshared = useMemo(() => available.filter((c) => !c.sharedAt), [available]);
+  const sharedPending = useMemo(() => available.filter((c) => !!c.sharedAt), [available]);
 
   return useMemo(() => ({
     isLoading,
     codes,
     available,
     redeemed,
+    unshared,
+    sharedPending,
     availableCount: available.length,
+    unsharedCount: unshared.length,
     totalCount: codes.length,
     hasEverBought: codes.length > 0,
     syncWallet,
@@ -156,5 +163,5 @@ export const [GiftWalletProvider, useGiftWallet] = createContextHook(() => {
     mintLocalDev,
     setNote,
     markShared,
-  }), [isLoading, codes, available, redeemed, syncWallet, applyPurchase, mintLocalDev, setNote, markShared]);
+  }), [isLoading, codes, available, redeemed, unshared, sharedPending, syncWallet, applyPurchase, mintLocalDev, setNote, markShared]);
 });

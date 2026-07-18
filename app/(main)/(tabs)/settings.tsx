@@ -114,7 +114,7 @@ const APPEARANCE_OPTIONS = [
 export default function SettingsScreen() {
   const styles = useThemedStyles(makeStyles);
   const { c, colors } = useTokens();
-  const { hasEverBought, availableCount } = useGiftWallet();
+  const { hasEverBought, unsharedCount } = useGiftWallet();
   const { resetOnboarding, resetOnboardingAsUpgrader } = useOnboarding();
   const { colorScheme, setColorScheme } = useTheme();
 
@@ -495,7 +495,7 @@ export default function SettingsScreen() {
           {hasEverBought && (
             <CardRow
               label="Gifts to give"
-              value={`${availableCount * GIFT_MONTHS} months`}
+              value={`${unsharedCount * GIFT_MONTHS} months`}
               valueColor={colors.roseDark}
               icon={
                 <View style={styles.giftIconSquare}>

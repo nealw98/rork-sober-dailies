@@ -30,7 +30,7 @@ export default function GrowthNudges() {
   const styles = useThemedStyles(makeStyles);
   const { c, colors } = useTokens();
   const sobriety = useSobriety();
-  const { availableCount } = useGiftWallet();
+  const { unsharedCount } = useGiftWallet();
 
   const [inviteThreshold, setInviteThreshold] = useState<number | null>(null);
   const [giftVisible, setGiftVisible] = useState(false);
@@ -81,7 +81,7 @@ export default function GrowthNudges() {
     setInviteThreshold(null);
   };
 
-  const hasMonths = availableCount > 0;
+  const hasMonths = unsharedCount > 0;
   const giftAct = () => {
     logEvent('growth_nudge', { type: 'gift', action: 'tap', wallet: hasMonths });
     setGiftVisible(false);
@@ -126,7 +126,7 @@ export default function GrowthNudges() {
               <Text style={styles.sheetTitle}>Pass it on</Text>
               <Text style={styles.sheetBody}>
                 {hasMonths
-                  ? `You still have ${availableCount * GIFT_MONTHS} months to give. Know someone who could use one of your codes?`
+                  ? `You still have ${unsharedCount * GIFT_MONTHS} months to give. Know someone who could use one of your codes?`
                   : 'Know a sponsee or newcomer who could use three months of Sober Dailies? Nothing renews — for you or for them.'}
               </Text>
             </View>

@@ -14,6 +14,7 @@ const STEPS: { t: string; d: string }[] = [
   { t: 'Fill your bank of months', d: 'Buy 3, 9, or 15 months at a time. You give them out as codes — each code is a 3-month pass to everything in the app.' },
   { t: 'Share a code', d: 'Hand it out however you like — in person, by text, or at a meeting.' },
   { t: 'They redeem it', d: 'They install the free Sober Dailies app and tap “Have a code?” on the subscribe screen, then enter the code. Three months of full access unlock right away — no charge, and nothing renews.' },
+  { t: 'Need to send it again?', d: 'Until a code is redeemed you can share it again — just tap its gray “Shared” button in your wallet. Only the first person to redeem a code gets the months.' },
   { t: 'When it runs out', d: 'After three months, they’re asked to subscribe on their own — or redeem another code from you.' },
   { t: 'Track your gifts', d: 'Your wallet shows which codes are still available and which have been redeemed. Add a private note to remember who each one is for.' },
 ];

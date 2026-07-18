@@ -96,7 +96,7 @@ export default function PassItOnScreen() {
   const router = useRouter();
   const styles = useThemedStyles(makeStyles);
   const { c, colors } = useTokens();
-  const { applyPurchase, mintLocalDev, availableCount } = useGiftWallet();
+  const { applyPurchase, mintLocalDev, unsharedCount } = useGiftWallet();
 
   const [pick, setPick] = useState(0);          // single gift preselected — $9.99 is the first price anyone sees
   // Load shows only the 3-month card; "Give more and save" reveals BOTH packs
@@ -242,8 +242,8 @@ export default function PassItOnScreen() {
             <GiftGlyph size={18} color={colors.roseDark} strokeWidth={1.7} />
           </View>
           <Text style={styles.walletLinkText}>
-            {availableCount > 0
-              ? `You have ${availableCount * GIFT_MONTHS} months to give`
+            {unsharedCount > 0
+              ? `You have ${unsharedCount * GIFT_MONTHS} months to give`
               : 'See your gift wallet'}
           </Text>
           <ChevronRight size={18} color={c.textMuted} />

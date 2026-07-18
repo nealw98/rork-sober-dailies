@@ -133,7 +133,7 @@ export default function GiftWalletScreen() {
   const router = useRouter();
   const styles = useThemedStyles(makeStyles);
   const { c, colors } = useTokens();
-  const { codes, available, redeemed, totalCount, setNote, markShared, syncWallet } = useGiftWallet();
+  const { codes, unshared, sharedPending, redeemed, setNote, markShared, syncWallet } = useGiftWallet();
 
   // Redeemed states flip on the recipient's device — refresh whenever this
   // screen comes into focus so the giver sees "Redeemed" without restarting.
@@ -238,31 +238,53 @@ export default function GiftWalletScreen() {
           </View>
         ) : (
           <>
-            {/* cumulative counter — running out is the success state */}
+            {/* Counter = months still UNSHARED ("to give" — a shared code is in
+                flight, not givable again). Running out is the success state. */}
             <View style={styles.counterCard}>
               <View style={styles.counterCoin}>
                 <GiftGlyph size={24} color={colors.roseDark} strokeWidth={1.7} />
               </View>
               <View style={{ flex: 1 }}>
                 <View style={styles.counterNumRow}>
-                  <Text style={styles.counterNum}>{available.length * GIFT_MONTHS}</Text>
-                  <Text style={styles.counterOf}>of {totalCount * GIFT_MONTHS} months to give</Text>
+                  <Text style={styles.counterNum}>{unshared.length * GIFT_MONTHS}</Text>
+                  <Text style={styles.counterOf}>months to give</Text>
                 </View>
                 <Text style={styles.counterSub}>
-                  {available.length === 0 ? 'Every gift found a home.' : 'Each code unlocks 3 months'}
+                  {unshared.length > 0
+                    ? 'Each code unlocks 3 months'
+                    : sharedPending.length > 0
+                      ? 'All your codes are out — watch for redemptions.'
+                      : 'Every gift found a home.'}
                 </Text>
               </View>
             </View>
 
-            {available.length > 0 && (
+            {unshared.length > 0 && (
               <>
                 <Text style={styles.groupLabel}>READY TO GIVE</Text>
                 <View style={styles.card}>
-                  {available.map((item, i) => (
+                  {unshared.map((item, i) => (
                     <LedgerRow
                       key={item.code}
                       item={item}
-                      last={i === available.length - 1}
+                      last={i === unshared.length - 1}
+                      onShare={() => shareCodeGuarded(item)}
+                      onEditNote={() => setEditing(item)}
+                    />
+                  ))}
+                </View>
+              </>
+            )}
+
+            {sharedPending.length > 0 && (
+              <>
+                <Text style={[styles.groupLabel, { marginTop: 18 }]}>SHARED · WAITING TO BE REDEEMED</Text>
+                <View style={styles.card}>
+                  {sharedPending.map((item, i) => (
+                    <LedgerRow
+                      key={item.code}
+                      item={item}
+                      last={i === sharedPending.length - 1}
                       onShare={() => shareCodeGuarded(item)}
                       onEditNote={() => setEditing(item)}
                     />
