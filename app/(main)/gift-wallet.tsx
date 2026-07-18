@@ -8,7 +8,7 @@
 import React, { useCallback, useRef, useState } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity, Pressable, TextInput,
-  Modal, KeyboardAvoidingView, Share, Platform,
+  Modal, KeyboardAvoidingView, Share, Platform, Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Stack, useRouter, useFocusEffect } from 'expo-router';
@@ -72,6 +72,13 @@ function LedgerRow({ item, last, onShare, onEditNote }: {
             <CircleCheck size={15} color={colors.primary} />
             <Text style={styles.redeemedText}>{redeemedLabel(item.redeemedAt)}</Text>
           </View>
+        ) : item.sharedAt ? (
+          // Already handed out: grayed pill, still tappable — the parent asks
+          // before letting the same code go to a second person.
+          <TouchableOpacity style={[styles.sharePill, styles.sharedPill]} onPress={onShare} activeOpacity={0.7} accessibilityRole="button" accessibilityLabel="Code already shared. Share again">
+            <CircleCheck size={15} color={c.textMuted} strokeWidth={1.9} />
+            <Text style={[styles.sharePillText, { color: c.textMuted }]}>Shared</Text>
+          </TouchableOpacity>
         ) : (
           <TouchableOpacity style={styles.sharePill} onPress={onShare} activeOpacity={0.7} accessibilityRole="button" accessibilityLabel="Share code">
             <ShareIcon size={15} color={colors.roseDark} strokeWidth={1.9} />
@@ -126,7 +133,7 @@ export default function GiftWalletScreen() {
   const router = useRouter();
   const styles = useThemedStyles(makeStyles);
   const { c, colors } = useTokens();
-  const { codes, available, redeemed, totalCount, setNote, syncWallet } = useGiftWallet();
+  const { codes, available, redeemed, totalCount, setNote, markShared, syncWallet } = useGiftWallet();
 
   // Redeemed states flip on the recipient's device — refresh whenever this
   // screen comes into focus so the giver sees "Redeemed" without restarting.
@@ -152,18 +159,43 @@ export default function GiftWalletScreen() {
     showToast(has ? 'Note saved' : had ? 'Note removed' : 'Note saved');
   };
 
-  // Sharing opens the native sheet (Copy lives there). Nothing about the share
-  // itself is recorded. The link lands on soberdailies.com/get?code=<code>, which
-  // shows the code + the right store button for the recipient's device.
+  // Sharing opens the native sheet (Copy lives there). When the sheet reports
+  // the share actually went out, the code is marked "Shared" locally so the
+  // same code isn't handed to two people by accident. The link lands on
+  // soberdailies.com/get?code=<code>, which shows the code + the right store
+  // button for the recipient's device.
   const shareCode = async (code: string) => {
     logEvent('gift_code_share_opened');
     try {
-      await Share.share({
+      const result = await Share.share({
         message:
           `Three months of Sober Dailies, on me — everything in the app, nothing to pay. ` +
           `Get the app and enter this code: ${code}\n\n${getUrl(code)}`,
       });
+      // Android can't distinguish send from dismiss (always sharedAction) —
+      // over-marking errs on the safe side for the double-share concern.
+      if (result.action === Share.sharedAction) markShared(code);
     } catch {}
+  };
+
+  // A code that's already been shared asks before going out again.
+  const shareCodeGuarded = (item: GiftCode) => {
+    if (!item.sharedAt) {
+      shareCode(item.code);
+      return;
+    }
+    const when = new Date(item.sharedAt);
+    const label = Number.isNaN(when.getTime())
+      ? 'already been shared'
+      : `already been shared (${when.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })})`;
+    Alert.alert(
+      'Share this code again?',
+      `This code has ${label}. If someone already has it, only the first person to redeem it gets the months.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Share again', onPress: () => shareCode(item.code) },
+      ],
+    );
   };
 
   return (
@@ -231,7 +263,7 @@ export default function GiftWalletScreen() {
                       key={item.code}
                       item={item}
                       last={i === available.length - 1}
-                      onShare={() => shareCode(item.code)}
+                      onShare={() => shareCodeGuarded(item)}
                       onEditNote={() => setEditing(item)}
                     />
                   ))}
@@ -330,8 +362,15 @@ const makeStyles = (tk: Tokens) => {
       borderColor: isDark ? 'rgba(217,131,143,0.4)' : '#E3BCC3',
     },
     sharePillText: { fontFamily: fontFamily.semiBold, fontSize: 13, color: colors.roseDark },
-    redeemedTag: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-    redeemedText: { fontFamily: fontFamily.semiBold, fontSize: 12, color: c.textMuted },
+    sharedPill: { backgroundColor: 'transparent', borderColor: c.border },
+    // Same pill geometry as Share/Shared — the control reads as ONE thing in
+    // three states: Share (rose) → Shared (gray outline) → Redeemed (teal).
+    redeemedTag: {
+      flexDirection: 'row', alignItems: 'center', gap: 5, paddingVertical: 7, paddingHorizontal: 12,
+      borderRadius: 10, backgroundColor: colors.primarySoft, borderWidth: 1,
+      borderColor: isDark ? 'rgba(255,255,255,0.14)' : colors.primary + '55',
+    },
+    redeemedText: { fontFamily: fontFamily.semiBold, fontSize: 12, color: colors.primaryDark },
 
     cta: {
       width: '100%', paddingVertical: 15, borderRadius: 14, backgroundColor: ROSE_FILL,

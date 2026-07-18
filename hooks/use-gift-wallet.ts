@@ -8,12 +8,15 @@
 // and only overwrites when the server actually answers (a network error leaves
 // the cache intact rather than blanking the wallet).
 //
-// Notes are the one local-only, never-synced field (spec §6.2 reversed by Neal —
-// a private "who's this for" reminder). They live in a separate AsyncStorage map
-// keyed by code and are merged onto the server rows for display.
+// Notes and sharedAt are the local-only, never-server-synced fields: notes are
+// a private "who's this for" reminder; sharedAt records when the giver last
+// opened the share sheet for a code (Jul 18 — so the wallet can gray a
+// "Shared" pill and stop the same code being handed to two people by
+// accident). Both live in AsyncStorage maps keyed by code and are merged onto
+// the server rows for display.
 //
-// Two code states only (spec §6.2/§9): available | redeemed. No "sent/given",
-// no share tracking. The counter is cumulative: available-of-all-ever-purchased.
+// Server code states (spec §6.2/§9): available | redeemed. The counter is
+// cumulative: available-of-all-ever-purchased.
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import createContextHook from '@nkzw/create-context-hook';
@@ -27,10 +30,12 @@ export interface GiftCode {
   purchasedAt: string;          // ISO — when the code was minted
   redeemedAt?: string;          // ISO — set exactly once, server-side
   note?: string;                // private, local-only — who the giver gave it to
+  sharedAt?: string;            // ISO, local-only — last time the share sheet sent this code
 }
 
 const WALLET_CACHE_KEY = 'gift_wallet_v1'; // mirror of the server wallet
 const NOTES_KEY = 'gift_notes_v1';         // local-only { [code]: note }
+const SHARED_KEY = 'gift_shared_v1';       // local-only { [code]: ISO shared timestamp }
 
 // No 0/O/1/I/L — dev-only local codes read like the real ones for UI testing.
 const CODE_CHARS = 'ABCDEFGHJKMNPQRSTVWXYZ23456789';
@@ -41,6 +46,7 @@ const devCode = (): string => `SD-${randomBlock()}-${randomBlock()}`;
 export const [GiftWalletProvider, useGiftWallet] = createContextHook(() => {
   const [serverCodes, setServerCodes] = useState<WalletCode[]>([]);
   const [notes, setNotes] = useState<Record<string, string>>({});
+  const [shared, setShared] = useState<Record<string, string>>({});
   const [isLoading, setIsLoading] = useState(true);
 
   const cacheWallet = useCallback(async (wallet: WalletCode[]) => {
@@ -63,12 +69,14 @@ export const [GiftWalletProvider, useGiftWallet] = createContextHook(() => {
   useEffect(() => {
     (async () => {
       try {
-        const [cached, storedNotes] = await Promise.all([
+        const [cached, storedNotes, storedShared] = await Promise.all([
           AsyncStorage.getItem(WALLET_CACHE_KEY),
           AsyncStorage.getItem(NOTES_KEY),
+          AsyncStorage.getItem(SHARED_KEY),
         ]);
         if (cached) setServerCodes(JSON.parse(cached));
         if (storedNotes) setNotes(JSON.parse(storedNotes));
+        if (storedShared) setShared(JSON.parse(storedShared));
       } catch (e) {
         console.error('[GiftWallet] Failed to load wallet cache:', e);
       } finally {
@@ -117,9 +125,20 @@ export const [GiftWalletProvider, useGiftWallet] = createContextHook(() => {
     });
   }, []);
 
+  // Record that a code just went out through the share sheet (local-only).
+  const markShared = useCallback(async (code: string) => {
+    setShared((prev) => {
+      const next = { ...prev, [code]: new Date().toISOString() };
+      AsyncStorage.setItem(SHARED_KEY, JSON.stringify(next)).catch((e) =>
+        console.error('[GiftWallet] Failed to persist shared map:', e),
+      );
+      return next;
+    });
+  }, []);
+
   const codes = useMemo<GiftCode[]>(
-    () => serverCodes.map((c) => ({ ...c, note: notes[c.code] })),
-    [serverCodes, notes],
+    () => serverCodes.map((c) => ({ ...c, note: notes[c.code], sharedAt: shared[c.code] })),
+    [serverCodes, notes, shared],
   );
   const available = useMemo(() => codes.filter((c) => c.status === 'available'), [codes]);
   const redeemed = useMemo(() => codes.filter((c) => c.status === 'redeemed'), [codes]);
@@ -136,5 +155,6 @@ export const [GiftWalletProvider, useGiftWallet] = createContextHook(() => {
     applyPurchase,
     mintLocalDev,
     setNote,
-  }), [isLoading, codes, available, redeemed, syncWallet, applyPurchase, mintLocalDev, setNote]);
+    markShared,
+  }), [isLoading, codes, available, redeemed, syncWallet, applyPurchase, mintLocalDev, setNote, markShared]);
 });

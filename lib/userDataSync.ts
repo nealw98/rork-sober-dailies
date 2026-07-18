@@ -48,10 +48,12 @@ export const SYNC_KEYS: string[] = [
   'sober_dailies_onboarding_complete',      // legacy (v2) flag — written, never read
   'sober_dailies_onboarding_v3_complete',   // the flag the v3 gate actually reads
   // ── Pass It On ──
-  // Private, local-only gift notes ("who's this for"). The gift CODES live in
-  // Supabase and re-sync from the adopted identity, so they aren't backed up
-  // here; the notes exist only on-device and would otherwise be lost.
+  // Private, local-only gift fields. The gift CODES live in Supabase and
+  // re-sync from the adopted identity, so they aren't backed up here; the
+  // notes ("who's this for") and shared-timestamps exist only on-device and
+  // would otherwise be lost.
   'gift_notes_v1',
+  'gift_shared_v1',
 ];
 
 const LOCAL_RESET_KEYS: string[] = [
