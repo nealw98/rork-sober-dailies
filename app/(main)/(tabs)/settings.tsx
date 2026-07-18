@@ -17,8 +17,7 @@ import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
 import { KeyboardModalScope } from '@/components/KeyboardModalScope';
 import { SafeAreaView, SafeAreaProvider, initialWindowMetrics, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router, Stack, type Href } from 'expo-router';
-import { LinearGradient } from 'expo-linear-gradient';
-import { ChevronRight, X, Code2, RefreshCw, UserPlus } from 'lucide-react-native';
+import { ChevronRight, X, RefreshCw, UserPlus, Flag, RotateCcw, Play, Power, CircleDot } from 'lucide-react-native';
 import {
   fontFamily,
   shadows,
@@ -103,6 +102,9 @@ function SettingSection({ label, children }: { label: string; children: React.Re
   );
 }
 
+// Destructive tint in the Debug Console (matches the app's remove-control red).
+const DANGER = '#D8584E';
+
 const APPEARANCE_OPTIONS = [
   { key: 'light', label: 'Light' },
   { key: 'dark', label: 'Dark' },
@@ -127,6 +129,12 @@ export default function SettingsScreen() {
   const openPaywallPreview = (mode: 'trial' | 'notrial') => {
     setLogsVisible(false);
     setTimeout(() => setPaywallPreview(mode), 350);
+  };
+  // Console actions that alert/navigate must close the console modal first
+  // (iOS stacks modals — anything presented under an open one never shows).
+  const fromConsole = (fn: () => void) => {
+    setLogsVisible(false);
+    setTimeout(fn, 350);
   };
   const [isDeveloperMode, setIsDeveloperMode] = useState(false);
   // QA: force-new-user flag mirror (so the toggle button shows ON/OFF).
@@ -521,27 +529,8 @@ export default function SettingsScreen() {
           <CardRow label="About Sober Dailies" last onPress={() => router.push('/about')} />
         </CardGroup>
 
-        {/* Developer / testing — visible in this sponsor API test branch */}
-        {
-          <CardGroup label="Developer">
-            <CardRow
-              label="Run onboarding again"
-              sub="Replays the welcome flow · keeps all data"
-              onPress={onboardKeep}
-            />
-            <CardRow
-              label="Run onboarding as v2 upgrader"
-              sub="Replays the What's-new variant · keeps all data"
-              onPress={onboardAsUpgrader}
-            />
-            <CardRow
-              label="Clear all data & start over"
-              sub="Clean-install test · cloud backup kept"
-              last
-              onPress={clearAll}
-            />
-          </CardGroup>
-        }
+        {/* Developer/QA actions live in the Debug Console (long-press the
+            version number below), not on the Settings page. */}
 
         {/* Legal links — external */}
         <View style={styles.legalRow}>
@@ -561,94 +550,134 @@ export default function SettingsScreen() {
         </View>
       </ScrollView>
 
-      {/* Debug Console Modal (hidden QA screen) */}
+      {/* Debug Console Modal (hidden QA screen — long-press the version number).
+          App-styled per the Jul 18 mock: info cards, THIS DEVICE / PAYWALL &
+          SUBSCRIPTION / ONBOARDING & DATA sections, then the log feed. All
+          developer actions live here — none on the Settings page itself. */}
       <Modal visible={logsVisible} animationType="slide" onRequestClose={toggleLogs}>
-        <RNSafeAreaView style={styles.logsContainer}>
-          <LinearGradient colors={['#1e293b', '#0f172a']} style={styles.logsHeader}>
-            <View style={styles.logsHeaderContent}>
-              <View style={styles.logsHeaderLeft}>
-                <Code2 size={24} color="#60a5fa" />
-                <Text style={styles.logsHeaderTitle}>Debug Console</Text>
+        <RNSafeAreaView style={styles.dcContainer}>
+          <View style={styles.dcTopBar}>
+            <Text style={styles.dcTitle}>Debug Console</Text>
+            <TouchableOpacity onPress={toggleLogs} hitSlop={10} style={styles.dcClose}>
+              <X size={22} color={c.textSecondary} />
+            </TouchableOpacity>
+          </View>
+          <ScrollView contentContainerStyle={styles.dcScroll} showsVerticalScrollIndicator={false}>
+            <View style={styles.dcInfoRow}>
+              <View style={styles.dcInfoCard}>
+                <Text style={styles.dcInfoLabel}>VERSION</Text>
+                <Text style={styles.dcInfoValue}>{versionLabel.replace('Version ', '')}</Text>
               </View>
-              <TouchableOpacity onPress={toggleLogs} style={styles.logsCloseButton}>
-                <X size={24} color="#94a3b8" />
+              <View style={styles.dcInfoCard}>
+                <Text style={styles.dcInfoLabel}>PLATFORM</Text>
+                <Text style={styles.dcInfoValue}>{Platform.OS === 'ios' ? 'iOS' : 'Android'} {Platform.Version}</Text>
+              </View>
+            </View>
+
+            <Text style={styles.dcSectionLabel}>THIS DEVICE</Text>
+            <View style={styles.dcCard}>
+              <View style={styles.dcRow}>
+                <View style={styles.dcIcon}><CircleDot size={18} color={colors.primaryDark} strokeWidth={2} /></View>
+                <View style={styles.dcRowBody}>
+                  <Text style={styles.dcRowLabel}>Developer Mode</Text>
+                  <Text style={styles.dcRowSub}>Stops all analytics from this device</Text>
+                </View>
+                <Switch
+                  value={isDeveloperMode}
+                  onValueChange={toggleDeveloperMode}
+                  trackColor={{ false: c.divider, true: colors.primary }}
+                  thumbColor="#fff"
+                />
+              </View>
+            </View>
+            <View style={styles.dcBtnRow}>
+              <TouchableOpacity style={styles.dcBtn} onPress={checkForOta} activeOpacity={0.7}>
+                <RefreshCw size={15} color={colors.primaryDark} strokeWidth={2.2} />
+                <Text style={styles.dcBtnText}>Check for update</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.dcBtn} onPress={reloadApp} activeOpacity={0.7}>
+                <Power size={15} color={colors.primaryDark} strokeWidth={2.2} />
+                <Text style={styles.dcBtnText}>Restart app</Text>
               </TouchableOpacity>
             </View>
-          </LinearGradient>
 
-          <View style={styles.logsInfoSection}>
-            <View style={styles.logsInfoCard}>
-              <Text style={styles.logsInfoLabel}>Version</Text>
-              <Text style={styles.logsInfoValue}>{versionLabel.replace('Version ', '')}</Text>
+            <Text style={styles.dcSectionLabel}>PAYWALL & SUBSCRIPTION</Text>
+            <View style={styles.dcCard}>
+              <TouchableOpacity style={styles.dcRow} onPress={toggleForceNewUser} activeOpacity={0.6}>
+                <View style={styles.dcIcon}><Flag size={17} color={colors.primaryDark} strokeWidth={2} /></View>
+                <View style={styles.dcRowBody}>
+                  <Text style={styles.dcRowLabel}>Force new-user paywall</Text>
+                  <Text style={styles.dcRowSub}>Next launch shows the hard gate</Text>
+                </View>
+                <View style={[styles.dcBadge, forceNewUser && styles.dcBadgeOn]}>
+                  <Text style={[styles.dcBadgeText, forceNewUser && styles.dcBadgeTextOn]}>{forceNewUser ? 'ON' : 'OFF'}</Text>
+                </View>
+              </TouchableOpacity>
+              <View style={styles.dcDivider} />
+              <TouchableOpacity style={styles.dcRow} onPress={resetSubscriptionState} activeOpacity={0.6}>
+                <View style={[styles.dcIcon, styles.dcIconDanger]}><RotateCcw size={17} color={DANGER} strokeWidth={2} /></View>
+                <View style={styles.dcRowBody}>
+                  <Text style={[styles.dcRowLabel, { color: DANGER }]}>Reset subscription state</Text>
+                  <Text style={styles.dcRowSub}>Clears RevenueCat cache on this device</Text>
+                </View>
+                <ChevronRight size={18} color={c.textMuted} />
+              </TouchableOpacity>
             </View>
-            <View style={styles.logsInfoCard}>
-              <Text style={styles.logsInfoLabel}>Platform</Text>
-              <Text style={styles.logsInfoValue}>{Platform.OS === 'ios' ? 'iOS' : 'Android'} {Platform.Version}</Text>
+            <View style={styles.dcBtnRow}>
+              <TouchableOpacity style={styles.dcBtn} onPress={() => openPaywallPreview('trial')} activeOpacity={0.7}>
+                <Text style={styles.dcBtnText}>Preview · Trial</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.dcBtn} onPress={() => openPaywallPreview('notrial')} activeOpacity={0.7}>
+                <Text style={styles.dcBtnText}>Preview · No trial</Text>
+              </TouchableOpacity>
             </View>
-          </View>
 
-          <View style={styles.logsDeveloperSection}>
-            <View style={styles.logsDeveloperToggle}>
-              <View>
-                <Text style={styles.logsDeveloperLabel}>Developer Mode</Text>
-                <Text style={styles.logsDeveloperSubtext}>Stops all analytics from this device</Text>
+            <Text style={styles.dcSectionLabel}>ONBOARDING & DATA</Text>
+            <View style={styles.dcCard}>
+              <TouchableOpacity style={styles.dcRow} onPress={() => fromConsole(onboardKeep)} activeOpacity={0.6}>
+                <View style={styles.dcIcon}><Play size={17} color={colors.primaryDark} strokeWidth={2} /></View>
+                <View style={styles.dcRowBody}>
+                  <Text style={styles.dcRowLabel}>Run onboarding again</Text>
+                  <Text style={styles.dcRowSub}>Replays the welcome flow · keeps all data</Text>
+                </View>
+                <ChevronRight size={18} color={c.textMuted} />
+              </TouchableOpacity>
+              <View style={styles.dcDivider} />
+              <TouchableOpacity style={styles.dcRow} onPress={() => fromConsole(onboardAsUpgrader)} activeOpacity={0.6}>
+                <View style={styles.dcIcon}><Play size={17} color={colors.primaryDark} strokeWidth={2} /></View>
+                <View style={styles.dcRowBody}>
+                  <Text style={styles.dcRowLabel}>Run onboarding as v2 upgrader</Text>
+                  <Text style={styles.dcRowSub}>Replays the What&rsquo;s-new variant · keeps all data</Text>
+                </View>
+                <ChevronRight size={18} color={c.textMuted} />
+              </TouchableOpacity>
+              <View style={styles.dcDivider} />
+              <TouchableOpacity style={styles.dcRow} onPress={() => fromConsole(clearAll)} activeOpacity={0.6}>
+                <View style={[styles.dcIcon, styles.dcIconDanger]}><X size={17} color={DANGER} strokeWidth={2.4} /></View>
+                <View style={styles.dcRowBody}>
+                  <Text style={[styles.dcRowLabel, { color: DANGER }]}>Clear all data & start over</Text>
+                  <Text style={styles.dcRowSub}>Clean-install test · cloud backup kept</Text>
+                </View>
+                <ChevronRight size={18} color={c.textMuted} />
+              </TouchableOpacity>
+            </View>
+            <Text style={styles.dcFootnote}>Destructive rows ask to confirm before running.</Text>
+
+            <View style={styles.dcLogsHead}>
+              <Text style={[styles.dcSectionLabel, { marginTop: 0, marginBottom: 0 }]}>APPLICATION LOGS</Text>
+              <View style={styles.dcLogsActions}>
+                <TouchableOpacity style={styles.dcPill} onPress={copyLogs} activeOpacity={0.7}>
+                  <Text style={styles.dcPillText}>Copy</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.dcPill} onPress={clearLogs} activeOpacity={0.7}>
+                  <Text style={styles.dcPillText}>Clear</Text>
+                </TouchableOpacity>
               </View>
-              <Switch
-                value={isDeveloperMode}
-                onValueChange={toggleDeveloperMode}
-                trackColor={{ false: '#334155', true: '#60a5fa' }}
-                thumbColor={isDeveloperMode ? '#fff' : '#94a3b8'}
-              />
             </View>
-          </View>
-
-          <View style={styles.logsActionsRow}>
-            <TouchableOpacity onPress={copyLogs} style={styles.logsActionButton}>
-              <Text style={styles.logsActionButtonText}>Copy Logs</Text>
-            </TouchableOpacity>
-            <TouchableOpacity onPress={clearLogs} style={styles.logsActionButton}>
-              <Text style={styles.logsActionButtonText}>Clear Logs</Text>
-            </TouchableOpacity>
-          </View>
-
-          <View style={styles.logsActionsRow}>
-            <TouchableOpacity onPress={resetSubscriptionState} style={[styles.logsActionButton, { backgroundColor: '#7f1d1d' }]}>
-              <Text style={styles.logsActionButtonText}>Reset Subscription State</Text>
-            </TouchableOpacity>
-          </View>
-
-          <View style={styles.logsActionsRow}>
-            <TouchableOpacity onPress={toggleForceNewUser} style={[styles.logsActionButton, forceNewUser && { backgroundColor: '#166534' }]}>
-              <Text style={styles.logsActionButtonText}>Force New-User (paywall): {forceNewUser ? 'ON' : 'OFF'}</Text>
-            </TouchableOpacity>
-          </View>
-
-          <View style={styles.logsActionsRow}>
-            <TouchableOpacity onPress={() => openPaywallPreview('trial')} style={styles.logsActionButton}>
-              <Text style={styles.logsActionButtonText}>Preview Paywall · Trial</Text>
-            </TouchableOpacity>
-            <TouchableOpacity onPress={() => openPaywallPreview('notrial')} style={styles.logsActionButton}>
-              <Text style={styles.logsActionButtonText}>Preview Paywall · No Trial</Text>
-            </TouchableOpacity>
-          </View>
-
-          <View style={styles.logsDisplayContainer}>
-            <Text style={styles.logsDisplayLabel}>Application Logs</Text>
-            <ScrollView style={styles.logsScrollView} contentContainerStyle={styles.logsScrollContent}>
-              <Text style={styles.logsText}>{logsText || 'No logs yet. Logs will appear here as you use the app.'}</Text>
-            </ScrollView>
-          </View>
-
-          <View style={styles.logsFooter}>
-            <TouchableOpacity onPress={checkForOta} style={styles.logsFooterButton}>
-              <RefreshCw size={18} color="#60a5fa" />
-              <Text style={styles.logsFooterButtonText}>Check for Update</Text>
-            </TouchableOpacity>
-            <TouchableOpacity onPress={reloadApp} style={styles.logsFooterButton}>
-              <RefreshCw size={18} color="#60a5fa" />
-              <Text style={styles.logsFooterButtonText}>Restart App</Text>
-            </TouchableOpacity>
-          </View>
+            <View style={styles.dcLogsCard}>
+              <Text style={styles.dcLogsText}>{logsText || 'No logs yet. Logs will appear here as you use the app.'}</Text>
+            </View>
+          </ScrollView>
         </RNSafeAreaView>
       </Modal>
 
@@ -861,34 +890,48 @@ const makeStyles = (tk: Tokens) => {
   versionText: { fontFamily: fontFamily.regular, fontSize: 12, color: c.textMuted },
   copyright: { fontFamily: fontFamily.regular, fontSize: 11.5, color: c.textMuted },
 
-  // ── Debug Console (dark QA modal) ──
-  logsContainer: { flex: 1, backgroundColor: '#0f172a' },
-  logsHeader: { paddingVertical: 16, paddingHorizontal: 16 },
-  logsHeaderContent: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  logsHeaderLeft: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  logsHeaderTitle: { fontSize: 20, fontWeight: '600', color: '#f1f5f9' },
-  logsCloseButton: { padding: 4 },
-  logsInfoSection: { flexDirection: 'row', paddingHorizontal: 16, paddingBottom: 16, gap: 12 },
-  logsInfoCard: { flex: 1, backgroundColor: '#1e293b', padding: 12, borderRadius: 8, borderWidth: 1, borderColor: '#334155' },
-  logsInfoLabel: { fontSize: 12, color: '#94a3b8', marginBottom: 4 },
-  logsInfoValue: { fontSize: 14, fontWeight: '600', color: '#f1f5f9' },
-  logsDeveloperSection: { paddingHorizontal: 16, paddingBottom: 16 },
-  logsDeveloperToggle: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#1e293b', padding: 16, borderRadius: 8, borderWidth: 1, borderColor: '#334155' },
-  logsDeveloperLabel: { fontSize: 15, fontWeight: '600', color: '#f1f5f9', marginBottom: 4 },
-  logsDeveloperSubtext: { fontSize: 12, color: '#94a3b8' },
-  logsActionsRow: { flexDirection: 'row', paddingHorizontal: 16, paddingBottom: 16, gap: 12 },
-  logsActionButton: { flex: 1, backgroundColor: '#1e293b', paddingVertical: 12, borderRadius: 8, alignItems: 'center', borderWidth: 1, borderColor: '#334155' },
-  logsActionButtonText: { color: '#60a5fa', fontSize: 14, fontWeight: '600' },
+  // ── Debug Console (app-styled QA modal, Jul 18 mock) ──
+  dcContainer: { flex: 1, backgroundColor: c.background },
+  dcTopBar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 18, paddingTop: 14, paddingBottom: 8 },
+  dcTitle: { fontFamily: fontFamily.displayBold, fontSize: 22, letterSpacing: -0.3, color: c.text },
+  dcClose: { padding: 4 },
+  dcScroll: { paddingHorizontal: 16, paddingTop: 8, paddingBottom: 48 },
+
+  dcInfoRow: { flexDirection: 'row', gap: 10 },
+  dcInfoCard: { flex: 1, backgroundColor: c.surface, borderWidth: 1, borderColor: c.border, borderRadius: 14, paddingVertical: 12, paddingHorizontal: 14, ...shadows.sm },
+  dcInfoLabel: { fontFamily: fontFamily.bold, fontSize: 10.5, letterSpacing: 1.2, color: c.textMuted, marginBottom: 5 },
+  dcInfoValue: { fontFamily: Platform.select({ ios: 'Menlo', android: 'monospace' }), fontSize: 15, color: c.text },
+
+  dcSectionLabel: { fontFamily: fontFamily.bold, fontSize: 10.5, letterSpacing: 1.2, color: c.textMuted, marginTop: 22, marginBottom: 8, marginHorizontal: 4 },
+  dcCard: { backgroundColor: c.surface, borderWidth: 1, borderColor: c.border, borderRadius: 14, overflow: 'hidden', ...shadows.sm },
+  dcRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 12, paddingHorizontal: 13 },
+  dcRowBody: { flex: 1, minWidth: 0 },
+  dcRowLabel: { fontFamily: fontFamily.semiBold, fontSize: 15, color: c.text, letterSpacing: -0.2 },
+  dcRowSub: { fontFamily: fontFamily.regular, fontSize: 12, color: c.textMuted, marginTop: 2 },
+  dcDivider: { height: 1, backgroundColor: c.divider, marginLeft: 61 },
+  dcIcon: { width: 36, height: 36, borderRadius: 11, backgroundColor: colors.primarySoft, alignItems: 'center', justifyContent: 'center' },
+  dcIconDanger: { backgroundColor: isDark ? 'rgba(216,88,78,0.18)' : '#F9E4E2' },
+
+  dcBadge: { paddingHorizontal: 10, paddingVertical: 3, borderRadius: 999, backgroundColor: c.divider },
+  dcBadgeOn: { backgroundColor: colors.primary },
+  dcBadgeText: { fontFamily: fontFamily.bold, fontSize: 11, letterSpacing: 0.5, color: c.textMuted },
+  dcBadgeTextOn: { color: '#fff' },
+
+  dcBtnRow: { flexDirection: 'row', gap: 10, marginTop: 10 },
+  dcBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7, paddingVertical: 12, borderRadius: 14, backgroundColor: c.surface, borderWidth: 1, borderColor: c.border, ...shadows.sm },
+  dcBtnText: { fontFamily: fontFamily.semiBold, fontSize: 13.5, color: colors.primaryDark },
+
+  dcFootnote: { fontFamily: fontFamily.regular, fontSize: 12, color: c.textMuted, textAlign: 'center', marginTop: 12 },
+
+  dcLogsHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 24, marginBottom: 8, marginHorizontal: 4 },
+  dcLogsActions: { flexDirection: 'row', gap: 8 },
+  dcPill: { paddingHorizontal: 14, paddingVertical: 6, borderRadius: 999, backgroundColor: c.surface, borderWidth: 1, borderColor: c.border },
+  dcPillText: { fontFamily: fontFamily.semiBold, fontSize: 12.5, color: colors.primaryDark },
+  dcLogsCard: { backgroundColor: c.surface, borderWidth: 1, borderColor: c.border, borderRadius: 14, padding: 14, ...shadows.sm },
+  dcLogsText: { fontFamily: Platform.select({ ios: 'Menlo', android: 'monospace' }), fontSize: 11, lineHeight: 17, color: c.textSecondary },
+
   previewCloseButton: { position: 'absolute', top: 54, right: 16, flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: 'rgba(0,0,0,0.78)', paddingVertical: 9, paddingHorizontal: 14, borderRadius: 999, borderWidth: 1, borderColor: 'rgba(255,255,255,0.5)', zIndex: 9999, elevation: 24 },
   previewCloseText: { color: '#fff', fontSize: 13, fontWeight: '700' },
-  logsDisplayContainer: { flex: 1, marginHorizontal: 16, marginBottom: 16, backgroundColor: '#1e293b', borderRadius: 12, borderWidth: 1, borderColor: '#334155', overflow: 'hidden' },
-  logsDisplayLabel: { fontSize: 13, fontWeight: '600', color: '#94a3b8', paddingHorizontal: 16, paddingTop: 12, paddingBottom: 8, borderBottomWidth: 1, borderBottomColor: '#334155' },
-  logsScrollView: { flex: 1 },
-  logsScrollContent: { paddingHorizontal: 16, paddingVertical: 12 },
-  logsText: { color: '#cbd5e1', fontFamily: Platform.select({ ios: 'Menlo', android: 'monospace' }), fontSize: 11, lineHeight: 16 },
-  logsFooter: { flexDirection: 'row', paddingHorizontal: 16, paddingVertical: 16, gap: 12, borderTopWidth: 1, borderTopColor: '#1e293b' },
-  logsFooterButton: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, backgroundColor: '#1e293b', paddingVertical: 12, borderRadius: 8, borderWidth: 1, borderColor: '#334155' },
-  logsFooterButtonText: { color: '#60a5fa', fontSize: 14, fontWeight: '600' },
 
   // ── Feedback modal ──
   feedbackContainer: { flex: 1, backgroundColor: c.background },
