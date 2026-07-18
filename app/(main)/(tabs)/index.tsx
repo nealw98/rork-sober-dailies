@@ -24,6 +24,7 @@ import { useDailies, type DailyItem, type WhenBucket } from '@/hooks/use-dailies
 import { useReflectionHeroImage } from '@/hooks/useReflectionHeroImage';
 import { maybeAskForReview } from '@/lib/reviewPrompt';
 import SobrietyCounter from '@/components/SobrietyCounter';
+import GrowthNudges from '@/components/GrowthNudges';
 import SettingsGear from '@/components/navigation/SettingsGear';
 import PassItOnGift from '@/components/navigation/PassItOnGift';
 import { getTodaysReflection } from '@/constants/reflections';
@@ -255,6 +256,9 @@ export default function TodayScreen() {
   const topContent = (
     <>
       <SobrietyCounter />
+      {/* Word-of-mouth nudges: milestone invite card inline here; the gift
+          sheet presents itself modally at app open (see GrowthNudges). */}
+      <GrowthNudges />
       <View style={styles.heroTop}>
         <ReflectionHero
           title={reflection?.title ? titleCase(reflection.title) : 'Daily Reflection'}

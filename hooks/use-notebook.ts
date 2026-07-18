@@ -9,6 +9,7 @@ import { useGratitudeStore } from '@/hooks/use-gratitude-store';
 import { useEveningReviewStore } from '@/hooks/use-evening-review-store';
 import { useJournal } from '@/hooks/use-journal-store';
 import { NIGHTLY_QUESTIONS } from '@/constants/nightlyQuestions';
+import { V2_DAILIES } from '@/hooks/use-dailies-store';
 
 export type NotebookType = 'gratitude' | 'nightly' | 'spotcheck' | 'journal';
 
@@ -22,6 +23,7 @@ export type NotebookEntry = {
   id?: string;    // journal/spotcheck record id — write-back identity
   gratitude?: string[];
   nightly?: { q: string; a: string }[];
+  checks?: string[]; // v2 Nightly Review "Daily Actions" labels — the checklist rides with the entry
   spot?: { situation: string; selected: string[] };
   journal?: string;
 };
@@ -99,18 +101,19 @@ export function useNotebook(): NotebookApi {
       const data = e.data ?? {};
       const pairs = NIGHTLY_QUESTIONS.map((q) => ({ q: q.q, a: String(data[q.key] ?? '').trim() }));
       const firstAnswered = pairs.find((p) => p.a);
-      // v2 entries could be checklist-only (no reflections written) — those
-      // days surface as a legacy Dailies record instead (use-dailies-store
-      // backfill), so an empty Nightly Review card would just be noise.
-      if (!firstAnswered) return;
+      // A v2 review is ONE entry, the shape it had in v2: its "Daily Actions"
+      // checklist rides with the card, so checklist-only reviews render too.
+      const checks = V2_DAILIES.filter((it) => !!data[it.id]).map((it) => it.label);
+      if (!firstAnswered && checks.length === 0) return;
       out.push({
         key: `n-${e.timestamp ?? e.date}`,
         type: 'nightly',
         ts: e.timestamp ?? (Date.parse(e.date) || 0),
         date: e.date,
-        preview: firstAnswered.a,
+        preview: firstAnswered?.a ?? `Daily actions: ${checks.length} of ${V2_DAILIES.length}`,
         count: '10th Step',
         nightly: pairs.filter((p) => p.a),
+        checks: checks.length > 0 ? checks : undefined,
       });
     });
 

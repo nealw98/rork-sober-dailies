@@ -18,7 +18,7 @@ import { KeyboardModalScope } from '@/components/KeyboardModalScope';
 import { SafeAreaView, SafeAreaProvider, initialWindowMetrics, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router, Stack, type Href } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
-import { ChevronRight, X, Code2, RefreshCw } from 'lucide-react-native';
+import { ChevronRight, X, Code2, RefreshCw, UserPlus } from 'lucide-react-native';
 import {
   fontFamily,
   shadows,
@@ -477,7 +477,6 @@ export default function SettingsScreen() {
           <CardRow
             label="Give Sober Dailies"
             sub="3 months for a sponsee or newcomer"
-            last={!hasEverBought}
             icon={
               <View style={styles.giftIconSquare}>
                 <GiftGlyph size={19} color={colors.roseDark} />
@@ -490,7 +489,6 @@ export default function SettingsScreen() {
               label="Gifts to give"
               value={`${availableCount * GIFT_MONTHS} months`}
               valueColor={colors.roseDark}
-              last
               icon={
                 <View style={styles.giftIconSquare}>
                   <GiftGlyph size={19} color={colors.roseDark} />
@@ -499,6 +497,17 @@ export default function SettingsScreen() {
               onPress={() => router.push('/(main)/gift-wallet' as Href)}
             />
           )}
+          <CardRow
+            label="Invite Friends"
+            sub="A personal text with a link to the app"
+            last
+            icon={
+              <View style={styles.giftIconSquare}>
+                <UserPlus size={19} color={colors.roseDark} strokeWidth={1.9} />
+              </View>
+            }
+            onPress={() => router.push('/(main)/invite' as Href)}
+          />
         </CardGroup>
 
         {/* Support Sober Dailies */}

@@ -18,10 +18,13 @@ export const REVENUECAT_API_URL = 'https://api.revenuecat.com/v1';
 
 // Server-side source of truth for how many codes each SKU mints. Mirrors
 // lib/giftProducts.ts on the client — the client is never trusted for the count.
+// ⚠️ The _pack5/_pack10 suffixes predate the Jul 18 re-lineup — ASC product
+// IDs are immutable, so the old pack products were REPURPOSED: pack5 now sells
+// 3 codes ("9 months"), pack10 sells 5 ("15 months"). Mirrors lib/giftProducts.ts.
 export const GIFT_PRODUCTS: Record<string, number> = {
   gift_3mo_single: 1,
-  gift_3mo_pack5: 5,
-  gift_3mo_pack10: 10,
+  gift_3mo_pack5: 3,
+  gift_3mo_pack10: 5,
 };
 
 export const corsHeaders = {

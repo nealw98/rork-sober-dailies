@@ -196,6 +196,9 @@ export const [MeditationSessionProvider, useMeditationSession] = createContextHo
   );
 
   // Begin only starts the countdown — the ambience is already playing on its own.
+  // The opening bell rings a half-second AFTER the tap (deliberately not
+  // simultaneous with the button press) to signal the start of the sit; the
+  // phase guard keeps it silent if the sit was stopped in that window.
   const begin = useCallback((mins: number) => {
     minutesRef.current = mins;
     setMinutes(mins);
@@ -204,8 +207,9 @@ export const [MeditationSessionProvider, useMeditationSession] = createContextHo
     setRemaining(mins * 60);
     endAtRef.current = Date.now() + mins * 60 * 1000;
     setPhase('active');
+    setTimeout(() => { if (phaseRef.current === 'active') playBell(); }, 500);
     logEvent('meditation_started', { scene: sceneNameRef.current ?? 'Silence', minutes: mins });
-  }, []);
+  }, [playBell]);
 
   const setPausedTo = useCallback((p: boolean) => {
     setPaused(p);

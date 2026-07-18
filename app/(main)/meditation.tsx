@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { View, Text, TextInput, Pressable, StyleSheet, Animated, Easing, FlatList, PanResponder, Switch, Keyboard, Platform, useWindowDimensions } from 'react-native';
+import { View, Text, TextInput, Pressable, StyleSheet, Animated, Easing, PanResponder, Switch, Keyboard, Platform } from 'react-native';
 import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
 import { Image } from 'expo-image';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -198,60 +198,6 @@ function TopBar({ onClose, onPrefs }: { onClose: () => void; onPrefs: () => void
   );
 }
 
-// Horizontal snap carousel of scenes — swipe (or tap a neighbour) to select.
-// Centered item is the selection; the screen background follows it. Scales to
-// any number of scenes without crowding (replaces the soundtrack chip row).
-function SceneCarousel({ scenes, selectedKey, onSelect }: { scenes: MeditationScene[]; selectedKey: string; onSelect: (key: string) => void }) {
-  const { width } = useWindowDimensions();
-  const ITEM_W = Math.round(width * 0.5);
-  const listRef = useRef<FlatList<MeditationScene>>(null);
-  const selectedIndex = Math.max(0, scenes.findIndex((s) => s.key === selectedKey));
-
-  return (
-    <View>
-      <FlatList
-        ref={listRef}
-        data={scenes}
-        keyExtractor={(s) => s.key}
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        snapToInterval={ITEM_W}
-        decelerationRate="fast"
-        contentContainerStyle={{ paddingHorizontal: (width - ITEM_W) / 2 }}
-        getItemLayout={(_, i) => ({ length: ITEM_W, offset: ITEM_W * i, index: i })}
-        initialScrollIndex={selectedIndex}
-        onScrollToIndexFailed={() => {}}
-        onMomentumScrollEnd={(e) => {
-          const idx = Math.round(e.nativeEvent.contentOffset.x / ITEM_W);
-          const scene = scenes[idx];
-          if (scene && scene.key !== selectedKey) onSelect(scene.key);
-        }}
-        renderItem={({ item, index }) => {
-          const active = item.key === selectedKey;
-          return (
-            <Pressable
-              onPress={() => {
-                listRef.current?.scrollToIndex({ index, animated: true });
-                onSelect(item.key);
-              }}
-              style={[styles.sceneItem, { width: ITEM_W }]}
-            >
-              <Text style={[styles.sceneName, { color: active ? TH.ink : TH.ink2, opacity: active ? 1 : 0.5, fontSize: active ? 20 : 15 }]}>
-                {item.name}
-              </Text>
-            </Pressable>
-          );
-        }}
-      />
-      <View style={styles.dots}>
-        {scenes.map((s, i) => (
-          <View key={s.key} style={[styles.dot, i === selectedIndex && styles.dotActive]} />
-        ))}
-      </View>
-    </View>
-  );
-}
-
 export default function MeditationScreen() {
   const router = useRouter();
   const med = useMeditation();
@@ -271,18 +217,18 @@ export default function MeditationScreen() {
   const isSetup = session.phase === 'ready';
   const isCustom = !PRESETS.includes(selMinutes);
 
-  // Scenes — from Supabase when loaded, else the bundled defaults so the carousel
+  // Scenes — from Supabase when loaded, else the bundled defaults so the picker
   // is never empty. The selected scene drives the background AND the ambience bed.
   const scenes = useMeditationScenes();
   const sceneList = Object.values(scenes);
-  const carouselScenes: MeditationScene[] =
+  const sceneOptions: MeditationScene[] =
     sceneList.length > 0
       ? sceneList
       : SOUNDS.map((s) => ({ key: s.id, name: s.label, stillUri: null, animatedUri: null, audioUri: null }));
 
   // First-time users land on a real background scene (the experience should begin
   // immediately) — default to the first scene that actually has a soundtrack.
-  const firstAudioKey = carouselScenes.find((s) => s.audioUri)?.key ?? null;
+  const firstAudioKey = sceneOptions.find((s) => s.audioUri)?.key ?? null;
   const didInitDefault = useRef(false);
   useEffect(() => {
     if (didInitDefault.current) return;
@@ -293,7 +239,7 @@ export default function MeditationScreen() {
     }
   }, [firstTime, firstAudioKey]);
 
-  const selScene = carouselScenes.find((s) => s.key === selKey);
+  const selScene = sceneOptions.find((s) => s.key === selKey);
   const sceneStill = selScene?.stillUri ?? null;
   const sceneAnimated = selScene?.animatedUri ?? null; // animated webp/video, if any
   const selAudioUri = selScene?.audioUri ?? null;
@@ -422,7 +368,14 @@ export default function MeditationScreen() {
               </View>
               <View style={styles.sceneSection}>
                 <Text style={styles.sectionLabel}>SCENE</Text>
-                <SceneCarousel scenes={carouselScenes} selectedKey={selKey} onSelect={setSelKey} />
+                {/* Pills, not a carousel — every scene visible at once (the old
+                    swipe carousel hid all but the neighbours, so scenes were
+                    hard to discover). Selection drives background + ambience. */}
+                <View style={styles.chipRow}>
+                  {sceneOptions.map((s) => (
+                    <Chip key={s.key} label={s.name} on={s.key === selKey} onPress={() => setSelKey(s.key)} />
+                  ))}
+                </View>
               </View>
             </Pressable>
             <View style={styles.footer}>
@@ -545,7 +498,7 @@ const styles = StyleSheet.create({
   chip: { minWidth: 50, paddingVertical: 9, paddingHorizontal: 12, borderRadius: 999, borderWidth: 1, alignItems: 'center' },
   chipText: { fontFamily: fontFamily.bold, fontSize: 14 },
 
-  sceneSection: { width: '100%' },
+  sceneSection: { width: '100%', paddingHorizontal: 22 },
 
   prefsOverlay: { ...StyleSheet.absoluteFillObject, justifyContent: 'flex-end', backgroundColor: 'rgba(6,12,26,0.55)' },
   prefsPanel: { backgroundColor: '#16223C', borderTopLeftRadius: 22, borderTopRightRadius: 22, paddingHorizontal: 22, paddingTop: 18, paddingBottom: 10, borderTopWidth: 1, borderColor: TH.glassBorder },
@@ -556,12 +509,6 @@ const styles = StyleSheet.create({
   prefsRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   prefsRowTitle: { fontFamily: fontFamily.semiBold, fontSize: 15, color: TH.ink },
   prefsRowSub: { fontFamily: fontFamily.regular, fontSize: 12.5, color: TH.ink2, marginTop: 4, lineHeight: 17 },
-  sceneItem: { alignItems: 'center', justifyContent: 'center', paddingVertical: 4 },
-  sceneName: { fontFamily: fontFamily.display, textAlign: 'center', letterSpacing: -0.2 },
-  dots: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 6, marginTop: 12 },
-  dot: { width: 6, height: 6, borderRadius: 3, backgroundColor: 'rgba(255,255,255,0.30)' },
-  dotActive: { width: 18, backgroundColor: 'rgba(255,255,255,0.9)' },
-
   stepper: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 18 },
   stepBtn: { width: 40, height: 40, borderRadius: 20, borderWidth: 1, borderColor: TH.glassBorder, backgroundColor: TH.glassBg, alignItems: 'center', justifyContent: 'center' },
   stepInput: { minWidth: 64, paddingVertical: 0, textAlign: 'center', fontFamily: fontFamily.display, fontSize: 26, color: TH.ink, fontVariant: ['tabular-nums'] },

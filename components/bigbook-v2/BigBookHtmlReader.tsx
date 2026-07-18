@@ -452,26 +452,39 @@ function buildHtml(params: {
   toolbar.addEventListener('touchend', runSelectionAction);
   toolbar.addEventListener('click', runSelectionAction);
 
-  // The toolbar waits until the user lets go: while a finger is down or the
-  // selection is still changing (handle drags), keep it hidden; show it only
-  // once the gesture ends. If touch events don't reach the page during a
-  // native handle drag, the settle delay covers it — and any further
-  // selectionchange hides the toolbar again until the next quiet moment.
+  // Finger on → toolbar hidden; finger off with text selected → toolbar shown.
+  // While a drag is live, selectionchange fires continuously and keeps hiding
+  // it; the toolbar appears once the selection goes quiet. The __touchDown
+  // latch keeps it hidden during a motionless long-press — but iOS swallows
+  // the touchend when a native handle drag takes over, so the latch can stick
+  // "down" forever. Two defenses: pointerup/pointercancel as extra release
+  // signals, and a bounded defer — after ~1s of a perfectly still selection
+  // the latch is presumed stale and the toolbar shows anyway.
   window.__touchDown = false;
+  window.__deferCount = 0;
   function scheduleToolbar(delay) {
     clearTimeout(window.__selectionTimer);
     window.__selectionTimer = setTimeout(() => {
-      if (window.__touchDown) { scheduleToolbar(300); return; }
+      if (window.__touchDown && window.__deferCount < 2) {
+        window.__deferCount++;
+        scheduleToolbar(200);
+        return;
+      }
+      window.__touchDown = false;
+      window.__deferCount = 0;
       readSelection();
     }, delay);
   }
-  document.addEventListener('touchstart', () => { window.__touchDown = true; }, true);
-  document.addEventListener('touchcancel', () => { window.__touchDown = false; }, true);
+  function touchRelease() { window.__touchDown = false; window.__deferCount = 0; scheduleToolbar(180); }
+  document.addEventListener('touchstart', () => { window.__touchDown = true; window.__deferCount = 0; }, true);
+  document.addEventListener('touchcancel', touchRelease, true);
+  document.addEventListener('pointerup', touchRelease, true);
+  document.addEventListener('pointercancel', touchRelease, true);
   document.addEventListener('selectionchange', () => {
     hideSelectionToolbar(false);
     scheduleToolbar(600);
   });
-  document.addEventListener('touchend', () => { window.__touchDown = false; scheduleToolbar(180); }, true);
+  document.addEventListener('touchend', touchRelease, true);
   document.addEventListener('mouseup', () => { scheduleToolbar(120); });
   // Scrolling must not kill an in-progress selection (dragging a handle near
   // the screen edge scrolls the page). Hide the toolbar while moving, keep the

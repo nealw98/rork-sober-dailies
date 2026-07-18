@@ -2,6 +2,11 @@ import { useEffect, useRef, useCallback } from 'react';
 import { AppState, AppStateStatus } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { logEvent } from '@/lib/analytics';
+import { recordLiteratureSeconds } from '@/lib/reviewPrompt';
+
+// Actual reading surfaces (not list/menu screens) — their session durations
+// also accumulate toward the review prompt's 1-hour literature gate.
+const LITERATURE_SCREENS = new Set(['Big Book', '12 Steps & 12 Traditions', 'Meeting Reading']);
 
 /**
  * Hook to track time spent on a screen
@@ -64,6 +69,8 @@ export function useScreenTimeTracking(screenName: string) {
                   open_timestamp: startTimeRef.current,
                   close_timestamp: now,
                 });
+
+                if (LITERATURE_SCREENS.has(screenName)) recordLiteratureSeconds(duration).catch(() => {});
               } else {
                 console.log(`[ScreenTime] ${screenName} session too short (${duration}s), ignoring`);
               }
@@ -131,6 +138,8 @@ export function useScreenTimeTracking(screenName: string) {
               open_timestamp: startTimeRef.current,
               close_timestamp: closeTimestamp,
             });
+
+            if (LITERATURE_SCREENS.has(screenName)) recordLiteratureSeconds(duration).catch(() => {});
           } else {
             console.log(`[ScreenTime] ${screenName} session too short (${duration}s), ignoring`);
           }

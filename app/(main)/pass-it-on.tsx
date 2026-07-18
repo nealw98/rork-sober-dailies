@@ -17,7 +17,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Stack, useRouter } from 'expo-router';
 import Purchases, { PurchasesStoreProduct } from 'react-native-purchases';
-import { ChevronRight, HelpCircle, MessageCircle } from 'lucide-react-native';
+import { ChevronRight, HelpCircle } from 'lucide-react-native';
 import BackButton from '@/components/BackButton';
 import GiftGlyph from '@/components/GiftGlyph';
 import GiftInfoSheet from '@/components/GiftInfoSheet';
@@ -293,29 +293,6 @@ export default function PassItOnScreen() {
           </Text>
         </TouchableOpacity>
         <Text style={styles.billedNote}>Billed once through {STORE_NAME}</Text>
-
-        {/* Free path — a personal invite is passing it on too (steel tone: people & connection) */}
-        <View style={styles.inviteDividerRow}>
-          <View style={styles.inviteDivider} />
-          <Text style={styles.inviteDividerText}>or</Text>
-          <View style={styles.inviteDivider} />
-        </View>
-        <TouchableOpacity
-          style={styles.inviteRow}
-          onPress={() => router.push('/(main)/invite')}
-          activeOpacity={0.7}
-          accessibilityRole="button"
-          accessibilityLabel="Invite friends"
-        >
-          <View style={styles.inviteIcon}>
-            <MessageCircle size={18} color={colors.steelDark} strokeWidth={1.9} />
-          </View>
-          <View style={{ flex: 1 }}>
-            <Text style={styles.inviteTitle}>Invite friends</Text>
-            <Text style={styles.inviteSub}>A personal text with a link to the app — free.</Text>
-          </View>
-          <ChevronRight size={18} color={c.textMuted} />
-        </TouchableOpacity>
       </ScrollView>
 
       {bought != null && (
@@ -393,17 +370,6 @@ const makeStyles = (tk: Tokens) => {
     },
     ctaText: { fontFamily: fontFamily.semiBold, fontSize: 15.5, color: '#FFFFFF' },
     billedNote: { fontFamily: fontFamily.regular, fontSize: 11.5, color: c.textMuted, textAlign: 'center', marginTop: 10 },
-
-    inviteDividerRow: { flexDirection: 'row', alignItems: 'center', gap: 12, marginTop: 26, marginBottom: 16, marginHorizontal: 6 },
-    inviteDivider: { flex: 1, height: StyleSheet.hairlineWidth, backgroundColor: c.divider },
-    inviteDividerText: { fontFamily: fontFamily.regular, fontSize: 12.5, color: c.textMuted },
-    inviteRow: {
-      flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 12, paddingHorizontal: 14,
-      borderRadius: 12, backgroundColor: colors.steelSoft,
-    },
-    inviteIcon: { width: 30, height: 30, borderRadius: 9, backgroundColor: c.surface, alignItems: 'center', justifyContent: 'center' },
-    inviteTitle: { fontFamily: fontFamily.semiBold, fontSize: 14, color: colors.steelDark },
-    inviteSub: { fontFamily: fontFamily.regular, fontSize: 12, color: c.textMuted, marginTop: 1 },
 
     sheetScrim: { flex: 1, backgroundColor: c.overlay },
     sheet: {

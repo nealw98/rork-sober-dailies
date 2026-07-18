@@ -15,7 +15,7 @@ import { useRouter } from 'expo-router';
 import Svg, { Path } from 'react-native-svg';
 import { useNotebook, type NotebookEntry, type NotebookType } from '@/hooks/use-notebook';
 import { useMeditationLog } from '@/hooks/use-meditation-log';
-import { useDailies, V2_DAILIES, type DailyItem } from '@/hooks/use-dailies-store';
+import { useDailies, type DailyItem } from '@/hooks/use-dailies-store';
 import { useSobriety } from '@/hooks/useSobrietyStore';
 import { useGratitudeStore } from '@/hooks/use-gratitude-store';
 import { useEveningReviewStore } from '@/hooks/use-evening-review-store';
@@ -111,9 +111,13 @@ function buildShareText(entry: NotebookEntry): string {
     case 'journal':
       body = entry.journal ?? '';
       break;
-    case 'nightly':
-      body = (entry.nightly ?? []).map((p) => `${p.q}\n${p.a}`).join('\n\n');
+    case 'nightly': {
+      const parts: string[] = [];
+      if (entry.checks?.length) parts.push(entry.checks.map((label) => `✓ ${label}`).join('\n'));
+      parts.push(...(entry.nightly ?? []).map((p) => `${p.q}\n${p.a}`));
+      body = parts.join('\n\n');
       break;
+    }
     case 'spotcheck': {
       const chosen = SPOT_PAIRS.filter((p) => entry.spot?.selected.includes(p.id));
       const parts: string[] = [];
@@ -211,13 +215,15 @@ export default function JourneyScreen() {
         // total (the "11 of 10" bug) and disagreeing with what the opened day
         // shows. So the total is the current program size and done only counts
         // completions whose ids are still in the program.
-        // Legacy v2 days carry their own fixed six-item checklist — count as recorded.
-        const total = comp?.v2 ? (comp.total ?? V2_DAILIES.length) : isToday ? dailies.totalCount : dailies.program.length + 1;
-        const done = comp?.v2
-          ? comp.done.length
-          : isToday
-            ? dailies.doneCount
-            : (comp?.reflection ? 1 : 0) + (comp ? dailies.program.filter((p) => comp.done.includes(p.id)).length : 0);
+        // Legacy v2 days don't get a day card — the v2 Nightly Review shows as
+        // ONE notebook entry (checklist included), the shape it had in v2. The
+        // backfilled record still exists underneath so Trends bridges streaks;
+        // it just doesn't count here.
+        const card = comp?.v2 ? undefined : comp;
+        const total = isToday ? dailies.totalCount : dailies.program.length + 1;
+        const done = isToday
+          ? dailies.doneCount
+          : (card?.reflection ? 1 : 0) + (card ? dailies.program.filter((p) => card.done.includes(p.id)).length : 0);
         return { key: k, label: dateLabel(k, todayKey), dayN: dayNFor(k, sobrietyDate ?? null), done, total, isToday, isYesterday: k === yesterdayKey, entries: byDay.get(k) ?? [], medSeconds: medByDate[k] ?? 0 };
       })
       .filter((d) => d.isToday || d.isYesterday || d.entries.length > 0 || d.done > 0 || d.medSeconds > 0);
@@ -408,7 +414,7 @@ function JourneyEmpty() {
 const REFLECTION_ITEM = { id: '__reflection', label: 'Daily Reflection', icon: 'book', color: 'teal' };
 
 function DaySheet({ day, program, completion, onClose, onSave, scrollEnabled = true }: {
-  day: DayBlockData; program: DailyItem[]; completion?: { done: string[]; reflection: boolean; v2?: boolean };
+  day: DayBlockData; program: DailyItem[]; completion?: { done: string[]; reflection: boolean };
   onClose: () => void; onSave: (rec: { done: string[]; reflection: boolean }) => void; scrollEnabled?: boolean;
 }) {
   const styles = useThemedStyles(makeStyles);
@@ -416,9 +422,6 @@ function DaySheet({ day, program, completion, onClose, onSave, scrollEnabled = t
   const [editing, setEditing] = useState(false);
   const [draftDone, setDraftDone] = useState<Set<string>>(new Set());
   const [draftReflection, setDraftReflection] = useState(false);
-  // Legacy v2 day: the fixed Nightly Review checklist, shown as recorded — no
-  // Daily Reflection row (v2 didn't track it per day) and no editing.
-  const isLegacy = !!completion?.v2;
 
   const beginEdit = () => {
     setDraftDone(new Set(completion?.done ?? []));
@@ -436,12 +439,10 @@ function DaySheet({ day, program, completion, onClose, onSave, scrollEnabled = t
     setDraftDone((prev) => { const n = new Set(prev); if (n.has(id)) n.delete(id); else n.add(id); return n; });
   };
 
-  const all = isLegacy
-    ? V2_DAILIES.map((p) => ({ id: p.id, label: p.label, icon: p.icon, color: p.color }))
-    : [
-        { id: REFLECTION_ITEM.id, label: REFLECTION_ITEM.label, icon: REFLECTION_ITEM.icon, color: REFLECTION_ITEM.color },
-        ...program.map((p) => ({ id: p.id, label: p.label, icon: p.icon, color: p.color })),
-      ];
+  const all = [
+    { id: REFLECTION_ITEM.id, label: REFLECTION_ITEM.label, icon: REFLECTION_ITEM.icon, color: REFLECTION_ITEM.color },
+    ...program.map((p) => ({ id: p.id, label: p.label, icon: p.icon, color: p.color })),
+  ];
   const isDone = (id: string) =>
     editing
       ? id === REFLECTION_ITEM.id ? draftReflection : draftDone.has(id)
@@ -466,9 +467,7 @@ function DaySheet({ day, program, completion, onClose, onSave, scrollEnabled = t
           </>
         ) : (
           <>
-            {!isLegacy && (
-              <Pressable onPress={beginEdit} hitSlop={8} style={styles.headTextBtn} accessibilityRole="button" accessibilityLabel="Edit dailies"><Text style={styles.headEdit}>Edit</Text></Pressable>
-            )}
+            <Pressable onPress={beginEdit} hitSlop={8} style={styles.headTextBtn} accessibilityRole="button" accessibilityLabel="Edit dailies"><Text style={styles.headEdit}>Edit</Text></Pressable>
             <Pressable style={styles.closeBtn} onPress={onClose} hitSlop={8} accessibilityRole="button" accessibilityLabel="Close">
               <X size={18} color={c.textSecondary} strokeWidth={2} />
             </Pressable>
@@ -652,7 +651,7 @@ function EntrySheet({ entry, onClose, scrollEnabled = true, updateSpotRecord, de
           <>
             {view.type === 'gratitude' && <GratitudeBody items={view.gratitude ?? []} tool={t} />}
             {view.type === 'journal' && <Text style={styles.journalProse}>{view.journal}</Text>}
-            {view.type === 'nightly' && <NightlyBody pairs={view.nightly ?? []} tool={t} />}
+            {view.type === 'nightly' && <NightlyBody pairs={view.nightly ?? []} checks={view.checks} tool={t} />}
             {view.type === 'spotcheck' && view.spot && <SpotSheetBody spot={view.spot} />}
           </>
         )}
@@ -764,13 +763,25 @@ function GratitudeBody({ items, tool }: { items: string[]; tool: Tool }) {
   );
 }
 
-function NightlyBody({ pairs, tool }: { pairs: { q: string; a: string }[]; tool: Tool }) {
+function NightlyBody({ pairs, checks, tool }: { pairs: { q: string; a: string }[]; checks?: string[]; tool: Tool }) {
   const styles = useThemedStyles(makeStyles);
+  const hasChecks = !!checks && checks.length > 0;
   return (
     <View>
+      {/* v2 "Daily Actions" checklist — part of the same entry, as it was in v2 */}
+      {hasChecks && (
+        <View style={styles.nBlock}>
+          {checks!.map((label) => (
+            <View key={label} style={styles.nCheckRow}>
+              <Check size={14} color={tool.dark} strokeWidth={2.6} />
+              <Text style={styles.nCheckLabel}>{label}</Text>
+            </View>
+          ))}
+        </View>
+      )}
       {pairs.map((p, i) => (
         <View key={i}>
-          {i > 0 && <View style={styles.hairline} />}
+          {(i > 0 || hasChecks) && <View style={styles.hairline} />}
           <View style={styles.nBlock}>
             <Text style={[styles.nQ, { color: tool.dark }]}>{p.q}</Text>
             <Text style={styles.nA}>{p.a}</Text>
@@ -906,6 +917,8 @@ const makeStyles = (tk: Tokens) => {
     nBlock: { paddingVertical: 16 },
     nQ: { fontFamily: fontFamily.semiBold, fontSize: 15.5, lineHeight: 21, letterSpacing: -0.2, marginBottom: 7 },
     nA: { fontFamily: fontFamily.regular, fontSize: 16, lineHeight: 24, color: c.text },
+    nCheckRow: { flexDirection: 'row', alignItems: 'center', gap: 9, paddingVertical: 4 },
+    nCheckLabel: { fontFamily: fontFamily.regular, fontSize: 15, lineHeight: 21, color: c.text },
 
     spotHeading: { fontFamily: fontFamily.semiBold, fontSize: 16, color: c.text, letterSpacing: -0.2, marginBottom: 9 },
     paperBox: { backgroundColor: paperFill, borderWidth: 1, borderColor: c.border, borderRadius: 12, paddingHorizontal: 15, paddingVertical: 13 },

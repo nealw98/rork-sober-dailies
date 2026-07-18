@@ -32,14 +32,20 @@ export const GIFT_MONTHS = 3;
 // anchors — replaced by the LIVE monthly price from RevenueCat when it resolves.
 export const MONTHLY_PRICE_FALLBACK = 3.99;
 
-// Pricing (Neal, Jul 18 — update the ASC drafts to match): $9.99 / $39.99 /
-// $59.99. The unit is the MONTH, not the gift: you're filling a bank of months
-// ($3.33 → $2.67 → $2.00/month) that you give away as 3-month codes. LIVE
-// prices come from ASC — these are display fallbacks only.
+// Pricing (Neal, Jul 18 — ASC needs: pack3 CREATED at $19.99, pack5 re-priced
+// to $29.99, pack10 retired): $9.99 / $19.99 / $29.99. The unit is the MONTH
+// ($3.33 → $2.22 → $2.00/month), given away as 3-month codes. Deep discounts
+// are deliberate: a redeemed code is a 90-day funnel into the paywall — codes
+// are acquisition, not revenue. LIVE prices come from ASC — these are display
+// fallbacks only.
+// ⚠️ ASC product IDs are immutable, so Neal REPURPOSED the original pack IDs
+// for the new lineup (ASC reference names "3/9/15 months"): the _pack5 /
+// _pack10 suffixes no longer match the code counts — `n` here (mirrored by the
+// server's GIFT_PRODUCTS map) is the source of truth.
 export const GIFT_SKUS: GiftSku[] = [
-  { productId: 'gift_3mo_single', n: 1,  label: '3 months',  price: '$9.99',  sub: 'One code to share · full access' },
-  { productId: 'gift_3mo_pack5',  n: 5,  label: '15 months', price: '$39.99', sub: 'Five codes · 3 months each' },
-  { productId: 'gift_3mo_pack10', n: 10, label: '30 months', price: '$59.99', sub: 'Ten codes · 3 months each', badge: 'Best deal' },
+  { productId: 'gift_3mo_single', n: 1, label: '3 months',  price: '$9.99',  sub: 'One code to share · full access' },
+  { productId: 'gift_3mo_pack5',  n: 3, label: '9 months',  price: '$19.99', sub: 'Three codes · 3 months each' },
+  { productId: 'gift_3mo_pack10', n: 5, label: '15 months', price: '$29.99', sub: 'Five codes · 3 months each', badge: 'Best deal' },
 ];
 
 // Store products keyed by productId — empty until RevenueCat + ASC are live.

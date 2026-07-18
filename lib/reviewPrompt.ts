@@ -2,6 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { NativeModules } from 'react-native';
 import { NativeModulesProxy } from 'expo-modules-core';
 import type * as ExpoStoreReviewModule from 'expo-store-review';
+import { firstUseAt } from '@/lib/growthPrompts';
 
 /**
  * Review Prompt System
@@ -9,9 +10,12 @@ import type * as ExpoStoreReviewModule from 'expo-store-review';
  * Two layers, so the native store-review card only ever appears to an engaged
  * user right after a positive moment (biasing toward happy reviews):
  *
- *  1. GATE (eligibility): the user has completed a daily on >= 5 distinct days
- *     (any single daily counts — real use of the core feature), AND the 30-day
- *     cooldown since the last prompt has passed.
+ *  1. GATE (eligibility): >= 15 days since first use (no review ask in a new
+ *     user's first two weeks), AND >= 50 dailies completed in total (the core
+ *     loop became a habit — chosen over notebook/speaker/literature signals
+ *     because it's persona-neutral), AND the 30-day cooldown has passed.
+ *     Deliberately NOT part of the growth-nudge schedule (lib/growthPrompts.ts)
+ *     — a review ask isn't direct promotion.
  *  2. TRIGGERS (positive moments): each calls maybeAskForReview(), which
  *     re-checks the gate. The first trigger AFTER the gate is met presents the
  *     card. Triggers fire on wins only — all dailies done, meditation/speaker/
@@ -32,15 +36,20 @@ export type ReviewTrigger =
   | 'manualRate';
 
 const STORAGE_KEYS = {
-  COMPLETION_DAYS: 'reviewPrompt:dailyCompletionDays',
+  COMPLETIONS_TOTAL: 'reviewPrompt:dailyCompletionsTotal',
+  LITERATURE_SECONDS: 'reviewPrompt:literatureSeconds',
   LAST_PROMPT: 'reviewPrompt:lastPromptDate',
 } as const;
 
-// Gate thresholds
-const MIN_DAILY_COMPLETION_DAYS = 5;          // days with >= 1 daily marked done
+// Gate thresholds — EITHER engagement signal qualifies:
+//  • 50 lifetime daily check-offs (the core loop became a habit), OR
+//  • an hour of cumulative literature reading (the reader is the app's most
+//    comparative surface — a user an hour into our Big Book has seen the
+//    competition and stayed).
+const MIN_TOTAL_COMPLETIONS = 50;
+const MIN_LITERATURE_SECONDS = 60 * 60;
+const MIN_DAYS_SINCE_FIRST_USE = 15;          // no review ask in the first two weeks
 const COOLDOWN_MS = 30 * 24 * 60 * 60 * 1000; // 30-day cooldown between prompts
-
-const toDayKey = (date: Date) => date.toISOString().split('T')[0];
 
 let storeReviewModule: typeof ExpoStoreReviewModule | null | undefined;
 let storeReviewPromise: Promise<typeof ExpoStoreReviewModule | null> | null = null;
@@ -79,29 +88,13 @@ async function getStoreReviewModule(): Promise<typeof ExpoStoreReviewModule | nu
 }
 
 // Storage helpers
-async function getStringSet(key: string): Promise<Set<string>> {
+async function getCompletionsTotal(): Promise<number> {
   try {
-    const raw = await AsyncStorage.getItem(key);
-    if (!raw) return new Set<string>();
-    try {
-      const parsed = JSON.parse(raw);
-      if (Array.isArray(parsed)) {
-        return new Set(parsed.filter((item) => typeof item === 'string'));
-      }
-    } catch {
-      // Fall back to comma-separated
-    }
-    return new Set(raw.split(',').map((item) => item.trim()).filter(Boolean));
+    const raw = await AsyncStorage.getItem(STORAGE_KEYS.COMPLETIONS_TOTAL);
+    const n = raw ? Number(raw) : 0;
+    return Number.isFinite(n) ? n : 0;
   } catch {
-    return new Set<string>();
-  }
-}
-
-async function saveStringSet(key: string, values: Set<string>): Promise<void> {
-  try {
-    await AsyncStorage.setItem(key, JSON.stringify(Array.from(values)));
-  } catch (error) {
-    console.warn('[reviewPrompt] Failed to persist set', error);
+    return 0;
   }
 }
 
@@ -128,17 +121,34 @@ async function setLastPromptTimestamp(date: Date): Promise<void> {
 
 async function recordPromptShown(): Promise<void> {
   await setLastPromptTimestamp(new Date());
-  // Reset the completion-day count so the user has to re-engage for 5 more days
-  // before another prompt is even eligible (on top of the 30-day cooldown).
-  await saveStringSet(STORAGE_KEYS.COMPLETION_DAYS, new Set<string>());
+}
+
+async function getLiteratureSeconds(): Promise<number> {
+  try {
+    const raw = await AsyncStorage.getItem(STORAGE_KEYS.LITERATURE_SECONDS);
+    const n = raw ? Number(raw) : 0;
+    return Number.isFinite(n) ? n : 0;
+  } catch {
+    return 0;
+  }
 }
 
 // Gate checks
 async function hasUsageThreshold(): Promise<boolean> {
-  const completionDays = await getStringSet(STORAGE_KEYS.COMPLETION_DAYS);
-  const ok = completionDays.size >= MIN_DAILY_COMPLETION_DAYS;
-  console.log('[reviewPrompt] completion-day gate:', completionDays.size, '/', MIN_DAILY_COMPLETION_DAYS, ok ? '✓' : '✗');
+  const [total, litSeconds] = await Promise.all([getCompletionsTotal(), getLiteratureSeconds()]);
+  const ok = total >= MIN_TOTAL_COMPLETIONS || litSeconds >= MIN_LITERATURE_SECONDS;
+  console.log(
+    '[reviewPrompt] engagement gate:', total, '/', MIN_TOTAL_COMPLETIONS, 'completions,',
+    Math.round(litSeconds / 60), '/', MIN_LITERATURE_SECONDS / 60, 'lit minutes', ok ? '✓' : '✗',
+  );
   return ok;
+}
+
+async function hasTenure(): Promise<boolean> {
+  const first = await firstUseAt();
+  // No first-use record (growth store hasn't run yet) counts as brand-new.
+  if (first == null) return false;
+  return Date.now() - first >= MIN_DAYS_SINCE_FIRST_USE * 24 * 60 * 60 * 1000;
 }
 
 async function hasCooldownExpired(): Promise<boolean> {
@@ -174,20 +184,30 @@ async function presentStoreReview(): Promise<boolean> {
 // Public API
 
 /**
- * Record that the user completed a daily (any single daily) today. Counts toward
- * the >= 5-distinct-days eligibility gate. Idempotent per day.
+ * Record one completed daily (called on each OFF→ON check-off). Counts toward
+ * the >= 50 lifetime-completions eligibility gate.
  */
-export async function recordDailyCompletionDay(date: Date = new Date()): Promise<void> {
+export async function recordDailyCompletionDay(): Promise<void> {
   try {
-    const completionDays = await getStringSet(STORAGE_KEYS.COMPLETION_DAYS);
-    const dayKey = toDayKey(date);
-    if (!completionDays.has(dayKey)) {
-      completionDays.add(dayKey);
-      await saveStringSet(STORAGE_KEYS.COMPLETION_DAYS, completionDays);
-      console.log('[reviewPrompt] Recorded completion day:', dayKey, 'total:', completionDays.size);
-    }
+    const total = (await getCompletionsTotal()) + 1;
+    await AsyncStorage.setItem(STORAGE_KEYS.COMPLETIONS_TOTAL, String(total));
   } catch (error) {
-    console.warn('[reviewPrompt] Failed to record completion day', error);
+    console.warn('[reviewPrompt] Failed to record completion', error);
+  }
+}
+
+/**
+ * Accumulate reading time from the literature screens (called with each
+ * session's duration by useScreenTimeTracking). Counts toward the 1-hour
+ * literature path of the eligibility gate.
+ */
+export async function recordLiteratureSeconds(seconds: number): Promise<void> {
+  if (!Number.isFinite(seconds) || seconds <= 0) return;
+  try {
+    const total = (await getLiteratureSeconds()) + Math.floor(seconds);
+    await AsyncStorage.setItem(STORAGE_KEYS.LITERATURE_SECONDS, String(total));
+  } catch (error) {
+    console.warn('[reviewPrompt] Failed to record literature time', error);
   }
 }
 
@@ -200,13 +220,19 @@ export async function maybeAskForReview(trigger: ReviewTrigger): Promise<boolean
   try {
     console.log('[reviewPrompt] maybeAskForReview:', trigger);
 
-    const [usageOk, cooldownOk] = await Promise.all([
+    const [usageOk, cooldownOk, tenureOk] = await Promise.all([
       hasUsageThreshold(),
       hasCooldownExpired(),
+      hasTenure(),
     ]);
 
+    if (!tenureOk) {
+      console.log('[reviewPrompt] First-use wait not met (need', MIN_DAYS_SINCE_FIRST_USE, 'days)');
+      return false;
+    }
+
     if (!usageOk) {
-      console.log('[reviewPrompt] Completion-day gate not met (need', MIN_DAILY_COMPLETION_DAYS, 'days)');
+      console.log('[reviewPrompt] Completions gate not met (need', MIN_TOTAL_COMPLETIONS, ')');
       return false;
     }
 

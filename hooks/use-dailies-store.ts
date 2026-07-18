@@ -44,7 +44,6 @@ interface DayCompletion {
 
 const PROGRAM_KEY = 'dailies_program';
 const COMPLETION_KEY = 'dailies_completion';
-const V2_BACKFILL_FLAG = 'dailies_v2_backfill_v1';
 const V2_SAVED_REVIEWS_KEY = 'saved_evening_review_entries';
 
 // The v2 Nightly Review's "Daily Actions" checkboxes — the fixed precursor to
@@ -59,19 +58,25 @@ export const V2_DAILIES: { id: string; label: string; icon: string; color: strin
   { id: 'didSomethingForOthers', label: 'Did something for someone else', icon: 'users', color: 'steel', actions: ['service'] },
 ];
 
-// One-time: turn v2 Nightly Review checklists into legacy completion records so
-// Journey day cards and Trends treat those days as real (read-only) dailies.
-// Never overwrites a date that already has v3 completion.
+// Turn v2 Nightly Review checklists into legacy completion records so Journey
+// day cards and Trends treat those days as real (read-only) dailies. Runs on
+// every load; it never overwrites a date that already has a record, so it's
+// idempotent — and v2 entries that arrive AFTER first launch (a Backup &
+// Restore import lands post-install) get picked up on the next load. An
+// earlier run-once flag missed exactly that restore case: it fired against an
+// empty store on install and never looked again.
 async function backfillV2Checklists(existing: Record<string, DayCompletion>): Promise<Record<string, DayCompletion> | null> {
-  const done = await AsyncStorage.getItem(V2_BACKFILL_FLAG);
-  if (done) return null;
   let changed = false;
   const next = { ...existing };
   try {
     const raw = await AsyncStorage.getItem(V2_SAVED_REVIEWS_KEY);
-    const saved: { date?: string; data?: Record<string, unknown> }[] = raw ? JSON.parse(raw) : [];
+    if (!raw) return null;
+    const saved: { date?: string; data?: Record<string, unknown> }[] = JSON.parse(raw);
+    // Past days only: today belongs to the live v3 store (an upgrade-day v2
+    // review still shows on Journey as its own notebook entry).
+    const todayKey = getTodayDateString();
     for (const e of saved) {
-      if (!e?.date || next[e.date]) continue;
+      if (!e?.date || e.date >= todayKey || next[e.date]) continue;
       const checked = V2_DAILIES.filter((it) => !!e.data?.[it.id]).map((it) => it.id);
       if (checked.length === 0) continue;
       next[e.date] = { done: checked, reflection: false, total: V2_DAILIES.length, v2: true };
@@ -79,9 +84,8 @@ async function backfillV2Checklists(existing: Record<string, DayCompletion>): Pr
     }
   } catch (error) {
     console.error('[dailies] v2 checklist backfill failed:', error);
-    return null; // leave the flag unset so a later launch retries
+    return null;
   }
-  AsyncStorage.setItem(V2_BACKFILL_FLAG, '1').catch(() => {});
   return changed ? next : null;
 }
 
