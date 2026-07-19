@@ -133,6 +133,10 @@ export type SubscriptionState = {
   offerings: Offerings | null;
   customerInfo: CustomerInfo | null;
   trialEligible: boolean | null;
+  // QA force-new-user flag (Debug Console) is active — the paywall is gating
+  // only because the flag hides grandfather/entitlement. Lets the paywall show
+  // a QA banner so a forced gate is never mistaken for a real one.
+  qaForceNewUser: boolean;
 
   refresh: () => Promise<void>;
   applyCustomerInfo: (info: CustomerInfo) => void;
@@ -407,6 +411,7 @@ export const [SubscriptionProvider, useSubscription] = createContextHook(() => {
       offerings,
       customerInfo,
       trialEligible,
+      qaForceNewUser: forceNewUser,
 
       refresh,
       applyCustomerInfo,
@@ -422,6 +427,7 @@ export const [SubscriptionProvider, useSubscription] = createContextHook(() => {
       offerings,
       customerInfo,
       trialEligible,
+      forceNewUser,
       refresh,
       applyCustomerInfo,
       purchasePackage,

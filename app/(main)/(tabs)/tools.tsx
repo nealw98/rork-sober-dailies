@@ -152,7 +152,7 @@ export default function ToolsScreen() {
       <View style={styles.header}>
         <View style={{ flex: 1 }}>
           <Text style={styles.title}>Tools</Text>
-          <Text style={styles.subtitle}>Open the support you need</Text>
+          <Text style={styles.subtitle}>What you need, when you need it.</Text>
         </View>
         <PassItOnGift style={styles.giftBtn} />
         <SettingsGear style={styles.gear} />
@@ -177,7 +177,7 @@ export default function ToolsScreen() {
         {/* Flagship cards */}
         <View style={styles.flagRow}>
           <FlagCard flag={SPEAKER} Icon={Mic} title="Speaker Tapes" subtitle="Members' experience, strength and hope." onPress={() => router.push('/(main)/speakers')} isDark={isDark} styles={styles} />
-          <FlagCard flag={SPONSOR} Icon={Users} title="AI Sponsor" subtitle="Guidance and encouragement anytime." onPress={() => router.push('/(main)/chat')} isDark={isDark} styles={styles} />
+          <FlagCard flag={SPONSOR} Icon={Users} title="AI Sponsor" subtitle="Guidance and encouragement." onPress={() => router.push('/(main)/chat')} isDark={isDark} styles={styles} />
         </View>
 
         {/* Tool grid */}

@@ -168,7 +168,15 @@ export default function SpeakersScreen() {
   }, [speakers, q, filter, sortBy, savedSet, downloadedIds]);
 
   const showFeatured = filter === 'All' && !q.trim() && sortBy === 'newest';
-  const featured = showFeatured ? sortSpeakers(speakers, 'newest')[0] : undefined;
+  // Featured rotates weekly (Monday rollover): pick from the catalog in a
+  // stable id order, indexed by the week number — deterministic, same tape all
+  // week for everyone, cycles the whole catalog before repeating.
+  const featured = useMemo(() => {
+    if (!showFeatured || !speakers.length) return undefined;
+    const stable = [...speakers].sort((a, b) => a.id.localeCompare(b.id));
+    const week = Math.floor((Math.floor(Date.now() / 86400000) + 3) / 7);
+    return stable[week % stable.length];
+  }, [showFeatured, speakers]);
   const rows = featured ? list.filter((t) => t.id !== featured.id) : list;
 
   const openDetail = useCallback((s: Speaker, autoplay?: boolean) => {

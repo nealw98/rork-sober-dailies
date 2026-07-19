@@ -10,7 +10,7 @@ import { KeyboardModalScope } from '@/components/KeyboardModalScope';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Stack, useRouter } from 'expo-router';
 import DateTimePicker from '@react-native-community/datetimepicker';
-import { Plus, X, Globe, MapPin, BookOpen, ChevronRight, ExternalLink, ClipboardList, Sparkles, ImagePlus, Camera } from 'lucide-react-native';
+import { Plus, Globe, MapPin, BookOpen, ChevronRight, ExternalLink, ClipboardList, Sparkles, ImagePlus, Camera, Pencil, Trash2 } from 'lucide-react-native';
 import { Image } from 'expo-image';
 import BackButton from '@/components/BackButton';
 import { ThemedCard } from '@/components/ThemedCard';
@@ -57,7 +57,7 @@ export default function MeetingsScreen() {
 
   const styles = useThemedStyles(makeStyles);
   const tk = useTokens();
-  const { isDark, tone, colors } = tk;
+  const { isDark, tone } = tk;
   const st = steelUi(tk);
 
   const nx = nextUpMeeting(meetings);
@@ -71,8 +71,8 @@ export default function MeetingsScreen() {
     <>
       <View style={styles.nextTop}>
         <Text style={styles.nextEyebrow}>NEXT UP</Text>
-        <Pressable hitSlop={8} onPress={() => removeMeeting(nx.meeting.id)} accessibilityLabel="Remove">
-          <X size={16} color={st.ink} strokeWidth={2} />
+        <Pressable hitSlop={8} onPress={() => setSheet({ mode: 'edit', meeting: nx.meeting })} accessibilityLabel="Edit">
+          <Pencil size={15} color={st.ink} strokeWidth={2} />
         </Pressable>
       </View>
       <Pressable style={styles.nextRow} onPress={() => setSheet({ mode: 'edit', meeting: nx.meeting })} accessibilityLabel={`Edit ${nx.meeting.name}`}>
@@ -123,7 +123,7 @@ export default function MeetingsScreen() {
             )}
 
             {rest.map((m) => (
-              <MeetingRow key={m.id} m={m} onEdit={() => setSheet({ mode: 'edit', meeting: m })} onRemove={() => removeMeeting(m.id)} />
+              <MeetingRow key={m.id} m={m} onEdit={() => setSheet({ mode: 'edit', meeting: m })} />
             ))}
 
             <Pressable style={styles.addBtn} onPress={() => setSheet({ mode: 'add' })}>
@@ -181,7 +181,7 @@ export default function MeetingsScreen() {
 
         {/* ── Right here, right now ── */}
         <Text style={styles.label}>ANY MEETING</Text>
-        <Fn tone={colors.amber} icon={<BookOpen size={21} color="#fff" strokeWidth={2} />} title="Meeting Readings"
+        <Fn tone={st.solid} icon={<BookOpen size={21} color="#fff" strokeWidth={2} />} title="Meeting Readings"
           sub="Passages read aloud at meetings, plus a format guide to chair." onPress={() => router.push('/(main)/meeting-readings')} />
       </ScrollView>
 
@@ -194,12 +194,16 @@ export default function MeetingsScreen() {
           else addMeeting(m);
           setSheet(null);
         }}
+        onDelete={() => {
+          if (sheet?.mode === 'edit') removeMeeting(sheet.meeting.id);
+          setSheet(null);
+        }}
       />
     </SafeAreaView>
   );
 }
 
-function MeetingRow({ m, onEdit, onRemove }: { m: Meeting; onEdit: () => void; onRemove: () => void }) {
+function MeetingRow({ m, onEdit }: { m: Meeting; onEdit: () => void }) {
   const styles = useThemedStyles(makeStyles);
   const tk = useTokens();
   const st = steelUi(tk);
@@ -217,9 +221,10 @@ function MeetingRow({ m, onEdit, onRemove }: { m: Meeting; onEdit: () => void; o
         {!!m.where && <Text style={styles.rowWhere}>{m.where}</Text>}
         {!!m.notes && <Text style={styles.rowNotes}>{m.notes}</Text>}
       </View>
-      <Pressable hitSlop={8} onPress={onRemove} accessibilityLabel="Remove" style={styles.rowRemove}>
-        <X size={17} color={tk.c.textMuted} strokeWidth={2} />
-      </Pressable>
+      {/* Edit affordance — deletion lives inside the edit sheet, not the list. */}
+      <View style={styles.rowRemove}>
+        <Pencil size={16} color={tk.c.textMuted} strokeWidth={2} />
+      </View>
     </Pressable>
   );
 }
@@ -245,7 +250,7 @@ function Fn({ tone, icon, title, sub, badge, onPress }: { tone: string; icon: Re
 // ── Add a meeting (Paste + Details; Scan/OCR is the next sprint) ──────
 const ALL_DAYS = [0, 1, 2, 3, 4, 5, 6];
 
-function AddMeetingSheet({ visible, meeting, onClose, onSave }: { visible: boolean; meeting?: Meeting | null; onClose: () => void; onSave: (m: Omit<Meeting, 'id'>) => void }) {
+function AddMeetingSheet({ visible, meeting, onClose, onSave, onDelete }: { visible: boolean; meeting?: Meeting | null; onClose: () => void; onSave: (m: Omit<Meeting, 'id'>) => void; onDelete: () => void }) {
   const editing = !!meeting;
   const [tab, setTab] = useState<'scan' | 'paste' | 'details'>('details');
   const [name, setName] = useState('');
@@ -471,6 +476,20 @@ function AddMeetingSheet({ visible, meeting, onClose, onSave }: { visible: boole
               <Pressable style={[styles.saveBtn, !saveEnabled && styles.btnDisabled]} disabled={!saveEnabled} onPress={commit}>
                 <Text style={styles.saveBtnText}>{editing ? 'Save changes' : 'Save meeting'}</Text>
               </Pressable>
+              {editing && (
+                <Pressable
+                  style={styles.deleteBtn}
+                  onPress={() =>
+                    Alert.alert('Delete this meeting?', `“${meeting?.name}” will be removed from your saved meetings.`, [
+                      { text: 'Cancel', style: 'cancel' },
+                      { text: 'Delete', style: 'destructive', onPress: () => { reset(); onDelete(); } },
+                    ])
+                  }
+                >
+                  <Trash2 size={15} color={tk.colors.rose ?? '#B55A68'} strokeWidth={2} />
+                  <Text style={styles.deleteBtnText}>Delete meeting</Text>
+                </Pressable>
+              )}
             </View>
           )}
         </KeyboardAwareScrollView>
@@ -608,6 +627,8 @@ const makeStyles = (tk: Tokens) => {
   onlineToggleText: { fontFamily: fontFamily.medium, fontSize: 14, color: c.textSecondary },
   saveBtn: { marginTop: 6, paddingVertical: 14, borderRadius: 14, alignItems: 'center', backgroundColor: st.solid },
   saveBtnText: { fontFamily: fontFamily.semiBold, fontSize: 15, color: '#fff' },
+  deleteBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7, paddingVertical: 10 },
+  deleteBtnText: { fontFamily: fontFamily.semiBold, fontSize: 14, color: colors.rose ?? '#B55A68' },
   btnDisabled: { opacity: 0.5 },
   });
 };

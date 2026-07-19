@@ -321,17 +321,19 @@ export default function SettingsScreen() {
       Alert.alert('Please enter your feedback', 'Let us know what you think!');
       return;
     }
-    if (contactInfo.trim()) {
-      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      if (!emailRegex.test(contactInfo.trim())) {
-        Alert.alert('Invalid email', 'Please enter a valid email address or leave it blank.');
-        return;
-      }
+    if (!contactInfo.trim()) {
+      Alert.alert('Email required', 'Please add your email so we can follow up on your feedback.');
+      return;
+    }
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(contactInfo.trim())) {
+      Alert.alert('Invalid email', 'Please enter a valid email address.');
+      return;
     }
     setIsSubmitting(true);
     const result = await submitFeedback({
       feedbackText: feedbackText.trim(),
-      contactInfo: contactInfo.trim() || undefined,
+      contactInfo: contactInfo.trim(),
     });
     setIsSubmitting(false);
     if (result.success) {
@@ -722,17 +724,17 @@ export default function SettingsScreen() {
               numberOfLines={6}
               textAlignVertical="top"
             />
-            <Text style={[styles.feedbackLabel, { marginTop: 20 }]}>Contact info (optional)</Text>
+            <Text style={[styles.feedbackLabel, { marginTop: 20 }]}>Email</Text>
             <TextInput
               style={styles.feedbackContactInput}
               value={contactInfo}
               onChangeText={setContactInfo}
-              placeholder="Email if you'd like a response"
+              placeholder="Your email address"
               placeholderTextColor={c.textMuted}
               keyboardType="email-address"
               autoCapitalize="none"
             />
-            <Text style={styles.feedbackNote}>Your feedback is anonymous unless you provide contact info. We read every message!</Text>
+            <Text style={styles.feedbackNote}>We read every message, and your email lets us follow up. It&rsquo;s never used for anything else.</Text>
             <TouchableOpacity
               style={[styles.feedbackSubmitButton, isSubmitting && styles.feedbackSubmitButtonDisabled]}
               onPress={handleFeedbackSubmit}

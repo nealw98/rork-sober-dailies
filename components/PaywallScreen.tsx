@@ -95,7 +95,7 @@ interface PaywallScreenProps {
 export default function PaywallScreen({ onDismiss, preview, forceTrial }: PaywallScreenProps) {
   const styles = useThemedStyles(makeStyles);
   const { c, colors } = useTokens();
-  const { offerings, isLoading, error, purchasePackage, restorePurchases, refresh, applyCustomerInfo, trialEligible } = useSubscription();
+  const { offerings, isLoading, error, purchasePackage, restorePurchases, refresh, applyCustomerInfo, trialEligible, qaForceNewUser } = useSubscription();
 
   const [selected, setSelected] = useState<'yearly' | 'monthly'>('yearly');
   const [busy, setBusy] = useState(false);
@@ -224,12 +224,23 @@ export default function PaywallScreen({ onDismiss, preview, forceTrial }: Paywal
           )}
         </View>
 
+        {/* QA: the gate is only up because the Debug Console force-new-user
+            flag is hiding grandfather/entitlement — say so, loudly, so a
+            forced paywall is never mistaken for a real subscription bug. */}
+        {qaForceNewUser && !preview && (
+          <View style={styles.qaBanner}>
+            <Text style={styles.qaBannerText}>
+              QA: Force New-User is ON — your real subscription is hidden and this paywall will return every launch. Turn it off in Settings → Debug Console.
+            </Text>
+          </View>
+        )}
+
         <Text style={styles.title}>{showTrial ? 'Your first week is free' : 'Start your journey'}</Text>
-        <Text style={styles.subtitle}>
-          {showTrial
-            ? 'Your program is set up and waiting. Start the trial to open it.'
-            : 'Recovery is built one day at a time — through the practices you return to every day.'}
-        </Text>
+        {showTrial && (
+          <Text style={styles.subtitle}>
+            You&apos;ve defined your day — now put it to work.
+          </Text>
+        )}
 
         {/* No-trial (ineligible) view — emotional value props with tinted icon tiles */}
         {!showTrial && (
@@ -491,6 +502,9 @@ const makeStyles = (tk: Tokens) => {
     scroll: { paddingHorizontal: 26, paddingTop: 20, paddingBottom: 32 },
     header: { flexDirection: 'row', alignItems: 'center' },
     close: { width: 32, height: 32, alignItems: 'center', justifyContent: 'center' },
+
+    qaBanner: { backgroundColor: isDark ? 'rgba(251,146,60,0.16)' : '#FEF0E2', borderWidth: 1, borderColor: isDark ? 'rgba(251,146,60,0.5)' : '#F0B27A', borderRadius: 12, paddingVertical: 10, paddingHorizontal: 14, marginBottom: 14 },
+    qaBannerText: { fontFamily: fontFamily.medium, fontSize: 13, lineHeight: 18, color: isDark ? '#FDBA74' : '#9A5B22' },
 
     title: { fontFamily: fontFamily.displayBold, fontSize: 32, lineHeight: 36, letterSpacing: -0.8, color: c.text },
     subtitle: { fontFamily: fontFamily.serifItalic, fontSize: 16, lineHeight: 23, color: c.textSecondary, marginTop: 10 },

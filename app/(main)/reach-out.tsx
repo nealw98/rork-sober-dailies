@@ -116,7 +116,7 @@ export default function ReachOutScreen() {
       <View style={styles.header}>
         <BackButton onPress={() => router.back()} style={{ marginBottom: 8 }} />
         <Text style={styles.title}>Talk with another alcoholic</Text>
-        <Text style={styles.sub}>Reach out — a call or a text both count.</Text>
+        <Text style={styles.sub}>Keep connected with the program.</Text>
       </View>
 
       <ScrollView style={styles.flex} contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
