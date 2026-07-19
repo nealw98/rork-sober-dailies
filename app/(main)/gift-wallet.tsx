@@ -133,7 +133,7 @@ export default function GiftWalletScreen() {
   const router = useRouter();
   const styles = useThemedStyles(makeStyles);
   const { c, colors } = useTokens();
-  const { codes, unshared, sharedPending, redeemed, setNote, markShared, syncWallet } = useGiftWallet();
+  const { codes, available, unshared, sharedPending, redeemed, setNote, markShared, syncWallet } = useGiftWallet();
 
   // Redeemed states flip on the recipient's device — refresh whenever this
   // screen comes into focus so the giver sees "Redeemed" without restarting.
@@ -259,32 +259,18 @@ export default function GiftWalletScreen() {
               </View>
             </View>
 
-            {unshared.length > 0 && (
+            {/* One list for all unredeemed codes — shared ones stay IN PLACE
+                with the gray pill (the rose/gray mix is the at-a-glance "where
+                you stand"); only redemption moves a code to RECEIVED. */}
+            {available.length > 0 && (
               <>
-                <Text style={styles.groupLabel}>READY TO GIVE</Text>
+                <Text style={styles.groupLabel}>YOUR CODES</Text>
                 <View style={styles.card}>
-                  {unshared.map((item, i) => (
+                  {available.map((item, i) => (
                     <LedgerRow
                       key={item.code}
                       item={item}
-                      last={i === unshared.length - 1}
-                      onShare={() => shareCodeGuarded(item)}
-                      onEditNote={() => setEditing(item)}
-                    />
-                  ))}
-                </View>
-              </>
-            )}
-
-            {sharedPending.length > 0 && (
-              <>
-                <Text style={[styles.groupLabel, { marginTop: 18 }]}>SHARED · WAITING TO BE REDEEMED</Text>
-                <View style={styles.card}>
-                  {sharedPending.map((item, i) => (
-                    <LedgerRow
-                      key={item.code}
-                      item={item}
-                      last={i === sharedPending.length - 1}
+                      last={i === available.length - 1}
                       onShare={() => shareCodeGuarded(item)}
                       onEditNote={() => setEditing(item)}
                     />

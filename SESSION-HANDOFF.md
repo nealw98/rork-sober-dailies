@@ -1,7 +1,7 @@
 # Session Handoff — Sober Dailies
 
 _For a fresh chat. Branch `3.0.5-redesign` (tracks `origin/3.0.5-redesign`)._
-_Last big session (2026-07-18): Invite Friends + Pass It On pricing rework + nudge system + v2-migration fixes + Debug Console redesign + Call-my-sponsor daily. Build bumped to **127** (native rebuild required — see §1); Neal has built/tested 127 on device (multi-select picker works)._
+_Last big session (2026-07-18): Invite Friends + Pass It On pricing rework + nudge system + v2-migration fixes + Debug Console redesign + Call-my-sponsor daily + wallet shared-state. Build **127** built + tested on device (multi-select picker works); the 127 **Android .aab is submitted to Play**; latest OTA on production runtime 3.0.7 covers everything through commit `1d4a70ac` (plus one uncommitted ledger tweak — see §2b)._
 
 ---
 
@@ -30,6 +30,14 @@ _Last big session (2026-07-18): Invite Friends + Pass It On pricing rework + nud
 - **⚠️ `supabase/functions/_shared/gifts.ts` has the new mint counts but is NOT DEPLOYED** — deployed server still mints 5/10. Deploy before testing any pack purchase.
 - Pricing philosophy: codes are **acquisition, not revenue** (redemption = 90-day funnel into the paywall at expiry; promotional entitlements can't auto-convert — subscribe-at-redemption via Apple offer codes was considered and REJECTED for now; expiry-nudge + post-gift paywall variant are noted future work).
 - Gift redemption is unconditional (no card, nothing renews) — that's the product's soul; don't re-propose trial-conversion at redemption.
+- **Store product setup:** Play IAPs are LIVE-configured (names "3 Months - 1 Gift Code" / "9 Months - 3 Gift Codes" / "15 Months - 5 Gift Codes" — fits Apple's 30-char display-name cap; use the same strings in ASC). Play products are NOT tied to builds (active immediately); the three ASC consumables ("Prepare for Submission") must ride the iOS 127 submission. Screen sells months, sublines + payment sheet disclose codes — decided framing.
+
+## 2b. Gift wallet — shared-state (commits `5fbf384a`, `1d4a70ac` + one uncommitted tweak)
+
+- Codes carry a local-only `sharedAt` (`gift_shared_v1`, in Backup SYNC_KEYS, merged like notes). ONE pill, three lifecycle states: **Share** (rose) → **Shared** (gray outline; tap = confirm re-share — same code, fresh message, "only the first person to redeem gets the months") → **Redeemed** (teal + date). iOS marks shared only on a real send; Android on sheet-open (can't tell).
+- Counter = "**N months to give**", counting **UNSHARED** codes only — the "of N" total was removed (meaningless). Adaptive subline: unshared>0 → "Each code unlocks 3 months"; all out → "All your codes are out — watch for redemptions."; all redeemed → "Every gift found a home."
+- `unsharedCount` feeds every "months to give" surface: wallet counter, Settings row, Pass It On wallet link, gift nudge copy.
+- **UNCOMMITTED:** ledger reverted from three groups back to ONE list ("YOUR CODES" — shared codes stay in place with the gray pill; the rose/gray mix is the at-a-glance state) + RECEIVED for redeemed. GiftInfoSheet gained a "Need to send it again?" step. Commit+OTA on Neal's word.
 
 ## 3. Nudge system (NEW — `lib/growthPrompts.ts` + `components/GrowthNudges.tsx` on Today)
 
@@ -57,8 +65,9 @@ _Last big session (2026-07-18): Invite Friends + Pass It On pricing rework + nud
 
 ## 6. Open items / next actions
 
-1. **EAS build 127** (both platforms): compiles `expo-sms` + the multi-picker Swift for the first time. Invite E2E (multi-pick → per-person composers) is device-only.
-2. **Deploy edge functions** (mint counts, §2) before any pack-purchase test.
-3. ASC: 3 gift consumables are "Prepare for Submission" — attach to the next app submission.
+1. ~~EAS build 127~~ DONE — built both platforms, tested on iOS device, **Android .aab submitted to Play**. Multi-select picker works; note it has NO search field (Apple limitation, accepted — A–Z rail only; single-select picker keeps search).
+2. **Deploy edge functions** (mint counts, §2) — STILL PENDING and now urgent-ish: deployed server mints the OLD 5/10 counts for the repurposed pack IDs, so any real pack purchase over-mints until this ships. One `supabase functions deploy` on Neal's word.
+3. ASC: 3 gift consumables are "Prepare for Submission" — attach to the iOS 127 submission (Play needs nothing; its products are live-configured).
+3b. Commit + OTA the uncommitted single-list ledger tweak (§2b).
 4. Pre-END-USER-ship removals (memory): QA Force-New-User toggle, gift-24h duration revert (already reverted? verify), redeem bypass.
 5. Deferred: RevenueCat-designed paywall swap, onboarding funnel analytics, Android Drive-backup OAuth activation, expiry-conversion funnel for gift recipients.
