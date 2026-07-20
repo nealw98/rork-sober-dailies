@@ -57,12 +57,12 @@ export default function GiftThankYouSheet({
           <Text style={styles.body}>
             {annual ? (
               <>
-                As an annual member, we’ve given you <Text style={styles.bodyBold}>5 gifts</Text> — each
+                As an annual member, we’ve given you <Text style={styles.bodyBold}>5 passes</Text> — each
                 one 3 free months of Sober Dailies for someone who needs it.
               </>
             ) : (
               <>
-                As a monthly member, we’ve given you <Text style={styles.bodyBold}>a gift</Text>: 3 free
+                As a monthly member, we’ve given you <Text style={styles.bodyBold}>a pass</Text>: 3 free
                 months of Sober Dailies for someone who needs it. Every 3 months you’re a member,
                 another arrives.
               </>
@@ -71,7 +71,7 @@ export default function GiftThankYouSheet({
         </View>
 
         <TouchableOpacity style={styles.cta} onPress={onSeeGifts} activeOpacity={0.85} accessibilityRole="button">
-          <Text style={styles.ctaText}>{annual ? 'See your gifts' : 'See your gift'}</Text>
+          <Text style={styles.ctaText}>{annual ? 'See your passes' : 'See your pass'}</Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.quietBtn} onPress={onClose} activeOpacity={0.6} accessibilityRole="button">
           <Text style={styles.quietBtnText}>Later</Text>

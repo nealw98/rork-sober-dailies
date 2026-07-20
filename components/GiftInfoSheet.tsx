@@ -11,10 +11,10 @@ import { useTokens, useThemedStyles } from '@/hooks/useTokens';
 const ROSE_FILL = lightColors.rose; // CTA keeps full chroma in both modes
 
 const STEPS: { t: string; d: string }[] = [
-  { t: 'You receive gifts with membership', d: 'Annual members receive 5 gifts a year. Monthly members receive one at signup and another every 3 months. Each gift is 3 free months of everything in the app.' },
-  { t: 'Give one away', d: 'Pick someone from your contacts and a personal text goes to them — a sponsee, a newcomer, anyone who could use it. Each gift is a private link, just for them.' },
+  { t: 'You receive passes with membership', d: 'Annual members receive 5 passes a year. Monthly members receive one at signup and another every 3 months. Each pass is 3 free months of everything in the app.' },
+  { t: 'Give one away', d: 'Pick someone from your contacts and a personal text goes to them — a sponsee, a newcomer, anyone who could use it. Each pass is a private link, just for them.' },
   { t: 'They get 3 months free', d: 'Your friend opens the link, picks a plan, and their app store sets them up — 3 months free, nothing charged, cancel anytime. They install the app and everything is already unlocked.' },
-  { t: 'Sent it to the wrong person?', d: 'A gift belongs to whoever uses it first — if your friend already has the app, they can pass the same link along to someone who needs it.' },
+  { t: 'Sent it to the wrong person?', d: 'A pass belongs to whoever uses it first — if your friend already has the app, they can pass the same link along to someone who needs it.' },
   { t: 'After the 3 months', d: 'They decide for themselves whether to keep going — their app store reminds them before anything is billed.' },
 ];
 

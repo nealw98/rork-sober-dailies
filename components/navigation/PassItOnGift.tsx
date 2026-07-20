@@ -25,7 +25,7 @@ export default function PassItOnGift({ style }: { style?: StyleProp<ViewStyle> }
       onPress={() => router.push('/(main)/pass-it-on' as Href)}
       hitSlop={10}
       accessibilityRole="button"
-      accessibilityLabel={`Pass It On — ${balance} ${balance === 1 ? 'gift' : 'gifts'} to give`}
+      accessibilityLabel={`Pass It On — ${balance} ${balance === 1 ? 'pass' : 'passes'} to give`}
       style={style}
     >
       <View>

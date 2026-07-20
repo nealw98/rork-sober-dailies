@@ -38,15 +38,15 @@ export default function GiftSentSheet({
               <Check size={13} color="#FFFFFF" strokeWidth={3} />
             </View>
           </View>
-          <Text style={styles.title}>Gift sent</Text>
+          <Text style={styles.title}>Pass sent</Text>
           <Text style={styles.body}>
             {name
               ? `${name} just got 3 months of Sober Dailies from you. When they open your link, everything unlocks — nothing to pay.`
-              : 'Your gift is on its way. When they open your link, everything unlocks — nothing to pay.'}
+              : 'Your pass is on its way. When they open your link, everything unlocks — nothing to pay.'}
           </Text>
           {balance > 0 && (
             <Text style={styles.receipt}>
-              You have {balance} {balance === 1 ? 'gift' : 'gifts'} to give
+              You have {balance} {balance === 1 ? 'pass' : 'passes'} to give
             </Text>
           )}
         </View>
@@ -56,7 +56,7 @@ export default function GiftSentSheet({
         </TouchableOpacity>
         {balance > 0 && (
           <TouchableOpacity style={styles.quietBtn} onPress={onGiveAnother} activeOpacity={0.6} accessibilityRole="button">
-            <Text style={styles.quietBtnText}>Give another gift</Text>
+            <Text style={styles.quietBtnText}>Give another pass</Text>
           </TouchableOpacity>
         )}
       </View>

@@ -125,12 +125,12 @@ export default function GrowthNudges() {
               <Text style={styles.sheetTitle}>Pass it on</Text>
               <Text style={styles.sheetBody}>
                 {hasGifts
-                  ? `You have ${balance} ${balance === 1 ? 'gift' : 'gifts'} to give — 3 free months each. Know a sponsee or newcomer who could use one?`
-                  : 'Know a sponsee or newcomer who could use three months of Sober Dailies? Gifts come with membership.'}
+                  ? `You have ${balance} ${balance === 1 ? 'pass' : 'passes'} to give — 3 free months each. Know a sponsee or newcomer who could use one?`
+                  : 'Know a sponsee or newcomer who could use three months of Sober Dailies? Members receive passes to give.'}
               </Text>
             </View>
             <TouchableOpacity style={styles.sheetCta} onPress={giftAct} activeOpacity={0.85} accessibilityRole="button">
-              <Text style={styles.sheetCtaText}>{hasGifts ? 'Give a gift' : 'Pass It On'}</Text>
+              <Text style={styles.sheetCtaText}>{hasGifts ? 'Give a pass' : 'Pass It On'}</Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.quietBtn} onPress={giftDismiss} activeOpacity={0.6} accessibilityRole="button">
               <Text style={styles.quietBtnText}>Not now</Text>

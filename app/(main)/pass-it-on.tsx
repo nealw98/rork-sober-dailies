@@ -84,26 +84,26 @@ export default function PassItOnScreen() {
   // announcement of new gifts happens post-subscribe (PaywallScreen) — this
   // copy never has to explain the program, just the inventory.
   const earnCopy: Record<PlanKind, string> = {
-    annual: 'You receive 5 gifts each membership year',
-    monthly: 'You received a gift when you joined — a new one arrives every 3 months',
-    founding: 'You’ve been here from the start — 5 gifts a year, from us',
-    none: 'Members receive gifts to give',
+    annual: 'You receive 5 passes each membership year',
+    monthly: 'You received a pass when you joined — a new one arrives every 3 months',
+    founding: 'You’ve been here from the start — 5 passes a year, from us',
+    none: 'Members receive passes to give',
   };
 
   const hero = loading
-    ? { title: 'Checking your gifts…', sub: ' ' }
+    ? { title: 'Checking your passes…', sub: ' ' }
     : balance > 0
       ? {
-          title: `You have ${balance} ${balance === 1 ? 'gift' : 'gifts'} to give`,
+          title: `You have ${balance} ${balance === 1 ? 'pass' : 'passes'} to give`,
           sub: balance === 1
             ? 'Send it to someone who could use 3 free months — a sponsee, a newcomer, a friend'
             : 'Send them to people who could use 3 free months — sponsees, newcomers, friends',
         }
       : plan === 'monthly'
-        ? { title: 'Your next gift is on its way', sub: 'A new one arrives every 3 months you’re a member' }
+        ? { title: 'Your next pass is on its way', sub: 'A new one arrives every 3 months you’re a member' }
         : plan === 'none'
-          ? { title: 'Members receive gifts to give', sub: '3 free months for someone who needs it' }
-          : { title: 'All your gifts are out in the world', sub: 'Fresh ones arrive with your next membership year' };
+          ? { title: 'Members receive passes to give', sub: '3 free months for someone who needs it' }
+          : { title: 'All your passes are out in the world', sub: 'Fresh ones arrive with your next membership year' };
 
   // Send one gift: token (minted or reused) → contact → individually
   // addressed text. Only a composer that actually SENDS consumes the pending
@@ -114,7 +114,7 @@ export default function PassItOnScreen() {
     try {
       const pending = await getShareLink();
       if (!pending) {
-        Alert.alert('Not right now', 'We couldn’t prepare your gift. Check your connection and try again.');
+        Alert.alert('Not right now', 'We couldn’t prepare your pass. Check your connection and try again.');
         return;
       }
       const message = giftMessage(pending.link);
@@ -241,18 +241,12 @@ export default function PassItOnScreen() {
           <Text style={styles.earnText}>{earnCopy[plan]}</Text>
         </View>
 
-        {/* Zero-credit, not-yet-annual: the honest annual pitch (never while loading) */}
-        {!loading && balance <= 0 && (plan === 'monthly' || plan === 'none') && (
-          <View style={styles.pitch}>
-            <Text style={styles.pitchTitle}>Want 5 gifts a year, right away?</Text>
-            <Text style={styles.pitchBody}>
-              Go annual and 5 gifts arrive immediately — and it costs less than paying monthly.
-            </Text>
-          </View>
-        )}
+        {/* Annual-upsell pitch removed (Neal, 2026-07-20): nobody switches
+            plans to give more passes. Buying passes may return in a future
+            release instead. */}
 
         <Text style={styles.footnote}>
-          A gift is a private link that unlocks 3 free months for someone new — a sponsee, a
+          A pass is a private link that unlocks 3 free months for someone new — a sponsee, a
           newcomer, anyone who could use it. They pick their own plan; nothing is charged for
           3 months and they can cancel anytime.
         </Text>
@@ -335,14 +329,6 @@ const makeStyles = (tk: Tokens) => {
       paddingVertical: 12, paddingHorizontal: 14, marginTop: 16,
     },
     earnText: { fontFamily: fontFamily.regular, fontSize: 13, lineHeight: 19, color: c.textSecondary },
-
-    pitch: {
-      borderWidth: 1, borderColor: isDark ? 'rgba(217,131,143,0.5)' : '#E3BCC3',
-      backgroundColor: colors.roseSoft, borderRadius: 12,
-      paddingVertical: 12, paddingHorizontal: 14, marginTop: 10,
-    },
-    pitchTitle: { fontFamily: fontFamily.semiBold, fontSize: 13.5, color: c.text },
-    pitchBody: { fontFamily: fontFamily.regular, fontSize: 12.5, lineHeight: 18, color: colors.roseDark, marginTop: 2 },
 
     footnote: { fontFamily: fontFamily.regular, fontSize: 12.5, lineHeight: 19, color: c.textMuted, marginTop: 18, marginHorizontal: 6 },
   });

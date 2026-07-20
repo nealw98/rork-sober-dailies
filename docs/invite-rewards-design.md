@@ -443,3 +443,14 @@ detect and fall back to a promo-grant code). Signup/subscriber attribution
 - Already-premium senders: option (b) above OK?
 - Does the reward need copy/UX on the website side ("your friend gets…")? The
   current `/get` page says nothing about the sender; probably fine for v1.
+
+## §0 addendum (2026-07-20, post-launch copy decisions)
+- TERMINOLOGY: the unit is a **PASS**, not a "gift" ("You have 5 passes to
+  give", "Pass sent", "A pass from a friend" on /get). Resonates with Pass
+  It On. Code identifiers/tables keep their gift_* names — copy only.
+- Annual-upsell pitch card REMOVED from Pass It On (nobody switches plans to
+  give more passes). Possible future release: BUY passes (note: revisit the
+  sell-offer-codes compliance question before building).
+- Designed moments shipped (thank-you sheet via Today pending-flag handoff,
+  gift-sent sheet, give-vs-share rows, hero dots + shimmer) per the Claude
+  design handoff bundle.
