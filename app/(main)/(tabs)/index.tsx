@@ -26,7 +26,7 @@ import { useDailies, type DailyItem, type WhenBucket } from '@/hooks/use-dailies
 import { useReflectionHeroImage } from '@/hooks/useReflectionHeroImage';
 import { maybeAskForReview } from '@/lib/reviewPrompt';
 import SobrietyCounter from '@/components/SobrietyCounter';
-import GrowthNudges from '@/components/GrowthNudges';
+import { recordUseDay } from '@/lib/growthPrompts';
 import GiftThankYouSheet from '@/components/GiftThankYouSheet';
 import { consumePendingAnnouncement, type AnnouncePlan } from '@/lib/creditsService';
 import { pickContact } from '@/lib/pickContact';
@@ -224,6 +224,11 @@ export default function TodayScreen() {
   const [announcePlan, setAnnouncePlan] = useState<AnnouncePlan | null>(null);
   useEffect(() => {
     consumePendingAnnouncement().then((plan) => { if (plan) setAnnouncePlan(plan); });
+    // Growth nudges are retired (Neal, 2026-07-20: the only pass reminders
+    // are the post-subscribe thank-you and the badged gift icon) — but the
+    // use-day stamp survives them: the app-review prompt's 15-day wait
+    // measures from firstUseAt, which recordUseDay writes.
+    recordUseDay();
   }, []);
 
   const chooseSponsor = async (thenSheet: boolean) => {
@@ -323,9 +328,6 @@ export default function TodayScreen() {
   const topContent = (
     <>
       <SobrietyCounter />
-      {/* Word-of-mouth nudges: milestone invite card inline here; the gift
-          sheet presents itself modally at app open (see GrowthNudges). */}
-      <GrowthNudges />
       {announcePlan && (
         <GiftThankYouSheet
           plan={announcePlan}

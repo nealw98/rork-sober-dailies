@@ -460,3 +460,7 @@ detect and fall back to a promo-grant code). Signup/subscriber attribution
   Client-side unique-send telemetry retired with it; invites-report stays
   deployed but idle. The pass flow (contact pick → personal text) is
   unchanged — it's the personal path; sharing is just spreading the word.
+- NUDGES RETIRED (Neal, 2026-07-20): GrowthNudges (periodic invite card +
+  gift sheet) deleted. The ONLY pass reminders are the post-subscribe
+  thank-you sheet and the badged gift icon. recordUseDay still runs on
+  Today mount — the app-review prompt's 15-day wait reads firstUseAt.
