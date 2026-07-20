@@ -6,26 +6,14 @@
 import { createClient, SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 export const ENTITLEMENT_ID = 'premium';
-// RC promotional duration a redeemed gift grants.
-// ⚠️⚠️ TESTING (set 2026-07-13): default is 'daily' (24h) so testers can watch a
-// gifted entitlement EXPIRE within a day. **REVERT TO 'three_month' BEFORE
-// LAUNCH** — otherwise real recipients get 24 hours instead of 3 months.
-// (A GIFT_ENTITLEMENT_DURATION secret, if ever set, still overrides this.)
-// Valid values: daily | three_day | weekly | monthly | two_month | three_month
-//               | six_month | yearly | lifetime.
-export const GIFT_ENTITLEMENT_DURATION = Deno.env.get('GIFT_ENTITLEMENT_DURATION') ?? 'daily';
+// RC promotional duration a redeemed code grants. LAUNCH VALUE: 'three_month'
+// (the QA 'daily' default was reverted 2026-07-20 during the post-launch
+// cleanup audit — the Android pass fallback redeems through gifts-redeem, so
+// this is a production path). A GIFT_ENTITLEMENT_DURATION secret still
+// overrides for QA. Valid values: daily | three_day | weekly | monthly |
+// two_month | three_month | six_month | yearly | lifetime.
+export const GIFT_ENTITLEMENT_DURATION = Deno.env.get('GIFT_ENTITLEMENT_DURATION') ?? 'three_month';
 export const REVENUECAT_API_URL = 'https://api.revenuecat.com/v1';
-
-// Server-side source of truth for how many codes each SKU mints. Mirrors
-// lib/giftProducts.ts on the client — the client is never trusted for the count.
-// ⚠️ The _pack5/_pack10 suffixes predate the Jul 18 re-lineup — ASC product
-// IDs are immutable, so the old pack products were REPURPOSED: pack5 now sells
-// 3 codes ("9 months"), pack10 sells 5 ("15 months"). Mirrors lib/giftProducts.ts.
-export const GIFT_PRODUCTS: Record<string, number> = {
-  gift_3mo_single: 1,
-  gift_3mo_pack5: 3,
-  gift_3mo_pack10: 5,
-};
 
 export const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -57,38 +45,6 @@ function randomBlock(): string {
 
 export function generateCode(): string {
   return `SD-${randomBlock()}-${randomBlock()}`;
-}
-
-// The wire shape consumed by the app's use-gift-wallet hook.
-export interface GiftCodeWire {
-  code: string;
-  status: 'available' | 'redeemed';
-  purchasedAt: string;
-  redeemedAt?: string;
-}
-
-// deno-lint-ignore no-explicit-any
-export function toWire(row: any): GiftCodeWire {
-  return {
-    code: row.code,
-    status: row.status,
-    purchasedAt: row.created_at,
-    ...(row.redeemed_at ? { redeemedAt: row.redeemed_at } : {}),
-  };
-}
-
-// A giver's full wallet, newest first (matches the design's ledger order).
-export async function fetchWallet(
-  supabase: SupabaseClient,
-  buyerAnonymousId: string,
-): Promise<GiftCodeWire[]> {
-  const { data, error } = await supabase
-    .from('gift_codes')
-    .select('code, status, created_at, redeemed_at')
-    .eq('buyer_anonymous_id', buyerAnonymousId)
-    .order('created_at', { ascending: false });
-  if (error) throw error;
-  return (data ?? []).map(toWire);
 }
 
 // GET a RevenueCat subscriber (secret key). Returns the parsed body or null.

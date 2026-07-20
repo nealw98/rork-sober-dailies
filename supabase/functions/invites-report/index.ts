@@ -4,7 +4,7 @@
 //  → { success, unique_sends, total_sends }
 //
 // recipient_hashes are SHA-256 hex digests computed on the device (salted with
-// the sender's own anonymous_id — see lib/inviteService.ts); the server never
+// the sender's own anonymous_id; the server never
 // sees a phone number. The invite_sends_report SQL function upserts on the
 // (sender, hash) PK, so re-sends to the same friend count once. An
 // empty/absent array turns the call into a pure status read.

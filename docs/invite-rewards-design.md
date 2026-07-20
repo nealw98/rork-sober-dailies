@@ -464,3 +464,14 @@ detect and fall back to a promo-grant code). Signup/subscriber attribution
   gift sheet) deleted. The ONLY pass reminders are the post-subscribe
   thank-you sheet and the badged gift icon. recordUseDay still runs on
   Today mount — the app-review prompt's 15-day wait reads firstUseAt.
+- CLEANUP AUDIT (2026-07-20): deleted dead code left by the pivot —
+  lib/giftProducts.ts, purchase/wallet exports in lib/giftService.ts (now
+  redeem-only), growth-slot logic in lib/growthPrompts.ts (now just the
+  use-day clock for reviewPrompt), modules/contact-multi-picker (unused
+  native module; leaves the binary at next build), and the gifts-purchase +
+  gifts-wallet edge functions (local files removed; remote deployments are
+  orphaned and can be deleted in the dashboard whenever). CRITICAL FIX
+  found by the audit: GIFT_ENTITLEMENT_DURATION default was still the QA
+  'daily' — reverted to 'three_month' and gifts-redeem REDEPLOYED (the
+  Android pass fallback redeems through it; recipients now get 3 months,
+  not 24 hours). invites-report stays deployed but idle.

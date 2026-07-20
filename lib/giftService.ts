@@ -1,11 +1,12 @@
-// Pass It On — client for the gifts-* edge functions.
+// SD-code redemption — client for the gifts-redeem edge function.
 //
-// The wallet is server-authoritative now: codes are minted server-side after a
-// verified purchase, and redeemed-state changes happen on other people's
-// devices, so the client can only ever mirror what the backend says. Every call
-// carries the device identity (anonymous_id) + the RevenueCat app_user_id — the
-// same pair check-grandfather uses — so the redeem grant lands on the right
-// RC subscriber.
+// The only surviving piece of the old purchased-codes system (purchase and
+// wallet retired in the 2026-07-20 acquisition pivot): "Have a code?" on the
+// paywall and the redeem screen still accept SD-XXXX-XXXX codes — legacy
+// purchased codes and the codes the /get page mints for Android pass
+// recipients both redeem here for a 3-month RC promotional grant. Every call
+// carries the device identity (anonymous_id) + the RevenueCat app_user_id so
+// the grant lands on the right RC subscriber.
 //
 // We use raw fetch (not supabase.functions.invoke) so redeem's structured 4xx
 // bodies — reason: 'already_redeemed' | 'self_redemption' | ... — come back
@@ -16,13 +17,6 @@ import { SUPABASE_URL, SUPABASE_ANON_KEY } from '@/lib/supabase';
 import { getAnonymousId } from '@/lib/anonymousId';
 
 const FN_BASE = `${SUPABASE_URL}/functions/v1`;
-
-export interface WalletCode {
-  code: string;
-  status: 'available' | 'redeemed';
-  purchasedAt: string;
-  redeemedAt?: string;
-}
 
 export type RedeemReason =
   | 'invalid'
@@ -64,36 +58,6 @@ async function callFn<T>(name: string, body: Record<string, unknown>): Promise<{
   });
   const data = (await res.json().catch(() => ({}))) as T;
   return { status: res.status, data };
-}
-
-// Verify the just-completed purchase and mint codes server-side. Returns the
-// giver's full wallet so the caller can replace its cache.
-export async function purchaseGiftCodes(productId: string): Promise<WalletCode[]> {
-  const id = await identity();
-  const { data } = await callFn<{ success: boolean; wallet?: WalletCode[]; message?: string }>(
-    'gifts-purchase',
-    { ...id, product_id: productId },
-  );
-  if (!data.success) throw new Error(data.message || 'Could not add your gifts. Please try again.');
-  return data.wallet ?? [];
-}
-
-// Sync the giver's wallet (redeemed states may have changed elsewhere). Returns
-// null when the server didn't answer with a wallet (network error, function not
-// deployed yet) so callers can leave their cache untouched instead of blanking
-// it; an empty array means the server authoritatively has no codes.
-export async function fetchGiftWallet(): Promise<WalletCode[] | null> {
-  const { anonymous_id } = await identity();
-  try {
-    const { status, data } = await callFn<{ success: boolean; wallet?: WalletCode[] }>(
-      'gifts-wallet',
-      { anonymous_id },
-    );
-    if (status !== 200 || !data.success) return null;
-    return data.wallet ?? [];
-  } catch {
-    return null;
-  }
 }
 
 // Redeem a code for THIS device's recipient identity.
