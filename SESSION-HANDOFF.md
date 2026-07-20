@@ -92,3 +92,5 @@ Pass It On / gift-wallet / paywall pricing. Headlines:
 - **Phase 3 (app) is the remaining build:** wallet → credits UI + share flow
   (invite-picker pattern → SMS with /get?g=<token> link); retire the pack
   purchase UI; keep the legacy code ledger for outstanding purchased codes.
+
+(Design work on these surfaces: see docs/design-brief-gift-surfaces.md.)
