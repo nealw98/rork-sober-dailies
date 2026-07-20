@@ -14,10 +14,9 @@ import React, { useEffect, useRef, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, Share, Animated } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Stack, useRouter, type Href } from 'expo-router';
-import { ChevronRight, HelpCircle, UserPlus } from 'lucide-react-native';
+import { ChevronRight, UserPlus } from 'lucide-react-native';
 import BackButton from '@/components/BackButton';
 import GiftGlyph from '@/components/GiftGlyph';
-import GiftInfoSheet from '@/components/GiftInfoSheet';
 import GiftSentSheet from '@/components/GiftSentSheet';
 import { fontFamily, shadows, colors as lightColors, type Tokens } from '@/constants/designTokens';
 import { useTokens, useThemedStyles } from '@/hooks/useTokens';
@@ -55,7 +54,6 @@ export default function PassItOnScreen() {
   const { customerInfo, isGrandfathered, isEntitled } = useSubscription();
 
   const [busy, setBusy] = useState(false);
-  const [infoVisible, setInfoVisible] = useState(false);
   // Gift-sent sheet (design handoff §4): name null = OS share sheet path.
   const [sent, setSent] = useState<{ name: string | null; balance: number } | null>(null);
 
@@ -158,19 +156,9 @@ export default function PassItOnScreen() {
     <SafeAreaView style={styles.screen} edges={['top']}>
       <Stack.Screen options={{ headerShown: false }} />
       <View style={styles.header}>
-        <View style={styles.headerTop}>
-          <BackButton onPress={() => router.back()} />
-          <TouchableOpacity
-            style={styles.howBtn}
-            onPress={() => setInfoVisible(true)}
-            activeOpacity={0.7}
-            accessibilityRole="button"
-            accessibilityLabel="How Pass It On works"
-          >
-            <HelpCircle size={15} color={colors.roseDark} strokeWidth={2} />
-            <Text style={styles.howBtnText}>Learn more</Text>
-          </TouchableOpacity>
-        </View>
+        {/* No "Learn more" sheet (Neal, 2026-07-20): the offer is simple
+            enough — the footnote carries what a recipient gets. */}
+        <BackButton onPress={() => router.back()} style={{ marginBottom: 8 }} />
         <Text style={styles.title}>Pass It On</Text>
         <Text style={styles.sub}>Give someone their first 90 days</Text>
       </View>
@@ -253,7 +241,6 @@ export default function PassItOnScreen() {
         </Text>
       </ScrollView>
 
-      <GiftInfoSheet visible={infoVisible} onClose={() => setInfoVisible(false)} />
       {sent && (
         <GiftSentSheet
           name={sent.name}
@@ -267,17 +254,10 @@ export default function PassItOnScreen() {
 }
 
 const makeStyles = (tk: Tokens) => {
-  const { c, colors, isDark } = tk;
+  const { c, colors } = tk;
   return StyleSheet.create({
     screen: { flex: 1, backgroundColor: c.background },
     header: { paddingHorizontal: 22, paddingTop: 8, paddingBottom: 22 },
-    headerTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 },
-    howBtn: {
-      flexDirection: 'row', alignItems: 'center', gap: 5, height: 34, paddingHorizontal: 12,
-      borderRadius: 999, backgroundColor: colors.roseSoft, borderWidth: 1,
-      borderColor: isDark ? 'rgba(217,131,143,0.4)' : '#E3BCC3',
-    },
-    howBtnText: { fontFamily: fontFamily.semiBold, fontSize: 13, color: colors.roseDark },
     title: { fontFamily: fontFamily.display, fontSize: 28, letterSpacing: -0.5, color: c.text, lineHeight: 29 },
     sub: { fontFamily: fontFamily.regular, fontSize: 14, lineHeight: 19, color: c.textMuted, marginTop: 6 },
     scroll: { paddingHorizontal: 20, paddingTop: 4, paddingBottom: 48 },
