@@ -1,8 +1,8 @@
-// "How Pass It On works" — a shared instructions sheet for the purchase screen
-// and the wallet (opened by the ? button in each header). Four steps, including
-// how the recipient redeems a code. NOTE: step 3 describes the "Have a code?"
-// redemption entry point, which is built in the paywall sprint — these
-// instructions assume it exists before Pass It On ships to real users.
+// "How Pass It On works" — the instructions sheet behind the ? button on the
+// Pass It On screen. Credits model (docs/invite-rewards-design.md §0): gifts
+// are earned with membership, each one is a link that unlocks 3 free months
+// for someone new, and the whole thing runs through the recipient's own
+// app store — no codes to read out, nothing for the giver to track.
 import React from 'react';
 import { View, Text, StyleSheet, Modal, Pressable, TouchableOpacity } from 'react-native';
 import { fontFamily, shadows, colors as lightColors, type Tokens } from '@/constants/designTokens';
@@ -11,12 +11,11 @@ import { useTokens, useThemedStyles } from '@/hooks/useTokens';
 const ROSE_FILL = lightColors.rose; // CTA keeps full chroma in both modes
 
 const STEPS: { t: string; d: string }[] = [
-  { t: 'Fill your bank of months', d: 'Buy 3, 9, or 15 months at a time. You give them out as codes — each code is a 3-month pass to everything in the app.' },
-  { t: 'Share a code', d: 'Hand it out however you like — in person, by text, or at a meeting.' },
-  { t: 'They redeem it', d: 'They install the free Sober Dailies app and tap “Have a code?” on the subscribe screen, then enter the code. Three months of full access unlock right away — no charge, and nothing renews.' },
-  { t: 'Need to send it again?', d: 'Until a code is redeemed you can share it again — just tap its gray “Shared” button in your wallet. Only the first person to redeem a code gets the months.' },
-  { t: 'When it runs out', d: 'After three months, they’re asked to subscribe on their own — or redeem another code from you.' },
-  { t: 'Track your gifts', d: 'Your wallet shows which codes are still available and which have been redeemed. Add a private note to remember who each one is for.' },
+  { t: 'You receive gifts with membership', d: 'Annual members receive 5 gifts a year. Monthly members receive one at signup and another every 3 months. Each gift is 3 free months of everything in the app.' },
+  { t: 'Give one away', d: 'Pick someone from your contacts and a personal text goes to them — a sponsee, a newcomer, anyone who could use it. Each gift is a private link, just for them.' },
+  { t: 'They get 3 months free', d: 'Your friend opens the link, picks a plan, and their app store sets them up — 3 months free, nothing charged, cancel anytime. They install the app and everything is already unlocked.' },
+  { t: 'Sent it to the wrong person?', d: 'A gift belongs to whoever uses it first — if your friend already has the app, they can pass the same link along to someone who needs it.' },
+  { t: 'After the 3 months', d: 'They decide for themselves whether to keep going — their app store reminds them before anything is billed.' },
 ];
 
 export default function GiftInfoSheet({ visible, onClose }: { visible: boolean; onClose: () => void }) {

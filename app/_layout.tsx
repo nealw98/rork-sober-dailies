@@ -73,7 +73,6 @@ import { ContactsProvider } from "@/hooks/use-contacts-store";
 import { LastSponsorProvider } from "@/hooks/use-last-sponsor";
 import { PdfBookmarksProvider } from "@/hooks/use-pdf-bookmarks";
 import { SpeakerFavoritesProvider } from "@/hooks/use-speaker-favorites";
-import { GiftWalletProvider } from "@/hooks/use-gift-wallet";
 import { CloudSyncGate } from "@/hooks/use-cloud-sync";
 import { ActionSheetProvider } from "@expo/react-native-action-sheet";
 import { ImmersiveProvider } from "@/hooks/use-immersive";
@@ -372,7 +371,6 @@ export default function RootLayout() {
                     <LastSponsorProvider>
                     <PdfBookmarksProvider>
                     <SpeakerFavoritesProvider>
-                    <GiftWalletProvider>
                     <ImmersiveProvider>
                       <GestureHandlerRootView style={{ flex: 1 }}>
                         <KeyboardProvider>
@@ -393,7 +391,6 @@ export default function RootLayout() {
                         </KeyboardProvider>
                       </GestureHandlerRootView>
                     </ImmersiveProvider>
-                    </GiftWalletProvider>
                     </SpeakerFavoritesProvider>
                     </PdfBookmarksProvider>
                     </LastSponsorProvider>

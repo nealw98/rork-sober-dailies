@@ -19,6 +19,7 @@ import BackButton from '@/components/BackButton';
 import { fontFamily, shadows, type Tokens } from '@/constants/designTokens';
 import { useTokens, useThemedStyles } from '@/hooks/useTokens';
 import { logEvent } from '@/lib/analytics';
+import { reportInviteSends } from '@/lib/inviteService';
 import { getUrl } from '@/lib/storeLinks';
 import { presentContactMultiPickerAsync, type PickedPhone } from '@/modules/contact-multi-picker';
 
@@ -121,18 +122,25 @@ export default function InviteScreen() {
     }
     setSending(true);
     let sent = 0;
+    const sentPhones: string[] = [];
     try {
       for (let i = 0; i < invitees.length; i++) {
         if (i > 0) await new Promise((r) => setTimeout(r, 400));
         const { result } = await SMS.sendSMSAsync([invitees[i].phone], INVITE_MESSAGE);
         logEvent('invite_friends', { action: 'composer_closed', result });
-        if (result === 'sent' || result === 'unknown') sent++; // Android can't confirm — count as attempted
+        if (result === 'sent' || result === 'unknown') {
+          sent++; // Android can't confirm — count as attempted
+          sentPhones.push(invitees[i].phone);
+        }
       }
     } catch (e) {
       console.warn('[invite] send failed', e);
     }
     setSending(false);
     logEvent('invite_friends', { action: 'batch_done', selected: invitees.length, sent });
+    // Best-effort unique-send tally (numbers are hashed on-device; see
+    // lib/inviteService.ts). Fire-and-forget — never delays the thank-you.
+    if (sentPhones.length > 0) reportInviteSends(sentPhones);
     setInvitees([]);
     if (sent > 0) {
       Alert.alert(
@@ -181,10 +189,20 @@ export default function InviteScreen() {
           </View>
         )}
         ListFooterComponent={
-          <Pressable style={styles.addBtn} onPress={addFriend} accessibilityRole="button" accessibilityLabel="Add from contacts">
-            <Plus size={16} color={colors.roseDark} strokeWidth={2.2} />
-            <Text style={styles.addBtnText}>Add from contacts</Text>
-          </Pressable>
+          <>
+            <Pressable style={styles.addBtn} onPress={addFriend} accessibilityRole="button" accessibilityLabel="Add from contacts">
+              <Plus size={16} color={colors.roseDark} strokeWidth={2.2} />
+              <Text style={styles.addBtnText}>Add from contacts</Text>
+            </Pressable>
+            {/* The other path: gifts (3 free months, earned with membership). */}
+            <Pressable
+              style={styles.giftLink}
+              onPress={() => router.push('/(main)/pass-it-on')}
+              accessibilityRole="button"
+            >
+              <Text style={styles.giftLinkText}>Want to give someone 3 free months? Pass It On</Text>
+            </Pressable>
+          </>
         }
       />
 
@@ -231,6 +249,8 @@ const makeStyles = (tk: Tokens) => {
 
     addBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, marginTop: 4, paddingVertical: 13, borderRadius: 16, borderWidth: 1.5, borderColor: CO + '77', borderStyle: 'dashed' },
     addBtnText: { fontFamily: fontFamily.semiBold, fontSize: 14, color: CO_DARK },
+    giftLink: { alignItems: 'center', paddingVertical: 14, marginTop: 6 },
+    giftLinkText: { fontFamily: fontFamily.semiBold, fontSize: 13, color: CO_DARK },
 
     footer: { position: 'absolute', left: 0, right: 0, bottom: 0, paddingHorizontal: 16, paddingTop: 12, backgroundColor: c.background, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: c.border },
     sendBtn: { paddingVertical: 15, borderRadius: 16, alignItems: 'center', backgroundColor: CO_DARK, ...shadows.sm },

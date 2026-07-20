@@ -28,8 +28,10 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Bell, Check, Lock, MessageCircle, RefreshCw, SlidersHorizontal, Star, TrendingUp, Wrench, X } from 'lucide-react-native';
 import { type PurchasesPackage } from 'react-native-purchases';
+import { router, type Href } from 'expo-router';
 import { useSubscription } from '@/hooks/useSubscription';
 import { redeemGiftCode, type RedeemReason } from '@/lib/giftService';
+import { fetchCreditStatus } from '@/lib/creditsService';
 import { logEvent } from '@/lib/analytics';
 import { fontFamily, shadows, type Tokens } from '@/constants/designTokens';
 import { useTokens, useThemedStyles } from '@/hooks/useTokens';
@@ -90,6 +92,25 @@ interface PaywallScreenProps {
   // no-trial layout instead of deriving it from real store eligibility.
   preview?: boolean;
   forceTrial?: boolean;
+}
+
+// The post-subscribe thank-you (decided 2026-07-20): the ANNOUNCEMENT of the
+// gifts lives here, at the moment of subscribing — the Pass It On screen just
+// shows the inventory. fetchCreditStatus() first: the server mints the signup
+// grants on that call (grant-on-read), so the badge and the words land
+// together. The native Alert survives the paywall gate dropping to Today.
+function announceGifts(n: number) {
+  fetchCreditStatus().finally(() => {
+    const gifts = n === 1 ? 'a gift' : `${n} gifts`;
+    Alert.alert(
+      'Thank you for subscribing',
+      `As a thank-you, we've given you ${gifts} to pass on — ${n === 1 ? 'it unlocks' : 'each one unlocks'} 3 free months of Sober Dailies for someone who needs it.`,
+      [
+        { text: 'See your gifts', onPress: () => router.push('/(main)/pass-it-on' as Href) },
+        { text: 'Later', style: 'cancel' },
+      ],
+    );
+  });
 }
 
 export default function PaywallScreen({ onDismiss, preview, forceTrial }: PaywallScreenProps) {
@@ -183,7 +204,10 @@ export default function PaywallScreen({ onDismiss, preview, forceTrial }: Paywal
     logEvent('paywall_purchase_tapped', { plan: selected });
     try {
       const info = await purchasePackage(chosen);
-      if (info) applyCustomerInfo(info); // flips isPremium next render → gate drops
+      if (info) {
+        applyCustomerInfo(info); // flips isPremium next render → gate drops
+        announceGifts(selected === 'yearly' ? 5 : 1);
+      }
       refresh();
     } catch {
       // RC surfaces user-cancel as a throw; nothing to do.

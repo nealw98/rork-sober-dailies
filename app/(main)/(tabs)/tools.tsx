@@ -29,7 +29,6 @@ import GiftGlyph from '@/components/GiftGlyph';
 import SettingsGear from '@/components/navigation/SettingsGear';
 import PassItOnGift from '@/components/navigation/PassItOnGift';
 import { useScreenTimeTracking } from '@/hooks/useScreenTimeTracking';
-import { useGiftWallet } from '@/hooks/use-gift-wallet';
 
 /**
  * Tools — the app's launcher (redesign 3.0). A featured Literature hero, the two
@@ -129,7 +128,6 @@ export default function ToolsScreen() {
   const { width: screenW } = useWindowDimensions();
   const styles = useThemedStyles(makeStyles);
   const { isDark, colors, c } = useTokens();
-  const { hasEverBought } = useGiftWallet();
   useScreenTimeTracking('Tools');
 
   const heroH = Math.round((screenW - H_PAD * 2) * 0.55);
@@ -188,9 +186,7 @@ export default function ToolsScreen() {
               app={app}
               color={colors[app.tone]}
               width={tileW}
-              onPress={() => router.push(
-                app.id === 'passiton' && hasEverBought ? ('/(main)/gift-wallet' as Href) : app.route
-              )}
+              onPress={() => router.push(app.route)}
               isDark={isDark}
               styles={styles}
             />

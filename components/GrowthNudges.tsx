@@ -18,8 +18,7 @@ import GiftGlyph from '@/components/GiftGlyph';
 import { fontFamily, shadows, type Tokens } from '@/constants/designTokens';
 import { useTokens, useThemedStyles } from '@/hooks/useTokens';
 import { useSobriety } from '@/hooks/useSobrietyStore';
-import { useGiftWallet } from '@/hooks/use-gift-wallet';
-import { GIFT_MONTHS } from '@/lib/giftProducts';
+import { useGiftCredits } from '@/hooks/use-gift-credits';
 import { logEvent } from '@/lib/analytics';
 import {
   recordUseDay, pendingGrowthSlot, markGrowthSlotDone, claimNudgeSession,
@@ -30,7 +29,7 @@ export default function GrowthNudges() {
   const styles = useThemedStyles(makeStyles);
   const { c, colors } = useTokens();
   const sobriety = useSobriety();
-  const { unsharedCount } = useGiftWallet();
+  const { balance } = useGiftCredits();
 
   const [inviteThreshold, setInviteThreshold] = useState<number | null>(null);
   const [giftVisible, setGiftVisible] = useState(false);
@@ -81,11 +80,11 @@ export default function GrowthNudges() {
     setInviteThreshold(null);
   };
 
-  const hasMonths = unsharedCount > 0;
+  const hasGifts = balance > 0;
   const giftAct = () => {
-    logEvent('growth_nudge', { type: 'gift', action: 'tap', wallet: hasMonths });
+    logEvent('growth_nudge', { type: 'gift', action: 'tap', gifts: balance });
     setGiftVisible(false);
-    router.push(hasMonths ? '/(main)/gift-wallet' : '/(main)/pass-it-on');
+    router.push('/(main)/pass-it-on');
   };
   const giftDismiss = () => {
     logEvent('growth_nudge', { type: 'gift', action: 'dismiss' });
@@ -125,13 +124,13 @@ export default function GrowthNudges() {
               </View>
               <Text style={styles.sheetTitle}>Pass it on</Text>
               <Text style={styles.sheetBody}>
-                {hasMonths
-                  ? `You still have ${unsharedCount * GIFT_MONTHS} months to give. Know someone who could use one of your codes?`
-                  : 'Know a sponsee or newcomer who could use three months of Sober Dailies? Nothing renews — for you or for them.'}
+                {hasGifts
+                  ? `You have ${balance} ${balance === 1 ? 'gift' : 'gifts'} to give — 3 free months each. Know a sponsee or newcomer who could use one?`
+                  : 'Know a sponsee or newcomer who could use three months of Sober Dailies? Gifts come with membership.'}
               </Text>
             </View>
             <TouchableOpacity style={styles.sheetCta} onPress={giftAct} activeOpacity={0.85} accessibilityRole="button">
-              <Text style={styles.sheetCtaText}>{hasMonths ? 'Open your gifts' : 'Give 3 months'}</Text>
+              <Text style={styles.sheetCtaText}>{hasGifts ? 'Give a gift' : 'Pass It On'}</Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.quietBtn} onPress={giftDismiss} activeOpacity={0.6} accessibilityRole="button">
               <Text style={styles.quietBtnText}>Not now</Text>

@@ -28,8 +28,6 @@ import { ThemedCard } from '@/components/ThemedCard';
 import BackButton from '@/components/BackButton';
 import GiftGlyph from '@/components/GiftGlyph';
 import PaywallScreen from '@/components/PaywallScreen';
-import { useGiftWallet } from '@/hooks/use-gift-wallet';
-import { GIFT_MONTHS } from '@/lib/giftProducts';
 import { QA_FORCE_NEW_USER_KEY } from '@/hooks/useSubscription';
 import Constants from 'expo-constants';
 import * as Clipboard from 'expo-clipboard';
@@ -114,7 +112,6 @@ const APPEARANCE_OPTIONS = [
 export default function SettingsScreen() {
   const styles = useThemedStyles(makeStyles);
   const { c, colors } = useTokens();
-  const { hasEverBought, unsharedCount } = useGiftWallet();
   const { resetOnboarding, resetOnboardingAsUpgrader } = useOnboarding();
   const { colorScheme, setColorScheme } = useTheme();
 
@@ -494,19 +491,6 @@ export default function SettingsScreen() {
             }
             onPress={() => router.push('/(main)/pass-it-on' as Href)}
           />
-          {hasEverBought && (
-            <CardRow
-              label="Gifts to give"
-              value={`${unsharedCount * GIFT_MONTHS} months`}
-              valueColor={colors.roseDark}
-              icon={
-                <View style={styles.giftIconSquare}>
-                  <GiftGlyph size={19} color={colors.roseDark} />
-                </View>
-              }
-              onPress={() => router.push('/(main)/gift-wallet' as Href)}
-            />
-          )}
           <CardRow
             label="Invite Friends"
             sub="A personal text with a link to the app"

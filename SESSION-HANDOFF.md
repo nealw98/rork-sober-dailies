@@ -71,3 +71,24 @@ _Last big session (2026-07-18): Invite Friends + Pass It On pricing rework + nud
 3b. Commit + OTA the uncommitted single-list ledger tweak (§2b).
 4. Pre-END-USER-ship removals (memory): QA Force-New-User toggle, gift-24h duration revert (already reverted? verify), redeem bypass.
 5. Deferred: RevenueCat-designed paywall swap, onboarding funnel analytics, Android Drive-backup OAuth activation, expiry-conversion funnel for gift recipients.
+
+## 7. ⚠️ STRATEGIC PIVOT (2026-07-20, decided with Neal in a separate session): Pass It On → pure acquisition
+
+Authoritative spec: **docs/invite-rewards-design.md §0**. Read it before touching
+Pass It On / gift-wallet / paywall pricing. Headlines:
+
+- Gift codes are now an ACQUISITION channel, not revenue. Recipients get Apple
+  OFFER CODES ("3 months free, then $4.99/mo or $24.99/yr") picked on
+  soberdailies.com/get; the /get storefront is BUILT (sober-day-reflections repo).
+- **Pricing settled: $4.99/mo + $24.99/yr** (already changed in ASC; ratio-5.0
+  annual steering). Update GIFT_SKUS/paywall fallbacks when touching that code.
+- Givers earn **credits** (annual 5/yr, monthly 1 per 3 paid months,
+  grandfathered 5/yr): the wallet becomes "N gifts to give"; sharing mints a
+  token link, never a raw code. **"Buy more" is DEAD** — the §2 pack-purchase
+  flow and its mint-count deploy concern are superseded (open item 2 above is
+  now mostly moot; legacy SD codes stay redeemable).
+- Backend BUILT (migrations 20260719/20260720 + credits-status, credits-share,
+  get-dispense, invites-report edge functions), all undeployed/uncommitted.
+- **Phase 3 (app) is the remaining build:** wallet → credits UI + share flow
+  (invite-picker pattern → SMS with /get?g=<token> link); retire the pack
+  purchase UI; keep the legacy code ledger for outstanding purchased codes.
