@@ -114,11 +114,14 @@ export async function getCreditState(
 }
 
 // Is founding-member crediting on, and is this device grandfathered?
+// Default ON (decided 2026-07-20; also the secrets endpoint rejected the CLI
+// token, so the default carries the decision) — set the env to 'false' to
+// turn it off.
 export async function foundingEligible(
   supabase: SupabaseClient,
   anonymousId: string,
 ): Promise<boolean> {
-  if ((Deno.env.get('FOUNDING_CREDITS_ENABLED') ?? 'false') !== 'true') return false;
+  if ((Deno.env.get('FOUNDING_CREDITS_ENABLED') ?? 'true') !== 'true') return false;
   const { data } = await supabase
     .from('user_profiles')
     .select('is_grandfathered')
