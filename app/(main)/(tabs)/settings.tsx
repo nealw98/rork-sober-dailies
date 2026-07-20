@@ -17,6 +17,7 @@ import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
 import { KeyboardModalScope } from '@/components/KeyboardModalScope';
 import { SafeAreaView, SafeAreaProvider, initialWindowMetrics, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router, Stack, type Href } from 'expo-router';
+import { shareApp } from '@/lib/shareApp';
 import { ChevronRight, X, RefreshCw, UserPlus, Flag, RotateCcw, Play, Power, CircleDot } from 'lucide-react-native';
 import {
   fontFamily,
@@ -493,14 +494,14 @@ export default function SettingsScreen() {
           />
           <CardRow
             label="Share the App"
-            sub="A personal text with a link to the app"
+            sub="Send friends a link to the app"
             last
             icon={
               <View style={styles.giftIconSquare}>
                 <UserPlus size={19} color={colors.roseDark} strokeWidth={1.9} />
               </View>
             }
-            onPress={() => router.push('/(main)/invite' as Href)}
+            onPress={shareApp}
           />
         </CardGroup>
 

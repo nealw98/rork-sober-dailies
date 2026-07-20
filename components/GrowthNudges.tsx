@@ -20,6 +20,7 @@ import { useTokens, useThemedStyles } from '@/hooks/useTokens';
 import { useSobriety } from '@/hooks/useSobrietyStore';
 import { useGiftCredits } from '@/hooks/use-gift-credits';
 import { logEvent } from '@/lib/analytics';
+import { shareApp } from '@/lib/shareApp';
 import {
   recordUseDay, pendingGrowthSlot, markGrowthSlotDone, claimNudgeSession,
 } from '@/lib/growthPrompts';
@@ -70,7 +71,7 @@ export default function GrowthNudges() {
       logEvent('growth_nudge', { type: 'invite', action: 'tap', threshold: inviteThreshold });
     }
     setInviteThreshold(null);
-    router.push('/(main)/invite');
+    shareApp();
   };
   const inviteDismiss = () => {
     if (inviteThreshold != null) {

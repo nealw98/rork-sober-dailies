@@ -34,7 +34,6 @@ export default function MainLayout() {
       <Stack.Screen name="meetings" />
       <Stack.Screen name="online-meetings" />
       <Stack.Screen name="reach-out" />
-      <Stack.Screen name="invite" />
       <Stack.Screen name="backup" />
       <Stack.Screen name="pass-it-on" />
       <Stack.Screen name="gratitude" />

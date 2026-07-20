@@ -24,6 +24,7 @@ import { useTokens, useThemedStyles } from '@/hooks/useTokens';
 import { useGiftCredits } from '@/hooks/use-gift-credits';
 import { useSubscription } from '@/hooks/useSubscription';
 import { getShareLink, confirmShareSent, giftMessage } from '@/lib/creditsService';
+import { shareApp } from '@/lib/shareApp';
 import { pickContact } from '@/lib/pickContact';
 import { logEvent } from '@/lib/analytics';
 
@@ -223,7 +224,7 @@ export default function PassItOnScreen() {
             )}
             <TouchableOpacity
               style={styles.shareRow}
-              onPress={() => router.push('/(main)/invite' as Href)}
+              onPress={shareApp}
               activeOpacity={0.7}
               accessibilityRole="button"
             >

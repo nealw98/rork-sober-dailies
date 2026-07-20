@@ -454,3 +454,9 @@ detect and fall back to a promo-grant code). Signup/subscriber attribution
 - Designed moments shipped (thank-you sheet via Today pending-flag handoff,
   gift-sent sheet, give-vs-share rows, hero dots + shimmer) per the Claude
   design handoff bundle.
+- SIMPLIFICATION (Neal, 2026-07-20): the multi-select invite screen is
+  RETIRED — "Share the app" is now the plain native share sheet
+  (lib/shareApp.ts) from Pass It On, Settings, and the growth nudge.
+  Client-side unique-send telemetry retired with it; invites-report stays
+  deployed but idle. The pass flow (contact pick → personal text) is
+  unchanged — it's the personal path; sharing is just spreading the word.
