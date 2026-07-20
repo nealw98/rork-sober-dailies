@@ -158,7 +158,7 @@ export default function InviteScreen() {
       <Stack.Screen options={{ headerShown: false }} />
       <View style={styles.header}>
         <BackButton onPress={() => router.back()} style={{ marginBottom: 8 }} />
-        <Text style={styles.title}>Invite friends</Text>
+        <Text style={styles.title}>Share the app</Text>
         <Text style={styles.sub}>
           A personal text means more than a link. Add the people you want to invite — nothing is
           sent without you tapping Send.

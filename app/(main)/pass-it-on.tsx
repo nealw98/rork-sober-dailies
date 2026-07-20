@@ -10,14 +10,15 @@
 // individually addressed text. Falls back to the OS share sheet when SMS
 // isn't available. "Invite friends" (the free, unlimited path) is a peer
 // button here — decided 2026-07-20, not buried in a footnote.
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, Share } from 'react-native';
+import React, { useEffect, useRef, useState } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, Share, Animated } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Stack, useRouter, type Href } from 'expo-router';
-import { HelpCircle, UserPlus } from 'lucide-react-native';
+import { ChevronRight, HelpCircle, UserPlus } from 'lucide-react-native';
 import BackButton from '@/components/BackButton';
 import GiftGlyph from '@/components/GiftGlyph';
 import GiftInfoSheet from '@/components/GiftInfoSheet';
+import GiftSentSheet from '@/components/GiftSentSheet';
 import { fontFamily, shadows, colors as lightColors, type Tokens } from '@/constants/designTokens';
 import { useTokens, useThemedStyles } from '@/hooks/useTokens';
 import { useGiftCredits } from '@/hooks/use-gift-credits';
@@ -54,6 +55,23 @@ export default function PassItOnScreen() {
 
   const [busy, setBusy] = useState(false);
   const [infoVisible, setInfoVisible] = useState(false);
+  // Gift-sent sheet (design handoff §4): name null = OS share sheet path.
+  const [sent, setSent] = useState<{ name: string | null; balance: number } | null>(null);
+
+  // Loading shimmer (design handoff §2): two bars pulsing 1 → 0.35, 1.4s,
+  // the second 0.2s behind.
+  const shimmer = useRef(new Animated.Value(1)).current;
+  useEffect(() => {
+    if (!loading) return;
+    const loop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(shimmer, { toValue: 0.35, duration: 700, useNativeDriver: true }),
+        Animated.timing(shimmer, { toValue: 1, duration: 700, useNativeDriver: true }),
+      ]),
+    );
+    loop.start();
+    return () => loop.stop();
+  }, [loading, shimmer]);
 
   const productId = customerInfo?.entitlements?.active?.premium?.productIdentifier ?? '';
   const plan: PlanKind = isEntitled
@@ -114,8 +132,8 @@ export default function PassItOnScreen() {
         if (result === 'sent' || result === 'unknown') {
           await confirmShareSent();
           logEvent('gift_shared', { via: 'sms' });
-          await refresh();
-          Alert.alert('Gift sent', `${contact.name} just got 3 months of Sober Dailies from you.`);
+          const fresh = await refresh();
+          setSent({ name: contact.name, balance: fresh?.balance ?? Math.max(0, balance - 1) });
         }
         return;
       }
@@ -125,7 +143,8 @@ export default function PassItOnScreen() {
       if (res.action === Share.sharedAction) {
         await confirmShareSent();
         logEvent('gift_shared', { via: 'share_sheet' });
-        await refresh();
+        const fresh = await refresh();
+        setSent({ name: null, balance: fresh?.balance ?? Math.max(0, balance - 1) });
       }
     } catch (e) {
       console.warn('[pass-it-on] give failed', e);
@@ -162,38 +181,67 @@ export default function PassItOnScreen() {
             <GiftGlyph size={26} color={colors.roseDark} strokeWidth={1.6} />
           </View>
           <Text style={styles.heroTitle}>{hero.title}</Text>
-          <Text style={styles.heroSub}>{hero.sub}</Text>
+          {loading ? (
+            // Shimmer bars instead of a blank sub while the balance resolves.
+            <View style={{ alignItems: 'center', marginTop: 10, gap: 7 }}>
+              <Animated.View style={[styles.shimmerBar, { width: 210, opacity: shimmer }]} />
+              <Animated.View style={[styles.shimmerBar, { width: 150, opacity: shimmer }]} />
+            </View>
+          ) : (
+            <Text style={styles.heroSub}>{hero.sub}</Text>
+          )}
+          {!loading && balance > 0 && (
+            // One dot per gift you're holding — the inventory, made visible.
+            <View style={styles.dotRow}>
+              {Array.from({ length: Math.min(balance, 10) }, (_, i) => (
+                <View key={i} style={styles.dot}>
+                  <GiftGlyph size={13} color={colors.roseDark} strokeWidth={2} />
+                </View>
+              ))}
+            </View>
+          )}
         </View>
 
-        {balance > 0 && (
-          <TouchableOpacity
-            style={[styles.cta, busy && { opacity: 0.6 }]}
-            onPress={giveGift}
-            disabled={busy}
-            activeOpacity={0.85}
-            accessibilityRole="button"
-          >
-            <Text style={styles.ctaText}>{busy ? 'One moment…' : 'Give a gift'}</Text>
-          </TouchableOpacity>
+        {/* Give vs Share rows (design handoff §3): rose means "a gift is
+            involved" — sharing the app is deliberately neutral. */}
+        {!loading && (
+          <View style={{ gap: 10 }}>
+            {balance > 0 && (
+              <TouchableOpacity
+                style={[styles.giveRow, busy && { opacity: 0.6 }]}
+                onPress={giveGift}
+                disabled={busy}
+                activeOpacity={0.85}
+                accessibilityRole="button"
+              >
+                <View style={styles.giveRowIcon}>
+                  <GiftGlyph size={19} color="#FFFFFF" strokeWidth={1.9} />
+                </View>
+                <Text style={styles.giveRowText}>{busy ? 'One moment…' : 'Give someone 3 months free'}</Text>
+                <ChevronRight size={16} color="rgba(255,255,255,0.7)" />
+              </TouchableOpacity>
+            )}
+            <TouchableOpacity
+              style={styles.shareRow}
+              onPress={() => router.push('/(main)/invite' as Href)}
+              activeOpacity={0.7}
+              accessibilityRole="button"
+            >
+              <View style={styles.shareRowIcon}>
+                <UserPlus size={18} color={c.textSecondary} strokeWidth={2} />
+              </View>
+              <Text style={styles.shareRowText}>Share the app with your friends</Text>
+              <ChevronRight size={16} color={c.textMuted} />
+            </TouchableOpacity>
+          </View>
         )}
-
-        {/* The free, unlimited path — a peer action, not a footnote. */}
-        <TouchableOpacity
-          style={styles.inviteBtn}
-          onPress={() => router.push('/(main)/invite' as Href)}
-          activeOpacity={0.7}
-          accessibilityRole="button"
-        >
-          <UserPlus size={16} color={colors.roseDark} strokeWidth={2} />
-          <Text style={styles.inviteBtnText}>Invite friends to the app</Text>
-        </TouchableOpacity>
 
         {/* How gifts are earned */}
         <View style={styles.earnRow}>
           <Text style={styles.earnText}>{earnCopy[plan]}</Text>
         </View>
 
-        {/* Zero-credit, not-yet-annual: the honest annual pitch */}
+        {/* Zero-credit, not-yet-annual: the honest annual pitch (never while loading) */}
         {!loading && balance <= 0 && (plan === 'monthly' || plan === 'none') && (
           <View style={styles.pitch}>
             <Text style={styles.pitchTitle}>Want 5 gifts a year, right away?</Text>
@@ -211,6 +259,14 @@ export default function PassItOnScreen() {
       </ScrollView>
 
       <GiftInfoSheet visible={infoVisible} onClose={() => setInfoVisible(false)} />
+      {sent && (
+        <GiftSentSheet
+          name={sent.name}
+          balance={sent.balance}
+          onGiveAnother={() => { setSent(null); giveGift(); }}
+          onClose={() => setSent(null)}
+        />
+      )}
     </SafeAreaView>
   );
 }
@@ -242,19 +298,37 @@ const makeStyles = (tk: Tokens) => {
     heroTitle: { fontFamily: fontFamily.displayBold, fontSize: 20, letterSpacing: -0.3, color: c.text, textAlign: 'center' },
     heroSub: { fontFamily: fontFamily.regular, fontSize: 13, lineHeight: 19, color: colors.roseDark, textAlign: 'center', marginTop: 5 },
 
-    cta: {
-      width: '100%', paddingVertical: 15, borderRadius: 14, backgroundColor: ROSE_FILL,
+    shimmerBar: { height: 9, borderRadius: 5, backgroundColor: colors.rose + '2E' },
+
+    dotRow: { flexDirection: 'row', justifyContent: 'center', gap: 7, marginTop: 12 },
+    dot: {
+      width: 26, height: 26, borderRadius: 13, backgroundColor: c.surface,
+      borderWidth: 1.5, borderColor: colors.rose + '66',
       alignItems: 'center', justifyContent: 'center',
+    },
+
+    giveRow: {
+      flexDirection: 'row', alignItems: 'center', gap: 12,
+      width: '100%', borderRadius: 14, paddingVertical: 14, paddingHorizontal: 16,
+      backgroundColor: ROSE_FILL,
       shadowColor: ROSE_FILL, shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.3, shadowRadius: 10, elevation: 4,
     },
-    ctaText: { fontFamily: fontFamily.semiBold, fontSize: 15.5, color: '#FFFFFF' },
-
-    inviteBtn: {
-      flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7,
-      width: '100%', paddingVertical: 13.5, borderRadius: 14, marginTop: 10,
-      borderWidth: 1.5, borderColor: isDark ? 'rgba(217,131,143,0.5)' : '#E3BCC3',
+    giveRowIcon: {
+      width: 38, height: 38, borderRadius: 19, backgroundColor: 'rgba(255,255,255,0.18)',
+      alignItems: 'center', justifyContent: 'center',
     },
-    inviteBtnText: { fontFamily: fontFamily.semiBold, fontSize: 14.5, color: colors.roseDark },
+    giveRowText: { flex: 1, fontFamily: fontFamily.semiBold, fontSize: 15, color: '#FFFFFF' },
+
+    shareRow: {
+      flexDirection: 'row', alignItems: 'center', gap: 12,
+      width: '100%', borderRadius: 14, paddingVertical: 14, paddingHorizontal: 16,
+      backgroundColor: c.surface, borderWidth: 1, borderColor: c.border,
+    },
+    shareRowIcon: {
+      width: 38, height: 38, borderRadius: 19, backgroundColor: c.divider,
+      alignItems: 'center', justifyContent: 'center',
+    },
+    shareRowText: { flex: 1, fontFamily: fontFamily.semiBold, fontSize: 15, color: c.text },
 
     earnRow: {
       borderWidth: 1, borderColor: c.border, borderRadius: 12,

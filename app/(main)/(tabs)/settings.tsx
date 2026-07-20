@@ -492,7 +492,7 @@ export default function SettingsScreen() {
             onPress={() => router.push('/(main)/pass-it-on' as Href)}
           />
           <CardRow
-            label="Invite Friends"
+            label="Share the App"
             sub="A personal text with a link to the app"
             last
             icon={

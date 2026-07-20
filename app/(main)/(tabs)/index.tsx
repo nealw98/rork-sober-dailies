@@ -27,6 +27,8 @@ import { useReflectionHeroImage } from '@/hooks/useReflectionHeroImage';
 import { maybeAskForReview } from '@/lib/reviewPrompt';
 import SobrietyCounter from '@/components/SobrietyCounter';
 import GrowthNudges from '@/components/GrowthNudges';
+import GiftThankYouSheet from '@/components/GiftThankYouSheet';
+import { consumePendingAnnouncement, type AnnouncePlan } from '@/lib/creditsService';
 import { pickContact } from '@/lib/pickContact';
 import { getSponsorContact, setSponsorContact, type SponsorContact } from '@/lib/sponsorContact';
 import { normalizePhone } from '@/hooks/use-contacts-store';
@@ -216,6 +218,14 @@ export default function TodayScreen() {
     getSponsorContact().then(setSponsor).catch(() => {});
   }, []);
 
+  // Post-subscribe thank-you sheet: the paywall can't present it (its tree
+  // dissolves when isPremium flips), so buy() leaves a pending flag and Today
+  // announces the gifts on first mount (design handoff "gift surfaces" §1).
+  const [announcePlan, setAnnouncePlan] = useState<AnnouncePlan | null>(null);
+  useEffect(() => {
+    consumePendingAnnouncement().then((plan) => { if (plan) setAnnouncePlan(plan); });
+  }, []);
+
   const chooseSponsor = async (thenSheet: boolean) => {
     const picked = await pickContact();
     if (!picked) return;
@@ -316,6 +326,13 @@ export default function TodayScreen() {
       {/* Word-of-mouth nudges: milestone invite card inline here; the gift
           sheet presents itself modally at app open (see GrowthNudges). */}
       <GrowthNudges />
+      {announcePlan && (
+        <GiftThankYouSheet
+          plan={announcePlan}
+          onSeeGifts={() => { setAnnouncePlan(null); router.push('/(main)/pass-it-on' as Href); }}
+          onClose={() => setAnnouncePlan(null)}
+        />
+      )}
       <View style={styles.heroTop}>
         <ReflectionHero
           title={reflection?.title ? titleCase(reflection.title) : 'Daily Reflection'}

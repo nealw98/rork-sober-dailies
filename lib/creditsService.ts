@@ -129,6 +129,30 @@ export async function confirmShareSent(): Promise<void> {
   await AsyncStorage.removeItem(PENDING_KEY).catch(() => {});
 }
 
+// ── Post-subscribe thank-you handoff ────────────────────────────────────────
+// The designed thank-you sheet can't live in the dissolving paywall tree, so
+// buy() writes a pending flag BEFORE the gate drops and the Today screen
+// presents the sheet on first mount (design_handoff_gift_surfaces §1).
+const ANNOUNCE_KEY = 'gift_announcement_pending_v1';
+
+export type AnnouncePlan = 'annual' | 'monthly';
+
+export async function setPendingAnnouncement(plan: AnnouncePlan): Promise<void> {
+  await AsyncStorage.setItem(ANNOUNCE_KEY, plan).catch(() => {});
+}
+
+// Read-and-clear. Returns the plan to announce, or null.
+export async function consumePendingAnnouncement(): Promise<AnnouncePlan | null> {
+  try {
+    const v = await AsyncStorage.getItem(ANNOUNCE_KEY);
+    if (v !== 'annual' && v !== 'monthly') return null;
+    await AsyncStorage.removeItem(ANNOUNCE_KEY);
+    return v;
+  } catch {
+    return null;
+  }
+}
+
 // The message a gift rides in. Personal, first-person, and the link is the
 // gift artifact — the recipient picks their plan on /get.
 export function giftMessage(link: string): string {
