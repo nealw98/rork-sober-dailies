@@ -5,7 +5,7 @@
 // startPage + pdfPage - 1, and lets you bookmark the current page. Presented
 // full-screen in a Modal by the caller.
 import React, { useEffect, useRef, useState } from 'react';
-import { View, Text, Pressable, StyleSheet, ActivityIndicator } from 'react-native';
+import { View, Text, Pressable, StyleSheet, ActivityIndicator, useWindowDimensions } from 'react-native';
 import { SafeAreaProvider, SafeAreaView, initialWindowMetrics } from 'react-native-safe-area-context';
 import { Asset } from 'expo-asset';
 import Pdf from 'react-native-pdf';
@@ -48,6 +48,21 @@ export default function PdfReader({
   const [pdfPage, setPdfPage] = useState(initialPage ?? 1);
   const [pageCount, setPageCount] = useState(0);
 
+  // Rotation: react-native-pdf computes its fit scale once at mount and never
+  // re-fits when the view resizes — rotating left the portrait-sized page
+  // floating in margins. Remount it (key) on orientation change with fit-width
+  // in landscape, stashing the current page at the flip so the remount's
+  // onLoadComplete can restore it (onPageChanged isn't trustworthy mid-remount).
+  const { width, height } = useWindowDimensions();
+  const landscape = width > height;
+  const currentPageRef = useRef(initialPage ?? 1);
+  const restorePageRef = useRef(initialPage ?? 1);
+  const prevLandscapeRef = useRef(landscape);
+  if (prevLandscapeRef.current !== landscape) {
+    prevLandscapeRef.current = landscape;
+    restorePageRef.current = currentPageRef.current;
+  }
+
   useEffect(() => {
     if (!ScreenOrientation) return;
     ScreenOrientation.unlockAsync().catch(() => {});
@@ -61,6 +76,8 @@ export default function PdfReader({
     setUri(null);
     setFailed(false);
     setPdfPage(initialPage ?? 1);
+    currentPageRef.current = initialPage ?? 1;
+    restorePageRef.current = initialPage ?? 1;
     setPageCount(0);
     (async () => {
       try {
@@ -84,29 +101,34 @@ export default function PdfReader({
 
   return (
     <SafeAreaProvider initialMetrics={initialWindowMetrics}>
-      <SafeAreaView style={styles.screen} edges={['top', 'bottom', 'left', 'right']}>
-        <View style={styles.header}>
-          <Pressable onPress={onClose} hitSlop={8} style={styles.backBtn} accessibilityRole="button" accessibilityLabel="Close">
-            <ChevronLeft size={22} color={c.text} strokeWidth={2} />
-          </Pressable>
-          <Text style={[styles.title, styles.flex]} numberOfLines={1}>{title}</Text>
-        </View>
+      <SafeAreaView style={styles.screen} edges={['top', 'bottom']}>
+        {/* Horizontal insets apply to the chrome only (back button / title /
+            bookmark clear of the landscape notch) — NOT the screen, so the
+            PDF itself runs edge-to-edge and landscape actually reads bigger. */}
+        <SafeAreaView edges={['left', 'right']}>
+          <View style={styles.header}>
+            <Pressable onPress={onClose} hitSlop={8} style={styles.backBtn} accessibilityRole="button" accessibilityLabel="Close">
+              <ChevronLeft size={22} color={c.text} strokeWidth={2} />
+            </Pressable>
+            <Text style={[styles.title, styles.flex]} numberOfLines={1}>{title}</Text>
+          </View>
 
-        {/* Action row — live BOOK page + bookmark toggle */}
-        <View style={styles.actionRow}>
-          <Text style={styles.pageLabel}>{uri && startPage > 0 ? `Page ${bookPage}` : ' '}</Text>
-          <Pressable
-            onPress={onToggleBookmark}
-            disabled={!uri}
-            hitSlop={8}
-            style={[styles.bmBtn, marked ? { backgroundColor: accent, borderColor: accent } : { borderColor: c.border }]}
-            accessibilityRole="button"
-            accessibilityLabel={marked ? 'Remove bookmark' : 'Bookmark this page'}
-          >
-            <Bookmark size={14} color={marked ? '#fff' : accent} fill={marked ? '#fff' : 'transparent'} strokeWidth={2} />
-            <Text style={[styles.bmText, { color: marked ? '#fff' : accent }]}>{marked ? 'Saved' : 'Bookmark'}</Text>
-          </Pressable>
-        </View>
+          {/* Action row — live BOOK page + bookmark toggle */}
+          <View style={styles.actionRow}>
+            <Text style={styles.pageLabel}>{uri && startPage > 0 ? `Page ${bookPage}` : ' '}</Text>
+            <Pressable
+              onPress={onToggleBookmark}
+              disabled={!uri}
+              hitSlop={8}
+              style={[styles.bmBtn, marked ? { backgroundColor: accent, borderColor: accent } : { borderColor: c.border }]}
+              accessibilityRole="button"
+              accessibilityLabel={marked ? 'Remove bookmark' : 'Bookmark this page'}
+            >
+              <Bookmark size={14} color={marked ? '#fff' : accent} fill={marked ? '#fff' : 'transparent'} strokeWidth={2} />
+              <Text style={[styles.bmText, { color: marked ? '#fff' : accent }]}>{marked ? 'Saved' : 'Bookmark'}</Text>
+            </Pressable>
+          </View>
+        </SafeAreaView>
 
         <View style={styles.body}>
           {failed ? (
@@ -116,14 +138,20 @@ export default function PdfReader({
           ) : (
             <Pdf
               ref={pdfRef}
+              key={landscape ? 'landscape' : 'portrait'}
               source={{ uri, cache: true }}
+              // Landscape exists to read bigger: fill the width (0). Portrait
+              // keeps the whole-page fit (2), matching the old behavior.
+              fitPolicy={landscape ? 0 : 2}
               onLoadComplete={(n) => {
                 setPageCount(n);
                 // Jump AFTER load so the page offset is exact (otherwise the
                 // page's running header gets clipped under our header bar).
-                if (initialPage && initialPage > 1) setTimeout(() => pdfRef.current?.setPage(initialPage), 0);
+                // Runs again on the rotation remount, restoring your place.
+                const target = restorePageRef.current;
+                if (target > 1) setTimeout(() => pdfRef.current?.setPage(target), 0);
               }}
-              onPageChanged={(p) => setPdfPage(p)}
+              onPageChanged={(p) => { currentPageRef.current = p; setPdfPage(p); }}
               onError={(e) => { console.warn('[pdf] render error', e); setFailed(true); }}
               style={styles.pdf}
             />

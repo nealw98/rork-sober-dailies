@@ -21,7 +21,7 @@ import { X, Plus, Check } from 'lucide-react-native';
 import { fontFamily, fontSize, shadows, type Tokens } from '@/constants/designTokens';
 import { useTokens, useThemedStyles } from '@/hooks/useTokens';
 import { resolveGlyph, resolveTone, resolveSubtitle } from '@/components/dailyTokens';
-import { type DailyItem, type WhenBucket } from '@/hooks/use-dailies-store';
+import { useDailies, type DailyItem, type WhenBucket } from '@/hooks/use-dailies-store';
 
 export type Template = Omit<DailyItem, 'id' | 'when'>;
 
@@ -76,6 +76,7 @@ function SheetBackdrop({ onPress }: { onPress: () => void }) {
 export function AddSheet({ section, added, onClose, onAdd, onCreate }: { section: WhenBucket; added: Set<string>; onClose: () => void; onAdd: (t: Template) => void; onCreate: () => void }) {
   const styles = useThemedStyles(makeStyles);
   const { c, colors } = useTokens();
+  const { showSubtitles } = useDailies();
   return (
     <Modal transparent visible animationType="slide" onRequestClose={onClose}>
       <View style={styles.sheetWrap}>
@@ -108,11 +109,11 @@ export function AddSheet({ section, added, onClose, onAdd, onCreate }: { section
 
             <Text style={styles.groupLabel}>FROM YOUR TOOLS</Text>
             {TOOL_CATALOG.map((t) => (
-              <Pressable key={t.action} style={styles.addRow} disabled={added.has(t.action)} onPress={() => onAdd(t)}>
+              <Pressable key={t.action} style={[styles.addRow, added.has(t.action) && styles.addRowAdded]} disabled={added.has(t.action)} onPress={() => onAdd(t)}>
                 <Medallion icon={t.icon} tone={t.color} soft />
                 <View style={styles.addRowText}>
                   <Text style={styles.addRowName}>{t.label}</Text>
-                  {resolveSubtitle(t.action) ? (
+                  {showSubtitles && resolveSubtitle(t.action) ? (
                     <Text style={styles.editRowSub} numberOfLines={1}>{resolveSubtitle(t.action)}</Text>
                   ) : null}
                 </View>
@@ -130,11 +131,11 @@ export function AddSheet({ section, added, onClose, onAdd, onCreate }: { section
 
             <Text style={styles.groupLabel}>QUICK ACTIONS · NO TOOL, JUST CHECK OFF</Text>
             {QUICK_CATALOG.map((t) => (
-              <Pressable key={t.action} style={styles.addRow} disabled={added.has(t.action)} onPress={() => onAdd(t)}>
+              <Pressable key={t.action} style={[styles.addRow, added.has(t.action) && styles.addRowAdded]} disabled={added.has(t.action)} onPress={() => onAdd(t)}>
                 <Medallion icon={t.icon} tone={t.color} soft />
                 <View style={styles.addRowText}>
                   <Text style={styles.addRowName}>{t.label}</Text>
-                  {resolveSubtitle(t.action) ? (
+                  {showSubtitles && resolveSubtitle(t.action) ? (
                     <Text style={styles.editRowSub} numberOfLines={1}>{resolveSubtitle(t.action)}</Text>
                   ) : null}
                 </View>
@@ -236,6 +237,9 @@ const makeStyles = (tk: Tokens) => {
       backgroundColor: isDark ? c.surfaceRaised : colors.white, borderRadius: 16, paddingVertical: 12, paddingHorizontal: 14, ...shadows.sm,
       ...darkCard,
     },
+    // Already-on-the-list rows recede so the still-available ones pop on a
+    // glance — dimmed, but kept readable.
+    addRowAdded: { opacity: 0.55 },
     addRowText: { flex: 1 },
     addRowName: { fontFamily: fontFamily.semiBold, fontSize: fontSize.lg, color: c.text },
     editRowSub: { fontFamily: fontFamily.regular, fontSize: 12, color: c.textMuted, marginTop: 2 },

@@ -44,6 +44,7 @@ interface DayCompletion {
 
 const PROGRAM_KEY = 'dailies_program';
 const COMPLETION_KEY = 'dailies_completion';
+const SHOW_SUBTITLES_KEY = 'dailies_show_subtitles';
 const V2_SAVED_REVIEWS_KEY = 'saved_evening_review_entries';
 
 // The v2 Nightly Review's "Daily Actions" checkboxes — the fixed precursor to
@@ -144,6 +145,10 @@ export const [DailiesProvider, useDailies] = createContextHook(() => {
   const [program, setProgram] = useState<DailyItem[]>(DEFAULT_PROGRAM);
   const [completion, setCompletion] = useState<Record<string, DayCompletion>>({});
   const [isLoading, setIsLoading] = useState(true);
+  // Debug Console toggle: show the canned action subtitles ("Set your
+  // intention", …) on Today / edit mode / the Add sheet. User-entered
+  // subtitles (sponsor name, custom notes) are unaffected.
+  const [showSubtitles, setShowSubtitlesState] = useState(true);
   // The current local day. Kept fresh so checkmarks (and the Today reflection)
   // roll over at the user's midnight — on app-foreground and once a minute —
   // without needing a relaunch.
@@ -159,10 +164,12 @@ export const [DailiesProvider, useDailies] = createContextHook(() => {
   useEffect(() => {
     (async () => {
       try {
-        const [p, c] = await Promise.all([
+        const [p, c, subs] = await Promise.all([
           AsyncStorage.getItem(PROGRAM_KEY),
           AsyncStorage.getItem(COMPLETION_KEY),
+          AsyncStorage.getItem(SHOW_SUBTITLES_KEY),
         ]);
+        if (subs !== null) setShowSubtitlesState(subs === 'true');
         if (p) {
           const parsed = normalizeColors(JSON.parse(p) as DailyItem[]);
           setProgram(parsed);
@@ -266,6 +273,11 @@ export const [DailiesProvider, useDailies] = createContextHook(() => {
   );
 
   const setAll = useCallback((items: DailyItem[]) => persistProgram(items), [persistProgram]);
+
+  const setShowSubtitles = useCallback((value: boolean) => {
+    setShowSubtitlesState(value);
+    AsyncStorage.setItem(SHOW_SUBTITLES_KEY, String(value)).catch(() => {});
+  }, []);
 
   // ── Completion (today) ───────────────────────────────────────────────
   const todayDone = completion[dayKey] ?? EMPTY_DAY;
@@ -376,7 +388,9 @@ export const [DailiesProvider, useDailies] = createContextHook(() => {
       completion,
       doneCount,
       totalCount,
+      showSubtitles,
+      setShowSubtitles,
     }),
-    [program, isLoading, section, addDaily, removeDaily, setWhen, renameDaily, editDaily, setAll, isDone, toggleDone, markDone, todayDone.reflection, setReflectionDone, toggleReflection, setDayCompletion, reflectionStreak, dayKey, completion, doneCount, totalCount],
+    [program, isLoading, section, addDaily, removeDaily, setWhen, renameDaily, editDaily, setAll, isDone, toggleDone, markDone, todayDone.reflection, setReflectionDone, toggleReflection, setDayCompletion, reflectionStreak, dayKey, completion, doneCount, totalCount, showSubtitles, setShowSubtitles],
   );
 });

@@ -116,7 +116,8 @@ const makeStyles = (tk: Tokens) => {
   // medallion text
   daysSoberRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   daysSober: { fontFamily: fontFamily.serifMediumItalic, fontSize: fontSize.xl, color: tc.primary },
-  breakdown: { fontFamily: fontFamily.regular, fontSize: 13, color: c.textMuted, marginTop: 5, lineHeight: 18 },
+  // Tight leading so the three lines read as one visual block.
+  breakdown: { fontFamily: fontFamily.regular, fontSize: 13, color: c.textMuted, marginTop: 2, lineHeight: 16 },
 
   // affirmation (no-date)
   affirmationRow: { flexDirection: 'row', alignItems: 'center', gap: 7 },

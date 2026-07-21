@@ -152,8 +152,10 @@ export default function TwelveAndTwelveScreen() {
         </View>
       </ScrollView>
 
-      {/* PDF reader */}
-      <Modal visible={!!pdf} animationType="slide" onRequestClose={() => setPdf(null)} presentationStyle="fullScreen">
+      {/* PDF reader. supportedOrientations: iOS Modals stay portrait-only
+          without it, even though PdfReader unlocks rotation — landscape =
+          bigger PDF text. */}
+      <Modal visible={!!pdf} animationType="slide" onRequestClose={() => setPdf(null)} presentationStyle="fullScreen" supportedOrientations={['portrait', 'landscape']}>
         {pdf && TWELVE_PDFS[pdf.id] != null && (
           <PdfReader
             assetModule={TWELVE_PDFS[pdf.id]}

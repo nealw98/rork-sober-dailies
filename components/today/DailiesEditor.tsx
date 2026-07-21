@@ -33,9 +33,10 @@ function EditDailyRow({ item, dragging, onRemove, onDragStart }: {
 }) {
   const styles = useThemedStyles(makeStyles);
   const { c, mode } = useTokens();
+  const { showSubtitles } = useDailies();
   const tone = resolveTone(item.color, mode);
   const Glyph = resolveGlyph(item.icon);
-  const sub = item.subtitle !== undefined ? item.subtitle : resolveSubtitle(item.action);
+  const sub = item.subtitle !== undefined ? item.subtitle : showSubtitles ? resolveSubtitle(item.action) : undefined;
   return (
     <View style={[styles.row, dragging && styles.rowDragging]}>
       <Pressable style={styles.dragHandle} onLongPress={onDragStart} delayLongPress={150} accessibilityLabel={`Drag ${item.label} to reorder`}>

@@ -117,9 +117,10 @@ function DailyRow({
 }) {
   const styles = useThemedStyles(makeStyles);
   const { mode } = useTokens();
+  const { showSubtitles } = useDailies();
   const tone = resolveTone(item.color, mode);
   const Glyph = resolveGlyph(item.icon);
-  const sub = item.subtitle !== undefined ? item.subtitle : resolveSubtitle(item.action);
+  const sub = item.subtitle !== undefined ? item.subtitle : showSubtitles ? resolveSubtitle(item.action) : undefined;
 
   if (editing) {
     return (

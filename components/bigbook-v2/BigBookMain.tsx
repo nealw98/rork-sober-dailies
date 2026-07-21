@@ -83,7 +83,9 @@ export function BigBookMain() {
           />
         )}
 
-        <Modal visible={!!pdf} animationType="slide" presentationStyle="fullScreen" onRequestClose={() => setPdf(null)}>
+        {/* supportedOrientations: iOS Modals stay portrait-only without it,
+            even though PdfReader unlocks rotation — landscape = bigger PDF text. */}
+        <Modal visible={!!pdf} animationType="slide" presentationStyle="fullScreen" onRequestClose={() => setPdf(null)} supportedOrientations={['portrait', 'landscape']}>
           {pdf && BIGBOOK_PDFS[pdf.pdfKey] != null && (
             <PdfReader
               assetModule={BIGBOOK_PDFS[pdf.pdfKey]}
