@@ -22,7 +22,10 @@ import { useEveningReviewStore } from '@/hooks/use-evening-review-store';
 import { useJournal } from '@/hooks/use-journal-store';
 import { useImmersive } from '@/hooks/use-immersive';
 import { resolveGlyph, resolveTone } from '@/components/dailyTokens';
-import { SPOT_PAIRS } from '@/constants/spotCheckPairs';
+import { SPOT_CHECK_FEELINGS } from '@/constants/spotCheckPersonas';
+import { getSponsorById } from '@/constants/sponsors';
+import type { SpotCheckEntry } from '@/types/spotCheck';
+import type { SpotRecordPatch } from '@/hooks/use-notebook';
 import { NIGHTLY_QUESTIONS } from '@/constants/nightlyQuestions';
 import { parseLocalDate } from '@/lib/dateUtils';
 import { useScreenTimeTracking } from '@/hooks/useScreenTimeTracking';
@@ -119,10 +122,13 @@ function buildShareText(entry: NotebookEntry): string {
       break;
     }
     case 'spotcheck': {
-      const chosen = SPOT_PAIRS.filter((p) => entry.spot?.selected.includes(p.id));
+      const s = entry.spot;
       const parts: string[] = [];
-      if (entry.spot?.situation) parts.push(`What was disturbing me?\n${entry.spot.situation}`);
-      if (chosen.length > 0) parts.push(`Where I was off the beam:\n${chosen.map((p) => `• ${p.off} → ${p.on}`).join('\n')}`);
+      if (s?.feelings?.length) parts.push(`Feeling: ${s.feelings.join(', ')}`);
+      if (s?.whatsGoingOn) parts.push(`What was going on?\n${s.whatsGoingOn}`);
+      if (s?.causesAnswer) parts.push(`${s.causesQuestion ?? 'My part in it'}\n${s.causesAnswer}`);
+      if (s?.summary) parts.push(s.summary);
+      if (s?.suggestions?.length) parts.push(s.suggestions.map((b) => `• ${b}`).join('\n'));
       body = parts.join('\n\n');
       break;
     }
@@ -516,7 +522,7 @@ function DailyCheckRow({ item, first, dim, editable, onToggle }: {
 // ── Entry sheet (read + edit, "Option B" card content) ─────────────────
 function EntrySheet({ entry, onClose, scrollEnabled = true, updateSpotRecord, deleteSpotRecord }: {
   entry: NotebookEntry; onClose: () => void; scrollEnabled?: boolean;
-  updateSpotRecord: (id: string, next: { situation: string; selected: string[] }) => void;
+  updateSpotRecord: (id: string, next: SpotRecordPatch) => void;
   deleteSpotRecord: (id: string) => void;
 }) {
   const styles = useThemedStyles(makeStyles);
@@ -534,9 +540,9 @@ function EntrySheet({ entry, onClose, scrollEnabled = true, updateSpotRecord, de
   const [draftJournal, setDraftJournal] = useState('');
   const [draftGratitude, setDraftGratitude] = useState<string[]>([]);
   const [draftNightly, setDraftNightly] = useState<Record<string, string>>({});
-  const [draftSituation, setDraftSituation] = useState('');
-  const [draftSelected, setDraftSelected] = useState<Set<string>>(new Set());
-  const [showAllDefects, setShowAllDefects] = useState(false);
+  const [draftWhatsGoing, setDraftWhatsGoing] = useState('');
+  const [draftCauses, setDraftCauses] = useState('');
+  const [draftFeelings, setDraftFeelings] = useState<Set<string>>(new Set());
 
   const beginEdit = () => {
     if (view.type === 'journal') setDraftJournal(view.journal ?? '');
@@ -548,9 +554,9 @@ function EntrySheet({ entry, onClose, scrollEnabled = true, updateSpotRecord, de
       setDraftNightly(seed);
     }
     if (view.type === 'spotcheck') {
-      setDraftSituation(view.spot?.situation ?? '');
-      setDraftSelected(new Set(view.spot?.selected ?? []));
-      setShowAllDefects(false);
+      setDraftWhatsGoing(view.spot?.whatsGoingOn ?? '');
+      setDraftCauses(view.spot?.causesAnswer ?? '');
+      setDraftFeelings(new Set(view.spot?.feelings ?? []));
     }
     setEditing(true);
   };
@@ -570,11 +576,19 @@ function EntrySheet({ entry, onClose, scrollEnabled = true, updateSpotRecord, de
       eveningStore.editSavedEntry(view.date, patch);
       const pairs = NIGHTLY_QUESTIONS.map((q) => ({ q: q.q, a: patch[q.key] })).filter((p) => p.a);
       setView((v) => ({ ...v, nightly: pairs, preview: pairs[0]?.a ?? '' }));
-    } else if (view.type === 'spotcheck' && view.id) {
-      const situation = draftSituation.trim();
-      const selected = [...draftSelected];
-      updateSpotRecord(view.id, { situation, selected });
-      setView((v) => ({ ...v, spot: { situation, selected }, preview: situation }));
+    } else if (view.type === 'spotcheck' && view.id && view.spot) {
+      const patch: SpotRecordPatch = {
+        feelings: [...draftFeelings],
+        whatsGoingOn: draftWhatsGoing.trim(),
+        causesAnswer: draftCauses.trim() || null,
+      };
+      updateSpotRecord(view.id, patch);
+      setView((v) => ({
+        ...v,
+        spot: v.spot ? { ...v.spot, ...patch } : v.spot,
+        preview: patch.whatsGoingOn,
+        count: `${patch.feelings.length} ${patch.feelings.length === 1 ? 'feeling' : 'feelings'}`,
+      }));
     }
     setEditing(false);
   };
@@ -641,9 +655,10 @@ function EntrySheet({ entry, onClose, scrollEnabled = true, updateSpotRecord, de
             {view.type === 'nightly' && <NightlyEdit answers={draftNightly} setAnswers={setDraftNightly} tool={t} />}
             {view.type === 'spotcheck' && (
               <SpotEdit
-                situation={draftSituation} setSituation={setDraftSituation}
-                selected={draftSelected} setSelected={setDraftSelected}
-                showAll={showAllDefects} setShowAll={setShowAllDefects}
+                whatsGoingOn={draftWhatsGoing} setWhatsGoingOn={setDraftWhatsGoing}
+                causesAnswer={draftCauses} setCausesAnswer={setDraftCauses}
+                feelings={draftFeelings} setFeelings={setDraftFeelings}
+                causesQuestion={view.spot?.causesQuestion ?? null}
               />
             )}
           </>
@@ -709,37 +724,38 @@ function NightlyEdit({ answers, setAnswers, tool }: { answers: Record<string, st
   );
 }
 
-function SpotEdit({ situation, setSituation, selected, setSelected, showAll, setShowAll }: {
-  situation: string; setSituation: (v: string) => void;
-  selected: Set<string>; setSelected: (v: Set<string>) => void;
-  showAll: boolean; setShowAll: (v: boolean) => void;
+function SpotEdit({ whatsGoingOn, setWhatsGoingOn, causesAnswer, setCausesAnswer, feelings, setFeelings, causesQuestion }: {
+  whatsGoingOn: string; setWhatsGoingOn: (v: string) => void;
+  causesAnswer: string; setCausesAnswer: (v: string) => void;
+  feelings: Set<string>; setFeelings: (v: Set<string>) => void;
+  causesQuestion: string | null;
 }) {
   const styles = useThemedStyles(makeStyles);
   const { c } = useTokens();
-  const toggle = (id: string) => {
-    const n = new Set(selected);
-    if (n.has(id)) n.delete(id); else n.add(id);
-    setSelected(n);
+  const toggle = (f: string) => {
+    const n = new Set(feelings);
+    if (n.has(f)) n.delete(f); else n.add(f);
+    setFeelings(n);
   };
-  const visible = showAll ? SPOT_PAIRS : SPOT_PAIRS.filter((p) => p.core || selected.has(p.id));
+  // Standard pills plus any custom ("Other") feelings the entry carries.
+  const pillSet = [...SPOT_CHECK_FEELINGS, ...[...feelings].filter((f) => !SPOT_CHECK_FEELINGS.includes(f))];
   return (
     <View>
-      <Text style={styles.spotHeading}>What was disturbing me?</Text>
-      <TextInput value={situation} onChangeText={setSituation} multiline placeholder="Name the situation." placeholderTextColor={c.textMuted} style={styles.situationInput} />
-      <Text style={[styles.spotHeading, { marginTop: 22 }]}>Where I was off the beam</Text>
+      <Text style={styles.spotHeading}>How I was feeling</Text>
       <View style={[styles.chipsRow, { marginTop: 10 }]}>
-        {visible.map((p) => {
-          const on = selected.has(p.id);
+        {pillSet.map((f) => {
+          const on = feelings.has(f);
           return (
-            <Pressable key={p.id} onPress={() => toggle(p.id)} style={[styles.editChip, on ? styles.editChipOn : styles.editChipOff]}>
-              <Text style={[styles.editChipText, { color: on ? '#fff' : c.textSecondary }]}>{p.off}</Text>
+            <Pressable key={f} onPress={() => toggle(f)} style={[styles.editChip, on ? styles.editChipOn : styles.editChipOff]}>
+              <Text style={[styles.editChipText, { color: on ? '#fff' : c.textSecondary }]}>{f}</Text>
             </Pressable>
           );
         })}
-        <Pressable onPress={() => setShowAll(!showAll)} style={[styles.editChip, styles.chipShowAll]}>
-          <Text style={[styles.editChipText, { color: c.textMuted }]}>{showAll ? 'Show fewer' : 'Show all 18'}</Text>
-        </Pressable>
       </View>
+      <Text style={[styles.spotHeading, { marginTop: 22 }]}>What was going on?</Text>
+      <TextInput value={whatsGoingOn} onChangeText={setWhatsGoingOn} multiline placeholder="Where did the day turn?" placeholderTextColor={c.textMuted} style={styles.situationInput} />
+      <Text style={[styles.spotHeading, { marginTop: 22 }]}>{causesQuestion ?? 'My side of the street'}</Text>
+      <TextInput value={causesAnswer} onChangeText={setCausesAnswer} multiline placeholder="What’s on my side of the street?" placeholderTextColor={c.textMuted} style={styles.situationInput} />
     </View>
   );
 }
@@ -792,36 +808,47 @@ function NightlyBody({ pairs, checks, tool }: { pairs: { q: string; a: string }[
   );
 }
 
-function SpotSheetBody({ spot }: { spot: { situation: string; selected: string[] } }) {
+function SpotSheetBody({ spot }: { spot: SpotCheckEntry }) {
   const styles = useThemedStyles(makeStyles);
-  const chosen = SPOT_PAIRS.filter((p) => spot.selected.includes(p.id));
+  const { colors } = useTokens();
+  const sponsorName = getSponsorById(spot.sponsorId)?.name;
   return (
     <View>
-      {!!spot.situation && (
+      {spot.feelings.length > 0 && (
         <>
-          <Text style={styles.spotHeading}>What was disturbing me?</Text>
-          <View style={styles.paperBox}><Text style={styles.paperText}>{spot.situation}</Text></View>
+          <Text style={styles.spotHeading}>How I was feeling</Text>
+          <View style={styles.chipsRow}>
+            {spot.feelings.map((f) => <View key={f} style={styles.chip}><Text style={styles.chipText}>{f}</Text></View>)}
+          </View>
         </>
       )}
-      {chosen.length > 0 && (
+      {!!spot.whatsGoingOn && (
         <>
-          <Text style={[styles.spotHeading, { marginTop: 22 }]}>Where I was off the beam</Text>
-          <View style={styles.chipsRow}>
-            {chosen.map((p) => <View key={p.id} style={styles.chip}><Text style={styles.chipText}>{p.off}</Text></View>)}
-          </View>
+          <Text style={[styles.spotHeading, { marginTop: 22 }]}>What was going on?</Text>
+          <View style={styles.paperBox}><Text style={styles.paperText}>{spot.whatsGoingOn}</Text></View>
+        </>
+      )}
+      {!!spot.causesAnswer && (
+        <>
+          <Text style={[styles.spotHeading, { marginTop: 22 }]} numberOfLines={4}>{spot.causesQuestion ?? 'My side of the street'}</Text>
+          <View style={styles.paperBox}><Text style={styles.paperText}>{spot.causesAnswer}</Text></View>
+        </>
+      )}
+      {!!spot.summary && (
+        <>
+          <Text style={[styles.spotHeading, { marginTop: 22 }]}>{sponsorName ? `What ${sponsorName} heard` : 'What your sponsor heard'}</Text>
           <View style={styles.striveCard}>
-            <View style={styles.striveHeadRow}>
-              <Text style={styles.watchLabel}>WATCH FOR</Text>
-              <Text style={styles.striveLabel}>STRIVE FOR</Text>
-            </View>
-            <View style={styles.striveList}>
-              {chosen.map((p) => (
-                <View key={p.id} style={styles.striveRow}>
-                  <Text style={styles.striveOff}>{p.off}</Text>
-                  <Text style={styles.striveOn}>{p.on}</Text>
-                </View>
-              ))}
-            </View>
+            <Text style={styles.paperText}>{spot.summary}</Text>
+            {(spot.suggestions ?? []).length > 0 && (
+              <View style={[styles.striveList, { marginTop: 12 }]}>
+                {(spot.suggestions ?? []).map((b, i) => (
+                  <View key={i} style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 10 }}>
+                    <Check size={14} color={colors.primaryDark} strokeWidth={2.6} style={{ marginTop: 3 }} />
+                    <Text style={[styles.paperText, { flex: 1 }]}>{b}</Text>
+                  </View>
+                ))}
+              </View>
+            )}
           </View>
         </>
       )}

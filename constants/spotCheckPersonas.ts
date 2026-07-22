@@ -30,10 +30,11 @@ export const SPOT_CHECK_SCRIPTS: Partial<Record<SponsorType, SpotCheckScript>> =
 export const getSpotCheckScript = (id: SponsorType): SpotCheckScript =>
   SPOT_CHECK_SCRIPTS[id] ?? SPOT_CHECK_SCRIPTS.supportive!;
 
-// Step-1 feeling pills — fixed set per the design spec.
+// Step-1 feeling pills — fixed set per the design spec. The screen appends an
+// "Other" pill that opens a free-text input for feelings not listed here.
 export const SPOT_CHECK_FEELINGS = [
   'Angry', 'Afraid', 'Anxious', 'Resentful', 'Restless',
-  'Irritable', 'Discontent', 'Ashamed', 'Lonely', 'Can’t name it',
+  'Irritable', 'Discontent', 'Ashamed', 'Lonely',
 ];
 
 // Offline / LLM-failure fallback for the step-3 question, voiced per persona.

@@ -10,6 +10,7 @@ import { useEveningReviewStore } from '@/hooks/use-evening-review-store';
 import { useJournal } from '@/hooks/use-journal-store';
 import { NIGHTLY_QUESTIONS } from '@/constants/nightlyQuestions';
 import { V2_DAILIES } from '@/hooks/use-dailies-store';
+import type { SpotCheckEntry } from '@/types/spotCheck';
 
 export type NotebookType = 'gratitude' | 'nightly' | 'spotcheck' | 'journal';
 
@@ -24,19 +25,21 @@ export type NotebookEntry = {
   gratitude?: string[];
   nightly?: { q: string; a: string }[];
   checks?: string[]; // v2 Nightly Review "Daily Actions" labels — the checklist rides with the entry
-  spot?: { situation: string; selected: string[] };
+  spot?: SpotCheckEntry;
   journal?: string;
 };
 
-type SpotRecord = { id: string; ts: string; situation: string; selections: Record<string, string> };
+export type SpotRecordPatch = { feelings: string[]; whatsGoingOn: string; causesAnswer: string | null };
 
 const SPOT_KEY = 'spot_check_inventories';
 
 export type NotebookApi = {
   entries: NotebookEntry[];
-  // Edit a spot-check record in place (situation + chosen defects), keeping its
-  // id + ts. Persists to AsyncStorage and refreshes the in-memory feed.
-  updateSpotRecord: (id: string, next: { situation: string; selected: string[] }) => void;
+  // Edit a spot-check record's user-authored fields in place (feelings,
+  // what's-going-on, causes answer), keeping its id/timestamps and the LLM
+  // record (question/summary/suggestions). Persists to AsyncStorage and
+  // refreshes the in-memory feed.
+  updateSpotRecord: (id: string, next: SpotRecordPatch) => void;
   deleteSpotRecord: (id: string) => void;
 };
 
@@ -44,7 +47,7 @@ export function useNotebook(): NotebookApi {
   const gratitude = useGratitudeStore();
   const evening = useEveningReviewStore();
   const journal = useJournal();
-  const [spot, setSpot] = useState<SpotRecord[]>([]);
+  const [spot, setSpot] = useState<SpotCheckEntry[]>([]);
 
   useFocusEffect(
     useCallback(() => {
@@ -56,14 +59,9 @@ export function useNotebook(): NotebookApi {
     }, []),
   );
 
-  const updateSpotRecord = useCallback((id: string, next: { situation: string; selected: string[] }) => {
+  const updateSpotRecord = useCallback((id: string, next: SpotRecordPatch) => {
     setSpot((prev) => {
-      const updated = prev.map((r) => {
-        if (r.id !== id) return r;
-        const selections: Record<string, 'lookFor'> = {};
-        next.selected.forEach((sid) => { selections[sid] = 'lookFor'; });
-        return { ...r, situation: next.situation, selections };
-      });
+      const updated = prev.map((r) => (r.id === id ? { ...r, ...next } : r));
       AsyncStorage.setItem(SPOT_KEY, JSON.stringify(updated)).catch(() => {});
       return updated;
     });
@@ -130,17 +128,17 @@ export function useNotebook(): NotebookApi {
     });
 
     spot.forEach((r) => {
-      const selected = Object.entries(r.selections ?? {})
-        .filter(([, v]) => v && v !== 'none')
-        .map(([id]) => id);
+      // Clean cutover: only the sponsor-flow SpotCheckEntry shape renders.
+      // Pre-redesign records ({ situation, selections, ts }) are skipped.
+      if (!Array.isArray(r.feelings)) return;
       out.push({
         key: `s-${r.id}`,
         type: 'spotcheck',
-        ts: Date.parse(r.ts) || 0,
+        ts: r.createdAt || 0,
         id: r.id,
-        preview: (r.situation ?? '').trim(),
-        count: 'Off the beam',
-        spot: { situation: r.situation ?? '', selected },
+        preview: (r.whatsGoingOn ?? '').trim(),
+        count: `${r.feelings.length} ${r.feelings.length === 1 ? 'feeling' : 'feelings'}`,
+        spot: r,
       });
     });
 

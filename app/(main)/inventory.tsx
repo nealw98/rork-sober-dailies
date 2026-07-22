@@ -56,6 +56,8 @@ export default function InventoryScreen() {
   const [sponsorId, setSponsorId] = useState<SponsorType>('supportive');
   const [step, setStep] = useState(0);
   const [feelings, setFeelings] = useState<string[]>([]);
+  const [otherOpen, setOtherOpen] = useState(false);
+  const [otherText, setOtherText] = useState('');
   const [whatsGoingOn, setWhatsGoingOn] = useState('');
   const [causesQuestion, setCausesQuestion] = useState<string | null>(null);
   const [causesAnswer, setCausesAnswer] = useState('');
@@ -252,11 +254,20 @@ export default function InventoryScreen() {
   // ── Step bodies ──
   let body: React.ReactNode = null;
   if (step === 0) {
+    // Custom ("Other") feelings ride alongside the fixed set; tapping one off
+    // removes it entirely.
+    const customFeelings = feelings.filter((f) => !SPOT_CHECK_FEELINGS.includes(f));
+    const addOther = () => {
+      const f = otherText.trim();
+      setOtherText('');
+      setOtherOpen(false);
+      if (f && !feelings.includes(f)) setFeelings((cur) => [...cur, f]);
+    };
     body = (
       <>
         {askBubble(script.ask1)}
         <View style={styles.pills}>
-          {SPOT_CHECK_FEELINGS.map((f) => {
+          {[...SPOT_CHECK_FEELINGS, ...customFeelings].map((f) => {
             const on = feelings.includes(f);
             return (
               <Pressable
@@ -268,7 +279,30 @@ export default function InventoryScreen() {
               </Pressable>
             );
           })}
+          <Pressable
+            onPress={() => setOtherOpen((v) => !v)}
+            style={[styles.pill, styles.pillOther, otherOpen && { borderColor: colors.accent }]}
+            accessibilityRole="button"
+            accessibilityLabel="Other feeling"
+          >
+            <Text style={[styles.pillText, { color: c.textMuted }]}>Other…</Text>
+          </Pressable>
         </View>
+        {otherOpen && (
+          <TextInput
+            value={otherText}
+            onChangeText={setOtherText}
+            onSubmitEditing={addOther}
+            onBlur={addOther}
+            placeholder="Name it in a word or two"
+            placeholderTextColor={c.textMuted}
+            style={[styles.input, styles.otherInput]}
+            returnKeyType="done"
+            autoFocus
+            maxLength={30}
+            keyboardAppearance={isDark ? 'dark' : 'light'}
+          />
+        )}
       </>
     );
   } else if (step === 1) {
@@ -466,7 +500,9 @@ const makeStyles = (tk: Tokens) => {
     pills: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
     pill: { paddingVertical: 10, paddingHorizontal: 15, borderRadius: 999, borderWidth: 1.5, minHeight: 44, justifyContent: 'center' },
     pillOff: { backgroundColor: c.surface, borderColor: c.border, ...(isDark ? { borderColor: 'rgba(255,255,255,0.12)' } : null) },
+    pillOther: { backgroundColor: 'transparent', borderColor: c.textMuted + '66', borderStyle: 'dashed' },
     pillText: { fontFamily: fontFamily.semiBold, fontSize: 14.5 },
+    otherInput: { marginTop: 12, minHeight: 0, paddingVertical: 12 },
 
     input: {
       backgroundColor: c.surface, borderWidth: 1, borderColor: c.border, borderRadius: 14,
