@@ -149,12 +149,12 @@ export default function InventoryScreen() {
     if (step === 3) runSummary(id, causesAnswer.trim() || null);
   };
 
-  // ── Abandon (back out mid-flow) ──
+  // ── Back out mid-flow: offer to save what's there (records to Journey) ──
   const confirmExit = () => {
     if (!dirty) { router.back(); return; }
-    Alert.alert('Discard this spot check?', 'You’ll lose what you’ve entered.', [
+    Alert.alert('Save this spot check?', 'What you’ve entered so far will show up in Journey.', [
       { text: 'Keep writing', style: 'cancel' },
-      { text: 'Discard', style: 'destructive', onPress: () => router.back() },
+      { text: 'Save & close', onPress: doneForNow },
     ]);
   };
   useEffect(() => {
