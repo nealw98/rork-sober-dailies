@@ -10,11 +10,13 @@ export interface Reflection {
 
 export interface ChatMessage {
   id: string;
-  text: string;
+  text: string; // for card messages, a plain-text fallback so `.text` readers still work
   sender: "user" | "bot";
   timestamp: number;
   model?: string; // dev: the model that produced this bot reply (sponsor-api backend)
   temperature?: number; // dev: the temperature setting used for this reply
+  kind?: 'text' | 'spotCheckCard'; // undefined == 'text'
+  spotCheck?: import('./spotCheck').SpotCheckEntry; // present iff kind === 'spotCheckCard'
 }
 
 export interface EveningReviewEntry {

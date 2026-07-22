@@ -1,68 +1,347 @@
-// Spot Check Inventory — "Watch For → Strive For" in-the-moment tool
-// (redesign 3.0). Per the prototype (hifi-tools-four.jsx SpotCheckEditor):
-// name the situation, tap what's driving it (6 core defects up front, "Show
-// all 18" reveals the rest), and see the on-the-beam counterpart to strive
-// for. Saving writes a record to AsyncStorage (spot_check_inventories, the
-// existing local-first shape) and, when opened from a Today daily, checks it
-// off. History moves to the deferred Journey "Notebook".
-import React, { useState } from 'react';
-import { View, Text, TextInput, Pressable, StyleSheet, Keyboard } from 'react-native';
+// Spot Check Inventory — sponsor-driven guided flow (redesign, July 2026).
+// Four fixed steps voiced by the AI sponsor persona: (1) feeling pills and
+// (2) what's-going-on are FIXED per-persona scripts (constants/
+// spotCheckPersonas); (3) causes & conditions and (4) summary + suggestions
+// are the flow's only two LLM calls (lib/spotCheckLLM), each with an offline
+// fallback so the flow always completes. Saving writes a SpotCheckEntry to
+// AsyncStorage (spot_check_inventories) and NEVER auto-marks the Today daily
+// done — completion is fully manual (product decision, July 2026). "Keep
+// talking" hands the entry into the sponsor's regular chat thread via the
+// pending-handoff key; sponsor-chat injects it as a context card.
+import React, { useEffect, useRef, useState } from 'react';
+import { View, Text, TextInput, Pressable, StyleSheet, Keyboard, Alert, BackHandler } from 'react-native';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
-import { Stack, useRouter, useLocalSearchParams } from 'expo-router';
+import { Stack, useRouter } from 'expo-router';
+import { Image } from 'expo-image';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Haptics from 'expo-haptics';
-import { useDailies } from '@/hooks/use-dailies-store';
-import { ToolHeader, ToolIntro, TOOLS } from '@/components/ToolScreen';
+import { Check } from 'lucide-react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import BackButton from '@/components/BackButton';
+import { todayLabel } from '@/components/ToolScreen';
+import { SponsorSwitchSheet } from '@/components/SponsorSwitchSheet';
+import { getSponsorById } from '@/constants/sponsors';
+import {
+  getSpotCheckScript, getSpotCheckFallbackQuestion,
+  SPOT_CHECK_FEELINGS, SPOT_CHECK_SPONSOR_IDS, SPOT_CHECK_HANDOFF_KEY,
+} from '@/constants/spotCheckPersonas';
+import { askCausesQuestion, askSummary } from '@/lib/spotCheckLLM';
+import { useLastSponsor } from '@/hooks/use-last-sponsor';
 import { fontFamily, type Tokens } from '@/constants/designTokens';
 import { useTokens, useThemedStyles } from '@/hooks/useTokens';
-import { SPOT_PAIRS } from '@/constants/spotCheckPairs';
 import { logEvent } from '@/lib/analytics';
-
-const tool = TOOLS.spotcheck;
+import type { SponsorType } from '@/types';
+import type { SpotCheckEntry } from '@/types/spotCheck';
 
 const INVENTORY_STORAGE_KEY = 'spot_check_inventories';
+const STEPS = 4;
+
+// Lightweight animated ellipsis for the sponsor bubble's thinking state.
+function ThinkingDots() {
+  const styles = useThemedStyles(makeStyles);
+  const [dots, setDots] = useState(1);
+  useEffect(() => {
+    const t = setInterval(() => setDots((d) => (d % 3) + 1), 400);
+    return () => clearInterval(t);
+  }, []);
+  return <Text style={styles.bubbleText}>{'·'.repeat(dots) + ' '}</Text>;
+}
 
 export default function InventoryScreen() {
   const router = useRouter();
-  const { dailyId } = useLocalSearchParams<{ dailyId?: string }>();
-  const dailies = useDailies();
+  const insets = useSafeAreaInsets();
   const styles = useThemedStyles(makeStyles);
   const { c, colors, isDark } = useTokens();
+  const { lastSponsorId, setLastSponsor } = useLastSponsor();
 
-  const [situation, setSituation] = useState('');
-  const [sel, setSel] = useState<Record<string, boolean>>({});
-  const [showAll, setShowAll] = useState(false);
+  const [sponsorId, setSponsorId] = useState<SponsorType>('supportive');
+  const [step, setStep] = useState(0);
+  const [feelings, setFeelings] = useState<string[]>([]);
+  const [whatsGoingOn, setWhatsGoingOn] = useState('');
+  const [causesQuestion, setCausesQuestion] = useState<string | null>(null);
+  const [causesAnswer, setCausesAnswer] = useState('');
+  const [summary, setSummary] = useState<string | null>(null);
+  const [suggestions, setSuggestions] = useState<string[] | null>(null);
+  const [causesLoading, setCausesLoading] = useState(false);
+  const [summaryLoading, setSummaryLoading] = useState(false);
+  const [summaryFailed, setSummaryFailed] = useState(false);
+  const [switcherOpen, setSwitcherOpen] = useState(false);
+  const [saving, setSaving] = useState(false);
 
-  const toggle = (id: string) => setSel((s) => ({ ...s, [id]: !s[id] }));
-  const visible = showAll ? SPOT_PAIRS : SPOT_PAIRS.filter((p) => p.core || sel[p.id]);
-  const chosen = SPOT_PAIRS.filter((p) => sel[p.id]);
-  const dirty = situation.trim() !== '' || chosen.length > 0;
-
-  const commit = async () => {
-    Keyboard.dismiss();
-    if (dirty) {
-      try {
-        const selections: Record<string, 'lookFor'> = {};
-        chosen.forEach((p) => { selections[p.id] = 'lookFor'; });
-        const record = { id: Date.now().toString(), ts: new Date().toISOString(), situation, selections };
-        const stored = await AsyncStorage.getItem(INVENTORY_STORAGE_KEY);
-        const records = stored ? JSON.parse(stored) : [];
-        records.unshift(record);
-        await AsyncStorage.setItem(INVENTORY_STORAGE_KEY, JSON.stringify(records));
-        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-        logEvent('entry_saved', { type: 'spot_check', defect_count: chosen.length });
-        if (dailyId) dailies.markDone(dailyId);
-      } catch (error) {
-        console.error('Error saving spot check:', error);
-      }
+  // Inherit the FAB's last-opened sponsor once it loads, unless the user
+  // already changed it here or has moved past the first step.
+  const userPicked = useRef(false);
+  useEffect(() => {
+    if (userPicked.current || step > 0) return;
+    if (lastSponsorId && (SPOT_CHECK_SPONSOR_IDS as string[]).includes(lastSponsorId)) {
+      setSponsorId(lastSponsorId as SponsorType);
     }
-    router.back();
+  }, [lastSponsorId, step]);
+
+  const sponsor = getSponsorById(sponsorId);
+  const script = getSpotCheckScript(sponsorId);
+  const firstName = sponsor?.name.split(' ').slice(-1)[0] ?? 'your sponsor';
+  const dirty = feelings.length > 0 || whatsGoingOn.trim() !== '' || causesAnswer.trim() !== '';
+
+  // ── The two LLM calls, guarded against stale responses (sponsor switched
+  // or step re-entered while a request was in flight) ──
+  const causesReq = useRef(0);
+  const runCausesQuestion = async (sid: SponsorType) => {
+    const id = ++causesReq.current;
+    setCausesLoading(true);
+    try {
+      const q = await askCausesQuestion(sid, feelings, whatsGoingOn.trim());
+      if (causesReq.current !== id) return;
+      setCausesQuestion(q);
+    } catch {
+      if (causesReq.current !== id) return;
+      setCausesQuestion(getSpotCheckFallbackQuestion(sid));
+    } finally {
+      if (causesReq.current === id) setCausesLoading(false);
+    }
   };
+
+  const summaryReq = useRef(0);
+  const runSummary = async (sid: SponsorType, answer: string | null) => {
+    const id = ++summaryReq.current;
+    setSummaryLoading(true);
+    setSummaryFailed(false);
+    try {
+      const result = await askSummary(sid, {
+        feelings,
+        whatsGoingOn: whatsGoingOn.trim(),
+        causesQuestion,
+        causesAnswer: answer,
+      });
+      if (summaryReq.current !== id) return;
+      setSummary(result.summary);
+      setSuggestions(result.suggestions);
+    } catch {
+      if (summaryReq.current !== id) return;
+      setSummary(null);
+      setSuggestions(null);
+      setSummaryFailed(true);
+    } finally {
+      if (summaryReq.current === id) setSummaryLoading(false);
+    }
+  };
+
+  // ── Navigation between steps ──
+  const goToCauses = () => {
+    Keyboard.dismiss();
+    setStep(2);
+    if (causesQuestion === null && !causesLoading) runCausesQuestion(sponsorId);
+  };
+  const goToSummary = (skipped: boolean) => {
+    Keyboard.dismiss();
+    if (skipped) setCausesAnswer('');
+    setStep(3);
+    runSummary(sponsorId, skipped ? null : causesAnswer.trim() || null);
+  };
+
+  const onChangeSponsor = (id: SponsorType) => {
+    setSwitcherOpen(false);
+    if (id === sponsorId) return;
+    userPicked.current = true;
+    setSponsorId(id);
+    setLastSponsor(id); // shared key — the FAB resumes this sponsor too
+    // Re-voice the current step's generated content; user inputs are untouched.
+    if (step === 2) runCausesQuestion(id);
+    if (step === 3) runSummary(id, causesAnswer.trim() || null);
+  };
+
+  // ── Abandon (back out mid-flow) ──
+  const confirmExit = () => {
+    if (!dirty) { router.back(); return; }
+    Alert.alert('Discard this spot check?', 'You’ll lose what you’ve entered.', [
+      { text: 'Keep writing', style: 'cancel' },
+      { text: 'Discard', style: 'destructive', onPress: () => router.back() },
+    ]);
+  };
+  useEffect(() => {
+    const sub = BackHandler.addEventListener('hardwareBackPress', () => { confirmExit(); return true; });
+    return () => sub.remove();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dirty]);
+
+  // ── Save + exits. Never marks the Today daily done (completion is manual). ──
+  const save = async (): Promise<SpotCheckEntry> => {
+    const entry: SpotCheckEntry = {
+      id: Date.now().toString(),
+      createdAt: Date.now(),
+      sponsorId,
+      feelings,
+      whatsGoingOn: whatsGoingOn.trim(),
+      causesQuestion,
+      causesAnswer: causesAnswer.trim() || null,
+      summary,
+      suggestions,
+    };
+    const stored = await AsyncStorage.getItem(INVENTORY_STORAGE_KEY);
+    const records = stored ? JSON.parse(stored) : [];
+    records.unshift(entry);
+    await AsyncStorage.setItem(INVENTORY_STORAGE_KEY, JSON.stringify(records));
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    logEvent('entry_saved', {
+      type: 'spot_check',
+      sponsor: sponsorId,
+      feeling_count: feelings.length,
+      skipped_causes: causesAnswer.trim() === '',
+    });
+    return entry;
+  };
+
+  const doneForNow = async () => {
+    if (saving) return;
+    setSaving(true);
+    try {
+      await save();
+      router.back();
+    } catch (error) {
+      console.error('Error saving spot check:', error);
+      setSaving(false);
+    }
+  };
+
+  const keepTalking = async () => {
+    if (saving) return;
+    setSaving(true);
+    try {
+      const entry = await save();
+      await AsyncStorage.setItem(SPOT_CHECK_HANDOFF_KEY, JSON.stringify(entry));
+      router.replace(`/sponsor-chat?sponsor=${sponsorId}`);
+    } catch (error) {
+      console.error('Error handing off spot check:', error);
+      setSaving(false);
+    }
+  };
+
+  // ── Pieces ──
+  const askBubble = (text: React.ReactNode, live = false, thinking = false) => (
+    <View style={styles.bubbleRow}>
+      <Image source={sponsor?.avatar} style={styles.bubbleAvatar} contentFit="cover" />
+      <View style={styles.flex}>
+        {thinking ? <ThinkingDots /> : <Text style={styles.bubbleText}>{text}</Text>}
+        {live && !thinking && <Text style={styles.liveCaption}>responding to what you wrote</Text>}
+      </View>
+    </View>
+  );
+
+  const recap = (label: string, text: string) => (
+    <View style={styles.recapCard}>
+      <Text style={styles.recapLabel}>{label}</Text>
+      <Text style={styles.recapBody}>{text}</Text>
+    </View>
+  );
+
+  const continueBtn = (enabled: boolean, onPress: () => void) => (
+    <Pressable
+      onPress={onPress}
+      disabled={!enabled}
+      style={[styles.continueBtn, !enabled && styles.btnDisabled]}
+      accessibilityRole="button"
+      accessibilityLabel="Continue"
+    >
+      <Text style={styles.continueText}>Continue</Text>
+    </Pressable>
+  );
+
+  const backBtn = (to: number) => (
+    <Pressable onPress={() => setStep(to)} style={styles.backPill} accessibilityRole="button" accessibilityLabel="Back">
+      <Text style={styles.backPillText}>Back</Text>
+    </Pressable>
+  );
+
+  // ── Step bodies ──
+  let body: React.ReactNode = null;
+  if (step === 0) {
+    body = (
+      <>
+        {askBubble(script.ask1)}
+        <View style={styles.pills}>
+          {SPOT_CHECK_FEELINGS.map((f) => {
+            const on = feelings.includes(f);
+            return (
+              <Pressable
+                key={f}
+                onPress={() => setFeelings((cur) => (on ? cur.filter((x) => x !== f) : [...cur, f]))}
+                style={[styles.pill, on ? { backgroundColor: colors.accent, borderColor: colors.accent } : styles.pillOff]}
+              >
+                <Text style={[styles.pillText, { color: on ? '#fff' : c.textSecondary }]}>{f}</Text>
+              </Pressable>
+            );
+          })}
+        </View>
+      </>
+    );
+  } else if (step === 1) {
+    body = (
+      <>
+        {recap('FEELING', feelings.join(' · '))}
+        {askBubble(script.ask2)}
+        <TextInput
+          value={whatsGoingOn}
+          onChangeText={setWhatsGoingOn}
+          placeholder="Where did the day turn?"
+          placeholderTextColor={c.textMuted}
+          style={[styles.input, { minHeight: 110 }]}
+          multiline
+          keyboardAppearance={isDark ? 'dark' : 'light'}
+        />
+      </>
+    );
+  } else if (step === 2) {
+    body = (
+      <>
+        {recap('WHAT’S GOING ON', whatsGoingOn.trim())}
+        {askBubble(causesQuestion, true, causesLoading)}
+        <TextInput
+          value={causesAnswer}
+          onChangeText={setCausesAnswer}
+          placeholder="What’s on my side of the street?"
+          placeholderTextColor={c.textMuted}
+          style={[styles.input, { minHeight: 100 }]}
+          multiline
+          keyboardAppearance={isDark ? 'dark' : 'light'}
+        />
+      </>
+    );
+  } else {
+    body = (
+      <>
+        {summaryLoading ? (
+          askBubble(null, false, true)
+        ) : summaryFailed ? (
+          askBubble('Your spot check is ready to save. I couldn’t reach the connection to reflect it back right now — but you did the looking, and that’s the part that counts.')
+        ) : (
+          <>
+            {askBubble(summary, true)}
+            <View style={styles.bullets}>
+              {(suggestions ?? []).map((b, i) => (
+                <View key={i} style={styles.bulletCard}>
+                  <Check size={14} color={colors.primaryDark} strokeWidth={2.6} style={styles.bulletIcon} />
+                  <Text style={styles.bulletText}>{b}</Text>
+                </View>
+              ))}
+            </View>
+          </>
+        )}
+        {!summaryLoading && <Text style={styles.closeLine}>{script.close}</Text>}
+      </>
+    );
+  }
 
   return (
     <View style={styles.screen}>
       <Stack.Screen options={{ headerShown: false }} />
-      <ToolHeader tool={tool} dirty={dirty} onCommit={commit} />
+
+      {/* ── Header: back chevron + large title + date. The flow owns save. ── */}
+      <View style={[styles.header, { paddingTop: insets.top + 8 }]}>
+        <BackButton onPress={confirmExit} style={styles.headerBack} />
+        <Text style={styles.title}>Spot Check Inventory</Text>
+        <Text style={styles.subtitle}>{todayLabel()}</Text>
+      </View>
+
       <KeyboardAwareScrollView
         style={styles.flex}
         contentContainerStyle={styles.scroll}
@@ -70,123 +349,147 @@ export default function InventoryScreen() {
         showsVerticalScrollIndicator={false}
         bottomOffset={24}
       >
-        <ToolIntro tool={tool} variant="bar">Pause. Breathe. Name what&rsquo;s driving it — then turn it around.</ToolIntro>
-
-        <View style={styles.body}>
-          {/* Situation */}
-          <Text style={styles.heading}>What&rsquo;s disturbing you?</Text>
-          <TextInput
-            value={situation}
-            onChangeText={setSituation}
-            placeholder="What happened? Name the situation."
-            placeholderTextColor={c.textMuted}
-            style={styles.situation}
-            multiline
-            keyboardAppearance={isDark ? 'dark' : 'light'}
-          />
-
-          {/* Off the beam */}
-          <View style={styles.offHead}>
-            <Text style={styles.heading}>Where am I off the beam?</Text>
-            <Text style={styles.subhead}>Tap what&rsquo;s driving this one.</Text>
-          </View>
-
-          <View style={styles.chips}>
-            {visible.map((p) => {
-              const on = !!sel[p.id];
-              return (
-                <Pressable
-                  key={p.id}
-                  onPress={() => toggle(p.id)}
-                  style={[styles.chip, on ? { backgroundColor: colors.accent, borderColor: colors.accent } : styles.chipOff]}
-                >
-                  <Text style={[styles.chipText, { color: on ? '#fff' : c.textSecondary }]}>{p.off}</Text>
-                </Pressable>
-              );
-            })}
-            <Pressable onPress={() => setShowAll((v) => !v)} style={[styles.chip, styles.chipShowAll]}>
-              <Text style={[styles.chipText, { color: c.textMuted }]}>{showAll ? 'Show fewer' : 'Show all 18'}</Text>
-            </Pressable>
-          </View>
-
-          {/* Strive for — the on-the-beam counterpart for each pick */}
-          {chosen.length > 0 && (
-            <View style={styles.striveCard}>
-              <View style={styles.striveHeadRow}>
-                <Text style={styles.watchLabel}>WATCH FOR</Text>
-                <Text style={styles.striveLabel}>STRIVE FOR</Text>
-              </View>
-              <View style={styles.striveList}>
-                {chosen.map((p) => (
-                  <View key={p.id} style={styles.striveRow}>
-                    <Text style={styles.striveOff}>{p.off}</Text>
-                    <Text style={styles.striveOn}>{p.on}</Text>
-                  </View>
-                ))}
-              </View>
-            </View>
-          )}
+        {/* Progress rail */}
+        <View style={styles.rail}>
+          {Array.from({ length: STEPS }).map((_, i) => (
+            <View key={i} style={[styles.railSeg, { backgroundColor: i <= step ? colors.accent : c.border }]} />
+          ))}
         </View>
+
+        {/* Sponsor row */}
+        <View style={styles.sponsorRow}>
+          <Image source={sponsor?.avatar} style={styles.sponsorAvatar} contentFit="cover" />
+          <Text style={styles.sponsorName}>with {sponsor?.name}</Text>
+          <Pressable onPress={() => setSwitcherOpen(true)} style={styles.changeChip} accessibilityRole="button" accessibilityLabel="Change sponsor">
+            <Text style={styles.changeText}>Change</Text>
+          </Pressable>
+        </View>
+
+        {body}
       </KeyboardAwareScrollView>
+
+      {/* ── Footer dock ── */}
+      <View style={[styles.dock, { paddingBottom: Math.max(insets.bottom, 14) + 16 }]}>
+        {step === 0 && continueBtn(feelings.length > 0, () => setStep(1))}
+        {step === 1 && (
+          <>
+            {backBtn(0)}
+            {continueBtn(whatsGoingOn.trim() !== '', goToCauses)}
+          </>
+        )}
+        {step === 2 && (
+          <>
+            {backBtn(1)}
+            <Pressable onPress={() => goToSummary(true)} style={styles.skipBtn} accessibilityRole="button" accessibilityLabel="Skip">
+              <Text style={styles.skipText}>Skip</Text>
+            </Pressable>
+            {continueBtn(!causesLoading, () => goToSummary(false))}
+          </>
+        )}
+        {step === 3 && (
+          <>
+            <Pressable
+              onPress={keepTalking}
+              disabled={saving || summaryLoading}
+              style={[styles.keepBtn, (saving || summaryLoading) && styles.btnDisabled]}
+              accessibilityRole="button"
+              accessibilityLabel={`Keep talking with ${firstName}`}
+            >
+              <Text style={styles.keepText}>Keep talking with {firstName}</Text>
+            </Pressable>
+            <Pressable
+              onPress={doneForNow}
+              disabled={saving || summaryLoading}
+              style={[styles.doneBtn, (saving || summaryLoading) && styles.btnDisabled]}
+              accessibilityRole="button"
+              accessibilityLabel="Done for now"
+            >
+              <Text style={styles.doneText}>Done for now</Text>
+            </Pressable>
+          </>
+        )}
+      </View>
+
+      {switcherOpen && (
+        <SponsorSwitchSheet
+          current={sponsorId}
+          onSelect={onChangeSponsor}
+          onClose={() => setSwitcherOpen(false)}
+          top={insets.top + 96}
+        />
+      )}
     </View>
   );
 }
 
 const makeStyles = (tk: Tokens) => {
   const { c, colors, isDark } = tk;
-  const ON = { ink: colors.primary, soft: colors.primarySoft, dark: colors.primaryDark };
   const darkCard = isDark
     ? { borderColor: 'rgba(255,255,255,0.06)', borderTopColor: 'rgba(255,255,255,0.12)' }
     : null;
   return StyleSheet.create({
-  screen: { flex: 1, backgroundColor: c.background },
-  flex: { flex: 1 },
-  scroll: { paddingBottom: 40 },
-  body: { paddingHorizontal: 18 },
+    screen: { flex: 1, backgroundColor: c.background },
+    flex: { flex: 1 },
+    scroll: { paddingHorizontal: 18, paddingBottom: 20 },
 
-  heading: { fontFamily: fontFamily.semiBold, fontSize: 17, color: c.text, letterSpacing: -0.2 },
-  subhead: { fontFamily: fontFamily.regular, fontSize: 12.5, color: c.textMuted, marginTop: 3 },
+    header: { paddingHorizontal: 22, paddingBottom: 10 },
+    headerBack: { marginBottom: 6 },
+    title: { fontFamily: fontFamily.display, fontSize: 28, letterSpacing: -0.5, color: c.text, lineHeight: 29 },
+    subtitle: { fontFamily: fontFamily.regular, fontSize: 14, color: c.textMuted, marginTop: 3 },
 
-  situation: {
-    marginTop: 7,
-    backgroundColor: c.surface,
-    borderWidth: 1,
-    borderColor: c.border,
-    borderRadius: 12,
-    paddingHorizontal: 15,
-    paddingVertical: 13,
-    minHeight: 60,
-    fontFamily: fontFamily.regular,
-    fontSize: 16.5,
-    lineHeight: 23,
-    color: c.text,
-    ...darkCard,
-  },
+    rail: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingTop: 12, paddingBottom: 14 },
+    railSeg: { flex: 1, height: 4, borderRadius: 2 },
 
-  offHead: { marginTop: 20, marginBottom: 12 },
+    sponsorRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 14 },
+    sponsorAvatar: { width: 26, height: 26, borderRadius: 13 },
+    sponsorName: { fontFamily: fontFamily.semiBold, fontSize: 12.5, color: c.textSecondary },
+    changeChip: { paddingVertical: 4, paddingHorizontal: 10, borderRadius: 999, borderWidth: 1, borderColor: c.border, backgroundColor: 'transparent' },
+    changeText: { fontFamily: fontFamily.semiBold, fontSize: 11.5, color: c.textMuted },
 
-  chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  chip: { paddingHorizontal: 14, paddingVertical: 9, borderRadius: 999, borderWidth: 1.5 },
-  chipOff: { backgroundColor: c.surface, borderColor: c.border, ...(isDark ? { borderColor: 'rgba(255,255,255,0.12)' } : null) },
-  chipShowAll: { backgroundColor: 'transparent', borderColor: c.textMuted + '66', borderStyle: 'dashed' },
-  chipText: { fontFamily: fontFamily.semiBold, fontSize: 14 },
+    bubbleRow: { flexDirection: 'row', gap: 10, marginBottom: 14 },
+    bubbleAvatar: { width: 30, height: 30, borderRadius: 15, marginTop: 2 },
+    bubbleText: { fontFamily: fontFamily.regular, fontSize: 14.5, lineHeight: 22.5, color: c.text },
+    liveCaption: { fontFamily: fontFamily.regularItalic, fontSize: 10.5, color: c.textMuted, marginTop: 4 },
 
-  striveCard: {
-    marginTop: 18,
-    paddingHorizontal: 16,
-    paddingTop: 16,
-    paddingBottom: 14,
-    borderRadius: 16,
-    backgroundColor: ON.soft,
-    borderWidth: 1,
-    borderColor: ON.ink + '33',
-  },
-  striveHeadRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 10 },
-  watchLabel: { fontFamily: fontFamily.bold, fontSize: 10.5, letterSpacing: 1.1, color: colors.accentDark, flex: 1 },
-  striveLabel: { fontFamily: fontFamily.bold, fontSize: 10.5, letterSpacing: 1.1, color: ON.dark, flex: 1, textAlign: 'right' },
-  striveList: { gap: 11 },
-  striveRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 },
-  striveOff: { fontFamily: fontFamily.semiBold, fontSize: 15, color: colors.accentDark, flex: 1 },
-  striveOn: { fontFamily: fontFamily.semiBoldItalic, fontSize: 15, color: ON.dark, flex: 1, textAlign: 'right' },
+    recapCard: { marginBottom: 12, paddingVertical: 10, paddingHorizontal: 13, borderRadius: 12, backgroundColor: c.surface, borderWidth: 1, borderColor: c.border, ...darkCard },
+    recapLabel: { fontFamily: fontFamily.bold, fontSize: 10.5, letterSpacing: 1.1, color: c.textMuted, marginBottom: 4, textTransform: 'uppercase' },
+    recapBody: { fontFamily: fontFamily.regular, fontSize: 13, lineHeight: 19.5, color: c.textSecondary },
+
+    pills: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+    pill: { paddingVertical: 10, paddingHorizontal: 15, borderRadius: 999, borderWidth: 1.5, minHeight: 44, justifyContent: 'center' },
+    pillOff: { backgroundColor: c.surface, borderColor: c.border, ...(isDark ? { borderColor: 'rgba(255,255,255,0.12)' } : null) },
+    pillText: { fontFamily: fontFamily.semiBold, fontSize: 14.5 },
+
+    input: {
+      backgroundColor: c.surface, borderWidth: 1, borderColor: c.border, borderRadius: 14,
+      paddingHorizontal: 16, paddingVertical: 14, fontFamily: fontFamily.regular,
+      fontSize: 16, lineHeight: 25, color: c.text, textAlignVertical: 'top', ...darkCard,
+    },
+
+    bullets: { marginLeft: 40, marginBottom: 12, gap: 8 },
+    bulletCard: {
+      flexDirection: 'row', gap: 10, paddingVertical: 11, paddingHorizontal: 13, borderRadius: 12,
+      backgroundColor: colors.primarySoft, borderWidth: 1, borderColor: colors.primary + '26',
+    },
+    bulletIcon: { marginTop: 3 },
+    bulletText: { flex: 1, fontFamily: fontFamily.regular, fontSize: 13.5, lineHeight: 20, color: c.text },
+    closeLine: { marginLeft: 40, fontFamily: fontFamily.regularItalic, fontSize: 13.5, color: c.textSecondary },
+
+    dock: {
+      flexDirection: 'row', alignItems: 'center', gap: 10,
+      paddingHorizontal: 18, paddingTop: 12,
+      borderTopWidth: 1, borderTopColor: c.border, backgroundColor: c.background,
+    },
+    continueBtn: { flex: 1, paddingVertical: 14, paddingHorizontal: 18, borderRadius: 999, backgroundColor: colors.accent, alignItems: 'center' },
+    continueText: { fontFamily: fontFamily.bold, fontSize: 15.5, color: '#fff' },
+    backPill: { paddingVertical: 14, paddingHorizontal: 18, borderRadius: 999, borderWidth: 1.5, borderColor: c.border },
+    backPillText: { fontFamily: fontFamily.semiBold, fontSize: 15, color: c.textSecondary },
+    skipBtn: { paddingVertical: 14, paddingHorizontal: 10 },
+    skipText: { fontFamily: fontFamily.semiBold, fontSize: 14, color: c.textMuted },
+    keepBtn: { flex: 1, paddingVertical: 14, paddingHorizontal: 12, borderRadius: 999, borderWidth: 1.5, borderColor: colors.primary, alignItems: 'center' },
+    keepText: { fontFamily: fontFamily.bold, fontSize: 14.5, color: colors.primaryDark, textAlign: 'center' },
+    doneBtn: { flex: 1, paddingVertical: 14, paddingHorizontal: 12, borderRadius: 999, backgroundColor: colors.primary, alignItems: 'center' },
+    doneText: { fontFamily: fontFamily.bold, fontSize: 14.5, color: '#fff' },
+    btnDisabled: { opacity: 0.4 },
   });
 };

@@ -10,13 +10,18 @@ import {
 } from 'react-native';
 import { Image } from 'expo-image';
 import { useRouter, useLocalSearchParams, Stack } from 'expo-router';
-import { ChevronDown, ChevronRight, Check, RotateCcw, Send } from 'lucide-react-native';
+import { ChevronDown, RotateCcw, Send } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
 import * as Clipboard from 'expo-clipboard';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { ChatStoreProvider, useChatStore } from '@/hooks/use-chat-store';
-import { getSponsorById, SPONSORS, type SponsorConfig } from '@/constants/sponsors';
-import { SELECTION_SPONSOR_IDS, BR_INK as BR_INK_LIGHT, BR_SOFT as BR_SOFT_LIGHT } from '@/constants/sponsorTones';
+import { getSponsorById } from '@/constants/sponsors';
+import { BR_INK as BR_INK_LIGHT, BR_SOFT as BR_SOFT_LIGHT } from '@/constants/sponsorTones';
+import { SPOT_CHECK_HANDOFF_KEY } from '@/constants/spotCheckPersonas';
+import type { SpotCheckEntry } from '@/types/spotCheck';
+import { SpotCheckCard } from '@/components/SpotCheckCard';
+import { SponsorSwitchSheet } from '@/components/SponsorSwitchSheet';
 import { useScreenTimeTracking } from '@/hooks/useScreenTimeTracking';
 import { useReadingSize } from '@/hooks/use-reading-size';
 import { useLastSponsor } from '@/hooks/use-last-sponsor';
@@ -43,9 +48,6 @@ const MONTHLY_SPONSOR_LIMIT = 200;
 const LORA_SCALE = 0.92;
 
 const SUGGESTIONS = ['I’m struggling today', 'Help me think this through', 'I just need to vent', 'I’m fighting a craving'];
-const SWITCHERS = SELECTION_SPONSOR_IDS
-  .map((id) => SPONSORS.find((s) => s.id === id))
-  .filter(Boolean) as SponsorConfig[];
 
 // The dotted "vibe" string under the name, e.g. "Patient · Steady · Wise".
 const titleCase = (s: string) => s.toLowerCase().replace(/\b\w/g, (ch) => ch.toUpperCase());
@@ -122,6 +124,9 @@ const copyMessage = async (text: string) => {
 function Bubble({ message, size }: { message: ChatMessage; size: number }) {
   const styles = useThemedStyles(makeStyles);
   const { c } = useTokens();
+  if (message.kind === 'spotCheckCard' && message.spotCheck) {
+    return <SpotCheckCard entry={message.spotCheck} />;
+  }
   if (message.sender === 'user') {
     return (
       <View style={styles.userRow}>
@@ -151,7 +156,7 @@ function SponsorChatContent({ initialSponsor }: { initialSponsor: string }) {
   const BR_SOFT = isDark ? colors.primarySoft : BR_SOFT_LIGHT;
   const { readingSize } = useReadingSize();
   const size = readingSize * LORA_SCALE; // chat text, Lora-matched; follows the shared reading size
-  const { messages, isLoading, sendMessage, clearChat, changeSponsor, sponsorType } = useChatStore();
+  const { messages, isLoading, sendMessage, clearChat, changeSponsor, sponsorType, injectSpotCheckHandoff, hasLoadedFromStorage } = useChatStore();
   const [inputText, setInputText] = useState('');
   const [isCheckingLimits, setIsCheckingLimits] = useState(false);
   const [sizeSheetOpen, setSizeSheetOpen] = useState(false);
@@ -176,6 +181,28 @@ function SponsorChatContent({ initialSponsor }: { initialSponsor: string }) {
 
   const sponsor = getSponsorById(initialSponsor as SponsorType);
   useScreenTimeTracking(sponsor?.name || 'AI Sponsor');
+
+  // Spot Check "Keep talking" handoff — once the store has settled on this
+  // screen's sponsor, pick up a pending entry (written by the inventory screen
+  // right before it routed here) and inject it as a context card + opener.
+  useEffect(() => {
+    // Wait for the store's own AsyncStorage load — injecting earlier would be
+    // clobbered when the loaded thread replaces state.
+    if (sponsorType !== initialSponsor || !hasLoadedFromStorage) return;
+    (async () => {
+      try {
+        const raw = await AsyncStorage.getItem(SPOT_CHECK_HANDOFF_KEY);
+        if (!raw) return;
+        await AsyncStorage.removeItem(SPOT_CHECK_HANDOFF_KEY);
+        const entry: SpotCheckEntry = JSON.parse(raw);
+        if (entry.sponsorId !== sponsorType) return; // stale handoff for another persona
+        injectSpotCheckHandoff(entry);
+      } catch (error) {
+        console.error('Error reading spot check handoff:', error);
+      }
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sponsorType, initialSponsor, hasLoadedFromStorage]);
 
   useEffect(() => {
     if (messages.length > 0) setTimeout(() => listRef.current?.scrollToEnd({ animated: true }), 100);
@@ -263,27 +290,13 @@ function SponsorChatContent({ initialSponsor }: { initialSponsor: string }) {
 
       {/* ── Switch dropdown (opened from the sponsor identity) ── */}
       {switchOpen && (
-        <>
-          <Pressable style={styles.ddBackdrop} onPress={() => setSwitchOpen(false)} />
-          <View style={[styles.dropdown, { top: insets.top + 96 }]}>
-            <Text style={styles.ddHead}>SWITCH SPONSOR</Text>
-            {SWITCHERS.map((sp) => {
-              const current = sp.id === sponsor.id;
-              return (
-                <Pressable key={sp.id} style={[styles.ddRow, current && { backgroundColor: BR_SOFT }]} onPress={() => onSwitch(sp.id)}>
-                  <Image source={sp.avatar} style={styles.ddAvatar} contentFit="cover" />
-                  <Text style={styles.ddName}>{sp.name}</Text>
-                  {current && <Check size={16} color={BR_INK} strokeWidth={2.4} />}
-                </Pressable>
-              );
-            })}
-            <View style={styles.ddDivider} />
-            <Pressable style={styles.ddAction} onPress={() => { setSwitchOpen(false); router.replace('/(main)/chat'); }}>
-              <Text style={styles.ddActionText}>Meet all three</Text>
-              <ChevronRight size={15} color={c.textMuted} strokeWidth={2} />
-            </Pressable>
-          </View>
-        </>
+        <SponsorSwitchSheet
+          current={sponsor.id}
+          onSelect={onSwitch}
+          onClose={() => setSwitchOpen(false)}
+          top={insets.top + 96}
+          showMeetAllThree
+        />
       )}
 
       {/* ── Conversation ── */}
@@ -390,17 +403,6 @@ const makeStyles = (tk: Tokens) => {
   aaGlyph: { fontFamily: fontFamily.bold, fontSize: 13, color: isDark ? c.textSecondary : '#4A4A5E', letterSpacing: -0.2 },
   resetBtn: { width: 34, height: 34, borderRadius: 17, alignItems: 'center', justifyContent: 'center', backgroundColor: isDark ? c.surfaceRaised : c.surface, borderWidth: 1, borderColor: isDark ? 'rgba(255,255,255,0.12)' : 'rgba(26,26,46,0.12)' },
   switchBtn: { width: 34, height: 34, borderRadius: 17, alignItems: 'center', justifyContent: 'center', backgroundColor: BR_SOFT, borderWidth: 1, borderColor: BR_INK + '40' },
-
-  // switch dropdown
-  ddBackdrop: { ...StyleSheet.absoluteFillObject, zIndex: 20 },
-  dropdown: { position: 'absolute', left: 14, width: 232, zIndex: 30, backgroundColor: isDark ? c.surfaceRaised : c.surface, borderRadius: 16, borderWidth: 1, borderColor: hairline, padding: 6, ...shadows.lg },
-  ddHead: { fontFamily: fontFamily.bold, fontSize: 10, letterSpacing: 1, color: c.textMuted, paddingHorizontal: 10, paddingTop: 8, paddingBottom: 6 },
-  ddRow: { flexDirection: 'row', alignItems: 'center', gap: 10, padding: 8, borderRadius: 11 },
-  ddAvatar: { width: 34, height: 34, borderRadius: 17, borderWidth: 2, borderColor: isDark ? 'rgba(255,255,255,0.18)' : '#fff' },
-  ddName: { flex: 1, fontFamily: fontFamily.bold, fontSize: 14, color: c.text },
-  ddDivider: { height: 1, backgroundColor: isDark ? c.divider : 'rgba(26,26,46,0.07)', marginHorizontal: 8, marginVertical: 6 },
-  ddAction: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8, paddingHorizontal: 10, paddingVertical: 9, borderRadius: 11 },
-  ddActionText: { fontFamily: fontFamily.semiBold, fontSize: 13, color: c.textSecondary },
 
   // conversation
   list: { paddingHorizontal: 16, paddingTop: 14, paddingBottom: 14 },

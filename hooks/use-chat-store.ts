@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { getAnonymousId } from "@/lib/anonymousId";
 import { ChatMessage, SponsorType } from "@/types";
+import type { SpotCheckEntry } from "@/types/spotCheck";
 import { detectCrisis, crisisResponses } from "@/constants/crisisTriggers";
 import { 
   SALTY_SAM_SYSTEM_PROMPT, 
@@ -126,6 +127,7 @@ async function callSponsorAPI(
   const anonymousId = await getAnonymousId().catch(() => null);
   const conversation = chatMessages
     .slice(1, -1)
+    .filter((msg) => msg.kind !== 'spotCheckCard') // cards render in-app only; the opener line carries the content
     .slice(-10)
     .map((msg) => ({
       role: msg.sender === "bot" ? "assistant" : "user",
@@ -209,11 +211,19 @@ function convertToAPIMessages(chatMessages: ChatMessage[], sponsorType: SponsorT
   // Skip the initial welcome message and convert the rest
   const conversationMessages = chatMessages.slice(1);
   
-  conversationMessages.forEach((msg, index) => {
+  // For the first user message only, prepend the FULL system prompt.
+  // Rork API doesn't accept 'system' role, so we include it in the first user
+  // message — tracked with a flag (not index 0) because injected spot-check
+  // messages can precede the first real user turn.
+  let systemPromptSent = false;
+  conversationMessages.forEach((msg) => {
+    // Spot-check cards are an in-app artifact; the bot opener that follows one
+    // already carries its content in natural language, so don't replay the card
+    // itself as a raw turn.
+    if (msg.kind === 'spotCheckCard') return;
     if (msg.sender === 'user') {
-      // For the first user message only, prepend the FULL system prompt
-      // Rork API doesn't accept 'system' role, so we include it in the first user message
-      const content = index === 0 ? `${systemPrompt}\n\nUser: ${msg.text}` : msg.text;
+      const content = systemPromptSent ? msg.text : `${systemPrompt}\n\nUser: ${msg.text}`;
+      systemPromptSent = true;
       apiMessages.push({ role: 'user', content });
     } else if (msg.sender === 'bot') {
       apiMessages.push({ role: 'assistant', content: msg.text });
@@ -832,6 +842,34 @@ export const [ChatStoreProvider, useChatStore] = createContextHook(() => {
     }
   };
 
+  // "Keep talking" handoff from the Spot Check flow: append the entry as a
+  // context card plus a sponsor opener that references it, in one state write.
+  // Bypasses sendMessage deliberately — nothing here is user-authored text
+  // (no crisis scan needed) and no LLM call is made: the opener reuses the
+  // entry's already-persona-voiced summary. Operates on the CURRENT sponsor's
+  // thread, so callers must invoke it only once sponsorType matches the entry
+  // (sponsor-chat does this after its sponsor-sync effect settles).
+  const injectSpotCheckHandoff = (entry: SpotCheckEntry) => {
+    if (messages.some((m) => m.id === `spotcheck-${entry.id}`)) return; // effect re-runs shouldn't double-inject
+    const card: ChatMessage = {
+      id: `spotcheck-${entry.id}`,
+      text: `Spot check — ${entry.feelings.join(', ')}`,
+      sender: "bot",
+      timestamp: Date.now(),
+      kind: "spotCheckCard",
+      spotCheck: entry,
+    };
+    const opener: ChatMessage = {
+      id: `spotcheck-opener-${entry.id}`,
+      text: entry.summary
+        ? `I read your spot check. ${entry.summary}`
+        : "I read your spot check — want to talk through it?",
+      sender: "bot",
+      timestamp: Date.now() + 1,
+    };
+    setMessages([...messages, card, opener]);
+  };
+
   const clearChat = async () => {
     try {
       switch (sponsorType) {
@@ -890,5 +928,6 @@ export const [ChatStoreProvider, useChatStore] = createContextHook(() => {
     sponsorType,
     changeSponsor,
     getSponsorMessages,
+    injectSpotCheckHandoff,
   };
 });
