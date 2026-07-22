@@ -15,11 +15,10 @@ import { Stack, useRouter } from 'expo-router';
 import { Image } from 'expo-image';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Haptics from 'expo-haptics';
-import { Check } from 'lucide-react-native';
+import { Check, MessageCircle } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import BackButton from '@/components/BackButton';
 import { todayLabel } from '@/components/ToolScreen';
-import { SponsorSwitchSheet } from '@/components/SponsorSwitchSheet';
 import { getSponsorById } from '@/constants/sponsors';
 import {
   getSpotCheckScript, getSpotCheckFallbackQuestion,
@@ -65,7 +64,6 @@ export default function InventoryScreen() {
   const [causesLoading, setCausesLoading] = useState(false);
   const [summaryLoading, setSummaryLoading] = useState(false);
   const [summaryFailed, setSummaryFailed] = useState(false);
-  const [switcherOpen, setSwitcherOpen] = useState(false);
   const [saving, setSaving] = useState(false);
 
   // Inherit the FAB's last-opened sponsor once it loads, unless the user
@@ -140,7 +138,6 @@ export default function InventoryScreen() {
   };
 
   const onChangeSponsor = (id: SponsorType) => {
-    setSwitcherOpen(false);
     if (id === sponsorId) return;
     userPicked.current = true;
     setSponsorId(id);
@@ -326,7 +323,24 @@ export default function InventoryScreen() {
             </View>
           </>
         )}
-        {!summaryLoading && <Text style={styles.closeLine}>{script.close}</Text>}
+        {!summaryLoading && (
+          <>
+            {/* "Keep talking" rides with the suggestions; the footer owns only Done */}
+            <View style={styles.bullets}>
+              <Pressable
+                onPress={keepTalking}
+                disabled={saving}
+                style={[styles.keepCard, saving && styles.btnDisabled]}
+                accessibilityRole="button"
+                accessibilityLabel={`Keep talking with ${firstName}`}
+              >
+                <MessageCircle size={15} color={colors.primaryDark} strokeWidth={2.2} />
+                <Text style={styles.keepCardText}>Keep talking with {firstName}</Text>
+              </Pressable>
+            </View>
+            <Text style={styles.closeLine}>{script.close}</Text>
+          </>
+        )}
       </>
     );
   }
@@ -356,13 +370,26 @@ export default function InventoryScreen() {
           ))}
         </View>
 
-        {/* Sponsor row */}
+        {/* Sponsor pills — tap to switch; re-voices sponsor content, inputs untouched */}
         <View style={styles.sponsorRow}>
-          <Image source={sponsor?.avatar} style={styles.sponsorAvatar} contentFit="cover" />
-          <Text style={styles.sponsorName}>with {sponsor?.name}</Text>
-          <Pressable onPress={() => setSwitcherOpen(true)} style={styles.changeChip} accessibilityRole="button" accessibilityLabel="Change sponsor">
-            <Text style={styles.changeText}>Change</Text>
-          </Pressable>
+          {SPOT_CHECK_SPONSOR_IDS.map((id) => {
+            const sp = getSponsorById(id);
+            const on = id === sponsorId;
+            return (
+              <Pressable
+                key={id}
+                onPress={() => onChangeSponsor(id)}
+                style={[styles.sponsorPill, on ? { backgroundColor: colors.accent, borderColor: colors.accent } : styles.sponsorPillOff]}
+                accessibilityRole="button"
+                accessibilityLabel={`Sponsor ${sp?.name}`}
+              >
+                <Image source={sp?.avatar} style={styles.sponsorAvatar} contentFit="cover" />
+                <Text style={[styles.sponsorPillText, { color: on ? '#fff' : c.textSecondary }]} numberOfLines={1}>
+                  {sp?.name}
+                </Text>
+              </Pressable>
+            );
+          })}
         </View>
 
         {body}
@@ -387,37 +414,18 @@ export default function InventoryScreen() {
           </>
         )}
         {step === 3 && (
-          <>
-            <Pressable
-              onPress={keepTalking}
-              disabled={saving || summaryLoading}
-              style={[styles.keepBtn, (saving || summaryLoading) && styles.btnDisabled]}
-              accessibilityRole="button"
-              accessibilityLabel={`Keep talking with ${firstName}`}
-            >
-              <Text style={styles.keepText}>Keep talking with {firstName}</Text>
-            </Pressable>
-            <Pressable
-              onPress={doneForNow}
-              disabled={saving || summaryLoading}
-              style={[styles.doneBtn, (saving || summaryLoading) && styles.btnDisabled]}
-              accessibilityRole="button"
-              accessibilityLabel="Done for now"
-            >
-              <Text style={styles.doneText}>Done for now</Text>
-            </Pressable>
-          </>
+          <Pressable
+            onPress={doneForNow}
+            disabled={saving || summaryLoading}
+            style={[styles.doneBtn, (saving || summaryLoading) && styles.btnDisabled]}
+            accessibilityRole="button"
+            accessibilityLabel="Done for now"
+          >
+            <Text style={styles.doneText}>Done for now</Text>
+          </Pressable>
         )}
       </View>
 
-      {switcherOpen && (
-        <SponsorSwitchSheet
-          current={sponsorId}
-          onSelect={onChangeSponsor}
-          onClose={() => setSwitcherOpen(false)}
-          top={insets.top + 96}
-        />
-      )}
     </View>
   );
 }
@@ -441,10 +449,10 @@ const makeStyles = (tk: Tokens) => {
     railSeg: { flex: 1, height: 4, borderRadius: 2 },
 
     sponsorRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 14 },
-    sponsorAvatar: { width: 26, height: 26, borderRadius: 13 },
-    sponsorName: { fontFamily: fontFamily.semiBold, fontSize: 12.5, color: c.textSecondary },
-    changeChip: { paddingVertical: 4, paddingHorizontal: 10, borderRadius: 999, borderWidth: 1, borderColor: c.border, backgroundColor: 'transparent' },
-    changeText: { fontFamily: fontFamily.semiBold, fontSize: 11.5, color: c.textMuted },
+    sponsorAvatar: { width: 22, height: 22, borderRadius: 11 },
+    sponsorPill: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 7, paddingHorizontal: 8, borderRadius: 999, borderWidth: 1.5, minHeight: 40 },
+    sponsorPillOff: { backgroundColor: c.surface, borderColor: c.border, ...(isDark ? { borderColor: 'rgba(255,255,255,0.12)' } : null) },
+    sponsorPillText: { fontFamily: fontFamily.semiBold, fontSize: 12.5, flexShrink: 1 },
 
     bubbleRow: { flexDirection: 'row', gap: 10, marginBottom: 14 },
     bubbleAvatar: { width: 30, height: 30, borderRadius: 15, marginTop: 2 },
@@ -486,8 +494,11 @@ const makeStyles = (tk: Tokens) => {
     backPillText: { fontFamily: fontFamily.semiBold, fontSize: 15, color: c.textSecondary },
     skipBtn: { paddingVertical: 14, paddingHorizontal: 10 },
     skipText: { fontFamily: fontFamily.semiBold, fontSize: 14, color: c.textMuted },
-    keepBtn: { flex: 1, paddingVertical: 14, paddingHorizontal: 12, borderRadius: 999, borderWidth: 1.5, borderColor: colors.primary, alignItems: 'center' },
-    keepText: { fontFamily: fontFamily.bold, fontSize: 14.5, color: colors.primaryDark, textAlign: 'center' },
+    keepCard: {
+      flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 11, paddingHorizontal: 13, borderRadius: 12,
+      backgroundColor: isDark ? c.surfaceRaised : c.surface, borderWidth: 1.5, borderColor: colors.primary,
+    },
+    keepCardText: { flex: 1, fontFamily: fontFamily.bold, fontSize: 13.5, lineHeight: 20, color: colors.primaryDark },
     doneBtn: { flex: 1, paddingVertical: 14, paddingHorizontal: 12, borderRadius: 999, backgroundColor: colors.primary, alignItems: 'center' },
     doneText: { fontFamily: fontFamily.bold, fontSize: 14.5, color: '#fff' },
     btnDisabled: { opacity: 0.4 },
