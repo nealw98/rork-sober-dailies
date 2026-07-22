@@ -149,12 +149,19 @@ export default function InventoryScreen() {
     if (step === 3) runSummary(id, causesAnswer.trim() || null);
   };
 
+  // Deep links land here with no back stack — fall back to home so exits
+  // never fire an unhandled GO_BACK.
+  const exit = () => {
+    if (router.canGoBack()) router.back();
+    else router.replace('/');
+  };
+
   // ── Back out mid-flow: offer to save what's there (records to Journey) ──
   const confirmExit = () => {
-    if (!dirty) { router.back(); return; }
+    if (!dirty) { exit(); return; }
     Alert.alert('Save this spot check?', 'What you’ve entered so far will show up in Journey.', [
       { text: 'Keep writing', style: 'cancel' },
-      { text: 'Discard', style: 'destructive', onPress: () => router.back() },
+      { text: 'Discard', style: 'destructive', onPress: exit },
       { text: 'Save & close', onPress: doneForNow },
     ]);
   };
@@ -196,7 +203,7 @@ export default function InventoryScreen() {
     setSaving(true);
     try {
       await save();
-      router.back();
+      exit();
     } catch (error) {
       console.error('Error saving spot check:', error);
       setSaving(false);
@@ -312,6 +319,7 @@ export default function InventoryScreen() {
         {recap('FEELING', feelings.join(' · '))}
         {askBubble(script.ask2)}
         <TextInput
+          key="whatsGoingOn"
           value={whatsGoingOn}
           onChangeText={setWhatsGoingOn}
           placeholder="Where did the day turn?"
@@ -328,6 +336,7 @@ export default function InventoryScreen() {
         {recap('WHAT’S GOING ON', whatsGoingOn.trim())}
         {askBubble(causesQuestion, true, causesLoading)}
         <TextInput
+          key="causesAnswer"
           value={causesAnswer}
           onChangeText={setCausesAnswer}
           placeholder="What’s on my side of the street?"
