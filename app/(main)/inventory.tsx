@@ -154,6 +154,7 @@ export default function InventoryScreen() {
     if (!dirty) { router.back(); return; }
     Alert.alert('Save this spot check?', 'What you’ve entered so far will show up in Journey.', [
       { text: 'Keep writing', style: 'cancel' },
+      { text: 'Discard', style: 'destructive', onPress: () => router.back() },
       { text: 'Save & close', onPress: doneForNow },
     ]);
   };
