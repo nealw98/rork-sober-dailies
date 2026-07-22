@@ -17,7 +17,7 @@ export const SPOT_CHECK_SCRIPTS: Partial<Record<SponsorType, SpotCheckScript>> =
   },
   salty: {
     ask1: 'Alright, out with it. How are you feeling — right now, not how you think you should feel. Tap ’em.',
-    ask2: 'So what happened? Don’t polish it. Walk me through the day.',
+    ask2: 'Okay, so what happened? And don’t hand me the polished version, kid — walk me through the day, warts and all.',
     close: 'Good. Now go do it — not tomorrow.',
   },
   grace: {

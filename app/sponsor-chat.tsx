@@ -121,6 +121,9 @@ const copyMessage = async (text: string) => {
 // ── Message: user = white bubble; sponsor = flat text (assistant style) ──
 // `size` is the fixed reading base, Lora-scaled (see LORA_SCALE); it scales
 // with the OS text-size via RN's default font scaling.
+const turnTime = (ts: number) =>
+  new Date(ts).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+
 function Bubble({ message, size }: { message: ChatMessage; size: number }) {
   const styles = useThemedStyles(makeStyles);
   const { c } = useTokens();
@@ -133,6 +136,7 @@ function Bubble({ message, size }: { message: ChatMessage; size: number }) {
         <Pressable onLongPress={() => copyMessage(message.text)} style={styles.userBubble}>
           <Text style={[styles.userText, { fontSize: size, lineHeight: Math.round(size * 1.4) }]}>{message.text}</Text>
         </Pressable>
+        <Text style={styles.msgTime}>{turnTime(message.timestamp)}</Text>
       </View>
     );
   }
@@ -142,6 +146,7 @@ function Bubble({ message, size }: { message: ChatMessage; size: number }) {
         content={message.text}
         style={{ color: c.text, fontSize: size, fontFamily: fontFamily.regular, lineHeight: Math.round(size * 1.55) }}
       />
+      <Text style={styles.msgTime}>{turnTime(message.timestamp)}</Text>
     </Pressable>
   );
 }
@@ -410,6 +415,7 @@ const makeStyles = (tk: Tokens) => {
   dayText: { fontFamily: fontFamily.regular, fontSize: 11, color: c.textMuted, backgroundColor: isDark ? c.surfaceRaised : c.surface, paddingHorizontal: 12, paddingVertical: 4, borderRadius: 999, overflow: 'hidden', ...shadows.sm },
 
   botBlock: { marginBottom: 18 },
+  msgTime: { fontFamily: fontFamily.regular, fontSize: 10.5, color: c.textMuted, marginTop: 4 },
 
   userRow: { alignItems: 'flex-end', marginBottom: 18 },
   // Styled like the suggestion chips ("I'm struggling today" …): surface fill,
