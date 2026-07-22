@@ -34,7 +34,7 @@ export const getSpotCheckScript = (id: SponsorType): SpotCheckScript =>
 // "Other" pill that opens a free-text input for feelings not listed here.
 export const SPOT_CHECK_FEELINGS = [
   'Angry', 'Afraid', 'Anxious', 'Resentful', 'Restless',
-  'Irritable', 'Discontent', 'Ashamed', 'Lonely',
+  'Irritable', 'Discontent', 'Ashamed', 'Lonely', 'Self-pity',
 ];
 
 // Offline / LLM-failure fallback for the step-3 question, voiced per persona.
