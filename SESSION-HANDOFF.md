@@ -1,12 +1,20 @@
 # Session Handoff — Sober Dailies
 
 _For a fresh chat. Branch `3.0.5-redesign` (tracks `origin/3.0.5-redesign`)._
-_Last big session (**2026-07-20**): the GIFT ACQUISITION LAUNCH — Pass It On
+
+_Latest session (**2026-07-22**): the SPOT CHECK REDESIGN — sponsor-driven
+4-step guided flow, replacing the defect-chips form. **Read §9 FIRST** for the
+current state. Everything through `222839c4` (build bump to 128) is committed
+and PUSHED on `3.0.5-redesign` — this push also carried §8's previously-local
+`55ee97a9`. Nothing OTA'd this session; the landscape fix still needs a native
+store build (see §8)._
+
+_Prior big session (**2026-07-20**): the GIFT ACQUISITION LAUNCH — Pass It On
 pivoted from selling code packs to giving earned "passes" (Apple offer codes,
 3 free months, auto-converting). Everything through commit `5b4954a4` is
 committed, pushed, deployed, and live on the production OTA (runtime 3.0.7).
-**Read §7 FIRST** — it supersedes §§1–3 below, which are kept only as history
-of systems that no longer exist. Authoritative spec:
+**§7** is the authoritative launch state; it supersedes §§1–3, which are kept
+only as history of systems that no longer exist. Authoritative spec:
 `docs/invite-rewards-design.md` §0 · design surfaces:
 `docs/design-brief-gift-surfaces.md`._
 _(Historical header, 2026-07-18: build **127** tested on device; Android .aab
@@ -156,3 +164,155 @@ paywall never renders (gate waits on subscription load). A pass sent to an
 existing subscriber isn't burned — the link stays live for whoever uses it
 first. Grandfathered recipient who accidentally subscribes = support issue
 (cancel; grandfather flag survives).
+
+## 8. Session — 2026-07-21 (Today polish · landscape PDF · parked Big Book text)
+
+**Status: commit `55ee97a9` on `3.0.5-redesign` — pushed 2026-07-22 (rode the
+§9 push), still NOT OTA'd.**
+Working tree clean. Four shipped changes + one parked branch.
+
+**Shipped in `55ee97a9`:**
+- **Debug Console — "Daily action subtitles" toggle** (THIS DEVICE card, under
+  Developer Mode). Hides the canned `ACTION_SUBTITLE` tag lines ("Set your
+  intention", …) on Today rows, edit mode, and the Add sheet. Default ON;
+  persisted to AsyncStorage `dailies_show_subtitles` via the dailies store
+  (`showSubtitles` / `setShowSubtitles` on `useDailies`). Neal is deciding
+  whether the simpler no-subtitle look wins. User-entered subtitles (sponsor
+  name, custom-daily notes) are NOT affected — only the canned defaults.
+- **Add sheet — already-added rows dimmed** to `opacity: 0.55` so the still-
+  available actions pop on a glance (`DailiesEditSheets.tsx`, both catalogs).
+- **Sobriety counter — tighter leading** on the days/breakdown/date block
+  (`SobrietyCounter.tsx`: breakdown marginTop 5→2, lineHeight 18→16) so it
+  reads as one block.
+- **Landscape PDF reader** — the Big Book / 12&12 PDFs now rotate to landscape
+  for bigger text; the rest of the app stays portrait. Pieces:
+  - `PdfReader.tsx` already unlocked rotation on open (re-locks portrait on
+    close). Added: the presenting `<Modal>`s in `twelve-and-twelve.tsx` and
+    `BigBookMain.tsx` declare `supportedOrientations={['portrait','landscape']}`
+    (iOS Modals ignore rotation without it); the `Pdf` remounts on rotation
+    (key) with `fitPolicy` = fit-width in landscape / whole-page in portrait,
+    restoring the current page across the remount; horizontal safe-area insets
+    scoped to the header chrome only so the page runs edge-to-edge.
+  - **NATIVE config (ships with next store build, NOT OTA):** `app.json`
+    `ios.infoPlist.UISupportedInterfaceOrientations` now lists Landscape L/R
+    (prebuild merges this). The local `ios/Info.plist` + `android/…/Android
+    Manifest.xml` were also hand-edited (portrait→landscape / `unspecified`)
+    for the current simulator builds — but **`ios/` and `android/` are
+    gitignored**, so only the `app.json` change survives a prebuild. ⚠️ The
+    JS parts alone do nothing until a native build picks up the orientation
+    entitlement — this fix does NOT ride the OTA.
+
+**PARKED: branch `bigbook-text-conversion` (commit `cbb291b8`) — NOT merged.**
+A complete-but-unshipped conversion of 13 bundled Big Book PDFs into in-app
+text-reader chapters (3rd/4th forewords, all ten Part I stories, appendix-7
+Twelve Concepts), wired into the content registry, chapter metadata, and the
+Contents TOC (entries flipped `pdf`→`text`; PDFs stay bundled and pdf-search
+hits still open the PDF reader). Converter + verifier live in
+`docs/essay-text-prototype/`; every doc verified 99%+ word-accurate vs the
+independent pdf-search index.
+- **Why parked:** Everything AA uses the stricter community norm — text only
+  for public-domain 1st/2nd-edition material, facsimile PDFs for anything AAWS
+  still owns. Under that line, 9 of the 13 qualify (all Part I EXCEPT Gratitude
+  in Action); the 4 risk items are the 3rd/4th forewords, Gratitude in Action,
+  and appendix-7. US lapsed-renewal basis: 1st ed PD since 1967, 2nd since
+  1983; 3rd/4th copyrighted. Neal wary that asking AAWS invites enforcement on
+  what the app already bundles. Decision pending before anything ships.
+- **3 known converter bugs to fix before shipping** (documented in the commit,
+  fix in `convert-bb.js` then regenerate): drop-cap merge drops the space
+  ("Iwas born"); the 1–2 wrap lines beside a drop cap can false-start a new
+  paragraph; standalone end-of-line hyphen elements yield "sup plied" joins.
+- **Part II stories of 2nd-edition (PD-arguable) origin**, if ever wanted:
+  Fear of Fear · The Housewife Who Drank at Home · Physician Heal Thyself! ·
+  It Might Have Been Worse · Me an Alcoholic? (the other 12 of Part II + all of
+  Part III's newer stories are 3rd/4th-edition, copyrighted).
+
+**Next actions (this session):**
+1. Decide `55ee97a9`'s fate — push + OTA (JS-only bits: subtitle toggle, dimmed
+   rows, counter leading, and the landscape *JS*) then queue a native build for
+   the landscape orientation entitlement to actually take effect.
+2. Decide Big Book scope (Everything-AA line = 9 PD stories as text, revert the
+   4 risk entries to PDF; or ship all 13) — then fix the 3 converter bugs and
+   merge `bigbook-text-conversion`. Nothing here ships until decided.
+
+---
+
+## 9. Latest session — 2026-07-22 (SPOT CHECK REDESIGN — sponsor-driven flow)
+
+**Status: merged into `3.0.5-redesign` (fast-forward, 10 commits `a67bce3a`…`ad7c3e6f`)
++ build bump `222839c4` (iOS buildNumber / Android versionCode → 128, version
+stays 3.0.7). All PUSHED. NOT OTA'd — JS-only, so it CAN ride an OTA when Neal
+says so (no native changes; Archivo was already bundled).**
+
+**What it is:** `app/(main)/inventory.tsx` rewritten from the situation →
+defect-chips → Watch For/Strive For form into a 4-step flow voiced by the AI
+sponsor persona (design handoff bundle "Sober Dailies-17.zip", §8 frame I):
+
+1. **Feelings** — fixed per-persona ask + pills (`SPOT_CHECK_FEELINGS`, 10 incl.
+   Self-pity) + dashed **"Other…"** pill that opens a short input (30 chars);
+   custom feelings join the row and save like fixed ones.
+2. **What's going on** — fixed per-persona ask + free text.
+3. **Causes & conditions** — LLM-generated question (call 1), skippable.
+4. **Summary & suggestions** — LLM summary + bullet cards (call 2), fixed
+   persona closing line, **"Keep talking with {name}"** as a tappable card in
+   the suggestions column, single **"Done for now"** footer pill. No Back from
+   this step (deliberate).
+
+**Key mechanics / decisions (product-confirmed):**
+- **Sponsor pills** (Eddie/Sam/Grace, avatar+name) sit under the progress rail —
+  tap to switch mid-flow; fixed scripts re-render instantly, the current step's
+  LLM content re-runs in the new voice, user inputs never reset. Inherits
+  `aa-last-opened-sponsor` (default `supportive`); switching also persists there.
+- **Exactly 2 LLM calls per entry** (`lib/spotCheckLLM.ts`, Rork endpoint,
+  persona system prompt + task wrapper; THROWS on failure unlike chat's
+  `callAI`). Offline fallbacks: step 3 → fixed per-persona generic question
+  (`SPOT_CHECK_FALLBACK_QUESTION`); step 4 → plain "ready to save" line, no
+  bullets. Flow always completes.
+- **No consent UI yet** (deliberate defer — steps 3–4 send feelings+text to the
+  LLM; a first-use disclosure is a fast-follow candidate).
+- **Storage:** new `SpotCheckEntry` (`types/spotCheck.ts`) on the same
+  AsyncStorage key `spot_check_inventories`, CLEAN CUTOVER — Journey skips
+  pre-redesign `{situation, selections}` records entirely.
+- **Completion fully manual:** saving NEVER calls `dailies.markDone()` (removed
+  the old `dailyId` auto-check behavior).
+- **Exits:** Done for now → save + close; Keep talking → save + handoff to
+  chat; back-out with content → 3-way prompt Keep writing / Discard /
+  Save & close. Exits fall back to `/` when there's no back stack.
+- **Chat handoff:** entry rides via AsyncStorage key `pending_spot_check_handoff`
+  → `sponsor-chat.tsx` reads-and-clears once the store settles (gated on
+  `hasLoadedFromStorage`) and injects TWO messages via the store's new
+  `injectSpotCheckHandoff`: a `kind:'spotCheckCard'` message (rendered by
+  `components/SpotCheckCard.tsx`) + a bot opener seeded from the step-4 summary
+  (no third LLM call). `convertToAPIMessages` skips card messages when
+  replaying history; the first-user-message system-prompt attach is now
+  flag-based (was index-0-fragile).
+- **Journey** (`use-notebook.ts` + `journey.tsx`): feed previews `whatsGoingOn`
+  with a feelings-count label; read sheet shows feeling chips, what-was-going-on,
+  the causes Q&A, and a teal "What {sponsor} heard" card (summary + suggestion
+  checks); Edit covers user-authored fields only (feelings/whatsGoingOn/
+  causesAnswer) — the LLM record is read-only. `updateSpotRecord` signature
+  changed accordingly.
+- **Extracted `components/SponsorSwitchSheet.tsx`** from sponsor-chat's inline
+  dropdown (sponsor-chat behavior unchanged; the spot check screen itself uses
+  inline pills, not the sheet — the sheet extraction stands on its own).
+- **Chat timestamps:** every turn in sponsor-chat now shows a small muted time
+  (right-aligned under user bubbles, left under bot). Quirk: persona welcome
+  messages are stamped at app load (module constant `Date.now()`), so they show
+  today's time — hide-on-welcome is a tiny follow-up if it grates.
+
+**QA state:** typecheck clean (baseline unchanged); step 0/pills/sponsor-switch
+re-voicing verified via simulator screenshots. **Full interactive run (LLM
+steps, handoff card in chat, save-to-Journey round trip) NOT yet click-tested**
+— simulator tap tooling was blocked (`sudo xcode-select -s
+/Applications/Xcode.app/Contents/Developer` needed once), and the paywall gates
+dev launches (verification used a temporary local `PAYWALL_ENABLED=false`,
+reverted, never committed). Two seeded test records sit in the iPhone 16 Pro
+Max sim's spot-check storage (a Salty Sam sample + an invisible old-shape one).
+
+**Next actions:**
+1. Real-device / tap-through QA of the full flow incl. offline fallbacks and
+   the chat handoff; then decide whether to OTA (JS-only, safe) or hold for the
+   build-128 store submission (which the landscape fix in §8 needs anyway).
+2. Consent/disclosure line for the LLM steps (deferred, fast-follow).
+3. Optional niceties: hide timestamp on welcome messages; Notebook detail could
+   surface the sponsor avatar; old-shape records are invisible by design —
+   confirm nobody misses them.
