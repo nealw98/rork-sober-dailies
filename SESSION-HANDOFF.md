@@ -2,12 +2,18 @@
 
 _For a fresh chat. Branch `3.0.5-redesign` (tracks `origin/3.0.5-redesign`)._
 
-_Latest session (**2026-07-22**): the SPOT CHECK REDESIGN — sponsor-driven
-4-step guided flow, replacing the defect-chips form. **Read §9 FIRST** for the
-current state. Everything through `222839c4` (build bump to 128) is committed
-and PUSHED on `3.0.5-redesign` — this push also carried §8's previously-local
-`55ee97a9`. Nothing OTA'd this session; the landscape fix still needs a native
-store build (see §8)._
+_Latest session (**2026-07-23**): PASS SUSPENSION + policy decisions,
+literature fixes, the restored onboarding DISCLAIMER step, and server-side
+disclaimer-acceptance recording. **Read §10 FIRST.** Key correction: the app
+is NOT launched — still TestFlight; "production" below means the EAS channel,
+not App Store users. An OTA went out 2026-07-22 (group `61c43239`); the
+disclaimer-sync work on top is committed but NOT deployed and NOT OTA'd._
+
+_Prior session (**2026-07-22**): the SPOT CHECK REDESIGN — sponsor-driven
+4-step guided flow, replacing the defect-chips form (§9). Everything through
+`222839c4` (build bump to 128) is committed and PUSHED on `3.0.5-redesign` —
+this push also carried §8's previously-local `55ee97a9`. The landscape fix
+still needs a native store build (see §8)._
 
 _Prior big session (**2026-07-20**): the GIFT ACQUISITION LAUNCH — Pass It On
 pivoted from selling code packs to giving earned "passes" (Apple offer codes,
@@ -316,3 +322,90 @@ Max sim's spot-check storage (a Salty Sam sample + an invisible old-shape one).
 3. Optional niceties: hide timestamp on welcome messages; Notebook detail could
    surface the sponsor avatar; old-shape records are invisible by design —
    confirm nobody misses them.
+
+---
+
+## 10. Latest session — 2026-07-23 (pass suspension · literature fixes · disclaimer)
+
+**Status: commits `a873d8ec`…`508ead1e` PUSHED + OTA'd to production channel
+2026-07-22 (update group `61c43239`, runtime 3.0.7, message "Suspend passes
+for TestFlight; search/PDF/highlight fixes; disclaimer step"). The
+disclaimer-ACCEPTANCE-RECORDING work on top is committed this push but NOT
+deployed / NOT OTA'd. Neal has NOT yet device-tested any of it.**
+
+**Decisions (Neal):**
+- **The app is NOT launched — still TestFlight.** Prior "live/production"
+  language means deployed infra + the EAS production channel, not store users.
+- **Passes are for PAYING subscribers only.** A pass recipient earns nothing
+  during the 3 free offer-code months; grants land at first real charge
+  (grant-on-read picks them up). Opt-out before conversion = no passes ever.
+- **Pass recipients must be NOTIFIED when passes land** (open follow-up):
+  agreed design = server-driven announcement — thank-you sheet when
+  credits-status returns balance above last-announced — replacing the
+  PaywallScreen.buy() pending-flag path. NOT BUILT YET.
+- Share-count-based pass awards REJECTED (gameable; the free "Share the app"
+  row covers organic spread). Redemption-based bonus passes = future lever,
+  decide from post-launch data.
+- v2's welcome disclaimer returns as an onboarding step (below), with 988.
+
+**Shipped in the 2026-07-22 OTA:**
+- **Pass kill switch:** `PASSES_ENABLED = false` in `lib/creditsService.ts` —
+  balance reads 0 (badge + give-row hide), no server calls, no token minting,
+  pending thank-you announcements swallowed; pass-it-on hero forced to the
+  neutral 'none' copy. **FLIP TO TRUE AT LAUNCH.**
+- **Server grant gates** in `supabase/functions/_shared/credits.ts`: skip
+  `is_sandbox` subs (CRITICAL — TestFlight sandbox subs were minting real
+  production offer codes) and skip non-`normal` `period_type` (the
+  paying-only rule). ⚠️ **Edge functions NOT redeployed** — the gates aren't
+  live until `supabase functions deploy credits-status credits-share`.
+- **Big Book search fix:** result taps now pass `paragraphId` through
+  Contents → Main → HtmlReader; the reader centers the matched paragraph and
+  pulses `.search-hit` marks (plus first-hit fallbacks). Was: scrolled to the
+  page anchor, term often off-screen.
+- **PDF rotation fix:** `PdfReader` passes the stashed page as the native
+  `page` prop on the orientation remount (the old post-load `setPage` raced
+  the view's own scroll-to-1 and lost). Post-load jump kept as offset
+  correction.
+- **Highlight UX:** pressing Highlight just records + renders; the note
+  editor no longer auto-opens. Tap the highlighted text for note/delete
+  (that menu already existed).
+- **Onboarding disclaimer step** (`components/OnboardingFlow.tsx`): restored
+  as the FINAL step (dailies → disclaimer → completeOnboarding), full-screen
+  on `obvGrad(0.5)`, reusing the retained `consent*` styles. Copy: title
+  "Before you begin", subtitle "A word about safety.", the three v2 bullets
+  with 988 added, Terms/Privacy links, checkbox "I understand the above, and
+  have read and agree…" gating Continue. Existing devices that completed
+  onboarding never see it.
+
+**Committed THIS push (not deployed, not OTA'd): disclaimer acceptance
+recording.** `lib/disclaimerConsent.ts` (local timestamp + best-effort server
+sync, launch-time retry via `ensureDisclaimerSynced()` in `app/_layout.tsx`,
+version const `1-2026-07-22`) → new edge function
+`supabase/functions/disclaimer-accept` → new table `disclaimer_acceptances`
+(migration `20260722100000`, PK (anonymous_id, version), first-accept wins,
+RLS no-policies). Typecheck baseline: **131** pre-existing (drifted from the
+documented 116 — verified pre-existing via stash) **+4** Deno-noise errors
+from the new edge function = **135**.
+
+**Website repo (`sober-day-reflections`, pushed):** `docs/privacy-policy.md`
++ `docs/support.md` — accurate, app-grounded source content for Lovable to
+rewrite /privacy and /support (existing pages are July-2025 stale). Support
+doc covers Today, backup/restore, multi-device (last-write-wins caveat),
+passes, literature, AI disclaimer + 988, troubleshooting.
+
+**Next actions:**
+1. **Deploy server side:** `supabase db push` (disclaimer_acceptances
+   migration) + `supabase functions deploy credits-status credits-share
+   disclaimer-accept`. Then an OTA so clients actually send acceptance.
+2. **Device QA** (Neal, on the OTA'd build): pass surfaces gone · search
+   lands on term · PDF keeps page through rotation · highlight = no modal,
+   tap-to-note · fresh-install onboarding shows the disclaimer step.
+   (Plus the §9 spot-check flow QA, still outstanding.)
+3. **Build the pass-arrival notification** (server-driven thank-you; see
+   decisions above) — the agreed replacement for the buy-flag path.
+4. **Neal's dev pass stash** (approved, awaiting go): insert
+   `(anonymous_id, 'dev_stash_2026_07', N)` into gift_credit_grants; need his
+   anonymous_id (founding_y1 rows or a Debug Console read-out) — note
+   sending also needs PASSES_ENABLED true or a debug bypass.
+5. Launch checklist additions: flip `PASSES_ENABLED`, deploy gates (item 1),
+   Lovable-publish the rewritten website pages.

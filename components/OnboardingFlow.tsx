@@ -4,7 +4,6 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { StatusBar } from 'expo-status-bar';
 import { Image } from 'expo-image';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { ArrowRight, Check, ShieldCheck } from 'lucide-react-native';
 
 import { fontFamily, fontSize, shadows, type Tokens } from '@/constants/designTokens';
@@ -12,6 +11,7 @@ import { useTokens, useThemedStyles } from '@/hooks/useTokens';
 import BackButton from '@/components/BackButton';
 import WhatsInsideCarousel from '@/components/onboarding/WhatsInsideCarousel';
 import { useOnboarding } from '@/hooks/useOnboardingStore';
+import { recordDisclaimerAcceptance } from '@/lib/disclaimerConsent';
 import { useSobriety } from '@/hooks/useSobrietyStore';
 import { useDailies, type DailyItem, type WhenBucket } from '@/hooks/use-dailies-store';
 import { formatLocalDate } from '@/lib/dateUtils';
@@ -92,8 +92,8 @@ function DisclaimerStep({ onAgree }: { onAgree: () => void | Promise<void> }) {
   const agree = async () => {
     if (!checked || saving) return;
     setSaving(true);
-    // Acceptance timestamp, kept locally alongside the onboarding flag.
-    AsyncStorage.setItem('disclaimer_accepted_v1', new Date().toISOString()).catch(() => {});
+    // Local acceptance record + best-effort server sync (retries on launch).
+    await recordDisclaimerAcceptance();
     await onAgree();
   };
 

@@ -191,6 +191,10 @@ function RootLayoutNav() {
     // Initialize analytics (Mixpanel)
     initAnalytics();
 
+    // Retry the disclaimer-acceptance server sync if it never confirmed
+    // (e.g. the user onboarded offline). One AsyncStorage read when synced.
+    import('@/lib/disclaimerConsent').then((m) => m.ensureDisclaimerSynced()).catch(() => {});
+
     
     // Log OTA diagnostics with safe fallback
     (async () => {
