@@ -500,7 +500,9 @@ function buildHtml(params: {
   window.__savedHighlights.forEach(applyHighlight);
   setTimeout(() => {
     ${params.scrollToParagraphId
-      ? `var __p = document.querySelector('[data-pid="${escapeHtml(params.scrollToParagraphId)}"]'); if (__p) { __p.scrollIntoView({ block: 'center' }); var __hls = __p.querySelectorAll('.bb-highlight'); for (var __i=0;__i<__hls.length;__i++) __hls[__i].classList.add('bb-hl-pulse'); setTimeout(function(){ for (var __j=0;__j<__hls.length;__j++) __hls[__j].classList.remove('bb-hl-pulse'); }, 1500); }`
+      ? `var __p = document.querySelector('[data-pid="${escapeHtml(params.scrollToParagraphId)}"]'); if (__p) { __p.scrollIntoView({ block: 'center' }); var __hls = __p.querySelectorAll('.bb-highlight, .search-hit'); for (var __i=0;__i<__hls.length;__i++) __hls[__i].classList.add('bb-hl-pulse'); setTimeout(function(){ for (var __j=0;__j<__hls.length;__j++) __hls[__j].classList.remove('bb-hl-pulse'); }, 1500); } else { var __h = document.querySelector('.search-hit'); if (__h) __h.scrollIntoView({ block: 'center' }); }`
+      : params.searchTerm
+      ? `var __h = document.querySelector('.search-hit'); if (__h) { __h.scrollIntoView({ block: 'center' }); } else { var __pg = document.querySelector('[data-page="${params.scrollToPage ?? 0}"]'); if (__pg) __pg.scrollIntoView(); }`
       : params.scrollToPage
       ? `const target = document.querySelector('[data-page="${params.scrollToPage}"]'); if (target) target.scrollIntoView();`
       : ''}
@@ -665,12 +667,9 @@ export function BigBookHtmlReader({ visible, initialChapterId, scrollToPage, scr
     if (message.type === 'selectionAction') {
       try {
         if (message.action === 'highlight') {
-          const created = await createRangeHighlights(message.ranges, message.text);
-          // Immediately offer the note editor for the highlight just made.
-          if (created && created.length > 0) {
-            setEditingHighlight(created[0]);
-            setShowHighlightEditMenu(true);
-          }
+          // Just record and render it (Neal, 2026-07-22) — no note editor on
+          // creation. Tapping the highlighted text opens the note/delete menu.
+          await createRangeHighlights(message.ranges, message.text);
           return;
         }
         if (message.action === 'copy') {
