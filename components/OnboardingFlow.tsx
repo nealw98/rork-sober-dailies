@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, Pressable, Linking, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, Pressable, Linking, ActivityIndicator, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { StatusBar } from 'expo-status-bar';
 import { Image } from 'expo-image';
-import { ArrowRight } from 'lucide-react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { ArrowRight, Check, ShieldCheck } from 'lucide-react-native';
 
 import { fontFamily, fontSize, shadows, type Tokens } from '@/constants/designTokens';
 import { useTokens, useThemedStyles } from '@/hooks/useTokens';
@@ -34,8 +35,9 @@ function obvInk(t: number): string {
   return lerpHex('#0086C2', '#2F6E6E', t);
 }
 
-// Legal links — Apple's standard EULA + our Privacy Policy. The consent page was
-// removed; implied agreement now rides the first onboarding CTA.
+// Legal links — Apple's standard EULA + our Privacy Policy. The welcome CTA
+// carries implied agreement; explicit agreement (checkbox) happens on the
+// disclaimer step, restored 2026-07-22 as the flow's final gate.
 const openTerms = () => Linking.openURL('https://www.apple.com/legal/internet-services/itunes/dev/stdeula/').catch(() => {});
 const openPrivacy = () => Linking.openURL('https://soberdailies.com/privacy').catch(() => {});
 
@@ -67,6 +69,76 @@ function WelcomeStep({ upgrader, onContinue }: { upgrader: boolean; onContinue: 
             By continuing, you agree to our <Text style={styles.welcomeAgreeLink} onPress={openTerms}>Terms of Use</Text> and <Text style={styles.welcomeAgreeLink} onPress={openPrivacy}>Privacy Policy</Text>.
           </Text>
         </View>
+      </SafeAreaView>
+    </View>
+  );
+}
+
+// ─── Final step · Disclaimer (restored 2026-07-22) ──────────────────────────
+// The v2 welcome-screen disclaimer, on our gradient: what the app is not, the
+// 988 line, and an explicit Terms/Privacy checkbox. Gates completeOnboarding —
+// nobody reaches Today without agreeing. Uses the retained consent* styles.
+const DISCLAIMER_BULLETS = [
+  'This app is not a substitute for therapy, medical advice, or emergency support.',
+  'The AI sponsors offer encouragement and reflection, but they are not human and cannot provide crisis support or clinical help.',
+  'If you’re in immediate danger or emotional distress, call or text 988 (Suicide & Crisis Lifeline) or contact your local emergency services.',
+];
+
+function DisclaimerStep({ onAgree }: { onAgree: () => void | Promise<void> }) {
+  const styles = useThemedStyles(makeStyles);
+  const [checked, setChecked] = useState(false);
+  const [saving, setSaving] = useState(false);
+
+  const agree = async () => {
+    if (!checked || saving) return;
+    setSaving(true);
+    // Acceptance timestamp, kept locally alongside the onboarding flag.
+    AsyncStorage.setItem('disclaimer_accepted_v1', new Date().toISOString()).catch(() => {});
+    await onAgree();
+  };
+
+  return (
+    <View style={styles.welcomeRoot}>
+      <StatusBar style="light" />
+      <LinearGradient colors={obvGrad(0.5)} start={{ x: 0.05, y: 0 }} end={{ x: 0.95, y: 1 }} style={StyleSheet.absoluteFill} />
+      <SafeAreaView style={{ flex: 1 }} edges={['top', 'bottom']}>
+        <ScrollView contentContainerStyle={styles.consentScroll} showsVerticalScrollIndicator={false}>
+          <View style={styles.consentMark}>
+            <ShieldCheck size={30} color="#fff" strokeWidth={1.8} />
+          </View>
+          <Text style={styles.consentTitle}>Before you begin</Text>
+          <Text style={styles.consentDesc}>A word about safety.</Text>
+
+          <View style={styles.consentCard}>
+            <Text style={styles.consentNote}>Please note:</Text>
+            {DISCLAIMER_BULLETS.map((line, i) => (
+              <View key={i} style={[styles.consentBullet, i > 0 && { marginTop: 12 }]}>
+                <Text style={styles.consentBulletDot}>•</Text>
+                <Text style={styles.consentBulletText}>{line}</Text>
+              </View>
+            ))}
+          </View>
+
+          <Text style={styles.consentAgree}>
+            By continuing, you agree to our <Text style={styles.consentLink} onPress={openTerms}>Terms of Use</Text> and <Text style={styles.consentLink} onPress={openPrivacy}>Privacy Policy</Text>.
+          </Text>
+
+          <Pressable style={styles.consentCheckRow} onPress={() => setChecked((v) => !v)} accessibilityRole="checkbox" accessibilityState={{ checked }}>
+            <View style={[styles.consentCheckbox, checked && styles.consentCheckboxOn]}>
+              {checked && <Check size={15} color="#fff" strokeWidth={3} />}
+            </View>
+            <Text style={styles.consentCheckText}>I understand the above, and have read and agree to the Terms of Use and Privacy Policy.</Text>
+          </Pressable>
+
+          <Pressable
+            style={[styles.consentContinue, !checked && styles.consentContinueOff]}
+            onPress={agree}
+            disabled={!checked || saving}
+            accessibilityRole="button"
+          >
+            {saving ? <ActivityIndicator color={obvInk(0.55)} /> : <Text style={styles.consentContinueText}>Continue</Text>}
+          </Pressable>
+        </ScrollView>
       </SafeAreaView>
     </View>
   );
@@ -168,7 +240,7 @@ function DefineDailiesStep({ onBack, onComplete }: { onBack: () => void; onCompl
 }
 
 // ─── The flow ───────────────────────────────────────────────────────────────
-type Step = 'welcome' | 'inside' | 'date' | 'dailies';
+type Step = 'welcome' | 'inside' | 'date' | 'dailies' | 'disclaimer';
 
 export default function OnboardingFlow() {
   const [step, setStep] = useState<Step>('welcome');
@@ -202,10 +274,17 @@ export default function OnboardingFlow() {
       />
     );
   }
+  if (step === 'dailies') {
+    return (
+      <DefineDailiesStep
+        onBack={() => setStep(skipDateStep ? 'inside' : 'date')}
+        onComplete={() => setStep('disclaimer')}
+      />
+    );
+  }
   return (
-    <DefineDailiesStep
-      onBack={() => setStep(skipDateStep ? 'inside' : 'date')}
-      onComplete={async () => {
+    <DisclaimerStep
+      onAgree={async () => {
         await completeOnboarding();
         // No router.replace here: onboarding is a render gate in app/_layout, not a
         // route. When the flag flips, the gate swaps this flow out for the paywall/
