@@ -30,16 +30,12 @@ import { ChatMarkdownRenderer } from '@/components/ChatMarkdownRenderer';
 import { ReadingSizeSheet } from '@/components/ReadingSizeSheet';
 import BackButton from '@/components/BackButton';
 import { logEvent } from '@/lib/analytics';
-import { getAnonymousId } from '@/lib/anonymousId';
-import { supabase } from '@/lib/supabase';
+import { checkSponsorMessageLimit, recordSponsorMessage, DAILY_SPONSOR_LIMIT } from '@/lib/sponsorChatLimits';
 import { fontFamily, shadows, type Tokens } from '@/constants/designTokens';
 import { useTokens, useThemedStyles } from '@/hooks/useTokens';
 
 const PAPER = '#FCFBF8';  // conversation background (light)
 const LINEN = '#F5F1E9';  // header + input dock (light)
-
-const DAILY_SPONSOR_LIMIT = 50;
-const MONTHLY_SPONSOR_LIMIT = 200;
 
 // Inter reads larger per point than Lora (the app's reading face), so scale the
 // global reading size down so chat (Inter) RESEMBLES Lora at that size, then
@@ -52,47 +48,6 @@ const SUGGESTIONS = ['I’m struggling today', 'Help me think this through', 'I 
 // The dotted "vibe" string under the name, e.g. "Patient · Steady · Wise".
 const titleCase = (s: string) => s.toLowerCase().replace(/\b\w/g, (ch) => ch.toUpperCase());
 const vibeString = (tags?: string[]) => (tags ?? []).map(titleCase).join(' · ');
-
-type LimitCheckResult =
-  | { allowed: true }
-  | { allowed: false; reason: 'daily' | 'monthly'; count: number }
-  | { allowed: false; error: string };
-
-// Counts against sponsor_chat_usage (written server-side by the sponsor-chat
-// edge function on every OpenAI/Anthropic-backed reply) rather than the old
-// usage_events table, which no longer receives writes now that analytics moved
-// to Mixpanel. This only counts the paid-API engines — not Rork, which never
-// touches this edge function — but that's the traffic that actually costs
-// OpenAI/Anthropic credit, so it's a tighter fit for a cost-control limit than
-// the old count (which mixed in Rork messages that don't cost anything here).
-const checkSponsorMessageLimits = async (): Promise<LimitCheckResult> => {
-  try {
-    const anonymousId = await getAnonymousId();
-    const now = new Date();
-    const startOfDay = new Date(now);
-    startOfDay.setHours(0, 0, 0, 0);
-    const { count: dailyCount, error: dailyError } = await supabase
-      .from('sponsor_chat_usage')
-      .select('*', { count: 'exact', head: true })
-      .eq('anonymous_id', anonymousId)
-      .gte('created_at', startOfDay.toISOString());
-    if (dailyError) return { allowed: false, error: dailyError.message };
-    if ((dailyCount ?? 0) >= DAILY_SPONSOR_LIMIT) return { allowed: false, reason: 'daily', count: dailyCount ?? 0 };
-
-    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-    const { count: monthlyCount, error: monthlyError } = await supabase
-      .from('sponsor_chat_usage')
-      .select('*', { count: 'exact', head: true })
-      .eq('anonymous_id', anonymousId)
-      .gte('created_at', startOfMonth.toISOString());
-    if (monthlyError) return { allowed: false, error: monthlyError.message };
-    if ((monthlyCount ?? 0) >= MONTHLY_SPONSOR_LIMIT) return { allowed: false, reason: 'monthly', count: monthlyCount ?? 0 };
-
-    return { allowed: true };
-  } catch {
-    return { allowed: true };
-  }
-};
 
 const getSponsorDisplayName = (type: string): string => {
   switch (type) {
@@ -221,21 +176,15 @@ function SponsorChatContent({ initialSponsor }: { initialSponsor: string }) {
     const trimmed = inputText.trim();
     if (!trimmed || isLoading || isCheckingLimits) return;
     setIsCheckingLimits(true);
-    const limit = await checkSponsorMessageLimits();
+    const limit = await checkSponsorMessageLimit();
     setIsCheckingLimits(false);
     if (!limit.allowed) {
-      if ('error' in limit) {
-        console.warn('Limit check error:', limit.error);
-      } else if (limit.reason === 'daily') {
-        Alert.alert('Daily Limit Reached', `You've reached the daily limit of ${DAILY_SPONSOR_LIMIT} messages. Please try again tomorrow.`);
-        return;
-      } else {
-        Alert.alert('Monthly Limit Reached', `You've reached the monthly limit of ${MONTHLY_SPONSOR_LIMIT} messages. Limits reset at the start of each month.`);
-        return;
-      }
+      Alert.alert('Daily Limit Reached', `You've reached the daily limit of ${DAILY_SPONSOR_LIMIT} messages. Your sponsor will be here again tomorrow.`);
+      return;
     }
     setInputText('');
     Keyboard.dismiss();
+    await recordSponsorMessage();
     // Which sponsor personas actually get used — sponsor as a property so
     // Mixpanel can segment one event instead of counting name-suffixed ones.
     logEvent('sponsor_message_sent', { sponsor: getSponsorDisplayName(sponsorType) });

@@ -45,6 +45,11 @@ import {
 
 
 
+// Cap how much conversation history rides along on each Rork request (20
+// messages = ~10 exchanges). The whole visible thread stays in AsyncStorage;
+// this only bounds what's re-sent — and re-billed — per message.
+const MAX_HISTORY_MESSAGES = 20;
+
 // Type for API message format
 interface APIMessage {
   role: 'system' | 'user' | 'assistant';
@@ -208,19 +213,22 @@ function convertToAPIMessages(chatMessages: ChatMessage[], sponsorType: SponsorT
 
   const apiMessages: APIMessage[] = [];
 
-  // Skip the initial welcome message and convert the rest
-  const conversationMessages = chatMessages.slice(1);
-  
-  // For the first user message only, prepend the FULL system prompt.
+  // Skip the initial welcome message, drop spot-check cards (in-app artifact;
+  // the bot opener that follows one already carries its content in natural
+  // language), and send only the most recent turns. Older turns silently fall
+  // off so a long-running thread doesn't grow the per-request token cost
+  // without bound.
+  const conversationMessages = chatMessages
+    .slice(1)
+    .filter((msg) => msg.kind !== 'spotCheckCard')
+    .slice(-MAX_HISTORY_MESSAGES);
+
+  // For the first user message in the window, prepend the FULL system prompt.
   // Rork API doesn't accept 'system' role, so we include it in the first user
-  // message — tracked with a flag (not index 0) because injected spot-check
-  // messages can precede the first real user turn.
+  // message — tracked with a flag (not index 0) because a bot turn can lead
+  // the trimmed window.
   let systemPromptSent = false;
   conversationMessages.forEach((msg) => {
-    // Spot-check cards are an in-app artifact; the bot opener that follows one
-    // already carries its content in natural language, so don't replay the card
-    // itself as a raw turn.
-    if (msg.kind === 'spotCheckCard') return;
     if (msg.sender === 'user') {
       const content = systemPromptSent ? msg.text : `${systemPrompt}\n\nUser: ${msg.text}`;
       systemPromptSent = true;
