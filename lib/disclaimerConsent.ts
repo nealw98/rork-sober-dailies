@@ -51,6 +51,18 @@ async function syncToServer(acceptedAt: string): Promise<boolean> {
   return false;
 }
 
+// Gate check for the root layout: has this device ever accepted? (Version
+// bumps don't reset this today — see DISCLAIMER_VERSION note above.)
+export async function hasAcceptedDisclaimer(): Promise<boolean> {
+  try {
+    return !!(await AsyncStorage.getItem(ACCEPTED_KEY));
+  } catch {
+    // Storage read failed — don't lock the user out of an app they may have
+    // already accepted on; the next launch re-checks.
+    return true;
+  }
+}
+
 // Called from the onboarding disclaimer step's Continue. Local write is
 // awaited (the legal record on-device); the server sync fires without
 // blocking the user's entry into the app.

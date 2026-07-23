@@ -80,7 +80,8 @@ import { SubscriptionProvider, useSubscription } from "@/hooks/useSubscription";
 import { useOTAUpdates } from "@/hooks/useOTAUpdates";
 import { adjustFontWeight } from "@/constants/fonts";
 import { useTokens } from "@/hooks/useTokens";
-import OnboardingFlow from "@/components/OnboardingFlow";
+import OnboardingFlow, { DisclaimerStep } from "@/components/OnboardingFlow";
+import { hasAcceptedDisclaimer } from "@/lib/disclaimerConsent";
 import PaywallScreen from "@/components/PaywallScreen";
 import OTASnackbar from "@/components/OTASnackbar";
 import { Logger } from "@/lib/logger";
@@ -178,6 +179,12 @@ function RootLayoutNav() {
   const [appReady, setAppReady] = useState(false);
   // Dev-only: allow dismissing the paywall
   const [paywallDismissed, setPaywallDismissed] = useState(false);
+  // Disclaimer gate — rendered AFTER the paywall so it's the last screen
+  // before Today. null = still reading AsyncStorage (covered by the teal fill).
+  const [disclaimerAccepted, setDisclaimerAccepted] = useState<boolean | null>(null);
+  useEffect(() => {
+    hasAcceptedDisclaimer().then(setDisclaimerAccepted).catch(() => setDisclaimerAccepted(true));
+  }, []);
 
   // No OTA check at launch: useOTAUpdates handles updates in the background
   // (initial check shortly after mount + on every foreground) and surfaces the
@@ -252,7 +259,7 @@ function RootLayoutNav() {
   // Only show main app after consent is complete AND other initialization is
   // done. Return a brand-teal fill (matches the native splash background) rather
   // than null, so any brief gate never flashes white.
-  if (!appReady || isLoading || (PAYWALL_ENABLED && isSubscriptionLoading)) {
+  if (!appReady || isLoading || disclaimerAccepted === null || (PAYWALL_ENABLED && isSubscriptionLoading)) {
     return <View style={{ flex: 1, backgroundColor: '#3D8B8B' }} />;
   }
 
@@ -265,6 +272,13 @@ function RootLayoutNav() {
     // PaywallScreen renders its own __DEV__-only close (X) that calls onDismiss;
     // in production onDismiss is undefined, so the wall stays hard.
     return <PaywallScreen onDismiss={__DEV__ ? () => setPaywallDismissed(true) : undefined} />;
+  }
+
+  // Disclaimer last — after onboarding AND the paywall, so agreeing drops the
+  // user straight into Today. DisclaimerStep records acceptance (local +
+  // server sync) itself before calling onAgree.
+  if (!disclaimerAccepted) {
+    return <DisclaimerStep onAgree={() => setDisclaimerAccepted(true)} />;
   }
 
   return (

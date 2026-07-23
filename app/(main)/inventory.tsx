@@ -132,11 +132,12 @@ export default function InventoryScreen() {
     setStep(2);
     if (causesQuestion === null && !causesLoading) runCausesQuestion(sponsorId);
   };
-  const goToSummary = (skipped: boolean) => {
+  // No separate Skip: Continue is enabled with an empty answer and passes null
+  // to the summary, so leaving the field blank IS skipping.
+  const goToSummary = () => {
     Keyboard.dismiss();
-    if (skipped) setCausesAnswer('');
     setStep(3);
-    runSummary(sponsorId, skipped ? null : causesAnswer.trim() || null);
+    runSummary(sponsorId, causesAnswer.trim() || null);
   };
 
   const onChangeSponsor = (id: SponsorType) => {
@@ -332,6 +333,7 @@ export default function InventoryScreen() {
   } else if (step === 2) {
     body = (
       <>
+        {recap('FEELING', feelings.join(' · '))}
         {recap('WHAT’S GOING ON', whatsGoingOn.trim())}
         {askBubble(causesQuestion, causesLoading)}
         <TextInput
@@ -456,22 +458,22 @@ export default function InventoryScreen() {
         {step === 2 && (
           <>
             {backBtn(1)}
-            <Pressable onPress={() => goToSummary(true)} style={styles.skipBtn} accessibilityRole="button" accessibilityLabel="Skip">
-              <Text style={styles.skipText}>Skip</Text>
-            </Pressable>
-            {continueBtn(!causesLoading, () => goToSummary(false))}
+            {continueBtn(!causesLoading, goToSummary)}
           </>
         )}
         {step === 3 && (
-          <Pressable
-            onPress={doneForNow}
-            disabled={saving || summaryLoading}
-            style={[styles.doneBtn, (saving || summaryLoading) && styles.btnDisabled]}
-            accessibilityRole="button"
-            accessibilityLabel="Done for now"
-          >
-            <Text style={styles.doneText}>Done for now</Text>
-          </Pressable>
+          <>
+            {backBtn(2)}
+            <Pressable
+              onPress={doneForNow}
+              disabled={saving || summaryLoading}
+              style={[styles.doneBtn, (saving || summaryLoading) && styles.btnDisabled]}
+              accessibilityRole="button"
+              accessibilityLabel="Done for now"
+            >
+              <Text style={styles.doneText}>Done for now</Text>
+            </Pressable>
+          </>
         )}
       </View>
       </KeyboardAvoidingView>
@@ -539,8 +541,6 @@ const makeStyles = (tk: Tokens) => {
     continueText: { fontFamily: fontFamily.bold, fontSize: 15.5, color: '#fff' },
     backPill: { paddingVertical: 14, paddingHorizontal: 18, borderRadius: 999, borderWidth: 1.5, borderColor: c.border },
     backPillText: { fontFamily: fontFamily.semiBold, fontSize: 15, color: c.textSecondary },
-    skipBtn: { paddingVertical: 14, paddingHorizontal: 10 },
-    skipText: { fontFamily: fontFamily.semiBold, fontSize: 14, color: c.textMuted },
     // One palette per page: the whole flow runs on the accent family, so the
     // summary-step actions do too (they were teal, which read as a third style).
     keepCard: {

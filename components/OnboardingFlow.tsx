@@ -37,7 +37,8 @@ function obvInk(t: number): string {
 
 // Legal links — Apple's standard EULA + our Privacy Policy. The welcome CTA
 // carries implied agreement; explicit agreement (checkbox) happens on the
-// disclaimer step, restored 2026-07-22 as the flow's final gate.
+// disclaimer gate, which app/_layout renders AFTER the paywall as the last
+// screen before Today (moved out of this flow 2026-07-23).
 const openTerms = () => Linking.openURL('https://www.apple.com/legal/internet-services/itunes/dev/stdeula/').catch(() => {});
 const openPrivacy = () => Linking.openURL('https://soberdailies.com/privacy').catch(() => {});
 
@@ -74,17 +75,19 @@ function WelcomeStep({ upgrader, onContinue }: { upgrader: boolean; onContinue: 
   );
 }
 
-// ─── Final step · Disclaimer (restored 2026-07-22) ──────────────────────────
+// ─── Disclaimer gate (restored 2026-07-22; moved after paywall 2026-07-23) ──
 // The v2 welcome-screen disclaimer, on our gradient: what the app is not, the
-// 988 line, and an explicit Terms/Privacy checkbox. Gates completeOnboarding —
-// nobody reaches Today without agreeing. Uses the retained consent* styles.
+// 988 line, and an explicit Terms/Privacy checkbox. No longer a step in this
+// flow — app/_layout renders it after the paywall clears, so it's the last
+// screen before Today and nobody reaches the app without agreeing. Lives here
+// for its consent* styles and the shared gradient helpers.
 const DISCLAIMER_BULLETS = [
   'This app is not a substitute for therapy, medical advice, or emergency support.',
   'The AI sponsors offer encouragement and reflection, but they are not human and cannot provide crisis support or clinical help.',
   'If you’re in immediate danger or emotional distress, call or text 988 (Suicide & Crisis Lifeline) or contact your local emergency services.',
 ];
 
-function DisclaimerStep({ onAgree }: { onAgree: () => void | Promise<void> }) {
+export function DisclaimerStep({ onAgree }: { onAgree: () => void | Promise<void> }) {
   const styles = useThemedStyles(makeStyles);
   const [checked, setChecked] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -240,7 +243,7 @@ function DefineDailiesStep({ onBack, onComplete }: { onBack: () => void; onCompl
 }
 
 // ─── The flow ───────────────────────────────────────────────────────────────
-type Step = 'welcome' | 'inside' | 'date' | 'dailies' | 'disclaimer';
+type Step = 'welcome' | 'inside' | 'date' | 'dailies';
 
 export default function OnboardingFlow() {
   const [step, setStep] = useState<Step>('welcome');
@@ -274,22 +277,15 @@ export default function OnboardingFlow() {
       />
     );
   }
-  if (step === 'dailies') {
-    return (
-      <DefineDailiesStep
-        onBack={() => setStep(skipDateStep ? 'inside' : 'date')}
-        onComplete={() => setStep('disclaimer')}
-      />
-    );
-  }
   return (
-    <DisclaimerStep
-      onAgree={async () => {
+    <DefineDailiesStep
+      onBack={() => setStep(skipDateStep ? 'inside' : 'date')}
+      onComplete={async () => {
         await completeOnboarding();
         // No router.replace here: onboarding is a render gate in app/_layout, not a
         // route. When the flag flips, the gate swaps this flow out for the paywall/
-        // Stack (which mounts at '/' anyway); navigating while no navigator is
-        // mounted forces a root re-mount that flashes the teal loading fill.
+        // disclaimer/Stack (which mounts at '/' anyway); navigating while no
+        // navigator is mounted forces a root re-mount that flashes the teal fill.
       }}
     />
   );

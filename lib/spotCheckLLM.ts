@@ -97,7 +97,7 @@ export async function askHandoffOpener(
   entry: { feelings: string[]; whatsGoingOn: string; causesAnswer: string | null; summary: string | null },
 ): Promise<string> {
   const task = [
-    'TASK: The user just finished a 10th-step spot check with you and tapped "Keep talking" to continue in chat. Write your OPENING chat message (2–3 sentences, in your voice): say you’ve read their spot check inventory, show you actually read it by briefly naming one specific thing from it (a feeling or the situation — one detail, do NOT re-summarize the whole thing), then ask ONE open question about where they want to take the conversation from here. Reply with the message only — no preamble, no markdown.',
+    'TASK: The user just finished a 10th-step spot check with you and tapped "Keep talking" to continue in chat. Write your OPENING chat message (2–3 sentences, in your voice): say you’ve read their spot check inventory, show you actually read it by restating one specific thing THEY said — echo their own words back (prefer what they wrote about their part in it, e.g. “you said you snapped at her before she even finished talking”), not your interpretation or diagnosis of them (do NOT say things like “your pride and ego were involved” — that is your assessment, not what they said). One detail only, do NOT re-summarize the whole thing. Then ask ONE open question about where they want to take the conversation from here. Your message MUST end with that question — the final sentence is a direct question to the user ending in a question mark, never a statement. Reply with the message only — no preamble, no markdown.',
     '',
     `Feelings they tapped: ${entry.feelings.join(', ')}`,
     `What’s going on (their words): ${entry.whatsGoingOn}`,
@@ -105,5 +105,12 @@ export async function askHandoffOpener(
     entry.summary ? `The reflection you already gave them on the previous screen (do NOT repeat it): ${entry.summary}` : '',
   ].filter(Boolean).join('\n');
   const completion = await fetchCompletion(`${systemPromptFor(sponsorId)}\n\n${task}`);
-  return completion.trim();
+  const opener = completion.trim();
+  // The prompt demands a closing question, but the model occasionally ends on
+  // a statement anyway — the chat then opens with nothing for the user to
+  // respond to. Append a generic invitation rather than shipping a dead end.
+  if (!opener.endsWith('?')) {
+    return `${opener} Where do you want to start?`;
+  }
+  return opener;
 }
