@@ -16,6 +16,14 @@ import Purchases from 'react-native-purchases';
 import { SUPABASE_URL, SUPABASE_ANON_KEY } from '@/lib/supabase';
 import { getAnonymousId } from '@/lib/anonymousId';
 
+// Kill switch (Neal, 2026-07-22): passes are SUSPENDED for the TestFlight
+// period — sandbox subscriptions would otherwise earn passes that dispense
+// real production offer codes. When false the balance always reads 0 (header
+// badge hides, give row hides), no token is ever minted, and the post-
+// subscribe thank-you never announces. Flip to true for launch; the server
+// keeps its own gates (_shared/credits.ts skips sandbox and non-paying subs).
+export const PASSES_ENABLED = false;
+
 const BALANCE_KEY = 'gift_credits_cache_v1';
 const PENDING_KEY = 'gift_pending_share_v1';
 const BALANCE_TTL_MS = 15 * 60 * 1000; // header refresh throttle
@@ -70,6 +78,7 @@ async function cacheBalance(status: CreditStatus): Promise<void> {
 
 // Cached balance for instant header rendering. null = never fetched.
 export async function getCachedCreditStatus(): Promise<(CreditStatus & { stale: boolean }) | null> {
+  if (!PASSES_ENABLED) return { balance: 0, totalGranted: 0, sharesUsed: 0, stale: false };
   try {
     const raw = await AsyncStorage.getItem(BALANCE_KEY);
     if (!raw) return null;
@@ -88,6 +97,7 @@ export async function getCachedCreditStatus(): Promise<(CreditStatus & { stale: 
 // Fresh status from the server (also heals grants — the server recomputes
 // earned credits from live RC state on every call). Updates the cache.
 export async function fetchCreditStatus(): Promise<CreditStatus | null> {
+  if (!PASSES_ENABLED) return { balance: 0, totalGranted: 0, sharesUsed: 0 };
   const id = await identity();
   const data = await callFn<{ success: boolean; balance: number; total_granted: number; shares_used: number }>(
     'credits-status',
@@ -107,6 +117,7 @@ export async function fetchCreditStatus(): Promise<CreditStatus | null> {
 // token when one exists; otherwise spends a credit to mint a fresh one.
 // Returns null when the sender has no credits (or the network failed).
 export async function getShareLink(): Promise<PendingShare | null> {
+  if (!PASSES_ENABLED) return null;
   try {
     const raw = await AsyncStorage.getItem(PENDING_KEY);
     if (raw) return JSON.parse(raw) as PendingShare;
@@ -144,6 +155,12 @@ export async function setPendingAnnouncement(plan: AnnouncePlan): Promise<void> 
 // Read-and-clear. Returns the plan to announce, or null.
 export async function consumePendingAnnouncement(): Promise<AnnouncePlan | null> {
   try {
+    // Suspended: swallow (and clear) any pending announcement so it doesn't
+    // fire months later when passes go live.
+    if (!PASSES_ENABLED) {
+      await AsyncStorage.removeItem(ANNOUNCE_KEY);
+      return null;
+    }
     const v = await AsyncStorage.getItem(ANNOUNCE_KEY);
     if (v !== 'annual' && v !== 'monthly') return null;
     await AsyncStorage.removeItem(ANNOUNCE_KEY);

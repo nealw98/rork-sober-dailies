@@ -22,7 +22,7 @@ import { fontFamily, shadows, colors as lightColors, type Tokens } from '@/const
 import { useTokens, useThemedStyles } from '@/hooks/useTokens';
 import { useGiftCredits } from '@/hooks/use-gift-credits';
 import { useSubscription } from '@/hooks/useSubscription';
-import { getShareLink, confirmShareSent, giftMessage } from '@/lib/creditsService';
+import { getShareLink, confirmShareSent, giftMessage, PASSES_ENABLED } from '@/lib/creditsService';
 import { shareApp } from '@/lib/shareApp';
 import { pickContact } from '@/lib/pickContact';
 import { logEvent } from '@/lib/analytics';
@@ -73,11 +73,15 @@ export default function PassItOnScreen() {
   }, [loading, shimmer]);
 
   const productId = customerInfo?.entitlements?.active?.premium?.productIdentifier ?? '';
-  const plan: PlanKind = isEntitled
+  const realPlan: PlanKind = isEntitled
     ? (/year|annual/i.test(productId) ? 'annual' : 'monthly')
     : isGrandfathered
       ? 'founding'
       : 'none';
+  // While passes are suspended (TestFlight — see creditsService.PASSES_ENABLED)
+  // the balance reads 0, so plan-specific zero-state copy ("your next pass is
+  // on its way") would be a false promise. Show the neutral membership line.
+  const plan: PlanKind = PASSES_ENABLED ? realPlan : 'none';
 
   // Receipt voice (decided 2026-07-20): the screen shows what you HOLD; the
   // announcement of new gifts happens post-subscribe (PaywallScreen) — this

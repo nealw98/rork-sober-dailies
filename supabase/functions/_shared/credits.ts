@@ -45,6 +45,18 @@ export function computeEarnedGrants(subscriber: any, opts: { founding: boolean }
     const expires = sub?.expires_date ? new Date(String(sub.expires_date)) : null;
     const active = !!expires && expires.getTime() > now.getTime();
     if (!active) continue;
+    // TestFlight/sandbox subscriptions are not real members — without this a
+    // tester's free sandbox sub would earn passes that dispense REAL
+    // production offer codes.
+    if (sub?.is_sandbox === true) continue;
+    // Decided 2026-07-22: no passes while riding free months. RC reports the
+    // current billing period's type — Apple offer-code / trial / intro periods
+    // are non-'normal' until the first real charge. A pass recipient therefore
+    // earns nothing until they convert to paying; grant-on-read picks the
+    // grants up automatically on the first status call after conversion.
+    // (Absent field defaults to 'normal' so legacy payloads keep granting.)
+    const periodType = String(sub?.period_type ?? 'normal');
+    if (periodType !== 'normal') continue;
     const since = String(sub?.original_purchase_date ?? '');
     if (!since) continue;
 
