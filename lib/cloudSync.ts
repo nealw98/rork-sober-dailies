@@ -9,7 +9,7 @@
 import { Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { serializeUserData, restoreUserData } from './userDataSync';
-import { driveAuthSupported, getDriveAccessToken } from './googleDriveAuth';
+import { getDriveAccessToken } from './googleDriveAuth';
 
 // Defensive require: on a binary without the native module (e.g. an OTA onto an
 // older build) this would throw and crash — degrade to no-ops instead. The
@@ -31,7 +31,13 @@ export const CLOUD_NAME = Platform.OS === 'ios' ? 'iCloud' : 'Google Drive';
 export function cloudBackupSupported(): boolean {
   if (!CloudStorage) return false;
   if (Platform.OS === 'ios') return true;
-  return driveAuthSupported();
+  // Android Google Drive backup is coded but NOT yet activated: the Google
+  // Cloud OAuth client (package + release SHA-1) isn't registered, so
+  // GoogleSignin.signIn() throws DEVELOPER_ERROR and "Connect Google Drive"
+  // dead-ends. Keep the whole feature hidden on Android (Settings row + backup
+  // screen guards) until that setup is done — see todo-android-drive-backup-
+  // activation. Flip this back to `driveAuthSupported()` once OAuth is live.
+  return false;
 }
 
 // Ready the provider for a call. iOS needs nothing; Android must set a fresh
