@@ -140,12 +140,11 @@ export default function PdfReader({
               ref={pdfRef}
               key={landscape ? 'landscape' : 'portrait'}
               source={{ uri, cache: true }}
-              // Open the (re)mount AT the stashed page natively — the post-load
-              // setPage below races the view's own scroll-to-page-1 and can
-              // lose, which reset rotation to page 1. A ref value is fine here:
-              // it's read once per remount, and later re-renders pass the same
-              // value so the component never jumps mid-read.
-              page={restorePageRef.current}
+              // NO `page` prop here: passing it makes the native mount route
+              // through goToDestination + a scale re-application that runs
+              // before the fit scale settles, leaving landscape rendered at
+              // the wrong scale (side margins). Restore happens after load
+              // via setPage instead — see onLoadComplete.
               // Landscape exists to read bigger: fill the width (0). Portrait
               // keeps the whole-page fit (2), matching the old behavior.
               fitPolicy={landscape ? 0 : 2}
@@ -153,9 +152,20 @@ export default function PdfReader({
                 setPageCount(n);
                 // Jump AFTER load so the page offset is exact (otherwise the
                 // page's running header gets clipped under our header bar).
-                // Runs again on the rotation remount, restoring your place.
+                // A single setPage can lose the race against the view's own
+                // scroll-to-page-1 (which used to reset rotation to page 1),
+                // so re-assert until onPageChanged confirms it stuck.
                 const target = restorePageRef.current;
-                if (target > 1) setTimeout(() => pdfRef.current?.setPage(target), 0);
+                if (target > 1) {
+                  let attempts = 0;
+                  const assertPage = () => {
+                    if (currentPageRef.current === target || attempts >= 6) return;
+                    attempts += 1;
+                    pdfRef.current?.setPage(target);
+                    setTimeout(assertPage, 150);
+                  };
+                  setTimeout(assertPage, 0);
+                }
               }}
               onPageChanged={(p) => { currentPageRef.current = p; setPdfPage(p); }}
               onError={(e) => { console.warn('[pdf] render error', e); setFailed(true); }}

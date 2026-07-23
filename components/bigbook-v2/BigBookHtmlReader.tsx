@@ -45,13 +45,17 @@ const READER_PALETTES: Record<'light' | 'dark', ReaderPalette> = {
     paper: READING_BG, ink: semanticColors.light.text, inkSecondary: semanticColors.light.textSecondary,
     muted: semanticColors.light.textMuted,
     divider: semanticColors.light.divider, accentInk: lightColors.steelDark, hlFill: HL_FILL,
-    searchHit: lightColors.primarySoft, toolbarBg: 'rgba(255,255,255,0.99)',
+    // Search landing needs to be spottable mid-page — primarySoft (pale teal)
+    // vanished into the paper. Periwinkle 300 matches Literature's accent family.
+    searchHit: lightColors.secondaryLight, toolbarBg: 'rgba(255,255,255,0.99)',
     toolbarBorder: 'rgba(0,0,0,0.06)', colorScheme: 'light',
   },
   dark: {
     paper: '#101216', ink: '#F4F4F6', inkSecondary: '#C7C8CD', muted: '#C7C8CD',
     divider: 'rgba(255,255,255,0.10)', accentInk: '#4FB3AC',
-    hlFill: `rgba(${HL_ORANGE},0.50)`, searchHit: 'rgba(79,179,172,0.38)',
+    // Same visibility problem in dark: low-opacity teal read as gray. Periwinkle
+    // (dark family base #B197E4) stays clearly purple on the near-black paper.
+    hlFill: `rgba(${HL_ORANGE},0.50)`, searchHit: 'rgba(177,151,228,0.45)',
     toolbarBg: 'rgba(28,30,36,0.99)', toolbarBorder: 'rgba(255,255,255,0.10)',
     colorScheme: 'dark',
   },
