@@ -1,5 +1,6 @@
-// Spot Check — the flow's two one-off LLM calls (deliberately its only LLM
-// usage): step-3 causes-and-conditions question and step-4 summary+suggestions.
+// Spot Check — the flow's one-off LLM calls (deliberately its only LLM
+// usage): step-3 causes-and-conditions question, step-4 summary+suggestions,
+// and the "Keep talking" chat opener.
 // Uses the same Rork endpoint + request shape as use-chat-store's callAI, but
 // THROWS on failure instead of returning a chat-voice fallback string, so the
 // screen can apply the design's offline fallbacks (fixed generic question /
@@ -85,4 +86,24 @@ export async function askSummary(
     summary: parsed.summary,
     suggestions: parsed.suggestions.filter((s: unknown): s is string => typeof s === 'string'),
   };
+}
+
+// Call 3 — the "Keep talking" chat opener. In persona: says they've read the
+// inventory, proves it with one specific detail, and asks where the user wants
+// to take the conversation. Throws on failure; use-chat-store applies a
+// feelings-based fallback line.
+export async function askHandoffOpener(
+  sponsorId: SponsorType,
+  entry: { feelings: string[]; whatsGoingOn: string; causesAnswer: string | null; summary: string | null },
+): Promise<string> {
+  const task = [
+    'TASK: The user just finished a 10th-step spot check with you and tapped "Keep talking" to continue in chat. Write your OPENING chat message (2–3 sentences, in your voice): say you’ve read their spot check inventory, show you actually read it by briefly naming one specific thing from it (a feeling or the situation — one detail, do NOT re-summarize the whole thing), then ask ONE open question about where they want to take the conversation from here. Reply with the message only — no preamble, no markdown.',
+    '',
+    `Feelings they tapped: ${entry.feelings.join(', ')}`,
+    `What’s going on (their words): ${entry.whatsGoingOn}`,
+    entry.causesAnswer ? `Their part in it (their words): ${entry.causesAnswer}` : '',
+    entry.summary ? `The reflection you already gave them on the previous screen (do NOT repeat it): ${entry.summary}` : '',
+  ].filter(Boolean).join('\n');
+  const completion = await fetchCompletion(`${systemPromptFor(sponsorId)}\n\n${task}`);
+  return completion.trim();
 }

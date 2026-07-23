@@ -10,7 +10,7 @@
 // pending-handoff key; sponsor-chat injects it as a context card.
 import React, { useEffect, useRef, useState } from 'react';
 import { View, Text, TextInput, Pressable, StyleSheet, Keyboard, Alert, BackHandler } from 'react-native';
-import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
+import { KeyboardAvoidingView, KeyboardAwareScrollView } from 'react-native-keyboard-controller';
 import { Stack, useRouter } from 'expo-router';
 import { Image } from 'expo-image';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -224,12 +224,11 @@ export default function InventoryScreen() {
   };
 
   // ── Pieces ──
-  const askBubble = (text: React.ReactNode, live = false, thinking = false) => (
+  const askBubble = (text: React.ReactNode, thinking = false) => (
     <View style={styles.bubbleRow}>
       <Image source={sponsor?.avatar} style={styles.bubbleAvatar} contentFit="cover" />
       <View style={styles.flex}>
         {thinking ? <ThinkingDots /> : <Text style={styles.bubbleText}>{text}</Text>}
-        {live && !thinking && <Text style={styles.liveCaption}>responding to what you wrote</Text>}
       </View>
     </View>
   );
@@ -334,7 +333,7 @@ export default function InventoryScreen() {
     body = (
       <>
         {recap('WHAT’S GOING ON', whatsGoingOn.trim())}
-        {askBubble(causesQuestion, true, causesLoading)}
+        {askBubble(causesQuestion, causesLoading)}
         <TextInput
           key="causesAnswer"
           value={causesAnswer}
@@ -351,16 +350,18 @@ export default function InventoryScreen() {
     body = (
       <>
         {summaryLoading ? (
-          askBubble(null, false, true)
+          askBubble(null, true)
         ) : summaryFailed ? (
           askBubble('Your spot check is ready to save. I couldn’t reach the connection to reflect it back right now — but you did the looking, and that’s the part that counts.')
         ) : (
           <>
-            {askBubble(summary, true)}
+            {askBubble(summary)}
+            {/* Plain rows, not cards — the suggestions read as a continuation
+                of the sponsor's voice, so no chrome of their own. */}
             <View style={styles.bullets}>
               {(suggestions ?? []).map((b, i) => (
-                <View key={i} style={styles.bulletCard}>
-                  <Check size={14} color={colors.primaryDark} strokeWidth={2.6} style={styles.bulletIcon} />
+                <View key={i} style={styles.bulletRow}>
+                  <Check size={15} color={colors.accent} strokeWidth={2.6} style={styles.bulletIcon} />
                   <Text style={styles.bulletText}>{b}</Text>
                 </View>
               ))}
@@ -378,11 +379,10 @@ export default function InventoryScreen() {
                 accessibilityRole="button"
                 accessibilityLabel={`Keep talking with ${firstName}`}
               >
-                <MessageCircle size={15} color={colors.primaryDark} strokeWidth={2.2} />
+                <MessageCircle size={15} color={colors.accentDark} strokeWidth={2.2} />
                 <Text style={styles.keepCardText}>Keep talking with {firstName}</Text>
               </Pressable>
             </View>
-            <Text style={styles.closeLine}>{script.close}</Text>
           </>
         )}
       </>
@@ -400,6 +400,11 @@ export default function InventoryScreen() {
         <Text style={styles.subtitle}>{todayLabel()}</Text>
       </View>
 
+      {/* The avoiding view lifts the WHOLE column — scroll area and footer
+          dock — above the keyboard. Without it the dock sat below the scroll
+          view, outside the keyboard math, and inputs could end up covered.
+          Bonus: Back/Skip/Continue stay reachable while typing. */}
+      <KeyboardAvoidingView behavior="padding" style={styles.flex}>
       <KeyboardAwareScrollView
         style={styles.flex}
         contentContainerStyle={styles.scroll}
@@ -469,6 +474,7 @@ export default function InventoryScreen() {
           </Pressable>
         )}
       </View>
+      </KeyboardAvoidingView>
 
     </View>
   );
@@ -501,7 +507,6 @@ const makeStyles = (tk: Tokens) => {
     bubbleRow: { flexDirection: 'row', gap: 10, marginBottom: 14 },
     bubbleAvatar: { width: 30, height: 30, borderRadius: 15, marginTop: 2 },
     bubbleText: { fontFamily: fontFamily.regular, fontSize: 14.5, lineHeight: 22.5, color: c.text },
-    liveCaption: { fontFamily: fontFamily.regularItalic, fontSize: 10.5, color: c.textMuted, marginTop: 4 },
 
     recapCard: { marginBottom: 12, paddingVertical: 10, paddingHorizontal: 13, borderRadius: 12, backgroundColor: c.surface, borderWidth: 1, borderColor: c.border, ...darkCard },
     recapLabel: { fontFamily: fontFamily.bold, fontSize: 10.5, letterSpacing: 1.1, color: c.textMuted, marginBottom: 4, textTransform: 'uppercase' },
@@ -520,14 +525,10 @@ const makeStyles = (tk: Tokens) => {
       fontSize: 16, lineHeight: 25, color: c.text, textAlignVertical: 'top', ...darkCard,
     },
 
-    bullets: { marginLeft: 40, marginBottom: 12, gap: 8 },
-    bulletCard: {
-      flexDirection: 'row', gap: 10, paddingVertical: 11, paddingHorizontal: 13, borderRadius: 12,
-      backgroundColor: colors.primarySoft, borderWidth: 1, borderColor: colors.primary + '26',
-    },
+    bullets: { marginLeft: 40, marginBottom: 14, gap: 10 },
+    bulletRow: { flexDirection: 'row', gap: 10 },
     bulletIcon: { marginTop: 3 },
-    bulletText: { flex: 1, fontFamily: fontFamily.regular, fontSize: 13.5, lineHeight: 20, color: c.text },
-    closeLine: { marginLeft: 40, fontFamily: fontFamily.regularItalic, fontSize: 13.5, color: c.textSecondary },
+    bulletText: { flex: 1, fontFamily: fontFamily.regular, fontSize: 14.5, lineHeight: 22, color: c.text },
 
     dock: {
       flexDirection: 'row', alignItems: 'center', gap: 10,
@@ -540,12 +541,14 @@ const makeStyles = (tk: Tokens) => {
     backPillText: { fontFamily: fontFamily.semiBold, fontSize: 15, color: c.textSecondary },
     skipBtn: { paddingVertical: 14, paddingHorizontal: 10 },
     skipText: { fontFamily: fontFamily.semiBold, fontSize: 14, color: c.textMuted },
+    // One palette per page: the whole flow runs on the accent family, so the
+    // summary-step actions do too (they were teal, which read as a third style).
     keepCard: {
       flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 11, paddingHorizontal: 13, borderRadius: 12,
-      backgroundColor: isDark ? c.surfaceRaised : c.surface, borderWidth: 1.5, borderColor: colors.primary,
+      backgroundColor: isDark ? c.surfaceRaised : c.surface, borderWidth: 1.5, borderColor: colors.accent,
     },
-    keepCardText: { flex: 1, fontFamily: fontFamily.bold, fontSize: 13.5, lineHeight: 20, color: colors.primaryDark },
-    doneBtn: { flex: 1, paddingVertical: 14, paddingHorizontal: 12, borderRadius: 999, backgroundColor: colors.primary, alignItems: 'center' },
+    keepCardText: { flex: 1, fontFamily: fontFamily.bold, fontSize: 13.5, lineHeight: 20, color: colors.accentDark },
+    doneBtn: { flex: 1, paddingVertical: 14, paddingHorizontal: 12, borderRadius: 999, backgroundColor: colors.accent, alignItems: 'center' },
     doneText: { fontFamily: fontFamily.bold, fontSize: 14.5, color: '#fff' },
     btnDisabled: { opacity: 0.4 },
   });

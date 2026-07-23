@@ -34,6 +34,7 @@ import {
   MAMA_JO_INITIAL_MESSAGE,
 } from "@/constants/mama-jo";
 import { getSponsorById } from "@/constants/sponsors";
+import { askHandoffOpener } from "@/lib/spotCheckLLM";
 import {
   SUPABASE_ANON_KEY,
   engineToRequest,
@@ -213,14 +214,11 @@ function convertToAPIMessages(chatMessages: ChatMessage[], sponsorType: SponsorT
 
   const apiMessages: APIMessage[] = [];
 
-  // Skip the initial welcome message, drop spot-check cards (in-app artifact;
-  // the bot opener that follows one already carries its content in natural
-  // language), and send only the most recent turns. Older turns silently fall
-  // off so a long-running thread doesn't grow the per-request token cost
-  // without bound.
+  // Skip the initial welcome message and send only the most recent turns.
+  // Older turns silently fall off so a long-running thread doesn't grow the
+  // per-request token cost without bound.
   const conversationMessages = chatMessages
     .slice(1)
-    .filter((msg) => msg.kind !== 'spotCheckCard')
     .slice(-MAX_HISTORY_MESSAGES);
 
   // For the first user message in the window, prepend the FULL system prompt.
@@ -229,7 +227,23 @@ function convertToAPIMessages(chatMessages: ChatMessage[], sponsorType: SponsorT
   // the trimmed window.
   let systemPromptSent = false;
   conversationMessages.forEach((msg) => {
-    if (msg.sender === 'user') {
+    if (msg.kind === 'spotCheckCard') {
+      // The card renders in-app only, but it's the sole carrier of the spot
+      // check's content (the visible opener no longer repeats the summary), so
+      // hand the entry to the model as a bracketed user-context turn.
+      const e = msg.spotCheck;
+      if (!e) return;
+      const parts = [
+        `Feelings: ${e.feelings.join(', ')}`,
+        e.whatsGoingOn ? `What was going on: ${e.whatsGoingOn}` : null,
+        e.causesAnswer ? `My part in it: ${e.causesAnswer}` : null,
+        e.summary ? `The reflection you gave me: ${e.summary}` : null,
+      ].filter(Boolean).join('. ');
+      const context = `[I just completed a Spot Check Inventory and chose to keep talking with you about it. ${parts}]`;
+      const content = systemPromptSent ? context : `${systemPrompt}\n\nUser: ${context}`;
+      systemPromptSent = true;
+      apiMessages.push({ role: 'user', content });
+    } else if (msg.sender === 'user') {
       const content = systemPromptSent ? msg.text : `${systemPrompt}\n\nUser: ${msg.text}`;
       systemPromptSent = true;
       apiMessages.push({ role: 'user', content });
@@ -851,12 +865,17 @@ export const [ChatStoreProvider, useChatStore] = createContextHook(() => {
   };
 
   // "Keep talking" handoff from the Spot Check flow: append the entry as a
-  // context card plus a sponsor opener that references it, in one state write.
-  // Bypasses sendMessage deliberately — nothing here is user-authored text
-  // (no crisis scan needed) and no LLM call is made: the opener reuses the
-  // entry's already-persona-voiced summary. Operates on the CURRENT sponsor's
-  // thread, so callers must invoke it only once sponsorType matches the entry
-  // (sponsor-chat does this after its sponsor-sync effect settles).
+  // context card immediately, then generate the sponsor's opener with one LLM
+  // call — in persona, acknowledging they READ the inventory with a specific
+  // detail from it, and asking where to take the conversation. A scripted
+  // stock line read as a bot; a re-paste of the summary read as a parrot
+  // (both shipped and rejected, July 2026). Bypasses sendMessage — the card
+  // isn't user-authored text (no crisis scan) and the opener isn't a user
+  // turn. If the call fails, falls back to a feelings-based line so the chat
+  // never opens dead. Operates on the CURRENT sponsor's thread, so callers
+  // must invoke it only once sponsorType matches the entry (sponsor-chat does
+  // this after its sponsor-sync effect settles); the async continuation is
+  // safe because setMessages targets the sponsor captured at call time.
   const injectSpotCheckHandoff = (entry: SpotCheckEntry) => {
     if (messages.some((m) => m.id === `spotcheck-${entry.id}`)) return; // effect re-runs shouldn't double-inject
     const card: ChatMessage = {
@@ -867,15 +886,26 @@ export const [ChatStoreProvider, useChatStore] = createContextHook(() => {
       kind: "spotCheckCard",
       spotCheck: entry,
     };
-    const opener: ChatMessage = {
-      id: `spotcheck-opener-${entry.id}`,
-      text: entry.summary
-        ? `I read your spot check. ${entry.summary}`
-        : "I read your spot check — want to talk through it?",
-      sender: "bot",
-      timestamp: Date.now() + 1,
-    };
-    setMessages([...messages, card, opener]);
+    const withCard = [...messages, card];
+    setMessages(withCard);
+    setIsLoading(true);
+    (async () => {
+      let text: string;
+      try {
+        text = await askHandoffOpener(entry.sponsorId, entry);
+      } catch {
+        const feelings = entry.feelings.join(' and ').toLowerCase();
+        text = `I’ve read your spot check inventory — I can see you’re carrying some ${feelings}. Where do you want to pick this up?`;
+      }
+      const opener: ChatMessage = {
+        id: `spotcheck-opener-${entry.id}`,
+        text,
+        sender: "bot",
+        timestamp: Date.now() + 1,
+      };
+      setMessages([...withCard, opener]);
+      setIsLoading(false);
+    })();
   };
 
   const clearChat = async () => {

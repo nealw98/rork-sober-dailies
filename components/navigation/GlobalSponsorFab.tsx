@@ -21,11 +21,14 @@ export default function GlobalSponsorFab() {
 
   // The tab bar owns the FAB on the four tabs; skip here to avoid doubling up.
   // Also skip on the meditation screen — it's its own immersive UI, and the FAB
-  // would sit over its controls / Preferences sheet.
+  // would sit over its controls / Preferences sheet. Skip the Spot Check flow
+  // too: it's already a sponsor conversation with its own "Keep talking"
+  // handoff, so a chat FAB on top reads as a second, competing entry point.
   if (
     (segments as string[]).includes('(tabs)') ||
     (segments as string[]).includes('meditation') ||
     (segments as string[]).includes('trends') ||
+    (segments as string[]).includes('inventory') ||
     immersive
   ) {
     return null;
