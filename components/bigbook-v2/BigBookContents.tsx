@@ -29,7 +29,7 @@ import { useTokens, useThemedStyles } from '@/hooks/useTokens';
 const BOOK = 'bigbook';
 
 export function BigBookContents({ onOpenText, onOpenPdf, onOpenTextAtParagraph }: {
-  onOpenText: (chapterId: string, page?: number, searchTerm?: string) => void;
+  onOpenText: (chapterId: string, page?: number, searchTerm?: string, paragraphId?: string) => void;
   onOpenPdf: (entry: TocEntry, initialPage?: number) => void;
   onOpenTextAtParagraph: (chapterId: string, paragraphId: string) => void;
 }) {
@@ -105,7 +105,7 @@ export function BigBookContents({ onOpenText, onOpenPdf, onOpenTextAtParagraph }
         title: (r.chapterTitle ?? meta?.title ?? 'Big Book').replace(/^\d+\.\s*/, ''),
         pageLabel: formatPageNumber(r.paragraph.pageNumber, meta?.useRomanNumerals || false),
         before: ctx?.before ?? '', match: ctx?.match ?? '', after: ctx?.after ?? '',
-        open: () => jump(() => onOpenText(r.chapterId, r.paragraph.pageNumber, q)),
+        open: () => jump(() => onOpenText(r.chapterId, r.paragraph.pageNumber, q, r.paragraphId)),
       });
     }
     for (const h of searchBigBookPdfs(q, 25)) {

@@ -140,6 +140,12 @@ export default function PdfReader({
               ref={pdfRef}
               key={landscape ? 'landscape' : 'portrait'}
               source={{ uri, cache: true }}
+              // Open the (re)mount AT the stashed page natively — the post-load
+              // setPage below races the view's own scroll-to-page-1 and can
+              // lose, which reset rotation to page 1. A ref value is fine here:
+              // it's read once per remount, and later re-renders pass the same
+              // value so the component never jumps mid-read.
+              page={restorePageRef.current}
               // Landscape exists to read bigger: fill the width (0). Portrait
               // keeps the whole-page fit (2), matching the old behavior.
               fitPolicy={landscape ? 0 : 2}

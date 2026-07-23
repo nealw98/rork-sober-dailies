@@ -33,12 +33,13 @@ export function BigBookMain() {
   const [pdf, setPdf] = useState<OpenPdf | null>(null);
 
   // text entry → open the in-app reader, optionally scrolled to a page and
-  // highlighting a search term.
-  const openText = (id: string, page?: number, term?: string) => {
+  // highlighting a search term. A search-result tap also passes the matched
+  // paragraph so the reader centers the term itself, not just the page top.
+  const openText = (id: string, page?: number, term?: string, paragraphId?: string) => {
     logEvent('literature_opened', { book: 'Big Book', format: 'text', section: id });
     setChapterId(id);
     setScrollToPage(page ?? null);
-    setScrollToParagraphId(null);
+    setScrollToParagraphId(paragraphId ?? null);
     setSearchTerm(term ?? null);
     setShowReader(true);
   };
