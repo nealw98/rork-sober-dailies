@@ -225,10 +225,13 @@ export default function PaywallScreen({ onDismiss, preview, forceTrial }: Paywal
   return (
     <SafeAreaView style={styles.screen} edges={['top', 'bottom']}>
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
-        {/* Header — close (dev/preview) on the right */}
+        {/* Header — close (dev/preview, plus Android test builds) on the right.
+            The Android case is a TEMPORARY testing escape hatch: that track has
+            no Play license testers, so Billing is unavailable and the wall would
+            be unescapable. Remove with the _layout gate before public release. */}
         <View style={styles.header}>
           <View style={styles.flex} />
-          {(preview || __DEV__) && onDismiss && (
+          {(preview || __DEV__ || Platform.OS === 'android') && onDismiss && (
             <Pressable style={styles.close} onPress={onDismiss} hitSlop={10}>
               <X size={24} color={c.textMuted} strokeWidth={2} />
             </Pressable>

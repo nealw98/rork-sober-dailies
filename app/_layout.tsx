@@ -269,9 +269,15 @@ function RootLayoutNav() {
     // entry wired to gift redemption. Purchases/entitlements still run through
     // react-native-purchases; PaywallScreen applies the returned CustomerInfo
     // itself so isPremium flips and the gate falls straight through to Today.
-    // PaywallScreen renders its own __DEV__-only close (X) that calls onDismiss;
-    // in production onDismiss is undefined, so the wall stays hard.
-    return <PaywallScreen onDismiss={__DEV__ ? () => setPaywallDismissed(true) : undefined} />;
+    // PaywallScreen renders its own close (X) that calls onDismiss; in a
+    // production iOS build onDismiss is undefined, so the wall stays hard.
+    //
+    // ANDROID TESTING ESCAPE HATCH (temporary — REMOVE BEFORE PUBLIC RELEASE):
+    // the Android test track has no Play license testers, so Billing is
+    // unavailable and the wall would be unescapable. Android release builds
+    // therefore get the X too. iOS is unaffected by the Platform gate.
+    const paywallDismissable = __DEV__ || Platform.OS === 'android';
+    return <PaywallScreen onDismiss={paywallDismissable ? () => setPaywallDismissed(true) : undefined} />;
   }
 
   // Disclaimer last — after onboarding AND the paywall, so agreeing drops the
