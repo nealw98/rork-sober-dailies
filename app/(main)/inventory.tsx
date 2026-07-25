@@ -512,7 +512,7 @@ const makeStyles = (tk: Tokens) => {
 
     recapCard: { marginBottom: 12, paddingVertical: 10, paddingHorizontal: 13, borderRadius: 12, backgroundColor: c.surface, borderWidth: 1, borderColor: c.border, ...darkCard },
     recapLabel: { fontFamily: fontFamily.bold, fontSize: 10.5, letterSpacing: 1.1, color: c.textMuted, marginBottom: 4, textTransform: 'uppercase' },
-    recapBody: { fontFamily: fontFamily.regular, fontSize: 13, lineHeight: 19.5, color: c.textSecondary },
+    recapBody: { fontFamily: fontFamily.regular, fontSize: 14, lineHeight: 21, color: c.textSecondary },
 
     pills: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
     pill: { paddingVertical: 10, paddingHorizontal: 15, borderRadius: 999, borderWidth: 1.5, minHeight: 44, justifyContent: 'center' },
