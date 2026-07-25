@@ -3,7 +3,7 @@
 // for…" + fields + "Add another". Saving writes the entry to the gratitude
 // store (local-first) and, when opened from a Today daily, checks it off.
 // History/Share live in the deferred Journey "Notebook", not in this editor.
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { View, Text, TextInput, Pressable, StyleSheet, Keyboard } from 'react-native';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
 import { Stack, useRouter, useLocalSearchParams } from 'expo-router';
@@ -32,13 +32,30 @@ export default function GratitudeScreen() {
   const { quote: dailyQuote, source: quoteSource } = useGratitudeQuote();
 
   const [vals, setVals] = useState<string[]>(['', '', '']);
-  const dirty = vals.some((v) => v.trim() !== '');
+  // Today's list is a living document: prefill what's already saved so a later
+  // visit appends and edits instead of starting blank (Save then writes the
+  // whole visible list back, so it can no longer clobber the morning's items).
+  // The notebook copy (savedEntries) is the prefill source — it's what Journey
+  // shows, so deleting today's card there makes this start blank again.
+  const initialItems = useRef<string[] | null>(null);
+  useEffect(() => {
+    if (initialItems.current !== null || !gratitude || gratitude.isLoading) return;
+    const now = new Date();
+    const key = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+    const items = gratitude.getSavedEntry(key)?.items ?? [];
+    initialItems.current = items;
+    if (items.length > 0) setVals([...items, '']);
+  }, [gratitude]);
+
+  const items = vals.map((v) => v.trim()).filter(Boolean);
+  // "Save" lights up only when the list differs from what's stored; a fully
+  // cleared list reads "Cancel" (delete-the-day lives in Journey, not here).
+  const dirty = items.length > 0 && JSON.stringify(items) !== JSON.stringify(initialItems.current ?? []);
   const setVal = (i: number, v: string) => setVals((arr) => arr.map((x, j) => (j === i ? v : x)));
 
   const commit = () => {
     Keyboard.dismiss();
-    const items = vals.map((v) => v.trim()).filter(Boolean);
-    if (items.length > 0 && gratitude) {
+    if (dirty && gratitude) {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       gratitude.saveDetailedEntry(items);
       gratitude.completeToday(items);
