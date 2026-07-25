@@ -53,14 +53,25 @@ export default function PdfReader({
   // floating in margins. Remount it (key) on orientation change with fit-width
   // in landscape, stashing the current page at the flip so the remount's
   // onLoadComplete can restore it (onPageChanged isn't trustworthy mid-remount).
+  //
+  // currentPageRef tracks the page the NATIVE view has confirmed via
+  // onPageChanged — never the page we *want*. The view always mounts at page 1
+  // (no `page` prop, see below), so seeding this with the target made the
+  // restore loop's "already there" check pass before any jump happened and the
+  // reader opened at the chapter start. pendingRestoreRef marks a jump that
+  // hasn't been confirmed yet, so a rotation mid-jump re-stashes the original
+  // target instead of the page-1 the remount briefly sits on.
   const { width, height } = useWindowDimensions();
   const landscape = width > height;
-  const currentPageRef = useRef(initialPage ?? 1);
+  const currentPageRef = useRef(1);
   const restorePageRef = useRef(initialPage ?? 1);
+  const pendingRestoreRef = useRef((initialPage ?? 1) > 1);
   const prevLandscapeRef = useRef(landscape);
   if (prevLandscapeRef.current !== landscape) {
     prevLandscapeRef.current = landscape;
-    restorePageRef.current = currentPageRef.current;
+    if (!pendingRestoreRef.current) restorePageRef.current = currentPageRef.current;
+    pendingRestoreRef.current = restorePageRef.current > 1;
+    currentPageRef.current = 1; // the fresh mount starts back at page 1
   }
 
   useEffect(() => {
@@ -76,8 +87,9 @@ export default function PdfReader({
     setUri(null);
     setFailed(false);
     setPdfPage(initialPage ?? 1);
-    currentPageRef.current = initialPage ?? 1;
+    currentPageRef.current = 1;
     restorePageRef.current = initialPage ?? 1;
+    pendingRestoreRef.current = (initialPage ?? 1) > 1;
     setPageCount(0);
     (async () => {
       try {
@@ -159,7 +171,7 @@ export default function PdfReader({
                 if (target > 1) {
                   let attempts = 0;
                   const assertPage = () => {
-                    if (currentPageRef.current === target || attempts >= 6) return;
+                    if (currentPageRef.current === target || attempts >= 8) { pendingRestoreRef.current = false; return; }
                     attempts += 1;
                     pdfRef.current?.setPage(target);
                     setTimeout(assertPage, 150);
@@ -167,7 +179,11 @@ export default function PdfReader({
                   setTimeout(assertPage, 0);
                 }
               }}
-              onPageChanged={(p) => { currentPageRef.current = p; setPdfPage(p); }}
+              onPageChanged={(p) => {
+                currentPageRef.current = p;
+                if (p === restorePageRef.current) pendingRestoreRef.current = false;
+                setPdfPage(p);
+              }}
               onError={(e) => { console.warn('[pdf] render error', e); setFailed(true); }}
               style={styles.pdf}
             />

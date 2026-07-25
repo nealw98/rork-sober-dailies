@@ -95,8 +95,22 @@ export function BigBookContents({ onOpenText, onOpenPdf, onOpenTextAtParagraph }
   type SearchRow = { key: string; isPdf: boolean; title: string; pageLabel: string; before: string; match: string; after: string; open: () => void };
   const searchResults = useMemo(() => {
     const q = debounced.trim();
-    if (q.length < 2) return [] as SearchRow[];
     const out: SearchRow[] = [];
+    // A plain page number is a search too — offer the jump above the text hits.
+    if (/^\d{1,3}$/.test(q)) {
+      const n = parseInt(q, 10);
+      const entry = findEntryForPage(n);
+      if (entry) {
+        out.push({
+          key: `goto-${n}`, isPdf: entry.kind === 'pdf', title: `Go to page ${n}`, pageLabel: String(n), before: '', match: '', after: entry.title,
+          open: () => {
+            if (entry.kind === 'text' && entry.chapterId) jump(() => onOpenText(entry.chapterId!, n));
+            else if (entry.kind === 'pdf') jump(() => onOpenPdf(entry, Math.max(1, n - (entry.startPage ?? n) + 1)));
+          },
+        });
+      }
+    }
+    if (q.length < 2) return out;
     for (const r of searchContent(q).slice(0, 25)) {
       const meta = getChapterMeta(r.chapterId);
       const ctx = r.matches?.[0]?.context;
@@ -239,8 +253,8 @@ export function BigBookContents({ onOpenText, onOpenPdf, onOpenTextAtParagraph }
               </View>
             </View>
             <ScrollView contentContainerStyle={styles.searchList} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
-              {debounced.trim().length < 2 ? (
-                <Text style={styles.searchHint}>Search across every chapter, story, and appendix.</Text>
+              {searchResults.length === 0 && debounced.trim().length < 2 ? (
+                <Text style={styles.searchHint}>Search a word, a phrase, or a page number — across every chapter, story, and appendix.</Text>
               ) : searchResults.length === 0 ? (
                 <Text style={styles.searchEmpty}>No matches for “{debounced.trim()}”.</Text>
               ) : (

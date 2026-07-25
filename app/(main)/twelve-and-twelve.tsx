@@ -84,8 +84,20 @@ export default function TwelveAndTwelveScreen() {
   const searchResults = useMemo(() => {
     const q = debounced.trim();
     type Row = { key: string; title: string; pageLabel: string; before: string; match: string; after: string; open: () => void };
-    if (q.length < 2) return [] as Row[];
     const out: Row[] = [];
+    // A plain page number is a search too — offer the jump above the text hits.
+    if (/^\d{1,3}$/.test(q)) {
+      const n = parseInt(q, 10);
+      const s = findSectionForPage(n);
+      if (s) {
+        const start = parsePage(s.pageNumber);
+        out.push({
+          key: `goto-${n}`, title: `Go to page ${n}`, pageLabel: String(n), before: '', match: '', after: s.title,
+          open: () => jump(() => setPdf({ id: s.id, title: s.title, startPage: start, initialPage: Math.max(1, n - start + 1) })),
+        });
+      }
+    }
+    if (q.length < 2) return out;
     for (const h of searchTwelvePdfs(q, 30)) {
       const s = findSectionById(h.pdfKey);
       if (!s) continue;
@@ -187,8 +199,8 @@ export default function TwelveAndTwelveScreen() {
               </View>
             </View>
             <ScrollView contentContainerStyle={styles.searchList} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
-              {debounced.trim().length < 2 ? (
-                <Text style={styles.searchHint}>Search across the Steps, Traditions, and introductions.</Text>
+              {searchResults.length === 0 && debounced.trim().length < 2 ? (
+                <Text style={styles.searchHint}>Search a word, a phrase, or a page number.</Text>
               ) : searchResults.length === 0 ? (
                 <Text style={styles.searchEmpty}>No matches for “{debounced.trim()}”.</Text>
               ) : (
