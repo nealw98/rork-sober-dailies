@@ -1,0 +1,21 @@
+diff --git a/node_modules/react-native-pdf/ios/RNPDFPdf/RNPDFPdfView.mm b/node_modules/react-native-pdf/ios/RNPDFPdf/RNPDFPdfView.mm
+index de46c98..d4ea829 100644
+--- a/node_modules/react-native-pdf/ios/RNPDFPdf/RNPDFPdfView.mm
++++ b/node_modules/react-native-pdf/ios/RNPDFPdf/RNPDFPdfView.mm
+@@ -564,6 +564,16 @@ - (void)didSetProps:(NSArray<NSString *> *)changedProps
+             }
+         }
+
++        // Keep the safe area out of the internal scroll view: with automatic
++        // adjustment, landscape notch insets add horizontal scrollable slack to
++        // a width-fit page, letting it wander side to side.
++        for (UIView *subview in _pdfView.subviews) {
++            if ([subview isKindOfClass:[UIScrollView class]]) {
++                UIScrollView *scrollView = (UIScrollView *)subview;
++                scrollView.contentInsetAdjustmentBehavior = UIScrollViewContentInsetAdjustmentNever;
++            }
++        }
++
+         _pdfView.backgroundColor = [UIColor clearColor];
+         [_pdfView layoutDocumentView];
+         [self setNeedsDisplay];

@@ -24,7 +24,8 @@
     "start-web": "bunx rork start -p slb0yphh4l03b7fd78jn4 --web --tunnel",
     "start-web-dev": "DEBUG=expo* bunx rork start -p slb0yphh4l03b7fd78jn4 --web --tunnel",
     "android": "expo run:android",
-    "ios": "expo run:ios"
+    "ios": "expo run:ios",
+    "postinstall": "patch-package"
   },
   "dependencies": {
     "@expo-google-fonts/archivo": "^0.4.2",
@@ -117,6 +118,7 @@
     "@expo/ngrok": "^4.1.0",
     "@types/react": "~19.0.10",
     "babel-plugin-module-resolver": "^5.0.2",
+    "patch-package": "^8.0.1",
     "typescript": "~5.8.3"
   },
   "private": true
