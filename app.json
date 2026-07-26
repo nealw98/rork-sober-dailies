@@ -16,7 +16,7 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.nealwagner.soberdailies",
-      "buildNumber": "129",
+      "buildNumber": "130",
       "icon": "./assets/images/icon.png",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
@@ -34,7 +34,8 @@
     },
     "android": {
       "package": "com.nealwagner.soberdailies",
-      "versionCode": 129,
+      "versionCode": 130,
+      "edgeToEdgeEnabled": true,
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon-foreground.png",
         "backgroundImage": "./assets/images/adaptive-icon-background.png",
@@ -86,9 +87,9 @@
             "deploymentTarget": "15.5"
           },
           "android": {
-            "compileSdkVersion": 35,
-            "targetSdkVersion": 35,
-            "buildToolsVersion": "35.0.0",
+            "compileSdkVersion": 36,
+            "targetSdkVersion": 36,
+            "buildToolsVersion": "36.0.0",
             "minSdkVersion": 24,
             "allowBackup": true
           }

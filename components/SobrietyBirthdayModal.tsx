@@ -18,7 +18,7 @@ import { calculateMilestone } from '@/hooks/useSobrietyBirthday';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Haptics from 'expo-haptics';
 import { Audio } from 'expo-av';
-import { fontFamily } from '@/constants/designTokens';
+import { fontFamily, gradients } from '@/constants/designTokens';
 
 // Guarded require: binaries older than the lottie build (runtime 3.0.7 test
 // builds) lack the native module — an OTA carrying this file must degrade to
@@ -150,7 +150,7 @@ const SobrietyBirthdayModal: React.FC<SobrietyBirthdayModalProps> = ({ visible, 
       <Animated.View style={[styles.screen, { opacity: fade }]}>
         {/* Brand blue→teal — the onboarding welcome gradient, full-bleed. */}
         <LinearGradient
-          colors={['#0D77BF', '#0B96B6', '#0CB3A9']}
+          colors={[...gradients.celebration]}
           start={{ x: 0.05, y: 0 }}
           end={{ x: 0.95, y: 1 }}
           style={StyleSheet.absoluteFill}

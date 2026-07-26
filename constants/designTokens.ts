@@ -358,6 +358,10 @@ export const gradients = {
   header: ['#4A6FA5', '#3D8B8B', '#45A08A'] as const,
   primary: ['#5C8DFF', '#6DBEBF'] as const,
   tertiary: ['#A386D5', '#6DBEBF'] as const,
+  // Blue → teal, the onboarding welcome diagonal. Worn by BOTH the sobriety
+  // milestone takeover and the Today band that replays it — tap the blue-teal
+  // strip, the blue-teal takeover opens. Shared here so the two can't drift.
+  celebration: ['#0D77BF', '#0B96B6', '#0CB3A9'] as const,
 };
 
 // ─── Dark family tones ───────────────────────────────────────────────────────
