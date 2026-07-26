@@ -1,17 +1,19 @@
 import { useState, useEffect } from 'react';
-import { AppState, AppStateStatus } from 'react-native';
+import { AppState, AppStateStatus, DeviceEventEmitter } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useSobriety } from './useSobrietyStore';
 import { formatLocalDate, parseLocalDate, calculateDaysBetween } from '@/lib/dateUtils';
 
 const BIRTHDAY_STORAGE_KEY = 'last_shown_birthday_milestone';
+const REPLAY_EVENT = 'sobriety-milestone-replay';
 
-export const useSobrietyBirthday = () => {
-  const [showBirthdayModal, setShowBirthdayModal] = useState(false);
-  const { sobrietyDate } = useSobriety();
+// Re-run the milestone takeover on demand — the Today counter's badge taps
+// this. Bypasses the once-per-milestone gate on purpose (it's a replay).
+export const replaySobrietyMilestone = () => { DeviceEventEmitter.emit(REPLAY_EVENT); };
 
-  // Calculate milestone based on sobriety date (same logic as in SobrietyBirthdayModal)
-  const calculateMilestone = (sobrietyDateString: string): string | null => {
+// "Is today exactly a milestone day?" — shared by the auto-show gate here,
+// the takeover's own display, and the Today counter's badge.
+export const calculateMilestone = (sobrietyDateString: string): string | null => {
     const today = formatLocalDate(new Date());
     const sobrietyDate = parseLocalDate(sobrietyDateString);
     
@@ -64,6 +66,10 @@ export const useSobrietyBirthday = () => {
     
     return null;
   };
+
+export const useSobrietyBirthday = () => {
+  const [showBirthdayModal, setShowBirthdayModal] = useState(false);
+  const { sobrietyDate } = useSobriety();
 
   // Check if we should show birthday modal
   const checkForBirthday = async () => {
@@ -128,6 +134,13 @@ export const useSobrietyBirthday = () => {
     });
     return () => sub.remove();
   }, [sobrietyDate]);
+
+  // Replay on demand (Today badge) — no gating; the badge only renders on an
+  // actual milestone day.
+  useEffect(() => {
+    const sub = DeviceEventEmitter.addListener(REPLAY_EVENT, () => setShowBirthdayModal(true));
+    return () => sub.remove();
+  }, []);
 
   const closeBirthdayModal = () => {
     // console.log('[BirthdayHook] Closing birthday modal');

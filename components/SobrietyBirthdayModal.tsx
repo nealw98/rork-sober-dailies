@@ -6,7 +6,7 @@
 // logic (exact milestone-day match + once-per-milestone AsyncStorage flag) is
 // unchanged from the card era — useSobrietyBirthday decides WHEN, this decides
 // WHAT.
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   StyleSheet, View, Text, TouchableOpacity, Modal, Animated, Pressable,
   AccessibilityInfo, useWindowDimensions,
@@ -14,7 +14,7 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useSobriety } from '@/hooks/useSobrietyStore';
-import { calculateDaysBetween, parseLocalDate, formatLocalDate } from '@/lib/dateUtils';
+import { calculateMilestone } from '@/hooks/useSobrietyBirthday';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Haptics from 'expo-haptics';
 import { Audio } from 'expo-av';
@@ -39,6 +39,7 @@ const SobrietyBirthdayModal: React.FC<SobrietyBirthdayModalProps> = ({ visible, 
   const { height: screenH } = useWindowDimensions();
   const [milestone, setMilestone] = useState<string>('');
   const [reduceMotion, setReduceMotion] = useState(false);
+  const soundRef = useRef<Audio.Sound | null>(null);
   const [fade] = useState(new Animated.Value(0));
   const [numberScale] = useState(new Animated.Value(0));
   const [ctaFade] = useState(new Animated.Value(0));
@@ -46,90 +47,6 @@ const SobrietyBirthdayModal: React.FC<SobrietyBirthdayModalProps> = ({ visible, 
   useEffect(() => {
     AccessibilityInfo.isReduceMotionEnabled().then(setReduceMotion).catch(() => {});
   }, []);
-
-  // Calculate milestone based on sobriety date
-  const calculateMilestone = (sobrietyDateString: string): string | null => {
-    const daysSober = calculateDaysBetween(sobrietyDateString);
-    const today = formatLocalDate(new Date());
-
-    // Check if today is exactly a milestone date
-    const sobrietyDate = parseLocalDate(sobrietyDateString);
-
-    // Monthly milestones (1-11 months)
-    for (let months = 1; months <= 11; months++) {
-      const milestoneDate = new Date(sobrietyDate);
-      const originalDay = milestoneDate.getDate();
-
-      // Add months
-      milestoneDate.setMonth(milestoneDate.getMonth() + months);
-
-      // If the day rolled over (e.g., Aug 31 -> Sept 31 -> Oct 1),
-      // set it to the last day of the target month instead
-      if (milestoneDate.getDate() !== originalDay) {
-        // Go back one day to get the last day of the target month
-        milestoneDate.setDate(0);
-      }
-
-      const milestoneDateString = formatLocalDate(milestoneDate);
-
-      if (milestoneDateString === today) {
-        console.log('[BirthdayModal] Found monthly milestone:', `${months}-month`);
-        return `${months}-month`;
-      }
-    }
-
-    // Yearly milestones starting from 1 year
-    for (let years = 1; years <= 100; years++) {
-      const milestoneDate = new Date(sobrietyDate);
-      milestoneDate.setFullYear(milestoneDate.getFullYear() + years);
-      const milestoneDateString = formatLocalDate(milestoneDate);
-
-      if (milestoneDateString === today) {
-        const milestone = `${years}-year`;
-        console.log('[BirthdayModal] Found yearly milestone:', milestone);
-        return milestone;
-      }
-    }
-
-    // Check for 18-month milestone
-    const eighteenMonthDate = new Date(sobrietyDate);
-    eighteenMonthDate.setMonth(eighteenMonthDate.getMonth() + 18);
-    const eighteenMonthDateString = formatLocalDate(eighteenMonthDate);
-
-    if (eighteenMonthDateString === today) {
-      console.log('[BirthdayModal] Found 18-month milestone');
-      return '18-month';
-    }
-
-    return null;
-  };
-
-  // Check if we should show birthday modal
-  const shouldShowBirthday = async (): Promise<boolean> => {
-    if (!sobrietyDate) {
-      console.log('[BirthdayModal] No sobriety date, not showing');
-      return false;
-    }
-
-    const currentMilestone = calculateMilestone(sobrietyDate);
-    console.log('[BirthdayModal] Current milestone:', currentMilestone);
-
-    if (!currentMilestone) {
-      console.log('[BirthdayModal] No milestone found, not showing');
-      return false;
-    }
-
-    try {
-      const lastShown = await AsyncStorage.getItem(BIRTHDAY_STORAGE_KEY);
-      console.log('[BirthdayModal] Last shown milestone:', lastShown, 'Current milestone:', currentMilestone);
-      const shouldShow = lastShown !== currentMilestone;
-      console.log('[BirthdayModal] Should show birthday:', shouldShow);
-      return shouldShow;
-    } catch (error) {
-      console.error('Error checking birthday storage:', error);
-      return true; // Show by default if we can't check
-    }
-  };
 
   // Mark milestone as shown
   const markMilestoneAsShown = async (milestone: string) => {
@@ -150,16 +67,41 @@ const SobrietyBirthdayModal: React.FC<SobrietyBirthdayModalProps> = ({ visible, 
       // Celebration chime (bundled, synthesized in-house — license-clean).
       // expo-av respects the iOS silent switch by default, so a muted phone
       // celebrates silently, iMessage-style.
-      let sound: Audio.Sound | null = null;
-      Audio.Sound.createAsync(require('@/assets/sounds/celebration.m4a'), { shouldPlay: true, volume: 0.9 })
-        .then((r) => { sound = r.sound; })
-        .catch(() => {});
+      //
+      // The sound MUST be tracked in a ref and released before the next play:
+      // dismissing the takeover before createAsync resolves used to leave the
+      // player loaded (the cleanup closure still saw null), so replaying from
+      // the Today badge opened a second AudioQueue on top of the leaked one
+      // and CoreAudio died in its allocator. Release-then-create keeps exactly
+      // one player alive.
+      let cancelled = false;
+      const play = async () => {
+        try {
+          const prev = soundRef.current;
+          soundRef.current = null;
+          if (prev) await prev.unloadAsync().catch(() => {});
+          const { sound } = await Audio.Sound.createAsync(
+            require('@/assets/sounds/celebration.wav'),
+            { shouldPlay: true, volume: 0.9 },
+          );
+          // Dismissed while loading — don't leave an orphan player behind.
+          if (cancelled) { await sound.unloadAsync().catch(() => {}); return; }
+          soundRef.current = sound;
+        } catch {}
+      };
+      play();
+      const release = () => {
+        cancelled = true;
+        const s = soundRef.current;
+        soundRef.current = null;
+        s?.unloadAsync().catch(() => {});
+      };
       if (!reduceMotion) {
         const t1 = setTimeout(() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {}), 350);
         const t2 = setTimeout(() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {}), 700);
-        return () => { clearTimeout(t1); clearTimeout(t2); sound?.unloadAsync().catch(() => {}); };
+        return () => { clearTimeout(t1); clearTimeout(t2); release(); };
       }
-      return () => { sound?.unloadAsync().catch(() => {}); };
+      return release;
     } else {
       fade.setValue(0);
       numberScale.setValue(0);
@@ -167,24 +109,20 @@ const SobrietyBirthdayModal: React.FC<SobrietyBirthdayModalProps> = ({ visible, 
     }
   }, [visible, reduceMotion, fade, numberScale, ctaFade]);
 
-  // Check for birthday when component mounts
+  // Track today's milestone for display. Deliberately NOT gated on the
+  // once-per-milestone flag — useSobrietyBirthday owns WHEN the takeover
+  // auto-shows; this must also render for on-demand replays from the Today
+  // badge after the flag is already set.
   useEffect(() => {
-    const checkBirthday = async () => {
-      if (!sobrietyDate) return;
-
-      const shouldShow = await shouldShowBirthday();
-      if (shouldShow) {
-        const currentMilestone = calculateMilestone(sobrietyDate);
-        if (currentMilestone) {
-          setMilestone(currentMilestone);
-          // Trigger haptic feedback for milestone
-          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-        }
-      }
-    };
-
-    checkBirthday();
+    setMilestone((sobrietyDate && calculateMilestone(sobrietyDate)) || '');
   }, [sobrietyDate]);
+
+  // Success haptic belongs to the takeover actually appearing.
+  useEffect(() => {
+    if (visible && milestone) {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
+    }
+  }, [visible, milestone]);
 
   const handleClose = () => {
     if (milestone) {

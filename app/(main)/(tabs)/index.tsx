@@ -14,7 +14,9 @@ import { Image } from 'expo-image';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter, type Href } from 'expo-router';
-import { Check, Minus, GripVertical, Pencil } from 'lucide-react-native';
+import { Check, Minus, GripVertical, Pencil, PartyPopper } from 'lucide-react-native';
+import { useSobriety } from '@/hooks/useSobrietyStore';
+import { calculateMilestone, replaySobrietyMilestone } from '@/hooks/useSobrietyBirthday';
 import * as Haptics from 'expo-haptics';
 
 import { fontFamily, fontSize, spacing, radii, shadows, type Tokens } from '@/constants/designTokens';
@@ -205,6 +207,17 @@ export default function TodayScreen() {
   const styles = useThemedStyles(makeStyles);
   const { c, colors } = useTokens();
   const dailies = useDailies();
+  const { sobrietyDate } = useSobriety();
+
+  // Milestone day — a rose chip beside the page title that celebrates all day
+  // and replays the takeover on tap (the auto-show only fires once).
+  const milestone = sobrietyDate ? calculateMilestone(sobrietyDate) : null;
+  const milestoneLabel = (() => {
+    if (!milestone) return null;
+    const n = milestone.split('-')[0];
+    const unit = milestone.endsWith('-year') ? (n === '1' ? 'year' : 'years') : (n === '1' ? 'month' : 'months');
+    return `${n} ${unit}`;
+  })();
   const heroImage = useReflectionHeroImage();
   const [reflection, setReflection] = useState<Reflection | null>(null);
   const [editing, setEditing] = useState(false);
@@ -376,6 +389,22 @@ export default function TodayScreen() {
           <Text style={[styles.title, { color: c.text }]}>Today</Text>
           <Text style={[styles.date, { color: c.textMuted }]}>{dateLabel}</Text>
         </View>
+        {/* Milestone chip — centered on the title line, above the flanking
+            title/actions (box-none lets the rest of the line stay tappable) */}
+        {milestoneLabel && (
+          <View style={styles.milestoneOverlay} pointerEvents="box-none">
+            <Pressable
+              onPress={replaySobrietyMilestone}
+              hitSlop={10}
+              style={({ pressed }) => [styles.milestoneChip, { backgroundColor: colors.rose }, pressed && { opacity: 0.8 }]}
+              accessibilityRole="button"
+              accessibilityLabel={`Milestone: ${milestoneLabel}. Tap to celebrate`}
+            >
+              <PartyPopper size={14} color="#fff" strokeWidth={2.2} />
+              <Text style={styles.milestoneChipText}>{milestoneLabel}</Text>
+            </Pressable>
+          </View>
+        )}
         <View style={styles.headerActions}>
           <PassItOnGift />
           <SettingsGear />
@@ -434,6 +463,19 @@ const makeStyles = (tk: Tokens) => {
   // inline beside it, and a real paddingBottom so the header reads as a header.
   header: { flexDirection: 'row', alignItems: 'flex-start', paddingHorizontal: 22, paddingTop: 54, paddingBottom: 28 },
   title: { fontFamily: fontFamily.display, fontSize: 28, letterSpacing: -0.5, lineHeight: 29 },
+  // milestone-day chip — solid rose, centered on the title line, tappable to
+  // replay the takeover. Overlay spans the header; box-none keeps the gear live.
+  milestoneOverlay: {
+    position: 'absolute', left: 0, right: 0, top: 54, height: 29,
+    alignItems: 'center', justifyContent: 'center',
+  },
+  milestoneChip: {
+    flexDirection: 'row', alignItems: 'center', gap: 6,
+    paddingHorizontal: 13, paddingVertical: 6, borderRadius: 999,
+    shadowColor: colors.roseDark, shadowOpacity: isDark ? 0.5 : 0.35,
+    shadowRadius: 8, shadowOffset: { width: 0, height: 3 }, elevation: 4,
+  },
+  milestoneChipText: { fontFamily: fontFamily.bold, fontSize: 13, color: '#fff' },
   date: { fontFamily: fontFamily.regular, fontSize: 14, marginTop: 2 },
   // Edit + the settings gear share the top-right; the gear is the outermost
   // (far-corner) control (handoff-tab-nav).
