@@ -245,8 +245,12 @@ const SobrietyBirthdayModal: React.FC<SobrietyBirthdayModalProps> = ({ visible, 
             },
           ]}
         >
+          {/* Brand blue→teal — the onboarding welcome gradient (OnboardingFlow's
+              obvGrad(0.18), same diagonal), replacing the old off-brand indigo. */}
           <LinearGradient
-            colors={['#667eea', '#764ba2']}
+            colors={['#0D77BF', '#0B96B6', '#0CB3A9']}
+            start={{ x: 0.05, y: 0 }}
+            end={{ x: 0.95, y: 1 }}
             style={styles.modalGradient}
           >
             <View style={styles.modalContent}>

@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { AppState, AppStateStatus } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useSobriety } from './useSobrietyStore';
 import { formatLocalDate, parseLocalDate, calculateDaysBetween } from '@/lib/dateUtils';
@@ -115,6 +116,18 @@ export const useSobrietyBirthday = () => {
       checkForBirthday();
     }
   }, []); // Empty dependency array = runs on every mount (app launch)
+
+  // Re-check whenever the app returns to the foreground: a suspended app
+  // resumes without remounting, so a milestone day that begins while the app
+  // sits in the background would otherwise never be checked — and once the
+  // day passes, that milestone is silently skipped forever. The
+  // once-per-milestone storage guard above keeps this from double-showing.
+  useEffect(() => {
+    const sub = AppState.addEventListener('change', (s: AppStateStatus) => {
+      if (s === 'active' && sobrietyDate) checkForBirthday();
+    });
+    return () => sub.remove();
+  }, [sobrietyDate]);
 
   const closeBirthdayModal = () => {
     // console.log('[BirthdayHook] Closing birthday modal');
