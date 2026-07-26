@@ -1,12 +1,30 @@
-import React, { useEffect, useState, useRef } from 'react';
-import { StyleSheet, View, Text, TouchableOpacity, Modal, Animated } from 'react-native';
+// Sobriety milestone takeover (July 2026). Replaces the old small card with a
+// full-screen celebration in the spirit of iMessage effects: brand blue→teal
+// gradient, a Lottie confetti blowout, a giant springing year count,
+// choreographed haptics, then a Celebrate button. Tap anywhere ends it.
+// Honors Reduce Motion (no particles, gentle fade only). The trigger/gating
+// logic (exact milestone-day match + once-per-milestone AsyncStorage flag) is
+// unchanged from the card era — useSobrietyBirthday decides WHEN, this decides
+// WHAT.
+import React, { useEffect, useState } from 'react';
+import {
+  StyleSheet, View, Text, TouchableOpacity, Modal, Animated, Pressable,
+  AccessibilityInfo, useWindowDimensions,
+} from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { PartyPopper, X } from 'lucide-react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useSobriety } from '@/hooks/useSobrietyStore';
 import { calculateDaysBetween, parseLocalDate, formatLocalDate } from '@/lib/dateUtils';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Haptics from 'expo-haptics';
-import Colors from '@/constants/colors';
+import { Audio } from 'expo-av';
+import { fontFamily } from '@/constants/designTokens';
+
+// Guarded require: binaries older than the lottie build (runtime 3.0.7 test
+// builds) lack the native module — an OTA carrying this file must degrade to
+// the gradient + typography moment, not crash at import.
+let LottieView: any = null;
+try { LottieView = require('lottie-react-native').default; } catch {}
 
 const BIRTHDAY_STORAGE_KEY = 'last_shown_birthday_milestone';
 
@@ -17,73 +35,72 @@ interface SobrietyBirthdayModalProps {
 
 const SobrietyBirthdayModal: React.FC<SobrietyBirthdayModalProps> = ({ visible, onClose }) => {
   const { sobrietyDate } = useSobriety();
+  const insets = useSafeAreaInsets();
+  const { height: screenH } = useWindowDimensions();
   const [milestone, setMilestone] = useState<string>('');
-  const [animatedValue] = useState(new Animated.Value(0));
-  const [iconScale] = useState(new Animated.Value(1));
+  const [reduceMotion, setReduceMotion] = useState(false);
+  const [fade] = useState(new Animated.Value(0));
+  const [numberScale] = useState(new Animated.Value(0));
+  const [ctaFade] = useState(new Animated.Value(0));
+
+  useEffect(() => {
+    AccessibilityInfo.isReduceMotionEnabled().then(setReduceMotion).catch(() => {});
+  }, []);
 
   // Calculate milestone based on sobriety date
   const calculateMilestone = (sobrietyDateString: string): string | null => {
     const daysSober = calculateDaysBetween(sobrietyDateString);
     const today = formatLocalDate(new Date());
-    
-    // console.log('[BirthdayModal] Checking milestone for:', { sobrietyDateString, today, daysSober });
-    
+
     // Check if today is exactly a milestone date
     const sobrietyDate = parseLocalDate(sobrietyDateString);
-    
+
     // Monthly milestones (1-11 months)
     for (let months = 1; months <= 11; months++) {
       const milestoneDate = new Date(sobrietyDate);
       const originalDay = milestoneDate.getDate();
-      
+
       // Add months
       milestoneDate.setMonth(milestoneDate.getMonth() + months);
-      
-      // If the day rolled over (e.g., Aug 31 -> Sept 31 -> Oct 1), 
+
+      // If the day rolled over (e.g., Aug 31 -> Sept 31 -> Oct 1),
       // set it to the last day of the target month instead
       if (milestoneDate.getDate() !== originalDay) {
         // Go back one day to get the last day of the target month
         milestoneDate.setDate(0);
       }
-      
+
       const milestoneDateString = formatLocalDate(milestoneDate);
-      
-      // console.log('[BirthdayModal] Checking monthly milestone:', { months, milestoneDateString, today, matches: milestoneDateString === today });
-      
+
       if (milestoneDateString === today) {
         console.log('[BirthdayModal] Found monthly milestone:', `${months}-month`);
         return `${months}-month`;
       }
     }
-    
+
     // Yearly milestones starting from 1 year
     for (let years = 1; years <= 100; years++) {
       const milestoneDate = new Date(sobrietyDate);
       milestoneDate.setFullYear(milestoneDate.getFullYear() + years);
       const milestoneDateString = formatLocalDate(milestoneDate);
-      
-      // console.log('[BirthdayModal] Checking yearly milestone:', { years, milestoneDateString, today, matches: milestoneDateString === today });
-      
+
       if (milestoneDateString === today) {
-        const milestone = years === 1 ? '1-year' : years === 2 ? '2-year' : years === 3 ? '3-year' : years === 4 ? '4-year' : years === 5 ? '5-year' : `${years}-year`;
+        const milestone = `${years}-year`;
         console.log('[BirthdayModal] Found yearly milestone:', milestone);
         return milestone;
       }
     }
-    
+
     // Check for 18-month milestone
     const eighteenMonthDate = new Date(sobrietyDate);
     eighteenMonthDate.setMonth(eighteenMonthDate.getMonth() + 18);
     const eighteenMonthDateString = formatLocalDate(eighteenMonthDate);
-    
-    // console.log('[BirthdayModal] Checking 18-month milestone:', { eighteenMonthDateString, today, matches: eighteenMonthDateString === today });
-    
+
     if (eighteenMonthDateString === today) {
       console.log('[BirthdayModal] Found 18-month milestone');
       return '18-month';
     }
-    
-    // console.log('[BirthdayModal] No milestone found');
+
     return null;
   };
 
@@ -93,15 +110,15 @@ const SobrietyBirthdayModal: React.FC<SobrietyBirthdayModalProps> = ({ visible, 
       console.log('[BirthdayModal] No sobriety date, not showing');
       return false;
     }
-    
+
     const currentMilestone = calculateMilestone(sobrietyDate);
     console.log('[BirthdayModal] Current milestone:', currentMilestone);
-    
+
     if (!currentMilestone) {
       console.log('[BirthdayModal] No milestone found, not showing');
       return false;
     }
-    
+
     try {
       const lastShown = await AsyncStorage.getItem(BIRTHDAY_STORAGE_KEY);
       console.log('[BirthdayModal] Last shown milestone:', lastShown, 'Current milestone:', currentMilestone);
@@ -123,73 +140,38 @@ const SobrietyBirthdayModal: React.FC<SobrietyBirthdayModalProps> = ({ visible, 
     }
   };
 
-  // Format milestone for display
-  const formatMilestoneDisplay = (milestone: string): string => {
-    if (milestone.includes('-month')) {
-      const months = milestone.split('-')[0];
-      return `${months} Month`;
-    } else if (milestone.includes('-year')) {
-      const years = milestone.split('-')[0];
-      return `${years} Year`;
-    } else if (milestone === '18-month') {
-      return '18 Month';
-    }
-    return milestone;
-  };
-
-  // Animate modal entrance and star burst celebration
+  // Entrance choreography: fade the takeover in, spring the number, haptic
+  // bursts under the confetti, then surface the button.
   useEffect(() => {
     if (visible) {
-      Animated.spring(animatedValue, {
-        toValue: 1,
-        useNativeDriver: true,
-        tension: 100,
-        friction: 8,
-      }).start();
-      
-      // Trigger star burst and icon animation after a short delay
-      setTimeout(() => {
-        // Icon bounce animation
-        Animated.sequence([
-          Animated.timing(iconScale, {
-            toValue: 1.3,
-            duration: 200,
-            useNativeDriver: true,
-          }),
-          Animated.timing(iconScale, {
-            toValue: 1,
-            duration: 200,
-            useNativeDriver: true,
-          }),
-          Animated.timing(iconScale, {
-            toValue: 1.2,
-            duration: 150,
-            useNativeDriver: true,
-          }),
-          Animated.timing(iconScale, {
-            toValue: 1,
-            duration: 150,
-            useNativeDriver: true,
-          }),
-        ]).start();
-
-      }, 500);
+      Animated.timing(fade, { toValue: 1, duration: reduceMotion ? 400 : 260, useNativeDriver: true }).start();
+      Animated.spring(numberScale, { toValue: 1, useNativeDriver: true, tension: 60, friction: 7, delay: reduceMotion ? 0 : 250 }).start();
+      Animated.timing(ctaFade, { toValue: 1, duration: 400, delay: reduceMotion ? 400 : 1500, useNativeDriver: true }).start();
+      // Celebration chime (bundled, synthesized in-house — license-clean).
+      // expo-av respects the iOS silent switch by default, so a muted phone
+      // celebrates silently, iMessage-style.
+      let sound: Audio.Sound | null = null;
+      Audio.Sound.createAsync(require('@/assets/sounds/celebration.m4a'), { shouldPlay: true, volume: 0.9 })
+        .then((r) => { sound = r.sound; })
+        .catch(() => {});
+      if (!reduceMotion) {
+        const t1 = setTimeout(() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {}), 350);
+        const t2 = setTimeout(() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {}), 700);
+        return () => { clearTimeout(t1); clearTimeout(t2); sound?.unloadAsync().catch(() => {}); };
+      }
+      return () => { sound?.unloadAsync().catch(() => {}); };
     } else {
-      Animated.timing(animatedValue, {
-        toValue: 0,
-        duration: 200,
-        useNativeDriver: true,
-      }).start();
-      // Reset animations
-      iconScale.setValue(1);
+      fade.setValue(0);
+      numberScale.setValue(0);
+      ctaFade.setValue(0);
     }
-  }, [visible, animatedValue, iconScale]);
+  }, [visible, reduceMotion, fade, numberScale, ctaFade]);
 
   // Check for birthday when component mounts
   useEffect(() => {
     const checkBirthday = async () => {
       if (!sobrietyDate) return;
-      
+
       const shouldShow = await shouldShowBirthday();
       if (shouldShow) {
         const currentMilestone = calculateMilestone(sobrietyDate);
@@ -213,121 +195,115 @@ const SobrietyBirthdayModal: React.FC<SobrietyBirthdayModalProps> = ({ visible, 
 
   if (!visible || !milestone) return null;
 
-  const milestoneDisplay = formatMilestoneDisplay(milestone);
+  const count = milestone.split('-')[0];
+  const yearly = milestone.endsWith('-year');
+  const one = count === '1';
+  const unitLabel = yearly ? (one ? 'YEAR SOBER' : 'YEARS SOBER') : (one ? 'MONTH SOBER' : 'MONTHS SOBER');
+  const showParticles = LottieView != null && !reduceMotion;
 
   return (
     <Modal
       visible={visible}
       transparent
+      statusBarTranslucent
       animationType="none"
       onRequestClose={handleClose}
     >
-      <View style={styles.overlay}>
-        <Animated.View 
-          style={[
-            styles.modal,
-            {
-              transform: [
-                {
-                  scale: animatedValue.interpolate({
-                    inputRange: [0, 1],
-                    outputRange: [0.8, 1],
-                  }),
-                },
-                {
-                  translateY: animatedValue.interpolate({
-                    inputRange: [0, 1],
-                    outputRange: [50, 0],
-                  }),
-                },
-              ],
-              opacity: animatedValue,
-            },
-          ]}
-        >
-          {/* Brand blue→teal — the onboarding welcome gradient (OnboardingFlow's
-              obvGrad(0.18), same diagonal), replacing the old off-brand indigo. */}
-          <LinearGradient
-            colors={['#0D77BF', '#0B96B6', '#0CB3A9']}
-            start={{ x: 0.05, y: 0 }}
-            end={{ x: 0.95, y: 1 }}
-            style={styles.modalGradient}
-          >
-            <View style={styles.modalContent}>
-              <Animated.View style={[styles.iconContainer, { transform: [{ scale: iconScale }] }]}>
-                <PartyPopper size={48} color="white" />
-              </Animated.View>
-              
-              <Text style={styles.title}>Happy {milestoneDisplay} Birthday!</Text>
-              
-              <Text style={styles.message}>
-                Every day is a big deal but this milestone is awesome!
-              </Text>
-              
-              <TouchableOpacity style={styles.okButton} onPress={handleClose}>
-                <Text style={styles.okButtonText}>Celebrate!</Text>
-              </TouchableOpacity>
-            </View>
-          </LinearGradient>
-        </Animated.View>
-      </View>
+      <Animated.View style={[styles.screen, { opacity: fade }]}>
+        {/* Brand blue→teal — the onboarding welcome gradient, full-bleed. */}
+        <LinearGradient
+          colors={['#0D77BF', '#0B96B6', '#0CB3A9']}
+          start={{ x: 0.05, y: 0 }}
+          end={{ x: 0.95, y: 1 }}
+          style={StyleSheet.absoluteFill}
+        />
+
+        {/* Confetti blowout — behind the text so the number stays readable. */}
+        {showParticles && (
+          <LottieView
+            source={require('@/assets/lottie/confetti.json')}
+            autoPlay
+            loop
+            resizeMode="cover"
+            style={StyleSheet.absoluteFill}
+          />
+        )}
+
+        {/* Tap anywhere to finish */}
+        <Pressable style={styles.content} onPress={handleClose} accessibilityRole="button" accessibilityLabel="Close celebration">
+          <Text style={styles.kicker}>SOBRIETY MILESTONE</Text>
+
+          <Animated.View style={{ transform: [{ scale: numberScale }], alignItems: 'center' }}>
+            <Text style={[styles.count, { fontSize: Math.min(148, screenH * 0.17), lineHeight: Math.min(156, screenH * 0.18) }]}>{count}</Text>
+            <Text style={styles.unit}>{unitLabel}</Text>
+          </Animated.View>
+
+          <Text style={styles.message}>
+            Take a moment to celebrate how far you&rsquo;ve come&mdash;showing up, working your program, and choosing sobriety one day at a time.
+          </Text>
+
+          <Animated.View style={[styles.ctaWrap, { opacity: ctaFade, paddingBottom: Math.max(insets.bottom, 16) + 18 }]}>
+            <TouchableOpacity style={styles.okButton} onPress={handleClose} accessibilityRole="button">
+              <Text style={styles.okButtonText}>Continue</Text>
+            </TouchableOpacity>
+          </Animated.View>
+        </Pressable>
+      </Animated.View>
     </Modal>
   );
 };
 
 const styles = StyleSheet.create({
-  overlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 20,
+  screen: { flex: 1 },
+  content: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 32 },
+  kicker: {
+    fontFamily: fontFamily.bold,
+    fontSize: 13,
+    letterSpacing: 3,
+    color: 'rgba(255,255,255,0.85)',
+    marginBottom: 10,
   },
-  modal: {
-    borderRadius: 16,
-    maxWidth: 300,
-    width: '100%',
-    overflow: 'hidden',
+  count: {
+    fontFamily: fontFamily.displayBold,
+    color: '#fff',
+    letterSpacing: -3,
+    textShadowColor: 'rgba(0,0,0,0.12)',
+    textShadowOffset: { width: 0, height: 4 },
+    textShadowRadius: 18,
   },
-  modalGradient: {
-    padding: 24,
-    alignItems: 'center',
-  },
-  modalContent: {
-    alignItems: 'center',
-    width: '100%',
-  },
-  iconContainer: {
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    borderRadius: 30,
-    padding: 16,
-    marginBottom: 16,
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: 'white',
-    textAlign: 'center',
-    marginBottom: 12,
+  unit: {
+    fontFamily: fontFamily.bold,
+    fontSize: 18,
+    letterSpacing: 4,
+    color: '#fff',
+    marginTop: 2,
   },
   message: {
+    fontFamily: fontFamily.regular,
     fontSize: 16,
-    color: 'white',
+    color: 'rgba(255,255,255,0.92)',
     textAlign: 'center',
-    lineHeight: 22,
-    marginBottom: 24,
+    lineHeight: 24,
+    marginTop: 22,
+    maxWidth: 300,
   },
+  ctaWrap: { position: 'absolute', bottom: 0, left: 0, right: 0, alignItems: 'center' },
   okButton: {
-    backgroundColor: 'white',
-    paddingHorizontal: 32,
-    paddingVertical: 12,
-    borderRadius: 25,
-    minWidth: 120,
+    backgroundColor: '#fff',
+    paddingHorizontal: 40,
+    paddingVertical: 15,
+    borderRadius: 999,
+    minWidth: 180,
+    shadowColor: '#000',
+    shadowOpacity: 0.18,
+    shadowRadius: 14,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 6,
   },
   okButtonText: {
-    color: Colors.primary,
-    fontSize: 16,
-    fontWeight: '600',
+    color: '#0B96B6',
+    fontFamily: fontFamily.bold,
+    fontSize: 17,
     textAlign: 'center',
   },
 });
