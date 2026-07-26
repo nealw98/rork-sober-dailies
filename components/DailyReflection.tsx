@@ -10,7 +10,7 @@
 import React, { useEffect, useState, useCallback, useRef } from 'react';
 import {
   View, Text, ScrollView, Pressable, StyleSheet, Modal, Share, Platform,
-  AppState, AppStateStatus, PanResponder,
+  AppState, AppStateStatus, PanResponder, type TextStyle,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -29,6 +29,31 @@ import { ReadingSizeSheet } from '@/components/ReadingSizeSheet';
 import { useTokens, useThemedStyles } from '@/hooks/useTokens';
 
 const WEEKDAYS = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
+
+// Inline emphasis — the only markup the Supabase reflection text carries:
+// *span* renders as emphasis. In the upright body that means italic; inside
+// the already-italic quote and Meditation blocks it flips to upright (classic
+// roman-in-italic emphasis). The span must start and end on non-space so
+// stray asterisks ("2 * 3", a lone footnote star) render literally.
+const EM_RE = /\*(\S(?:[^*\n]*\S)?)\*/g;
+const EM_ITALIC: TextStyle = readerSerifItalic;
+const EM_UPRIGHT: TextStyle = { fontFamily: readerSerif, fontStyle: 'normal' };
+function withEmphasis(text: string, em: TextStyle): React.ReactNode {
+  if (!text.includes('*')) return text;
+  const out: React.ReactNode[] = [];
+  let last = 0;
+  let k = 0;
+  EM_RE.lastIndex = 0;
+  for (let m = EM_RE.exec(text); m; m = EM_RE.exec(text)) {
+    if (m.index > last) out.push(text.slice(last, m.index));
+    out.push(<Text key={k++} style={em}>{m[1]}</Text>);
+    last = m.index + m[0].length;
+  }
+  if (last < text.length) out.push(text.slice(last));
+  return out;
+}
+// Plain-text form for the share sheet.
+const stripEmphasis = (t: string) => t.replace(EM_RE, '$1');
 
 const isSameDay = (a: Date, b: Date) =>
   a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
@@ -106,7 +131,7 @@ export default function DailyReflection({ jumpToDate = null, onJumpApplied }: Da
 
   const shareReflection = useCallback(async () => {
     if (!reflection) return;
-    const body = `${reflection.title}\n\n"${reflection.quote}"\n\n${reflection.source}\n\n${reflection.reflection}\n\nMeditation:\n${reflection.thought}`;
+    const body = `${reflection.title}\n\n"${stripEmphasis(reflection.quote)}"\n\n${reflection.source}\n\n${stripEmphasis(reflection.reflection)}\n\nMeditation:\n${stripEmphasis(reflection.thought)}`;
     try { await Share.share({ message: body, title: reflection.title }); }
     catch (e) { console.error('Error sharing reflection:', e); }
   }, [reflection]);
@@ -169,14 +194,14 @@ export default function DailyReflection({ jumpToDate = null, onJumpApplied }: Da
             <View style={isDark ? styles.readingCard : undefined}>
               {/* Pull-quote — start of the reading */}
               <View style={styles.quoteWrap}>
-                <Text style={[styles.quote, { fontSize: readSize, lineHeight: readLine - readSize * 0.1 }]}>{reflection.quote}</Text>
+                <Text style={[styles.quote, { fontSize: readSize, lineHeight: readLine - readSize * 0.1 }]}>{withEmphasis(reflection.quote, EM_UPRIGHT)}</Text>
                 <Text style={styles.source}>— {reflection.source}</Text>
               </View>
 
               {/* Reflection body */}
               <View style={styles.bodyWrap}>
                 {reflection.reflection.split('\n\n').map((p, i) => (
-                  <Text key={i} style={[styles.body, { fontSize: readSize, lineHeight: readLine, marginTop: i === 0 ? 0 : 14 }]}>{p}</Text>
+                  <Text key={i} style={[styles.body, { fontSize: readSize, lineHeight: readLine, marginTop: i === 0 ? 0 : 14 }]}>{withEmphasis(p, EM_ITALIC)}</Text>
                 ))}
               </View>
             </View>
@@ -187,7 +212,7 @@ export default function DailyReflection({ jumpToDate = null, onJumpApplied }: Da
                 <Sparkles size={11} color={colors.primaryDark} strokeWidth={2} />
                 <Text style={styles.medLabel}>MEDITATION</Text>
               </View>
-              <Text style={[styles.medText, { fontSize: readSize, lineHeight: Math.round(readSize * 1.4) }]}>&ldquo;{reflection.thought}&rdquo;</Text>
+              <Text style={[styles.medText, { fontSize: readSize, lineHeight: Math.round(readSize * 1.4) }]}>&ldquo;{withEmphasis(reflection.thought, EM_UPRIGHT)}&rdquo;</Text>
             </View>
 
             <Text style={styles.copyright}>Copyright © 1990 by Alcoholics Anonymous World Services, Inc. All rights reserved.</Text>
