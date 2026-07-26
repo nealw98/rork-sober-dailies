@@ -80,17 +80,17 @@ export default function PassItOnScreen() {
       : 'none';
   // While passes are suspended (TestFlight — see creditsService.PASSES_ENABLED)
   // the balance reads 0, so plan-specific zero-state copy ("your next pass is
-  // on its way") would be a false promise. Show the neutral membership line.
+  // on its way") would be a false promise. Show the neutral subscriber line.
   const plan: PlanKind = PASSES_ENABLED ? realPlan : 'none';
 
   // Receipt voice (decided 2026-07-20): the screen shows what you HOLD; the
   // announcement of new gifts happens post-subscribe (PaywallScreen) — this
   // copy never has to explain the program, just the inventory.
   const earnCopy: Record<PlanKind, string> = {
-    annual: 'You receive 5 passes each membership year',
+    annual: 'You receive 5 passes each subscription year',
     monthly: 'You received a pass when you joined — a new one arrives every 3 months',
     founding: 'You’ve been here from the start — 5 passes a year, from us',
-    none: 'Members receive passes to give',
+    none: 'Subscribers receive passes to give',
   };
 
   const hero = loading
@@ -103,10 +103,10 @@ export default function PassItOnScreen() {
             : 'Send them to people who could use 3 free months — sponsees, newcomers, friends',
         }
       : plan === 'monthly'
-        ? { title: 'Your next pass is on its way', sub: 'A new one arrives every 3 months you’re a member' }
+        ? { title: 'Your next pass is on its way', sub: 'A new one arrives every 3 months you’re subscribed' }
         : plan === 'none'
-          ? { title: 'Members receive passes to give', sub: '3 free months for someone who needs it' }
-          : { title: 'All your passes are out in the world', sub: 'Fresh ones arrive with your next membership year' };
+          ? { title: 'Subscribers receive passes to give', sub: '3 free months for someone who needs it' }
+          : { title: 'All your passes are out in the world', sub: 'Fresh ones arrive with your next subscription year' };
 
   // Send one gift: token (minted or reused) → contact → individually
   // addressed text. Only a composer that actually SENDS consumes the pending
@@ -229,10 +229,14 @@ export default function PassItOnScreen() {
           </View>
         )}
 
-        {/* How gifts are earned */}
-        <View style={styles.earnRow}>
-          <Text style={styles.earnText}>{earnCopy[plan]}</Text>
-        </View>
+        {/* How gifts are earned. Skipped when there's no plan: the hero
+            already says "Subscribers receive passes to give" and this row
+            would repeat it word for word. */}
+        {plan !== 'none' && (
+          <View style={styles.earnRow}>
+            <Text style={styles.earnText}>{earnCopy[plan]}</Text>
+          </View>
+        )}
 
         {/* Annual-upsell pitch removed (Neal, 2026-07-20): nobody switches
             plans to give more passes. Buying passes may return in a future
