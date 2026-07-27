@@ -120,10 +120,14 @@ export async function getCreditState(
   supabase: SupabaseClient,
   anonymousId: string,
 ): Promise<CreditState> {
+  // Only DELIVERED shares spend a credit (migration 20260727110000). A token
+  // minted for a composer the sender cancelled has sent_at NULL and is free —
+  // it stays reusable client-side and no offer code left inventory for it.
   const [{ data: grants, error: gErr }, { count, error: sErr }] = await Promise.all([
     supabase.from('gift_credit_grants').select('credits').eq('anonymous_id', anonymousId),
     supabase.from('gift_shares').select('token', { count: 'exact', head: true })
-      .eq('sender_anonymous_id', anonymousId),
+      .eq('sender_anonymous_id', anonymousId)
+      .not('sent_at', 'is', null),
   ]);
   if (gErr) throw gErr;
   if (sErr) throw sErr;

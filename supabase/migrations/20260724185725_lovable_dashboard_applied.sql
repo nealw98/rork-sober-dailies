@@ -1,0 +1,65 @@
+-- Applied to production by LOVABLE (Supabase Security Advisor), 2026-07-24.
+-- NOT applied by this repo. Recorded here so local and remote migration history
+-- agree — without a local file at this version, `supabase db push` refuses with
+-- "Remote migration versions not found in local migrations directory."
+--
+-- Root cause of that drift: the marketing site (sober-day-reflections) carried
+-- supabase/config.toml pointing at this same project, which let Lovable's
+-- Supabase integration write migrations to the app's production database.
+-- Precedent for why that matters: the previous advisor migration
+-- (20260714162725) enabled RLS on user_profiles and paywalled every
+-- grandfathered user in production — see 20260715_restore_anon_grandfather_read.
+--
+-- APP IMPACT OF THIS ONE: none. Audited 2026-07-27 across the whole codebase:
+--   · gift_credit_balance — only ever called by dev_grant_passes, which is
+--     SECURITY DEFINER, so the anon revoke is moot.
+--   · dispense_offer_code — called by the get-dispense edge function through
+--     serviceClient(), i.e. service_role. Granted below.
+--   · invite_sends_report — called by the invites-report edge function
+--     (currently idle), also service_role.
+--   · everything else (upsert_user_profile, the analytics RPCs, has_role, the
+--     trigger-only functions) has ZERO references anywhere in the app.
+--
+-- ⚠️ CONSEQUENCE FOR FUTURE MIGRATIONS: the `ALTER FUNCTION ... SET search_path`
+-- statements below are erased by any later CREATE OR REPLACE of the same
+-- function that omits the SET clause — Postgres resets unspecified attributes
+-- on replace. This bit 20260727110000, which replaces gift_credit_balance; it
+-- now restates `set search_path = public`. Check for this whenever replacing a
+-- function that appears in this file.
+--
+-- Statements are recorded VERBATIM but left COMMENTED. They already ran, and
+-- several objects they reference (has_role, app_role, upsert_user_profile, the
+-- analytics RPCs) were themselves dashboard-created and do not exist in this
+-- repo's migrations — so running this file against a fresh database would fail
+-- on a missing function. This repo has never been a from-scratch rebuild.
+
+-- -- 1) Pin search_path on functions that lack it
+-- ALTER FUNCTION public.invite_sends_report(text, text[]) SET search_path = public;
+-- ALTER FUNCTION public.gift_credit_balance(text) SET search_path = public;
+-- ALTER FUNCTION public.dispense_offer_code(text, text) SET search_path = public;
+
+-- -- 2) Revoke EXECUTE on trigger-only SECURITY DEFINER functions
+-- REVOKE ALL ON FUNCTION public.auto_exclude_device_events() FROM anon, authenticated, public;
+-- REVOKE ALL ON FUNCTION public.exclude_existing_events_for_device() FROM anon, authenticated, public;
+-- REVOKE ALL ON FUNCTION public.handle_updated_at() FROM anon, authenticated, public;
+-- REVOKE ALL ON FUNCTION public.set_acknowledged_at() FROM anon, authenticated, public;
+-- REVOKE ALL ON FUNCTION public.upsert_user_profile() FROM anon, authenticated, public;
+-- REVOKE ALL ON FUNCTION public.set_updated_at() FROM anon, authenticated, public;
+
+-- -- 3) Internal server-side only functions
+-- REVOKE ALL ON FUNCTION public.dispense_offer_code(text, text) FROM anon, authenticated, public;
+-- GRANT EXECUTE ON FUNCTION public.dispense_offer_code(text, text) TO service_role;
+-- REVOKE ALL ON FUNCTION public.gift_credit_balance(text) FROM anon, authenticated, public;
+-- GRANT EXECUTE ON FUNCTION public.gift_credit_balance(text) TO service_role;
+
+-- -- 4) Admin-only analytics RPCs: no anonymous execution
+-- REVOKE ALL ON FUNCTION public.get_new_users_count(text, text) FROM anon, public;
+-- GRANT EXECUTE ON FUNCTION public.get_new_users_count(text, text) TO authenticated, service_role;
+-- REVOKE ALL ON FUNCTION public.get_literature_hub_unique_users(date, date, text, text) FROM anon, public;
+-- GRANT EXECUTE ON FUNCTION public.get_literature_hub_unique_users(date, date, text, text) TO authenticated, service_role;
+-- REVOKE ALL ON FUNCTION public.get_ai_sponsor_true_unique_users(date, date, text, text) FROM anon, public;
+-- GRANT EXECUTE ON FUNCTION public.get_ai_sponsor_true_unique_users(date, date, text, text) TO authenticated, service_role;
+
+-- -- 5) has_role stays callable (required by RLS policies), but not by anon
+-- REVOKE ALL ON FUNCTION public.has_role(uuid, public.app_role) FROM public;
+-- GRANT EXECUTE ON FUNCTION public.has_role(uuid, public.app_role) TO authenticated, service_role;

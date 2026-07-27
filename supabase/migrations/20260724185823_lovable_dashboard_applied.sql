@@ -1,0 +1,16 @@
+-- Applied to production by LOVABLE (Supabase Security Advisor), 2026-07-24 —
+-- a one-line follow-up, ~1 minute after 20260724185725. See that file for the
+-- full context, the app-impact audit, and the CREATE OR REPLACE warning.
+--
+-- The previous migration revoked has_role from `public` and granted it to
+-- authenticated + service_role. Revoking from `public` does not remove a grant
+-- held directly by `anon`, so the advisor flagged it again and this closed it.
+--
+-- APP IMPACT: none. `has_role` has zero references anywhere in the app; it
+-- exists for dashboard-side RLS policies.
+--
+-- Recorded VERBATIM but COMMENTED — it already ran, and has_role/app_role were
+-- themselves dashboard-created and do not exist in this repo's migrations, so
+-- this would fail against a fresh database.
+
+-- REVOKE ALL ON FUNCTION public.has_role(uuid, public.app_role) FROM anon;

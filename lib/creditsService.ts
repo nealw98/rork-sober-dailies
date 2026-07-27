@@ -6,10 +6,11 @@
 // Two local caches, both AsyncStorage:
 //  • balance cache — lets the tab-header gift badge render instantly and
 //    throttles refreshes (four headers mount per app session).
-//  • pending share — the server decrements balance when a token is MINTED,
-//    so a cancelled SMS composer would strand a credit. Instead the unsent
-//    token is kept and reused for the next gift attempt: nothing is lost,
-//    the credit just stays "in the envelope" until a text actually sends.
+//  • pending share — a token has to be minted BEFORE the composer opens (the
+//    link must exist to go in the text), but minting is free: the server only
+//    counts shares with sent_at set. A cancelled composer leaves the token
+//    pending and the next gift reuses it, so a device holds at most one
+//    unsent link and the balance always equals what you can actually give.
 import { Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Purchases from 'react-native-purchases';
@@ -26,6 +27,7 @@ export const PASSES_ENABLED = false;
 
 const BALANCE_KEY = 'gift_credits_cache_v1';
 const PENDING_KEY = 'gift_pending_share_v1';
+const UNSTAMPED_KEY = 'gift_unstamped_sends_v1'; // sends whose confirm failed
 const BALANCE_TTL_MS = 15 * 60 * 1000; // header refresh throttle
 
 // ── Developer Console: passes on THIS device ────────────────────────────────
@@ -141,6 +143,7 @@ export async function getCachedCreditStatus(): Promise<(CreditStatus & { stale: 
 // earned credits from live RC state on every call). Updates the cache.
 export async function fetchCreditStatus(): Promise<CreditStatus | null> {
   if (!(await passesOn())) return { balance: 0, totalGranted: 0, sharesUsed: 0 };
+  await flushUnstamped(); // catch up any send whose confirm failed offline
   const id = await identity();
   const data = await callFn<{ success: boolean; balance: number; total_granted: number; shares_used: number }>(
     'credits-status',
@@ -178,9 +181,61 @@ export async function getShareLink(): Promise<PendingShare | null> {
 }
 
 // The text with this token actually SENT — the gift is out in the world.
-// Clear the pending slot so the next gift mints a fresh token.
+// Stamping sent_at server-side is what spends the pass; clearing the pending
+// slot lets the next gift mint a fresh token.
+//
+// The local slot is cleared even when the stamp fails. The recipient already
+// holds this link, and reusing it would hand a second person the same token —
+// get-dispense is idempotent per token, so they would both land on the SAME
+// offer code. A failed stamp is queued and retried instead; the failure
+// direction is an uncounted send (one extra pass given), which is the cheap
+// way to be wrong.
 export async function confirmShareSent(): Promise<void> {
+  let token: string | null = null;
+  try {
+    const raw = await AsyncStorage.getItem(PENDING_KEY);
+    if (raw) token = (JSON.parse(raw) as PendingShare).token;
+  } catch {}
   await AsyncStorage.removeItem(PENDING_KEY).catch(() => {});
+  if (!token) return;
+  if (!(await stampSent(token))) await queueUnstamped(token);
+}
+
+async function stampSent(token: string): Promise<boolean> {
+  const { anonymous_id } = await identity();
+  const data = await callFn<{ success: boolean }>('credits-share', {
+    anonymous_id,
+    action: 'confirm_sent',
+    token,
+  });
+  return !!data?.success;
+}
+
+async function queueUnstamped(token: string): Promise<void> {
+  try {
+    const raw = await AsyncStorage.getItem(UNSTAMPED_KEY);
+    const list: string[] = raw ? JSON.parse(raw) : [];
+    if (!list.includes(token)) list.push(token);
+    await AsyncStorage.setItem(UNSTAMPED_KEY, JSON.stringify(list.slice(-20)));
+  } catch {}
+}
+
+// Retry sends whose stamp never landed (offline when the text went out), so
+// the ledger catches up on its own. No-ops in the normal case — the queue is
+// empty unless a confirm actually failed.
+async function flushUnstamped(): Promise<void> {
+  let list: string[] = [];
+  try {
+    const raw = await AsyncStorage.getItem(UNSTAMPED_KEY);
+    list = raw ? JSON.parse(raw) : [];
+  } catch {}
+  if (list.length === 0) return;
+  const failed: string[] = [];
+  for (const token of list) if (!(await stampSent(token))) failed.push(token);
+  try {
+    if (failed.length > 0) await AsyncStorage.setItem(UNSTAMPED_KEY, JSON.stringify(failed));
+    else await AsyncStorage.removeItem(UNSTAMPED_KEY);
+  } catch {}
 }
 
 // ── Post-subscribe thank-you handoff ────────────────────────────────────────
