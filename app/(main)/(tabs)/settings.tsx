@@ -6,7 +6,7 @@
 // the OS system setting / Dynamic Type — there is no in-app control.)
 // Legal links + version live at the foot of the scroll (the floating tab bar +
 // FAB sit above). Hidden QA: tap the version 7× for the Support ID; long-press for
-// the Debug Console. Reminders (notifications) from the prototype are deferred.
+// the Developer Console. Reminders (notifications) from the prototype are deferred.
 import React, { useState, useEffect, useRef } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, Platform, Linking, ScrollView,
@@ -18,7 +18,7 @@ import { KeyboardModalScope } from '@/components/KeyboardModalScope';
 import { SafeAreaView, SafeAreaProvider, initialWindowMetrics, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router, Stack, type Href } from 'expo-router';
 import { shareApp } from '@/lib/shareApp';
-import { ChevronRight, X, RefreshCw, UserPlus, Flag, RotateCcw, Play, Power, CircleDot, AlignLeft } from 'lucide-react-native';
+import { ChevronRight, X, RefreshCw, UserPlus, Flag, RotateCcw, Play, Power, CircleDot, AlignLeft, Gift, Fingerprint } from 'lucide-react-native';
 import {
   fontFamily,
   shadows,
@@ -44,6 +44,10 @@ import { useScreenTimeTracking } from '@/hooks/useScreenTimeTracking';
 import { useOnboarding } from '@/hooks/useOnboardingStore';
 import { useDailies } from '@/hooks/use-dailies-store';
 import { clearUserData } from '@/lib/userDataSync';
+import {
+  qaGrantPasses, qaFetchCreditStatus, getPassesOverride, setPassesOverride,
+  type CreditStatus,
+} from '@/lib/creditsService';
 import { setSyncPaused, cloudBackupSupported } from '@/lib/cloudSync';
 
 // ─── Token-based building blocks (mirror the prototype) ──────────────────────
@@ -102,7 +106,7 @@ function SettingSection({ label, children }: { label: string; children: React.Re
   );
 }
 
-// Destructive tint in the Debug Console (matches the app's remove-control red).
+// Destructive tint in the Developer Console (matches the app's remove-control red).
 const DANGER = '#D8584E';
 
 const APPEARANCE_OPTIONS = [
@@ -122,7 +126,7 @@ export default function SettingsScreen() {
   const [logsVisible, setLogsVisible] = useState(false);
   const [logsText, setLogsText] = useState('');
   // QA: preview the paywall in either state ('trial' | 'notrial'). Close the
-  // Debug Console first, else the preview modal opens behind it (iOS stacks
+  // Developer Console first, else the preview modal opens behind it (iOS stacks
   // modals — a second modal presented under an open one never shows).
   const [paywallPreview, setPaywallPreview] = useState<'trial' | 'notrial' | null>(null);
   const openPaywallPreview = (mode: 'trial' | 'notrial') => {
@@ -172,6 +176,47 @@ export default function SettingsScreen() {
         },
       ]
     );
+  };
+
+  // QA: gift passes. Hand grants write the same gift_credit_grants ledger the
+  // automatic ones do (annual 5/yr, monthly tenure, grandfathered founding_y1)
+  // — see supabase/functions/credits-grant. The server only honors devices in
+  // its DEV_GRANT_ANONYMOUS_IDS allowlist, so this is inert everywhere else.
+  const [passStatus, setPassStatus] = useState<CreditStatus | null>(null);
+  const [passesBusy, setPassesBusy] = useState(false);
+  const [passesOverride, setPassesOverrideState] = useState(false);
+  useEffect(() => {
+    getPassesOverride().then(setPassesOverrideState).catch(() => {});
+  }, []);
+  // Read the true ledger whenever the console opens (ungated — the balance is
+  // real even while PASSES_ENABLED keeps it hidden from the rest of the app).
+  // The device ID rides along: it's what DEV_GRANT_ANONYMOUS_IDS allowlists,
+  // so the console shouldn't send you hunting for the 7-tap modal to find it.
+  useEffect(() => {
+    if (!logsVisible) return;
+    qaFetchCreditStatus().then(setPassStatus).catch(() => {});
+    getAnonymousId().then(setSupportId).catch(() => {});
+  }, [logsVisible]);
+
+  const grantPasses = async (n: number) => {
+    if (passesBusy) return;
+    setPassesBusy(true);
+    try {
+      const res = await qaGrantPasses(n);
+      if (!res.ok) {
+        fromConsole(() => Alert.alert('Grant failed', res.message ?? 'The server refused the grant.'));
+        return;
+      }
+      setPassStatus(await qaFetchCreditStatus());
+    } finally {
+      setPassesBusy(false);
+    }
+  };
+
+  const togglePassesOverride = async (next: boolean) => {
+    setPassesOverrideState(next);
+    await setPassesOverride(next);
+    setPassStatus(await qaFetchCreditStatus().catch(() => null));
   };
 
   // Feedback modal state
@@ -384,7 +429,7 @@ export default function SettingsScreen() {
   const copySupportId = async () => {
     if (supportId) {
       await Clipboard.setStringAsync(supportId);
-      Alert.alert('Copied', 'Support ID copied to clipboard');
+      Alert.alert('Copied', 'The ID is on your clipboard.');
     }
   };
 
@@ -520,7 +565,7 @@ export default function SettingsScreen() {
           <CardRow label="About Sober Dailies" last onPress={() => router.push('/about')} />
         </CardGroup>
 
-        {/* Developer/QA actions live in the Debug Console (long-press the
+        {/* Developer/QA actions live in the Developer Console (long-press the
             version number below), not on the Settings page. */}
 
         {/* Legal links — external */}
@@ -532,7 +577,7 @@ export default function SettingsScreen() {
           <TouchableOpacity onPress={handleSupportPress}><Text style={styles.legalLink}>Support</Text></TouchableOpacity>
         </View>
 
-        {/* Version + copyright (7-tap → Support ID · long-press → Debug Console) */}
+        {/* Version + copyright (7-tap → Support ID · long-press → Developer Console) */}
         <View style={styles.versionWrap}>
           <TouchableOpacity onPress={handleVersionTap} onLongPress={toggleLogs} activeOpacity={0.6} delayLongPress={500}>
             <Text style={styles.versionText}>{versionLabel}</Text>
@@ -541,14 +586,14 @@ export default function SettingsScreen() {
         </View>
       </ScrollView>
 
-      {/* Debug Console Modal (hidden QA screen — long-press the version number).
+      {/* Developer Console Modal (hidden QA screen — long-press the version number).
           App-styled per the Jul 18 mock: info cards, THIS DEVICE / PAYWALL &
           SUBSCRIPTION / ONBOARDING & DATA sections, then the log feed. All
           developer actions live here — none on the Settings page itself. */}
       <Modal visible={logsVisible} animationType="slide" onRequestClose={toggleLogs}>
         <RNSafeAreaView style={styles.dcContainer}>
           <View style={styles.dcTopBar}>
-            <Text style={styles.dcTitle}>Debug Console</Text>
+            <Text style={styles.dcTitle}>Developer Console</Text>
             <TouchableOpacity onPress={toggleLogs} hitSlop={10} style={styles.dcClose}>
               <X size={22} color={c.textSecondary} />
             </TouchableOpacity>
@@ -567,6 +612,19 @@ export default function SettingsScreen() {
 
             <Text style={styles.dcSectionLabel}>THIS DEVICE</Text>
             <View style={styles.dcCard}>
+              <TouchableOpacity style={styles.dcRow} onPress={copySupportId} activeOpacity={0.6}>
+                <View style={styles.dcIcon}><Fingerprint size={17} color={colors.primaryDark} strokeWidth={2} /></View>
+                <View style={styles.dcRowBody}>
+                  <Text style={styles.dcRowLabel}>Device ID</Text>
+                  <Text style={styles.dcRowSub} numberOfLines={1}>
+                    {supportId ?? 'Reading…'}
+                  </Text>
+                </View>
+                <View style={styles.dcBadge}>
+                  <Text style={styles.dcBadgeText}>COPY</Text>
+                </View>
+              </TouchableOpacity>
+              <View style={styles.dcDivider} />
               <View style={styles.dcRow}>
                 <View style={styles.dcIcon}><CircleDot size={18} color={colors.primaryDark} strokeWidth={2} /></View>
                 <View style={styles.dcRowBody}>
@@ -636,6 +694,54 @@ export default function SettingsScreen() {
                 <Text style={styles.dcBtnText}>Preview · No trial</Text>
               </TouchableOpacity>
             </View>
+
+            <Text style={styles.dcSectionLabel}>GIFT PASSES</Text>
+            <View style={styles.dcCard}>
+              <View style={styles.dcRow}>
+                <View style={styles.dcIcon}><Gift size={17} color={colors.primaryDark} strokeWidth={2} /></View>
+                <View style={styles.dcRowBody}>
+                  <Text style={styles.dcRowLabel}>Balance on this device</Text>
+                  <Text style={styles.dcRowSub}>
+                    {passStatus
+                      ? `${passStatus.totalGranted} granted · ${passStatus.sharesUsed} sent`
+                      : 'Checking the ledger…'}
+                  </Text>
+                </View>
+                <View style={[styles.dcBadge, !!passStatus && passStatus.balance > 0 && styles.dcBadgeOn]}>
+                  <Text style={[styles.dcBadgeText, !!passStatus && passStatus.balance > 0 && styles.dcBadgeTextOn]}>
+                    {passStatus ? passStatus.balance : '—'}
+                  </Text>
+                </View>
+              </View>
+              <View style={styles.dcDivider} />
+              <View style={styles.dcRow}>
+                <View style={styles.dcIcon}><CircleDot size={18} color={colors.primaryDark} strokeWidth={2} /></View>
+                <View style={styles.dcRowBody}>
+                  <Text style={styles.dcRowLabel}>Passes on this device</Text>
+                  <Text style={styles.dcRowSub}>Unsuspends Pass It On here only, not for other users</Text>
+                </View>
+                <Switch
+                  value={passesOverride}
+                  onValueChange={togglePassesOverride}
+                  trackColor={{ false: c.divider, true: colors.primary }}
+                  thumbColor="#fff"
+                />
+              </View>
+            </View>
+            <View style={styles.dcBtnRow}>
+              <TouchableOpacity style={styles.dcBtn} onPress={() => grantPasses(1)} activeOpacity={0.7} disabled={passesBusy}>
+                <Gift size={15} color={colors.primaryDark} strokeWidth={2.2} />
+                <Text style={styles.dcBtnText}>Grant 1 pass</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.dcBtn} onPress={() => grantPasses(5)} activeOpacity={0.7} disabled={passesBusy}>
+                <Gift size={15} color={colors.primaryDark} strokeWidth={2.2} />
+                <Text style={styles.dcBtnText}>Grant 5 passes</Text>
+              </TouchableOpacity>
+            </View>
+            <Text style={styles.dcFootnote}>
+              Same ledger as an annual renewal — the grant is permanent and sending one spends an
+              Apple offer code if the recipient is on iPhone.
+            </Text>
 
             <Text style={styles.dcSectionLabel}>ONBOARDING & DATA</Text>
             <View style={styles.dcCard}>
@@ -895,7 +1001,7 @@ const makeStyles = (tk: Tokens) => {
   versionText: { fontFamily: fontFamily.regular, fontSize: 12, color: c.textMuted },
   copyright: { fontFamily: fontFamily.regular, fontSize: 11.5, color: c.textMuted },
 
-  // ── Debug Console (app-styled QA modal, Jul 18 mock) ──
+  // ── Developer Console (app-styled QA modal, Jul 18 mock) ──
   dcContainer: { flex: 1, backgroundColor: c.background },
   dcTopBar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 18, paddingTop: 14, paddingBottom: 8 },
   dcTitle: { fontFamily: fontFamily.displayBold, fontSize: 22, letterSpacing: -0.3, color: c.text },

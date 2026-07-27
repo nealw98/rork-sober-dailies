@@ -23,7 +23,7 @@ const PREMIUM_OVERRIDE_KEY = 'sober_dailies_premium_override';
 // entitlement so the paywall gates like a brand-new install — lets a
 // grandfathered tester exercise the real paywall + a sandbox purchase. A
 // purchase/restore completed during the SAME session still unlocks (so the
-// post-paywall transition is testable). Toggle it from the Debug Console.
+// post-paywall transition is testable). Toggle it from the Developer Console.
 export const QA_FORCE_NEW_USER_KEY = 'sober_dailies_qa_force_new_user';
 
 // ============================================================================
@@ -133,7 +133,7 @@ export type SubscriptionState = {
   offerings: Offerings | null;
   customerInfo: CustomerInfo | null;
   trialEligible: boolean | null;
-  // QA force-new-user flag (Debug Console) is active — the paywall is gating
+  // QA force-new-user flag (Developer Console) is active — the paywall is gating
   // only because the flag hides grandfather/entitlement. Lets the paywall show
   // a QA banner so a forced gate is never mistaken for a real one.
   qaForceNewUser: boolean;
@@ -310,7 +310,7 @@ export const [SubscriptionProvider, useSubscription] = createContextHook(() => {
           // Continue without premium override - not critical
         }
 
-        // QA: force-new-user flag (Debug Console) — makes a grandfathered device
+        // QA: force-new-user flag (Developer Console) — makes a grandfathered device
         // gate like a fresh install so the paywall can be tested.
         try {
           const forced = await SecureStore.getItemAsync(QA_FORCE_NEW_USER_KEY);

@@ -145,7 +145,7 @@ export const [DailiesProvider, useDailies] = createContextHook(() => {
   const [program, setProgram] = useState<DailyItem[]>(DEFAULT_PROGRAM);
   const [completion, setCompletion] = useState<Record<string, DayCompletion>>({});
   const [isLoading, setIsLoading] = useState(true);
-  // Debug Console toggle: show the canned action subtitles ("Set your
+  // Developer Console toggle: show the canned action subtitles ("Set your
   // intention", …) on Today / edit mode / the Add sheet. User-entered
   // subtitles (sponsor name, custom notes) are unaffected.
   const [showSubtitles, setShowSubtitlesState] = useState(true);

@@ -28,6 +28,49 @@ const BALANCE_KEY = 'gift_credits_cache_v1';
 const PENDING_KEY = 'gift_pending_share_v1';
 const BALANCE_TTL_MS = 15 * 60 * 1000; // header refresh throttle
 
+// ── Developer Console: passes on THIS device ────────────────────────────────
+// The kill switch above is global and ships in the bundle, so turning it on to
+// exercise the flow would turn it on for everyone. This override unsuspends
+// passes for one device only — it is written by the Developer Console, read
+// nowhere else, and has no effect on any other install.
+const QA_OVERRIDE_KEY = 'qa_passes_enabled_v1';
+let overrideCache: boolean | null = null;
+
+// The real gate. PASSES_ENABLED wins outright once launch flips it; until then
+// the device override is the only way in.
+async function passesOn(): Promise<boolean> {
+  if (PASSES_ENABLED) return true;
+  if (overrideCache === null) {
+    try {
+      overrideCache = (await AsyncStorage.getItem(QA_OVERRIDE_KEY)) === 'true';
+    } catch {
+      overrideCache = false;
+    }
+  }
+  return overrideCache;
+}
+
+export async function getPassesOverride(): Promise<boolean> {
+  if (overrideCache !== null) return overrideCache;
+  try {
+    overrideCache = (await AsyncStorage.getItem(QA_OVERRIDE_KEY)) === 'true';
+  } catch {
+    overrideCache = false;
+  }
+  return overrideCache;
+}
+
+export async function setPassesOverride(on: boolean): Promise<void> {
+  overrideCache = on;
+  try {
+    if (on) await AsyncStorage.setItem(QA_OVERRIDE_KEY, 'true');
+    else await AsyncStorage.removeItem(QA_OVERRIDE_KEY);
+  } catch {}
+  // The cached balance was written under the old gate (0 while suspended) —
+  // drop it so the next read comes from the server.
+  await AsyncStorage.removeItem(BALANCE_KEY).catch(() => {});
+}
+
 export interface CreditStatus {
   balance: number;
   totalGranted: number;
@@ -78,7 +121,7 @@ async function cacheBalance(status: CreditStatus): Promise<void> {
 
 // Cached balance for instant header rendering. null = never fetched.
 export async function getCachedCreditStatus(): Promise<(CreditStatus & { stale: boolean }) | null> {
-  if (!PASSES_ENABLED) return { balance: 0, totalGranted: 0, sharesUsed: 0, stale: false };
+  if (!(await passesOn())) return { balance: 0, totalGranted: 0, sharesUsed: 0, stale: false };
   try {
     const raw = await AsyncStorage.getItem(BALANCE_KEY);
     if (!raw) return null;
@@ -97,7 +140,7 @@ export async function getCachedCreditStatus(): Promise<(CreditStatus & { stale: 
 // Fresh status from the server (also heals grants — the server recomputes
 // earned credits from live RC state on every call). Updates the cache.
 export async function fetchCreditStatus(): Promise<CreditStatus | null> {
-  if (!PASSES_ENABLED) return { balance: 0, totalGranted: 0, sharesUsed: 0 };
+  if (!(await passesOn())) return { balance: 0, totalGranted: 0, sharesUsed: 0 };
   const id = await identity();
   const data = await callFn<{ success: boolean; balance: number; total_granted: number; shares_used: number }>(
     'credits-status',
@@ -117,7 +160,7 @@ export async function fetchCreditStatus(): Promise<CreditStatus | null> {
 // token when one exists; otherwise spends a credit to mint a fresh one.
 // Returns null when the sender has no credits (or the network failed).
 export async function getShareLink(): Promise<PendingShare | null> {
-  if (!PASSES_ENABLED) return null;
+  if (!(await passesOn())) return null;
   try {
     const raw = await AsyncStorage.getItem(PENDING_KEY);
     if (raw) return JSON.parse(raw) as PendingShare;
@@ -157,7 +200,7 @@ export async function consumePendingAnnouncement(): Promise<AnnouncePlan | null>
   try {
     // Suspended: swallow (and clear) any pending announcement so it doesn't
     // fire months later when passes go live.
-    if (!PASSES_ENABLED) {
+    if (!(await passesOn())) {
       await AsyncStorage.removeItem(ANNOUNCE_KEY);
       return null;
     }
@@ -168,6 +211,54 @@ export async function consumePendingAnnouncement(): Promise<AnnouncePlan | null>
   } catch {
     return null;
   }
+}
+
+// ── Developer Console: manual grants ────────────────────────────────────────
+// The automatic grants are derived from RevenueCat state (annual → 5/yr,
+// monthly → 1 at signup + 1 per 3 paid months, grandfathered → founding_y1).
+// These two write to / read from the same ledger without a subscription event,
+// the way founding_y1 does, so promo passes can be handed out by hand.
+//
+// Both deliberately IGNORE the passes gate: you grant first, then flip the
+// device override to see the result. Both no-op unless this device's
+// anonymous_id is in the server's DEV_GRANT_ANONYMOUS_IDS allowlist.
+
+export interface GrantResult {
+  ok: boolean;
+  balance?: number;
+  message?: string;
+}
+
+// Add `credits` passes to this device's balance. Server caps a single call at 25.
+export async function qaGrantPasses(credits: number): Promise<GrantResult> {
+  const anonymous_id = await getAnonymousId();
+  const data = await callFn<{
+    success: boolean; balance: number; total_granted: number; shares_used: number; message?: string;
+  }>('credits-grant', { anonymous_id, credits });
+  if (!data) return { ok: false, message: 'Network error — could not reach the server.' };
+  if (!data.success) return { ok: false, message: data.message ?? 'Grant refused.' };
+  await cacheBalance({
+    balance: data.balance ?? 0,
+    totalGranted: data.total_granted ?? 0,
+    sharesUsed: data.shares_used ?? 0,
+  });
+  return { ok: true, balance: data.balance };
+}
+
+// True ledger state regardless of the gate, so the console can show what was
+// granted even while passes are suspended for everyone else.
+export async function qaFetchCreditStatus(): Promise<CreditStatus | null> {
+  const id = await identity();
+  const data = await callFn<{ success: boolean; balance: number; total_granted: number; shares_used: number }>(
+    'credits-status',
+    id,
+  );
+  if (!data?.success) return null;
+  return {
+    balance: data.balance ?? 0,
+    totalGranted: data.total_granted ?? 0,
+    sharesUsed: data.shares_used ?? 0,
+  };
 }
 
 // The message a gift rides in. Personal, first-person, and the link is the

@@ -87,7 +87,7 @@ function savingsPct(monthly: PurchasesPackage | null, yearly: PurchasesPackage |
 
 interface PaywallScreenProps {
   onDismiss?: () => void;
-  // QA preview (Debug Console): always allow closing, and force the trial vs
+  // QA preview (Developer Console): always allow closing, and force the trial vs
   // no-trial layout instead of deriving it from real store eligibility.
   preview?: boolean;
   forceTrial?: boolean;
@@ -238,13 +238,13 @@ export default function PaywallScreen({ onDismiss, preview, forceTrial }: Paywal
           )}
         </View>
 
-        {/* QA: the gate is only up because the Debug Console force-new-user
+        {/* QA: the gate is only up because the Developer Console force-new-user
             flag is hiding grandfather/entitlement — say so, loudly, so a
             forced paywall is never mistaken for a real subscription bug. */}
         {qaForceNewUser && !preview && (
           <View style={styles.qaBanner}>
             <Text style={styles.qaBannerText}>
-              QA: Force New-User is ON — your real subscription is hidden and this paywall will return every launch. Turn it off in Settings → Debug Console.
+              QA: Force New-User is ON — your real subscription is hidden and this paywall will return every launch. Turn it off in Settings → Developer Console.
             </Text>
           </View>
         )}
