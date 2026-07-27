@@ -1124,22 +1124,35 @@ recovers it but a backup restore or a support-side fix. Strengthens the case for
 
 ### 11.9 Next actions
 
-1. `supabase db push` — applies all THREE local-only migrations
-   (`20260722100000` disclaimer, `20260727100000` dev pass grants,
-   `20260727110000` gift_shares.sent_at) — then `supabase functions deploy
-   credits-status credits-share disclaimer-accept`. The `sent_at` client half
-   (§11.7) also needs an **OTA** to reach devices; the migration and function
-   must land FIRST, or `confirm_sent` 400s and every send queues for retry.
-2. THEN the sandbox-grant cleanup in §11.5. Order matters — grant-on-read
-   heals deleted rows back until the gated functions are deployed.
-3. Allowlist Neal's device in `dev_pass_granters` (device id from Developer
-   Console → THIS DEVICE → Device ID), then the grant button works.
-4. Upload `3dbe5e12` to Play; edge-to-edge QA on the open-test track.
-5. Launch flips, when it's time: `PASSES_ENABLED` → true (+ OTA),
+**The pass work is FINISHED and shipped.** Migrations pushed, functions
+deployed, `search_path` repaired, sandbox grant deleted, both OTAs live, and
+Neal verified the grant end-to-end on device (5 granted, badge showing, Pass It
+On reading 5). Nothing in §§11.3 / 11.5 / 11.7 needs redoing. Head `1360388a`,
+pushed; both repos clean.
+
+What actually remains:
+
+1. **Upload the Android AAB to Play** — build `3dbe5e12` (7/26), already
+   downloaded to `~/Downloads/sober-dailies-3.0.7-130.aab`. Open-test track
+   first. Also clears the API-36 policy warning (deadline 2026-08-31).
+2. **Edge-to-edge QA on that build before promoting** — `edgeToEdgeEnabled`
+   shifts insets on ALL Android versions: status bar area on Today, the
+   floating tab band, the FAB, modals and sheets. The birthday takeover most of
+   all, being full-bleed and new in 130.
+3. **Bundle the next OTA.** Neal has minor changes accumulating and wants them
+   shipped as ONE publish rather than drip-fed to testers — see
+   [[commit-ota-only-when-asked]].
+4. **Launch flips, when it's time:** `PASSES_ENABLED` → true (+ OTA),
    `EXPO_PUBLIC_ANALYTICS_ENV` → production, strip the Android paywall X and
    the QA force-new-user toggle, bump runtime for the store release (3.0.8
-   recommended).
+   recommended), and stop `credits-share`/`credits-status` trusting a
+   client-supplied `anonymous_id` (§11.3 — at launch it lets anyone spend
+   anyone's passes).
+5. **Lovable coupling — deferred, nothing to undo.** Standing rule only: a
+   Lovable security fix lands in the APP's database, so read it before clicking
+   Fix. Grandfather status is the sharp edge (§11.3).
 
-**Test for §11.7 once deployed:** grant 5 → give → cancel the composer →
-balance still **5** (was 4) → give again → same token reused → actually send →
-balance **4**, `sent_at` set on that row only.
+**Still unverified (worth 2 minutes when convenient):** the §11.7 cycle —
+give → cancel the composer → balance should stay **5** → give again → the SAME
+token comes back → actually send → balance **4**, `sent_at` set on that row
+only. The grant half is confirmed; the spend half is not.
