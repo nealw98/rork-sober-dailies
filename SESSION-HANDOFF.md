@@ -491,11 +491,22 @@ correct too. **Standing rule this produced: before any `CREATE OR REPLACE
 FUNCTION`, check `20260724185725` to see whether the advisor pinned that
 function — Postgres resets attributes the new definition omits.**
 
-⚠️ **Server and client are now OUT OF STEP until the OTA.** `credits-share` v3
-counts only delivered shares, but the shipped client never calls
-`confirm_sent` — so on any current build a send is never counted and the
-balance does not decrease. Contained (`PASSES_ENABLED=false` globally; only the
-override device can send), but ship the client half before any real sending.
+✅ **Client half SHIPPED — server and client are back in step.** Two prod OTAs,
+runtime 3.0.7, both platforms, both published WITH `--environment production`
+and both verified rather than assumed (the exported bundles carry the real
+`appl_` / `goog_` RevenueCat keys and the Mixpanel token, so neither repeats
+the 2026-07-27 keyless-bundle outage):
+- `bb57f4a7-4684-4258-a866-cc5af7245d6a` — commit `0a5a3aa2`, "Passes spend on
+  delivery, not on opening the composer".
+- `1ca80a6b-1389-45be-a4bd-156dbfbe5299` — commit `29b6a637`, "Gift badge
+  refreshes on focus".
+
+**Both commits are LOCAL — not pushed.**
+
+⚠️ **NO MORE OTAs until Neal calls it** (2026-07-27): he has minor changes
+accumulating and wants them bundled into one publish rather than drip-fed to
+testers. See [[commit-ota-only-when-asked]] — an OTA authorization covers one
+publish, not the follow-up fix.
 
 ✅ **Sandbox-grant cleanup DONE (Neal, 2026-07-27).** With the gates live, the
 single contaminated `annual_y1` row was deleted and will not heal back. The
@@ -596,16 +607,31 @@ credits at a time — and `credits-share` trusts a client-supplied
 actively granting.** Grants are permanent, so deleting your
 `dev_pass_granters` row afterwards keeps the passes and closes the hole.
 
-**🔎 ROOT CAUSE of the drift, found 2026-07-27: Lovable is a SECOND WRITER to
-this database.** The marketing site (`sober-day-reflections`) carries
-`supabase/config.toml` with `project_id = "uzfqabcjxjqufpipdcla"` — the app's
-production project — which is what lets Lovable's Supabase integration apply
-migrations to it. That is where `20260724185725` / `20260724185823` came from,
-and the naming matches the already-documented `20260714162725_701f30f7-…`
-"Supabase Security Advisor fixes" migration **that paywalled every
-grandfathered user in production** (§ the 20260715 restore migration).
-So this has caused one outage already and has written twice more since,
-unreviewed.
+**🔎 ROOT CAUSE of the drift, 2026-07-27 — corrected by Neal.** The marketing
+site (`sober-day-reflections`) carries `supabase/config.toml` with
+`project_id = "uzfqabcjxjqufpipdcla"`, the app's production project, so
+Lovable's security scanner sees the APP's database.
+
+**Not rogue automation — Neal ran the fixes himself.** An earlier draft here
+called Lovable a "second writer" applying migrations unreviewed; that was
+wrong. Lovable surfaces the scan findings and **sometimes requires them
+resolved before it will publish the site**, so clicking Fix is part of shipping
+a website change. `20260724185725` / `20260724185823` came from that, as did
+`20260714162725_701f30f7-…` — the one that enabled RLS on user_profiles and
+**paywalled every grandfathered user in production** (see the 20260715 restore).
+
+**So the real hazard is coupling, not automation:** the WEBSITE's publish gate
+can require schema changes to the APP's database, decided by a scanner that
+knows nothing about what the app reads with the anon key. Turning off
+"Auto-fix security issues" does not address it — the pressure arrives through
+the publish flow. Nor is "don't run the fixes" right: the 07-24 fixes were
+genuinely good and broke nothing (audited below); it is the 07-14 one that
+shows what happens when a scanner hardens a table the app depends on.
+
+**It also loops the other way.** An app migration that replaces a function
+without restating `SET search_path` reverts the scanner's fix, so the next
+website publish re-flags it — exactly what `20260727110000` nearly did to
+`gift_credit_balance`. Guard note lives in `20260724185725`.
 
 **The website does not need that access.** Verified: the web repo has **no
 `@supabase/supabase-js` dependency**, and its entire Supabase surface is one
@@ -615,17 +641,22 @@ access, zero client library, zero migrations.
 even work without the missing dependency). Disconnecting Lovable's Supabase
 integration therefore costs the site nothing and removes the second writer.
 
-**Recommended order (understand → stop the bleeding → reconcile):**
-1. **Read what the July 24 migrations did** — Dashboard → Database →
-   Migrations. Given the July 14 precedent, assume something may be silently
-   broken until proven otherwise.
-2. **Disconnect Lovable's Supabase integration** (Lovable project settings),
-   and drop `supabase/config.toml` + the dead `src/integrations/supabase/`
-   from the web repo so it cannot re-link.
-3. **Reconcile with `supabase db pull`, NOT `migration repair`.** With a second
-   writer in the picture, `repair --status reverted` would erase the only
-   record that Lovable's changes exist. `pull` captures them into the app repo,
-   after which the three pending migrations push normally.
+**What to actually do about it (revised after Neal's correction):**
+- **Decoupling is still right, for a better reason.** The site's entire
+  Supabase surface is one unauthenticated `fetch` to `/functions/v1/get-dispense`
+  — no `@supabase/supabase-js` dependency, no table access. If the Lovable
+  project has no Supabase connection, there is no database for the scanner to
+  flag and no schema gate on publishing the website. Removing
+  `supabase/config.toml` + the dead `src/integrations/supabase/` from the web
+  repo closes the second, repo-side path. ⚠️ Verify first that disconnecting
+  doesn't itself block publishing — that is the one unknown.
+- **If it stays connected: review before clicking Fix.** Every suggested change
+  is a change to the APP's production schema. Check it against what the app
+  reads with the anon key (grandfather status is the sharp edge —
+  `user_profiles.is_grandfathered`, and the app queries it on every launch).
+- **Whenever an app migration does `CREATE OR REPLACE FUNCTION`**, check
+  `20260724185725` for whether the scanner pinned that function, and restate
+  the `SET` clause. Otherwise the fix silently reverts and the loop restarts.
 
 Also note: the anon key is hardcoded in the website's source as well as the app
 bundle — a third public copy of the key that grants the `user_profiles` read
