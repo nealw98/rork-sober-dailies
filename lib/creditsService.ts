@@ -13,7 +13,7 @@
 import { Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Purchases from 'react-native-purchases';
-import { SUPABASE_URL, SUPABASE_ANON_KEY } from '@/lib/supabase';
+import { supabase, SUPABASE_URL, SUPABASE_ANON_KEY } from '@/lib/supabase';
 import { getAnonymousId } from '@/lib/anonymousId';
 
 // Kill switch (Neal, 2026-07-22): passes are SUSPENDED for the TestFlight
@@ -216,12 +216,14 @@ export async function consumePendingAnnouncement(): Promise<AnnouncePlan | null>
 // ── Developer Console: manual grants ────────────────────────────────────────
 // The automatic grants are derived from RevenueCat state (annual → 5/yr,
 // monthly → 1 at signup + 1 per 3 paid months, grandfathered → founding_y1).
-// These two write to / read from the same ledger without a subscription event,
-// the way founding_y1 does, so promo passes can be handed out by hand.
+// This writes the same ledger without a subscription event, the way founding_y1
+// does, so promo passes can be handed out by hand.
 //
-// Both deliberately IGNORE the passes gate: you grant first, then flip the
-// device override to see the result. Both no-op unless this device's
-// anonymous_id is in the server's DEV_GRANT_ANONYMOUS_IDS allowlist.
+// It's a straight Postgres RPC (dev_grant_passes, SECURITY DEFINER) — nothing
+// to deploy. The safeguard is server-side: the RPC refuses any device whose
+// anonymous_id isn't in the dev_pass_granters table, which the anon key can't
+// read or grow. A successful grant also flips the device override ON, so the
+// passes are immediately visible and sendable — no second step to remember.
 
 export interface GrantResult {
   ok: boolean;
@@ -230,19 +232,27 @@ export interface GrantResult {
 }
 
 // Add `credits` passes to this device's balance. Server caps a single call at 25.
-export async function qaGrantPasses(credits: number): Promise<GrantResult> {
-  const anonymous_id = await getAnonymousId();
-  const data = await callFn<{
-    success: boolean; balance: number; total_granted: number; shares_used: number; message?: string;
-  }>('credits-grant', { anonymous_id, credits });
-  if (!data) return { ok: false, message: 'Network error — could not reach the server.' };
-  if (!data.success) return { ok: false, message: data.message ?? 'Grant refused.' };
-  await cacheBalance({
-    balance: data.balance ?? 0,
-    totalGranted: data.total_granted ?? 0,
-    sharesUsed: data.shares_used ?? 0,
-  });
-  return { ok: true, balance: data.balance };
+export async function qaGrantPasses(credits: number = 5): Promise<GrantResult> {
+  try {
+    const anonymous_id = await getAnonymousId();
+    const { data, error } = await supabase.rpc('dev_grant_passes', {
+      p_anonymous_id: anonymous_id,
+      p_credits: credits,
+    });
+    if (error) {
+      // PGRST202 = the RPC doesn't exist yet — the §7 SQL was never pasted.
+      const message = error.code === 'PGRST202'
+        ? 'Server setup missing — run the §7.1 SQL from the gift runbook in Supabase.'
+        : error.message;
+      return { ok: false, message };
+    }
+    await setPassesOverride(true);
+    const balance = typeof data === 'number' ? data : 0;
+    await cacheBalance({ balance, totalGranted: 0, sharesUsed: 0 });
+    return { ok: true, balance };
+  } catch {
+    return { ok: false, message: 'Network error — could not reach the server.' };
+  }
 }
 
 // True ledger state regardless of the gate, so the console can show what was

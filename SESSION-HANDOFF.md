@@ -31,7 +31,16 @@ submitted to Play.)_
 ## 0. App & workflow
 
 - **App:** "Sober Dailies" — AA/recovery app. Expo SDK 53, RN 0.79, bun, EAS, expo-router. Local-first (AsyncStorage/SQLite); Supabase for read-only content + gift/AI edge functions; analytics = Mixpanel; RevenueCat monetization (entitlement `premium`, custom `PaywallScreen`).
-- **OTA:** production clients listen on EAS channel **`production`**, runtime **`3.0.7`** (fixed string; version + runtime both 3.0.7, build 127). `eas update --channel production --message "…"`.
+- **OTA:** production clients listen on EAS channel **`production`**, runtime **`3.0.7`** (fixed string; version + runtime both 3.0.7, build 127). `eas update --channel production --environment production --message "…"`.
+
+  ⚠️ **`--environment production` is not optional.** The RevenueCat and Mixpanel
+  keys live in EAS server-side env vars, not in a local `.env`. Without the flag
+  the CLI reads `process.env` from a `.env` that may not exist on the machine
+  you're publishing from, bakes the keys in as `undefined`, and every client
+  that pulls the update is stuck at a paywall reading "Missing RevenueCat API
+  key env var." (Happened 2026-07-27; recovered with
+  `eas update:roll-back-to-embedded --channel production`, which needs two
+  force-quit relaunches on the device to take effect.)
 - **Builds:** iOS device/dev via `eas build --profile development -p ios` or `npx expo run:ios --device`. Android sideload APK via the **`preview`** profile (`androidPreview` is broken — missing local credentials).
 - **Hard rules:** NEVER commit / push / OTA / deploy without an explicit ask. Typecheck baseline ≈ **116** pre-existing errors (`npx tsc --noEmit`); higher = you broke something. Use Supabase **CLI** (brew, authenticated), not the MCP.
 - Simulator caveat: MLKit forces x86/Rosetta sim builds; native pickers hang there and SMS never works on sims — test the invite flow on a real device.

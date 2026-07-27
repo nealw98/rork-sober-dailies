@@ -223,7 +223,7 @@ No app-store round trip needed for any of these except where noted.
 |---|---|---|
 | `PASSES_ENABLED` | `lib/creditsService.ts` | Master kill switch for earning/sending. Balance reads 0, no token mints, no thank-you. Client-side → ships by **OTA**. |
 | `FOUNDING_CREDITS_ENABLED` | Supabase env (default `true`) | Turns off the 5-credit grandfathered grant. Server-side, instant. |
-| `DEV_GRANT_ANONYMOUS_IDS` | Supabase env (default **unset**) | Who may hand-grant passes (§7). Unset = nobody. Server-side, instant. |
+| `dev_pass_granters` | Supabase table | Device ids allowed to hand-grant passes (§7). Empty = nobody. Server-side, instant. |
 | `GIFT_ENTITLEMENT_DURATION` | Supabase env (default `three_month`) | Length of every gift grant. Server-side, instant. Currently **unset** — do not set it for testing and forget. |
 | Inventory size | `offer_code_inventory` | The real throttle. Load small batches. |
 
@@ -287,70 +287,67 @@ or not, and the pop query skips anything within 7 days of expiring.
 
 ## 7. Manual grants — giving yourself passes
 
-Everything above assumes passes are *earned*. For promotion you need to hand
-them out yourself, which the `credits-grant` edge function does: it writes one
-row into `gift_credit_grants` exactly the way an annual renewal does, without a
-subscription behind it. `founding_y1` is the precedent — a grandfathered user
-gets 5 credits off a profile flag, no purchase, no paywall.
+Everything above assumes passes are *earned*. For promotion you hand them out
+yourself: the **Grant 5 passes** button in the Developer Console writes one row
+into `gift_credit_grants` exactly the way an annual renewal does, with no
+subscription behind it — `founding_y1` is the precedent. Keys are stamped
+`manual_<utc iso>`, a shape `computeEarnedGrants` never produces, so
+grant-on-read can neither collide with nor re-trigger them. From there the
+passes are indistinguishable from earned ones: same balance math, same send
+flow, same recipient experience.
 
-Grant keys are `manual_<iso timestamp>`. `computeEarnedGrants` can never produce
-that shape, so grant-on-read (`upsert … ignoreDuplicates`) leaves these rows
-untouched forever. Balance stays `sum(grants) − count(shares)`; the share flow,
-`/get`, and dispense can't tell a hand grant from an earned one.
+There is no edge function and nothing to deploy — the button calls the
+`dev_grant_passes` Postgres RPC (migration `20260727100000`).
 
-### 7.1 One-time setup
+**The safeguard:** the console is only hidden (long-press the version number),
+not locked, and the anon key ships in the app bundle. So the guard is
+server-side: `dev_pass_granters` is an allowlist table the anon key can't read
+or grow, and the RPC refuses any device not in it. On anyone else's phone the
+button answers "This device isn't allowed to grant passes." Empty table =
+nobody can grant.
 
-**a. Get your device's ID.** Developer Console → THIS DEVICE → **Device ID** →
-tap the row to copy. That string is your `anonymous_id`.
+### 7.1 One-time setup — a single SQL paste
 
-On a build that predates this section, use the older gesture instead: Settings →
-tap the version number 7× → the Support ID modal → tap to copy. Same value, and
-it's the one to use for the very first setup, since the console row only appears
-after the OTA in step (d).
+Paste the whole of `supabase/migrations/20260727100000_dev_pass_grants.sql`
+into the Supabase SQL editor and run it, then allowlist your device:
 
-**b. Add it to the allowlist.** Supabase dashboard → Project Settings → Edge
-Functions → Secrets → Add new secret:
-
-```
-DEV_GRANT_ANONYMOUS_IDS = <your support id>
-```
-
-Comma-separate for more than one device, no spaces needed. **The function fails
-closed** — with this secret unset every grant is refused, which is the correct
-production posture. It matters because the anon key ships inside the app bundle,
-so the endpoint is reachable by anyone who finds it; the allowlist is the only
-thing standing between that and free passes.
-
-**c. Deploy the function.** From the repo root:
-
-```bash
-supabase functions deploy credits-grant
+```sql
+insert into public.dev_pass_granters (anonymous_id, note)
+values ('<your device id>', 'Neal — iPhone')
+on conflict (anonymous_id) do nothing;
 ```
 
-If it says "Access token not provided," run `supabase login` first — it opens a
-browser. The dashboard's Edge Functions screen can also deploy a pasted file if
-the CLI is being difficult.
+Your device id is in the Developer Console → THIS DEVICE → **Device ID** (tap
+the row to copy). On a build that predates that row: Settings → tap the version
+number 7× → Support ID modal. Same value.
 
-**d. OTA the app** so the Developer Console has the new section.
+### 7.2 Granting
 
-### 7.2 Making passes
+Settings → **long-press the version number** → GIFT PASSES → **Grant 5 passes**.
 
-In the app: Settings → **long-press the version number** → Developer Console →
-**GIFT PASSES**.
+The badge updates with your new balance, and the grant automatically unsuspends
+passes on this device (the "Passes on this device" switch flips itself on) —
+so the passes are immediately visible and sendable in Pass It On, even while
+`PASSES_ENABLED` keeps the program suspended for everyone else. Tap again for
+5 more. That is the whole flow.
 
-1. **Grant 1 pass** / **Grant 5 passes** — each tap writes a new ledger row. The
-   balance badge updates in place. Tap 5 five times for 25.
-2. **Passes on this device** — turn this on. `PASSES_ENABLED` is `false` for
-   launch, which forces every balance to 0, so without this switch you'd hold
-   real passes and see an empty Pass It On screen. The switch unsuspends passes
-   on this device only, stored in AsyncStorage, read nowhere else. It does
-   nothing to any other install and does not touch the global flag.
-3. Send them: Tools → Pass It On (or the gift badge in the nav header). Normal
-   flow from there — pick a contact, the SMS carries the `/get` link.
+### 7.3 From SQL — other devices, bigger numbers
 
-Server-side caps: 1–25 credits per call, and the device must be allowlisted.
+Allowlist another phone (its id from the same console row on that phone):
 
-### 7.3 Reading them back
+```sql
+insert into public.dev_pass_granters (anonymous_id, note)
+values ('<other device id>', 'whose phone');
+```
+
+Grant any allowlisted device from the dashboard (cap 25 per call, returns the
+new balance):
+
+```sql
+select public.dev_grant_passes('<device id>', 25);
+```
+
+### 7.4 Reading grants back
 
 ```sql
 select anonymous_id, grant_key, credits, granted_at
@@ -359,29 +356,15 @@ where grant_key like 'manual_%'
 order by granted_at desc;
 ```
 
-Hand grants vs earned, per device:
+### 7.5 What to know
 
-```sql
-select anonymous_id,
-       sum(credits) filter (where grant_key like 'manual_%')     as hand_granted,
-       sum(credits) filter (where grant_key not like 'manual_%') as earned,
-       (select count(*) from gift_shares s
-         where s.sender_anonymous_id = g.anonymous_id)           as spent
-from gift_credit_grants g
-group by anonymous_id
-order by hand_granted desc nulls last;
-```
-
-### 7.4 What to know before sending
-
-- **There is no revoke button.** Deliberate — the ledger is append-only and the
-  console can't take a grant back. To undo one, delete the row by `grant_key`.
-- **Sending to an iPhone still burns a real Apple offer code**, because a hand
-  grant only changes where the *credit* came from; the recipient's path through
-  `/get` is unchanged (§1). Granting 25 passes is free. Sending 25 costs 25
-  codes out of `offer_code_inventory`.
-- **The recipient's 3 months come from wherever `/get` sends them** — Apple's
-  offer code on iPhone (auto-converts to paid), an SD code on Android (lapses).
-- If you want codes to hand out *without* the send flow — a link in a podcast
-  description, codes on a flyer — this is the wrong tool. Use an App Store
-  Connect custom offer code, or mint SD codes directly (§3.2).
+- **Grants are permanent** — no revoke button, by design. To undo one, delete
+  its row by `grant_key`.
+- **Granting and sending consume nothing.** Sending spends a credit and mints a
+  token; an Apple offer code only leaves inventory when the recipient actually
+  opens the `/get` link on an iPhone (§1). An ignored link costs nothing —
+  that is the `never_claimed` bucket in §2.4.
+- **The recipient path is unchanged:** iPhone → Apple offer code
+  (auto-converts to paid after 3 months), Android → SD code (lapses).
+- For codes to distribute *without* the send flow — a podcast link, a flyer —
+  use an App Store Connect custom offer code, or mint SD codes directly (§3.2).

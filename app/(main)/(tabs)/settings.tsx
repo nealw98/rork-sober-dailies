@@ -180,8 +180,8 @@ export default function SettingsScreen() {
 
   // QA: gift passes. Hand grants write the same gift_credit_grants ledger the
   // automatic ones do (annual 5/yr, monthly tenure, grandfathered founding_y1)
-  // — see supabase/functions/credits-grant. The server only honors devices in
-  // its DEV_GRANT_ANONYMOUS_IDS allowlist, so this is inert everywhere else.
+  // via the dev_grant_passes RPC. The server refuses devices not in its
+  // dev_pass_granters allowlist, so these buttons are inert everywhere else.
   const [passStatus, setPassStatus] = useState<CreditStatus | null>(null);
   const [passesBusy, setPassesBusy] = useState(false);
   const [passesOverride, setPassesOverrideState] = useState(false);
@@ -207,6 +207,9 @@ export default function SettingsScreen() {
         fromConsole(() => Alert.alert('Grant failed', res.message ?? 'The server refused the grant.'));
         return;
       }
+      // A successful grant flips the device override on (qaGrantPasses did the
+      // storage write) — mirror it so the switch reads true without a reopen.
+      setPassesOverrideState(true);
       setPassStatus(await qaFetchCreditStatus());
     } finally {
       setPassesBusy(false);
@@ -729,18 +732,14 @@ export default function SettingsScreen() {
               </View>
             </View>
             <View style={styles.dcBtnRow}>
-              <TouchableOpacity style={styles.dcBtn} onPress={() => grantPasses(1)} activeOpacity={0.7} disabled={passesBusy}>
-                <Gift size={15} color={colors.primaryDark} strokeWidth={2.2} />
-                <Text style={styles.dcBtnText}>Grant 1 pass</Text>
-              </TouchableOpacity>
               <TouchableOpacity style={styles.dcBtn} onPress={() => grantPasses(5)} activeOpacity={0.7} disabled={passesBusy}>
                 <Gift size={15} color={colors.primaryDark} strokeWidth={2.2} />
-                <Text style={styles.dcBtnText}>Grant 5 passes</Text>
+                <Text style={styles.dcBtnText}>{passesBusy ? 'Granting…' : 'Grant 5 passes'}</Text>
               </TouchableOpacity>
             </View>
             <Text style={styles.dcFootnote}>
-              Same ledger as an annual renewal — the grant is permanent and sending one spends an
-              Apple offer code if the recipient is on iPhone.
+              Same ledger as an annual renewal — permanent, and they send through the normal
+              Pass It On flow. Nothing is consumed until a recipient opens their link.
             </Text>
 
             <Text style={styles.dcSectionLabel}>ONBOARDING & DATA</Text>
