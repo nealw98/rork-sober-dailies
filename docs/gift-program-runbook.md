@@ -273,6 +273,12 @@ you need an Apple ID that has never subscribed.
 - [ ] Website published at `soberdailies.com` — the app's share links point there.
 - [ ] `GIFT_ENTITLEMENT_DURATION` confirmed unset (or `three_month`).
 - [ ] Small offer-code batch loaded, not the full pool.
+- [ ] **`supabase functions deploy credits-status credits-share`** — the earn
+      gates (sandbox, free-period, promotional) live in `_shared/credits.ts`
+      and only apply once deployed. Discovered 2026-07-27: the deployed
+      functions predated the 7/22 gates, and a TestFlight sandbox yearly earned
+      a real `annual_y1` grant. Verify the last-deployed date in the dashboard
+      is AFTER the latest `_shared/credits.ts` change.
 - [ ] `PASSES_ENABLED` flipped to `true` and OTA'd (this is the actual go-live).
 
 **Right after go-live:** the small loaded pool is a pre-launch blast-radius

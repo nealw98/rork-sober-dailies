@@ -47,8 +47,15 @@ export function computeEarnedGrants(subscriber: any, opts: { founding: boolean }
     if (!active) continue;
     // TestFlight/sandbox subscriptions are not real members — without this a
     // tester's free sandbox sub would earn passes that dispense REAL
-    // production offer codes.
+    // production offer codes. (Confirmed live 2026-07-27: a stale deploy
+    // without this gate turned a TestFlight yearly into an annual_y1 grant.)
     if (sub?.is_sandbox === true) continue;
+    // RC promotional grants aren't paying members either. Their pseudo-product
+    // ids embed the duration (rc_promo_premium_three_month / _yearly), which
+    // classifyProduct would happily match — so a gift recipient's free 3-month
+    // grant would earn them a monthly_signup credit the first time their
+    // wallet loads. Skip the store outright.
+    if (String(sub?.store ?? '') === 'promotional') continue;
     // Decided 2026-07-22: no passes while riding free months. RC reports the
     // current billing period's type — Apple offer-code / trial / intro periods
     // are non-'normal' until the first real charge. A pass recipient therefore
