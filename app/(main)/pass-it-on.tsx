@@ -6,10 +6,11 @@
 // Apple offer code (Android recipients get a classic in-app code on /get).
 //
 // Give flow: mint/reuse a share token (a cancelled composer never burns a
-// credit — the unsent token is cached and reused) → contact picker → an
-// individually addressed text. Falls back to the OS share sheet when SMS
-// isn't available. "Invite friends" (the free, unlimited path) is a peer
-// button here — decided 2026-07-20, not buried in a footnote.
+// credit — the unsent token is cached and reused) → Messages composer with the
+// text ready and To: blank, addressed in Messages itself (typed number or
+// contact — decided 2026-07-27, replacing the contact picker). Falls back to
+// the OS share sheet when SMS isn't available. "Invite friends" (the free,
+// unlimited path) is a peer button here — decided 2026-07-20.
 import React, { useEffect, useRef, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, Share, Animated } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -24,7 +25,6 @@ import { useGiftCredits } from '@/hooks/use-gift-credits';
 import { useSubscription } from '@/hooks/useSubscription';
 import { getShareLink, confirmShareSent, giftMessage, PASSES_ENABLED } from '@/lib/creditsService';
 import { shareApp } from '@/lib/shareApp';
-import { pickContact } from '@/lib/pickContact';
 import { logEvent } from '@/lib/analytics';
 
 // The CTA keeps full rose chroma in both modes (jewel treatment).
@@ -122,21 +122,19 @@ export default function PassItOnScreen() {
       }
       const message = giftMessage(pending.link);
 
-      const contact = await pickContact();
-      if (!contact) return; // cancelled — pending token is kept for next time
-      if (!contact.phone) {
-        Alert.alert('No phone number', `${contact.name} doesn’t have a phone number to text.`);
-        return;
-      }
-
       const SMS = getSMS();
       if (SMS && (await SMS.isAvailableAsync().catch(() => false))) {
-        const { result } = await SMS.sendSMSAsync([contact.phone], message);
+        // Open the composer with the To: field BLANK (Neal, 2026-07-27) — the
+        // Messages field itself takes a typed number or a contact name, which
+        // covers the meeting case without making the recipient a Contact
+        // first. Replaces the in-app contact picker; the sent sheet already
+        // handles an unknown recipient (name: null).
+        const { result } = await SMS.sendSMSAsync([], message);
         if (result === 'sent' || result === 'unknown') {
           await confirmShareSent();
           logEvent('gift_shared', { via: 'sms' });
           const fresh = await refresh();
-          setSent({ name: contact.name, balance: fresh?.balance ?? Math.max(0, balance - 1) });
+          setSent({ name: null, balance: fresh?.balance ?? Math.max(0, balance - 1) });
         }
         return;
       }
