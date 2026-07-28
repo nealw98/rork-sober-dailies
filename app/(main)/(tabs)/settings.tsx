@@ -535,8 +535,8 @@ export default function SettingsScreen() {
             no longer surfaced here. */}
         <CardGroup label="Pass It On">
           <CardRow
-            label="Give Sober Dailies"
-            sub="3 months for a sponsee or newcomer"
+            label="Pass It On"
+            sub="Give 3 months of Sober Dailies"
             icon={
               <View style={styles.giftIconSquare}>
                 <GiftGlyph size={19} color={colors.roseDark} />

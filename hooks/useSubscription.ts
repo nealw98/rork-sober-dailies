@@ -10,6 +10,7 @@ import Purchases, {
 } from 'react-native-purchases';
 import { supabase } from '@/lib/supabase';
 import { getAnonymousId } from '@/lib/anonymousId';
+import { syncTrialReminder } from '@/lib/trialReminder';
 
 // ============================================================================
 // CONFIGURATION
@@ -289,6 +290,13 @@ export const [SubscriptionProvider, useSubscription] = createContextHook(() => {
       return null;
     }
   }, []);
+
+  // Keep the day-5 trial reminder honest: whenever RC hands us fresh
+  // CustomerInfo, drop the pending reminder if the trial was cancelled or the
+  // entitlement lapsed (lib/trialReminder no-ops when nothing is scheduled).
+  useEffect(() => {
+    if (customerInfo) syncTrialReminder(customerInfo).catch(() => {});
+  }, [customerInfo]);
 
   // Initialize on mount
   useEffect(() => {

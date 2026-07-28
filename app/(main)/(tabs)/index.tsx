@@ -210,7 +210,7 @@ export default function TodayScreen() {
   const dailies = useDailies();
   const { sobrietyDate } = useSobriety();
 
-  // Milestone day — a full-bleed band under the counter that celebrates all day
+  // Milestone day — a full-bleed band above the counter that celebrates all day
   // and replays the takeover on tap (the auto-show only fires once). See
   // components/today/MilestoneBand for why it's a band and not a header chip.
   const milestone = sobrietyDate ? calculateMilestone(sobrietyDate) : null;
@@ -343,7 +343,6 @@ export default function TodayScreen() {
   // Counter + Daily Reflection hero — shown above the list in both modes.
   const topContent = (
     <>
-      <SobrietyCounter />
       {milestoneLabel && (
         <MilestoneBand
           label={milestoneLabel}
@@ -353,6 +352,7 @@ export default function TodayScreen() {
           }}
         />
       )}
+      <SobrietyCounter />
       {announcePlan && (
         <GiftThankYouSheet
           plan={announcePlan}
@@ -395,7 +395,9 @@ export default function TodayScreen() {
   return (
     <View style={[styles.root, { backgroundColor: c.background }]}>
     <SafeAreaView style={styles.safe} edges={['top']}>
-      <View style={styles.header}>
+      {/* Milestone day: tuck the band up close under the date — it's part of
+          "what today is", so it hangs off the header, not off the counter. */}
+      <View style={[styles.header, milestoneLabel ? styles.headerMilestone : null]}>
         <View style={{ flex: 1 }}>
           <Text style={[styles.title, { color: c.text }]}>Today</Text>
           <Text style={[styles.date, { color: c.textMuted }]}>{dateLabel}</Text>
@@ -457,6 +459,7 @@ const makeStyles = (tk: Tokens) => {
   // screens' titles land (8 padding + 38 button + 8 margin) — with the actions
   // inline beside it, and a real paddingBottom so the header reads as a header.
   header: { flexDirection: 'row', alignItems: 'flex-start', paddingHorizontal: 22, paddingTop: 54, paddingBottom: 28 },
+  headerMilestone: { paddingBottom: 19 },
   title: { fontFamily: fontFamily.display, fontSize: 28, letterSpacing: -0.5, lineHeight: 29 },
   // milestone-day chip — solid rose, centered on the title line, tappable to
   // replay the takeover. Overlay spans the header; box-none keeps the gear live.

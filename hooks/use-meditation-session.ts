@@ -3,6 +3,7 @@ import { AppState } from 'react-native';
 import { Audio } from 'expo-av';
 import createContextHook from '@nkzw/create-context-hook';
 import { useMeditationLog } from '@/hooks/use-meditation-log';
+import { useDailies } from '@/hooks/use-dailies-store';
 import { logEvent } from '@/lib/analytics';
 import { maybeAskForReview } from '@/lib/reviewPrompt';
 
@@ -75,6 +76,11 @@ export const [MeditationSessionProvider, useMeditationSession] = createContextHo
 
   // Records actual sat time (from Begin, excluding pauses) to the per-day log.
   const { addSeconds } = useMeditationLog();
+  // For checking off the meditation daily on natural completion. Ref'd so the
+  // stable tick → complete() chain always sees the current program/markDone.
+  const dailies = useDailies();
+  const dailiesRef = useRef(dailies);
+  dailiesRef.current = dailies;
 
   // ─── Ambience ──────────────────────────────────────────────────────────────
   const stopAmbience = useCallback(async () => {
@@ -151,6 +157,11 @@ export const [MeditationSessionProvider, useMeditationSession] = createContextHo
     setDoneMin(minutesRef.current);
     setPhase('complete');
     addSeconds(minutesRef.current * 60); // full sit
+    // The completion screen says "Marked complete on Today." — make it true:
+    // check off the meditation daily, if the user's program has one.
+    dailiesRef.current.program
+      .filter((d) => d.action === 'meditation')
+      .forEach((d) => dailiesRef.current.markDone(d.id));
     logEvent('meditation_completed', { scene: sceneNameRef.current ?? 'Silence', minutes: minutesRef.current });
     // Review trigger: finishing a meditation is a genuine positive moment
     // (fires only on a natural completion, not when a sit is cut short).

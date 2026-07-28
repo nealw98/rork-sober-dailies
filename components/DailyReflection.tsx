@@ -7,10 +7,15 @@
 // no in-reader "Mark as read" CTA (that's done from the Today checklist).
 // Bookmarks were intentionally cut. Reflection text + date come from Supabase
 // (constants/reflections.ts); the chip reuses the Today photo.
-import React, { useEffect, useState, useCallback, useRef } from 'react';
+//
+// Prev/next is a real page swipe: a horizontal paging FlatList over a fixed
+// window of days, one reading page per day, so the neighbor page slides in
+// under your finger instead of the content snapping in place.
+import React, { useEffect, useState, useCallback, useRef, useMemo } from 'react';
 import {
-  View, Text, ScrollView, Pressable, StyleSheet, Modal, Share, Platform,
-  AppState, AppStateStatus, PanResponder, type TextStyle,
+  View, Text, ScrollView, FlatList, Pressable, StyleSheet, Modal, Share, Platform,
+  AppState, AppStateStatus, useWindowDimensions, type TextStyle,
+  type NativeSyntheticEvent, type NativeScrollEvent,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -21,7 +26,6 @@ import { getReflectionForDate } from '@/constants/reflections';
 import { Reflection } from '@/types';
 import { maybeAskForReview } from '@/lib/reviewPrompt';
 import { titleCase } from '@/lib/titleCase';
-import { useDailies } from '@/hooks/use-dailies-store';
 import { fontFamily, type Tokens } from '@/constants/designTokens';
 import { readerSerif, readerSerifItalic } from '@/constants/fonts';
 import { useReadingSize } from '@/hooks/use-reading-size';
@@ -60,64 +64,101 @@ const isSameDay = (a: Date, b: Date) =>
 const heroDate = (d: Date) =>
   `${d.toLocaleDateString('en-US', { weekday: 'long' })} · ${d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`;
 
+const DAY_MS = 24 * 60 * 60 * 1000;
+const startOfDay = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate());
+const addDays = (d: Date, n: number) => { const x = new Date(d); x.setDate(x.getDate() + n); return x; };
+const dateKey = (d: Date) => `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`;
+
+// The pager is a fixed window of days around the mount date. ±420 days is far
+// beyond any real browsing run, and a fixed window keeps the index ↔ date
+// mapping trivial — no re-centering trick, so no content flash mid-swipe.
+const PAGER_RANGE = 420;
+
 interface DailyReflectionProps {
   jumpToDate?: Date | null;
   onJumpApplied?: () => void;
 }
 
 export default function DailyReflection({ jumpToDate = null, onJumpApplied }: DailyReflectionProps) {
-  // Reading text = the shared "Aa" size, layered on the OS text-size.
-  const { readingSize: readSize, readingLineHeight: readLine } = useReadingSize();
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const dailies = useDailies();
+  const { width } = useWindowDimensions();
 
   const styles = useThemedStyles(makeStyles);
-  const { c, colors, isDark } = useTokens();
+  const { c, colors } = useTokens();
 
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+  // The selected day's reflection, for the top-bar Share (pages fetch their own).
   const [reflection, setReflection] = useState<Reflection | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
   const [sheet, setSheet] = useState<null | 'calendar' | 'display'>(null);
   const [calendarMonth, setCalendarMonth] = useState<Date>(new Date());
 
-  const navigateDate = useCallback((dir: 'prev' | 'next') => {
-    setSelectedDate((prev) => {
-      const d = new Date(prev);
-      d.setDate(d.getDate() + (dir === 'prev' ? -1 : 1));
-      return d;
-    });
+  // Fetch-once promise cache (per reader visit) so the pager's neighbor pages
+  // are already rendered by the time they slide in, and Share reuses the
+  // page's fetch instead of hitting Supabase twice.
+  const cacheRef = useRef(new Map<string, Promise<Reflection>>());
+  const fetchReflection = useCallback((d: Date) => {
+    const k = dateKey(d);
+    let p = cacheRef.current.get(k);
+    if (!p) { p = getReflectionForDate(d); cacheRef.current.set(k, p); }
+    return p;
   }, []);
 
-  const panResponder = useRef(
-    PanResponder.create({
-      onMoveShouldSetPanResponder: (_, g) =>
-        Math.abs(g.dx) > 50 && Math.abs(g.dy) < 20 && Math.abs(g.dx) > Math.abs(g.dy) * 3,
-      onPanResponderRelease: (_, g) => {
-        if (g.dx > 50) navigateDate('prev');
-        else if (g.dx < -50) navigateDate('next');
-      },
-    }),
-  ).current;
+  // Pager window: one page per day, anchored on the mount date.
+  const anchor = useRef(startOfDay(new Date())).current;
+  const dates = useMemo(
+    () => Array.from({ length: PAGER_RANGE * 2 + 1 }, (_, i) => addDays(anchor, i - PAGER_RANGE)),
+    [anchor],
+  );
+  const indexForDate = useCallback((d: Date) => {
+    // Math.round absorbs the DST hour when diffing local midnights.
+    const i = PAGER_RANGE + Math.round((startOfDay(d).getTime() - anchor.getTime()) / DAY_MS);
+    return Math.max(0, Math.min(dates.length - 1, i));
+  }, [anchor, dates.length]);
 
-  // Reflection text for the selected day (Supabase, by day_of_year).
+  const listRef = useRef<FlatList<Date>>(null);
+
+  const goToDate = useCallback((d: Date, animated: boolean) => {
+    setSelectedDate(d);
+    listRef.current?.scrollToIndex({ index: indexForDate(d), animated });
+  }, [indexForDate]);
+
+  // Chevrons ride the same pager animation as a finger swipe. The date commits
+  // immediately; the momentum-end handler then lands on the same index (no-op).
+  const navigateDate = useCallback((dir: 'prev' | 'next') => {
+    goToDate(addDays(selectedDate, dir === 'prev' ? -1 : 1), true);
+  }, [selectedDate, goToDate]);
+
+  const onPageSettled = useCallback((e: NativeSyntheticEvent<NativeScrollEvent>) => {
+    const i = Math.max(0, Math.min(dates.length - 1, Math.round(e.nativeEvent.contentOffset.x / width)));
+    const d = dates[i];
+    setSelectedDate((prev) => (isSameDay(prev, d) ? prev : d));
+  }, [dates, width]);
+
+  // Rotation/resize: page offsets are in the old width — re-snap to the page.
+  const widthRef = useRef(width);
+  useEffect(() => {
+    if (widthRef.current === width) return;
+    widthRef.current = width;
+    listRef.current?.scrollToIndex({ index: indexForDate(selectedDate), animated: false });
+  }, [width, indexForDate, selectedDate]);
+
+  // Reflection text for the selected day (Supabase, by day_of_year) — Share needs it.
   useEffect(() => {
     let alive = true;
-    setIsLoading(true);
-    getReflectionForDate(selectedDate)
+    fetchReflection(selectedDate)
       .then((r) => { if (alive) setReflection(r); })
-      .catch((e) => console.error('Error updating reflection:', e))
-      .finally(() => { if (alive) setIsLoading(false); });
+      .catch((e) => console.error('Error updating reflection:', e));
     return () => { alive = false; };
-  }, [selectedDate]);
+  }, [selectedDate, fetchReflection]);
 
   // Returning to the app on a new day snaps back to today.
   useEffect(() => {
     const sub = AppState.addEventListener('change', (s: AppStateStatus) => {
-      if (s === 'active' && !isSameDay(selectedDate, new Date())) setSelectedDate(new Date());
+      if (s === 'active' && !isSameDay(selectedDate, new Date())) goToDate(new Date(), false);
     });
     return () => sub.remove();
-  }, [selectedDate]);
+  }, [selectedDate, goToDate]);
 
   // Review trigger: viewing a Daily Reflection (the most-used feature). Gated
   // inside maybeAskForReview, so it no-ops unless the user is eligible.
@@ -126,8 +167,8 @@ export default function DailyReflection({ jumpToDate = null, onJumpApplied }: Da
   }, [selectedDate]);
 
   useEffect(() => {
-    if (jumpToDate) { setSelectedDate(jumpToDate); onJumpApplied?.(); }
-  }, [jumpToDate, onJumpApplied]);
+    if (jumpToDate) { goToDate(jumpToDate, false); onJumpApplied?.(); }
+  }, [jumpToDate, onJumpApplied, goToDate]);
 
   const shareReflection = useCallback(async () => {
     if (!reflection) return;
@@ -136,7 +177,7 @@ export default function DailyReflection({ jumpToDate = null, onJumpApplied }: Da
     catch (e) { console.error('Error sharing reflection:', e); }
   }, [reflection]);
 
-  const pickCalendarDay = (d: Date) => { setSelectedDate(d); setSheet(null); };
+  const pickCalendarDay = (d: Date) => { goToDate(d, false); setSheet(null); };
 
   return (
     <SafeAreaView style={styles.screen} edges={['top']}>
@@ -169,56 +210,24 @@ export default function DailyReflection({ jumpToDate = null, onJumpApplied }: Da
         </Pressable>
       </View>
 
-      <ScrollView
+      {/* Day pager — each day is its own reading page, so prev/next slides in
+          under your finger (and from the chevrons) instead of swapping in place. */}
+      <FlatList
+        ref={listRef}
+        data={dates}
+        keyExtractor={dateKey}
+        renderItem={({ item }) => <ReflectionPage date={item} width={width} fetchReflection={fetchReflection} />}
+        horizontal
+        pagingEnabled
+        showsHorizontalScrollIndicator={false}
+        initialScrollIndex={PAGER_RANGE}
+        getItemLayout={(_, index) => ({ length: width, offset: width * index, index })}
+        onMomentumScrollEnd={onPageSettled}
+        initialNumToRender={1}
+        maxToRenderPerBatch={2}
+        windowSize={5}
         style={styles.flex}
-        contentContainerStyle={styles.scroll}
-        showsVerticalScrollIndicator={false}
-        {...panResponder.panHandlers}
-      >
-        {/* Masthead — kicker (seedling chip + live date) + Lora title + hairline.
-            Replaces the photographic hero: the reader is now a distinct reading
-            surface, tied to the Today card via the shared Lora face + the chip. */}
-        <View style={styles.masthead}>
-          <View style={styles.kicker}>
-            <Text style={styles.kickerDate}>{heroDate(selectedDate)}</Text>
-          </View>
-          {/* Title in Lora 500 — same face as the Today hero title */}
-          <Text style={styles.mastheadTitle}>{reflection?.title ? titleCase(reflection.title) : ' '}</Text>
-          <View style={styles.hairline} />
-        </View>
-
-        {reflection && (
-          <>
-            {/* Reading surface — plain page on light; on dark the quote + body sit
-                on a gently lit surface card so the serif text doesn't float on black. */}
-            <View style={isDark ? styles.readingCard : undefined}>
-              {/* Pull-quote — start of the reading */}
-              <View style={styles.quoteWrap}>
-                <Text style={[styles.quote, { fontSize: readSize, lineHeight: readLine - readSize * 0.1 }]}>{withEmphasis(reflection.quote, EM_UPRIGHT)}</Text>
-                <Text style={styles.source}>— {reflection.source}</Text>
-              </View>
-
-              {/* Reflection body */}
-              <View style={styles.bodyWrap}>
-                {reflection.reflection.split('\n\n').map((p, i) => (
-                  <Text key={i} style={[styles.body, { fontSize: readSize, lineHeight: readLine, marginTop: i === 0 ? 0 : 14 }]}>{withEmphasis(p, EM_ITALIC)}</Text>
-                ))}
-              </View>
-            </View>
-
-            {/* Meditation tile (separate, app-added section) */}
-            <View style={styles.medTile}>
-              <View style={styles.medLabelRow}>
-                <Sparkles size={11} color={colors.primaryDark} strokeWidth={2} />
-                <Text style={styles.medLabel}>MEDITATION</Text>
-              </View>
-              <Text style={[styles.medText, { fontSize: readSize, lineHeight: Math.round(readSize * 1.4) }]}>&ldquo;{withEmphasis(reflection.thought, EM_UPRIGHT)}&rdquo;</Text>
-            </View>
-
-            <Text style={styles.copyright}>Copyright © 1990 by Alcoholics Anonymous World Services, Inc. All rights reserved.</Text>
-          </>
-        )}
-      </ScrollView>
+      />
 
       <CalendarSheet
         visible={sheet === 'calendar'}
@@ -234,6 +243,80 @@ export default function DailyReflection({ jumpToDate = null, onJumpApplied }: Da
     </SafeAreaView>
   );
 }
+
+// ── One day's reading page (a pager cell) ──────────────────────────────
+// Fetches its own reflection through the shared cache, so a page is usually
+// ready before it's swiped into view. Memoized: pages don't re-render when the
+// parent's selectedDate changes — only when their own fetch lands.
+const ReflectionPage = React.memo(function ReflectionPage({ date, width, fetchReflection }: {
+  date: Date; width: number; fetchReflection: (d: Date) => Promise<Reflection>;
+}) {
+  // Reading text = the shared "Aa" size, layered on the OS text-size.
+  const { readingSize: readSize, readingLineHeight: readLine } = useReadingSize();
+  const styles = useThemedStyles(makeStyles);
+  const { colors, isDark } = useTokens();
+  const [reflection, setReflection] = useState<Reflection | null>(null);
+
+  useEffect(() => {
+    let alive = true;
+    fetchReflection(date)
+      .then((r) => { if (alive) setReflection(r); })
+      .catch((e) => console.error('Error updating reflection:', e));
+    return () => { alive = false; };
+  }, [date, fetchReflection]);
+
+  return (
+    <ScrollView
+      style={{ width }}
+      contentContainerStyle={styles.scroll}
+      showsVerticalScrollIndicator={false}
+    >
+      {/* Masthead — kicker (seedling chip + live date) + Lora title + hairline.
+          Replaces the photographic hero: the reader is now a distinct reading
+          surface, tied to the Today card via the shared Lora face + the chip. */}
+      <View style={styles.masthead}>
+        <View style={styles.kicker}>
+          <Text style={styles.kickerDate}>{heroDate(date)}</Text>
+        </View>
+        {/* Title in Lora 500 — same face as the Today hero title */}
+        <Text style={styles.mastheadTitle}>{reflection?.title ? titleCase(reflection.title) : ' '}</Text>
+        <View style={styles.hairline} />
+      </View>
+
+      {reflection && (
+        <>
+          {/* Reading surface — plain page on light; on dark the quote + body sit
+              on a gently lit surface card so the serif text doesn't float on black. */}
+          <View style={isDark ? styles.readingCard : undefined}>
+            {/* Pull-quote — start of the reading */}
+            <View style={styles.quoteWrap}>
+              <Text style={[styles.quote, { fontSize: readSize, lineHeight: readLine - readSize * 0.1 }]}>{withEmphasis(reflection.quote, EM_UPRIGHT)}</Text>
+              <Text style={styles.source}>— {reflection.source}</Text>
+            </View>
+
+            {/* Reflection body */}
+            <View style={styles.bodyWrap}>
+              {reflection.reflection.split('\n\n').map((p, i) => (
+                <Text key={i} style={[styles.body, { fontSize: readSize, lineHeight: readLine, marginTop: i === 0 ? 0 : 14 }]}>{withEmphasis(p, EM_ITALIC)}</Text>
+              ))}
+            </View>
+          </View>
+
+          {/* Meditation tile (separate, app-added section) */}
+          <View style={styles.medTile}>
+            <View style={styles.medLabelRow}>
+              <Sparkles size={11} color={colors.primaryDark} strokeWidth={2} />
+              <Text style={styles.medLabel}>MEDITATION</Text>
+            </View>
+            <Text style={[styles.medText, { fontSize: readSize, lineHeight: Math.round(readSize * 1.4) }]}>&ldquo;{withEmphasis(reflection.thought, EM_UPRIGHT)}&rdquo;</Text>
+          </View>
+
+          <Text style={styles.copyright}>Copyright © 1990 by Alcoholics Anonymous World Services, Inc. All rights reserved.</Text>
+        </>
+      )}
+    </ScrollView>
+  );
+});
 
 // ── Calendar picker sheet ──────────────────────────────────────────────
 function CalendarSheet({ visible, month, selected, onMonth, onPick, onToday, onClose, bottomInset }: {
@@ -311,7 +394,9 @@ const makeStyles = (tk: Tokens) => {
   masthead: { paddingTop: 4 },
   kicker: { flexDirection: 'row', alignItems: 'center' },
   kickerDate: { fontFamily: fontFamily.bold, fontSize: 11.5, letterSpacing: 1.6, color: colors.primary, textTransform: 'uppercase' },
-  mastheadTitle: { fontFamily: fontFamily.serifMedium, fontSize: 32, lineHeight: 36, letterSpacing: -0.3, color: c.text, marginTop: 12 },
+  // Android clips glyphs to the line box, so Lora's descenders (g, y) need a
+  // taller line there; iOS draws outside the box and keeps the tight 36.
+  mastheadTitle: { fontFamily: fontFamily.serifMedium, fontSize: 32, lineHeight: Platform.select({ android: 42, default: 36 }), letterSpacing: -0.3, color: c.text, marginTop: 12 },
   hairline: { height: 1, backgroundColor: c.border, marginTop: 22 },
 
   // dark-only reading surface (quote + body)

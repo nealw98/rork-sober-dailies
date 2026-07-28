@@ -95,7 +95,7 @@ export default function InventoryScreen() {
       setCausesQuestion(q);
     } catch {
       if (causesReq.current !== id) return;
-      setCausesQuestion(getSpotCheckFallbackQuestion(sid));
+      setCausesQuestion(getSpotCheckFallbackQuestion(sid, feelings));
     } finally {
       if (causesReq.current === id) setCausesLoading(false);
     }

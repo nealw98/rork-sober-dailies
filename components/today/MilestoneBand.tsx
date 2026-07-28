@@ -1,6 +1,6 @@
 // Sobriety-milestone recognition band (design D5, July 2026). On a milestone
-// day this full-bleed terracotta strip sits between the Today counter and the
-// Daily Reflection hero and replays the celebration takeover on tap.
+// day this full-bleed terracotta strip sits at the top of Today, above the
+// counter, and replays the celebration takeover on tap.
 //
 // Full-bleed by design: a strip that breaks the page gutters reads as a message
 // interrupting the page, where a pill would read as a control competing with the
@@ -106,7 +106,8 @@ export function MilestoneBand({ label, onPress }: { label: string; onPress: () =
 const styles = StyleSheet.create({
   band: {
     marginHorizontal: -PAGE_GUTTER,
-    marginTop: spacing.md,
+    // First element on the page now — the gap goes below, against the counter.
+    marginBottom: spacing.md,
     paddingVertical: 12,
     paddingHorizontal: PAGE_GUTTER,
     flexDirection: 'row',

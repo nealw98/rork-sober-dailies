@@ -81,6 +81,12 @@
         "expo-font"
       ],
       [
+        "expo-notifications",
+        {
+          "defaultChannel": "reminders"
+        }
+      ],
+      [
         "expo-build-properties",
         {
           "ios": {

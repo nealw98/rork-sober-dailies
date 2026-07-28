@@ -88,7 +88,7 @@ const SobrietyCounter = () => {
             <Text style={styles.daysSober}>days sober</Text>
             <Pencil size={12} color={c.textMuted} strokeWidth={2} />
           </View>
-          <Text style={styles.breakdown}>{y} years · {m} months · {d} days</Text>
+          <Text style={styles.breakdown}>{y} {y === 1 ? 'year' : 'years'} · {m} {m === 1 ? 'month' : 'months'} · {d} {d === 1 ? 'day' : 'days'}</Text>
           <Text style={styles.breakdown}>since {formatStoredDateForDisplay(sobrietyDate)}</Text>
         </View>
       </Pressable>

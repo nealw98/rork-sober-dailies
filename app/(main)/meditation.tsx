@@ -296,10 +296,13 @@ export default function MeditationScreen() {
     if (firstTime) med.markHintSeen();
     session.begin(selMinutes);
   };
-  // "Done" just clears the completion message back to the setup screen — it does
-  // not navigate away (the ambience bed keeps playing on this page).
+  // "Done" ends the sit and closes the feature, back to Today. The session is
+  // context-backed, so stop() first — otherwise the next visit would reopen on
+  // a stale completion screen. The focus-effect cleanup handles the ambience
+  // bed (it keeps playing only if "play outside this page" is on).
   const done = () => {
     session.stop();
+    router.back();
   };
   const pickMinutes = (n: number) => setSelMinutes(n);
 

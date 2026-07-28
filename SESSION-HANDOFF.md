@@ -2,7 +2,14 @@
 
 _For a fresh chat. Branch `3.0.5-redesign` (tracks `origin/3.0.5-redesign`)._
 
-_Latest session (**2026-07-25…27**): the milestone/birthday takeover, the PDF
+_Latest session (**2026-07-27 pm**): Today/reader UI polish (UNCOMMITTED),
+the day-5 trial reminder (NEW native dep → next binary), prod-incident #2
+fixed (anon storage LIST restored + the Lovable→prod-DB write-path closed on
+both sides), and the /get gift page reworked + PUBLISHED via the new Lovable
+MCP connection. **§12 for today's uncommitted tree; §11 remains the deploy/
+state audit.**_
+
+_Prior session (**2026-07-25…27**): the milestone/birthday takeover, the PDF
 and gratitude fixes, Developer Console pass grants, and a full audit of what is
 actually deployed. **Read §11 FIRST** — it verifies build/OTA/Supabase state
 against the services rather than the notes, and supersedes §§8–10's next
@@ -1156,3 +1163,92 @@ What actually remains:
 give → cancel the composer → balance should stay **5** → give again → the SAME
 token comes back → actually send → balance **4**, `sent_at` set on that row
 only. The grant half is confirmed; the spend half is not.
+
+---
+
+## 12. Latest session — 2026-07-27 pm (UI laundry list · trial reminder · storage-policy incident · /get page)
+
+**Status: everything app-side is UNCOMMITTED on `3.0.5-redesign` (head still
+`b5b63c60`), per the never-commit-unasked rule — Neal wants the accumulating
+minor changes bundled into ONE OTA (§11's item 3). The Supabase migration in
+12.3 is APPLIED to prod (the file just needs to ride a commit). The web repo
+is pushed through `afb54e2` and PUBLISHED.**
+
+### 12.1 Today + reader UI (uncommitted; verified on iOS sim)
+
+- **Milestone band** moved ABOVE the sobriety counter (it answers "what is
+  today?"), tucked closer to the header: band margin flipped top→bottom, and
+  the Today header's paddingBottom drops 28 → 19 on milestone days only
+  (`headerMilestone` in `(tabs)/index.tsx`).
+- **Meditation "Done"** now `session.stop()` + `router.back()` (stop first —
+  the session is context-backed and would replay a stale completion screen).
+  And the completion copy "Marked complete on Today." is finally TRUE:
+  `complete()` in `use-meditation-session.ts` marks any program daily with
+  `action === 'meditation'` via a `dailiesRef` (DailiesProvider wraps the
+  session provider, so the hook composes).
+- **Daily Reflections is a real pager** (`components/DailyReflection.tsx`
+  rewritten): horizontal paging FlatList, one `ReflectionPage` per day over a
+  ±420-day window anchored at mount — grab-and-drag swipe, neighbor page
+  slides under the finger (PanResponder + instant content swap deleted).
+  Chevrons animate the same slide; calendar/AppState/jumpToDate snap without
+  animation; per-visit promise cache prefetches neighbors so they're rendered
+  before they arrive. Also fixed Android clipping the masthead title's
+  descenders ("Giving Freely") — lineHeight 42 Android-only via
+  Platform.select; iOS keeps 36.
+- Sim gotcha documented in [[ios-simulator-mlkit-rosetta]]: the Rosetta sim's
+  CoreAudio intermittently SIGILLs when a sound plays (meditation bell). It's
+  Apple's stack, not app code — don't chase it.
+
+### 12.2 Day-5 trial reminder (uncommitted; NEEDS NEXT BINARY)
+
+The paywall timeline's "Day 5: We'll notify you" promise is now real —
+`lib/trialReminder.ts`, wired in `PaywallScreen.buy()` (permission asked
+BEFORE `applyCustomerInfo`, while the promising timeline is still on screen)
+and a `customerInfo` effect in `useSubscription` that cancels the pending
+notification if the trial is cancelled/lapses. Local notification anchored to
+the RC entitlement's real `expirationDate` − 48h, fire hour clamped 9–21,
+skips if <1min runway (sandbox). Mixpanel: `trial_reminder_scheduled` /
+`_permission_denied` / `_cancelled`. ⚠️ `expo-notifications` is a NEW NATIVE
+DEP (+ app.json plugin, `defaultChannel: "reminders"`): functional only in the
+next binary; deliberately lazy-`require`d so OTAing this JS to old binaries
+no-ops instead of crashing — don't "clean up" that require. E2E needs a device
+sandbox trial. See [[trial-reminder-day5-notification]].
+
+### 12.3 Prod incident #2: anon storage LIST was gone (FIXED, applied)
+
+iOS and Android showed different reflection heroes; Android's wasn't from the
+bucket at all. Root cause: the 2026-07-14 Security-Advisor hardening (§11.3's
+neighbor incident) had ALSO dropped anon SELECT on `storage.objects` — object
+GET kept working (public bucket) but `list()` returned 0, so FRESH INSTALLS
+(Android build 130) fell back to the bundled hero forever while long-installed
+iOS coasted on its persisted pool. Fix:
+`supabase/migrations/20260727120000_restore_anon_reflection_images_list.sql`
+(bucket-scoped anon SELECT) — **applied via `supabase db push` and verified
+(22 images via supabase-js); the FILE is uncommitted.** Devices self-heal on
+cold start. Write-path closed both sides: web repo's `supabase/config.toml`
+(Lovable's route into the APP's prod DB) deleted + pushed (`afb54e2`), and
+Neal disconnected the Supabase project in Lovable's Connectors UI. §11's item
+5 (the standing Lovable caution) is now largely moot but keep the reflex.
+
+### 12.4 Web /get gift page + Lovable MCP (pushed AND live)
+
+- Gift variant of soberdailies.com/get: headline is just "A friend sent you 3
+  free months of Sober Dailies" (subtitle folded in, then trimmed); the
+  already-a-member warning moved from fine print to quiet plain text between
+  headline and plans ("…Send this link to someone who needs it instead; it
+  goes to whoever uses it first"), also above the Android claim button; the
+  "Open this link on your phone" card un-carded. Commits `d59ca90`,
+  `2a56db9`, `aa62ba2`, `afb54e2`; deployed live and verified.
+- **Lovable MCP is connected** (OAuth soberdailies@gmail.com). The publish
+  step is now scriptable: `deploy_project` on project
+  `d44fafc4-bae4-4e29-bce0-3f06dd9a4d53` (workspace `9E1BLM1AmBtYobs2j6DH`).
+  Full web loop: pull → edit → commit → push → deploy. ALWAYS `git pull
+  --rebase` the web repo before editing ([[web-repo-pull-before-work]]) —
+  Lovable pushes to the same main (a badge-artwork commit landed mid-session).
+
+### 12.5 Next actions
+
+Unchanged from §11 (AAB upload → edge-to-edge QA → bundle the OTA → launch
+flips). Note for the OTA bundling: today's 12.1 items are OTA-safe; 12.2's JS
+is OTA-safe but inert until the next binary; 12.3's migration file should ride
+the same commit.

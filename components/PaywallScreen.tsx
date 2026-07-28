@@ -31,6 +31,7 @@ import { type PurchasesPackage } from 'react-native-purchases';
 import { useSubscription } from '@/hooks/useSubscription';
 import { redeemGiftCode, type RedeemReason } from '@/lib/giftService';
 import { fetchCreditStatus, setPendingAnnouncement } from '@/lib/creditsService';
+import { scheduleTrialEndingReminder } from '@/lib/trialReminder';
 import { logEvent } from '@/lib/analytics';
 import { fontFamily, shadows, type Tokens } from '@/constants/designTokens';
 import { useTokens, useThemedStyles } from '@/hooks/useTokens';
@@ -192,6 +193,9 @@ export default function PaywallScreen({ onDismiss, preview, forceTrial }: Paywal
         // fetchCreditStatus() mints the welcome grants server-side
         // (grant-on-read) and fills the badge cache in parallel.
         await setPendingAnnouncement(selected === 'yearly' ? 'annual' : 'monthly');
+        // The timeline above promises a day-5 heads-up — schedule it (and ask
+        // notification permission) while that promise is still on screen.
+        await scheduleTrialEndingReminder(info);
         fetchCreditStatus();
         applyCustomerInfo(info); // flips isPremium next render → gate drops
       }
@@ -231,7 +235,7 @@ export default function PaywallScreen({ onDismiss, preview, forceTrial }: Paywal
             be unescapable. Remove with the _layout gate before public release. */}
         <View style={styles.header}>
           <View style={styles.flex} />
-          {(preview || __DEV__ || Platform.OS === 'android') && onDismiss && (
+          {(preview || __DEV__) && onDismiss && (
             <Pressable style={styles.close} onPress={onDismiss} hitSlop={10}>
               <X size={24} color={c.textMuted} strokeWidth={2} />
             </Pressable>

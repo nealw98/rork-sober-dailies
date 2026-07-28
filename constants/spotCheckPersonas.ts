@@ -38,14 +38,44 @@ export const SPOT_CHECK_FEELINGS = [
 ];
 
 // Offline / LLM-failure fallback for the step-3 question, voiced per persona.
-export const SPOT_CHECK_FALLBACK_QUESTION: Partial<Record<SponsorType, string>> = {
-  supportive: 'If this points at a person — what’s your part in it? And if it doesn’t, what’s the fear underneath?',
-  salty: 'If somebody’s name came up back there — what’s YOUR part in it? And if not, what are you actually afraid of?',
-  grace: 'Gently now — if this touches another person, what feels like yours in it? And if not, what might the fear be underneath?',
+// The LLM can't see the user's words here, but the tapped feelings are local
+// structured data — flavor the question by the FIRST feeling that maps to a
+// category, so it still lands near what they named. Unmapped feelings
+// (Restless, Discontent) fall through to the generic variant.
+type FallbackFlavor = 'resentment' | 'fear' | 'shame' | 'generic';
+
+const FEELING_FLAVOR: Record<string, Exclude<FallbackFlavor, 'generic'>> = {
+  Angry: 'resentment', Resentful: 'resentment', Irritable: 'resentment',
+  Afraid: 'fear', Anxious: 'fear',
+  Ashamed: 'shame', 'Self-pity': 'shame', Lonely: 'shame',
 };
 
-export const getSpotCheckFallbackQuestion = (id: SponsorType): string =>
-  SPOT_CHECK_FALLBACK_QUESTION[id] ?? SPOT_CHECK_FALLBACK_QUESTION.supportive!;
+const SPOT_CHECK_FALLBACK_QUESTIONS: Partial<Record<SponsorType, Record<FallbackFlavor, string>>> = {
+  supportive: {
+    resentment: 'Sounds like somebody or something crossed you. Look at it honestly — what’s your part in it, even a small one?',
+    fear: 'There’s some fear moving under this. What are you afraid of losing — or afraid you won’t get? Naming it takes half its power.',
+    shame: 'Be gentle with yourself here, but honest too — what’s the thing you keep replaying, and what would you tell a friend who brought it to you?',
+    generic: 'Take an honest look underneath this one — is it a resentment, a fear, or something that’s sitting wrong? Name whichever one it is.',
+  },
+  salty: {
+    resentment: 'Somebody got under your skin, huh? Fine — what’s YOUR part in it? Nobody stays this worked up over something they had no hand in.',
+    fear: 'That’s fear talking. So out with it — what are you scared of losing, or scared you’ll never get?',
+    shame: 'Quit beating yourself up — that’s just pride turned inside out. What actually happened, and what’s yours to clean up?',
+    generic: 'Alright, straight talk. What’s your part in this — and if you’re about to say “nothing,” tell me what you’re afraid of instead.',
+  },
+  grace: {
+    resentment: 'It sounds like someone or something hurt you. When you’re ready — is there a small piece of it that belongs to you? There’s freedom in finding it.',
+    fear: 'I think there’s fear underneath this. Can you name what feels threatened — what you’re afraid to lose, or afraid won’t come?',
+    shame: 'You’re carrying something heavy. Look at it kindly — what happened, and what would it mean to set it down or make it right?',
+    generic: 'Let’s sit with it for a moment. When you look beneath the feeling, what’s there — a hurt, a fear, something that isn’t finished? Whatever comes up is enough.',
+  },
+};
+
+export const getSpotCheckFallbackQuestion = (id: SponsorType, feelings: string[] = []): string => {
+  const variants = SPOT_CHECK_FALLBACK_QUESTIONS[id] ?? SPOT_CHECK_FALLBACK_QUESTIONS.supportive!;
+  const flavor = feelings.map(f => FEELING_FLAVOR[f]).find(Boolean) ?? 'generic';
+  return variants[flavor];
+};
 
 // The three personas eligible to conduct a spot check (matches the sponsor
 // switcher's SELECTION_SPONSOR_IDS).
