@@ -115,7 +115,7 @@ const makeStyles = (tk: Tokens) => {
 
     divider: { height: 1, backgroundColor: c.divider, marginHorizontal: 16, marginTop: 34 },
     catHead: { paddingHorizontal: 22, paddingTop: 16, paddingBottom: 10 },
-    catTitle: { fontFamily: fontFamily.displayBold, fontSize: 26, letterSpacing: -0.5, color: c.text },
+    catTitle: { fontFamily: fontFamily.display, fontSize: 22, letterSpacing: -0.4, color: c.text },
     catSub: { fontFamily: fontFamily.regular, fontSize: 13, color: c.textSecondary, marginTop: 4 },
 
     readingList: { paddingHorizontal: 16, gap: 8 },

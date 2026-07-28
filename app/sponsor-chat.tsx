@@ -265,6 +265,11 @@ function SponsorChatContent({ initialSponsor }: { initialSponsor: string }) {
           contentContainerStyle={styles.list}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
+          // Dismissable keyboard: iOS tracks the finger (iMessage-style drag
+          // down), Android dismisses as soon as the list scrolls.
+          keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
+          // A plain tap on the conversation (not on a control) also dismisses.
+          onTouchEnd={() => Keyboard.dismiss()}
         />
 
         {isLoading && (

@@ -3,9 +3,9 @@
 // passages. Renders numbered lists (Steps/Traditions) with a hanging indent,
 // "Header\nbody" blocks (the format guide), and prose. Reading text scales
 // with the OS text-size (Dynamic Type) via the fixed base.
-import React from 'react';
-import { View, Text, StyleSheet, ScrollView } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import React, { useState } from 'react';
+import { View, Text, StyleSheet, ScrollView, Pressable } from 'react-native';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Stack, useRouter, useLocalSearchParams } from 'expo-router';
 import BackButton from '@/components/BackButton';
 import { getMeetingReading } from '@/constants/meeting-readings';
@@ -13,6 +13,7 @@ import { useScreenTimeTracking } from '@/hooks/useScreenTimeTracking';
 import { fontFamily, type Tokens } from '@/constants/designTokens';
 import { readerSerif } from '@/constants/fonts';
 import { useReadingSize } from '@/hooks/use-reading-size';
+import { ReadingSizeSheet } from '@/components/ReadingSizeSheet';
 import { useTokens, useThemedStyles } from '@/hooks/useTokens';
 
 const AMBER_INK = '#B27330';
@@ -25,6 +26,8 @@ export default function MeetingReadingScreen() {
 
   const styles = useThemedStyles(makeStyles);
   const { c } = useTokens();
+  const insets = useSafeAreaInsets();
+  const [sizeSheetOpen, setSizeSheetOpen] = useState(false);
 
   const { readingSize: size, readingLineHeight: lineHeight } = useReadingSize();
   // The reader serif matches the Big Book reader's optical size (Lora reads a step larger).
@@ -45,7 +48,12 @@ export default function MeetingReadingScreen() {
   return (
     <SafeAreaView style={styles.screen} edges={['top']}>
       <Stack.Screen options={{ headerShown: false }} />
-      <View style={styles.headerBar}><BackButton onPress={() => router.back()} /></View>
+      <View style={styles.headerBar}>
+        <BackButton onPress={() => router.back()} />
+        <Pressable onPress={() => setSizeSheetOpen(true)} hitSlop={8} accessibilityRole="button" accessibilityLabel="Text size" style={styles.aaBtn}>
+          <Text style={styles.aaLabel}>aA</Text>
+        </Pressable>
+      </View>
 
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
         <Text style={styles.title}>{reading.title}</Text>
@@ -90,6 +98,8 @@ export default function MeetingReadingScreen() {
           );
         })}
       </ScrollView>
+
+      <ReadingSizeSheet visible={sizeSheetOpen} onClose={() => setSizeSheetOpen(false)} bottomInset={insets.bottom} />
     </SafeAreaView>
   );
 }
@@ -99,7 +109,9 @@ const makeStyles = (tk: Tokens) => {
   return StyleSheet.create({
   screen: { flex: 1, backgroundColor: c.background },
   flex: { flex: 1, minWidth: 0 },
-  headerBar: { paddingHorizontal: 14, paddingTop: 6, paddingBottom: 8 },
+  headerBar: { paddingHorizontal: 14, paddingTop: 6, paddingBottom: 8, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  aaBtn: { width: 32, height: 32, borderRadius: 16, alignItems: 'center', justifyContent: 'center', backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)' },
+  aaLabel: { fontFamily: fontFamily.bold, fontSize: 13, color: c.textSecondary, letterSpacing: -0.2 },
   scroll: { paddingHorizontal: 26, paddingBottom: 56 },
   title: { fontFamily: fontFamily.display, fontSize: 25, letterSpacing: -0.3, color: c.text, lineHeight: 30 },
   source: { fontFamily: fontFamily.regular, fontSize: 12, color: c.textMuted, marginTop: 5, letterSpacing: 0.2 },
