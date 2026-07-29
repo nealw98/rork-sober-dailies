@@ -33,18 +33,29 @@ export function TwelveCover({ w = 92, h = 128 }: { w?: number; h?: number }) {
 
 // A "find tool" feature card (Search / Go to page / Bookmarks) used on the book
 // Contents pages. `accent`/`soft` tint it per book (amber for Big Book, lavender
-// for 12 & 12).
-export function FindCard({ Icon, label, count, accent, soft, onPress }: {
+// for 12 & 12). `variant="outline"` draws the card as a white surface with a
+// hairline instead of a soft fill — for pages that sit the row on a tinted band.
+export function FindCard({ Icon, label, count, accent, soft, variant = 'soft', onPress }: {
   Icon: React.ComponentType<{ size?: number; color?: string; strokeWidth?: number }>;
   label: string;
   count?: number;
   accent: string;
   soft: string;
+  variant?: 'soft' | 'outline';
   onPress: () => void;
 }) {
   const styles = useThemedStyles(makeStyles);
   return (
-    <Pressable onPress={onPress} style={({ pressed }) => [styles.findCard, { backgroundColor: soft }, pressed && { opacity: 0.7 }]} accessibilityRole="button" accessibilityLabel={label}>
+    <Pressable
+      onPress={onPress}
+      style={({ pressed }) => [
+        styles.findCard,
+        variant === 'outline' ? styles.findCardOutline : { backgroundColor: soft },
+        pressed && { opacity: 0.7 },
+      ]}
+      accessibilityRole="button"
+      accessibilityLabel={label}
+    >
       <View>
         <Icon size={20} color={accent} strokeWidth={2} />
         {count != null && count > 0 && (
@@ -64,7 +75,6 @@ export function MeetingReadingCard({ reading, onPress }: { reading: MeetingReadi
       <View style={[styles.spine, { backgroundColor: reading.tone }]} />
       <View style={styles.flex}>
         <Text style={styles.cardTitle}>{reading.title}</Text>
-        <Text style={styles.cardSource}>{reading.source}</Text>
       </View>
       <ChevronRight size={16} color={c.textMuted} />
     </Pressable>
@@ -88,12 +98,12 @@ const makeStyles = (tk: Tokens) => {
 
     flex: { flex: 1, minWidth: 0 },
     findCard: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 7, paddingVertical: 14, borderRadius: 14 },
+    findCardOutline: { backgroundColor: c.surface, borderWidth: 1, borderColor: c.border, ...darkCard },
     findLabel: { fontFamily: fontFamily.semiBold, fontSize: 12.5 },
     findBadge: { position: 'absolute', top: -7, right: -12, minWidth: 16, height: 16, borderRadius: 8, paddingHorizontal: 4, alignItems: 'center', justifyContent: 'center' },
     findBadgeText: { fontFamily: fontFamily.bold, fontSize: 10, color: '#fff' },
     card: { flexDirection: 'row', alignItems: 'center', gap: 11, backgroundColor: c.surface, borderWidth: 1, borderColor: c.border, borderRadius: 12, paddingVertical: 13, paddingHorizontal: 13, ...darkCard },
     spine: { width: 6, alignSelf: 'stretch', borderRadius: 3 },
     cardTitle: { fontFamily: fontFamily.display, fontSize: 16, color: c.text, letterSpacing: -0.1 },
-    cardSource: { fontFamily: fontFamily.regular, fontSize: 11.5, color: c.textMuted, marginTop: 3 },
   });
 };

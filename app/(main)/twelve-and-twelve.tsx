@@ -1,19 +1,24 @@
-// Twelve & Twelve (redesign 3.0), per hifi-literature.jsx Screen1212: lavender
-// theme, hero strip with the cover, grouped Intro / Twelve Steps / Twelve
-// Traditions list. Each row shows the Step/Tradition's one-line summary and its
-// page, and opens the official A.A. essay as a bundled, offline PDF — shown with
-// real BOOK pages and per-page bookmarks. A bookmarks list lives in the header.
+// Twelve & Twelve (redesign 3.0): teal theme, a tinted band carrying the cover,
+// title and find tools, then the grouped Intro / Twelve Steps / Twelve
+// Traditions list. Step and Tradition rows lead with a pale numeral and put the
+// Step's own words on the row (title + page ride above as an eyebrow); front
+// matter stays a plain title + page. Every row opens the official A.A. essay as
+// a bundled, offline PDF — real BOOK pages, per-page bookmarks.
 import React, { useEffect, useMemo, useState } from 'react';
 import { View, Text, Pressable, StyleSheet, ScrollView, Modal, TextInput, Keyboard } from 'react-native';
 import { KeyboardModalScope } from '@/components/KeyboardModalScope';
-import { SafeAreaView, SafeAreaProvider, initialWindowMetrics } from 'react-native-safe-area-context';
+import { SafeAreaView, SafeAreaProvider, initialWindowMetrics, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Stack, useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { ChevronRight, Bookmark, Trash2, X, Search, Hash } from 'lucide-react-native';
 import BackButton from '@/components/BackButton';
 import { logEvent } from '@/lib/analytics';
 import PdfReader from '@/components/PdfReader';
-import { TwelveCover, FindCard } from '@/components/literature/literature-ui';
+import { Image } from 'expo-image';
+import { FindCard } from '@/components/literature/literature-ui';
+
+// Real cover scan (1290×1700) — shared with the Literature home shelf.
+const TWELVE_COVER = require('@/assets/images/12x12_cover.webp');
 import { twelveAndTwelveData } from '@/constants/twelve-and-twelve';
 import { TWELVE_PDFS } from '@/constants/twelve-and-twelve-pdfs';
 import { searchTwelvePdfs } from '@/lib/pdf-search';
@@ -22,6 +27,8 @@ import { useReadingSession } from '@/hooks/useReadingSession';
 import { useScreenTimeTracking } from '@/hooks/useScreenTimeTracking';
 import { fontFamily, type Tokens } from '@/constants/designTokens';
 import { readerSerif } from '@/constants/fonts';
+import { useReadingSize } from '@/hooks/use-reading-size';
+import { ReadingSizeSheet } from '@/components/ReadingSizeSheet';
 import { useTokens, useThemedStyles } from '@/hooks/useTokens';
 
 const BOOK = 'twelve';
@@ -40,6 +47,11 @@ const findSectionById = (id: string) => SECTIONS.find((s) => s.id === id);
 const RANGED = SECTIONS.map((s) => ({ s, start: parsePage(s.pageNumber) }))
   .filter((x) => x.start > 0)
   .sort((a, b) => a.start - b.start);
+// "24 essays" in the hero — the Steps and Traditions, not the front matter.
+const ESSAY_COUNT = twelveAndTwelveData
+  .filter((g) => g.id !== 'intro')
+  .reduce((n, g) => n + g.sections.length, 0);
+
 function findSectionForPage(page: number): Section | undefined {
   for (let i = 0; i < RANGED.length; i++) {
     const start = RANGED[i].start;
@@ -71,6 +83,8 @@ export default function TwelveAndTwelveScreen() {
   const [query, setQuery] = useState('');
   const [debounced, setDebounced] = useState('');
   const [pageInput, setPageInput] = useState('');
+  const [sizeSheetOpen, setSizeSheetOpen] = useState(false);
+  const insets = useSafeAreaInsets();
 
   useEffect(() => { const t = setTimeout(() => setDebounced(query), 220); return () => clearTimeout(t); }, [query]);
 
@@ -124,26 +138,32 @@ export default function TwelveAndTwelveScreen() {
     <SafeAreaView style={styles.screen} edges={['top']}>
       <Stack.Screen options={{ headerShown: false }} />
       <View style={styles.header}>
-        <BackButton onPress={() => router.back()} style={{ marginBottom: 8 }} />
-        <Text style={styles.title}>Twelve &amp; Twelve</Text>
-        <Text style={styles.sub}>Steps and Traditions</Text>
+        <BackButton onPress={() => router.back()} />
+        <Pressable onPress={() => setSizeSheetOpen(true)} hitSlop={8} accessibilityRole="button" accessibilityLabel="Text size" style={styles.aaBtn}>
+          <Text style={styles.aaLabel}>aA</Text>
+        </Pressable>
       </View>
 
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
-        {/* Hero strip */}
-        <LinearGradient colors={[LAV_SOFT, 'rgba(233,224,246,0)']} style={styles.hero}>
-          <TwelveCover w={72} h={101} />
-          <View style={styles.flex}>
-            <Text style={styles.heroText}>Essays on A.A.’s 24 basic principles — a chapter on each of the Twelve Steps and Twelve Traditions, interpreting them for personal recovery and group life.</Text>
+        {/* Tinted band: cover + title + the find tools, fading into the page so
+            the white find cards read against it. */}
+        <LinearGradient colors={[LAV_SOFT, c.background]} locations={[0.78, 1]} style={styles.band}>
+          <View style={styles.hero}>
+            <Image source={TWELVE_COVER} style={styles.heroCover} contentFit="cover" />
+            <View style={styles.flex}>
+              <Text style={styles.heroTitle}>Twelve & Twelve</Text>
+              <Text style={styles.heroSub}>Steps and Traditions</Text>
+              <Text style={styles.heroMeta}>{ESSAY_COUNT} essays</Text>
+            </View>
+          </View>
+
+          {/* Find tools */}
+          <View style={styles.findRow}>
+            <FindCard Icon={Search} label="Search" accent={TT_INK} soft={LAV_SOFT} variant="outline" onPress={() => setShowSearch(true)} />
+            <FindCard Icon={Hash} label="Go to page" accent={TT_INK} soft={LAV_SOFT} variant="outline" onPress={() => setShowGoTo(true)} />
+            <FindCard Icon={Bookmark} label="Bookmarks" count={bookmarks.length} accent={TT_INK} soft={LAV_SOFT} variant="outline" onPress={() => setShowBookmarks(true)} />
           </View>
         </LinearGradient>
-
-        {/* Find tools */}
-        <View style={styles.findRow}>
-          <FindCard Icon={Search} label="Search" accent={TT_INK} soft={LAV_SOFT} onPress={() => setShowSearch(true)} />
-          <FindCard Icon={Hash} label="Go to page" accent={TT_INK} soft={LAV_SOFT} onPress={() => setShowGoTo(true)} />
-          <FindCard Icon={Bookmark} label="Bookmarks" count={bookmarks.length} accent={TT_INK} soft={LAV_SOFT} onPress={() => setShowBookmarks(true)} />
-        </View>
 
         {/* Grouped Step / Tradition list */}
         <View style={styles.body}>
@@ -154,6 +174,7 @@ export default function TwelveAndTwelveScreen() {
                 <TTRow
                   key={s.id}
                   section={s}
+                  numbered={group.id !== 'intro'}
                   last={i === group.sections.length - 1}
                   onOpen={() => setPdf({ id: s.id, title: s.title, startPage: parsePage(s.pageNumber) })}
                 />
@@ -273,19 +294,45 @@ export default function TwelveAndTwelveScreen() {
           )}
         </View>
       </Modal>
+
+      <ReadingSizeSheet visible={sizeSheetOpen} onClose={() => setSizeSheetOpen(false)} bottomInset={insets.bottom} />
     </SafeAreaView>
   );
 }
 
-function TTRow({ section, last, onOpen }: { section: Section; last: boolean; onOpen: () => void }) {
+// Two row shapes. Front matter is a plain title + page. A Step or Tradition
+// leads with its numeral and puts the Step's own words on the row — the title
+// and page ride above them as an eyebrow, so the list reads like the book.
+function TTRow({ section, numbered, last, onOpen }: { section: Section; numbered: boolean; last: boolean; onOpen: () => void }) {
   const styles = useThemedStyles(makeStyles);
+  const { c } = useTokens();
+  // Entry text rides the shared "Aa" reading scale, like the readers.
+  const { readingSize: size, readingLineHeight: lineHeight } = useReadingSize();
+  const press = ({ pressed }: { pressed: boolean }) => [styles.row, !last && styles.rowBorder, pressed && { opacity: 0.6 }];
+  // The numeral is a glyph for the whole entry, so it centers against the
+  // eyebrow + two-line preview block rather than sitting on the first line.
+  const pressNumbered = ({ pressed }: { pressed: boolean }) => [styles.row, styles.rowCentered, !last && styles.rowBorder, pressed && { opacity: 0.6 }];
+
+  if (!numbered) {
+    return (
+      <Pressable onPress={onOpen} style={press} accessibilityRole="button" accessibilityLabel={section.title}>
+        <Text style={[styles.rowTitle, styles.flex, { fontSize: size, lineHeight }]}>{section.title}</Text>
+        {!!section.pageNumber && <Text style={[styles.rowPage, { lineHeight }]}>{section.pageNumber}</Text>}
+      </Pressable>
+    );
+  }
+
+  const numeral = section.id.match(/(\d+)$/)?.[1];
+  const eyebrow = [section.title, section.pageNumber].filter(Boolean).join(' · ').toUpperCase();
   return (
-    <Pressable onPress={onOpen} style={({ pressed }) => [styles.row, !last && styles.rowBorder, pressed && { opacity: 0.6 }]}>
+    <Pressable onPress={onOpen} style={pressNumbered} accessibilityRole="button" accessibilityLabel={`${section.title}. ${section.description ?? ''}`}>
+      {/* Column is sized for TWO digits — Steps/Traditions 10–12 must not wrap. */}
+      {!!numeral && <Text numberOfLines={1} style={[styles.rowNum, { fontSize: size * 1.6, lineHeight: size * 1.9, width: size * 2.5 }]}>{numeral}</Text>}
       <View style={styles.flex}>
-        <Text style={styles.rowTitle}>{section.title}</Text>
-        {!!section.description && <Text style={styles.rowLine} numberOfLines={1}>{section.description}</Text>}
+        <Text style={styles.rowEyebrow}>{eyebrow}</Text>
+        <Text style={[styles.rowBody, { fontSize: size, lineHeight }]} numberOfLines={2}>{section.description}</Text>
       </View>
-      {!!section.pageNumber && <Text style={styles.rowPage}>{section.pageNumber}</Text>}
+      <ChevronRight size={16} color={c.textMuted} />
     </Pressable>
   );
 }
@@ -297,22 +344,33 @@ const makeStyles = (tk: Tokens) => {
   return StyleSheet.create({
   screen: { flex: 1, backgroundColor: c.background },
   flex: { flex: 1, minWidth: 0 },
-  header: { paddingHorizontal: 22, paddingTop: 8, paddingBottom: 28 },
-  title: { fontFamily: fontFamily.display, fontSize: 28, letterSpacing: -0.5, color: c.text, lineHeight: 29 },
-  sub: { fontFamily: fontFamily.regular, fontSize: 14, color: c.textMuted, marginTop: 4 },
+  header: { paddingHorizontal: 22, paddingTop: 8, paddingBottom: 10, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  aaBtn: { width: 32, height: 32, borderRadius: 16, alignItems: 'center', justifyContent: 'center', backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)' },
+  aaLabel: { fontFamily: fontFamily.bold, fontSize: 13, color: c.textSecondary, letterSpacing: -0.2 },
 
   scroll: { paddingBottom: 40 },
-  hero: { flexDirection: 'row', gap: 14, alignItems: 'center', paddingHorizontal: 20, paddingTop: 10, paddingBottom: 16 },
-  heroText: { fontFamily: fontFamily.regular, fontSize: 12.5, color: c.textSecondary, lineHeight: 18 },
-  findRow: { flexDirection: 'row', gap: 10, paddingHorizontal: 20, paddingTop: 2, paddingBottom: 6 },
+  band: { paddingBottom: 14 },
+  hero: { flexDirection: 'row', gap: 18, alignItems: 'center', paddingHorizontal: 20, paddingTop: 10, paddingBottom: 20 },
+  heroCover: {
+    width: 88, height: 116, borderRadius: 4,
+    shadowColor: '#1F3A4D', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.25, shadowRadius: 9, elevation: 5,
+  },
+  heroTitle: { fontFamily: readerSerif, fontWeight: '700', fontSize: 26, lineHeight: 31, color: c.text },
+  heroSub: { fontFamily: fontFamily.regular, fontSize: 14.5, color: c.textSecondary, marginTop: 6 },
+  heroMeta: { fontFamily: fontFamily.regular, fontSize: 13, color: c.textMuted, marginTop: 3 },
+  findRow: { flexDirection: 'row', gap: 10, paddingHorizontal: 20 },
 
-  body: { paddingHorizontal: 20 },
+  body: { paddingHorizontal: 20, paddingTop: 6 },
   group: { marginTop: 14 },
-  groupLabel: { fontFamily: fontFamily.bold, fontSize: 11, letterSpacing: 1, color: c.textMuted, marginBottom: 2 },
-  row: { flexDirection: 'row', alignItems: 'flex-start', gap: 12, paddingVertical: 12 },
+  groupLabel: { fontFamily: fontFamily.bold, fontSize: 11, letterSpacing: 1, color: c.textMuted, marginBottom: 4 },
+  row: { flexDirection: 'row', alignItems: 'flex-start', gap: 12, paddingVertical: 13 },
+  rowCentered: { alignItems: 'center' },
   rowBorder: { borderBottomWidth: 1, borderBottomColor: c.divider },
-  rowTitle: { fontFamily: fontFamily.semiBold, fontSize: 15, lineHeight: 20, color: c.text },
-  rowLine: { fontFamily: fontFamily.regular, fontSize: 12.5, color: c.textMuted, marginTop: 2, lineHeight: 17 },
+  rowTitle: { fontFamily: readerSerif, fontSize: 16.5, lineHeight: 22, color: c.text },
+  // Step / Tradition numeral — pale teal serif, a column of its own.
+  rowNum: { fontFamily: readerSerif, fontWeight: '700', color: colors.primaryLight, textAlign: 'center' },
+  rowEyebrow: { fontFamily: fontFamily.bold, fontSize: 11, letterSpacing: 0.9, color: c.textMuted, marginBottom: 2 },
+  rowBody: { fontFamily: readerSerif, fontSize: 16.5, lineHeight: 22, color: c.text },
   rowPage: { fontFamily: fontFamily.regular, fontSize: 12.5, lineHeight: 20, color: c.textMuted, flexShrink: 0 },
   copyright: { fontFamily: fontFamily.regular, fontSize: 10, color: c.textMuted, textAlign: 'center', marginTop: 20, lineHeight: 15 },
 

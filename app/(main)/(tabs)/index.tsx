@@ -371,24 +371,23 @@ export default function TodayScreen() {
           onToggle={dailies.toggleReflection}
         />
       </View>
-      {/* Edit control lives with the dailies list (not the page): a pencil above
-          the first section, toggling to "Save" while editing. ("Done" is reserved
-          for the per-daily completion buttons.) */}
-      <View style={styles.editBar}>
-        <Pressable
-          hitSlop={12}
-          onPress={toggleEditing}
-          accessibilityRole="button"
-          accessibilityLabel={editing ? 'Save dailies' : 'Edit dailies'}
-          style={styles.editBtn}
-        >
-          {editing ? (
+      {/* While editing, "Save" sits above the list (the editor renders its own
+          rows). Outside editing, the pencil lives in the first section's header
+          row instead — see the sections map below. ("Done" is reserved for the
+          per-daily completion buttons.) */}
+      {editing && (
+        <View style={styles.editBar}>
+          <Pressable
+            hitSlop={12}
+            onPress={toggleEditing}
+            accessibilityRole="button"
+            accessibilityLabel="Save dailies"
+            style={styles.editBtn}
+          >
             <Text style={styles.editToggle}>Save</Text>
-          ) : (
-            <Pencil size={20} color={colors.primaryDark} strokeWidth={2} />
-          )}
-        </Pressable>
-      </View>
+          </Pressable>
+        </View>
+      )}
     </>
   );
 
@@ -415,9 +414,24 @@ export default function TodayScreen() {
           {SECTIONS.map((when) => {
             const items = dailies.section(when);
             if (items.length === 0) return null;
+            // The edit pencil sits across from the FIRST visible section title.
+            const showPencil = when === SECTIONS.find((w) => dailies.section(w).length > 0);
             return (
               <View key={when} style={styles.section}>
-                <Text style={[styles.sectionTitle, { color: c.text }]}>{when}</Text>
+                <View style={styles.sectionHead}>
+                  <Text style={[styles.sectionTitle, { color: c.text }]}>{when}</Text>
+                  {showPencil && (
+                    <Pressable
+                      hitSlop={12}
+                      onPress={toggleEditing}
+                      accessibilityRole="button"
+                      accessibilityLabel="Edit dailies"
+                      style={styles.editBtn}
+                    >
+                      <Pencil size={20} color={colors.primaryDark} strokeWidth={2} />
+                    </Pressable>
+                  )}
+                </View>
                 <View style={styles.ledger}>
                   {items.map((item, idx) => (
                     <DailyRow
@@ -471,6 +485,8 @@ const makeStyles = (tk: Tokens) => {
   // Pencil (→ "Save") sits with the dailies list, right-aligned above the first
   // section. Negative marginBottom trims the following section's own marginTop.
   editBar: { alignItems: 'flex-end', marginTop: spacing.md, marginBottom: -34, zIndex: 1 },
+  // Section title row: title left, edit pencil directly across on the same line.
+  sectionHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 },
   // Roomy hit area so the pencil / "Save" is easy to tap (was a bare glyph before).
   // The negative editBar marginBottom above pulls Morning up close under it.
   editBtn: { paddingVertical: 6, paddingHorizontal: 12, marginRight: -4 },
@@ -478,7 +494,7 @@ const makeStyles = (tk: Tokens) => {
 
   heroTop: { marginTop: spacing.xl },
   section: { marginTop: spacing.xl },
-  sectionTitle: { fontFamily: fontFamily.semiBold, fontSize: fontSize.xl, marginBottom: 12 },
+  sectionTitle: { fontFamily: fontFamily.semiBold, fontSize: fontSize.xl },
   // Drag-list cells use padding (not margin) so onLayout heights stay correct.
   dragHeader: { paddingTop: spacing.xl, paddingBottom: 12 },
   dragHeaderText: { marginBottom: 0 },

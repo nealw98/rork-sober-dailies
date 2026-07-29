@@ -1252,3 +1252,106 @@ Unchanged from §11 (AAB upload → edge-to-edge QA → bundle the OTA → launc
 flips). Note for the OTA bundling: today's 12.1 items are OTA-safe; 12.2's JS
 is OTA-safe but inert until the next binary; 12.3's migration file should ride
 the same commit.
+
+---
+
+## 13. Latest session — 2026-07-28…29 (Android launch work · Literature redesign)
+
+**Status: two commits SHIPPED as production OTAs; a third bundle of
+Literature/Today work is UNCOMMITTED on `3.0.5-redesign` (see 13.4).**
+
+### 13.1 Android launch checklist — mostly CLEARED
+
+Canonical list is `docs/LAUNCH-CHECKLIST.md` (committed in `929652e3`); §1–§3
+there track live state. What happened this session:
+
+- **AAB build 130 uploaded to Play open testing by Neal** — API-36 policy
+  warning cleared.
+- **Edge-to-edge QA PASSED** on the API-36 emulator using the exact store
+  AAB (universal APK): onboarding, paywall, milestone takeover, Today, tab
+  band/FAB, all tabs, dark mode, chat. One find: "1 years" plural bug (fixed,
+  shipped).
+- **Play license testers were ALREADY set up** (stale memory said otherwise).
+  Subscriptions exist on both stores at current prices. Remaining: Neal runs
+  one test purchase on a Play-installed device ("Test card, always approves").
+- **Android paywall X REMOVED** (shipped): gates back to `__DEV__` only —
+  dev/simulator builds keep the X, store builds get the hard wall.
+- **v3 pricing decision PARKED** (checklist §2): raise prices without touching
+  v2 subscribers — Option A (native store price-increase flows, preserve
+  existing) vs B (new SKUs + RC rewire). Grandfather hardening gates it.
+- **Google Drive backup ACTIVATED.** Google Cloud OAuth fully configured in
+  Chrome with Neal: project **`sober-dailies` under soberdailies@gmail.com**
+  (NOT nealw98 — an abandoned duplicate project under nealw98 can be
+  deleted); Drive API on; consent screen published to production;
+  `drive.appdata` scope classified NON-sensitive (no verification ever);
+  two Android OAuth clients (Play app-signing SHA-1 `59:71:0F:…:1F:E1` +
+  EAS upload SHA-1 `32:7B:FD:…:0B:BB`). Gotcha: the Play SHA-1 pair was
+  already registered as "Android client 3" in the DAILY PATHS project (a
+  stranded 7/9 attempt) — deleted there (restorable 30 d), recreated in the
+  right project. Code flip `cloudBackupSupported()` → `driveAuthSupported()`
+  SHIPPED; **no rebuild needed** (build 130 already contains the native
+  modules). Remaining: device E2E after OTA + privacy-wording pass.
+
+### 13.2 Shipped OTA #1 — `929652e3` (update group `fce597ce`)
+
+Launch-prep bundle: Android hard paywall, Drive-backup flip, day-5 trial
+reminder JS (inert till next binary), 7/27 UI polish, storage migration file,
+feeling-aware Spot Check offline fallbacks (per-persona × resentment/fear/
+shame/generic, keyed off the tapped feeling chips — replaces the one canned
+line), "1 year" plural fix, Settings gift row → "Pass It On / Give 3 months
+of Sober Dailies", `docs/LAUNCH-CHECKLIST.md`.
+
+### 13.3 Shipped OTA #2 — `f372d102` (update group `a5642d88`)
+
+- Meeting Reading reader: shared **aA** text-size button (Prayers pattern).
+- Literature "Meeting Readings" header display/22 (was displayBold/26).
+- Sponsor chat keyboard now dismissable: tap the conversation to blur +
+  `keyboardDismissMode` (iOS interactive drag / Android on-drag).
+
+### 13.4 UNCOMMITTED — the next OTA bundle (all verified on iOS sim)
+
+- **Today:** edit pencil moved INTO the first visible section's header row
+  (same line as "Morning"); editing-only "Save" bar; negative-margin hack
+  gone. Canned action subtitles **default OFF** (`use-dailies-store.ts`
+  default false; stored Debug-Console toggle still wins; user-entered
+  subtitles like sponsor name unaffected).
+- **Literature home redesign** (per Neal's mock): real cover scans
+  (`assets/images/big-book_cover.webp`, `12x12_cover.webp`, both 1290×1700,
+  NEW ASSETS — ride the OTA) are the buttons themselves — no cards, no
+  shelf (shelf was built, then removed on request); serif titles beneath;
+  subtitle "The texts of recovery, always with you."; ALL 6 Meeting Readings
+  listed inline, title-only cards (subs removed), no "See all"/second page
+  (meeting-readings.tsx still exists for the Meetings-screen path).
+- **Both TOCs restyled** (per Neal's 2nd mock): title block = cover + serif
+  title + minimal subtitle (meta lines removed on request); serif entries;
+  Big Book gets navy numeral column + chapter page RANGES (computed from
+  next chapter's start, ending 164); NO progress indicators (explicit);
+  entry text rides the shared Aa ladder (`useReadingSize`); **aA button
+  added to both TOC headers** (opens ReadingSizeSheet).
+- **Built-then-REMOVED:** SM F-56 "Discussion Topics" custom screen (draw-a-
+  topic + 42 chips + General Ideas) — Neal didn't like it; fully deleted.
+  The old drawn `BigBookCover`/`TwelveCover` components in literature-ui are
+  now unused (cleanup-pass fodder, with `PREVIEW_READING_IDS`).
+
+### 13.5 Notes
+
+- Sim automation gotchas: dev-client bundle reloads need terminate+relaunch
+  (fast refresh unreliable mid-session); the iOS sim keyboard won't render
+  (hardware-keyboard mode sticks) — blur-state is the dismissal proxy.
+  A stray automation tap DELETED the sim's 2 test Big Book highlights
+  (sim-only data; Neal's devices unaffected).
+- Working style (now in memory): per checklist item, state believed status →
+  Neal confirms → agree action → act. Console/device state goes stale between
+  sessions; verify with EAS/Play/live systems, not notes.
+
+### 13.6 Next actions
+
+1. Neal: Android test purchase on a Play-installed device (last gate for the
+   billing path).
+2. Bundle + OTA the 13.4 work when Neal says go.
+3. After that OTA: Drive-backup E2E on his Android (Settings → Backup &
+   Restore → Connect; DEVELOPER_ERROR right after setup = OAuth propagation,
+   wait and retry).
+4. Privacy/terms wording pass (Drive/iCloud backup) — Neal drafts.
+5. Launch flips (checklist §1): PASSES_ENABLED, analytics env, QA toggle,
+   runtime bump, `anonymous_id` trust fix.

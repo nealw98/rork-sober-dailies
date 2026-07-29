@@ -7,12 +7,16 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { View, Text, Pressable, StyleSheet, ScrollView, Modal, TextInput, Keyboard } from 'react-native';
 import { KeyboardModalScope } from '@/components/KeyboardModalScope';
-import { SafeAreaView, SafeAreaProvider, initialWindowMetrics } from 'react-native-safe-area-context';
+import { SafeAreaView, SafeAreaProvider, initialWindowMetrics, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { ChevronRight, Bookmark, Hash, X, Trash2, Search, Highlighter } from 'lucide-react-native';
 import BackButton from '@/components/BackButton';
-import { BigBookCover, FindCard } from '@/components/literature/literature-ui';
+import { Image } from 'expo-image';
+import { FindCard } from '@/components/literature/literature-ui';
+
+// Real cover scan (1290×1700) — shared with the Literature home shelf.
+const BIG_BOOK_COVER = require('@/assets/images/big-book_cover.webp');
 import { BIGBOOK_TOC, findEntryById, findEntryByPdfKey, findEntryForPage, type TocEntry } from '@/constants/bigbook-toc';
 import { useBigBookBookmarks } from '@/hooks/use-bigbook-bookmarks';
 import { useBigBookHighlights } from '@/hooks/use-bigbook-highlights';
@@ -24,6 +28,8 @@ import { getChapterMeta } from '@/constants/bigbook-v2/metadata';
 import { formatPageNumber } from '@/lib/bigbook-page-utils';
 import { fontFamily, type Tokens } from '@/constants/designTokens';
 import { readerSerif } from '@/constants/fonts';
+import { useReadingSize } from '@/hooks/use-reading-size';
+import { ReadingSizeSheet } from '@/components/ReadingSizeSheet';
 import { useTokens, useThemedStyles } from '@/hooks/useTokens';
 
 const BOOK = 'bigbook';
@@ -50,6 +56,8 @@ export function BigBookContents({ onOpenText, onOpenPdf, onOpenTextAtParagraph }
   const [showSearch, setShowSearch] = useState(false);
   const [query, setQuery] = useState('');
   const [debounced, setDebounced] = useState('');
+  const [sizeSheetOpen, setSizeSheetOpen] = useState(false);
+  const insets = useSafeAreaInsets();
 
   useEffect(() => {
     const t = setTimeout(() => setDebounced(query), 220);
@@ -150,16 +158,19 @@ export function BigBookContents({ onOpenText, onOpenPdf, onOpenTextAtParagraph }
   return (
     <SafeAreaView style={styles.screen} edges={['top']}>
       <View style={styles.header}>
-        <BackButton onPress={() => router.back()} style={{ marginBottom: 8 }} />
-        <Text style={styles.title}>Alcoholics Anonymous</Text>
-        <Text style={styles.sub}>Big Book · 4th edition</Text>
+        <BackButton onPress={() => router.back()} />
+        <Pressable onPress={() => setSizeSheetOpen(true)} hitSlop={8} accessibilityRole="button" accessibilityLabel="Text size" style={styles.aaBtn}>
+          <Text style={styles.aaLabel}>aA</Text>
+        </Pressable>
       </View>
 
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
+        {/* Title block: cover + book title together, minimal subtitle. */}
         <LinearGradient colors={[AMBER_SOFT, 'rgba(252,240,222,0)']} style={styles.hero}>
-          <BigBookCover w={72} h={101} />
+          <Image source={BIG_BOOK_COVER} style={styles.heroCover} contentFit="cover" />
           <View style={styles.flex}>
-            <Text style={styles.heroText}>Also known as the “Big Book,” Alcoholics Anonymous presents the A.A. program for recovery from alcoholism. First published in 1939, it sets out to show other alcoholics how A.A.’s first 100 members got sober.</Text>
+            <Text style={styles.heroTitle}>Alcoholics Anonymous</Text>
+            <Text style={styles.heroSub}>The Big Book · 4th edition</Text>
           </View>
         </LinearGradient>
 
@@ -178,9 +189,27 @@ export function BigBookContents({ onOpenText, onOpenPdf, onOpenTextAtParagraph }
                 <Text style={styles.groupLabel}>{g.label.toUpperCase()}</Text>
                 {!!g.sub && <Text style={styles.groupSub}>{g.sub}</Text>}
               </View>
-              {g.entries.map((e, i) => (
-                <Row key={e.id} entry={e} last={i === g.entries.length - 1} onPress={() => open(e)} />
-              ))}
+              {g.entries.map((e, i) => {
+                // Numbered chapters get a numeral column and a page RANGE
+                // (start–end, ending at the next chapter or the book's 164).
+                const m = e.title.match(/^(\d+)\.\s+(.*)$/);
+                let pageLabel = `p. ${e.page}`;
+                if (m) {
+                  const next = g.entries[i + 1];
+                  const end = next ? parseInt(next.page, 10) - 1 : 164;
+                  pageLabel = Number.isFinite(end) ? `${e.page}–${end}` : `p. ${e.page}`;
+                }
+                return (
+                  <Row
+                    key={e.id}
+                    num={m?.[1]}
+                    title={m ? m[2] : e.title}
+                    pageLabel={pageLabel + (e.note ? ` · ${e.note}` : '')}
+                    last={i === g.entries.length - 1}
+                    onPress={() => open(e)}
+                  />
+                );
+              })}
             </View>
           ))}
           <Text style={styles.copyright}>Copyright © Alcoholics Anonymous World Services, Inc.</Text>
@@ -309,16 +338,21 @@ export function BigBookContents({ onOpenText, onOpenPdf, onOpenTextAtParagraph }
         </Pressable>
         </KeyboardModalScope>
       </Modal>
+
+      <ReadingSizeSheet visible={sizeSheetOpen} onClose={() => setSizeSheetOpen(false)} bottomInset={insets.bottom} />
     </SafeAreaView>
   );
 }
 
-function Row({ entry, last, onPress }: { entry: TocEntry; last: boolean; onPress: () => void }) {
+function Row({ num, title, pageLabel, last, onPress }: { num?: string; title: string; pageLabel: string; last: boolean; onPress: () => void }) {
   const styles = useThemedStyles(makeStyles);
+  // Entry text rides the shared "Aa" reading scale, like the readers.
+  const { readingSize: size, readingLineHeight: lineHeight } = useReadingSize();
   return (
     <Pressable onPress={onPress} style={({ pressed }) => [styles.row, !last && styles.rowBorder, pressed && { opacity: 0.6 }]}>
-      <Text style={[styles.rowTitle, styles.flex]} numberOfLines={2}>{entry.title}</Text>
-      <Text style={styles.rowPage}>p. {entry.page}{entry.note ? ` · ${entry.note}` : ''}</Text>
+      {num !== undefined && <Text style={[styles.rowNum, { fontSize: size * 1.2, lineHeight, width: size * 1.6 }]}>{num}</Text>}
+      <Text style={[styles.rowTitle, styles.flex, { fontSize: size, lineHeight }]} numberOfLines={2}>{title}</Text>
+      <Text style={[styles.rowPage, { lineHeight }]}>{pageLabel}</Text>
     </Pressable>
   );
 }
@@ -331,13 +365,18 @@ const makeStyles = (tk: Tokens) => {
   return StyleSheet.create({
   screen: { flex: 1, backgroundColor: c.background },
   flex: { flex: 1, minWidth: 0 },
-  header: { paddingHorizontal: 22, paddingTop: 8, paddingBottom: 6 },
-  title: { fontFamily: fontFamily.display, fontSize: 28, letterSpacing: -0.5, color: c.text, lineHeight: 29 },
-  sub: { fontFamily: fontFamily.regular, fontSize: 14, color: c.textMuted, marginTop: 4 },
+  header: { paddingHorizontal: 22, paddingTop: 8, paddingBottom: 6, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  aaBtn: { width: 32, height: 32, borderRadius: 16, alignItems: 'center', justifyContent: 'center', backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)' },
+  aaLabel: { fontFamily: fontFamily.bold, fontSize: 13, color: c.textSecondary, letterSpacing: -0.2 },
 
   scroll: { paddingBottom: 40 },
-  hero: { flexDirection: 'row', gap: 14, alignItems: 'center', paddingHorizontal: 20, paddingTop: 10, paddingBottom: 16 },
-  heroText: { fontFamily: fontFamily.regular, fontSize: 12.5, color: c.textSecondary, lineHeight: 18 },
+  hero: { flexDirection: 'row', gap: 16, alignItems: 'center', paddingHorizontal: 20, paddingTop: 12, paddingBottom: 18 },
+  heroCover: {
+    width: 88, height: 116, borderRadius: 4,
+    shadowColor: '#1F3A4D', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.25, shadowRadius: 9, elevation: 5,
+  },
+  heroTitle: { fontFamily: readerSerif, fontWeight: '700', fontSize: 23, lineHeight: 28, color: c.text },
+  heroSub: { fontFamily: fontFamily.regular, fontSize: 13.5, color: c.textSecondary, marginTop: 5 },
 
   findRow: { flexDirection: 'row', gap: 10, paddingHorizontal: 20, paddingTop: 2, paddingBottom: 6 },
 
@@ -346,12 +385,14 @@ const makeStyles = (tk: Tokens) => {
   groupHead: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 2 },
   groupLabel: { fontFamily: fontFamily.bold, fontSize: 11, letterSpacing: 1, color: c.textMuted },
   groupSub: { fontFamily: fontFamily.regular, fontSize: 10.5, color: c.textMuted },
-  row: { flexDirection: 'row', alignItems: 'flex-start', gap: 12, paddingVertical: 12 },
+  row: { flexDirection: 'row', alignItems: 'flex-start', gap: 12, paddingVertical: 13 },
   rowBorder: { borderBottomWidth: 1, borderBottomColor: c.divider },
-  rowTitle: { fontFamily: fontFamily.semiBold, fontSize: 15, lineHeight: 20, color: c.text },
+  // Chapter numeral column — navy serif, sized to sit with the serif titles.
+  rowNum: { fontFamily: readerSerif, fontWeight: '700', fontSize: 20, lineHeight: 22, color: AMBER_INK, width: 26, textAlign: 'center' },
+  rowTitle: { fontFamily: readerSerif, fontSize: 16.5, lineHeight: 22, color: c.text },
   pdfTag: { paddingHorizontal: 6, paddingVertical: 2, borderRadius: 5, backgroundColor: AMBER_SOFT },
   pdfTagText: { fontFamily: fontFamily.bold, fontSize: 9.5, letterSpacing: 0.4, color: AMBER_INK },
-  rowPage: { fontFamily: fontFamily.regular, fontSize: 12.5, lineHeight: 20, color: c.textMuted },
+  rowPage: { fontFamily: fontFamily.regular, fontSize: 12.5, lineHeight: 22, color: c.textMuted },
   copyright: { fontFamily: fontFamily.regular, fontSize: 10, color: c.textMuted, textAlign: 'center', marginTop: 22, lineHeight: 15 },
 
   // bookmarks sheet

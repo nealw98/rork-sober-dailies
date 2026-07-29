@@ -147,8 +147,9 @@ export const [DailiesProvider, useDailies] = createContextHook(() => {
   const [isLoading, setIsLoading] = useState(true);
   // Developer Console toggle: show the canned action subtitles ("Set your
   // intention", …) on Today / edit mode / the Add sheet. User-entered
-  // subtitles (sponsor name, custom notes) are unaffected.
-  const [showSubtitles, setShowSubtitlesState] = useState(true);
+  // subtitles (sponsor name, custom notes) are unaffected. OFF by default
+  // (2026-07-28); a stored toggle value still wins.
+  const [showSubtitles, setShowSubtitlesState] = useState(false);
   // The current local day. Kept fresh so checkmarks (and the Today reflection)
   // roll over at the user's midnight — on app-foreground and once a minute —
   // without needing a relaunch.

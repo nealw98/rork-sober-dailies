@@ -1,41 +1,33 @@
-// Literature home (redesign 3.0), per hifi-literature.jsx ScreenLibrary:
-// a book-cover hero grid (Big Book + 12 & 12) and Meeting Readings folded in as
-// a major category (3 preview cards + "See all"). The Big Book and 12 & 12
-// readers are the existing routes; Meeting Readings live entirely in-app.
+// Literature home (redesign 3.0): the two books as real cover photos sitting
+// on a shelf — the images themselves are the buttons, no card/container —
+// with serif titles beneath, and Meeting Readings listed in full below.
+// The Big Book and 12 & 12 readers are the existing routes; Meeting Readings
+// live entirely in-app.
 import React from 'react';
 import { View, Text, Pressable, StyleSheet, ScrollView } from 'react-native';
+import { Image } from 'expo-image';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Stack, useRouter } from 'expo-router';
-import { LinearGradient } from 'expo-linear-gradient';
-import { ChevronRight } from 'lucide-react-native';
 import SettingsGear from '@/components/navigation/SettingsGear';
 import PassItOnGift from '@/components/navigation/PassItOnGift';
-import { BigBookCover, TwelveCover, MeetingReadingCard } from '@/components/literature/literature-ui';
-import { MEETING_READINGS, PREVIEW_READING_IDS, getMeetingReading } from '@/constants/meeting-readings';
+import { MeetingReadingCard } from '@/components/literature/literature-ui';
+import { MEETING_READINGS } from '@/constants/meeting-readings';
 import { useReadingSession } from '@/hooks/useReadingSession';
 import { useScreenTimeTracking } from '@/hooks/useScreenTimeTracking';
-import { fontFamily, families, type Tokens } from '@/constants/designTokens';
-import { useTokens, useThemedStyles } from '@/hooks/useTokens';
+import { readerSerif } from '@/constants/fonts';
+import { fontFamily, type Tokens } from '@/constants/designTokens';
+import { useThemedStyles } from '@/hooks/useTokens';
+
+const BIG_BOOK_COVER = require('@/assets/images/big-book_cover.webp');
+const TWELVE_COVER = require('@/assets/images/12x12_cover.webp');
+// Both cover scans are 1290×1700.
+const COVER_ASPECT = 1290 / 1700;
 
 export default function LiteratureScreen() {
   useReadingSession('literature');
   useScreenTimeTracking('Literature');
   const router = useRouter();
   const styles = useThemedStyles(makeStyles);
-  const { isDark, colors, tone } = useTokens();
-  const previews = PREVIEW_READING_IDS.map(getMeetingReading).filter(Boolean);
-
-  // Literature is a Steel Navy tool; brighten the link ink on dark.
-  const linkInk = isDark ? colors.steel : families.steel[700];
-
-  // Book-cover cards: tinted gradients in light; soft family washes on dark
-  // (neutral surfaces never take opaque tints on dark — handoff).
-  const steelCard = isDark
-    ? { grad: [tone('steel').soft, tone('steel').soft] as const, border: 'rgba(124,155,219,0.30)' }
-    : { grad: [families.steel[100], families.steel[200]] as const, border: families.steel[300] };
-  const tealCard = isDark
-    ? { grad: [tone('teal').soft, tone('teal').soft] as const, border: 'rgba(79,179,172,0.30)' }
-    : { grad: [families.teal[100], families.teal[200]] as const, border: families.teal[300] };
 
   return (
     <SafeAreaView style={styles.screen} edges={['top']}>
@@ -43,32 +35,35 @@ export default function LiteratureScreen() {
       <View style={styles.header}>
         <View style={styles.flexFill}>
           <Text style={styles.title}>Literature</Text>
-          <Text style={styles.sub}>Read A.A. recovery texts.</Text>
+          <Text style={styles.sub}>The texts of recovery, always with you.</Text>
         </View>
         <PassItOnGift style={styles.giftBtn} />
         <SettingsGear style={styles.gear} />
       </View>
 
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
-        {/* Hero books */}
-        <View style={styles.grid}>
-          <Pressable onPress={() => router.push('/(main)/bigbook')} style={({ pressed }) => [styles.bookCardWrap, pressed && { opacity: 0.9 }]}>
-            <LinearGradient colors={steelCard.grad} start={{ x: 0.2, y: 0 }} end={{ x: 0.8, y: 1 }} style={[styles.bookCard, { borderColor: steelCard.border }]}>
-              <BigBookCover w={92} h={128} />
-              <View style={styles.bookText}>
-                <Text style={styles.bookTitle}>Alcoholics{'\n'}Anonymous</Text>
-              </View>
-            </LinearGradient>
+        {/* Hero books: bare cover images on a shelf — the covers ARE the buttons. */}
+        <View style={styles.booksRow}>
+          <Pressable
+            onPress={() => router.push('/(main)/bigbook')}
+            style={({ pressed }) => [styles.bookBtn, pressed && { opacity: 0.85 }]}
+            accessibilityRole="button"
+            accessibilityLabel="Alcoholics Anonymous"
+          >
+            <Image source={BIG_BOOK_COVER} style={styles.bookImg} contentFit="contain" />
           </Pressable>
-
-          <Pressable onPress={() => router.push('/(main)/twelve-and-twelve')} style={({ pressed }) => [styles.bookCardWrap, pressed && { opacity: 0.9 }]}>
-            <LinearGradient colors={tealCard.grad} start={{ x: 0.2, y: 0 }} end={{ x: 0.8, y: 1 }} style={[styles.bookCard, { borderColor: tealCard.border }]}>
-              <TwelveCover w={92} h={128} />
-              <View style={styles.bookText}>
-                <Text style={styles.bookTitle}>Twelve Steps &{'\n'}Twelve Traditions</Text>
-              </View>
-            </LinearGradient>
+          <Pressable
+            onPress={() => router.push('/(main)/twelve-and-twelve')}
+            style={({ pressed }) => [styles.bookBtn, pressed && { opacity: 0.85 }]}
+            accessibilityRole="button"
+            accessibilityLabel="Twelve Steps and Twelve Traditions"
+          >
+            <Image source={TWELVE_COVER} style={styles.bookImg} contentFit="contain" />
           </Pressable>
+        </View>
+        <View style={styles.titlesRow}>
+          <Text style={styles.bookTitle}>Alcoholics{'\n'}Anonymous</Text>
+          <Text style={styles.bookTitle}>Twelve Steps &{'\n'}Twelve Traditions</Text>
         </View>
 
         {/* Meeting Readings — a major category */}
@@ -79,13 +74,9 @@ export default function LiteratureScreen() {
         </View>
 
         <View style={styles.readingList}>
-          {previews.map((r) => (
-            <MeetingReadingCard key={r!.id} reading={r!} onPress={() => router.push(`/(main)/meeting-reading?id=${r!.id}`)} />
+          {MEETING_READINGS.map((r) => (
+            <MeetingReadingCard key={r.id} reading={r} onPress={() => router.push(`/(main)/meeting-reading?id=${r.id}`)} />
           ))}
-          <Pressable onPress={() => router.push('/(main)/meeting-readings')} style={({ pressed }) => [styles.seeAll, pressed && { opacity: 0.7 }]}>
-            <Text style={[styles.seeAllText, { color: linkInk }]}>See all {MEETING_READINGS.length} readings</Text>
-            <ChevronRight size={13} color={linkInk} />
-          </Pressable>
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -107,11 +98,16 @@ const makeStyles = (tk: Tokens) => {
 
     // Clears the floating tab bar (Literature lives in the tab group now).
     scroll: { paddingBottom: 130 },
-    grid: { flexDirection: 'row', gap: 12, paddingHorizontal: 16, paddingTop: 6 },
-    bookCardWrap: { flex: 1 },
-    bookCard: { flex: 1, borderWidth: 1, borderRadius: 18, padding: 16, alignItems: 'center', gap: 12 },
-    bookText: { alignItems: 'center', width: '100%' },
-    bookTitle: { fontFamily: fontFamily.display, fontSize: 16, color: c.text, lineHeight: 19, letterSpacing: -0.2, textAlign: 'center' },
+    // Hero: bare covers, titles beneath.
+    booksRow: { flexDirection: 'row', gap: 22, paddingHorizontal: 30, alignItems: 'flex-end' },
+    bookBtn: {
+      flex: 1,
+      // Lift the cover off the page (the image is the whole button).
+      shadowColor: '#1F3A4D', shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.28, shadowRadius: 14, elevation: 7,
+    },
+    bookImg: { width: '100%', aspectRatio: COVER_ASPECT },
+    titlesRow: { flexDirection: 'row', gap: 22, paddingHorizontal: 30, marginTop: 20 },
+    bookTitle: { flex: 1, fontFamily: readerSerif, fontWeight: '700', fontSize: 17.5, color: c.text, lineHeight: 23, textAlign: 'center' },
 
     divider: { height: 1, backgroundColor: c.divider, marginHorizontal: 16, marginTop: 34 },
     catHead: { paddingHorizontal: 22, paddingTop: 16, paddingBottom: 10 },
@@ -119,7 +115,5 @@ const makeStyles = (tk: Tokens) => {
     catSub: { fontFamily: fontFamily.regular, fontSize: 13, color: c.textSecondary, marginTop: 4 },
 
     readingList: { paddingHorizontal: 16, gap: 8 },
-    seeAll: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 12, marginTop: 2, borderRadius: 12, borderWidth: 1, borderColor: c.border, borderStyle: 'dashed' },
-    seeAllText: { fontFamily: fontFamily.semiBold, fontSize: 13 },
   });
 };
