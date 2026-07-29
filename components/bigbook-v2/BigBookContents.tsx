@@ -190,32 +190,26 @@ export function BigBookContents({ onOpenText, onOpenPdf, onOpenTextAtParagraph }
                 {!!g.sub && <Text style={styles.groupSub}>{g.sub}</Text>}
               </View>
               {g.entries.map((e, i) => {
-                // Numbered chapters follow the 12 & 12 shape: numeral, the title
-                // as the hero, and a caption carrying the page RANGE (start–end,
-                // ending at the next chapter or the book's 164). The chapter
-                // number is NOT repeated in the caption — the numeral has it.
+                // Every entry takes the 12 & 12 shape: the title as the hero and
+                // its page metadata in a caption underneath, with a chevron to
+                // open it. Chapters add a numeral and carry a page RANGE
+                // (start–end, ending at the next chapter or the book's 164); the
+                // chapter number is NOT repeated in the caption. Front matter,
+                // stories and appendices have no numeral and a single page.
                 const m = e.title.match(/^(\d+)\.\s+(.*)$/);
-                const note = e.note ? ` · ${e.note}` : '';
+                const note = e.note ? ` · ${e.note.toUpperCase()}` : '';
+                let caption = `PAGE ${e.page.toUpperCase()}`;
                 if (m) {
                   const next = g.entries[i + 1];
                   const end = next ? parseInt(next.page, 10) - 1 : 164;
-                  const range = Number.isFinite(end) ? `${e.page}–${end}` : e.page;
-                  return (
-                    <Row
-                      key={e.id}
-                      num={m[1]}
-                      title={m[2]}
-                      caption={`PAGES ${range}${note.toUpperCase()}`}
-                      last={i === g.entries.length - 1}
-                      onPress={() => open(e)}
-                    />
-                  );
+                  caption = Number.isFinite(end) ? `PAGES ${e.page}–${end}` : `PAGE ${e.page}`;
                 }
                 return (
                   <Row
                     key={e.id}
-                    title={e.title}
-                    pageLabel={`p. ${e.page}${note}`}
+                    num={m?.[1]}
+                    title={m ? m[2] : e.title}
+                    caption={caption + note}
                     last={i === g.entries.length - 1}
                     onPress={() => open(e)}
                   />
@@ -355,30 +349,24 @@ export function BigBookContents({ onOpenText, onOpenPdf, onOpenTextAtParagraph }
   );
 }
 
-// Two row shapes, matching the 12 & 12. A numbered chapter leads with its
-// numeral, gives the line to the title, and carries its page range in a caption
-// underneath with a chevron to open it. Everything else (front matter, stories,
-// appendices) stays a plain title + page.
-function Row({ num, title, pageLabel, caption, last, onPress }: { num?: string; title: string; pageLabel?: string; caption?: string; last: boolean; onPress: () => void }) {
+// One row shape for the whole Contents, matching the 12 & 12: the title gets the
+// line, its page metadata follows in a caption underneath, and a chevron opens
+// it. Chapters add a numeral column in front; everything else starts at the
+// margin.
+function Row({ num, title, caption, last, onPress }: { num?: string; title: string; caption?: string; last: boolean; onPress: () => void }) {
   const styles = useThemedStyles(makeStyles);
   const { c } = useTokens();
   // Entry text rides the shared "Aa" reading scale, like the readers.
   const { readingSize: size, readingLineHeight: lineHeight } = useReadingSize();
-  const press = ({ pressed }: { pressed: boolean }) => [styles.row, !last && styles.rowBorder, pressed && { opacity: 0.6 }];
-
-  if (num === undefined) {
-    return (
-      <Pressable onPress={onPress} style={press} accessibilityRole="button" accessibilityLabel={title}>
-        <Text style={[styles.rowTitle, styles.flex, { fontSize: size, lineHeight }]} numberOfLines={2}>{title}</Text>
-        {!!pageLabel && <Text style={[styles.rowPage, { lineHeight }]}>{pageLabel}</Text>}
-      </Pressable>
-    );
-  }
-
   return (
-    <Pressable onPress={onPress} style={press} accessibilityRole="button" accessibilityLabel={`Chapter ${num}. ${title}`}>
+    <Pressable
+      onPress={onPress}
+      style={({ pressed }) => [styles.row, !last && styles.rowBorder, pressed && { opacity: 0.6 }]}
+      accessibilityRole="button"
+      accessibilityLabel={num !== undefined ? `Chapter ${num}. ${title}` : title}
+    >
       {/* Numeral rides the title's line; column sized for two digits (10, 11). */}
-      <Text numberOfLines={1} style={[styles.rowNum, { fontSize: size * 1.2, lineHeight, width: size * 1.8 }]}>{num}</Text>
+      {num !== undefined && <Text numberOfLines={1} style={[styles.rowNum, { fontSize: size * 1.2, lineHeight, width: size * 1.8 }]}>{num}</Text>}
       <View style={styles.flex}>
         <Text style={[styles.rowTitle, { fontSize: size, lineHeight }]} numberOfLines={2}>{title}</Text>
         {!!caption && <Text style={styles.rowCaption}>{caption}</Text>}
@@ -426,7 +414,6 @@ const makeStyles = (tk: Tokens) => {
   rowChevron: { alignSelf: 'center' },
   pdfTag: { paddingHorizontal: 6, paddingVertical: 2, borderRadius: 5, backgroundColor: AMBER_SOFT },
   pdfTagText: { fontFamily: fontFamily.bold, fontSize: 9.5, letterSpacing: 0.4, color: AMBER_INK },
-  rowPage: { fontFamily: fontFamily.regular, fontSize: 12.5, lineHeight: 22, color: c.textMuted },
   copyright: { fontFamily: fontFamily.regular, fontSize: 10, color: c.textMuted, textAlign: 'center', marginTop: 22, lineHeight: 15 },
 
   // bookmarks sheet
