@@ -190,21 +190,32 @@ export function BigBookContents({ onOpenText, onOpenPdf, onOpenTextAtParagraph }
                 {!!g.sub && <Text style={styles.groupSub}>{g.sub}</Text>}
               </View>
               {g.entries.map((e, i) => {
-                // Numbered chapters get a numeral column and a page RANGE
-                // (start–end, ending at the next chapter or the book's 164).
+                // Numbered chapters follow the 12 & 12 shape: numeral, the title
+                // as the hero, and a caption carrying the page RANGE (start–end,
+                // ending at the next chapter or the book's 164). The chapter
+                // number is NOT repeated in the caption — the numeral has it.
                 const m = e.title.match(/^(\d+)\.\s+(.*)$/);
-                let pageLabel = `p. ${e.page}`;
+                const note = e.note ? ` · ${e.note}` : '';
                 if (m) {
                   const next = g.entries[i + 1];
                   const end = next ? parseInt(next.page, 10) - 1 : 164;
-                  pageLabel = Number.isFinite(end) ? `${e.page}–${end}` : `p. ${e.page}`;
+                  const range = Number.isFinite(end) ? `${e.page}–${end}` : e.page;
+                  return (
+                    <Row
+                      key={e.id}
+                      num={m[1]}
+                      title={m[2]}
+                      caption={`PAGES ${range}${note.toUpperCase()}`}
+                      last={i === g.entries.length - 1}
+                      onPress={() => open(e)}
+                    />
+                  );
                 }
                 return (
                   <Row
                     key={e.id}
-                    num={m?.[1]}
-                    title={m ? m[2] : e.title}
-                    pageLabel={pageLabel + (e.note ? ` · ${e.note}` : '')}
+                    title={e.title}
+                    pageLabel={`p. ${e.page}${note}`}
                     last={i === g.entries.length - 1}
                     onPress={() => open(e)}
                   />
@@ -344,15 +355,35 @@ export function BigBookContents({ onOpenText, onOpenPdf, onOpenTextAtParagraph }
   );
 }
 
-function Row({ num, title, pageLabel, last, onPress }: { num?: string; title: string; pageLabel: string; last: boolean; onPress: () => void }) {
+// Two row shapes, matching the 12 & 12. A numbered chapter leads with its
+// numeral, gives the line to the title, and carries its page range in a caption
+// underneath with a chevron to open it. Everything else (front matter, stories,
+// appendices) stays a plain title + page.
+function Row({ num, title, pageLabel, caption, last, onPress }: { num?: string; title: string; pageLabel?: string; caption?: string; last: boolean; onPress: () => void }) {
   const styles = useThemedStyles(makeStyles);
+  const { c } = useTokens();
   // Entry text rides the shared "Aa" reading scale, like the readers.
   const { readingSize: size, readingLineHeight: lineHeight } = useReadingSize();
+  const press = ({ pressed }: { pressed: boolean }) => [styles.row, !last && styles.rowBorder, pressed && { opacity: 0.6 }];
+
+  if (num === undefined) {
+    return (
+      <Pressable onPress={onPress} style={press} accessibilityRole="button" accessibilityLabel={title}>
+        <Text style={[styles.rowTitle, styles.flex, { fontSize: size, lineHeight }]} numberOfLines={2}>{title}</Text>
+        {!!pageLabel && <Text style={[styles.rowPage, { lineHeight }]}>{pageLabel}</Text>}
+      </Pressable>
+    );
+  }
+
   return (
-    <Pressable onPress={onPress} style={({ pressed }) => [styles.row, !last && styles.rowBorder, pressed && { opacity: 0.6 }]}>
-      {num !== undefined && <Text style={[styles.rowNum, { fontSize: size * 1.2, lineHeight, width: size * 1.6 }]}>{num}</Text>}
-      <Text style={[styles.rowTitle, styles.flex, { fontSize: size, lineHeight }]} numberOfLines={2}>{title}</Text>
-      <Text style={[styles.rowPage, { lineHeight }]}>{pageLabel}</Text>
+    <Pressable onPress={onPress} style={press} accessibilityRole="button" accessibilityLabel={`Chapter ${num}. ${title}`}>
+      {/* Numeral rides the title's line; column sized for two digits (10, 11). */}
+      <Text numberOfLines={1} style={[styles.rowNum, { fontSize: size * 1.2, lineHeight, width: size * 1.8 }]}>{num}</Text>
+      <View style={styles.flex}>
+        <Text style={[styles.rowTitle, { fontSize: size, lineHeight }]} numberOfLines={2}>{title}</Text>
+        {!!caption && <Text style={styles.rowCaption}>{caption}</Text>}
+      </View>
+      <ChevronRight size={16} color={c.textMuted} style={styles.rowChevron} />
     </Pressable>
   );
 }
@@ -385,11 +416,14 @@ const makeStyles = (tk: Tokens) => {
   groupHead: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 2 },
   groupLabel: { fontFamily: fontFamily.bold, fontSize: 11, letterSpacing: 1, color: c.textMuted },
   groupSub: { fontFamily: fontFamily.regular, fontSize: 10.5, color: c.textMuted },
-  row: { flexDirection: 'row', alignItems: 'flex-start', gap: 12, paddingVertical: 13 },
+  row: { flexDirection: 'row', alignItems: 'flex-start', gap: 12, paddingVertical: 14 },
   rowBorder: { borderBottomWidth: 1, borderBottomColor: c.divider },
   // Chapter numeral column — navy serif, sized to sit with the serif titles.
-  rowNum: { fontFamily: readerSerif, fontWeight: '700', fontSize: 20, lineHeight: 22, color: AMBER_INK, width: 26, textAlign: 'center' },
+  rowNum: { fontFamily: readerSerif, fontWeight: '700', fontSize: 20, lineHeight: 22, color: AMBER_INK, width: 26, textAlign: 'left' },
   rowTitle: { fontFamily: readerSerif, fontSize: 16.5, lineHeight: 22, color: c.text },
+  // Caption under a chapter title: "PAGES 151–164".
+  rowCaption: { fontFamily: fontFamily.bold, fontSize: 11, letterSpacing: 0.9, color: c.textMuted, marginTop: 5 },
+  rowChevron: { alignSelf: 'center' },
   pdfTag: { paddingHorizontal: 6, paddingVertical: 2, borderRadius: 5, backgroundColor: AMBER_SOFT },
   pdfTagText: { fontFamily: fontFamily.bold, fontSize: 9.5, letterSpacing: 0.4, color: AMBER_INK },
   rowPage: { fontFamily: fontFamily.regular, fontSize: 12.5, lineHeight: 22, color: c.textMuted },

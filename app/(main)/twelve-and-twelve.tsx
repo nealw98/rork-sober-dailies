@@ -301,17 +301,15 @@ export default function TwelveAndTwelveScreen() {
 }
 
 // Two row shapes. Front matter is a plain title + page. A Step or Tradition
-// leads with its numeral and puts the Step's own words on the row — the title
-// and page ride above them as an eyebrow, so the list reads like the book.
+// leads with its numeral and gives the row to the Step's own words, in full —
+// the title and page follow underneath as a caption, so the list reads like
+// the book rather than like a table of contents.
 function TTRow({ section, numbered, last, onOpen }: { section: Section; numbered: boolean; last: boolean; onOpen: () => void }) {
   const styles = useThemedStyles(makeStyles);
   const { c } = useTokens();
   // Entry text rides the shared "Aa" reading scale, like the readers.
   const { readingSize: size, readingLineHeight: lineHeight } = useReadingSize();
   const press = ({ pressed }: { pressed: boolean }) => [styles.row, !last && styles.rowBorder, pressed && { opacity: 0.6 }];
-  // The numeral is a glyph for the whole entry, so it centers against the
-  // eyebrow + two-line preview block rather than sitting on the first line.
-  const pressNumbered = ({ pressed }: { pressed: boolean }) => [styles.row, styles.rowCentered, !last && styles.rowBorder, pressed && { opacity: 0.6 }];
 
   if (!numbered) {
     return (
@@ -323,16 +321,19 @@ function TTRow({ section, numbered, last, onOpen }: { section: Section; numbered
   }
 
   const numeral = section.id.match(/(\d+)$/)?.[1];
-  const eyebrow = [section.title, section.pageNumber].filter(Boolean).join(' · ').toUpperCase();
   return (
-    <Pressable onPress={onOpen} style={pressNumbered} accessibilityRole="button" accessibilityLabel={`${section.title}. ${section.description ?? ''}`}>
-      {/* Column is sized for TWO digits — Steps/Traditions 10–12 must not wrap. */}
-      {!!numeral && <Text numberOfLines={1} style={[styles.rowNum, { fontSize: size * 1.6, lineHeight: size * 1.9, width: size * 2.5 }]}>{numeral}</Text>}
+    <Pressable onPress={onOpen} style={press} accessibilityRole="button" accessibilityLabel={`${section.title}. ${section.description ?? ''}`}>
+      {/* Numeral sits on the first line of the Step, and the column is sized for
+          TWO digits — Steps/Traditions 10–12 must not wrap. */}
+      {!!numeral && <Text numberOfLines={1} style={[styles.rowNum, { fontSize: size, lineHeight, width: size * 1.6 }]}>{numeral}</Text>}
       <View style={styles.flex}>
-        <Text style={styles.rowEyebrow}>{eyebrow}</Text>
-        <Text style={[styles.rowBody, { fontSize: size, lineHeight }]} numberOfLines={2}>{section.description}</Text>
+        <Text style={[styles.rowBody, { fontSize: size, lineHeight }]}>{section.description}</Text>
+        <Text style={styles.rowCaption}>
+          {section.title.toUpperCase()}
+          {!!section.pageNumber && <Text style={styles.rowCaptionPage}>{`  ·  ${section.pageNumber}`}</Text>}
+        </Text>
       </View>
-      <ChevronRight size={16} color={c.textMuted} />
+      <ChevronRight size={16} color={c.textMuted} style={styles.rowChevron} />
     </Pressable>
   );
 }
@@ -363,14 +364,16 @@ const makeStyles = (tk: Tokens) => {
   body: { paddingHorizontal: 20, paddingTop: 6 },
   group: { marginTop: 14 },
   groupLabel: { fontFamily: fontFamily.bold, fontSize: 11, letterSpacing: 1, color: c.textMuted, marginBottom: 4 },
-  row: { flexDirection: 'row', alignItems: 'flex-start', gap: 12, paddingVertical: 13 },
-  rowCentered: { alignItems: 'center' },
+  row: { flexDirection: 'row', alignItems: 'flex-start', gap: 12, paddingVertical: 14 },
   rowBorder: { borderBottomWidth: 1, borderBottomColor: c.divider },
   rowTitle: { fontFamily: readerSerif, fontSize: 16.5, lineHeight: 22, color: c.text },
-  // Step / Tradition numeral — pale teal serif, a column of its own.
-  rowNum: { fontFamily: readerSerif, fontWeight: '700', color: colors.primaryLight, textAlign: 'center' },
-  rowEyebrow: { fontFamily: fontFamily.bold, fontSize: 11, letterSpacing: 0.9, color: c.textMuted, marginBottom: 2 },
+  // Step / Tradition numeral — bold serif in the text ink, riding the first line.
+  rowNum: { fontFamily: readerSerif, fontWeight: '700', color: c.text, textAlign: 'left' },
   rowBody: { fontFamily: readerSerif, fontSize: 16.5, lineHeight: 22, color: c.text },
+  // Caption under the Step's words: "STEP ONE · p. 21".
+  rowCaption: { fontFamily: fontFamily.bold, fontSize: 11, letterSpacing: 0.9, color: c.textMuted, marginTop: 6 },
+  rowCaptionPage: { fontFamily: fontFamily.regular, fontSize: 11.5, letterSpacing: 0 },
+  rowChevron: { alignSelf: 'center' },
   rowPage: { fontFamily: fontFamily.regular, fontSize: 12.5, lineHeight: 20, color: c.textMuted, flexShrink: 0 },
   copyright: { fontFamily: fontFamily.regular, fontSize: 10, color: c.textMuted, textAlign: 'center', marginTop: 20, lineHeight: 15 },
 
