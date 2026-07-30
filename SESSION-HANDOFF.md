@@ -2,12 +2,19 @@
 
 _For a fresh chat. Branch `3.0.5-redesign` (tracks `origin/3.0.5-redesign`)._
 
-_Latest session (**2026-07-30 pm**): **POST-PURCHASE CRASH — every purchaser on
+_Latest session (**2026-07-30 pm, #2**): the **ACCESS TEST PLAN**
+(`docs/ACCESS-TEST-PLAN.md`) — the launch-gating test pass for
+onboarding/subscription/grandfather/codes, grounded in a fresh code map;
+Android paywall X RE-ADDED for testing (revert at ship, LAUNCH-CHECKLIST §1);
+thank-you sheet copy finalized + Developer Console previews for it. The
+crash fix from the prior session is now COMMITTED (`caefd00b`). **§16.**_
+
+_Prior session (**2026-07-30 pm**): **POST-PURCHASE CRASH — every purchaser on
 build 130 was crashing** the moment a purchase completed (`expo-notifications`
 missing from the binary; Metro turns a module-init throw into a fatal, so the
-existing try/catch could never catch it). Fixed and shipped as OTA #4
-`c3bb402d` — **but the fix is UNCOMMITTED, and on-device confirmation is still
-outstanding. Read §15 FIRST**, including §15.2 (a try/catch around `require()`
+existing try/catch could never catch it). Fixed, shipped as OTA #4
+`c3bb402d`, and now committed (`caefd00b`); on-device confirmation is still
+outstanding. **Read §15**, including §15.2 (a try/catch around `require()`
 does not work — where it runs decides), §15.5 (the Force New-User toggle is
 Keychain-backed and can brick a device) and §15.7 (the purchase/redemption
 review that was started, with 11 findings to carry forward)._
@@ -1471,10 +1478,10 @@ flips), plus:
 
 ## 15. Latest session — 2026-07-30 pm (POST-PURCHASE CRASH — fixed & shipped)
 
-**Status: the fix is UNCOMMITTED and already SHIPPED as production OTA #4
-(`c3bb402d`). `lib/trialReminder.ts` is dirty in the working tree — commit it
-before anything else, or the next `eas update` from a clean checkout silently
-reverts the fix.** Device-side confirmation is still OUTSTANDING (see 15.3).
+**Status: the fix SHIPPED as production OTA #4 (`c3bb402d`) and was COMMITTED
+the following session (`caefd00b`, 2026-07-30 pm #2) — the
+revert-on-next-publish risk is gone.** Device-side confirmation is still
+OUTSTANDING (see 15.3).
 
 Found while Neal was testing the QA **Force New-User** toggle: subscribe on the
 paywall, tap OK on the App Store sheet, app dies. Reinstalling didn't help and
@@ -1686,3 +1693,70 @@ bundle vs. the embedded one.
 6. Port the QA-flag TTL + auto-clear from `daily-paths` (15.5).
 7. Next binary (131) restores the day-5 reminder; until then it no-ops and the
    paywall's Day-5 promise is unkept.
+
+---
+
+## 16. Latest session — 2026-07-30 pm #2 (ACCESS TEST PLAN · Android X back · thank-you copy)
+
+**Status: everything committed & pushed this session (crash fix separately as
+`caefd00b`, then this session's work). Nothing OTA'd — no user-facing urgency;
+the Android X and thank-you changes ride the next bundled OTA.**
+
+### 16.1 The access test plan — `docs/ACCESS-TEST-PLAN.md`
+
+The final pre-launch testing area: every way a user gets INTO the app
+(onboarding → paywall → disclaimer → Today). Built from a fresh very-thorough
+code map of the gating (not from memory), so every case cites file:line.
+Structure: Part 0 test rig (how to manufacture each user type — fresh sandbox
+Apple ID, the Supabase SQL to grandfather a device ID, Developer Console
+recipes, "looks like a bug but isn't" list) · A first-time users · B v2
+upgraders · C returning users · D codes · E trial reminder · F cross-cutting.
+Suggested order of attack at the end (A1 iOS money-path first).
+
+Three behaviors encoded as *decide-with-eyes-open* cases, not silent passes:
+
+- **A5**: offline cold launch renders the TRIAL paywall with no packages —
+  `trialEligible === null` is treated as eligible (`PaywallScreen.tsx:126`).
+- **B2**: grandfathered + airplane mode = paywall (fail-closed by design;
+  hardening is parked in LAUNCH-CHECKLIST §4, pre-price-increase).
+- **E1**: the day-5 reminder can NEVER fire from a sandbox trial (48 h lead
+  vs ~3-min trials; `lib/trialReminder.ts:93` skips <60 s runway). Dev-build
+  hack documented: temporarily shrink `WARN_BEFORE_MS`.
+
+Testing protocol per the standing agreement: per-item collaboration — Neal
+runs the device steps, reports, pass/fail gets tracked in the doc.
+
+### 16.2 Android paywall X re-added (TEMPORARY — again)
+
+Neal asked for it back for the test pass. Both gates restored to
+`__DEV__ || Platform.OS === 'android'` (`app/_layout.tsx` paywallDismissable,
+`components/PaywallScreen.tsx` X render). iOS store builds keep the hard
+wall. LAUNCH-CHECKLIST §1 item UN-checked with a re-added-2026-07-30 note;
+ACCESS-TEST-PLAN Part 0 / A2 / F3 updated to match. **Revert to `__DEV__`
+at ship time.**
+
+### 16.3 Thank-you sheet — final copy + QA previews
+
+`components/GiftThankYouSheet.tsx` body copy finalized by Neal (title/serif
+line unchanged; rose bold accent kept on the pass count):
+
+- Annual: "**Five passes** to give away. Each one is 3 free months of Sober
+  Dailies."
+- Monthly: "**One pass** to give away. 3 free months of Sober Dailies.
+  Another arrives every 3 months."
+
+New Developer Console buttons (`settings.tsx`, under the paywall previews):
+**Thank-you · Annual / Monthly** — render the real sheet without a purchase
+(same close-console-first modal-stacking dance as the paywall previews).
+Reminder: in production the sheet only ever shows while `PASSES_ENABLED` (or
+the device override) is on — `consumePendingAnnouncement()` swallows it
+otherwise.
+
+### 16.4 Next actions
+
+1. Start running the plan: **A1 (iOS money path)**, then A2 (Android — also
+   closes the LAUNCH-CHECKLIST §2 Play test-purchase item).
+2. §15's carry-forwards still stand: on-device purchase confirmation (15.3),
+   the 11 review findings (15.7), `getSMS()` before the passes flip (15.4).
+3. At ship: revert the Android X (16.2) with the other LAUNCH-CHECKLIST §1
+   flips.

@@ -57,14 +57,13 @@ export default function GiftThankYouSheet({
           <Text style={styles.body}>
             {annual ? (
               <>
-                As an annual member, we’ve given you <Text style={styles.bodyBold}>5 passes</Text> — each
-                one 3 free months of Sober Dailies for someone who needs it.
+                <Text style={styles.bodyBold}>Five passes</Text> to give away. Each one is 3 free
+                months of Sober Dailies.
               </>
             ) : (
               <>
-                As a monthly member, we’ve given you <Text style={styles.bodyBold}>a pass</Text>: 3 free
-                months of Sober Dailies for someone who needs it. Every 3 months you’re a member,
-                another arrives.
+                <Text style={styles.bodyBold}>One pass</Text> to give away. 3 free months of
+                Sober Dailies. Another arrives every 3 months.
               </>
             )}
           </Text>

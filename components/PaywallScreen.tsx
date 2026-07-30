@@ -235,7 +235,7 @@ export default function PaywallScreen({ onDismiss, preview, forceTrial }: Paywal
             be unescapable. Remove with the _layout gate before public release. */}
         <View style={styles.header}>
           <View style={styles.flex} />
-          {(preview || __DEV__) && onDismiss && (
+          {(preview || __DEV__ || Platform.OS === 'android') && onDismiss && (
             <Pressable style={styles.close} onPress={onDismiss} hitSlop={10}>
               <X size={24} color={c.textMuted} strokeWidth={2} />
             </Pressable>

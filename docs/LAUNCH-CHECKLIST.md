@@ -14,13 +14,13 @@ clear to ship.
       acquisition program for real users.
 - [ ] **`EXPO_PUBLIC_ANALYTICS_ENV` → `production`** — Mixpanel currently
       writes to the test env. Flip in EAS env for the release build/OTA.
-- [x] **Remove the Android paywall X (dismiss) button** — DONE 2026-07-27:
-      both gates reverted to `__DEV__` only (`app/_layout.tsx`,
-      `components/PaywallScreen.tsx`), so dev/simulator builds keep the X
-      and store builds on both platforms get the hard wall. Safe because
-      license testers are set up, so Android testers can subscribe via
-      Play test billing. Uncommitted — rides the next bundled OTA; testers
-      will hit the hard wall as soon as that OTA ships.
+- [ ] **Remove the Android paywall X (dismiss) button** — RE-ADDED
+      2026-07-30 for the access-test pass (was removed 2026-07-27): both
+      gates are back to `__DEV__ || Platform.OS === 'android'`
+      (`app/_layout.tsx`, `components/PaywallScreen.tsx`), so Android
+      testers can escape the wall during testing. Revert both gates to
+      `__DEV__` only at ship time so store builds on both platforms get
+      the hard wall.
 - [ ] **Remove or `__DEV__`-gate the QA "Force New-User (paywall)" toggle** —
       Debug Console button (Settings → long-press version) in
       `app/(main)/(tabs)/settings.tsx`; SecureStore key

@@ -270,9 +270,12 @@ function RootLayoutNav() {
     // react-native-purchases; PaywallScreen applies the returned CustomerInfo
     // itself so isPremium flips and the gate falls straight through to Today.
     // PaywallScreen renders its own close (X) that calls onDismiss; in a
-    // production build onDismiss is undefined, so the wall stays hard.
-    // Dev builds (simulators) keep the X.
-    const paywallDismissable = __DEV__;
+    // production iOS build onDismiss is undefined, so the wall stays hard.
+    //
+    // ANDROID TESTING ESCAPE HATCH (temporary — REMOVE BEFORE PUBLIC RELEASE):
+    // Android testers get the X so the wall is escapable during testing.
+    // iOS is unaffected by the Platform gate.
+    const paywallDismissable = __DEV__ || Platform.OS === 'android';
     return <PaywallScreen onDismiss={paywallDismissable ? () => setPaywallDismissed(true) : undefined} />;
   }
 

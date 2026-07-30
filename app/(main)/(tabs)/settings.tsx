@@ -46,8 +46,9 @@ import { useDailies } from '@/hooks/use-dailies-store';
 import { clearUserData } from '@/lib/userDataSync';
 import {
   qaGrantPasses, qaFetchCreditStatus, getPassesOverride, setPassesOverride,
-  type CreditStatus,
+  type CreditStatus, type AnnouncePlan,
 } from '@/lib/creditsService';
+import GiftThankYouSheet from '@/components/GiftThankYouSheet';
 import { setSyncPaused, cloudBackupSupported } from '@/lib/cloudSync';
 
 // ─── Token-based building blocks (mirror the prototype) ──────────────────────
@@ -132,6 +133,13 @@ export default function SettingsScreen() {
   const openPaywallPreview = (mode: 'trial' | 'notrial') => {
     setLogsVisible(false);
     setTimeout(() => setPaywallPreview(mode), 350);
+  };
+  // QA: preview the post-subscribe thank-you sheet (annual = 5 passes,
+  // monthly = 1 pass) without buying. Same modal-stacking dance as above.
+  const [thankYouPreview, setThankYouPreview] = useState<AnnouncePlan | null>(null);
+  const openThankYouPreview = (plan: AnnouncePlan) => {
+    setLogsVisible(false);
+    setTimeout(() => setThankYouPreview(plan), 350);
   };
   // Console actions that alert/navigate must close the console modal first
   // (iOS stacks modals — anything presented under an open one never shows).
@@ -697,6 +705,14 @@ export default function SettingsScreen() {
                 <Text style={styles.dcBtnText}>Preview · No trial</Text>
               </TouchableOpacity>
             </View>
+            <View style={styles.dcBtnRow}>
+              <TouchableOpacity style={styles.dcBtn} onPress={() => openThankYouPreview('annual')} activeOpacity={0.7}>
+                <Text style={styles.dcBtnText}>Thank-you · Annual</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.dcBtn} onPress={() => openThankYouPreview('monthly')} activeOpacity={0.7}>
+                <Text style={styles.dcBtnText}>Thank-you · Monthly</Text>
+              </TouchableOpacity>
+            </View>
 
             <Text style={styles.dcSectionLabel}>GIFT PASSES</Text>
             <View style={styles.dcCard}>
@@ -808,6 +824,15 @@ export default function SettingsScreen() {
         </View>
         </SafeAreaProvider>
       </Modal>
+
+      {/* QA: post-subscribe thank-you sheet preview (it's its own Modal) */}
+      {thankYouPreview && (
+        <GiftThankYouSheet
+          plan={thankYouPreview}
+          onSeeGifts={() => setThankYouPreview(null)}
+          onClose={() => setThankYouPreview(null)}
+        />
+      )}
 
       {/* Feedback Modal */}
       <Modal visible={feedbackVisible} animationType="slide" presentationStyle="pageSheet" onRequestClose={handleFeedbackClose}>
