@@ -2,7 +2,19 @@
 
 _For a fresh chat. Branch `3.0.5-redesign` (tracks `origin/3.0.5-redesign`)._
 
-_Latest session (**2026-07-27 pm**): Today/reader UI polish (UNCOMMITTED),
+_Latest session (**2026-07-30 pm**): **POST-PURCHASE CRASH — every purchaser on
+build 130 was crashing** the moment a purchase completed (`expo-notifications`
+missing from the binary; Metro turns a module-init throw into a fatal, so the
+existing try/catch could never catch it). Fixed and shipped as OTA #4
+`c3bb402d` — **but the fix is UNCOMMITTED, and on-device confirmation is still
+outstanding. Read §15 FIRST**, including §15.2 (a try/catch around `require()`
+does not work — where it runs decides), §15.5 (the Force New-User toggle is
+Keychain-backed and can brick a device) and §15.7 (the purchase/redemption
+review that was started, with 11 findings to carry forward)._
+
+_Prior session (**2026-07-30**): TOC row standard + 3 production OTAs (§14)._
+
+_Prior session (**2026-07-27 pm**): Today/reader UI polish (UNCOMMITTED),
 the day-5 trial reminder (NEW native dep → next binary), prod-incident #2
 fixed (anon storage LIST restored + the Lovable→prod-DB write-path closed on
 both sides), and the /get gift page reworked + PUBLISHED via the new Lovable
@@ -1255,10 +1267,10 @@ the same commit.
 
 ---
 
-## 13. Latest session — 2026-07-28…29 (Android launch work · Literature redesign)
+## 13. Session — 2026-07-28…29 (Android launch work · Literature redesign)
 
-**Status: two commits SHIPPED as production OTAs; a third bundle of
-Literature/Today work is UNCOMMITTED on `3.0.5-redesign` (see 13.4).**
+**Status: two commits SHIPPED as production OTAs; the third bundle (13.4) was
+committed and shipped the next session — see §14.**
 
 ### 13.1 Android launch checklist — mostly CLEARED
 
@@ -1348,10 +1360,329 @@ of Sober Dailies", `docs/LAUNCH-CHECKLIST.md`.
 
 1. Neal: Android test purchase on a Play-installed device (last gate for the
    billing path).
-2. Bundle + OTA the 13.4 work when Neal says go.
+2. ~~Bundle + OTA the 13.4 work when Neal says go.~~ DONE — §14.1.
 3. After that OTA: Drive-backup E2E on his Android (Settings → Backup &
    Restore → Connect; DEVELOPER_ERROR right after setup = OAuth propagation,
    wait and retry).
 4. Privacy/terms wording pass (Drive/iCloud backup) — Neal drafts.
 5. Launch flips (checklist §1): PASSES_ENABLED, analytics env, QA toggle,
    runtime bump, `anonymous_id` trust fix.
+
+---
+
+## 14. Latest session — 2026-07-30 (TOC row standard · 3 production OTAs)
+
+**Status: everything from this session is COMMITTED, PUSHED (`3.0.5-redesign`)
+and SHIPPED as production OTAs. Working tree clean apart from this handoff.**
+
+A design session driven by three mocks from Neal, each one tightening the same
+thing: what a table-of-contents row looks like. It ended with **both books
+sharing one row standard**.
+
+### 14.1 OTA #1 — `c413c2c1` (update group `e6232c23`)
+
+Bundled the whole §13.4 backlog (Literature cover shelf, both TOC title blocks,
+Today's edit pencil, subtitles-default-OFF) **plus** the first 12 & 12 TOC pass:
+
+- Hero: display title "Twelve & Twelve" / "Steps and Traditions" / "N essays"
+  (counted from the data, not hardcoded).
+- Cover + title + find tools sit on ONE tinted band that holds its tint through
+  the cards and fades into the page at the list boundary
+  (`locations={[0.78, 1]}` — a plain 0→1 fade died behind the cards and they
+  stopped reading as white).
+- `FindCard` gained an optional **`variant="outline"`** (white surface +
+  hairline). Default is unchanged, so the Big Book kept its soft fill.
+- Front-matter rows dropped their boilerplate description line.
+
+Note: `eas update` bundles the **working tree**, not the commit — so the
+§13.4 files were going out either way. Committing them together kept the two
+in sync.
+
+### 14.2 OTA #2 — `ed7a1b8b` (update group `e46e2cc4`) — THE ROW STANDARD
+
+Mock 2 inverted the row. Applied to the 12 & 12 and then to Big Book chapters:
+
+- **The content leads.** For the 12 & 12 that's the Step's own words, in FULL —
+  the 2-line truncation is gone, so nothing ends in "…" (Tradition Eleven runs
+  five lines). For the Big Book it's the chapter title alone on its line.
+- **Page metadata follows underneath** as a caption instead of riding above as
+  an eyebrow or sitting right-aligned: `STEP ONE · p. 21`, `PAGES 151–164`.
+- **The numeral rides the first line**, bold serif — text ink in the 12 & 12,
+  navy (`steelDark`) in the Big Book per its mock. NOT the large pale glyph of
+  the first pass.
+- **Chevron** on the right, `alignSelf: 'center'`, as the tap affordance.
+- The chapter/step number is **never repeated in the caption** — the numeral
+  has it (the annotated mock's `· CHAPTER ELEVEN` was carrying it twice).
+
+### 14.3 OTA #3 — `ee21ad71` (update group `a23493e1`)
+
+Big Book front matter, Personal Stories and Appendices took the same shape —
+title, caption (`PAGE XI`, `PAGE 171`), chevron. Only difference: no numeral,
+so their titles start at the margin. `Row` collapsed from two shapes to one and
+the right-aligned `rowPage` style was deleted.
+
+### 14.4 Bugs caught in verification
+
+- **Two-digit numerals wrapped** (`1`/`0` stacked) at the first pass's glyph
+  size — the column was `size * 1.9` wide for a `size * 1.75` digit. Sized for
+  two digits + `numberOfLines={1}`. Steps/Traditions 10–12 and chapters 10–11
+  are the cases; re-check any time the numeral scale changes.
+- Every row style is a function of `readingSize`, so the Aa ladder moves
+  numerals, columns and wrap points together — verify at more than one step.
+
+### 14.5 Deliberately NOT done
+
+- **Dark mode was never opened this session.** Everything is drawn from tokens
+  (`c.text`, `c.surface`, `c.background`, `colors.steelDark`) so it should
+  follow, but nobody has looked at it. The one thing worth a real check is the
+  12 & 12 band gradient, which fades `primarySoft` → `c.background` (= `#000`
+  on dark).
+- **12 & 12 Intro rows** (Introduction, Foreword) still use the OLD shape —
+  right-aligned `p. 14`. Neal's request named the Big Book's sections, so they
+  were left alone. Making them match is a small edit if he wants it.
+- **Front matter / story captions are single pages, not ranges.** Chapters get
+  `PAGES 1–16` computed from the next chapter's start; the others would need
+  roman-numeral arithmetic (front matter) and cross-group lookups (stories).
+- No `docs/LAUNCH-CHECKLIST.md` items were touched.
+
+### 14.6 Sim-automation notes (confirming §13.5)
+
+- **Fast refresh did not pick up `twelve-and-twelve.tsx` at all this session** —
+  two separate edits appeared only after `simctl terminate` + `launch`. Budget
+  a relaunch (~60–90 s of bundling) per visual check; screenshotting in a tight
+  loop is the wait.
+- `idb` is not on PATH; a working venv lives at
+  `/private/tmp/claude-501/-Users-nealwagner-Projects-rork-sober-dailies/4ee8fa05-…/scratchpad/idbvenv/bin/idb`
+  (the shared `/private/tmp/claude-501/idb-venv` is broken).
+- Swipes near the screen edges trigger the back gesture; scroll from x≈300.
+  The app restores its last route on relaunch, so a first tap often lands on
+  whatever the previous session left on screen.
+
+### 14.7 Next actions
+
+Unchanged from §13.6 (Android test purchase, Drive E2E, privacy wording, launch
+flips), plus:
+
+1. Dark-mode pass over both TOCs and the Literature home.
+2. Decide on the two open consistency questions in 14.5 (12 & 12 Intro rows;
+   page ranges for stories/front matter).
+
+---
+
+## 15. Latest session — 2026-07-30 pm (POST-PURCHASE CRASH — fixed & shipped)
+
+**Status: the fix is UNCOMMITTED and already SHIPPED as production OTA #4
+(`c3bb402d`). `lib/trialReminder.ts` is dirty in the working tree — commit it
+before anything else, or the next `eas update` from a clean checkout silently
+reverts the fix.** Device-side confirmation is still OUTSTANDING (see 15.3).
+
+Found while Neal was testing the QA **Force New-User** toggle: subscribe on the
+paywall, tap OK on the App Store sheet, app dies. Reinstalling didn't help and
+the toggle can only be turned off from inside the app, so the device was
+bricked into a paywall loop. Chasing it turned up a bug that had nothing to do
+with QA.
+
+### 15.1 The bug — EVERY purchaser on build 130 was crashing
+
+```
+Unhandled JS Exception: Error: Cannot find native module 'ExpoPushTokenManager'
+…
+getNotifications@1:5138763
+_scheduleTrialEndingReminder@1:5138995
+scheduleTrialEndingReminder@1:5138943   ← PaywallScreen.buy()
+```
+
+`PaywallScreen.buy()` calls `scheduleTrialEndingReminder(info)` after **every**
+successful purchase. The day-5 reminder (§12.2) added `expo-notifications` in
+`929652e3` (2026-07-27); build 130 was cut before that, so its binary has no
+`ExpoPushTokenManager` while the OTA bundle it runs does
+`require('expo-notifications')`. **Not a QA-only bug** — Force New-User only
+made Neal the first person to complete a purchase and find out. Any tester on
+130 who subscribed hit it.
+
+Apple's crash reports were useless here: five `.crash` logs, all
+`SIGABRT`/`RCTFatal`, none carrying the exception reason. The message only
+exists in the live device log (Console.app, process filter `SoberDailies`,
+**All Messages** — `RCTFatal` logs at default level via NSLog, so "Errors and
+Faults" hides it). Xcode Organizer was a red herring: it only shows crashes
+Apple aggregated from analytics-opted-in testers, and the group sitting there
+was a *different* crash (a Hermes-init `SIGBUS` at launch on an iPhone 15 /
+iOS 26.6 — **still unexplained, still open**, see 15.7).
+
+### 15.2 Root cause — a try/catch around `require()` does not work
+
+This is the transferable lesson. `lib/trialReminder.ts` already *had* the
+defensive lazy require, with a comment explaining it kept OTAs off older
+binaries from crashing. It cannot work:
+
+```js
+// node_modules/metro-runtime/src/polyfills/require.js:178
+function guardedLoadModule(moduleId, module) {
+  if (!inGuard && global.ErrorUtils) {
+    inGuard = true;
+    try { returnValue = loadModuleImplementation(moduleId, module); }
+    catch (e) { global.ErrorUtils.reportFatalError(e); }   // ← never rethrows
+```
+
+Metro catches a module-init throw **itself** and routes it to
+`ErrorUtils.reportFatalError` → `RCTFatal` → abort. Control never returns to
+your `catch`.
+
+**The rule — it depends on where the require runs:**
+
+| Where the lazy `require()` executes | `inGuard` | Result |
+|---|---|---|
+| At module top level (during another module's load) | `true` | else-branch, throw propagates → **your try/catch works** |
+| From an event handler / async continuation / timer | `false` | guarded branch → **fatal, try/catch unreachable** |
+
+So `lib/cloudSync.ts:19` and `app/_layout.tsx:107` are genuinely safe — they
+require at module top level. **Don't "fix" them, and don't copy them into a
+callback.**
+
+### 15.3 The fix + OTA #4
+
+`lib/trialReminder.ts`: probe with `requireOptionalNativeModule` (returns
+`null` instead of throwing; `expo-modules-core` is in every Expo binary) and
+skip the `require` entirely when the native side is absent.
+
+```ts
+const REQUIRED_NATIVE_MODULES = [
+  'ExpoPushTokenManager', 'ExpoNotificationScheduler', 'ExpoNotificationPermissionsModule',
+];
+function nativeSideIsPresent(): boolean {
+  try { return REQUIRED_NATIVE_MODULES.every((n) => requireOptionalNativeModule(n) != null); }
+  catch { return false; }
+}
+```
+
+All three are cross-platform in SDK 53 — do **not** add the Android-only ones
+(`ExpoNotificationChannelManager` etc.) or iOS disables itself.
+
+- Typecheck: 0 errors in `trialReminder.ts` (repo baseline ~116 elsewhere).
+- **OTA #4** — channel `production` → branch **`main`**, runtime 3.0.7, update
+  group **`6640ef59-e386-4363-afe8-4eaa05ee2358`**, both platforms, from a
+  dirty tree (`ee21ad71*`).
+
+  ⚠️ **`--branch` is not `--channel`.** The first attempt published with
+  `--branch production` and reached nobody: the **`production` channel points
+  at the `main` branch**, and `--branch production` created a *new orphan
+  branch* of that name that no channel serves. Update group
+  `c3bb402d-1616-40be-aead-17de3ad9c00c` is that dead publish — it exists in
+  the project and will never be delivered. Neal caught it when the fix never
+  landed on his phone. Publish with **`--channel production --environment
+  production`**, as §0 says, and confirm with `eas channel:view production`
+  that the newest group under branch `main` is yours. The stray `production`
+  branch is still there and should be deleted (`eas branch:delete production`)
+  so it can't be picked next time.
+
+**OUTSTANDING:** nobody has confirmed on-device yet. Launch → wait ~30 s for
+the download → force-quit → relaunch → purchase should complete. Then turn
+Force New-User off (Settings → long-press version → Developer Console).
+
+**Consequence for 130:** the reminder now silently no-ops on that binary. The
+paywall timeline still promises "Day 5: we'll notify you," and that promise is
+unkept for the whole tester fleet until a new binary ships. `expo-notifications`
+is already in `package.json` + `app.json` plugins, so build 131 picks it up.
+
+### 15.4 Same shape, still unguarded: `getSMS()`
+
+`app/(main)/pass-it-on.tsx:36` lazy-requires `expo-sms` with the same
+try/catch — and it's called from `giveGift()`, an event handler, i.e. exactly
+the fatal case in 15.2's table. `expo-sms` landed 2026-07-18 (`59c771dd`) so
+build 130 probably has it (**unverified**), but the guard is written as though
+it protects OTAs onto older binaries and it does not. Fix is one line:
+`requireOptionalNativeModule('ExpoSMS')`. Currently unreachable because
+`PASSES_ENABLED = false`, so it isn't urgent — but it must be fixed **before**
+the passes flip, since that's the moment the code path goes live.
+
+### 15.5 The Force New-User toggle is a trap
+
+`QA_FORCE_NEW_USER_KEY` (`hooks/useSubscription.ts:28`) is written to
+**SecureStore = iOS Keychain**, which survives app deletion. Delete + reinstall
+does **not** clear it, so any crash on the post-purchase path locks the device
+into a paywall loop with no way back to the Developer Console. The escape hatch
+that works today is **Restore Purchases** on the paywall — `restore()` never
+calls `scheduleTrialEndingReminder`, so it dodged the crash entirely and
+`applyCustomerInfo` sets `sessionPurchaseUnlock`, dropping the gate.
+
+Two hardening changes were discussed and **NOT done**:
+
+1. Give the key a TTL + auto-clear on a purchase/restore that lands premium.
+   The sibling `daily-paths` project already does exactly this
+   (`utils/subscriptionOverride.ts`, 30-minute TTL) — port that shape.
+2. Related bug, confirmed by reading `hooks/useSubscription.ts:175`:
+   **redeeming a code while Force New-User is ON leaves you stuck.** Both
+   redemption surfaces (`PaywallScreen.tsx:414`, `redeem.tsx:69`) call
+   `refresh()` only; `refresh` sets `customerInfo`, but under the flag
+   `isPremium` reads `sessionPurchaseUnlock`, which only `applyCustomerInfo`
+   sets. The grant succeeds server-side and the gate stays up. QA-only, but
+   it will waste an afternoon if nobody knows.
+
+The launch checklist already carries "remove or `__DEV__`-gate the toggle"
+(`docs/LAUNCH-CHECKLIST.md` §1) — that removal makes 1 and 2 moot for users but
+not for testers.
+
+### 15.6 OTA hygiene — near-miss worth recording
+
+OTA #4 was published as `eas update --branch production --message …`, i.e.
+**without** the `--environment production` that §0 says is mandatory. It was
+safe this time and here's the proof, because "it seemed fine" is not good
+enough for this failure mode:
+
+- iOS bundle carries `appl_TGcL…` + Supabase URL + the Mixpanel token.
+- Android bundle carries `goog_WdCC…` + the Mixpanel token.
+  (Each platform bundle holds only its own RC key — Metro folds the
+  `Platform.OS` branches per bundle. Not a miss.)
+- `eas env:list production` matches the local `.env` exactly, including
+  `EXPO_PUBLIC_ANALYTICS_ENV=test` on both sides.
+
+It worked because this machine has a `.env` (dated Jul 3) whose values equal
+the EAS ones. On a machine without one, the §0 failure mode is real. **Use the
+flag.** A quick way to check any future publish before trusting it:
+`strings dist/_expo/static/js/ios/entry-*.hbc | grep -oE "appl_[A-Za-z0-9]+"`.
+
+### 15.7 Purchase + redemption review — STARTED, NOT FINISHED
+
+Neal asked for a full review of the purchase and gift-redemption flows: every
+case and edge case, plus how to test each before launch. The reading was done;
+**the matrix was not written.** Everything read: `PaywallScreen.tsx` (buy /
+restore / `HaveACodeModal`), `useSubscription.ts`, `redeem.tsx`,
+`pass-it-on.tsx`, `lib/creditsService.ts`, `lib/giftService.ts`, and the edge
+functions `gifts-redeem`, `get-dispense`, `credits-share`, `credits-status`,
+`_shared/gifts.ts`, `_shared/credits.ts`.
+
+Findings so far — **carry these into the matrix, don't re-derive them:**
+
+| # | Finding | Confidence |
+|---|---|---|
+| a | `getSMS()` fatal-require (15.4) | confirmed pattern; binary contents unverified |
+| b | Redeem + Force New-User = stuck gate (15.5) | confirmed from code |
+| c | After a server-side RC promotional grant, both redeem surfaces call `refresh()` with no `Purchases.invalidateCustomerInfoCache()` — a cached CustomerInfo may leave the user on the paywall after a successful redeem | **suspected, must be tested** |
+| d | `computeEarnedGrants` skips `is_sandbox` and `store === 'promotional'` subs (`_shared/credits.ts`) → **passes cannot be earned by a sandbox purchase at all.** Any pass testing must go through the QA passes override (`qa_passes_enabled_v1`) + the `dev_grant_passes` RPC | confirmed from code |
+| e | `period_type !== 'normal'` also skips → a user inside a free trial or offer-code period earns nothing until first real charge (deliberate, 2026-07-22) — but it means the thank-you sheet's "we've given you 5 passes" and the wallet can disagree at trial time | confirmed; product question |
+| f | `classifyProduct` matches by name (`/year|annual/` then `/month/`) — an annual SKU named e.g. `sub_12month` classifies as **monthly** and grants 1 credit instead of 5. Verify the live RC product ids against this | confirmed from code |
+| g | `credits-share` / `credits-status` / `gifts-redeem` all trust a client-supplied `anonymous_id` (and `rc_app_user_id`) — already on the launch checklist as a blocker (§11.3), restated here because it sits squarely in this flow | known |
+| h | `fetchCreditStatus()` in `buy()` is a floating promise with no `.catch` — silent in release today (Hermes rejection tracking is `__DEV__`-only), self-heals via grant-on-read | accepted risk |
+| i | Identity is `anonymous_id` from SecureStore — new device = new identity = grandfather status and founding credits are lost on device migration | confirmed; needs a product decision |
+| j | Offline launch: RC serves cached CustomerInfo so a real subscriber is fine, but the Supabase grandfather check fails closed → a **grandfathered-only** user with no RC entitlement may see the hard paywall offline | **suspected, must be tested** |
+| k | Sandbox trials last minutes, so `scheduleTrialEndingReminder` always hits its `fireAt - now < 60s` skip — **the day-5 reminder cannot be tested in sandbox** without temporarily shrinking `WARN_BEFORE_MS` or faking `expirationDate` | confirmed from code |
+
+Also still open from 15.1: the **Hermes-init `SIGBUS` launch crash** on build
+130 (iPhone 15, iOS 26.6, ~0.4 s after launch, inside
+`JSIExecutor::initializeRuntime()`). Different device, different signature,
+nothing to do with purchases. Worth checking whether that device was on an OTA
+bundle vs. the embedded one.
+
+### 15.8 Next actions
+
+1. **Commit `lib/trialReminder.ts`.** It is live on the production channel and
+   uncommitted — highest-risk item in the tree.
+2. Confirm on-device that the purchase completes, then clear Force New-User.
+3. Finish the review from 15.7: build the case/edge-case matrix and the
+   pre-launch test plan on top of findings (a)–(k).
+4. Test (c) and (j) — the two suspected bugs — before the matrix, since both
+   change what the plan has to cover.
+5. Fix `getSMS()` before the `PASSES_ENABLED` flip (15.4).
+6. Port the QA-flag TTL + auto-clear from `daily-paths` (15.5).
+7. Next binary (131) restores the day-5 reminder; until then it no-ops and the
+   paywall's Day-5 promise is unkept.

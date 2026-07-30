@@ -15,10 +15,11 @@
 //    "trial ending" ping for a charge that isn't coming.
 //
 // ⚠️ expo-notifications is a NATIVE module: this feature only works in
-// binaries built after it was added. The lazy require below keeps an OTA of
-// this JS from crashing older binaries — there it just silently no-ops.
+// binaries built after it was added (3.0.7/130 predates it). On an older
+// binary the lazy require below must never run — see nativeSideIsPresent().
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Platform } from 'react-native';
+import { requireOptionalNativeModule } from 'expo-modules-core';
 import type { CustomerInfo } from 'react-native-purchases';
 import { logEvent } from '@/lib/analytics';
 
@@ -28,9 +29,37 @@ const WARN_BEFORE_MS = 48 * 60 * 60 * 1000;
 
 type NotificationsModule = typeof import('expo-notifications');
 
+// Native modules expo-notifications resolves while its own module body runs.
+// A try/catch around the require() cannot save us: Metro's guardedLoadModule
+// (metro-runtime/src/polyfills/require.js) catches a module-init throw itself
+// and hands it to ErrorUtils.reportFatalError instead of rethrowing, which is
+// RCTFatal — the app aborts and our catch never runs. So the require has to be
+// skipped entirely on a binary without the native side.
+// requireOptionalNativeModule returns null rather than throwing; expo-modules-core
+// is present in every Expo binary, so probing it is always safe. These three are
+// cross-platform and are exactly what this file uses (plus the one that aborted
+// 3.0.7/130: ExpoPushTokenManager).
+const REQUIRED_NATIVE_MODULES = [
+  'ExpoPushTokenManager',
+  'ExpoNotificationScheduler',
+  'ExpoNotificationPermissionsModule',
+];
+
+function nativeSideIsPresent(): boolean {
+  try {
+    return REQUIRED_NATIVE_MODULES.every((name) => requireOptionalNativeModule(name) != null);
+  } catch {
+    return false;
+  }
+}
+
 let notifications: NotificationsModule | null | undefined;
 function getNotifications(): NotificationsModule | null {
   if (notifications !== undefined) return notifications;
+  if (!nativeSideIsPresent()) {
+    notifications = null; // binary predates expo-notifications
+    return notifications;
+  }
   try {
     // eslint-disable-next-line @typescript-eslint/no-var-requires
     notifications = require('expo-notifications') as NotificationsModule;
