@@ -15,7 +15,7 @@ import BackButton from '@/components/BackButton';
 import { logEvent } from '@/lib/analytics';
 import PdfReader from '@/components/PdfReader';
 import { Image } from 'expo-image';
-import { FindCard } from '@/components/literature/literature-ui';
+import { FindRow } from '@/components/literature/literature-ui';
 
 // Real cover scan (1290×1700) — shared with the Literature home shelf.
 const TWELVE_COVER = require('@/assets/images/12x12_cover.webp');
@@ -98,6 +98,9 @@ export default function TwelveAndTwelveScreen() {
   // Dismiss any modal before presenting the reader (avoids modal clash).
   const jump = (fn: () => void) => { setShowBookmarks(false); setShowSearch(false); setShowGoTo(false); setTimeout(fn, 300); };
 
+  // A live query swaps the list for results, in place.
+  const searching = query.trim().length > 0;
+
   const openBookmark = (b: PdfBookmark) => jump(() => setPdf({ id: b.sectionId, title: b.title, startPage: b.startPage, initialPage: b.pdfPage }));
 
   const searchResults = useMemo(() => {
@@ -163,12 +166,41 @@ export default function TwelveAndTwelveScreen() {
 
         {/* Find tools — soft-filled cards on the page, as on the Big Book page */}
         <View style={styles.findRow}>
-          <FindCard Icon={Search} label="Search" accent={TT_INK} soft={LAV_SOFT} onPress={() => setShowSearch(true)} />
-          <FindCard Icon={Hash} label="Go to page" accent={TT_INK} soft={LAV_SOFT} onPress={() => setShowGoTo(true)} />
-          <FindCard Icon={Bookmark} label="Bookmarks" count={bookmarks.length} accent={TT_INK} soft={LAV_SOFT} onPress={() => setShowBookmarks(true)} />
+          <FindRow
+            accent={TT_INK}
+            query={query}
+            onQueryChange={setQuery}
+            onBookmarks={() => setShowBookmarks(true)}
+          />
         </View>
 
-        {/* Grouped Step / Tradition list */}
+        {/* Typing replaces the list with results, in place — the field lives on
+            the page, so there is no search modal to open. */}
+        {searching ? (
+          <View style={styles.body}>
+            {searchResults.length === 0 ? (
+              <Text style={styles.searchEmpty}>
+                {debounced.trim().length < 2 ? 'Keep typing — or enter a page number.' : `No matches for \u201C${debounced.trim()}\u201D.`}
+              </Text>
+            ) : (
+              <>
+                <Text style={styles.searchCount}>{searchResults.length} result{searchResults.length === 1 ? '' : 's'}</Text>
+                {searchResults.map((r) => (
+                  <Pressable key={r.key} onPress={r.open} style={({ pressed }) => [styles.resultCard, pressed && { opacity: 0.7 }]}>
+                    <View style={styles.resultBar} />
+                    <View style={styles.flex}>
+                      <Text style={styles.resultTitle} numberOfLines={1}>{r.title}</Text>
+                      {!!r.match && (
+                        <Text style={styles.resultSnippet} numberOfLines={2}>{r.before}<Text style={styles.resultMatch}>{r.match}</Text>{r.after}</Text>
+                      )}
+                      <Text style={styles.resultMeta}>Page {r.pageLabel}</Text>
+                    </View>
+                  </Pressable>
+                ))}
+              </>
+            )}
+          </View>
+        ) : (
         <View style={styles.body}>
           {twelveAndTwelveData.map((group) => (
             <View key={group.id} style={styles.group}>
@@ -186,6 +218,7 @@ export default function TwelveAndTwelveScreen() {
           ))}
           <Text style={styles.copyright}>Copyright © 1952, 1953, 1981 by Alcoholics Anonymous World Services, Inc.</Text>
         </View>
+        )}
       </ScrollView>
 
       {/* PDF reader. supportedOrientations: iOS Modals stay portrait-only
@@ -362,7 +395,9 @@ const makeStyles = (tk: Tokens) => {
   heroTitle: { fontFamily: readerSerif, fontWeight: '700', fontSize: 26, lineHeight: 31, color: c.text },
   heroSub: { fontFamily: fontFamily.regular, fontSize: 14.5, color: c.textSecondary, marginTop: 6 },
   heroMeta: { fontFamily: fontFamily.regular, fontSize: 13, color: c.textMuted, marginTop: 3 },
-  findRow: { flexDirection: 'row', gap: 10, paddingHorizontal: 20, paddingTop: 2, paddingBottom: 6 },
+  // Padding only — FindRow lays out its own row, so this must NOT be a row
+  // container or the search field has no width to flex into.
+  findRow: { paddingHorizontal: 20, paddingTop: 2, paddingBottom: 6 },
 
   body: { paddingHorizontal: 20, paddingTop: 6 },
   group: { marginTop: 14 },

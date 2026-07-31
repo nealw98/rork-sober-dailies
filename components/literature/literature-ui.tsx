@@ -3,9 +3,9 @@
 //  • TwelveCover  — a styled lavender gradient cover for the 12 & 12
 //  • MeetingReadingCard — color-spined card linking to a single reading
 import React from 'react';
-import { View, Text, Pressable, StyleSheet } from 'react-native';
+import { View, Text, Pressable, StyleSheet, TextInput } from 'react-native';
 import { Image } from 'expo-image';
-import { ChevronRight } from 'lucide-react-native';
+import { ChevronRight, Search, Bookmark, Highlighter, X } from 'lucide-react-native';
 import { fontFamily, type Tokens } from '@/constants/designTokens';
 import { useTokens, useThemedStyles } from '@/hooks/useTokens';
 import type { MeetingReading } from '@/constants/meeting-readings';
@@ -67,6 +67,78 @@ export function FindCard({ Icon, label, count, accent, soft, variant = 'soft', o
   );
 }
 
+// The find row on a book's Contents page: one search field plus circular icon
+// buttons. Replaces the four large utility chips — same handlers, same modals,
+// just a quieter row. `accent` is the book's family 700 tone (steel for the Big
+// Book, teal for the 12 & 12). Translucent white rather than full white so the
+// paper and the header band's warmth bleed through (0.8 — Neal, 2026-07-31),
+// and the controls read as
+// sitting IN the page rather than on it. `onHighlights` is omitted on books
+// that don't support highlighting.
+export function FindRow({ accent, query, onQueryChange, onBookmarks, onHighlights, highlightCount = 0 }: {
+  accent: string;
+  // A real field, live on the page — no search modal to open.
+  query: string;
+  onQueryChange: (next: string) => void;
+  onBookmarks: () => void;
+  onHighlights?: () => void;
+  highlightCount?: number;
+}) {
+  const styles = useThemedStyles(makeStyles);
+  const { c } = useTokens();
+  // The book's own colour at ~14%, so each book's row is tinted by its family
+  // without the border ever competing with the text.
+  const hairline = accent.startsWith('#') && accent.length === 7 ? `${accent}24` : accent;
+  return (
+    <View style={styles.findRow}>
+      <View style={[styles.findField, { borderColor: hairline }]}>
+        <Search size={17} color={accent} strokeWidth={2} />
+        <TextInput
+          value={query}
+          onChangeText={onQueryChange}
+          placeholder="Search, or jump to a page…"
+          placeholderTextColor={c.textMuted}
+          style={[styles.findFieldText, { color: c.text }]}
+          autoCorrect={false}
+          autoCapitalize="none"
+          returnKeyType="search"
+          accessibilityLabel="Search, or jump to a page"
+        />
+        {query.length > 0 && (
+          <Pressable onPress={() => onQueryChange('')} hitSlop={10} accessibilityLabel="Clear search">
+            <X size={16} color={c.textMuted} strokeWidth={2} />
+          </Pressable>
+        )}
+      </View>
+
+      <Pressable
+        onPress={onBookmarks}
+        style={({ pressed }) => [styles.findCircle, { borderColor: hairline }, pressed && { opacity: 0.7 }]}
+        accessibilityRole="button"
+        accessibilityLabel="Bookmarks"
+      >
+        <Bookmark size={19} color={accent} strokeWidth={2} />
+      </Pressable>
+
+      {!!onHighlights && (
+        <Pressable
+          onPress={onHighlights}
+          style={({ pressed }) => [styles.findCircle, { borderColor: hairline }, pressed && { opacity: 0.7 }]}
+          accessibilityRole="button"
+          accessibilityLabel={`Highlights${highlightCount > 0 ? `, ${highlightCount}` : ''}`}
+        >
+          <Highlighter size={19} color={accent} strokeWidth={2} />
+          {highlightCount > 0 && (
+            <View style={[styles.findCircleBadge, { backgroundColor: accent, borderColor: c.background }]}>
+              <Text style={styles.findBadgeText}>{highlightCount}</Text>
+            </View>
+          )}
+        </Pressable>
+      )}
+    </View>
+  );
+}
+
 export function MeetingReadingCard({ reading, onPress }: { reading: MeetingReading; onPress: () => void }) {
   const styles = useThemedStyles(makeStyles);
   const { c } = useTokens();
@@ -97,10 +169,27 @@ const makeStyles = (tk: Tokens) => {
     },
 
     flex: { flex: 1, minWidth: 0 },
+    // Find row — a 44pt line of controls, translucent so the page shows through.
+    findRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+    findField: {
+      flex: 1, height: 44, borderRadius: 22, borderWidth: 1,
+      backgroundColor: isDark ? 'rgba(255,255,255,0.07)' : 'rgba(255,255,255,0.8)',
+      flexDirection: 'row', alignItems: 'center', gap: 9, paddingHorizontal: 15,
+    },
+    findFieldText: { flex: 1, fontFamily: fontFamily.regular, fontSize: 15, paddingVertical: 0 },
+    findCircle: {
+      width: 44, height: 44, borderRadius: 22, borderWidth: 1,
+      backgroundColor: isDark ? 'rgba(255,255,255,0.07)' : 'rgba(255,255,255,0.8)',
+      alignItems: 'center', justifyContent: 'center',
+    },
+
     findCard: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 7, paddingVertical: 14, borderRadius: 14 },
     findCardOutline: { backgroundColor: c.surface, borderWidth: 1, borderColor: c.border, ...darkCard },
     findLabel: { fontFamily: fontFamily.semiBold, fontSize: 12.5 },
     findBadge: { position: 'absolute', top: -7, right: -12, minWidth: 16, height: 16, borderRadius: 8, paddingHorizontal: 4, alignItems: 'center', justifyContent: 'center' },
+    // Badge for the circular button — rides the top-right edge, ringed in the
+    // page colour so it reads as sitting above the circle.
+    findCircleBadge: { position: 'absolute', top: -3, right: -3, minWidth: 19, height: 19, borderRadius: 10, borderWidth: 2, paddingHorizontal: 4, alignItems: 'center', justifyContent: 'center' },
     findBadgeText: { fontFamily: fontFamily.bold, fontSize: 10, color: '#fff' },
     card: { flexDirection: 'row', alignItems: 'center', gap: 11, backgroundColor: c.surface, borderWidth: 1, borderColor: c.border, borderRadius: 12, paddingVertical: 13, paddingHorizontal: 13, ...darkCard },
     spine: { width: 6, alignSelf: 'stretch', borderRadius: 3 },

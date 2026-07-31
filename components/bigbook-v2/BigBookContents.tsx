@@ -13,7 +13,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { ChevronRight, Bookmark, Hash, X, Trash2, Search, Highlighter } from 'lucide-react-native';
 import BackButton from '@/components/BackButton';
 import { Image } from 'expo-image';
-import { FindCard } from '@/components/literature/literature-ui';
+import { FindRow } from '@/components/literature/literature-ui';
 
 // Real cover scan (1290×1700) — shared with the Literature home shelf.
 const BIG_BOOK_COVER = require('@/assets/images/big-book_cover.webp');
@@ -144,6 +144,9 @@ export function BigBookContents({ onOpenText, onOpenPdf, onOpenTextAtParagraph }
 
   const openBookmarks = () => { refreshText(); setShowBookmarks(true); };
 
+  // A live query swaps the contents list for results, in place.
+  const searching = query.trim().length > 0;
+
   const submitGoTo = () => {
     Keyboard.dismiss();
     const n = parseInt(pageInput, 10);
@@ -174,14 +177,52 @@ export function BigBookContents({ onOpenText, onOpenPdf, onOpenTextAtParagraph }
           </View>
         </LinearGradient>
 
-        {/* Find tools — presented as features, not header utilities */}
+        {/* Find tools — one quiet row. Search doubles as go-to-page: a numeric
+            query already offers the jump above the text hits (searchResults). */}
         <View style={styles.findRow}>
-          <FindCard Icon={Search} label="Search" accent={AMBER_INK} soft={AMBER_SOFT} onPress={() => setShowSearch(true)} />
-          <FindCard Icon={Hash} label="Go to page" accent={AMBER_INK} soft={AMBER_SOFT} onPress={() => setShowGoTo(true)} />
-          <FindCard Icon={Bookmark} label="Bookmarks" count={unified.length} accent={AMBER_INK} soft={AMBER_SOFT} onPress={openBookmarks} />
-          <FindCard Icon={Highlighter} label="Highlights" count={highlights.length} accent={AMBER_INK} soft={AMBER_SOFT} onPress={() => setShowHighlights(true)} />
+          <FindRow
+            accent={AMBER_INK}
+            query={query}
+            onQueryChange={setQuery}
+            onBookmarks={openBookmarks}
+            onHighlights={() => setShowHighlights(true)}
+            highlightCount={highlights.length}
+          />
         </View>
 
+        {/* Typing replaces the contents with results, in place — the field is on
+            the page, so there is no search modal to open. Clearing restores the
+            table of contents. */}
+        {searching ? (
+          <View style={styles.body}>
+            {searchResults.length === 0 ? (
+              <Text style={styles.searchEmpty}>
+                {debounced.trim().length < 2 ? 'Keep typing — or enter a page number.' : `No matches for \u201C${debounced.trim()}\u201D.`}
+              </Text>
+            ) : (
+              <>
+                <Text style={styles.searchCount}>{searchResults.length} result{searchResults.length === 1 ? '' : 's'}</Text>
+                {searchResults.map((r) => (
+                  <Pressable key={r.key} onPress={r.open} style={({ pressed }) => [styles.resultCard, pressed && { opacity: 0.7 }]}>
+                    <View style={styles.resultBar} />
+                    <View style={styles.flex}>
+                      <View style={styles.resultHead}>
+                        <Text style={styles.resultTitle} numberOfLines={1}>{r.title}</Text>
+                        {r.isPdf && <View style={styles.pdfTag}><Text style={styles.pdfTagText}>PDF</Text></View>}
+                      </View>
+                      {!!r.match && (
+                        <Text style={styles.resultSnippet} numberOfLines={2}>
+                          {r.before}<Text style={styles.resultMatch}>{r.match}</Text>{r.after}
+                        </Text>
+                      )}
+                      <Text style={styles.resultMeta}>Page {r.pageLabel}</Text>
+                    </View>
+                  </Pressable>
+                ))}
+              </>
+            )}
+          </View>
+        ) : (
         <View style={styles.body}>
           {BIGBOOK_TOC.map((g) => (
             <View key={g.label} style={styles.group}>
@@ -219,6 +260,7 @@ export function BigBookContents({ onOpenText, onOpenPdf, onOpenTextAtParagraph }
           ))}
           <Text style={styles.copyright}>Copyright © Alcoholics Anonymous World Services, Inc.</Text>
         </View>
+        )}
       </ScrollView>
 
       {/* Unified bookmarks sheet */}
@@ -397,7 +439,9 @@ const makeStyles = (tk: Tokens) => {
   heroTitle: { fontFamily: readerSerif, fontWeight: '700', fontSize: 23, lineHeight: 28, color: c.text },
   heroSub: { fontFamily: fontFamily.regular, fontSize: 13.5, color: c.textSecondary, marginTop: 5 },
 
-  findRow: { flexDirection: 'row', gap: 10, paddingHorizontal: 20, paddingTop: 2, paddingBottom: 6 },
+  // Padding only — FindRow lays out its own row, so this must NOT be a row
+  // container or the search field has no width to flex into.
+  findRow: { paddingHorizontal: 20, paddingTop: 2, paddingBottom: 6 },
 
   body: { paddingHorizontal: 20 },
   group: { marginTop: 16 },
