@@ -2,22 +2,21 @@
 
 _For a fresh chat. Branch `3.0.5-redesign` (tracks `origin/3.0.5-redesign`)._
 
-_Latest session (**2026-07-30 pm, #3**): **first device tests + the
-pre-release checklist executed code-side.** Two "working as designed"
-findings (iOS Keychain survives uninstall, so a reinstall is NOT a fresh
-user; sandbox/trial subs earn 0 passes) — the second exposed an undecided
-product gap: the thank-you sheet promises 5 passes to annual members who
-earn none until their trial converts. Code landed: the `credits-*` **security
-fix** (device-ownership proof — written, NOT deployed), `getSMS()` guard,
-trial copy derived from the store, privacy backup wording (⚠️ the real policy
-is in the WEB repo — `app/privacy.tsx` is orphaned), and a one-time **backup
-prompt** on the first Journey entry (Android's Drive backup was undiscoverable
-— iOS was never affected). The security fix is now **DEPLOYED & verified
-live**; its client half is not, so gift sharing needs that OTA. **⚠️ ALL CODE
-STILL UNCOMMITTED in both repos. Read §17 FIRST**, especially §17.6 (the
-tree) and §17.7 (next actions)._
+_Latest session (**2026-07-31**): a UX laundry list, then a tester's report
+that turned into a **Big Book front-matter audit** (the Foreword to Second
+Edition had dropped a clause mid-sentence; the **Preface was the 2nd
+edition's, a different document** — now A.A.'s 4th-edition PDF), then a walk
+down `docs/LAUNCH-CHECKLIST.md`. Landed: **grandfathered members never meet a
+paywall** (cached yes, narrow fail-open), the trial/pass-promise decision +
+**arrival sheet**, final pricing **$3.99/$19.99** (a DECREASE — no consent
+machinery, no code change), the **privacy policy published** to the web, two
+orphaned edge functions deleted, and a fresh-install bug where "Get started"
+rendered as "Get". **Everything is COMMITTED AND PUSHED (head `45a952d1`),
+both repos clean, two production OTAs shipped.** Checklist down to **9 open
+items**, five of them ship-day flips. **Read §18**, especially 18.1 (the
+edition policy — don't "fix" it back) and 18.10 (next actions)._
 
-_Prior session (**2026-07-30 pm, #2**): the **ACCESS TEST PLAN**
+_Prior session (**2026-07-30 pm, #3**): see §17. Prior to that (**pm #2**): the **ACCESS TEST PLAN**
 (`docs/ACCESS-TEST-PLAN.md`) — the launch-gating test pass for
 onboarding/subscription/grandfather/codes, grounded in a fresh code map;
 Android paywall X RE-ADDED for testing (revert at ship, LAUNCH-CHECKLIST §1);
@@ -1989,3 +1988,207 @@ errors)** — nothing new introduced. Web repo typechecks clean.
    paywall X + QA Force New-User toggle, bump runtime to 3.0.8.
 7. Next binary (131) unlocks the day-5 reminder E-cases and the new preview
    button on device.
+
+---
+
+## 18. Latest session — 2026-07-31 (Big Book front matter · grandfather · pricing · launch checklist)
+
+**Everything below is COMMITTED AND PUSHED** (head `45a952d1`), and three
+production OTAs shipped. Both repos are clean. This is the first session in a
+while that doesn't hand over a dirty tree.
+
+Shape of the day: a UX laundry list, then a tester's bug report that turned
+into a content audit, then a walk down `docs/LAUNCH-CHECKLIST.md` item by
+item. The checklist is now **9 open items**, five of which are ship-day flips.
+
+### 18.1 Big Book front matter — a tester was right, and it was worse than reported
+
+A tester said the Foreword to Second Edition didn't match the 4th edition.
+Diffing the app text against A.A.'s own PDFs (aa.org) found three separate
+problems, only one of which was the reported one:
+
+- **Foreword to Second Edition** had *dropped a clause mid-sentence* — "a
+  willingness he had never again up to the moment of his death" — an eye-skip
+  between two instances of "never…again" that swallowed Dr. Bob getting
+  sober. It also rendered `—- *Page xxii* —-`, an editing artifact, as body
+  text, and ran xv–**xxii** when the chapter is xv–xxi. Retranscribed from
+  the PDF; now word-for-word (the only diff is the drop cap).
+- **Foreword to First Edition** had the same class of artifact
+  (`**Pages xiii–xiv**` as paragraph 1), "nor dues" for "or dues", and
+  missing italics. Neal spotted the last one: *"precisely how we have
+  recovered"* is italic in the book. It was in the text but never marked up
+  — the renderer has always supported `_…_` (chapters 1 and 2 use it). Data
+  gap, not a viewer bug.
+- **The Preface was the SECOND edition's preface** — a different document
+  entirely, not a variant. Replaced with A.A.'s 4th-edition PDF, rendered
+  the same way as the third/fourth-edition forewords (`kind: 'pdf'`,
+  `assets/pdf/big-book/en_bigbook_preface.pdf`, keyed in `bigbook-pdfs.ts`),
+  and its two pages added to `bigbook-pdf-search.json` so Search still finds
+  it. The text `preface.ts` is deleted and unregistered.
+
+⚠️ **The edition policy, so nobody "fixes" this back.** Neal: the first 164
+pages ship as 2nd-edition TEXT (essentially identical across editions, and
+the copyright position is cleaner); the personal stories ship as 4th-edition
+PDFs. So the 4th-edition Preface is *correct* — it describes the story
+section the app actually contains. Mid-session I argued the opposite from a
+false premise; the record is here so the argument isn't repeated.
+
+Known leftover: the 4th-ed foreword cites the Traditions at "page 561" while
+the app maps Appendix I to 565–568 (2nd-ed pagination). A four-page drift
+inside a cross-reference; left alone deliberately.
+
+### 18.2 Grandfathered members never meet a paywall
+
+Neal's rule, and a behaviour change: `hooks/useSubscription.ts` used to fail
+**closed** — any error, outage or offline launch meant "not grandfathered".
+That is exactly how the July RLS incident paywalled real founding members.
+
+Now a verified yes is cached against the device's `anonymous_id`
+(`grandfather_verified_v1`) and honoured when the check **fails**. The
+fail-open is deliberately narrow: a device that never verified still fails
+closed (the cache can preserve access, never create it); a successful "no"
+clears it, so un-grandfathering still works once online; **no TTL**, because
+an expiry would reinstate the lockout during a long outage. Reset
+subscription state mints a new id, which no longer matches, so QA still
+falls through to the paywall.
+
+⚠️ Deliberately NOT added to `LOCAL_RESET_KEYS`: wiping data while offline
+would otherwise wall a founding member. Docs corrected in three places that
+asserted the old behaviour — `revenuecat-grandfather-flow.md` (its "No
+Caching" section and truth table), ACCESS-TEST-PLAN **B2** (which was written
+to *expect* a paywall; it now expects Today, plus a negative half), and the
+checklist.
+
+### 18.3 Pass It On — the trial promise, decided
+
+Passes are earned on the first real charge, never during a trial, so a new
+annual member had none for a week while the thank-you sheet said "Five
+passes to give away." Decided (a) + arrival announcement:
+
+- Thank-you copy promises **arrival**, not possession, and never names a
+  trial length (that comes from the store).
+- A second `arrival` mode of the same sheet fires when the grant total
+  rises — purely functional, no billing language, per Neal.
+- Detection reuses the existing plumbing: a high-water mark of
+  `total_granted` in `creditsService`. Guards: no baseline = record
+  silently (a returning member isn't greeted with passes they've had for
+  months); a pending purchase announcement suppresses it (convert-with-no-
+  trial gets one sheet, not two); swallowed while `PASSES_ENABLED` is false.
+- Worth knowing: **grant-on-read** means no webhook is needed — every
+  `credits-status` call recomputes from RevenueCat state and inserts what's
+  missing, so passes appear on the first status call after conversion.
+
+⚠️ **Never seen on a device.** Developer Console → **Arrival · 5 passes**.
+
+### 18.4 Pricing — $3.99 / $19.99, and it's a DECREASE
+
+Final prices. Because it's a decrease, none of the price-increase consent
+machinery applies. Neal configured both stores in place (no new SKUs, so the
+existing offer-code batches stay attached): grandfathered stay free, v2 keeps
+v2 pricing, new v3 subscribers get the new price.
+
+**Nothing changed in the app** — there is no price literal in the codebase.
+The paywall reads `product.priceString` and derives the rest, so it will show
+$1.67/mo for yearly and hold at SAVE 58%. Remaining: confirm the numbers
+actually render during A1 (store changes take hours to propagate; RC caches
+offerings).
+
+### 18.5 Web (`sober-day-reflections`) — both pages published
+
+- `/get` quoted $4.99/$24.99 → now $19.99/$3.99, "about $1.67 a month"
+  (`bdd3fbc`).
+- **Privacy policy published** (`f2d9680` + `3aa61ae`). New Backup section,
+  and the accuracy fix that mattered: the live page claimed data never left
+  the device except for AI chat and aa.org links, which ignored subscriptions
+  and analytics entirely. Effective date moved to 2026-07-31 — Neal caught
+  that it still read July 20, **2025**, which would have dated the policy
+  before the terms it describes.
+
+⚠️ **Lovable deploy gotcha, learned the hard way:** after pushing to that
+repo, confirm the project's `latest_commit_sha` matches BEFORE deploying. A
+deploy fired seconds after the push rebuilt the *pre-push* state and reported
+success. Publish → wait for sync → deploy → verify by grepping the live JS
+bundle.
+
+### 18.6 Remote housekeeping + an analytics audit
+
+**Deleted (Neal ran them):** `gifts-purchase` and `gifts-wallet`, ACTIVE in
+production since 2026-07-13 despite their source being deleted 07-20
+(`5b4954a4`) — unreferenced, unmaintained, publicly reachable, and
+`gifts-purchase` still trusted a client-supplied `anonymous_id`.
+**Kept deliberately:** `gifts-redeem` and `get-dispense`.
+**Also orphaned, found by diffing deployed functions against client refs:**
+`check-grandfather` (0 refs — the app queries `user_profiles` directly) and
+`invites-report` (0 refs).
+
+**Analytics migration is complete on the client.** One pipeline:
+`lib/analytics.ts` → Mixpanel HTTP API (no native SDK, so it rides OTAs). No
+`usage_events`/`analytics_events` writes remain; no expo-insights, Firebase,
+Amplitude or Segment installed. The only Supabase write left is
+`app_feedback`, which is a feature.
+
+⚠️ **Two analytics traps, both recorded in the checklist §1 item:**
+1. `EXPO_PUBLIC_ANALYTICS_ENV` must be flipped in **BOTH** the EAS
+   environments and the **local `.env`** — no eas.json profile declares an
+   `environment`, so `eas update` resolves it from the local file. Verified
+   2026-07-31: all three say `test`, so nothing is polluted.
+2. `EXPO_PUBLIC_*` is inlined at update time and testers share channel
+   `production` — so once flipped, ANY OTA re-tags the tester fleet as
+   production unless the store binary is on its own runtime. Fallback:
+   `distinct_id` is the anonymous/Support ID, so a Mixpanel cohort of tester
+   IDs can be excluded regardless of tagging.
+3. The EAS `development` environment is EMPTY — no Mixpanel token AND no
+   RevenueCat keys, so subscriptions can't initialise in a dev-profile build.
+
+### 18.7 Fresh-install bug: "Get started" rendered as "Get"
+
+Found by Neal on device, first run only. The onboarding gate in
+`app/_layout.tsx` sat **above** the `fontsLoaded` check, so on a fresh
+install the welcome screen could render while Inter/Archivo were still
+loading — the label measured against fallback metrics and kept that width
+when the real face arrived. A 3-second splash failsafe is what let it reach
+the screen at all. Onboarding now waits for `fontsLoaded` behind the same
+brand-teal fill. JS-only, so it's OTA-able, and it affects every fresh
+install of build 130 in the wild.
+
+### 18.8 UX laundry list (earlier in the session)
+
+Meditation top-bar buttons solid white (navy and periwinkle were tried and
+rejected — white matches Begin and the selected chips); Literature books get
+`paddingTop` so a small scroll doesn't shear them; Morning/Evening prayer
+dailies open the **full prayer library** instead of deep-linking one prayer;
+Today's edit **Save** moved onto the "Morning" line where the pencil was (new
+`DailiesEditor` `headerAccessory` prop); **Set Aside Prayer** added between
+Serenity and Sick Man (no source line — it's not from the literature); 12 &
+12 contents page adopts the Big Book's gradient + soft-filled find cards;
+paywall Monthly label/price move together and match Yearly's weight;
+onboarding headline → "The daily habits that build long-term sobriety" (sized
+to hold two lines); What's-inside sponsor card drops the sample chat bubble.
+
+### 18.9 Shipped today
+
+| What | Where |
+|---|---|
+| OTA 1 | `c9490af8` — device_secret client, backup prompt, trial copy, legal screens |
+| OTA 2 | `28508a0c` — Big Book front matter, grandfather cache, pass sheets, 12&12 |
+| Web | `/get` pricing + privacy policy, live and verified on soberdailies.com |
+| Commits | `3b87fa22` … `45a952d1` on `3.0.5-redesign`, all pushed |
+
+### 18.10 Next actions
+
+1. **Neal is creating production build 131** (day-5 reminder + Invite
+   Friends need the binary; the landscape PDF fix already shipped in 130).
+   Decision taken: keep **runtime 3.0.7** so 131 joins 130 in one fleet and
+   stays OTA-able through testing; bump to 3.0.8 only for the launch binary
+   (132), which also cleanly separates tester analytics from production.
+2. **Run the access test plan** — A1/A2 have still never been run. It is the
+   real launch gate, and now also needs to confirm the new pricing renders
+   and that **B2** behaves (grandfathered + airplane mode = Today, and the
+   negative half: never-verified device still gets the paywall).
+3. Remaining device tests: pass send E2E, the ~2-minute spend-half cycle,
+   and eyes on the **arrival sheet**.
+4. Retire the 3 ASC gift consumables + Play IAPs; optionally delete
+   `check-grandfather` and `invites-report`.
+5. Ship day, as one pass: `PASSES_ENABLED` → true, analytics → production
+   (**both places**), remove the Android paywall X + QA Force New-User
+   toggle, bump runtime to 3.0.8.
