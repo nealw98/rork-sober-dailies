@@ -191,9 +191,21 @@ clear to ship.
       give → cancel composer → balance stays 5 → give again → SAME token
       returns → actually send → balance 4, `sent_at` set on that row only.
       (The grant half is already verified on device.)
-- [ ] **Remote housekeeping** (no urgency, but before launch tidiness):
-      delete the orphaned `gifts-purchase` + `gifts-wallet` Supabase edge
-      functions; remove the 3 ASC gift consumables + Play IAPs from sale.
+- [ ] **Remote housekeeping** — the Supabase half is DONE (2026-07-31, Neal
+      ran the deletes; `supabase functions list` confirms both gone).
+      `gifts-purchase` and `gifts-wallet` had been ACTIVE in production since
+      2026-07-13 even though their source was deleted from the repo on
+      07-20 (`5b4954a4`) — unreferenced, unmaintained, publicly reachable,
+      and `gifts-purchase` still trusted a client-supplied `anonymous_id`,
+      the flaw class the device-secret work closed on `credits-*`.
+      ⚠️ `gifts-redeem` and `get-dispense` were deliberately KEPT — legacy
+      SD-XXXX codes, the Android pass fallback, and the `/get` page run
+      through them.
+      **Remaining:** remove the 3 ASC gift consumables from sale (App Store
+      Connect → In-App Purchases) and deactivate the Play equivalents. The
+      app can no longer initiate those purchases and the minting function is
+      now gone, so this is tidiness plus keeping App Review from asking why
+      the IAP list has products nothing reaches.
 
 ## 4. Deferred — explicitly NOT launch blockers (parked)
 
