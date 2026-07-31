@@ -405,12 +405,17 @@ export default function PaywallScreen({ onDismiss, preview, forceTrial }: Paywal
             )}
             {!!monthly && (
               <Pressable style={[styles.plan, selected === 'monthly' && styles.planOn]} onPress={() => setSelected('monthly')}>
+                {/* Monthly's label and price move together: both muted when the
+                    row is the road not taken, both full ink when it's chosen.
+                    (Yearly is the default pick and always reads full-strength.) */}
                 <View style={styles.planLeft}>
                   <Radio on={selected === 'monthly'} />
-                  <Text style={styles.planName}>Monthly</Text>
+                  <Text style={[styles.planName, selected !== 'monthly' && styles.planTextMuted]}>Monthly</Text>
                 </View>
                 <View style={styles.planRight}>
-                  <Text style={styles.planSubOnly}>{monthly.product.priceString}/mo</Text>
+                  <Text style={[styles.planSubOnly, selected === 'monthly' && styles.planTextInk]}>
+                    {monthly.product.priceString}/mo
+                  </Text>
                 </View>
               </Pressable>
             )}
@@ -601,6 +606,9 @@ const makeStyles = (tk: Tokens) => {
     planPrice: { fontFamily: fontFamily.bold, fontSize: 16.5, color: c.text },
     planSub: { fontFamily: fontFamily.regular, fontSize: 13, color: c.textMuted, marginTop: 2 },
     planSubOnly: { fontFamily: fontFamily.regular, fontSize: 14.5, color: c.textMuted },
+    // Monthly row only — the label and price follow the selection together.
+    planTextMuted: { color: c.textMuted },
+    planTextInk: { color: c.text },
     radio: { width: 22, height: 22, borderRadius: 11, borderWidth: 2, borderColor: c.border, alignItems: 'center', justifyContent: 'center' },
     radioOn: { backgroundColor: colors.primary, borderColor: colors.primary },
     saveBadge: { position: 'absolute', top: -10, left: '50%', marginLeft: -46, width: 92, backgroundColor: colors.primary, borderRadius: 999, paddingVertical: 4, alignItems: 'center' },

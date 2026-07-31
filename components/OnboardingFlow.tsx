@@ -54,8 +54,16 @@ function WelcomeStep({ upgrader, onContinue }: { upgrader: boolean; onContinue: 
       <SafeAreaView style={styles.welcomeSafe} edges={['top', 'bottom']}>
         <View style={styles.welcomeCenter}>
           <Image source={require('@/assets/images/icon.png')} style={styles.welcomeLogo} contentFit="cover" />
-          <Text style={styles.welcomePromise}>
-            {upgrader ? 'Welcome to the new Sober Dailies' : 'The habits that build long-term sobriety'}
+          {/* Two lines, always. The new-user promise is the longer string, so it
+              sets the type size; adjustsFontSizeToFit is the backstop for narrow
+              screens and large Dynamic Type. */}
+          <Text
+            style={[styles.welcomePromise, upgrader ? null : styles.welcomePromiseLong]}
+            numberOfLines={2}
+            adjustsFontSizeToFit
+            minimumFontScale={0.8}
+          >
+            {upgrader ? 'Welcome to the new Sober Dailies' : 'The daily habits that build long-term sobriety'}
           </Text>
           <Text style={styles.welcomeSubtitle}>
             {upgrader ? 'Everything you saved is still here. New in this version: speaker tapes, meditation, and a whole new Today.' : 'One day. Every day.'}
@@ -342,6 +350,9 @@ const makeStyles = (tk: Tokens) => {
     textAlign: 'center',
     letterSpacing: -0.5,
   },
+  // "The daily habits that build long-term sobriety" needs ~5 more characters
+  // per line than the upgrader greeting to hold at two lines.
+  welcomePromiseLong: { fontSize: 30, lineHeight: 34 },
   welcomeSubtitle: {
     fontFamily: fontFamily.serifItalic,
     fontSize: 18,

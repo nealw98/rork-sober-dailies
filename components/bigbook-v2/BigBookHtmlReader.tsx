@@ -499,6 +499,26 @@ function buildHtml(params: {
     scheduleToolbar(600);
   });
   window.__addSavedHighlight = function(highlight) { applyHighlight(highlight); };
+  // Deleting unwraps the span in place — reloading the document instead would
+  // throw away the reader's scroll position.
+  window.__removeSavedHighlight = function(ids) {
+    var list = [].concat(ids);
+    var touched = [];
+    list.forEach(function(id) {
+      var spans = document.querySelectorAll('.bb-highlight[data-highlight-id="' + id + '"]');
+      for (var i = 0; i < spans.length; i++) {
+        var span = spans[i];
+        var parent = span.parentNode;
+        if (!parent) continue;
+        while (span.firstChild) parent.insertBefore(span.firstChild, span);
+        parent.removeChild(span);
+        if (touched.indexOf(parent) === -1) touched.push(parent);
+      }
+    });
+    // Re-merge the text nodes the unwrap split, so the offsets used to place
+    // the remaining highlights keep lining up.
+    touched.forEach(function(node) { if (node.normalize) node.normalize(); });
+  };
 
   applySearch(window.__searchTerm);
   window.__savedHighlights.forEach(applyHighlight);
@@ -542,7 +562,6 @@ export function BigBookHtmlReader({ visible, initialChapterId, scrollToPage, scr
   const [editingHighlight, setEditingHighlight] = useState<BigBookHighlight | null>(null);
   const [showHighlightEditMenu, setShowHighlightEditMenu] = useState(false);
   const [showDisplaySheet, setShowDisplaySheet] = useState(false);
-  const [renderVersion, setRenderVersion] = useState(0);
   const [showHint, setShowHint] = useState(false);
 
   // First-use hint: teach the press-and-hold gesture once, then never again.
@@ -591,7 +610,7 @@ export function BigBookHtmlReader({ visible, initialChapterId, scrollToPage, scr
       searchTerm,
       pal,
     });
-  }, [currentChapter, scaledFontSize, scaledLineHeight, useRoman, scrollToPage, scrollToParagraphId, searchTerm, renderVersion, pal]);
+  }, [currentChapter, scaledFontSize, scaledLineHeight, useRoman, scrollToPage, scrollToParagraphId, searchTerm, pal]);
 
   const webSource = useMemo(() => ({ html }), [html]);
 
@@ -732,15 +751,18 @@ export function BigBookHtmlReader({ visible, initialChapterId, scrollToPage, scr
   const handleRemoveHighlight = async () => {
     if (!editingHighlight) return;
     try {
-      if (editingHighlight.groupId) {
-        const group = highlights.filter((item) => item.groupId === editingHighlight.groupId);
-        await Promise.all(group.map((item) => deleteHighlight(item.id)));
-      } else {
-        await deleteHighlight(editingHighlight.id);
-      }
+      const removedIds = editingHighlight.groupId
+        ? highlights.filter((item) => item.groupId === editingHighlight.groupId).map((item) => item.id)
+        : [editingHighlight.id];
+      await Promise.all(removedIds.map((id) => deleteHighlight(id)));
+      // Unwrap the spans in the live document rather than rebuilding the HTML —
+      // a rebuild remounts the WebView and drops the reader back to the top of
+      // the chapter. Mirrors how creation injects the new highlight.
+      webViewRef.current?.injectJavaScript(
+        `window.__removeSavedHighlight && window.__removeSavedHighlight(${JSON.stringify(removedIds)}); true;`
+      );
       setShowHighlightEditMenu(false);
       setEditingHighlight(null);
-      setRenderVersion((value) => value + 1);
     } catch (error) {
       console.error('[BigBookHtmlReader] remove highlight', error);
     }
@@ -779,7 +801,7 @@ export function BigBookHtmlReader({ visible, initialChapterId, scrollToPage, scr
           </View>
 
           <WebView
-            key={`bb-html-${currentChapterId}-${renderVersion}-${scaledFontSize}`}
+            key={`bb-html-${currentChapterId}-${scaledFontSize}`}
             ref={webViewRef}
             originWhitelist={['*']}
             source={webSource}

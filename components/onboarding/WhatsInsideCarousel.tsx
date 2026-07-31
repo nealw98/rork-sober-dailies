@@ -113,7 +113,7 @@ function VigToday() {
   );
 }
 
-// ─── 2 · AI Sponsor — personas + one incoming bubble ─────────────────────────
+// ─── 2 · AI Sponsor — the three personas (no sample chat) ────────────────────
 
 function VigSponsor() {
   const styles = useThemedStyles(makeStyles);
@@ -128,11 +128,6 @@ function VigSponsor() {
           </View>
         </View>
       ))}
-      <View style={styles.vigBubbleRow}>
-        <View style={styles.vigBubble}>
-          <Text style={styles.vigBubbleText}>Rough night? I&rsquo;m here. Tell me what&rsquo;s going on.</Text>
-        </View>
-      </View>
     </View>
   );
 }
@@ -384,9 +379,6 @@ const makeStyles = (tk: Tokens) => {
     vigAvatar: { width: 42, height: 42, borderRadius: 21 },
     vigPersonaName: { fontFamily: fontFamily.bold, fontSize: 13, color: c.text },
     vigPersonaTag: { fontFamily: fontFamily.regular, fontSize: 11, color: c.textMuted, marginTop: 1 },
-    vigBubbleRow: { flexDirection: 'row', marginTop: 2 },
-    vigBubble: { backgroundColor: colors.primarySoft, borderTopLeftRadius: 14, borderTopRightRadius: 14, borderBottomRightRadius: 14, borderBottomLeftRadius: 4, paddingVertical: 8, paddingHorizontal: 12, maxWidth: '86%' },
-    vigBubbleText: { fontFamily: fontFamily.serifItalic, fontSize: 12.5, lineHeight: 18, color: c.textSecondary },
 
     // Tools vignette
     vigBooksCard: { flexDirection: 'row', gap: 9, backgroundColor: vigCard, borderWidth: 1, borderColor: c.border, borderRadius: 12, padding: 8 },

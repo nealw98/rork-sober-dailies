@@ -13,7 +13,6 @@ import {
   TouchableOpacity,
   Modal,
   TextInput,
-  Alert,
 } from 'react-native';
 import { KeyboardModalScope } from '@/components/KeyboardModalScope';
 import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
@@ -51,22 +50,11 @@ export function HighlightEditMenu({
     onClose();
   };
 
+  // No confirmation — re-highlighting the passage takes one gesture, so the
+  // alert cost more than the mistake did.
   const handleRemove = () => {
-    Alert.alert(
-      'Remove Highlight',
-      'Are you sure you want to remove this highlight?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Remove',
-          style: 'destructive',
-          onPress: () => {
-            onRemove();
-            onClose();
-          },
-        },
-      ]
-    );
+    onRemove();
+    onClose();
   };
 
   if (!highlight) return null;
