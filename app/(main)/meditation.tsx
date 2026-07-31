@@ -35,6 +35,12 @@ const TH = {
   soundSelBorder: 'rgba(255,255,255,0.55)',
   glassBg: 'rgba(255,255,255,0.12)',
   glassBorder: 'rgba(255,255,255,0.26)',
+  // Top-bar chrome sits over arbitrary scene photos — bright skies included —
+  // where a 12%-white glass pill leaves a white glyph invisible. Solid white
+  // with the dark glyph, same as Begin and the selected chips.
+  topBtnBg: 'rgba(255,255,255,0.95)',
+  topBtnBorder: 'rgba(255,255,255,0.95)',
+  topBtnInk: '#16223C',
   primaryBg: 'rgba(255,255,255,0.95)',
   primaryText: '#16223C',
   ghostBorder: 'rgba(255,255,255,0.30)',
@@ -188,11 +194,11 @@ function TopBar({ onClose, onPrefs }: { onClose: () => void; onPrefs: () => void
   return (
     <View style={styles.topBar}>
       <Pressable style={styles.topBtn} onPress={onClose} accessibilityLabel="Close">
-        <ChevronLeft size={20} color={TH.ink} />
+        <ChevronLeft size={20} color={TH.topBtnInk} />
       </Pressable>
       <Text style={styles.topTitle}>Meditation</Text>
       <Pressable style={styles.topBtn} onPress={onPrefs} accessibilityLabel="Preferences">
-        <SlidersHorizontal size={18} color={TH.ink} />
+        <SlidersHorizontal size={18} color={TH.topBtnInk} />
       </Pressable>
     </View>
   );
@@ -482,7 +488,7 @@ const styles = StyleSheet.create({
   footer: { paddingHorizontal: 22, paddingBottom: 24 },
 
   topBar: { paddingHorizontal: 14, paddingTop: 4, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  topBtn: { width: 40, height: 40, borderRadius: 20, borderWidth: 1, borderColor: TH.glassBorder, backgroundColor: TH.glassBg, alignItems: 'center', justifyContent: 'center' },
+  topBtn: { width: 40, height: 40, borderRadius: 20, borderWidth: 1, borderColor: TH.topBtnBorder, backgroundColor: TH.topBtnBg, alignItems: 'center', justifyContent: 'center' },
   topTitle: { fontFamily: fontFamily.semiBold, fontSize: 13, letterSpacing: 0.3, color: TH.ink2 },
 
   hint: { marginHorizontal: 18, marginTop: 12, padding: 12, borderRadius: 14, backgroundColor: TH.soundSelBg, borderWidth: 1, borderColor: TH.soundSelBorder, flexDirection: 'row', alignItems: 'flex-start', gap: 11 },

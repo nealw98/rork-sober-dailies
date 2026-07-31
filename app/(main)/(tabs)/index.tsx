@@ -62,11 +62,9 @@ const ACTION_ROUTE: Record<string, Href | null> = {
   meeting: '/(main)/meetings',
 };
 
-// Prayer dailies open a specific prayer directly (deep link).
-const PRAYER_PARAM: Record<string, string> = {
-  prayerMorning: 'morning',
-  prayerEvening: 'evening',
-};
+// Prayer dailies land on the full prayer library rather than deep-linking to
+// the one prayer — the whole list is the point, and morning/evening are the
+// first things on it anyway.
 
 const SECTIONS: WhenBucket[] = ['Morning', 'Anytime', 'Evening'];
 
@@ -325,11 +323,6 @@ export default function TodayScreen() {
       Alert.alert('Coming soon', `${item.label} is on the way in the redesign.`);
       return;
     }
-    const prayerTarget = PRAYER_PARAM[item.action];
-    if (prayerTarget) {
-      router.push({ pathname: route as any, params: { prayer: prayerTarget } });
-      return;
-    }
     router.push(route);
   };
 
@@ -371,24 +364,22 @@ export default function TodayScreen() {
           onToggle={dailies.toggleReflection}
         />
       </View>
-      {/* While editing, "Save" sits above the list (the editor renders its own
-          rows). Outside editing, the pencil lives in the first section's header
-          row instead — see the sections map below. ("Done" is reserved for the
-          per-daily completion buttons.) */}
-      {editing && (
-        <View style={styles.editBar}>
-          <Pressable
-            hitSlop={12}
-            onPress={toggleEditing}
-            accessibilityRole="button"
-            accessibilityLabel="Save dailies"
-            style={styles.editBtn}
-          >
-            <Text style={styles.editToggle}>Save</Text>
-          </Pressable>
-        </View>
-      )}
     </>
+  );
+
+  // Editing swaps the pencil for "Save" in place — same line as "Morning", same
+  // right edge. The editor pins that first section header, so Save rides in as
+  // its accessory. ("Done" is reserved for the per-daily completion buttons.)
+  const saveButton = (
+    <Pressable
+      hitSlop={12}
+      onPress={toggleEditing}
+      accessibilityRole="button"
+      accessibilityLabel="Save dailies"
+      style={styles.editBtn}
+    >
+      <Text style={styles.editToggle}>Save</Text>
+    </Pressable>
   );
 
   return (
@@ -407,7 +398,7 @@ export default function TodayScreen() {
         </View>
       </View>
       {editing ? (
-        <DailiesEditor header={topContent} />
+        <DailiesEditor header={topContent} headerAccessory={saveButton} />
       ) : (
         <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
           {topContent}
@@ -482,13 +473,10 @@ const makeStyles = (tk: Tokens) => {
   // (far-corner) control (handoff-tab-nav).
   headerActions: { flexDirection: 'row', alignItems: 'center', gap: 16, paddingTop: 6 },
   editToggle: { fontFamily: fontFamily.semiBold, fontSize: fontSize.lg, color: colors.primaryDark },
-  // Pencil (→ "Save") sits with the dailies list, right-aligned above the first
-  // section. Negative marginBottom trims the following section's own marginTop.
-  editBar: { alignItems: 'flex-end', marginTop: spacing.md, marginBottom: -34, zIndex: 1 },
   // Section title row: title left, edit pencil directly across on the same line.
   sectionHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 },
-  // Roomy hit area so the pencil / "Save" is easy to tap (was a bare glyph before).
-  // The negative editBar marginBottom above pulls Morning up close under it.
+  // Roomy hit area so the pencil / "Save" is easy to tap (was a bare glyph
+  // before). Shared by both, so they occupy the same spot on the Morning line.
   editBtn: { paddingVertical: 6, paddingHorizontal: 12, marginRight: -4 },
   scroll: { paddingHorizontal: 22, paddingBottom: 120 },
 

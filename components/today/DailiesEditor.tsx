@@ -58,8 +58,12 @@ function EditDailyRow({ item, dragging, onRemove, onDragStart }: {
   );
 }
 
-export default function DailiesEditor({ header, contentContainerStyle }: {
+export default function DailiesEditor({ header, headerAccessory, contentContainerStyle }: {
   header?: React.ReactNode;
+  // Rendered on the pinned first section's title line, right-aligned — Today
+  // puts its "Save" there so it lands exactly where the pencil was. Onboarding
+  // passes nothing and the title row is unchanged.
+  headerAccessory?: React.ReactNode;
   contentContainerStyle?: StyleProp<ViewStyle>;
 }) {
   const styles = useThemedStyles(makeStyles);
@@ -86,8 +90,9 @@ export default function DailiesEditor({ header, contentContainerStyle }: {
   const listHeader = (
     <>
       {header}
-      <View style={styles.dragHeader}>
+      <View style={[styles.dragHeader, headerAccessory ? styles.dragHeaderRow : null]}>
         <Text style={[styles.sectionTitle, styles.dragHeaderText, { color: c.text }]}>{SECTIONS[0]}</Text>
+        {headerAccessory}
       </View>
     </>
   );
@@ -188,6 +193,9 @@ const makeStyles = (tk: Tokens) => {
     sectionTitle: { fontFamily: fontFamily.semiBold, fontSize: fontSize.xl, marginBottom: 12 },
     // Drag-list cells use padding (not margin) so onLayout heights stay correct.
     dragHeader: { paddingTop: spacing.xl, paddingBottom: 12 },
+    // Title left, accessory (Today's "Save") across from it on the same line —
+    // mirrors the Today ledger's own section head.
+    dragHeaderRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
     dragHeaderText: { marginBottom: 0 },
     dragAdd: { paddingTop: 12 },
     row: {

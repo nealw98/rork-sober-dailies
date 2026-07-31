@@ -96,8 +96,10 @@ const makeStyles = (tk: Tokens) => {
     title: { fontFamily: fontFamily.display, fontSize: 28, letterSpacing: -0.5, color: c.text, lineHeight: 29 },
     sub: { fontFamily: fontFamily.regular, fontSize: 14, color: c.textMuted, marginTop: 4 },
 
-    // Clears the floating tab bar (Literature lives in the tab group now).
-    scroll: { paddingBottom: 130 },
+    // paddingTop keeps the covers (and their drop shadow) off the scroll's top
+    // clip line, so a small scroll doesn't shear the tops of the books.
+    // paddingBottom clears the floating tab bar (Literature is in the tab group).
+    scroll: { paddingTop: 12, paddingBottom: 130 },
     // Hero: bare covers, titles beneath.
     booksRow: { flexDirection: 'row', gap: 22, paddingHorizontal: 30, alignItems: 'flex-end' },
     bookBtn: {
