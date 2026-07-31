@@ -12,8 +12,21 @@ clear to ship.
 
 - [ ] **`PASSES_ENABLED` → `true`** (+ OTA) — turns on the Pass It On gift
       acquisition program for real users.
-- [ ] **`EXPO_PUBLIC_ANALYTICS_ENV` → `production`** — Mixpanel currently
-      writes to the test env. Flip in EAS env for the release build/OTA.
+- [ ] **`EXPO_PUBLIC_ANALYTICS_ENV` → `production`** — currently `test` in
+      BOTH the EAS `production`/`preview` environments AND the local `.env`
+      (verified 2026-07-31). ⚠️ Flip BOTH: no eas.json build profile
+      declares an `environment`, so `eas update` resolves this from the
+      LOCAL `.env`, not from EAS. Change one and not the other and the
+      failure is silent — the tag is only visible in Mixpanel after the fact.
+      ⚠️ Second trap: `EXPO_PUBLIC_*` is inlined at update time and testers
+      share channel `production`, so once this is flipped, ANY OTA re-tags
+      the tester fleet as production too — unless the store binary is on its
+      own runtime (3.0.8, below). Belt and braces: `distinct_id` is the
+      device's anonymous/Support ID, so a Mixpanel cohort of tester IDs can
+      be excluded from reports regardless of tagging.
+      Note: the EAS `development` environment is EMPTY — no Mixpanel token
+      (so a dev build sends nothing) and no RevenueCat keys either, so
+      subscriptions won't initialise in a `development`-profile build.
 - [ ] **Remove the Android paywall X (dismiss) button** — RE-ADDED
       2026-07-30 for the access-test pass (was removed 2026-07-27): both
       gates are back to `__DEV__ || Platform.OS === 'android'`
@@ -192,6 +205,10 @@ clear to ship.
       ⚠️ `gifts-redeem` and `get-dispense` were deliberately KEPT — legacy
       SD-XXXX codes, the Android pass fallback, and the `/get` page run
       through them.
+      Also orphaned, found 2026-07-31 by diffing deployed functions against
+      client references: **`check-grandfather`** (0 refs — the app queries
+      `user_profiles` directly) and **`invites-report`** (0 refs). Same
+      class as the two deleted; delete when convenient.
       **Remaining:** remove the 3 ASC gift consumables from sale (App Store
       Connect → In-App Purchases) and deactivate the Play equivalents. The
       app can no longer initiate those purchases and the minting function is
