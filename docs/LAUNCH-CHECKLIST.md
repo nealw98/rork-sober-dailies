@@ -110,10 +110,12 @@ clear to ship.
       `cloudBackupSupported()` flipped to `driveAuthSupported()`
       (uncommitted, rides the next OTA). Remaining, tracked in §3:
       device E2E after the OTA, and the privacy-policy wording pass.
-- [ ] **Privacy/terms wording pass for Drive backup** — DRAFTED 2026-07-30
-      pm #3; **not done until Neal reviews the wording and the web repo is
-      committed + published via Lovable.** ⚠️ The policy users actually
-      read is the WEB one: every link in the app (onboarding, disclaimer,
+- [x] **Privacy/terms wording pass for Drive backup** — PUBLISHED
+      2026-07-31 (`sober-day-reflections` f2d9680 + 3aa61ae, live and
+      verified at soberdailies.com/privacy). Effective date moved to
+      2026-07-31; it still read July 20, 2025 on first publish, which would
+      have dated the policy before the terms it describes. ⚠️ The policy
+      users actually read is the WEB one: every link in the app (onboarding, disclaimer,
       paywall footer, Settings) opens `soberdailies.com/privacy`, and
       the in-app `app/privacy.tsx` was an orphaned screen nothing routed to
       (like `redeem.tsx`) — **deleted 2026-07-30 along with its `Stack.Screen`
@@ -123,8 +125,10 @@ clear to ship.
       iCloud / Drive app-data folder, we can't read it, revocable) plus
       accuracy fixes — the old text claimed data never leaves the device
       except for AI chat and aa.org links, which ignored subscriptions and
-      analytics. **Neal to run: review the wording, then publish the web
-      repo via Lovable.**
+      analytics. Lesson for next time: after pushing to that repo, confirm
+      Lovable's `latest_commit_sha` matches BEFORE deploying — a deploy
+      fired seconds after the push rebuilt the pre-push state and reported
+      success.
 
 ## 3. Finishing the product / QA
 
