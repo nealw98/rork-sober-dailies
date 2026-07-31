@@ -317,20 +317,6 @@ function RootLayoutNav() {
           }} 
         />
         <Stack.Screen 
-          name="terms" 
-          options={{ 
-            presentation: 'modal',
-            headerShown: true,
-          }} 
-        />
-        <Stack.Screen 
-          name="privacy" 
-          options={{ 
-            presentation: 'modal',
-            headerShown: true,
-          }} 
-        />
-        <Stack.Screen 
           name="sponsor-chat" 
           options={{ 
             headerShown: false,

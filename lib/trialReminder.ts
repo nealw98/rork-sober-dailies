@@ -139,6 +139,41 @@ export async function cancelTrialEndingReminder(): Promise<void> {
   }
 }
 
+// QA: fire the real day-5 notification ~8 s from now so the copy/appearance
+// can be reviewed on a device without waiting out a trial (a sandbox trial
+// can never schedule the real one — its whole life is shorter than the 48 h
+// lead). Same permission request, same Android channel, same content, with a
+// representative end date 2 days out. Does NOT touch STORE_KEY, so a real
+// pending reminder is unaffected. Returns an error string, or null on success.
+export async function qaPreviewTrialReminder(): Promise<string | null> {
+  if (Platform.OS === 'web') return 'Not available on web.';
+  const N = getNotifications();
+  if (!N) return 'This binary predates expo-notifications (build ≤130) — needs a dev build or build 131+.';
+  try {
+    const perm = await N.requestPermissionsAsync();
+    if (!perm.granted) return 'Notification permission denied — enable it in system Settings.';
+    if (Platform.OS === 'android') {
+      await N.setNotificationChannelAsync('reminders', {
+        name: 'Reminders',
+        importance: N.AndroidImportance.DEFAULT,
+      });
+    }
+    const endsOn = new Date(Date.now() + WARN_BEFORE_MS).toLocaleDateString('en-US', {
+      weekday: 'long', month: 'long', day: 'numeric',
+    });
+    await N.scheduleNotificationAsync({
+      content: {
+        title: 'Your free week is almost up',
+        body: `Your trial ends ${endsOn}. Keep going — or cancel before then and you won't be charged a thing.`,
+      },
+      trigger: { type: N.SchedulableTriggerInputTypes.TIME_INTERVAL, seconds: 8, channelId: 'reminders' },
+    });
+    return null;
+  } catch (e) {
+    return String(e);
+  }
+}
+
 // Drop the pending reminder the moment it stops being helpful: the trial was
 // cancelled (no charge coming), the entitlement lapsed, or it converted (the
 // fire date is in the past anyway — this is just cleanup of the stored id).

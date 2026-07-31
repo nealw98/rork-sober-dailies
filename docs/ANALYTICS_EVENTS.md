@@ -114,6 +114,16 @@ Controlled by `EXPO_PUBLIC_ANALYTICS_ENV` in `.env` — currently **`test`**. Fl
 
 **Report:** one chart, count by `type` — all four writing tools comparable. Saving from a Today daily also fires `daily_completed` (different question; both fire by design).
 
+### Backup prompt
+
+| Event | Properties |
+|---|---|
+| `backup_prompt_shown` | — fired once per install, on the first `entry_saved` from a device that is NOT backing up (Android with no Drive account connected; iOS with iCloud unavailable) |
+| `backup_prompt_dismissed` | — tapped "Not now" |
+| `backup_prompt_accepted` | — tapped "Set up backup" (routes to Backup & Restore) |
+
+**Report:** `backup_prompt_shown` ÷ new installs tells you what share of users are running unprotected; `accepted / shown` is the funnel. A high `shown` on iOS would be surprising and worth investigating — iOS backs up automatically unless iCloud is off.
+
 ### Reach Out
 
 | Event | Properties |

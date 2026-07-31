@@ -16,6 +16,7 @@ import { ToolHeader, ToolIntro, TOOLS } from '@/components/ToolScreen';
 import { fontFamily, type Tokens } from '@/constants/designTokens';
 import { useTokens, useThemedStyles } from '@/hooks/useTokens';
 import { logEvent } from '@/lib/analytics';
+import { maybePromptBackup } from '@/lib/backupPrompt';
 
 const tool = TOOLS.gratitude;
 
@@ -61,6 +62,7 @@ export default function GratitudeScreen() {
       gratitude.completeToday(items);
       logEvent('entry_saved', { type: 'gratitude', item_count: items.length });
       if (dailyId) dailies.markDone(dailyId);
+      maybePromptBackup(); // one-time, only if this device isn't backing up
     }
     router.back();
   };

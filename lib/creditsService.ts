@@ -16,6 +16,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import Purchases from 'react-native-purchases';
 import { supabase, SUPABASE_URL, SUPABASE_ANON_KEY } from '@/lib/supabase';
 import { getAnonymousId } from '@/lib/anonymousId';
+import { getDeviceSecret } from '@/lib/deviceSecret';
 
 // Kill switch (Neal, 2026-07-22): passes are SUSPENDED for the TestFlight
 // period — sandbox subscriptions would otherwise earn passes that dispense
@@ -86,8 +87,15 @@ interface PendingShare {
 
 // Same identity pair the gift flow sends (lib/giftService.ts) — the RC id is
 // what the server reads subscription state from to compute earned credits.
-async function identity(): Promise<{ anonymous_id: string; rc_app_user_id: string }> {
+async function identity(): Promise<{
+  anonymous_id: string;
+  rc_app_user_id: string;
+  device_secret: string | null;
+}> {
   const anonymous_id = await getAnonymousId();
+  // Proves we own that id — without it the server can't tell us from anyone who
+  // learned the id (lib/deviceSecret.ts).
+  const device_secret = await getDeviceSecret();
   let rc_app_user_id = anonymous_id; // web / RC-unavailable fallback
   if (Platform.OS !== 'web') {
     try {
@@ -96,7 +104,7 @@ async function identity(): Promise<{ anonymous_id: string; rc_app_user_id: strin
       // keep the anonymous_id fallback
     }
   }
-  return { anonymous_id, rc_app_user_id };
+  return { anonymous_id, rc_app_user_id, device_secret };
 }
 
 async function callFn<T>(name: string, body: Record<string, unknown>): Promise<T | null> {
@@ -202,9 +210,10 @@ export async function confirmShareSent(): Promise<void> {
 }
 
 async function stampSent(token: string): Promise<boolean> {
-  const { anonymous_id } = await identity();
+  const { anonymous_id, device_secret } = await identity();
   const data = await callFn<{ success: boolean }>('credits-share', {
     anonymous_id,
+    device_secret,
     action: 'confirm_sent',
     token,
   });

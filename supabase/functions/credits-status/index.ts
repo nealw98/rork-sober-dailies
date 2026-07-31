@@ -9,17 +9,26 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { corsHeaders, json, serviceClient, fetchRcSubscriber } from '../_shared/gifts.ts';
 import { computeEarnedGrants, ensureGrants, getCreditState, foundingEligible } from '../_shared/credits.ts';
+import { verifyDevice } from '../_shared/deviceAuth.ts';
 
 serve(async (req: Request) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
 
   try {
-    const { anonymous_id, rc_app_user_id } = await req.json();
+    const { anonymous_id, rc_app_user_id, device_secret } = await req.json();
     if (!anonymous_id || typeof anonymous_id !== 'string') {
       return json({ success: false, message: 'Missing anonymous_id' }, 400);
     }
 
     const supabase = serviceClient();
+
+    // Read-only + grant healing, so this is the lenient side: an id nobody has
+    // claimed yet still answers (a client that predates device secrets keeps
+    // working), but once claimed only the owner can read that balance. Deploy
+    // ordering is therefore safe in either direction.
+    if ((await verifyDevice(supabase, anonymous_id, device_secret, { requireSecret: false })) !== 'ok') {
+      return json({ success: false, reason: 'device_unverified' }, 403);
+    }
     const secretKey = Deno.env.get('REVENUECAT_SECRET_API_KEY');
 
     if (secretKey && typeof rc_app_user_id === 'string' && rc_app_user_id.length > 0) {

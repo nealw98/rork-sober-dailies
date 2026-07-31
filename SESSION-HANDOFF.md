@@ -2,7 +2,22 @@
 
 _For a fresh chat. Branch `3.0.5-redesign` (tracks `origin/3.0.5-redesign`)._
 
-_Latest session (**2026-07-30 pm, #2**): the **ACCESS TEST PLAN**
+_Latest session (**2026-07-30 pm, #3**): **first device tests + the
+pre-release checklist executed code-side.** Two "working as designed"
+findings (iOS Keychain survives uninstall, so a reinstall is NOT a fresh
+user; sandbox/trial subs earn 0 passes) — the second exposed an undecided
+product gap: the thank-you sheet promises 5 passes to annual members who
+earn none until their trial converts. Code landed: the `credits-*` **security
+fix** (device-ownership proof — written, NOT deployed), `getSMS()` guard,
+trial copy derived from the store, privacy backup wording (⚠️ the real policy
+is in the WEB repo — `app/privacy.tsx` is orphaned), and a one-time **backup
+prompt** on the first Journey entry (Android's Drive backup was undiscoverable
+— iOS was never affected). The security fix is now **DEPLOYED & verified
+live**; its client half is not, so gift sharing needs that OTA. **⚠️ ALL CODE
+STILL UNCOMMITTED in both repos. Read §17 FIRST**, especially §17.6 (the
+tree) and §17.7 (next actions)._
+
+_Prior session (**2026-07-30 pm, #2**): the **ACCESS TEST PLAN**
 (`docs/ACCESS-TEST-PLAN.md`) — the launch-gating test pass for
 onboarding/subscription/grandfather/codes, grounded in a fresh code map;
 Android paywall X RE-ADDED for testing (revert at ship, LAUNCH-CHECKLIST §1);
@@ -1760,3 +1775,217 @@ otherwise.
    the 11 review findings (15.7), `getSMS()` before the passes flip (15.4).
 3. At ship: revert the Android X (16.2) with the other LAUNCH-CHECKLIST §1
    flips.
+
+---
+
+## 17. Latest session — 2026-07-30 pm #3 (pre-release checklist execution · backup prompt)
+
+**⚠️ STATUS: ALL OF THIS IS UNCOMMITTED** in both repos. Last commit is
+`5e10fe74` (§16). Nothing OTA'd, nothing deployed. See 17.6 for the exact
+tree. Commit before publishing anything, or the next `eas update` from a
+clean checkout ships none of it.
+
+Two halves: Neal ran the first real device tests against the access plan
+(17.1), then asked for the pre-release checklist to be executed code-side
+(17.2–17.4), then for a backup-discoverability prompt (17.5).
+
+### 17.1 Device testing — two findings, both "working as designed"
+
+**No paywall after reinstall.** Neal signed a sandbox Apple ID into
+TestFlight (had to use his real ID — TestFlight always does; the sandbox
+account belongs in iOS Settings → App Store → Sandbox Account), reinstalled,
+re-onboarded, and sailed past the paywall. Cause: **the iOS Keychain survives
+uninstall**, so `anonymous_id` persisted, his id is grandfathered, and the
+gate let him through. A clean install is NOT a fresh user on iOS — the test
+plan's Part 0 recipe said it was, and has been corrected. Use **Force
+new-user** on a grandfathered/personal device (preserves identity) or **Reset
+subscription state** on a spare (mints a new id, loses the grandfathered +
+dev-grant-allowlisted identity).
+
+**Annual purchase granted 0 passes.** Correct, twice over
+(`_shared/credits.ts`): sandbox subs are skipped (`is_sandbox`, added after
+the 7/27 incident where a TestFlight yearly earned passes that dispense REAL
+offer codes), and no passes are earned during any trial/intro period
+(`period_type !== 'normal'`, decided 7/22). Stage giver-side tests with
+Console → Grant 5 passes.
+
+⚠️ **This surfaced a real product gap, still undecided** — logged in
+LAUNCH-CHECKLIST §3. Every new annual member is on a free week, so they earn
+nothing until it converts, yet the thank-you sheet greets them with "Five
+passes to give away." Pass It On is empty for their whole first week.
+Options: (a) soften the copy to say when they arrive, (b) delay the sheet to
+conversion, (c) accept. Only bites once `PASSES_ENABLED` is true.
+
+### 17.2 Checklist items executed (code-side)
+
+- **`getSMS()` guarded** (`app/(main)/pass-it-on.tsx`) — was written as if a
+  try/catch protected it; it doesn't (§15.2). Now probes
+  `requireOptionalNativeModule('ExpoSMS')`. Was a pre-flip blocker.
+- **Trial copy derives from the store** (`components/PaywallScreen.tsx`) —
+  `trialDaysFrom()` reads the package's free intro period, `trialCopy()`
+  phrases it, Day-N beads follow (warn bead = end − 2, matching
+  trialReminder's 48 h lead). **A 7-day offer reproduces the approved wording
+  character-for-character**, and an unresolved offering falls back to it, so
+  the paywall is visually unchanged today.
+- **QA: Developer Console → Preview · Trial reminder** — fires the real day-5
+  notification ~8 s out through the same pipeline (`qaPreviewTrialReminder()`
+  in `lib/trialReminder.ts`), since a sandbox trial can never schedule the
+  real one. Inert on build ≤130; it says so rather than no-opping.
+- **Checklists reconciled** — `pre-release-checklist.md` now defers to
+  `LAUNCH-CHECKLIST.md` as the single source of truth instead of
+  contradicting it; Lane A marked done.
+
+### 17.3 SECURITY: device-ownership proof — ✅ SERVER DEPLOYED & VERIFIED
+
+Addresses the LAUNCH-CHECKLIST §1 blocker (server half closed; the client
+OTA is now tracked as its own unchecked §1 item) — `credits-share`/`credits-status`
+trusted a client-supplied `anonymous_id`, so anyone who learned an id (it's
+the Support ID users paste into feedback emails) could mint a gift link under
+it and burn that member's passes.
+
+Trust-on-first-use device secret:
+- `supabase/migrations/20260730_device_claims.sql` — new table, RLS on with
+  **no policies** (service-role only), stores only a SHA-256.
+- `supabase/functions/_shared/deviceAuth.ts` — `verifyDevice()`; handles the
+  two-first-calls race via the PK.
+- `credits-share` **strict** (`requireSecret: true` — spending needs proof);
+  `credits-status` **lenient until claimed** (an unclaimed id still answers,
+  so deploy order can't break a legacy client; once claimed only the owner
+  reads it).
+- Client: `lib/deviceSecret.ts` (32 random bytes in SecureStore) sent via
+  `creditsService` `identity()` + `stampSent()`.
+
+**Deployed 2026-07-30** by Neal (migration applied, both functions up) and
+verified live with a 7-case smoke test — all passed: unclaimed + no secret
+reads fine but can't spend (403 `device_unverified`); a first call carrying a
+secret claims the id and falls through to the balance check (403
+`no_credits`, i.e. auth passed); wrong secret and missing-secret-on-a-claimed-
+id are refused on both functions.
+
+⚠️ **The client half is still uncommitted and un-OTA'd.** `credits-share` now
+refuses any caller without a secret, so **gift sharing is inoperative until
+that OTA ships**. Harmless right now — `PASSES_ENABLED` is false so
+`getShareLink()` returns null before the call, and the QA console is fine
+(`dev_grant_passes` is an RPC, the balance read uses lenient
+`credits-status`) — but the client OTA and the passes flip must now travel
+together.
+
+Housekeeping: the smoke test left one synthetic row —
+`delete from device_claims where anonymous_id like 'qa-deviceauth-%';`
+
+Known limitation: if a device keeps `anonymous_id` but loses
+`device_secret` (both SecureStore, so normally they travel together), that
+device is locked out of spending until the row is cleared manually.
+
+### 17.4 Privacy wording — now WEB-ONLY (in-app copy deleted)
+
+Every privacy link in the app — onboarding, disclaimer, paywall footer,
+Settings — opens `https://soberdailies.com/privacy`, which lives in the **web
+repo** (`sober-day-reflections`, Lovable). `app/privacy.tsx` was a second,
+**orphaned** copy that nothing routed to (like `redeem.tsx`). Per Neal, it
+and its `Stack.Screen` registration were **deleted** — the policy now has a
+single home, so the two can't drift apart.
+
+The web page gained a **Backup** section (optional, user's own iCloud / Drive
+app-data folder, we can't read it, revocable) plus accuracy fixes — the old
+text claimed data never leaves the device except for AI chat and aa.org
+links, which ignored subscriptions and analytics entirely.
+
+`app/terms.tsx` was orphaned the same way and was **deleted too** (with its
+`Stack.Screen`): there is no app-specific Terms document — every Terms link
+goes to Apple's standard EULA. So all three legal surfaces are now external
+and single-sourced:
+
+| Link | Destination |
+|---|---|
+| Privacy (onboarding, disclaimer, paywall footer, Settings) | `soberdailies.com/privacy` (web repo) |
+| Terms (same four places) | Apple standard EULA (`apple.com/legal/.../stdeula/`) |
+
+No in-app legal screens remain, and `app/_layout.tsx` no longer registers
+either route.
+
+**Neal to run:** review the wording (it's legal-ish and Claude drafted it),
+then publish the web repo via Lovable. Web repo change is **uncommitted
+there**; it typechecks clean.
+
+### 17.5 Backup discoverability prompt (new)
+
+Neal noticed backup lives only in Settings with nothing prompting it.
+Investigation found the impact is platform-split:
+
+- **iOS: no gap.** `CloudSyncGate` is mounted at root and iOS needs no
+  permission for iCloud, so push-on-background / pull-on-launch has run from
+  first launch all along. Reinstall restores automatically.
+- **Android: the feature was dark.** Auto sync calls
+  `prepareProvider(false)`, which silently no-ops until the user connects a
+  Google account once from the Backup screen — and nothing ever asked. (OS
+  Auto Backup is on via `allowBackup="true"`, so users weren't unprotected,
+  but the Drive path — manual restore, cross-device refresh — was never
+  discovered.)
+
+`lib/backupPrompt.ts` — `maybePromptBackup()`, called next to the existing
+`logEvent('entry_saved')` in all four Journey save handlers (gratitude,
+evening-review, inventory/spot check, journal). Fires **once per install**,
+and only when `cloudAvailable()` is false, so it's silent on a healthy
+iPhone and speaks on an unconnected Android (and on an iPhone with iCloud
+signed out, which is the one genuinely unprotected iOS case). Flag written
+before the Alert (so "Not now" still counts), in-memory latch closes the
+concurrent-save window, and the key is in `userDataSync`'s
+`LOCAL_RESET_KEYS` so "Clear all data & start over" resets it — **that's how
+to re-test without reinstalling**. Three new events documented in
+`docs/ANALYTICS_EVENTS.md`.
+
+Deliberately NOT put in onboarding: nothing to protect yet, and on Android
+the ask is a Google account sheet immediately before the paywall.
+
+### 17.6 The uncommitted tree
+
+App repo (on top of `5e10fe74`):
+```
+M app/(main)/(tabs)/settings.tsx      QA: thank-you + trial-reminder previews
+M app/(main)/evening-review.tsx       backup prompt call
+M app/(main)/gratitude.tsx            backup prompt call
+M app/(main)/inventory.tsx            backup prompt call
+M app/(main)/journal.tsx              backup prompt call
+M app/(main)/pass-it-on.tsx           getSMS native guard
+D app/privacy.tsx                     DELETED — policy is web-only now
+D app/terms.tsx                       DELETED — Terms is Apple's EULA
+M app/_layout.tsx                     dropped both legal Stack.Screens
+M components/PaywallScreen.tsx        trial copy derived from offering
+M docs/ACCESS-TEST-PLAN.md            Keychain/sandbox corrections + E0
+M docs/ANALYTICS_EVENTS.md            backup_prompt_* events
+M docs/LAUNCH-CHECKLIST.md            reconciled
+M docs/pre-release-checklist.md       reconciled → defers to LAUNCH-CHECKLIST
+M lib/creditsService.ts               sends device_secret
+M lib/trialReminder.ts                qaPreviewTrialReminder()
+M lib/userDataSync.ts                 backup_prompt key in LOCAL_RESET_KEYS
+M supabase/functions/credits-share    verifyDevice (strict)
+M supabase/functions/credits-status   verifyDevice (lenient)
+?? lib/backupPrompt.ts
+?? lib/deviceSecret.ts
+?? supabase/functions/_shared/deviceAuth.ts
+?? supabase/migrations/20260730_device_claims.sql
+```
+(`supabase/.temp/cli-latest` is CLI noise, not ours.)
+Web repo: `M src/pages/Privacy.tsx`.
+
+`npx tsc --noEmit` is **byte-identical to the pre-session baseline (137
+errors)** — nothing new introduced. Web repo typechecks clean.
+
+### 17.7 Next actions
+
+1. **Commit both repos** (nothing has been committed since `5e10fe74`).
+2. Resume the access test plan — **A1 on iOS using Force new-user**, then A2
+   on Android (also closes the Play test-purchase checklist item). Per-item
+   with Neal, pass/fail tracked in the doc.
+3. Confirm on device that a purchase completes without crashing — **§15.3 is
+   still open** and every purchase run is a chance to close it.
+4. Decide the trial/pass-promise copy (17.1).
+5. ~~Deploy the security fix~~ ✅ done 2026-07-30 (17.3). Still to do:
+   publish the privacy wording (17.4), and remember the client OTA is now
+   REQUIRED for gift sharing to work at all.
+6. Ship-time only, deliberately NOT done — they would break current testing:
+   `PASSES_ENABLED` → true, analytics → production, remove the Android
+   paywall X + QA Force New-User toggle, bump runtime to 3.0.8.
+7. Next binary (131) unlocks the day-5 reminder E-cases and the new preview
+   button on device.

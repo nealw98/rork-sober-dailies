@@ -20,6 +20,7 @@ import { corsHeaders, json, serviceClient, fetchRcSubscriber } from '../_shared/
 import {
   computeEarnedGrants, ensureGrants, getCreditState, foundingEligible, generateShareToken,
 } from '../_shared/credits.ts';
+import { verifyDevice } from '../_shared/deviceAuth.ts';
 
 const GET_URL = 'https://soberdailies.com/get';
 
@@ -27,12 +28,19 @@ serve(async (req: Request) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
 
   try {
-    const { anonymous_id, rc_app_user_id, action, token: sentToken } = await req.json();
+    const { anonymous_id, rc_app_user_id, device_secret, action, token: sentToken } = await req.json();
     if (!anonymous_id || typeof anonymous_id !== 'string') {
       return json({ success: false, message: 'Missing anonymous_id' }, 400);
     }
 
     const supabase = serviceClient();
+
+    // Both paths below move a pass, so the caller has to prove it owns this id.
+    // Strict: an unclaimed id with no secret is refused rather than allowed
+    // through, because every client that can reach this code sends one.
+    if ((await verifyDevice(supabase, anonymous_id, device_secret, { requireSecret: true })) !== 'ok') {
+      return json({ success: false, reason: 'device_unverified' }, 403);
+    }
 
     // The text went out — this is the moment the pass is actually spent.
     // Idempotent (the sent_at guard) so a retried confirm can't double-stamp,
@@ -54,6 +62,7 @@ serve(async (req: Request) => {
     }
 
     // Heal grants first so a just-earned credit is spendable immediately.
+    // (Named for the RC key — unrelated to the device secret above.)
     const secretKey = Deno.env.get('REVENUECAT_SECRET_API_KEY');
     if (secretKey && typeof rc_app_user_id === 'string' && rc_app_user_id.length > 0) {
       const subscriber = await fetchRcSubscriber(rc_app_user_id, secretKey);

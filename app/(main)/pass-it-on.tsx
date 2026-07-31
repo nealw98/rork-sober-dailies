@@ -22,6 +22,7 @@ import GiftSentSheet from '@/components/GiftSentSheet';
 import { fontFamily, shadows, colors as lightColors, type Tokens } from '@/constants/designTokens';
 import { useTokens, useThemedStyles } from '@/hooks/useTokens';
 import { useGiftCredits } from '@/hooks/use-gift-credits';
+import { requireOptionalNativeModule } from 'expo-modules-core';
 import { useSubscription } from '@/hooks/useSubscription';
 import { getShareLink, confirmShareSent, giftMessage, PASSES_ENABLED } from '@/lib/creditsService';
 import { shareApp } from '@/lib/shareApp';
@@ -31,15 +32,25 @@ import { logEvent } from '@/lib/analytics';
 const ROSE_FILL = lightColors.rose;
 
 // expo-sms is a native module older installed clients don't contain — resolve
-// lazily and fall back to the share sheet (same guard as the invite screen).
+// lazily and fall back to the share sheet.
+//
+// The try/catch alone is NOT the guard: Metro's guardedLoadModule hands a
+// module-init throw to ErrorUtils.reportFatalError (RCTFatal), which aborts the
+// app before any catch here runs — and giveGift() calls this from an event
+// handler, exactly the case that killed every purchaser on build 130 (see
+// lib/trialReminder.ts). Probe the native side first so the require is skipped
+// entirely on a binary that predates expo-sms.
 let smsModule: typeof import('expo-sms') | null | undefined;
 function getSMS() {
-  if (smsModule === undefined) {
-    try {
-      smsModule = require('expo-sms');
-    } catch {
-      smsModule = null;
+  if (smsModule !== undefined) return smsModule;
+  try {
+    if (requireOptionalNativeModule('ExpoSMS') == null) {
+      smsModule = null; // binary predates expo-sms
+      return smsModule;
     }
+    smsModule = require('expo-sms');
+  } catch {
+    smsModule = null;
   }
   return smsModule;
 }

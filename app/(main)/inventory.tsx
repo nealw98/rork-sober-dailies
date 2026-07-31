@@ -29,6 +29,7 @@ import { useLastSponsor } from '@/hooks/use-last-sponsor';
 import { fontFamily, type Tokens } from '@/constants/designTokens';
 import { useTokens, useThemedStyles } from '@/hooks/useTokens';
 import { logEvent } from '@/lib/analytics';
+import { maybePromptBackup } from '@/lib/backupPrompt';
 import type { SponsorType } from '@/types';
 import type { SpotCheckEntry } from '@/types/spotCheck';
 
@@ -196,6 +197,7 @@ export default function InventoryScreen() {
       feeling_count: feelings.length,
       skipped_causes: causesAnswer.trim() === '',
     });
+    maybePromptBackup(); // one-time, only if this device isn't backing up
     return entry;
   };
 

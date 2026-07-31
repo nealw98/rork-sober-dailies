@@ -5,18 +5,22 @@ QA affordances exist for testing. **Lane B** is the store-submission sweep, wher
 those same affordances have to come out. Don't do Lane B early: it makes your own
 testing harder and buys nothing.
 
-Last reviewed: 2026-07-26.
+Last reviewed: 2026-07-30.
+
+> ⚠️ **`LAUNCH-CHECKLIST.md` is the single source of truth for ship state.**
+> This file keeps the Lane A / Lane B *framing* and the device-verification
+> list; where the two disagree, the launch checklist wins. Items already
+> resolved there are struck through below rather than repeated.
 
 ---
 
 ## Lane A — before a TESTER build
 
-- [ ] **Commit `app.json`.** The API-36 / versionCode work is uncommitted, so a
-      build made today can't be reproduced from git. This is the one that bites
-      when a tester files a bug against a binary you can no longer rebuild.
-- [ ] **Check `buildNumber` (iOS).** TestFlight rejects a duplicate. The known
-      bump was versionCode 130 for Android — confirm the iOS side moved too.
-- [ ] Build both platforms. This binary is the first that can exercise:
+- [x] ~~**Commit `app.json`.**~~ Committed in `315075eb` (2026-07-27).
+- [x] ~~**Check `buildNumber` (iOS).**~~ iOS moved to 130 and shipped to
+      TestFlight.
+- [x] Build both platforms — build 130 exists on both; Android is on the Play
+      open-test track. This binary is the first that can exercise:
       - Lottie confetti on the milestone takeover (native dep, never shipped)
       - the react-native-pdf landscape patch (`patches/`, never shipped)
       - a real-device sandbox purchase (impossible on simulator)
@@ -30,9 +34,10 @@ Everything below stays **as-is** for a tester build — on purpose.
 ### Code that must change
 
 - [ ] **Remove the Android dismissible-paywall X.** `__DEV__ || Platform.OS === 'android'`
-      in `app/_layout.tsx` (~line 279) and `components/PaywallScreen.tsx` (~line 234).
-      Added because the Android test track has no Play license testers, so Billing
-      is unavailable and the wall would be unescapable. Real users must not have it.
+      in `app/_layout.tsx` (~line 279) and `components/PaywallScreen.tsx` (~line 238).
+      Removed 2026-07-27, then **re-added 2026-07-30** so Android testers can escape
+      the wall during the access-test pass (`docs/ACCESS-TEST-PLAN.md`). It is in the
+      tree right now and must come out at submission. Real users must not have it.
 - [ ] **Remove or `__DEV__`-gate the QA "Force New-User" toggle.**
       `QA_FORCE_NEW_USER_KEY` in `hooks/useSubscription.ts`, surfaced in the Debug
       Console. It bypasses grandfather + entitlement checks — a paying-user-facing
@@ -71,8 +76,10 @@ Everything below stays **as-is** for a tester build — on purpose.
 ### Verify on device (not simulator)
 
 - [ ] Sandbox purchase end-to-end (still pending from earlier sessions).
-- [ ] Trial copy matches the real store/RevenueCat config — the paywall hardcodes
-      "7 days" / "Start my free week".
+- [ ] Trial copy matches the real store/RevenueCat config. The hardcoding is gone
+      (2026-07-30 — copy now derives from the offering's intro period), so this is
+      now a *verification*: confirm the store really is configured for 7 days and
+      the paywall says "week", not "N days".
 - [ ] Landscape PDF: rotate mid-chapter, confirm the page holds and doesn't drift
       sideways (that's the patch this binary is the first to carry).
 - [ ] Milestone takeover: confetti renders, chime audible with the ringer on and

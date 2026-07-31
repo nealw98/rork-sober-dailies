@@ -78,6 +78,35 @@ function perMonthFromYearly(pkg: PurchasesPackage | null): string {
   return symbolBefore ? `${symbol}${num}` : `${num}${symbol}`;
 }
 
+// Trial length comes from the STORE, not from us: the offer is configured in
+// App Store Connect / Play, and copy that contradicts the sheet the user is
+// about to sign is a broken promise. Returns null when the package carries no
+// free intro period (or the store hasn't answered yet).
+function trialDaysFrom(pkg: PurchasesPackage | null): number | null {
+  const intro = (pkg?.product as any)?.introPrice;
+  if (!intro || intro.price !== 0) return null;
+  const n = Number(intro.periodNumberOfUnits ?? 0);
+  if (!Number.isFinite(n) || n <= 0) return null;
+  switch (String(intro.periodUnit || '').toUpperCase()) {
+    case 'DAY': return n;
+    case 'WEEK': return n * 7;
+    case 'MONTH': return n * 30;
+    case 'YEAR': return n * 365;
+    default: return null;
+  }
+}
+
+// Natural-language trial copy. 7 days reproduces the approved wording exactly,
+// so today's offering renders identically — this only diverges if the store
+// config does.
+function trialCopy(days: number | null): { title: string; cta: string } {
+  const d = days ?? 7; // unresolved offerings → the configured default
+  if (d === 7) return { title: 'Your first week is free', cta: 'Start my free week' };
+  if (d === 14) return { title: 'Your first two weeks are free', cta: 'Start my free two weeks' };
+  if (d >= 28 && d <= 31) return { title: 'Your first month is free', cta: 'Start my free month' };
+  return { title: `Your first ${d} days are free`, cta: 'Start my free trial' };
+}
+
 function savingsPct(monthly: PurchasesPackage | null, yearly: PurchasesPackage | null): number | null {
   const m = (monthly?.product as any)?.price ?? 0;
   const y = (yearly?.product as any)?.price ?? 0;
@@ -125,6 +154,14 @@ export default function PaywallScreen({ onDismiss, preview, forceTrial }: Paywal
   // preview can force either layout.
   const showTrial = forceTrial !== undefined ? forceTrial : trialEligible !== false;
 
+  // Trial length + the copy derived from it (see trialDaysFrom/trialCopy).
+  const trialLen = trialDaysFrom(chosen) ?? trialDaysFrom(yearly) ?? trialDaysFrom(monthly);
+  const { title: trialTitle, cta: trialCta } = trialCopy(trialLen);
+  // The reminder fires 48 h before expiry (lib/trialReminder.ts), clamped so it
+  // can't land on or before day 1 of a very short trial.
+  const trialEndDay = trialLen ?? 7;
+  const warnDay = Math.min(Math.max(2, trialEndDay - 2), trialEndDay - 1);
+
   // White beads with a colored ring matching the rail at that point.
   const STEPS = [
     {
@@ -138,14 +175,14 @@ export default function PaywallScreen({ onDismiss, preview, forceTrial }: Paywal
       key: 'day5',
       icon: <Bell size={18} color={colors.primaryDark} strokeWidth={2} fill={colors.primaryDark} />,
       ring: RAIL_TEAL,
-      title: 'Day 5',
+      title: `Day ${warnDay}`,
       body: "We'll notify you that your trial is ending soon.",
     },
     {
       key: 'day7',
       icon: <Star size={18} color={colors.primary} strokeWidth={2} fill={colors.primary} />,
       ring: RAIL_LAV,
-      title: 'Day 7',
+      title: `Day ${trialEndDay}`,
       body: 'Your subscription starts. Cancel before then and you pay nothing.',
     },
   ];
@@ -253,7 +290,7 @@ export default function PaywallScreen({ onDismiss, preview, forceTrial }: Paywal
           </View>
         )}
 
-        <Text style={styles.title}>{showTrial ? 'Your first week is free' : 'Start your journey'}</Text>
+        <Text style={styles.title}>{showTrial ? trialTitle : 'Start your journey'}</Text>
         {showTrial && (
           <Text style={styles.subtitle}>
             You&apos;ve defined your day — now put it to work.
@@ -383,7 +420,7 @@ export default function PaywallScreen({ onDismiss, preview, forceTrial }: Paywal
         {/* CTA — kept directly under the plans so the whole action cluster
             (CTA + "Have a code?" + footer) sits together, no dead space. */}
         <Pressable style={[styles.cta, (!chosen || processing) && styles.ctaDisabled]} onPress={buy} disabled={!chosen || processing}>
-          {busy ? <ActivityIndicator color="#fff" /> : <Text style={styles.ctaText}>{showTrial ? 'Start my free week' : 'Subscribe'}</Text>}
+          {busy ? <ActivityIndicator color="#fff" /> : <Text style={styles.ctaText}>{showTrial ? trialCta : 'Subscribe'}</Text>}
         </Pressable>
 
         {/* Billing disclosure — no-trial only (the trial timeline already explains billing) */}

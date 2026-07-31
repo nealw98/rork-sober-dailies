@@ -60,6 +60,7 @@ const LOCAL_RESET_KEYS: string[] = [
   'today_edit_tip_pending',
   'today_edit_tip_seen',
   'aa-last-opened-sponsor',
+  'backup_prompt_shown_v1', // one-time nudge — "start fresh" should mean fresh
 ];
 
 export const BACKUP_SCHEMA_VERSION = 1;

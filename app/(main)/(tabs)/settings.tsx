@@ -49,6 +49,7 @@ import {
   type CreditStatus, type AnnouncePlan,
 } from '@/lib/creditsService';
 import GiftThankYouSheet from '@/components/GiftThankYouSheet';
+import { qaPreviewTrialReminder } from '@/lib/trialReminder';
 import { setSyncPaused, cloudBackupSupported } from '@/lib/cloudSync';
 
 // ─── Token-based building blocks (mirror the prototype) ──────────────────────
@@ -711,6 +712,21 @@ export default function SettingsScreen() {
               </TouchableOpacity>
               <TouchableOpacity style={styles.dcBtn} onPress={() => openThankYouPreview('monthly')} activeOpacity={0.7}>
                 <Text style={styles.dcBtnText}>Thank-you · Monthly</Text>
+              </TouchableOpacity>
+            </View>
+            <View style={styles.dcBtnRow}>
+              <TouchableOpacity
+                style={styles.dcBtn}
+                activeOpacity={0.7}
+                onPress={() => fromConsole(async () => {
+                  const err = await qaPreviewTrialReminder();
+                  Alert.alert(
+                    err ? 'Preview unavailable' : 'Scheduled',
+                    err ?? 'The day-5 reminder fires in ~8 seconds. Background the app to see the banner.'
+                  );
+                })}
+              >
+                <Text style={styles.dcBtnText}>Preview · Trial reminder</Text>
               </TouchableOpacity>
             </View>
 

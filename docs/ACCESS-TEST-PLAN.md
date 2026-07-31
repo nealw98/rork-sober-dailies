@@ -42,7 +42,7 @@ production builds (removal is a launch-flip item). Controls used below:
 
 | User type | Recipe |
 |---|---|
-| **Brand-new user** | Best: clean install (delete app first). Quick approximation: Reset subscription state → restart. To also be **trial-eligible**, the store account must never have used the intro offer — on iOS that means a fresh **Sandbox Apple ID** (Settings → App Store → Sandbox Account); on Android intro eligibility always reports UNKNOWN, which the app treats as eligible (`hooks/useSubscription.ts:400`), so any license tester sees the trial view. |
+| **Brand-new user** | ⚠️ A clean install is NOT enough on iOS: `anonymous_id` lives in the **Keychain, which survives uninstall** — a reinstall re-runs onboarding (AsyncStorage is wiped) but keeps the old identity, so a grandfathered device still skips the paywall (verified 2026-07-30). On a personal/grandfathered device use **Force new-user** (preserves identity); on a spare device use **Reset subscription state** → restart (mints a NEW anonymous_id — the old grandfathered/allowlisted identity is lost unless re-inserted in Supabase). To also be **trial-eligible**, the store account must never have used the intro offer — on iOS that means a fresh **Sandbox Apple ID** (Settings → App Store → Sandbox Account); on Android intro eligibility always reports UNKNOWN, which the app treats as eligible (`hooks/useSubscription.ts:400`), so any license tester sees the trial view. |
 | **Trial-used user** | A sandbox account that has already consumed the intro offer (buy once, let it expire, reinstall). |
 | **v2 upgrader** | Developer Console → Run onboarding as v2 upgrader. |
 | **Grandfathered user** | The device's `anonymous_id` needs a `user_profiles` row with `created_at < 2026-02-04` (is_grandfathered is a generated column). Copy the Device ID from the console, then in Supabase SQL: `insert into user_profiles (anonymous_id, created_at) values ('<id>', '2026-01-15T00:00:00Z');` — restart the app. To un-grandfather: delete the row or Reset subscription state (new anonymous ID). |
@@ -59,6 +59,13 @@ production builds (removal is a launch-flip item). Controls used below:
 - **No thank-you sheet after purchase** while `PASSES_ENABLED = false` —
   the announcement flag is swallowed (`lib/creditsService.ts:256-261`).
   Turn "Passes on this device" ON to see the sheet.
+- **No passes are ever earned in sandbox** (`is_sandbox` skip in
+  `_shared/credits.ts` — deliberate, sandbox passes could dispense REAL
+  offer codes), and **no passes during any trial/intro period** (earned on
+  first real charge). Verified 2026-07-30: sandbox annual → 0 grants,
+  expected. Stage giver-side tests with Console → Grant 5 passes instead.
+  ⚠️ Production implication: new members see the thank-you sheet promise
+  passes that don't arrive until the trial converts — copy decision open.
 - **Grandfathered + airplane mode = paywall.** Fail-closed is intentional
   (`docs/revenuecat-grandfather-flow.md`). B2 tests it explicitly.
 - **Trial reminder is inert on build ≤130** — `expo-notifications` ships in
@@ -78,8 +85,12 @@ production builds (removal is a launch-flip item). Controls used below:
 ## Part A — First-time users
 
 ### A1 · Fresh install, trial-eligible (iOS) — the money path
-**Setup:** Clean install on iOS, fresh sandbox Apple ID signed into Sandbox
-Account settings.
+**Setup:** iOS device made "new" per the Part 0 recipe (clean install alone
+is NOT enough — Keychain identity survives; use Force new-user on a
+grandfathered device), fresh sandbox Apple ID signed into Settings → App
+Store → Sandbox Account. On build 130 confirm OTA #4+ is applied BEFORE
+purchasing (embedded bundle has the §15 purchase crash): Developer Console →
+Check for update → restart.
 **Steps:**
 1. Launch. → Onboarding, "The habits that build long-term sobriety" welcome
    (new-user copy, not "What's new").
@@ -300,6 +311,14 @@ returns → actually send → balance 4, `sent_at` stamped on that row only.
 
 Requires a binary with `expo-notifications` (NEXT build — inert on ≤130).
 Sandbox trials can never schedule it (48 h lead vs 3-min trials), so:
+
+### E0 · See the notification itself (copy/appearance)
+Developer Console → **Preview · Trial reminder** — fires the real
+notification ~8 s later through the same pipeline (permission prompt,
+Android channel, exact production copy with a representative date).
+Background the app to see the banner. On a binary without the native module
+it explains itself instead of no-opping. This checks LOOK and COPY only —
+E1/E2 below test the actual scheduling/cancellation logic.
 
 ### E1 · Scheduling (dev-build hack)
 **Setup:** dev build with `WARN_BEFORE_MS` in `lib/trialReminder.ts:28`

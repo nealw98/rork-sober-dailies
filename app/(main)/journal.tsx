@@ -13,6 +13,7 @@ import { ToolHeader, ToolIntro, TOOLS } from '@/components/ToolScreen';
 import { fontFamily, type Tokens } from '@/constants/designTokens';
 import { useTokens, useThemedStyles } from '@/hooks/useTokens';
 import { logEvent } from '@/lib/analytics';
+import { maybePromptBackup } from '@/lib/backupPrompt';
 
 const tool = TOOLS.journal;
 
@@ -33,6 +34,7 @@ export default function JournalScreen() {
       journal.addEntry(text.trim());
       logEvent('entry_saved', { type: 'journal' });
       if (dailyId) dailies.markDone(dailyId);
+      maybePromptBackup(); // one-time, only if this device isn't backing up
     }
     router.back();
   };
