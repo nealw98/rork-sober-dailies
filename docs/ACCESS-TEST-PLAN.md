@@ -66,8 +66,10 @@ production builds (removal is a launch-flip item). Controls used below:
   expected. Stage giver-side tests with Console → Grant 5 passes instead.
   ⚠️ Production implication: new members see the thank-you sheet promise
   passes that don't arrive until the trial converts — copy decision open.
-- **Grandfathered + airplane mode = paywall.** Fail-closed is intentional
-  (`docs/revenuecat-grandfather-flow.md`). B2 tests it explicitly.
+- **Grandfathered + airplane mode = access, once verified.** Changed
+  2026-07-31: a device that has verified ONCE keeps access through an outage
+  or an offline launch; one that never has still fails closed
+  (`docs/revenuecat-grandfather-flow.md`). B2 tests both halves.
 - **Trial reminder is inert on build ≤130** — `expo-notifications` ships in
   the NEXT binary. E-cases need a fresh dev build.
 
@@ -185,15 +187,21 @@ app shows onboarding.
 
 **Expect:** a grandfathered v2 user never sees a price.
 
-### B2 · Grandfathered user, offline cold launch (fail-closed check)
-**Setup:** B1 device, onboarding complete. Airplane mode ON. Kill app.
+### B2 · Grandfathered user, offline cold launch (cached yes)
+**Setup:** B1 device, onboarding complete, and it must have completed a
+successful online launch first — that's what caches the yes. Airplane mode
+ON. Kill app.
 **Steps:** cold launch.
-**Expect (intentional today):** grandfather check fails closed → **paywall
-shows** to a paying-nothing founding member. Restore network → relaunch →
-Today returns. Decide with eyes open whether that's acceptable for launch
-week; the fail-open+cached hardening is already parked in LAUNCH-CHECKLIST
-§4 (required before the price increase). This test is about *knowing* the
-behavior, not fixing it.
+**Expect:** **Today, no paywall.** The grandfather check can't reach Supabase,
+so it honours the cached verification (`grandfather_verified_v1`, keyed to
+this device's anonymous_id). Changed 2026-07-31 — this used to fail closed
+and show a paywall to a paying-nothing founding member, which is how the July
+RLS incident locked people out.
+
+**Then the negative half, which matters more:** on a device that has NEVER
+verified (Reset subscription state → new anonymous_id → airplane mode → cold
+launch) the paywall SHOULD appear. If it doesn't, the cache is granting access
+it was never given, and that's a real bug.
 
 ### B3 · v2 user, NOT grandfathered
 **Setup:** Console → Reset subscription state (new anonymous ID = no

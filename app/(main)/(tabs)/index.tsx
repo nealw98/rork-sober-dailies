@@ -31,7 +31,7 @@ import SobrietyCounter from '@/components/SobrietyCounter';
 import MilestoneBand from '@/components/today/MilestoneBand';
 import { recordUseDay } from '@/lib/growthPrompts';
 import GiftThankYouSheet from '@/components/GiftThankYouSheet';
-import { consumePendingAnnouncement, type AnnouncePlan } from '@/lib/creditsService';
+import { consumePendingAnnouncement, consumePendingArrival, type AnnouncePlan } from '@/lib/creditsService';
 import { pickContact } from '@/lib/pickContact';
 import { getSponsorContact, setSponsorContact, type SponsorContact } from '@/lib/sponsorContact';
 import { normalizePhone } from '@/hooks/use-contacts-store';
@@ -236,8 +236,13 @@ export default function TodayScreen() {
   // dissolves when isPremium flips), so buy() leaves a pending flag and Today
   // announces the gifts on first mount (design handoff "gift surfaces" §1).
   const [announcePlan, setAnnouncePlan] = useState<AnnouncePlan | null>(null);
+  // The same sheet, later: passes are only earned on the first real charge, so
+  // for a trial member they land days after the welcome. fetchCreditStatus
+  // queues this when the grant total rises.
+  const [arrivedCount, setArrivedCount] = useState<number | null>(null);
   useEffect(() => {
     consumePendingAnnouncement().then((plan) => { if (plan) setAnnouncePlan(plan); });
+    consumePendingArrival().then((n) => { if (n) setArrivedCount(n); });
     // Growth nudges are retired (Neal, 2026-07-20: the only pass reminders
     // are the post-subscribe thank-you and the badged gift icon) — but the
     // use-day stamp survives them: the app-review prompt's 15-day wait
@@ -351,6 +356,15 @@ export default function TodayScreen() {
           plan={announcePlan}
           onSeeGifts={() => { setAnnouncePlan(null); router.push('/(main)/pass-it-on' as Href); }}
           onClose={() => setAnnouncePlan(null)}
+        />
+      )}
+      {!announcePlan && arrivedCount != null && (
+        <GiftThankYouSheet
+          plan={arrivedCount > 1 ? 'annual' : 'monthly'}
+          mode="arrival"
+          count={arrivedCount}
+          onSeeGifts={() => { setArrivedCount(null); router.push('/(main)/pass-it-on' as Href); }}
+          onClose={() => setArrivedCount(null)}
         />
       )}
       <View style={styles.heroTop}>

@@ -142,6 +142,14 @@ export default function SettingsScreen() {
     setLogsVisible(false);
     setTimeout(() => setThankYouPreview(plan), 350);
   };
+  // QA: the arrival sheet fires days after purchase (passes are earned on the
+  // first real charge) and is swallowed while PASSES_ENABLED is false, so this
+  // is the only way to see it on device before the flip.
+  const [arrivalPreview, setArrivalPreview] = useState<number | null>(null);
+  const openArrivalPreview = (count: number) => {
+    setLogsVisible(false);
+    setTimeout(() => setArrivalPreview(count), 350);
+  };
   // Console actions that alert/navigate must close the console modal first
   // (iOS stacks modals — anything presented under an open one never shows).
   const fromConsole = (fn: () => void) => {
@@ -715,6 +723,14 @@ export default function SettingsScreen() {
               </TouchableOpacity>
             </View>
             <View style={styles.dcBtnRow}>
+              <TouchableOpacity style={styles.dcBtn} onPress={() => openArrivalPreview(5)} activeOpacity={0.7}>
+                <Text style={styles.dcBtnText}>Arrival · 5 passes</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.dcBtn} onPress={() => openArrivalPreview(1)} activeOpacity={0.7}>
+                <Text style={styles.dcBtnText}>Arrival · 1 pass</Text>
+              </TouchableOpacity>
+            </View>
+            <View style={styles.dcBtnRow}>
               <TouchableOpacity
                 style={styles.dcBtn}
                 activeOpacity={0.7}
@@ -847,6 +863,17 @@ export default function SettingsScreen() {
           plan={thankYouPreview}
           onSeeGifts={() => setThankYouPreview(null)}
           onClose={() => setThankYouPreview(null)}
+        />
+      )}
+
+      {/* QA: pass-arrival sheet preview */}
+      {arrivalPreview != null && (
+        <GiftThankYouSheet
+          plan={arrivalPreview > 1 ? 'annual' : 'monthly'}
+          mode="arrival"
+          count={arrivalPreview}
+          onSeeGifts={() => setArrivalPreview(null)}
+          onClose={() => setArrivalPreview(null)}
         />
       )}
 

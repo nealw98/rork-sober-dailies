@@ -81,12 +81,23 @@ clear to ship.
       the launch flips. Note: Play test subscriptions renew on an
       accelerated clock and expire after a few cycles, so testers will
       periodically re-hit the paywall — expected, not a bug.
-- [ ] **v3 price increase without touching v2 subscribers** — decided
-      approach TBD (Option A: native price-increase flows — ASC "preserve
-      current price for existing subscribers", Play base-plan change that
-      applies to new purchases only, never tap "migrate"; Option B: new
-      SKUs + RevenueCat offering rewire). Gate: harden the free-grandfather
-      check (fail-open + cached) before or alongside any price change.
+- [x] **v3 pricing without touching v2 subscribers** — DONE 2026-07-31.
+      Final prices are **$3.99/mo and $19.99/yr**, a DECREASE from
+      $4.99/$24.99, so none of the price-increase consent machinery applies.
+      Neal configured both stores in place (Option A — no new SKUs, so the
+      existing offer-code batches stay attached): grandfathered stay free,
+      v2 subscribers keep v2 pricing, new v3 subscribers get the new price.
+      Nothing to change in the app — no price literal exists in the codebase;
+      the paywall reads `product.priceString` and derives the rest, so it
+      will show $1.67/mo for yearly and hold at SAVE 58% (19.99/12 vs 3.99
+      = 58.2%). Remaining: confirm the new numbers actually render during
+      the A1 access test — store price changes take hours to propagate and
+      RevenueCat caches offerings. The grandfather hardening that used to
+      gate this item was done anyway the same day (§3) — not because the
+      price moved, but because Neal's rule is that a grandfathered member
+      should never meet a paywall.
+      Web: `/get` quoted the old prices and was updated + published
+      2026-07-31 (`sober-day-reflections` bdd3fbc).
 - [x] **Activate Android cloud backup** — DONE 2026-07-27, and NO rebuild
       was needed (build 130 already ships the native modules). Google Cloud
       side (project `sober-dailies` under soberdailies@gmail.com): Drive API
@@ -134,6 +145,20 @@ clear to ship.
       "Set up backup" → Drive connect → save another entry → no second
       prompt. On iOS it should NOT appear unless you sign out of iCloud.
       Folds into the still-open Drive backup device E2E.
+- [x] **A grandfathered member never meets a paywall** (Neal, 2026-07-31) —
+      the check used to fail CLOSED: any error, outage or offline launch
+      meant "not grandfathered", which is exactly how the July RLS incident
+      paywalled real founding members. `hooks/useSubscription.ts` now caches
+      a verified yes against the device's `anonymous_id` and honours it when
+      the check FAILS (error response or thrown). Deliberately narrow: a
+      device that has never verified still fails closed, so the cache can't
+      manufacture access; a successful "no" clears it, so un-grandfathering
+      still takes effect once they're online; no TTL, since an expiry would
+      reinstate the lockout during a long outage. Reset subscription state
+      mints a new anonymous_id, which no longer matches the cache — so QA
+      still falls back to the paywall. Test: grandfather a device, confirm
+      access, then airplane-mode + relaunch — B2 in the access plan tests
+      the OLD fail-closed behaviour and needs updating.
 - [ ] **Day-5 trial reminder: next binary + device E2E** — added
       `expo-notifications`, so the JS is inert until the next build
       (lazy-require keeps old-binary OTAs safe). E2E requires a real-device
@@ -175,9 +200,6 @@ clear to ship.
 - RevenueCat-designed paywall swap (after first-round feature testing).
 - Onboarding funnel analytics (step-level Mixpanel events; onboarding has
   zero tracking today).
-- Bulletproof the grandfather check (fail-open + cached +
-  edge-function-backed) — required before any v3 **price increase**, not
-  before launch.
 - Full code audit/cleanup pass (orphaned `app/(main)/redeem.tsx`, stale
   release flags, broken eas.json profiles, tsc errors, 343 MB archive /
   missing .easignore).
@@ -190,4 +212,4 @@ clear to ship.
 - ASC offer-code batches 543009 (monthly) / 543010 (yearly) **expire
   2027-01-20** — remint before then.
 - RevenueCat month-4 retention for pass cohorts; `credits-status` logs.
-- Pricing revisit trigger: strong gift-cliff conversion at $4.99/$24.99.
+- Pricing revisit trigger: strong gift-cliff conversion at $3.99/$19.99.

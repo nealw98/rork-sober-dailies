@@ -6,6 +6,7 @@
 // now (page-mapped from their first printed page) until split into titled files.
 export const BIGBOOK_PDFS: Record<string, number> = {
   // Front matter (later editions)
+  'preface': require('@/assets/pdf/big-book/en_bigbook_preface.pdf'),
   'foreword-third': require('@/assets/pdf/big-book/en_bigbook_forewordthirdedition.pdf'),
   'foreword-fourth': require('@/assets/pdf/big-book/en_bigbook_forewordfourthedition.pdf'),
 

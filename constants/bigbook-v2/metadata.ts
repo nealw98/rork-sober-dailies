@@ -9,13 +9,6 @@ import { BigBookChapterMeta } from '@/types/bigbook-v2';
 
 export const bigBookChapterMetadata: BigBookChapterMeta[] = [
   {
-    id: 'preface',
-    title: 'Preface',
-    pageRange: [11, 12], // Roman numerals xi-xii
-    // description: 'Introduction to the Big Book',
-    useRomanNumerals: true,
-  },
-  {
     id: 'foreword-first',
     title: 'Foreword to First Edition',
     pageRange: [13, 14], // Roman numerals xiii-xiv
@@ -25,7 +18,7 @@ export const bigBookChapterMetadata: BigBookChapterMeta[] = [
   {
     id: 'foreword-second',
     title: 'Foreword to Second Edition',
-    pageRange: [15, 22], // Roman numerals xv-xxii  
+    pageRange: [15, 21], // Roman numerals xv-xxi
     // description: 'Foreword added in 1955',
     useRomanNumerals: true,
   },

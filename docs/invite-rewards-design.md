@@ -11,14 +11,14 @@ history that produced it — §0 wins on any conflict.
 North star: GROWTH. Gift codes are pure acquisition, not revenue. Success
 metrics: offer-code redemptions (ASC aggregate) and month-4 retention (RC).
 
-**PRICING (settled 2026-07-20): $4.99/mo, $24.99/yr — ratio 5.0.** The
+**PRICING (settled 2026-07-31): $3.99/mo, $19.99/yr — ratio 5.0.** The
 $1.99/$9.99 era proved the audience converts on friendly arithmetic (annual
 = 5 months of monthly); $3.99/$29.99 had silently diluted the ratio to 7.5.
 Growth-era pricing: conversion feeds the credit flywheel (subscribers →
 credits → subscribers), ARPU doesn't. Existing subscribers preserved at
 their prices; revisit upward for new users once gift-cliff conversion data
 lands (strong cliff ≈ evidence for a raise). /get copy does the math out
-loud: "3 months free, then $24.99/year — about $2/month."
+loud: "3 months free, then $19.99/year — about $1.67/month."
 
 **Actuals (RC, pulled 2026-07-20; base ~43 subs — small-n, direction over
 precision):** platform split ~80/20 iOS/Android (34 vs 8-9). Annual churn
@@ -93,7 +93,7 @@ subscription load; no code changes needed).
 ### 3. Implementation plan
 Phase 0 — prerequisites (Neal):
   a. RevenueCat: churn, trial→paid conversion, iOS/Android split.
-  b. ASC: re-price to $4.99/mo + $24.99/yr (new users; existing preserved);
+  b. ASC: re-price to $3.99/mo + $19.99/yr (new users; existing preserved);
      verify subscription-group levels; create two 3-months-free offer-code
      offers (monthly + annual, eligibility NEW + EXPIRED); mint test batch
      with expiry; confirm grandfathered-cohort call.
@@ -115,7 +115,7 @@ Phase 1 — backend (Supabase): BUILT 2026-07-20, undeployed.
      Neal's yes/no); grandfather flag read from user_profiles.
 Phase 2 — website (sober-day-reflections repo): BUILT 2026-07-20, verified
   in local browser, uncommitted. /get handles three flows: ?g=<token> (gift
-  storefront — yearly-first plan cards at $24.99 "about $2/month" / $4.99,
+  storefront — yearly-first plan cards at $19.99 "about $1.67/month" / $3.99,
   dispense via get-dispense, auto-redirect to Apple's redeem URL + manual
   fallback card, Android → SD-code path, invalid/out-of-stock states fall
   back to store buttons + "ask your friend to resend"), ?code=SD-… (legacy

@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Platform } from 'react-native';
 import createContextHook from '@nkzw/create-context-hook';
 import * as SecureStore from 'expo-secure-store';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import Purchases, {
   CustomerInfo,
   LOG_LEVEL,
@@ -82,10 +83,40 @@ async function ensurePurchasesConfigured(): Promise<{ ok: true } | { ok: false; 
  * 
  * @returns true if user is grandfathered, false otherwise
  */
+// Grandfather status is permanent by definition — the column is computed from
+// a created_at that can never move. So a device that has ONCE been told "yes"
+// can keep that answer when the check can't complete: no network, a Supabase
+// outage, or a policy change like the July 2026 RLS incident, which paywalled
+// real grandfathered members until it was noticed.
+//
+// Fail-open is deliberately narrow (Neal, 2026-07-31): only a device holding a
+// cached yes for THIS anonymous_id rides through an error. A device that has
+// never verified still fails closed, so the cache can't manufacture access.
+// A successful "no" clears the cache, which is what makes it self-healing —
+// un-grandfathering someone takes effect the next time they're online.
+// No TTL: an expiry would just reinstate the lockout during a long outage.
+const GF_CACHE_KEY = 'grandfather_verified_v1';
+
+async function cachedGrandfather(anonymousId: string): Promise<boolean> {
+  try {
+    return (await AsyncStorage.getItem(GF_CACHE_KEY)) === anonymousId;
+  } catch {
+    return false;
+  }
+}
+
+async function rememberGrandfather(anonymousId: string, yes: boolean): Promise<void> {
+  try {
+    if (yes) await AsyncStorage.setItem(GF_CACHE_KEY, anonymousId);
+    else await AsyncStorage.removeItem(GF_CACHE_KEY);
+  } catch {}
+}
+
 async function checkGrandfatherStatus(): Promise<boolean> {
+  let anonymousId = '';
   try {
     // Get the anonymous ID from usage logger
-    const anonymousId = await getAnonymousId();
+    anonymousId = (await getAnonymousId()) ?? '';
     if (!anonymousId) {
       console.log('[Subscription] No anonymous ID available - not grandfathered');
       return false;
@@ -101,21 +132,31 @@ async function checkGrandfatherStatus(): Promise<boolean> {
       .single();
 
     if (error) {
-      // PGRST116 = no rows found, which means user doesn't exist in table
+      // PGRST116 = no rows found, which means user doesn't exist in table.
+      // That's a real answer, not a failure — clear any cached yes.
       if (error.code === 'PGRST116') {
         console.log('[Subscription] User not found in user_profiles - not grandfathered');
+        await rememberGrandfather(anonymousId, false);
         return false;
       }
+      // Anything else is the check FAILING, not answering. Honour a cached yes.
       console.error('[Subscription] Error checking grandfather status:', error);
-      return false;
+      const remembered = await cachedGrandfather(anonymousId);
+      if (remembered) console.log('[Subscription] Check failed - honouring cached grandfather status');
+      return remembered;
     }
 
     const isGrandfathered = data?.is_grandfathered === true;
     console.log('[Subscription] Grandfather status:', isGrandfathered);
+    await rememberGrandfather(anonymousId, isGrandfathered);
     return isGrandfathered;
   } catch (error) {
+    // Thrown (offline, DNS, timeout) — same rule as an error response.
     console.error('[Subscription] Grandfather check error:', error);
-    return false;
+    if (!anonymousId) return false;
+    const remembered = await cachedGrandfather(anonymousId);
+    if (remembered) console.log('[Subscription] Check threw - honouring cached grandfather status');
+    return remembered;
   }
 }
 

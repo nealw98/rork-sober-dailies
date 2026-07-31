@@ -11,8 +11,8 @@ The short version: members EARN gift credits (annual: 5/yr upfront ·
 monthly: 1 at signup + 1 per 3 months · grandfathered v1: 5/yr as "founding
 members"). Giving a gift sends a personal text with a private
 soberdailies.com/get link; the recipient picks a plan there and gets 3
-months free via an Apple offer code, auto-converting to $4.99/mo or
-$24.99/yr after. Nothing is purchasable anymore — the old pack-buying UI,
+months free via an Apple offer code, auto-converting to $3.99/mo or
+$19.99/yr after. Nothing is purchasable anymore — the old pack-buying UI,
 gift wallet, and code ledger are deleted.
 
 Two voice decisions are settled and must survive any redesign:

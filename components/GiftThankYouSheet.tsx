@@ -7,6 +7,12 @@
 // cannot live in the paywall tree, which dissolves the moment isPremium flips.
 //
 // Annual = five overlapping coins, "5 gifts". Monthly = one coin, "a gift".
+//
+// Two moments, one sheet. `welcome` fires at purchase, when the passes have NOT
+// been earned yet — nothing is granted during a trial or intro period
+// (_shared/credits.ts), so the copy promises arrival rather than possession.
+// `arrival` fires later, when grant-on-read actually lands them: purely
+// functional, no subscription or billing language (Neal, 2026-07-31).
 import React from 'react';
 import { View, Text, StyleSheet, Modal, Pressable, TouchableOpacity } from 'react-native';
 import { fontFamily, shadows, colors as lightColors, type Tokens } from '@/constants/designTokens';
@@ -18,16 +24,26 @@ const ROSE_FILL = lightColors.rose; // CTA keeps full chroma in both modes
 
 export default function GiftThankYouSheet({
   plan,
+  mode = 'welcome',
+  count,
   onSeeGifts,
   onClose,
 }: {
   plan: AnnouncePlan;
+  // 'welcome' = post-subscribe; 'arrival' = the passes have actually landed.
+  mode?: 'welcome' | 'arrival';
+  // Arrival only: how many just arrived (drives the coins and the copy).
+  count?: number;
   onSeeGifts: () => void;
   onClose: () => void;
 }) {
   const styles = useThemedStyles(makeStyles);
   const { colors } = useTokens();
+  const arrival = mode === 'arrival';
+  // Arrival draws its coins from the number that landed; welcome from the plan.
+  const many = arrival ? (count ?? 1) > 1 : plan === 'annual';
   const annual = plan === 'annual';
+  const coins = arrival ? Math.min(Math.max(count ?? 1, 1), 5) : 5;
 
   return (
     <Modal visible transparent animationType="slide" onRequestClose={onClose}>
@@ -35,11 +51,11 @@ export default function GiftThankYouSheet({
       <View style={styles.sheet}>
         <View style={styles.handle} />
         <View style={{ alignItems: 'center' }}>
-          {annual ? (
-            // Five overlapping coins — one per gift.
+          {many ? (
+            // Overlapping coins — one per gift.
             <View style={styles.coinRow}>
-              {[0, 1, 2, 3, 4].map((i) => (
-                <View key={i} style={[styles.coinSmall, i > 0 && { marginLeft: -10 }, { zIndex: 5 - i }]}>
+              {Array.from({ length: coins }, (_, i) => (
+                <View key={i} style={[styles.coinSmall, i > 0 && { marginLeft: -10 }, { zIndex: coins - i }]}>
                   <GiftGlyph size={22} color={colors.roseDark} strokeWidth={1.7} />
                 </View>
               ))}
@@ -50,27 +66,43 @@ export default function GiftThankYouSheet({
             </View>
           )}
 
-          <Text style={styles.title}>Welcome to the family</Text>
-          <Text style={styles.serifLine}>
-            We hope that using Sober Dailies every day deepens and strengthens your sobriety.
+          <Text style={styles.title}>
+            {arrival ? (many ? 'Your passes have arrived' : 'Your pass has arrived') : 'Welcome to the family'}
           </Text>
+          {!arrival && (
+            <Text style={styles.serifLine}>
+              We hope that using Sober Dailies every day deepens and strengthens your sobriety.
+            </Text>
+          )}
           <Text style={styles.body}>
-            {annual ? (
+            {arrival ? (
+              many ? (
+                <>
+                  <Text style={styles.bodyBold}>{count} passes</Text> to give away. Each one is 3 free
+                  months of Sober Dailies.
+                </>
+              ) : (
+                <>
+                  <Text style={styles.bodyBold}>One pass</Text> to give away. 3 free months of
+                  Sober Dailies.
+                </>
+              )
+            ) : annual ? (
               <>
-                <Text style={styles.bodyBold}>Five passes</Text> to give away. Each one is 3 free
-                months of Sober Dailies.
+                <Text style={styles.bodyBold}>Five passes</Text> to give away — each one is 3 free
+                months of Sober Dailies. Yours arrive when your free trial ends.
               </>
             ) : (
               <>
-                <Text style={styles.bodyBold}>One pass</Text> to give away. 3 free months of
-                Sober Dailies. Another arrives every 3 months.
+                <Text style={styles.bodyBold}>One pass</Text> to give away — 3 free months of
+                Sober Dailies. Yours arrives when your free trial ends, and another every 3 months.
               </>
             )}
           </Text>
         </View>
 
         <TouchableOpacity style={styles.cta} onPress={onSeeGifts} activeOpacity={0.85} accessibilityRole="button">
-          <Text style={styles.ctaText}>{annual ? 'See your passes' : 'See your pass'}</Text>
+          <Text style={styles.ctaText}>{many ? 'See your passes' : 'See your pass'}</Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.quietBtn} onPress={onClose} activeOpacity={0.6} accessibilityRole="button">
           <Text style={styles.quietBtnText}>Later</Text>

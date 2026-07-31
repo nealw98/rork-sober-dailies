@@ -8,7 +8,6 @@ import { BigBookChapter } from '@/types/bigbook-v2';
 
 import { foreword_first } from './foreword-first';
 import { foreword_second } from './foreword-second';
-import { preface } from './preface';
 import { doctors_opinion } from './doctors-opinion';
 import { chapter_1 } from './chapter-1';
 import { chapter_2 } from './chapter-2';
@@ -31,7 +30,6 @@ import { appendix_6 } from './appendix-6';
 export const bigBookContent: Record<string, BigBookChapter> = {
   'foreword-first': foreword_first,
   'foreword-second': foreword_second,
-  'preface': preface,
   'doctors-opinion': doctors_opinion,
   'chapter-1': chapter_1,
   'chapter-2': chapter_2,

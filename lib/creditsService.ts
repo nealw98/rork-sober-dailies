@@ -164,6 +164,7 @@ export async function fetchCreditStatus(): Promise<CreditStatus | null> {
     sharesUsed: data.shares_used ?? 0,
   };
   await cacheBalance(status);
+  await noteGrantTotal(status.totalGranted); // queues the arrival sheet when new passes land
   return status;
 }
 
@@ -257,6 +258,50 @@ export type AnnouncePlan = 'annual' | 'monthly';
 
 export async function setPendingAnnouncement(plan: AnnouncePlan): Promise<void> {
   await AsyncStorage.setItem(ANNOUNCE_KEY, plan).catch(() => {});
+}
+
+// ── Pass-arrival announcement ───────────────────────────────────────────────
+// Passes are earned on the first real charge, not at purchase — nothing is
+// granted during a trial or intro period (_shared/credits.ts). The grants land
+// silently on the next credits-status call after conversion, so without this
+// the member is never told. We keep a high-water mark of total_granted and
+// queue an announcement whenever it rises.
+const ARRIVAL_KEY = 'gift_arrival_pending_v1';
+const GRANTED_SEEN_KEY = 'gift_granted_seen_v1';
+
+async function noteGrantTotal(totalGranted: number): Promise<void> {
+  try {
+    const raw = await AsyncStorage.getItem(GRANTED_SEEN_KEY);
+    const seen = raw === null ? null : Number(raw);
+    await AsyncStorage.setItem(GRANTED_SEEN_KEY, String(totalGranted));
+    // No baseline yet = first status call on this device. Record it silently;
+    // announcing here would greet a returning member with passes they've had
+    // all along.
+    if (seen === null || !Number.isFinite(seen)) return;
+    if (totalGranted <= seen) return;
+    // A purchase announcement already queued means the welcome sheet is about
+    // to fire (someone who converted with no trial earns immediately). One
+    // sheet, not two — the baseline is still advanced above.
+    if (await AsyncStorage.getItem(ANNOUNCE_KEY)) return;
+    await AsyncStorage.setItem(ARRIVAL_KEY, String(totalGranted - seen));
+  } catch {}
+}
+
+// Read-and-clear. Returns how many passes just arrived, or null.
+export async function consumePendingArrival(): Promise<number | null> {
+  try {
+    if (!(await passesOn())) {
+      await AsyncStorage.removeItem(ARRIVAL_KEY);
+      return null;
+    }
+    const v = await AsyncStorage.getItem(ARRIVAL_KEY);
+    if (!v) return null;
+    await AsyncStorage.removeItem(ARRIVAL_KEY);
+    const n = Number(v);
+    return Number.isFinite(n) && n > 0 ? n : null;
+  } catch {
+    return null;
+  }
 }
 
 // Read-and-clear. Returns the plan to announce, or null.

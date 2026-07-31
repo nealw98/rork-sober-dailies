@@ -61,6 +61,10 @@ const LOCAL_RESET_KEYS: string[] = [
   'today_edit_tip_seen',
   'aa-last-opened-sponsor',
   'backup_prompt_shown_v1', // one-time nudge — "start fresh" should mean fresh
+  // Pass-arrival high-water mark. Clearing it re-baselines silently on the next
+  // status call, so a reset can't manufacture a phantom "passes arrived" sheet.
+  'gift_granted_seen_v1',
+  'gift_arrival_pending_v1',
 ];
 
 export const BACKUP_SCHEMA_VERSION = 1;

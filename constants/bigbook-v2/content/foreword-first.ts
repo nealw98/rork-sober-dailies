@@ -12,32 +12,26 @@ export const foreword_first: BigBookChapter = {
   pageRange: [13, 14],
   paragraphs: [
     {
-      id: 'foreword-first-p1',
-      chapterId: 'foreword-first',
-      pageNumber: 13,
-      order: 1,
-      content: '**Pages xiii–xiv**',
-    },
-    {
       id: 'foreword-first-p2',
       chapterId: 'foreword-first',
       pageNumber: 13,
       order: 2,
       content: 'This is the Foreword as it appeared in the first printing of the first edition in 1939.',
+      isItalic: true,
     },
     {
       id: 'foreword-first-p3',
       chapterId: 'foreword-first',
       pageNumber: 13,
       order: 3,
-      content: 'We, of Alcoholics Anonymous, are more than one hundred men and women who have recovered from a seemingly hopeless state of mind and body. To show other alcoholics precisely how we have recovered is the main purpose of this book. For them, we hope these pages will prove so convincing that no further authentication will be necessary. We think this account of our experiences will help everyone to better understand the alcoholic. Many do not comprehend that the alcoholic is a very sick person. And besides, we are sure that our way of living has its advantages for all.',
+      content: 'We, of Alcoholics Anonymous, are more than one hundred men and women who have recovered from a seemingly hopeless state of mind and body. To show other alcoholics _precisely how we have recovered_ is the main purpose of this book. For them, we hope these pages will prove so convincing that no further authentication will be necessary. We think this account of our experiences will help everyone to better understand the alcoholic. Many do not comprehend that the alcoholic is a very sick person. And besides, we are sure that our way of living has its advantages for all.',
     },
     {
       id: 'foreword-first-p4',
       chapterId: 'foreword-first',
       pageNumber: 13,
       order: 4,
-      content: 'It is important that we remain anonymous because we are too few, at present, to handle the overwhelming number of personal appeals which may result from this publication. Being mostly business or professional folk, we could not well carry on our occupations in such an event. We would like it understood that our alcoholic work is an avocation.',
+      content: 'It is important that we remain anonymous because we are too few, at present to handle the overwhelming number of personal appeals which may result from this publication. Being mostly business or professional folk, we could not well carry on our occupations in such an event. We would like it understood that our alcoholic work is an avocation.',
     },
     {
       id: 'foreword-first-p5',
@@ -58,7 +52,7 @@ export const foreword_first: BigBookChapter = {
       chapterId: 'foreword-first',
       pageNumber: 14,
       order: 7,
-      content: 'We are not an organization in the conventional sense of the word. There are no fees nor dues whatsoever. The only requirement for membership is an honest desire to stop drinking. We are not allied with any particular faith, sect or denomination, nor do we oppose anyone. We simply wish to be helpful to those who are afflicted.',
+      content: 'We are not an organization in the conventional sense of the word. There are no fees or dues whatsoever. The only requirement for membership is an honest desire to stop drinking. We are not allied with any particular faith, sect or denomination, nor do we oppose anyone. We simply wish to be helpful to those who are afflicted.',
     },
     {
       id: 'foreword-first-p8',

@@ -62,7 +62,7 @@ export const BIGBOOK_TOC: TocGroup[] = [
   {
     label: 'Front Matter',
     entries: [
-      { id: 'preface', title: 'Preface', page: 'xi', kind: 'text', chapterId: 'preface' },
+      { id: 'preface', title: 'Preface', page: 'xi', kind: 'pdf', pdfKey: 'preface', startPage: 0 },
       { id: 'foreword-first', title: 'Foreword to First Edition', page: 'xiii', kind: 'text', chapterId: 'foreword-first' },
       { id: 'foreword-second', title: 'Foreword to Second Edition', page: 'xv', kind: 'text', chapterId: 'foreword-second' },
       { id: 'foreword-third', title: 'Foreword to Third Edition', page: 'xxii', kind: 'pdf', pdfKey: 'foreword-third', startPage: 0 },
