@@ -144,8 +144,18 @@ export function BigBookContents({ onOpenText, onOpenPdf, onOpenTextAtParagraph }
 
   const openBookmarks = () => { refreshText(); setShowBookmarks(true); };
 
-  // A live query swaps the contents list for results, in place.
+  // A live query swaps the contents list for results, in place. The bookmark
+  // and highlight circles do the same with their own lists — every find tool
+  // renders ON the page now, nothing slides up from the bottom.
   const searching = query.trim().length > 0;
+  const [panel, setPanel] = useState<null | 'bookmarks' | 'highlights'>(null);
+  const togglePanel = (next: 'bookmarks' | 'highlights') => {
+    setQuery('');
+    setPanel((cur) => (cur === next ? null : next));
+    if (next === 'bookmarks') refreshText();
+  };
+  // Typing wins: it closes whichever list is open.
+  const onQueryChange = (next: string) => { setQuery(next); if (next) setPanel(null); };
 
   const submitGoTo = () => {
     Keyboard.dismiss();
@@ -183,17 +193,53 @@ export function BigBookContents({ onOpenText, onOpenPdf, onOpenTextAtParagraph }
           <FindRow
             accent={AMBER_INK}
             query={query}
-            onQueryChange={setQuery}
-            onBookmarks={openBookmarks}
-            onHighlights={() => setShowHighlights(true)}
+            onQueryChange={onQueryChange}
+            onBookmarks={() => togglePanel('bookmarks')}
+            onHighlights={() => togglePanel('highlights')}
+            bookmarkCount={unified.length}
             highlightCount={highlights.length}
+            bookmarksOpen={panel === 'bookmarks'}
+            highlightsOpen={panel === 'highlights'}
           />
         </View>
 
         {/* Typing replaces the contents with results, in place — the field is on
             the page, so there is no search modal to open. Clearing restores the
             table of contents. */}
-        {searching ? (
+        {panel === 'bookmarks' ? (
+          <View style={styles.body}>
+            {unified.length === 0 ? (
+              <Text style={styles.searchEmpty}>No bookmarks yet. Tap the bookmark in the reader to save a page.</Text>
+            ) : (
+              unified.map((b) => (
+                <View key={b.key} style={styles.bmRow}>
+                  <Pressable style={styles.bmMain} onPress={b.open}>
+                    <View style={styles.flex}>
+                      <Text style={styles.bmTitle} numberOfLines={1}>{b.title}</Text>
+                      <View style={styles.bmMeta}>
+                        {b.isPdf && <View style={styles.pdfTag}><Text style={styles.pdfTagText}>PDF</Text></View>}
+                        <Text style={styles.bmPage}>p. {b.pageLabel}</Text>
+                      </View>
+                    </View>
+                    <ChevronRight size={16} color={c.textMuted} />
+                  </Pressable>
+                  <Pressable onPress={b.del} hitSlop={8} style={styles.bmDelete}>
+                    <Trash2 size={17} color={c.textMuted} strokeWidth={2} />
+                  </Pressable>
+                </View>
+              ))
+            )}
+          </View>
+        ) : panel === 'highlights' ? (
+          <View style={styles.body}>
+            <BigBookHighlightsList
+              inline
+              visible
+              onClose={() => setPanel(null)}
+              onNavigateToHighlight={(chapterId, paragraphId) => { setPanel(null); onOpenTextAtParagraph(chapterId, paragraphId); }}
+            />
+          </View>
+        ) : searching ? (
           <View style={styles.body}>
             {searchResults.length === 0 ? (
               <Text style={styles.searchEmpty}>

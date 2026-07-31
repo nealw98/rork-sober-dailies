@@ -98,8 +98,11 @@ export default function TwelveAndTwelveScreen() {
   // Dismiss any modal before presenting the reader (avoids modal clash).
   const jump = (fn: () => void) => { setShowBookmarks(false); setShowSearch(false); setShowGoTo(false); setTimeout(fn, 300); };
 
-  // A live query swaps the list for results, in place.
+  // A live query swaps the list for results, in place — and the bookmark
+  // circle does the same with its own list. Nothing slides up from the bottom.
   const searching = query.trim().length > 0;
+  const [panel, setPanel] = useState<null | 'bookmarks'>(null);
+  const onQueryChange = (next: string) => { setQuery(next); if (next) setPanel(null); };
 
   const openBookmark = (b: PdfBookmark) => jump(() => setPdf({ id: b.sectionId, title: b.title, startPage: b.startPage, initialPage: b.pdfPage }));
 
@@ -169,14 +172,37 @@ export default function TwelveAndTwelveScreen() {
           <FindRow
             accent={TT_INK}
             query={query}
-            onQueryChange={setQuery}
-            onBookmarks={() => setShowBookmarks(true)}
+            onQueryChange={onQueryChange}
+            onBookmarks={() => { setQuery(''); setPanel((cur) => (cur ? null : 'bookmarks')); }}
+            bookmarkCount={bookmarks.length}
+            bookmarksOpen={panel === 'bookmarks'}
           />
         </View>
 
         {/* Typing replaces the list with results, in place — the field lives on
             the page, so there is no search modal to open. */}
-        {searching ? (
+        {panel === 'bookmarks' ? (
+          <View style={styles.body}>
+            {bookmarks.length === 0 ? (
+              <Text style={styles.searchEmpty}>No bookmarks yet. Open an essay and tap “Bookmark” to save a page.</Text>
+            ) : (
+              bookmarks.map((b) => (
+                <View key={b.id} style={styles.bmRow}>
+                  <Pressable style={styles.bmRowMain} onPress={() => openBookmark(b)} accessibilityRole="button">
+                    <View style={styles.flex}>
+                      <Text style={styles.bmRowTitle}>{b.title}</Text>
+                      <Text style={styles.bmRowPage}>p. {b.bookPage}</Text>
+                    </View>
+                    <ChevronRight size={16} color={c.textMuted} />
+                  </Pressable>
+                  <Pressable onPress={() => remove(b.id)} hitSlop={8} style={styles.bmDelete} accessibilityRole="button" accessibilityLabel="Remove bookmark">
+                    <Trash2 size={17} color={c.textMuted} strokeWidth={2} />
+                  </Pressable>
+                </View>
+              ))
+            )}
+          </View>
+        ) : searching ? (
           <View style={styles.body}>
             {searchResults.length === 0 ? (
               <Text style={styles.searchEmpty}>

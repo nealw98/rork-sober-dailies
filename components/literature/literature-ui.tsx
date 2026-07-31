@@ -73,14 +73,23 @@ export function FindCard({ Icon, label, count, accent, soft, variant = 'soft', o
 // same `c.surface` the search RESULT cards use, so the controls and what they
 // produce read as one material (Neal, 2026-07-31). `onHighlights` is omitted on
 // books that don't support highlighting.
-export function FindRow({ accent, query, onQueryChange, onBookmarks, onHighlights, highlightCount = 0 }: {
+export function FindRow({
+  accent, query, onQueryChange, onBookmarks, onHighlights,
+  bookmarkCount = 0, highlightCount = 0,
+  bookmarksOpen = false, highlightsOpen = false,
+}: {
   accent: string;
   // A real field, live on the page — no search modal to open.
   query: string;
   onQueryChange: (next: string) => void;
   onBookmarks: () => void;
   onHighlights?: () => void;
+  bookmarkCount?: number;
   highlightCount?: number;
+  // The circles are toggles: their list replaces the contents in place, the
+  // same way search results do, so the button has to show it is switched on.
+  bookmarksOpen?: boolean;
+  highlightsOpen?: boolean;
 }) {
   const styles = useThemedStyles(makeStyles);
   const { c } = useTokens();
@@ -111,21 +120,44 @@ export function FindRow({ accent, query, onQueryChange, onBookmarks, onHighlight
 
       <Pressable
         onPress={onBookmarks}
-        style={({ pressed }) => [styles.findCircle, { borderColor: hairline }, pressed && { opacity: 0.7 }]}
+        style={({ pressed }) => [
+          styles.findCircle,
+          { borderColor: bookmarksOpen ? accent : hairline },
+          bookmarksOpen && { backgroundColor: accent },
+          pressed && { opacity: 0.7 },
+        ]}
         accessibilityRole="button"
-        accessibilityLabel="Bookmarks"
+        accessibilityState={{ selected: bookmarksOpen }}
+        accessibilityLabel={`Bookmarks${bookmarkCount > 0 ? `, ${bookmarkCount}` : ''}`}
       >
-        <Bookmark size={19} color={accent} strokeWidth={2} />
+        {/* Solid glyph — a bookmark you HAVE, not an outline of one. */}
+        <Bookmark
+          size={19}
+          color={bookmarksOpen ? '#fff' : accent}
+          fill={bookmarksOpen ? '#fff' : accent}
+          strokeWidth={2}
+        />
+        {bookmarkCount > 0 && (
+          <View style={[styles.findCircleBadge, { backgroundColor: accent, borderColor: c.background }]}>
+            <Text style={styles.findBadgeText}>{bookmarkCount}</Text>
+          </View>
+        )}
       </Pressable>
 
       {!!onHighlights && (
         <Pressable
           onPress={onHighlights}
-          style={({ pressed }) => [styles.findCircle, { borderColor: hairline }, pressed && { opacity: 0.7 }]}
+          style={({ pressed }) => [
+            styles.findCircle,
+            { borderColor: highlightsOpen ? accent : hairline },
+            highlightsOpen && { backgroundColor: accent },
+            pressed && { opacity: 0.7 },
+          ]}
           accessibilityRole="button"
+          accessibilityState={{ selected: highlightsOpen }}
           accessibilityLabel={`Highlights${highlightCount > 0 ? `, ${highlightCount}` : ''}`}
         >
-          <Highlighter size={19} color={accent} strokeWidth={2} />
+          <Highlighter size={19} color={highlightsOpen ? '#fff' : accent} strokeWidth={2} />
           {highlightCount > 0 && (
             <View style={[styles.findCircleBadge, { backgroundColor: accent, borderColor: c.background }]}>
               <Text style={styles.findBadgeText}>{highlightCount}</Text>

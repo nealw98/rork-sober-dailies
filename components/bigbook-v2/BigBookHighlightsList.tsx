@@ -62,6 +62,10 @@ interface BigBookHighlightsListProps {
   visible: boolean;
   onClose: () => void;
   onNavigateToHighlight: (chapterId: string, paragraphId: string) => void;
+  // Rendered straight into the Contents page instead of as a bottom sheet:
+  // no Modal, no sheet chrome, and no inner ScrollView (the page already
+  // scrolls). The find-row circle is what opens and closes it.
+  inline?: boolean;
 }
 
 // A merged highlight group for display purposes
@@ -80,6 +84,7 @@ export function BigBookHighlightsList({
   visible,
   onClose,
   onNavigateToHighlight,
+  inline = false,
 }: BigBookHighlightsListProps) {
   const { highlights, deleteHighlight, isLoading } = useBigBookHighlights();
   const { readingSize: fontSize, readingLineHeight: lineHeight } = useReadingSize();
@@ -221,21 +226,8 @@ export function BigBookHighlightsList({
     }
   };
 
-  return (
-    <Modal
-      visible={visible}
-      animationType="slide"
-      presentationStyle="pageSheet"
-      onRequestClose={onClose}
-    >
-      <View style={styles.sheet}>
-        <View style={styles.sheetHead}>
-          <Text style={styles.sheetTitle}>Highlights</Text>
-          <Pressable onPress={onClose} hitSlop={8} style={styles.closeBtn}>
-            <X size={18} color={c.textSecondary} strokeWidth={2} />
-          </Pressable>
-        </View>
-
+  const body = (
+    <>
         {totalMergedCount === 0 ? (
           <View style={styles.empty}>
             <Highlighter size={30} color={c.textMuted} strokeWidth={1.6} />
@@ -245,7 +237,7 @@ export function BigBookHighlightsList({
             </Text>
           </View>
         ) : (
-          <ScrollView contentContainerStyle={styles.sheetList} showsVerticalScrollIndicator={false}>
+          <Rows>
             {sortedChapterIds.map(chapterId =>
               groupedHighlights[chapterId].map(merged => {
                 const key = merged.ids.join('-');
@@ -283,11 +275,41 @@ export function BigBookHighlightsList({
                 );
               })
             )}
-          </ScrollView>
+          </Rows>
         )}
+    </>
+  );
+
+  if (inline) return <View style={styles.inlineList}>{body}</View>;
+
+  return (
+    <Modal
+      visible={visible}
+      animationType="slide"
+      presentationStyle="pageSheet"
+      onRequestClose={onClose}
+    >
+      <View style={styles.sheet}>
+        <View style={styles.sheetHead}>
+          <Text style={styles.sheetTitle}>Highlights</Text>
+          <Pressable onPress={onClose} hitSlop={8} style={styles.closeBtn}>
+            <X size={18} color={c.textSecondary} strokeWidth={2} />
+          </Pressable>
+        </View>
+        {body}
       </View>
     </Modal>
   );
+
+  // Inline lives inside the page's ScrollView, so it must NOT nest one.
+  function Rows({ children }: { children: React.ReactNode }) {
+    if (inline) return <View>{children}</View>;
+    return (
+      <ScrollView contentContainerStyle={styles.sheetList} showsVerticalScrollIndicator={false}>
+        {children}
+      </ScrollView>
+    );
+  }
 }
 
 const makeStyles = (tk: Tokens) => {
@@ -300,6 +322,8 @@ const makeStyles = (tk: Tokens) => {
     sheetTitle: { fontFamily: fontFamily.displayBold, fontSize: 22, letterSpacing: -0.4, color: c.text },
     closeBtn: { width: 34, height: 34, borderRadius: 17, borderWidth: 1, borderColor: c.border, alignItems: 'center', justifyContent: 'center' },
     sheetList: { paddingHorizontal: 16, paddingTop: 10, paddingBottom: 32 },
+    // Inline on the Contents page — the page supplies the horizontal padding.
+    inlineList: { paddingTop: 2 },
 
     // empty state
     empty: { alignItems: 'center', paddingTop: 60, paddingHorizontal: 36, gap: 10 },
