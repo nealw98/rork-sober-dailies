@@ -68,13 +68,11 @@ export function FindCard({ Icon, label, count, accent, soft, variant = 'soft', o
 }
 
 // The find row on a book's Contents page: one search field plus circular icon
-// buttons. Replaces the four large utility chips — same handlers, same modals,
-// just a quieter row. `accent` is the book's family 700 tone (steel for the Big
-// Book, teal for the 12 & 12). Translucent white rather than full white so the
-// paper and the header band's warmth bleed through (0.8 — Neal, 2026-07-31),
-// and the controls read as
-// sitting IN the page rather than on it. `onHighlights` is omitted on books
-// that don't support highlighting.
+// buttons. Replaces the four large utility chips. `accent` is the book's family
+// 700 tone (steel for the Big Book, teal for the 12 & 12). The surfaces are the
+// same `c.surface` the search RESULT cards use, so the controls and what they
+// produce read as one material (Neal, 2026-07-31). `onHighlights` is omitted on
+// books that don't support highlighting.
 export function FindRow({ accent, query, onQueryChange, onBookmarks, onHighlights, highlightCount = 0 }: {
   accent: string;
   // A real field, live on the page — no search modal to open.
@@ -172,14 +170,12 @@ const makeStyles = (tk: Tokens) => {
     // Find row — a 44pt line of controls, translucent so the page shows through.
     findRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
     findField: {
-      flex: 1, height: 44, borderRadius: 22, borderWidth: 1,
-      backgroundColor: isDark ? 'rgba(255,255,255,0.07)' : 'rgba(255,255,255,0.8)',
+      flex: 1, height: 44, borderRadius: 22, borderWidth: 1, backgroundColor: c.surface,
       flexDirection: 'row', alignItems: 'center', gap: 9, paddingHorizontal: 15,
     },
     findFieldText: { flex: 1, fontFamily: fontFamily.regular, fontSize: 15, paddingVertical: 0 },
     findCircle: {
-      width: 44, height: 44, borderRadius: 22, borderWidth: 1,
-      backgroundColor: isDark ? 'rgba(255,255,255,0.07)' : 'rgba(255,255,255,0.8)',
+      width: 44, height: 44, borderRadius: 22, borderWidth: 1, backgroundColor: c.surface,
       alignItems: 'center', justifyContent: 'center',
     },
 
