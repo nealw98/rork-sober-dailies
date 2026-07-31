@@ -70,6 +70,11 @@ export default function TwelveAndTwelveScreen() {
   // Teal — 12 & 12 accent (brightens automatically on dark).
   const LAV_SOFT = colors.primarySoft;
   const TT_INK = colors.primaryDark;
+  // The same tint at zero alpha, so the title gradient dissolves into the page
+  // without drifting through another hue. (Soft is a hex in light, rgba in dark.)
+  const LAV_FADE = LAV_SOFT.startsWith('rgba')
+    ? LAV_SOFT.replace(/[\d.]+\s*\)$/, '0)')
+    : `${LAV_SOFT}00`;
   const { forBook, remove } = usePdfBookmarks();
   const [pdf, setPdf] = useState<OpenPdf | null>(null);
 
@@ -145,25 +150,23 @@ export default function TwelveAndTwelveScreen() {
       </View>
 
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
-        {/* Tinted band: cover + title + the find tools, fading into the page so
-            the white find cards read against it. */}
-        <LinearGradient colors={[LAV_SOFT, c.background]} locations={[0.78, 1]} style={styles.band}>
-          <View style={styles.hero}>
-            <Image source={TWELVE_COVER} style={styles.heroCover} contentFit="cover" />
-            <View style={styles.flex}>
-              <Text style={styles.heroTitle}>Twelve & Twelve</Text>
-              <Text style={styles.heroSub}>Steps and Traditions</Text>
-              <Text style={styles.heroMeta}>{ESSAY_COUNT} essays</Text>
-            </View>
-          </View>
-
-          {/* Find tools */}
-          <View style={styles.findRow}>
-            <FindCard Icon={Search} label="Search" accent={TT_INK} soft={LAV_SOFT} variant="outline" onPress={() => setShowSearch(true)} />
-            <FindCard Icon={Hash} label="Go to page" accent={TT_INK} soft={LAV_SOFT} variant="outline" onPress={() => setShowGoTo(true)} />
-            <FindCard Icon={Bookmark} label="Bookmarks" count={bookmarks.length} accent={TT_INK} soft={LAV_SOFT} variant="outline" onPress={() => setShowBookmarks(true)} />
+        {/* Title block: cover + book title on a tint that fades out — same
+            treatment as the Big Book contents page. */}
+        <LinearGradient colors={[LAV_SOFT, LAV_FADE]} style={styles.hero}>
+          <Image source={TWELVE_COVER} style={styles.heroCover} contentFit="cover" />
+          <View style={styles.flex}>
+            <Text style={styles.heroTitle}>Twelve & Twelve</Text>
+            <Text style={styles.heroSub}>Steps and Traditions</Text>
+            <Text style={styles.heroMeta}>{ESSAY_COUNT} essays</Text>
           </View>
         </LinearGradient>
+
+        {/* Find tools — soft-filled cards on the page, as on the Big Book page */}
+        <View style={styles.findRow}>
+          <FindCard Icon={Search} label="Search" accent={TT_INK} soft={LAV_SOFT} onPress={() => setShowSearch(true)} />
+          <FindCard Icon={Hash} label="Go to page" accent={TT_INK} soft={LAV_SOFT} onPress={() => setShowGoTo(true)} />
+          <FindCard Icon={Bookmark} label="Bookmarks" count={bookmarks.length} accent={TT_INK} soft={LAV_SOFT} onPress={() => setShowBookmarks(true)} />
+        </View>
 
         {/* Grouped Step / Tradition list */}
         <View style={styles.body}>
@@ -350,8 +353,8 @@ const makeStyles = (tk: Tokens) => {
   aaLabel: { fontFamily: fontFamily.bold, fontSize: 13, color: c.textSecondary, letterSpacing: -0.2 },
 
   scroll: { paddingBottom: 40 },
-  band: { paddingBottom: 14 },
-  hero: { flexDirection: 'row', gap: 18, alignItems: 'center', paddingHorizontal: 20, paddingTop: 10, paddingBottom: 20 },
+  // The gradient IS the hero, as on the Big Book contents page.
+  hero: { flexDirection: 'row', gap: 18, alignItems: 'center', paddingHorizontal: 20, paddingTop: 12, paddingBottom: 18 },
   heroCover: {
     width: 88, height: 116, borderRadius: 4,
     shadowColor: '#1F3A4D', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.25, shadowRadius: 9, elevation: 5,
@@ -359,7 +362,7 @@ const makeStyles = (tk: Tokens) => {
   heroTitle: { fontFamily: readerSerif, fontWeight: '700', fontSize: 26, lineHeight: 31, color: c.text },
   heroSub: { fontFamily: fontFamily.regular, fontSize: 14.5, color: c.textSecondary, marginTop: 6 },
   heroMeta: { fontFamily: fontFamily.regular, fontSize: 13, color: c.textMuted, marginTop: 3 },
-  findRow: { flexDirection: 'row', gap: 10, paddingHorizontal: 20 },
+  findRow: { flexDirection: 'row', gap: 10, paddingHorizontal: 20, paddingTop: 2, paddingBottom: 6 },
 
   body: { paddingHorizontal: 20, paddingTop: 6 },
   group: { marginTop: 14 },

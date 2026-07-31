@@ -605,7 +605,9 @@ const makeStyles = (tk: Tokens) => {
     planRight: { alignItems: 'flex-end' },
     planPrice: { fontFamily: fontFamily.bold, fontSize: 16.5, color: c.text },
     planSub: { fontFamily: fontFamily.regular, fontSize: 13, color: c.textMuted, marginTop: 2 },
-    planSubOnly: { fontFamily: fontFamily.regular, fontSize: 14.5, color: c.textMuted },
+    // Monthly's only price line — same weight as Yearly's headline price so the
+    // two rows read as the same kind of thing.
+    planSubOnly: { fontFamily: fontFamily.bold, fontSize: 14.5, color: c.textMuted },
     // Monthly row only — the label and price follow the selection together.
     planTextMuted: { color: c.textMuted },
     planTextInk: { color: c.text },

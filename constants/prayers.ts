@@ -55,6 +55,10 @@ Amen.`,
     source: "Reinhold Niebuhr"
   },
   {
+    title: "Set Aside Prayer",
+    content: "God, please set aside everything I think I know about myself, my disease, the 12 Steps, and You, for an open mind and a new experience of myself, my disease, the 12 Steps and especially You! Please help me to see the truth."
+  },
+  {
     title: "Sick Man Prayer",
     content: "God, please help me show this person the same tolerance, pity, and patience that I would cheerfully grant a sick friend. This is a sick person. How can I be helpful to them? God save me from being angry. Thy will be done.",
     source: "Alcoholics Anonymous, p. 67"
