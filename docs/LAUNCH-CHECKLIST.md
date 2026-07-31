@@ -69,17 +69,13 @@ clear to ship.
       §3). Remaining on-device spot-check (emulator can't cover): sponsor
       chat with the real soft keyboard up, and a quick eyeball of the
       milestone takeover on a notched phone.
-- [ ] **Verify an Android test purchase end-to-end** — license testers are
-      ALREADY set up (2026-07-27: Neal confirmed all testers are in the
-      Play license-testing list), and subscription products exist on both
-      stores at current prices. Remaining: on a device with build 130 from
-      the open-testing track, run the subscribe flow — the purchase sheet
-      should show "Test card, always approves" (no real charge) — and
-      confirm RevenueCat grants the entitlement. Once verified, the
-      Android paywall X (§1) has no remaining justification and exits with
-      the launch flips. Note: Play test subscriptions renew on an
-      accelerated clock and expire after a few cycles, so testers will
-      periodically re-hit the paywall — expected, not a bug.
+- [x] **Verify an Android test purchase end-to-end** — PASSED 2026-07-31
+      on device (Neal): subscribe flow completes and the entitlement is
+      granted. The Android paywall X therefore has no remaining
+      justification and exits with the §1 launch flips. Note: Play test
+      subscriptions renew on an accelerated clock and expire after a few
+      cycles, so testers will periodically re-hit the paywall — expected,
+      not a bug.
 - [x] **v3 pricing without touching v2 subscribers** — DONE 2026-07-31.
       Final prices are **$3.99/mo and $19.99/yr**, a DECREASE from
       $4.99/$24.99, so none of the price-increase consent machinery applies.
@@ -136,18 +132,11 @@ clear to ship.
       half + backup prompt + trial copy; then the Big Book front-matter
       corrections, grandfather cache and pass sheets). Nothing is sitting
       uncommitted now.
-- [ ] **Backup discoverability: verify the new first-entry prompt** (added
-      2026-07-30 pm #3). Android auto-sync silently no-ops until the user
-      connects a Google account from the Backup screen, so the Drive feature
-      was undiscoverable — nothing ever asked. `lib/backupPrompt.ts` now
-      fires once, on the first Journey entry saved (gratitude / nightly /
-      spot check / journal), and ONLY when the device isn't actually backing
-      up (`cloudAvailable()` false). Silent on a healthy iPhone, since iOS
-      backs up from first launch with no setup. To test on Android: fresh
-      install, don't touch Settings, save a gratitude list → prompt →
-      "Set up backup" → Drive connect → save another entry → no second
-      prompt. On iOS it should NOT appear unless you sign out of iCloud.
-      Folds into the still-open Drive backup device E2E.
+- [x] **Backup discoverability: verify the new first-entry prompt** —
+      PASSED 2026-07-31 on a fresh install (Neal): the prompt fired on the
+      first Journey entry. `lib/backupPrompt.ts` fires once per install and
+      only when the device isn't already backing up (`cloudAvailable()`
+      false), so it stays silent on a healthy iPhone.
 - [x] **A grandfathered member never meets a paywall** (Neal, 2026-07-31) —
       the check used to fail CLOSED: any error, outage or offline launch
       meant "not grandfathered", which is exactly how the July RLS incident

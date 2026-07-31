@@ -251,8 +251,16 @@ function RootLayoutNav() {
     return () => clearTimeout(timer);
   }, []);
 
-  // Show the onboarding flow until it's completed.
+  // Show the onboarding flow until it's completed — but never before the fonts
+  // are in. This gate used to sit above the fontsLoaded check, so on a FRESH
+  // INSTALL onboarding could render while Inter/Archivo were still loading:
+  // the text laid out against fallback metrics and kept that measurement when
+  // the real face arrived, clipping "Get started" down to "Get" (Neal, device
+  // test 2026-07-31 — first run only, correct on every later render). The
+  // 3-second splash failsafe below is what let it show at all. Teal fill
+  // matches the native splash, so the wait reads as the splash, not a flash.
   if (!isOnboardingComplete) {
+    if (!fontsLoaded) return <View style={{ flex: 1, backgroundColor: '#3D8B8B' }} />;
     return <OnboardingFlow />;
   }
 
