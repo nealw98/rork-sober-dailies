@@ -31,10 +31,10 @@ clear to ship.
 - [ ] **Bump the runtime version for the store release** — 3.0.8
       recommended, so store binaries stop sharing an OTA channel with the
       3.0.7 tester fleet.
-- [ ] **SECURITY: stop `credits-share` / `credits-status` trusting a
-      client-supplied `anonymous_id`** (SESSION-HANDOFF §11.3) — **SERVER
-      HALF DEPLOYED AND VERIFIED 2026-07-30; client half still open (see the
-      next item).** Trust-on-first-use device secret:
+- [x] **SECURITY: stop `credits-share` / `credits-status` trusting a
+      client-supplied `anonymous_id`** (SESSION-HANDOFF §11.3) — **COMPLETE:
+      server deployed + verified 2026-07-30, client shipped in the
+      2026-07-31 production OTA.** Trust-on-first-use device secret:
       `supabase/migrations/20260730_device_claims.sql` (service-role-only
       table, applied to prod), `supabase/functions/_shared/deviceAuth.ts`,
       `credits-share` strict / `credits-status` lenient-until-claimed (both
@@ -45,12 +45,11 @@ clear to ship.
       both functions.
       Housekeeping: `delete from device_claims where anonymous_id like
       'qa-deviceauth-%';` removes the smoke-test row.
-- [ ] **Commit + OTA the client `device_secret` half — must travel with the
-      `PASSES_ENABLED` flip.** `credits-share` now refuses any caller that
-      sends no secret, so **gift sharing is inoperative until this OTA
-      ships**. Harmless today only because `PASSES_ENABLED` is false and
-      `getShareLink()` returns null before the call. Uncommitted:
-      `lib/deviceSecret.ts` (new) + `lib/creditsService.ts`.
+- [x] **Commit + OTA the client `device_secret` half** — DONE 2026-07-31
+      (commit `3b87fa22`, production OTA group `c9490af8`). `credits-share`
+      refuses any caller that sends no secret, so gift sharing was
+      inoperative until this shipped; it is now functional again. Any FUTURE
+      binary or channel that predates this OTA has the same problem.
 - [x] **Guard `getSMS()` the way `trialReminder` is guarded** (§15.4) — DONE
       2026-07-30 pm #3: `app/(main)/pass-it-on.tsx` now probes
       `requireOptionalNativeModule('ExpoSMS')` before the require, so the
@@ -132,11 +131,11 @@ clear to ship.
 
 ## 3. Finishing the product / QA
 
-- [ ] **Bundle the accumulating uncommitted changes into ONE OTA** — the
-      2026-07-27 session's work (Today + reader UI tweaks, day-5 trial
-      reminder, storage-policy migration file) is uncommitted on
-      `3.0.5-redesign`. One publish, not a drip. (Commit/OTA only when Neal
-      says go.)
+- [x] **Bundle the accumulating uncommitted changes into ONE OTA** — DONE
+      2026-07-31. Three production OTAs shipped that day (security client
+      half + backup prompt + trial copy; then the Big Book front-matter
+      corrections, grandfather cache and pass sheets). Nothing is sitting
+      uncommitted now.
 - [ ] **Backup discoverability: verify the new first-entry prompt** (added
       2026-07-30 pm #3). Android auto-sync silently no-ops until the user
       connects a Google account from the Backup screen, so the Drive feature
@@ -175,15 +174,14 @@ clear to ship.
       wording character-for-character, and an unresolved offering falls
       back to it — so today's paywall is visually unchanged and only
       diverges if the store config does.
-- [ ] **Decide the trial/pass-promise mismatch** (found 2026-07-30 pm #3
-      while testing): no passes are earned during a trial or intro period
-      (`_shared/credits.ts` — `period_type !== 'normal'` skip, deliberate
-      since 2026-07-22), but the post-subscribe thank-you sheet greets a
-      new annual member with "Five passes to give away." For the whole
-      first week Pass It On is empty while the welcome says otherwise.
-      Options: (a) soften the copy to say when they arrive, (b) delay the
-      sheet until conversion, (c) accept it. Only bites once
-      `PASSES_ENABLED` is true.
+- [x] **Decide the trial/pass-promise mismatch** — DECIDED 2026-07-31
+      (Neal): (a) soften the copy AND announce the arrival. The thank-you
+      sheet now promises arrival rather than possession, without naming a
+      trial length; a second `arrival` mode of the same sheet fires when the
+      grant total actually rises, worded purely functionally with no billing
+      language. Shipped in the 2026-07-31 OTA but invisible until
+      `PASSES_ENABLED` flips. ⚠️ Still unseen on a device — Developer
+      Console → Arrival · 5 passes previews it.
 - [x] **Fix "1 years · 0 months · 0 days" pluralization** on the Today
       sobriety counter — FIXED 2026-07-27 in `SobrietyCounter.tsx`
       (uncommitted, rides the next bundled OTA).
