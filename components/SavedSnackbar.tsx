@@ -16,6 +16,11 @@ import { useThemedStyles } from '@/hooks/useTokens';
 
 const VISIBLE_MS = 4200;
 
+// How long a tool should linger before navigating away, so the snackbar is read
+// ON the page where Save was pressed rather than appearing after the user has
+// already been dropped back on Today (Neal, 2026-07-31).
+export const SAVED_TOAST_LEAD_MS = 850;
+
 type Listener = () => void;
 const listeners = new Set<Listener>();
 

@@ -17,7 +17,7 @@ import { fontFamily, type Tokens } from '@/constants/designTokens';
 import { useTokens, useThemedStyles } from '@/hooks/useTokens';
 import { logEvent } from '@/lib/analytics';
 import { maybePromptBackup } from '@/lib/backupPrompt';
-import { notifySaved } from '@/components/SavedSnackbar';
+import { notifySaved, SAVED_TOAST_LEAD_MS } from '@/components/SavedSnackbar';
 
 const tool = TOOLS.gratitude;
 
@@ -65,6 +65,10 @@ export default function GratitudeScreen() {
       if (dailyId) dailies.markDone(dailyId);
       maybePromptBackup(); // one-time, only if this device isn't backing up
       notifySaved();       // where did it go? — Journey, and here's a way there
+      // Hold here a beat so the snackbar is read in place; it lives at the root,
+      // so it stays up through the transition back to Today.
+      setTimeout(() => router.back(), SAVED_TOAST_LEAD_MS);
+      return;
     }
     router.back();
   };
