@@ -3,7 +3,7 @@
 // composer of the 7 Step Ten questions (the yes/no daily-action checklist of
 // the old screen is dropped). Saving writes to the evening-review store
 // (local-first) and, when opened from a Today daily, checks it off.
-import React, { useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { View, Text, TextInput, StyleSheet, Keyboard } from 'react-native';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
 import { Stack, useRouter, useLocalSearchParams } from 'expo-router';
@@ -15,6 +15,7 @@ import { fontFamily, type Tokens } from '@/constants/designTokens';
 import { useTokens, useThemedStyles } from '@/hooks/useTokens';
 import { logEvent } from '@/lib/analytics';
 import { maybePromptBackup } from '@/lib/backupPrompt';
+import { notifySaved } from '@/components/SavedSnackbar';
 
 const tool = TOOLS.nightly;
 
@@ -48,7 +49,36 @@ export default function NightlyReviewScreen() {
   const dailies = useDailies();
 
   const [answers, setAnswers] = useState<Record<string, string>>({});
-  const dirty = QUESTIONS.some((item) => (answers[item.key] ?? '').trim() !== '');
+  // Tonight's review is a living document, exactly like the gratitude list:
+  // prefill what's already saved so a second visit adds to it instead of
+  // starting blank and overwriting the earlier answers (Neal, 2026-07-31).
+  // The prefill is keyed to TODAY, so tomorrow opens clean on its own.
+  const initialAnswers = useRef<Record<string, string> | null>(null);
+  useEffect(() => {
+    if (initialAnswers.current !== null || !store || store.isLoading) return;
+    const now = new Date();
+    const key = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+    const saved = store.getSavedEntry(key)?.data as Record<string, unknown> | undefined;
+    const seed: Record<string, string> = {};
+    QUESTIONS.forEach((item) => {
+      const v = saved?.[item.key];
+      if (typeof v === 'string' && v.trim() !== '') seed[item.key] = v;
+    });
+    initialAnswers.current = seed;
+    if (Object.keys(seed).length > 0) setAnswers(seed);
+  }, [store]);
+
+  const filledAnswers = useMemo(() => {
+    const out: Record<string, string> = {};
+    QUESTIONS.forEach((item) => {
+      const v = (answers[item.key] ?? '').trim();
+      if (v !== '') out[item.key] = v;
+    });
+    return out;
+  }, [answers]);
+  // Save lights up only when tonight's answers differ from what's stored.
+  const dirty = Object.keys(filledAnswers).length > 0
+    && JSON.stringify(filledAnswers) !== JSON.stringify(initialAnswers.current ?? {});
   const setAnswer = (key: string, v: string) => setAnswers((a) => ({ ...a, [key]: v }));
 
   const commit = () => {
@@ -81,6 +111,7 @@ export default function NightlyReviewScreen() {
       logEvent('entry_saved', { type: 'nightly_review' });
       if (dailyId) dailies.markDone(dailyId);
       maybePromptBackup(); // one-time, only if this device isn't backing up
+      notifySaved();       // where did it go? — Journey, and here's a way there
     }
     router.back();
   };

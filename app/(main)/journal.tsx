@@ -14,6 +14,7 @@ import { fontFamily, type Tokens } from '@/constants/designTokens';
 import { useTokens, useThemedStyles } from '@/hooks/useTokens';
 import { logEvent } from '@/lib/analytics';
 import { maybePromptBackup } from '@/lib/backupPrompt';
+import { notifySaved } from '@/components/SavedSnackbar';
 
 const tool = TOOLS.journal;
 
@@ -35,6 +36,7 @@ export default function JournalScreen() {
       logEvent('entry_saved', { type: 'journal' });
       if (dailyId) dailies.markDone(dailyId);
       maybePromptBackup(); // one-time, only if this device isn't backing up
+      notifySaved();       // where did it go? — Journey, and here's a way there
     }
     router.back();
   };

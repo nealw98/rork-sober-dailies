@@ -17,6 +17,7 @@ import { fontFamily, type Tokens } from '@/constants/designTokens';
 import { useTokens, useThemedStyles } from '@/hooks/useTokens';
 import { logEvent } from '@/lib/analytics';
 import { maybePromptBackup } from '@/lib/backupPrompt';
+import { notifySaved } from '@/components/SavedSnackbar';
 
 const tool = TOOLS.gratitude;
 
@@ -63,6 +64,7 @@ export default function GratitudeScreen() {
       logEvent('entry_saved', { type: 'gratitude', item_count: items.length });
       if (dailyId) dailies.markDone(dailyId);
       maybePromptBackup(); // one-time, only if this device isn't backing up
+      notifySaved();       // where did it go? — Journey, and here's a way there
     }
     router.back();
   };
