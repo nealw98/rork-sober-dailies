@@ -9,8 +9,14 @@
 // Two buttons, both post-save — the entry is already written, so neither can
 // undo it. OK returns to Today, the way Save always has. View opens Journey so
 // the lesson lands once and doesn't need repeating.
+//
+// The one-time backup nudge is fired AFTER this one rather than instead of it
+// (Neal, 2026-07-31): it only ever shows once, so it shouldn't cost a user the
+// explanation of where their entry went. It self-guards and waits for the
+// destination to settle, so it queues behind this dialog rather than stacking.
 import { Alert } from 'react-native';
 import { router, type Href } from 'expo-router';
+import { maybePromptBackup } from './backupPrompt';
 
 const JOURNEY: Href = '/(main)/(tabs)/journey' as Href;
 
@@ -27,10 +33,14 @@ export function confirmSaved(): void {
           // Leave the tool first, then land on the tab, so Journey doesn't end
           // up stacked underneath the screen the user just finished with.
           router.back();
-          setTimeout(() => router.push(JOURNEY), 240);
+          setTimeout(() => { router.push(JOURNEY); maybePromptBackup(); }, 240);
         },
       },
-      { text: 'OK', style: 'cancel', onPress: () => router.back() },
+      {
+        text: 'OK',
+        style: 'cancel',
+        onPress: () => { router.back(); maybePromptBackup(); },
+      },
     ],
     { cancelable: false },
   );

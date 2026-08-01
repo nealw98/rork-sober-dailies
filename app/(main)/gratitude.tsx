@@ -16,7 +16,6 @@ import { ToolHeader, ToolIntro, TOOLS } from '@/components/ToolScreen';
 import { fontFamily, type Tokens } from '@/constants/designTokens';
 import { useTokens, useThemedStyles } from '@/hooks/useTokens';
 import { logEvent } from '@/lib/analytics';
-import { maybePromptBackup } from '@/lib/backupPrompt';
 import { confirmSaved } from '@/lib/savedNotice';
 
 const tool = TOOLS.gratitude;
@@ -63,14 +62,10 @@ export default function GratitudeScreen() {
       gratitude.completeToday(items);
       logEvent('entry_saved', { type: 'gratitude', item_count: items.length });
       if (dailyId) dailies.markDone(dailyId);
-      // Tell them where it went — and let the dialog do the navigating, so the
-      // Alert is never presented mid-transition. If the one-time backup nudge is
-      // firing on this save, stand down rather than stack two dialogs; the save
-      // confirmation comes back on the next entry.
-      maybePromptBackup().then((backupShown) => {
-        if (backupShown) router.back();
-        else confirmSaved();
-      });
+      // Tell them where it went, and let the dialog do the navigating so the
+      // Alert is never presented mid-transition. It also fires the one-time
+      // backup nudge afterwards, so the two queue instead of stacking.
+      confirmSaved();
       return;
     }
     router.back();

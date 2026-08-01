@@ -29,7 +29,6 @@ import { useLastSponsor } from '@/hooks/use-last-sponsor';
 import { fontFamily, type Tokens } from '@/constants/designTokens';
 import { useTokens, useThemedStyles } from '@/hooks/useTokens';
 import { logEvent } from '@/lib/analytics';
-import { maybePromptBackup } from '@/lib/backupPrompt';
 import { confirmSaved } from '@/lib/savedNotice';
 import type { SponsorType } from '@/types';
 import type { SpotCheckEntry } from '@/types/spotCheck';
@@ -206,11 +205,9 @@ export default function InventoryScreen() {
     setSaving(true);
     try {
       await save();
-      // Where did it go? — Journey. The dialog does the navigating, and stands
-      // down if the one-time backup nudge is claiming this save instead.
-      const backupShown = await maybePromptBackup();
-      if (backupShown) exit();
-      else confirmSaved();
+      // Where did it go? — Journey. The dialog navigates, and fires the
+      // one-time backup nudge afterwards so the two queue instead of stacking.
+      confirmSaved();
     } catch (error) {
       console.error('Error saving spot check:', error);
       setSaving(false);
