@@ -2338,9 +2338,10 @@ Simulator work fought back all session (dev client dropping to its launcher,
 Fast Refresh resetting to the paywall). These are **committed and typechecked
 but never seen running**:
 
-1. **The save dialog** on all four tools, and the backup nudge queueing after
-   it on the OK path. Watch the FIRST save on a device that isn't backing up.
-2. **The nightly-review prefill** — save an answer, reopen, expect it there.
+1. ~~**The save dialog** on all four tools, and the backup nudge queueing after
+   it on the OK path.~~ **VERIFIED 2026-08-01 on Neal's simulator.**
+2. ~~**The nightly-review prefill** — save an answer, reopen, expect it there.~~
+   **VERIFIED 2026-08-01 on Neal's simulator.**
 3. **The arrival sheet** (§18.3) — Developer Console → Arrival · 5 passes.
 4. **B2** — grandfathered + airplane mode should land on Today; a device that
    has NEVER verified should still get the paywall. New behaviour, already
