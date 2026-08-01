@@ -14,6 +14,11 @@
 // (Neal, 2026-07-31): it only ever shows once, so it shouldn't cost a user the
 // explanation of where their entry went. It self-guards and waits for the
 // destination to settle, so it queues behind this dialog rather than stacking.
+//
+// It fires on the OK path only — the one that lands back on Today. Tapping View
+// means the user is going to read their entry, which is the wrong moment to
+// interrupt with a backup pitch; the nudge is one-time and self-guarding, so it
+// simply waits for a later save.
 import { Alert } from 'react-native';
 import { router, type Href } from 'expo-router';
 import { maybePromptBackup } from './backupPrompt';
@@ -33,12 +38,14 @@ export function confirmSaved(): void {
           // Leave the tool first, then land on the tab, so Journey doesn't end
           // up stacked underneath the screen the user just finished with.
           router.back();
-          setTimeout(() => { router.push(JOURNEY); maybePromptBackup(); }, 240);
+          setTimeout(() => router.push(JOURNEY), 240);
         },
       },
       {
         text: 'OK',
         style: 'cancel',
+        // Back on Today, then the nudge — maybePromptBackup waits for the
+        // destination to settle, so it appears there rather than mid-transition.
         onPress: () => { router.back(); maybePromptBackup(); },
       },
     ],
