@@ -41,17 +41,22 @@ const SETTLE_MS = 700;
 /**
  * Show the backup nudge once, if this device isn't backing up. Accepting routes
  * to the Backup screen. Safe to call after every save: it self-checks, and is a
- * no-op once shown. Never awaited by callers — a save must not wait on it.
+ * no-op once shown.
+ *
+ * Returns TRUE when it is going to show an alert, so the caller can stand down
+ * — the save confirmation is an alert too, and two stacked dialogs on a user's
+ * very first entry is the worst possible welcome. The save confirmation fires
+ * on every save, so skipping it once costs nothing.
  */
-export async function maybePromptBackup(): Promise<void> {
+export async function maybePromptBackup(): Promise<boolean> {
   try {
     // Nothing to offer on a binary without the native cloud module.
-    if (promptedThisSession) return;
-    if (!cloudBackupSupported()) return;
-    if (await AsyncStorage.getItem(PROMPTED_KEY)) return;
+    if (promptedThisSession) return false;
+    if (!cloudBackupSupported()) return false;
+    if (await AsyncStorage.getItem(PROMPTED_KEY)) return false;
     // Already backing up — say nothing, and DON'T burn the one-time flag, so a
     // user who later turns iCloud off still gets told once.
-    if (await cloudAvailable()) return;
+    if (await cloudAvailable()) return false;
 
     promptedThisSession = true;
     await AsyncStorage.setItem(PROMPTED_KEY, '1'); // once, even if they decline
@@ -77,7 +82,9 @@ export async function maybePromptBackup(): Promise<void> {
         },
       ],
     );
+    return true;
   } catch {
     // A nudge is never worth breaking a save over.
+    return false;
   }
 }

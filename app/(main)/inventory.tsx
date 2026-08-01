@@ -30,7 +30,7 @@ import { fontFamily, type Tokens } from '@/constants/designTokens';
 import { useTokens, useThemedStyles } from '@/hooks/useTokens';
 import { logEvent } from '@/lib/analytics';
 import { maybePromptBackup } from '@/lib/backupPrompt';
-import { notifySaved, SAVED_TOAST_LEAD_MS } from '@/components/SavedSnackbar';
+import { confirmSaved } from '@/lib/savedNotice';
 import type { SponsorType } from '@/types';
 import type { SpotCheckEntry } from '@/types/spotCheck';
 
@@ -154,15 +154,9 @@ export default function InventoryScreen() {
 
   // Deep links land here with no back stack — fall back to home so exits
   // never fire an unhandled GO_BACK.
-  const exit = (afterSave = false) => {
-    const go = () => {
-      if (router.canGoBack()) router.back();
-      else router.replace('/');
-    };
-    // After a save, linger so the "Saved to your Journey" snackbar is read on
-    // this page rather than appearing once the user is already back on Today.
-    if (afterSave) setTimeout(go, SAVED_TOAST_LEAD_MS);
-    else go();
+  const exit = () => {
+    if (router.canGoBack()) router.back();
+    else router.replace('/');
   };
 
   // ── Back out mid-flow: offer to save what's there (records to Journey) ──
@@ -204,8 +198,6 @@ export default function InventoryScreen() {
       feeling_count: feelings.length,
       skipped_causes: causesAnswer.trim() === '',
     });
-    maybePromptBackup(); // one-time, only if this device isn't backing up
-    notifySaved();       // where did it go? — Journey, and here's a way there
     return entry;
   };
 
@@ -214,7 +206,11 @@ export default function InventoryScreen() {
     setSaving(true);
     try {
       await save();
-      exit(true);
+      // Where did it go? — Journey. The dialog does the navigating, and stands
+      // down if the one-time backup nudge is claiming this save instead.
+      const backupShown = await maybePromptBackup();
+      if (backupShown) exit();
+      else confirmSaved();
     } catch (error) {
       console.error('Error saving spot check:', error);
       setSaving(false);

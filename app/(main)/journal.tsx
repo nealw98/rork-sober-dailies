@@ -14,7 +14,7 @@ import { fontFamily, type Tokens } from '@/constants/designTokens';
 import { useTokens, useThemedStyles } from '@/hooks/useTokens';
 import { logEvent } from '@/lib/analytics';
 import { maybePromptBackup } from '@/lib/backupPrompt';
-import { notifySaved, SAVED_TOAST_LEAD_MS } from '@/components/SavedSnackbar';
+import { confirmSaved } from '@/lib/savedNotice';
 
 const tool = TOOLS.journal;
 
@@ -35,11 +35,14 @@ export default function JournalScreen() {
       journal.addEntry(text.trim());
       logEvent('entry_saved', { type: 'journal' });
       if (dailyId) dailies.markDone(dailyId);
-      maybePromptBackup(); // one-time, only if this device isn't backing up
-      notifySaved();       // where did it go? — Journey, and here's a way there
-      // Hold here a beat so the snackbar is read in place; it lives at the root,
-      // so it stays up through the transition back to Today.
-      setTimeout(() => router.back(), SAVED_TOAST_LEAD_MS);
+      // Tell them where it went — and let the dialog do the navigating, so the
+      // Alert is never presented mid-transition. If the one-time backup nudge is
+      // firing on this save, stand down rather than stack two dialogs; the save
+      // confirmation comes back on the next entry.
+      maybePromptBackup().then((backupShown) => {
+        if (backupShown) router.back();
+        else confirmSaved();
+      });
       return;
     }
     router.back();

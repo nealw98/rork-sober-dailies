@@ -84,7 +84,6 @@ import OnboardingFlow, { DisclaimerStep } from "@/components/OnboardingFlow";
 import { hasAcceptedDisclaimer } from "@/lib/disclaimerConsent";
 import PaywallScreen from "@/components/PaywallScreen";
 import OTASnackbar from "@/components/OTASnackbar";
-import SavedSnackbar from "@/components/SavedSnackbar";
 import { Logger } from "@/lib/logger";
 import { initAnalytics } from "@/lib/analytics";
 import { useExpoRouterTracking } from "@/hooks/useExpoRouterTracking";
@@ -342,9 +341,6 @@ function RootLayoutNav() {
         
       </Stack>
         <OTASnackbar visible={showSnackbar} onDismiss={dismissSnackbar} onRestart={restartApp} />
-        {/* "Saved to your Journey" — must live above the Stack, because the four
-            Journey tools navigate away the instant they save. */}
-        <SavedSnackbar />
         <SobrietyBirthdayModal visible={showBirthdayModal} onClose={closeBirthdayModal} />
     </>
   );
