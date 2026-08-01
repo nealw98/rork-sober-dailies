@@ -4,7 +4,8 @@
 // Today, and have no idea the entry still exists (Neal, 2026-07-31). A snackbar
 // was tried first and rejected: a small dark bar at the bottom just flashes and
 // isn't read. This is the thing you can't miss, and it doubles as confirmation
-// that the save happened.
+// that the save happened. Title only: the entry is saved, and it's in Journey —
+// a sentence explaining that at length just makes it something to dismiss.
 //
 // Two buttons, both post-save — the entry is already written, so neither can
 // undo it. OK returns to Today, the way Save always has. View opens Journey so
@@ -28,9 +29,10 @@ const JOURNEY: Href = '/(main)/(tabs)/journey' as Href;
 // Presenting an Alert mid-transition can silently fail on iOS, so the tools
 // call this INSTEAD of navigating and let the buttons do the navigating.
 export function confirmSaved(): void {
+  // Title only — the sentence said nothing the title didn't (Neal, 2026-07-31).
   Alert.alert(
     'Saved to your Journey',
-    'Everything you write is kept in the Journey tab — open it any time to read it back.',
+    undefined,
     [
       {
         text: 'View',
