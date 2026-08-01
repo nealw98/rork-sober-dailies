@@ -2,21 +2,23 @@
 
 _For a fresh chat. Branch `3.0.5-redesign` (tracks `origin/3.0.5-redesign`)._
 
-_Latest session (**2026-07-31**): a UX laundry list, then a tester's report
-that turned into a **Big Book front-matter audit** (the Foreword to Second
-Edition had dropped a clause mid-sentence; the **Preface was the 2nd
-edition's, a different document** — now A.A.'s 4th-edition PDF), then a walk
-down `docs/LAUNCH-CHECKLIST.md`. Landed: **grandfathered members never meet a
-paywall** (cached yes, narrow fail-open), the trial/pass-promise decision +
-**arrival sheet**, final pricing **$3.99/$19.99** (a DECREASE — no consent
-machinery, no code change), the **privacy policy published** to the web, two
-orphaned edge functions deleted, and a fresh-install bug where "Get started"
-rendered as "Get". **Everything is COMMITTED AND PUSHED (head `45a952d1`),
-both repos clean, two production OTAs shipped.** Checklist down to **9 open
-items**, five of them ship-day flips. **Read §18**, especially 18.1 (the
-edition policy — don't "fix" it back) and 18.10 (next actions)._
+_Latest session (**2026-07-31, #2**): **build 131 built on both platforms**
+(iOS auto-submitted; Android AAB in `~/Downloads/sober-dailies-3.0.7-131.aab`,
+runtime deliberately still **3.0.7** — 3.0.8 is reserved for the launch binary
+132). Also: the Literature TOCs got **one find row** (live search + solid
+bookmark + highlights, all rendering ON the page, no bottom sheets), and saving
+a Journey entry now **confirms where it went** — an Alert titled "Saved to your
+Journey" with View / OK, with the one-time backup nudge queued after it. The
+nightly review keeps tonight's answers like the gratitude list does. **All
+committed and pushed (head `aa6dafba`), but ⚠️ the last OTA was published at
+`dffbf985` — the six save-confirmation commits after it are UNSHIPPED.** The
+missing Android paywall X was NOT a bug (build 130 predates the re-add; 131 has
+it). **Read §19**, especially 19.7 (four things committed but never seen
+running) and 19.8 (next actions). §18 is the same day's earlier work._
 
-_Prior session (**2026-07-30 pm, #3**): see §17. Prior to that (**pm #2**): the **ACCESS TEST PLAN**
+_Prior sessions: **2026-07-31 #1** = §18 (Big Book front-matter audit,
+grandfather never walls, pricing $3.99/$19.99, privacy published).
+**2026-07-30 pm #3** = §17. Prior to that (**pm #2**): the **ACCESS TEST PLAN**
 (`docs/ACCESS-TEST-PLAN.md`) — the launch-gating test pass for
 onboarding/subscription/grandfather/codes, grounded in a fresh code map;
 Android paywall X RE-ADDED for testing (revert at ship, LAUNCH-CHECKLIST §1);
@@ -2192,3 +2194,175 @@ to hold two lines); What's-inside sponsor card drops the sample chat bubble.
 5. Ship day, as one pass: `PASSES_ENABLED` → true, analytics → production
    (**both places**), remove the Android paywall X + QA Force New-User
    toggle, bump runtime to 3.0.8.
+
+---
+
+## 19. Latest session — 2026-07-31 (build 131 · literature find row · save confirmation)
+
+**Everything is COMMITTED AND PUSHED** (head `aa6dafba`). Continues §18 from
+the same day; read that first for the Big Book / grandfather / pricing work.
+
+⚠️ **The last OTA (`c5c55038`) was published at `dffbf985`.** The six commits
+after it — the entire save-confirmation and nightly-review change — are
+**committed but NOT OTA'd**. Publish before assuming a tester has them.
+
+### 19.1 Build 131 — built, both platforms
+
+`app.json` bumped to buildNumber/versionCode **131**, runtime deliberately
+left at **3.0.7** so 131 joins 130 in one OTA fleet and stays fixable through
+the access-plan testing. **3.0.8 is reserved for the launch binary (132)**,
+which also separates store analytics from the tester fleet (see 19.5).
+
+- iOS built with `--auto-submit` → uploads to App Store Connect on its own.
+- Android AAB **downloaded to `~/Downloads/sober-dailies-3.0.7-131.aab`**
+  (103 MB). Play upload stays manual — `eas.json`'s submit profile still
+  points at the `./path/to/api-key.json` placeholder.
+- What 131 unlocks that 130 can't: the **day-5 trial reminder**
+  (`expo-notifications`, access-plan cases E0–E2) and **Invite Friends**
+  actually sending (`expo-sms`). ⚠️ Correction to §18: the **landscape PDF fix
+  already shipped in 130** — it is NOT a reason to build.
+
+Credential prompts answered during the build, recorded so they aren't
+re-litigated: the **APNs push key is team-wide**, so the same key legitimately
+serves `daily-paths` and `hands-off` — reusing it is correct, and Apple caps
+you at two active keys per team anyway. (Contrast with the real 7/9 mistake,
+where Sober Dailies' Play SHA-1 was filed in the **Daily Paths Google Cloud
+project** — OAuth clients ARE per-project, and that one had to be moved.)
+
+### 19.2 Literature contents pages — one find row
+
+Both book TOCs replaced four chunky utility chips with a single 44pt row:
+a **live search field** plus circular **Bookmarks** (solid glyph + count) and
+**Highlights** (Big Book only, + count). Shared `FindRow` in
+`components/literature/literature-ui.tsx`, so the books differ only by family
+colour (steel / teal). Surfaces are `c.surface` — the SAME token the search
+result cards use, so controls and output read as one material (0.72 then 0.8
+translucent white were tried and rejected).
+
+**All three tools render ON the page**, nothing slides up from the bottom:
+- Typing filters in place — results replace the contents list, clearing
+  restores it. A numeric query still offers "Go to page N" first, which is
+  what made the separate Go-to-page chip unnecessary (both books already had
+  that branch in their `searchResults` — no search logic changed).
+- The circles are **toggles**: their list replaces the contents, tapping an
+  active circle closes it, and typing closes whichever list is open.
+- `BigBookHighlightsList` gained an **`inline`** mode — same rows, no Modal,
+  no sheet chrome, no inner ScrollView (the page already scrolls).
+
+Verified on device: 12&12 "humility" → 20 inline results; Big Book "62" →
+Go to page 62; highlights toggle + empty state.
+
+⚠️ **Dead code left deliberately** (a pure swap, easy to revert): the old
+search / go-to-page / bookmarks / highlights **Modals are still in both files
+but unreachable**, and `FindCard` is still exported with no callers. ~150
+lines across three files whenever cleanup is wanted.
+
+### 19.3 "Saved to your Journey" — the save confirmation
+
+The problem: people write an entry, tap Save, land back on Today, and have no
+idea it still exists. **It bites upgraders hardest — v2 put a History button
+on the tool page itself**, so anyone coming from v2 goes looking for something
+that no longer exists.
+
+Iterated four times; the FINAL shape, so nobody re-opens settled ground:
+- An **Alert**, not a toast. A snackbar was built first and rejected on
+  device — "the small black toast isn't seen, it just flashes."
+- **Title only**: "Saved to your Journey". The explanatory sentence was cut —
+  the title says both that it saved and where it went.
+- Buttons **View** (opens Journey) and **OK** (returns to Today, as Save
+  always did). Both are post-save, so there is **no Cancel** — the entry is
+  already written and nothing can undo it.
+- The **buttons do the navigating**, so the Alert is never presented
+  mid-transition (an iOS failure mode) and needs no timing hack.
+- Lives in `lib/savedNotice.ts` → `confirmSaved()`. All four Journey tools
+  call it and return.
+
+**The backup nudge is sequenced, not traded.** `maybePromptBackup()` moved
+out of the four tools and into `confirmSaved()`, and fires on the **OK path
+only** — the one that lands on Today. It self-guards and waits 700 ms for the
+destination to settle, so it queues behind the save dialog instead of
+stacking. View doesn't fire it: that path exists to go read the entry, which
+is the wrong moment for a backup pitch. Trade-off accepted: someone who always
+taps View never sees it. (`maybePromptBackup` now returns a boolean; no
+caller consumes it any more.)
+
+### 19.4 Nightly review keeps tonight's answers
+
+It now behaves like the gratitude list: tonight's saved answers **prefill the
+form**, so a second visit adds to the review instead of starting blank and
+overwriting it. Save writes the whole visible set back; the prefill is keyed
+to TODAY, so tomorrow opens clean on its own. Save lights up only when the
+answers differ from what's stored — same rule as gratitude.
+
+### 19.5 Analytics + env, verified
+
+`EXPO_PUBLIC_ANALYTICS_ENV=test` in **all three** places that matter: the EAS
+`production` environment, the EAS `preview` environment, and the **local
+`.env`**. The build log confirmed EAS loaded it. Nothing is polluted.
+
+Three findings worth keeping (all recorded in LAUNCH-CHECKLIST §1):
+1. Flipping to production needs **BOTH** the EAS environments and the local
+   `.env` — no eas.json profile declares an `environment`, so `eas update`
+   resolves it from the local file.
+2. `EXPO_PUBLIC_*` is inlined at update time and testers share channel
+   `production`, so after the flip ANY OTA re-tags the tester fleet — unless
+   the store binary is on its own runtime (3.0.8). Fallback: `distinct_id` is
+   the anonymous/Support ID, so a Mixpanel cohort of tester IDs can be
+   excluded regardless of tagging.
+3. The EAS **`development` environment is EMPTY** — no Mixpanel token AND no
+   RevenueCat keys, so subscriptions can't initialise in a dev-profile build.
+
+Client migration is complete: one pipeline (`lib/analytics.ts` → Mixpanel
+HTTP API). No `usage_events`/`analytics_events` writes, no expo-insights /
+Firebase / Amplitude / Segment. Only Supabase write left is `app_feedback`,
+which is a feature.
+
+### 19.6 The Android paywall X — not a bug
+
+The X was missing on the emulator's Android build. Cause: that APK is
+**build 130, built 7/26** — the X was removed 7/27 and re-added 7/30, so
+130's embedded bundle has the `__DEV__`-only gate. iOS showed it because that
+was the dev client on Metro with current code. **131 has it** (Neal
+confirmed). Both gates are unchanged since `9cf43415`:
+`__DEV__ || Platform.OS === 'android'` in `app/_layout.tsx:286` and
+`components/PaywallScreen.tsx:275`. Nothing to fix; the X still exits with
+the §1 ship-day flips.
+
+Also seen on that emulator and NOT a bug: *"The device or user is not allowed
+to make the purchase"* with a disabled CTA — Play Billing refusing on an
+emulator with no licensing. Exactly the case the Android X exists to escape.
+
+### 19.7 Not verified — the top of the next session's list
+
+Simulator work fought back all session (dev client dropping to its launcher,
+Fast Refresh resetting to the paywall). These are **committed and typechecked
+but never seen running**:
+
+1. **The save dialog** on all four tools, and the backup nudge queueing after
+   it on the OK path. Watch the FIRST save on a device that isn't backing up.
+2. **The nightly-review prefill** — save an answer, reopen, expect it there.
+3. **The arrival sheet** (§18.3) — Developer Console → Arrival · 5 passes.
+4. **B2** — grandfathered + airplane mode should land on Today; a device that
+   has NEVER verified should still get the paywall. New behaviour, already
+   live in production since the 07-31 OTA.
+
+⚠️ Also unconfirmed: whether the **backup prompt** appears on a real iPhone
+signed into iCloud. It SHOULD be silent — `cloudAvailable()` is
+`CloudStorage.isCloudAvailable()`, false only when iCloud is signed out or
+Drive is off, which is why simulators always see it. If it fires on a
+signed-in phone, that IS a bug.
+
+### 19.8 Next actions
+
+1. **Publish an OTA** — six commits of save-confirmation work are unshipped.
+2. Upload `~/Downloads/sober-dailies-3.0.7-131.aab` to the Play open-testing
+   track; iOS should arrive in TestFlight on its own.
+3. Work 19.7 on device, then the **access test plan A1/A2** — still never
+   run, still the real launch gate. It also needs to confirm the new
+   $3.99/$19.99 pricing renders.
+4. Remaining checklist items: pass send E2E + spend-half cycle; retire the 3
+   ASC gift consumables + Play IAPs; optionally delete the orphaned
+   `check-grandfather` and `invites-report` edge functions.
+5. Ship day, as one pass: `PASSES_ENABLED` → true, analytics → production
+   (**both places**), remove the Android paywall X + QA Force New-User
+   toggle, bump runtime to 3.0.8, build 132.
