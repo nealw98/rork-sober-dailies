@@ -18,7 +18,7 @@ import { KeyboardModalScope } from '@/components/KeyboardModalScope';
 import { SafeAreaView, SafeAreaProvider, initialWindowMetrics, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router, Stack, type Href } from 'expo-router';
 import { shareApp } from '@/lib/shareApp';
-import { ChevronRight, X, RefreshCw, UserPlus, Flag, RotateCcw, Play, Power, CircleDot, AlignLeft, Gift, Fingerprint } from 'lucide-react-native';
+import { ChevronRight, X, RefreshCw, UserPlus, Flag, RotateCcw, Play, Power, CircleDot, Gift, Fingerprint } from 'lucide-react-native';
 import {
   fontFamily,
   shadows,
@@ -43,7 +43,6 @@ import { logEvent, setAnalyticsDeveloperMode, DEVELOPER_MODE_KEY } from '@/lib/a
 import { getAnonymousId } from '@/lib/anonymousId';
 import { useScreenTimeTracking } from '@/hooks/useScreenTimeTracking';
 import { useOnboarding } from '@/hooks/useOnboardingStore';
-import { useDailies } from '@/hooks/use-dailies-store';
 import { clearUserData } from '@/lib/userDataSync';
 import {
   qaGrantPasses, qaFetchCreditStatus, getPassesOverride, setPassesOverride,
@@ -175,9 +174,6 @@ export default function SettingsScreen() {
     setTimeout(fn, 350);
   };
   const [isDeveloperMode, setIsDeveloperMode] = useState(false);
-  // QA: show/hide the canned subtitles on the daily action cards (Today +
-  // edit mode + the Add sheet) while deciding whether the simpler look wins.
-  const { showSubtitles, setShowSubtitles } = useDailies();
   // QA: force-new-user flag mirror (so the toggle button shows ON/OFF).
   const [forceNewUser, setForceNewUser] = useState(false);
   useEffect(() => {
@@ -690,20 +686,6 @@ export default function SettingsScreen() {
                   thumbColor="#fff"
                 />
               </View>
-              <View style={styles.dcDivider} />
-              <View style={styles.dcRow}>
-                <View style={styles.dcIcon}><AlignLeft size={17} color={colors.primaryDark} strokeWidth={2} /></View>
-                <View style={styles.dcRowBody}>
-                  <Text style={styles.dcRowLabel}>Daily action subtitles</Text>
-                  <Text style={styles.dcRowSub}>Show the tag lines under each daily</Text>
-                </View>
-                <Switch
-                  value={showSubtitles}
-                  onValueChange={setShowSubtitles}
-                  trackColor={{ false: c.divider, true: colors.primary }}
-                  thumbColor="#fff"
-                />
-              </View>
             </View>
             <View style={styles.dcBtnRow}>
               <TouchableOpacity style={styles.dcBtn} onPress={checkForOta} activeOpacity={0.7}>
@@ -727,6 +709,33 @@ export default function SettingsScreen() {
                 <View style={[styles.dcBadge, forceNewUser && styles.dcBadgeOn]}>
                   <Text style={[styles.dcBadgeText, forceNewUser && styles.dcBadgeTextOn]}>{forceNewUser ? 'ON' : 'OFF'}</Text>
                 </View>
+              </TouchableOpacity>
+              <View style={styles.dcDivider} />
+              <TouchableOpacity
+                style={styles.dcRow}
+                activeOpacity={0.6}
+                onPress={() => {
+                  // QA: present RC Customer Center unconditionally — the
+                  // Settings row is gated on managementURL (store subscribers
+                  // only), which hides it on a grandfathered device. This
+                  // also verifies the RC dashboard config end-to-end.
+                  setLogsVisible(false);
+                  setTimeout(async () => {
+                    try {
+                      const RevenueCatUI = require('react-native-purchases-ui').default;
+                      await RevenueCatUI.presentCustomerCenter();
+                    } catch (e: any) {
+                      Alert.alert('Customer Center failed', e?.message ?? String(e));
+                    }
+                  }, 350);
+                }}
+              >
+                <View style={styles.dcIcon}><CircleDot size={17} color={colors.primaryDark} strokeWidth={2} /></View>
+                <View style={styles.dcRowBody}>
+                  <Text style={styles.dcRowLabel}>Present Customer Center</Text>
+                  <Text style={styles.dcRowSub}>Ungated — Settings row needs a store sub</Text>
+                </View>
+                <ChevronRight size={18} color={c.textMuted} />
               </TouchableOpacity>
               <View style={styles.dcDivider} />
               <TouchableOpacity style={styles.dcRow} onPress={resetSubscriptionState} activeOpacity={0.6}>

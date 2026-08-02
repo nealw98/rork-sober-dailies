@@ -13,7 +13,7 @@ import { Minus, Plus, Menu } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 import { fontFamily, fontSize, spacing, shadows, type Tokens } from '@/constants/designTokens';
 import { useTokens, useThemedStyles } from '@/hooks/useTokens';
-import { resolveTone, resolveSubtitle, resolveGlyph } from '@/components/dailyTokens';
+import { resolveTone, resolveGlyph } from '@/components/dailyTokens';
 import { AddSheet, CreateSheet, type Template } from '@/components/today/DailiesEditSheets';
 import { useDailies, type DailyItem, type WhenBucket } from '@/hooks/use-dailies-store';
 
@@ -33,10 +33,10 @@ function EditDailyRow({ item, dragging, onRemove, onDragStart }: {
 }) {
   const styles = useThemedStyles(makeStyles);
   const { c, mode } = useTokens();
-  const { showSubtitles } = useDailies();
   const tone = resolveTone(item.color, mode);
   const Glyph = resolveGlyph(item.icon);
-  const sub = item.subtitle !== undefined ? item.subtitle : showSubtitles ? resolveSubtitle(item.action) : undefined;
+  // Canned subtitles are permanently off; only user-entered ones render.
+  const sub = item.subtitle;
   return (
     <View style={[styles.row, dragging && styles.rowDragging]}>
       <Pressable style={styles.dragHandle} onLongPress={onDragStart} delayLongPress={150} accessibilityLabel={`Drag ${item.label} to reorder`}>

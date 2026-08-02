@@ -21,7 +21,7 @@ import {
   Mic,
 } from 'lucide-react-native';
 // Prayer + Meditation use Phosphor (Lucide has no praying-hands / lotus).
-import { HandsPraying, FlowerLotus } from 'phosphor-react-native';
+import { HandsPraying, FlowerLotus, ChatCircleDots } from 'phosphor-react-native';
 import { fontFamily, fontSize, shadows, lighten, steelFill, type Tokens } from '@/constants/designTokens';
 import { useTokens, useThemedStyles } from '@/hooks/useTokens';
 import { ThemedCard } from '@/components/ThemedCard';
@@ -175,7 +175,7 @@ export default function ToolsScreen() {
         {/* Flagship cards */}
         <View style={styles.flagRow}>
           <FlagCard flag={SPEAKER} Icon={Mic} title="Speaker Tapes" subtitle="Members' experience, strength and hope." onPress={() => router.push('/(main)/speakers')} isDark={isDark} styles={styles} />
-          <FlagCard flag={SPONSOR} Icon={Users} title="AI Sponsor" subtitle="Guidance and encouragement." onPress={() => router.push('/(main)/chat')} isDark={isDark} styles={styles} />
+          <FlagCard flag={SPONSOR} Icon={ChatCircleDots} title="AI Sponsor" subtitle="Guidance and encouragement." onPress={() => router.push('/(main)/chat')} isDark={isDark} styles={styles} />
         </View>
 
         {/* Tool grid */}

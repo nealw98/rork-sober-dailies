@@ -18,7 +18,7 @@ import { Image } from 'expo-image';
 import { FindRow } from '@/components/literature/literature-ui';
 
 // Real cover scan (1290×1700) — shared with the Literature home shelf.
-const TWELVE_COVER = require('@/assets/images/12x12_cover.webp');
+const TWELVE_COVER = require('@/assets/images/new_12x12_cover.webp');
 import { twelveAndTwelveData } from '@/constants/twelve-and-twelve';
 import { TWELVE_PDFS } from '@/constants/twelve-and-twelve-pdfs';
 import { searchTwelvePdfs } from '@/lib/pdf-search';

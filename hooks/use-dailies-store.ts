@@ -44,7 +44,6 @@ interface DayCompletion {
 
 const PROGRAM_KEY = 'dailies_program';
 const COMPLETION_KEY = 'dailies_completion';
-const SHOW_SUBTITLES_KEY = 'dailies_show_subtitles';
 const V2_SAVED_REVIEWS_KEY = 'saved_evening_review_entries';
 
 // The v2 Nightly Review's "Daily Actions" checkboxes — the fixed precursor to
@@ -119,12 +118,25 @@ const ACTION_TONE: Record<string, string> = {
   lit: 'steel',
   journal: 'teal',
   prayers: 'teal',
+  // Quick actions (2026-08-02 glyph/tone audit): these were missing, so a
+  // daily added during onboarding kept its prototype color forever.
+  exercise: 'terracotta',
+  makeBed: 'periwinkle',
+  service: 'steel',
 };
 
 function normalizeColors(items: DailyItem[]): DailyItem[] {
   return items.map((it) => {
     const tone = ACTION_TONE[it.action];
-    return tone && tone !== it.color ? { ...it, color: tone } : it;
+    let next = tone && tone !== it.color ? { ...it, color: tone } : it;
+    // Glyph moves (2026-08-02 audit): speaker play → mic (matches the Tools
+    // card), exercise heart → dumbbell (was colliding with Gratitude),
+    // service users → heartHandshake (was colliding with Meetings). Saved
+    // programs carry the old icon names until this rewrites them.
+    if (next.action === 'speaker' && next.icon === 'play') next = { ...next, icon: 'mic' };
+    if (next.action === 'exercise' && next.icon === 'heart') next = { ...next, icon: 'dumbbell' };
+    if (next.action === 'service' && next.icon === 'users') next = { ...next, icon: 'heartHandshake' };
+    return next;
   });
 }
 
@@ -145,11 +157,6 @@ export const [DailiesProvider, useDailies] = createContextHook(() => {
   const [program, setProgram] = useState<DailyItem[]>(DEFAULT_PROGRAM);
   const [completion, setCompletion] = useState<Record<string, DayCompletion>>({});
   const [isLoading, setIsLoading] = useState(true);
-  // Developer Console toggle: show the canned action subtitles ("Set your
-  // intention", …) on Today / edit mode / the Add sheet. User-entered
-  // subtitles (sponsor name, custom notes) are unaffected. OFF by default
-  // (2026-07-28); a stored toggle value still wins.
-  const [showSubtitles, setShowSubtitlesState] = useState(false);
   // The current local day. Kept fresh so checkmarks (and the Today reflection)
   // roll over at the user's midnight — on app-foreground and once a minute —
   // without needing a relaunch.
@@ -165,12 +172,10 @@ export const [DailiesProvider, useDailies] = createContextHook(() => {
   useEffect(() => {
     (async () => {
       try {
-        const [p, c, subs] = await Promise.all([
+        const [p, c] = await Promise.all([
           AsyncStorage.getItem(PROGRAM_KEY),
           AsyncStorage.getItem(COMPLETION_KEY),
-          AsyncStorage.getItem(SHOW_SUBTITLES_KEY),
         ]);
-        if (subs !== null) setShowSubtitlesState(subs === 'true');
         if (p) {
           const parsed = normalizeColors(JSON.parse(p) as DailyItem[]);
           setProgram(parsed);
@@ -273,12 +278,9 @@ export const [DailiesProvider, useDailies] = createContextHook(() => {
     [program, persistProgram],
   );
 
-  const setAll = useCallback((items: DailyItem[]) => persistProgram(items), [persistProgram]);
-
-  const setShowSubtitles = useCallback((value: boolean) => {
-    setShowSubtitlesState(value);
-    AsyncStorage.setItem(SHOW_SUBTITLES_KEY, String(value)).catch(() => {});
-  }, []);
+  // Normalize on save too, so onboarding's prototype-palette seed renders in
+  // the canonical families immediately instead of after the next cold start.
+  const setAll = useCallback((items: DailyItem[]) => persistProgram(normalizeColors(items)), [persistProgram]);
 
   // ── Completion (today) ───────────────────────────────────────────────
   const todayDone = completion[dayKey] ?? EMPTY_DAY;
@@ -389,9 +391,7 @@ export const [DailiesProvider, useDailies] = createContextHook(() => {
       completion,
       doneCount,
       totalCount,
-      showSubtitles,
-      setShowSubtitles,
     }),
-    [program, isLoading, section, addDaily, removeDaily, setWhen, renameDaily, editDaily, setAll, isDone, toggleDone, markDone, todayDone.reflection, setReflectionDone, toggleReflection, setDayCompletion, reflectionStreak, dayKey, completion, doneCount, totalCount, showSubtitles, setShowSubtitles],
+    [program, isLoading, section, addDaily, removeDaily, setWhen, renameDaily, editDaily, setAll, isDone, toggleDone, markDone, todayDone.reflection, setReflectionDone, toggleReflection, setDayCompletion, reflectionStreak, dayKey, completion, doneCount, totalCount],
   );
 });

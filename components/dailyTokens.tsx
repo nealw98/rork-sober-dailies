@@ -1,5 +1,5 @@
 import React from 'react';
-import { Heart, Users, BookOpen, Moon, NotebookPen, CircleCheck, Phone, Play, House, Circle } from 'lucide-react-native';
+import { Heart, Users, BookOpen, Moon, NotebookPen, CircleCheck, Phone, Play, House, Circle, Mic, Dumbbell, HeartHandshake } from 'lucide-react-native';
 import { HandsPraying, FlowerLotus } from 'phosphor-react-native';
 import { colors, lighten, getColors, type ColorMode } from '@/constants/designTokens';
 
@@ -23,6 +23,9 @@ export const GLYPH: Record<string, GlyphComponent> = {
   check: CircleCheck,
   phone: Phone,
   play: Play,
+  mic: Mic,
+  dumbbell: Dumbbell,
+  heartHandshake: HeartHandshake,
   home: House,
   circle: Circle,
 };
@@ -43,12 +46,12 @@ const rawTones = (mode: ColorMode): Record<string, { ink: string; soft: string }
     steel: { ink: cs.steel, soft: cs.steelSoft },
     periwinkle: { ink: cs.tertiary, soft: cs.tertiarySoft },
     terracotta: { ink: cs.accent, soft: cs.accentSoft },
-    amber: { ink: cs.primary, soft: cs.primarySoft },        // → teal
+    amber: { ink: cs.accent, soft: cs.accentSoft },          // → terracotta (warm stays warm)
     lavender: { ink: cs.tertiary, soft: cs.tertiarySoft },   // → periwinkle
     // retired Azure family — folds into periwinkle
     azure: { ink: cs.tertiary, soft: cs.tertiarySoft },
     blue: { ink: cs.tertiary, soft: cs.tertiarySoft },
-    coral: { ink: cs.tertiary, soft: cs.tertiarySoft },
+    coral: { ink: cs.accent, soft: cs.accentSoft },          // → terracotta (warm stays warm)
     gray: mode === 'dark'
       ? { ink: '#92949A', soft: 'rgba(255,255,255,0.08)' }   // neutral (custom/no-tool)
       : { ink: '#888B92', soft: '#E7E2D5' },
@@ -75,26 +78,3 @@ export const getRowTones = (mode: ColorMode) => TONES_BY_MODE[mode];
 export const resolveTone = (name: string, mode: ColorMode = 'light'): RowTone =>
   TONES_BY_MODE[mode][name] ?? TONES_BY_MODE[mode].gray;
 
-// Small, lighter subtitle shown under a daily's label on Today + My Dailies
-// (not the Tools page). Keyed by action; custom dailies have none.
-export const ACTION_SUBTITLE: Record<string, string> = {
-  reflection: 'Start with AA wisdom',
-  prayerMorning: 'Set your intention',
-  gratitude: 'Name what’s good',
-  meeting: 'Stay connected',
-  lit: 'Deepen your understanding',
-  callAnother: 'Keep connected with the program',
-  callSponsor: 'A call or a text counts',
-  speaker: 'Listen and learn',
-  aiSponsor: 'Talk it through',
-  journal: 'Write freely',
-  meditation: 'Pause and listen',
-  spotcheck: 'Pause and review',
-  nightly: 'Look back honestly',
-  prayerEvening: 'Close with gratitude',
-  makeBed: 'Start with order',
-  exercise: 'Move your body',
-  service: 'Help someone else',
-};
-
-export const resolveSubtitle = (action?: string): string | undefined => (action ? ACTION_SUBTITLE[action] : undefined);

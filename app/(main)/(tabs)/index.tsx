@@ -21,7 +21,7 @@ import * as Haptics from 'expo-haptics';
 
 import { fontFamily, fontSize, spacing, radii, shadows, type Tokens } from '@/constants/designTokens';
 import { useTokens, useThemedStyles } from '@/hooks/useTokens';
-import { getRowTones, resolveGlyph, resolveTone, resolveSubtitle } from '@/components/dailyTokens';
+import { getRowTones, resolveGlyph, resolveTone } from '@/components/dailyTokens';
 import DailiesEditor from '@/components/today/DailiesEditor';
 import { useScreenTimeTracking } from '@/hooks/useScreenTimeTracking';
 import { useDailies, type DailyItem, type WhenBucket } from '@/hooks/use-dailies-store';
@@ -118,10 +118,11 @@ function DailyRow({
 }) {
   const styles = useThemedStyles(makeStyles);
   const { mode } = useTokens();
-  const { showSubtitles } = useDailies();
   const tone = resolveTone(item.color, mode);
   const Glyph = resolveGlyph(item.icon);
-  const sub = item.subtitle !== undefined ? item.subtitle : showSubtitles ? resolveSubtitle(item.action) : undefined;
+  // Canned action subtitles are gone for good (decided 2026-08-02); only a
+  // user-entered subtitle (sponsor name, custom note) renders.
+  const sub = item.subtitle;
 
   if (editing) {
     return (

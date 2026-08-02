@@ -7,7 +7,7 @@ import React from 'react';
 import { Pressable, View, Image, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router, useSegments } from 'expo-router';
-import { ChatCircle } from 'phosphor-react-native';
+import { ChatCircleDots } from 'phosphor-react-native';
 import { colors, shadows } from '@/constants/designTokens';
 import { getSponsorById } from '@/constants/sponsors';
 import { useImmersive } from '@/hooks/use-immersive';
@@ -54,7 +54,7 @@ export default function GlobalSponsorFab() {
         <Image source={sponsor.avatar} style={styles.fabImg} />
       ) : (
         <View style={[styles.fabImg, styles.unselectedFab]}>
-          <ChatCircle size={26} color="#fff" weight="regular" />
+          <ChatCircleDots size={26} color="#fff" weight="regular" />
         </View>
       )}
     </Pressable>

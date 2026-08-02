@@ -20,8 +20,8 @@ import { KeyboardProvider, KeyboardAvoidingView } from 'react-native-keyboard-co
 import { X, Plus, Check } from 'lucide-react-native';
 import { fontFamily, fontSize, shadows, type Tokens } from '@/constants/designTokens';
 import { useTokens, useThemedStyles } from '@/hooks/useTokens';
-import { resolveGlyph, resolveTone, resolveSubtitle } from '@/components/dailyTokens';
-import { useDailies, type DailyItem, type WhenBucket } from '@/hooks/use-dailies-store';
+import { resolveGlyph, resolveTone } from '@/components/dailyTokens';
+import { type DailyItem, type WhenBucket } from '@/hooks/use-dailies-store';
 
 export type Template = Omit<DailyItem, 'id' | 'when'>;
 
@@ -44,15 +44,15 @@ export const TOOL_CATALOG: Template[] = [
   { label: 'Attend a meeting', icon: 'users', color: 'steel', action: 'meeting' },
   { label: 'Say my morning prayers', icon: 'pray', color: 'terracotta', action: 'prayerMorning' },
   { label: 'Do my nightly review', icon: 'moon', color: 'periwinkle', action: 'nightly' },
-  { label: 'Listen to a speaker tape', icon: 'play', color: 'steel', action: 'speaker' },
+  { label: 'Listen to a speaker tape', icon: 'mic', color: 'steel', action: 'speaker' },
   { label: 'Call my sponsor', icon: 'phone', color: 'steel', action: 'callSponsor' },
   { label: 'Take a spot check inventory', icon: 'check', color: 'terracotta', action: 'spotcheck' },
 ];
 
 // "Quick actions" — no tool, just check off. Alphabetical by label.
 export const QUICK_CATALOG: Template[] = [
-  { label: 'Be of service', icon: 'users', color: 'steel', action: 'service' },
-  { label: 'Get some exercise', icon: 'heart', color: 'terracotta', action: 'exercise' },
+  { label: 'Be of service', icon: 'heartHandshake', color: 'steel', action: 'service' },
+  { label: 'Get some exercise', icon: 'dumbbell', color: 'terracotta', action: 'exercise' },
   { label: 'Make my bed', icon: 'home', color: 'periwinkle', action: 'makeBed' },
 ];
 
@@ -76,7 +76,6 @@ function SheetBackdrop({ onPress }: { onPress: () => void }) {
 export function AddSheet({ section, added, onClose, onAdd, onCreate }: { section: WhenBucket; added: Set<string>; onClose: () => void; onAdd: (t: Template) => void; onCreate: () => void }) {
   const styles = useThemedStyles(makeStyles);
   const { c, colors } = useTokens();
-  const { showSubtitles } = useDailies();
   return (
     <Modal transparent visible animationType="slide" onRequestClose={onClose}>
       <View style={styles.sheetWrap}>
@@ -113,9 +112,6 @@ export function AddSheet({ section, added, onClose, onAdd, onCreate }: { section
                 <Medallion icon={t.icon} tone={t.color} soft />
                 <View style={styles.addRowText}>
                   <Text style={styles.addRowName}>{t.label}</Text>
-                  {showSubtitles && resolveSubtitle(t.action) ? (
-                    <Text style={styles.editRowSub} numberOfLines={1}>{resolveSubtitle(t.action)}</Text>
-                  ) : null}
                 </View>
                 {added.has(t.action) ? (
                   <View style={styles.addedCheck}>
@@ -135,9 +131,6 @@ export function AddSheet({ section, added, onClose, onAdd, onCreate }: { section
                 <Medallion icon={t.icon} tone={t.color} soft />
                 <View style={styles.addRowText}>
                   <Text style={styles.addRowName}>{t.label}</Text>
-                  {showSubtitles && resolveSubtitle(t.action) ? (
-                    <Text style={styles.editRowSub} numberOfLines={1}>{resolveSubtitle(t.action)}</Text>
-                  ) : null}
                 </View>
                 {added.has(t.action) ? (
                   <View style={styles.addedCheck}>

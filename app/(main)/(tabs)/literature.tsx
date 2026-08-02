@@ -19,7 +19,7 @@ import { fontFamily, type Tokens } from '@/constants/designTokens';
 import { useThemedStyles } from '@/hooks/useTokens';
 
 const BIG_BOOK_COVER = require('@/assets/images/big-book_cover.webp');
-const TWELVE_COVER = require('@/assets/images/12x12_cover.webp');
+const TWELVE_COVER = require('@/assets/images/new_12x12_cover.webp');
 // Both cover scans are 1290×1700.
 const COVER_ASPECT = 1290 / 1700;
 
