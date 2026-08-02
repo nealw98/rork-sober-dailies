@@ -109,11 +109,11 @@ export async function scheduleTrialEndingReminder(info: CustomerInfo): Promise<v
     }
 
     await cancelTrialEndingReminder(); // replace any earlier one (re-trial, plan switch)
-    const endsOn = new Date(endsAt).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
+    const endsOn = new Date(endsAt).toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' });
     const id = await N.scheduleNotificationAsync({
       content: {
         title: 'Your free week is almost up',
-        body: `Your trial ends ${endsOn}. Keep going — or cancel before then and you won't be charged a thing.`,
+        body: `Your Sober Dailies trial ends ${endsOn}. Keep going — or cancel before then and you won't be charged.`,
       },
       trigger: { type: N.SchedulableTriggerInputTypes.DATE, date: fireAt, channelId: 'reminders' },
     });
@@ -159,12 +159,12 @@ export async function qaPreviewTrialReminder(): Promise<string | null> {
       });
     }
     const endsOn = new Date(Date.now() + WARN_BEFORE_MS).toLocaleDateString('en-US', {
-      weekday: 'long', month: 'long', day: 'numeric',
+      weekday: 'long', month: 'short', day: 'numeric',
     });
     await N.scheduleNotificationAsync({
       content: {
         title: 'Your free week is almost up',
-        body: `Your trial ends ${endsOn}. Keep going — or cancel before then and you won't be charged a thing.`,
+        body: `Your Sober Dailies trial ends ${endsOn}. Keep going — or cancel before then and you won't be charged.`,
       },
       trigger: { type: N.SchedulableTriggerInputTypes.TIME_INTERVAL, seconds: 8, channelId: 'reminders' },
     });

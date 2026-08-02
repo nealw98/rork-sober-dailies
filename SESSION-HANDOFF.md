@@ -2367,3 +2367,104 @@ signed-in phone, that IS a bug.
 5. Ship day, as one pass: `PASSES_ENABLED` → true, analytics → production
    (**both places**), remove the Android paywall X + QA Force New-User
    toggle, bump runtime to 3.0.8, build 132.
+
+## 20. Latest session — 2026-08-01 (launch-checklist audit · testing campaign · B2 verified)
+
+Working mode this session: one consolidated open-items list, worked one by one
+(Neal driving devices, Claude driving everything else). **Uncommitted at
+session end: `lib/trialReminder.ts` (copy tweak) and `docs/LAUNCH-CHECKLIST.md`
+(audit edits).** Both ride the next commit + OTA.
+
+### 20.1 Audit — the checklist is TRUE
+
+Every open LAUNCH-CHECKLIST item was re-verified against code and live
+infrastructure; nothing had drifted. Confirmed still pending exactly as
+documented: `PASSES_ENABLED=false` (creditsService.ts:27), analytics `test` in
+all three places (re-checked live via `eas env:list` + `.env`), Android X gates
+`__DEV__ || android` (_layout.tsx:286, PaywallScreen.tsx:275), QA
+Force-New-User ungated, runtime 3.0.7/131 with 3.0.8 reserved.
+
+Audit findings beyond the docs:
+- **The gift-24h worry is DEAD**: `GIFT_ENTITLEMENT_DURATION` is NOT among the
+  deployed Supabase secrets, so `gifts-redeem` grants the code default
+  `three_month` (marked LAUNCH VALUE). Nothing to revert.
+- **The "redeem bypass" no longer exists** — the dev mock died with the
+  purchased-codes retirement (07-20); redemption is fully server-validated.
+  Checklist clause rewritten (that's part of the uncommitted checklist edit).
+- Developer Console full inventory documented in the checklist §1 item:
+  Grant-5-passes is server-gated by `dev_pass_granters` (safe); the
+  passes-on-this-device override is client-side but harmless (balance is
+  server-side). Simplest ship-day answer: `__DEV__`-gate the whole PAYWALL &
+  SUBSCRIPTION + GIFT PASSES sections.
+- `check-grandfather` + `invites-report` confirmed still ACTIVE on Supabase
+  (0 client refs). Deletion deliberately parked until testing is over.
+- ⚠️ RLS note: anon SELECT on `user_profiles` is column-scoped to
+  `is_grandfathered` ONLY — selecting `created_at` returns 42501. The July fix
+  working as designed; don't "fix" it.
+
+### 20.2 Shipped
+
+- **Production OTA `066a0562`** (runtime 3.0.7, both platforms) — the six
+  save-confirmation/nightly-review commits plus the §19.7 doc update
+  (`47641b92`). Fleet is current with head as of this session's start.
+- **131 AAB uploaded to Play** open testing (Neal) — sat in Google review at
+  session end. iOS 131 arrived via auto-submit.
+
+### 20.3 Verified today (the testing campaign)
+
+1. **Save dialog + nightly-review prefill** — Neal's simulator (§19.7 #1–2),
+   then re-confirmed from the published OTA bundle on iPhone AND Android sims.
+2. **Arrival sheet** — Dev Console previews (5-pass and 1-pass) look right.
+3. **Backup prompt silence** — real iPhone signed into iCloud: save → dialog →
+   Today, NO backup nudge. `cloudAvailable()` behaves.
+4. **Spend-half cycle** (§11.7) — full pass on iPhone: cancel keeps 5, re-give
+   returns the SAME token, real send → 4. ⚠️ That send produced a LIVE pass
+   link on Neal's phone — use it as the input for the pass E2E (#8); nothing
+   is consumed until the recipient opens it.
+5. **B2 grandfather-offline** — VERIFIED on real device, with a lesson:
+   the first airplane-mode pass "worked" but proved nothing (Neal's ID wasn't
+   in `user_profiles`; RevenueCat's cached sandbox sub was doing the lifting).
+   After inserting his ID with a pre-cutoff `created_at`: online launch →
+   Today (cache written), airplane mode + cold start → Today. The 07-31
+   fail-open cache works. Both test rows deleted afterward; Neal's phone
+   un-grandfathers itself on its next online launch (the "successful no clears
+   the cache" path). The never-verified half (fresh ID + offline → paywall)
+   was NOT run — low risk, the cache is keyed to anonymous_id — fold into a
+   later sim session.
+6. **Day-5 trial reminder preview** — fired on Neal's iPhone from build 131:
+   permission prompt, 8s banner, real copy. Binary plumbing confirmed. Copy
+   then tweaked (uncommitted): app name added, month shortened, tail trimmed —
+   `Your Sober Dailies trial ends Monday, Aug 3. Keep going — or cancel before
+   then and you won't be charged.` Banner truncation is fine per Neal: the
+   first sentence alone fulfils the Day-5 promise. Real-timing E2E still open.
+
+Grandfather conceptual note (came up during B2): grandfather = `user_profiles`
+row keyed to the keychain-persisted anonymous_id; RevenueCat does NOT carry it
+(RC carries purchases via Apple ID; promo grants key to the same anonymous_id).
+Two separate doors: user_profiles for founders, RC for payers.
+
+### 20.4 Infrastructure set up today
+
+- **Neal's iPhone allowlisted in `dev_pass_granters`** (`4dfaa418-…64cd`) and
+  granted 5 passes (4 remain + 1 live sent link). ⚠️ Reset Subscription State
+  on that phone would orphan the allowlist row — don't.
+- Sim dev-client crash during the Wi-Fi-off attempts = React Native inspector
+  assertion (`HostTarget::registerInstance`) when reloading with Metro
+  unreachable. Dev tooling only; production builds can't hit it. Also learned:
+  don't run offline sim tests that require Claude mid-loop — use a
+  self-contained script, or a real device.
+
+### 20.5 Still open (the short list)
+
+1. **Pass send E2E** — recipient opens the live link → /get → plan → Apple
+   sheet → clean install → no paywall flash. Needs a second device.
+2. **Access test plan A1/A2** — still the real launch gate. ⚠️ Must confirm
+   $3.99/$19.99: the sim paywall STILL showed $4.99/$24.99 today (RC offering
+   cache / store propagation) — if it persists on device, investigate before
+   ship.
+3. Retire the 3 ASC gift consumables + Play equivalents (store consoles).
+4. Delete `check-grandfather` + `invites-report` (post-testing tidiness).
+5. Trial-reminder real-timing E2E (needs a multi-day sandbox trial).
+6. Ship day, one pass: PASSES_ENABLED → true · analytics → production (BOTH
+   EAS envs AND local .env) · Android X → `__DEV__` · QA toggle gone (decide
+   scope of Dev Console gating) · runtime 3.0.8 · build 132.

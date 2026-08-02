@@ -449,8 +449,8 @@ detect and fall back to a promo-grant code). Signup/subscriber attribution
   give", "Pass sent", "A pass from a friend" on /get). Resonates with Pass
   It On. Code identifiers/tables keep their gift_* names — copy only.
 - Annual-upsell pitch card REMOVED from Pass It On (nobody switches plans to
-  give more passes). Possible future release: BUY passes (note: revisit the
-  sell-offer-codes compliance question before building).
+  give more passes). BUY-passes idea KILLED 2026-08-01 (Neal): passes are an
+  acquisition play, not a revenue play — don't resurrect.
 - Designed moments shipped (thank-you sheet via Today pending-flag handoff,
   gift-sent sheet, give-vs-share rows, hero dots + shimmer) per the Claude
   design handoff bundle.

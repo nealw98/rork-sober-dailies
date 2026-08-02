@@ -38,9 +38,13 @@ clear to ship.
       Debug Console button (Settings → long-press version) in
       `app/(main)/(tabs)/settings.tsx`; SecureStore key
       `sober_dailies_qa_force_new_user` read in `hooks/useSubscription.ts`.
-      While at it, decide whether the other Debug Console QA buttons
-      (Reset Subscription State, Preview Paywall) and the redeem bypass
-      should be `__DEV__`-gated too.
+      While at it, decide whether to `__DEV__`-gate the rest of the Developer
+      Console's PAYWALL & SUBSCRIPTION + GIFT PASSES sections (Reset
+      Subscription State, previews, Grant 5 passes — the grant is already
+      server-gated by `dev_pass_granters`, so this is cosmetic).
+      (Audit 2026-08-01: the old "redeem bypass" no longer exists — the dev
+      mock died with the purchased-codes system on 07-20; redemption is fully
+      server-validated in `gifts-redeem`. Clause removed.)
 - [ ] **Bump the runtime version for the store release** — 3.0.8
       recommended, so store binaries stop sharing an OTA channel with the
       3.0.7 tester fleet.
@@ -161,13 +165,21 @@ clear to ship.
       still takes effect once they're online; no TTL, since an expiry would
       reinstate the lockout during a long outage. Reset subscription state
       mints a new anonymous_id, which no longer matches the cache — so QA
-      still falls back to the paywall. Test: grandfather a device, confirm
-      access, then airplane-mode + relaunch — B2 in the access plan tests
-      the OLD fail-closed behaviour and needs updating.
+      still falls back to the paywall. **B2 VERIFIED 2026-08-01 on Neal's
+      iPhone**: grandfathered ID inserted → online launch → Today, then
+      airplane mode + cold start → Today (test rows deleted after; first
+      attempt without the row "passed" via RevenueCat's cached sandbox sub —
+      a trap worth remembering). Never-verified-half (fresh ID + offline →
+      paywall) not run; low risk, cache keyed to anonymous_id. B2 in the
+      access plan still describes the OLD fail-closed behaviour and needs
+      updating.
 - [ ] **Day-5 trial reminder: next binary + device E2E** — added
       `expo-notifications`, so the JS is inert until the next build
-      (lazy-require keeps old-binary OTAs safe). E2E requires a real-device
-      sandbox trial.
+      (lazy-require keeps old-binary OTAs safe). PREVIEW VERIFIED 2026-08-01
+      on Neal's iPhone (build 131): permission prompt + banner + copy all
+      work; copy updated same day (app name, short month, trimmed tail —
+      uncommitted). Remaining: real-timing E2E, which requires a multi-day
+      real-device sandbox trial.
 - [x] **Fix the hardcoded "7 days" trial-length copy** on the custom
       paywall — DONE 2026-07-30 pm #3: `trialDaysFrom()` reads the
       package's free intro period from the store and `trialCopy()` phrases
@@ -191,10 +203,11 @@ clear to ship.
       phone → recipient taps soberdailies.com/get → picks a plan → Apple
       redemption sheet → clean install → confirm NO paywall flash. Offer
       codes have no sandbox; this can only be verified live.
-- [ ] **Verify the pass spend-half cycle** (~2 min, SESSION-HANDOFF §11.7):
-      give → cancel composer → balance stays 5 → give again → SAME token
-      returns → actually send → balance 4, `sent_at` set on that row only.
-      (The grant half is already verified on device.)
+- [x] **Verify the pass spend-half cycle** — PASSED 2026-08-01 on Neal's
+      iPhone (SESSION-HANDOFF §11.7): cancel kept the balance at 5, re-give
+      returned the SAME token, real send → 4. ⚠️ That send minted a LIVE pass
+      link sitting in Neal's Messages — use it as the input for the pass-send
+      E2E rather than burning a second pass.
 - [ ] **Remote housekeeping** — the Supabase half is DONE (2026-07-31, Neal
       ran the deletes; `supabase functions list` confirms both gone).
       `gifts-purchase` and `gifts-wallet` had been ACTIVE in production since
@@ -224,8 +237,10 @@ clear to ship.
   release flags, broken eas.json profiles, tsc errors, 343 MB archive /
   missing .easignore).
 - Expo SDK 53→54 upgrade — decided post-3.0.7 (plan file saved).
-- BUY-passes idea (recheck Apple's terms on selling offer codes first) and
-  a quarterly-pass arrival announcement (currently silent).
+- A quarterly-pass arrival announcement (currently silent).
+- ~~BUY-passes idea~~ — KILLED 2026-08-01 (Neal): passes are an acquisition
+  play, not a revenue play; selling them would work against their purpose.
+  Don't resurrect.
 
 ## 5. Post-launch watch items
 

@@ -31,6 +31,7 @@ import GiftGlyph from '@/components/GiftGlyph';
 import PaywallScreen from '@/components/PaywallScreen';
 import { QA_FORCE_NEW_USER_KEY } from '@/hooks/useSubscription';
 import Constants from 'expo-constants';
+import * as Application from 'expo-application';
 import * as Clipboard from 'expo-clipboard';
 import * as SecureStore from 'expo-secure-store';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -280,11 +281,13 @@ export default function SettingsScreen() {
     }
   };
 
-  // Version info
+  // Version info. The build number must come from the BINARY
+  // (expo-application), not Constants.expoConfig — that's the app.json
+  // snapshot carried by the last OTA, so after an update it can claim a build
+  // the device doesn't actually have.
   const appVersion = Constants.expoConfig?.version ?? '—';
-  const iosBuild = Constants.expoConfig?.ios?.buildNumber ?? undefined;
-  const androidVersionCode = Constants.expoConfig?.android?.versionCode ?? undefined;
-  const versionLabel = `Version ${appVersion}${Platform.OS === 'ios' && iosBuild ? ` (${iosBuild})` : ''}${Platform.OS === 'android' && androidVersionCode ? ` (${androidVersionCode})` : ''}`;
+  const nativeBuild = Application.nativeBuildVersion ?? undefined;
+  const versionLabel = `Version ${appVersion}${nativeBuild ? ` (${nativeBuild})` : ''}`;
 
   // Update in-app logs when viewer is open
   useEffect(() => {
