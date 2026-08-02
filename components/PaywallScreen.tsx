@@ -31,7 +31,7 @@ import { KeyboardProvider, KeyboardAvoidingView } from 'react-native-keyboard-co
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Bell, Check, Lock, MessageCircle, RefreshCw, SlidersHorizontal, Star, TrendingUp, Wrench, X } from 'lucide-react-native';
-import { type PurchasesPackage } from 'react-native-purchases';
+import Purchases, { type PurchasesPackage } from 'react-native-purchases';
 import { useSubscription } from '@/hooks/useSubscription';
 import { redeemGiftCode, type RedeemReason } from '@/lib/giftService';
 import { fetchCreditStatus, setPendingAnnouncement } from '@/lib/creditsService';
@@ -457,7 +457,15 @@ export default function PaywallScreen({ onDismiss, preview, forceTrial }: Paywal
       <HaveACodeModal
         visible={showRedeem}
         onClose={() => setShowRedeem(false)}
-        onRedeemed={() => { setShowRedeem(false); refresh(); }}
+        onRedeemed={async () => {
+          setShowRedeem(false);
+          // The gift entitlement was granted SERVER-side (RC REST), so the
+          // SDK's cached CustomerInfo predates it — getCustomerInfo() alone
+          // re-reads the stale cache and the wall stays up until a cold
+          // start. Invalidate first so refresh() actually hits the network.
+          try { await Purchases.invalidateCustomerInfoCache(); } catch {}
+          refresh();
+        }}
       />
     </SafeAreaView>
   );
