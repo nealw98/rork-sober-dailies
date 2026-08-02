@@ -13,7 +13,7 @@ import React, { useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
-  KeyboardAvoidingView,
+  Keyboard,
   Linking,
   Modal,
   Platform,
@@ -24,6 +24,10 @@ import {
   TextInput,
   View,
 } from 'react-native';
+// RN's KeyboardAvoidingView doesn't track the keyboard inside a <Modal>, and
+// nothing resizes the Android modal window either — use keyboard-controller's,
+// scoped by its own provider (same pattern as PrayerEditSheet).
+import { KeyboardProvider, KeyboardAvoidingView } from 'react-native-keyboard-controller';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Bell, Check, Lock, MessageCircle, RefreshCw, SlidersHorizontal, Star, TrendingUp, Wrench, X } from 'lucide-react-native';
@@ -507,12 +511,17 @@ function HaveACodeModal({ visible, onClose, onRedeemed }: { visible: boolean; on
   };
 
   const close = () => { setCode(''); setError(null); onClose(); };
+  // With the keyboard up, a backdrop tap is usually "get the keyboard out of
+  // the way", not "abandon my code" — dismiss the keyboard first; a second
+  // tap closes.
+  const onBackdrop = () => { if (Keyboard.isVisible()) { Keyboard.dismiss(); return; } close(); };
 
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={close}>
-      <Pressable style={styles.sheetBackdrop} onPress={close} />
+      <Pressable style={styles.sheetBackdrop} onPress={onBackdrop} />
+      <KeyboardProvider>
       <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        behavior="padding"
         style={styles.sheetKav}
         pointerEvents="box-none"
       >
@@ -543,6 +552,7 @@ function HaveACodeModal({ visible, onClose, onRedeemed }: { visible: boolean; on
         <Text style={styles.sheetNote}>Nothing to pay. Nothing renews.</Text>
       </View>
       </KeyboardAvoidingView>
+      </KeyboardProvider>
     </Modal>
   );
 }
