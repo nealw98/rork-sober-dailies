@@ -4,12 +4,19 @@
 // cliff conversions. This covers the stages only our servers see.
 //
 // Fire-and-forget by contract: analytics must NEVER fail or slow the
-// business call. Missing MIXPANEL_TOKEN secret → silent no-op.
+// business call.
 //
 // $insert_id gives every event a natural idempotency key (grant key, share
 // token, gift code), so a retried edge-function call can't double-count.
 
 const MIXPANEL_TRACK_URL = 'https://api.mixpanel.com/track?verbose=1';
+
+// The project token is baked in because Neal's CLI token can't reach the
+// secrets endpoint (same limitation recorded on FOUNDING_CREDITS_ENABLED in
+// credits.ts). Safe: this is the CLIENT project token — it already ships in
+// every app bundle — not a secret. A MIXPANEL_TOKEN secret, if ever set via
+// the dashboard, overrides it (rotation path).
+const DEFAULT_MIXPANEL_TOKEN = 'cfad09b0133277969b37136d88172419';
 
 export async function trackServerEvent(
   event: string,
@@ -17,7 +24,7 @@ export async function trackServerEvent(
   insertId: string,
   props: Record<string, unknown> = {},
 ): Promise<void> {
-  const token = Deno.env.get('MIXPANEL_TOKEN');
+  const token = Deno.env.get('MIXPANEL_TOKEN') ?? DEFAULT_MIXPANEL_TOKEN;
   if (!token) return;
   try {
     const payload = [{
