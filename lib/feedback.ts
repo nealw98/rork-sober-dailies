@@ -1,6 +1,7 @@
-import { Platform, Dimensions, PixelRatio } from 'react-native';
+import { Platform, Dimensions, PixelRatio, Appearance, AccessibilityInfo } from 'react-native';
 import Constants from 'expo-constants';
 import * as Device from 'expo-device';
+import Purchases from 'react-native-purchases';
 import { supabase } from './supabase';
 import { getAnonymousId } from './anonymousId';
 
@@ -41,8 +42,46 @@ export async function submitFeedback(submission: FeedbackSubmission): Promise<Fe
     // Device context for troubleshooting (same fields as Daily Paths).
     const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
 
+    // RC id too (same guarded fetch as creditsService.identity()) — it's the
+    // id promotional grants target, distinct from our anonymous_id.
+    let rcAppUserId: string | null = null;
+    if (Platform.OS !== 'web') {
+      try {
+        rcAppUserId = await Purchases.getAppUserID();
+      } catch {
+        // RC not configured yet — send without it
+      }
+    }
+
+    // Display + accessibility settings — the usual suspects behind "it looks
+    // broken on my phone" (Daily Paths lesson). Each probe is best-effort;
+    // some are iOS-only and reject on Android.
+    const probe = (p: Promise<boolean> | undefined) =>
+      (p ?? Promise.resolve(null)).then((v) => v as boolean | null).catch(() => null);
+    const [screenReader, reduceMotion, boldText, reduceTransparency, invertColors, grayscale] =
+      await Promise.all([
+        probe(AccessibilityInfo.isScreenReaderEnabled()),
+        probe(AccessibilityInfo.isReduceMotionEnabled()),
+        probe(AccessibilityInfo.isBoldTextEnabled?.()),
+        probe(AccessibilityInfo.isReduceTransparencyEnabled?.()),
+        probe(AccessibilityInfo.isInvertColorsEnabled?.()),
+        probe(AccessibilityInfo.isGrayscaleEnabled?.()),
+      ]);
+    const accessibility = {
+      pixel_ratio: PixelRatio.get(),
+      color_scheme: Appearance.getColorScheme() ?? null,
+      screen_reader: screenReader,
+      reduce_motion: reduceMotion,
+      bold_text: boldText,
+      reduce_transparency: reduceTransparency,
+      invert_colors: invertColors,
+      grayscale: grayscale,
+    };
+
     const row = {
       anonymous_id: anonymousId,
+      rc_app_user_id: rcAppUserId,
+      accessibility,
       feedback_text: submission.feedbackText.trim(),
       contact_info: submission.contactInfo?.trim() || null,
       app_version: appVersion,

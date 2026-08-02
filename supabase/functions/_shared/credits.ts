@@ -97,17 +97,21 @@ export function computeEarnedGrants(subscriber: any, opts: { founding: boolean }
 }
 
 // Insert any missing grants (idempotent via the (anonymous_id, grant_key) PK).
+// Returns ONLY the rows actually inserted this call (ON CONFLICT DO NOTHING +
+// RETURNING skips the duplicates) — the caller uses that for exactly-once
+// pass_granted analytics.
 export async function ensureGrants(
   supabase: SupabaseClient,
   anonymousId: string,
   earned: EarnedGrant[],
-): Promise<void> {
-  if (earned.length === 0) return;
-  const { error } = await supabase.from('gift_credit_grants').upsert(
+): Promise<EarnedGrant[]> {
+  if (earned.length === 0) return [];
+  const { data, error } = await supabase.from('gift_credit_grants').upsert(
     earned.map((g) => ({ anonymous_id: anonymousId, ...g })),
     { onConflict: 'anonymous_id,grant_key', ignoreDuplicates: true },
-  );
+  ).select('grant_key, credits');
   if (error) throw error;
+  return (data ?? []) as EarnedGrant[];
 }
 
 export interface CreditState {

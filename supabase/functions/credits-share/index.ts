@@ -21,6 +21,7 @@ import {
   computeEarnedGrants, ensureGrants, getCreditState, foundingEligible, generateShareToken,
 } from '../_shared/credits.ts';
 import { verifyDevice } from '../_shared/deviceAuth.ts';
+import { trackServerEvent, trackPassGranted } from '../_shared/mixpanel.ts';
 
 const GET_URL = 'https://soberdailies.com/get';
 
@@ -50,13 +51,20 @@ serve(async (req: Request) => {
       if (!sentToken || typeof sentToken !== 'string') {
         return json({ success: false, message: 'Missing token' }, 400);
       }
-      const { error: stampErr } = await supabase
+      const { data: stamped, error: stampErr } = await supabase
         .from('gift_shares')
         .update({ sent_at: new Date().toISOString() })
         .eq('token', sentToken)
         .eq('sender_anonymous_id', anonymous_id)
-        .is('sent_at', null);
+        .is('sent_at', null)
+        .select('token')
+        .maybeSingle();
       if (stampErr) throw stampErr;
+      // Funnel stage 2: pass_sent — only on the stamp that actually landed
+      // (a retried confirm returns no row), so one send = one event.
+      if (stamped) {
+        await trackServerEvent('pass_sent', anonymous_id, sentToken, { share_token: sentToken });
+      }
       const state = await getCreditState(supabase, anonymous_id);
       return json({ success: true, balance: state.balance });
     }
@@ -67,7 +75,8 @@ serve(async (req: Request) => {
     if (secretKey && typeof rc_app_user_id === 'string' && rc_app_user_id.length > 0) {
       const subscriber = await fetchRcSubscriber(rc_app_user_id, secretKey);
       const founding = await foundingEligible(supabase, anonymous_id);
-      await ensureGrants(supabase, anonymous_id, computeEarnedGrants(subscriber, { founding }));
+      const fresh = await ensureGrants(supabase, anonymous_id, computeEarnedGrants(subscriber, { founding }));
+      await trackPassGranted(anonymous_id, fresh);
     }
 
     const before = await getCreditState(supabase, anonymous_id);

@@ -10,6 +10,7 @@ import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { corsHeaders, json, serviceClient, fetchRcSubscriber } from '../_shared/gifts.ts';
 import { computeEarnedGrants, ensureGrants, getCreditState, foundingEligible } from '../_shared/credits.ts';
 import { verifyDevice } from '../_shared/deviceAuth.ts';
+import { trackPassGranted } from '../_shared/mixpanel.ts';
 
 serve(async (req: Request) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
@@ -34,7 +35,10 @@ serve(async (req: Request) => {
     if (secretKey && typeof rc_app_user_id === 'string' && rc_app_user_id.length > 0) {
       const subscriber = await fetchRcSubscriber(rc_app_user_id, secretKey);
       const founding = await foundingEligible(supabase, anonymous_id);
-      await ensureGrants(supabase, anonymous_id, computeEarnedGrants(subscriber, { founding }));
+      const fresh = await ensureGrants(supabase, anonymous_id, computeEarnedGrants(subscriber, { founding }));
+      // Funnel stage 1: pass_granted, once per grant key ever (ensureGrants
+      // returns only rows inserted THIS call; $insert_id backstops retries).
+      await trackPassGranted(anonymous_id, fresh);
     }
 
     const state = await getCreditState(supabase, anonymous_id);

@@ -18,6 +18,7 @@ import {
   corsHeaders, json, serviceClient,
   fetchRcSubscriber, hasActivePremium, grantGiftEntitlement,
 } from '../_shared/gifts.ts';
+import { trackServerEvent } from '../_shared/mixpanel.ts';
 
 interface Body {
   code: string;
@@ -97,6 +98,14 @@ serve(async (req: Request) => {
       console.error('[gifts-redeem] RC grant failed, released code:', grant.message);
       return json({ success: false, reason: 'grant_failed', message: 'Something went wrong unlocking access. Please try again.' }, 502);
     }
+
+    // Funnel stage 3b (Android/legacy leg): the claim + grant both landed.
+    // iOS offer-code redemptions are invisible here — they arrive in Mixpanel
+    // via the RevenueCat integration (offer_code property set, revenue 0).
+    await trackServerEvent('pass_redeemed', anonymous_id, code, {
+      kind: 'sd_code',
+      sender_anonymous_id: row.buyer_anonymous_id,
+    });
 
     return json({ success: true, message: 'You’ve got 3 months of full access. Welcome.' });
   } catch (e) {

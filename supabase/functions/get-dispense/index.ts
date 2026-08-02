@@ -19,6 +19,7 @@
 // Android share, per design doc §0).
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { corsHeaders, json, serviceClient, generateCode } from '../_shared/gifts.ts';
+import { trackServerEvent } from '../_shared/mixpanel.ts';
 
 serve(async (req: Request) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
@@ -80,6 +81,9 @@ serve(async (req: Request) => {
           .from('gift_shares').select('android_gift_code').eq('token', token).single();
         return json({ success: true, kind: 'sd_code', code: winner!.android_gift_code });
       }
+      // Funnel stage 3a: first fulfillment of this token (replays return
+      // early above; the race loser never reaches here).
+      await trackServerEvent('pass_dispensed', token, token, { kind: 'sd_code', product: 'android' });
       return json({ success: true, kind: 'sd_code', code });
     }
 
@@ -91,6 +95,8 @@ serve(async (req: Request) => {
 
     const row = Array.isArray(data) ? data[0] : data;
     if (row?.code) {
+      // Funnel stage 3a: the atomic pop only succeeds once per token.
+      await trackServerEvent('pass_dispensed', token, token, { kind: 'offer_code', product: row.product });
       return json({ success: true, kind: 'offer_code', code: row.code, redeem_url: row.redeem_url, product: row.product });
     }
 

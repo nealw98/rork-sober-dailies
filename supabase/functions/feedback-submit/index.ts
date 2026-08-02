@@ -25,6 +25,7 @@ const corsHeaders = {
 
 interface RequestBody {
   anonymous_id: string;
+  rc_app_user_id?: string | null;
   feedback_text: string;
   contact_info: string;
   app_version?: string | null;
@@ -36,6 +37,7 @@ interface RequestBody {
   screen_height?: number | null;
   font_scale?: number | null;
   manufacturer?: string | null;
+  accessibility?: Record<string, unknown> | null;
 }
 
 const escapeHtml = (s: string) =>
@@ -65,6 +67,7 @@ serve(async (req: Request) => {
 
     const { error: insertError } = await supabase.from('app_feedback').insert({
       anonymous_id: body.anonymous_id,
+      rc_app_user_id: body.rc_app_user_id ?? null,
       feedback_text: feedbackText,
       contact_info: contactInfo || null,
       app_version: body.app_version ?? null,
@@ -76,6 +79,7 @@ serve(async (req: Request) => {
       screen_height: body.screen_height ?? null,
       font_scale: body.font_scale ?? null,
       manufacturer: body.manufacturer ?? null,
+      accessibility: body.accessibility ?? null,
     });
 
     if (insertError) {
@@ -99,11 +103,23 @@ serve(async (req: Request) => {
           body.build_number && `build ${body.build_number}`,
         ].filter(Boolean).join(' · ');
         // Troubleshooting block (Daily Paths style): OS, model, screen, font scale.
+        const a = body.accessibility ?? {};
+        const a11yOn = [
+          a.screen_reader && 'screen reader',
+          a.bold_text && 'bold text',
+          a.reduce_motion && 'reduce motion',
+          a.reduce_transparency && 'reduce transparency',
+          a.invert_colors && 'invert colors',
+          a.grayscale && 'grayscale',
+        ].filter(Boolean) as string[];
         const deviceLines = [
           body.os_version,
           [body.manufacturer, body.device_model].filter(Boolean).join(' '),
           body.screen_width && body.screen_height && `${body.screen_width}×${body.screen_height}`,
           body.font_scale != null && `Font ${body.font_scale}×`,
+          a.pixel_ratio != null &&
+            `Pixel ratio ${a.pixel_ratio}×${a.color_scheme ? ` · ${a.color_scheme} mode` : ''}`,
+          a11yOn.length > 0 && `Accessibility ON: ${a11yOn.join(', ')}`,
         ].filter(Boolean) as string[];
         const res = await fetch('https://api.resend.com/emails', {
           method: 'POST',
@@ -122,7 +138,8 @@ serve(async (req: Request) => {
               `<p style="color:#666;font-size:13px">From: ${escapeHtml(contactInfo || 'no email given')}<br>`,
               `${escapeHtml(meta || 'unknown')}<br>`,
               ...deviceLines.map((l) => `${escapeHtml(l)}<br>`),
-              `Anonymous ID: ${escapeHtml(body.anonymous_id)}</p>`,
+              `Anonymous ID: ${escapeHtml(body.anonymous_id)}<br>`,
+              `RC App User ID: ${escapeHtml(body.rc_app_user_id || 'unknown')}</p>`,
             ].join('\n'),
           }),
         });

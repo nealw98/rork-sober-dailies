@@ -29,7 +29,7 @@ import { ThemedCard } from '@/components/ThemedCard';
 import BackButton from '@/components/BackButton';
 import GiftGlyph from '@/components/GiftGlyph';
 import PaywallScreen from '@/components/PaywallScreen';
-import { QA_FORCE_NEW_USER_KEY } from '@/hooks/useSubscription';
+import { QA_FORCE_NEW_USER_KEY, useSubscription } from '@/hooks/useSubscription';
 import Constants from 'expo-constants';
 import * as Application from 'expo-application';
 import * as Clipboard from 'expo-clipboard';
@@ -123,6 +123,23 @@ export default function SettingsScreen() {
   const { c, colors } = useTokens();
   const { resetOnboarding, resetOnboardingAsUpgrader } = useOnboarding();
   const { colorScheme, setColorScheme } = useTheme();
+  const { customerInfo } = useSubscription();
+
+  // Only store subscribers get the row: managementURL is null for
+  // grandfathered members, pass riders, and free users, so none of them see
+  // a "subscription" they don't have.
+  const managementURL = customerInfo?.managementURL ?? null;
+  const openManageSubscription = async () => {
+    try {
+      // Lazy require, getSMS()-style: purchases-ui ships in the 3.0.8 binary,
+      // but an OTA of this file must never crash a binary without the module.
+      const RevenueCatUI = require('react-native-purchases-ui').default;
+      await RevenueCatUI.presentCustomerCenter();
+    } catch (e) {
+      console.warn('[Settings] Customer Center unavailable, opening store page:', e);
+      if (managementURL) Linking.openURL(managementURL);
+    }
+  };
 
   useScreenTimeTracking('Settings');
 
@@ -576,6 +593,18 @@ export default function SettingsScreen() {
             onPress={shareApp}
           />
         </CardGroup>
+
+        {/* Subscription — store subscribers only (RC Customer Center) */}
+        {managementURL != null && (
+          <CardGroup label="Subscription">
+            <CardRow
+              label="Manage Subscription"
+              sub="Change plan or cancel"
+              last
+              onPress={openManageSubscription}
+            />
+          </CardGroup>
+        )}
 
         {/* Support Sober Dailies */}
         <CardGroup label="Support Sober Dailies">
