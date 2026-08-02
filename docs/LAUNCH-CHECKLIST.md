@@ -10,6 +10,19 @@ clear to ship.
 
 ## 1. Launch flips & removals (do these at ship time, as one pass)
 
+**THE SHIP PATH (decided 2026-08-02, Neal):** do all the flips below, bump
+runtime to **3.0.8** + build **132**, and build with the **`preview`
+profile** (channel `dev`, internal distribution, Android APK) — a
+release-candidate fleet of ONE, Neal's devices only, never TestFlight/Play.
+Fine-tune with OTAs via `eas update --channel dev` (double-isolated from
+testers: different channel AND runtime). When satisfied, build **133** with
+the `production` profile and launch. The 3.0.7 tester channel is then
+FROZEN: any later OTA to it must first flip local `.env` back to `test` or
+it re-tags the tester fleet as production (testers also stay
+passes-suspended unless deliberately OTA'd). On the RC, turn **Developer
+Mode ON** (Dev Console) so Neal's own sessions don't pollute production
+analytics.
+
 - [ ] **`PASSES_ENABLED` → `true`** (+ OTA) — turns on the Pass It On gift
       acquisition program for real users.
 - [ ] **`EXPO_PUBLIC_ANALYTICS_ENV` → `production`** — currently `test` in
@@ -34,14 +47,14 @@ clear to ship.
       testers can escape the wall during testing. Revert both gates to
       `__DEV__` only at ship time so store builds on both platforms get
       the hard wall.
-- [ ] **Remove or `__DEV__`-gate the QA "Force New-User (paywall)" toggle** —
-      Debug Console button (Settings → long-press version) in
-      `app/(main)/(tabs)/settings.tsx`; SecureStore key
-      `sober_dailies_qa_force_new_user` read in `hooks/useSubscription.ts`.
-      While at it, decide whether to `__DEV__`-gate the rest of the Developer
-      Console's PAYWALL & SUBSCRIPTION + GIFT PASSES sections (Reset
-      Subscription State, previews, Grant 5 passes — the grant is already
-      server-gated by `dev_pass_granters`, so this is cosmetic).
+- [x] ~~Remove or `__DEV__`-gate the QA "Force New-User (paywall)" toggle~~ —
+      **DECIDED 2026-08-02 (Neal): the Developer Console STAYS in production
+      builds**, long-press and all. Rationale: the risky pieces are
+      server-gated (`dev_pass_granters` allowlist), Force New-User is
+      self-inflicted + self-recoverable (its banner says where to turn it
+      off), destructive rows confirm first — and the console is load-bearing
+      for launch ops (Developer Mode = analytics kill switch on the RC,
+      Support ID for support, Check for update). Nothing to remove.
       (Audit 2026-08-01: the old "redeem bypass" no longer exists — the dev
       mock died with the purchased-codes system on 07-20; redemption is fully
       server-validated in `gifts-redeem`. Clause removed.)

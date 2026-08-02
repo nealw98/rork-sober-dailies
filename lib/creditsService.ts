@@ -24,7 +24,7 @@ import { getDeviceSecret } from '@/lib/deviceSecret';
 // badge hides, give row hides), no token is ever minted, and the post-
 // subscribe thank-you never announces. Flip to true for launch; the server
 // keeps its own gates (_shared/credits.ts skips sandbox and non-paying subs).
-export const PASSES_ENABLED = false;
+export const PASSES_ENABLED = true;
 
 const BALANCE_KEY = 'gift_credits_cache_v1';
 const PENDING_KEY = 'gift_pending_share_v1';

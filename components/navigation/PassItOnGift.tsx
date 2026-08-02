@@ -32,7 +32,7 @@ export default function PassItOnGift({ style }: { style?: StyleProp<ViewStyle> }
         {/* Same muted tone as the SettingsGear it sits beside. */}
         <GiftGlyph size={24} color={c.textMuted} strokeWidth={1.9} />
         <View style={[styles.badge, { backgroundColor: colors.rose }]}>
-          <Text style={styles.badgeText}>{balance > 9 ? '9+' : balance}</Text>
+          <Text style={styles.badgeText}>{balance > 99 ? '99+' : balance}</Text>
         </View>
       </View>
     </Pressable>
