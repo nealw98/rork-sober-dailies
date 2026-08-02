@@ -10,6 +10,13 @@ clear to ship.
 
 ## 1. Launch flips & removals (do these at ship time, as one pass)
 
+**⚡ THE FLIPS ARE DONE — RC IS LIVE (2026-08-02, commit `78889bd4`).**
+Build 132 / runtime 3.0.8 exists: Android RC APK built + installed on
+Neal's phone (all fine-tuning OTAs go `eas update --channel dev`); iOS 132
+still needs Neal's interactive build (expired provisioning profile):
+`eas build --profile preview --platform ios`. Sections below are kept as
+the record of what flipped and what the path is.
+
 **THE SHIP PATH (decided 2026-08-02, Neal):** do all the flips below, bump
 runtime to **3.0.8** + build **132**, and build with the **`preview`
 profile** (channel `dev`, internal distribution, Android APK) — a
@@ -23,9 +30,11 @@ passes-suspended unless deliberately OTA'd). On the RC, turn **Developer
 Mode ON** (Dev Console) so Neal's own sessions don't pollute production
 analytics.
 
-- [ ] **`PASSES_ENABLED` → `true`** (+ OTA) — turns on the Pass It On gift
-      acquisition program for real users.
-- [ ] **`EXPO_PUBLIC_ANALYTICS_ENV` → `production`** — currently `test` in
+- [x] **`PASSES_ENABLED` → `true`** — DONE 2026-08-02 (`78889bd4`). Lives in
+      the 3.0.8 RC; the frozen 3.0.7 tester fleet stays suspended.
+- [x] **`EXPO_PUBLIC_ANALYTICS_ENV` → `production`** — DONE 2026-08-02 in
+      ALL THREE places (local `.env` + EAS `production` + EAS `preview`,
+      flipped via CLI and verified). Historical notes kept below: was `test` in
       BOTH the EAS `production`/`preview` environments AND the local `.env`
       (verified 2026-07-31). ⚠️ Flip BOTH: no eas.json build profile
       declares an `environment`, so `eas update` resolves this from the
@@ -40,7 +49,9 @@ analytics.
       Note: the EAS `development` environment is EMPTY — no Mixpanel token
       (so a dev build sends nothing) and no RevenueCat keys either, so
       subscriptions won't initialise in a `development`-profile build.
-- [ ] **Remove the Android paywall X (dismiss) button** — RE-ADDED
+- [x] **Remove the Android paywall X (dismiss) button** — DONE 2026-08-02
+      (`78889bd4`): both gates back to `__DEV__` only; hard wall both
+      platforms in the RC (Neal saw it live during the Android E2E). RE-ADDED
       2026-07-30 for the access-test pass (was removed 2026-07-27): both
       gates are back to `__DEV__ || Platform.OS === 'android'`
       (`app/_layout.tsx`, `components/PaywallScreen.tsx`), so Android
@@ -58,9 +69,9 @@ analytics.
       (Audit 2026-08-01: the old "redeem bypass" no longer exists — the dev
       mock died with the purchased-codes system on 07-20; redemption is fully
       server-validated in `gifts-redeem`. Clause removed.)
-- [ ] **Bump the runtime version for the store release** — 3.0.8
-      recommended, so store binaries stop sharing an OTA channel with the
-      3.0.7 tester fleet.
+- [x] **Bump the runtime version for the store release** — DONE 2026-08-02:
+      runtime + version 3.0.8, build/versionCode 132. Store production
+      builds will be 133 (132 = the internal RC).
 - [x] **SECURITY: stop `credits-share` / `credits-status` trusting a
       client-supplied `anonymous_id`** (SESSION-HANDOFF §11.3) — **COMPLETE:
       server deployed + verified 2026-07-30, client shipped in the
@@ -212,10 +223,14 @@ analytics.
 - [x] **Fix "1 years · 0 months · 0 days" pluralization** on the Today
       sobriety counter — FIXED 2026-07-27 in `SobrietyCounter.tsx`
       (uncommitted, rides the next bundled OTA).
-- [ ] **End-to-end pass test on real devices** — send a pass from Neal's
-      phone → recipient taps soberdailies.com/get → picks a plan → Apple
-      redemption sheet → clean install → confirm NO paywall flash. Offer
-      codes have no sandbox; this can only be verified live.
+- [ ] **End-to-end pass test on real devices** — **ANDROID LEG VERIFIED
+      2026-08-02 on the 132 RC**, three full rounds: iPhone send → /get →
+      SD code → redeem → wall drops immediately; already-redeemed error
+      path seen and readable. Two live-fire bugs found + fixed + OTA'd to
+      channel `dev` along the way (`50408cc5` keyboard, `a5874545` RC
+      cache — see SESSION-HANDOFF §21). **REMAINING: the iOS recipient
+      leg** — Apple offer-code redemption sheet → clean install → no
+      paywall flash. Needs a second iPhone; offer codes have no sandbox.
 - [x] **Verify the pass spend-half cycle** — PASSED 2026-08-01 on Neal's
       iPhone (SESSION-HANDOFF §11.7): cancel kept the balance at 5, re-give
       returned the SAME token, real send → 4. ⚠️ That send minted a LIVE pass

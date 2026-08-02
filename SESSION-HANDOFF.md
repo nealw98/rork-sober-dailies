@@ -2468,3 +2468,115 @@ Two separate doors: user_profiles for founders, RC for payers.
 6. Ship day, one pass: PASSES_ENABLED → true · analytics → production (BOTH
    EAS envs AND local .env) · Android X → `__DEV__` · QA toggle gone (decide
    scope of Dev Console gating) · runtime 3.0.8 · build 132.
+
+## 21. Latest session — 2026-08-02 (RC SHIPPED · Android gift E2E · two live-fire fixes · prices set)
+
+Same working session as §20, second act. **Everything committed and pushed
+(head `a5874545`); tree clean.** The app has crossed from "testing 3.0.7"
+to "fine-tuning the 3.0.8 release candidate."
+
+### 21.1 The launch flips are DONE — build 132 RC exists
+
+All §1 checklist flips executed in one pass (`78889bd4`):
+`PASSES_ENABLED=true` · Android X gone (hard wall both platforms) ·
+analytics `production` in all three places (local `.env` + EAS
+`production` + `preview`, via `eas env:update --variable-name … 
+--variable-environment …`) · app.json → version/runtime **3.0.8**,
+build/versionCode **132**.
+
+- **Android 132 RC APK: BUILT and on Neal's phone.**
+- **iOS 132: NOT built** — ad-hoc provisioning profile expired; needs
+  Neal interactive: `eas build --profile preview --platform ios`.
+- RC = `preview` profile = **channel `dev`** + internal distribution +
+  Android APK. Fine-tuning OTAs: `eas update --channel dev` (two shipped
+  already, see 21.3). Double-isolated from testers (channel AND runtime).
+- Store launch builds will be **133** (`production` profile). The 3.0.7
+  tester channel is FROZEN (`.env` now says production — flip back to
+  `test` before any emergency 3.0.7 OTA).
+- DECIDED: **Developer Console stays in production builds** (long-press
+  version). Rationale in checklist §1. On the RC, turn Developer Mode ON
+  to keep Neal's sessions out of production analytics.
+
+### 21.2 Android gift E2E — VERIFIED on the shipping build (3 rounds)
+
+Full recipient path proven on the 132 RC: pass sent from Neal's iPhone →
+soberdailies.com/get → SD code dispensed → Have a code → redeem → wall
+drops → Today. Also seen working: already-redeemed error (readable), hard
+wall (no X), pass consumption per round. **REMAINING: the iOS recipient
+leg** (Apple offer-code sheet → clean install → no paywall flash) — needs
+a second iPhone, no sandbox exists.
+
+Identity mechanics learned (worth remembering for QA):
+- **"Clear all data & start over" deliberately KEEPS identity**
+  (`lib/userDataSync.ts` — anonymous_id + RC entitlements survive; it's a
+  DATA clean-install, mirrors a real reinstall). That's why round 1's
+  "fresh" device skipped the paywall: same RC identity, gift still active.
+- **"Reset Subscription State" is the true identity wipe** (deletes
+  SecureStore anonymous_id, clears onboarding flags, `Purchases.logOut()`).
+  Safe on any device NOT allowlisted in `dev_pass_granters` (Neal's
+  iPhone `4dfaa418-…` IS — never reset that one).
+- The disclaimer key survives both tools — only a genuinely clean install
+  shows the disclaimer again.
+
+### 21.3 Two live-fire bugs, found by Neal, fixed + OTA'd to channel `dev`
+
+1. **Have-a-code sheet hidden by the Android keyboard** (`50408cc5`):
+   RN's KeyboardAvoidingView doesn't track the keyboard inside a Modal
+   and did nothing on Android. Now keyboard-controller's
+   KeyboardProvider + KAV `behavior="padding"` (PrayerEditSheet pattern).
+   Also: a backdrop tap with the keyboard up now dismisses the KEYBOARD
+   first, second tap closes — "get the keyboard out of the way" can no
+   longer silently abandon a typed code.
+2. **Redeem success didn't drop the wall until app restart** (`a5874545`):
+   gift entitlements are granted SERVER-side (RC REST), so the SDK's
+   cached CustomerInfo predated the grant and `refresh()` re-read stale
+   cache. Fix: `Purchases.invalidateCustomerInfoCache()` before refresh
+   in the paywall's `onRedeemed`. Verified on device: wall now drops
+   immediately.
+
+Both verified by Neal on the RC after a Check-for-update. ⚠️ The 132
+EMBEDDED bundle predates both fixes — a fresh RC install must pull the
+`dev`-channel OTA (launch once, relaunch) before judging these flows.
+⚠️ 3.0.7 Android testers still have the keyboard bug (their channel is
+frozen); workaround is the keyboard's Go key — ship-relevant only if more
+tester redemptions are expected before launch.
+
+### 21.4 Pricing — the real story + both stores now set
+
+CORRECTION to §18/checklist: the LIVE store price was **v2's
+$1.99/$9.99** (not $4.99/$24.99 — that number was never live). So
+$3.99/$19.99 is an INCREASE for new users. v2 subscribers are safe by
+default: Play auto-creates a **legacy price cohort** on a base-plan price
+change (existing subscribers renew at their old price unless the
+developer explicitly migrates them — never do that), ASC equivalent for
+the scheduled change.
+
+- ASC: change scheduled, takes effect 2026-08-02 sometime.
+- Play: Neal updated the base-plan prices 2026-08-02.
+- VERIFY after propagation (hours): cold-start the RC on each platform →
+  paywall reads **$3.99 / $19.99 / SAVE 58% / $1.67-per-mo**. No code
+  involved — everything derives from `product.priceString`.
+
+### 21.5 Also this session
+
+- **Pass badge shows the real count** (`PassItOnGift.tsx`, cap now 99+;
+  was capped at "9+" which hid Neal's 11).
+- **Version label reads the BINARY build** (`Application.nativeBuildVersion`)
+  instead of the app.json snapshot OTAs carry — Settings can no longer
+  claim a build the device doesn't have (root cause of §19.6-style
+  confusion). expo-application ships in every binary since January.
+- Trial-reminder copy shipped in the earlier §20 OTA (`a9ea25b4` to the
+  3.0.7 channel — published BEFORE the analytics flip, so tagging is fine).
+- BUY-passes idea KILLED (Neal): passes are acquisition, not revenue —
+  recorded in checklist §4 + invite-rewards-design.md. Don't resurrect.
+
+### 21.6 Next session — where to pick up
+
+1. iOS 132 build (Neal, interactive), then iOS-side RC checks.
+2. Price re-eyeball both platforms after store propagation.
+3. iOS recipient leg of the pass E2E (second iPhone).
+4. Access test A1 formal pass (fresh-user trial purchase on the RC).
+5. Tidiness: ASC gift consumables + Play equivalents off sale; delete
+   `check-grandfather` + `invites-report`; B2 never-verified half on sim.
+6. When Neal is satisfied with the RC: build 133 (`production` profile),
+   store submissions, LAUNCH.
