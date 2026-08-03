@@ -29,6 +29,7 @@ export default function GlobalSponsorFab() {
     (segments as string[]).includes('meditation') ||
     (segments as string[]).includes('trends') ||
     (segments as string[]).includes('inventory') ||
+    (segments as string[]).includes('spot-check-chat') ||
     immersive
   ) {
     return null;

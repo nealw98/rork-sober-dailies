@@ -25,6 +25,7 @@ import BackButton from '@/components/BackButton';
 import { getSponsorById, getAvailableSponsors } from '@/constants/sponsors';
 import { SPOT_CHECK_FEELINGS, SPOT_CHECK_SEED_KEY } from '@/constants/spotCheckPersonas';
 import { pairsForFeelings } from '@/constants/spotCheckPairs';
+import { prefetchCausesQuestion } from '@/lib/spotCheckLLM';
 import { useLastSponsor } from '@/hooks/use-last-sponsor';
 import { useTokens, useThemedStyles } from '@/hooks/useTokens';
 import { logEvent } from '@/lib/analytics';
@@ -69,6 +70,18 @@ export default function InventoryScreen() {
   const pairs = pairsForFeelings(feelings);
 
   const markEdited = () => setEditedSinceSave(true);
+
+  // Speculative prefetch: once the form is ready and the user pauses for a
+  // beat, fire the page-3 question so it's already in flight (often already
+  // resolved) before they tap Talk-it-through. Key-guarded in spotCheckLLM,
+  // so edits after the pause just supersede the stale one; the tap-time
+  // prefetch in talk() remains the safety net for sponsor-sheet picks.
+  useEffect(() => {
+    if (!ready) return;
+    const t = setTimeout(() => prefetchCausesQuestion(sponsorId, feelings, whatsGoingOn.trim()), 2000);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ready, feelings, whatsGoingOn, sponsorId]);
 
   const toggleFeeling = (f: string) => {
     markEdited();
@@ -150,9 +163,14 @@ export default function InventoryScreen() {
       savedEntryId: editedSinceSave ? null : savedEntryId,
     };
     try {
+      // Fire the page-3 question NOW — the round-trip overlaps navigation
+      // instead of starting after the chat screen mounts.
+      prefetchCausesQuestion(sid, feelings, whatsGoingOn.trim());
       await AsyncStorage.setItem(SPOT_CHECK_SEED_KEY, JSON.stringify(seed));
       logEvent('spot_check_talk', { sponsor: sid, saved: seed.savedEntryId != null });
-      router.replace(`/sponsor-chat?sponsor=${sid}`);
+      // The chat half is its own EPHEMERAL session (never the main sponsor
+      // thread) — push, so backing out of it returns to this form.
+      router.push('/(main)/spot-check-chat');
     } catch (e) {
       console.error('Spot check seed failed:', e);
     }
@@ -190,7 +208,7 @@ export default function InventoryScreen() {
         bottomOffset={24}
         showsVerticalScrollIndicator={false}
       >
-        <Text style={styles.sectionLabel}>HOW ARE YOU FEELING?</Text>
+        <Text style={[styles.sectionLabel, { marginTop: 18 }]}>HOW ARE YOU FEELING?</Text>
         <View style={styles.pills}>
           {SPOT_CHECK_FEELINGS.map((f) => {
             const on = feelings.includes(f);

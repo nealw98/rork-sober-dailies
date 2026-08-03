@@ -35,17 +35,27 @@ real sponsor chat.
 
 ### Screen 2 — the real sponsor chat (the actual chat surface)
 
-Not a lookalike: the existing sponsor-chat screen/thread, with its history,
-caps, and behavior. Seeding + a two-turn contract:
+**REVISED (Neal, 2026-08-03 pm): a SEPARATE, EPHEMERAL session** — its own
+screen (`app/(main)/spot-check-chat.tsx`), chat-styled, but it NEVER
+touches the persona's main thread (an ongoing conversation there is
+untouched). **Framing: it is the SAME wizard, split** — pages 1–2 on the
+form, pages 3–4 in this chat window. A **Done** button (and back) ends and
+discards the session; the saved record + optional take are the durable
+artifacts. Same daily message cap and crisis scan as the main chat.
 
-1. The form's content (feelings + what's-going-on text) is the FIRST USER
-   MESSAGE at the beginning of the context window.
-2. **Sponsor turn 1 (hard structure, real generation):** probes what's
-   going on UNDERNEATH — a question, in persona voice.
-3. User replies.
-4. **Sponsor turn 2 (hard structure, real generation):** summary of the
-   situation + THREE concrete suggestions.
-5. From then on: a completely normal chat in that thread.
+1. The chat OPENS with the sponsor asking the page-3 question — no
+   welcome line ("no What-fresh-hell opener"), no preamble, no echo of
+   the form. The question is generated FROM the form via
+   askCausesQuestion; the form content grounds every later turn.
+2. User replies (the page-3 causes answer).
+3. **Sponsor page-4 turn (hard structure, real generation):** summary of
+   the situation + THREE concrete suggestions.
+4. **Immediately after page 4: a DIALOG** — "Add {name}'s take?" (only if
+   the form was saved) — Add it / Not now. Adding writes the summary +
+   suggestions onto the saved record and drops a visible confirmation
+   pill into the stream.
+5. From then on: normal chat inside this session (askSpotCheckReply,
+   persona voice, spot-check context attached) until Done.
 
 "Hard content but sponsor-AI realness": the two-turn structure is enforced
 in the prompt contract; the words are genuinely generated per persona.
