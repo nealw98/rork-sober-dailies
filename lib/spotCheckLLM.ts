@@ -105,9 +105,10 @@ async function callPaidSponsor(
       sponsorId: apiSponsorId,
       message: trim(message, 2000),
       conversation,
-      // Cranked (Neal, 2026-08-03): spot-check turns run hot for persona
-      // color — server clamps to 1.2, this leaves a notch of headroom.
-      temperature: 1.1,
+      // Anthropic's max (Neal, 2026-08-03): spot-check turns run hot for
+      // persona color. Stated as the real value — the server clamps
+      // Anthropic to 1.0 anyway, so 1.1 was already landing here.
+      temperature: 1.0,
       maxOutputTokens: 500,
       provider: 'anthropic',
       anonymous_id: anonymousId,
