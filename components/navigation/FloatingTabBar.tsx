@@ -256,10 +256,11 @@ export default function FloatingTabBar({ state, navigation }: BottomTabBarProps)
           style={[
             styles.bar,
             {
+              // White pill (settled 2026-08-03 after trying deep teal — too
+              // heavy, esp. Tools — and a pale teal tint). Separation comes
+              // from the firmer hairline, crisper shadow, and teal items.
               backgroundColor: isDark ? c.surface : '#FFFFFF',
-              // Firmer hairline (2026-08-03): the 0.06 border vanished on the
-              // linen bg, letting the pill read as page rather than utility.
-              borderColor: isDark ? c.tabBorder : 'rgba(0,0,0,0.11)',
+              borderColor: isDark ? c.tabBorder : 'rgba(0,0,0,0.10)',
             },
           ]}
         >
