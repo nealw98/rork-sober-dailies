@@ -26,7 +26,8 @@ import { requireOptionalNativeModule } from 'expo-modules-core';
 import { useSubscription } from '@/hooks/useSubscription';
 import { getShareLink, confirmShareSent, giftMessage, PASSES_ENABLED } from '@/lib/creditsService';
 import { shareApp } from '@/lib/shareApp';
-import { logEvent } from '@/lib/analytics';
+import { logEvent, DEVELOPER_MODE_KEY } from '@/lib/analytics';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // The CTA keeps full rose chroma in both modes (jewel treatment).
 const ROSE_FILL = lightColors.rose;
@@ -133,8 +134,15 @@ export default function PassItOnScreen() {
       }
       const message = giftMessage(pending.link);
 
+      // Developer Mode: skip SMS for the OS share sheet. A SIM-less test
+      // device passes isAvailableAsync (an SMS app exists) but the OS then
+      // refuses to compose, which reads as "cancelled" — leaving no way to
+      // get the link off the device (Neal, 2026-08-03, Android E2E). Text
+      // stays the ONLY path for production users.
+      const devShare = (await AsyncStorage.getItem(DEVELOPER_MODE_KEY).catch(() => null)) === 'true';
+
       const SMS = getSMS();
-      if (SMS && (await SMS.isAvailableAsync().catch(() => false))) {
+      if (!devShare && SMS && (await SMS.isAvailableAsync().catch(() => false))) {
         // Open the composer with the To: field BLANK (Neal, 2026-07-27) — the
         // Messages field itself takes a typed number or a contact name, which
         // covers the meeting case without making the recipient a Contact
