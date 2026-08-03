@@ -81,6 +81,12 @@ export const getSpotCheckFallbackQuestion = (id: SponsorType, feelings: string[]
 // switcher's SELECTION_SPONSOR_IDS).
 export const SPOT_CHECK_SPONSOR_IDS: SponsorType[] = ['supportive', 'salty', 'grace'];
 
+// Redesign (docs/spotcheck-redesign-spec.md): the form → chat seed. Written by
+// the Spot Check form on Talk-it-through, consumed once by sponsor-chat, which
+// injects the form content as the FIRST USER MESSAGE and runs the two-turn
+// contract. Replaces the wizard's SPOT_CHECK_HANDOFF_KEY context-card flow.
+export const SPOT_CHECK_SEED_KEY = 'spot_check_seed_v1';
+
 // Short-lived AsyncStorage handoff: the Spot Check screen writes the saved
 // entry here before routing to sponsor-chat, which reads-and-clears it and
 // injects the context card. (Route params would risk URL-length limits with

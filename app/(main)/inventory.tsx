@@ -1,170 +1,132 @@
-// Spot Check Inventory — sponsor-driven guided flow (redesign, July 2026).
-// Four fixed steps voiced by the AI sponsor persona: (1) feeling pills and
-// (2) what's-going-on are FIXED per-persona scripts (constants/
-// spotCheckPersonas); (3) causes & conditions and (4) summary + suggestions
-// are the flow's only two LLM calls (lib/spotCheckLLM), each with an offline
-// fallback so the flow always completes. Saving writes a SpotCheckEntry to
-// AsyncStorage (spot_check_inventories) and NEVER auto-marks the Today daily
-// done — completion is fully manual (product decision, July 2026). "Keep
-// talking" hands the entry into the sponsor's regular chat thread via the
-// pending-handoff key; sponsor-chat injects it as a context card.
+// Spot Check — single-form redesign (2026-08-03, docs/spotcheck-redesign-spec.md).
+// Replaces the 4-step wizard: one page (feelings chips + what's-going-on +
+// live Watch For/Strive For preview) that is complete in itself, plus a split
+// CTA into the REAL sponsor chat (form content = first user message; the chat
+// runs the two-turn contract). Three save states (Neal, 2026-08-03):
+//   1. Save pill (top right) — saves in place and STAYS; edits re-arm it; a
+//      re-save updates the same record, never duplicates.
+//   2. Save & close / 3. Close without saving — on the back chevron when
+//      dirty; labels are a UI iteration, the states are the contract.
+// Talk-it-through never saves; it carries savedEntryId (gates the take
+// prompt in chat). LLM calls live entirely on the chat side now.
 import React, { useEffect, useRef, useState } from 'react';
-import { View, Text, TextInput, Pressable, StyleSheet, Keyboard, Alert, BackHandler } from 'react-native';
-import { KeyboardAvoidingView, KeyboardAwareScrollView } from 'react-native-keyboard-controller';
+import {
+  View, Text, StyleSheet, Pressable, TextInput, Alert, BackHandler,
+  Keyboard, Modal, Platform,
+} from 'react-native';
+import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Stack, useRouter } from 'expo-router';
 import { Image } from 'expo-image';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Haptics from 'expo-haptics';
-import { Check, MessageCircle } from 'lucide-react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { ChevronDown, Check } from 'lucide-react-native';
 import BackButton from '@/components/BackButton';
-import { todayLabel } from '@/components/ToolScreen';
-import { getSponsorById } from '@/constants/sponsors';
-import {
-  getSpotCheckScript, getSpotCheckFallbackQuestion,
-  SPOT_CHECK_FEELINGS, SPOT_CHECK_SPONSOR_IDS, SPOT_CHECK_HANDOFF_KEY,
-} from '@/constants/spotCheckPersonas';
-import { askCausesQuestion, askSummary } from '@/lib/spotCheckLLM';
+import { getSponsorById, getAvailableSponsors } from '@/constants/sponsors';
+import { SPOT_CHECK_FEELINGS, SPOT_CHECK_SEED_KEY } from '@/constants/spotCheckPersonas';
+import { pairsForFeelings } from '@/constants/spotCheckPairs';
 import { useLastSponsor } from '@/hooks/use-last-sponsor';
-import { fontFamily, type Tokens } from '@/constants/designTokens';
 import { useTokens, useThemedStyles } from '@/hooks/useTokens';
 import { logEvent } from '@/lib/analytics';
 import { confirmSaved } from '@/lib/savedNotice';
+import { fontFamily, type Tokens } from '@/constants/designTokens';
 import type { SponsorType } from '@/types';
-import type { SpotCheckEntry } from '@/types/spotCheck';
+import type { SpotCheckEntry, SpotCheckSeed } from '@/types/spotCheck';
 
 const INVENTORY_STORAGE_KEY = 'spot_check_inventories';
-const STEPS = 4;
-
-// Lightweight animated ellipsis for the sponsor bubble's thinking state.
-function ThinkingDots() {
-  const styles = useThemedStyles(makeStyles);
-  const [dots, setDots] = useState(1);
-  useEffect(() => {
-    const t = setInterval(() => setDots((d) => (d % 3) + 1), 400);
-    return () => clearInterval(t);
-  }, []);
-  return <Text style={styles.bubbleText}>{'·'.repeat(dots) + ' '}</Text>;
-}
 
 export default function InventoryScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const styles = useThemedStyles(makeStyles);
-  const { c, colors, isDark } = useTokens();
+  const { c, colors } = useTokens();
   const { lastSponsorId, setLastSponsor } = useLastSponsor();
 
   const [sponsorId, setSponsorId] = useState<SponsorType>('supportive');
-  const [step, setStep] = useState(0);
   const [feelings, setFeelings] = useState<string[]>([]);
-  const [otherOpen, setOtherOpen] = useState(false);
-  const [otherText, setOtherText] = useState('');
   const [whatsGoingOn, setWhatsGoingOn] = useState('');
-  const [causesQuestion, setCausesQuestion] = useState<string | null>(null);
-  const [causesAnswer, setCausesAnswer] = useState('');
-  const [summary, setSummary] = useState<string | null>(null);
-  const [suggestions, setSuggestions] = useState<string[] | null>(null);
-  const [causesLoading, setCausesLoading] = useState(false);
-  const [summaryLoading, setSummaryLoading] = useState(false);
-  const [summaryFailed, setSummaryFailed] = useState(false);
+  const [sheetOpen, setSheetOpen] = useState(false);
   const [saving, setSaving] = useState(false);
+  // The saved record's id, plus whether the form changed since that save —
+  // together these drive the Save pill's three visual states.
+  const [savedEntryId, setSavedEntryId] = useState<string | null>(null);
+  const [editedSinceSave, setEditedSinceSave] = useState(false);
 
-  // Inherit the FAB's last-opened sponsor once it loads, unless the user
-  // already changed it here or has moved past the first step.
+  // Inherit the FAB's last-opened sponsor once it loads (full roster — the
+  // wizard's 3-persona limit is gone), unless the user picked one here.
   const userPicked = useRef(false);
   useEffect(() => {
-    if (userPicked.current || step > 0) return;
-    if (lastSponsorId && (SPOT_CHECK_SPONSOR_IDS as string[]).includes(lastSponsorId)) {
+    if (userPicked.current) return;
+    if (lastSponsorId && getSponsorById(lastSponsorId)) {
       setSponsorId(lastSponsorId as SponsorType);
     }
-  }, [lastSponsorId, step]);
+  }, [lastSponsorId]);
 
   const sponsor = getSponsorById(sponsorId);
-  const script = getSpotCheckScript(sponsorId);
   const firstName = sponsor?.name.split(' ').slice(-1)[0] ?? 'your sponsor';
-  const dirty = feelings.length > 0 || whatsGoingOn.trim() !== '' || causesAnswer.trim() !== '';
+  const ready = feelings.length > 0 && whatsGoingOn.trim() !== '';
+  const dirty = (feelings.length > 0 || whatsGoingOn.trim() !== '') && (savedEntryId === null || editedSinceSave);
+  const pairs = pairsForFeelings(feelings);
 
-  // ── The two LLM calls, guarded against stale responses (sponsor switched
-  // or step re-entered while a request was in flight) ──
-  const causesReq = useRef(0);
-  const runCausesQuestion = async (sid: SponsorType) => {
-    const id = ++causesReq.current;
-    setCausesLoading(true);
-    try {
-      const q = await askCausesQuestion(sid, feelings, whatsGoingOn.trim());
-      if (causesReq.current !== id) return;
-      setCausesQuestion(q);
-    } catch {
-      if (causesReq.current !== id) return;
-      setCausesQuestion(getSpotCheckFallbackQuestion(sid, feelings));
-    } finally {
-      if (causesReq.current === id) setCausesLoading(false);
+  const markEdited = () => setEditedSinceSave(true);
+
+  const toggleFeeling = (f: string) => {
+    markEdited();
+    setFeelings((cur) => (cur.includes(f) ? cur.filter((x) => x !== f) : [...cur, f]));
+  };
+
+  // ── Save: in place. First save inserts; later saves update the same id. ──
+  const save = async (): Promise<string> => {
+    const id = savedEntryId ?? Date.now().toString();
+    const entry: SpotCheckEntry = {
+      id,
+      createdAt: Date.now(),
+      sponsorId,
+      feelings,
+      whatsGoingOn: whatsGoingOn.trim(),
+      causesQuestion: null,
+      causesAnswer: null,
+      summary: null,
+      suggestions: null,
+    };
+    const stored = await AsyncStorage.getItem(INVENTORY_STORAGE_KEY);
+    const records: SpotCheckEntry[] = stored ? JSON.parse(stored) : [];
+    const at = records.findIndex((r) => r.id === id);
+    if (at >= 0) {
+      // Update in place, preserving createdAt and any take already added.
+      records[at] = { ...records[at], sponsorId, feelings, whatsGoingOn: entry.whatsGoingOn };
+    } else {
+      records.unshift(entry);
     }
+    await AsyncStorage.setItem(INVENTORY_STORAGE_KEY, JSON.stringify(records));
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    logEvent('entry_saved', { type: 'spot_check', sponsor: sponsorId, feeling_count: feelings.length, update: at >= 0 });
+    setSavedEntryId(id);
+    setEditedSinceSave(false);
+    return id;
   };
 
-  const summaryReq = useRef(0);
-  const runSummary = async (sid: SponsorType, answer: string | null) => {
-    const id = ++summaryReq.current;
-    setSummaryLoading(true);
-    setSummaryFailed(false);
-    try {
-      const result = await askSummary(sid, {
-        feelings,
-        whatsGoingOn: whatsGoingOn.trim(),
-        causesQuestion,
-        causesAnswer: answer,
-      });
-      if (summaryReq.current !== id) return;
-      setSummary(result.summary);
-      setSuggestions(result.suggestions);
-    } catch {
-      if (summaryReq.current !== id) return;
-      setSummary(null);
-      setSuggestions(null);
-      setSummaryFailed(true);
-    } finally {
-      if (summaryReq.current === id) setSummaryLoading(false);
-    }
+  // State 1 — Save pill: save and STAY.
+  const onSave = async () => {
+    if (saving || !ready) return;
+    setSaving(true);
+    try { await save(); } catch (e) { console.error('Spot check save failed:', e); }
+    setSaving(false);
   };
 
-  // ── Navigation between steps ──
-  const goToCauses = () => {
-    Keyboard.dismiss();
-    setStep(2);
-    if (causesQuestion === null && !causesLoading) runCausesQuestion(sponsorId);
-  };
-  // No separate Skip: Continue is enabled with an empty answer and passes null
-  // to the summary, so leaving the field blank IS skipping.
-  const goToSummary = () => {
-    Keyboard.dismiss();
-    setStep(3);
-    runSummary(sponsorId, causesAnswer.trim() || null);
-  };
-
-  const onChangeSponsor = (id: SponsorType) => {
-    if (id === sponsorId) return;
-    userPicked.current = true;
-    setSponsorId(id);
-    setLastSponsor(id); // shared key — the FAB resumes this sponsor too
-    // Re-voice the current step's generated content; user inputs are untouched.
-    if (step === 2) runCausesQuestion(id);
-    if (step === 3) runSummary(id, causesAnswer.trim() || null);
-  };
-
-  // Deep links land here with no back stack — fall back to home so exits
-  // never fire an unhandled GO_BACK.
-  const exit = () => {
-    if (router.canGoBack()) router.back();
-    else router.replace('/');
-  };
-
-  // ── Back out mid-flow: offer to save what's there (records to Journey) ──
+  // States 2 & 3 — leaving. Clean form (or saved + unedited) just exits.
+  const exit = () => { if (router.canGoBack()) router.back(); else router.replace('/'); };
   const confirmExit = () => {
     if (!dirty) { exit(); return; }
-    Alert.alert('Save this spot check?', 'What you’ve entered so far will show up in Journey.', [
+    Alert.alert('Save this spot check?', 'What you’ve entered will show up in Journey.', [
       { text: 'Keep writing', style: 'cancel' },
-      { text: 'Discard', style: 'destructive', onPress: () => exit() },
-      { text: 'Save & close', onPress: doneForNow },
+      { text: 'Close without saving', style: 'destructive', onPress: exit },
+      {
+        text: 'Save & close',
+        onPress: async () => {
+          try { await save(); confirmSaved(); } catch (e) { console.error('Spot check save failed:', e); }
+        },
+      },
     ]);
   };
   useEffect(() => {
@@ -173,314 +135,158 @@ export default function InventoryScreen() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dirty]);
 
-  // ── Save + exits. Never marks the Today daily done (completion is manual). ──
-  const save = async (): Promise<SpotCheckEntry> => {
-    const entry: SpotCheckEntry = {
-      id: Date.now().toString(),
-      createdAt: Date.now(),
-      sponsorId,
+  // ── Talk it through: seed the REAL chat. Never saves. ──
+  const talk = async (sid: SponsorType) => {
+    if (!ready) return;
+    Keyboard.dismiss();
+    setSheetOpen(false);
+    userPicked.current = true;
+    setSponsorId(sid);
+    setLastSponsor(sid);
+    const seed: SpotCheckSeed = {
+      sponsorId: sid,
       feelings,
       whatsGoingOn: whatsGoingOn.trim(),
-      causesQuestion,
-      causesAnswer: causesAnswer.trim() || null,
-      summary,
-      suggestions,
+      savedEntryId: editedSinceSave ? null : savedEntryId,
     };
-    const stored = await AsyncStorage.getItem(INVENTORY_STORAGE_KEY);
-    const records = stored ? JSON.parse(stored) : [];
-    records.unshift(entry);
-    await AsyncStorage.setItem(INVENTORY_STORAGE_KEY, JSON.stringify(records));
-    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    logEvent('entry_saved', {
-      type: 'spot_check',
-      sponsor: sponsorId,
-      feeling_count: feelings.length,
-      skipped_causes: causesAnswer.trim() === '',
-    });
-    return entry;
-  };
-
-  const doneForNow = async () => {
-    if (saving) return;
-    setSaving(true);
     try {
-      await save();
-      // Where did it go? — Journey. The dialog navigates, and fires the
-      // one-time backup nudge afterwards so the two queue instead of stacking.
-      confirmSaved();
-    } catch (error) {
-      console.error('Error saving spot check:', error);
-      setSaving(false);
+      await AsyncStorage.setItem(SPOT_CHECK_SEED_KEY, JSON.stringify(seed));
+      logEvent('spot_check_talk', { sponsor: sid, saved: seed.savedEntryId != null });
+      router.replace(`/sponsor-chat?sponsor=${sid}`);
+    } catch (e) {
+      console.error('Spot check seed failed:', e);
     }
   };
 
-  const keepTalking = async () => {
-    if (saving) return;
-    setSaving(true);
-    try {
-      const entry = await save();
-      await AsyncStorage.setItem(SPOT_CHECK_HANDOFF_KEY, JSON.stringify(entry));
-      router.replace(`/sponsor-chat?sponsor=${sponsorId}`);
-    } catch (error) {
-      console.error('Error handing off spot check:', error);
-      setSaving(false);
-    }
-  };
+  const savePillLabel = saving ? 'Saving…' : savedEntryId && !editedSinceSave ? 'Saved' : 'Save';
+  const savePillActive = ready && !(savedEntryId && !editedSinceSave);
 
-  // ── Pieces ──
-  const askBubble = (text: React.ReactNode, thinking = false) => (
-    <View style={styles.bubbleRow}>
-      <Image source={sponsor?.avatar} style={styles.bubbleAvatar} contentFit="cover" />
-      <View style={styles.flex}>
-        {thinking ? <ThinkingDots /> : <Text style={styles.bubbleText}>{text}</Text>}
+  return (
+    <View style={styles.screen}>
+      <Stack.Screen options={{ headerShown: false }} />
+      <View style={{ paddingTop: insets.top }} />
+
+      {/* Header: chevron (bail out) · title · Save pill */}
+      <View style={styles.headerRow}>
+        <BackButton onPress={confirmExit} />
+        <Text style={styles.title}>Spot Check</Text>
+        <Pressable
+          onPress={onSave}
+          disabled={!savePillActive || saving}
+          accessibilityRole="button"
+          accessibilityLabel="Save spot check"
+          style={[styles.savePill, savePillActive ? styles.savePillOn : styles.savePillOff]}
+        >
+          <Text style={[styles.savePillText, savePillActive ? styles.savePillTextOn : styles.savePillTextOff]}>
+            {savePillLabel}
+          </Text>
+        </Pressable>
       </View>
-    </View>
-  );
 
-  const recap = (label: string, text: string) => (
-    <View style={styles.recapCard}>
-      <Text style={styles.recapLabel}>{label}</Text>
-      <Text style={styles.recapBody}>{text}</Text>
-    </View>
-  );
-
-  const continueBtn = (enabled: boolean, onPress: () => void) => (
-    <Pressable
-      onPress={onPress}
-      disabled={!enabled}
-      style={[styles.continueBtn, !enabled && styles.btnDisabled]}
-      accessibilityRole="button"
-      accessibilityLabel="Continue"
-    >
-      <Text style={styles.continueText}>Continue</Text>
-    </Pressable>
-  );
-
-  const backBtn = (to: number) => (
-    <Pressable onPress={() => setStep(to)} style={styles.backPill} accessibilityRole="button" accessibilityLabel="Back">
-      <Text style={styles.backPillText}>Back</Text>
-    </Pressable>
-  );
-
-  // ── Step bodies ──
-  let body: React.ReactNode = null;
-  if (step === 0) {
-    // Custom ("Other") feelings ride alongside the fixed set; tapping one off
-    // removes it entirely.
-    const customFeelings = feelings.filter((f) => !SPOT_CHECK_FEELINGS.includes(f));
-    const addOther = () => {
-      const f = otherText.trim();
-      setOtherText('');
-      setOtherOpen(false);
-      if (f && !feelings.includes(f)) setFeelings((cur) => [...cur, f]);
-    };
-    body = (
-      <>
-        {askBubble(script.ask1)}
+      <KeyboardAwareScrollView
+        style={styles.flex}
+        contentContainerStyle={styles.scroll}
+        keyboardShouldPersistTaps="handled"
+        bottomOffset={24}
+        showsVerticalScrollIndicator={false}
+      >
+        <Text style={styles.sectionLabel}>HOW ARE YOU FEELING?</Text>
         <View style={styles.pills}>
-          {[...SPOT_CHECK_FEELINGS, ...customFeelings].map((f) => {
+          {SPOT_CHECK_FEELINGS.map((f) => {
             const on = feelings.includes(f);
             return (
               <Pressable
                 key={f}
-                onPress={() => setFeelings((cur) => (on ? cur.filter((x) => x !== f) : [...cur, f]))}
+                onPress={() => toggleFeeling(f)}
+                accessibilityRole="button"
+                accessibilityState={{ selected: on }}
                 style={[styles.pill, on ? { backgroundColor: colors.accent, borderColor: colors.accent } : styles.pillOff]}
               >
                 <Text style={[styles.pillText, { color: on ? '#fff' : c.textSecondary }]}>{f}</Text>
               </Pressable>
             );
           })}
-          <Pressable
-            onPress={() => setOtherOpen((v) => !v)}
-            style={[styles.pill, styles.pillOther, otherOpen && { borderColor: colors.accent }]}
-            accessibilityRole="button"
-            accessibilityLabel="Other feeling"
-          >
-            <Text style={[styles.pillText, { color: c.textMuted }]}>Other…</Text>
-          </Pressable>
         </View>
-        {otherOpen && (
-          <TextInput
-            value={otherText}
-            onChangeText={setOtherText}
-            onSubmitEditing={addOther}
-            onBlur={addOther}
-            placeholder="Name it in a word or two"
-            placeholderTextColor={c.textMuted}
-            style={[styles.input, styles.otherInput]}
-            returnKeyType="done"
-            autoFocus
-            maxLength={30}
-            keyboardAppearance={isDark ? 'dark' : 'light'}
-          />
-        )}
-      </>
-    );
-  } else if (step === 1) {
-    body = (
-      <>
-        {recap('FEELING', feelings.join(' · '))}
-        {askBubble(script.ask2)}
+
+        <Text style={[styles.sectionLabel, { marginTop: 22 }]}>WHAT’S GOING ON?</Text>
         <TextInput
-          key="whatsGoingOn"
+          style={[styles.input, { minHeight: 120 }]}
+          multiline
           value={whatsGoingOn}
-          onChangeText={setWhatsGoingOn}
-          placeholder="Where did the day turn?"
+          onChangeText={(t) => { markEdited(); setWhatsGoingOn(t); }}
+          placeholder="What’s happening right now"
           placeholderTextColor={c.textMuted}
-          style={[styles.input, { minHeight: 110 }]}
-          multiline
-          keyboardAppearance={isDark ? 'dark' : 'light'}
         />
-      </>
-    );
-  } else if (step === 2) {
-    body = (
-      <>
-        {recap('FEELING', feelings.join(' · '))}
-        {recap('WHAT’S GOING ON', whatsGoingOn.trim())}
-        {askBubble(causesQuestion, causesLoading)}
-        <TextInput
-          key="causesAnswer"
-          value={causesAnswer}
-          onChangeText={setCausesAnswer}
-          placeholder="What’s on my side of the street?"
-          placeholderTextColor={c.textMuted}
-          style={[styles.input, { minHeight: 100 }]}
-          multiline
-          keyboardAppearance={isDark ? 'dark' : 'light'}
-        />
-      </>
-    );
-  } else {
-    body = (
-      <>
-        {summaryLoading ? (
-          askBubble(null, true)
-        ) : summaryFailed ? (
-          askBubble('Your spot check is ready to save. I couldn’t reach the connection to reflect it back right now — but you did the looking, and that’s the part that counts.')
-        ) : (
-          <>
-            {askBubble(summary)}
-            {/* Plain rows, not cards — the suggestions read as a continuation
-                of the sponsor's voice, so no chrome of their own. */}
-            <View style={styles.bullets}>
-              {(suggestions ?? []).map((b, i) => (
-                <View key={i} style={styles.bulletRow}>
-                  <Check size={15} color={colors.accent} strokeWidth={2.6} style={styles.bulletIcon} />
-                  <Text style={styles.bulletText}>{b}</Text>
-                </View>
-              ))}
+
+        {pairs.length > 0 && (
+          <View style={styles.pairsCard}>
+            <View style={styles.pairsHead}>
+              <Text style={[styles.pairsHeadText, { color: colors.accentDark }]}>WATCH FOR</Text>
+              <Text style={[styles.pairsHeadText, { color: colors.primaryDark }]}>STRIVE FOR</Text>
             </View>
-          </>
+            {pairs.map((p) => (
+              <View key={p.id} style={styles.pairRow}>
+                <Text style={styles.pairOff}>{p.off}</Text>
+                <Text style={[styles.pairOn, { color: colors.primaryDark }]}>{p.on}</Text>
+              </View>
+            ))}
+          </View>
         )}
-        {!summaryLoading && (
-          <>
-            {/* "Keep talking" rides with the suggestions; the footer owns only Done */}
-            <View style={styles.bullets}>
-              <Pressable
-                onPress={keepTalking}
-                disabled={saving}
-                style={[styles.keepCard, saving && styles.btnDisabled]}
-                accessibilityRole="button"
-                accessibilityLabel={`Keep talking with ${firstName}`}
-              >
-                <MessageCircle size={15} color={colors.accentDark} strokeWidth={2.2} />
-                <Text style={styles.keepCardText}>Keep talking with {firstName}</Text>
-              </Pressable>
-            </View>
-          </>
-        )}
-      </>
-    );
-  }
-
-  return (
-    <View style={styles.screen}>
-      <Stack.Screen options={{ headerShown: false }} />
-
-      {/* ── Header: back chevron + large title + date. The flow owns save. ── */}
-      <View style={[styles.header, { paddingTop: insets.top + 8 }]}>
-        <BackButton onPress={confirmExit} style={styles.headerBack} />
-        <Text style={styles.title}>Spot Check Inventory</Text>
-        <Text style={styles.subtitle}>{todayLabel()}</Text>
-      </View>
-
-      {/* The avoiding view lifts the WHOLE column — scroll area and footer
-          dock — above the keyboard. Without it the dock sat below the scroll
-          view, outside the keyboard math, and inputs could end up covered.
-          Bonus: Back/Skip/Continue stay reachable while typing. */}
-      <KeyboardAvoidingView behavior="padding" style={styles.flex}>
-      <KeyboardAwareScrollView
-        style={styles.flex}
-        contentContainerStyle={styles.scroll}
-        keyboardShouldPersistTaps="handled"
-        showsVerticalScrollIndicator={false}
-        bottomOffset={24}
-      >
-        {/* Progress rail */}
-        <View style={styles.rail}>
-          {Array.from({ length: STEPS }).map((_, i) => (
-            <View key={i} style={[styles.railSeg, { backgroundColor: i <= step ? colors.accent : c.border }]} />
-          ))}
-        </View>
-
-        {/* Sponsor pills — tap to switch; re-voices sponsor content, inputs untouched */}
-        <View style={styles.sponsorRow}>
-          {SPOT_CHECK_SPONSOR_IDS.map((id) => {
-            const sp = getSponsorById(id);
-            const on = id === sponsorId;
-            return (
-              <Pressable
-                key={id}
-                onPress={() => onChangeSponsor(id)}
-                style={[styles.sponsorPill, on ? { backgroundColor: colors.accent, borderColor: colors.accent } : styles.sponsorPillOff]}
-                accessibilityRole="button"
-                accessibilityLabel={`Sponsor ${sp?.name}`}
-              >
-                <Image source={sp?.avatar} style={styles.sponsorAvatar} contentFit="cover" />
-                <Text style={[styles.sponsorPillText, { color: on ? '#fff' : c.textSecondary }]} numberOfLines={1}>
-                  {sp?.name}
-                </Text>
-              </Pressable>
-            );
-          })}
-        </View>
-
-        {body}
+        <View style={{ height: 20 }} />
       </KeyboardAwareScrollView>
 
-      {/* ── Footer dock ── */}
+      {/* Split CTA: talk with last-used sponsor · chevron opens full roster */}
       <View style={[styles.dock, { paddingBottom: Math.max(insets.bottom, 14) + 16 }]}>
-        {step === 0 && continueBtn(feelings.length > 0, () => setStep(1))}
-        {step === 1 && (
-          <>
-            {backBtn(0)}
-            {continueBtn(whatsGoingOn.trim() !== '', goToCauses)}
-          </>
-        )}
-        {step === 2 && (
-          <>
-            {backBtn(1)}
-            {continueBtn(!causesLoading, goToSummary)}
-          </>
-        )}
-        {step === 3 && (
-          <>
-            {backBtn(2)}
-            <Pressable
-              onPress={doneForNow}
-              disabled={saving || summaryLoading}
-              style={[styles.doneBtn, (saving || summaryLoading) && styles.btnDisabled]}
-              accessibilityRole="button"
-              accessibilityLabel="Done for now"
-            >
-              <Text style={styles.doneText}>Done for now</Text>
-            </Pressable>
-          </>
-        )}
+        <View style={[styles.splitBtn, { backgroundColor: colors.accent }, !ready && styles.btnDisabled]}>
+          <Pressable
+            onPress={() => talk(sponsorId)}
+            disabled={!ready}
+            accessibilityRole="button"
+            accessibilityLabel={`Talk it through with ${firstName}`}
+            style={styles.splitMain}
+          >
+            <Image source={sponsor?.avatar} style={styles.splitAvatar} contentFit="cover" />
+            <Text style={styles.splitText}>Talk it through with {firstName}</Text>
+          </Pressable>
+          <Pressable
+            onPress={() => ready && setSheetOpen(true)}
+            disabled={!ready}
+            accessibilityRole="button"
+            accessibilityLabel="Choose a different sponsor"
+            style={styles.splitChev}
+          >
+            <ChevronDown size={18} color="#fff" strokeWidth={2.4} />
+          </Pressable>
+        </View>
       </View>
-      </KeyboardAvoidingView>
 
+      {/* Sponsor sheet — FULL roster */}
+      <Modal transparent visible={sheetOpen} animationType="slide" onRequestClose={() => setSheetOpen(false)}>
+        <Pressable style={styles.sheetBackdrop} onPress={() => setSheetOpen(false)}>
+          <Pressable style={[styles.sheet, { paddingBottom: Math.max(insets.bottom, 16) + 10 }]} onPress={() => {}}>
+            <View style={styles.sheetHandle} />
+            <Text style={styles.sheetTitle}>Talk it through with…</Text>
+            {getAvailableSponsors().map((sp) => {
+              const on = sp.id === sponsorId;
+              return (
+                <Pressable
+                  key={sp.id}
+                  onPress={() => talk(sp.id as SponsorType)}
+                  accessibilityRole="button"
+                  style={[styles.sheetRow, on && { borderColor: colors.accent }]}
+                >
+                  <Image source={sp.avatar} style={styles.sheetAvatar} contentFit="cover" />
+                  <View style={styles.flex}>
+                    <Text style={styles.sheetName}>{sp.name}</Text>
+                    {!!sp.description && <Text style={styles.sheetSub} numberOfLines={1}>{sp.description}</Text>}
+                  </View>
+                  {on && <Check size={18} color={colors.accent} strokeWidth={2.4} />}
+                </Pressable>
+              );
+            })}
+          </Pressable>
+        </Pressable>
+      </Modal>
     </View>
   );
 }
@@ -493,36 +299,22 @@ const makeStyles = (tk: Tokens) => {
   return StyleSheet.create({
     screen: { flex: 1, backgroundColor: c.background },
     flex: { flex: 1 },
-    scroll: { paddingHorizontal: 18, paddingBottom: 20 },
+    scroll: { paddingHorizontal: 18, paddingBottom: 24 },
 
-    header: { paddingHorizontal: 22, paddingBottom: 10 },
-    headerBack: { marginBottom: 6 },
-    title: { fontFamily: fontFamily.display, fontSize: 28, letterSpacing: -0.5, color: c.text, lineHeight: 29 },
-    subtitle: { fontFamily: fontFamily.regular, fontSize: 14, color: c.textMuted, marginTop: 3 },
+    headerRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 18, paddingBottom: 10 },
+    title: { flex: 1, fontFamily: fontFamily.display, fontSize: 24, letterSpacing: -0.4, color: c.text },
+    savePill: { paddingVertical: 9, paddingHorizontal: 18, borderRadius: 999, minHeight: 38, justifyContent: 'center' },
+    savePillOn: { backgroundColor: colors.accent },
+    savePillOff: { borderWidth: 1.5, borderColor: c.border },
+    savePillText: { fontFamily: fontFamily.bold, fontSize: 14 },
+    savePillTextOn: { color: '#fff' },
+    savePillTextOff: { color: c.textMuted },
 
-    rail: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingTop: 12, paddingBottom: 14 },
-    railSeg: { flex: 1, height: 4, borderRadius: 2 },
-
-    sponsorRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 14 },
-    sponsorAvatar: { width: 22, height: 22, borderRadius: 11 },
-    sponsorPill: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 7, paddingHorizontal: 8, borderRadius: 999, borderWidth: 1.5, minHeight: 40 },
-    sponsorPillOff: { backgroundColor: c.surface, borderColor: c.border, ...(isDark ? { borderColor: 'rgba(255,255,255,0.12)' } : null) },
-    sponsorPillText: { fontFamily: fontFamily.semiBold, fontSize: 12.5, flexShrink: 1 },
-
-    bubbleRow: { flexDirection: 'row', gap: 10, marginBottom: 14 },
-    bubbleAvatar: { width: 30, height: 30, borderRadius: 15, marginTop: 2 },
-    bubbleText: { fontFamily: fontFamily.regular, fontSize: 14.5, lineHeight: 22.5, color: c.text },
-
-    recapCard: { marginBottom: 12, paddingVertical: 10, paddingHorizontal: 13, borderRadius: 12, backgroundColor: c.surface, borderWidth: 1, borderColor: c.border, ...darkCard },
-    recapLabel: { fontFamily: fontFamily.bold, fontSize: 10.5, letterSpacing: 1.1, color: c.textMuted, marginBottom: 4, textTransform: 'uppercase' },
-    recapBody: { fontFamily: fontFamily.regular, fontSize: 14, lineHeight: 21, color: c.textSecondary },
-
+    sectionLabel: { fontFamily: fontFamily.bold, fontSize: 11, letterSpacing: 1.1, color: c.textMuted, marginTop: 8, marginBottom: 10 },
     pills: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-    pill: { paddingVertical: 10, paddingHorizontal: 15, borderRadius: 999, borderWidth: 1.5, minHeight: 44, justifyContent: 'center' },
+    pill: { paddingVertical: 9, paddingHorizontal: 14, borderRadius: 999, borderWidth: 1.5, minHeight: 40, justifyContent: 'center' },
     pillOff: { backgroundColor: c.surface, borderColor: c.border, ...(isDark ? { borderColor: 'rgba(255,255,255,0.12)' } : null) },
-    pillOther: { backgroundColor: 'transparent', borderColor: c.textMuted + '66', borderStyle: 'dashed' },
-    pillText: { fontFamily: fontFamily.semiBold, fontSize: 14.5 },
-    otherInput: { marginTop: 12, minHeight: 0, paddingVertical: 12 },
+    pillText: { fontFamily: fontFamily.semiBold, fontSize: 13.5 },
 
     input: {
       backgroundColor: c.surface, borderWidth: 1, borderColor: c.border, borderRadius: 14,
@@ -530,29 +322,38 @@ const makeStyles = (tk: Tokens) => {
       fontSize: 16, lineHeight: 25, color: c.text, textAlignVertical: 'top', ...darkCard,
     },
 
-    bullets: { marginLeft: 40, marginBottom: 14, gap: 10 },
-    bulletRow: { flexDirection: 'row', gap: 10 },
-    bulletIcon: { marginTop: 3 },
-    bulletText: { flex: 1, fontFamily: fontFamily.regular, fontSize: 14.5, lineHeight: 22, color: c.text },
+    pairsCard: {
+      marginTop: 16, paddingVertical: 13, paddingHorizontal: 16, borderRadius: 16,
+      backgroundColor: isDark ? c.surfaceRaised : colors.primarySoft,
+      borderWidth: 1, borderColor: colors.primary + '33',
+    },
+    pairsHead: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 },
+    pairsHeadText: { fontFamily: fontFamily.bold, fontSize: 10.5, letterSpacing: 1.1 },
+    pairRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 5 },
+    pairOff: { fontFamily: fontFamily.semiBold, fontSize: 14, color: c.text },
+    pairOn: { fontFamily: fontFamily.serifItalic ?? fontFamily.regular, fontSize: 14, fontStyle: 'italic' },
 
     dock: {
-      flexDirection: 'row', alignItems: 'center', gap: 10,
       paddingHorizontal: 18, paddingTop: 12,
       borderTopWidth: 1, borderTopColor: c.border, backgroundColor: c.background,
     },
-    continueBtn: { flex: 1, paddingVertical: 14, paddingHorizontal: 18, borderRadius: 999, backgroundColor: colors.accent, alignItems: 'center' },
-    continueText: { fontFamily: fontFamily.bold, fontSize: 15.5, color: '#fff' },
-    backPill: { paddingVertical: 14, paddingHorizontal: 18, borderRadius: 999, borderWidth: 1.5, borderColor: c.border },
-    backPillText: { fontFamily: fontFamily.semiBold, fontSize: 15, color: c.textSecondary },
-    // One palette per page: the whole flow runs on the accent family, so the
-    // summary-step actions do too (they were teal, which read as a third style).
-    keepCard: {
-      flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 11, paddingHorizontal: 13, borderRadius: 12,
-      backgroundColor: isDark ? c.surfaceRaised : c.surface, borderWidth: 1.5, borderColor: colors.accent,
+    splitBtn: { flexDirection: 'row', alignItems: 'stretch', borderRadius: 999, overflow: 'hidden' },
+    splitMain: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 9, paddingVertical: 12, paddingHorizontal: 14 },
+    splitAvatar: { width: 26, height: 26, borderRadius: 13 },
+    splitText: { fontFamily: fontFamily.bold, fontSize: 15.5, color: '#fff' },
+    splitChev: { width: 52, alignItems: 'center', justifyContent: 'center', borderLeftWidth: 1, borderLeftColor: 'rgba(255,255,255,0.3)' },
+    btnDisabled: { opacity: 0.45 },
+
+    sheetBackdrop: { flex: 1, backgroundColor: 'rgba(28,26,24,0.42)', justifyContent: 'flex-end' },
+    sheet: { backgroundColor: c.background, borderTopLeftRadius: 22, borderTopRightRadius: 22, paddingHorizontal: 18, paddingTop: 12 },
+    sheetHandle: { width: 40, height: 4, borderRadius: 2, backgroundColor: c.border, alignSelf: 'center', marginBottom: 14 },
+    sheetTitle: { fontFamily: fontFamily.display, fontSize: 18, color: c.text, marginBottom: 12 },
+    sheetRow: {
+      flexDirection: 'row', alignItems: 'center', gap: 12, padding: 12, borderRadius: 16,
+      borderWidth: 1.5, borderColor: c.border, backgroundColor: c.surface, marginBottom: 9, ...darkCard,
     },
-    keepCardText: { flex: 1, fontFamily: fontFamily.bold, fontSize: 13.5, lineHeight: 20, color: colors.accentDark },
-    doneBtn: { flex: 1, paddingVertical: 14, paddingHorizontal: 12, borderRadius: 999, backgroundColor: colors.accent, alignItems: 'center' },
-    doneText: { fontFamily: fontFamily.bold, fontSize: 14.5, color: '#fff' },
-    btnDisabled: { opacity: 0.4 },
+    sheetAvatar: { width: 40, height: 40, borderRadius: 20 },
+    sheetName: { fontFamily: fontFamily.bold, fontSize: 15, color: c.text },
+    sheetSub: { fontFamily: fontFamily.regular, fontSize: 12, color: c.textMuted, marginTop: 1 },
   });
 };

@@ -14,3 +14,14 @@ export type SpotCheckEntry = {
   summary: string | null; // step 4 LLM lead paragraph (null if the call failed)
   suggestions: string[] | null; // step 4 bullets (null if the call failed)
 };
+
+// Redesign (docs/spotcheck-redesign-spec.md): what the form hands the chat.
+// On the new form, entries save with the wizard fields null; if the user later
+// accepts "Add {name}'s take", the chat writes summary/suggestions/sponsorId
+// back onto the saved record (matched by savedEntryId).
+export type SpotCheckSeed = {
+  sponsorId: SponsorType;
+  feelings: string[];
+  whatsGoingOn: string;
+  savedEntryId: string | null; // null = user never saved; take prompt never shows
+};
