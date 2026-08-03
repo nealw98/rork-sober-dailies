@@ -492,7 +492,10 @@ const makeStyles = (tk: Tokens) => {
   sectionHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 },
   // Roomy hit area so the pencil / "Save" is easy to tap (was a bare glyph
   // before). Shared by both, so they occupy the same spot on the Morning line.
-  editBtn: { paddingVertical: 6, paddingHorizontal: 12, marginRight: -4 },
+  // translateY: center-alignment tracks the text's BOUNDING BOX, but
+  // "Morning"'s descender pulls its ink lower — measured 1.5pt of optical
+  // drift on both the pencil and Save (sim, 2026-08-03).
+  editBtn: { paddingVertical: 6, paddingHorizontal: 12, marginRight: -4, transform: [{ translateY: 1.5 }] },
   scroll: { paddingHorizontal: 22, paddingBottom: 120 },
 
   heroTop: { marginTop: spacing.xl },

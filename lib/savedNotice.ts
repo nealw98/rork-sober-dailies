@@ -36,12 +36,10 @@ export function confirmSaved(): void {
     [
       {
         text: 'View',
-        onPress: () => {
-          // Leave the tool first, then land on the tab, so Journey doesn't end
-          // up stacked underneath the screen the user just finished with.
-          router.back();
-          setTimeout(() => router.push(JOURNEY), 240);
-        },
+        // Replace (not back-then-push): the finished tool leaves the stack and
+        // Journey appears in ONE transition — no flash of Today/Tools between
+        // (Neal, 2026-08-03), and Journey still isn't stacked on a dead screen.
+        onPress: () => router.replace(JOURNEY),
       },
       {
         text: 'OK',
