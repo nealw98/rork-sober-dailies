@@ -182,7 +182,10 @@ function TabButton({
           <Glyph size={focused ? 19 : 23} color={focused ? '#fff' : inactive} strokeWidth={focused ? 2 : 1.9} />
         </Animated.View>
       </View>
-      <Text style={[styles.label, { color: focused ? tone : inactive }]}>{label}</Text>
+      {/* Labels (and inactive glyphs, via `inactive`) are deep teal — the
+          chrome family — NOT ink: ink matched the action-card text and the
+          bar dissolved into the list (Neal, 2026-08-03). */}
+      <Text style={[styles.label, { color: inactive }]}>{label}</Text>
     </Pressable>
   );
 }
@@ -254,7 +257,9 @@ export default function FloatingTabBar({ state, navigation }: BottomTabBarProps)
             styles.bar,
             {
               backgroundColor: isDark ? c.surface : '#FFFFFF',
-              borderColor: isDark ? c.tabBorder : 'rgba(0,0,0,0.06)',
+              // Firmer hairline (2026-08-03): the 0.06 border vanished on the
+              // linen bg, letting the pill read as page rather than utility.
+              borderColor: isDark ? c.tabBorder : 'rgba(0,0,0,0.11)',
             },
           ]}
         >
@@ -273,7 +278,7 @@ export default function FloatingTabBar({ state, navigation }: BottomTabBarProps)
                 key={route.key}
                 focused={focused}
                 tone={tc.primary}
-                inactive={c.tabInactive}
+                inactive={tc.primaryDark}
                 isDark={isDark}
                 label={meta.label}
                 Glyph={meta.Glyph}
@@ -330,10 +335,13 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'stretch',
     paddingHorizontal: 4,
+    // Tighter + slightly stronger than the old 8/0.16/20: a crisp near
+    // shadow reads "object resting on the page", a wide soft one reads
+    // "glow" and let the pill dissolve into the list (2026-08-03).
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.16,
-    shadowRadius: 20,
+    shadowOffset: { width: 0, height: 5 },
+    shadowOpacity: 0.2,
+    shadowRadius: 13,
     elevation: 12,
   },
   tab: {
