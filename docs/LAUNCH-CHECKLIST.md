@@ -16,8 +16,16 @@ Neal's phone (all fine-tuning OTAs go `eas update --channel dev`).
 **REVISED 2026-08-04 (Neal): the iOS 132 RC is SKIPPED.** Build 133 goes
 straight out on the `production` profile (channel `production`, runtime
 3.0.8), lands in TestFlight / a Play test track for a smoke test, then
-promotes to ship. Build numbers bumped to 133 same day. Sections below are
-kept as the record of what flipped and what the path is.
+promotes to ship. Build numbers bumped to 133 same day.
+**Tester migration (Neal, 2026-08-04): the 3.0.7 fleet is NEVER OTA'd
+again** — testers upgrade to the 133 binary via TestFlight / the Play
+testing track (the same build that promotes to launch). Isolation is
+automatic: production-channel OTAs are runtime-3.0.8 and cannot reach
+3.0.7 binaries, so the .env flip-to-test caution is permanently moot.
+Once on 133, testers share the production channel/runtime — separable in
+analytics only via the tester-ID cohort (+ Developer Mode on Neal's own
+devices). Sections below are kept as the record of what flipped and what
+the path is.
 
 **THE SHIP PATH (decided 2026-08-02, Neal):** do all the flips below, bump
 runtime to **3.0.8** + build **132**, and build with the **`preview`
