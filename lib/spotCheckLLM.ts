@@ -111,6 +111,9 @@ async function callPaidSponsor(
       temperature: 1.0,
       maxOutputTokens: 500,
       provider: 'anthropic',
+      // Sonnet, not the Haiku default: Haiku is politeness-tuned and played
+      // Sam neutered (Neal, on device, 2026-08-04). Allowlisted server-side.
+      model: 'claude-sonnet-4-6',
       anonymous_id: anonymousId,
     }),
     signal: timeoutSignal(LLM_TIMEOUT_MS),
