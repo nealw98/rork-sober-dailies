@@ -16,7 +16,7 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.nealwagner.soberdailies",
-      "buildNumber": "132",
+      "buildNumber": "133",
       "icon": "./assets/images/icon.png",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
@@ -34,7 +34,7 @@
     },
     "android": {
       "package": "com.nealwagner.soberdailies",
-      "versionCode": 132,
+      "versionCode": 133,
       "edgeToEdgeEnabled": true,
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon-foreground.png",
@@ -133,7 +133,7 @@
       ],
       "expo-secure-store",
       "./plugins/withFmtConstevalFix.js",
-    "./plugins/withModularHeaders.js",
+      "./plugins/withModularHeaders.js",
       [
         "react-native-cloud-storage",
         {

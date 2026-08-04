@@ -12,10 +12,12 @@ clear to ship.
 
 **⚡ THE FLIPS ARE DONE — RC IS LIVE (2026-08-02, commit `78889bd4`).**
 Build 132 / runtime 3.0.8 exists: Android RC APK built + installed on
-Neal's phone (all fine-tuning OTAs go `eas update --channel dev`); iOS 132
-still needs Neal's interactive build (expired provisioning profile):
-`eas build --profile preview --platform ios`. Sections below are kept as
-the record of what flipped and what the path is.
+Neal's phone (all fine-tuning OTAs go `eas update --channel dev`).
+**REVISED 2026-08-04 (Neal): the iOS 132 RC is SKIPPED.** Build 133 goes
+straight out on the `production` profile (channel `production`, runtime
+3.0.8), lands in TestFlight / a Play test track for a smoke test, then
+promotes to ship. Build numbers bumped to 133 same day. Sections below are
+kept as the record of what flipped and what the path is.
 
 **THE SHIP PATH (decided 2026-08-02, Neal):** do all the flips below, bump
 runtime to **3.0.8** + build **132**, and build with the **`preview`
