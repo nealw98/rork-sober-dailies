@@ -2580,3 +2580,99 @@ the scheduled change.
    `check-grandfather` + `invites-report`; B2 never-verified half on sim.
 6. When Neal is satisfied with the RC: build 133 (`production` profile),
    store submissions, LAUNCH.
+
+## 22. Latest session — 2026-08-02→04 (feedback ops · pass funnel · Spot Check redesign · OFF RORK)
+
+Head `92cac766` at handoff; tree clean. Everything below is committed,
+pushed, and (where app-side) OTA'd to channel `dev` runtime 3.0.8.
+
+### 22.1 LLM infrastructure — the big move: OFF Rork, onto our Anthropic key
+
+- DISCOVERY: `toolkit.rork.com` is a FREE ANONYMOUS endpoint — no key is
+  ever sent, so Neal's paid Rork subscription was NEVER used by the app
+  (credits meter Rork's builder, not runtime). Measured 4–16s + failures
+  at real prompt sizes starting ~Aug 2. Neal may cancel Rork.
+- BOTH chat surfaces now run PAID-FIRST through the `sponsor-chat`
+  Supabase fn → Anthropic `claude-sonnet-4-6`, temp 1.0 (pinned in code;
+  legacy engine/temperature settings deliberately ignored — stale stored
+  values). Free Rork = automatic fallback (25s/20s timeouts). Haiku was
+  tried and NEUTERED Sam — Sonnet holds character.
+- Server personas were condensed knock-offs → now BYTE-SYNCED to the
+  client's canonical prompts (python splice script; re-sync on any
+  persona edit + `supabase functions deploy sponsor-chat`). Sam's
+  guardrails loosened (verdicts allowed, no-assume rule removed,
+  commitment-to-character clause added); crisis/identity/vulnerability
+  protections KEPT. ⚠️ Server-side persona edits apply instantly to all
+  devices, no OTA — the launch-week tuning lever.
+- COST: ~1.5¢/reply; 25/day cap (lib/sponsorChatLimits, shared with spot
+  check) bounds worst case ≈$11/user/mo. Paid-path history window is 10
+  turns (Rork era was 20 — deliberate? revisit). Admin page now has a
+  "Sponsor LLM Spend" panel reading `sponsor_chat_usage` (per-call token
+  logs the fn always wrote). ⚠️ NEAL PENDING: $50 monthly spend limit +
+  alert in the Anthropic console; verify ANTHROPIC_API_KEY bills to an
+  account HE owns (Resend lesson).
+
+### 22.2 Spot Check redesign — SHIPPED (spec: docs/spotcheck-redesign-spec.md)
+
+Wizard split in two: single FORM (feelings chips, "What's happening right
+now", live Watch For/Strive For via new FEELING_PAIR map, 3 save states,
+split CTA w/ full roster) + separate EPHEMERAL chat session
+(`spot-check-chat.tsx` — never touches the main thread, opens with the
+sponsor's page-3 question, page 4 = ONE message summary+3 actions, then
+"Add {name}'s take?" DIALOG only if saved, Done discards). Prefetch on
+form-ready pause + tap; 20s timeouts. Dead code left for cleanup pass:
+askHandoffOpener, SPOT_CHECK_HANDOFF_KEY, injectSpotCheckHandoff
+(spotCheckCard RENDERING kept for old histories). Journey doesn't yet
+label an added take as "{name}'s take".
+
+### 22.3 Feedback ops + admin page (web repo `sober-day-reflections`)
+
+- soberdailies.com/admin REBUILT + PUBLISHED (the old admin died with the
+  marketing redesign — same Lovable project d44fafc4, GitHub-synced;
+  deploys now verified by `latest_commit_sha` + MCP deploy_project).
+  Has: feedback triage (status open/closed + delete + admin notes —
+  Neal/Lovable iterated), Grandfather lookup/grant tool, LLM Spend panel.
+- Feedback now captures rc_app_user_id + accessibility blob (pixel ratio,
+  color scheme, OS a11y toggles — Daily Paths lesson); in the email + DB
+  + admin dialog. anonymous_id = grandfather key; rc_app_user_id =
+  entitlement-grant key (RC has NO custom app user id).
+
+### 22.4 Pass program
+
+- Duration DECIDED: keep 3 months (docs/pass-duration-business-spec.md —
+  cannibalization supply-capped ~$250/yr worst; tripwire: gift-cliff
+  conversion <15% after 50+ redemptions → A/B a 1-month batch).
+- Mixpanel funnel: server events pass_granted/sent/dispensed/redeemed
+  live (token baked into _shared/mixpanel.ts — CLI can't set secrets);
+  board "Pass It On — Funnel" id 11420090. ⚠️ NEAL PENDING: RC→Mixpanel
+  integration (iOS redemption + cliff-conversion stages).
+- iOS recipient leg E2E: worked via hand-minted gift_shares token
+  (Android device granter row added to dev_pass_granters). ⚠️ Neal
+  created a REAL production subscription on his Apple ID — CANCEL IT
+  (Settings→Apple ID→Subscriptions) before the 3 free months bill.
+  Clean-install no-paywall-flash variant still unproven (his phone was
+  never going to show the wall). Dev-Mode pass sending = OS share sheet
+  (SIM-less Android fix).
+
+### 22.5 Smaller ships
+
+Manage Subscription row (RC Customer Center, managementURL-gated) +
+ungated Dev Console "Present Customer Center" QA row (CC configured in
+RC by Neal); canned daily-action subtitles REMOVED for good; glyph/tone
+audit (speaker=mic, exercise=dumbbell, service=heartHandshake,
+ACTION_TONE self-heals quick actions, warm aliases→terracotta,
+normalize-on-save kills onboarding day-one drift); new 12&12 cover
+(transparent, AI-garbled tagline retypeset via PIL/Futura — script in
+scratchpad); tab bar SETTLED: white pill + teal items + firm hairline +
+crisp shadow (deep teal + pale tint tried, rejected); Save→View goes
+straight to Journey (router.replace); pencil/Save 1.5pt optical fix.
+
+### 22.6 Next session
+
+1. Neal: Anthropic $50 cap + key ownership; RC→Mixpanel integration;
+   cancel the test subscription; run `db push` if admin notes need a
+   column (check — Lovable may have added it).
+2. Verify Sonnet Sam on device (spot check + main chat) — tune server
+   personas live if needed (deploy-only).
+3. Launch checklist remainder: iOS 132 build (interactive), price
+   eyeball, A1 fresh-trial purchase, tidiness items, then build 133.
