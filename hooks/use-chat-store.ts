@@ -37,10 +37,7 @@ import { getSponsorById } from "@/constants/sponsors";
 import { askHandoffOpener } from "@/lib/spotCheckLLM";
 import {
   SUPABASE_ANON_KEY,
-  engineToRequest,
   getSponsorApiChatUrl,
-  getSponsorApiEngine,
-  getSponsorApiTemperature,
   getSponsorApiUrl,
   getQaUseRork,
 } from "@/lib/sponsorApiSettings";
@@ -58,23 +55,29 @@ interface APIMessage {
   content: string;
 }
 
-// Function to call the AI API
+// Rork BACKUP path (Sonnet is primary; QA toggle routes here directly).
+// THROWS on failure (bad status, missing
+// completion, 10s timeout) so sendMessage can fall back to the paid Sonnet
+// backup — a swallowed error here would silently eat the fallback.
 async function callAI(messages: APIMessage[]): Promise<string> {
   try {
     console.log('=== AI API REQUEST ===');
     console.log('Message Count:', messages.length);
     console.log('Full Messages:', JSON.stringify(messages, null, 2));
-    
+
     const requestBody = { messages };
     console.log('Request Body:', JSON.stringify(requestBody, null, 2));
     console.log('Request Body Size (bytes):', JSON.stringify(requestBody).length);
-    
+
     const response = await fetch('https://toolkit.rork.com/text/llm/', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify(requestBody),
+      // 10s: Rork's failure mode is a long stall — as the backup it gets one
+      // bounded shot instead of hanging the thinking dots.
+      signal: timeoutSignal(10000),
     });
 
     console.log('=== AI API RESPONSE ===');
@@ -108,30 +111,36 @@ async function callAI(messages: APIMessage[]): Promise<string> {
     console.log('Has Completion:', !!data.completion);
     console.log('Completion Length:', data.completion?.length || 0);
     
-    return data.completion || "Sorry, I'm having trouble right now. Try again in a minute.";
+    if (!data.completion || typeof data.completion !== 'string') {
+      throw new Error('Rork response missing completion');
+    }
+    return data.completion;
   } catch (error: any) {
     console.error('=== AI API EXCEPTION ===');
     console.error('Error Type:', error?.constructor?.name);
     console.error('Error Message:', error?.message);
     console.error('Full Error:', JSON.stringify(error, Object.getOwnPropertyNames(error), 2));
     console.error('Stack:', error?.stack);
-    
-    return "I'm having trouble connecting right now. Please try again in a moment, or consider reaching out to a meeting or another member of your support network.";
+
+    throw error;
   }
 }
 
-// 25s hard timeout so a stalled paid call falls back to Rork instead of
+// Hard timeouts so a stalled call falls through to the next backend instead of
 // hanging the thinking dots (same rationale as lib/spotCheckLLM's).
-function paidTimeoutSignal(): AbortSignal {
+function timeoutSignal(ms: number): AbortSignal {
   const c = new AbortController();
-  setTimeout(() => c.abort(), 25000);
+  setTimeout(() => c.abort(), ms);
   return c.signal;
 }
 
 async function callSponsorAPI(
   sponsorType: SponsorType,
   chatMessages: ChatMessage[],
-  message: string
+  message: string,
+  // Default engine is Anthropic Sonnet; the GPT-5.4 backup passes
+  // {provider:'openai', model:'gpt-5.4'} — same fn, same server personas.
+  engine?: { provider: 'anthropic' | 'openai'; model: string }
 ): Promise<{ text: string; model?: string; temperature?: number }> {
   const sponsor = getSponsorById(sponsorType);
   const apiSponsorId = sponsor?.apiSponsorId ?? sponsorType;
@@ -140,39 +149,58 @@ async function callSponsorAPI(
   // color. Deliberately NOT read from the legacy engine/temperature settings
   // — devices may carry stale stored values from the old selector era.
   const temperature = 1.0;
-  const provider = 'anthropic';
-  const model = 'claude-sonnet-4-6';
+  const provider = engine?.provider ?? 'anthropic';
+  const model = engine?.model ?? 'claude-sonnet-4-6';
   const sponsorApiUrl = await getSponsorApiUrl();
   const sponsorApiChatUrl = getSponsorApiChatUrl(sponsorApiUrl);
   const anonymousId = await getAnonymousId().catch(() => null);
   const conversation = chatMessages
     .slice(1, -1)
-    .filter((msg) => msg.kind !== 'spotCheckCard') // cards render in-app only; the opener line carries the content
+    // Cards render in-app only (the opener line carries the content); empty
+    // texts would become empty Anthropic content blocks, which 400.
+    .filter((msg) => msg.kind !== 'spotCheckCard' && msg.text && msg.text.trim())
     .slice(-10)
     .map((msg) => ({
       role: msg.sender === "bot" ? "assistant" : "user",
       content: msg.text,
     }));
+  // Anthropic requires the first message to be role 'user'. A spot-check
+  // handoff injects an unpaired assistant opener, so once the thread outgrows
+  // the 10-message window the slice can open on an assistant turn — which
+  // would 400 every call for that thread. Trim forward to the first user turn.
+  while (conversation.length > 0 && conversation[0].role === 'assistant') {
+    conversation.shift();
+  }
 
-  const response = await fetch(sponsorApiChatUrl, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "apikey": SUPABASE_ANON_KEY,
-      "Authorization": `Bearer ${SUPABASE_ANON_KEY}`,
-    },
-    body: JSON.stringify({
-      sponsorId: apiSponsorId,
-      message,
-      conversation,
-      temperature,
-      maxOutputTokens: 260,
-      provider,
-      model,
-      anonymous_id: anonymousId,
-    }),
-    signal: paidTimeoutSignal(),
+  const requestBody = JSON.stringify({
+    sponsorId: apiSponsorId,
+    message,
+    conversation,
+    temperature,
+    maxOutputTokens: 260,
+    provider,
+    model,
+    anonymous_id: anonymousId,
   });
+  const postOnce = () =>
+    fetch(sponsorApiChatUrl, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "apikey": SUPABASE_ANON_KEY,
+        "Authorization": `Bearer ${SUPABASE_ANON_KEY}`,
+      },
+      body: requestBody,
+      signal: timeoutSignal(25000),
+    });
+
+  let response = await postOnce();
+  if (response.status >= 500) {
+    // Supabase's edge gateway serves brief bursts of instant 502s (diagnosed
+    // 2026-08-04) — they fail in ~0.1s, so one quick retry rides out a blip.
+    await new Promise((resolve) => setTimeout(resolve, 400));
+    response = await postOnce();
+  }
 
   const data = await response.json();
   if (!response.ok) {
@@ -818,11 +846,13 @@ export const [ChatStoreProvider, useChatStore] = createContextHook(() => {
     }
     
     try {
-      // PAID-FIRST (flipped 2026-08-04, Neal — Rork toolkit degraded Aug 2-3
-      // and is anonymous/SLA-less): sponsor-chat Supabase fn → Anthropic
-      // Sonnet on our key, personas server-side. Free Rork is the automatic
-      // fallback, so this is two backends where there used to be one.
-      // The Dev Console "Use Rork" QA toggle skips the paid path entirely.
+      // SONNET-FIRST, GPT-5.4 BACKUP (final routing 2026-08-04, Neal):
+      // caching made Sonnet ~0.2¢/turn, so reliability wins — and the backup
+      // is a RELIABLE provider through the same fn ("it doesn't make sense
+      // to have a low-reliability LLM back up a reliability problem"). Free
+      // Rork is only the last-ditch lifeboat, kept because it rides
+      // different infrastructure than the Supabase fn both paid providers
+      // share. The Dev Console "Use Rork" QA toggle routes straight to Rork.
       let result: { text: string; model?: string; temperature?: number };
       if (await getQaUseRork()) {
         console.log('[QA] LLM override active — routing to Rork');
@@ -834,13 +864,20 @@ export const [ChatStoreProvider, useChatStore] = createContextHook(() => {
       } else {
         try {
           result = await callSponsorAPI(sponsorType, updatedMessages, text);
-        } catch (paidError) {
-          console.warn('Paid sponsor path failed; falling back to Rork:', paidError);
-          result = {
-            text: await callAI(convertToAPIMessages(updatedMessages, sponsorType)),
-            model: "rork" as string | undefined,
-            temperature: undefined as number | undefined,
-          };
+        } catch (sonnetError) {
+          console.warn('Sonnet failed; trying GPT-5.4 backup:', sonnetError);
+          try {
+            result = await callSponsorAPI(sponsorType, updatedMessages, text, {
+              provider: 'openai', model: 'gpt-5.4',
+            });
+          } catch (gptError) {
+            console.warn('GPT backup failed too; last-ditch Rork:', gptError);
+            result = {
+              text: await callAI(convertToAPIMessages(updatedMessages, sponsorType)),
+              model: "rork" as string | undefined,
+              temperature: undefined as number | undefined,
+            };
+          }
         }
       }
 

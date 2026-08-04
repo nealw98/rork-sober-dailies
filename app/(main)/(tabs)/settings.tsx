@@ -706,7 +706,7 @@ export default function SettingsScreen() {
                 <View style={styles.dcIcon}><MessageSquare size={17} color={colors.primaryDark} strokeWidth={2} /></View>
                 <View style={styles.dcRowBody}>
                   <Text style={styles.dcRowLabel}>Use Rork LLM (free)</Text>
-                  <Text style={styles.dcRowSub}>Both chats skip paid Anthropic — applies to the next message</Text>
+                  <Text style={styles.dcRowSub}>Both chats + spot check skip paid Sonnet — applies to the next message</Text>
                 </View>
                 <Switch
                   value={qaUseRork}

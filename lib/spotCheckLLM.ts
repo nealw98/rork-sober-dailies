@@ -44,6 +44,11 @@ function systemPromptFor(sponsorId: SponsorType): string {
 // thinking dots for ~a minute before the platform gives up and the fallback
 // finally appears. 20s turns that worst case into a quick fallback.
 const LLM_TIMEOUT_MS = 20000;
+// Interactive chat turns get a shorter Rork budget: a stalled turn should cut
+// over to the Sonnet backup at 10s, not hold the thinking dots for 20. The
+// one-shot form calls keep the 20s budget — Rork legitimately runs 4–16s on
+// those bigger prompts, and an early abort would just re-bill them to Sonnet.
+const LLM_CHAT_TIMEOUT_MS = 10000;
 // AbortSignal.timeout() isn't reliably present in Hermes — build it by hand.
 function timeoutSignal(ms: number): AbortSignal {
   const c = new AbortController();
@@ -77,50 +82,63 @@ async function fetchCompletion(content: string): Promise<string> {
   }
 }
 
-// PAID PATH FIRST (Neal, 2026-08-03): spot-check turns go through the
-// sponsor-chat Supabase function on our own Anthropic key (server-default
-// model) — the free Rork toolkit measured 4–16s on real prompt sizes and is
-// kept only as the fallback. The server holds the persona prompts, so the
-// message is the TASK alone (≤2000 chars server cap); output caps at 500.
+// SONNET-FIRST, RORK BACKUP (final flip 2026-08-04 evening, Neal —
+// caching made Sonnet ~0.2¢/turn, so reliability wins): a year of
+// ship-grade Rork quality and it's free — Rork serves every call; the
+// sponsor-chat Supabase function on our own Anthropic key (Sonnet) is the
+// automatic backup for Rork outages like Aug 2-3. The server holds the
+// persona prompts, so the paid message is the TASK alone (≤2000 chars server
+// cap); output caps at 500. The Dev Console "Use Rork" QA toggle disables
+// the paid backup so pure-Rork behavior can be A/B'd.
 const trim = (s: string, n: number) => (s.length > n ? `${s.slice(0, n)}…` : s);
 
 async function callPaidSponsor(
   sponsorId: SponsorType,
   message: string,
   conversation: { role: 'user' | 'assistant'; content: string }[],
-  // Sonnet holds the personas; structured non-persona tasks (the form
-  // reflection) can run on Haiku at a third of the price.
-  modelOverride?: string,
+  // Default engine is Anthropic Sonnet (holds the personas). The GPT-5.4
+  // backup (2026-08-04, Neal) passes {provider:'openai', model:'gpt-5.4'} —
+  // same fn, same server personas, different provider outage domain.
+  engine?: { provider: 'anthropic' | 'openai'; model: string },
 ): Promise<string> {
   const started = Date.now();
   const sponsor = getSponsorById(sponsorId);
   const apiSponsorId = sponsor?.apiSponsorId ?? sponsorId;
   const url = getSponsorApiChatUrl(await getSponsorApiUrl());
   const anonymousId = await getAnonymousId().catch(() => null);
-  const response = await fetch(url, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'apikey': SUPABASE_ANON_KEY,
-      'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
-    },
-    body: JSON.stringify({
-      sponsorId: apiSponsorId,
-      message: trim(message, 2000),
-      conversation,
-      // Anthropic's max (Neal, 2026-08-03): spot-check turns run hot for
-      // persona color. Stated as the real value — the server clamps
-      // Anthropic to 1.0 anyway, so 1.1 was already landing here.
-      temperature: 1.0,
-      maxOutputTokens: 500,
-      provider: 'anthropic',
-      // Sonnet, not the Haiku default: Haiku is politeness-tuned and played
-      // Sam neutered (Neal, on device, 2026-08-04). Allowlisted server-side.
-      model: modelOverride ?? 'claude-sonnet-4-6',
-      anonymous_id: anonymousId,
-    }),
-    signal: timeoutSignal(LLM_TIMEOUT_MS),
+  const body = JSON.stringify({
+    sponsorId: apiSponsorId,
+    message: trim(message, 2000),
+    conversation,
+    // Anthropic's max (Neal, 2026-08-03): spot-check turns run hot for
+    // persona color. Stated as the real value — the server clamps
+    // Anthropic to 1.0 anyway, so 1.1 was already landing here.
+    temperature: 1.0,
+    maxOutputTokens: 500,
+    provider: engine?.provider ?? 'anthropic',
+    // Sonnet, not the Haiku default: Haiku is politeness-tuned and played
+    // Sam neutered (Neal, on device, 2026-08-04). Allowlisted server-side.
+    model: engine?.model ?? 'claude-sonnet-4-6',
+    anonymous_id: anonymousId,
   });
+  const postOnce = () =>
+    fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'apikey': SUPABASE_ANON_KEY,
+        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+      },
+      body,
+      signal: timeoutSignal(LLM_TIMEOUT_MS),
+    });
+  let response = await postOnce();
+  if (response.status >= 500) {
+    // Supabase's edge gateway serves brief bursts of instant 502s (diagnosed
+    // 2026-08-04) — they fail in ~0.1s, so one quick retry rides out a blip.
+    await new Promise((resolve) => setTimeout(resolve, 400));
+    response = await postOnce();
+  }
   const data = await response.json();
   if (!response.ok || !data?.outputText) {
     console.warn(`[spotCheckLLM] paid path failed after ${Date.now() - started}ms:`, data?.error ?? response.status);
@@ -128,6 +146,24 @@ async function callPaidSponsor(
   }
   console.log(`[spotCheckLLM] paid ok in ${Date.now() - started}ms (${data.model ?? 'anthropic'})`);
   return String(data.outputText);
+}
+
+// Paid chain (2026-08-04, Neal): Sonnet first; if it fails, GPT-5.4 through
+// the same fn — a reliable backup instead of Rork ("it doesn't make sense to
+// have a low-reliability LLM back up a reliability problem"). Rork remains
+// only as the last-ditch lifeboat in each caller, since it rides different
+// infrastructure than the Supabase fn both paid providers share.
+async function callPaidChain(
+  sponsorId: SponsorType,
+  message: string,
+  conversation: { role: 'user' | 'assistant'; content: string }[],
+): Promise<string> {
+  try {
+    return await callPaidSponsor(sponsorId, message, conversation);
+  } catch (sonnetError) {
+    console.warn('[spotCheckLLM] Sonnet failed; trying GPT-5.4 backup:', (sonnetError as Error).message);
+    return await callPaidSponsor(sponsorId, message, conversation, { provider: 'openai', model: 'gpt-5.4' });
+  }
 }
 
 // Prefetch (2026-08-03): the form fires the page-3 question the moment the
@@ -207,11 +243,9 @@ export async function askFormReflection(feelings: string[], whatsGoingOn: string
   ].join('\n');
   if (!(await getQaUseRork())) {
     try {
-      // Sonnet (Neal, 2026-08-04, after a Haiku trial): picking the single
-      // best-fit asset is the judgment call at the heart of this card —
-      // worth Sonnet's read. (Haiku followed the format fine but the asset
-      // choice is the product.)
-      return normalizeReflection(await callPaidSponsor('reflection' as SponsorType, task, []));
+      // Sonnet primary uses the SERVER 'reflection' persona (message = data
+      // only); the client REFLECTION_PROMPT rides only the Rork fallback.
+      return normalizeReflection(await callPaidChain('reflection' as SponsorType, task, []));
     } catch { /* fall through to Rork */ }
   }
   return normalizeReflection(await fetchCompletion(`${REFLECTION_PROMPT}\n\n${task}`));
@@ -234,11 +268,10 @@ export async function askCausesQuestion(
   ].join('\n');
   if (!(await getQaUseRork())) {
     try {
-      return (await callPaidSponsor(sponsorId, task, [])).trim();
+      return (await callPaidChain(sponsorId, task, [])).trim();
     } catch { /* fall through to Rork */ }
   }
-  const completion = await fetchCompletion(`${systemPromptFor(sponsorId)}\n\n${task}`);
-  return completion.trim();
+  return (await fetchCompletion(`${systemPromptFor(sponsorId)}\n\n${task}`)).trim();
 }
 
 // Call 2 — the step-4 summary + suggestions, generated from all fields.
@@ -261,7 +294,7 @@ export async function askSummary(
   let completion: string;
   if (!(await getQaUseRork())) {
     try {
-      completion = await callPaidSponsor(sponsorId, task, []);
+      completion = await callPaidChain(sponsorId, task, []);
     } catch {
       completion = await fetchCompletion(`${systemPromptFor(sponsorId)}\n\n${task}`);
     }
@@ -294,39 +327,41 @@ export async function askSpotCheckReply(
   transcript: { role: 'user' | 'assistant'; content: string }[],
 ): Promise<string> {
   const context = `[We're in the middle of a 10th-step spot check. Feelings I named: ${seed.feelings.join(', ')}. What's going on: ${trim(seed.whatsGoingOn, 700)}]`;
-  // Paid path: last user turn is the message, everything before it (plus the
-  // spot check context) is the conversation; the server adds the persona.
+  // Sonnet primary needs a trailing user turn to serve as the message (the
+  // server adds the persona; everything before it rides as conversation).
   const last = transcript[transcript.length - 1];
   if (last?.role === 'user' && !(await getQaUseRork())) {
     try {
-      return (await callPaidSponsor(sponsorId, last.content, [
+      return (await callPaidChain(sponsorId, last.content, [
         { role: 'user', content: context },
         ...transcript.slice(0, -1),
       ])).trim();
     } catch { /* fall through to Rork */ }
   }
-  const messages = [
-    { role: 'user', content: `${systemPromptFor(sponsorId)}\n\nUser: ${context}` },
-    ...transcript,
-  ];
-  const response = await fetch(LLM_URL, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ messages }),
-    signal: timeoutSignal(LLM_TIMEOUT_MS),
-  });
-  if (!response.ok) throw new Error(`Spot check chat request failed: ${response.status}`);
-  const data = JSON.parse(await response.text());
-  if (!data.completion || typeof data.completion !== 'string') {
-    throw new Error('Spot check chat response missing completion');
+  {
+    const messages = [
+      { role: 'user', content: `${systemPromptFor(sponsorId)}\n\nUser: ${context}` },
+      ...transcript,
+    ];
+    const response = await fetch(LLM_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ messages }),
+      signal: timeoutSignal(LLM_CHAT_TIMEOUT_MS),
+    });
+    if (!response.ok) throw new Error(`Spot check chat request failed: ${response.status}`);
+    const data = JSON.parse(await response.text());
+    if (!data.completion || typeof data.completion !== 'string') {
+      throw new Error('Spot check chat response missing completion');
+    }
+    return data.completion.trim();
   }
-  return data.completion.trim();
 }
 
 // Call 3 — the "Keep talking" chat opener. In persona: says they've read the
 // inventory, proves it with one specific detail, and asks where the user wants
-// to take the conversation. Throws on failure; use-chat-store applies a
-// feelings-based fallback line.
+// to take the conversation. Sonnet-first with the Rork backup like the rest;
+// throws on total failure and use-chat-store applies a feelings-based line.
 export async function askHandoffOpener(
   sponsorId: SponsorType,
   entry: { feelings: string[]; whatsGoingOn: string; causesAnswer: string | null; summary: string | null },
@@ -339,7 +374,16 @@ export async function askHandoffOpener(
     entry.causesAnswer ? `Their part in it (their words): ${entry.causesAnswer}` : '',
     entry.summary ? `The reflection you already gave them on the previous screen (do NOT repeat it): ${entry.summary}` : '',
   ].filter(Boolean).join('\n');
-  const completion = await fetchCompletion(`${systemPromptFor(sponsorId)}\n\n${task}`);
+  let completion: string;
+  if (!(await getQaUseRork())) {
+    try {
+      completion = await callPaidChain(sponsorId, task, []);
+    } catch {
+      completion = await fetchCompletion(`${systemPromptFor(sponsorId)}\n\n${task}`);
+    }
+  } else {
+    completion = await fetchCompletion(`${systemPromptFor(sponsorId)}\n\n${task}`);
+  }
   const opener = completion.trim();
   // The prompt demands a closing question, but the model occasionally ends on
   // a statement anyway — the chat then opens with nothing for the user to
