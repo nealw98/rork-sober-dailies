@@ -2676,3 +2676,86 @@ straight to Journey (router.replace); pencil/Save 1.5pt optical fix.
    personas live if needed (deploy-only).
 3. Launch checklist remainder: iOS 132 build (interactive), price
    eyeball, A1 fresh-trial purchase, tidiness items, then build 133.
+
+## 23. Latest session — 2026-08-04 (spot check form v2 · LLM cost caching · Rork QA toggle)
+
+Head `33b29d18`, tree clean (supabase/.temp noise only). Everything
+committed, pushed, and OTA'd to channel `dev` runtime 3.0.8 (last update
+group `736a6d2c`). Server fn deployed twice; migrations applied by Neal.
+
+### 23.1 LLM cost — prompt caching + exact spend accounting
+
+- The 1¢/turn scare was the persona prompts (1.2–1.7k tokens) re-billed at
+  full price every turn. `sponsor-chat` fn now sets TWO cache_control
+  breakpoints: persona system prompt (shared across all users of a
+  sponsor; reads at 0.1×) + last history message (turn-to-turn prefix).
+  Verified live: turn 2 read 1,949 tokens from cache. Warm turns ≈ 0.2¢;
+  worst-case capped user ~$2–3/mo (was ~$11). Cold first turn still pays
+  ~1.25× write. Client sends a SLIDING 10-turn window, so history caching
+  breaks past 10 turns (system tier survives; ~0.1¢ exposure — left alone).
+- Usage rows now log input_tokens (full price) + cache_read_tokens (0.1×) +
+  cache_creation_tokens (1.25×) separately — migration `20260804090000`;
+  `20260804091000` TRUNCATED sponsor_chat_usage (Neal wanted a clean
+  baseline). Admin panel (web repo `7c8114b`) prices each tier exactly and
+  shows "% cached". ⚠️ Panel is pushed to main but NEEDS A LOVABLE PUBLISH
+  (MCP unauthenticated this session; preview already shows new code).
+- ⚠️ Migration history was tangled: CLI upgraded 2.72→2.111 (auth re-done
+  by Neal via keychain approval); local `20260802_...` filename sorts after
+  `20260802120000_...` — Neal ran `supabase migration repair --status
+  reverted 20260802` + `db push --include-all` himself (classifier blocks
+  those for Claude).
+- Rows logged between migration and fn re-deploy (~10 test calls) read
+  slightly high forever — known 7¢ of noise.
+
+### 23.2 Spot check form v2 (spec updated: docs/spotcheck-redesign-spec.md)
+
+- **Causes question turns inward** ("my part", commit `720405df`): the
+  chat's opening question challenges responsibility — resentment→side of
+  street, fear→losing/not-getting/future-tripping/self-reliance-vs-faith,
+  shame→own-and-make-right. Extremely vague input gets called out ("can't
+  inventory what you won't name — the dodge is their part").
+- **Chips**: −Lonely (still typeable; mappings kept), +Jealous +Guilty
+  +Overwhelmed +Hurt (13 fixed), wired into FEELING_PAIR, fallback
+  flavors, and the my-part prompt clusters. **Other… pill restored** from
+  the wizard (dashed pill → free-text, rides as a normal chip).
+- **Reflection card replaces Watch For/Strive For** (which couldn't see
+  the situation). Explicit trigger: Enter/Cancel row under the input (+
+  keyboard Done); clearance 24→84. Contract: understanding-first summary →
+  ONE best-fit asset from the Daily Moral Inventory card (SPOT_PAIRS
+  strive-column = the classic card Neal photographed) → AI-sponsor invite
+  tailored to the situation. One paragraph + blank line + closer —
+  `normalizeReflection()` enforces shape. Regular type (italics rejected).
+  **Sonnet** after a Haiku trial — Haiku followed format but Sonnet picks
+  the asset ("self-forgiveness, for the part of you still measuring your
+  worth against someone else's applause"); asset choice IS the product.
+  Server persona `reflection` (neutral app voice) added to the fn;
+  client-side copy exists for the Rork fallback. ~0.2¢/reflection.
+- **Save = THIS PAGE ONLY**: SpotCheckEntry.reflection new field; fresh
+  reflection after save re-arms the pill. "Add {name}'s take" RETIRED —
+  chat writes nothing back ever. Journey renders "Reflection" section
+  (new) + legacy "What {name} heard" (old records).
+- **Nav**: CTA = "Save & talk with {name}" — saves silently, router.REPLACE
+  into the chat (page one clears; sheet pick passes sponsor override into
+  save()). Chat header lost the back chevron: Done is the only button;
+  system back/swipe land on Today/Tools like Done. No path back to form.
+
+### 23.3 QA Rork toggle (A/B before launch)
+
+Dev Console → This Device → "Use Rork LLM (free)": per-call flag
+(`sober_dailies_qa_llm_rork`, lib/sponsorApiSettings) — BOTH chat surfaces
++ all spot check calls (incl. reflection) skip paid Anthropic for the free
+Rork endpoint. No restart; replies labeled `rork (QA)`. Fresh key on
+purpose — legacy engine settings stay ignored. Rork calls don't appear in
+the Spend panel (they bypass the fn).
+
+### 23.4 Next session
+
+1. **Neal**: Lovable publish (admin panel per-tier pricing is preview-only);
+   still pending from §22: Anthropic $50 cap + key ownership,
+   RC→Mixpanel, cancel the test Apple subscription.
+2. Device pass on the new form flow (Enter/Cancel clearance value 84 is an
+   estimate) + Rork A/B via the toggle.
+3. Cleanup-pass debris grew: askHandoffOpener + SPOT_CHECK_HANDOFF_KEY +
+   injectSpotCheckHandoff (already listed) + now spot_check_take_added
+   analytics event gone, SpotCheckSeed.savedEntryId informational-only,
+   `pairsForFeelings` unused by the form (kept for the map itself).
