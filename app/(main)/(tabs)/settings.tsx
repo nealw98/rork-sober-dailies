@@ -18,7 +18,7 @@ import { KeyboardModalScope } from '@/components/KeyboardModalScope';
 import { SafeAreaView, SafeAreaProvider, initialWindowMetrics, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router, Stack, type Href } from 'expo-router';
 import { shareApp } from '@/lib/shareApp';
-import { ChevronRight, X, RefreshCw, UserPlus, Flag, RotateCcw, Play, Power, CircleDot, Gift, Fingerprint } from 'lucide-react-native';
+import { ChevronRight, X, RefreshCw, UserPlus, Flag, RotateCcw, Play, Power, CircleDot, Gift, Fingerprint, MessageSquare } from 'lucide-react-native';
 import {
   fontFamily,
   shadows,
@@ -51,6 +51,7 @@ import {
 import GiftThankYouSheet from '@/components/GiftThankYouSheet';
 import { qaPreviewTrialReminder } from '@/lib/trialReminder';
 import { setSyncPaused, cloudBackupSupported } from '@/lib/cloudSync';
+import { getQaUseRork, setQaUseRork } from '@/lib/sponsorApiSettings';
 
 // ─── Token-based building blocks (mirror the prototype) ──────────────────────
 
@@ -181,6 +182,20 @@ export default function SettingsScreen() {
       .then((v) => setForceNewUser(v === 'true'))
       .catch(() => {});
   }, []);
+  // QA: LLM routing override — flip both chat surfaces (main chat + spot
+  // check) onto the free Rork endpoint to compare against paid Anthropic
+  // before launch. Read per call, so it applies to the next message sent —
+  // no restart needed.
+  const [qaUseRork, setQaUseRorkState] = useState(false);
+  useEffect(() => {
+    getQaUseRork().then(setQaUseRorkState).catch(() => {});
+  }, []);
+  const toggleQaUseRork = async () => {
+    const next = !qaUseRork;
+    setQaUseRorkState(next);
+    await setQaUseRork(next);
+  };
+
   const toggleForceNewUser = async () => {
     const next = !forceNewUser;
     Alert.alert(
@@ -682,6 +697,20 @@ export default function SettingsScreen() {
                 <Switch
                   value={isDeveloperMode}
                   onValueChange={toggleDeveloperMode}
+                  trackColor={{ false: c.divider, true: colors.primary }}
+                  thumbColor="#fff"
+                />
+              </View>
+              <View style={styles.dcDivider} />
+              <View style={styles.dcRow}>
+                <View style={styles.dcIcon}><MessageSquare size={17} color={colors.primaryDark} strokeWidth={2} /></View>
+                <View style={styles.dcRowBody}>
+                  <Text style={styles.dcRowLabel}>Use Rork LLM (free)</Text>
+                  <Text style={styles.dcRowSub}>Both chats skip paid Anthropic — applies to the next message</Text>
+                </View>
+                <Switch
+                  value={qaUseRork}
+                  onValueChange={toggleQaUseRork}
                   trackColor={{ false: c.divider, true: colors.primary }}
                   thumbColor="#fff"
                 />

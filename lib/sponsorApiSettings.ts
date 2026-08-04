@@ -21,6 +21,29 @@ export interface SponsorApiEngineOption {
   model: string;
 }
 
+// QA LLM override (Dev Console, 2026-08-04): force BOTH chat surfaces (main
+// sponsor chat + spot check) onto the free Rork endpoint, skipping the paid
+// Anthropic path entirely — lets Neal A/B Rork's performance against Sonnet
+// before committing to launch. Fresh key on purpose: the legacy engine
+// setting above is deliberately ignored (stale stored values). Read per
+// call, so flipping applies to the next message with no restart.
+export const QA_LLM_RORK_KEY = 'sober_dailies_qa_llm_rork';
+
+export const getQaUseRork = async (): Promise<boolean> => {
+  try {
+    return (await AsyncStorage.getItem(QA_LLM_RORK_KEY)) === 'true';
+  } catch {
+    return false;
+  }
+};
+
+export const setQaUseRork = async (on: boolean): Promise<void> => {
+  try {
+    if (on) await AsyncStorage.setItem(QA_LLM_RORK_KEY, 'true');
+    else await AsyncStorage.removeItem(QA_LLM_RORK_KEY);
+  } catch {}
+};
+
 export const SPONSOR_API_ENGINES: SponsorApiEngineOption[] = [
   { id: 'rork', label: 'Rork', provider: 'rork', model: 'rork' },
   { id: 'openai-mini', label: 'GPT-5.4 mini', provider: 'openai', model: 'gpt-5.4-mini' },

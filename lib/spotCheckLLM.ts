@@ -9,7 +9,7 @@ import type { SponsorType } from '@/types';
 import { getSponsorById } from '@/constants/sponsors';
 import { getAnonymousId } from '@/lib/anonymousId';
 import {
-  SUPABASE_ANON_KEY, getSponsorApiChatUrl, getSponsorApiUrl,
+  SUPABASE_ANON_KEY, getSponsorApiChatUrl, getSponsorApiUrl, getQaUseRork,
 } from '@/lib/sponsorApiSettings';
 import { STEADY_EDDIE_SYSTEM_PROMPT } from '@/constants/steady-eddie';
 import { SALTY_SAM_SYSTEM_PROMPT } from '@/constants/salty-sam';
@@ -152,6 +152,30 @@ export function consumePrefetchedQuestion(sponsorId: SponsorType, feelings: stri
   return p;
 }
 
+// Client copy of the server's neutral 'reflection' voice — used only on the
+// free Rork fallback (the paid path holds the prompt server-side).
+const REFLECTION_PROMPT = `You are the quiet in-app reflection voice of Sober Dailies, an AA recovery app. You produce one small, grounded observation for a member doing a 10th-step spot check. Plain, warm, adult language — no persona, no greeting, no pep talk, no therapy-speak. AA-informed (resentment, fear, self-reliance, honesty, amends) without jargon or preaching. Never diagnose, never give medical advice.`;
+
+// Form reflection (2026-08-04, replaces the static Watch For/Strive For
+// card): 1–2 plain sentences responding to the SPECIFIC feelings+situation
+// combination, in the neutral app voice — the persona shows up later, in
+// the chat. Debounced/keyed by the caller; throws on total failure so the
+// form can simply show nothing.
+export async function askFormReflection(feelings: string[], whatsGoingOn: string): Promise<string> {
+  const task = [
+    'TASK: A member doing a 10th-step spot check named the feelings and situation below. Reply with 1–2 short sentences (40 words max, plain and direct): reflect what seems to be underneath this particular combination — connect the feelings to the situation, don’t just restate them — then name ONE concrete thing to watch for right now. No greeting, no question, no list, no advice beyond the watch-for. Reply with the sentences only — no preamble, no markdown.',
+    '',
+    `Feelings they tapped: ${feelings.join(', ')}`,
+    `What’s going on (their words): ${trim(whatsGoingOn, 1200)}`,
+  ].join('\n');
+  if (!(await getQaUseRork())) {
+    try {
+      return (await callPaidSponsor('reflection' as SponsorType, task, [])).trim();
+    } catch { /* fall through to Rork */ }
+  }
+  return (await fetchCompletion(`${REFLECTION_PROMPT}\n\n${task}`)).trim();
+}
+
 // Call 1 — the step-3 question, generated from steps 1–2.
 export async function askCausesQuestion(
   sponsorId: SponsorType,
@@ -162,17 +186,18 @@ export async function askCausesQuestion(
     // "My part" framing (Neal, 2026-08-04): the question's job is the program's
     // turn inward, not a follow-up on the situation — the form already captured
     // the situation.
-    'TASK: You are conducting a 10th-step spot check. The user has described the situation below. Your job is the program’s turn inward: ask ONE short question (2–3 sentences max, in your voice) that challenges them to find THEIR part in it. Aim it at what they named. Resentment, anger, irritation → where were they selfish, dishonest, self-seeking, or afraid — what’s their side of the street? Fear, anxiety → what are they afraid of losing or not getting? Are they future-tripping over something that hasn’t happened? Is self-reliance running the show where trust in a Higher Power belongs? Shame, self-pity, loneliness → what’s theirs to own, and what’s theirs to make right? EXCEPTION: if their description is extremely vague or just a few words, don’t guess — point out the vagueness itself (you can’t take honest inventory of what you won’t name) and ask them to get specific; the dodge is their part. Otherwise don’t ask for a retelling of events — the situation is already on the table. Challenge them honestly — no blame, no lecture, no consoling deflection. Do not give advice yet. Reply with the question only — no preamble, no markdown.',
+    'TASK: You are conducting a 10th-step spot check. The user has described the situation below. Your job is the program’s turn inward: ask ONE short question (2–3 sentences max, in your voice) that challenges them to find THEIR part in it. Aim it at what they named. Resentment, anger, irritation, jealousy, hurt → where were they selfish, dishonest, self-seeking, or afraid — what’s their side of the street? Fear, anxiety, overwhelm → what are they afraid of losing or not getting? Are they future-tripping over something that hasn’t happened? Is self-reliance running the show where trust in a Higher Power belongs? Shame, guilt, self-pity, loneliness → what’s theirs to own, and what’s theirs to make right? EXCEPTION: if their description is extremely vague or just a few words, don’t guess — point out the vagueness itself (you can’t take honest inventory of what you won’t name) and ask them to get specific; the dodge is their part. Otherwise don’t ask for a retelling of events — the situation is already on the table. Challenge them honestly — no blame, no lecture, no consoling deflection. Do not give advice yet. Reply with the question only — no preamble, no markdown.',
     '',
     `Feelings they tapped: ${feelings.join(', ')}`,
     `What’s going on (their words): ${trim(whatsGoingOn, 1200)}`,
   ].join('\n');
-  try {
-    return (await callPaidSponsor(sponsorId, task, [])).trim();
-  } catch {
-    const completion = await fetchCompletion(`${systemPromptFor(sponsorId)}\n\n${task}`);
-    return completion.trim();
+  if (!(await getQaUseRork())) {
+    try {
+      return (await callPaidSponsor(sponsorId, task, [])).trim();
+    } catch { /* fall through to Rork */ }
   }
+  const completion = await fetchCompletion(`${systemPromptFor(sponsorId)}\n\n${task}`);
+  return completion.trim();
 }
 
 // Call 2 — the step-4 summary + suggestions, generated from all fields.
@@ -193,9 +218,13 @@ export async function askSummary(
   ].filter(Boolean).join('\n');
 
   let completion: string;
-  try {
-    completion = await callPaidSponsor(sponsorId, task, []);
-  } catch {
+  if (!(await getQaUseRork())) {
+    try {
+      completion = await callPaidSponsor(sponsorId, task, []);
+    } catch {
+      completion = await fetchCompletion(`${systemPromptFor(sponsorId)}\n\n${task}`);
+    }
+  } else {
     completion = await fetchCompletion(`${systemPromptFor(sponsorId)}\n\n${task}`);
   }
 
@@ -227,7 +256,7 @@ export async function askSpotCheckReply(
   // Paid path: last user turn is the message, everything before it (plus the
   // spot check context) is the conversation; the server adds the persona.
   const last = transcript[transcript.length - 1];
-  if (last?.role === 'user') {
+  if (last?.role === 'user' && !(await getQaUseRork())) {
     try {
       return (await callPaidSponsor(sponsorId, last.content, [
         { role: 'user', content: context },

@@ -42,6 +42,7 @@ import {
   getSponsorApiEngine,
   getSponsorApiTemperature,
   getSponsorApiUrl,
+  getQaUseRork,
 } from "@/lib/sponsorApiSettings";
 
 
@@ -821,16 +822,26 @@ export const [ChatStoreProvider, useChatStore] = createContextHook(() => {
       // and is anonymous/SLA-less): sponsor-chat Supabase fn → Anthropic
       // Sonnet on our key, personas server-side. Free Rork is the automatic
       // fallback, so this is two backends where there used to be one.
+      // The Dev Console "Use Rork" QA toggle skips the paid path entirely.
       let result: { text: string; model?: string; temperature?: number };
-      try {
-        result = await callSponsorAPI(sponsorType, updatedMessages, text);
-      } catch (paidError) {
-        console.warn('Paid sponsor path failed; falling back to Rork:', paidError);
+      if (await getQaUseRork()) {
+        console.log('[QA] LLM override active — routing to Rork');
         result = {
           text: await callAI(convertToAPIMessages(updatedMessages, sponsorType)),
-          model: "rork" as string | undefined,
+          model: "rork (QA)" as string | undefined,
           temperature: undefined as number | undefined,
         };
+      } else {
+        try {
+          result = await callSponsorAPI(sponsorType, updatedMessages, text);
+        } catch (paidError) {
+          console.warn('Paid sponsor path failed; falling back to Rork:', paidError);
+          result = {
+            text: await callAI(convertToAPIMessages(updatedMessages, sponsorType)),
+            model: "rork" as string | undefined,
+            temperature: undefined as number | undefined,
+          };
+        }
       }
 
       // Add bot response

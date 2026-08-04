@@ -21,10 +21,15 @@ real sponsor chat.
 - **WHAT'S GOING ON?** — free textarea. Placeholder:
   **"What's happening right now"** (NOT the prototype's walk-through-the-day
   line).
-- **Watch For / Strive For card** — appears live once feelings are
-  selected. Terracotta "WATCH FOR" column, teal italic-serif "STRIVE FOR"
-  column. Mapping: each feeling → one of the app's 18 pairs (prototype's
-  PF_PAIRS is a draft — verify against the app's canonical pairs).
+- **Reflection card** (REVISED 2026-08-04, Neal — replaces the static
+  Watch For / Strive For card, which couldn't respond to the situation):
+  once the form is ready and the user pauses (~2s), the app fetches 1–2
+  plain sentences in a NEUTRAL app voice (server persona `reflection`, not
+  a sponsor) that respond to the specific feelings+situation combination —
+  what's underneath it plus one thing to watch for. Italic serif in the
+  teal-soft card. Regenerates after edits; offline/failure shows nothing.
+  The 18-pair map (`constants/spotCheckPairs.ts`) is retired from the form
+  but kept for wizard-era records.
 - **Save** is MANUAL ONLY — standard notebook save + `confirmSaved()`
   OK/View dialog. Talk-it-through does NOT auto-save (prototype's
   save-on-leaving-form + toast: dropped).

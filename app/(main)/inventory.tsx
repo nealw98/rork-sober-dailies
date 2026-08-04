@@ -24,8 +24,7 @@ import { ChevronDown, Check } from 'lucide-react-native';
 import BackButton from '@/components/BackButton';
 import { getSponsorById, getAvailableSponsors } from '@/constants/sponsors';
 import { SPOT_CHECK_FEELINGS, SPOT_CHECK_SEED_KEY } from '@/constants/spotCheckPersonas';
-import { pairsForFeelings } from '@/constants/spotCheckPairs';
-import { prefetchCausesQuestion } from '@/lib/spotCheckLLM';
+import { askFormReflection, prefetchCausesQuestion } from '@/lib/spotCheckLLM';
 import { useLastSponsor } from '@/hooks/use-last-sponsor';
 import { useTokens, useThemedStyles } from '@/hooks/useTokens';
 import { logEvent } from '@/lib/analytics';
@@ -48,6 +47,10 @@ export default function InventoryScreen() {
   const [whatsGoingOn, setWhatsGoingOn] = useState('');
   const [sheetOpen, setSheetOpen] = useState(false);
   const [saving, setSaving] = useState(false);
+  // "Other…" pill: free-text input for a feeling not on the fixed list
+  // (restored from the wizard, 2026-08-04).
+  const [otherOpen, setOtherOpen] = useState(false);
+  const [otherText, setOtherText] = useState('');
   // The saved record's id, plus whether the form changed since that save —
   // together these drive the Save pill's three visual states.
   const [savedEntryId, setSavedEntryId] = useState<string | null>(null);
@@ -67,9 +70,30 @@ export default function InventoryScreen() {
   const firstName = sponsor?.name.split(' ').slice(-1)[0] ?? 'your sponsor';
   const ready = feelings.length > 0 && whatsGoingOn.trim() !== '';
   const dirty = (feelings.length > 0 || whatsGoingOn.trim() !== '') && (savedEntryId === null || editedSinceSave);
-  const pairs = pairsForFeelings(feelings);
 
   const markEdited = () => setEditedSinceSave(true);
+
+  // App reflection (2026-08-04, replaces the static Watch For/Strive For
+  // card): once the form is ready and the user pauses, fetch 1–2 plain
+  // sentences responding to THIS feelings+situation combination. Key-guarded
+  // so edits regenerate after the next pause; the stale text stays visible
+  // until replaced; total failure (offline) just shows nothing.
+  const [reflection, setReflection] = useState<string | null>(null);
+  const reflectionKey = useRef('');
+  useEffect(() => {
+    if (!ready) { setReflection(null); reflectionKey.current = ''; return; }
+    const key = `${feelings.join(',')}|${whatsGoingOn.trim()}`;
+    if (reflectionKey.current === key) return;
+    const t = setTimeout(async () => {
+      try {
+        const text = await askFormReflection(feelings, whatsGoingOn.trim());
+        reflectionKey.current = key;
+        setReflection(text);
+      } catch { /* leave whatever is showing */ }
+    }, 2000);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ready, feelings, whatsGoingOn]);
 
   // Speculative prefetch: once the form is ready and the user pauses for a
   // beat, fire the page-3 question so it's already in flight (often already
@@ -86,6 +110,19 @@ export default function InventoryScreen() {
   const toggleFeeling = (f: string) => {
     markEdited();
     setFeelings((cur) => (cur.includes(f) ? cur.filter((x) => x !== f) : [...cur, f]));
+  };
+
+  // Custom ("Other") feelings ride alongside the fixed set; tapping one off
+  // removes it entirely (it's derived from `feelings`, so it just disappears).
+  const customFeelings = feelings.filter((f) => !SPOT_CHECK_FEELINGS.includes(f));
+  const addOther = () => {
+    const f = otherText.trim();
+    setOtherText('');
+    setOtherOpen(false);
+    if (f && !feelings.includes(f)) {
+      markEdited();
+      setFeelings((cur) => [...cur, f]);
+    }
   };
 
   // ── Save: in place. First save inserts; later saves update the same id. ──
@@ -210,7 +247,7 @@ export default function InventoryScreen() {
       >
         <Text style={[styles.sectionLabel, { marginTop: 18 }]}>HOW ARE YOU FEELING?</Text>
         <View style={styles.pills}>
-          {SPOT_CHECK_FEELINGS.map((f) => {
+          {[...SPOT_CHECK_FEELINGS, ...customFeelings].map((f) => {
             const on = feelings.includes(f);
             return (
               <Pressable
@@ -224,7 +261,29 @@ export default function InventoryScreen() {
               </Pressable>
             );
           })}
+          <Pressable
+            onPress={() => setOtherOpen((v) => !v)}
+            accessibilityRole="button"
+            accessibilityLabel="Other feeling"
+            style={[styles.pill, styles.pillOther, otherOpen && { borderColor: colors.accent }]}
+          >
+            <Text style={[styles.pillText, { color: c.textMuted }]}>Other…</Text>
+          </Pressable>
         </View>
+        {otherOpen && (
+          <TextInput
+            value={otherText}
+            onChangeText={setOtherText}
+            onSubmitEditing={addOther}
+            onBlur={addOther}
+            placeholder="Name it in a word or two"
+            placeholderTextColor={c.textMuted}
+            style={[styles.input, styles.otherInput]}
+            returnKeyType="done"
+            autoFocus
+            maxLength={30}
+          />
+        )}
 
         <Text style={[styles.sectionLabel, { marginTop: 22 }]}>WHAT’S GOING ON?</Text>
         <TextInput
@@ -236,18 +295,9 @@ export default function InventoryScreen() {
           placeholderTextColor={c.textMuted}
         />
 
-        {pairs.length > 0 && (
-          <View style={styles.pairsCard}>
-            <View style={styles.pairsHead}>
-              <Text style={[styles.pairsHeadText, { color: colors.accentDark }]}>WATCH FOR</Text>
-              <Text style={[styles.pairsHeadText, { color: colors.primaryDark }]}>STRIVE FOR</Text>
-            </View>
-            {pairs.map((p) => (
-              <View key={p.id} style={styles.pairRow}>
-                <Text style={styles.pairOff}>{p.off}</Text>
-                <Text style={[styles.pairOn, { color: colors.primaryDark }]}>{p.on}</Text>
-              </View>
-            ))}
+        {reflection !== null && (
+          <View style={styles.reflectionCard}>
+            <Text style={styles.reflectionText}>{reflection}</Text>
           </View>
         )}
         <View style={{ height: 20 }} />
@@ -332,6 +382,8 @@ const makeStyles = (tk: Tokens) => {
     pills: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
     pill: { paddingVertical: 9, paddingHorizontal: 14, borderRadius: 999, borderWidth: 1.5, minHeight: 40, justifyContent: 'center' },
     pillOff: { backgroundColor: c.surface, borderColor: c.border, ...(isDark ? { borderColor: 'rgba(255,255,255,0.12)' } : null) },
+    pillOther: { backgroundColor: 'transparent', borderColor: c.textMuted + '66', borderStyle: 'dashed' },
+    otherInput: { marginTop: 12, minHeight: 0, paddingVertical: 12 },
     pillText: { fontFamily: fontFamily.semiBold, fontSize: 13.5 },
 
     input: {
@@ -340,16 +392,15 @@ const makeStyles = (tk: Tokens) => {
       fontSize: 16, lineHeight: 25, color: c.text, textAlignVertical: 'top', ...darkCard,
     },
 
-    pairsCard: {
-      marginTop: 16, paddingVertical: 13, paddingHorizontal: 16, borderRadius: 16,
+    reflectionCard: {
+      marginTop: 16, paddingVertical: 14, paddingHorizontal: 16, borderRadius: 16,
       backgroundColor: isDark ? c.surfaceRaised : colors.primarySoft,
       borderWidth: 1, borderColor: colors.primary + '33',
     },
-    pairsHead: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 },
-    pairsHeadText: { fontFamily: fontFamily.bold, fontSize: 10.5, letterSpacing: 1.1 },
-    pairRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 5 },
-    pairOff: { fontFamily: fontFamily.semiBold, fontSize: 14, color: c.text },
-    pairOn: { fontFamily: fontFamily.serifItalic ?? fontFamily.regular, fontSize: 14, fontStyle: 'italic' },
+    reflectionText: {
+      fontFamily: fontFamily.serifItalic ?? fontFamily.regular, fontStyle: 'italic',
+      fontSize: 15, lineHeight: 23, color: c.text,
+    },
 
     dock: {
       paddingHorizontal: 18, paddingTop: 12,

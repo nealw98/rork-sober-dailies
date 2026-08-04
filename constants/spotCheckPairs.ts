@@ -36,6 +36,14 @@ export const FEELING_PAIR: Record<string, string> = {
   Afraid: 'fear',
   Anxious: 'fear',
   Resentful: 'resentment',
+  // 2026-08-04 chip additions (Lonely chip removed but stays mapped for
+  // Other…-typed entries): Jealous is exact; Hurt → the resentment it turns
+  // into; Overwhelmed → fear/faith (self-reliance failing); Guilty joins
+  // Ashamed on self-condemnation — dedupe by pair id covers both selected.
+  Jealous: 'jealousy',
+  Hurt: 'resentment',
+  Overwhelmed: 'fear',
+  Guilty: 'selfCondemnation',
   Restless: 'impatience',
   Irritable: 'impatience',
   Discontent: 'negativeThinking',

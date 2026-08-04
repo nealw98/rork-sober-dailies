@@ -33,8 +33,9 @@ export const getSpotCheckScript = (id: SponsorType): SpotCheckScript =>
 // Step-1 feeling pills — fixed set per the design spec. The screen appends an
 // "Other" pill that opens a free-text input for feelings not listed here.
 export const SPOT_CHECK_FEELINGS = [
-  'Angry', 'Afraid', 'Anxious', 'Resentful', 'Restless',
-  'Irritable', 'Discontent', 'Ashamed', 'Lonely', 'Self-pity',
+  'Angry', 'Afraid', 'Anxious', 'Resentful', 'Jealous', 'Hurt',
+  'Restless', 'Irritable', 'Discontent', 'Overwhelmed',
+  'Ashamed', 'Guilty', 'Self-pity',
 ];
 
 // Offline / LLM-failure fallback for the step-3 question, voiced per persona.
@@ -46,8 +47,9 @@ type FallbackFlavor = 'resentment' | 'fear' | 'shame' | 'generic';
 
 const FEELING_FLAVOR: Record<string, Exclude<FallbackFlavor, 'generic'>> = {
   Angry: 'resentment', Resentful: 'resentment', Irritable: 'resentment',
-  Afraid: 'fear', Anxious: 'fear',
-  Ashamed: 'shame', 'Self-pity': 'shame', Lonely: 'shame',
+  Jealous: 'resentment', Hurt: 'resentment',
+  Afraid: 'fear', Anxious: 'fear', Overwhelmed: 'fear',
+  Ashamed: 'shame', Guilty: 'shame', 'Self-pity': 'shame', Lonely: 'shame',
 };
 
 const SPOT_CHECK_FALLBACK_QUESTIONS: Partial<Record<SponsorType, Record<FallbackFlavor, string>>> = {
