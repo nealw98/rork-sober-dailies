@@ -23,7 +23,7 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-type SponsorId = 'salty' | 'supportive' | 'grace';
+type SponsorId = 'salty' | 'supportive' | 'grace' | 'reflection';
 type Provider = 'openai' | 'anthropic';
 type ChatRole = 'user' | 'assistant';
 
@@ -63,6 +63,12 @@ RESPONSE VARIATION:
 `;
 
 const SPONSORS: Record<SponsorId, { name: string; prompt: string }> = {
+  // Neutral in-app voice (Spot Check form reflection, 2026-08-04) — NOT a
+  // persona. Small on purpose; the task text carries the per-call contract.
+  reflection: {
+    name: 'Reflection',
+    prompt: `You are the quiet in-app reflection voice of Sober Dailies, an AA recovery app. You produce one small, grounded observation for a member doing a 10th-step spot check. Plain, warm, adult language — no persona, no greeting, no pep talk, no therapy-speak. AA-informed (resentment, fear, self-reliance, honesty, amends) without jargon or preaching. Never diagnose, never give medical advice.`,
+  },
   salty: {
     name: 'Salty Sam',
     prompt: `You are Salty Sam. Your name is Sam, but people call you "Salty Sam." You are a cantankerous, gruff, no-nonsense AA sponsor with decades of sobriety. Your sobriety date is October 18, 1983. You've "seen it all and done it all" in AA, and you're fed up with excuses. Your job is tough love, not coddling.
@@ -293,7 +299,8 @@ function clamp(value: number, min: number, max: number): number {
 }
 
 function getSponsor(id: unknown): { id: SponsorId; name: string; prompt: string } {
-  const sponsorId = id === 'supportive' || id === 'grace' || id === 'salty' ? id : 'salty';
+  const sponsorId =
+    id === 'supportive' || id === 'grace' || id === 'salty' || id === 'reflection' ? id : 'salty';
   return { id: sponsorId, ...SPONSORS[sponsorId] };
 }
 
@@ -322,7 +329,9 @@ interface RequestContext {
 interface ProviderResult {
   model: string;
   outputText: string;
-  usage: { input_tokens?: number; output_tokens?: number; total_tokens?: number } | null;
+  usage:
+    | ({ input_tokens?: number; output_tokens?: number; total_tokens?: number } & Record<string, number | undefined>)
+    | null;
 }
 
 function buildContext(body: RequestBody): RequestContext {
@@ -423,13 +432,27 @@ async function callAnthropic(ctx: RequestContext): Promise<ProviderResult> {
 
   const model = resolveAnthropicModel(ctx.requestedModel);
 
-  const messages = [
-    ...ctx.conversation.map((item) => ({
-      role: item.role === 'assistant' ? 'assistant' : 'user',
-      content: String(item.content || '').slice(0, 2000),
-    })),
-    { role: 'user', content: ctx.message },
-  ];
+  // Prompt caching (2026-08-04): the persona prompts are 1.2–1.7k tokens and
+  // were re-billed at full input price on EVERY turn (~1¢/turn measured).
+  // Two cache breakpoints: (1) the persona system prompt — stable bytes,
+  // shared across all users of the same sponsor, reads bill at 0.1×;
+  // (2) the last history message, so the system+history prefix carries over
+  // turn to turn (each turn appends 2 messages, within the 20-block lookback).
+  // The new user message stays after the last breakpoint — volatile content
+  // never pays the 1.25× cache-write premium. Sliding-window history (client
+  // sends last 10 turns) breaks the history cache past 10 turns; the system
+  // prompt cache is its own tier and survives regardless.
+  const historyMessages: { role: string; content: unknown }[] = ctx.conversation.map((item) => ({
+    role: item.role === 'assistant' ? 'assistant' : 'user',
+    content: String(item.content || '').slice(0, 2000),
+  }));
+  if (historyMessages.length > 0) {
+    const last = historyMessages[historyMessages.length - 1];
+    last.content = [
+      { type: 'text', text: String(last.content), cache_control: { type: 'ephemeral' } },
+    ];
+  }
+  const messages = [...historyMessages, { role: 'user', content: ctx.message }];
 
   const response = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
@@ -441,7 +464,9 @@ async function callAnthropic(ctx: RequestContext): Promise<ProviderResult> {
     body: JSON.stringify({
       model,
       max_tokens: ctx.maxOutputTokens,
-      system: ctx.prompt,
+      system: [
+        { type: 'text', text: ctx.prompt, cache_control: { type: 'ephemeral' } },
+      ],
       // Anthropic temperature range is 0–1 (OpenAI allows up to 1.2).
       temperature: clamp(ctx.temperature, 0, 1),
       messages,
@@ -460,7 +485,15 @@ async function callAnthropic(ctx: RequestContext): Promise<ProviderResult> {
     throw new Error(data?.error?.message || responseText || `Anthropic request failed with ${response.status}`);
   }
 
+  // With prompt caching, Anthropic splits the prompt across three fields:
+  // input_tokens (full price), cache_read_input_tokens (0.1×), and
+  // cache_creation_input_tokens (1.25×). Log each tier separately — the
+  // admin Spend panel prices them at their real rates. Requires the
+  // cache_read_tokens / cache_creation_tokens columns (migration
+  // 20260804090000) — deploy order: migration first, then this.
   const inputTokens = data?.usage?.input_tokens ?? null;
+  const cacheRead = data?.usage?.cache_read_input_tokens ?? 0;
+  const cacheWrite = data?.usage?.cache_creation_input_tokens ?? 0;
   const outputTokens = data?.usage?.output_tokens ?? null;
 
   return {
@@ -470,7 +503,12 @@ async function callAnthropic(ctx: RequestContext): Promise<ProviderResult> {
       input_tokens: inputTokens ?? undefined,
       output_tokens: outputTokens ?? undefined,
       total_tokens:
-        inputTokens != null && outputTokens != null ? inputTokens + outputTokens : undefined,
+        inputTokens != null && outputTokens != null
+          ? inputTokens + cacheRead + cacheWrite + outputTokens
+          : undefined,
+      // Cache observability (clients ignore extra fields).
+      cache_read_input_tokens: cacheRead,
+      cache_creation_input_tokens: cacheWrite,
     },
   };
 }
@@ -502,6 +540,8 @@ async function handleChat(body: RequestBody) {
     input_tokens: result.usage?.input_tokens ?? null,
     output_tokens: result.usage?.output_tokens ?? null,
     total_tokens: result.usage?.total_tokens ?? null,
+    cache_read_tokens: result.usage?.cache_read_input_tokens ?? null,
+    cache_creation_tokens: result.usage?.cache_creation_input_tokens ?? null,
     temperature: ctx.temperature,
     max_output_tokens: ctx.maxOutputTokens,
     request_status: 'success',
