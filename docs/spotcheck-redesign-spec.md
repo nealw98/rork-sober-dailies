@@ -33,10 +33,12 @@ real sponsor chat.
 - **Save** is MANUAL ONLY — standard notebook save + `confirmSaved()`
   OK/View dialog. Talk-it-through does NOT auto-save (prototype's
   save-on-leaving-form + toast: dropped).
-- **Split CTA** (terracotta pill, disabled until ready): left segment
-  "Talk it through with {last-used sponsor first name}" + avatar; right
-  chevron segment opens a sponsor sheet with the FULL roster (not the
-  prototype's 3).
+- **Split CTA — "Save & talk with {name}"** (REVISED 2026-08-04, Neal;
+  terracotta pill, disabled until ready): left segment saves the page (no
+  confirmation dialog) and goes straight to the chat via router.REPLACE —
+  page one leaves the stack and comes up fresh next time. Right chevron
+  segment opens the full-roster sponsor sheet; picking one does the same
+  save-and-go.
 
 ### Screen 2 — the real sponsor chat (the actual chat surface)
 
@@ -44,9 +46,11 @@ real sponsor chat.
 screen (`app/(main)/spot-check-chat.tsx`), chat-styled, but it NEVER
 touches the persona's main thread (an ongoing conversation there is
 untouched). **Framing: it is the SAME wizard, split** — pages 1–2 on the
-form, pages 3–4 in this chat window. A **Done** button (and back) ends and
-discards the session; the saved record + optional take are the durable
-artifacts. Same daily message cap and crisis scan as the main chat.
+form, pages 3–4 in this chat window. **Done is the ONLY exit** (no
+back-to-form chevron — the form was replaced out of the stack); it and
+system back land on the screen the flow started from (Today/Tools). The
+saved record (form page only) is the durable artifact. Same daily message
+cap and crisis scan as the main chat.
 
 1. The chat OPENS with the sponsor asking the page-3 question — no
    welcome line ("no What-fresh-hell opener"), no preamble, no echo of
@@ -55,10 +59,8 @@ artifacts. Same daily message cap and crisis scan as the main chat.
 2. User replies (the page-3 causes answer).
 3. **Sponsor page-4 turn (hard structure, real generation):** summary of
    the situation + THREE concrete suggestions.
-4. **Immediately after page 4: a DIALOG** — "Add {name}'s take?" (only if
-   the form was saved) — Add it / Not now. Adding writes the summary +
-   suggestions onto the saved record and drops a visible confirmation
-   pill into the stream.
+4. RETIRED 2026-08-04: the "Add {name}'s take?" dialog. Nothing in the
+   chat writes back to the saved record.
 5. From then on: normal chat inside this session (askSpotCheckReply,
    persona voice, spot-check context attached) until Done.
 
@@ -67,18 +69,15 @@ in the prompt contract; the words are genuinely generated per persona.
 
 No "take" labeling inside the chat — they are ordinary messages.
 
-### "{Name}'s take" — optional append to the SAVED record
+### The save is the FORM PAGE ONLY (REVISED 2026-08-04, Neal)
 
-- Offered ONLY if the user saved the spot check on screen 1.
-- Surfaces at the right moment: right after sponsor turn 2 (the
-  summary + suggestions) lands in the chat.
-- Explicit add framing: **"Add {name}'s take to your saved spot check?"**
-  — clearly an ADD to an existing entry, user-confirmed, never automatic.
-- On confirm: the summary + three suggestions are appended to the Journey
-  record as "{name}'s take".
-- Confirmation of the add must be CLEARLY VISIBLE — explicitly NOT a tiny
-  black toast (Neal). Prefer an inline element in the chat stream (e.g. a
-  prompt card under the take turn that becomes an added-state card).
+- The saved record = feelings + situation + the reflection card's answer.
+  Generating a fresh reflection after a save re-arms the Save pill so it
+  can be captured by a re-save.
+- The chat is separate and writes NOTHING back — the "Add {name}'s take"
+  dialog is RETIRED. Old records that carry a take keep rendering it in
+  Journey ("What {name} heard"); new records render a "Reflection"
+  section instead.
 
 ### What does NOT exist
 
@@ -90,9 +89,8 @@ No "take" labeling inside the chat — they are ordinary messages.
 
 ### Unsaved-record path
 
-User talks without saving: fine. No record exists, so no take-append offer
-ever appears; the conversation still lives in chat history. Nothing lost,
-nothing prompted.
+User talks without saving: fine. The conversation is ephemeral either way;
+nothing lost, nothing prompted.
 
 ## Implementation map (verified against the code, 2026-08-03)
 

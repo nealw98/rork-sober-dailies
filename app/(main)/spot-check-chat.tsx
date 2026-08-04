@@ -1,13 +1,13 @@
 // Spot Check — the chat half of the split wizard (docs/spotcheck-redesign-spec.md).
 // A SEPARATE, EPHEMERAL session: it never touches the persona's main thread,
-// has no welcome opener, and Done discards it (the saved record — and the
-// optional "{name}'s take" — are the durable artifacts).
+// has no welcome opener, Done discards it, and NOTHING here writes back to
+// the saved record (the form page — feelings + situation + reflection — is
+// the durable artifact; the take-append dialog was retired 2026-08-04).
 //
 // Flow: opens with the sponsor's page-3 question (no preamble; generated from
 // the form via askCausesQuestion) → the user's reply routes to askSummary →
-// page 4 lands as summary + three suggestions → a DIALOG offers "Add {name}'s
-// take to your saved spot check?" (only if the form was saved) → normal chat
-// continues in this window via askSpotCheckReply until Done.
+// page 4 lands as summary + three suggestions → normal chat continues in
+// this window via askSpotCheckReply until Done.
 import React, { useEffect, useRef, useState } from 'react';
 import {
   View, Text, StyleSheet, Pressable, TextInput, FlatList, Alert,
@@ -18,7 +18,6 @@ import { Stack, useRouter } from 'expo-router';
 import { Image } from 'expo-image';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Send, Check } from 'lucide-react-native';
-import BackButton from '@/components/BackButton';
 import { getSponsorById } from '@/constants/sponsors';
 import { SPOT_CHECK_SEED_KEY, getSpotCheckFallbackQuestion } from '@/constants/spotCheckPersonas';
 import { detectCrisis, crisisResponses } from '@/constants/crisisTriggers';
@@ -27,10 +26,9 @@ import { checkSponsorMessageLimit, recordSponsorMessage } from '@/lib/sponsorCha
 import { useTokens, useThemedStyles } from '@/hooks/useTokens';
 import { useReadingSize } from '@/hooks/use-reading-size';
 import { useScreenTimeTracking } from '@/hooks/useScreenTimeTracking';
-import { logEvent } from '@/lib/analytics';
 import { fontFamily, type Tokens } from '@/constants/designTokens';
 import type { SponsorType } from '@/types';
-import type { SpotCheckEntry, SpotCheckSeed } from '@/types/spotCheck';
+import type { SpotCheckSeed } from '@/types/spotCheck';
 
 const LORA_SCALE = 0.92; // match sponsor-chat's Inter-vs-Lora sizing
 
@@ -114,36 +112,9 @@ export default function SpotCheckChatScreen() {
     if (turns.length > 0) setTimeout(() => listRef.current?.scrollToEnd({ animated: true }), 100);
   }, [turns]);
 
-  // The take dialog — fires once, right after page 4, only for a saved record.
-  const offerTake = (s: SpotCheckSeed, summary: string, suggestions: string[]) => {
-    if (!s.savedEntryId) return;
-    Alert.alert(
-      `Add ${firstName}’s take?`,
-      `Add this summary and the suggestions to your saved spot check in Journey.`,
-      [
-        { text: 'Not now', style: 'cancel' },
-        {
-          text: 'Add it',
-          onPress: async () => {
-            try {
-              // Canonical key defined in app/(main)/inventory.tsx.
-              const stored = await AsyncStorage.getItem('spot_check_inventories');
-              const records: SpotCheckEntry[] = stored ? JSON.parse(stored) : [];
-              const at = records.findIndex((r) => r.id === s.savedEntryId);
-              if (at >= 0) {
-                records[at] = { ...records[at], sponsorId: s.sponsorId, summary, suggestions };
-                await AsyncStorage.setItem('spot_check_inventories', JSON.stringify(records));
-              }
-              logEvent('spot_check_take_added', { sponsor: s.sponsorId });
-              setTurns((cur) => [...cur, { id: nextId(), who: 'sys', text: `${firstName}’s take added to your spot check` }]);
-            } catch (e) {
-              console.error('Error adding take:', e);
-            }
-          },
-        },
-      ],
-    );
-  };
+  // "Add {name}'s take" retired (Neal, 2026-08-04): the saved record is the
+  // FORM PAGE ONLY (feelings + situation + reflection). This chat is a
+  // separate, ephemeral session — nothing here writes back to Journey.
 
   const send = async () => {
     const text = draft.trim();
@@ -174,7 +145,8 @@ export default function SpotCheckChatScreen() {
     await recordSponsorMessage();
     try {
       if (beat.current === 'causes') {
-        // Page 4: summary + three suggestions, then the take dialog.
+        // Page 4: summary + three suggestions — chat content only, never
+        // written back to the saved record.
         beat.current = 'chat';
         const take = await askSummary(seed.sponsorId, {
           feelings: seed.feelings,
@@ -187,7 +159,6 @@ export default function SpotCheckChatScreen() {
           ...cur,
           { id: nextId(), who: 'bot', text: `${take.summary}\n\n${take.suggestions.map((s) => `• ${s}`).join('\n')}` },
         ]);
-        offerTake(seed, take.summary, take.suggestions);
       } else {
         // Normal chat, scoped to this session.
         const transcript = [...turns, userTurn]
@@ -240,8 +211,10 @@ export default function SpotCheckChatScreen() {
       <Stack.Screen options={{ headerShown: false }} />
       <View style={{ paddingTop: insets.top }} />
 
+      {/* No back-to-form chevron (Neal, 2026-08-04): the form was replaced
+          out of the stack, so Done (and system back) exits straight to the
+          screen the flow started from (Today/Tools). */}
       <View style={styles.headerRow}>
-        <BackButton onPress={() => router.back()} />
         {sponsor?.avatar ? <Image source={sponsor.avatar} style={styles.headerAvatar} contentFit="cover" /> : null}
         <View style={styles.flex}>
           <Text style={styles.headerName}>{sponsor?.name ?? 'Spot Check'}</Text>

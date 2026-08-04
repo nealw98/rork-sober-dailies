@@ -9,19 +9,21 @@ export type SpotCheckEntry = {
   sponsorId: SponsorType; // persona that conducted it (last one, if changed mid-flow)
   feelings: string[]; // step 1 pills
   whatsGoingOn: string; // step 2 free text
-  causesQuestion: string | null; // the step-3 ask shown (LLM or fallback), kept for the record
-  causesAnswer: string | null; // step 3 free text (null if skipped)
-  summary: string | null; // step 4 LLM lead paragraph (null if the call failed)
-  suggestions: string[] | null; // step 4 bullets (null if the call failed)
+  reflection?: string | null; // the form's app-voice response (2026-08-04+; absent on older records)
+  causesQuestion: string | null; // wizard-era: the step-3 ask shown (LLM or fallback)
+  causesAnswer: string | null; // wizard-era: step 3 free text (null if skipped)
+  summary: string | null; // wizard-era / take-era: LLM lead paragraph
+  suggestions: string[] | null; // wizard-era / take-era: bullets
 };
 
 // Redesign (docs/spotcheck-redesign-spec.md): what the form hands the chat.
-// On the new form, entries save with the wizard fields null; if the user later
-// accepts "Add {name}'s take", the chat writes summary/suggestions/sponsorId
-// back onto the saved record (matched by savedEntryId).
+// The save is the FORM PAGE ONLY (feelings + situation + reflection); the
+// chat is a separate, ephemeral session and writes nothing back (the
+// "Add {name}'s take" flow was retired 2026-08-04 — summary/suggestions
+// survive on older records only).
 export type SpotCheckSeed = {
   sponsorId: SponsorType;
   feelings: string[];
   whatsGoingOn: string;
-  savedEntryId: string | null; // null = user never saved; take prompt never shows
+  savedEntryId: string | null; // informational; the chat no longer writes back
 };

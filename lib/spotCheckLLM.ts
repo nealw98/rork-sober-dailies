@@ -7,6 +7,7 @@
 // plain saved confirmation).
 import type { SponsorType } from '@/types';
 import { getSponsorById } from '@/constants/sponsors';
+import { SPOT_PAIRS } from '@/constants/spotCheckPairs';
 import { getAnonymousId } from '@/lib/anonymousId';
 import {
   SUPABASE_ANON_KEY, getSponsorApiChatUrl, getSponsorApiUrl, getQaUseRork,
@@ -88,6 +89,9 @@ async function callPaidSponsor(
   sponsorId: SponsorType,
   message: string,
   conversation: { role: 'user' | 'assistant'; content: string }[],
+  // Sonnet holds the personas; structured non-persona tasks (the form
+  // reflection) can run on Haiku at a third of the price.
+  modelOverride?: string,
 ): Promise<string> {
   const started = Date.now();
   const sponsor = getSponsorById(sponsorId);
@@ -113,7 +117,7 @@ async function callPaidSponsor(
       provider: 'anthropic',
       // Sonnet, not the Haiku default: Haiku is politeness-tuned and played
       // Sam neutered (Neal, on device, 2026-08-04). Allowlisted server-side.
-      model: 'claude-sonnet-4-6',
+      model: modelOverride ?? 'claude-sonnet-4-6',
       anonymous_id: anonymousId,
     }),
     signal: timeoutSignal(LLM_TIMEOUT_MS),
@@ -157,23 +161,45 @@ export function consumePrefetchedQuestion(sponsorId: SponsorType, feelings: stri
 const REFLECTION_PROMPT = `You are the quiet in-app reflection voice of Sober Dailies, an AA recovery app. You produce one small, grounded observation for a member doing a 10th-step spot check. Plain, warm, adult language — no persona, no greeting, no pep talk, no therapy-speak. AA-informed (resentment, fear, self-reliance, honesty, amends) without jargon or preaching. Never diagnose, never give medical advice.`;
 
 // Form reflection (2026-08-04, replaces the static Watch For/Strive For
-// card): 1–2 plain sentences responding to the SPECIFIC feelings+situation
-// combination, in the neutral app voice — the persona shows up later, in
-// the chat. Debounced/keyed by the caller; throws on total failure so the
-// form can simply show nothing.
+// card; REVISED same day, Neal): understanding first, not advice — a plain
+// summary of what they said, then a conversational pointer to 2–3 ASSETS
+// from the classic Daily Moral Inventory card (the strive-for column of
+// SPOT_PAIRS, single source of truth). Neutral app voice — the persona
+// shows up later, in the chat. Fired on the form's Enter key; throws on
+// total failure so the form can simply show nothing.
+const INVENTORY_ASSETS = SPOT_PAIRS.map((p) => p.on).join(', ');
+
+// Canonical card shape (Neal, 2026-08-04): one flowing paragraph, blank
+// line, then the AI-sponsor closer on its own line. The prompt asks for
+// this, but models drift — normalize whatever comes back: collapse all
+// internal breaks into one paragraph, then re-split before the final
+// sentence that names the AI sponsor.
+function normalizeReflection(text: string): string {
+  const collapsed = text.replace(/\s*\n+\s*/g, ' ').trim();
+  const m = collapsed.match(/([^.!?]*your AI sponsor[^.!?]*[.!?]+)\s*$/i);
+  if (!m || !m.index) return collapsed;
+  const body = collapsed.slice(0, m.index).trim();
+  const invite = m[1].trim();
+  return body ? `${body}\n\n${invite}` : collapsed;
+}
+
 export async function askFormReflection(feelings: string[], whatsGoingOn: string): Promise<string> {
   const task = [
-    'TASK: A member doing a 10th-step spot check named the feelings and situation below. Reply with 1–2 short sentences (40 words max, plain and direct): reflect what seems to be underneath this particular combination — connect the feelings to the situation, don’t just restate them — then name ONE concrete thing to watch for right now. No greeting, no question, no list, no advice beyond the watch-for. Reply with the sentences only — no preamble, no markdown.',
+    `TASK: A member doing a 10th-step spot check named the feelings and situation below. Reply in 3–5 SHORT sentences (70 words max), plain and conversational. Beat 1: reflect back what they told you — a simple, accurate summary of how they feel and what's going on, so they feel understood. No analysis, no advice, no digging at what's underneath. Beat 2: point them toward ONE asset — the single best fit for this situation — from this list: ${INVENTORY_ASSETS}. One short, natural sentence (e.g. "This might be a moment for patience with yourself."). Exactly one asset, never two. Beat 3: close with a short invitation to take it further with their AI sponsor, worded to fit THIS situation — e.g. "It might be helpful to dig deeper with your AI sponsor", or "…to look at what's underneath this with your AI sponsor", or "…to sort out your part in it with your AI sponsor". Vary the wording; pick the angle that fits; always say "your AI sponsor". FORMAT: beats 1 and 2 flow together as ONE paragraph — no line breaks between sentences. Then a blank line, then the AI-sponsor sentence alone. Nothing else — no greeting, no question, no list, no markdown.`,
     '',
     `Feelings they tapped: ${feelings.join(', ')}`,
     `What’s going on (their words): ${trim(whatsGoingOn, 1200)}`,
   ].join('\n');
   if (!(await getQaUseRork())) {
     try {
-      return (await callPaidSponsor('reflection' as SponsorType, task, [])).trim();
+      // Sonnet (Neal, 2026-08-04, after a Haiku trial): picking the single
+      // best-fit asset is the judgment call at the heart of this card —
+      // worth Sonnet's read. (Haiku followed the format fine but the asset
+      // choice is the product.)
+      return normalizeReflection(await callPaidSponsor('reflection' as SponsorType, task, []));
     } catch { /* fall through to Rork */ }
   }
-  return (await fetchCompletion(`${REFLECTION_PROMPT}\n\n${task}`)).trim();
+  return normalizeReflection(await fetchCompletion(`${REFLECTION_PROMPT}\n\n${task}`));
 }
 
 // Call 1 — the step-3 question, generated from steps 1–2.

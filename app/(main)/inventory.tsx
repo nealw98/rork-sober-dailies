@@ -7,12 +7,14 @@
 //      re-save updates the same record, never duplicates.
 //   2. Save & close / 3. Close without saving — on the back chevron when
 //      dirty; labels are a UI iteration, the states are the contract.
-// Talk-it-through never saves; it carries savedEntryId (gates the take
-// prompt in chat). LLM calls live entirely on the chat side now.
+// Save & talk (Neal, 2026-08-04): the CTA saves the page (no dialog) and
+// REPLACES this screen with the ephemeral chat — page one clears, and the
+// chat's Done exits to wherever the flow started. The chat never writes
+// back to the record.
 import React, { useEffect, useRef, useState } from 'react';
 import {
   View, Text, StyleSheet, Pressable, TextInput, Alert, BackHandler,
-  Keyboard, Modal, Platform,
+  Keyboard, Modal, Platform, ActivityIndicator,
 } from 'react-native';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -74,26 +76,33 @@ export default function InventoryScreen() {
   const markEdited = () => setEditedSinceSave(true);
 
   // App reflection (2026-08-04, replaces the static Watch For/Strive For
-  // card): once the form is ready and the user pauses, fetch 1–2 plain
-  // sentences responding to THIS feelings+situation combination. Key-guarded
-  // so edits regenerate after the next pause; the stale text stays visible
-  // until replaced; total failure (offline) just shows nothing.
+  // card; REVISED same day, Neal): fired EXPLICITLY by the Enter/Done key on
+  // the what's-going-on input — not on a typing pause. Understanding-first
+  // content (summary + a conversational pointer to 2–3 inventory assets).
+  // Key-guarded so re-submitting unchanged input is a no-op; the old text
+  // stays visible until replaced; total failure (offline) shows nothing.
   const [reflection, setReflection] = useState<string | null>(null);
+  const [reflecting, setReflecting] = useState(false);
+  // Visible Enter/Cancel row while the what's-going-on input is focused
+  // (Neal, 2026-08-04) — the keyboard's return key alone wasn't
+  // discoverable. Enter dismisses + generates; Cancel just dismisses.
+  const [goingOnFocused, setGoingOnFocused] = useState(false);
   const reflectionKey = useRef('');
-  useEffect(() => {
-    if (!ready) { setReflection(null); reflectionKey.current = ''; return; }
+  const generateReflection = async () => {
+    if (!ready) return;
     const key = `${feelings.join(',')}|${whatsGoingOn.trim()}`;
     if (reflectionKey.current === key) return;
-    const t = setTimeout(async () => {
-      try {
-        const text = await askFormReflection(feelings, whatsGoingOn.trim());
-        reflectionKey.current = key;
-        setReflection(text);
-      } catch { /* leave whatever is showing */ }
-    }, 2000);
-    return () => clearTimeout(t);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [ready, feelings, whatsGoingOn]);
+    setReflecting(true);
+    try {
+      const text = await askFormReflection(feelings, whatsGoingOn.trim());
+      reflectionKey.current = key;
+      setReflection(text);
+      // The reflection is part of the saved record now — a fresh one after a
+      // save re-arms the Save pill so it can be captured.
+      markEdited();
+    } catch { /* leave whatever is showing */ }
+    setReflecting(false);
+  };
 
   // Speculative prefetch: once the form is ready and the user pauses for a
   // beat, fire the page-3 question so it's already in flight (often already
@@ -125,15 +134,22 @@ export default function InventoryScreen() {
     }
   };
 
-  // ── Save: in place. First save inserts; later saves update the same id. ──
-  const save = async (): Promise<string> => {
+  // ── Save: in place. First save inserts; later saves update the same id.
+  // sponsorOverride: Save-&-talk passes the just-picked sponsor, which this
+  // render's `sponsorId` state doesn't reflect yet. ──
+  const save = async (sponsorOverride?: SponsorType): Promise<string> => {
+    const sp = sponsorOverride ?? sponsorId;
     const id = savedEntryId ?? Date.now().toString();
     const entry: SpotCheckEntry = {
       id,
       createdAt: Date.now(),
-      sponsorId,
+      sponsorId: sp,
       feelings,
       whatsGoingOn: whatsGoingOn.trim(),
+      // The save is THIS PAGE ONLY (Neal, 2026-08-04): feelings + situation +
+      // the reflection if one was generated. The chat is separate and never
+      // writes back.
+      reflection,
       causesQuestion: null,
       causesAnswer: null,
       summary: null,
@@ -143,14 +159,14 @@ export default function InventoryScreen() {
     const records: SpotCheckEntry[] = stored ? JSON.parse(stored) : [];
     const at = records.findIndex((r) => r.id === id);
     if (at >= 0) {
-      // Update in place, preserving createdAt and any take already added.
-      records[at] = { ...records[at], sponsorId, feelings, whatsGoingOn: entry.whatsGoingOn };
+      // Update in place, preserving createdAt.
+      records[at] = { ...records[at], sponsorId: sp, feelings, whatsGoingOn: entry.whatsGoingOn, reflection };
     } else {
       records.unshift(entry);
     }
     await AsyncStorage.setItem(INVENTORY_STORAGE_KEY, JSON.stringify(records));
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    logEvent('entry_saved', { type: 'spot_check', sponsor: sponsorId, feeling_count: feelings.length, update: at >= 0 });
+    logEvent('entry_saved', { type: 'spot_check', sponsor: sp, feeling_count: feelings.length, update: at >= 0 });
     setSavedEntryId(id);
     setEditedSinceSave(false);
     return id;
@@ -185,7 +201,11 @@ export default function InventoryScreen() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dirty]);
 
-  // ── Talk it through: seed the REAL chat. Never saves. ──
+  // ── Save & talk (Neal, 2026-08-04): the CTA SAVES the page — no
+  // confirmation dialog — then REPLACES this screen with the chat. The form
+  // leaves the stack, so the chat's Done (and system back) exits straight to
+  // wherever the flow started (Today/Tools), and page one comes up fresh
+  // next time. There is no way back to the form from the chat. ──
   const talk = async (sid: SponsorType) => {
     if (!ready) return;
     Keyboard.dismiss();
@@ -193,11 +213,17 @@ export default function InventoryScreen() {
     userPicked.current = true;
     setSponsorId(sid);
     setLastSponsor(sid);
+    let entryId: string | null = null;
+    try {
+      entryId = await save(sid);
+    } catch (e) {
+      console.error('Spot check save-on-talk failed:', e);
+    }
     const seed: SpotCheckSeed = {
       sponsorId: sid,
       feelings,
       whatsGoingOn: whatsGoingOn.trim(),
-      savedEntryId: editedSinceSave ? null : savedEntryId,
+      savedEntryId: entryId,
     };
     try {
       // Fire the page-3 question NOW — the round-trip overlaps navigation
@@ -206,8 +232,8 @@ export default function InventoryScreen() {
       await AsyncStorage.setItem(SPOT_CHECK_SEED_KEY, JSON.stringify(seed));
       logEvent('spot_check_talk', { sponsor: sid, saved: seed.savedEntryId != null });
       // The chat half is its own EPHEMERAL session (never the main sponsor
-      // thread) — push, so backing out of it returns to this form.
-      router.push('/(main)/spot-check-chat');
+      // thread).
+      router.replace('/(main)/spot-check-chat');
     } catch (e) {
       console.error('Spot check seed failed:', e);
     }
@@ -242,7 +268,9 @@ export default function InventoryScreen() {
         style={styles.flex}
         contentContainerStyle={styles.scroll}
         keyboardShouldPersistTaps="handled"
-        bottomOffset={24}
+        // Clearance for the Enter/Cancel row below the focused input — at 24
+        // the keyboard sat right at the input's edge and hid the buttons.
+        bottomOffset={84}
         showsVerticalScrollIndicator={false}
       >
         <Text style={[styles.sectionLabel, { marginTop: 18 }]}>HOW ARE YOU FEELING?</Text>
@@ -293,11 +321,47 @@ export default function InventoryScreen() {
           onChangeText={(t) => { markEdited(); setWhatsGoingOn(t); }}
           placeholder="What’s happening right now"
           placeholderTextColor={c.textMuted}
+          onFocus={() => setGoingOnFocused(true)}
+          onBlur={() => setGoingOnFocused(false)}
+          // Enter/Done submits for the reflection (Neal, 2026-08-04) — the
+          // return key closes the keyboard and fires the response instead of
+          // inserting a newline. The visible Enter button below does the same.
+          returnKeyType="done"
+          submitBehavior="blurAndSubmit"
+          onSubmitEditing={generateReflection}
         />
+        {goingOnFocused && (
+          <View style={styles.inputBtnRow}>
+            <Pressable
+              onPress={() => Keyboard.dismiss()}
+              accessibilityRole="button"
+              accessibilityLabel="Cancel"
+              style={[styles.inputBtn, styles.inputBtnGhost]}
+            >
+              <Text style={[styles.inputBtnText, { color: c.textSecondary }]}>Cancel</Text>
+            </Pressable>
+            <Pressable
+              onPress={() => { Keyboard.dismiss(); generateReflection(); }}
+              disabled={!ready}
+              accessibilityRole="button"
+              accessibilityLabel="Enter"
+              style={[styles.inputBtn, { backgroundColor: colors.accent }, !ready && styles.btnDisabled]}
+            >
+              <Text style={[styles.inputBtnText, { color: '#fff' }]}>Enter</Text>
+            </Pressable>
+          </View>
+        )}
 
-        {reflection !== null && (
+        {(reflection !== null || reflecting) && (
           <View style={styles.reflectionCard}>
-            <Text style={styles.reflectionText}>{reflection}</Text>
+            {reflection !== null && <Text style={styles.reflectionText}>{reflection}</Text>}
+            {reflecting && (
+              <ActivityIndicator
+                size="small"
+                color={colors.primaryDark}
+                style={reflection !== null ? { marginTop: 10 } : null}
+              />
+            )}
           </View>
         )}
         <View style={{ height: 20 }} />
@@ -310,11 +374,11 @@ export default function InventoryScreen() {
             onPress={() => talk(sponsorId)}
             disabled={!ready}
             accessibilityRole="button"
-            accessibilityLabel={`Talk it through with ${firstName}`}
+            accessibilityLabel={`Save and talk with ${firstName}`}
             style={styles.splitMain}
           >
             <Image source={sponsor?.avatar} style={styles.splitAvatar} contentFit="cover" />
-            <Text style={styles.splitText}>Talk it through with {firstName}</Text>
+            <Text style={styles.splitText}>Save & talk with {firstName}</Text>
           </Pressable>
           <Pressable
             onPress={() => ready && setSheetOpen(true)}
@@ -333,7 +397,7 @@ export default function InventoryScreen() {
         <Pressable style={styles.sheetBackdrop} onPress={() => setSheetOpen(false)}>
           <Pressable style={[styles.sheet, { paddingBottom: Math.max(insets.bottom, 16) + 10 }]} onPress={() => {}}>
             <View style={styles.sheetHandle} />
-            <Text style={styles.sheetTitle}>Talk it through with…</Text>
+            <Text style={styles.sheetTitle}>Save & talk with…</Text>
             {getAvailableSponsors().map((sp) => {
               const on = sp.id === sponsorId;
               return (
@@ -398,9 +462,18 @@ const makeStyles = (tk: Tokens) => {
       borderWidth: 1, borderColor: colors.primary + '33',
     },
     reflectionText: {
-      fontFamily: fontFamily.serifItalic ?? fontFamily.regular, fontStyle: 'italic',
-      fontSize: 15, lineHeight: 23, color: c.text,
+      fontFamily: fontFamily.regular, fontSize: 15, lineHeight: 23, color: c.text,
     },
+    inputBtnRow: { flexDirection: 'row', justifyContent: 'flex-end', gap: 10, marginTop: 10 },
+    inputBtn: {
+      paddingVertical: 9, paddingHorizontal: 20, borderRadius: 999, minHeight: 38,
+      justifyContent: 'center',
+    },
+    inputBtnGhost: {
+      backgroundColor: 'transparent', borderWidth: 1.5,
+      borderColor: isDark ? 'rgba(255,255,255,0.16)' : c.border,
+    },
+    inputBtnText: { fontFamily: fontFamily.semiBold, fontSize: 14.5 },
 
     dock: {
       paddingHorizontal: 18, paddingTop: 12,

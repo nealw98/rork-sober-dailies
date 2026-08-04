@@ -126,6 +126,7 @@ function buildShareText(entry: NotebookEntry): string {
       const parts: string[] = [];
       if (s?.feelings?.length) parts.push(`Feeling: ${s.feelings.join(', ')}`);
       if (s?.whatsGoingOn) parts.push(`What was going on?\n${s.whatsGoingOn}`);
+      if (s?.reflection) parts.push(`Reflection\n${s.reflection}`);
       if (s?.causesAnswer) parts.push(`${s.causesQuestion ?? 'My part in it'}\n${s.causesAnswer}`);
       if (s?.summary) parts.push(s.summary);
       if (s?.suggestions?.length) parts.push(s.suggestions.map((b) => `• ${b}`).join('\n'));
@@ -826,6 +827,12 @@ function SpotSheetBody({ spot }: { spot: SpotCheckEntry }) {
         <>
           <Text style={[styles.spotHeading, { marginTop: 22 }]}>What was going on?</Text>
           <View style={styles.paperBox}><Text style={styles.paperText}>{spot.whatsGoingOn}</Text></View>
+        </>
+      )}
+      {!!spot.reflection && (
+        <>
+          <Text style={[styles.spotHeading, { marginTop: 22 }]}>Reflection</Text>
+          <View style={styles.striveCard}><Text style={styles.paperText}>{spot.reflection}</Text></View>
         </>
       )}
       {!!spot.causesAnswer && (
