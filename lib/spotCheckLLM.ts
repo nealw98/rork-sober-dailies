@@ -159,7 +159,10 @@ export async function askCausesQuestion(
   whatsGoingOn: string,
 ): Promise<string> {
   const task = [
-    'TASK: You are conducting a 10th-step spot check. Based on what the user named below, ask ONE short question (2–3 sentences max, in your voice) that helps them get down to causes and conditions — their part in a resentment, a character defect at play, or a fear underneath. If nothing points at a person, don’t force “my part.” Do not give advice yet. Reply with the question only — no preamble, no markdown.',
+    // "My part" framing (Neal, 2026-08-04): the question's job is the program's
+    // turn inward, not a follow-up on the situation — the form already captured
+    // the situation.
+    'TASK: You are conducting a 10th-step spot check. The user has described the situation below. Your job is the program’s turn inward: ask ONE short question (2–3 sentences max, in your voice) that challenges them to find THEIR part in it. Aim it at what they named. Resentment, anger, irritation → where were they selfish, dishonest, self-seeking, or afraid — what’s their side of the street? Fear, anxiety → what are they afraid of losing or not getting? Are they future-tripping over something that hasn’t happened? Is self-reliance running the show where trust in a Higher Power belongs? Shame, self-pity, loneliness → what’s theirs to own, and what’s theirs to make right? EXCEPTION: if their description is extremely vague or just a few words, don’t guess — point out the vagueness itself (you can’t take honest inventory of what you won’t name) and ask them to get specific; the dodge is their part. Otherwise don’t ask for a retelling of events — the situation is already on the table. Challenge them honestly — no blame, no lecture, no consoling deflection. Do not give advice yet. Reply with the question only — no preamble, no markdown.',
     '',
     `Feelings they tapped: ${feelings.join(', ')}`,
     `What’s going on (their words): ${trim(whatsGoingOn, 1200)}`,
