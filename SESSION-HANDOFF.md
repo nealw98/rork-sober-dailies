@@ -2759,3 +2759,21 @@ the Spend panel (they bypass the fn).
    injectSpotCheckHandoff (already listed) + now spot_check_take_added
    analytics event gone, SpotCheckSeed.savedEntryId informational-only,
    `pairsForFeelings` unused by the form (kept for the map itself).
+
+### 23.5 Addendum — reflection response playbook (post-handoff, same day)
+
+Neal nailed down per-cluster responses for the form's reflection card; the
+FULL contract + playbook moved SERVER-SIDE into the fn's `reflection`
+persona (it outgrew the 2000-char message cap, and server-side = deploy-only
+tuning). Client (`4dcf534f`, OTA'd group `303b2ada`) now sends only
+feelings + situation; byte-synced fallback copy in spotCheckLLM.ts for the
+Rork path. Playbook: fear/anxiety/overwhelm → future-tripping, stay in
+today, honest facts, FAITH by name (Step 2), rely on Higher Power instead
+of white-knuckling; discontent/irritable/restless → gratitude + get out of
+self; angry/resentful → forgiveness, often acceptance; ashamed →
+self-forgiveness; else best-fit inventory asset. Standing rule: spiritual
+angle never softened — "faith" and "Higher Power" said plainly. Verified
+live on all clusters (best output: the relapsed-son scenario — "where your
+control ends and faith begins"). ⚠️ Old-OTA clients send the old embedded
+contract alongside the new server prompt until they update — harmless but
+muddled; the 303b2ada OTA aligns them.
