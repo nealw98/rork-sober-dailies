@@ -119,6 +119,14 @@ async function callAI(messages: APIMessage[]): Promise<string> {
   }
 }
 
+// 25s hard timeout so a stalled paid call falls back to Rork instead of
+// hanging the thinking dots (same rationale as lib/spotCheckLLM's).
+function paidTimeoutSignal(): AbortSignal {
+  const c = new AbortController();
+  setTimeout(() => c.abort(), 25000);
+  return c.signal;
+}
+
 async function callSponsorAPI(
   sponsorType: SponsorType,
   chatMessages: ChatMessage[],
@@ -126,8 +134,13 @@ async function callSponsorAPI(
 ): Promise<{ text: string; model?: string; temperature?: number }> {
   const sponsor = getSponsorById(sponsorType);
   const apiSponsorId = sponsor?.apiSponsorId ?? sponsorType;
-  const temperature = await getSponsorApiTemperature();
-  const { provider, model } = engineToRequest(await getSponsorApiEngine());
+  // Pinned to match the spot check (2026-08-04, Neal): Sonnet holds the
+  // personas (Haiku neutered Sam), temp at Anthropic's max for character
+  // color. Deliberately NOT read from the legacy engine/temperature settings
+  // — devices may carry stale stored values from the old selector era.
+  const temperature = 1.0;
+  const provider = 'anthropic';
+  const model = 'claude-sonnet-4-6';
   const sponsorApiUrl = await getSponsorApiUrl();
   const sponsorApiChatUrl = getSponsorApiChatUrl(sponsorApiUrl);
   const anonymousId = await getAnonymousId().catch(() => null);
@@ -157,6 +170,7 @@ async function callSponsorAPI(
       model,
       anonymous_id: anonymousId,
     }),
+    signal: paidTimeoutSignal(),
   });
 
   const data = await response.json();
@@ -803,15 +817,21 @@ export const [ChatStoreProvider, useChatStore] = createContextHook(() => {
     }
     
     try {
-      // Model selector removed — chat is pinned to the Rork backend (callAI)
-      // while gathering utilization data. callSponsorAPI + the engine/temperature
-      // settings (lib/sponsorApiSettings) are kept in place to re-enable the
-      // selector later; no path currently routes to the paid Supabase function.
-      const result = {
-        text: await callAI(convertToAPIMessages(updatedMessages, sponsorType)),
-        model: "rork" as string | undefined,
-        temperature: undefined as number | undefined,
-      };
+      // PAID-FIRST (flipped 2026-08-04, Neal — Rork toolkit degraded Aug 2-3
+      // and is anonymous/SLA-less): sponsor-chat Supabase fn → Anthropic
+      // Sonnet on our key, personas server-side. Free Rork is the automatic
+      // fallback, so this is two backends where there used to be one.
+      let result: { text: string; model?: string; temperature?: number };
+      try {
+        result = await callSponsorAPI(sponsorType, updatedMessages, text);
+      } catch (paidError) {
+        console.warn('Paid sponsor path failed; falling back to Rork:', paidError);
+        result = {
+          text: await callAI(convertToAPIMessages(updatedMessages, sponsorType)),
+          model: "rork" as string | undefined,
+          temperature: undefined as number | undefined,
+        };
+      }
 
       // Add bot response
       const botResponse: ChatMessage = {
