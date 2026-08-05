@@ -2777,3 +2777,76 @@ live on all clusters (best output: the relapsed-son scenario — "where your
 control ends and faith begins"). ⚠️ Old-OTA clients send the old embedded
 contract alongside the new server prompt until they update — harmless but
 muddled; the 303b2ada OTA aligns them.
+
+## 24. Latest session — 2026-08-04/05 (routing final · 133 SHIPPING · Sam's voice root-caused)
+
+Second act of the same working day as §23. Head at handoff includes
+`3acb1461` (routing), `87919fc9` (133 bump), `f1310170` (voice+timeouts).
+**Neal is smoke-testing PRODUCTION build 133 via TestFlight right now and
+said "I think I can ship this."**
+
+### 24.1 LLM routing FINAL: Sonnet → GPT-5.4 → Rork
+
+- Sonnet primary everywhere (cached ~0.2¢/turn, temp 1.0). **GPT-5.4 is
+  the paid BACKUP** through the same fn (same server personas; verified
+  live — Sam holds character on GPT, playbook followed; OPENAI_API_KEY
+  was already configured, `gpt-5.4` allowlisted). Rork = last-ditch
+  lifeboat only (different infra than the Supabase fn the paid providers
+  share). QA toggle = Rork-only, no fallback. Spend panel prices gpt-5.4
+  rows (web `86afda7`); **Lovable publish DONE (Neal)**.
+- **Rork degradation is THEIR backend**: benchmarked 40% stall / 3.8s
+  median on successes (bimodal fast-or-never = their queueing, NOT our
+  context/payloads — folded vs multi-message identical). Baseline +
+  recheck script: `scripts/rork-health.mjs` (**UNCOMMITTED**) +
+  memory `rork-health-baseline`. Watch @rork_app on X for fixes.
+- Rork chat timeouts now role-aware: 25s when QA toggle makes it the only
+  engine (was 10s — made turn-2+ visibly time out), 10s as backup.
+
+### 24.2 Sam's Sonnet tameness ROOT-CAUSED (the week-long mystery)
+
+Full prompt archaeology: NOTHING colorful was ever deleted from the
+canonical prompt (whole history = Jul 14 greeting trim, Jul 23 question
+rule, Jul 26 softeners [questions-not-verdicts era], Aug 3 softeners
+REMOVED, Aug 4 commitment clause). The three tameness sources, all fixed:
+(1) Jul 26–Aug 3 softener rules; (2) condensed server Sam + Haiku on paid
+turns (fixed Aug 3/4); (3) **THE SONNET-SPECIFIC ONE: the fn's
+TUNING_APPENDIX said "do not reuse the same catchphrases / avoid stock
+replies" — Sonnet obeys literally and rationed exactly the phrases that
+ARE Sam; Rork never sees the appendix.** Rewritten as VOICE OVER POLISH
+(signature phrases = the voice, use liberally, vary WHICH one; spoken
+rhythm over polished prose; reflection persona EXEMPTED). Deployed +
+verified: single-shot bite back, 3-turn pushback test held ("That's not
+support — that's me helping you drink"). Server-side = live everywhere,
+tunable by deploy.
+
+### 24.3 Launch state (checklist updated in repo)
+
+- **133 = the ship build** (iOS RC skipped): production profile, channel
+  `production`, runtime 3.0.8. TestFlight/Play-test first, promote the
+  SAME build. **3.0.7 fleet is NEVER OTA'd again** — testers upgrade via
+  store tracks; runtime isolation makes it automatic.
+- **`production` channel is now the live fine-tuning channel**: OTA group
+  `c10b31fa` (voice/timeout commit) already published there for Neal's
+  TestFlight 133. Future client fixes: `eas update --channel production`.
+- DONE this session: prices LIVE at $3.99/$19.99 (Neal), Lovable publish
+  (Neal), RC→Mixpanel DIAGNOSED + deferred post-launch (per-RC-project;
+  existing integration = Daily Paths→"Daily Growth" project 3993969
+  [product `monthly_support`], leave alone; SD RC project has NO
+  integration — set up fresh with SD Mixpanel project 4040342 token; no
+  backfill). Anthropic cap guidance given (platform.claude.com/settings/
+  limits → $50 + Billing auto-reload) — Neal's completion UNCONFIRMED;
+  same advised for OPENAI_API_KEY (now carries backup traffic).
+- Remaining before/at promote: cancel Neal's real Apple sub from 08-02
+  E2E; spend caps confirm; pull 3 ASC gift consumables + Play equivalents;
+  Developer Mode ON on his devices.
+
+### 24.4 OPEN ITEM — Neal's last pre-ship nit (AWAITING HIS GO)
+
+The spot check chat OPENER (prefetched causes question) reads "pretty
+much the same" as the form's reflection card — both are LLM calls fed
+identical inputs (feelings+situation), and since the playbook landed
+their territories overlap (fear→future-tripping/faith in BOTH). Proposed
+fix (designed, NOT implemented): add `reflection` to SpotCheckSeed; the
+causes-question task gets "the app already reflected back: «…» — do NOT
+repeat it; your question goes where it pointed: their part." Client-side
+→ needs commit + production-channel OTA. Implement on Neal's word.
