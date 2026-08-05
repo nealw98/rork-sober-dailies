@@ -59,7 +59,7 @@ interface APIMessage {
 // THROWS on failure (bad status, missing
 // completion, 10s timeout) so sendMessage can fall back to the paid Sonnet
 // backup — a swallowed error here would silently eat the fallback.
-async function callAI(messages: APIMessage[]): Promise<string> {
+async function callAI(messages: APIMessage[], timeoutMs = 10000): Promise<string> {
   try {
     console.log('=== AI API REQUEST ===');
     console.log('Message Count:', messages.length);
@@ -75,9 +75,10 @@ async function callAI(messages: APIMessage[]): Promise<string> {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify(requestBody),
-      // 10s: Rork's failure mode is a long stall — as the backup it gets one
-      // bounded shot instead of hanging the thinking dots.
-      signal: timeoutSignal(10000),
+      // Backup role: 10s — one bounded shot instead of hanging the thinking
+      // dots. QA-toggle role passes 25s: Rork is the ONLY engine there, and
+      // its healthy tail runs 4-16s (10s made turn-2+ time out visibly).
+      signal: timeoutSignal(timeoutMs),
     });
 
     console.log('=== AI API RESPONSE ===');
@@ -857,7 +858,7 @@ export const [ChatStoreProvider, useChatStore] = createContextHook(() => {
       if (await getQaUseRork()) {
         console.log('[QA] LLM override active — routing to Rork');
         result = {
-          text: await callAI(convertToAPIMessages(updatedMessages, sponsorType)),
+          text: await callAI(convertToAPIMessages(updatedMessages, sponsorType), 25000),
           model: "rork (QA)" as string | undefined,
           temperature: undefined as number | undefined,
         };

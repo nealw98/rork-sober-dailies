@@ -54,12 +54,19 @@ const DEFAULT_MAX_OUTPUT_TOKENS = numberFromEnv('SPONSOR_CHAT_MAX_OUTPUT_TOKENS'
 const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY');
 const ANTHROPIC_API_KEY = Deno.env.get('ANTHROPIC_API_KEY');
 
+// Rewritten 2026-08-04 (Neal — "with Sonnet his personality is barely
+// there"): the old appendix said "do not reuse the same catchphrases /
+// avoid stock replies", and Sonnet follows instructions literally — it
+// rationed exactly the signature phrases that ARE the personality, while
+// Rork (no appendix client-side) hammed them up. Now the variation rule
+// protects the voice instead of rationing it, and pushes back on Sonnet's
+// polished-essay register.
 const TUNING_APPENDIX = `
 
-RESPONSE VARIATION:
-- Vary your wording. Do not reuse the same catchphrases too often.
-- Keep the same personality, but respond naturally to the exact situation.
-- Avoid sounding like you are selecting from a fixed list of stock sponsor replies.
+VOICE OVER POLISH:
+- The signature phrases, colorful language, and speaking style in your prompt are your VOICE, not optional garnish — use them liberally, every reply. Vary WHICH ones you reach for so back-to-back replies don't repeat the identical line, but never respond without them.
+- Write the way this person actually talks: short punchy sentences, rough edges, spoken rhythm. Do not smooth the character into well-edited prose or tidy aphorisms — grit beats eloquence every time.
+- Respond to the exact situation in character. Never trade personality for politeness or polish.
 `;
 
 const SPONSORS: Record<SponsorId, { name: string; prompt: string }> = {
@@ -365,7 +372,9 @@ function buildContext(body: RequestBody): RequestContext {
 
   return {
     sponsor,
-    prompt: `${sponsor.prompt}${TUNING_APPENDIX}`,
+    // The voice appendix is for the personas — the reflection is a quiet
+    // neutral voice whose register the appendix would roughen.
+    prompt: sponsor.id === 'reflection' ? sponsor.prompt : `${sponsor.prompt}${TUNING_APPENDIX}`,
     message,
     conversation,
     temperature,

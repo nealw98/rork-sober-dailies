@@ -330,7 +330,8 @@ export async function askSpotCheckReply(
   // Sonnet primary needs a trailing user turn to serve as the message (the
   // server adds the persona; everything before it rides as conversation).
   const last = transcript[transcript.length - 1];
-  if (last?.role === 'user' && !(await getQaUseRork())) {
+  const qaRork = await getQaUseRork();
+  if (last?.role === 'user' && !qaRork) {
     try {
       return (await callPaidChain(sponsorId, last.content, [
         { role: 'user', content: context },
@@ -347,7 +348,9 @@ export async function askSpotCheckReply(
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ messages }),
-      signal: timeoutSignal(LLM_CHAT_TIMEOUT_MS),
+      // QA-toggle mode: Rork is the only engine — give its 4-16s healthy
+      // tail room. Backup mode keeps the fast cutoff.
+      signal: timeoutSignal(qaRork ? 25000 : LLM_CHAT_TIMEOUT_MS),
     });
     if (!response.ok) throw new Error(`Spot check chat request failed: ${response.status}`);
     const data = JSON.parse(await response.text());
