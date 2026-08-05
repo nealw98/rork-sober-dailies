@@ -2953,3 +2953,57 @@ someday.
    sitting next to rules that are doing real work.
 4. `scripts/rork-health.mjs` is committed now (`21a2ec54`) — re-run it
    before relitigating routing.
+
+## 26. Same session, later — 2026-08-05 pm (engine toggle · routing → GPT · caching truth)
+
+Head `c082a940` + this entry. Fn deployed twice more. **No OTA yet for the
+routing flip** — see the warning below.
+
+### 26.1 Dev Console: Rork toggle → Sonnet vs GPT-5.4
+
+The Rork QA toggle is GONE (commit `2f20a2a7`, OTA `456b51ef`). It had a
+sharp edge: it routed straight to Rork with NO fallback, and left on it
+silently served every reflection Neal was evaluating — he spent an
+afternoon concluding the prompt was "overengineered" when the real cause
+was the toggle. The replacement only REORDERS the two PAID engines, so a QA
+session always keeps a working backup and can never sit on the lifeboat
+unnoticed. Rork stays wired as the automatic last-ditch fallback; it is no
+longer selectable. The row labels the **active** engine ("LLM: GPT-5.4" /
+"LLM: Sonnet") rather than the one it switches to — directly because of the
+afternoon above. New key (`sober_dailies_qa_llm_engine`), so devices
+holding the old Rork flag start clean.
+
+### 26.2 Routing FINAL: GPT-5.4 → Sonnet → Rork
+
+Neal after a side-by-side: *"Sonnet and GPT-5.4 are very close — both good.
+GPT feels a bit smoother and more Sam-like."* GPT-5.4 is now the shipped
+default primary (supersedes §24.1). ⚠️ **Routing is CLIENT-side** — the app
+sends provider/model per request — so this is committed but **NOT OTA'd**;
+devices still run Sonnet-first until `eas update --channel production`.
+
+### 26.3 ⚠️ THE COST FINDING — read `docs/llm-cost-and-caching.md`
+
+Full write-up + open questions live in that doc; re-measure any time with
+`node scripts/llm-cache-check.mjs`. Headline: the fn used to read only
+Anthropic's `cache_read_input_tokens`, so **every GPT row logged as 100%
+full-price input**. Fixed (`cachedInputTokens()` normalises both providers).
+The instrumentation immediately paid for itself — measured, GPT-5.4 caches
+NOTHING here (1,808 input tokens, `cached_tokens: 0`, on a byte-identical
+repeat), because pre-5.6 models cache inconsistently in the 1,024–2,048
+band. Sonnet meanwhile writes 2,024 once then reads them back at 0.1×
+forever. Cost: **GPT ~0.59¢/turn vs a warm Sonnet turn's ~0.2¢** — ~3×, or a
+worst-case capped user at ~$4–5/mo instead of ~$2–3. **Accepted knowingly:
+voice beat cost.** Biggest open question: GPT-5.4's cached rate is
+published as both 50% and 90% off, which is the difference between "worse
+than Sonnet" and "parity" — confirm at OpenAI before budgeting.
+
+### 26.4 Next session
+
+1. **OTA the routing flip** if GPT is still the choice (`eas update
+   --channel production`) — nothing on a device has GPT primary yet.
+2. Open questions 1–7 in `docs/llm-cost-and-caching.md`; the cheap one is
+   `prompt_cache_key` on the OpenAI path (deploy-only, then re-run the
+   script).
+3. Neal was taking this to Codex for a second opinion — worth asking it
+   specifically about Q1 (the disputed cached rate) and Q2 (whether
+   `prompt_cache_key` helps below the 5.6 family).
