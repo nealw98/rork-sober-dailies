@@ -37,20 +37,29 @@ export interface SponsorApiEngineOption {
 // so flipping applies to the next message with no restart.
 export type QaEngine = 'sonnet' | 'gpt';
 
+// ROUTING FINAL 2026-08-05 (Neal): **GPT-5.4 → Anthropic Sonnet → Rork.**
+// GPT won the side-by-side ("both good, GPT feels a bit smoother and more
+// Sam-like"), so it is the DEFAULT primary — the key is absent on a clean
+// install and the toggle exists to fall back to Sonnet, not the reverse.
+// This supersedes §24.1's Sonnet-first order.
+export const DEFAULT_QA_ENGINE: QaEngine = 'gpt';
+
 export const QA_LLM_ENGINE_KEY = 'sober_dailies_qa_llm_engine';
 
 export const getQaEngine = async (): Promise<QaEngine> => {
   try {
-    return (await AsyncStorage.getItem(QA_LLM_ENGINE_KEY)) === 'gpt' ? 'gpt' : 'sonnet';
+    return (await AsyncStorage.getItem(QA_LLM_ENGINE_KEY)) === 'sonnet' ? 'sonnet' : DEFAULT_QA_ENGINE;
   } catch {
-    return 'sonnet';
+    return DEFAULT_QA_ENGINE;
   }
 };
 
 export const setQaEngine = async (engine: QaEngine): Promise<void> => {
   try {
-    if (engine === 'gpt') await AsyncStorage.setItem(QA_LLM_ENGINE_KEY, 'gpt');
-    else await AsyncStorage.removeItem(QA_LLM_ENGINE_KEY);
+    // Only the non-default is stored, so a device that never touches the
+    // toggle always follows the shipped default if it ever changes again.
+    if (engine === DEFAULT_QA_ENGINE) await AsyncStorage.removeItem(QA_LLM_ENGINE_KEY);
+    else await AsyncStorage.setItem(QA_LLM_ENGINE_KEY, engine);
   } catch {}
 };
 

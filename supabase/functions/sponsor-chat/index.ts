@@ -373,8 +373,27 @@ interface ProviderResult {
   model: string;
   outputText: string;
   usage:
-    | ({ input_tokens?: number; output_tokens?: number; total_tokens?: number } & Record<string, number | undefined>)
+    | ({
+        input_tokens?: number;
+        output_tokens?: number;
+        total_tokens?: number;
+        // OpenAI nests its automatic-cache count here; Anthropic reports a
+        // flat cache_read_input_tokens instead. Typed loosely because the
+        // rest of the shape differs per provider.
+        input_tokens_details?: { cached_tokens?: number } | null;
+      } & Record<string, unknown>)
     | null;
+}
+
+const numOrNull = (v: unknown): number | null => (typeof v === 'number' ? v : null);
+
+// Cached input tokens for whichever provider answered. Anthropic bills its
+// explicit cache_control hits at 0.1×; OpenAI discounts the automatic prefix
+// cache it applies on its own. Either way the number belongs in the same
+// column so the admin Spend panel prices both engines honestly.
+function cachedInputTokens(usage: ProviderResult['usage']): number | null {
+  if (!usage) return null;
+  return numOrNull(usage.cache_read_input_tokens) ?? numOrNull(usage.input_tokens_details?.cached_tokens);
 }
 
 function buildContext(body: RequestBody): RequestContext {
@@ -582,11 +601,19 @@ async function handleChat(body: RequestBody) {
     anonymous_id: body.anonymous_id || null,
     sponsor_id: ctx.sponsor.id,
     model: result.model,
-    input_tokens: result.usage?.input_tokens ?? null,
-    output_tokens: result.usage?.output_tokens ?? null,
-    total_tokens: result.usage?.total_tokens ?? null,
-    cache_read_tokens: result.usage?.cache_read_input_tokens ?? null,
-    cache_creation_tokens: result.usage?.cache_creation_input_tokens ?? null,
+    input_tokens: numOrNull(result.usage?.input_tokens),
+    output_tokens: numOrNull(result.usage?.output_tokens),
+    total_tokens: numOrNull(result.usage?.total_tokens),
+    // Cached input, normalised across providers (2026-08-05). Anthropic
+    // reports explicit cache_control hits as cache_read_input_tokens;
+    // OpenAI caches long prefixes automatically and reports the count as
+    // usage.input_tokens_details.cached_tokens. Reading only Anthropic's
+    // field logged EVERY GPT row as 100% full-price input, which would have
+    // made GPT look far more expensive than it is — now that GPT is the
+    // primary engine, that would have been the number Neal budgeted from.
+    cache_read_tokens: cachedInputTokens(result.usage),
+    // Anthropic-only: OpenAI has no cache-write tier to bill for.
+    cache_creation_tokens: numOrNull(result.usage?.cache_creation_input_tokens),
     temperature: ctx.temperature,
     max_output_tokens: ctx.maxOutputTokens,
     request_status: 'success',

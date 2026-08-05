@@ -183,19 +183,19 @@ export default function SettingsScreen() {
       .catch(() => {});
   }, []);
   // QA: which PAID engine leads on both chat surfaces (main chat + spot
-  // check) — Sonnet by default, GPT-5.4 when on. Replaced the Rork toggle
-  // 2026-08-05: routing is settled, so the useful comparison is Sonnet vs
-  // GPT-5.4, and leaving the old toggle on silently served the free lifeboat
-  // for a whole evaluation session. Read per call — applies to the next
-  // message, no restart.
-  const [qaUseGpt, setQaUseGpt] = useState(false);
+  // check). GPT-5.4 is the shipped default (routing final 2026-08-05); the
+  // switch drops back to Sonnet. Replaced the Rork toggle — leaving THAT one
+  // on silently served the free lifeboat for a whole evaluation session,
+  // which is why the row labels the ACTIVE engine rather than the one it
+  // switches to. Read per call — applies to the next message, no restart.
+  const [qaUseSonnet, setQaUseSonnet] = useState(false);
   useEffect(() => {
-    getQaEngine().then((e) => setQaUseGpt(e === 'gpt')).catch(() => {});
+    getQaEngine().then((e) => setQaUseSonnet(e === 'sonnet')).catch(() => {});
   }, []);
   const toggleQaEngine = async () => {
-    const next = !qaUseGpt;
-    setQaUseGpt(next);
-    await setQaEngine(next ? 'gpt' : 'sonnet');
+    const next = !qaUseSonnet;
+    setQaUseSonnet(next);
+    await setQaEngine(next ? 'sonnet' : 'gpt');
   };
 
   const toggleForceNewUser = async () => {
@@ -707,11 +707,11 @@ export default function SettingsScreen() {
               <View style={styles.dcRow}>
                 <View style={styles.dcIcon}><MessageSquare size={17} color={colors.primaryDark} strokeWidth={2} /></View>
                 <View style={styles.dcRowBody}>
-                  <Text style={styles.dcRowLabel}>{qaUseGpt ? 'LLM: GPT-5.4' : 'LLM: Sonnet'}</Text>
+                  <Text style={styles.dcRowLabel}>{qaUseSonnet ? 'LLM: Sonnet' : 'LLM: GPT-5.4'}</Text>
                   <Text style={styles.dcRowSub}>Which model leads on both chats + spot check — applies to the next message</Text>
                 </View>
                 <Switch
-                  value={qaUseGpt}
+                  value={qaUseSonnet}
                   onValueChange={toggleQaEngine}
                   trackColor={{ false: c.divider, true: colors.primary }}
                   thumbColor="#fff"

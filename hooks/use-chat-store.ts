@@ -39,6 +39,7 @@ import {
   getSponsorApiUrl,
   getQaEngine,
   QA_ENGINE_SPEC,
+  DEFAULT_QA_ENGINE,
 } from "@/lib/sponsorApiSettings";
 
 
@@ -54,10 +55,10 @@ interface APIMessage {
   content: string;
 }
 
-// Rork BACKUP path (Sonnet is primary; QA toggle routes here directly).
-// THROWS on failure (bad status, missing
-// completion, 10s timeout) so sendMessage can fall back to the paid Sonnet
-// backup — a swallowed error here would silently eat the fallback.
+// Rork LAST-DITCH path — reached only when BOTH paid engines fail; it is no
+// longer selectable from the Dev Console. THROWS on failure (bad status,
+// missing completion, timeout) so sendMessage's chain stays honest — a
+// swallowed error here would silently eat the fallback.
 async function callAI(messages: APIMessage[], timeoutMs = 10000): Promise<string> {
   try {
     console.log('=== AI API REQUEST ===');
@@ -138,19 +139,20 @@ async function callSponsorAPI(
   sponsorType: SponsorType,
   chatMessages: ChatMessage[],
   message: string,
-  // Default engine is Anthropic Sonnet; the GPT-5.4 backup passes
-  // {provider:'openai', model:'gpt-5.4'} — same fn, same server personas.
+  // Callers ALWAYS pass this now (the chain resolves primary/backup from the
+  // Dev Console engine setting) — same fn, same server personas either way.
+  // The defaults below are a safety net only; routing lives in QA_ENGINE_SPEC.
   engine?: { provider: 'anthropic' | 'openai'; model: string }
 ): Promise<{ text: string; model?: string; temperature?: number }> {
   const sponsor = getSponsorById(sponsorType);
   const apiSponsorId = sponsor?.apiSponsorId ?? sponsorType;
-  // Pinned to match the spot check (2026-08-04, Neal): Sonnet holds the
-  // personas (Haiku neutered Sam), temp at Anthropic's max for character
-  // color. Deliberately NOT read from the legacy engine/temperature settings
-  // — devices may carry stale stored values from the old selector era.
+  // Pinned to match the spot check (2026-08-04, Neal): temp at 1.0 for
+  // character color — Anthropic's max, and OpenAI allows 1.2 if GPT ever
+  // needs more edge. Deliberately NOT read from the legacy engine/temperature
+  // settings — devices may carry stale stored values from the old selector era.
   const temperature = 1.0;
-  const provider = engine?.provider ?? 'anthropic';
-  const model = engine?.model ?? 'claude-sonnet-4-6';
+  const provider = engine?.provider ?? QA_ENGINE_SPEC[DEFAULT_QA_ENGINE].provider;
+  const model = engine?.model ?? QA_ENGINE_SPEC[DEFAULT_QA_ENGINE].model;
   const sponsorApiUrl = await getSponsorApiUrl();
   const sponsorApiChatUrl = getSponsorApiChatUrl(sponsorApiUrl);
   const anonymousId = await getAnonymousId().catch(() => null);
@@ -846,10 +848,10 @@ export const [ChatStoreProvider, useChatStore] = createContextHook(() => {
     }
     
     try {
-      // SONNET-FIRST, GPT-5.4 BACKUP (final routing 2026-08-04, Neal):
-      // caching made Sonnet ~0.2¢/turn, so reliability wins — and the backup
-      // is a RELIABLE provider through the same fn ("it doesn't make sense
-      // to have a low-reliability LLM back up a reliability problem"). Free
+      // GPT-5.4 FIRST, SONNET BACKUP (final routing 2026-08-05, Neal — GPT
+      // won the side-by-side on voice, "smoother and more Sam-like"). The
+      // backup is a RELIABLE provider through the same fn ("it doesn't make
+      // sense to have a low-reliability LLM back up a reliability problem"). Free
       // Rork is only the last-ditch lifeboat, kept because it rides
       // different infrastructure than the Supabase fn both paid providers
       // share. The Dev Console QA engine toggle (2026-08-05) only REORDERS the

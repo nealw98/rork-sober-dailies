@@ -7,7 +7,7 @@
 // now a single self-contained form whose only generated content is the
 // reflection, and the saved record is the whole artifact.
 //
-// Sonnet primary → GPT-5.4 backup (same Supabase fn) → Rork last-ditch.
+// GPT-5.4 primary → Sonnet backup (same Supabase fn) → Rork last-ditch.
 // Throws on total failure so the form simply shows no card.
 import type { SponsorType } from '@/types';
 import { getSponsorById } from '@/constants/sponsors';
@@ -56,8 +56,8 @@ async function fetchCompletion(content: string): Promise<string> {
   }
 }
 
-// SONNET-FIRST, RORK LAST-DITCH (final 2026-08-04, Neal): caching made
-// Sonnet ~0.2¢/turn, so reliability wins. The server holds the persona
+// GPT-5.4 FIRST, SONNET BACKUP, RORK LAST-DITCH (final 2026-08-05, Neal —
+// GPT won the side-by-side on voice). The server holds the persona
 // prompts, so the paid message is the TASK alone (≤2000 chars server cap);
 // output caps at 500. The Dev Console QA engine toggle picks WHICH paid model
 // leads (Sonnet or GPT-5.4); Rork is no longer selectable, only automatic.
@@ -119,15 +119,15 @@ async function callPaidSponsor(
   return String(data.outputText);
 }
 
-// Paid chain (2026-08-04, Neal): Sonnet first; if it fails, GPT-5.4 through
-// the same fn — a reliable backup instead of Rork ("it doesn't make sense to
-// have a low-reliability LLM back up a reliability problem"). Rork remains
-// only as the last-ditch lifeboat below, since it rides different
-// infrastructure than the Supabase fn both paid providers share.
+// Paid chain: the two paid engines back each other through the same fn — a
+// RELIABLE backup rather than Rork ("it doesn't make sense to have a
+// low-reliability LLM back up a reliability problem"). Rork remains only the
+// last-ditch lifeboat below, since it rides different infrastructure than the
+// Supabase fn both paid providers share.
 //
-// The Dev Console QA engine toggle (2026-08-05) only reorders this pair — it
-// never removes the backup, so a QA session can't dead-end on one provider's
-// outage. Default order is Sonnet → GPT-5.4; flipped, GPT-5.4 → Sonnet.
+// The Dev Console engine toggle only REORDERS this pair — it never removes
+// the backup, so a QA session can't dead-end on one provider's outage.
+// Default order is GPT-5.4 → Sonnet; flipped, Sonnet → GPT-5.4.
 async function callPaidChain(
   sponsorId: SponsorType,
   message: string,
