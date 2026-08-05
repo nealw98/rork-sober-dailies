@@ -18,7 +18,6 @@ export interface SponsorConfig {
   description: string;
   avatar: any; // For require()
   isAvailable: boolean;
-  backend?: 'rork' | 'sponsor-api';
   apiSponsorId?: 'supportive' | 'salty' | 'grace';
   systemPrompt?: string;
   initialMessage?: ChatMessage;

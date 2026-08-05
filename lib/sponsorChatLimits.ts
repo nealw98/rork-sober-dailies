@@ -1,11 +1,12 @@
 // Local daily cap on AI sponsor messages. Every sponsor message is a
-// client→Rork LLM call that costs money, and that path has no backend in
-// between — so the cap lives on-device: a {day, count} record in AsyncStorage,
+// paid LLM call that costs money. The cap lives on-device as a {day, count}
+// record in AsyncStorage,
 // reset whenever the calendar day changes (same dayKey pattern as
 // lib/growthPrompts.ts). A daily cap alone bounds the month too, so there is
 // no separate monthly limit. Resettable by reinstalling, which is fine — this
 // is a runaway brake, not billing enforcement.
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { DEVELOPER_MODE_KEY } from '@/lib/analytics';
 
 const USAGE_KEY = 'sponsor_chat_daily_usage'; // JSON {day, count}
 
@@ -16,6 +17,14 @@ function dayKey(d = new Date()): string {
 }
 
 type UsageRecord = { day: string; count: number };
+
+async function isDeveloperMode(): Promise<boolean> {
+  try {
+    return (await AsyncStorage.getItem(DEVELOPER_MODE_KEY)) === 'true';
+  } catch {
+    return false;
+  }
+}
 
 async function readToday(): Promise<UsageRecord> {
   const today = dayKey();
@@ -33,6 +42,7 @@ async function readToday(): Promise<UsageRecord> {
 
 // Whether another message may be sent today, and how many have been sent.
 export async function checkSponsorMessageLimit(): Promise<{ allowed: boolean; count: number }> {
+  if (await isDeveloperMode()) return { allowed: true, count: 0 };
   const cur = await readToday();
   return { allowed: cur.count < DAILY_SPONSOR_LIMIT, count: cur.count };
 }
@@ -40,6 +50,7 @@ export async function checkSponsorMessageLimit(): Promise<{ allowed: boolean; co
 // Count one sent message against today.
 export async function recordSponsorMessage(): Promise<void> {
   try {
+    if (await isDeveloperMode()) return;
     const cur = await readToday();
     cur.count += 1;
     await AsyncStorage.setItem(USAGE_KEY, JSON.stringify(cur));

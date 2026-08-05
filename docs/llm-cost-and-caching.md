@@ -1,6 +1,7 @@
 # LLM cost & caching — Claude vs GPT in this app
 
-Written 2026-08-05, after routing settled on **GPT-5.4 → Sonnet → Rork**.
+Written 2026-08-05; routing is now **selected OpenAI model → Sonnet**, with a
+static in-app response if both providers fail.
 
 Read this before changing engines, before reading the admin Spend panel, and
 before anyone concludes "the LLM got expensive." Re-measure with
@@ -100,9 +101,8 @@ This asymmetry catches people out:
 Routing is client-side: the app sends `provider`/`model` per request and the fn
 honours it against an allowlist. A deploy alone will **not** move engines.
 
-⚠️ The reflection prompt lives in TWO byte-synced copies — the fn's `reflection`
-persona (canonical) and `REFLECTION_PROMPT` in `lib/spotCheckLLM.ts` (Rork
-fallback only). Editing one alone silently drifts the QA path.
+The reflection prompt has one canonical copy: the fn's `reflection` persona.
+Prompt changes are deploy-only.
 
 ## 7. What we learned (the transferable bits)
 
@@ -116,10 +116,8 @@ fallback only). Editing one alone silently drifts the QA path.
   and a short idle window to pay off. Below a certain traffic level the implicit
   one mostly doesn't fire.
 - **Measure call 2, never call 1.** Cold caches make every provider look bad.
-- **Know which engine served the reply before judging quality.** A whole
-  afternoon went into "the prompt is overengineered" when the real cause was a
-  QA toggle silently routing to Rork. The Dev Console row now labels the
-  *active* engine for exactly this reason.
+- **Know which engine served the reply before judging quality.** The Dev
+  Console row labels the active engine so comparisons stay honest.
 
 ## 8. Open questions
 

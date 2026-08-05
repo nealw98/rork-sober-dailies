@@ -4,32 +4,19 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { getAnonymousId } from "@/lib/anonymousId";
 import { ChatMessage, SponsorType } from "@/types";
 import { detectCrisis, crisisResponses } from "@/constants/crisisTriggers";
-import { 
-  SALTY_SAM_SYSTEM_PROMPT, 
-  SALTY_SAM_INITIAL_MESSAGE 
-} from "@/constants/salty-sam";
-import { 
-  STEADY_EDDIE_SYSTEM_PROMPT, 
-  STEADY_EDDIE_INITIAL_MESSAGE 
-} from "@/constants/steady-eddie";
-import { 
-  GENTLE_GRACE_SYSTEM_PROMPT, 
-  GENTLE_GRACE_INITIAL_MESSAGE 
-} from "@/constants/gentle-grace";
+import { SALTY_SAM_INITIAL_MESSAGE } from "@/constants/salty-sam";
+import { STEADY_EDDIE_INITIAL_MESSAGE } from "@/constants/steady-eddie";
+import { GENTLE_GRACE_INITIAL_MESSAGE } from "@/constants/gentle-grace";
 import {
-  COWBOY_PETE_SYSTEM_PROMPT,
   COWBOY_PETE_INITIAL_MESSAGE,
 } from "@/constants/cowboy-pete";
 import {
-  CO_SIGN_SALLY_SYSTEM_PROMPT,
   CO_SIGN_SALLY_INITIAL_MESSAGE,
 } from "@/constants/co-sign-sally";
 import {
-  FRESH_FREDDIE_SYSTEM_PROMPT,
   FRESH_FREDDIE_INITIAL_MESSAGE,
 } from "@/constants/fresh-freddie";
 import {
-  MAMA_JO_SYSTEM_PROMPT,
   MAMA_JO_INITIAL_MESSAGE,
 } from "@/constants/mama-jo";
 import { getSponsorById } from "@/constants/sponsors";
@@ -43,89 +30,6 @@ import {
 } from "@/lib/sponsorApiSettings";
 
 
-
-// Cap how much conversation history rides along on each Rork request (20
-// messages = ~10 exchanges). The whole visible thread stays in AsyncStorage;
-// this only bounds what's re-sent — and re-billed — per message.
-const MAX_HISTORY_MESSAGES = 20;
-
-// Type for API message format
-interface APIMessage {
-  role: 'system' | 'user' | 'assistant';
-  content: string;
-}
-
-// Rork LAST-DITCH path — reached only when BOTH paid engines fail; it is no
-// longer selectable from the Dev Console. THROWS on failure (bad status,
-// missing completion, timeout) so sendMessage's chain stays honest — a
-// swallowed error here would silently eat the fallback.
-async function callAI(messages: APIMessage[], timeoutMs = 10000): Promise<string> {
-  try {
-    console.log('=== AI API REQUEST ===');
-    console.log('Message Count:', messages.length);
-    console.log('Full Messages:', JSON.stringify(messages, null, 2));
-
-    const requestBody = { messages };
-    console.log('Request Body:', JSON.stringify(requestBody, null, 2));
-    console.log('Request Body Size (bytes):', JSON.stringify(requestBody).length);
-
-    const response = await fetch('https://toolkit.rork.com/text/llm/', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(requestBody),
-      // Backup role: 10s — one bounded shot instead of hanging the thinking
-      // dots. QA-toggle role passes 25s: Rork is the ONLY engine there, and
-      // its healthy tail runs 4-16s (10s made turn-2+ time out visibly).
-      signal: timeoutSignal(timeoutMs),
-    });
-
-    console.log('=== AI API RESPONSE ===');
-    console.log('Status Code:', response.status);
-    console.log('Status Text:', response.statusText);
-    console.log('Headers:', JSON.stringify(Object.fromEntries(response.headers.entries()), null, 2));
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('=== AI API ERROR ===');
-      console.error('Status:', response.status);
-      console.error('Response Body:', errorText);
-      
-      // Try to parse as JSON for more details
-      try {
-        const errorJson = JSON.parse(errorText);
-        console.error('Parsed Error JSON:', JSON.stringify(errorJson, null, 2));
-      } catch (e) {
-        console.error('Error response is not JSON');
-      }
-      
-      throw new Error(`API request failed: ${response.status} - ${errorText}`);
-    }
-
-    const responseText = await response.text();
-    console.log('Response Text:', responseText);
-    
-    const data = JSON.parse(responseText);
-    console.log('=== AI API SUCCESS ===');
-    console.log('Response Data:', JSON.stringify(data, null, 2));
-    console.log('Has Completion:', !!data.completion);
-    console.log('Completion Length:', data.completion?.length || 0);
-    
-    if (!data.completion || typeof data.completion !== 'string') {
-      throw new Error('Rork response missing completion');
-    }
-    return data.completion;
-  } catch (error: any) {
-    console.error('=== AI API EXCEPTION ===');
-    console.error('Error Type:', error?.constructor?.name);
-    console.error('Error Message:', error?.message);
-    console.error('Full Error:', JSON.stringify(error, Object.getOwnPropertyNames(error), 2));
-    console.error('Stack:', error?.stack);
-
-    throw error;
-  }
-}
 
 // Hard timeouts so a stalled call falls through to the next backend instead of
 // hanging the thinking dots (same rationale as lib/spotCheckLLM's).
@@ -214,90 +118,6 @@ async function callSponsorAPI(
     model: typeof data.model === "string" ? data.model : undefined,
     temperature,
   };
-}
-
-// Convert chat messages to API format
-function convertToAPIMessages(chatMessages: ChatMessage[], sponsorType: SponsorType): APIMessage[] {
-  let systemPrompt;
-  
-  switch (sponsorType) {
-    case "salty":
-      systemPrompt = SALTY_SAM_SYSTEM_PROMPT;
-      break;
-    case "supportive":
-      systemPrompt = STEADY_EDDIE_SYSTEM_PROMPT;
-      break;
-      case "grace":
-      systemPrompt = GENTLE_GRACE_SYSTEM_PROMPT;
-      break;
-    case "salty-v2":
-      systemPrompt = SALTY_SAM_SYSTEM_PROMPT;
-      break;
-    case "supportive-v2":
-      systemPrompt = STEADY_EDDIE_SYSTEM_PROMPT;
-      break;
-    case "grace-v2":
-      systemPrompt = GENTLE_GRACE_SYSTEM_PROMPT;
-      break;
-    case "cowboy-pete":
-      systemPrompt = COWBOY_PETE_SYSTEM_PROMPT;
-      break;
-    case "co-sign-sally":
-      systemPrompt = CO_SIGN_SALLY_SYSTEM_PROMPT;
-      break;
-    case "fresh":
-      systemPrompt = FRESH_FREDDIE_SYSTEM_PROMPT;
-      break;
-    case "mama-jo":
-      systemPrompt = MAMA_JO_SYSTEM_PROMPT;
-      break;
-    default:
-      systemPrompt = STEADY_EDDIE_SYSTEM_PROMPT;
-  }
-
-  console.log('Using FULL system prompt, length:', systemPrompt.length);
-
-  const apiMessages: APIMessage[] = [];
-
-  // Skip the initial welcome message and send only the most recent turns.
-  // Older turns silently fall off so a long-running thread doesn't grow the
-  // per-request token cost without bound.
-  const conversationMessages = chatMessages
-    .slice(1)
-    .slice(-MAX_HISTORY_MESSAGES);
-
-  // For the first user message in the window, prepend the FULL system prompt.
-  // Rork API doesn't accept 'system' role, so we include it in the first user
-  // message — tracked with a flag (not index 0) because a bot turn can lead
-  // the trimmed window.
-  let systemPromptSent = false;
-  conversationMessages.forEach((msg) => {
-    if (msg.kind === 'spotCheckCard') {
-      // The card renders in-app only, but it's the sole carrier of the spot
-      // check's content (the visible opener no longer repeats the summary), so
-      // hand the entry to the model as a bracketed user-context turn.
-      const e = msg.spotCheck;
-      if (!e) return;
-      const parts = [
-        `Feelings: ${e.feelings.join(', ')}`,
-        e.whatsGoingOn ? `What was going on: ${e.whatsGoingOn}` : null,
-        e.causesAnswer ? `My part in it: ${e.causesAnswer}` : null,
-        e.summary ? `The reflection you gave me: ${e.summary}` : null,
-      ].filter(Boolean).join('. ');
-      const context = `[I just completed a Spot Check Inventory and chose to keep talking with you about it. ${parts}]`;
-      const content = systemPromptSent ? context : `${systemPrompt}\n\nUser: ${context}`;
-      systemPromptSent = true;
-      apiMessages.push({ role: 'user', content });
-    } else if (msg.sender === 'user') {
-      const content = systemPromptSent ? msg.text : `${systemPrompt}\n\nUser: ${msg.text}`;
-      systemPromptSent = true;
-      apiMessages.push({ role: 'user', content });
-    } else if (msg.sender === 'bot') {
-      apiMessages.push({ role: 'assistant', content: msg.text });
-    }
-  });
-
-  return apiMessages;
 }
 
 export const [ChatStoreProvider, useChatStore] = createContextHook(() => {
@@ -852,11 +672,9 @@ export const [ChatStoreProvider, useChatStore] = createContextHook(() => {
       // won the side-by-side on voice, "smoother and more Sam-like"). The
       // backup is a RELIABLE provider through the same fn ("it doesn't make
       // sense to have a low-reliability LLM back up a reliability problem"). Free
-      // Rork is only the last-ditch lifeboat, kept because it rides
-      // different infrastructure than the Supabase fn both paid providers
-      // share. The Dev Console QA engine toggle (2026-08-05) only REORDERS the
-      // paid pair — Rork is no longer selectable, so a QA session always keeps
-      // a working backup and can never sit on the lifeboat unnoticed.
+      // The Dev Console selects the primary paid engine. The first fallback is
+      // always the other provider; if both fail, the outer catch below gives a
+      // deterministic sponsor-specific connection response.
       let result: { text: string; model?: string; temperature?: number };
       {
         const primary = QA_ENGINE_SPEC[await getQaEngine()];
@@ -871,12 +689,8 @@ export const [ChatStoreProvider, useChatStore] = createContextHook(() => {
           try {
             result = await callSponsorAPI(sponsorType, updatedMessages, text, backup);
           } catch (backupError) {
-            console.warn('Both paid engines failed; last-ditch Rork:', backupError);
-            result = {
-              text: await callAI(convertToAPIMessages(updatedMessages, sponsorType)),
-              model: "rork" as string | undefined,
-              temperature: undefined as number | undefined,
-            };
+            console.warn('Both paid engines failed:', backupError);
+            throw backupError;
           }
         }
       }
@@ -917,6 +731,8 @@ export const [ChatStoreProvider, useChatStore] = createContextHook(() => {
         case "grace-v2":
           errorMessage = "The test connection is having trouble right now. Take a breath and remember that support is still available through your fellowship, your sponsor, and the next right action.";
           break;
+        default:
+          errorMessage = "I'm having trouble connecting right now. Don't wait on me—reach out to another sober person, get to a meeting, and take the next right action.";
       }
       
       const errorResponse: ChatMessage = {

@@ -1,45 +1,11 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-export const SPONSOR_API_TEMPERATURE_KEY = 'sponsor_api_temperature';
-export const DEFAULT_SPONSOR_API_TEMPERATURE = 0.8;
-export const MIN_SPONSOR_API_TEMPERATURE = 0;
-export const MAX_SPONSOR_API_TEMPERATURE = 1.2;
-
-export type SponsorApiProvider = 'openai' | 'anthropic' | 'rork';
-export const SPONSOR_API_PROVIDER_KEY = 'sponsor_api_provider'; // legacy key (openai | anthropic)
-
-// The engine picks both the backend and the specific test model. 'rork' routes
-// to the legacy backend (callAI); the rest hit the Supabase sponsor-chat function.
-export type SponsorApiEngine = 'rork' | 'openai-mini' | 'openai-5-4' | 'anthropic-haiku' | 'anthropic-sonnet';
-export const SPONSOR_API_ENGINE_KEY = 'sponsor_api_engine';
-export const DEFAULT_SPONSOR_API_ENGINE: SponsorApiEngine = 'rork';
-
-export interface SponsorApiEngineOption {
-  id: SponsorApiEngine;
-  label: string;
-  provider: SponsorApiProvider;
-  model: string;
-}
-
-// QA LLM override (Dev Console). REPLACED the Rork toggle 2026-08-05 (Neal):
-// routing is settled, so the useful comparison is now between the two PAID
-// engines — Sonnet (primary) and GPT-5.4 (backup) — not against the free Rork
-// lifeboat. Rork is no longer selectable; it stays wired as the automatic
-// last-ditch fallback in both callers.
-//
-// ⚠️ The old toggle cost half a session: it was left on and silently served
-// every reflection Neal was judging, so a working prompt read as broken.
-// Hence the visible per-reply engine label the callers attach.
-//
-// Fresh key on purpose (the legacy engine setting above is deliberately
-// ignored — stale stored values), and NOT the old `..._qa_llm_rork` key, so
-// any device still holding that flag starts clean on GPT-5.4. Read per call,
-// so flipping applies to the next message with no restart.
+// QA LLM override. Read per call, so changing it applies to the next message
+// without a restart. Old engine-selector keys are deliberately ignored.
 export type QaEngine = 'sonnet' | 'gpt' | 'terra';
 
-// Production default: **GPT-5.4 → Anthropic Sonnet → Rork.** The Dev Console
-// can also lead with Terra for quality/cost evaluation; it still falls back
-// cross-provider to Sonnet, then Rork.
+// Production default: GPT-5.4 → Anthropic Sonnet. The Dev Console can also
+// lead with Terra for quality/cost evaluation; it falls back to Sonnet.
 // GPT won the side-by-side ("both good, GPT feels a bit smoother and more
 // Sam-like"), so it is the DEFAULT primary — the key is absent on a clean
 // install and the toggle exists to fall back to Sonnet, not the reverse.
@@ -75,72 +41,11 @@ export const QA_ENGINE_SPEC: Record<QaEngine, { provider: 'anthropic' | 'openai'
   terra: { provider: 'openai', model: 'gpt-5.6-terra', label: 'gpt-5.6 terra' },
 };
 
-export const SPONSOR_API_ENGINES: SponsorApiEngineOption[] = [
-  { id: 'rork', label: 'Rork', provider: 'rork', model: 'rork' },
-  { id: 'openai-mini', label: 'GPT-5.4 mini', provider: 'openai', model: 'gpt-5.4-mini' },
-  { id: 'openai-5-4', label: 'GPT-5.4', provider: 'openai', model: 'gpt-5.4' },
-  { id: 'anthropic-haiku', label: 'Haiku 4.5', provider: 'anthropic', model: 'claude-haiku-4-5' },
-  { id: 'anthropic-sonnet', label: 'Sonnet 4.6', provider: 'anthropic', model: 'claude-sonnet-4-6' },
-];
-
-const isSponsorApiEngine = (v: unknown): v is SponsorApiEngine =>
-  v === 'rork' || v === 'openai-mini' || v === 'openai-5-4' || v === 'anthropic-haiku' || v === 'anthropic-sonnet';
-
-export const engineToRequest = (
-  engine: SponsorApiEngine
-): { provider: SponsorApiProvider; model?: string } => {
-  const opt = SPONSOR_API_ENGINES.find((e) => e.id === engine) ?? SPONSOR_API_ENGINES[0];
-  return { provider: opt.provider, model: opt.model };
-};
 export const SPONSOR_API_URL =
   process.env.EXPO_PUBLIC_SPONSOR_API_URL ||
   'https://uzfqabcjxjqufpipdcla.supabase.co/functions/v1/sponsor-chat';
 export const SUPABASE_ANON_KEY =
   'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV6ZnFhYmNqeGpxdWZwaXBkY2xhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTMxOTI4NDgsImV4cCI6MjA2ODc2ODg0OH0.kqPftTCAXLQNd0sdDpIC1TRMXjk315hn92BEW7TKXmU';
-
-export const clampSponsorApiTemperature = (value: number): number => {
-  if (!Number.isFinite(value)) return DEFAULT_SPONSOR_API_TEMPERATURE;
-  return Math.min(MAX_SPONSOR_API_TEMPERATURE, Math.max(MIN_SPONSOR_API_TEMPERATURE, value));
-};
-
-export const getSponsorApiTemperature = async (): Promise<number> => {
-  try {
-    const stored = await AsyncStorage.getItem(SPONSOR_API_TEMPERATURE_KEY);
-    if (stored == null) return DEFAULT_SPONSOR_API_TEMPERATURE;
-    return clampSponsorApiTemperature(Number(stored));
-  } catch {
-    return DEFAULT_SPONSOR_API_TEMPERATURE;
-  }
-};
-
-export const setSponsorApiTemperature = async (value: number): Promise<number> => {
-  const next = clampSponsorApiTemperature(value);
-  await AsyncStorage.setItem(SPONSOR_API_TEMPERATURE_KEY, String(next));
-  return next;
-};
-
-export const getSponsorApiEngine = async (): Promise<SponsorApiEngine> => {
-  try {
-    const stored = await AsyncStorage.getItem(SPONSOR_API_ENGINE_KEY);
-    if (isSponsorApiEngine(stored)) return stored;
-    if (stored === 'openai') return 'openai-mini';
-    // Migrate the older openai/anthropic provider setting (anthropic → Haiku).
-    const legacy = await AsyncStorage.getItem(SPONSOR_API_PROVIDER_KEY);
-    if (legacy === 'openai') return 'openai-mini';
-    if (legacy === 'anthropic') return 'anthropic-haiku';
-    return DEFAULT_SPONSOR_API_ENGINE;
-  } catch {
-    return DEFAULT_SPONSOR_API_ENGINE;
-  }
-};
-
-export const setSponsorApiEngine = async (
-  value: SponsorApiEngine
-): Promise<SponsorApiEngine> => {
-  const next = isSponsorApiEngine(value) ? value : DEFAULT_SPONSOR_API_ENGINE;
-  await AsyncStorage.setItem(SPONSOR_API_ENGINE_KEY, next);
-  return next;
-};
 
 export const normalizeSponsorApiUrl = (value: string): string => {
   const trimmed = value.trim().replace(/\/+$/, '');

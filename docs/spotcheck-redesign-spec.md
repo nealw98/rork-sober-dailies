@@ -59,8 +59,7 @@ Consequences, all implemented:
 
 - **The reflection card is the last word.** Its third beat — the tailored
   "take it further with your AI sponsor" invitation — is removed from the
-  prompt (both the server `reflection` persona and the byte-synced Rork
-  fallback copy). The card is now ONE paragraph; `normalizeReflection()`
+  server `reflection` persona. The card is now ONE paragraph; `normalizeReflection()`
   just collapses stray line breaks.
 - **The form has no bottom dock.** Save is the header pill (three save
   states unchanged); the back chevron still offers Save & close / Close

@@ -6,5 +6,5 @@ export const BR_SOFT = '#D8E8E8'; // primarySoft — soft fills (avatar backing,
 
 // The sponsors shown in the redesigned picker + switcher, in order.
 // Each sponsor's backend/model is now chosen from the engine dropdown in the
-// chat header (Rork / OpenAI / Anthropic), so the old "2" test variants are gone.
+// chat header, so the old "2" test variants are gone.
 export const SELECTION_SPONSOR_IDS = ['supportive', 'salty', 'grace'];

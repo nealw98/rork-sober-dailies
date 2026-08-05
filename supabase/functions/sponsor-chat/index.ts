@@ -57,8 +57,8 @@ const ANTHROPIC_API_KEY = Deno.env.get('ANTHROPIC_API_KEY');
 // Rewritten 2026-08-04 (Neal — "with Sonnet his personality is barely
 // there"): the old appendix said "do not reuse the same catchphrases /
 // avoid stock replies", and Sonnet follows instructions literally — it
-// rationed exactly the signature phrases that ARE the personality, while
-// Rork (no appendix client-side) hammed them up. Now the variation rule
+// rationed exactly the signature phrases that ARE the personality, while the
+// old legacy model hammed them up. Now the variation rule
 // protects the voice instead of rationing it, and pushes back on Sonnet's
 // polished-essay register.
 const TUNING_APPENDIX = `
@@ -73,7 +73,7 @@ const SPONSORS: Record<SponsorId, { name: string; prompt: string }> = {
   // The Spot Check form's reflection card. The full contract + Neal's
   // per-cluster response playbook live HERE so tuning is deploy-only (no OTA)
   // and the client message stays small. Keep byte-synced with
-  // REFLECTION_PROMPT in lib/spotCheckLLM.ts (the free-Rork fallback copy).
+  // This server persona is the single canonical reflection prompt.
   //
   // 2026-08-05 (Neal), two changes:
   // 1. STEADY EDDIE'S VOICE, not the old neutral app voice — with the sponsor
