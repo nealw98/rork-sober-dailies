@@ -1,4 +1,9 @@
-# Spot Check Redesign — FINAL spec (2026-08-03)
+# Spot Check Redesign — FINAL spec (2026-08-03, amended 2026-08-05)
+
+> **2026-08-05 amendment (Neal): the sponsor-chat half is RETIRED.** Spot
+> Check is ONE self-contained form. See "Screen 2 — RETIRED" below; anything
+> in this doc describing a chat, a handoff, a seed, a take, or a split CTA is
+> history, kept only to explain what the code used to do.
 
 Source: Claude Design project `232ad149` (`explore/spotcheck-proto.jsx`, the
 "C2 form → real chat" prototype) **plus Neal's corrections in session** —
@@ -8,8 +13,8 @@ sponsor copy is MOCK (@ASK-FIRST) and never ships; real voice comes from
 
 ## The shape
 
-The multi-step Spot Check wizard is RETIRED. Replaced by ONE form plus the
-real sponsor chat.
+The multi-step Spot Check wizard is RETIRED. Replaced by ONE form — and, until
+2026-08-05, a handoff into the real sponsor chat (now also retired).
 
 ### Screen 1 — the form (complete in itself)
 
@@ -33,64 +38,42 @@ real sponsor chat.
 - **Save** is MANUAL ONLY — standard notebook save + `confirmSaved()`
   OK/View dialog. Talk-it-through does NOT auto-save (prototype's
   save-on-leaving-form + toast: dropped).
-- **Split CTA — "Save & talk with {name}"** (REVISED 2026-08-04, Neal;
+- ~~**Split CTA — "Save & talk with {name}"**~~ **DELETED 2026-08-05** with
+  the chat; the form has no bottom dock at all now. (REVISED 2026-08-04, Neal;
   terracotta pill, disabled until ready): left segment saves the page (no
   confirmation dialog) and goes straight to the chat via router.REPLACE —
   page one leaves the stack and comes up fresh next time. Right chevron
   segment opens the full-roster sponsor sheet; picking one does the same
   save-and-go.
 
-### Screen 2 — the real sponsor chat (the actual chat surface)
+### Screen 2 — RETIRED 2026-08-05 (Neal)
 
-**REVISED (Neal, 2026-08-03 pm): a SEPARATE, EPHEMERAL session** — its own
-screen (`app/(main)/spot-check-chat.tsx`), chat-styled, but it NEVER
-touches the persona's main thread (an ongoing conversation there is
-untouched). **Framing: it is the SAME wizard, split** — pages 1–2 on the
-form, pages 3–4 in this chat window. **Done is the ONLY exit** (no
-back-to-form chevron — the form was replaced out of the stack); it and
-system back land on the screen the flow started from (Today/Tools). The
-saved record (form page only) is the durable artifact. Same daily message
-cap and crisis scan as the main chat.
+**There is no second screen.** The sponsor-chat handoff is gone: the
+ephemeral chat (`app/(main)/spot-check-chat.tsx`), the "Save & talk with
+{name}" split CTA, the full-roster sponsor sheet, the seed key, the causes
+question, the summary + three suggestions, and the prefetch machinery are all
+deleted. Reason (Neal): too many unresolved issues getting the chat to behave
+the way the flow needed, and the form already stands on its own.
 
-1. The chat OPENS with the sponsor asking the page-3 question — no
-   welcome line ("no What-fresh-hell opener"), no preamble, no echo of
-   the form. The question is generated FROM the form via
-   askCausesQuestion; the form content grounds every later turn.
-2. User replies (the page-3 causes answer).
-3. **Sponsor page-4 turn (hard structure, real generation):** summary of
-   the situation + THREE concrete suggestions.
-4. RETIRED 2026-08-04: the "Add {name}'s take?" dialog. Nothing in the
-   chat writes back to the saved record.
-5. From then on: normal chat inside this session (askSpotCheckReply,
-   persona voice, spot-check context attached) until Done.
+Consequences, all implemented:
 
-"Hard content but sponsor-AI realness": the two-turn structure is enforced
-in the prompt contract; the words are genuinely generated per persona.
-
-No "take" labeling inside the chat — they are ordinary messages.
-
-### The save is the FORM PAGE ONLY (REVISED 2026-08-04, Neal)
-
-- The saved record = feelings + situation + the reflection card's answer.
-  Generating a fresh reflection after a save re-arms the Save pill so it
-  can be captured by a re-save.
-- The chat is separate and writes NOTHING back — the "Add {name}'s take"
-  dialog is RETIRED. Old records that carry a take keep rendering it in
-  Journey ("What {name} heard"); new records render a "Reflection"
-  section instead.
-
-### What does NOT exist
-
-- No save-chat-to-Journey. The transcript's home is the chat thread
-  itself, like any conversation. DECIDED 2026-08-03.
-- No exit dialog on leaving the chat (prototype's Keep talking / Erase /
-  Save to Journey: dropped). Leaving is just leaving a chat.
-- No auto-save of the record, no toasts.
-
-### Unsaved-record path
-
-User talks without saving: fine. The conversation is ephemeral either way;
-nothing lost, nothing prompted.
+- **The reflection card is the last word.** Its third beat — the tailored
+  "take it further with your AI sponsor" invitation — is removed from the
+  prompt (both the server `reflection` persona and the byte-synced Rork
+  fallback copy). The card is now ONE paragraph; `normalizeReflection()`
+  just collapses stray line breaks.
+- **The form has no bottom dock.** Save is the header pill (three save
+  states unchanged); the back chevron still offers Save & close / Close
+  without saving when dirty.
+- **No persona speaks in Spot Check.** `constants/spotCheckPersonas.ts` is
+  reduced to `SPOT_CHECK_FEELINGS`; the per-persona scripts, offline
+  fallback questions, and eligible-persona list are deleted. The record
+  keeps its `sponsorId` field for schema compatibility, written as a fixed
+  default — only Journey's legacy "What {name} heard" heading reads it, and
+  only on wizard-era records.
+- **Old chat histories are untouched.** `spotCheckCard` messages still
+  render in sponsor-chat; only the injection path (`injectSpotCheckHandoff`,
+  `askHandoffOpener`, `SPOT_CHECK_HANDOFF_KEY`) is gone.
 
 ## Implementation map (verified against the code, 2026-08-03)
 

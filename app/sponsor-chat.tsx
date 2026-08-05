@@ -14,12 +14,9 @@ import { ChevronDown, RotateCcw, Send } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
 import * as Clipboard from 'expo-clipboard';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { ChatStoreProvider, useChatStore } from '@/hooks/use-chat-store';
 import { getSponsorById } from '@/constants/sponsors';
 import { BR_INK as BR_INK_LIGHT, BR_SOFT as BR_SOFT_LIGHT } from '@/constants/sponsorTones';
-import { SPOT_CHECK_HANDOFF_KEY } from '@/constants/spotCheckPersonas';
-import type { SpotCheckEntry } from '@/types/spotCheck';
 import { SpotCheckCard } from '@/components/SpotCheckCard';
 import { SponsorSwitchSheet } from '@/components/SponsorSwitchSheet';
 import { useScreenTimeTracking } from '@/hooks/useScreenTimeTracking';
@@ -116,7 +113,7 @@ function SponsorChatContent({ initialSponsor }: { initialSponsor: string }) {
   const BR_SOFT = isDark ? colors.primarySoft : BR_SOFT_LIGHT;
   const { readingSize } = useReadingSize();
   const size = readingSize * LORA_SCALE; // chat text, Lora-matched; follows the shared reading size
-  const { messages, isLoading, sendMessage, clearChat, changeSponsor, sponsorType, injectSpotCheckHandoff, hasLoadedFromStorage } = useChatStore();
+  const { messages, isLoading, sendMessage, clearChat, changeSponsor, sponsorType } = useChatStore();
   const [inputText, setInputText] = useState('');
   const [isCheckingLimits, setIsCheckingLimits] = useState(false);
   const [sizeSheetOpen, setSizeSheetOpen] = useState(false);
@@ -142,27 +139,10 @@ function SponsorChatContent({ initialSponsor }: { initialSponsor: string }) {
   const sponsor = getSponsorById(initialSponsor as SponsorType);
   useScreenTimeTracking(sponsor?.name || 'AI Sponsor');
 
-  // Spot Check "Keep talking" handoff — once the store has settled on this
-  // screen's sponsor, pick up a pending entry (written by the inventory screen
-  // right before it routed here) and inject it as a context card + opener.
-  useEffect(() => {
-    // Wait for the store's own AsyncStorage load — injecting earlier would be
-    // clobbered when the loaded thread replaces state.
-    if (sponsorType !== initialSponsor || !hasLoadedFromStorage) return;
-    (async () => {
-      try {
-        const raw = await AsyncStorage.getItem(SPOT_CHECK_HANDOFF_KEY);
-        if (!raw) return;
-        await AsyncStorage.removeItem(SPOT_CHECK_HANDOFF_KEY);
-        const entry: SpotCheckEntry = JSON.parse(raw);
-        if (entry.sponsorId !== sponsorType) return; // stale handoff for another persona
-        injectSpotCheckHandoff(entry);
-      } catch (error) {
-        console.error('Error reading spot check handoff:', error);
-      }
-    })();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sponsorType, initialSponsor, hasLoadedFromStorage]);
+  // The Spot Check → chat handoff was RETIRED 2026-08-05 (Neal): Spot Check
+  // is a self-contained form now and hands nothing to this thread. Old
+  // histories still contain spotCheckCard messages, so the renderer for them
+  // stays — only the injection path is gone.
 
   useEffect(() => {
     if (messages.length > 0) setTimeout(() => listRef.current?.scrollToEnd({ animated: true }), 100);

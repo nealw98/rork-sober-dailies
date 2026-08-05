@@ -3,7 +3,6 @@ import { useState, useEffect } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { getAnonymousId } from "@/lib/anonymousId";
 import { ChatMessage, SponsorType } from "@/types";
-import type { SpotCheckEntry } from "@/types/spotCheck";
 import { detectCrisis, crisisResponses } from "@/constants/crisisTriggers";
 import { 
   SALTY_SAM_SYSTEM_PROMPT, 
@@ -34,7 +33,6 @@ import {
   MAMA_JO_INITIAL_MESSAGE,
 } from "@/constants/mama-jo";
 import { getSponsorById } from "@/constants/sponsors";
-import { askHandoffOpener } from "@/lib/spotCheckLLM";
 import {
   SUPABASE_ANON_KEY,
   getSponsorApiChatUrl,
@@ -933,49 +931,10 @@ export const [ChatStoreProvider, useChatStore] = createContextHook(() => {
     }
   };
 
-  // "Keep talking" handoff from the Spot Check flow: append the entry as a
-  // context card immediately, then generate the sponsor's opener with one LLM
-  // call — in persona, acknowledging they READ the inventory with a specific
-  // detail from it, and asking where to take the conversation. A scripted
-  // stock line read as a bot; a re-paste of the summary read as a parrot
-  // (both shipped and rejected, July 2026). Bypasses sendMessage — the card
-  // isn't user-authored text (no crisis scan) and the opener isn't a user
-  // turn. If the call fails, falls back to a feelings-based line so the chat
-  // never opens dead. Operates on the CURRENT sponsor's thread, so callers
-  // must invoke it only once sponsorType matches the entry (sponsor-chat does
-  // this after its sponsor-sync effect settles); the async continuation is
-  // safe because setMessages targets the sponsor captured at call time.
-  const injectSpotCheckHandoff = (entry: SpotCheckEntry) => {
-    if (messages.some((m) => m.id === `spotcheck-${entry.id}`)) return; // effect re-runs shouldn't double-inject
-    const card: ChatMessage = {
-      id: `spotcheck-${entry.id}`,
-      text: `Spot check — ${entry.feelings.join(', ')}`,
-      sender: "bot",
-      timestamp: Date.now(),
-      kind: "spotCheckCard",
-      spotCheck: entry,
-    };
-    const withCard = [...messages, card];
-    setMessages(withCard);
-    setIsLoading(true);
-    (async () => {
-      let text: string;
-      try {
-        text = await askHandoffOpener(entry.sponsorId, entry);
-      } catch {
-        const feelings = entry.feelings.join(' and ').toLowerCase();
-        text = `I’ve read your spot check inventory — I can see you’re carrying some ${feelings}. Where do you want to pick this up?`;
-      }
-      const opener: ChatMessage = {
-        id: `spotcheck-opener-${entry.id}`,
-        text,
-        sender: "bot",
-        timestamp: Date.now() + 1,
-      };
-      setMessages([...withCard, opener]);
-      setIsLoading(false);
-    })();
-  };
+  // The Spot Check "Keep talking" handoff (context card + generated opener)
+  // was RETIRED 2026-08-05 with the whole sponsor handoff — Spot Check is a
+  // self-contained form now. Old threads still hold spotCheckCard messages,
+  // so the rendering/serialization paths for them stay.
 
   const clearChat = async () => {
     try {
@@ -1035,6 +994,5 @@ export const [ChatStoreProvider, useChatStore] = createContextHook(() => {
     sponsorType,
     changeSponsor,
     getSponsorMessages,
-    injectSpotCheckHandoff,
   };
 });

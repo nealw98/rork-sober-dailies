@@ -1,12 +1,16 @@
-// Spot Check entry — the sponsor-driven 4-step flow's record shape
-// (redesign: sponsor-voiced guided flow, July 2026). Clean cutover from the
-// old { situation, selections } shape; old-shape records are not read back.
+// Spot Check entry — the saved record.
+//
+// 2026-08-05 (Neal): the sponsor handoff is retired, so a spot check is the
+// FORM alone — feelings + situation + reflection. The wizard/take-era fields
+// below are kept because Journey still renders old records that carry them;
+// new records always write them null. `SpotCheckSeed` (form → chat) is gone
+// with the chat.
 import type { SponsorType } from './index';
 
 export type SpotCheckEntry = {
   id: string;
   createdAt: number; // epoch ms
-  sponsorId: SponsorType; // persona that conducted it (last one, if changed mid-flow)
+  sponsorId: SponsorType; // wizard-era: persona that conducted it. New records write a fixed default; only the legacy "What {name} heard" heading reads it.
   feelings: string[]; // step 1 pills
   whatsGoingOn: string; // step 2 free text
   reflection?: string | null; // the form's app-voice response (2026-08-04+; absent on older records)
@@ -14,16 +18,4 @@ export type SpotCheckEntry = {
   causesAnswer: string | null; // wizard-era: step 3 free text (null if skipped)
   summary: string | null; // wizard-era / take-era: LLM lead paragraph
   suggestions: string[] | null; // wizard-era / take-era: bullets
-};
-
-// Redesign (docs/spotcheck-redesign-spec.md): what the form hands the chat.
-// The save is the FORM PAGE ONLY (feelings + situation + reflection); the
-// chat is a separate, ephemeral session and writes nothing back (the
-// "Add {name}'s take" flow was retired 2026-08-04 — summary/suggestions
-// survive on older records only).
-export type SpotCheckSeed = {
-  sponsorId: SponsorType;
-  feelings: string[];
-  whatsGoingOn: string;
-  savedEntryId: string | null; // informational; the chat no longer writes back
 };

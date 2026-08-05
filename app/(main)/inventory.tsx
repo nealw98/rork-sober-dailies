@@ -1,53 +1,51 @@
 // Spot Check — single-form redesign (2026-08-03, docs/spotcheck-redesign-spec.md).
-// Replaces the 4-step wizard: one page (feelings chips + what's-going-on +
-// live Watch For/Strive For preview) that is complete in itself, plus a split
-// CTA into the REAL sponsor chat (form content = first user message; the chat
-// runs the two-turn contract). Three save states (Neal, 2026-08-03):
+// Replaces the 4-step wizard: ONE page (feelings chips + what's-going-on +
+// the app's reflection) that is complete in itself. Three save states
+// (Neal, 2026-08-03):
 //   1. Save pill (top right) — saves in place and STAYS; edits re-arm it; a
 //      re-save updates the same record, never duplicates.
 //   2. Save & close / 3. Close without saving — on the back chevron when
 //      dirty; labels are a UI iteration, the states are the contract.
-// Save & talk (Neal, 2026-08-04): the CTA saves the page (no dialog) and
-// REPLACES this screen with the ephemeral chat — page one clears, and the
-// chat's Done exits to wherever the flow started. The chat never writes
-// back to the record.
+// 2026-08-05 (Neal): the sponsor handoff is RETIRED — the "Save & talk with
+// {name}" CTA, the sponsor picker sheet, and the ephemeral chat screen are
+// all gone. The form is the whole feature and the reflection card is its
+// last word.
 import React, { useEffect, useRef, useState } from 'react';
 import {
   View, Text, StyleSheet, Pressable, TextInput, Alert, BackHandler,
-  Keyboard, Modal, Platform, ActivityIndicator,
+  Keyboard, ActivityIndicator,
 } from 'react-native';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Stack, useRouter } from 'expo-router';
-import { Image } from 'expo-image';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Haptics from 'expo-haptics';
-import { ChevronDown, Check } from 'lucide-react-native';
 import BackButton from '@/components/BackButton';
-import { getSponsorById, getAvailableSponsors } from '@/constants/sponsors';
-import { SPOT_CHECK_FEELINGS, SPOT_CHECK_SEED_KEY } from '@/constants/spotCheckPersonas';
-import { askFormReflection, prefetchCausesQuestion } from '@/lib/spotCheckLLM';
-import { useLastSponsor } from '@/hooks/use-last-sponsor';
+import { SPOT_CHECK_FEELINGS } from '@/constants/spotCheckPersonas';
+import { askFormReflection } from '@/lib/spotCheckLLM';
 import { useTokens, useThemedStyles } from '@/hooks/useTokens';
 import { logEvent } from '@/lib/analytics';
 import { confirmSaved } from '@/lib/savedNotice';
 import { fontFamily, type Tokens } from '@/constants/designTokens';
 import type { SponsorType } from '@/types';
-import type { SpotCheckEntry, SpotCheckSeed } from '@/types/spotCheck';
+import type { SpotCheckEntry } from '@/types/spotCheck';
 
 const INVENTORY_STORAGE_KEY = 'spot_check_inventories';
+
+// The record keeps its sponsorId field for schema compatibility, but nothing
+// conducts a spot check any more (handoff retired 2026-08-05). Journey reads
+// it only for the legacy "What {name} heard" heading, which renders on
+// wizard-era records alone.
+const RECORD_SPONSOR_ID: SponsorType = 'supportive';
 
 export default function InventoryScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const styles = useThemedStyles(makeStyles);
   const { c, colors } = useTokens();
-  const { lastSponsorId, setLastSponsor } = useLastSponsor();
 
-  const [sponsorId, setSponsorId] = useState<SponsorType>('supportive');
   const [feelings, setFeelings] = useState<string[]>([]);
   const [whatsGoingOn, setWhatsGoingOn] = useState('');
-  const [sheetOpen, setSheetOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   // "Other…" pill: free-text input for a feeling not on the fixed list
   // (restored from the wizard, 2026-08-04).
@@ -58,18 +56,6 @@ export default function InventoryScreen() {
   const [savedEntryId, setSavedEntryId] = useState<string | null>(null);
   const [editedSinceSave, setEditedSinceSave] = useState(false);
 
-  // Inherit the FAB's last-opened sponsor once it loads (full roster — the
-  // wizard's 3-persona limit is gone), unless the user picked one here.
-  const userPicked = useRef(false);
-  useEffect(() => {
-    if (userPicked.current) return;
-    if (lastSponsorId && getSponsorById(lastSponsorId)) {
-      setSponsorId(lastSponsorId as SponsorType);
-    }
-  }, [lastSponsorId]);
-
-  const sponsor = getSponsorById(sponsorId);
-  const firstName = sponsor?.name.split(' ').slice(-1)[0] ?? 'your sponsor';
   const ready = feelings.length > 0 && whatsGoingOn.trim() !== '';
   const dirty = (feelings.length > 0 || whatsGoingOn.trim() !== '') && (savedEntryId === null || editedSinceSave);
 
@@ -104,18 +90,6 @@ export default function InventoryScreen() {
     setReflecting(false);
   };
 
-  // Speculative prefetch: once the form is ready and the user pauses for a
-  // beat, fire the page-3 question so it's already in flight (often already
-  // resolved) before they tap Talk-it-through. Key-guarded in spotCheckLLM,
-  // so edits after the pause just supersede the stale one; the tap-time
-  // prefetch in talk() remains the safety net for sponsor-sheet picks.
-  useEffect(() => {
-    if (!ready) return;
-    const t = setTimeout(() => prefetchCausesQuestion(sponsorId, feelings, whatsGoingOn.trim()), 2000);
-    return () => clearTimeout(t);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [ready, feelings, whatsGoingOn, sponsorId]);
-
   const toggleFeeling = (f: string) => {
     markEdited();
     setFeelings((cur) => (cur.includes(f) ? cur.filter((x) => x !== f) : [...cur, f]));
@@ -134,11 +108,9 @@ export default function InventoryScreen() {
     }
   };
 
-  // ── Save: in place. First save inserts; later saves update the same id.
-  // sponsorOverride: Save-&-talk passes the just-picked sponsor, which this
-  // render's `sponsorId` state doesn't reflect yet. ──
-  const save = async (sponsorOverride?: SponsorType): Promise<string> => {
-    const sp = sponsorOverride ?? sponsorId;
+  // ── Save: in place. First save inserts; later saves update the same id. ──
+  const save = async (): Promise<string> => {
+    const sp = RECORD_SPONSOR_ID;
     const id = savedEntryId ?? Date.now().toString();
     const entry: SpotCheckEntry = {
       id,
@@ -201,44 +173,6 @@ export default function InventoryScreen() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dirty]);
 
-  // ── Save & talk (Neal, 2026-08-04): the CTA SAVES the page — no
-  // confirmation dialog — then REPLACES this screen with the chat. The form
-  // leaves the stack, so the chat's Done (and system back) exits straight to
-  // wherever the flow started (Today/Tools), and page one comes up fresh
-  // next time. There is no way back to the form from the chat. ──
-  const talk = async (sid: SponsorType) => {
-    if (!ready) return;
-    Keyboard.dismiss();
-    setSheetOpen(false);
-    userPicked.current = true;
-    setSponsorId(sid);
-    setLastSponsor(sid);
-    let entryId: string | null = null;
-    try {
-      entryId = await save(sid);
-    } catch (e) {
-      console.error('Spot check save-on-talk failed:', e);
-    }
-    const seed: SpotCheckSeed = {
-      sponsorId: sid,
-      feelings,
-      whatsGoingOn: whatsGoingOn.trim(),
-      savedEntryId: entryId,
-    };
-    try {
-      // Fire the page-3 question NOW — the round-trip overlaps navigation
-      // instead of starting after the chat screen mounts.
-      prefetchCausesQuestion(sid, feelings, whatsGoingOn.trim());
-      await AsyncStorage.setItem(SPOT_CHECK_SEED_KEY, JSON.stringify(seed));
-      logEvent('spot_check_talk', { sponsor: sid, saved: seed.savedEntryId != null });
-      // The chat half is its own EPHEMERAL session (never the main sponsor
-      // thread).
-      router.replace('/(main)/spot-check-chat');
-    } catch (e) {
-      console.error('Spot check seed failed:', e);
-    }
-  };
-
   const savePillLabel = saving ? 'Saving…' : savedEntryId && !editedSinceSave ? 'Saved' : 'Save';
   const savePillActive = ready && !(savedEntryId && !editedSinceSave);
 
@@ -289,29 +223,36 @@ export default function InventoryScreen() {
               </Pressable>
             );
           })}
-          <Pressable
-            onPress={() => setOtherOpen((v) => !v)}
-            accessibilityRole="button"
-            accessibilityLabel="Other feeling"
-            style={[styles.pill, styles.pillOther, otherOpen && { borderColor: colors.accent }]}
-          >
-            <Text style={[styles.pillText, { color: c.textMuted }]}>Other…</Text>
-          </Pressable>
+          {/* The Other… pill becomes the field IN PLACE (Neal, 2026-08-05) —
+              it used to open a full-width input below the row, which read as a
+              second, separate question. Typing happens in the pill itself and
+              it collapses back on submit/blur. */}
+          {otherOpen ? (
+            <View style={[styles.pill, styles.pillOther, styles.pillOtherOpen, { borderColor: colors.accent }]}>
+              <TextInput
+                value={otherText}
+                onChangeText={setOtherText}
+                onSubmitEditing={addOther}
+                onBlur={addOther}
+                placeholder="Name it"
+                placeholderTextColor={c.textMuted}
+                style={styles.pillInput}
+                returnKeyType="done"
+                autoFocus
+                maxLength={30}
+              />
+            </View>
+          ) : (
+            <Pressable
+              onPress={() => setOtherOpen(true)}
+              accessibilityRole="button"
+              accessibilityLabel="Other feeling"
+              style={[styles.pill, styles.pillOther]}
+            >
+              <Text style={[styles.pillText, { color: c.textMuted }]}>Other…</Text>
+            </Pressable>
+          )}
         </View>
-        {otherOpen && (
-          <TextInput
-            value={otherText}
-            onChangeText={setOtherText}
-            onSubmitEditing={addOther}
-            onBlur={addOther}
-            placeholder="Name it in a word or two"
-            placeholderTextColor={c.textMuted}
-            style={[styles.input, styles.otherInput]}
-            returnKeyType="done"
-            autoFocus
-            maxLength={30}
-          />
-        )}
 
         <Text style={[styles.sectionLabel, { marginTop: 22 }]}>WHAT’S GOING ON?</Text>
         <TextInput
@@ -364,61 +305,8 @@ export default function InventoryScreen() {
             )}
           </View>
         )}
-        <View style={{ height: 20 }} />
+        <View style={{ height: Math.max(insets.bottom, 14) + 20 }} />
       </KeyboardAwareScrollView>
-
-      {/* Split CTA: talk with last-used sponsor · chevron opens full roster */}
-      <View style={[styles.dock, { paddingBottom: Math.max(insets.bottom, 14) + 16 }]}>
-        <View style={[styles.splitBtn, { backgroundColor: colors.accent }, !ready && styles.btnDisabled]}>
-          <Pressable
-            onPress={() => talk(sponsorId)}
-            disabled={!ready}
-            accessibilityRole="button"
-            accessibilityLabel={`Save and talk with ${firstName}`}
-            style={styles.splitMain}
-          >
-            <Image source={sponsor?.avatar} style={styles.splitAvatar} contentFit="cover" />
-            <Text style={styles.splitText}>Save & talk with {firstName}</Text>
-          </Pressable>
-          <Pressable
-            onPress={() => ready && setSheetOpen(true)}
-            disabled={!ready}
-            accessibilityRole="button"
-            accessibilityLabel="Choose a different sponsor"
-            style={styles.splitChev}
-          >
-            <ChevronDown size={18} color="#fff" strokeWidth={2.4} />
-          </Pressable>
-        </View>
-      </View>
-
-      {/* Sponsor sheet — FULL roster */}
-      <Modal transparent visible={sheetOpen} animationType="slide" onRequestClose={() => setSheetOpen(false)}>
-        <Pressable style={styles.sheetBackdrop} onPress={() => setSheetOpen(false)}>
-          <Pressable style={[styles.sheet, { paddingBottom: Math.max(insets.bottom, 16) + 10 }]} onPress={() => {}}>
-            <View style={styles.sheetHandle} />
-            <Text style={styles.sheetTitle}>Save & talk with…</Text>
-            {getAvailableSponsors().map((sp) => {
-              const on = sp.id === sponsorId;
-              return (
-                <Pressable
-                  key={sp.id}
-                  onPress={() => talk(sp.id as SponsorType)}
-                  accessibilityRole="button"
-                  style={[styles.sheetRow, on && { borderColor: colors.accent }]}
-                >
-                  <Image source={sp.avatar} style={styles.sheetAvatar} contentFit="cover" />
-                  <View style={styles.flex}>
-                    <Text style={styles.sheetName}>{sp.name}</Text>
-                    {!!sp.description && <Text style={styles.sheetSub} numberOfLines={1}>{sp.description}</Text>}
-                  </View>
-                  {on && <Check size={18} color={colors.accent} strokeWidth={2.4} />}
-                </Pressable>
-              );
-            })}
-          </Pressable>
-        </Pressable>
-      </Modal>
     </View>
   );
 }
@@ -447,7 +335,14 @@ const makeStyles = (tk: Tokens) => {
     pill: { paddingVertical: 9, paddingHorizontal: 14, borderRadius: 999, borderWidth: 1.5, minHeight: 40, justifyContent: 'center' },
     pillOff: { backgroundColor: c.surface, borderColor: c.border, ...(isDark ? { borderColor: 'rgba(255,255,255,0.12)' } : null) },
     pillOther: { backgroundColor: 'transparent', borderColor: c.textMuted + '66', borderStyle: 'dashed' },
-    otherInput: { marginTop: 12, minHeight: 0, paddingVertical: 12 },
+    // Typing state: wide enough for a word or two, and the row's flexWrap
+    // drops it to its own line when it doesn't fit. Vertical padding moves to
+    // the TextInput so the text sits on the pill's centre line.
+    pillOtherOpen: { minWidth: 150, paddingVertical: 0, borderStyle: 'solid' },
+    pillInput: {
+      flex: 1, fontFamily: fontFamily.semiBold, fontSize: 13.5, color: c.text,
+      padding: 0, minHeight: 40, textAlignVertical: 'center',
+    },
     pillText: { fontFamily: fontFamily.semiBold, fontSize: 13.5 },
 
     input: {
@@ -474,28 +369,6 @@ const makeStyles = (tk: Tokens) => {
       borderColor: isDark ? 'rgba(255,255,255,0.16)' : c.border,
     },
     inputBtnText: { fontFamily: fontFamily.semiBold, fontSize: 14.5 },
-
-    dock: {
-      paddingHorizontal: 18, paddingTop: 12,
-      borderTopWidth: 1, borderTopColor: c.border, backgroundColor: c.background,
-    },
-    splitBtn: { flexDirection: 'row', alignItems: 'stretch', borderRadius: 999, overflow: 'hidden' },
-    splitMain: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 9, paddingVertical: 12, paddingHorizontal: 14 },
-    splitAvatar: { width: 26, height: 26, borderRadius: 13 },
-    splitText: { fontFamily: fontFamily.bold, fontSize: 15.5, color: '#fff' },
-    splitChev: { width: 52, alignItems: 'center', justifyContent: 'center', borderLeftWidth: 1, borderLeftColor: 'rgba(255,255,255,0.3)' },
     btnDisabled: { opacity: 0.45 },
-
-    sheetBackdrop: { flex: 1, backgroundColor: 'rgba(28,26,24,0.42)', justifyContent: 'flex-end' },
-    sheet: { backgroundColor: c.background, borderTopLeftRadius: 22, borderTopRightRadius: 22, paddingHorizontal: 18, paddingTop: 12 },
-    sheetHandle: { width: 40, height: 4, borderRadius: 2, backgroundColor: c.border, alignSelf: 'center', marginBottom: 14 },
-    sheetTitle: { fontFamily: fontFamily.display, fontSize: 18, color: c.text, marginBottom: 12 },
-    sheetRow: {
-      flexDirection: 'row', alignItems: 'center', gap: 12, padding: 12, borderRadius: 16,
-      borderWidth: 1.5, borderColor: c.border, backgroundColor: c.surface, marginBottom: 9, ...darkCard,
-    },
-    sheetAvatar: { width: 40, height: 40, borderRadius: 20 },
-    sheetName: { fontFamily: fontFamily.bold, fontSize: 15, color: c.text },
-    sheetSub: { fontFamily: fontFamily.regular, fontSize: 12, color: c.textMuted, marginTop: 1 },
   });
 };
