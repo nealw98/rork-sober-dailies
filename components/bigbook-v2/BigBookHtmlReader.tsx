@@ -235,6 +235,26 @@ function buildHtml(params: {
   window.__searchTerm = ${JSON.stringify(params.searchTerm || '')};
   window.__pendingSelection = null;
 
+  // Resize the live document without reloading the WebView. Anchor the first
+  // visible paragraph at the same viewport offset while the text reflows, so
+  // changing Aa keeps the reader on the same words instead of jumping home.
+  window.__setReaderTypography = function(fontSize, lineHeight) {
+    var paragraphs = Array.from(document.querySelectorAll('.bb-paragraph'));
+    var anchor = paragraphs.find(function(paragraph) {
+      return paragraph.getBoundingClientRect().bottom > 0;
+    }) || paragraphs[0];
+    var oldTop = anchor ? anchor.getBoundingClientRect().top : 0;
+    paragraphs.forEach(function(paragraph) {
+      paragraph.style.fontSize = fontSize + 'px';
+      paragraph.style.lineHeight = lineHeight + 'px';
+    });
+    if (anchor) {
+      var newTop = anchor.getBoundingClientRect().top;
+      window.scrollBy(0, newTop - oldTop);
+    }
+    currentPage();
+  };
+
   function post(payload) {
     window.ReactNativeWebView && window.ReactNativeWebView.postMessage(JSON.stringify(payload));
   }
@@ -610,9 +630,17 @@ export function BigBookHtmlReader({ visible, initialChapterId, scrollToPage, scr
       searchTerm,
       pal,
     });
-  }, [currentChapter, scaledFontSize, scaledLineHeight, useRoman, scrollToPage, scrollToParagraphId, searchTerm, pal]);
+  // Typography changes are injected into the live document below. Keeping
+  // them out of this dependency list prevents a source reload/scroll reset.
+  }, [currentChapter, useRoman, scrollToPage, scrollToParagraphId, searchTerm, pal]);
 
   const webSource = useMemo(() => ({ html }), [html]);
+
+  useEffect(() => {
+    webViewRef.current?.injectJavaScript(
+      `window.__setReaderTypography && window.__setReaderTypography(${scaledFontSize}, ${scaledLineHeight}); true;`
+    );
+  }, [scaledFontSize, scaledLineHeight]);
 
   const handleBookmarkPress = async () => {
     if (!currentPageNumber || !currentChapterId) return;
@@ -801,7 +829,7 @@ export function BigBookHtmlReader({ visible, initialChapterId, scrollToPage, scr
           </View>
 
           <WebView
-            key={`bb-html-${currentChapterId}-${scaledFontSize}`}
+            key={`bb-html-${currentChapterId}`}
             ref={webViewRef}
             originWhitelist={['*']}
             source={webSource}
