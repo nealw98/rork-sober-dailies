@@ -2850,3 +2850,106 @@ fix (designed, NOT implemented): add `reflection` to SpotCheckSeed; the
 causes-question task gets "the app already reflected back: «…» — do NOT
 repeat it; your question goes where it pointed: their part." Client-side
 → needs commit + production-channel OTA. Implement on Neal's word.
+
+## 25. Latest session — 2026-08-05 (SPOT CHECK CHAT RETIRED · Eddie voices the reflection)
+
+Head `26a2d335`, pushed, tree clean. **Production OTA group `dceed31b`**
+(runtime 3.0.8, iOS + Android). `sponsor-chat` fn deployed TWICE. Neal:
+"I think I'm almost ready to ship."
+
+### 25.1 The sponsor handoff is GONE — Spot Check is one form
+
+Neal's call: "too many issues getting the chat to operate how I want — in
+the interest of just getting it done, remove it." §24.4's opener≈reflection
+fix is **moot** (there is no opener). Deleted: `app/(main)/spot-check-chat.tsx`,
+the "Save & talk with {name}" split CTA, the sponsor picker sheet,
+`SPOT_CHECK_SEED_KEY` + `SpotCheckSeed`, causes question, summary +
+suggestions, prefetch machinery — plus the older wizard debris the cleanup
+list had been carrying (`askHandoffOpener`, `injectSpotCheckHandoff`,
+`SPOT_CHECK_HANDOFF_KEY`). `constants/spotCheckPersonas.ts` is down to
+`SPOT_CHECK_FEELINGS` alone (scripts / fallback questions / eligible-persona
+list all dead); `lib/spotCheckLLM.ts` 398 → ~190 lines, `askFormReflection`
+only. **Old chat threads still RENDER `spotCheckCard` messages** — only the
+injection path went. Net −999/+212 across 10 files. tsc unchanged at
+baseline (88 app-code errors).
+
+The record keeps `sponsorId` for schema compatibility, written as a fixed
+default — only Journey's legacy "What {name} heard" heading reads it, and
+only on wizard-era records.
+
+### 25.2 The reflection card is the whole feature now
+
+- **Beat 3 removed** (the "take it further with your AI sponsor" closer) —
+  it pointed at a path that no longer exists. `normalizeReflection()` is now
+  a paragraph collapse + asterisk strip (Sonnet emits the occasional *word*
+  despite the no-markdown rule; RN renders those literally).
+- **STEADY EDDIE'S VOICE**, distilled — NOT the `supportive` persona prompt,
+  which is chat-shaped (conversation-ending rules, per-step chat lines,
+  outside-help escalation) and fights a one-paragraph card. Costs the same
+  ~700 tokens as the neutral voice it replaced, so voice was free.
+- **FAITH IS SPELLED OUT, NEVER NAME-DROPPED.** The old rule said "say the
+  word 'faith' plainly" and Sonnet obeyed literally — Neal got "trust
+  faith": *"What's that mean?"* The rule now demands the substance (it turns
+  out the way they hope, or their Higher Power carries them through) and
+  bans "trust faith" / "have faith" / "lean on your faith" by name.
+  **Generalizable: naming a virtue is not saying it.**
+- **New Frustrated cluster**, Neal's words: *do the next right thing, let go
+  of what you can't control, focus on your actions and turn over the
+  results.* Verified live across fear / shame / resentment / frustration.
+
+### 25.3 Form changes
+
+`Frustrated` added to the feeling pills (it kept arriving as free text). The
+**Other… pill becomes the input IN PLACE** instead of opening a full-width
+field below the row (which read as a second question) — verified on the sim:
+tap → terracotta field with cursor → type → Return commits a chip and a
+fresh dashed Other… returns. With the dock gone the form ends after the
+situation box; Save is the header pill only (matches the other notebook
+editors).
+
+### 25.4 ⚠️ THE RORK TOGGLE COST HALF A SESSION — CHECK IT FIRST
+
+Neal spent the afternoon judging reflections as "clunky / overengineered"
+and nearly had the prompt rewritten. **It was the Dev Console → "Use Rork
+LLM (free)" QA toggle, left on from the A/B.** Same prompt on Sonnet was
+"great." Rork's tell: recites the tapped chips back verbatim, then
+abstraction — "Move your attention toward what you can thank for", "the
+shore you're trying to reach". **Before judging ANY LLM output, confirm
+which engine served it** (`sober_dailies_qa_llm_rork`, per-device).
+
+Tested afterwards: a minimal 875-char prompt (no beat labels, no word cap,
+no banned-phrase list) scored equal-or-better than the current 2,874-char
+one on Sonnet across the discontent AND fear cases — it even picked up "God
+— or whatever you understand that to be" unprompted. On Rork it was only
+marginally better; Rork is just a weaker model, not a victim of prompt
+complexity. **DECISION (Neal): keep the prompt as-is** — don't regress a
+working feature on ship day. The short version is a real option if anyone
+sits down to tune this again; it is NOT saved in the repo.
+
+### 25.5 Not a bug: "Branch main" in the OTA output
+
+`eas update --channel production` reports `Branch main` — that is the **EAS
+Update branch**, a separate namespace from git. The `production` channel has
+always pointed at EAS branch `main`. Every commit this session went to
+`3.0.5-redesign` only (verified with `git branch --contains`; reflog shows
+no branch switch). Unrelated: local git `main` has been diverged since
+April 18 (2 unpushed / 2 unpulled) — pre-existing, inert, worth a cleanup
+someday.
+
+### 25.6 Next session
+
+1. **Neal**: confirm which LLM is serving before evaluating output; still
+   pending from §24 — cancel the real Apple sub from the 08-02 E2E, confirm
+   Anthropic + OpenAI spend caps, pull 3 ASC gift consumables + Play
+   equivalents, Developer Mode on his devices.
+2. Prompt tuning is **deploy-only** (`supabase functions deploy
+   sponsor-chat`) — but the prompt lives in TWO byte-synced copies: the fn's
+   `reflection` persona (canonical) and `REFLECTION_PROMPT` in
+   `lib/spotCheckLLM.ts` (free-Rork fallback only). Editing one alone
+   silently drifts the QA path: edit both, deploy, AND OTA.
+3. The prompt still states a 70-word cap Sonnet overshoots every time
+   (77–108 across 6 samples). Harmless while the prompt is frozen; if it
+   ever gets touched, raise it to ~100 so an ignored constraint stops
+   sitting next to rules that are doing real work.
+4. `scripts/rork-health.mjs` is committed now (`21a2ec54`) — re-run it
+   before relitigating routing.
