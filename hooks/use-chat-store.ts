@@ -37,7 +37,8 @@ import {
   SUPABASE_ANON_KEY,
   getSponsorApiChatUrl,
   getSponsorApiUrl,
-  getQaUseRork,
+  getQaEngine,
+  QA_ENGINE_SPEC,
 } from "@/lib/sponsorApiSettings";
 
 
@@ -851,26 +852,21 @@ export const [ChatStoreProvider, useChatStore] = createContextHook(() => {
       // to have a low-reliability LLM back up a reliability problem"). Free
       // Rork is only the last-ditch lifeboat, kept because it rides
       // different infrastructure than the Supabase fn both paid providers
-      // share. The Dev Console "Use Rork" QA toggle routes straight to Rork.
+      // share. The Dev Console QA engine toggle (2026-08-05) only REORDERS the
+      // paid pair — Rork is no longer selectable, so a QA session always keeps
+      // a working backup and can never sit on the lifeboat unnoticed.
       let result: { text: string; model?: string; temperature?: number };
-      if (await getQaUseRork()) {
-        console.log('[QA] LLM override active — routing to Rork');
-        result = {
-          text: await callAI(convertToAPIMessages(updatedMessages, sponsorType), 25000),
-          model: "rork (QA)" as string | undefined,
-          temperature: undefined as number | undefined,
-        };
-      } else {
+      {
+        const primary = QA_ENGINE_SPEC[await getQaEngine()];
+        const backup = primary.provider === 'anthropic' ? QA_ENGINE_SPEC.gpt : QA_ENGINE_SPEC.sonnet;
         try {
-          result = await callSponsorAPI(sponsorType, updatedMessages, text);
-        } catch (sonnetError) {
-          console.warn('Sonnet failed; trying GPT-5.4 backup:', sonnetError);
+          result = await callSponsorAPI(sponsorType, updatedMessages, text, primary);
+        } catch (primaryError) {
+          console.warn(`${primary.label} failed; trying ${backup.label}:`, primaryError);
           try {
-            result = await callSponsorAPI(sponsorType, updatedMessages, text, {
-              provider: 'openai', model: 'gpt-5.4',
-            });
-          } catch (gptError) {
-            console.warn('GPT backup failed too; last-ditch Rork:', gptError);
+            result = await callSponsorAPI(sponsorType, updatedMessages, text, backup);
+          } catch (backupError) {
+            console.warn('Both paid engines failed; last-ditch Rork:', backupError);
             result = {
               text: await callAI(convertToAPIMessages(updatedMessages, sponsorType)),
               model: "rork" as string | undefined,

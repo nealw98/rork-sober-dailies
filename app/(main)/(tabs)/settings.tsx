@@ -51,7 +51,7 @@ import {
 import GiftThankYouSheet from '@/components/GiftThankYouSheet';
 import { qaPreviewTrialReminder } from '@/lib/trialReminder';
 import { setSyncPaused, cloudBackupSupported } from '@/lib/cloudSync';
-import { getQaUseRork, setQaUseRork } from '@/lib/sponsorApiSettings';
+import { getQaEngine, setQaEngine } from '@/lib/sponsorApiSettings';
 
 // ─── Token-based building blocks (mirror the prototype) ──────────────────────
 
@@ -182,18 +182,20 @@ export default function SettingsScreen() {
       .then((v) => setForceNewUser(v === 'true'))
       .catch(() => {});
   }, []);
-  // QA: LLM routing override — flip both chat surfaces (main chat + spot
-  // check) onto the free Rork endpoint to compare against paid Anthropic
-  // before launch. Read per call, so it applies to the next message sent —
-  // no restart needed.
-  const [qaUseRork, setQaUseRorkState] = useState(false);
+  // QA: which PAID engine leads on both chat surfaces (main chat + spot
+  // check) — Sonnet by default, GPT-5.4 when on. Replaced the Rork toggle
+  // 2026-08-05: routing is settled, so the useful comparison is Sonnet vs
+  // GPT-5.4, and leaving the old toggle on silently served the free lifeboat
+  // for a whole evaluation session. Read per call — applies to the next
+  // message, no restart.
+  const [qaUseGpt, setQaUseGpt] = useState(false);
   useEffect(() => {
-    getQaUseRork().then(setQaUseRorkState).catch(() => {});
+    getQaEngine().then((e) => setQaUseGpt(e === 'gpt')).catch(() => {});
   }, []);
-  const toggleQaUseRork = async () => {
-    const next = !qaUseRork;
-    setQaUseRorkState(next);
-    await setQaUseRork(next);
+  const toggleQaEngine = async () => {
+    const next = !qaUseGpt;
+    setQaUseGpt(next);
+    await setQaEngine(next ? 'gpt' : 'sonnet');
   };
 
   const toggleForceNewUser = async () => {
@@ -705,12 +707,12 @@ export default function SettingsScreen() {
               <View style={styles.dcRow}>
                 <View style={styles.dcIcon}><MessageSquare size={17} color={colors.primaryDark} strokeWidth={2} /></View>
                 <View style={styles.dcRowBody}>
-                  <Text style={styles.dcRowLabel}>Use Rork LLM (free)</Text>
-                  <Text style={styles.dcRowSub}>Both chats + spot check skip paid Sonnet — applies to the next message</Text>
+                  <Text style={styles.dcRowLabel}>{qaUseGpt ? 'LLM: GPT-5.4' : 'LLM: Sonnet'}</Text>
+                  <Text style={styles.dcRowSub}>Which model leads on both chats + spot check — applies to the next message</Text>
                 </View>
                 <Switch
-                  value={qaUseRork}
-                  onValueChange={toggleQaUseRork}
+                  value={qaUseGpt}
+                  onValueChange={toggleQaEngine}
                   trackColor={{ false: c.divider, true: colors.primary }}
                   thumbColor="#fff"
                 />

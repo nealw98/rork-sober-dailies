@@ -13,7 +13,7 @@ import type { SponsorType } from '@/types';
 import { getSponsorById } from '@/constants/sponsors';
 import { getAnonymousId } from '@/lib/anonymousId';
 import {
-  SUPABASE_ANON_KEY, getSponsorApiChatUrl, getSponsorApiUrl, getQaUseRork,
+  SUPABASE_ANON_KEY, getSponsorApiChatUrl, getSponsorApiUrl, getQaEngine, QA_ENGINE_SPEC,
 } from '@/lib/sponsorApiSettings';
 
 const LLM_URL = 'https://toolkit.rork.com/text/llm/';
@@ -59,8 +59,8 @@ async function fetchCompletion(content: string): Promise<string> {
 // SONNET-FIRST, RORK LAST-DITCH (final 2026-08-04, Neal): caching made
 // Sonnet ~0.2¢/turn, so reliability wins. The server holds the persona
 // prompts, so the paid message is the TASK alone (≤2000 chars server cap);
-// output caps at 500. The Dev Console "Use Rork" QA toggle disables the paid
-// path entirely so pure-Rork behavior can be A/B'd.
+// output caps at 500. The Dev Console QA engine toggle picks WHICH paid model
+// leads (Sonnet or GPT-5.4); Rork is no longer selectable, only automatic.
 const trim = (s: string, n: number) => (s.length > n ? `${s.slice(0, n)}…` : s);
 
 async function callPaidSponsor(
@@ -124,16 +124,22 @@ async function callPaidSponsor(
 // have a low-reliability LLM back up a reliability problem"). Rork remains
 // only as the last-ditch lifeboat below, since it rides different
 // infrastructure than the Supabase fn both paid providers share.
+//
+// The Dev Console QA engine toggle (2026-08-05) only reorders this pair — it
+// never removes the backup, so a QA session can't dead-end on one provider's
+// outage. Default order is Sonnet → GPT-5.4; flipped, GPT-5.4 → Sonnet.
 async function callPaidChain(
   sponsorId: SponsorType,
   message: string,
   conversation: { role: 'user' | 'assistant'; content: string }[],
 ): Promise<string> {
+  const primary = QA_ENGINE_SPEC[await getQaEngine()];
+  const backup = primary.provider === 'anthropic' ? QA_ENGINE_SPEC.gpt : QA_ENGINE_SPEC.sonnet;
   try {
-    return await callPaidSponsor(sponsorId, message, conversation);
-  } catch (sonnetError) {
-    console.warn('[spotCheckLLM] Sonnet failed; trying GPT-5.4 backup:', (sonnetError as Error).message);
-    return await callPaidSponsor(sponsorId, message, conversation, { provider: 'openai', model: 'gpt-5.4' });
+    return await callPaidSponsor(sponsorId, message, conversation, primary);
+  } catch (primaryError) {
+    console.warn(`[spotCheckLLM] ${primary.label} failed; trying ${backup.label}:`, (primaryError as Error).message);
+    return await callPaidSponsor(sponsorId, message, conversation, backup);
   }
 }
 
@@ -200,12 +206,10 @@ export async function askFormReflection(feelings: string[], whatsGoingOn: string
     `Feelings they tapped: ${feelings.join(', ')}`,
     `What’s going on (their words): ${trim(whatsGoingOn, 1200)}`,
   ].join('\n');
-  if (!(await getQaUseRork())) {
-    try {
-      // Sonnet primary uses the SERVER 'reflection' persona (message = data
-      // only); the client REFLECTION_PROMPT rides only the Rork fallback.
-      return normalizeReflection(await callPaidChain('reflection' as SponsorType, task, []));
-    } catch { /* fall through to Rork */ }
-  }
+  try {
+    // The paid path uses the SERVER 'reflection' persona (message = data
+    // only); the client REFLECTION_PROMPT rides only the Rork fallback.
+    return normalizeReflection(await callPaidChain('reflection' as SponsorType, task, []));
+  } catch { /* both paid engines down — fall through to the Rork lifeboat */ }
   return normalizeReflection(await fetchCompletion(`${REFLECTION_PROMPT}\n\n${task}`));
 }

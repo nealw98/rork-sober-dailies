@@ -21,27 +21,45 @@ export interface SponsorApiEngineOption {
   model: string;
 }
 
-// QA LLM override (Dev Console, 2026-08-04): force BOTH chat surfaces (main
-// sponsor chat + spot check) onto the free Rork endpoint, skipping the paid
-// Anthropic path entirely — lets Neal A/B Rork's performance against Sonnet
-// before committing to launch. Fresh key on purpose: the legacy engine
-// setting above is deliberately ignored (stale stored values). Read per
-// call, so flipping applies to the next message with no restart.
-export const QA_LLM_RORK_KEY = 'sober_dailies_qa_llm_rork';
+// QA LLM override (Dev Console). REPLACED the Rork toggle 2026-08-05 (Neal):
+// routing is settled, so the useful comparison is now between the two PAID
+// engines — Sonnet (primary) and GPT-5.4 (backup) — not against the free Rork
+// lifeboat. Rork is no longer selectable; it stays wired as the automatic
+// last-ditch fallback in both callers.
+//
+// ⚠️ The old toggle cost half a session: it was left on and silently served
+// every reflection Neal was judging, so a working prompt read as broken.
+// Hence the visible per-reply engine label the callers attach.
+//
+// Fresh key on purpose (the legacy engine setting above is deliberately
+// ignored — stale stored values), and NOT the old `..._qa_llm_rork` key, so
+// any device still holding that flag starts clean on Sonnet. Read per call,
+// so flipping applies to the next message with no restart.
+export type QaEngine = 'sonnet' | 'gpt';
 
-export const getQaUseRork = async (): Promise<boolean> => {
+export const QA_LLM_ENGINE_KEY = 'sober_dailies_qa_llm_engine';
+
+export const getQaEngine = async (): Promise<QaEngine> => {
   try {
-    return (await AsyncStorage.getItem(QA_LLM_RORK_KEY)) === 'true';
+    return (await AsyncStorage.getItem(QA_LLM_ENGINE_KEY)) === 'gpt' ? 'gpt' : 'sonnet';
   } catch {
-    return false;
+    return 'sonnet';
   }
 };
 
-export const setQaUseRork = async (on: boolean): Promise<void> => {
+export const setQaEngine = async (engine: QaEngine): Promise<void> => {
   try {
-    if (on) await AsyncStorage.setItem(QA_LLM_RORK_KEY, 'true');
-    else await AsyncStorage.removeItem(QA_LLM_RORK_KEY);
+    if (engine === 'gpt') await AsyncStorage.setItem(QA_LLM_ENGINE_KEY, 'gpt');
+    else await AsyncStorage.removeItem(QA_LLM_ENGINE_KEY);
   } catch {}
+};
+
+// The concrete provider/model each QA setting resolves to. Both go through the
+// same Supabase fn and the same server personas, so a swap changes ONLY the
+// model — which is what makes the comparison meaningful.
+export const QA_ENGINE_SPEC: Record<QaEngine, { provider: 'anthropic' | 'openai'; model: string; label: string }> = {
+  sonnet: { provider: 'anthropic', model: 'claude-sonnet-4-6', label: 'sonnet' },
+  gpt: { provider: 'openai', model: 'gpt-5.4', label: 'gpt-5.4' },
 };
 
 export const SPONSOR_API_ENGINES: SponsorApiEngineOption[] = [
