@@ -47,7 +47,7 @@ const OPENAI_MODEL = Deno.env.get('SPONSOR_CHAT_MODEL') || 'gpt-5.4-mini';
 const ANTHROPIC_MODEL = Deno.env.get('SPONSOR_CHAT_ANTHROPIC_MODEL') || 'claude-haiku-4-5';
 // Allowlists for client-selectable models (public endpoint — never trust an
 // arbitrary model string, which could be an expensive model on our key).
-const OPENAI_MODELS = ['gpt-5.4-mini', 'gpt-5.4'];
+const OPENAI_MODELS = ['gpt-5.4-mini', 'gpt-5.4', 'gpt-5.6-terra'];
 const ANTHROPIC_MODELS = ['claude-haiku-4-5', 'claude-sonnet-4-6'];
 const DEFAULT_TEMPERATURE = numberFromEnv('SPONSOR_CHAT_TEMPERATURE', 0.8);
 const DEFAULT_MAX_OUTPUT_TOKENS = numberFromEnv('SPONSOR_CHAT_MAX_OUTPUT_TOKENS', 260);
@@ -380,7 +380,7 @@ interface ProviderResult {
         // OpenAI nests its automatic-cache count here; Anthropic reports a
         // flat cache_read_input_tokens instead. Typed loosely because the
         // rest of the shape differs per provider.
-        input_tokens_details?: { cached_tokens?: number } | null;
+        input_tokens_details?: { cached_tokens?: number; cache_write_tokens?: number } | null;
       } & Record<string, unknown>)
     | null;
 }
@@ -394,6 +394,11 @@ const numOrNull = (v: unknown): number | null => (typeof v === 'number' ? v : nu
 function cachedInputTokens(usage: ProviderResult['usage']): number | null {
   if (!usage) return null;
   return numOrNull(usage.cache_read_input_tokens) ?? numOrNull(usage.input_tokens_details?.cached_tokens);
+}
+
+function cacheWriteTokens(usage: ProviderResult['usage']): number | null {
+  if (!usage) return null;
+  return numOrNull(usage.cache_creation_input_tokens) ?? numOrNull(usage.input_tokens_details?.cache_write_tokens);
 }
 
 function buildContext(body: RequestBody): RequestContext {
@@ -445,9 +450,15 @@ async function callOpenAI(ctx: RequestContext): Promise<ProviderResult> {
   }
 
   const model = resolveOpenAIModel(ctx.requestedModel);
+  const isTerra = model === 'gpt-5.6-terra';
 
   const input = [
-    { role: 'developer', content: ctx.prompt },
+    {
+      role: 'developer',
+      content: isTerra
+        ? [{ type: 'input_text', text: ctx.prompt, prompt_cache_breakpoint: { mode: 'explicit' } }]
+        : ctx.prompt,
+    },
     ...ctx.conversation.map((item) => ({
       role: item.role === 'assistant' ? 'assistant' : 'user',
       content: String(item.content || '').slice(0, 2000),
@@ -467,6 +478,15 @@ async function callOpenAI(ctx: RequestContext): Promise<ProviderResult> {
       temperature: ctx.temperature,
       max_output_tokens: ctx.maxOutputTokens,
       reasoning: { effort: 'none' },
+      // Keep all users of a sponsor on the same cache route. GPT-5.4 uses
+      // automatic caching with extended retention; Terra gets a guaranteed
+      // breakpoint immediately after the stable persona prompt.
+      prompt_cache_key: `sober-dailies:${ctx.sponsor.id}:persona-v1`,
+      ...(isTerra
+        ? { prompt_cache_options: { mode: 'explicit' } }
+        : model === 'gpt-5.4'
+          ? { prompt_cache_retention: '24h' }
+          : {}),
     }),
   });
 
@@ -612,8 +632,8 @@ async function handleChat(body: RequestBody) {
     // made GPT look far more expensive than it is — now that GPT is the
     // primary engine, that would have been the number Neal budgeted from.
     cache_read_tokens: cachedInputTokens(result.usage),
-    // Anthropic-only: OpenAI has no cache-write tier to bill for.
-    cache_creation_tokens: numOrNull(result.usage?.cache_creation_input_tokens),
+    // Anthropic and GPT-5.6 both bill explicit cache writes at 1.25×.
+    cache_creation_tokens: cacheWriteTokens(result.usage),
     temperature: ctx.temperature,
     max_output_tokens: ctx.maxOutputTokens,
     request_status: 'success',

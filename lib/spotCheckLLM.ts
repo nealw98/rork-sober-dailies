@@ -125,9 +125,9 @@ async function callPaidSponsor(
 // last-ditch lifeboat below, since it rides different infrastructure than the
 // Supabase fn both paid providers share.
 //
-// The Dev Console engine toggle only REORDERS this pair — it never removes
-// the backup, so a QA session can't dead-end on one provider's outage.
-// Default order is GPT-5.4 → Sonnet; flipped, Sonnet → GPT-5.4.
+// The Dev Console selects GPT-5.4, Terra, or Sonnet as primary. OpenAI
+// primaries fall back to Sonnet; Sonnet falls back to GPT-5.4, so a QA
+// session can't dead-end on one provider's outage.
 async function callPaidChain(
   sponsorId: SponsorType,
   message: string,

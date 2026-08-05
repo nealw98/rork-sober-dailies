@@ -22,13 +22,14 @@ const KEY = settings.match(/SUPABASE_ANON_KEY\s*=\s*\n?\s*'([^']+)'/)[1];
 const PROMPT = 'I skipped my meeting again, work is crazy.';
 const ENGINES = [
   ['openai', 'gpt-5.4'],
+  ['openai', 'gpt-5.6-terra'],
   ['anthropic', 'claude-sonnet-4-6'],
 ];
 
 // Full-price-equivalent input tokens, so the two providers are comparable.
-// Anthropic reads at 0.1x. OpenAI's cached rate is DISPUTED between sources
-// (50% vs 90%) — 0.5 is the conservative assumption; see the doc.
-const weight = { anthropicRead: 0.1, anthropicWrite: 1.25, openaiCached: 0.5 };
+// Both providers' cached reads are 0.1x. Anthropic and GPT-5.6 cache writes
+// are 1.25x; GPT-5.4 automatic cache writes have no surcharge.
+const weight = { cachedRead: 0.1, cacheWrite: 1.25 };
 
 const call = (provider, model) =>
   fetch(ENDPOINT, {
@@ -51,12 +52,14 @@ for (const [provider, model] of ENGINES) {
     const aRead = u.cache_read_input_tokens ?? 0;
     const aWrite = u.cache_creation_input_tokens ?? 0;
     const oCached = u.input_tokens_details?.cached_tokens ?? 0;
+    const oWrite = u.input_tokens_details?.cache_write_tokens ?? 0;
     const equiv = provider === 'anthropic'
-      ? fresh + aRead * weight.anthropicRead + aWrite * weight.anthropicWrite
-      : (fresh - oCached) + oCached * weight.openaiCached;
+      ? fresh + aRead * weight.cachedRead + aWrite * weight.cacheWrite
+      : (fresh - oCached - oWrite) + oCached * weight.cachedRead + oWrite * weight.cacheWrite;
     const cached = provider === 'anthropic' ? aRead : oCached;
+    const written = provider === 'anthropic' ? aWrite : oWrite;
     console.log(
-      `  call ${i}: in=${fresh} cached=${cached}${aWrite ? ` write=${aWrite}` : ''} ` +
+      `  call ${i}: in=${fresh} cached=${cached}${written ? ` write=${written}` : ''} ` +
       `out=${u.output_tokens ?? '?'} → ${Math.round(equiv)} full-price-equiv input tokens`,
     );
   }

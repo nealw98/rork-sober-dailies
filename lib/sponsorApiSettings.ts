@@ -33,11 +33,13 @@ export interface SponsorApiEngineOption {
 //
 // Fresh key on purpose (the legacy engine setting above is deliberately
 // ignored — stale stored values), and NOT the old `..._qa_llm_rork` key, so
-// any device still holding that flag starts clean on Sonnet. Read per call,
+// any device still holding that flag starts clean on GPT-5.4. Read per call,
 // so flipping applies to the next message with no restart.
-export type QaEngine = 'sonnet' | 'gpt';
+export type QaEngine = 'sonnet' | 'gpt' | 'terra';
 
-// ROUTING FINAL 2026-08-05 (Neal): **GPT-5.4 → Anthropic Sonnet → Rork.**
+// Production default: **GPT-5.4 → Anthropic Sonnet → Rork.** The Dev Console
+// can also lead with Terra for quality/cost evaluation; it still falls back
+// cross-provider to Sonnet, then Rork.
 // GPT won the side-by-side ("both good, GPT feels a bit smoother and more
 // Sam-like"), so it is the DEFAULT primary — the key is absent on a clean
 // install and the toggle exists to fall back to Sonnet, not the reverse.
@@ -48,7 +50,8 @@ export const QA_LLM_ENGINE_KEY = 'sober_dailies_qa_llm_engine';
 
 export const getQaEngine = async (): Promise<QaEngine> => {
   try {
-    return (await AsyncStorage.getItem(QA_LLM_ENGINE_KEY)) === 'sonnet' ? 'sonnet' : DEFAULT_QA_ENGINE;
+    const stored = await AsyncStorage.getItem(QA_LLM_ENGINE_KEY);
+    return stored === 'sonnet' || stored === 'terra' ? stored : DEFAULT_QA_ENGINE;
   } catch {
     return DEFAULT_QA_ENGINE;
   }
@@ -69,6 +72,7 @@ export const setQaEngine = async (engine: QaEngine): Promise<void> => {
 export const QA_ENGINE_SPEC: Record<QaEngine, { provider: 'anthropic' | 'openai'; model: string; label: string }> = {
   sonnet: { provider: 'anthropic', model: 'claude-sonnet-4-6', label: 'sonnet' },
   gpt: { provider: 'openai', model: 'gpt-5.4', label: 'gpt-5.4' },
+  terra: { provider: 'openai', model: 'gpt-5.6-terra', label: 'gpt-5.6 terra' },
 };
 
 export const SPONSOR_API_ENGINES: SponsorApiEngineOption[] = [

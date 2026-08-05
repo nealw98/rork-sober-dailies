@@ -51,7 +51,7 @@ import {
 import GiftThankYouSheet from '@/components/GiftThankYouSheet';
 import { qaPreviewTrialReminder } from '@/lib/trialReminder';
 import { setSyncPaused, cloudBackupSupported } from '@/lib/cloudSync';
-import { getQaEngine, setQaEngine } from '@/lib/sponsorApiSettings';
+import { getQaEngine, setQaEngine, type QaEngine } from '@/lib/sponsorApiSettings';
 
 // ─── Token-based building blocks (mirror the prototype) ──────────────────────
 
@@ -183,19 +183,19 @@ export default function SettingsScreen() {
       .catch(() => {});
   }, []);
   // QA: which PAID engine leads on both chat surfaces (main chat + spot
-  // check). GPT-5.4 is the shipped default (routing final 2026-08-05); the
-  // switch drops back to Sonnet. Replaced the Rork toggle — leaving THAT one
+  // check). GPT-5.4 is the shipped default (routing final 2026-08-05).
+  // Tapping cycles GPT-5.4 → Terra → Sonnet. Replaced the Rork toggle — leaving THAT one
   // on silently served the free lifeboat for a whole evaluation session,
   // which is why the row labels the ACTIVE engine rather than the one it
   // switches to. Read per call — applies to the next message, no restart.
-  const [qaUseSonnet, setQaUseSonnet] = useState(false);
+  const [qaEngine, setQaEngineState] = useState<QaEngine>('gpt');
   useEffect(() => {
-    getQaEngine().then((e) => setQaUseSonnet(e === 'sonnet')).catch(() => {});
+    getQaEngine().then(setQaEngineState).catch(() => {});
   }, []);
   const toggleQaEngine = async () => {
-    const next = !qaUseSonnet;
-    setQaUseSonnet(next);
-    await setQaEngine(next ? 'sonnet' : 'gpt');
+    const next: QaEngine = qaEngine === 'gpt' ? 'terra' : qaEngine === 'terra' ? 'sonnet' : 'gpt';
+    setQaEngineState(next);
+    await setQaEngine(next);
   };
 
   const toggleForceNewUser = async () => {
@@ -704,19 +704,14 @@ export default function SettingsScreen() {
                 />
               </View>
               <View style={styles.dcDivider} />
-              <View style={styles.dcRow}>
+              <TouchableOpacity style={styles.dcRow} onPress={toggleQaEngine} activeOpacity={0.6}>
                 <View style={styles.dcIcon}><MessageSquare size={17} color={colors.primaryDark} strokeWidth={2} /></View>
                 <View style={styles.dcRowBody}>
-                  <Text style={styles.dcRowLabel}>{qaUseSonnet ? 'LLM: Sonnet' : 'LLM: GPT-5.4'}</Text>
-                  <Text style={styles.dcRowSub}>Which model leads on both chats + spot check — applies to the next message</Text>
+                  <Text style={styles.dcRowLabel}>LLM: {qaEngine === 'gpt' ? 'GPT-5.4' : qaEngine === 'terra' ? 'GPT-5.6 Terra' : 'Sonnet'}</Text>
+                  <Text style={styles.dcRowSub}>Tap to cycle · leads both chats + spot check on the next message</Text>
                 </View>
-                <Switch
-                  value={qaUseSonnet}
-                  onValueChange={toggleQaEngine}
-                  trackColor={{ false: c.divider, true: colors.primary }}
-                  thumbColor="#fff"
-                />
-              </View>
+                <ChevronRight size={17} color={c.textMuted} strokeWidth={2} />
+              </TouchableOpacity>
             </View>
             <View style={styles.dcBtnRow}>
               <TouchableOpacity style={styles.dcBtn} onPress={checkForOta} activeOpacity={0.7}>
