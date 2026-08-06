@@ -12,11 +12,18 @@
 import type { SponsorType } from '@/types';
 import { getSponsorById } from '@/constants/sponsors';
 import { getAnonymousId } from '@/lib/anonymousId';
+import { getDeviceSecret } from '@/lib/deviceSecret';
 import {
   SUPABASE_ANON_KEY, getSponsorApiChatUrl, getSponsorApiUrl, getQaEngine, QA_ENGINE_SPEC,
 } from '@/lib/sponsorApiSettings';
 
 const LLM_TIMEOUT_MS = 20000;
+class SponsorLimitError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'SponsorLimitError';
+  }
+}
 // AbortSignal.timeout() isn't reliably present in Hermes — build it by hand.
 function timeoutSignal(ms: number): AbortSignal {
   const c = new AbortController();
@@ -42,7 +49,10 @@ async function callPaidSponsor(
   const sponsor = getSponsorById(sponsorId);
   const apiSponsorId = sponsor?.apiSponsorId ?? sponsorId;
   const url = getSponsorApiChatUrl(await getSponsorApiUrl());
-  const anonymousId = await getAnonymousId().catch(() => null);
+  const [anonymousId, deviceSecret] = await Promise.all([
+    getAnonymousId().catch(() => null),
+    getDeviceSecret().catch(() => null),
+  ]);
   const body = JSON.stringify({
     sponsorId: apiSponsorId,
     message: trim(message, 2000),
@@ -57,6 +67,7 @@ async function callPaidSponsor(
     // Sam neutered (Neal, on device, 2026-08-04). Allowlisted server-side.
     model: engine?.model ?? 'claude-sonnet-4-6',
     anonymous_id: anonymousId,
+    device_secret: deviceSecret,
   });
   const postOnce = () =>
     fetch(url, {
@@ -79,6 +90,7 @@ async function callPaidSponsor(
   const data = await response.json();
   if (!response.ok || !data?.outputText) {
     console.warn(`[spotCheckLLM] paid path failed after ${Date.now() - started}ms:`, data?.error ?? response.status);
+    if (response.status === 429) throw new SponsorLimitError(data?.error || 'Daily AI limit reached.');
     throw new Error(data?.error || `Sponsor API request failed: ${response.status}`);
   }
   console.log(`[spotCheckLLM] paid ok in ${Date.now() - started}ms (${data.model ?? 'anthropic'})`);
@@ -98,6 +110,7 @@ async function callPaidChain(
   try {
     return await callPaidSponsor(sponsorId, message, conversation, primary);
   } catch (primaryError) {
+    if (primaryError instanceof SponsorLimitError) throw primaryError;
     console.warn(`[spotCheckLLM] ${primary.label} failed; trying ${backup.label}:`, (primaryError as Error).message);
     return await callPaidSponsor(sponsorId, message, conversation, backup);
   }

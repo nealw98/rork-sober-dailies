@@ -880,6 +880,7 @@ export function BigBookHtmlReader({ visible, initialChapterId, scrollToPage, scr
             visible={showDisplaySheet}
             onClose={() => setShowDisplaySheet(false)}
             bottomInset={insets.bottom}
+            embedded
           />
         </SafeAreaView>
       </SafeAreaProvider>

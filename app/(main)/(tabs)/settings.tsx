@@ -52,6 +52,7 @@ import GiftThankYouSheet from '@/components/GiftThankYouSheet';
 import { qaPreviewTrialReminder } from '@/lib/trialReminder';
 import { setSyncPaused, cloudBackupSupported } from '@/lib/cloudSync';
 import { getQaEngine, setQaEngine, type QaEngine } from '@/lib/sponsorApiSettings';
+import { checkDeveloperAccess } from '@/lib/developerAccess';
 
 // ─── Token-based building blocks (mirror the prototype) ──────────────────────
 
@@ -144,6 +145,7 @@ export default function SettingsScreen() {
   useScreenTimeTracking('Settings');
 
   const [logsVisible, setLogsVisible] = useState(false);
+  const [isCheckingDeveloperAccess, setIsCheckingDeveloperAccess] = useState(false);
   const [logsText, setLogsText] = useState('');
   // QA: preview the paywall in either state ('trial' | 'notrial'). Close the
   // Developer Console first, else the preview modal opens behind it (iOS stacks
@@ -327,7 +329,18 @@ export default function SettingsScreen() {
     return () => unsub();
   }, [logsVisible]);
 
-  const toggleLogs = () => setLogsVisible((v) => !v);
+  const closeLogs = () => setLogsVisible(false);
+
+  const openDeveloperConsole = async () => {
+    if (isCheckingDeveloperAccess || logsVisible) return;
+    setIsCheckingDeveloperAccess(true);
+    try {
+      const access = await checkDeveloperAccess();
+      if (access.authorized) setLogsVisible(true);
+    } finally {
+      setIsCheckingDeveloperAccess(false);
+    }
+  };
 
   const copyLogs = async () => {
     try {
@@ -644,7 +657,7 @@ export default function SettingsScreen() {
 
         {/* Version + copyright (7-tap → Support ID · long-press → Developer Console) */}
         <View style={styles.versionWrap}>
-          <TouchableOpacity onPress={handleVersionTap} onLongPress={toggleLogs} activeOpacity={0.6} delayLongPress={500}>
+          <TouchableOpacity onPress={handleVersionTap} onLongPress={openDeveloperConsole} activeOpacity={0.6} delayLongPress={500}>
             <Text style={styles.versionText}>{versionLabel}</Text>
           </TouchableOpacity>
           <Text style={styles.copyright}>© 2026 Daily Growth LLC</Text>
@@ -655,11 +668,11 @@ export default function SettingsScreen() {
           App-styled per the Jul 18 mock: info cards, THIS DEVICE / PAYWALL &
           SUBSCRIPTION / ONBOARDING & DATA sections, then the log feed. All
           developer actions live here — none on the Settings page itself. */}
-      <Modal visible={logsVisible} animationType="slide" onRequestClose={toggleLogs}>
+      <Modal visible={logsVisible} animationType="slide" onRequestClose={closeLogs}>
         <RNSafeAreaView style={styles.dcContainer}>
           <View style={styles.dcTopBar}>
             <Text style={styles.dcTitle}>Developer Console</Text>
-            <TouchableOpacity onPress={toggleLogs} hitSlop={10} style={styles.dcClose}>
+            <TouchableOpacity onPress={closeLogs} hitSlop={10} style={styles.dcClose}>
               <X size={22} color={c.textSecondary} />
             </TouchableOpacity>
           </View>

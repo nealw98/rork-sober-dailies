@@ -13,17 +13,22 @@ export function ReadingSizeSheet({
   visible,
   onClose,
   bottomInset,
+  embedded = false,
 }: {
   visible: boolean;
   onClose: () => void;
   bottomInset: number;
+  // Readers already presented inside a native Modal should use an in-place
+  // overlay. Stacking a second iOS Modal can recreate the underlying WKWebView
+  // on physical devices and reset its scroll position.
+  embedded?: boolean;
 }) {
   const styles = useThemedStyles(makeStyles);
   const { c, colors, isDark } = useTokens();
   const { readingSize, setReadingSize } = useReadingSize();
 
-  return (
-    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
+  const content = (
+    <>
       <Pressable style={styles.backdrop} onPress={onClose} />
       <View style={[styles.sheet, { paddingBottom: bottomInset + 28 }]}>
         <View style={styles.grabber} />
@@ -57,6 +62,17 @@ export function ReadingSizeSheet({
           <Text style={styles.doneText}>Done</Text>
         </Pressable>
       </View>
+    </>
+  );
+
+  if (embedded) {
+    if (!visible) return null;
+    return <View style={styles.embeddedOverlay}>{content}</View>;
+  }
+
+  return (
+    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
+      {content}
     </Modal>
   );
 }
@@ -64,6 +80,7 @@ export function ReadingSizeSheet({
 const makeStyles = (tk: Tokens) => {
   const { c, isDark } = tk;
   return StyleSheet.create({
+    embeddedOverlay: { ...StyleSheet.absoluteFillObject, zIndex: 100, elevation: 100 },
     backdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: isDark ? c.overlay : 'rgba(26,26,46,0.32)' },
     // Top hairline + elevation (no negative-offset shadow — that doesn't render
     // on Android) so the sheet reads as raised on both platforms.

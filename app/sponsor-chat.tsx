@@ -164,11 +164,13 @@ function SponsorChatContent({ initialSponsor }: { initialSponsor: string }) {
     }
     setInputText('');
     Keyboard.dismiss();
-    await recordSponsorMessage();
     // Which sponsor personas actually get used — sponsor as a property so
     // Mixpanel can segment one event instead of counting name-suffixed ones.
     logEvent('sponsor_message_sent', { sponsor: getSponsorDisplayName(sponsorType) });
-    await sendMessage(trimmed);
+    const succeeded = await sendMessage(trimmed);
+    // Count successful paid turns only. Provider failures and server rejections
+    // are refunded server-side and must not leave the local UI cap ahead.
+    if (succeeded) await recordSponsorMessage();
   };
 
   const onSwitch = (id: string) => {

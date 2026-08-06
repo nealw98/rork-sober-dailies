@@ -2,6 +2,7 @@ import createContextHook from "@nkzw/create-context-hook";
 import { useState, useEffect } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { getAnonymousId } from "@/lib/anonymousId";
+import { getDeviceSecret } from "@/lib/deviceSecret";
 import { ChatMessage, SponsorType } from "@/types";
 import { detectCrisis, crisisResponses } from "@/constants/crisisTriggers";
 import { SALTY_SAM_INITIAL_MESSAGE } from "@/constants/salty-sam";
@@ -39,6 +40,16 @@ function timeoutSignal(ms: number): AbortSignal {
   return c.signal;
 }
 
+class SponsorApiError extends Error {
+  constructor(message: string, readonly status: number) {
+    super(message);
+    this.name = 'SponsorApiError';
+  }
+}
+
+const isSponsorLimitError = (error: unknown): error is SponsorApiError =>
+  error instanceof SponsorApiError && error.status === 429;
+
 async function callSponsorAPI(
   sponsorType: SponsorType,
   chatMessages: ChatMessage[],
@@ -59,7 +70,10 @@ async function callSponsorAPI(
   const model = engine?.model ?? QA_ENGINE_SPEC[DEFAULT_QA_ENGINE].model;
   const sponsorApiUrl = await getSponsorApiUrl();
   const sponsorApiChatUrl = getSponsorApiChatUrl(sponsorApiUrl);
-  const anonymousId = await getAnonymousId().catch(() => null);
+  const [anonymousId, deviceSecret] = await Promise.all([
+    getAnonymousId().catch(() => null),
+    getDeviceSecret().catch(() => null),
+  ]);
   const conversation = chatMessages
     .slice(1, -1)
     // Cards render in-app only (the opener line carries the content); empty
@@ -87,6 +101,7 @@ async function callSponsorAPI(
     provider,
     model,
     anonymous_id: anonymousId,
+    device_secret: deviceSecret,
   });
   const postOnce = () =>
     fetch(sponsorApiChatUrl, {
@@ -110,7 +125,7 @@ async function callSponsorAPI(
 
   const data = await response.json();
   if (!response.ok) {
-    throw new Error(data?.error || `Sponsor API request failed: ${response.status}`);
+    throw new SponsorApiError(data?.error || `Sponsor API request failed: ${response.status}`, response.status);
   }
 
   return {
@@ -599,8 +614,8 @@ export const [ChatStoreProvider, useChatStore] = createContextHook(() => {
     }
   };
 
-  const sendMessage = async (text: string) => {
-    if (!text.trim()) return;
+  const sendMessage = async (text: string): Promise<boolean> => {
+    if (!text.trim()) return false;
     
     // Add user message
     const userMessage: ChatMessage = {
@@ -664,7 +679,7 @@ export const [ChatStoreProvider, useChatStore] = createContextHook(() => {
         setIsLoading(false);
       }, waitTime);
       
-      return;
+      return false;
     }
     
     try {
@@ -685,6 +700,7 @@ export const [ChatStoreProvider, useChatStore] = createContextHook(() => {
         try {
           result = await callSponsorAPI(sponsorType, updatedMessages, text, primary);
         } catch (primaryError) {
+          if (isSponsorLimitError(primaryError)) throw primaryError;
           console.warn(`${primary.label} failed; trying ${backup.label}:`, primaryError);
           try {
             result = await callSponsorAPI(sponsorType, updatedMessages, text, backup);
@@ -706,13 +722,15 @@ export const [ChatStoreProvider, useChatStore] = createContextHook(() => {
       };
       
       setMessages([...updatedMessages, botResponse]);
+      return true;
     } catch (error) {
       console.error("Error sending message:", error);
       
-      // Fallback response based on sponsor type
+      // A server-enforced limit is intentional, not a provider outage.
       let errorMessage = "";
-      
-      switch (sponsorType) {
+      if (isSponsorLimitError(error)) {
+        errorMessage = error.message;
+      } else switch (sponsorType) {
         case "salty":
           errorMessage = "Something's all screwed up with my connection, but let me tell you this - when in doubt, get your ass to a meeting. That's always the right damn answer.";
           break;
@@ -743,6 +761,7 @@ export const [ChatStoreProvider, useChatStore] = createContextHook(() => {
       };
       
       setMessages([...updatedMessages, errorResponse]);
+      return false;
     } finally {
       setIsLoading(false);
     }

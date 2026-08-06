@@ -17,6 +17,7 @@
 
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { verifyDevice } from '../_shared/deviceAuth.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -41,6 +42,7 @@ interface RequestBody {
   provider?: Provider;
   model?: string;
   anonymous_id?: string | null;
+  device_secret?: string | null;
 }
 
 const OPENAI_MODEL = Deno.env.get('SPONSOR_CHAT_MODEL') || 'gpt-5.4-mini';
@@ -53,6 +55,9 @@ const DEFAULT_TEMPERATURE = numberFromEnv('SPONSOR_CHAT_TEMPERATURE', 0.8);
 const DEFAULT_MAX_OUTPUT_TOKENS = numberFromEnv('SPONSOR_CHAT_MAX_OUTPUT_TOKENS', 260);
 const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY');
 const ANTHROPIC_API_KEY = Deno.env.get('ANTHROPIC_API_KEY');
+// Transitional rollout switch. Keep false until the device-secret OTA has
+// reached the production fleet, then set true without another app release.
+const REQUIRE_DEVICE_SECRET = Deno.env.get('SPONSOR_CHAT_REQUIRE_DEVICE_SECRET') === 'true';
 
 // Rewritten 2026-08-04 (Neal — "with Sonnet his personality is barely
 // there"): the old appendix said "do not reuse the same catchphrases /
@@ -611,6 +616,86 @@ async function logUsage(payload: Record<string, unknown>) {
   }
 }
 
+type QuotaBucket = 'sponsor_chat' | 'spot_check';
+
+interface QuotaReservation {
+  anonymousId: string;
+  bucket: QuotaBucket;
+  count: number;
+  limit: number;
+  isTester: boolean;
+}
+
+class HttpError extends Error {
+  constructor(readonly status: number, message: string) {
+    super(message);
+    this.name = 'HttpError';
+  }
+}
+
+function serviceClient() {
+  const supabaseUrl = Deno.env.get('SUPABASE_URL');
+  const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+  if (!supabaseUrl || !serviceKey) {
+    throw new HttpError(503, 'Sponsor service configuration is incomplete.');
+  }
+  return createClient(supabaseUrl, serviceKey);
+}
+
+async function authorizeAndReserve(body: RequestBody): Promise<QuotaReservation> {
+  const anonymousId = typeof body.anonymous_id === 'string' ? body.anonymous_id.trim() : '';
+  if (anonymousId.length < 8) throw new HttpError(400, 'Missing device identity.');
+
+  const supabase = serviceClient();
+  const hasDeviceSecret = typeof body.device_secret === 'string' && body.device_secret.length >= 32;
+
+  if (hasDeviceSecret) {
+    if ((await verifyDevice(supabase, anonymousId, body.device_secret, { requireSecret: true })) !== 'ok') {
+      throw new HttpError(403, 'This device could not be verified.');
+    }
+  } else if (REQUIRE_DEVICE_SECRET) {
+    throw new HttpError(403, 'This app version must be updated before using the AI Sponsor.');
+  }
+
+  // Keep Spot Check from silently consuming the visible 25-message sponsor
+  // allowance. Both paid paths are bounded independently; authorized tester
+  // devices receive their shared elevated limit in each bucket.
+  const bucket: QuotaBucket = body.sponsorId === 'reflection' ? 'spot_check' : 'sponsor_chat';
+  const { data, error } = await supabase.rpc('reserve_sponsor_chat_message', {
+    p_anonymous_id: anonymousId,
+    p_quota_bucket: bucket,
+  });
+  if (error) {
+    console.error('[sponsor-chat] quota reservation failed:', error.message);
+    throw new HttpError(503, 'The AI Sponsor usage check is temporarily unavailable.');
+  }
+
+  const row = Array.isArray(data) ? data[0] : data;
+  const allowed = row?.allowed === true;
+  const count = Number(row?.message_count ?? 0);
+  const limit = Number(row?.daily_limit ?? 25);
+  const isTester = row?.is_tester === true;
+  if (!allowed) {
+    const label = bucket === 'spot_check' ? 'AI reflections' : 'AI Sponsor messages';
+    throw new HttpError(429, `You've reached today's limit of ${limit} ${label}. Please try again tomorrow.`);
+  }
+
+  return { anonymousId, bucket, count, limit, isTester };
+}
+
+async function refundReservation(reservation: QuotaReservation | null) {
+  if (!reservation) return;
+  try {
+    const { error } = await serviceClient().rpc('refund_sponsor_chat_message', {
+      p_anonymous_id: reservation.anonymousId,
+      p_quota_bucket: reservation.bucket,
+    });
+    if (error) console.warn('[sponsor-chat] quota refund failed:', error.message);
+  } catch (error) {
+    console.warn('[sponsor-chat] quota refund failed:', error);
+  }
+}
+
 async function handleChat(body: RequestBody) {
   const provider = getProvider(body.provider);
   const ctx = buildContext(body);
@@ -685,13 +770,26 @@ serve(async (req: Request) => {
     });
   }
 
+  let reservation: QuotaReservation | null = null;
   try {
+    reservation = await authorizeAndReserve(body);
     const result = await handleChat(body);
-    return new Response(JSON.stringify(result), {
+    return new Response(JSON.stringify({
+      ...result,
+      quota: {
+        count: reservation.count,
+        limit: reservation.limit,
+        isTester: reservation.isTester,
+      },
+    }), {
       status: 200,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   } catch (error) {
+    // Reservations represent paid provider calls, not attempts. Any failure
+    // after reservation (timeout, provider 5xx, malformed response) gives the
+    // slot back so outages do not consume a user's daily allowance.
+    await refundReservation(reservation);
     const message = error instanceof Error ? error.message : 'Unexpected sponsor-chat error.';
     await logUsage({
       anonymous_id: body?.anonymous_id || null,
@@ -705,7 +803,7 @@ serve(async (req: Request) => {
     });
 
     return new Response(JSON.stringify({ error: message }), {
-      status: 500,
+      status: error instanceof HttpError ? error.status : 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   }

@@ -10,7 +10,7 @@ import { KeyboardModalScope } from '@/components/KeyboardModalScope';
 import { SafeAreaView, SafeAreaProvider, initialWindowMetrics, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
-import { ChevronRight, Bookmark, Hash, X, Trash2, Search, Highlighter } from 'lucide-react-native';
+import { ChevronDown, ChevronRight, Bookmark, Hash, X, Trash2, Search, Highlighter } from 'lucide-react-native';
 import BackButton from '@/components/BackButton';
 import { Image } from 'expo-image';
 import { FindRow } from '@/components/literature/literature-ui';
@@ -57,7 +57,17 @@ export function BigBookContents({ onOpenText, onOpenPdf, onOpenTextAtParagraph }
   const [query, setQuery] = useState('');
   const [debounced, setDebounced] = useState('');
   const [sizeSheetOpen, setSizeSheetOpen] = useState(false);
+  const [expandedGroups, setExpandedGroups] = useState<Set<string>>(() => new Set());
   const insets = useSafeAreaInsets();
+
+  const toggleGroup = (label: string) => {
+    setExpandedGroups((current) => {
+      const next = new Set(current);
+      if (next.has(label)) next.delete(label);
+      else next.add(label);
+      return next;
+    });
+  };
 
   useEffect(() => {
     const t = setTimeout(() => setDebounced(query), 220);
@@ -270,13 +280,36 @@ export function BigBookContents({ onOpenText, onOpenPdf, onOpenTextAtParagraph }
           </View>
         ) : (
         <View style={styles.body}>
-          {BIGBOOK_TOC.map((g) => (
+          {BIGBOOK_TOC.map((g) => {
+            const collapsible = g.label.startsWith('Personal Stories') || g.label === 'Appendices';
+            const expanded = !collapsible || expandedGroups.has(g.label);
+            return (
             <View key={g.label} style={styles.group}>
-              <View style={styles.groupHead}>
-                <Text style={styles.groupLabel}>{g.label.toUpperCase()}</Text>
-                {!!g.sub && <Text style={styles.groupSub}>{g.sub}</Text>}
-              </View>
-              {g.entries.map((e, i) => {
+              {collapsible ? (
+                <Pressable
+                  onPress={() => toggleGroup(g.label)}
+                  style={({ pressed }) => [styles.groupHead, styles.collapsibleGroupHead, pressed && { opacity: 0.6 }]}
+                  accessibilityRole="button"
+                  accessibilityLabel={`${g.label}${g.sub ? `. ${g.sub}` : ''}`}
+                  accessibilityState={{ expanded }}
+                >
+                  <View style={styles.groupHeadText}>
+                    <Text style={styles.groupLabel}>{g.label.toUpperCase()}</Text>
+                    {!!g.sub && <Text style={styles.groupSub}>{g.sub}</Text>}
+                  </View>
+                  <ChevronDown
+                    size={17}
+                    color={c.textMuted}
+                    style={{ transform: [{ rotate: expanded ? '180deg' : '0deg' }] }}
+                  />
+                </Pressable>
+              ) : (
+                <View style={styles.groupHead}>
+                  <Text style={styles.groupLabel}>{g.label.toUpperCase()}</Text>
+                  {!!g.sub && <Text style={styles.groupSub}>{g.sub}</Text>}
+                </View>
+              )}
+              {expanded && g.entries.map((e, i) => {
                 // Every entry takes the 12 & 12 shape: the title as the hero and
                 // its page metadata in a caption underneath, with a chevron to
                 // open it. Chapters add a numeral and carry a page RANGE
@@ -303,7 +336,8 @@ export function BigBookContents({ onOpenText, onOpenPdf, onOpenTextAtParagraph }
                 );
               })}
             </View>
-          ))}
+            );
+          })}
           <Text style={styles.copyright}>Copyright © Alcoholics Anonymous World Services, Inc.</Text>
         </View>
         )}
@@ -492,6 +526,8 @@ const makeStyles = (tk: Tokens) => {
   body: { paddingHorizontal: 20 },
   group: { marginTop: 16 },
   groupHead: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 2 },
+  collapsibleGroupHead: { alignItems: 'center', minHeight: 44, marginBottom: 0, borderBottomWidth: 1, borderBottomColor: c.divider },
+  groupHeadText: { flex: 1, minWidth: 0, flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', marginRight: 10 },
   groupLabel: { fontFamily: fontFamily.bold, fontSize: 11, letterSpacing: 1, color: c.textMuted },
   groupSub: { fontFamily: fontFamily.regular, fontSize: 10.5, color: c.textMuted },
   row: { flexDirection: 'row', alignItems: 'flex-start', gap: 12, paddingVertical: 14 },
