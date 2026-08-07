@@ -1,7 +1,13 @@
 # LLM cost & caching — Claude vs GPT in this app
 
-Written 2026-08-05; routing is now **selected OpenAI model → Sonnet**, with a
+Written 2026-08-05; routing is now **selected GPT-5.6 model → Sonnet**, with a
 static in-app response if both providers fail.
+
+**Current experiment (2026-08-07):** Luna is the production default and
+Sonnet's OpenAI fallback; Terra remains a Dev Console comparison. GPT-5.4 and
+GPT-5.4 mini are no longer accepted by the server allowlist. Official list
+prices per million tokens are Luna $1 input / $0.10 cached input / $6 output,
+versus Terra $2.50 / $0.25 / $15.
 
 Read this before changing engines, before reading the admin Spend panel, and
 before anyone concludes "the LLM got expensive." Re-measure with
@@ -43,7 +49,7 @@ Two identical Salty Sam calls per provider, straight through the fn
 (`scripts/llm-cache-check.mjs`, 2026-08-05):
 
 ```
-openai / gpt-5.4
+openai / gpt-5.4 (historical benchmark; no longer routed)
   call 1: in=1808 cached=0            → 1808 full-price-equiv input tokens
   call 2: in=1808 cached=0            → 1808
 anthropic / claude-sonnet-4-6

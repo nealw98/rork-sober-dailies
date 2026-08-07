@@ -40,8 +40,8 @@ async function callPaidSponsor(
   sponsorId: SponsorType,
   message: string,
   conversation: { role: 'user' | 'assistant'; content: string }[],
-  // Default engine is Anthropic Sonnet (holds the personas). The GPT-5.4
-  // backup (2026-08-04, Neal) passes {provider:'openai', model:'gpt-5.4'} —
+  // Default engine is Anthropic Sonnet (holds the personas). The OpenAI
+  // backup passes the selected GPT-5.6 model —
   // same fn, same server personas, different provider outage domain.
   engine?: { provider: 'anthropic' | 'openai'; model: string },
 ): Promise<string> {
@@ -97,8 +97,8 @@ async function callPaidSponsor(
   return String(data.outputText);
 }
 
-// The Dev Console selects GPT-5.4, Terra, or Sonnet as primary. OpenAI
-// primaries fall back to Sonnet; Sonnet falls back to GPT-5.4, so a QA
+// The Dev Console selects Luna, Terra, or Sonnet as primary. OpenAI
+// primaries fall back to Sonnet; Sonnet falls back to Luna, so a QA
 // session can't dead-end on one provider's outage.
 async function callPaidChain(
   sponsorId: SponsorType,
@@ -106,7 +106,7 @@ async function callPaidChain(
   conversation: { role: 'user' | 'assistant'; content: string }[],
 ): Promise<string> {
   const primary = QA_ENGINE_SPEC[await getQaEngine()];
-  const backup = primary.provider === 'anthropic' ? QA_ENGINE_SPEC.gpt : QA_ENGINE_SPEC.sonnet;
+  const backup = primary.provider === 'anthropic' ? QA_ENGINE_SPEC.luna : QA_ENGINE_SPEC.sonnet;
   try {
     return await callPaidSponsor(sponsorId, message, conversation, primary);
   } catch (primaryError) {

@@ -696,7 +696,7 @@ export const [ChatStoreProvider, useChatStore] = createContextHook(() => {
         // Always cross provider for the first fallback. Terra and GPT-5.4
         // share OpenAI infrastructure, so chaining them would add cost and
         // latency without buying the reliability Sonnet provides.
-        const backup = primary.provider === 'anthropic' ? QA_ENGINE_SPEC.gpt : QA_ENGINE_SPEC.sonnet;
+        const backup = primary.provider === 'anthropic' ? QA_ENGINE_SPEC.luna : QA_ENGINE_SPEC.sonnet;
         try {
           result = await callSponsorAPI(sponsorType, updatedMessages, text, primary);
         } catch (primaryError) {

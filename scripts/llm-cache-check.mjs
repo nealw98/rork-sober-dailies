@@ -21,7 +21,7 @@ const KEY = settings.match(/SUPABASE_ANON_KEY\s*=\s*\n?\s*'([^']+)'/)[1];
 
 const PROMPT = 'I skipped my meeting again, work is crazy.';
 const ENGINES = [
-  ['openai', 'gpt-5.4'],
+  ['openai', 'gpt-5.6-luna'],
   ['openai', 'gpt-5.6-terra'],
   ['anthropic', 'claude-sonnet-4-6'],
 ];

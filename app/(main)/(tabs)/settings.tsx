@@ -188,17 +188,16 @@ export default function SettingsScreen() {
       .catch(() => {});
   }, []);
   // QA: which PAID engine leads on both chat surfaces (main chat + spot
-  // check). GPT-5.4 is the shipped default (routing final 2026-08-05).
-  // Tapping cycles GPT-5.4 → Terra → Sonnet. Replaced the Rork toggle — leaving THAT one
+  // check). Tapping cycles Luna → Terra → Sonnet. Replaced the Rork toggle — leaving THAT one
   // on silently served the free lifeboat for a whole evaluation session,
   // which is why the row labels the ACTIVE engine rather than the one it
   // switches to. Read per call — applies to the next message, no restart.
-  const [qaEngine, setQaEngineState] = useState<QaEngine>('gpt');
+  const [qaEngine, setQaEngineState] = useState<QaEngine>('luna');
   useEffect(() => {
     getQaEngine().then(setQaEngineState).catch(() => {});
   }, []);
   const toggleQaEngine = async () => {
-    const next: QaEngine = qaEngine === 'gpt' ? 'terra' : qaEngine === 'terra' ? 'sonnet' : 'gpt';
+    const next: QaEngine = qaEngine === 'luna' ? 'terra' : qaEngine === 'terra' ? 'sonnet' : 'luna';
     setQaEngineState(next);
     await setQaEngine(next);
   };
@@ -784,7 +783,7 @@ export default function SettingsScreen() {
               <TouchableOpacity style={styles.dcRow} onPress={toggleQaEngine} activeOpacity={0.6}>
                 <View style={styles.dcIcon}><MessageSquare size={17} color={colors.primaryDark} strokeWidth={2} /></View>
                 <View style={styles.dcRowBody}>
-                  <Text style={styles.dcRowLabel}>LLM: {qaEngine === 'gpt' ? 'GPT-5.4' : qaEngine === 'terra' ? 'GPT-5.6 Terra' : 'Sonnet'}</Text>
+                  <Text style={styles.dcRowLabel}>LLM: {qaEngine === 'luna' ? 'GPT-5.6 Luna' : qaEngine === 'terra' ? 'GPT-5.6 Terra' : 'Sonnet'}</Text>
                   <Text style={styles.dcRowSub}>Tap to cycle · leads both chats + spot check on the next message</Text>
                 </View>
                 <ChevronRight size={17} color={c.textMuted} strokeWidth={2} />
