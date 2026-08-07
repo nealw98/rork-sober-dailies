@@ -891,7 +891,7 @@ We were usually as definite as this example:
 | Mr. Brown | His attention to my wife. Told my wife of my mistress. | Sex relations. Self-esteem (fear) |
 | Mrs. Jones | She's a nut—she snubbed me. She committed her husband for drinking. | Self-esteem (fear) |
 | My employer | Unreasonable—Unjust—Overbearing—Threatens to fire me for drinking and padding my expense account. | Self-esteem (fear) Security. |
-| My wife | Misunderstands and nags. Likes Brown. Wants house put in her name. | Pride—Personal sex relations—Security (fear) |own. Wants house put in her name. | Pride—Personal sex relations—Security (fear)]
+| My wife | Misunderstands and nags. Likes Brown. Wants house put in her name. | Pride. Personal sex relations. Security (fear). |
 
 *— Page 66 —*
 

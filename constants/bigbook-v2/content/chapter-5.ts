@@ -319,7 +319,7 @@ export const chapter_5: BigBookChapter = {
       chapterId: 'chapter-5',
       pageNumber: 65,
       order: 44,
-      content: '| I\'m resentful at: | The Cause | Affects my: |\n|—-|—-|—-|\n| Mr. Brown | His attention to my wife. Told my wife of my mistress. | Sex relations. Self-esteem (fear) |\n| Mrs. Jones | She\'s a nut—she snubbed me. She committed her husband for drinking. | Self-esteem (fear) |\n| My employer | Unreasonable—Unjust—Overbearing—Threatens to fire me for my drinking and padding my expense account. | Self-esteem (fear) Security. |\n| My wife | Misunderstands and nags. Likes Brown. Wants house put in her name. | Pride—Personal sex relations—Security (fear) |',
+      content: '| I\'m resentful at: | The Cause | Affects my: |\n| --- | --- | --- |\n| Mr. Brown | His attention to my wife. Told my wife of my mistress. Brown may get my job at the office. | Sex relations. Self-esteem (fear). Security. |\n| Mrs. Jones | She\'s a nut—she snubbed me. She committed her husband for drinking. He\'s my friend. She\'s a gossip. | Personal relations. Self-esteem (fear). |\n| My employer | Unreasonable—unjust—overbearing. Threatens to fire me for my drinking and padding my expense account. | Self-esteem (fear). Security. |\n| My wife | Misunderstands and nags. Likes Brown. Wants house put in her name. | Pride. Personal sex relations. Security (fear). |',
     },
     {
       id: 'chapter-5-p45',

@@ -81,25 +81,14 @@ Resentment is the "number one" offender.  It destroys more alcoholics than anyth
 (including sex) were hurt or threatened.  So we were sore.  We were "burned up."
 On our grudge list we set opposite each name our  injuries.  Was it our self-esteem, our security, our ambitions, our personal, or sex relations, which had been  interfered with?
 We were usually as definite as this example:
-I'm resentful at:     The Cause            Affects my:Mr. Brown         His attention to my      Sex relations
-wife.                 Self-esteem (fear)
-Told my wife of my       Sex relations
-mistress.             Self-esteem (fear)
-Brown may get my job     Security
-at the office.         Self-esteem (fear)Mrs. Jones        She's a nut -- she       Personal relation-
-snubbed me.  She         ship. Self-esteem
-committed her hus-       (fear)
-band for drinking.
-He's my friend
-She's a gossip.My employer       Unreasonable -- Unjust   Self-esteem (fear)
--- Overbearing --       Security.
-Threatens to fire
-me for my drinking
-and padding my
-expense account.My wife           Misunderstands and       Pride -- Personal
-nags.  Likes Brown.      sex relations --
-Wants house put in       Security (fear)
-her name.
+
+| I'm resentful at: | The Cause | Affects my: |
+| --- | --- | --- |
+| Mr. Brown | His attention to my wife. Told my wife of my mistress. Brown may get my job at the office. | Sex relations. Self-esteem (fear). Security. |
+| Mrs. Jones | She's a nut—she snubbed me. She committed her husband for drinking. He's my friend. She's a gossip. | Personal relations. Self-esteem (fear). |
+| My employer | Unreasonable—unjust—overbearing. Threatens to fire me for my drinking and padding my expense account. | Self-esteem (fear). Security. |
+| My wife | Misunderstands and nags. Likes Brown. Wants house put in her name. | Pride. Personal sex relations. Security (fear). |
+
 We went back through our lives.  Nothing counted but thoroughness and honesty.  When we were finished we considered it carefully.  The first thing apparent
 
 *— Page 66 —*
@@ -144,4 +133,3 @@ In this book you read again and again that faith did
 *— Page 71 —*
 
 for us what we could not do for ourselves.  We hope you are convinced now that God can remove whatever self-will has blocked you off from Him.  If you have already made a decision, and an inventory of your grosser handicaps, you have made a good beginning.  That being so you have swallowed and digested some big chunks of truth about yourself.
-

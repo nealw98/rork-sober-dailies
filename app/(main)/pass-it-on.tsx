@@ -86,7 +86,7 @@ export default function PassItOnScreen() {
 
   const productId = customerInfo?.entitlements?.active?.premium?.productIdentifier ?? '';
   const realPlan: PlanKind = isEntitled
-    ? (/year|annual/i.test(productId) ? 'annual' : 'monthly')
+    ? (/year|annual|12[_. -]?month/i.test(productId) ? 'annual' : 'monthly')
     : isGrandfathered
       ? 'founding'
       : 'none';

@@ -99,12 +99,31 @@ function renderInlineMarkdown(text: string): string {
   });
 }
 
+function renderMarkdownTable(text: string): string | null {
+  const lines = text.trim().split('\n').filter(Boolean);
+  if (lines.length < 3 || !lines.every((line) => line.trim().startsWith('|'))) return null;
+
+  const rows = lines.map((line) => line.trim().replace(/^\||\|$/g, '').split('|').map((cell) => cell.trim()));
+  const separator = rows[1];
+  if (!separator.every((cell) => /^[—-]+$/.test(cell.replace(/:/g, '')))) return null;
+
+  const header = `<tr>${rows[0].map((cell) => `<th>${renderInlineMarkdown(cell)}</th>`).join('')}</tr>`;
+  const body = rows.slice(2)
+    .map((row) => `<tr>${row.map((cell) => `<td>${renderInlineMarkdown(cell)}</td>`).join('')}</tr>`)
+    .join('');
+  return `<table><thead>${header}</thead><tbody>${body}</tbody></table>`;
+}
+
 function renderParagraph(paragraph: BigBookParagraph, useRoman: boolean, isPageBreak: boolean, fontSize: number, lineHeight: number): string {
   if (isPageMarker(paragraph.content)) return '';
 
   const pageMarker = isPageBreak
     ? `<div class="page-marker"><span></span><strong>PAGE ${formatPageNumber(paragraph.pageNumber, useRoman)}</strong><span></span></div>`
     : '';
+  const table = renderMarkdownTable(paragraph.content);
+  if (table) {
+    return `${pageMarker}<div class="bb-table-wrap" data-page="${paragraph.pageNumber}" style="font-size:${fontSize}px;line-height:${lineHeight}px">${table}</div>`;
+  }
   const text = renderInlineMarkdown(paragraph.content).replace(/\n/g, '<br />');
   const isVerse = paragraph.content.includes('\n') && !paragraph.content.includes('|');
   const isNumbered = /^(\d{1,2}\.\s)/s.test(paragraph.content);
@@ -204,6 +223,11 @@ function buildHtml(params: {
   .bb-paragraph.verse { margin-left: 24px; font-style: italic; }
   .bb-paragraph.italic { font-style: italic; }
   .bb-paragraph.numbered, .bb-paragraph.lettered { padding-left: 18px; text-indent: -18px; }
+  .bb-table-wrap { width: 100%; overflow-x: auto; margin: 0 0 22px; -webkit-overflow-scrolling: touch; }
+  .bb-table-wrap table { width: 100%; min-width: 560px; border-collapse: collapse; font: inherit; }
+  .bb-table-wrap th, .bb-table-wrap td { border: 1px solid ${pal.divider}; padding: 10px 11px; text-align: left; vertical-align: top; }
+  .bb-table-wrap th { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; font-size: 0.72em; line-height: 1.35; letter-spacing: 0.04em; text-transform: uppercase; color: ${pal.inkSecondary}; background: ${pal.colorScheme === 'dark' ? 'rgba(255,255,255,0.05)' : '#F5F3EE'}; }
+  .bb-table-wrap td:first-child { font-weight: 700; }
   em { font-style: italic; }
   .page-marker { display: flex; align-items: center; gap: 10px; margin: 6px 0 16px; }
   .page-marker span { flex: 1; height: 1px; background: ${pal.divider}; }
@@ -239,7 +263,7 @@ function buildHtml(params: {
   // visible paragraph at the same viewport offset while the text reflows, so
   // changing Aa keeps the reader on the same words instead of jumping home.
   window.__setReaderTypography = function(fontSize, lineHeight) {
-    var paragraphs = Array.from(document.querySelectorAll('.bb-paragraph'));
+    var paragraphs = Array.from(document.querySelectorAll('.bb-paragraph, .bb-table-wrap'));
     var anchor = paragraphs.find(function(paragraph) {
       return paragraph.getBoundingClientRect().bottom > 0;
     }) || paragraphs[0];

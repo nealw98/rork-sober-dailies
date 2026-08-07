@@ -146,6 +146,9 @@ export default function SettingsScreen() {
 
   const [logsVisible, setLogsVisible] = useState(false);
   const [isCheckingDeveloperAccess, setIsCheckingDeveloperAccess] = useState(false);
+  const [developerPinVisible, setDeveloperPinVisible] = useState(false);
+  const [developerPin, setDeveloperPin] = useState('');
+  const [developerPinError, setDeveloperPinError] = useState<string | null>(null);
   const [logsText, setLogsText] = useState('');
   // QA: preview the paywall in either state ('trial' | 'notrial'). Close the
   // Developer Console first, else the preview modal opens behind it (iOS stacks
@@ -337,6 +340,31 @@ export default function SettingsScreen() {
     try {
       const access = await checkDeveloperAccess();
       if (access.authorized) setLogsVisible(true);
+      else if (access.pinRequired) {
+        setDeveloperPinError(access.locked ? 'Too many attempts. Try again in 15 minutes.' : null);
+        setDeveloperPinVisible(true);
+      }
+    } finally {
+      setIsCheckingDeveloperAccess(false);
+    }
+  };
+
+  const submitDeveloperPin = async () => {
+    const pin = developerPin.trim();
+    if (!pin || isCheckingDeveloperAccess) return;
+    setIsCheckingDeveloperAccess(true);
+    setDeveloperPinError(null);
+    try {
+      const access = await checkDeveloperAccess(pin);
+      if (access.authorized) {
+        setDeveloperPin('');
+        setDeveloperPinVisible(false);
+        setLogsVisible(true);
+      } else {
+        setDeveloperPinError(access.locked
+          ? 'Too many attempts. Try again in 15 minutes.'
+          : 'That PIN wasn’t accepted.');
+      }
     } finally {
       setIsCheckingDeveloperAccess(false);
     }
@@ -663,6 +691,42 @@ export default function SettingsScreen() {
           <Text style={styles.copyright}>© 2026 Daily Growth LLC</Text>
         </View>
       </ScrollView>
+
+      {/* One-time enrollment for a new installation under an authorized Support ID. */}
+      <Modal visible={developerPinVisible} transparent animationType="fade" onRequestClose={() => setDeveloperPinVisible(false)}>
+        <View style={styles.pinOverlay}>
+          <View style={styles.pinCard}>
+            <Text style={styles.pinTitle}>Developer PIN</Text>
+            <Text style={styles.pinBody}>Enter your private PIN once to authorize this installation.</Text>
+            <TextInput
+              value={developerPin}
+              onChangeText={setDeveloperPin}
+              onSubmitEditing={submitDeveloperPin}
+              secureTextEntry
+              autoCapitalize="none"
+              autoCorrect={false}
+              textContentType="password"
+              placeholder="PIN"
+              placeholderTextColor={c.textMuted}
+              style={styles.pinInput}
+              editable={!isCheckingDeveloperAccess}
+              autoFocus
+            />
+            {!!developerPinError && <Text style={styles.pinError}>{developerPinError}</Text>}
+            <TouchableOpacity
+              style={[styles.pinSubmit, (!developerPin.trim() || isCheckingDeveloperAccess) && { opacity: 0.5 }]}
+              onPress={submitDeveloperPin}
+              disabled={!developerPin.trim() || isCheckingDeveloperAccess}
+              activeOpacity={0.8}
+            >
+              {isCheckingDeveloperAccess ? <ActivityIndicator color="#fff" /> : <Text style={styles.pinSubmitText}>Authorize Device</Text>}
+            </TouchableOpacity>
+            <TouchableOpacity onPress={() => { setDeveloperPinVisible(false); setDeveloperPin(''); setDeveloperPinError(null); }} style={styles.pinCancel}>
+              <Text style={styles.pinCancelText}>Cancel</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
 
       {/* Developer Console Modal (hidden QA screen — long-press the version number).
           App-styled per the Jul 18 mock: info cards, THIS DEVICE / PAYWALL &
@@ -1147,6 +1211,17 @@ const makeStyles = (tk: Tokens) => {
   versionWrap: { alignItems: 'center', marginTop: 14, gap: 3 },
   versionText: { fontFamily: fontFamily.regular, fontSize: 12, color: c.textMuted },
   copyright: { fontFamily: fontFamily.regular, fontSize: 11.5, color: c.textMuted },
+
+  pinOverlay: { flex: 1, backgroundColor: c.overlay, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 28 },
+  pinCard: { width: '100%', maxWidth: 390, borderRadius: 20, backgroundColor: c.surface, borderWidth: 1, borderColor: c.border, padding: 22, ...shadows.lg },
+  pinTitle: { fontFamily: fontFamily.displayBold, fontSize: 22, color: c.text, textAlign: 'center' },
+  pinBody: { fontFamily: fontFamily.regular, fontSize: 14, lineHeight: 20, color: c.textSecondary, textAlign: 'center', marginTop: 7 },
+  pinInput: { marginTop: 18, borderWidth: 1, borderColor: c.border, borderRadius: 12, backgroundColor: c.background, color: c.text, fontFamily: fontFamily.semiBold, fontSize: 18, letterSpacing: 2, paddingHorizontal: 14, paddingVertical: 13, textAlign: 'center' },
+  pinError: { fontFamily: fontFamily.regular, fontSize: 12.5, lineHeight: 18, color: DANGER, textAlign: 'center', marginTop: 9 },
+  pinSubmit: { marginTop: 16, minHeight: 48, borderRadius: 13, backgroundColor: colors.primary, alignItems: 'center', justifyContent: 'center' },
+  pinSubmitText: { fontFamily: fontFamily.semiBold, fontSize: 15, color: '#fff' },
+  pinCancel: { paddingVertical: 12, alignItems: 'center', marginTop: 2 },
+  pinCancelText: { fontFamily: fontFamily.semiBold, fontSize: 14, color: c.textMuted },
 
   // ── Developer Console (app-styled QA modal, Jul 18 mock) ──
   dcContainer: { flex: 1, backgroundColor: c.background },

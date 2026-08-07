@@ -19,9 +19,24 @@ export interface EarnedGrant {
 // yearly_support, plus legacy SKUs — match by name, not a hardcoded list, so
 // old products classify correctly too.
 export function classifyProduct(productId: string): 'yearly' | 'monthly' | null {
-  if (/year|annual/i.test(productId)) return 'yearly';
+  if (/year|annual|12[_. -]?month/i.test(productId)) return 'yearly';
   if (/month/i.test(productId)) return 'monthly';
   return null;
+}
+
+// RevenueCat product ids are merchant-defined. Prefer the paid term recorded
+// on the subscription so an annual SKU such as `premium_12_month` cannot be
+// mistaken for monthly merely because its id contains the word "month".
+// deno-lint-ignore no-explicit-any
+export function classifySubscription(productId: string, sub: any): 'yearly' | 'monthly' | null {
+  const purchasedAt = new Date(String(sub?.purchase_date ?? '')).getTime();
+  const expiresAt = new Date(String(sub?.expires_date ?? '')).getTime();
+  if (Number.isFinite(purchasedAt) && Number.isFinite(expiresAt) && expiresAt > purchasedAt) {
+    const termDays = (expiresAt - purchasedAt) / (24 * 3600 * 1000);
+    if (termDays >= 300) return 'yearly';
+    if (termDays >= 20 && termDays <= 62) return 'monthly';
+  }
+  return classifyProduct(productId);
 }
 
 const MS_PER_MONTH = 30.44 * 24 * 3600 * 1000;
@@ -40,7 +55,7 @@ export function computeEarnedGrants(subscriber: any, opts: { founding: boolean }
   const subs = subscriber?.subscriber?.subscriptions ?? {};
 
   for (const [productId, sub] of Object.entries<Record<string, unknown>>(subs)) {
-    const kind = classifyProduct(productId);
+    const kind = classifySubscription(productId, sub);
     if (!kind) continue;
     const expires = sub?.expires_date ? new Date(String(sub.expires_date)) : null;
     const active = !!expires && expires.getTime() > now.getTime();
@@ -94,6 +109,51 @@ export function computeEarnedGrants(subscriber: any, opts: { founding: boolean }
   }
 
   return [...grants].map(([grant_key, credits]) => ({ grant_key, credits }));
+}
+
+// Remove only monthly grants created after the start of an active annual
+// subscription. This repairs annual SKUs that the old name-only classifier
+// treated as monthly without revoking passes genuinely earned beforehand.
+// deno-lint-ignore no-explicit-any
+export async function reconcileAnnualMisclassification(
+  supabase: SupabaseClient,
+  anonymousId: string,
+  subscriber: any,
+): Promise<void> {
+  const now = Date.now();
+  const subs = subscriber?.subscriber?.subscriptions ?? {};
+  const annualStarts = Object.entries<Record<string, any>>(subs)
+    .filter(([productId, sub]) => {
+      const expiresAt = new Date(String(sub?.expires_date ?? '')).getTime();
+      return classifySubscription(productId, sub) === 'yearly'
+        && expiresAt > now
+        && sub?.is_sandbox !== true
+        && String(sub?.store ?? '') !== 'promotional'
+        && String(sub?.period_type ?? 'normal') === 'normal';
+    })
+    .map(([, sub]) => new Date(String(sub?.purchase_date ?? sub?.original_purchase_date ?? '')).getTime())
+    .filter(Number.isFinite);
+  if (annualStarts.length === 0) return;
+
+  const annualStart = Math.min(...annualStarts) - 5 * 60 * 1000;
+  const { data, error } = await supabase
+    .from('gift_credit_grants')
+    .select('grant_key, granted_at')
+    .eq('anonymous_id', anonymousId);
+  if (error) throw error;
+
+  const mistakenKeys = (data ?? [])
+    .filter((grant: { grant_key: string; granted_at: string }) => (grant.grant_key === 'monthly_signup' || grant.grant_key.startsWith('tenure_'))
+      && new Date(grant.granted_at).getTime() >= annualStart)
+    .map((grant: { grant_key: string }) => grant.grant_key);
+  if (mistakenKeys.length === 0) return;
+
+  const { error: deleteError } = await supabase
+    .from('gift_credit_grants')
+    .delete()
+    .eq('anonymous_id', anonymousId)
+    .in('grant_key', mistakenKeys);
+  if (deleteError) throw deleteError;
 }
 
 // Insert any missing grants (idempotent via the (anonymous_id, grant_key) PK).

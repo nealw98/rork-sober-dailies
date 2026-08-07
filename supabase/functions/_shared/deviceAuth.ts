@@ -9,7 +9,7 @@
 //
 // deno-lint-ignore-file no-explicit-any
 
-async function sha256Hex(input: string): Promise<string> {
+export async function sha256Hex(input: string): Promise<string> {
   const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(input));
   return Array.from(new Uint8Array(digest))
     .map((b) => b.toString(16).padStart(2, '0'))
@@ -27,29 +27,46 @@ export async function verifyDevice(
   // Anything shorter than this isn't one of ours (the client mints 32 bytes).
   const secret = typeof deviceSecret === 'string' && deviceSecret.length >= 32 ? deviceSecret : null;
 
-  const { data, error } = await supabase
+  if (!secret) {
+    const { count, error } = await supabase
+      .from('device_claims')
+      .select('secret_hash', { count: 'exact', head: true })
+      .eq('anonymous_id', anonymousId);
+    if (error) throw error;
+    return !opts.requireSecret && (count ?? 0) === 0 ? 'ok' : 'denied';
+  }
+  const secretHash = await sha256Hex(secret);
+
+  const { data: exact, error } = await supabase
     .from('device_claims')
     .select('secret_hash')
     .eq('anonymous_id', anonymousId)
+    .eq('secret_hash', secretHash)
     .maybeSingle();
   if (error) throw error;
+  if (exact) return 'ok';
 
-  if (!data) {
-    if (!secret) return opts.requireSecret ? 'denied' : 'ok';
-    // Race: two first-calls at once. The PK makes the loser's insert fail, so
-    // re-verify instead of trusting our own write.
+  const { count, error: countError } = await supabase
+    .from('device_claims')
+    .select('secret_hash', { count: 'exact', head: true })
+    .eq('anonymous_id', anonymousId);
+  if (countError) throw countError;
+
+  if ((count ?? 0) === 0) {
+    // Race: two first-calls using the same installation secret can collide on
+    // the composite key. Re-verify instead of trusting our own write.
     const { error: insErr } = await supabase
       .from('device_claims')
-      .insert({ anonymous_id: anonymousId, secret_hash: await sha256Hex(secret) });
+      .insert({ anonymous_id: anonymousId, secret_hash: secretHash });
     if (!insErr) return 'ok';
     const { data: again } = await supabase
       .from('device_claims')
       .select('secret_hash')
       .eq('anonymous_id', anonymousId)
+      .eq('secret_hash', secretHash)
       .maybeSingle();
-    return again && again.secret_hash === (await sha256Hex(secret)) ? 'ok' : 'denied';
+    return again ? 'ok' : 'denied';
   }
 
-  if (!secret) return 'denied';
-  return (await sha256Hex(secret)) === data.secret_hash ? 'ok' : 'denied';
+  return 'denied';
 }
