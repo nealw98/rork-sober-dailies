@@ -61,11 +61,8 @@ async function callSponsorAPI(
 ): Promise<{ text: string; model?: string; temperature?: number }> {
   const sponsor = getSponsorById(sponsorType);
   const apiSponsorId = sponsor?.apiSponsorId ?? sponsorType;
-  // Pinned to match the spot check (2026-08-04, Neal): temp at 1.0 for
-  // character color — Anthropic's max, and OpenAI allows 1.2 if GPT ever
-  // needs more edge. Deliberately NOT read from the legacy engine/temperature
-  // settings — devices may carry stale stored values from the old selector era.
-  const temperature = 1.0;
+  // Keep provider comparisons controlled; the server also enforces this value.
+  const temperature = 0.8;
   const provider = engine?.provider ?? QA_ENGINE_SPEC[DEFAULT_QA_ENGINE].provider;
   const model = engine?.model ?? QA_ENGINE_SPEC[DEFAULT_QA_ENGINE].model;
   const sponsorApiUrl = await getSponsorApiUrl();

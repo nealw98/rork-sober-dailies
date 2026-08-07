@@ -57,10 +57,8 @@ async function callPaidSponsor(
     sponsorId: apiSponsorId,
     message: trim(message, 2000),
     conversation,
-    // Anthropic's max (Neal, 2026-08-03): spot-check turns run hot for
-    // persona color. Stated as the real value — the server clamps
-    // Anthropic to 1.0 anyway, so 1.1 was already landing here.
-    temperature: 1.0,
+    // Keep provider comparisons controlled; the server also enforces this.
+    temperature: 0.8,
     maxOutputTokens: 500,
     provider: engine?.provider ?? 'anthropic',
     // Sonnet, not the Haiku default: Haiku is politeness-tuned and played

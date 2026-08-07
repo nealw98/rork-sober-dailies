@@ -150,6 +150,5 @@ Prompt changes are deploy-only.
    sponsor **chat**; the reflection card is Eddie and reads well on both. If the
    voice advantage is Sam-specific, chat and spot-check could route differently
    — at the cost of two code paths to reason about.
-7. **GPT temperature headroom.** The fn clamps Anthropic to 1.0 but allows
-   OpenAI up to 1.2, and we send 1.0. If GPT ever feels thin, 1.1–1.2 is
-   available and untested.
+7. **Temperature is controlled.** The server pins Luna, Terra, and Sonnet to
+   `0.8`; client values are ignored so comparisons remain meaningful.

@@ -12,7 +12,6 @@
 // Optional:
 // - SPONSOR_CHAT_MODEL             OpenAI model, defaults to gpt-5.6-luna
 // - SPONSOR_CHAT_ANTHROPIC_MODEL   Anthropic model, defaults to claude-haiku-4-5
-// - SPONSOR_CHAT_TEMPERATURE       defaults to 0.8
 // - SPONSOR_CHAT_MAX_OUTPUT_TOKENS defaults to 260
 
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
@@ -54,7 +53,7 @@ const OPENAI_MODEL = configuredOpenAIModel && OPENAI_MODELS.includes(configuredO
   ? configuredOpenAIModel
   : 'gpt-5.6-luna';
 const ANTHROPIC_MODEL = Deno.env.get('SPONSOR_CHAT_ANTHROPIC_MODEL') || 'claude-haiku-4-5';
-const DEFAULT_TEMPERATURE = numberFromEnv('SPONSOR_CHAT_TEMPERATURE', 0.8);
+const MODEL_TEMPERATURE = 0.8;
 const DEFAULT_MAX_OUTPUT_TOKENS = numberFromEnv('SPONSOR_CHAT_MAX_OUTPUT_TOKENS', 260);
 const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY');
 const ANTHROPIC_API_KEY = Deno.env.get('ANTHROPIC_API_KEY');
@@ -399,7 +398,9 @@ function buildContext(body: RequestBody): RequestContext {
   if (!message) throw new Error('Message is required.');
   if (message.length > 2000) throw new Error('Message is too long.');
 
-  const temperature = clamp(Number(body.temperature ?? DEFAULT_TEMPERATURE), 0, 1.2);
+  // One fixed value across OpenAI and Anthropic keeps quality comparisons
+  // meaningful and prevents stale clients from changing generation behavior.
+  const temperature = MODEL_TEMPERATURE;
   const maxOutputTokens = Math.round(clamp(Number(body.maxOutputTokens ?? DEFAULT_MAX_OUTPUT_TOKENS), 80, 500));
   const conversation = Array.isArray(body.conversation) ? body.conversation.slice(-10) : [];
 
@@ -541,8 +542,7 @@ async function callAnthropic(ctx: RequestContext): Promise<ProviderResult> {
       system: [
         { type: 'text', text: ctx.prompt, cache_control: { type: 'ephemeral' } },
       ],
-      // Anthropic temperature range is 0–1 (OpenAI allows up to 1.2).
-      temperature: clamp(ctx.temperature, 0, 1),
+      temperature: ctx.temperature,
       messages,
     }),
   });
