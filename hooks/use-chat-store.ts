@@ -26,6 +26,7 @@ import {
   getSponsorApiChatUrl,
   getSponsorApiUrl,
   getQaEngine,
+  resolveQaEngine,
   QA_ENGINE_SPEC,
   DEFAULT_QA_ENGINE,
 } from "@/lib/sponsorApiSettings";
@@ -63,8 +64,9 @@ async function callSponsorAPI(
   const apiSponsorId = sponsor?.apiSponsorId ?? sponsorType;
   // Keep provider comparisons controlled; the server also enforces this value.
   const temperature = 0.8;
-  const provider = engine?.provider ?? QA_ENGINE_SPEC[DEFAULT_QA_ENGINE].provider;
-  const model = engine?.model ?? QA_ENGINE_SPEC[DEFAULT_QA_ENGINE].model;
+  const defaultEngine = resolveQaEngine(DEFAULT_QA_ENGINE, sponsorType);
+  const provider = engine?.provider ?? defaultEngine.provider;
+  const model = engine?.model ?? defaultEngine.model;
   const sponsorApiUrl = await getSponsorApiUrl();
   const sponsorApiChatUrl = getSponsorApiChatUrl(sponsorApiUrl);
   const [anonymousId, deviceSecret] = await Promise.all([
@@ -680,18 +682,16 @@ export const [ChatStoreProvider, useChatStore] = createContextHook(() => {
     }
     
     try {
-      // GPT-5.4 FIRST, SONNET BACKUP (final routing 2026-08-05, Neal — GPT
-      // won the side-by-side on voice, "smoother and more Sam-like"). The
-      // backup is a RELIABLE provider through the same fn ("it doesn't make
-      // sense to have a low-reliability LLM back up a reliability problem"). Free
-      // The Dev Console selects the primary paid engine. The first fallback is
+      // Auto routes Sam to Terra for stronger character fidelity and the
+      // gentler sponsors to lower-cost Luna. The Dev Console can explicitly
+      // override that route. The first fallback is
       // always the other provider; if both fail, the outer catch below gives a
       // deterministic sponsor-specific connection response.
       let result: { text: string; model?: string; temperature?: number };
       {
-        const primary = QA_ENGINE_SPEC[await getQaEngine()];
-        // Always cross provider for the first fallback. Terra and GPT-5.4
-        // share OpenAI infrastructure, so chaining them would add cost and
+        const primary = resolveQaEngine(await getQaEngine(), sponsorType);
+        // Always cross provider for the first fallback. Terra and Luna share
+        // OpenAI infrastructure, so chaining them would add cost and
         // latency without buying the reliability Sonnet provides.
         const backup = primary.provider === 'anthropic' ? QA_ENGINE_SPEC.luna : QA_ENGINE_SPEC.sonnet;
         try {

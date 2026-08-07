@@ -2,18 +2,22 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // QA LLM override. Read per call, so changing it applies to the next message
 // without a restart. Old engine-selector keys are deliberately ignored.
-export type QaEngine = 'sonnet' | 'terra' | 'luna';
+export type QaEngine = 'auto' | 'sonnet' | 'terra' | 'luna';
+type ConcreteQaEngine = Exclude<QaEngine, 'auto'>;
+type QaEngineSpec = { provider: 'anthropic' | 'openai'; model: string; label: string };
 
-// Production default: cost-sensitive GPT-5.6 Luna → Anthropic Sonnet. Terra
-// remains available in the Dev Console as the higher-cost OpenAI comparison.
-export const DEFAULT_QA_ENGINE: QaEngine = 'luna';
+// Production default: Terra for Salty Sam, Luna for every other sponsor and
+// Spot Check. Explicit Dev Console selections override this routing for QA.
+export const DEFAULT_QA_ENGINE: QaEngine = 'auto';
 
 export const QA_LLM_ENGINE_KEY = 'sober_dailies_qa_llm_engine';
 
 export const getQaEngine = async (): Promise<QaEngine> => {
   try {
     const stored = await AsyncStorage.getItem(QA_LLM_ENGINE_KEY);
-    return stored === 'sonnet' || stored === 'terra' || stored === 'luna' ? stored : DEFAULT_QA_ENGINE;
+    return stored === 'auto' || stored === 'sonnet' || stored === 'terra' || stored === 'luna'
+      ? stored
+      : DEFAULT_QA_ENGINE;
   } catch {
     return DEFAULT_QA_ENGINE;
   }
@@ -31,10 +35,15 @@ export const setQaEngine = async (engine: QaEngine): Promise<void> => {
 // The concrete provider/model each QA setting resolves to. Both go through the
 // same Supabase fn and the same server personas, so a swap changes ONLY the
 // model — which is what makes the comparison meaningful.
-export const QA_ENGINE_SPEC: Record<QaEngine, { provider: 'anthropic' | 'openai'; model: string; label: string }> = {
+export const QA_ENGINE_SPEC: Record<ConcreteQaEngine, QaEngineSpec> = {
   sonnet: { provider: 'anthropic', model: 'claude-sonnet-4-6', label: 'sonnet' },
   terra: { provider: 'openai', model: 'gpt-5.6-terra', label: 'gpt-5.6 terra' },
   luna: { provider: 'openai', model: 'gpt-5.6-luna', label: 'gpt-5.6 luna' },
+};
+
+export const resolveQaEngine = (engine: QaEngine, sponsorId: string): QaEngineSpec => {
+  if (engine !== 'auto') return QA_ENGINE_SPEC[engine];
+  return sponsorId === 'salty' ? QA_ENGINE_SPEC.terra : QA_ENGINE_SPEC.luna;
 };
 
 export const SPONSOR_API_URL =

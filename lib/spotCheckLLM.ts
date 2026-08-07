@@ -14,7 +14,7 @@ import { getSponsorById } from '@/constants/sponsors';
 import { getAnonymousId } from '@/lib/anonymousId';
 import { getDeviceSecret } from '@/lib/deviceSecret';
 import {
-  SUPABASE_ANON_KEY, getSponsorApiChatUrl, getSponsorApiUrl, getQaEngine, QA_ENGINE_SPEC,
+  SUPABASE_ANON_KEY, getSponsorApiChatUrl, getSponsorApiUrl, getQaEngine, resolveQaEngine, QA_ENGINE_SPEC,
 } from '@/lib/sponsorApiSettings';
 
 const LLM_TIMEOUT_MS = 20000;
@@ -95,15 +95,16 @@ async function callPaidSponsor(
   return String(data.outputText);
 }
 
-// The Dev Console selects Luna, Terra, or Sonnet as primary. OpenAI
-// primaries fall back to Sonnet; Sonnet falls back to Luna, so a QA
+// Auto uses Terra for Sam and Luna for all other sponsors. The Dev Console
+// can explicitly select Luna, Terra, or Sonnet. OpenAI primaries fall back to
+// Sonnet; Sonnet falls back to Luna, so a QA
 // session can't dead-end on one provider's outage.
 async function callPaidChain(
   sponsorId: SponsorType,
   message: string,
   conversation: { role: 'user' | 'assistant'; content: string }[],
 ): Promise<string> {
-  const primary = QA_ENGINE_SPEC[await getQaEngine()];
+  const primary = resolveQaEngine(await getQaEngine(), sponsorId);
   const backup = primary.provider === 'anthropic' ? QA_ENGINE_SPEC.luna : QA_ENGINE_SPEC.sonnet;
   try {
     return await callPaidSponsor(sponsorId, message, conversation, primary);
