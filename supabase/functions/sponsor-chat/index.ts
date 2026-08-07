@@ -61,21 +61,10 @@ const ANTHROPIC_API_KEY = Deno.env.get('ANTHROPIC_API_KEY');
 // reached the production fleet, then set true without another app release.
 const REQUIRE_DEVICE_SECRET = Deno.env.get('SPONSOR_CHAT_REQUIRE_DEVICE_SECRET') === 'true';
 
-// Rewritten 2026-08-04 (Neal — "with Sonnet his personality is barely
-// there"): the old appendix said "do not reuse the same catchphrases /
-// avoid stock replies", and Sonnet follows instructions literally — it
-// rationed exactly the signature phrases that ARE the personality, while the
-// old legacy model hammed them up. Now the variation rule
-// protects the voice instead of rationing it, and pushes back on Sonnet's
-// polished-essay register.
-const TUNING_APPENDIX = `
-
-VOICE OVER POLISH:
-- The signature phrases, colorful language, and speaking style in your prompt are your VOICE, not optional garnish — use them liberally, every reply. Vary WHICH ones you reach for so back-to-back replies don't repeat the identical line, but never respond without them.
-- Write the way this person actually talks: short punchy sentences, rough edges, spoken rhythm. Do not smooth the character into well-edited prose or tidy aphorisms — grit beats eloquence every time.
-- Respond to the exact situation in character. Never trade personality for politeness or polish.
-`;
-
+// Every persona below is written for its own model and carries its own voice
+// rules. A shared tuning appendix used to be appended to any sponsor that
+// hadn't been rewritten yet; by 2026-08-07 all four had been, so it applied to
+// nothing and was removed. Tune the voice inside the persona, not around it.
 const SPONSORS: Record<SponsorId, { name: string; prompt: string }> = {
   // The Spot Check form's reflection card. The full contract + Neal's
   // per-cluster response playbook live HERE so tuning is deploy-only (no OTA)
@@ -95,7 +84,7 @@ const SPONSORS: Record<SponsorId, { name: string; prompt: string }> = {
   //    forms by name.
   // The closing "take it further with your AI sponsor" beat is gone with the
   // handoff; this card ends the flow.
-  // NOTE: still exempt from TUNING_APPENDIX below — "use your signature
+  // NOTE: keep chat-shaped voice rules out of this one — "use your signature
   // phrases liberally" is right for a chat turn and would push slogans into
   // a 70-word card.
   reflection: {
@@ -389,12 +378,8 @@ function buildContext(body: RequestBody): RequestContext {
 
   return {
     sponsor,
-    // The model-specific sponsor prompts are complete as written;
-    // appending the older generic tuning block would add cost and competing
-    // rules. Reflection remains exempt because its register is quiet.
-    prompt: sponsor.id === 'reflection' || sponsor.id === 'salty' || sponsor.id === 'supportive' || sponsor.id === 'grace'
-      ? sponsor.prompt
-      : `${sponsor.prompt}${TUNING_APPENDIX}`,
+    // The persona prompts are complete as written — nothing is appended.
+    prompt: sponsor.prompt,
     message,
     conversation,
     temperature,
