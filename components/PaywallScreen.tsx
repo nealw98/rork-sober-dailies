@@ -258,7 +258,13 @@ export default function PaywallScreen({ onDismiss, preview, forceTrial }: Paywal
         applyCustomerInfo(info);
         refresh();
       } else {
-        Alert.alert('No active subscription', "We couldn't find a purchase to restore on this account. If you have a code, tap “Have a code?”.");
+        // The code hint only makes sense where the button still exists.
+        Alert.alert(
+          'No active subscription',
+          Platform.OS === 'ios'
+            ? "We couldn't find a purchase to restore on this account."
+            : "We couldn't find a purchase to restore on this account. If you have a code, tap “Have a code?”.",
+        );
       }
     } finally {
       setRestoring(false);
@@ -401,9 +407,13 @@ export default function PaywallScreen({ onDismiss, preview, forceTrial }: Paywal
                   <Radio on={selected === 'yearly'} />
                   <Text style={styles.planName}>Yearly</Text>
                 </View>
+                {/* The actual charge and its actual period lead; the derived
+                    per-month figure is secondary. App Review rejected the
+                    reverse (a big "$1.67/mo" over a small "$19.99/yr") on the
+                    annual plan — the price shown must be the price billed. */}
                 <View style={styles.planRight}>
-                  <Text style={styles.planPrice}>{perMonthFromYearly(yearly)}/mo</Text>
-                  <Text style={styles.planSub}>{yearly.product.priceString}/yr</Text>
+                  <Text style={styles.planPrice}>{yearly.product.priceString}/yr</Text>
+                  <Text style={styles.planSub}>{perMonthFromYearly(yearly)}/mo</Text>
                 </View>
               </Pressable>
             )}
@@ -432,17 +442,28 @@ export default function PaywallScreen({ onDismiss, preview, forceTrial }: Paywal
           {busy ? <ActivityIndicator color="#fff" /> : <Text style={styles.ctaText}>{showTrial ? trialCta : 'Subscribe'}</Text>}
         </Pressable>
 
-        {/* Billing disclosure — no-trial only (the trial timeline already explains billing) */}
-        {!showTrial && !!chosen && (
+        {/* Billing disclosure — shown on BOTH variants. The trial timeline says
+            when billing starts but never what gets charged, and App Review read
+            that omission as an undisclosed renewal price. */}
+        {!!chosen && (
           <Text style={styles.billing}>
-            Billed {chosen.product.priceString}/{selected === 'yearly' ? 'year' : 'month'}. Cancel anytime in Settings.
+            {showTrial
+              ? `Free for ${trialLen ?? 7} days, then ${chosen.product.priceString}/${selected === 'yearly' ? 'year' : 'month'}. Cancel anytime in Settings.`
+              : `Billed ${chosen.product.priceString}/${selected === 'yearly' ? 'year' : 'month'}. Cancel anytime in Settings.`}
           </Text>
         )}
 
-        {/* Have a code? */}
-        <Pressable onPress={() => setShowRedeem(true)} style={styles.haveCode} hitSlop={8}>
-          <Text style={styles.haveCodeText}>Have a code?</Text>
-        </Pressable>
+        {/* Have a code? — Android only. The SD form grants access outside IAP,
+            which App Review rejected under 3.1.1. Nothing is lost on iOS: gift
+            recipients there are sent straight to Apple's redeem URL by
+            soberdailies.com/get with the code prefilled, and that page never
+            points them back here. Android's page does — it tells them to tap
+            this exact button — so the form stays on that platform. */}
+        {Platform.OS !== 'ios' && (
+          <Pressable onPress={() => setShowRedeem(true)} style={styles.haveCode} hitSlop={8}>
+            <Text style={styles.haveCodeText}>Have a code?</Text>
+          </Pressable>
+        )}
 
         {/* Footer links */}
         <View style={styles.footer}>
@@ -623,9 +644,10 @@ const makeStyles = (tk: Tokens) => {
     planRight: { alignItems: 'flex-end' },
     planPrice: { fontFamily: fontFamily.bold, fontSize: 16.5, color: c.text },
     planSub: { fontFamily: fontFamily.regular, fontSize: 13, color: c.textMuted, marginTop: 2 },
-    // Monthly's only price line — same weight as Yearly's headline price so the
-    // two rows read as the same kind of thing.
-    planSubOnly: { fontFamily: fontFamily.bold, fontSize: 14.5, color: c.textMuted },
+    // Monthly's only price line — matches Yearly's headline price exactly (size
+    // and weight) so the two rows read as the same kind of thing. Both are
+    // billed amounts; only the derived per-month figure sits below them.
+    planSubOnly: { fontFamily: fontFamily.bold, fontSize: 16.5, color: c.textMuted },
     // Monthly row only — the label and price follow the selection together.
     planTextMuted: { color: c.textMuted },
     planTextInk: { color: c.text },
