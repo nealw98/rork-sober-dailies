@@ -7,6 +7,15 @@ import { formatLocalDate, parseLocalDate, calculateDaysBetween } from '@/lib/dat
 const BIRTHDAY_STORAGE_KEY = 'last_shown_birthday_milestone';
 const REPLAY_EVENT = 'sobriety-milestone-replay';
 
+// The once-per-milestone guard is keyed on the sobriety DATE as well as the
+// label. Keyed on the label alone, "1-year" stayed marked as seen forever, so
+// entering a date exactly a year back never triggered the takeover again — it
+// went straight to Today and only the milestone band could replay it. Including
+// the date means a new date re-arms the celebration, while someone living
+// through their real anniversary still sees it once.
+export const milestoneSeenKey = (sobrietyDate: string, milestone: string) =>
+  `${sobrietyDate}:${milestone}`;
+
 // Re-run the milestone takeover on demand — the Today counter's badge taps
 // this. Bypasses the once-per-milestone gate on purpose (it's a replay).
 export const replaySobrietyMilestone = () => { DeviceEventEmitter.emit(REPLAY_EVENT); };
@@ -92,15 +101,16 @@ export const useSobrietyBirthday = () => {
       const lastShown = await AsyncStorage.getItem(BIRTHDAY_STORAGE_KEY);
       // console.log('[BirthdayHook] Last shown milestone:', lastShown, 'Current milestone:', currentMilestone);
       
-      const shouldShow = lastShown !== currentMilestone;
+      const shouldShow = lastShown !== milestoneSeenKey(sobrietyDate, currentMilestone);
       console.log('[BirthdayHook] Should show birthday:', shouldShow);
       
       if (shouldShow) {
-        // Small delay to ensure the modal can render properly
-        setTimeout(() => {
-          // console.log('[BirthdayHook] Setting showBirthdayModal to true');
-          setShowBirthdayModal(true);
-        }, 300);
+        // Opened immediately, NOT on a timer. The old 300ms delay was what let
+        // Today paint first after saving a milestone date — you watched the
+        // page arrive and then get covered. The takeover lives at the root of
+        // the layout and is always mounted by the time this can fire, so
+        // setting the flag straight away lands it in the same render pass.
+        setShowBirthdayModal(true);
       }
     } catch (error) {
       console.error('[BirthdayHook] Error checking birthday storage:', error);

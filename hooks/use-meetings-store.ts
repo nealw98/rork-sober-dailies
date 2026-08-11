@@ -59,8 +59,17 @@ function startOfDay(d: Date): Date {
   return x;
 }
 
+// Meetings carry a start time but no end time, so "still running" has to be
+// assumed. An hour covers the standard meeting; a 90-minute one drops off the
+// card for its last half hour, which beats the old behaviour of vanishing the
+// moment it began.
+export const MEETING_RUN_MIN = 60;
+
 // The soonest timestamp this meeting next occurs, on or after `now` — the min
-// across all of its days. Infinity if it has no days.
+// across all of its days. Infinity if it has no days. A meeting already under
+// way still counts as its own next occurrence (its start time, now in the
+// past), so Next-up holds on it until it ends rather than skipping to next
+// week the instant it starts.
 export function nextOccurrence(m: Meeting, now: Date = new Date()): number {
   const days = m.days ?? [];
   if (days.length === 0) return Infinity;
@@ -70,7 +79,7 @@ export function nextOccurrence(m: Meeting, now: Date = new Date()): number {
     const at = new Date(now);
     at.setHours(Math.floor(time / 60), time % 60, 0, 0);
     let daysUntil = (day - now.getDay() + 7) % 7;
-    if (daysUntil === 0 && at.getTime() <= now.getTime()) daysUntil = 7;
+    if (daysUntil === 0 && at.getTime() + MEETING_RUN_MIN * 60_000 <= now.getTime()) daysUntil = 7;
     at.setDate(at.getDate() + daysUntil);
     best = Math.min(best, at.getTime());
   }

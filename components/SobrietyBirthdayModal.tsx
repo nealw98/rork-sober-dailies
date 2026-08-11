@@ -14,7 +14,7 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useSobriety } from '@/hooks/useSobrietyStore';
-import { calculateMilestone } from '@/hooks/useSobrietyBirthday';
+import { calculateMilestone, milestoneSeenKey } from '@/hooks/useSobrietyBirthday';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Haptics from 'expo-haptics';
 import { Audio } from 'expo-av';
@@ -125,8 +125,8 @@ const SobrietyBirthdayModal: React.FC<SobrietyBirthdayModalProps> = ({ visible, 
   }, [visible, milestone]);
 
   const handleClose = () => {
-    if (milestone) {
-      markMilestoneAsShown(milestone);
+    if (milestone && sobrietyDate) {
+      markMilestoneAsShown(milestoneSeenKey(sobrietyDate, milestone));
     }
     onClose();
   };
