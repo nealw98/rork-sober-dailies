@@ -8,6 +8,10 @@ export interface DeveloperAccess {
   capabilities: string[];
   pinRequired?: boolean;
   locked?: boolean;
+  // Why a non-authorized result carries no PIN path. Without this the long
+  // press on the version number is indistinguishable from a dead gesture —
+  // three different failures all produced "nothing happens".
+  unavailable?: 'no_device_secret' | 'unreachable' | 'not_authorized';
 }
 
 // Deliberately no persistent authorization cache: every attempt to open the
@@ -19,7 +23,7 @@ export async function checkDeveloperAccess(pin?: string): Promise<DeveloperAcces
       getAnonymousId(),
       getDeviceSecret(),
     ]);
-    if (!device_secret) return { authorized: false, capabilities: [] };
+    if (!device_secret) return { authorized: false, capabilities: [], unavailable: 'no_device_secret' };
 
     const response = await fetch(`${SUPABASE_URL}/functions/v1/developer-access`, {
       method: 'POST',
@@ -31,17 +35,19 @@ export async function checkDeveloperAccess(pin?: string): Promise<DeveloperAcces
       body: JSON.stringify({ anonymous_id, device_secret, pin }),
     });
     const data = await response.json().catch(() => null);
+    const authorized = response.ok && data?.authorized === true;
     return {
-      authorized: response.ok && data?.authorized === true,
+      authorized,
       role: data?.role === 'admin' ? 'admin' : data?.role === 'tester' ? 'tester' : undefined,
       capabilities: Array.isArray(data?.capabilities)
         ? data.capabilities.filter((value: unknown): value is string => typeof value === 'string')
         : [],
       pinRequired: data?.pin_required === true,
       locked: data?.locked === true,
+      unavailable: authorized || data?.pin_required === true ? undefined : 'not_authorized',
     };
   } catch (error) {
     console.warn('[Developer Access] authorization unavailable', error);
-    return { authorized: false, capabilities: [] };
+    return { authorized: false, capabilities: [], unavailable: 'unreachable' };
   }
 }

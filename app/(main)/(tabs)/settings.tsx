@@ -342,6 +342,18 @@ export default function SettingsScreen() {
       else if (access.pinRequired) {
         setDeveloperPinError(access.locked ? 'Too many attempts. Try again in 15 minutes.' : null);
         setDeveloperPinVisible(true);
+      } else {
+        // Previously this fell through to nothing, so a failed check and a
+        // mis-aimed long press looked identical. Only ever seen by someone who
+        // found a hidden gesture, so naming the cause costs nothing.
+        Alert.alert(
+          'Developer access unavailable',
+          access.unavailable === 'unreachable'
+            ? "Couldn't reach the authorization server. Check the connection and try again."
+            : access.unavailable === 'no_device_secret'
+              ? 'This device has no stored key, so it cannot prove its identity.'
+              : 'This device is not authorized.',
+        );
       }
     } finally {
       setIsCheckingDeveloperAccess(false);
