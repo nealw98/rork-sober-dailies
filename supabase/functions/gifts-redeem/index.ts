@@ -63,6 +63,39 @@ serve(async (req: Request) => {
       return json({ success: false, reason: 'self_redemption', message: 'This is one of your own codes — it’s meant for someone else.' }, 403);
     }
 
+    // 2b) One code per person, for life. The already-premium check below only
+    // catches someone who is CURRENTLY entitled — once a gift lapsed they could
+    // redeem a second one and stack another three months indefinitely. Match on
+    // either identity: a reinstall can mint a new RC app_user_id while the
+    // SecureStore anonymous_id survives, and vice versa. Declined before the
+    // claim, so the code is not consumed and can still go to someone else.
+    // Two .eq() lookups rather than one .or() filter: .or() takes a raw filter
+    // STRING, so interpolating these request-supplied ids into it would let a
+    // caller reshape the predicate and slip past this very check. .eq() binds
+    // the value.
+    const priorBy = (column: string, value: string) =>
+      supabase
+        .from('gift_codes')
+        .select('code')
+        .eq('status', 'redeemed')
+        .eq(column, value)
+        .limit(1)
+        .maybeSingle();
+
+    const [byDevice, byRc] = await Promise.all([
+      priorBy('redeemer_anonymous_id', anonymous_id),
+      priorBy('redeemer_rc_app_user_id', rc_app_user_id),
+    ]);
+    if (byDevice.error) throw byDevice.error;
+    if (byRc.error) throw byRc.error;
+    if (byDevice.data || byRc.data) {
+      return json({
+        success: false,
+        reason: 'already_used_code',
+        message: 'You’ve already used a gift code. Only one code can be used per person — pass this one on to someone who needs it.',
+      }, 409);
+    }
+
     // 3) Decline (without consuming) if the recipient already has premium.
     const subscriber = await fetchRcSubscriber(rc_app_user_id, secretKey);
     if (subscriber && hasActivePremium(subscriber)) {

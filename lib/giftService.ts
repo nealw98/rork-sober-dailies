@@ -23,6 +23,7 @@ export type RedeemReason =
   | 'already_redeemed'
   | 'self_redemption'
   | 'already_premium'
+  | 'already_used_code'
   | 'grant_failed'
   | 'bad_request'
   | 'server_error';
