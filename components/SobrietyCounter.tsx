@@ -84,12 +84,12 @@ const SobrietyCounter = () => {
           <Text style={[styles.coinNumber, { fontSize: coinFont }]} numberOfLines={1} adjustsFontSizeToFit>{display}</Text>
         </Coin>
         <View style={styles.rowText}>
-          <View style={styles.daysSoberRow}>
-            <Text style={styles.daysSober}>days sober</Text>
+          <Text style={styles.daysSober}>days sober</Text>
+          <Text style={styles.breakdown}>{y} {y === 1 ? 'year' : 'years'} · {m} {m === 1 ? 'month' : 'months'} · {d} {d === 1 ? 'day' : 'days'}</Text>
+          <View style={styles.sinceRow}>
+            <Text style={styles.since}>since {formatStoredDateForDisplay(sobrietyDate)}</Text>
             <Pencil size={12} color={c.textMuted} strokeWidth={2} />
           </View>
-          <Text style={styles.breakdown}>{y} {y === 1 ? 'year' : 'years'} · {m} {m === 1 ? 'month' : 'months'} · {d} {d === 1 ? 'day' : 'days'}</Text>
-          <Text style={styles.breakdown}>since {formatStoredDateForDisplay(sobrietyDate)}</Text>
         </View>
       </Pressable>
     );
@@ -114,10 +114,12 @@ const makeStyles = (tk: Tokens) => {
   coinNumber: { fontFamily: fontFamily.bold, color: '#fff', letterSpacing: -1, fontVariant: ['tabular-nums'], maxWidth: 66, textAlign: 'center' },
 
   // medallion text
-  daysSoberRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   daysSober: { fontFamily: fontFamily.serifMediumItalic, fontSize: fontSize.xl, color: tc.primary },
   // Tight leading so the three lines read as one visual block.
   breakdown: { fontFamily: fontFamily.regular, fontSize: 13, color: c.textMuted, marginTop: 2, lineHeight: 16 },
+  // The date line carries the edit affordance, so it's a row.
+  sinceRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 2 },
+  since: { fontFamily: fontFamily.regular, fontSize: 13, color: c.textMuted, lineHeight: 16 },
 
   // affirmation (no-date)
   affirmationRow: { flexDirection: 'row', alignItems: 'center', gap: 7 },

@@ -2,7 +2,7 @@
   "expo": {
     "name": "Sober Dailies",
     "slug": "sober-dailies",
-    "version": "3.0.8",
+    "version": "3.0.9",
     "orientation": "default",
     "icon": "./assets/images/icon.png",
     "scheme": "myapp",
@@ -46,7 +46,7 @@
         "android.permission.VIBRATE"
       ]
     },
-    "runtimeVersion": "3.0.8",
+    "runtimeVersion": "3.0.9",
     "extra": {
       "eas": {
         "projectId": "651e2e43-404d-47e3-94ac-695b4febd27a"
