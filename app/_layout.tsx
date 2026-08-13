@@ -259,18 +259,31 @@ function RootLayoutNav() {
   // test 2026-07-31 — first run only, correct on every later render). The
   // 3-second splash failsafe below is what let it show at all. Teal fill
   // matches the native splash, so the wait reads as the splash, not a flash.
-  if (!isOnboardingComplete) {
-    if (!fontsLoaded) return <View style={{ flex: 1, backgroundColor: '#3D8B8B' }} />;
-    return <OnboardingFlow />;
-  }
-
-  // Only show main app after consent is complete AND other initialization is
-  // done. Return a brand-teal fill (matches the native splash background) rather
-  // than null, so any brief gate never flashes white.
+  // Readiness FIRST, then onboarding. This order matters: OnboardingFlow now
+  // branches on whether the person already has access (grandfathered members
+  // and returning subscribers get a welcome-back screen instead of the full
+  // introduction), so it must not mount until subscription state has resolved.
+  // Mounting early would show a stranger's welcome to a member and then swap it.
   if (!appReady || isLoading || disclaimerAccepted === null || (PAYWALL_ENABLED && isSubscriptionLoading)) {
     return <View style={{ flex: 1, backgroundColor: '#3D8B8B' }} />;
   }
 
+  if (!isOnboardingComplete) {
+    if (!fontsLoaded) return <View style={{ flex: 1, backgroundColor: '#3D8B8B' }} />;
+    // The whole first run lives in OnboardingFlow now — including the
+    // disclaimer and the paywall, in that order, so nobody pays before they
+    // have agreed to what the app is and nobody sets up an app they have not
+    // bought. The two gates below remain for everyone PAST first run.
+    return (
+      <OnboardingFlow
+        onDisclaimerAccepted={() => setDisclaimerAccepted(true)}
+        onPaywallBypassed={() => setPaywallDismissed(true)}
+      />
+    );
+  }
+
+  // Backstop for people who onboarded already and later lapsed — a subscription
+  // that expired, or an entitlement that has not reattached after a reinstall.
   if (PAYWALL_ENABLED && !isPremium && !paywallDismissed) {
     // Our own RN paywall (components/PaywallScreen) — replaces RevenueCat's
     // hosted Paywall UI so we control the layout and can host a "Have a code?"
@@ -285,9 +298,8 @@ function RootLayoutNav() {
     return <PaywallScreen onDismiss={paywallDismissable ? () => setPaywallDismissed(true) : undefined} />;
   }
 
-  // Disclaimer last — after onboarding AND the paywall, so agreeing drops the
-  // user straight into Today. DisclaimerStep records acceptance (local +
-  // server sync) itself before calling onAgree.
+  // Backstop for anyone who completed onboarding before the disclaimer existed.
+  // First-run users have already seen it inside OnboardingFlow by this point.
   if (!disclaimerAccepted) {
     return <DisclaimerStep onAgree={() => setDisclaimerAccepted(true)} />;
   }

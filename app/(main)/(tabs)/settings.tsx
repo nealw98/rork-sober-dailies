@@ -150,13 +150,13 @@ export default function SettingsScreen() {
   const [developerPin, setDeveloperPin] = useState('');
   const [developerPinError, setDeveloperPinError] = useState<string | null>(null);
   const [logsText, setLogsText] = useState('');
-  // QA: preview the paywall in either state ('trial' | 'notrial'). Close the
-  // Developer Console first, else the preview modal opens behind it (iOS stacks
-  // modals — a second modal presented under an open one never shows).
-  const [paywallPreview, setPaywallPreview] = useState<'trial' | 'notrial' | null>(null);
-  const openPaywallPreview = (mode: 'trial' | 'notrial') => {
+  // QA: preview the paywall. Close the Developer Console first, else the
+  // preview modal opens behind it (iOS stacks modals — a second modal
+  // presented under an open one never shows).
+  const [paywallPreview, setPaywallPreview] = useState(false);
+  const openPaywallPreview = () => {
     setLogsVisible(false);
-    setTimeout(() => setPaywallPreview(mode), 350);
+    setTimeout(() => setPaywallPreview(true), 350);
   };
   // QA: preview the post-subscribe thank-you sheet (annual = 5 passes,
   // monthly = 1 pass) without buying. Same modal-stacking dance as above.
@@ -862,11 +862,8 @@ export default function SettingsScreen() {
               </TouchableOpacity>
             </View>
             <View style={styles.dcBtnRow}>
-              <TouchableOpacity style={styles.dcBtn} onPress={() => openPaywallPreview('trial')} activeOpacity={0.7}>
-                <Text style={styles.dcBtnText}>Preview · Trial</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.dcBtn} onPress={() => openPaywallPreview('notrial')} activeOpacity={0.7}>
-                <Text style={styles.dcBtnText}>Preview · No trial</Text>
+              <TouchableOpacity style={styles.dcBtn} onPress={openPaywallPreview} activeOpacity={0.7}>
+                <Text style={styles.dcBtnText}>Preview · Paywall</Text>
               </TouchableOpacity>
             </View>
             <View style={styles.dcBtnRow}>
@@ -994,13 +991,13 @@ export default function SettingsScreen() {
         </RNSafeAreaView>
       </Modal>
 
-      {/* QA: paywall preview (trial / no-trial), forced regardless of real eligibility */}
-      <Modal visible={!!paywallPreview} animationType="slide" onRequestClose={() => setPaywallPreview(null)}>
+      {/* QA: paywall preview — one layout now, the trial offer */}
+      <Modal visible={paywallPreview} animationType="slide" onRequestClose={() => setPaywallPreview(false)}>
         <SafeAreaProvider initialMetrics={initialWindowMetrics}>
         <View style={{ flex: 1 }}>
-          <PaywallScreen preview forceTrial={paywallPreview === 'trial'} onDismiss={() => setPaywallPreview(null)} />
+          <PaywallScreen preview onDismiss={() => setPaywallPreview(false)} />
           <TouchableOpacity
-            onPress={() => setPaywallPreview(null)}
+            onPress={() => setPaywallPreview(false)}
             style={styles.previewCloseButton}
             activeOpacity={0.8}
             hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}

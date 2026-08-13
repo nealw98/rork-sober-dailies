@@ -14,9 +14,11 @@ import { useOnboarding } from '@/hooks/useOnboardingStore';
 import { recordDisclaimerAcceptance } from '@/lib/disclaimerConsent';
 import { useSobriety } from '@/hooks/useSobrietyStore';
 import { useDailies, type DailyItem, type WhenBucket } from '@/hooks/use-dailies-store';
+import { useSubscription } from '@/hooks/useSubscription';
 import { formatLocalDate } from '@/lib/dateUtils';
 import SoberDateEditor from '@/components/SoberDateEditor';
 import DailiesEditor from '@/components/today/DailiesEditor';
+import PaywallScreen from '@/components/PaywallScreen';
 
 // App-icon gradient → interior bridge (prototype `obvGrad`). t=0 = vivid app icon,
 // t=1 = muted interior. Onboarding stays icon-leaning (the retiring teal header
@@ -37,8 +39,8 @@ function obvInk(t: number): string {
 
 // Legal links — Apple's standard EULA + our Privacy Policy. The welcome CTA
 // carries implied agreement; explicit agreement (checkbox) happens on the
-// disclaimer gate, which app/_layout renders AFTER the paywall as the last
-// screen before Today (moved out of this flow 2026-07-23).
+// disclaimer step, which now runs BEFORE the paywall so nobody is charged
+// before agreeing (moved back into this flow 2026-08-13).
 const openTerms = () => Linking.openURL('https://www.apple.com/legal/internet-services/itunes/dev/stdeula/').catch(() => {});
 const openPrivacy = () => Linking.openURL('https://soberdailies.com/privacy').catch(() => {});
 
@@ -83,12 +85,58 @@ function WelcomeStep({ upgrader, onContinue }: { upgrader: boolean; onContinue: 
   );
 }
 
-// ─── Disclaimer gate (restored 2026-07-22; moved after paywall 2026-07-23) ──
+// ─── Door 1 · Welcome back (members and returning subscribers) ──────────────
+// Anyone who already has access — grandfathered members, and subscribers whose
+// purchase reattached after a reinstall — sees this instead of the whole
+// introduction. No pitch, no price, no re-asking for a sobriety date the app
+// already has. Their Today is already correct: DEFAULT_PROGRAM is the same set
+// "Define your dailies" pre-checks, so skipping setup lands on identical
+// defaults (use-dailies-store).
+function WelcomeBackStep({ onContinue }: { onContinue: () => void | Promise<void> }) {
+  const styles = useThemedStyles(makeStyles);
+  const [going, setGoing] = useState(false);
+  const go = async () => {
+    if (going) return;
+    setGoing(true);
+    await onContinue();
+  };
+  return (
+    <View style={styles.welcomeRoot}>
+      <StatusBar style="light" />
+      <LinearGradient colors={obvGrad(0.18)} start={{ x: 0.05, y: 0 }} end={{ x: 0.95, y: 1 }} style={StyleSheet.absoluteFill} />
+      <SafeAreaView style={styles.welcomeSafe} edges={['top', 'bottom']}>
+        <View style={styles.welcomeCenter}>
+          <Image source={require('@/assets/images/icon.png')} style={styles.welcomeLogo} contentFit="cover" />
+          <Text style={styles.welcomePromise} numberOfLines={2} adjustsFontSizeToFit minimumFontScale={0.8}>
+            Welcome back
+          </Text>
+          <Text style={styles.welcomeSubtitle}>
+            Your access carries over — nothing to set up, nothing to buy. Everything you saved is still here.
+          </Text>
+        </View>
+        <View style={styles.welcomeFooter}>
+          <Pressable style={styles.welcomeBtn} onPress={go} disabled={going}>
+            {going ? (
+              <ActivityIndicator color={obvInk(0.55)} />
+            ) : (
+              <>
+                <Text style={styles.welcomeBtnText}>Open Sober Dailies</Text>
+                <ArrowRight size={18} color={obvInk(0.55)} />
+              </>
+            )}
+          </Pressable>
+        </View>
+      </SafeAreaView>
+    </View>
+  );
+}
+
+// ─── Step 3 · Disclaimer ────────────────────────────────────────────────────
 // The v2 welcome-screen disclaimer, on our gradient: what the app is not, the
-// 988 line, and an explicit Terms/Privacy checkbox. No longer a step in this
-// flow — app/_layout renders it after the paywall clears, so it's the last
-// screen before Today and nobody reaches the app without agreeing. Lives here
-// for its consent* styles and the shared gradient helpers.
+// 988 line, and an explicit Terms/Privacy checkbox. Runs after the carousel and
+// BEFORE the paywall — agreeing to what the app is and isn't shouldn't come
+// after we've taken someone's money. Still exported: app/_layout renders it as
+// a backstop for people who completed onboarding before it existed.
 const DISCLAIMER_BULLETS = [
   'This app is not a substitute for therapy, medical advice, or emergency support.',
   'The AI sponsors offer encouragement and reflection, but they are not human and cannot provide crisis support or clinical help.',
@@ -190,7 +238,7 @@ const DEF_TONE: Record<string, { solid: string; ink: string }> = {
   gray: { solid: '#9A98A4', ink: '#5A5A68' },
 };
 
-function DefineDailiesStep({ onBack, onComplete }: { onBack: () => void; onComplete: () => void | Promise<void> }) {
+function DefineDailiesStep({ onBack, onComplete }: { onBack?: () => void; onComplete: () => void | Promise<void> }) {
   const styles = useThemedStyles(makeStyles);
   const { isDark } = useTokens();
   const dailies = useDailies();
@@ -217,11 +265,12 @@ function DefineDailiesStep({ onBack, onComplete }: { onBack: () => void; onCompl
 
   const header = (
     <>
+      <Text style={styles.overline}>SET UP YOUR APP</Text>
       <Text style={styles.insideTitle}>Define your dailies</Text>
       <Text style={styles.dailiesSubtitle}>The practices you&apos;ll start with</Text>
       <View style={styles.infoCard}>
         <Text style={styles.infoText}>
-          These are the practices that will appear on your Today page every day. Add the ones you want, remove what doesn&apos;t fit, and reorder them into a rhythm you&apos;ll actually follow. Once setup is done, each of these dailies on your Today page will open a tool or reading, and you&apos;ll check it off when you complete it.
+          These are the practices that will appear on your Today page every day. Add the ones you want, remove what doesn&apos;t fit, and reorder them into a rhythm you&apos;ll actually follow. Each one opens a tool or a reading, and you check it off when it&apos;s done. You can change all of this later from Today.
         </Text>
       </View>
     </>
@@ -231,7 +280,7 @@ function DefineDailiesStep({ onBack, onComplete }: { onBack: () => void; onCompl
     <SafeAreaView style={styles.paper} edges={['top', 'bottom']}>
       <StatusBar style={isDark ? 'light' : 'dark'} />
       <View style={styles.topBar}>
-        <BackButton onPress={onBack} />
+        {onBack && <BackButton onPress={onBack} />}
       </View>
       <DailiesEditor header={header} contentContainerStyle={styles.dailiesScroll} />
       <View style={styles.footerBordered}>
@@ -240,7 +289,7 @@ function DefineDailiesStep({ onBack, onComplete }: { onBack: () => void; onCompl
             <ActivityIndicator color="#fff" />
           ) : (
             <>
-              <Text style={styles.primaryText}>Let's get started</Text>
+              <Text style={styles.primaryText}>Go to Today</Text>
               <ArrowRight size={18} color="#fff" />
             </>
           )}
@@ -251,25 +300,90 @@ function DefineDailiesStep({ onBack, onComplete }: { onBack: () => void; onCompl
 }
 
 // ─── The flow ───────────────────────────────────────────────────────────────
-type Step = 'welcome' | 'inside' | 'date' | 'dailies';
+// Understand it → agree to it → subscribe → set it up. Each step is a
+// precondition of the next, which is why the disclaimer and the paywall moved
+// inside this flow: nobody is charged before agreeing to what the app is, and
+// nobody configures an app they have not bought. The setup steps read as
+// setting up the subscription you just started, not as a toll before it.
+type Step = 'welcome' | 'inside' | 'disclaimer' | 'paywall' | 'date' | 'dailies';
 
-export default function OnboardingFlow() {
-  const [step, setStep] = useState<Step>('welcome');
+export default function OnboardingFlow({
+  onDisclaimerAccepted,
+  onPaywallBypassed,
+}: {
+  onDisclaimerAccepted?: () => void;
+  // __DEV__ only: the simulator bypass has to release the backstop gate in
+  // app/_layout too. Without it, finishing setup without a real entitlement
+  // drops straight onto a second paywall.
+  onPaywallBypassed?: () => void;
+}) {
   const { completeOnboarding, isUpgrader } = useOnboarding();
   const { setSobrietyDate, sobrietyDate } = useSobriety();
+  // Members and returning subscribers already have access. They get a
+  // welcome-back screen and go straight in — no pitch, no price, and no
+  // re-asking for details the app already has.
+  //
+  // Decided ONCE, on entry, and deliberately frozen: a new user who subscribes
+  // at the paywall step flips isPremium true mid-flow, and re-reading it live
+  // would bounce them into "Welcome back" instead of on to their setup.
+  // app/_layout holds the render until subscription state resolves, so this is
+  // already settled at mount.
+  const { isPremium } = useSubscription();
+  const [alreadyHadAccess] = useState(isPremium);
+  const [step, setStep] = useState<Step>('welcome');
 
   // Upgraders carried their sobriety date over from v2 — don't ask again.
   // (An upgrader who never set one still gets the date step.)
   const skipDateStep = isUpgrader && !!sobrietyDate;
-  const afterCarousel: Step = skipDateStep ? 'dailies' : 'date';
+  const afterPurchase: Step = skipDateStep ? 'dailies' : 'date';
 
+  const finish = async () => {
+    await completeOnboarding();
+    // No router.replace here: onboarding is a render gate in app/_layout, not a
+    // route. When the flag flips, the gate swaps this flow out for the Stack
+    // (which mounts at '/' anyway); navigating while no navigator is mounted
+    // forces a root re-mount that flashes the teal fill.
+  };
+
+  // ── Door 1 · already have access ──
+  if (alreadyHadAccess) {
+    return <WelcomeBackStep onContinue={finish} />;
+  }
+
+  // ── Door 2 · new ──
   if (step === 'welcome') return <WelcomeStep upgrader={isUpgrader} onContinue={() => setStep('inside')} />;
   if (step === 'inside') {
     return (
       <WhatsInsideCarousel
         overline={isUpgrader ? 'WHAT’S NEW' : undefined}
-        onSkip={() => setStep(afterCarousel)}
-        onContinue={() => setStep(afterCarousel)}
+        onSkip={() => setStep('disclaimer')}
+        onContinue={() => setStep('disclaimer')}
+      />
+    );
+  }
+  if (step === 'disclaimer') {
+    // Before the paywall: agreeing to what this app is and isn't shouldn't come
+    // after we've taken the money. DisclaimerStep records acceptance itself.
+    return (
+      <DisclaimerStep
+        onAgree={() => {
+          onDisclaimerAccepted?.();
+          setStep('paywall');
+        }}
+      />
+    );
+  }
+  if (step === 'paywall') {
+    // No onDismiss: the wall is hard here exactly as it is at the root gate.
+    // Advancing is driven by isPremium flipping — which covers a purchase, a
+    // restore, and a redeemed gift code alike.
+    return (
+      <PaywallStep
+        onSubscribed={() => setStep(afterPurchase)}
+        onBypass={() => {
+          onPaywallBypassed?.();
+          setStep(afterPurchase);
+        }}
       />
     );
   }
@@ -277,7 +391,7 @@ export default function OnboardingFlow() {
     return (
       <SoberDateEditor
         current={null}
-        onBack={() => setStep('inside')}
+        overline="SET UP YOUR APP"
         onSave={(date) => { setSobrietyDate(formatLocalDate(date)); setStep('dailies'); }}
         onSkip={() => setStep('dailies')}
         primaryLabel="Set my date"
@@ -287,16 +401,26 @@ export default function OnboardingFlow() {
   }
   return (
     <DefineDailiesStep
-      onBack={() => setStep(skipDateStep ? 'inside' : 'date')}
-      onComplete={async () => {
-        await completeOnboarding();
-        // No router.replace here: onboarding is a render gate in app/_layout, not a
-        // route. When the flag flips, the gate swaps this flow out for the paywall/
-        // disclaimer/Stack (which mounts at '/' anyway); navigating while no
-        // navigator is mounted forces a root re-mount that flashes the teal fill.
-      }}
+      onBack={skipDateStep ? undefined : () => setStep('date')}
+      onComplete={finish}
     />
   );
+}
+
+// Paywall as a step. PaywallScreen applies the purchased CustomerInfo itself,
+// so the subscription flips on in the provider; watch for that rather than
+// hooking the buy button, so a restore or a gift code advances too.
+//
+// In __DEV__ the close (X) is wired to walk straight on to the setup steps, so
+// the rest of the flow is reachable on a simulator without a sandbox purchase.
+// It is undefined in any release build, where the wall stays hard — same rule
+// as the backstop gate in app/_layout.
+function PaywallStep({ onSubscribed, onBypass }: { onSubscribed: () => void; onBypass: () => void }) {
+  const { isPremium } = useSubscription();
+  useEffect(() => {
+    if (isPremium) onSubscribed();
+  }, [isPremium, onSubscribed]);
+  return <PaywallScreen onDismiss={__DEV__ ? onBypass : undefined} />;
 }
 
 const makeStyles = (tk: Tokens) => {
@@ -398,6 +522,7 @@ const makeStyles = (tk: Tokens) => {
   dailyLabel: { flex: 1, fontFamily: fontFamily.semiBold, fontSize: fontSize.base, color: c.text },
   dailyCheck: { width: 26, height: 26, borderRadius: 13, borderWidth: 2, alignItems: 'center', justifyContent: 'center' },
   footerBordered: { paddingHorizontal: 24, paddingTop: 12, paddingBottom: 12, borderTopWidth: 1, borderTopColor: c.border },
+  overline: { fontFamily: fontFamily.semiBold, fontSize: 12, letterSpacing: 1.2, color: c.textMuted, marginBottom: 10 },
 
   // shared footer
   footer: { paddingHorizontal: 24, paddingTop: 12, paddingBottom: 12 },

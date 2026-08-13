@@ -54,14 +54,19 @@ function ymdLabel(date: Date): string {
 export interface SoberDateEditorProps {
   current: Date | null;
   onSave: (date: Date) => void;
-  onBack: () => void;
+  // Optional: the first-run setup steps come AFTER the purchase, so there is
+  // nowhere to go back to from there.
+  onBack?: () => void;
   onRemove?: () => void;
   onSkip?: () => void;
   primaryLabel?: string;
   skipLabel?: string;
+  // First-run only: frames the screen as setting up the subscription the user
+  // has just started, rather than as a gate in front of it.
+  overline?: string;
 }
 
-export default function SoberDateEditor({ current, onSave, onBack, onRemove, onSkip, primaryLabel = 'Save date', skipLabel }: SoberDateEditorProps) {
+export default function SoberDateEditor({ current, onSave, onBack, onRemove, onSkip, primaryLabel = 'Save date', skipLabel, overline }: SoberDateEditorProps) {
   const styles = useThemedStyles(makeStyles);
   const { colors } = useTokens();
   const initial = current
@@ -76,10 +81,11 @@ export default function SoberDateEditor({ current, onSave, onBack, onRemove, onS
     <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1 }}>
         <View style={styles.topBar}>
-          <BackButton onPress={onBack} />
+          {onBack && <BackButton onPress={onBack} />}
         </View>
 
         <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+          {!!overline && <Text style={styles.overline}>{overline}</Text>}
           <Text style={styles.affirmation}>One day at a time.</Text>
           <Text style={styles.heading}>What&apos;s your{'\n'}sobriety date?</Text>
           <Text style={styles.body}>
@@ -140,6 +146,7 @@ const makeStyles = (tk: Tokens) => {
     topBar: { paddingHorizontal: 16, paddingTop: 4, paddingBottom: 4 },
 
     scroll: { paddingHorizontal: 26, paddingTop: 10, paddingBottom: 24 },
+    overline: { fontFamily: fontFamily.semiBold, fontSize: 12, letterSpacing: 1.2, color: c.textMuted, marginBottom: 10 },
     affirmation: { fontFamily: fontFamily.serifMediumItalic, fontSize: fontSize['3xl'], color: colors.primary, lineHeight: 28 },
     heading: { fontFamily: fontFamily.displayBold, fontSize: 29, color: c.text, letterSpacing: -0.6, lineHeight: 33, marginTop: 10 },
     body: { fontFamily: fontFamily.regular, fontSize: fontSize.md, color: c.textSecondary, lineHeight: 22, marginTop: 12 },

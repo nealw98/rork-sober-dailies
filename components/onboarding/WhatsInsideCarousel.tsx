@@ -17,8 +17,8 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { StatusBar } from 'expo-status-bar';
 import { Image } from 'expo-image';
 import Svg, { Path } from 'react-native-svg';
-import { ArrowRight, Check, Plus, BookOpen, MessageCircle, PenLine, Heart, Users, Play, CircleCheck, Moon, NotebookPen, Phone } from 'lucide-react-native';
-import { HandsPraying, FlowerLotus } from 'phosphor-react-native';
+import { ArrowRight, Check, Plus, BookOpen, MessageCircle, PenLine, Heart, Moon, Users, CircleCheck, NotebookPen, Phone, Mic, Send } from 'lucide-react-native';
+import { HandsPraying, FlowerLotus, ChatCircleDots } from 'phosphor-react-native';
 
 import { fontFamily, families, shadows, type Tokens } from '@/constants/designTokens';
 import { useTokens, useThemedStyles } from '@/hooks/useTokens';
@@ -85,13 +85,35 @@ function VigToday() {
   const { colors } = useTokens();
   return (
     <View style={styles.vigShell}>
+      {/* Real Today order: the counter leads, then the Daily Reflection hero,
+          then the checkable dailies. */}
       <View style={styles.vigCounterRow}>
         <LinearGradient colors={[families.teal[500], families.teal[700]]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.vigCoin}>
           <Text style={styles.vigCoinNum}>247</Text>
         </LinearGradient>
-        <View style={{ flex: 1 }}>
+        <View style={styles.flex1}>
           <Text style={styles.vigCounterSerif}>days, one at a time</Text>
           <Text style={styles.vigCounterSub}>Your count, front and center</Text>
+        </View>
+      </View>
+      {/* The Daily Reflection hero — a permanent feature, not one of the
+          checkable dailies. */}
+      <View style={styles.vigHero}>
+        <Image source={require('@/assets/images/reflection_bg2.webp')} style={StyleSheet.absoluteFill} contentFit="cover" />
+        <LinearGradient
+          colors={['rgba(0,0,0,0.05)', 'rgba(0,0,0,0.62)']}
+          start={{ x: 0.5, y: 0 }}
+          end={{ x: 0.5, y: 1 }}
+          style={StyleSheet.absoluteFill}
+        />
+        <View style={styles.vigHeroBody}>
+          <View style={styles.flex1}>
+            <Text style={styles.vigHeroOverline}>DAILY REFLECTIONS</Text>
+            <Text style={styles.vigHeroTitle} numberOfLines={1}>Redoubling Our Efforts</Text>
+          </View>
+          <View style={styles.vigHeroDone}>
+            <Text style={styles.vigHeroDoneText}>Done</Text>
+          </View>
         </View>
       </View>
       <VigRow Glyph={HandsPraying} ink={colors.primaryDark} soft={colors.primarySoft} label="Say my morning prayers" done />
@@ -122,52 +144,97 @@ function VigSponsor() {
       {SPONSORS.map((p) => (
         <View key={p.id} style={styles.vigPersonaRow}>
           <Image source={p.avatar} style={styles.vigAvatar} contentFit="cover" />
-          <View style={{ flex: 1 }}>
+          <View style={styles.flex1}>
             <Text style={styles.vigPersonaName}>{p.name}</Text>
             <Text style={styles.vigPersonaTag}>{p.description}</Text>
           </View>
         </View>
       ))}
+
+      {/* ...and what it actually looks like to talk to one. No identity header
+          here: Eddie is named in the row directly above, and repeating him
+          read as a second, duplicate sponsor. The composer placeholder is the
+          only cue needed. Sample words — see the @ASK-FIRST note up top. */}
+      <View style={styles.vigChat}>
+        <View style={styles.vigUserRow}>
+          <View style={styles.vigUserBubble}>
+            <Text style={styles.vigUserText}>Rough night. I got close.</Text>
+          </View>
+        </View>
+        <Text style={styles.vigBotText}>
+          But you didn&apos;t — and you came here instead. That&apos;s the whole thing, right there. What set it off?
+        </Text>
+
+        <View style={styles.vigChatInput}>
+          <Text style={styles.vigChatPlaceholder}>Message Eddie…</Text>
+          <View style={styles.vigChatSend}>
+            <Send size={10} color="#fff" strokeWidth={2.4} />
+          </View>
+        </View>
+      </View>
     </View>
   );
 }
 
-// ─── 3 · Tools — the inventory: books + 3×3 coin grid ───────────────────────
+// ─── 3 · Tools — the launcher: Literature hero + flagships + the grid ───────
 
-const TOOL_COINS: [React.ComponentType<{ size?: number; color?: string }>, string, string][] = [
-  [Play, 'Speakers', families.steel[500]],
-  [HandsPraying, 'Prayers', families.teal[500]],
-  [FlowerLotus, 'Meditation', families.periwinkle[500]],
-  [Heart, 'Gratitude', families.terracotta[500]],
-  [CircleCheck, 'Spot Check', families.terracotta[500]],
-  [Users, 'Meetings', families.steel[500]],
-  [Moon, 'Nightly Review', families.periwinkle[500]],
-  [NotebookPen, 'Journal', families.terracotta[500]],
-  [Phone, 'Reach Out', families.teal[500]],
+// Mirrors app/(main)/(tabs)/tools.tsx: the featured Literature photo hero, the
+// two flagship cards (Speaker Tapes / AI Sponsor), then the tool tiles.
+const TOOL_TILES: [React.ComponentType<{ size?: number; color?: string }>, string, keyof typeof families][] = [
+  [HandsPraying, 'Prayers', 'teal'],
+  [FlowerLotus, 'Meditation', 'periwinkle'],
+  [NotebookPen, 'Journal', 'teal'],
+  [Heart, 'Gratitude', 'terracotta'],
+  [CircleCheck, 'Spot Check', 'terracotta'],
+  [Moon, 'Nightly Review', 'periwinkle'],
+  [Phone, 'Reach Out', 'steel'],
+  [Users, 'Meetings', 'steel'],
 ];
 
 function VigTools() {
   const styles = useThemedStyles(makeStyles);
+  const { colors } = useTokens();
   return (
     <View style={styles.vigShell}>
-      <View style={styles.vigBooksCard}>
-        {([
-          [require('@/assets/images/bigbook.webp'), 'Big Book'],
-          [require('@/assets/images/12x12.webp'), 'Twelve & Twelve'],
-        ] as const).map(([src, label]) => (
-          <View key={label} style={styles.vigBook}>
-            <Image source={src} style={styles.vigBookCover} contentFit="cover" />
-            <Text style={styles.vigBookLabel}>{label}</Text>
-          </View>
-        ))}
+      {/* Featured hero — Literature */}
+      <View style={styles.vigToolHero}>
+        <Image source={require('@/assets/images/literature-hero4.webp')} style={StyleSheet.absoluteFill} contentFit="cover" />
+        <LinearGradient colors={['rgba(0,0,0,0)', 'rgba(0,0,0,0.62)']} locations={[0.4, 1]} style={StyleSheet.absoluteFill} />
+        <View style={styles.vigFeatured}>
+          <Text style={styles.vigFeaturedText}>FEATURED</Text>
+        </View>
+        <View style={styles.vigToolHeroBottom}>
+          <Text style={styles.vigToolHeroTitle}>Literature</Text>
+          <Text style={styles.vigToolHeroSub}>Read. Reflect. Grow.</Text>
+        </View>
       </View>
-      <View style={styles.vigCoinGrid}>
-        {TOOL_COINS.map(([Glyph, label, tone]) => (
-          <View key={label} style={styles.vigCoinCell}>
-            <View style={[styles.vigToolCoin, { backgroundColor: tone }]}>
-              <Glyph size={14} color="#fff" />
+
+      {/* Flagship pair */}
+      <View style={styles.vigFlagRow}>
+        <View style={[styles.vigFlagCard, { backgroundColor: colors.steelSoft }]}>
+          <View style={[styles.vigFlagCircle, { backgroundColor: colors.steel }]}>
+            <Mic size={14} color="#fff" />
+          </View>
+          <Text style={styles.vigFlagTitle}>Speaker Tapes</Text>
+          <Text style={styles.vigFlagSub} numberOfLines={2}>Members&apos; experience, strength and hope.</Text>
+        </View>
+        <View style={[styles.vigFlagCard, { backgroundColor: colors.tertiarySoft }]}>
+          <View style={[styles.vigFlagCircle, { backgroundColor: colors.tertiary }]}>
+            <ChatCircleDots size={14} color="#fff" />
+          </View>
+          <Text style={styles.vigFlagTitle}>AI Sponsor</Text>
+          <Text style={styles.vigFlagSub} numberOfLines={2}>Guidance and encouragement.</Text>
+        </View>
+      </View>
+
+      {/* Tool grid */}
+      <View style={styles.vigGrid}>
+        {TOOL_TILES.map(([Glyph, label, tone]) => (
+          <View key={label} style={styles.vigTile}>
+            <View style={[styles.vigTileCoin, { backgroundColor: families[tone][500] }]}>
+              <Glyph size={15} color="#fff" />
             </View>
-            <Text style={styles.vigCoinLabel} numberOfLines={1}>{label}</Text>
+            <Text style={styles.vigTileLabel} numberOfLines={1}>{label}</Text>
           </View>
         ))}
       </View>
@@ -210,9 +277,9 @@ function VigJourney() {
           </View>
         ))}
       </View>
-      {/* month heatmap */}
+      {/* month heatmap — caption and Less/More legend dropped, and the cells
+          shrunk, to make room for Insights without a taller card */}
       <View style={styles.vigHeatCard}>
-        <Text style={styles.vigHeatCaption}>26 of 31 days with progress this month</Text>
         <View style={styles.vigHeatNav}>
           <Text style={styles.vigHeatNavSide}>&#8249; Jun</Text>
           <Text style={styles.vigHeatMonth}>July 2026</Text>
@@ -230,6 +297,24 @@ function VigJourney() {
             ]} />
           ))}
         </View>
+      </View>
+
+      {/* Insights — the second card on the real Trends page. Sample values. */}
+      <View style={styles.vigInsightCard}>
+        <View style={styles.vigInsightHead}>
+          <View style={[styles.vigInsightAccent, { backgroundColor: colors.tertiary }]} />
+          <Text style={styles.vigInsightTitle}>Insights</Text>
+        </View>
+        {([
+          ['Strongest day', 'Sunday'],
+          ['Longest streak ever', 'Gratitude · 34 days'],
+          ['Average completion', '78%'],
+        ] as const).map(([label, value], i, arr) => (
+          <View key={label} style={[styles.vigInsightRow, i < arr.length - 1 && styles.vigInsightRowBorder]}>
+            <Text style={styles.vigInsightLabel} numberOfLines={1}>{label}</Text>
+            <Text style={styles.vigInsightValue} numberOfLines={1}>{value}</Text>
+          </View>
+        ))}
       </View>
     </View>
   );
@@ -266,6 +351,12 @@ export default function WhatsInsideCarousel({ onSkip, onContinue, overline }: {
   const cards = useCards();
   const scrollRef = useRef<ScrollView>(null);
   const [index, setIndex] = useState(0);
+  // All four cards share the height of the tallest, so the carousel doesn't
+  // resize as you page. Measured, not hardcoded: the tallest card differs by
+  // device width and Dynamic Type. Settles in one pass — once minHeight is
+  // applied, the re-measure reports the same value and the max stops moving.
+  const [cardH, setCardH] = useState(0);
+  const measure = (h: number) => setCardH((m) => (h > m ? h : m));
   const last = index === cards.length - 1;
 
   const onMomentumEnd = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
@@ -299,8 +390,16 @@ export default function WhatsInsideCarousel({ onSkip, onContinue, overline }: {
           style={{ flex: 1 }}
         >
           {cards.map((m) => (
-            <View key={m.key} style={styles.page}>
-              <View style={styles.card}>
+            <ScrollView
+              key={m.key}
+              style={styles.page}
+              contentContainerStyle={styles.pageContent}
+              showsVerticalScrollIndicator={false}
+            >
+              <View
+                style={[styles.card, cardH > 0 && { minHeight: cardH }]}
+                onLayout={(e) => measure(e.nativeEvent.layout.height)}
+              >
                 <View style={styles.cardHead}>
                   <View style={[styles.cardIconBox, { backgroundColor: m.soft }]}>
                     <m.Icon size={21} color={m.tone} />
@@ -310,7 +409,7 @@ export default function WhatsInsideCarousel({ onSkip, onContinue, overline }: {
                 <Text style={styles.cardDesc}>{m.desc}</Text>
                 <m.Vig />
               </View>
-            </View>
+            </ScrollView>
           ))}
         </ScrollView>
 
@@ -324,7 +423,10 @@ export default function WhatsInsideCarousel({ onSkip, onContinue, overline }: {
 
         <View style={styles.footer}>
           <Pressable style={styles.nextBtn} onPress={() => (last ? onContinue() : goTo(index + 1))}>
-            <Text style={styles.nextText}>{last ? 'Make it yours' : 'Next'}</Text>
+            {/* Not "Make it yours" any more — that promised the setup steps,
+                which now sit on the far side of the disclaimer and the paywall.
+                The carousel hands off to "Before you begin". */}
+            <Text style={styles.nextText}>{last ? 'Continue' : 'Next'}</Text>
             <ArrowRight size={18} color={WI_INK} />
           </Pressable>
         </View>
@@ -345,7 +447,9 @@ const makeStyles = (tk: Tokens) => {
     skipPill: { paddingVertical: 6, paddingHorizontal: 15, borderRadius: 999, backgroundColor: 'rgba(255,255,255,0.16)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.32)' },
     skipText: { fontFamily: fontFamily.bold, fontSize: 13.5, color: '#fff' },
 
-    page: { width: SCREEN_W, paddingHorizontal: PAGE_PAD, justifyContent: 'center' },
+    page: { width: SCREEN_W },
+    // grow so a card shorter than the viewport still centres
+    pageContent: { flexGrow: 1, paddingHorizontal: PAGE_PAD, paddingVertical: 8, justifyContent: 'center' },
     card: { width: CARD_W, backgroundColor: c.surface, borderRadius: 24, paddingVertical: 20, paddingHorizontal: 18, ...shadows.lg, shadowOpacity: 0.22, shadowRadius: 25, shadowOffset: { width: 0, height: 12 } },
     cardHead: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 8 },
     cardIconBox: { width: 42, height: 42, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
@@ -353,6 +457,7 @@ const makeStyles = (tk: Tokens) => {
     cardDesc: { fontFamily: fontFamily.regular, fontSize: 13.5, color: c.textSecondary, lineHeight: 21, marginBottom: 13 },
 
     // vignette shell + rows
+    flex1: { flex: 1, minWidth: 0 },
     vigShell: { backgroundColor: vigPaper, borderWidth: 1, borderColor: c.border, borderRadius: 14, padding: 12, gap: 8 },
     vigRow: { flexDirection: 'row', alignItems: 'center', gap: 9, backgroundColor: vigCard, borderWidth: 1, borderColor: c.border, borderRadius: 11, paddingVertical: 8, paddingHorizontal: 10 },
     vigRowCoin: { width: 28, height: 28, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
@@ -363,6 +468,12 @@ const makeStyles = (tk: Tokens) => {
     vigDonePillOffText: { fontFamily: fontFamily.bold, fontSize: 10.5, color: colors.primaryDark },
 
     // Today vignette
+    vigHero: { height: 92, borderRadius: 12, overflow: 'hidden', justifyContent: 'flex-end' },
+    vigHeroBody: { flexDirection: 'row', alignItems: 'flex-end', gap: 8, paddingHorizontal: 11, paddingBottom: 9 },
+    vigHeroOverline: { fontFamily: fontFamily.bold, fontSize: 8.5, letterSpacing: 1.4, color: 'rgba(255,255,255,0.92)' },
+    vigHeroTitle: { fontFamily: fontFamily.serif, fontSize: 16, color: '#fff', marginTop: 2 },
+    vigHeroDone: { borderWidth: 1.5, borderColor: 'rgba(255,255,255,0.85)', borderRadius: 999, paddingVertical: 3, paddingHorizontal: 11 },
+    vigHeroDoneText: { fontFamily: fontFamily.bold, fontSize: 10.5, color: '#fff' },
     vigCounterRow: { flexDirection: 'row', alignItems: 'center', gap: 11 },
     vigCoin: { width: 46, height: 46, borderRadius: 23, alignItems: 'center', justifyContent: 'center', ...shadows.md },
     vigCoinNum: { fontFamily: fontFamily.displayBold, fontSize: 16, color: '#fff' },
@@ -379,16 +490,31 @@ const makeStyles = (tk: Tokens) => {
     vigAvatar: { width: 42, height: 42, borderRadius: 21 },
     vigPersonaName: { fontFamily: fontFamily.bold, fontSize: 13, color: c.text },
     vigPersonaTag: { fontFamily: fontFamily.regular, fontSize: 11, color: c.textMuted, marginTop: 1 },
+    vigChat: { backgroundColor: vigCard, borderWidth: 1, borderColor: c.border, borderRadius: 12, padding: 10, gap: 8, marginTop: 2 },
+    vigUserRow: { alignItems: 'flex-end' },
+    vigUserBubble: { maxWidth: '82%', backgroundColor: vigPaper, borderWidth: 1, borderColor: c.border, borderRadius: 14, borderBottomRightRadius: 4, paddingVertical: 7, paddingHorizontal: 11 },
+    vigUserText: { fontFamily: fontFamily.regular, fontSize: 11.5, lineHeight: 16, color: c.text },
+    vigBotText: { fontFamily: fontFamily.regular, fontSize: 11.5, lineHeight: 17, color: c.text, paddingRight: 14 },
+    vigChatInput: { flexDirection: 'row', alignItems: 'center', gap: 8, borderWidth: 1, borderColor: c.border, borderRadius: 999, paddingVertical: 5, paddingLeft: 12, paddingRight: 5, marginTop: 2 },
+    vigChatPlaceholder: { flex: 1, fontFamily: fontFamily.regular, fontSize: 11, color: c.textMuted },
+    vigChatSend: { width: 22, height: 22, borderRadius: 11, backgroundColor: colors.primary, alignItems: 'center', justifyContent: 'center' },
 
-    // Tools vignette
-    vigBooksCard: { flexDirection: 'row', gap: 9, backgroundColor: vigCard, borderWidth: 1, borderColor: c.border, borderRadius: 12, padding: 8 },
-    vigBook: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 8 },
-    vigBookCover: { width: 30, height: 40, borderRadius: 5 },
-    vigBookLabel: { flex: 1, fontFamily: fontFamily.semiBold, fontSize: 10.5, color: c.text, lineHeight: 13 },
-    vigCoinGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 7 },
-    vigCoinCell: { flexBasis: '31%', flexGrow: 1, backgroundColor: vigCard, borderWidth: 1, borderColor: c.border, borderRadius: 11, paddingTop: 9, paddingBottom: 7, paddingHorizontal: 2, alignItems: 'center', gap: 5 },
-    vigToolCoin: { width: 28, height: 28, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
-    vigCoinLabel: { fontFamily: fontFamily.semiBold, fontSize: 9, color: c.text },
+    // Tools vignette — the launcher, mirroring the real Tools tab
+    vigToolHero: { height: 104, borderRadius: 14, overflow: 'hidden', justifyContent: 'flex-end' },
+    vigFeatured: { position: 'absolute', top: 9, left: 10, backgroundColor: 'rgba(0,0,0,0.42)', borderRadius: 999, paddingVertical: 3, paddingHorizontal: 9 },
+    vigFeaturedText: { fontFamily: fontFamily.bold, fontSize: 7.5, letterSpacing: 1.1, color: '#fff' },
+    vigToolHeroBottom: { paddingHorizontal: 13, paddingBottom: 11 },
+    vigToolHeroTitle: { fontFamily: fontFamily.displayBold, fontSize: 21, color: '#fff', letterSpacing: -0.4 },
+    vigToolHeroSub: { fontFamily: fontFamily.medium, fontSize: 10.5, color: 'rgba(255,255,255,0.92)', marginTop: 1 },
+    vigFlagRow: { flexDirection: 'row', gap: 9 },
+    vigFlagCard: { flex: 1, borderRadius: 14, paddingVertical: 11, paddingHorizontal: 11, gap: 7 },
+    vigFlagCircle: { width: 28, height: 28, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
+    vigFlagTitle: { fontFamily: fontFamily.bold, fontSize: 12, color: c.text },
+    vigFlagSub: { fontFamily: fontFamily.regular, fontSize: 9.5, lineHeight: 13, color: c.textSecondary },
+    vigGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 7 },
+    vigTile: { flexBasis: '23%', flexGrow: 1, backgroundColor: vigCard, borderWidth: 1, borderColor: c.border, borderRadius: 13, paddingTop: 9, paddingBottom: 7, paddingHorizontal: 2, alignItems: 'center', gap: 5 },
+    vigTileCoin: { width: 28, height: 28, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
+    vigTileLabel: { fontFamily: fontFamily.semiBold, fontSize: 8.5, color: c.text },
 
     // Journey vignette
     vigStreakCard: { backgroundColor: vigCard, borderWidth: 1, borderColor: c.border, borderRadius: 12, paddingVertical: 4, paddingHorizontal: 12 },
@@ -399,14 +525,21 @@ const makeStyles = (tk: Tokens) => {
     vigStreakDays: { fontFamily: fontFamily.regular, fontSize: 12.5, color: c.textMuted },
     vigStreakNum: { fontFamily: fontFamily.displayBold, fontSize: 14, color: colors.primary },
     vigHeatCard: { backgroundColor: vigCard, borderWidth: 1, borderColor: c.border, borderRadius: 12, paddingVertical: 10, paddingHorizontal: 12 },
-    vigHeatCaption: { fontFamily: fontFamily.regular, fontSize: 10.5, color: c.textMuted, marginBottom: 7 },
     vigHeatNav: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 },
     vigHeatNavSide: { fontFamily: fontFamily.semiBold, fontSize: 10, color: c.textMuted },
     vigHeatMonth: { fontFamily: fontFamily.displayBold, fontSize: 12, color: c.text },
     vigHeatGrid: { flexDirection: 'row', flexWrap: 'wrap', rowGap: 4, columnGap: 0 },
     vigHeatDow: { width: `${100 / 7}%`, textAlign: 'center', fontFamily: fontFamily.bold, fontSize: 8.5, color: c.textMuted },
-    vigHeatCell: { width: `${100 / 7 - 1.5}%`, marginHorizontal: '0.75%', height: 13, borderRadius: 3.5 },
+    vigHeatCell: { width: `${100 / 7 - 1.5}%`, marginHorizontal: '0.75%', height: 9, borderRadius: 2.5 },
     vigHeatCellFuture: { borderWidth: 1, borderColor: c.border },
+    vigInsightCard: { backgroundColor: vigCard, borderWidth: 1, borderColor: c.border, borderRadius: 12, paddingVertical: 4, paddingHorizontal: 12 },
+    vigInsightHead: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingTop: 8, paddingBottom: 4 },
+    vigInsightAccent: { width: 3, height: 14, borderRadius: 2 },
+    vigInsightTitle: { fontFamily: fontFamily.displayBold, fontSize: 12.5, color: c.text },
+    vigInsightRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10, paddingVertical: 6 },
+    vigInsightRowBorder: { borderBottomWidth: 1, borderBottomColor: c.border },
+    vigInsightLabel: { flex: 1, fontFamily: fontFamily.regular, fontSize: 10.5, color: c.textSecondary },
+    vigInsightValue: { fontFamily: fontFamily.semiBold, fontSize: 10.5, color: c.text },
 
     // dots + footer
     dotsRow: { flexDirection: 'row', gap: 7, justifyContent: 'center', alignItems: 'center', marginBottom: 20 },
