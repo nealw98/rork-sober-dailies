@@ -135,13 +135,17 @@ interface PaywallScreenProps {
   // behind it, so the rest of the flow is reachable on a simulator without a
   // sandbox purchase. Never rendered in a release build.
   onDevBypass?: () => void;
+  // Escape hatch for a paywall that CANNOT SELL — offerings failed to load, so
+  // there are no plans and the CTA is dead. Holding someone there achieves
+  // nothing; this takes precedence over onDismiss when that state is reached.
+  onUnavailableDismiss?: () => void;
   preview?: boolean;
   // Developer Console only: force either layout instead of deriving it from
   // real trial history, so both can be reviewed on one device.
   forceTrial?: boolean;
 }
 
-export default function PaywallScreen({ onDismiss, onDevBypass, preview, forceTrial }: PaywallScreenProps) {
+export default function PaywallScreen({ onDismiss, onDevBypass, onUnavailableDismiss, preview, forceTrial }: PaywallScreenProps) {
   const styles = useThemedStyles(makeStyles);
   const { c, colors } = useTokens();
   const { offerings, isLoading, error, purchasePackage, restorePurchases, refresh, applyCustomerInfo, customerInfo, trialEligible, qaForceNewUser } = useSubscription();
@@ -317,6 +321,11 @@ export default function PaywallScreen({ onDismiss, onDevBypass, preview, forceTr
 
   const processing = isLoading || busy || restoring;
 
+  // Same condition the error card renders on, so the X appears exactly when the
+  // screen has given up — never during the normal loading window.
+  const cannotSell = !packages.length && !!error;
+  const closeAction = cannotSell && onUnavailableDismiss ? onUnavailableDismiss : onDismiss;
+
   // Don't paint a variant we might have to swap. isLoading clears as soon as
   // offerings land, but eligibility resolves in a SEPARATE effect keyed on
   // those offerings — and on iOS that's an async StoreKit round-trip after it.
@@ -358,10 +367,10 @@ export default function PaywallScreen({ onDismiss, onDevBypass, preview, forceTr
             </Pressable>
           )}
           <View style={styles.flex} />
-          {onDismiss && (
+          {closeAction && (
             <Pressable
               style={styles.close}
-              onPress={onDismiss}
+              onPress={closeAction}
               hitSlop={10}
               accessibilityRole="button"
               accessibilityLabel="Close"
@@ -384,8 +393,14 @@ export default function PaywallScreen({ onDismiss, onDevBypass, preview, forceTr
 
         <Text style={styles.title}>{showTrial ? trialTitle : TRIAL_OVER_TITLE}</Text>
         <Text style={styles.subtitle}>
+          {/* Instructional, not a disclosure — Day 7 states that a subscription
+              is required. "A subscription is required to access the app" read
+              oddly under "Your first week is free": what a subscription really
+              gates here is starting the trial, and saying so is clearer than
+              being technically correct. The no-trial variant has no timeline,
+              so its line still carries the requirement itself. */}
           {showTrial
-            ? 'A subscription is required to access the app.'
+            ? 'Pick a plan to start your free trial.'
             : 'Subscribe to access the app.'}
         </Text>
 

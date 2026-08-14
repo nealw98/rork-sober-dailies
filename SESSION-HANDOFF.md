@@ -1,8 +1,21 @@
 # Session Handoff — Sober Dailies
 
-_For a fresh chat. Branch `3.0.5-redesign` (tracks `origin/3.0.5-redesign`)._
+_For a fresh chat. Branch **`main`** (tracks `origin/main`) — `main` became the
+shipped code on 2026-08-10, tagged `v3.0.8-build134`; the old 2.x history is on
+`archive/main-2.x`._
 
-_Latest session (**2026-07-31, #2**): **build 131 built on both platforms**
+_Latest session (**2026-08-13/14**): **READ §27.** Google rejected version code
+134 on TWO Subscriptions findings; both are fixed. First run was reordered to
+**understand → agree → subscribe → set up**, the paywall split into **two
+variants** (trial / "Your free trial is up") with Android detection via Play
+withholding the offer, the X became a real dismiss in every build, and the
+grandfather check now **fails open** so a member offline is never walled.
+**⚠️ Do NOT OTA to `production`** — build 135 and the live App Store build 134
+share `channel=production` and runtime 3.0.8, so it reaches every user; preview
+builds listen on **`channel=dev`**. Four files were uncommitted at the end of
+that session — see §27.9 for state and the pre-submit checklist._
+
+_Prior session (**2026-07-31, #2**): **build 131 built on both platforms**
 (iOS auto-submitted; Android AAB in `~/Downloads/sober-dailies-3.0.7-131.aab`,
 runtime deliberately still **3.0.7** — 3.0.8 is reserved for the launch binary
 132). Also: the Literature TOCs got **one find row** (live search + solid
@@ -3007,3 +3020,225 @@ than Sonnet" and "parity" — confirm at OpenAI before budgeting.
 3. Neal was taking this to Codex for a second opinion — worth asking it
    specifically about Q1 (the disputed cached rate) and Q2 (whether
    `prompt_cache_key` helps below the 5.6 family).
+
+## 27. Latest session — 2026-08-13/14 (PLAY REJECTION FIXED · first run reordered · two paywalls)
+
+Head `2b13e597`, pushed. **⚠️ Four files uncommitted after that** (see 27.9).
+Branch work: `main` is now the shipped code (was stale 2.x), tagged
+`v3.0.8-build134`; `3.0.9-update` was created then abandoned — the release
+train is **136 on runtime 3.0.8**, and app.json is back to version 3.0.8 /
+build 135. **Nothing shipped to production.** One OTA to **channel `dev`**
+(group `92a529ed`) so Neal's preview build could be unblocked.
+
+### 27.1 What Google actually rejected (version code 134, BOTH findings)
+
+Two Subscriptions-policy findings, both on **134** — so the resubmission is
+the first build Google sees with either fix:
+
+1. **"Unclear or invisible dismiss button."** There was no unclear dismiss —
+   there was **none**. `paywallDismissable = __DEV__`, so `onDismiss` was
+   undefined in any release build and the X never rendered.
+2. **"Prominent display price as breakdown cost."** Already fixed in code
+   before this session (it fell out of the Apple 3.1.2(c) work) but **not in
+   134**: yearly now leads with `$19.99/yr` at 16.5 bold and demotes
+   `$1.67/mo` to 13 muted.
+
+The two Apple findings (3.1.2(c) undisclosed renewal price, 3.1.1 access
+outside IAP) were fixed pre-session in `5a246eae`; both were re-verified here
+and strengthened, not re-opened.
+
+### 27.2 First run reordered — understand, agree, subscribe, set up
+
+Was: welcome → carousel → date → dailies → **paywall** → disclaimer → Today.
+Now: welcome → carousel → **disclaimer** → **paywall** → date → dailies → Today.
+
+Nobody is charged before agreeing to what the app is; nobody configures an app
+they haven't bought. The disclaimer and paywall moved INSIDE `OnboardingFlow`;
+the gates in `app/_layout` are now **backstops** for people past first run
+(lapsed subscription, or an install predating the disclaimer). Readiness now
+resolves BEFORE onboarding mounts, because the flow branches on who you are.
+
+This also removes Google's finding structurally: the wall is no longer reached
+after someone has entered a sobriety date and built a daily practice.
+
+### 27.3 One flow for everyone (the "Welcome back" screen was built, then deleted)
+
+Built an express door for grandfathered members, then Neal reversed it: *"no
+'welcome back' or any difference with onboarding screens — same exact one."*
+To a v2 upgrader this IS a new app. So: the express screen, the upgrader
+welcome variant ("Welcome to the new Sober Dailies" / "See what's new") and the
+"WHAT'S NEW" carousel overline are all **gone**. `isUpgrader` no longer
+branches anything in the flow.
+
+**The only difference for anyone with access is that the paywall step doesn't
+run** (`afterDisclaimer = alreadyHadAccess ? 'date' : 'paywall'`).
+
+Two traps found while building it, both fixed:
+- `alreadyHadAccess` is **frozen at mount** (`useState(isPremium)`). Read live,
+  a new user who subscribes mid-flow flips premium and gets bounced into
+  "Welcome back" instead of on to their setup.
+- The dev X bypassed the paywall STEP but not the root backstop, so finishing
+  setup without an entitlement dropped straight onto a second paywall. The
+  bypass now releases both.
+
+### 27.4 Setup screens redesigned (Claude Design handoff)
+
+`SETTING UP · 1 OF 2` header, two-segment rail with labels and a completed
+check, back chevron on **step 2 only** (step 1 has nowhere to go back to —
+the paywall is behind it and they've just paid). Step 2 is now **"What are
+your daily practices?"** with a two-line body replacing the info card, and
+**"Start my program"**. The sobriety date is **prefilled** so an upgrader
+confirms rather than retypes, and step 1 is no longer skipped for them.
+
+`SoberDateEditor` is shared with Today/Settings, so the header and the
+shortened body come in as optional props — the standalone editor is untouched.
+
+**Removed the dailies seeding.** `DefineDailiesStep` called `setAll(defaults)`
+unconditionally on mount. It was redundant (the store already starts at
+`DEFAULT_PROGRAM` — the same six practices) and destructive: `dailies_program`
+is a SYNC_KEY, so a cloud-restored program was being overwritten by defaults.
+
+### 27.5 Two paywalls, decided the hard way
+
+Went trial-only → back to two variants. The second one is **trial-USED**, not
+trial-ineligible: **"Your free trial is up" / "Subscribe to access the app."**
+over the benefits list (recovered from `bb15012a`), timeline hidden, **Subscribe**
+CTA, "Billed $X" line.
+
+The title is **length-neutral on purpose**: an ineligible user gets NO intro
+offer back, so `trialLen` is null and any specific wording ("your free week is
+up") would be a guess from the current default — wrong for anyone who took a
+14-day promo.
+
+**Detection, two signals, because neither covers both platforms:**
+- **iOS** — StoreKit answers per Apple ID, so it works on a device the person
+  has never used.
+- **Android** — `checkTrialOrIntroductoryPriceEligibility` always returns
+  UNKNOWN, BUT Play **withholds the trial offer** from accounts that used it.
+  No zero-price intro → no trial packages → `trialEligible = false`, before the
+  API is ever called. **This is the Android signal** and it survives a
+  reinstall, where the second one can't.
+- **Prior purchase** on the RevenueCat customer — works on both, but anonymous
+  app-user IDs mean a reinstall starts with no history.
+
+⚠️ **The Android path rests on the offer being configured with Google-determined
+eligibility.** If it were ever a developer-determined offer with no criteria,
+Play would hand it to everyone and detection silently stops. Neal is testing
+this on a real Play account that has consumed the trial.
+
+**The variant no longer flashes.** `isLoading` clears when offerings land, but
+eligibility resolves in a SEPARATE effect keyed on those offerings — async on
+iOS — so the screen painted the trial title and then rewrote itself. It now
+holds, bounded three ways (forced preview / offerings error / Android resolves
+synchronously) so it can't hang.
+
+### 27.6 Paywall copy — the sequence it went through
+
+Day 7 gained the price, then lost the "required" clause, then got it back:
+> Your subscription starts at $19.99/year **and is required to maintain access
+> to the app**. Cancel before then and you pay nothing.
+
+Price comes from the chosen package, so Monthly reads `$3.99/month`. Billing
+line gained **"Renews automatically until cancelled"**. The Today step went
+back to listing what unlocks and nothing else — the requirement is stated
+**once**, where it becomes true.
+
+Subtitle is now **"Pick a plan to start your free trial."** Neal's call: *"A
+subscription is required to access the app"* was technically correct but read
+oddly under a headline announcing something free, and what a subscription
+really gates there is starting the trial.
+
+**Structure decided: the timeline, NOT a benefits list** (recorded in the file).
+The carousel sells one screen earlier, so a benefits list would restate it; the
+timeline answers what the carousel can't ("what happens to my money").
+
+### 27.7 The X, and what it does
+
+Renders in **every** build now, **top right**, wherever the caller supplies a
+way out. During first run it returns to the start of onboarding. The dev bypass
+moved to its own labelled **DEV SKIP** on the left — tap and bypass can't share
+a gesture once the tap has a job.
+
+⚠️ **`DEV SKIP` and the dev bypass are `__DEV__`-only, and a preview build is a
+release build — neither exists when you sideload.**
+
+Both Developer Console previews are back (`Preview · Trial` / `Preview · No
+trial`, via a restored `forceTrial`). The floating "Close preview" pill was
+removed: it sat on top of the very control being reviewed, and the screen's own
+X closes the preview now.
+
+### 27.8 Grandfather fail-open, and the live-fire that found the next gap
+
+`checkGrandfatherStatus` collapsed "couldn't ask" into "not grandfathered", so
+a member offline — or hitting a backend outage — was shown a paywall for an app
+they were promised free. **That has already happened in production once** (July
+RLS incident). It now returns **yes / no / unknown** and **fails OPEN on
+unknown**. Cost is a brief free ride during an outage, which is small:
+everything a subscription buys beyond the local daily program is Supabase-backed
+and broken for PAYING users at the same moment. Still self-healing — a
+successful "no" clears the cache.
+
+**DELIBERATELY NOT BUILT** (recorded in `useSubscription.ts`): a
+connection-required screen for a fresh install that is also fully offline.
+Reaching it means losing connectivity between download and first launch; it
+self-corrects next launch; and a hard gate on first run would block EVERY new
+install if it misfired. Neal: *"If there are problems, this is what support is
+for."*
+
+**Then Neal sideloaded a preview build and was trapped.** Straight to a paywall,
+no X, dead CTA, "unknown backend error. Rejecting receipt." Diagnosis:
+- Onboarding was already complete on that device → he hit the **backstop**
+  paywall, where `paywallDismissable` is still `__DEV__` → no X. Android was a
+  fresh install, so it ran onboarding and had the X. That's the whole
+  platform difference.
+- The receipt error is the **ad-hoc signing**, not the code — RC keys ARE set
+  for the preview environment (checked), and Supabase is hardcoded to one
+  project. A sideloaded build has no App Store receipt to validate.
+- Verified by diff that **no subscription change this session can deny access**:
+  every edit is a 1:1 rename or strictly more permissive.
+
+Fix shipped as the `dev` OTA: **a paywall that cannot sell can be dismissed.**
+`cannotSell = !packages.length && !!error` — the same condition the error card
+renders on, so it never fires during normal loading. Backstop → dismiss for the
+session; onboarding → continue to setup rather than looping through the intro
+back to the same dead screen.
+
+⚠️ **Still open: the backstop paywall has no X when it CAN sell.** A reviewer on
+a fresh install can't reach it, but a lapsed subscriber can.
+
+### 27.9 State, and what to do next
+
+**Uncommitted (4 files):** `PaywallScreen.tsx`, `app/_layout.tsx`,
+`OnboardingFlow.tsx` — the can't-sell escape hatch — plus the "Pick a plan"
+subtitle. The `dev` OTA was published from a **dirty tree** (`2b13e597*`), so it
+maps to no clean revision. Commit before the next one.
+
+**⚠️ Do NOT OTA to `production`.** Build 135 and the LIVE App Store build 134
+share `channel=production` **and runtime 3.0.8** — a production update reaches
+every live user, not just a test device. Preview builds use `profile=preview`
+which assigns **`channel=dev`** (the channel literally named `preview` maps
+elsewhere and reaches nothing Neal owns). Renaming that profile's channel to
+`preview` would stop the names disagreeing, but would strand installed builds.
+
+**Before submitting 136:**
+1. Android device pass — the used-trial paywall (27.5), the variant not
+   flashing, and the reordered flow, in one run. Check the Play base-plan
+   offer uses Google-determined eligibility.
+2. **Dark mode** — only the sponsor carousel card has been seen in dark.
+3. Confirm the Debug Console gate holds for ordinary users (the QA Force
+   New-User toggle lives behind it).
+
+**Carried forward, not blockers:** no onboarding analytics, so none of this is
+measurable; no Settings entry for redeeming a gift code (the paywall is the
+only one, so anyone premium can't apply a code); the RevenueCat **App User ID**
+change for reinstalling subscribers; the backstop X above.
+
+**Also this session:** the What's Inside carousel got fuller vignettes (Daily
+Reflection hero on Today; the sponsor card rebuilt as **one prompt answered by
+all three sponsors**, no duplicate Eddie header and no fake input; the Tools
+card mirroring the real Tools tab; Insights on Journey) with all four cards
+equalised to the tallest **measured** height and pages made scrollable.
+`vibeString` moved to `constants/sponsors` so the carousel and chat header
+can't drift. The sobriety counter's pencil moved onto the date. In the WEB repo
+(`sober-day-reflections`, pushed `201bef8`): official store badges, black
+lockups, matched by height — the Play badge was a hand-drawn replica.

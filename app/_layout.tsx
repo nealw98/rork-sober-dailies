@@ -295,7 +295,14 @@ function RootLayoutNav() {
     // BOTH platforms. (The Android tester escape hatch was removed for the
     // 3.0.8 store release — 2026-08-02.)
     const paywallDismissable = __DEV__;
-    return <PaywallScreen onDismiss={paywallDismissable ? () => setPaywallDismissed(true) : undefined} />;
+    return (
+      <PaywallScreen
+        onDismiss={paywallDismissable ? () => setPaywallDismissed(true) : undefined}
+        // If offerings never load there is nothing to buy, so don't hold them
+        // here. Dismissed for the session only — the wall returns next launch.
+        onUnavailableDismiss={() => setPaywallDismissed(true)}
+      />
+    );
   }
 
   // Backstop for anyone who completed onboarding before the disclaimer existed.

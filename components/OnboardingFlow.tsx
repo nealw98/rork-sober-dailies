@@ -391,7 +391,16 @@ function PaywallStep({ onSubscribed, onClose, onBypass }: { onSubscribed: () => 
   useEffect(() => {
     if (isPremium) onSubscribed();
   }, [isPremium, onSubscribed]);
-  return <PaywallScreen onDismiss={onClose} onDevBypass={onBypass} />;
+  return (
+    <PaywallScreen
+      onDismiss={onClose}
+      // Backing out to the welcome screen only makes sense while the wall
+      // works. If offerings never load, that X just loops someone through the
+      // intro and back to the same dead screen — so carry on to setup instead.
+      onUnavailableDismiss={onBypass}
+      onDevBypass={onBypass}
+    />
+  );
 }
 
 const makeStyles = (tk: Tokens) => {
