@@ -19,6 +19,16 @@ import BackButton from '@/components/BackButton';
 // ink/placeholder stay the light-mode values.
 const lightC = getSemanticColors('light');
 
+// Dark-mode fills for THIS SCREEN ONLY — the shared tokens are untouched.
+// The dark palette's teal (#4FB3AC, and #63C8C0 for "dark") is tuned for text
+// and small accents, where a lightened colour reads better on black. Used as a
+// large card and a full-width button it glares, and the card gradient even runs
+// light→lighter. These are the LIGHT brand teal (#3D8B8B) darkened instead, so
+// the surfaces stay the same colour family at a luminance that suits an OLED
+// page. White type clears 4.5:1 on both.
+const DARK_CARD_GRAD = ['#316F6F', '#275959'] as const;
+const DARK_CTA = '#357777';
+
 function formatDateInput(text: string) {
   const n = text.replace(/\D/g, '');
   if (n.length <= 2) return n;
@@ -70,7 +80,7 @@ export interface SoberDateEditorProps {
 
 export default function SoberDateEditor({ current, onSave, onBack, onRemove, onSkip, primaryLabel = 'Save date', skipLabel, header, body }: SoberDateEditorProps) {
   const styles = useThemedStyles(makeStyles);
-  const { colors } = useTokens();
+  const { colors, isDark } = useTokens();
   const initial = current
     ? `${String(current.getMonth() + 1).padStart(2, '0')}/${String(current.getDate()).padStart(2, '0')}/${current.getFullYear()}`
     : '';
@@ -96,7 +106,7 @@ export default function SoberDateEditor({ current, onSave, onBack, onRemove, onS
           </Text>
 
           <LinearGradient
-            colors={[colors.primary, colors.primaryDark]}
+            colors={isDark ? [...DARK_CARD_GRAD] : [colors.primary, colors.primaryDark]}
             start={{ x: 0.1, y: 0 }}
             end={{ x: 0.9, y: 1 }}
             style={styles.card}
@@ -163,7 +173,7 @@ const makeStyles = (tk: Tokens) => {
     previewBad: { fontFamily: fontFamily.semiBold, fontSize: fontSize.md, color: '#FFE3DB' },
 
     footer: { paddingHorizontal: 24, paddingTop: 12, paddingBottom: 12 },
-    saveBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 9, paddingVertical: 16, borderRadius: 16, backgroundColor: colors.primary, ...shadows.md },
+    saveBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 9, paddingVertical: 16, borderRadius: 16, backgroundColor: isDark ? DARK_CTA : colors.primary, ...shadows.md },
     saveBtnDisabled: { backgroundColor: isDark ? '#3A3D42' : '#C7C9C4', shadowOpacity: 0 },
     saveText: { fontFamily: fontFamily.semiBold, fontSize: fontSize.xl, color: '#fff' },
     ghost: { alignItems: 'center', justifyContent: 'center', paddingVertical: 14 },
