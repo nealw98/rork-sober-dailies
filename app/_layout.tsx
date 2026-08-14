@@ -177,10 +177,13 @@ function RootLayoutNav() {
 
   // Local state to prevent re-renders from affecting rendering logic
   const [appReady, setAppReady] = useState(false);
-  // Dev-only: allow dismissing the paywall
+  // Session-only paywall dismissal. Never persisted: a lapsed user can close
+  // the wall and continue for this running session, but it returns on the next
+  // cold launch unless an entitlement has been restored or purchased.
   const [paywallDismissed, setPaywallDismissed] = useState(false);
-  // Disclaimer gate — rendered AFTER the paywall so it's the last screen
-  // before Today. null = still reading AsyncStorage (covered by the teal fill).
+  // Disclaimer acceptance backstop. null = still reading AsyncStorage (covered
+  // by the teal fill). First-run users accept inside OnboardingFlow; this gate
+  // records acceptance for legacy installs whose earlier consent was not stored.
   const [disclaimerAccepted, setDisclaimerAccepted] = useState<boolean | null>(null);
   useEffect(() => {
     hasAcceptedDisclaimer().then(setDisclaimerAccepted).catch(() => setDisclaimerAccepted(true));
@@ -282,6 +285,13 @@ function RootLayoutNav() {
     );
   }
 
+  // Legacy users may have agreed to an older disclaimer without that acceptance
+  // being captured. Record it before any subscription decision; seeing it twice
+  // is harmless, while charging before the recorded agreement is not.
+  if (!disclaimerAccepted) {
+    return <DisclaimerStep onAgree={() => setDisclaimerAccepted(true)} />;
+  }
+
   // Backstop for people who onboarded already and later lapsed — a subscription
   // that expired, or an entitlement that has not reattached after a reinstall.
   if (PAYWALL_ENABLED && !isPremium && !paywallDismissed) {
@@ -290,25 +300,17 @@ function RootLayoutNav() {
     // entry wired to gift redemption. Purchases/entitlements still run through
     // react-native-purchases; PaywallScreen applies the returned CustomerInfo
     // itself so isPremium flips and the gate falls straight through to Today.
-    // PaywallScreen renders its own close (X) that calls onDismiss; in a
-    // production build onDismiss is undefined, so the wall stays hard on
-    // BOTH platforms. (The Android tester escape hatch was removed for the
-    // 3.0.8 store release — 2026-08-02.)
-    const paywallDismissable = __DEV__;
+    // Keep this wall dismissible in production too. First-run onboarding and
+    // this returning/lapsed-user backstop must expose the same clear close
+    // control; dismissal lasts only for this running app session.
     return (
       <PaywallScreen
-        onDismiss={paywallDismissable ? () => setPaywallDismissed(true) : undefined}
+        onDismiss={() => setPaywallDismissed(true)}
         // If offerings never load there is nothing to buy, so don't hold them
         // here. Dismissed for the session only — the wall returns next launch.
         onUnavailableDismiss={() => setPaywallDismissed(true)}
       />
     );
-  }
-
-  // Backstop for anyone who completed onboarding before the disclaimer existed.
-  // First-run users have already seen it inside OnboardingFlow by this point.
-  if (!disclaimerAccepted) {
-    return <DisclaimerStep onAgree={() => setDisclaimerAccepted(true)} />;
   }
 
   return (

@@ -4,10 +4,11 @@ import createContextHook from '@nkzw/create-context-hook';
 import * as SecureStore from 'expo-secure-store';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Purchases, {
-  CustomerInfo,
   LOG_LEVEL,
-  Offerings,
-  Package,
+  type CustomerInfo,
+  type CustomerInfoUpdateListener,
+  type PurchasesOfferings,
+  type PurchasesPackage,
 } from 'react-native-purchases';
 import { supabase } from '@/lib/supabase';
 import { getAnonymousId } from '@/lib/anonymousId';
@@ -177,7 +178,7 @@ export type SubscriptionState = {
   isGrandfathered: boolean;
   isPremium: boolean;
 
-  offerings: Offerings | null;
+  offerings: PurchasesOfferings | null;
   customerInfo: CustomerInfo | null;
   trialEligible: boolean | null;
   // QA force-new-user flag (Developer Console) is active — the paywall is gating
@@ -187,7 +188,7 @@ export type SubscriptionState = {
 
   refresh: () => Promise<void>;
   applyCustomerInfo: (info: CustomerInfo) => void;
-  purchasePackage: (pkg: Package) => Promise<CustomerInfo | null>;
+  purchasePackage: (pkg: PurchasesPackage) => Promise<CustomerInfo | null>;
   restorePurchases: () => Promise<CustomerInfo | null>;
 };
 
@@ -195,12 +196,10 @@ export const [SubscriptionProvider, useSubscription] = createContextHook(() => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const [offerings, setOfferings] = useState<Offerings | null>(null);
+  const [offerings, setOfferings] = useState<PurchasesOfferings | null>(null);
   const [customerInfo, setCustomerInfo] = useState<CustomerInfo | null>(null);
   const [isPremiumOverride, setIsPremiumOverride] = useState(false);
   const [isGrandfathered, setIsGrandfathered] = useState(false);
-  // We asked and couldn't get an answer (offline, or our backend is down).
-  const [grandfatherUnknown, setGrandfatherUnknown] = useState(false);
   // QA "force new-user" (see QA_FORCE_NEW_USER_KEY). `sessionPurchaseUnlock`
   // records a purchase/restore made THIS session so the gate still drops after a
   // real sandbox buy even while the flag ignores the standing entitlement.
@@ -225,27 +224,12 @@ export const [SubscriptionProvider, useSubscription] = createContextHook(() => {
       ? true
       : forceNewUser
         ? sessionPurchaseUnlock
-        // FAIL OPEN on an unanswerable grandfather check. A member who is
-        // offline, or whose check hits a backend outage, must never be shown a
-        // paywall for an app they were promised free — that is this app's worst
-        // failure, and it has happened in production once already. The cost is
-        // a brief free ride during an outage, which is small: everything a
-        // subscription buys beyond the local daily program (reflections, the AI
-        // sponsor, speaker tapes) is Supabase-backed and broken for PAYING
-        // users at that same moment. Self-healing: a successful "no" clears the
-        // cache and the wall returns on the next launch.
-        //
-        // DELIBERATELY NOT HANDLED (2026-08-13): a FRESH install that is also
-        // fully offline has no local data to fall back on, so failing open
-        // drops it into an empty app with no content. We considered gating
-        // first run behind a "connect to the internet" screen and decided
-        // against it. Reaching that state means losing connectivity between
-        // downloading the app and first launch; it self-corrects on the next
-        // launch with signal; and a hard gate on first run would block EVERY
-        // new install if it ever misfired (a RevenueCat outage, a bad offering
-        // config). The rare user who hits it is a support conversation, not a
-        // control-flow branch. Don't add the gate without a strong reason.
-        : isEntitled || isGrandfathered || isPremiumOverride || grandfatherUnknown;
+        // An unanswerable grandfather check does NOT grant access. Previously
+        // verified members are still protected: checkGrandfatherStatus() turns
+        // their cached confirmation into "yes" during an outage. Treating every
+        // uncached "unknown" as premium let a fresh user bypass the paywall by
+        // launching while the grandfather endpoint was unreachable.
+        : isEntitled || isGrandfathered || isPremiumOverride;
 
   // Refresh subscription status from RevenueCat
   const refresh = useCallback(async () => {
@@ -307,7 +291,7 @@ export const [SubscriptionProvider, useSubscription] = createContextHook(() => {
   }, []);
 
   // Purchase a subscription package
-  const purchasePackage = useCallback(async (pkg: Package) => {
+  const purchasePackage = useCallback(async (pkg: PurchasesPackage) => {
     setError(null);
 
     const configured = await ensurePurchasesConfigured();
@@ -369,7 +353,7 @@ export const [SubscriptionProvider, useSubscription] = createContextHook(() => {
   // Initialize on mount
   useEffect(() => {
     let didCancel = false;
-    let removeListener: null | (() => void) = null;
+    let customerInfoListener: CustomerInfoUpdateListener | null = null;
 
     (async () => {
       try {
@@ -407,11 +391,10 @@ export const [SubscriptionProvider, useSubscription] = createContextHook(() => {
         ]);
         if (!didCancel) {
           setIsGrandfathered(grandfather === 'yes');
-          setGrandfatherUnknown(grandfather === 'unknown');
           if (grandfather === 'yes') {
             console.log('[Subscription] User is grandfathered - unlocking premium features');
           } else if (grandfather === 'unknown') {
-            console.warn('[Subscription] Grandfather status UNKNOWN - failing open until we can check');
+            console.warn('[Subscription] Grandfather status UNKNOWN - access requires another entitlement');
           }
         }
       } catch (error) {
@@ -429,9 +412,10 @@ export const [SubscriptionProvider, useSubscription] = createContextHook(() => {
           // Wait for RevenueCat to be configured
           const configured = await ensurePurchasesConfigured();
           if (configured.ok && !didCancel) {
-            removeListener = Purchases.addCustomerInfoUpdateListener((info) => {
-              setCustomerInfo(info);
-            });
+            customerInfoListener = (info) => {
+              if (!didCancel) setCustomerInfo(info);
+            };
+            Purchases.addCustomerInfoUpdateListener(customerInfoListener);
           }
         } catch (listenerError) {
           console.warn('[Subscription] Failed to add customer info listener (non-fatal):', listenerError);
@@ -442,7 +426,10 @@ export const [SubscriptionProvider, useSubscription] = createContextHook(() => {
 
     return () => {
       didCancel = true;
-      removeListener?.();
+      if (customerInfoListener) {
+        Purchases.removeCustomerInfoUpdateListener(customerInfoListener);
+        customerInfoListener = null;
+      }
     };
   }, [refresh]);
 

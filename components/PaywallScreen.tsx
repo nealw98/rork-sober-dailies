@@ -110,16 +110,6 @@ function trialDaysFrom(pkg: PurchasesPackage | null): number | null {
 // billing disclosure.
 const PAYWALL_TITLE = 'Pick your plan and start today';
 
-// The CTA still varies with the offer, since that genuinely changes per store
-// config. 7 days reproduces the approved wording exactly.
-function trialCta(days: number | null): string {
-  const d = days ?? 7; // unresolved offerings → the configured default
-  if (d === 7) return 'Start my free week';
-  if (d === 14) return 'Start my free two weeks';
-  if (d >= 28 && d <= 31) return 'Start my free month';
-  return 'Start my free trial';
-}
-
 // Length-neutral on purpose. Someone who is ineligible gets NO intro offer back
 // from the store, so trialLen is null and any specific wording ("your free week
 // is up") would be a guess from the current default — wrong for anyone who took
@@ -162,6 +152,7 @@ export default function PaywallScreen({ onDismiss, onDevBypass, onUnavailableDis
   const [selected, setSelected] = useState<'yearly' | 'monthly'>('yearly');
   const [busy, setBusy] = useState(false);
   const [restoring, setRestoring] = useState(false);
+  const [retrying, setRetrying] = useState(false);
   const [showRedeem, setShowRedeem] = useState(false);
   // Measured top of each timeline row (relative to the card) so the continuous
   // gradient rail can be positioned to pass through the circle centers exactly.
@@ -179,6 +170,23 @@ export default function PaywallScreen({ onDismiss, onDevBypass, onUnavailableDis
 
   const chosen = selected === 'yearly' ? (yearly ?? monthly) : (monthly ?? yearly);
 
+  // A successful SDK response can still contain no product this UI can sell:
+  // an empty/current-less offering, or packages other than annual/monthly. Log
+  // the exact catalog shape once per shape so production diagnostics distinguish
+  // a store/configuration problem from a transport failure.
+  const offeringId = offering?.identifier ?? 'none';
+  const packageIds = packages
+    .map((p: PurchasesPackage) => `${p.identifier}:${String(p.packageType)}:${p.product?.identifier ?? 'no-product'}`)
+    .join(',');
+  React.useEffect(() => {
+    if (isLoading || chosen) return;
+    console.warn('[Paywall] No usable subscription plan', { offeringId, packageIds: packageIds || 'none' });
+    logEvent('paywall_plans_unavailable', {
+      offering_id: offeringId,
+      package_ids: packageIds || 'none',
+    });
+  }, [isLoading, chosen, offeringId, packageIds]);
+
   // Structure decided 2026-08-13: the trial timeline, NOT a benefits list. The
   // What's Inside carousel sells one screen earlier, so a benefits list here
   // would restate it; the timeline instead answers the one question the
@@ -193,10 +201,10 @@ export default function PaywallScreen({ onDismiss, onDevBypass, onUnavailableDis
   // ever diverged on iOS. Both stores state the real terms in their own
   // purchase sheet, which is what a returning user is actually charged on.
 
-  // Trial length + the CTA derived from it (see trialDaysFrom/trialCta). The
-  // title no longer varies with it — see PAYWALL_TITLE.
+  // Trial length comes from the store and drives the timeline/disclosure. The
+  // title and CTA deliberately do not advertise the trial, keeping every trial
+  // claim visually subordinate to the amount that will actually be billed.
   const trialLen = trialDaysFrom(chosen) ?? trialDaysFrom(yearly) ?? trialDaysFrom(monthly);
-  const ctaLabel = trialCta(trialLen);
 
   // Has this person already used their free trial? If so the store bills them
   // the moment they subscribe, so promising a free week would be a lie.
@@ -329,12 +337,93 @@ export default function PaywallScreen({ onDismiss, onDevBypass, onUnavailableDis
     }
   };
 
-  const processing = isLoading || busy || restoring;
+  const retryPlans = async () => {
+    if (retrying) return;
+    setRetrying(true);
+    try {
+      await refresh();
+    } finally {
+      setRetrying(false);
+    }
+  };
 
-  // Same condition the error card renders on, so the X appears exactly when the
-  // screen has given up — never during the normal loading window.
-  const cannotSell = !packages.length && !!error;
+  const processing = isLoading || busy || restoring || retrying;
+
+  // Availability is about having a product we can actually purchase, not just
+  // whether the SDK threw. RevenueCat/store calls may succeed with an empty or
+  // unsupported catalog, which must not render as a normal paywall with a dead
+  // CTA and no explanation.
+  const cannotSell = !isLoading && !chosen;
   const closeAction = cannotSell && onUnavailableDismiss ? onUnavailableDismiss : onDismiss;
+
+  if (cannotSell) {
+    return (
+      <SafeAreaView style={styles.screen} edges={['top', 'bottom']}>
+        <View style={styles.unavailablePage}>
+          <View style={styles.header}>
+            {__DEV__ && !!onDevBypass && (
+              <Pressable
+                style={styles.devPass}
+                onPress={onDevBypass}
+                hitSlop={10}
+                accessibilityRole="button"
+                accessibilityLabel="Developer: skip paywall"
+              >
+                <Text style={styles.devPassText}>DEV SKIP</Text>
+              </Pressable>
+            )}
+            <View style={styles.flex} />
+            {closeAction && (
+              <Pressable
+                style={styles.close}
+                onPress={closeAction}
+                hitSlop={10}
+                accessibilityRole="button"
+                accessibilityLabel="Close"
+              >
+                <X size={24} color={c.textMuted} strokeWidth={2} />
+              </Pressable>
+            )}
+          </View>
+
+          <View style={styles.unavailableBody}>
+            <View style={styles.unavailableIcon}>
+              <RefreshCw size={25} color={colors.primary} strokeWidth={2} />
+            </View>
+            <Text style={styles.unavailableTitle}>Plans temporarily unavailable</Text>
+            <Text style={styles.unavailableText}>
+              We couldn&apos;t load a subscription plan right now. Please try again in a moment.
+            </Text>
+            <Pressable
+              style={[styles.unavailableRetry, retrying && styles.ctaDisabled]}
+              onPress={retryPlans}
+              disabled={retrying}
+              accessibilityRole="button"
+            >
+              {retrying ? (
+                <ActivityIndicator color="#fff" />
+              ) : (
+                <>
+                  <RefreshCw size={17} color="#fff" strokeWidth={2.2} />
+                  <Text style={styles.unavailableRetryText}>Try again</Text>
+                </>
+              )}
+            </Pressable>
+            <Pressable
+              style={styles.unavailableRestore}
+              onPress={restore}
+              disabled={restoring}
+              accessibilityRole="button"
+            >
+              <Text style={styles.unavailableRestoreText}>
+                {restoring ? 'Checking purchases…' : 'Restore Purchases'}
+              </Text>
+            </Pressable>
+          </View>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   // Don't paint a variant we might have to swap. isLoading clears as soon as
   // offerings land, but eligibility resolves in a SEPARATE effect keyed on
@@ -546,7 +635,7 @@ export default function PaywallScreen({ onDismiss, onDevBypass, onUnavailableDis
         {/* CTA — kept directly under the plans so the whole action cluster
             (CTA + "Have a code?" + footer) sits together, no dead space. */}
         <Pressable style={[styles.cta, (!chosen || processing) && styles.ctaDisabled]} onPress={buy} disabled={!chosen || processing}>
-          {busy ? <ActivityIndicator color="#fff" /> : <Text style={styles.ctaText}>{showTrial ? ctaLabel : 'Subscribe'}</Text>}
+          {busy ? <ActivityIndicator color="#fff" /> : <Text style={styles.ctaText}>{showTrial ? 'Continue' : 'Subscribe'}</Text>}
         </Pressable>
 
         {/* Billing disclosure. The timeline says when billing starts but never
@@ -710,6 +799,15 @@ const makeStyles = (tk: Tokens) => {
     header: { flexDirection: 'row', alignItems: 'center' },
     close: { width: 32, height: 32, alignItems: 'center', justifyContent: 'center' },
     resolving: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+    unavailablePage: { flex: 1, paddingHorizontal: 26, paddingTop: 20, paddingBottom: 32 },
+    unavailableBody: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 10, paddingBottom: 52 },
+    unavailableIcon: { width: 58, height: 58, borderRadius: 29, alignItems: 'center', justifyContent: 'center', backgroundColor: isDark ? 'rgba(45,148,148,0.16)' : '#E8F5F5', marginBottom: 20 },
+    unavailableTitle: { fontFamily: fontFamily.displayBold, fontSize: 27, lineHeight: 32, letterSpacing: -0.5, color: c.text, textAlign: 'center' },
+    unavailableText: { fontFamily: fontFamily.regular, fontSize: 15, lineHeight: 22, color: c.textSecondary, textAlign: 'center', maxWidth: 320, marginTop: 10 },
+    unavailableRetry: { minWidth: 190, minHeight: 52, borderRadius: 16, backgroundColor: colors.primary, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, marginTop: 28, paddingHorizontal: 24, ...shadows.sm },
+    unavailableRetryText: { fontFamily: fontFamily.semiBold, fontSize: 16, color: '#fff' },
+    unavailableRestore: { paddingVertical: 10, paddingHorizontal: 16, marginTop: 8 },
+    unavailableRestoreText: { fontFamily: fontFamily.medium, fontSize: 14, color: c.textMuted, textDecorationLine: 'underline' },
     // Deliberately ugly and labelled — this must never be mistaken for shipping UI.
     devPass: { height: 32, paddingHorizontal: 10, borderRadius: 8, borderWidth: 1, borderStyle: 'dashed', borderColor: c.border, alignItems: 'center', justifyContent: 'center' },
     devPassText: { fontFamily: fontFamily.bold, fontSize: 10, letterSpacing: 1, color: c.textMuted },
