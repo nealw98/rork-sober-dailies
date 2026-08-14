@@ -440,7 +440,11 @@ const makeStyles = (tk: Tokens) => {
   consentCheckText: { flex: 1, color: '#fff', fontSize: fontSize.base, lineHeight: 21 },
   consentContinue: { alignSelf: 'center', backgroundColor: '#fff', paddingVertical: 15, paddingHorizontal: 48, borderRadius: 26, minWidth: 200, alignItems: 'center' },
   consentContinueOff: { backgroundColor: 'rgba(255,255,255,0.3)' },
-  consentContinueText: { fontFamily: fontFamily.semiBold, fontSize: fontSize.xl, color: colors.primaryDark },
+  // obvInk, NOT colors.primaryDark. The pill is a hardcoded #fff in both modes,
+  // so its label must be fixed too: colors.primaryDark resolves to #63C8C0 on
+  // dark, which is 2:1 on white. Same value the sibling "Get started" button
+  // uses, and the same one this button's own spinner already used.
+  consentContinueText: { fontFamily: fontFamily.semiBold, fontSize: fontSize.xl, color: obvInk(0.55) },
 
   // welcome
   welcomeRoot: { flex: 1 },
