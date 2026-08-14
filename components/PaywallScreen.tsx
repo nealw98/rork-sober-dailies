@@ -207,7 +207,7 @@ export default function PaywallScreen({ onDismiss, onDevBypass, preview, forceTr
       icon: <Lock size={19} color="#2E7A5F" strokeWidth={2.2} />,
       ring: RAIL_GREEN,
       title: 'Today',
-      body: 'Everything unlocks — your dailies, literature, speaker tapes, your AI sponsor, and more. A subscription allows you to keep them.',
+      body: 'Everything unlocks — your dailies, literature, speaker tapes, your AI sponsor, and more.',
     },
     {
       key: 'day5',
@@ -224,9 +224,13 @@ export default function PaywallScreen({ onDismiss, onDevBypass, preview, forceTr
       // Price comes from the chosen package, never hardcoded: the copy must not
       // contradict the sheet the user is about to sign. Falls back to the
       // priceless sentence while offerings are still loading.
+      // "…is required to maintain access" is the Play Subscriptions disclosure
+      // this screen was rejected for missing. It sits here rather than in the
+      // subtitle because at Day 7 the subscription genuinely does begin —
+      // saying it up front would imply the trial isn't already a subscription.
       body: chosen
-        ? `Your subscription starts at ${chosen.product.priceString}/${selected === 'yearly' ? 'year' : 'month'}. Cancel before then and you pay nothing.`
-        : 'Your subscription starts. Cancel before then and you pay nothing.',
+        ? `Your subscription starts at ${chosen.product.priceString}/${selected === 'yearly' ? 'year' : 'month'} and is required to maintain access to the app. Cancel before then and you pay nothing.`
+        : 'Your subscription starts and is required to maintain access to the app. Cancel before then and you pay nothing.',
     },
   ];
 
@@ -381,7 +385,7 @@ export default function PaywallScreen({ onDismiss, onDevBypass, preview, forceTr
         <Text style={styles.title}>{showTrial ? trialTitle : TRIAL_OVER_TITLE}</Text>
         <Text style={styles.subtitle}>
           {showTrial
-            ? 'Start your free week, then make the app yours.'
+            ? 'A subscription is required to access the app.'
             : 'Subscribe to access the app.'}
         </Text>
 
