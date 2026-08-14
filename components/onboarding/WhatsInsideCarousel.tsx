@@ -27,6 +27,8 @@ import { SPONSORS, vibeString } from '@/constants/sponsors';
 // Carousel gradient (prototype WI_GRAD) — one step past Welcome on the
 // icon→interior cooling bridge.
 const WI_GRAD = ['#2E86B8', '#2E9AA6', '#3D9B8F'] as const;
+// Same hues at 0.42 luminance — see the note on obvGrad in OnboardingFlow.
+const WI_GRAD_DARK = ['#13384D', '#134146', '#1A413C'] as const;
 const WI_INK = '#2F6E6E';   // button ink on the gradient
 const WI_PAPER = '#F5F1E9'; // vignette shell (light mode)
 
@@ -358,6 +360,7 @@ export default function WhatsInsideCarousel({ onSkip, onContinue }: {
   const [cardH, setCardH] = useState(0);
   const measure = (h: number) => setCardH((m) => (h > m ? h : m));
   const last = index === cards.length - 1;
+  const { isDark } = useTokens();
 
   const onMomentumEnd = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
     const i = Math.round(e.nativeEvent.contentOffset.x / SCREEN_W);
@@ -372,7 +375,7 @@ export default function WhatsInsideCarousel({ onSkip, onContinue }: {
   return (
     <View style={{ flex: 1 }}>
       <StatusBar style="light" />
-      <LinearGradient colors={[...WI_GRAD]} start={{ x: 0.1, y: 0 }} end={{ x: 0.9, y: 1 }} style={StyleSheet.absoluteFill} />
+      <LinearGradient colors={isDark ? [...WI_GRAD_DARK] : [...WI_GRAD]} start={{ x: 0.1, y: 0 }} end={{ x: 0.9, y: 1 }} style={StyleSheet.absoluteFill} />
       <SafeAreaView style={{ flex: 1 }} edges={['top', 'bottom']}>
         <View style={styles.headerRow}>
           <Text style={styles.overline}>WHAT’S INSIDE</Text>

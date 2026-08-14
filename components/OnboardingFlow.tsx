@@ -30,8 +30,22 @@ function lerpHex(a: string, b: string, t: number): string {
   const pb = [1, 3, 5].map((i) => parseInt(b.slice(i, i + 2), 16));
   return '#' + pa.map((v, i) => Math.round(v + (pb[i] - v) * t).toString(16).padStart(2, '0')).join('');
 }
-function obvGrad(t: number): [string, string, string] {
-  return [lerpHex(OBV_HOT[0], OBV_COOL[0], t), lerpHex(OBV_HOT[1], OBV_COOL[1], t), lerpHex(OBV_HOT[2], OBV_COOL[2], t)];
+// Dark mode keeps the brand hues and drops the luminance. A full-bleed
+// saturated gradient is a lot of light for someone who has asked for less, and
+// this app gets opened at 2am. Multiplying RGB holds the hue and the relative
+// saturation; mixing toward grey would wash the brand out instead.
+const DARK_GRAD_K = 0.42;
+function shade(hex: string, k: number): string {
+  const p = [1, 3, 5].map((i) => Math.round(parseInt(hex.slice(i, i + 2), 16) * k));
+  return '#' + p.map((v) => Math.max(0, Math.min(255, v)).toString(16).padStart(2, '0')).join('');
+}
+function obvGrad(t: number, dark = false): [string, string, string] {
+  const g: [string, string, string] = [
+    lerpHex(OBV_HOT[0], OBV_COOL[0], t),
+    lerpHex(OBV_HOT[1], OBV_COOL[1], t),
+    lerpHex(OBV_HOT[2], OBV_COOL[2], t),
+  ];
+  return dark ? [shade(g[0], DARK_GRAD_K), shade(g[1], DARK_GRAD_K), shade(g[2], DARK_GRAD_K)] : g;
 }
 function obvInk(t: number): string {
   return lerpHex('#0086C2', '#2F6E6E', t);
@@ -50,10 +64,11 @@ const openPrivacy = () => Linking.openURL('https://soberdailies.com/privacy').ca
 // way a stranger is. Access only ever changes whether the paywall step runs.
 function WelcomeStep({ onContinue }: { onContinue: () => void }) {
   const styles = useThemedStyles(makeStyles);
+  const { isDark } = useTokens();
   return (
     <View style={styles.welcomeRoot}>
       <StatusBar style="light" />
-      <LinearGradient colors={obvGrad(0.18)} start={{ x: 0.05, y: 0 }} end={{ x: 0.95, y: 1 }} style={StyleSheet.absoluteFill} />
+      <LinearGradient colors={obvGrad(0.18, isDark)} start={{ x: 0.05, y: 0 }} end={{ x: 0.95, y: 1 }} style={StyleSheet.absoluteFill} />
       <SafeAreaView style={styles.welcomeSafe} edges={['top', 'bottom']}>
         <View style={styles.welcomeCenter}>
           <Image source={require('@/assets/images/icon.png')} style={styles.welcomeLogo} contentFit="cover" />
@@ -130,6 +145,7 @@ const DISCLAIMER_BULLETS = [
 
 export function DisclaimerStep({ onAgree }: { onAgree: () => void | Promise<void> }) {
   const styles = useThemedStyles(makeStyles);
+  const { isDark } = useTokens();
   const [checked, setChecked] = useState(false);
   const [saving, setSaving] = useState(false);
 
@@ -144,7 +160,7 @@ export function DisclaimerStep({ onAgree }: { onAgree: () => void | Promise<void
   return (
     <View style={styles.welcomeRoot}>
       <StatusBar style="light" />
-      <LinearGradient colors={obvGrad(0.5)} start={{ x: 0.05, y: 0 }} end={{ x: 0.95, y: 1 }} style={StyleSheet.absoluteFill} />
+      <LinearGradient colors={obvGrad(0.5, isDark)} start={{ x: 0.05, y: 0 }} end={{ x: 0.95, y: 1 }} style={StyleSheet.absoluteFill} />
       <SafeAreaView style={{ flex: 1 }} edges={['top', 'bottom']}>
         <ScrollView contentContainerStyle={styles.consentScroll} showsVerticalScrollIndicator={false}>
           <View style={styles.consentMark}>
