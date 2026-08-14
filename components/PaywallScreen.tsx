@@ -100,15 +100,24 @@ function trialDaysFrom(pkg: PurchasesPackage | null): number | null {
   }
 }
 
-// Natural-language trial copy. 7 days reproduces the approved wording exactly,
-// so today's offering renders identically — this only diverges if the store
-// config does.
-function trialCopy(days: number | null): { title: string; cta: string } {
+// Deliberately says nothing about price or trial. 3.1.2(c) requires every
+// pricing element — free trial included — to sit subordinate in position and
+// size to the billed amount, and the old headline ("Your first week is free")
+// was the largest thing on the screen by some margin. Making the title a
+// direction rather than a claim removes it from that comparison entirely,
+// leaving $19.99/yr as the most conspicuous price without shrinking anything.
+// The trial is still stated three times below: the timeline, the CTA, and the
+// billing disclosure.
+const PAYWALL_TITLE = 'Pick your plan and start today';
+
+// The CTA still varies with the offer, since that genuinely changes per store
+// config. 7 days reproduces the approved wording exactly.
+function trialCta(days: number | null): string {
   const d = days ?? 7; // unresolved offerings → the configured default
-  if (d === 7) return { title: 'Your first week is free', cta: 'Start my free week' };
-  if (d === 14) return { title: 'Your first two weeks are free', cta: 'Start my free two weeks' };
-  if (d >= 28 && d <= 31) return { title: 'Your first month is free', cta: 'Start my free month' };
-  return { title: `Your first ${d} days are free`, cta: 'Start my free trial' };
+  if (d === 7) return 'Start my free week';
+  if (d === 14) return 'Start my free two weeks';
+  if (d >= 28 && d <= 31) return 'Start my free month';
+  return 'Start my free trial';
 }
 
 // Length-neutral on purpose. Someone who is ineligible gets NO intro offer back
@@ -184,9 +193,10 @@ export default function PaywallScreen({ onDismiss, onDevBypass, onUnavailableDis
   // ever diverged on iOS. Both stores state the real terms in their own
   // purchase sheet, which is what a returning user is actually charged on.
 
-  // Trial length + the copy derived from it (see trialDaysFrom/trialCopy).
+  // Trial length + the CTA derived from it (see trialDaysFrom/trialCta). The
+  // title no longer varies with it — see PAYWALL_TITLE.
   const trialLen = trialDaysFrom(chosen) ?? trialDaysFrom(yearly) ?? trialDaysFrom(monthly);
-  const { title: trialTitle, cta: trialCta } = trialCopy(trialLen);
+  const ctaLabel = trialCta(trialLen);
 
   // Has this person already used their free trial? If so the store bills them
   // the moment they subscribe, so promising a free week would be a lie.
@@ -391,18 +401,15 @@ export default function PaywallScreen({ onDismiss, onDevBypass, onUnavailableDis
           </View>
         )}
 
-        <Text style={styles.title}>{showTrial ? trialTitle : TRIAL_OVER_TITLE}</Text>
-        <Text style={styles.subtitle}>
-          {/* Instructional, not a disclosure — Day 7 states that a subscription
-              is required. "A subscription is required to access the app" read
-              oddly under "Your first week is free": what a subscription really
-              gates here is starting the trial, and saying so is clearer than
-              being technically correct. The no-trial variant has no timeline,
-              so its line still carries the requirement itself. */}
-          {showTrial
-            ? 'Pick a plan to start your free trial.'
-            : 'Subscribe to access the app.'}
-        </Text>
+        <Text style={styles.title}>{showTrial ? PAYWALL_TITLE : TRIAL_OVER_TITLE}</Text>
+        {/* Trial variant carries no subtitle: the timeline sits directly below
+            and already covers what unlocks, when billing starts and how to
+            cancel, so a line between the two only repeated it. The no-trial
+            face has no timeline, so its line still has to state the
+            requirement itself. */}
+        {!showTrial && (
+          <Text style={styles.subtitle}>Subscribe to access the app.</Text>
+        )}
 
         {/* No-trial view — the benefits list stands in for the timeline. */}
         {!showTrial && (
@@ -539,7 +546,7 @@ export default function PaywallScreen({ onDismiss, onDevBypass, onUnavailableDis
         {/* CTA — kept directly under the plans so the whole action cluster
             (CTA + "Have a code?" + footer) sits together, no dead space. */}
         <Pressable style={[styles.cta, (!chosen || processing) && styles.ctaDisabled]} onPress={buy} disabled={!chosen || processing}>
-          {busy ? <ActivityIndicator color="#fff" /> : <Text style={styles.ctaText}>{showTrial ? trialCta : 'Subscribe'}</Text>}
+          {busy ? <ActivityIndicator color="#fff" /> : <Text style={styles.ctaText}>{showTrial ? ctaLabel : 'Subscribe'}</Text>}
         </Pressable>
 
         {/* Billing disclosure. The timeline says when billing starts but never
