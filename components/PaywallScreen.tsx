@@ -51,9 +51,12 @@ const CIRCLE = 48;       // timeline bead diameter
 const RAIL_WIDTH = 32;   // rail runs behind the beads
 const RAIL_FADE = 72;    // extra length past the last bead center, fading out below the star
 const CARD_PAD_H = 20;   // timeline card horizontal padding (rail left aligns to this)
+const TILE = 48;         // no-trial benefit icon circle (matches the trial bead)
+const BENEFIT_FADE = 56; // rail length past the last tile center, fading out
 
 // No-trial rail: the SAME green → teal → lavender sweep as the trial rail,
 // sampled at the four tile centers.
+const BENEFIT_RAIL = ['#86CBA6', '#7AC8C4', '#8CC0DB', '#BCB3EA'];
 
 // ── helpers ──────────────────────────────────────────────────────────────
 const isYearlyPkg = (p: PurchasesPackage) => {
@@ -108,6 +111,13 @@ function trialCopy(days: number | null): { title: string; cta: string } {
   return { title: `Your first ${d} days are free`, cta: 'Start my free trial' };
 }
 
+// Length-neutral on purpose. Someone who is ineligible gets NO intro offer back
+// from the store, so trialLen is null and any specific wording ("your free week
+// is up") would be a guess from the current default — wrong for anyone who took
+// a 14-day or one-month promo. This is the only version we can state truthfully,
+// and it covers every trial length we might ever configure.
+const TRIAL_OVER_TITLE = 'Your free trial is up';
+
 function savingsPct(monthly: PurchasesPackage | null, yearly: PurchasesPackage | null): number | null {
   const m = (monthly?.product as any)?.price ?? 0;
   const y = (yearly?.product as any)?.price ?? 0;
@@ -117,15 +127,24 @@ function savingsPct(monthly: PurchasesPackage | null, yearly: PurchasesPackage |
 }
 
 interface PaywallScreenProps {
+  // Tapping the close (X). Shown in EVERY build when provided — this is the
+  // visible dismiss Play's Subscriptions policy asks for, not a dev shortcut.
   onDismiss?: () => void;
-  // QA preview (Developer Console): always allow closing.
+  // __DEV__ only: its own control on the LEFT, so the real close on the right
+  // keeps a single unambiguous meaning. Jumps past the wall to the screens
+  // behind it, so the rest of the flow is reachable on a simulator without a
+  // sandbox purchase. Never rendered in a release build.
+  onDevBypass?: () => void;
   preview?: boolean;
+  // Developer Console only: force either layout instead of deriving it from
+  // real trial history, so both can be reviewed on one device.
+  forceTrial?: boolean;
 }
 
-export default function PaywallScreen({ onDismiss, preview }: PaywallScreenProps) {
+export default function PaywallScreen({ onDismiss, onDevBypass, preview, forceTrial }: PaywallScreenProps) {
   const styles = useThemedStyles(makeStyles);
   const { c, colors } = useTokens();
-  const { offerings, isLoading, error, purchasePackage, restorePurchases, refresh, applyCustomerInfo, qaForceNewUser } = useSubscription();
+  const { offerings, isLoading, error, purchasePackage, restorePurchases, refresh, applyCustomerInfo, customerInfo, trialEligible, qaForceNewUser } = useSubscription();
 
   const [selected, setSelected] = useState<'yearly' | 'monthly'>('yearly');
   const [busy, setBusy] = useState(false);
@@ -134,6 +153,7 @@ export default function PaywallScreen({ onDismiss, preview }: PaywallScreenProps
   // Measured top of each timeline row (relative to the card) so the continuous
   // gradient rail can be positioned to pass through the circle centers exactly.
   const [rowY, setRowY] = useState<number[]>([]);
+  const [benefitY, setBenefitY] = useState<number[]>([]); // same, for the no-trial tiles
 
   const offering = offerings?.all?.['default'] ?? offerings?.current ?? null;
   const packages = offering?.availablePackages ?? [];
@@ -146,6 +166,13 @@ export default function PaywallScreen({ onDismiss, preview }: PaywallScreenProps
 
   const chosen = selected === 'yearly' ? (yearly ?? monthly) : (monthly ?? yearly);
 
+  // Structure decided 2026-08-13: the trial timeline, NOT a benefits list. The
+  // What's Inside carousel sells one screen earlier, so a benefits list here
+  // would restate it; the timeline instead answers the one question the
+  // carousel can't ("what happens to my money"), and its final step carries the
+  // Play-required "a subscription is required" disclosure. A benefits layout
+  // existed once, for no-trial users, and was removed with that variant.
+  //
   // One paywall for everyone: the trial offer. There is deliberately no
   // "already used your trial" variant — Play can't report eligibility before
   // purchase anyway (it always answers UNKNOWN), so an Android user who'd
@@ -156,6 +183,18 @@ export default function PaywallScreen({ onDismiss, preview }: PaywallScreenProps
   // Trial length + the copy derived from it (see trialDaysFrom/trialCopy).
   const trialLen = trialDaysFrom(chosen) ?? trialDaysFrom(yearly) ?? trialDaysFrom(monthly);
   const { title: trialTitle, cta: trialCta } = trialCopy(trialLen);
+
+  // Has this person already used their free trial? If so the store bills them
+  // the moment they subscribe, so promising a free week would be a lie.
+  // Two signals, because neither covers both platforms on its own:
+  //  · trialEligible === false — StoreKit's answer, iOS only (Play always
+  //    reports UNKNOWN before purchase, so it never fires on Android).
+  //  · any prior purchase on the account — works on both. An ACTIVE subscriber
+  //    never reaches this screen, so history here means lapsed or expired.
+  const usedTrial =
+    trialEligible === false ||
+    ((customerInfo as any)?.allPurchasedProductIdentifiers?.length ?? 0) > 0;
+  const showTrial = forceTrial !== undefined ? forceTrial : !usedTrial;
   // The reminder fires 48 h before expiry (lib/trialReminder.ts), clamped so it
   // can't land on or before day 1 of a very short trial.
   const trialEndDay = trialLen ?? 7;
@@ -168,7 +207,7 @@ export default function PaywallScreen({ onDismiss, preview }: PaywallScreenProps
       icon: <Lock size={19} color="#2E7A5F" strokeWidth={2.2} />,
       ring: RAIL_GREEN,
       title: 'Today',
-      body: 'Everything unlocks — your dailies, literature, speaker tapes, your AI sponsor, and more.',
+      body: 'Everything unlocks — your dailies, literature, speaker tapes, your AI sponsor, and more. A subscription allows you to keep them.',
     },
     {
       key: 'day5',
@@ -182,10 +221,42 @@ export default function PaywallScreen({ onDismiss, preview }: PaywallScreenProps
       icon: <Star size={18} color={colors.primary} strokeWidth={2} fill={colors.primary} />,
       ring: RAIL_LAV,
       title: `Day ${trialEndDay}`,
-      // Carries the Play Subscriptions disclosure ("a subscription is required
-      // to use the app") for the trial view — see the styles.required card,
-      // which covers the no-trial view where this timeline isn't rendered.
-      body: 'Your subscription starts — it’s required to keep using the app. Cancel before then and you pay nothing.',
+      // Price comes from the chosen package, never hardcoded: the copy must not
+      // contradict the sheet the user is about to sign. Falls back to the
+      // priceless sentence while offerings are still loading.
+      body: chosen
+        ? `Your subscription starts at ${chosen.product.priceString}/${selected === 'yearly' ? 'year' : 'month'}. Cancel before then and you pay nothing.`
+        : 'Your subscription starts. Cancel before then and you pay nothing.',
+    },
+  ];
+
+  // No-trial view — what the subscription buys, since there's no trial
+  // countdown to show. Icons match the trial beads: white circle, bold colored
+  // ring (BENEFIT_RAIL[i]), solid glyph.
+  const BENEFITS = [
+    {
+      key: 'fits',
+      icon: <SlidersHorizontal size={20} color={colors.primary} strokeWidth={2} fill={colors.primary} />,
+      title: 'A practice that fits your life',
+      body: 'Choose the daily habits that fit your program.',
+    },
+    {
+      key: 'tool',
+      icon: <Wrench size={19} color={colors.steelDark} strokeWidth={2} fill={colors.steelDark} />,
+      title: 'The right tool at every step',
+      body: 'Each daily action is paired with its tool — right when you need it.',
+    },
+    {
+      key: 'sponsor',
+      icon: <MessageCircle size={20} color={colors.tertiary} strokeWidth={2} fill={colors.tertiary} />,
+      title: 'Never alone, day or night',
+      body: 'An AI sponsor is always there to talk it through.',
+    },
+    {
+      key: 'progress',
+      icon: <TrendingUp size={21} color={colors.roseDark} strokeWidth={2.5} />,
+      title: 'See your progress add up',
+      body: 'Check off each action and watch your consistency grow, day by day.',
     },
   ];
 
@@ -242,17 +313,55 @@ export default function PaywallScreen({ onDismiss, preview }: PaywallScreenProps
 
   const processing = isLoading || busy || restoring;
 
+  // Don't paint a variant we might have to swap. isLoading clears as soon as
+  // offerings land, but eligibility resolves in a SEPARATE effect keyed on
+  // those offerings — and on iOS that's an async StoreKit round-trip after it.
+  // Rendering in the meantime shows "Your first week is free" and then rewrites
+  // the title, the card and the CTA in front of the user, which reads as a bug.
+  //
+  // Bounded three ways so this can never hang: a forced preview knows its own
+  // variant, an offerings failure resolves to the error card rather than
+  // waiting forever, and Android settles synchronously with the offering.
+  const variantResolved = forceTrial !== undefined || trialEligible !== null || !!error;
+  if (!variantResolved) {
+    return (
+      <SafeAreaView style={styles.screen} edges={['top', 'bottom']}>
+        <View style={styles.resolving}>
+          <ActivityIndicator color={colors.primary} />
+        </View>
+      </SafeAreaView>
+    );
+  }
+
   return (
     <SafeAreaView style={styles.screen} edges={['top', 'bottom']}>
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
-        {/* Header — close (dev/preview, plus Android test builds) on the right.
-            The Android case is a TEMPORARY testing escape hatch: that track has
-            no Play license testers, so Billing is unavailable and the wall would
-            be unescapable. Remove with the _layout gate before public release. */}
+        {/* Header — close (X) on the RIGHT, where a dismiss belongs. Play
+            rejected this screen for an "unclear or invisible dismiss button",
+            so it renders in production wherever the caller supplies a way out;
+            during first run that is a return to the start of onboarding.
+            The dev pass sits on the left so the two never share a gesture. */}
         <View style={styles.header}>
+          {__DEV__ && !!onDevBypass && (
+            <Pressable
+              style={styles.devPass}
+              onPress={onDevBypass}
+              hitSlop={10}
+              accessibilityRole="button"
+              accessibilityLabel="Developer: skip paywall"
+            >
+              <Text style={styles.devPassText}>DEV SKIP</Text>
+            </Pressable>
+          )}
           <View style={styles.flex} />
-          {(preview || __DEV__) && onDismiss && (
-            <Pressable style={styles.close} onPress={onDismiss} hitSlop={10}>
+          {onDismiss && (
+            <Pressable
+              style={styles.close}
+              onPress={onDismiss}
+              hitSlop={10}
+              accessibilityRole="button"
+              accessibilityLabel="Close"
+            >
               <X size={24} color={c.textMuted} strokeWidth={2} />
             </Pressable>
           )}
@@ -269,18 +378,53 @@ export default function PaywallScreen({ onDismiss, preview }: PaywallScreenProps
           </View>
         )}
 
-        <Text style={styles.title}>{trialTitle}</Text>
-        {/* PLACEHOLDER — the old line ("You've defined your day…") described the
-            previous order, where setup came first. Setup now follows the
-            purchase, so it was simply untrue. This says the same thing pointing
-            forward; the paywall's positioning is a separate open question. */}
+        <Text style={styles.title}>{showTrial ? trialTitle : TRIAL_OVER_TITLE}</Text>
         <Text style={styles.subtitle}>
-          Start your free week, then make the app yours.
+          {showTrial
+            ? 'Start your free week, then make the app yours.'
+            : 'Subscribe to access the app.'}
         </Text>
 
+        {/* No-trial view — the benefits list stands in for the timeline. */}
+        {!showTrial && (
+          <View style={styles.benefits}>
+            {benefitY[0] != null && benefitY[1] != null && benefitY[2] != null && benefitY[3] != null && (() => {
+              const height = benefitY[3] - benefitY[0] + BENEFIT_FADE;
+              return (
+                <LinearGradient
+                  colors={[BENEFIT_RAIL[0], BENEFIT_RAIL[1], BENEFIT_RAIL[2], BENEFIT_RAIL[3], 'rgba(188,179,234,0)']}
+                  locations={[0, (benefitY[1] - benefitY[0]) / height, (benefitY[2] - benefitY[0]) / height, (benefitY[3] - benefitY[0]) / height, 1]}
+                  start={{ x: 0.5, y: 0 }}
+                  end={{ x: 0.5, y: 1 }}
+                  pointerEvents="none"
+                  style={[styles.benefitRail, { top: benefitY[0] + TILE / 2, height }]}
+                />
+              );
+            })()}
+            {BENEFITS.map((b, i) => (
+              <View
+                key={b.key}
+                style={styles.benefitRow}
+                onLayout={(e) => {
+                  const y = e.nativeEvent.layout.y;
+                  setBenefitY((prev) => (prev[i] === y ? prev : Object.assign([...prev], { [i]: y })));
+                }}
+              >
+                <View style={[styles.benefitTile, { borderColor: BENEFIT_RAIL[i] }]}>{b.icon}</View>
+                <View style={styles.flex}>
+                  <Text style={styles.benefitTitle}>{b.title}</Text>
+                  <Text style={styles.benefitBody}>{b.body}</Text>
+                </View>
+              </View>
+            ))}
+          </View>
+        )}
+
         {/* Trial timeline — continuous gradient rail behind white bead circles.
-            Its final step carries the Play Subscriptions disclosure that a
-            subscription is required to keep using the app. */}
+            Hidden once the trial has been used: there is no countdown left to
+            show, and the "Subscribe to use the app" line above already carries
+            the Play disclosure that the timeline carried for trial users. */}
+        {showTrial && (
         <View style={styles.timeline}>
           {rowY[0] != null && rowY[1] != null && rowY[2] != null && (() => {
             const height = rowY[2] - rowY[0] + RAIL_FADE;
@@ -316,6 +460,7 @@ export default function PaywallScreen({ onDismiss, preview }: PaywallScreenProps
             </View>
           ))}
         </View>
+        )}
 
         {/* Error / loading for packages */}
         {!!error && !packages.length && (
@@ -375,7 +520,7 @@ export default function PaywallScreen({ onDismiss, preview }: PaywallScreenProps
         {/* CTA — kept directly under the plans so the whole action cluster
             (CTA + "Have a code?" + footer) sits together, no dead space. */}
         <Pressable style={[styles.cta, (!chosen || processing) && styles.ctaDisabled]} onPress={buy} disabled={!chosen || processing}>
-          {busy ? <ActivityIndicator color="#fff" /> : <Text style={styles.ctaText}>{trialCta}</Text>}
+          {busy ? <ActivityIndicator color="#fff" /> : <Text style={styles.ctaText}>{showTrial ? trialCta : 'Subscribe'}</Text>}
         </Pressable>
 
         {/* Billing disclosure. The timeline says when billing starts but never
@@ -384,7 +529,9 @@ export default function PaywallScreen({ onDismiss, preview }: PaywallScreenProps
             are spelled out here, next to the button that commits to them. */}
         {!!chosen && (
           <Text style={styles.billing}>
-            {`Free for ${trialLen ?? 7} days, then ${chosen.product.priceString}/${selected === 'yearly' ? 'year' : 'month'}. Cancel anytime in Settings.`}
+            {showTrial
+              ? `Free for ${trialLen ?? 7} days, then ${chosen.product.priceString}/${selected === 'yearly' ? 'year' : 'month'}. Renews automatically until cancelled. Cancel anytime in Settings.`
+              : `Billed ${chosen.product.priceString}/${selected === 'yearly' ? 'year' : 'month'}. Renews automatically until cancelled. Cancel anytime in Settings.`}
           </Text>
         )}
 
@@ -536,6 +683,10 @@ const makeStyles = (tk: Tokens) => {
     scroll: { paddingHorizontal: 26, paddingTop: 20, paddingBottom: 32 },
     header: { flexDirection: 'row', alignItems: 'center' },
     close: { width: 32, height: 32, alignItems: 'center', justifyContent: 'center' },
+    resolving: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+    // Deliberately ugly and labelled — this must never be mistaken for shipping UI.
+    devPass: { height: 32, paddingHorizontal: 10, borderRadius: 8, borderWidth: 1, borderStyle: 'dashed', borderColor: c.border, alignItems: 'center', justifyContent: 'center' },
+    devPassText: { fontFamily: fontFamily.bold, fontSize: 10, letterSpacing: 1, color: c.textMuted },
 
     qaBanner: { backgroundColor: isDark ? 'rgba(251,146,60,0.16)' : '#FEF0E2', borderWidth: 1, borderColor: isDark ? 'rgba(251,146,60,0.5)' : '#F0B27A', borderRadius: 12, paddingVertical: 10, paddingHorizontal: 14, marginBottom: 14 },
     qaBannerText: { fontFamily: fontFamily.medium, fontSize: 13, lineHeight: 18, color: isDark ? '#FDBA74' : '#9A5B22' },
@@ -546,6 +697,13 @@ const makeStyles = (tk: Tokens) => {
     // Sits directly under the title so it is read before the plans, not after.
     // Tinted card rather than muted footnote type — a reviewer looking for the
     // disclosure has to be able to find it at a glance.
+    benefits: { position: 'relative', overflow: 'hidden', marginTop: 30, backgroundColor: c.surface, borderRadius: 22, borderWidth: 1, borderColor: c.border, paddingVertical: 22, paddingHorizontal: CARD_PAD_H, gap: 20, ...shadows.sm, ...darkCard },
+    benefitRail: { position: 'absolute', left: CARD_PAD_H + TILE / 2 - RAIL_WIDTH / 2, width: RAIL_WIDTH, borderTopLeftRadius: RAIL_WIDTH / 2, borderTopRightRadius: RAIL_WIDTH / 2, zIndex: 0 },
+    benefitRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 14 },
+    benefitTile: { width: TILE, height: TILE, borderRadius: TILE / 2, borderWidth: 3, backgroundColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center', zIndex: 2, ...shadows.sm },
+    benefitTitle: { fontFamily: fontFamily.bold, fontSize: 16.5, letterSpacing: -0.2, color: c.text },
+    benefitBody: { fontFamily: fontFamily.regular, fontSize: 14, lineHeight: 20, color: c.textSecondary, marginTop: 2 },
+
     timeline: { position: 'relative', overflow: 'hidden', marginTop: 30, backgroundColor: c.surface, borderRadius: 22, borderWidth: 1, borderColor: c.border, paddingVertical: 22, paddingHorizontal: CARD_PAD_H, ...shadows.sm, ...darkCard },
     rail: { position: 'absolute', left: CARD_PAD_H + CIRCLE / 2 - RAIL_WIDTH / 2, width: RAIL_WIDTH, borderTopLeftRadius: RAIL_WIDTH / 2, borderTopRightRadius: RAIL_WIDTH / 2, zIndex: 0 },
     step: { flexDirection: 'row', gap: 15 },

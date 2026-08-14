@@ -112,14 +112,18 @@ async function rememberGrandfather(anonymousId: string, yes: boolean): Promise<v
   } catch {}
 }
 
-async function checkGrandfatherStatus(): Promise<boolean> {
+// 'unknown' = we couldn't ASK, which is not the same as a "no". Collapsing the
+// two is what used to wall a grandfathered member who happened to be offline.
+type GrandfatherStatus = 'yes' | 'no' | 'unknown';
+
+async function checkGrandfatherStatus(): Promise<GrandfatherStatus> {
   let anonymousId = '';
   try {
     // Get the anonymous ID from usage logger
     anonymousId = (await getAnonymousId()) ?? '';
     if (!anonymousId) {
       console.log('[Subscription] No anonymous ID available - not grandfathered');
-      return false;
+      return 'no';
     }
 
     console.log('[Subscription] Checking grandfather status for:', anonymousId);
@@ -137,26 +141,27 @@ async function checkGrandfatherStatus(): Promise<boolean> {
       if (error.code === 'PGRST116') {
         console.log('[Subscription] User not found in user_profiles - not grandfathered');
         await rememberGrandfather(anonymousId, false);
-        return false;
+        return 'no';
       }
-      // Anything else is the check FAILING, not answering. Honour a cached yes.
+      // Anything else is the check FAILING, not answering. Honour a cached yes;
+      // otherwise say so, rather than pretending we got a "no".
       console.error('[Subscription] Error checking grandfather status:', error);
       const remembered = await cachedGrandfather(anonymousId);
       if (remembered) console.log('[Subscription] Check failed - honouring cached grandfather status');
-      return remembered;
+      return remembered ? 'yes' : 'unknown';
     }
 
     const isGrandfathered = data?.is_grandfathered === true;
     console.log('[Subscription] Grandfather status:', isGrandfathered);
     await rememberGrandfather(anonymousId, isGrandfathered);
-    return isGrandfathered;
+    return isGrandfathered ? 'yes' : 'no';
   } catch (error) {
     // Thrown (offline, DNS, timeout) — same rule as an error response.
     console.error('[Subscription] Grandfather check error:', error);
-    if (!anonymousId) return false;
+    if (!anonymousId) return 'unknown';
     const remembered = await cachedGrandfather(anonymousId);
     if (remembered) console.log('[Subscription] Check threw - honouring cached grandfather status');
-    return remembered;
+    return remembered ? 'yes' : 'unknown';
   }
 }
 
@@ -194,6 +199,8 @@ export const [SubscriptionProvider, useSubscription] = createContextHook(() => {
   const [customerInfo, setCustomerInfo] = useState<CustomerInfo | null>(null);
   const [isPremiumOverride, setIsPremiumOverride] = useState(false);
   const [isGrandfathered, setIsGrandfathered] = useState(false);
+  // We asked and couldn't get an answer (offline, or our backend is down).
+  const [grandfatherUnknown, setGrandfatherUnknown] = useState(false);
   // QA "force new-user" (see QA_FORCE_NEW_USER_KEY). `sessionPurchaseUnlock`
   // records a purchase/restore made THIS session so the gate still drops after a
   // real sandbox buy even while the flag ignores the standing entitlement.
@@ -218,7 +225,27 @@ export const [SubscriptionProvider, useSubscription] = createContextHook(() => {
       ? true
       : forceNewUser
         ? sessionPurchaseUnlock
-        : isEntitled || isGrandfathered || isPremiumOverride;
+        // FAIL OPEN on an unanswerable grandfather check. A member who is
+        // offline, or whose check hits a backend outage, must never be shown a
+        // paywall for an app they were promised free — that is this app's worst
+        // failure, and it has happened in production once already. The cost is
+        // a brief free ride during an outage, which is small: everything a
+        // subscription buys beyond the local daily program (reflections, the AI
+        // sponsor, speaker tapes) is Supabase-backed and broken for PAYING
+        // users at that same moment. Self-healing: a successful "no" clears the
+        // cache and the wall returns on the next launch.
+        //
+        // DELIBERATELY NOT HANDLED (2026-08-13): a FRESH install that is also
+        // fully offline has no local data to fall back on, so failing open
+        // drops it into an empty app with no content. We considered gating
+        // first run behind a "connect to the internet" screen and decided
+        // against it. Reaching that state means losing connectivity between
+        // downloading the app and first launch; it self-corrects on the next
+        // launch with signal; and a hard gate on first run would block EVERY
+        // new install if it ever misfired (a RevenueCat outage, a bad offering
+        // config). The rare user who hits it is a support conversation, not a
+        // control-flow branch. Don't add the gate without a strong reason.
+        : isEntitled || isGrandfathered || isPremiumOverride || grandfatherUnknown;
 
   // Refresh subscription status from RevenueCat
   const refresh = useCallback(async () => {
@@ -374,14 +401,17 @@ export const [SubscriptionProvider, useSubscription] = createContextHook(() => {
         // Steps 1+2: the Supabase grandfather check and the RevenueCat refresh
         // are independent network calls — run them concurrently. Both handle
         // their own errors internally (grandfather failure just means false).
-        const [grandfathered] = await Promise.all([
+        const [grandfather] = await Promise.all([
           checkGrandfatherStatus(),
           refresh(),
         ]);
         if (!didCancel) {
-          setIsGrandfathered(grandfathered);
-          if (grandfathered) {
+          setIsGrandfathered(grandfather === 'yes');
+          setGrandfatherUnknown(grandfather === 'unknown');
+          if (grandfather === 'yes') {
             console.log('[Subscription] User is grandfathered - unlocking premium features');
+          } else if (grandfather === 'unknown') {
+            console.warn('[Subscription] Grandfather status UNKNOWN - failing open until we can check');
           }
         }
       } catch (error) {
@@ -417,10 +447,23 @@ export const [SubscriptionProvider, useSubscription] = createContextHook(() => {
   }, [refresh]);
 
   // Resolve free-trial eligibility as soon as offerings are available (which
-  // happens at launch, during onboarding). Apple grants the intro offer once
-  // per account, so a returning/lapsed user comes back INELIGIBLE. Android can't
-  // be checked ahead of purchase (always UNKNOWN → treated as eligible; Google
-  // enforces it). On error we fall back to ineligible (honest > false "free").
+  // happens at launch, during onboarding).
+  //
+  // TWO routes to "ineligible", and Android relies on the first:
+  //
+  //  1. No zero-price intro in the offering at all. Play returns only the
+  //     offers an account QUALIFIES for, so a Google account that has already
+  //     used the trial simply doesn't get the free-trial offer back — no
+  //     introPrice, no trial packages, ineligible. This is the Android signal;
+  //     checkTrialOrIntroductoryPriceEligibility below always answers UNKNOWN
+  //     there, so it can never be the one that fires.
+  //
+  //  2. StoreKit says INELIGIBLE. iOS only. Apple grants the intro offer once
+  //     per subscription GROUP per Apple ID, so a lapsed user comes back
+  //     ineligible even on a brand-new device with no local history.
+  //
+  // On error we fall back to ineligible: an honest "no trial" beats promising
+  // a free week the store will refuse to honour.
   useEffect(() => {
     if (Platform.OS === 'web') { setTrialEligible(false); return; }
     if (!offerings) return;

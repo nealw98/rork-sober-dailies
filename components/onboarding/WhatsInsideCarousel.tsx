@@ -17,12 +17,12 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { StatusBar } from 'expo-status-bar';
 import { Image } from 'expo-image';
 import Svg, { Path } from 'react-native-svg';
-import { ArrowRight, Check, Plus, BookOpen, MessageCircle, PenLine, Heart, Moon, Users, CircleCheck, NotebookPen, Phone, Mic, Send } from 'lucide-react-native';
+import { ArrowRight, Check, Plus, BookOpen, MessageCircle, PenLine, Heart, Moon, Users, CircleCheck, NotebookPen, Phone, Mic } from 'lucide-react-native';
 import { HandsPraying, FlowerLotus, ChatCircleDots } from 'phosphor-react-native';
 
 import { fontFamily, families, shadows, type Tokens } from '@/constants/designTokens';
 import { useTokens, useThemedStyles } from '@/hooks/useTokens';
-import { SPONSORS } from '@/constants/sponsors';
+import { SPONSORS, vibeString } from '@/constants/sponsors';
 
 // Carousel gradient (prototype WI_GRAD) — one step past Welcome on the
 // icon→interior cooling bridge.
@@ -135,43 +135,44 @@ function VigToday() {
   );
 }
 
-// ─── 2 · AI Sponsor — the three personas (no sample chat) ────────────────────
+// ─── 2 · AI Sponsor — one message, answered three ways ──────────────────────
+
+// Static illustration copy, keyed by the real sponsor ids in constants/sponsors
+// ("supportive" / "salty" / "grace" — not the display first names). Samples,
+// like the 247 coin and the heatmap: never generated at runtime, never read
+// from chat history.
+const SPONSOR_PROMPT = 'Rough night. I got close.';
+const SPONSOR_REPLIES: Record<string, string> = {
+  supportive: 'That’s serious — but you made it through. Call someone sober; one hour at a time.',
+  salty: '“Got close” is how people dress up danger. Get away from it and call somebody.',
+  grace: 'I’m glad you told me. I know this leaves you shaken and exhausted. Reach out, and ask your Higher Power for help.',
+};
 
 function VigSponsor() {
   const styles = useThemedStyles(makeStyles);
   return (
-    <View style={styles.vigShell}>
+    <View style={[styles.vigShell, styles.vigShellTight]}>
+      <View style={styles.vigPromptRow}>
+        <View style={styles.vigPromptBubble}>
+          <Text style={styles.vigPromptText}>{SPONSOR_PROMPT}</Text>
+        </View>
+      </View>
+
       {SPONSORS.map((p) => (
-        <View key={p.id} style={styles.vigPersonaRow}>
-          <Image source={p.avatar} style={styles.vigAvatar} contentFit="cover" />
-          <View style={styles.flex1}>
-            <Text style={styles.vigPersonaName}>{p.name}</Text>
-            <Text style={styles.vigPersonaTag}>{p.description}</Text>
+        <View key={p.id} style={styles.vigPersonaBlock}>
+          <View style={styles.vigIntroRow}>
+            <Image source={p.avatar} style={styles.vigIntroAvatar} contentFit="cover" />
+            <View style={styles.flex1}>
+              <Text style={styles.vigIntroName}>{p.name}</Text>
+              {/* Same field, same formatter as the chat screen header. */}
+              <Text style={styles.vigIntroVibe} numberOfLines={1}>{vibeString(p.tags)}</Text>
+            </View>
+          </View>
+          <View style={styles.vigReplyBubble}>
+            <Text style={styles.vigReplyText}>{SPONSOR_REPLIES[p.id]}</Text>
           </View>
         </View>
       ))}
-
-      {/* ...and what it actually looks like to talk to one. No identity header
-          here: Eddie is named in the row directly above, and repeating him
-          read as a second, duplicate sponsor. The composer placeholder is the
-          only cue needed. Sample words — see the @ASK-FIRST note up top. */}
-      <View style={styles.vigChat}>
-        <View style={styles.vigUserRow}>
-          <View style={styles.vigUserBubble}>
-            <Text style={styles.vigUserText}>Rough night. I got close.</Text>
-          </View>
-        </View>
-        <Text style={styles.vigBotText}>
-          But you didn&apos;t — and you came here instead. That&apos;s the whole thing, right there. What set it off?
-        </Text>
-
-        <View style={styles.vigChatInput}>
-          <Text style={styles.vigChatPlaceholder}>Message Eddie…</Text>
-          <View style={styles.vigChatSend}>
-            <Send size={10} color="#fff" strokeWidth={2.4} />
-          </View>
-        </View>
-      </View>
     </View>
   );
 }
@@ -342,10 +343,9 @@ function useCards(): CardDef[] {
 
 // ─── the carousel ─────────────────────────────────────────────────────────────
 
-export default function WhatsInsideCarousel({ onSkip, onContinue, overline }: {
+export default function WhatsInsideCarousel({ onSkip, onContinue }: {
   onSkip: () => void;
   onContinue: () => void;
-  overline?: string; // e.g. "WHAT'S NEW" for the v2-upgrader flow
 }) {
   const styles = useThemedStyles(makeStyles);
   const cards = useCards();
@@ -375,7 +375,7 @@ export default function WhatsInsideCarousel({ onSkip, onContinue, overline }: {
       <LinearGradient colors={[...WI_GRAD]} start={{ x: 0.1, y: 0 }} end={{ x: 0.9, y: 1 }} style={StyleSheet.absoluteFill} />
       <SafeAreaView style={{ flex: 1 }} edges={['top', 'bottom']}>
         <View style={styles.headerRow}>
-          <Text style={styles.overline}>{overline ?? 'WHAT’S INSIDE'}</Text>
+          <Text style={styles.overline}>WHAT’S INSIDE</Text>
           <Pressable onPress={onSkip} hitSlop={8} style={styles.skipPill} accessibilityRole="button" accessibilityLabel="Skip">
             <Text style={styles.skipText}>Skip</Text>
           </Pressable>
@@ -485,19 +485,20 @@ const makeStyles = (tk: Tokens) => {
     vigFabAvatar: { width: '100%', height: '100%', borderRadius: 18 },
     vigFabBadge: { position: 'absolute', right: -4, bottom: -4, width: 16, height: 16, borderRadius: 8, backgroundColor: colors.primary, borderWidth: 2, borderColor: '#fff', alignItems: 'center', justifyContent: 'center' },
 
-    // Sponsor vignette
-    vigPersonaRow: { flexDirection: 'row', alignItems: 'center', gap: 11, backgroundColor: vigCard, borderWidth: 1, borderColor: c.border, borderRadius: 12, paddingVertical: 9, paddingHorizontal: 11 },
-    vigAvatar: { width: 42, height: 42, borderRadius: 21 },
-    vigPersonaName: { fontFamily: fontFamily.bold, fontSize: 13, color: c.text },
-    vigPersonaTag: { fontFamily: fontFamily.regular, fontSize: 11, color: c.textMuted, marginTop: 1 },
-    vigChat: { backgroundColor: vigCard, borderWidth: 1, borderColor: c.border, borderRadius: 12, padding: 10, gap: 8, marginTop: 2 },
-    vigUserRow: { alignItems: 'flex-end' },
-    vigUserBubble: { maxWidth: '82%', backgroundColor: vigPaper, borderWidth: 1, borderColor: c.border, borderRadius: 14, borderBottomRightRadius: 4, paddingVertical: 7, paddingHorizontal: 11 },
-    vigUserText: { fontFamily: fontFamily.regular, fontSize: 11.5, lineHeight: 16, color: c.text },
-    vigBotText: { fontFamily: fontFamily.regular, fontSize: 11.5, lineHeight: 17, color: c.text, paddingRight: 14 },
-    vigChatInput: { flexDirection: 'row', alignItems: 'center', gap: 8, borderWidth: 1, borderColor: c.border, borderRadius: 999, paddingVertical: 5, paddingLeft: 12, paddingRight: 5, marginTop: 2 },
-    vigChatPlaceholder: { flex: 1, fontFamily: fontFamily.regular, fontSize: 11, color: c.textMuted },
-    vigChatSend: { width: 22, height: 22, borderRadius: 11, backgroundColor: colors.primary, alignItems: 'center', justifyContent: 'center' },
+    // Sponsor vignette — one prompt, three answers
+    vigShellTight: { padding: 9, gap: 7 },
+    vigPromptRow: { flexDirection: 'row', justifyContent: 'flex-end' },
+    // vigCard is the themed stand-in for #fff — it flips to the lit surface on dark.
+    vigPromptBubble: { maxWidth: '78%', backgroundColor: vigCard, borderWidth: 1, borderColor: c.border, borderTopLeftRadius: 14, borderTopRightRadius: 14, borderBottomRightRadius: 4, borderBottomLeftRadius: 14, paddingVertical: 7, paddingHorizontal: 12 },
+    vigPromptText: { fontFamily: fontFamily.regular, fontSize: 12.5, lineHeight: 18, color: c.text },
+    vigPersonaBlock: { gap: 4 },
+    vigIntroRow: { flexDirection: 'row', alignItems: 'center', gap: 9 },
+    vigIntroAvatar: { width: 32, height: 32, borderRadius: 16 },
+    vigIntroName: { fontFamily: fontFamily.bold, fontSize: 12.5, lineHeight: 15, color: c.text },
+    vigIntroVibe: { fontFamily: fontFamily.regular, fontSize: 10.5, lineHeight: 14, color: c.textMuted, marginTop: 1 },
+    // 41 = avatar 32 + gap 9, so the reply hangs off the avatar's right edge.
+    vigReplyBubble: { backgroundColor: colors.tertiarySoft, borderTopLeftRadius: 4, borderTopRightRadius: 14, borderBottomRightRadius: 14, borderBottomLeftRadius: 14, paddingVertical: 6, paddingHorizontal: 11, marginLeft: 41 },
+    vigReplyText: { fontFamily: fontFamily.regular, fontSize: 12, lineHeight: 17, color: c.text },
 
     // Tools vignette — the launcher, mirroring the real Tools tab
     vigToolHero: { height: 104, borderRadius: 14, overflow: 'hidden', justifyContent: 'flex-end' },

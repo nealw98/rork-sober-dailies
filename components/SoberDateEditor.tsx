@@ -61,12 +61,14 @@ export interface SoberDateEditorProps {
   onSkip?: () => void;
   primaryLabel?: string;
   skipLabel?: string;
-  // First-run only: frames the screen as setting up the subscription the user
-  // has just started, rather than as a gate in front of it.
-  overline?: string;
+  // First-run only: the "Setting up · 1 of 2" progress header, rendered above
+  // the content in place of the plain back row. Also lets onboarding shorten
+  // the body copy without touching the standalone editor.
+  header?: React.ReactNode;
+  body?: string;
 }
 
-export default function SoberDateEditor({ current, onSave, onBack, onRemove, onSkip, primaryLabel = 'Save date', skipLabel, overline }: SoberDateEditorProps) {
+export default function SoberDateEditor({ current, onSave, onBack, onRemove, onSkip, primaryLabel = 'Save date', skipLabel, header, body }: SoberDateEditorProps) {
   const styles = useThemedStyles(makeStyles);
   const { colors } = useTokens();
   const initial = current
@@ -80,16 +82,17 @@ export default function SoberDateEditor({ current, onSave, onBack, onRemove, onS
   return (
     <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1 }}>
-        <View style={styles.topBar}>
-          {onBack && <BackButton onPress={onBack} />}
-        </View>
+        {header ?? (
+          <View style={styles.topBar}>
+            {onBack && <BackButton onPress={onBack} />}
+          </View>
+        )}
 
         <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
-          {!!overline && <Text style={styles.overline}>{overline}</Text>}
           <Text style={styles.affirmation}>One day at a time.</Text>
-          <Text style={styles.heading}>What&apos;s your{'\n'}sobriety date?</Text>
+          <Text style={styles.heading}>What&apos;s your sobriety date?</Text>
           <Text style={styles.body}>
-            Counting days helps some people stay grounded. There&apos;s no pressure — add it now or anytime later, and change it whenever you need.
+            {body ?? 'Counting days helps some people stay grounded. There’s no pressure — add it now or anytime later, and change it whenever you need.'}
           </Text>
 
           <LinearGradient
@@ -146,7 +149,6 @@ const makeStyles = (tk: Tokens) => {
     topBar: { paddingHorizontal: 16, paddingTop: 4, paddingBottom: 4 },
 
     scroll: { paddingHorizontal: 26, paddingTop: 10, paddingBottom: 24 },
-    overline: { fontFamily: fontFamily.semiBold, fontSize: 12, letterSpacing: 1.2, color: c.textMuted, marginBottom: 10 },
     affirmation: { fontFamily: fontFamily.serifMediumItalic, fontSize: fontSize['3xl'], color: colors.primary, lineHeight: 28 },
     heading: { fontFamily: fontFamily.displayBold, fontSize: 29, color: c.text, letterSpacing: -0.6, lineHeight: 33, marginTop: 10 },
     body: { fontFamily: fontFamily.regular, fontSize: fontSize.md, color: c.textSecondary, lineHeight: 22, marginTop: 12 },

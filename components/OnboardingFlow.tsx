@@ -13,9 +13,9 @@ import WhatsInsideCarousel from '@/components/onboarding/WhatsInsideCarousel';
 import { useOnboarding } from '@/hooks/useOnboardingStore';
 import { recordDisclaimerAcceptance } from '@/lib/disclaimerConsent';
 import { useSobriety } from '@/hooks/useSobrietyStore';
-import { useDailies, type DailyItem, type WhenBucket } from '@/hooks/use-dailies-store';
+import { useDailies, type WhenBucket } from '@/hooks/use-dailies-store';
 import { useSubscription } from '@/hooks/useSubscription';
-import { formatLocalDate } from '@/lib/dateUtils';
+import { formatLocalDate, parseLocalDate } from '@/lib/dateUtils';
 import SoberDateEditor from '@/components/SoberDateEditor';
 import DailiesEditor from '@/components/today/DailiesEditor';
 import PaywallScreen from '@/components/PaywallScreen';
@@ -45,9 +45,10 @@ const openTerms = () => Linking.openURL('https://www.apple.com/legal/internet-se
 const openPrivacy = () => Linking.openURL('https://soberdailies.com/privacy').catch(() => {});
 
 // ─── Step 1 · Welcome (logo + promise) ──────────────────────────────────────
-// `upgrader` = v2 user whose device data carried through the store update; the
-// copy welcomes them back instead of pitching the app they already use.
-function WelcomeStep({ upgrader, onContinue }: { upgrader: boolean; onContinue: () => void }) {
+// One welcome for everyone. There is deliberately no "welcome back" variant:
+// to a v2 upgrader this IS a new app, so they are introduced to it the same
+// way a stranger is. Access only ever changes whether the paywall step runs.
+function WelcomeStep({ onContinue }: { onContinue: () => void }) {
   const styles = useThemedStyles(makeStyles);
   return (
     <View style={styles.welcomeRoot}>
@@ -56,24 +57,21 @@ function WelcomeStep({ upgrader, onContinue }: { upgrader: boolean; onContinue: 
       <SafeAreaView style={styles.welcomeSafe} edges={['top', 'bottom']}>
         <View style={styles.welcomeCenter}>
           <Image source={require('@/assets/images/icon.png')} style={styles.welcomeLogo} contentFit="cover" />
-          {/* Two lines, always. The new-user promise is the longer string, so it
-              sets the type size; adjustsFontSizeToFit is the backstop for narrow
+          {/* Two lines, always; adjustsFontSizeToFit is the backstop for narrow
               screens and large Dynamic Type. */}
           <Text
-            style={[styles.welcomePromise, upgrader ? null : styles.welcomePromiseLong]}
+            style={[styles.welcomePromise, styles.welcomePromiseLong]}
             numberOfLines={2}
             adjustsFontSizeToFit
             minimumFontScale={0.8}
           >
-            {upgrader ? 'Welcome to the new Sober Dailies' : 'The daily habits that build long-term sobriety'}
+            The daily habits that build long-term sobriety
           </Text>
-          <Text style={styles.welcomeSubtitle}>
-            {upgrader ? 'Everything you saved is still here. New in this version: speaker tapes, meditation, and a whole new Today.' : 'One day. Every day.'}
-          </Text>
+          <Text style={styles.welcomeSubtitle}>One day. Every day.</Text>
         </View>
         <View style={styles.welcomeFooter}>
           <Pressable style={styles.welcomeBtn} onPress={onContinue}>
-            <Text style={styles.welcomeBtnText}>{upgrader ? "See what's new" : 'Get started'}</Text>
+            <Text style={styles.welcomeBtnText}>Get started</Text>
             <ArrowRight size={18} color={obvInk(0.55)} />
           </Pressable>
           <Text style={styles.welcomeAgreeLine}>
@@ -85,48 +83,35 @@ function WelcomeStep({ upgrader, onContinue }: { upgrader: boolean; onContinue: 
   );
 }
 
-// ─── Door 1 · Welcome back (members and returning subscribers) ──────────────
-// Anyone who already has access — grandfathered members, and subscribers whose
-// purchase reattached after a reinstall — sees this instead of the whole
-// introduction. No pitch, no price, no re-asking for a sobriety date the app
-// already has. Their Today is already correct: DEFAULT_PROGRAM is the same set
-// "Define your dailies" pre-checks, so skipping setup lands on identical
-// defaults (use-dailies-store).
-function WelcomeBackStep({ onContinue }: { onContinue: () => void | Promise<void> }) {
+// ─── Setup progress header (steps 1 and 2 of first-run setup) ──────────────
+// Shared by the sobriety-date and dailies screens so the two read as one task.
+// Setup is always both steps — an upgrader sees the date screen prefilled
+// rather than skipping it.
+function SetupHeader({ step, onBack }: { step: 1 | 2; onBack?: () => void }) {
   const styles = useThemedStyles(makeStyles);
-  const [going, setGoing] = useState(false);
-  const go = async () => {
-    if (going) return;
-    setGoing(true);
-    await onContinue();
-  };
+  const { c, colors } = useTokens();
   return (
-    <View style={styles.welcomeRoot}>
-      <StatusBar style="light" />
-      <LinearGradient colors={obvGrad(0.18)} start={{ x: 0.05, y: 0 }} end={{ x: 0.95, y: 1 }} style={StyleSheet.absoluteFill} />
-      <SafeAreaView style={styles.welcomeSafe} edges={['top', 'bottom']}>
-        <View style={styles.welcomeCenter}>
-          <Image source={require('@/assets/images/icon.png')} style={styles.welcomeLogo} contentFit="cover" />
-          <Text style={styles.welcomePromise} numberOfLines={2} adjustsFontSizeToFit minimumFontScale={0.8}>
-            Welcome back
-          </Text>
-          <Text style={styles.welcomeSubtitle}>
-            Your access carries over — nothing to set up, nothing to buy. Everything you saved is still here.
-          </Text>
-        </View>
-        <View style={styles.welcomeFooter}>
-          <Pressable style={styles.welcomeBtn} onPress={go} disabled={going}>
-            {going ? (
-              <ActivityIndicator color={obvInk(0.55)} />
-            ) : (
-              <>
-                <Text style={styles.welcomeBtnText}>Open Sober Dailies</Text>
-                <ArrowRight size={18} color={obvInk(0.55)} />
-              </>
-            )}
-          </Pressable>
-        </View>
-      </SafeAreaView>
+    <View style={styles.setupHead}>
+      <View style={styles.setupTopRow}>
+        {onBack && <BackButton onPress={onBack} />}
+        <Text style={styles.setupOverline}>{`SETTING UP · ${step} OF 2`}</Text>
+      </View>
+
+      <>
+          <View style={styles.setupRailRow}>
+            <View style={[styles.setupRail, { backgroundColor: step > 1 ? colors.primaryLight : colors.primaryDark }]} />
+            <View style={[styles.setupRail, { backgroundColor: step > 1 ? colors.primaryDark : c.border }]} />
+          </View>
+          <View style={styles.setupRailRow}>
+            <View style={styles.setupLabelCell}>
+              {step > 1 && <Check size={14} color={colors.primary} strokeWidth={3} />}
+              <Text style={[styles.setupLabel, step === 1 ? styles.setupLabelOn : styles.setupLabelDone]}>Sobriety date</Text>
+            </View>
+            <View style={styles.setupLabelCell}>
+              <Text style={[styles.setupLabel, step === 2 ? styles.setupLabelOn : styles.setupLabelOff]}>Your dailies</Text>
+            </View>
+          </View>
+      </>
     </View>
   );
 }
@@ -246,16 +231,12 @@ function DefineDailiesStep({ onBack, onComplete }: { onBack?: () => void; onComp
   // beat — show a spinner so the tap doesn't feel dead. No reset: we unmount.
   const [saving, setSaving] = useState(false);
 
-  // Seed the store with the default-on starter set once, on entry. From here the
-  // user shapes it with the SAME editor as the Today screen (drag / remove / add),
-  // so onboarding and Today are one interface.
-  useEffect(() => {
-    const defaults: DailyItem[] = STARTER.flatMap((s) =>
-      s.items.filter((i) => i.on).map((i) => ({ id: i.id, label: i.label, icon: i.icon, color: i.color, when: s.when, action: i.action })),
-    );
-    dailies.setAll(defaults);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  // No seeding here. use-dailies-store already starts at DEFAULT_PROGRAM — the
+  // same six practices the starter set marks on — so a new user sees exactly
+  // this list without being written to. Seeding unconditionally used to
+  // overwrite whatever was already in the store, which now matters: members
+  // reach this screen too, and `dailies_program` is a SYNC_KEY, so a
+  // cloud-restored program would have been replaced by the defaults.
 
   const handleComplete = async () => {
     if (saving) return;
@@ -265,23 +246,17 @@ function DefineDailiesStep({ onBack, onComplete }: { onBack?: () => void; onComp
 
   const header = (
     <>
-      <Text style={styles.overline}>SET UP YOUR APP</Text>
-      <Text style={styles.insideTitle}>Define your dailies</Text>
-      <Text style={styles.dailiesSubtitle}>The practices you&apos;ll start with</Text>
-      <View style={styles.infoCard}>
-        <Text style={styles.infoText}>
-          These are the practices that will appear on your Today page every day. Add the ones you want, remove what doesn&apos;t fit, and reorder them into a rhythm you&apos;ll actually follow. Each one opens a tool or a reading, and you check it off when it&apos;s done. You can change all of this later from Today.
-        </Text>
-      </View>
+      <Text style={styles.insideTitle}>What are your daily practices?</Text>
+      <Text style={styles.dailiesBody}>
+        These appear on your Today page every day. Add, remove and reorder them any time.
+      </Text>
     </>
   );
 
   return (
     <SafeAreaView style={styles.paper} edges={['top', 'bottom']}>
       <StatusBar style={isDark ? 'light' : 'dark'} />
-      <View style={styles.topBar}>
-        {onBack && <BackButton onPress={onBack} />}
-      </View>
+      <SetupHeader step={2} onBack={onBack} />
       <DailiesEditor header={header} contentContainerStyle={styles.dailiesScroll} />
       <View style={styles.footerBordered}>
         <Pressable style={styles.primaryBtn} onPress={handleComplete} disabled={saving}>
@@ -289,7 +264,7 @@ function DefineDailiesStep({ onBack, onComplete }: { onBack?: () => void; onComp
             <ActivityIndicator color="#fff" />
           ) : (
             <>
-              <Text style={styles.primaryText}>Go to Today</Text>
+              <Text style={styles.primaryText}>Start my program</Text>
               <ArrowRight size={18} color="#fff" />
             </>
           )}
@@ -317,25 +292,25 @@ export default function OnboardingFlow({
   // drops straight onto a second paywall.
   onPaywallBypassed?: () => void;
 }) {
-  const { completeOnboarding, isUpgrader } = useOnboarding();
+  const { completeOnboarding } = useOnboarding();
   const { setSobrietyDate, sobrietyDate } = useSobriety();
-  // Members and returning subscribers already have access. They get a
-  // welcome-back screen and go straight in — no pitch, no price, and no
-  // re-asking for details the app already has.
+  // Everyone runs the same introduction — grandfathered members included. To
+  // them this IS a new app, so they get the welcome, the tour, the disclaimer
+  // and both setup steps. The ONLY thing their access buys them is skipping
+  // the paywall.
   //
-  // Decided ONCE, on entry, and deliberately frozen: a new user who subscribes
-  // at the paywall step flips isPremium true mid-flow, and re-reading it live
-  // would bounce them into "Welcome back" instead of on to their setup.
-  // app/_layout holds the render until subscription state resolves, so this is
-  // already settled at mount.
+  // Frozen at mount, deliberately: a new user who subscribes at the paywall
+  // step flips isPremium true mid-flow, and re-reading it live would change
+  // the route under them. app/_layout holds the render until subscription
+  // state resolves, so this is already settled here.
   const { isPremium } = useSubscription();
   const [alreadyHadAccess] = useState(isPremium);
   const [step, setStep] = useState<Step>('welcome');
 
-  // Upgraders carried their sobriety date over from v2 — don't ask again.
-  // (An upgrader who never set one still gets the date step.)
-  const skipDateStep = isUpgrader && !!sobrietyDate;
-  const afterPurchase: Step = skipDateStep ? 'dailies' : 'date';
+  // Setup is always two steps. Upgraders used to skip the date screen because
+  // they already had one; now it is shown with their date filled in, so they
+  // can confirm or correct it rather than have it silently assumed.
+  const afterDisclaimer: Step = alreadyHadAccess ? 'date' : 'paywall';
 
   const finish = async () => {
     await completeOnboarding();
@@ -345,17 +320,10 @@ export default function OnboardingFlow({
     // forces a root re-mount that flashes the teal fill.
   };
 
-  // ── Door 1 · already have access ──
-  if (alreadyHadAccess) {
-    return <WelcomeBackStep onContinue={finish} />;
-  }
-
-  // ── Door 2 · new ──
-  if (step === 'welcome') return <WelcomeStep upgrader={isUpgrader} onContinue={() => setStep('inside')} />;
+  if (step === 'welcome') return <WelcomeStep onContinue={() => setStep('inside')} />;
   if (step === 'inside') {
     return (
       <WhatsInsideCarousel
-        overline={isUpgrader ? 'WHAT’S NEW' : undefined}
         onSkip={() => setStep('disclaimer')}
         onContinue={() => setStep('disclaimer')}
       />
@@ -368,21 +336,23 @@ export default function OnboardingFlow({
       <DisclaimerStep
         onAgree={() => {
           onDisclaimerAccepted?.();
-          setStep('paywall');
+          setStep(afterDisclaimer);
         }}
       />
     );
   }
   if (step === 'paywall') {
-    // No onDismiss: the wall is hard here exactly as it is at the root gate.
-    // Advancing is driven by isPremium flipping — which covers a purchase, a
-    // restore, and a redeemed gift code alike.
+    // The close (X) returns to the start of the introduction rather than
+    // trapping the user here — the visible way out Play's Subscriptions policy
+    // asks for. Advancing is driven by isPremium flipping, which covers a
+    // purchase, a restore, and a redeemed gift code alike.
     return (
       <PaywallStep
-        onSubscribed={() => setStep(afterPurchase)}
+        onSubscribed={() => setStep('date')}
+        onClose={() => setStep('welcome')}
         onBypass={() => {
           onPaywallBypassed?.();
-          setStep(afterPurchase);
+          setStep('date');
         }}
       />
     );
@@ -390,8 +360,13 @@ export default function OnboardingFlow({
   if (step === 'date') {
     return (
       <SoberDateEditor
-        current={null}
-        overline="SET UP YOUR APP"
+        // Prefilled for anyone who already has a date — a v2 upgrader confirms
+        // theirs rather than retyping it.
+        current={sobrietyDate ? parseLocalDate(sobrietyDate) : null}
+        // No back on step 1: for a new user the paywall is behind it and they
+        // have just paid; for a member there is only the disclaimer.
+        header={<SetupHeader step={1} />}
+        body="No pressure — add it now or later, and change it whenever you need."
         onSave={(date) => { setSobrietyDate(formatLocalDate(date)); setStep('dailies'); }}
         onSkip={() => setStep('dailies')}
         primaryLabel="Set my date"
@@ -399,28 +374,24 @@ export default function OnboardingFlow({
       />
     );
   }
-  return (
-    <DefineDailiesStep
-      onBack={skipDateStep ? undefined : () => setStep('date')}
-      onComplete={finish}
-    />
-  );
+  return <DefineDailiesStep onBack={() => setStep('date')} onComplete={finish} />;
 }
 
 // Paywall as a step. PaywallScreen applies the purchased CustomerInfo itself,
 // so the subscription flips on in the provider; watch for that rather than
 // hooking the buy button, so a restore or a gift code advances too.
 //
-// In __DEV__ the close (X) is wired to walk straight on to the setup steps, so
-// the rest of the flow is reachable on a simulator without a sandbox purchase.
-// It is undefined in any release build, where the wall stays hard — same rule
-// as the backstop gate in app/_layout.
-function PaywallStep({ onSubscribed, onBypass }: { onSubscribed: () => void; onBypass: () => void }) {
+// Tapping the X backs out to the start of onboarding, in every build. In
+// __DEV__ only, LONG-PRESSING it jumps forward to the setup screens instead, so
+// the rest of the flow stays reachable on a simulator without a sandbox
+// purchase — the two used to be the same gesture and can't be, now that the
+// tap has a real job.
+function PaywallStep({ onSubscribed, onClose, onBypass }: { onSubscribed: () => void; onClose: () => void; onBypass: () => void }) {
   const { isPremium } = useSubscription();
   useEffect(() => {
     if (isPremium) onSubscribed();
   }, [isPremium, onSubscribed]);
-  return <PaywallScreen onDismiss={__DEV__ ? onBypass : undefined} />;
+  return <PaywallScreen onDismiss={onClose} onDevBypass={onBypass} />;
 }
 
 const makeStyles = (tk: Tokens) => {
@@ -504,14 +475,22 @@ const makeStyles = (tk: Tokens) => {
   // paper screens (inside + dailies)
   paper: { flex: 1, backgroundColor: c.background },
   topBar: { paddingHorizontal: 16, paddingTop: 4, paddingBottom: 4 },
+  setupHead: { paddingHorizontal: 24, paddingTop: 4, paddingBottom: 18 },
+  setupTopRow: { flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 38 },
+  setupOverline: { fontFamily: fontFamily.bold, fontSize: 12, letterSpacing: 1.6, color: c.textMuted },
+  setupRailRow: { flexDirection: 'row', gap: 12, marginTop: 12 },
+  setupRail: { flex: 1, height: 3, borderRadius: 2 },
+  setupLabelCell: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: -6 },
+  setupLabel: { fontFamily: fontFamily.semiBold, fontSize: 13.5 },
+  setupLabelOn: { color: c.text },
+  setupLabelOff: { color: c.textMuted },
+  setupLabelDone: { color: colors.primary },
+  dailiesBody: { fontFamily: fontFamily.regular, fontSize: fontSize.md, color: c.textSecondary, lineHeight: 22, marginTop: 10, marginBottom: 4 },
   insideTitle: { fontFamily: fontFamily.displayBold, fontSize: fontSize.hero, color: c.text, letterSpacing: -0.5 },
   insideSub: { fontFamily: fontFamily.regular, fontSize: fontSize.md, color: c.textSecondary, lineHeight: 21, marginTop: 8, marginBottom: 8 },
 
   // define dailies
   dailiesScroll: { paddingHorizontal: 22, paddingTop: 6, paddingBottom: 16 },
-  dailiesSubtitle: { fontFamily: fontFamily.regular, fontSize: 13, color: c.textMuted, marginTop: 4 },
-  infoCard: { backgroundColor: colors.primarySoft, borderWidth: 1, borderColor: colors.primary + '33', borderRadius: 14, padding: 13, marginTop: 14, marginBottom: 4 },
-  infoText: { fontFamily: fontFamily.regular, fontSize: 12.5, color: c.textSecondary, lineHeight: 19 },
   infoBold: { fontFamily: fontFamily.semiBold, color: c.text },
   dailiesSection: { marginTop: 4 },
   sectionLabelRow: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', marginTop: 14, marginBottom: 8 },
@@ -522,7 +501,6 @@ const makeStyles = (tk: Tokens) => {
   dailyLabel: { flex: 1, fontFamily: fontFamily.semiBold, fontSize: fontSize.base, color: c.text },
   dailyCheck: { width: 26, height: 26, borderRadius: 13, borderWidth: 2, alignItems: 'center', justifyContent: 'center' },
   footerBordered: { paddingHorizontal: 24, paddingTop: 12, paddingBottom: 12, borderTopWidth: 1, borderTopColor: c.border },
-  overline: { fontFamily: fontFamily.semiBold, fontSize: 12, letterSpacing: 1.2, color: c.textMuted, marginBottom: 10 },
 
   // shared footer
   footer: { paddingHorizontal: 24, paddingTop: 12, paddingBottom: 12 },

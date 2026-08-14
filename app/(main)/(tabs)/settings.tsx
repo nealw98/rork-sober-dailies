@@ -150,13 +150,14 @@ export default function SettingsScreen() {
   const [developerPin, setDeveloperPin] = useState('');
   const [developerPinError, setDeveloperPinError] = useState<string | null>(null);
   const [logsText, setLogsText] = useState('');
-  // QA: preview the paywall. Close the Developer Console first, else the
-  // preview modal opens behind it (iOS stacks modals — a second modal
-  // presented under an open one never shows).
-  const [paywallPreview, setPaywallPreview] = useState(false);
-  const openPaywallPreview = () => {
+  // QA: preview either paywall layout ('trial' | 'notrial'), forced regardless
+  // of real trial history. Close the Developer Console first, else the preview
+  // modal opens behind it (iOS stacks modals — a second modal presented under
+  // an open one never shows).
+  const [paywallPreview, setPaywallPreview] = useState<'trial' | 'notrial' | null>(null);
+  const openPaywallPreview = (mode: 'trial' | 'notrial') => {
     setLogsVisible(false);
-    setTimeout(() => setPaywallPreview(true), 350);
+    setTimeout(() => setPaywallPreview(mode), 350);
   };
   // QA: preview the post-subscribe thank-you sheet (annual = 5 passes,
   // monthly = 1 pass) without buying. Same modal-stacking dance as above.
@@ -862,8 +863,11 @@ export default function SettingsScreen() {
               </TouchableOpacity>
             </View>
             <View style={styles.dcBtnRow}>
-              <TouchableOpacity style={styles.dcBtn} onPress={openPaywallPreview} activeOpacity={0.7}>
-                <Text style={styles.dcBtnText}>Preview · Paywall</Text>
+              <TouchableOpacity style={styles.dcBtn} onPress={() => openPaywallPreview('trial')} activeOpacity={0.7}>
+                <Text style={styles.dcBtnText}>Preview · Trial</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.dcBtn} onPress={() => openPaywallPreview('notrial')} activeOpacity={0.7}>
+                <Text style={styles.dcBtnText}>Preview · No trial</Text>
               </TouchableOpacity>
             </View>
             <View style={styles.dcBtnRow}>
@@ -991,20 +995,13 @@ export default function SettingsScreen() {
         </RNSafeAreaView>
       </Modal>
 
-      {/* QA: paywall preview — one layout now, the trial offer */}
-      <Modal visible={paywallPreview} animationType="slide" onRequestClose={() => setPaywallPreview(false)}>
+      {/* QA: paywall preview — both layouts, forced regardless of trial history.
+          The screen's own X closes the preview, so there's no floating pill
+          sitting on top of the very control being reviewed. */}
+      <Modal visible={!!paywallPreview} animationType="slide" onRequestClose={() => setPaywallPreview(null)}>
         <SafeAreaProvider initialMetrics={initialWindowMetrics}>
         <View style={{ flex: 1 }}>
-          <PaywallScreen preview onDismiss={() => setPaywallPreview(false)} />
-          <TouchableOpacity
-            onPress={() => setPaywallPreview(false)}
-            style={styles.previewCloseButton}
-            activeOpacity={0.8}
-            hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
-          >
-            <X size={22} color="#fff" />
-            <Text style={styles.previewCloseText}>Close preview</Text>
-          </TouchableOpacity>
+          <PaywallScreen preview forceTrial={paywallPreview === 'trial'} onDismiss={() => setPaywallPreview(null)} />
         </View>
         </SafeAreaProvider>
       </Modal>
@@ -1271,10 +1268,6 @@ const makeStyles = (tk: Tokens) => {
   dcLogsCard: { backgroundColor: c.surface, borderWidth: 1, borderColor: c.border, borderRadius: 14, padding: 14, ...shadows.sm },
   dcLogsText: { fontFamily: Platform.select({ ios: 'Menlo', android: 'monospace' }), fontSize: 11, lineHeight: 17, color: c.textSecondary },
 
-  previewCloseButton: { position: 'absolute', top: 54, right: 16, flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: 'rgba(0,0,0,0.78)', paddingVertical: 9, paddingHorizontal: 14, borderRadius: 999, borderWidth: 1, borderColor: 'rgba(255,255,255,0.5)', zIndex: 9999, elevation: 24 },
-  previewCloseText: { color: '#fff', fontSize: 13, fontWeight: '700' },
-
-  // ── Feedback modal ──
   feedbackContainer: { flex: 1, backgroundColor: c.background },
   feedbackHeader: {
     paddingTop: 18,
