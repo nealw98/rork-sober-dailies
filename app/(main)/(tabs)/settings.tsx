@@ -126,19 +126,46 @@ export default function SettingsScreen() {
   const { colorScheme, setColorScheme } = useTheme();
   const { customerInfo } = useSubscription();
 
-  // Only store subscribers get the row: managementURL is null for
-  // grandfathered members, pass riders, and free users, so none of them see
-  // a "subscription" they don't have.
+  // Prefer RevenueCat's store-specific destination when available. CustomerInfo
+  // can briefly be empty/stale, though, so never make the management row itself
+  // disappear with that URL; the standard store pages remain valid fallbacks.
   const managementURL = customerInfo?.managementURL ?? null;
+  const subscriptionManagementURL = managementURL ?? (
+    Platform.OS === 'ios'
+      ? 'https://apps.apple.com/account/subscriptions'
+      : 'https://play.google.com/store/account/subscriptions'
+  );
   const openManageSubscription = async () => {
+    // Customer Center first: plan changes, cancellation and refund requests
+    // handled in-app instead of handing the user to a store page. Its layout is
+    // fetched from RevenueCat when it presents, so on a slow connection it
+    // shows RC's own spinner for a while before drawing — that wait is inside
+    // their UI, not ours, and there is nothing on this side to speed up.
+    //
+    // The store URL stays as the fallback rather than being replaced. If the
+    // native module is missing from the running binary, or Customer Center
+    // can't present for any other reason, cancellation must still be one tap
+    // away — that path has no remote dependency and cannot fail the same way.
     try {
-      // Lazy require, getSMS()-style: purchases-ui ships in the 3.0.8 binary,
-      // but an OTA of this file must never crash a binary without the module.
       const RevenueCatUI = require('react-native-purchases-ui').default;
       await RevenueCatUI.presentCustomerCenter();
+      return;
     } catch (e) {
-      console.warn('[Settings] Customer Center unavailable, opening store page:', e);
-      if (managementURL) Linking.openURL(managementURL);
+      console.warn('[Settings] Customer Center unavailable, using store page:', e);
+    }
+
+    try {
+      // RevenueCat supplies the correct store URL for the active subscription:
+      // App Store on iOS, Google Play on Android.
+      await Linking.openURL(subscriptionManagementURL);
+    } catch (e) {
+      console.warn('[Settings] Could not open subscription management URL:', e);
+      Alert.alert(
+        'Couldn\'t open subscriptions',
+        Platform.OS === 'ios'
+          ? 'You can manage Sober Dailies in Settings under Apple Account > Subscriptions.'
+          : 'You can manage Sober Dailies in Google Play under Payments & subscriptions > Subscriptions.',
+      );
     }
   };
 
@@ -660,17 +687,16 @@ export default function SettingsScreen() {
           />
         </CardGroup>
 
-        {/* Subscription — store subscribers only (RC Customer Center) */}
-        {managementURL != null && (
-          <CardGroup label="Subscription">
-            <CardRow
-              label="Manage Subscription"
-              sub="Change plan or cancel"
-              last
-              onPress={openManageSubscription}
-            />
-          </CardGroup>
-        )}
+        {/* Always available: RevenueCat's exact store URL when known, otherwise
+            the platform's standard subscription-management page. */}
+        <CardGroup label="Subscription">
+          <CardRow
+            label="Manage Subscription"
+            sub="Change plan or cancel"
+            last
+            onPress={openManageSubscription}
+          />
+        </CardGroup>
 
         {/* Support Sober Dailies */}
         <CardGroup label="Support Sober Dailies">
@@ -849,6 +875,33 @@ export default function SettingsScreen() {
                 <View style={styles.dcRowBody}>
                   <Text style={styles.dcRowLabel}>Present Customer Center</Text>
                   <Text style={styles.dcRowSub}>Ungated — Settings row needs a store sub</Text>
+                </View>
+                <ChevronRight size={18} color={c.textMuted} />
+              </TouchableOpacity>
+              <View style={styles.dcDivider} />
+              {/* The pre-Customer-Center behaviour, kept for comparison: straight
+                  to the store's own subscription page, no remote config and no
+                  load. Manage Subscription falls back to exactly this when
+                  Customer Center can't present, so this is also how you see what
+                  that fallback looks like. */}
+              <TouchableOpacity
+                style={styles.dcRow}
+                activeOpacity={0.6}
+                onPress={async () => {
+                  setLogsVisible(false);
+                  try {
+                    await Linking.openURL(subscriptionManagementURL);
+                  } catch (e: any) {
+                    Alert.alert('Could not open store page', e?.message ?? String(e));
+                  }
+                }}
+              >
+                <View style={styles.dcIcon}><CircleDot size={17} color={colors.primaryDark} strokeWidth={2} /></View>
+                <View style={styles.dcRowBody}>
+                  <Text style={styles.dcRowLabel}>Open store subscription page</Text>
+                  <Text style={styles.dcRowSub}>
+                    {managementURL ? 'RevenueCat managementURL' : 'Fallback — no managementURL yet'}
+                  </Text>
                 </View>
                 <ChevronRight size={18} color={c.textMuted} />
               </TouchableOpacity>
