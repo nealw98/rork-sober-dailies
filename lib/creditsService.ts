@@ -384,5 +384,5 @@ export async function qaFetchCreditStatus(): Promise<CreditStatus | null> {
 // Keep the shared message brief. The landing page and native store flow carry
 // the detailed pricing, renewal, and cancellation disclosures.
 export function giftMessage(link: string): string {
-  return `Press the link to start your annual subscription and receive the first 90 days free.\n\n${link}`;
+  return `Here’s a pass for 90 days of Sober Dailies, free.\n\n${link}`;
 }
