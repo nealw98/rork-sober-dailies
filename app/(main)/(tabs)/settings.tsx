@@ -380,7 +380,9 @@ export default function SettingsScreen() {
             ? "Couldn't reach the authorization server. Check the connection and try again."
             : access.unavailable === 'no_device_secret'
               ? 'This device has no stored key, so it cannot prove its identity.'
-              : 'This device is not authorized.',
+              : access.unavailable === 'server_error'
+                ? 'The authorization server errored. Check the developer-access function logs.'
+                : 'This device is not authorized.',
         );
       }
     } finally {

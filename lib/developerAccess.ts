@@ -11,7 +11,7 @@ export interface DeveloperAccess {
   // Why a non-authorized result carries no PIN path. Without this the long
   // press on the version number is indistinguishable from a dead gesture —
   // three different failures all produced "nothing happens".
-  unavailable?: 'no_device_secret' | 'unreachable' | 'not_authorized';
+  unavailable?: 'no_device_secret' | 'unreachable' | 'not_authorized' | 'server_error';
 }
 
 // Deliberately no persistent authorization cache: every attempt to open the
@@ -44,7 +44,16 @@ export async function checkDeveloperAccess(pin?: string): Promise<DeveloperAcces
         : [],
       pinRequired: data?.pin_required === true,
       locked: data?.locked === true,
-      unavailable: authorized || data?.pin_required === true ? undefined : 'not_authorized',
+      // Split on the STATUS, not just the absence of pin_required: the function
+      // returns a bare { authorized: false } both when it refuses a device (403)
+      // and when anything inside it throws (503). Reporting those as one thing
+      // sent us hunting a database row that was correct all along.
+      unavailable:
+        authorized || data?.pin_required === true
+          ? undefined
+          : response.status >= 500
+            ? 'server_error'
+            : 'not_authorized',
     };
   } catch (error) {
     console.warn('[Developer Access] authorization unavailable', error);
