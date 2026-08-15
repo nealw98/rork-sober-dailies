@@ -136,27 +136,11 @@ export default function SettingsScreen() {
       : 'https://play.google.com/store/account/subscriptions'
   );
   const openManageSubscription = async () => {
-    // Customer Center first: plan changes, cancellation and refund requests
-    // handled in-app instead of handing the user to a store page. Its layout is
-    // fetched from RevenueCat when it presents, so on a slow connection it
-    // shows RC's own spinner for a while before drawing — that wait is inside
-    // their UI, not ours, and there is nothing on this side to speed up.
-    //
-    // The store URL stays as the fallback rather than being replaced. If the
-    // native module is missing from the running binary, or Customer Center
-    // can't present for any other reason, cancellation must still be one tap
-    // away — that path has no remote dependency and cannot fail the same way.
-    try {
-      const RevenueCatUI = require('react-native-purchases-ui').default;
-      await RevenueCatUI.presentCustomerCenter();
-      return;
-    } catch (e) {
-      console.warn('[Settings] Customer Center unavailable, using store page:', e);
-    }
-
     try {
       // RevenueCat supplies the correct store URL for the active subscription:
-      // App Store on iOS, Google Play on Android.
+      // App Store on iOS, Google Play on Android. If CustomerInfo is temporarily
+      // unavailable, the platform's standard subscriptions page is still a
+      // reliable destination and never depends on Customer Center loading.
       await Linking.openURL(subscriptionManagementURL);
     } catch (e) {
       console.warn('[Settings] Could not open subscription management URL:', e);
@@ -173,9 +157,6 @@ export default function SettingsScreen() {
 
   const [logsVisible, setLogsVisible] = useState(false);
   const [isCheckingDeveloperAccess, setIsCheckingDeveloperAccess] = useState(false);
-  const [developerPinVisible, setDeveloperPinVisible] = useState(false);
-  const [developerPin, setDeveloperPin] = useState('');
-  const [developerPinError, setDeveloperPinError] = useState<string | null>(null);
   const [logsText, setLogsText] = useState('');
   // QA: preview either paywall layout ('trial' | 'notrial'), forced regardless
   // of real trial history. Close the Developer Console first, else the preview
@@ -367,44 +348,20 @@ export default function SettingsScreen() {
     try {
       const access = await checkDeveloperAccess();
       if (access.authorized) setLogsVisible(true);
-      else if (access.pinRequired) {
-        setDeveloperPinError(access.locked ? 'Too many attempts. Try again in 15 minutes.' : null);
-        setDeveloperPinVisible(true);
-      } else {
+      else {
         // Previously this fell through to nothing, so a failed check and a
         // mis-aimed long press looked identical. Only ever seen by someone who
-        // found a hidden gesture, so naming the cause costs nothing.
+        // found a hidden gesture, so naming the cause costs nothing. The
+        // not-authorized text names the fix, since the fix is always the same:
+        // send the Support ID to be added to authorized_devices.
         Alert.alert(
           'Developer access unavailable',
           access.unavailable === 'unreachable'
             ? "Couldn't reach the authorization server. Check the connection and try again."
-            : access.unavailable === 'no_device_secret'
-              ? 'This device has no stored key, so it cannot prove its identity.'
-              : access.unavailable === 'server_error'
-                ? 'The authorization server errored. Check the developer-access function logs.'
-                : 'This device is not authorized.',
+            : access.unavailable === 'server_error'
+              ? 'The authorization server errored. Check the developer-access function logs.'
+              : 'This device is not authorized. Tap the version 7× for the Support ID and send it to be added.',
         );
-      }
-    } finally {
-      setIsCheckingDeveloperAccess(false);
-    }
-  };
-
-  const submitDeveloperPin = async () => {
-    const pin = developerPin.trim();
-    if (!pin || isCheckingDeveloperAccess) return;
-    setIsCheckingDeveloperAccess(true);
-    setDeveloperPinError(null);
-    try {
-      const access = await checkDeveloperAccess(pin);
-      if (access.authorized) {
-        setDeveloperPin('');
-        setDeveloperPinVisible(false);
-        setLogsVisible(true);
-      } else {
-        setDeveloperPinError(access.locked
-          ? 'Too many attempts. Try again in 15 minutes.'
-          : 'That PIN wasn’t accepted.');
       }
     } finally {
       setIsCheckingDeveloperAccess(false);
@@ -732,42 +689,6 @@ export default function SettingsScreen() {
         </View>
       </ScrollView>
 
-      {/* One-time enrollment for a new installation under an authorized Support ID. */}
-      <Modal visible={developerPinVisible} transparent animationType="fade" onRequestClose={() => setDeveloperPinVisible(false)}>
-        <View style={styles.pinOverlay}>
-          <View style={styles.pinCard}>
-            <Text style={styles.pinTitle}>Developer PIN</Text>
-            <Text style={styles.pinBody}>Enter your private PIN once to authorize this installation.</Text>
-            <TextInput
-              value={developerPin}
-              onChangeText={setDeveloperPin}
-              onSubmitEditing={submitDeveloperPin}
-              secureTextEntry
-              autoCapitalize="none"
-              autoCorrect={false}
-              textContentType="password"
-              placeholder="PIN"
-              placeholderTextColor={c.textMuted}
-              style={styles.pinInput}
-              editable={!isCheckingDeveloperAccess}
-              autoFocus
-            />
-            {!!developerPinError && <Text style={styles.pinError}>{developerPinError}</Text>}
-            <TouchableOpacity
-              style={[styles.pinSubmit, (!developerPin.trim() || isCheckingDeveloperAccess) && { opacity: 0.5 }]}
-              onPress={submitDeveloperPin}
-              disabled={!developerPin.trim() || isCheckingDeveloperAccess}
-              activeOpacity={0.8}
-            >
-              {isCheckingDeveloperAccess ? <ActivityIndicator color="#fff" /> : <Text style={styles.pinSubmitText}>Authorize Device</Text>}
-            </TouchableOpacity>
-            <TouchableOpacity onPress={() => { setDeveloperPinVisible(false); setDeveloperPin(''); setDeveloperPinError(null); }} style={styles.pinCancel}>
-              <Text style={styles.pinCancelText}>Cancel</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </Modal>
-
       {/* Developer Console Modal (hidden QA screen — long-press the version number).
           App-styled per the Jul 18 mock: info cards, THIS DEVICE / PAYWALL &
           SUBSCRIPTION / ONBOARDING & DATA sections, then the log feed. All
@@ -858,10 +779,9 @@ export default function SettingsScreen() {
                 style={styles.dcRow}
                 activeOpacity={0.6}
                 onPress={() => {
-                  // QA: present RC Customer Center unconditionally — the
-                  // Settings row is gated on managementURL (store subscribers
-                  // only), which hides it on a grandfathered device. This
-                  // also verifies the RC dashboard config end-to-end.
+                  // QA only: Customer Center is no longer part of the production
+                  // Settings path, but keeping this test verifies RevenueCat's
+                  // remote dashboard configuration end-to-end.
                   setLogsVisible(false);
                   setTimeout(async () => {
                     try {
@@ -876,16 +796,13 @@ export default function SettingsScreen() {
                 <View style={styles.dcIcon}><CircleDot size={17} color={colors.primaryDark} strokeWidth={2} /></View>
                 <View style={styles.dcRowBody}>
                   <Text style={styles.dcRowLabel}>Present Customer Center</Text>
-                  <Text style={styles.dcRowSub}>Ungated — Settings row needs a store sub</Text>
+                  <Text style={styles.dcRowSub}>QA only — not used by Settings</Text>
                 </View>
                 <ChevronRight size={18} color={c.textMuted} />
               </TouchableOpacity>
               <View style={styles.dcDivider} />
-              {/* The pre-Customer-Center behaviour, kept for comparison: straight
-                  to the store's own subscription page, no remote config and no
-                  load. Manage Subscription falls back to exactly this when
-                  Customer Center can't present, so this is also how you see what
-                  that fallback looks like. */}
+              {/* The production Manage Subscription behavior: straight to the
+                  store's subscription page, with no Customer Center dependency. */}
               <TouchableOpacity
                 style={styles.dcRow}
                 activeOpacity={0.6}
@@ -1272,16 +1189,6 @@ const makeStyles = (tk: Tokens) => {
   versionText: { fontFamily: fontFamily.regular, fontSize: 12, color: c.textMuted },
   copyright: { fontFamily: fontFamily.regular, fontSize: 11.5, color: c.textMuted },
 
-  pinOverlay: { flex: 1, backgroundColor: c.overlay, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 28 },
-  pinCard: { width: '100%', maxWidth: 390, borderRadius: 20, backgroundColor: c.surface, borderWidth: 1, borderColor: c.border, padding: 22, ...shadows.lg },
-  pinTitle: { fontFamily: fontFamily.displayBold, fontSize: 22, color: c.text, textAlign: 'center' },
-  pinBody: { fontFamily: fontFamily.regular, fontSize: 14, lineHeight: 20, color: c.textSecondary, textAlign: 'center', marginTop: 7 },
-  pinInput: { marginTop: 18, borderWidth: 1, borderColor: c.border, borderRadius: 12, backgroundColor: c.background, color: c.text, fontFamily: fontFamily.semiBold, fontSize: 18, letterSpacing: 2, paddingHorizontal: 14, paddingVertical: 13, textAlign: 'center' },
-  pinError: { fontFamily: fontFamily.regular, fontSize: 12.5, lineHeight: 18, color: DANGER, textAlign: 'center', marginTop: 9 },
-  pinSubmit: { marginTop: 16, minHeight: 48, borderRadius: 13, backgroundColor: colors.primary, alignItems: 'center', justifyContent: 'center' },
-  pinSubmitText: { fontFamily: fontFamily.semiBold, fontSize: 15, color: '#fff' },
-  pinCancel: { paddingVertical: 12, alignItems: 'center', marginTop: 2 },
-  pinCancelText: { fontFamily: fontFamily.semiBold, fontSize: 14, color: c.textMuted },
 
   // ── Developer Console (app-styled QA modal, Jul 18 mock) ──
   dcContainer: { flex: 1, backgroundColor: c.background },
