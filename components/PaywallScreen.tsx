@@ -815,8 +815,13 @@ const makeStyles = (tk: Tokens) => {
     qaBanner: { backgroundColor: isDark ? 'rgba(251,146,60,0.16)' : '#FEF0E2', borderWidth: 1, borderColor: isDark ? 'rgba(251,146,60,0.5)' : '#F0B27A', borderRadius: 12, paddingVertical: 10, paddingHorizontal: 14, marginBottom: 14 },
     qaBannerText: { fontFamily: fontFamily.medium, fontSize: 13, lineHeight: 18, color: isDark ? '#FDBA74' : '#9A5B22' },
 
-    title: { fontFamily: fontFamily.displayBold, fontSize: 32, lineHeight: 36, letterSpacing: -0.8, color: c.text },
-    subtitle: { fontFamily: fontFamily.serifItalic, fontSize: 16, lineHeight: 23, color: c.textSecondary, marginTop: 10 },
+    // Inset to CARD_PAD_H so the header starts on the same column as the text
+    // inside the cards, not on their outer border. Flush with the border, 32pt
+    // display type reads as running to the screen edge while every line beneath
+    // it sits 20pt further in — the title looked wider than the cards because
+    // it was wider than everything they contain.
+    title: { fontFamily: fontFamily.displayBold, fontSize: 32, lineHeight: 36, letterSpacing: -0.8, color: c.text, paddingHorizontal: CARD_PAD_H },
+    subtitle: { fontFamily: fontFamily.serifItalic, fontSize: 16, lineHeight: 23, color: c.textSecondary, marginTop: 10, paddingHorizontal: CARD_PAD_H },
 
     // Sits directly under the title so it is read before the plans, not after.
     // Tinted card rather than muted footnote type — a reviewer looking for the
