@@ -381,12 +381,8 @@ export async function qaFetchCreditStatus(): Promise<CreditStatus | null> {
   };
 }
 
-// The message a gift rides in. Personal and first-person, while still making
-// the annual renewal clear before the recipient opens the store flow.
+// Keep the shared message brief. The landing page and native store flow carry
+// the detailed pricing, renewal, and cancellation disclosures.
 export function giftMessage(link: string): string {
-  return (
-    'I want to give you your first 3 months of Sober Dailies — it’s an app ' +
-    'that’s been part of my recovery. The pass starts an annual subscription, ' +
-    'and your app store will show the renewal price before you accept:\n\n' + link
-  );
+  return `Press the link to start your annual subscription and receive the first 90 days free.\n\n${link}`;
 }
