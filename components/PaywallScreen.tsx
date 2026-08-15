@@ -151,6 +151,10 @@ export default function PaywallScreen({ onDismiss, onDevBypass, onUnavailableDis
 
   const [selected, setSelected] = useState<'yearly' | 'monthly'>('yearly');
   const [busy, setBusy] = useState(false);
+  // `error` is shared subscription state — a background refresh can set it with
+  // no user action behind it. Only a purchase the user actually attempted earns
+  // the message under the CTA, so gate on this rather than on `error` alone.
+  const [purchaseFailed, setPurchaseFailed] = useState(false);
   const [restoring, setRestoring] = useState(false);
   const [retrying, setRetrying] = useState(false);
   const [showRedeem, setShowRedeem] = useState(false);
@@ -289,6 +293,7 @@ export default function PaywallScreen({ onDismiss, onDevBypass, onUnavailableDis
   const buy = async () => {
     if (!chosen || busy) return;
     setBusy(true);
+    setPurchaseFailed(false);
     logEvent('paywall_purchase_tapped', { plan: selected });
     try {
       const info = await purchasePackage(chosen);
@@ -305,6 +310,10 @@ export default function PaywallScreen({ onDismiss, onDevBypass, onUnavailableDis
         await scheduleTrialEndingReminder(info);
         fetchCreditStatus();
         applyCustomerInfo(info); // flips isPremium next render → gate drops
+      } else {
+        // Null covers both a real failure and a plain cancellation; the two are
+        // told apart by whether useSubscription left a message on `error`.
+        setPurchaseFailed(true);
       }
       refresh();
     } catch {
@@ -577,7 +586,10 @@ export default function PaywallScreen({ onDismiss, onDevBypass, onUnavailableDis
         </View>
         )}
 
-        {/* Error / loading for packages */}
+        {/* Error / loading for packages. This card is the LOAD failure — no
+            plans to show, so Retry is the only useful action. A failure during
+            a purchase has plans on screen and is reported under the CTA
+            instead; see purchaseError below. */}
         {!!error && !packages.length && (
           <View style={styles.errorCard}>
             <Text style={styles.errorText}>{error}</Text>
@@ -595,7 +607,7 @@ export default function PaywallScreen({ onDismiss, onDevBypass, onUnavailableDis
         {!!packages.length && (
           <View style={styles.plans}>
             {!!yearly && (
-              <Pressable style={[styles.plan, selected === 'yearly' && styles.planOn]} onPress={() => setSelected('yearly')}>
+              <Pressable style={[styles.plan, selected === 'yearly' && styles.planOn]} onPress={() => { setSelected('yearly'); setPurchaseFailed(false); }}>
                 {save != null && (
                   <View style={styles.saveBadge}><Text style={styles.saveBadgeText}>SAVE {save}%</Text></View>
                 )}
@@ -614,7 +626,7 @@ export default function PaywallScreen({ onDismiss, onDevBypass, onUnavailableDis
               </Pressable>
             )}
             {!!monthly && (
-              <Pressable style={[styles.plan, selected === 'monthly' && styles.planOn]} onPress={() => setSelected('monthly')}>
+              <Pressable style={[styles.plan, selected === 'monthly' && styles.planOn]} onPress={() => { setSelected('monthly'); setPurchaseFailed(false); }}>
                 {/* Monthly's label and price move together: both muted when the
                     row is the road not taken, both full ink when it's chosen.
                     (Yearly is the default pick and always reads full-strength.) */}
@@ -637,6 +649,17 @@ export default function PaywallScreen({ onDismiss, onDevBypass, onUnavailableDis
         <Pressable style={[styles.cta, (!chosen || processing) && styles.ctaDisabled]} onPress={buy} disabled={!chosen || processing}>
           {busy ? <ActivityIndicator color="#fff" /> : <Text style={styles.ctaText}>{showTrial ? 'Continue' : 'Subscribe'}</Text>}
         </Pressable>
+
+        {/* A failed purchase used to say nothing at all: the card above only
+            renders when there are NO packages, so with plans on screen the
+            store's reason was set on `error` and never drawn — the spinner
+            simply stopped and the button looked dead. That's how "you're
+            already subscribed to this" read as a broken app. Report it against
+            the CTA that failed. User cancellations never land here;
+            useSubscription maps those to a null error on purpose. */}
+        {purchaseFailed && !!error && (
+          <Text style={styles.purchaseError} accessibilityLiveRegion="polite">{error}</Text>
+        )}
 
         {/* Billing disclosure. The timeline says when billing starts but never
             what gets charged, and App Review read that omission as an
@@ -846,6 +869,7 @@ const makeStyles = (tk: Tokens) => {
     // no-trial benefits — tinted icon tiles inside the same card as the trial timeline
     errorCard: { marginTop: 20, padding: 16, borderRadius: 14, backgroundColor: c.surface, borderWidth: 1, borderColor: c.border, ...darkCard },
     errorText: { fontFamily: fontFamily.regular, fontSize: 14, lineHeight: 20, color: c.textSecondary },
+    purchaseError: { fontFamily: fontFamily.regular, fontSize: 13.5, lineHeight: 19, color: colors.destructive, textAlign: 'center', marginTop: 10 },
     retry: { flexDirection: 'row', alignItems: 'center', alignSelf: 'flex-start', gap: 7, marginTop: 12, paddingVertical: 8, paddingHorizontal: 14, borderRadius: 20, borderWidth: 1, borderColor: colors.primary },
     retryText: { fontFamily: fontFamily.semiBold, fontSize: 14, color: colors.primary },
 
