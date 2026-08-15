@@ -14,13 +14,10 @@ export function storeUrl(): string {
   return Platform.OS === 'ios' ? APP_STORE_URL : PLAY_STORE_URL;
 }
 
-// The soberdailies.com/get landing page — the recipient-facing target for both
-// share flows. Unlike a bare store link it detects the RECIPIENT's platform (not
-// the sender's) and, when a gift code rides along, shows the code + how to redeem.
+// The soberdailies.com/get landing page — the recipient-facing target for app
+// shares. Private Pass It On links add their server-minted `g` token elsewhere.
 export const GET_URL = 'https://soberdailies.com/get';
 
-// Landing link for a share. Pass a gift code to produce the gift variant
-// (…/get?code=SD-XXXX-XXXX); omit it for the plain "share the app" link.
-export function getUrl(code?: string): string {
-  return code ? `${GET_URL}?code=${encodeURIComponent(code)}` : GET_URL;
+export function getUrl(): string {
+  return GET_URL;
 }

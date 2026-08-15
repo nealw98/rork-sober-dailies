@@ -1,7 +1,8 @@
 // Gift credits — client for the credits-status / credits-share edge functions.
 // (docs/invite-rewards-design.md §0: annual 5/yr · monthly 1 per 3 months ·
-// founding members 5/yr. The gift itself is an Apple offer code the RECIPIENT
-// picks up on soberdailies.com/get — the app only ever handles tokens.)
+// founding members 5/yr. The gift itself is an annual Apple or Google Play
+// offer code the RECIPIENT picks up on soberdailies.com/get — the app only
+// ever handles tokens.)
 //
 // Two local caches, both AsyncStorage:
 //  • balance cache — lets the tab-header gift badge render instantly and
@@ -85,8 +86,8 @@ interface PendingShare {
   link: string;
 }
 
-// Same identity pair the gift flow sends (lib/giftService.ts) — the RC id is
-// what the server reads subscription state from to compute earned credits.
+// The RC id is what the server reads subscription state from to compute earned
+// credits; the device secret proves ownership of the anonymous id.
 async function identity(): Promise<{
   anonymous_id: string;
   rc_app_user_id: string;
@@ -380,11 +381,12 @@ export async function qaFetchCreditStatus(): Promise<CreditStatus | null> {
   };
 }
 
-// The message a gift rides in. Personal, first-person, and the link is the
-// gift artifact — the recipient picks their plan on /get.
+// The message a gift rides in. Personal and first-person, while still making
+// the annual renewal clear before the recipient opens the store flow.
 export function giftMessage(link: string): string {
   return (
     'I want to give you your first 3 months of Sober Dailies — it’s an app ' +
-    'that’s been part of my recovery. It’s on me:\n\n' + link
+    'that’s been part of my recovery. The pass starts an annual subscription, ' +
+    'and your app store will show the renewal price before you accept:\n\n' + link
   );
 }

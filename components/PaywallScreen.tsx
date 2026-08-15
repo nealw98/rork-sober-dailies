@@ -1,39 +1,26 @@
 // Custom RN paywall (replaces RevenueCat's hosted Paywall UI). Matches the
 // "Your first week is free" design: trial timeline (Today / Day 5 / Day 7),
-// a select-a-plan-then-one-CTA selector, and a footer that includes a
-// "Have a code?" entry wired straight into our Pass It On gift redemption
-// (redeemGiftCode → Supabase). Purchases/entitlements still run through
-// react-native-purchases via useSubscription — only the UI is ours.
+// a select-a-plan-then-one-CTA selector, and store-native subscription
+// purchases through react-native-purchases.
 //
-// Rendered as the paywall gate in app/_layout.tsx: there's no navigator mounted
-// behind the gate, so "Have a code?" opens redemption as a Modal (not a route),
-// and a successful redeem/purchase flips isPremium via refresh()/applyCustomerInfo
-// so the gate falls through to Today.
+// Rendered as the paywall gate in app/_layout.tsx. A successful purchase flips
+// isPremium via applyCustomerInfo so the gate falls through to Today.
 import React, { useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
-  Keyboard,
   Linking,
-  Modal,
-  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
   Text,
-  TextInput,
   View,
 } from 'react-native';
-// RN's KeyboardAvoidingView doesn't track the keyboard inside a <Modal>, and
-// nothing resizes the Android modal window either — use keyboard-controller's,
-// scoped by its own provider (same pattern as PrayerEditSheet).
-import { KeyboardProvider, KeyboardAvoidingView } from 'react-native-keyboard-controller';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Bell, Check, Lock, MessageCircle, RefreshCw, SlidersHorizontal, Star, TrendingUp, Wrench, X } from 'lucide-react-native';
-import Purchases, { type PurchasesPackage } from 'react-native-purchases';
+import { type PurchasesPackage } from 'react-native-purchases';
 import { useSubscription } from '@/hooks/useSubscription';
-import { redeemGiftCode, type RedeemReason } from '@/lib/giftService';
 import { fetchCreditStatus, setPendingAnnouncement } from '@/lib/creditsService';
 import { scheduleTrialEndingReminder } from '@/lib/trialReminder';
 import { logEvent } from '@/lib/analytics';
@@ -157,7 +144,6 @@ export default function PaywallScreen({ onDismiss, onDevBypass, onUnavailableDis
   const [purchaseFailed, setPurchaseFailed] = useState(false);
   const [restoring, setRestoring] = useState(false);
   const [retrying, setRetrying] = useState(false);
-  const [showRedeem, setShowRedeem] = useState(false);
   // Measured top of each timeline row (relative to the card) so the continuous
   // gradient rail can be positioned to pass through the circle centers exactly.
   const [rowY, setRowY] = useState<number[]>([]);
@@ -315,7 +301,6 @@ export default function PaywallScreen({ onDismiss, onDevBypass, onUnavailableDis
         // told apart by whether useSubscription left a message on `error`.
         setPurchaseFailed(true);
       }
-      refresh();
     } catch {
       // RC surfaces user-cancel as a throw; nothing to do.
     } finally {
@@ -333,13 +318,7 @@ export default function PaywallScreen({ onDismiss, onDevBypass, onUnavailableDis
         applyCustomerInfo(info);
         refresh();
       } else {
-        // The code hint only makes sense where the button still exists.
-        Alert.alert(
-          'No active subscription',
-          Platform.OS === 'ios'
-            ? "We couldn't find a purchase to restore on this account."
-            : "We couldn't find a purchase to restore on this account. If you have a code, tap “Have a code?”.",
-        );
+        Alert.alert('No active subscription', "We couldn't find a purchase to restore on this account.");
       }
     } finally {
       setRestoring(false);
@@ -644,8 +623,8 @@ export default function PaywallScreen({ onDismiss, onDevBypass, onUnavailableDis
           </View>
         )}
 
-        {/* CTA — kept directly under the plans so the whole action cluster
-            (CTA + "Have a code?" + footer) sits together, no dead space. */}
+        {/* CTA — kept directly under the plans so the action cluster stays
+            together with no dead space. */}
         <Pressable style={[styles.cta, (!chosen || processing) && styles.ctaDisabled]} onPress={buy} disabled={!chosen || processing}>
           {busy ? <ActivityIndicator color="#fff" /> : <Text style={styles.ctaText}>{showTrial ? 'Continue' : 'Subscribe'}</Text>}
         </Pressable>
@@ -673,18 +652,6 @@ export default function PaywallScreen({ onDismiss, onDevBypass, onUnavailableDis
           </Text>
         )}
 
-        {/* Have a code? — Android only. The SD form grants access outside IAP,
-            which App Review rejected under 3.1.1. Nothing is lost on iOS: gift
-            recipients there are sent straight to Apple's redeem URL by
-            soberdailies.com/get with the code prefilled, and that page never
-            points them back here. Android's page does — it tells them to tap
-            this exact button — so the form stays on that platform. */}
-        {Platform.OS !== 'ios' && (
-          <Pressable onPress={() => setShowRedeem(true)} style={styles.haveCode} hitSlop={8}>
-            <Text style={styles.haveCodeText}>Have a code?</Text>
-          </Pressable>
-        )}
-
         {/* Footer links */}
         <View style={styles.footer}>
           <Pressable onPress={restore} disabled={restoring}><Text style={styles.footerLink}>{restoring ? 'Checking…' : 'Restore Purchases'}</Text></Pressable>
@@ -695,19 +662,6 @@ export default function PaywallScreen({ onDismiss, onDevBypass, onUnavailableDis
         </View>
       </ScrollView>
 
-      <HaveACodeModal
-        visible={showRedeem}
-        onClose={() => setShowRedeem(false)}
-        onRedeemed={async () => {
-          setShowRedeem(false);
-          // The gift entitlement was granted SERVER-side (RC REST), so the
-          // SDK's cached CustomerInfo predates it — getCustomerInfo() alone
-          // re-reads the stale cache and the wall stays up until a cold
-          // start. Invalidate first so refresh() actually hits the network.
-          try { await Purchases.invalidateCustomerInfoCache(); } catch {}
-          refresh();
-        }}
-      />
     </SafeAreaView>
   );
 }
@@ -719,97 +673,6 @@ function Radio({ on }: { on: boolean }) {
       {on && <Check size={13} color="#fff" strokeWidth={3} />}
     </View>
   );
-}
-
-// ── "Have a code?" redemption — bottom sheet over the gate ─────────────────
-// Auto-insert the SD-XXXX-XXXX dashes as the user types (the server looks the
-// code up dashed, so free-typed "SDABCD1234" would otherwise never match).
-// Reformatting from the stripped characters keeps deletion natural: removing
-// a trailing dash also drops the group it introduced.
-function formatGiftCode(raw: string): string {
-  const chars = raw.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 10);
-  return [chars.slice(0, 2), chars.slice(2, 6), chars.slice(6, 10)].filter(Boolean).join('-');
-}
-
-function HaveACodeModal({ visible, onClose, onRedeemed }: { visible: boolean; onClose: () => void; onRedeemed: () => void }) {
-  const styles = useThemedStyles(makeStyles);
-  const { c } = useTokens();
-  const [code, setCode] = useState('');
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  const canRedeem = code.replace(/[^A-Z0-9]/gi, '').length >= 8 && !busy;
-
-  const submit = async () => {
-    if (!canRedeem) return;
-    setBusy(true);
-    setError(null);
-    logEvent('gift_redeem_attempted', { from: 'paywall' });
-    try {
-      const res = await redeemGiftCode(code);
-      if (res.success) {
-        logEvent('gift_redeem_succeeded', { from: 'paywall' });
-        onRedeemed();
-      } else {
-        logEvent('gift_redeem_failed', { from: 'paywall', reason: res.reason });
-        setError(redeemMessage(res.reason, res.message));
-      }
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  const close = () => { setCode(''); setError(null); onClose(); };
-  // With the keyboard up, a backdrop tap is usually "get the keyboard out of
-  // the way", not "abandon my code" — dismiss the keyboard first; a second
-  // tap closes.
-  const onBackdrop = () => { if (Keyboard.isVisible()) { Keyboard.dismiss(); return; } close(); };
-
-  return (
-    <Modal visible={visible} transparent animationType="slide" onRequestClose={close}>
-      <Pressable style={styles.sheetBackdrop} onPress={onBackdrop} />
-      <KeyboardProvider>
-      <KeyboardAvoidingView
-        behavior="padding"
-        style={styles.sheetKav}
-        pointerEvents="box-none"
-      >
-      <View style={styles.sheet}>
-        <View style={styles.sheetHead}>
-          <Text style={styles.sheetTitle}>Have a code?</Text>
-          <Pressable onPress={close} hitSlop={8} style={styles.sheetClose}><X size={18} color={c.textSecondary} strokeWidth={2} /></Pressable>
-        </View>
-        <Text style={styles.sheetBody}>If someone gave you a Sober Dailies code, enter it here to unlock everything for three months.</Text>
-        <TextInput
-          style={[styles.codeField, error && styles.codeFieldError]}
-          value={code}
-          onChangeText={(t) => { setCode(formatGiftCode(t)); if (error) setError(null); }}
-          placeholder="SD-XXXX-XXXX"
-          placeholderTextColor={c.textMuted}
-          autoCapitalize="characters"
-          autoCorrect={false}
-          maxLength={14}
-          editable={!busy}
-          textAlign="center"
-          returnKeyType="go"
-          onSubmitEditing={submit}
-        />
-        {!!error && <Text style={styles.codeError}>{error}</Text>}
-        <Pressable style={[styles.sheetCta, !canRedeem && styles.ctaDisabled]} onPress={submit} disabled={!canRedeem}>
-          {busy ? <ActivityIndicator color="#fff" /> : <Text style={styles.sheetCtaText}>Redeem</Text>}
-        </Pressable>
-        <Text style={styles.sheetNote}>Nothing to pay. Nothing renews.</Text>
-      </View>
-      </KeyboardAvoidingView>
-      </KeyboardProvider>
-    </Modal>
-  );
-}
-
-function redeemMessage(reason: RedeemReason | undefined, fallback: string): string {
-  if (reason === 'already_redeemed') return 'This code has already been used. Check with the person who gave it to you — they may have another.';
-  if (reason === 'invalid') return "That code isn't valid. Double-check the letters and numbers, then try again.";
-  return fallback;
 }
 
 const makeStyles = (tk: Tokens) => {
@@ -904,28 +767,9 @@ const makeStyles = (tk: Tokens) => {
 
     billing: { fontFamily: fontFamily.regular, fontSize: 12.5, lineHeight: 18, color: c.textMuted, textAlign: 'center', marginTop: 10 },
 
-    haveCode: { alignSelf: 'center', marginTop: 12, paddingVertical: 6 },
-    haveCodeText: { fontFamily: fontFamily.semiBold, fontSize: 14.5, color: c.text, textDecorationLine: 'underline' },
-
     footer: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, marginTop: 10 },
     footerLink: { fontFamily: fontFamily.medium, fontSize: 13, color: c.textMuted },
     footerDot: { color: c.textMuted, fontSize: 13 },
 
-    // have-a-code sheet
-    sheetBackdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: isDark ? c.overlay : 'rgba(20,18,14,0.4)' },
-    // Full-screen container that bottom-aligns the sheet; KeyboardAvoidingView
-    // pads it up so the field + Redeem button clear the keyboard.
-    sheetKav: { flex: 1, justifyContent: 'flex-end' },
-    sheet: { backgroundColor: isDark ? c.surface : c.background, borderTopLeftRadius: 22, borderTopRightRadius: 22, paddingHorizontal: 22, paddingTop: 18, paddingBottom: 34, ...(isDark ? { borderWidth: 1, ...darkCard } : null) },
-    sheetHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-    sheetTitle: { fontFamily: fontFamily.displayBold, fontSize: 20, letterSpacing: -0.3, color: c.text },
-    sheetClose: { width: 34, height: 34, borderRadius: 17, borderWidth: 1, borderColor: c.border, alignItems: 'center', justifyContent: 'center' },
-    sheetBody: { fontFamily: fontFamily.regular, fontSize: 13.5, lineHeight: 20, color: c.textSecondary, marginTop: 10 },
-    codeField: { fontFamily: fontFamily.semiBold, fontSize: 19, letterSpacing: 2.5, color: c.text, backgroundColor: c.surface, borderWidth: 1, borderColor: c.border, borderRadius: 14, paddingVertical: 16, marginTop: 16, ...shadows.sm },
-    codeFieldError: { borderWidth: 1.5, borderColor: colors.rose ?? '#B55A68' },
-    codeError: { fontFamily: fontFamily.regular, fontSize: 13, lineHeight: 19, color: c.textSecondary, textAlign: 'center', marginTop: 12 },
-    sheetCta: { marginTop: 16, paddingVertical: 15, borderRadius: 14, backgroundColor: colors.primary, alignItems: 'center', justifyContent: 'center' },
-    sheetCtaText: { fontFamily: fontFamily.semiBold, fontSize: 16, color: '#fff' },
-    sheetNote: { fontFamily: fontFamily.regular, fontSize: 12, color: c.textMuted, textAlign: 'center', marginTop: 12 },
   });
 };

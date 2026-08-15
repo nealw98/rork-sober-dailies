@@ -3,8 +3,9 @@
 How to tell whether the pass program is healthy in production, and how to fix
 the things that can go wrong. Written 2026-07-24, when the decision was made
 **not** to build a parallel test environment: the program shares the live
-RevenueCat project, the live App Store, and one pool of real Apple offer codes,
-so observability plus a small blast radius replaces a staging rig.
+RevenueCat project, the live App Store and Google Play, and two pools of real
+store offer codes, so observability plus a small blast radius replaces a
+staging rig.
 
 Everything here is service-role SQL — run it in the Supabase dashboard SQL
 editor. All four tables have RLS on with no policies, so the anon key can't
@@ -23,23 +24,21 @@ gift_credit_grants ────────────── balance = sum(cred
    ▼
 gift_shares (token)  ──── the SMS carries soberdailies.com/get?g=<token>
    │
-   ├── iPhone visitor  → offer_code_inventory: pop one Apple code, bind to token
-   │                     → recipient redeems in the App Store → real subscription
-   │
-   └── Android visitor → gift_codes: mint SD-XXXX-XXXX under the SENDER's id
-                         → recipient enters it in-app → 3-month RC promo grant
+   ├── iPhone visitor  → pop yearly Apple code, bind to token → App Store
+   └── Android visitor → pop yearly Google code, bind to token → Google Play
+                                      │
+                                      ▼
+                     3 months free → annual store renewal
 ```
 
 Two properties drive everything below:
 
-- **Dispense is atomic and permanently binding.** First fulfillment wins; every
-  later call on the same token returns the same result regardless of what is
-  asked for (`get-dispense/index.ts`). This is deliberate — it stops a forwarded
-  link collecting both an Apple code and an SD code — but it means a wrong turn
-  cannot be undone by the recipient.
-- **Only the Apple branch is destructive.** An SD code is a platform-agnostic
-  RevenueCat promotional grant and can be minted freely. An Apple offer code is
-  finite, paid for, and gone once dispensed.
+- **Dispense is atomic and permanently binding.** First fulfillment wins and
+  every later call returns the same store code. A wrong-platform assignment
+  therefore requires support recovery.
+- **Both branches consume finite store inventory.** No pass grants a RevenueCat
+  entitlement directly. Every recipient accepts an annual subscription through
+  Apple or Google and sees its renewal price before confirmation.
 
 ### Tables
 
@@ -47,8 +46,8 @@ Two properties drive everything below:
 |---|---|---|
 | `gift_credit_grants` | one row per earn event | `anonymous_id`, `grant_key`, `credits`, `granted_at` |
 | `gift_shares` | one row per credit spent | `token`, `sender_anonymous_id`, `android_gift_code`, `created_at` |
-| `offer_code_inventory` | one row per Apple code | `code`, `product`, `batch_id`, `expires_at`, `share_token`, `dispensed_at` |
-| `gift_codes` | one row per SD code | `code`, `product_id`, `status`, `buyer_anonymous_id`, `redeemed_at`, `redeemer_anonymous_id` |
+| `offer_code_inventory` | one row per store code | `code`, `platform`, `product`, `batch_id`, `expires_at`, `share_token`, `dispensed_at` |
+| `gift_codes` | retired SD-code history only | no new rows after 2026-08-15 |
 
 `grant_key` values: `annual_y1…` (5/yr), `tenure_3`, `tenure_6…` (1 per 3 paid
 months), `monthly_signup` (1, at signup), `founding_y1` (5, grandfathered v1).
@@ -64,6 +63,7 @@ query skips anything expiring within 7 days.
 
 ```sql
 select
+  platform,
   product,
   count(*) filter (where dispensed_at is null
                      and (expires_at is null or expires_at > now() + interval '7 days')) as available,
@@ -72,39 +72,33 @@ select
   count(*) filter (where dispensed_at is not null)                                       as dispensed,
   min(expires_at) filter (where dispensed_at is null)                                    as next_expiry
 from offer_code_inventory
-group by product
-order by product;
+group by platform, product
+order by platform, product;
 ```
 
 `available` is the real blast-radius control. Keeping the loaded pool small is
 the throttle — a batch of 25 caps the worst case at 25 codes.
 
-### 2.2 Apple codes dispensed but apparently never redeemed
+### 2.2 Store codes dispensed but apparently never redeemed
 
-**This is the signature of the wrong-platform burn** — an Android or desktop
-visitor who reached the plan cards, popped a real code, and couldn't use it.
-The `/get` UA gate (web repo, `detectGiftPlatform`) is what prevents it; this
-query is how you find out the gate has a hole.
+This is the signature of an abandoned redemption or wrong-platform assignment.
+The `/get` UA gate prevents desktop assignment and selects the correct pool.
 
 ```sql
-select i.code, i.product, i.dispensed_at, s.sender_anonymous_id
+select i.code, i.platform, i.product, i.dispensed_at, s.sender_anonymous_id
 from offer_code_inventory i
 join gift_shares s on s.token = i.share_token
 where i.dispensed_at < now() - interval '48 hours'
 order by i.dispensed_at desc;
 ```
 
-**Caveat: the database cannot confirm redemption.** Apple does not report an
-offer-code redemption back into `offer_code_inventory` — the only evidence is a
-new subscriber in RevenueCat whose current period type is an offer/promotional
-period, around that timestamp. So treat this list as *candidates* and confirm
-against the RevenueCat dashboard. A dispensed code with no matching RC
-subscriber a couple of days later is a probable burn.
+**Caveat: the database cannot confirm redemption.** Treat this list as
+*candidates* and confirm against RevenueCat/store reporting before recovery.
 
-### 2.3 Android side — minted vs redeemed
+### 2.3 Retired Android SD-code history
 
-Unlike the Apple path, this one is fully observable, because redemption goes
-through our own `gifts-redeem` function.
+This query is historical only. `gifts-redeem` returns 410 and `get-dispense`
+does not mint new SD codes.
 
 ```sql
 select
@@ -156,9 +150,9 @@ this is here to notice if it happens anyway.
 
 ## 3. Recovery
 
-### 3.1 A recipient is stuck with a dead Apple code
+### 3.1 A recipient is stuck with a dead store code
 
-The case from §2.2: token bound to an Apple code the recipient can't redeem.
+The case from §2.2: a token is bound to a store code the recipient can't redeem.
 
 ```sql
 -- 1. Find the binding.
@@ -177,27 +171,11 @@ correctly. **Only do this once you're confident the code was never redeemed** �
 recycling a redeemed code puts a dud back in the pool. Confirm in RevenueCat
 first (see §2.2).
 
-If you'd rather not gamble on that, leave the code out of the pool and just
-hand the recipient an SD code instead (§3.2). One lost code beats a poisoned
-pool.
+If redemption status is uncertain, do not recycle the code. Leave it dispensed,
+unbind the pass only with a support-reviewed replacement procedure, and accept
+one lost code rather than poisoning the available pool.
 
-### 3.2 Mint an SD code by hand
-
-Works for any recipient on any platform — it grants through RevenueCat, not the
-store. Use it for support recovery, or to make someone whole after §3.1.
-
-```sql
-insert into gift_codes (code, product_id, buyer_anonymous_id)
-values ('SD-XXXX-XXXX', 'gift_manual_support', '<sender_anonymous_id or your own>');
-```
-
-Pick a code in the existing shape. The recipient enters it under "Have a code?"
-on the paywall and gets the standard 3-month promotional grant.
-
-Note `gifts-redeem` blocks **self-redemption** by `anonymous_id`, so don't file
-it under the same device that will redeem it.
-
-### 3.3 Refund a spent credit
+### 3.2 Refund a spent credit
 
 Balance is `sum(grants) − count(shares)`, so refunding means deleting the share
 row. **Unbind any dispensed code first** (§3.1) or you orphan it.
@@ -206,12 +184,12 @@ row. **Unbind any dispensed code first** (§3.1) or you orphan it.
 delete from gift_shares where token = '<token>';
 ```
 
-### 3.4 Top up inventory
+### 3.3 Top up inventory
 
-Generate a fresh batch in App Store Connect, export the CSV, and insert it in
-the shape of `supabase/migrations/20260720100002_load_offer_codes.sql`
-(`code, product, batch_id, redeem_url, expires_at`). The `redeem_url` is the
-full `apps.apple.com/redeem?ctx=offercodes&id=6749869819&code=…` from the CSV.
+Generate yearly one-time codes in the relevant store and export them. Convert
+Apple batches with `supabase/scripts/offer-codes-to-sql.py`; convert Google
+batches with `supabase/scripts/google-promo-codes-to-sql.py`. Generated SQL
+contains live codes and must never be committed.
 
 ---
 
@@ -224,8 +202,7 @@ No app-store round trip needed for any of these except where noted.
 | `PASSES_ENABLED` | `lib/creditsService.ts` | Master kill switch for earning/sending. Balance reads 0, no token mints, no thank-you. Client-side → ships by **OTA**. |
 | `FOUNDING_CREDITS_ENABLED` | Supabase env (default `true`) | Turns off the 5-credit grandfathered grant. Server-side, instant. |
 | `dev_pass_granters` | Supabase table | Device ids allowed to hand-grant passes (§7). Empty = nobody. Server-side, instant. |
-| `GIFT_ENTITLEMENT_DURATION` | Supabase env (default `three_month`) | Length of every gift grant. Server-side, instant. Currently **unset** — do not set it for testing and forget. |
-| Inventory size | `offer_code_inventory` | The real throttle. Load small batches. |
+| Inventory by platform | `offer_code_inventory` | Finite annual-offer pools; monitor both. |
 
 Server-side gates already in place, for reference: sandbox subscriptions earn
 no credits, and no credits accrue while a subscriber is riding a free/intro
@@ -236,21 +213,13 @@ dispense real codes.
 
 ## 5. Testing without a separate environment
 
-**Free rehearsal — the Android leg.** Sender on a grandfathered device (which
-earns 5 founding credits with no purchase), recipient on Android. Exercises
-credit spend, token mint, `/get`, dispense, in-app redemption, the RC grant and
-its expiry. Burns zero Apple codes, involves no store, needs no cleanup. This is
-the one to run repeatedly.
-
 **The `/get` branches are free to inspect** — the page renders its gate before
 anything dispenses, so opening a link on desktop, iPhone and Android and looking
 at what appears costs nothing.
 
-**The paid test — the Apple leg.** Only provable with a real, non-sandbox
-receipt, because the credits server skips sandbox subs by design. Buy the
-monthly yourself (`monthly_signup` grants a credit immediately, so there's no
-waiting), send a pass, redeem it on a second Apple ID, then cancel. Costs one
-month plus one real offer code. Worth doing once, deliberately.
+**Redemption tests consume codes.** Test one fresh account per platform through
+the complete native purchase sheet. Verify three free months, the annual renewal
+amount, RevenueCat entitlement attachment, cancellation, and return to the app.
 
 ⚠️ Unverified: Apple offer codes are believed to be redeemable only in
 **production**, not by sandbox Apple accounts. Confirm against Apple's docs
@@ -267,12 +236,11 @@ you need an Apple ID that has never subscribed.
 
 ## 6. Before the program goes live
 
-- [ ] `/get` UA gate deployed (web repo `sober-day-reflections` — `detectGiftPlatform`,
-      iPhone → Apple flow, Android → SD code, everything else → "open this on
-      your phone"). Without it, Android and desktop visitors burn Apple codes.
+- [ ] `/get` UA gate deployed (web repo `sober-day-reflections` — iPhone →
+      yearly Apple pool, Android → yearly Google pool, everything else → open
+      on your phone).
 - [ ] Website published at `soberdailies.com` — the app's share links point there.
-- [ ] `GIFT_ENTITLEMENT_DURATION` confirmed unset (or `three_month`).
-- [ ] Small offer-code batch loaded, not the full pool.
+- [ ] Active yearly offer-code inventory loaded for both platforms.
 - [ ] **`supabase functions deploy credits-status credits-share`** — the earn
       gates (sandbox, free-period, promotional) live in `_shared/credits.ts`
       and only apply once deployed. Discovered 2026-07-27: the deployed
@@ -281,13 +249,9 @@ you need an Apple ID that has never subscribed.
       is AFTER the latest `_shared/credits.ts` change.
 - [ ] `PASSES_ENABLED` flipped to `true` and OTA'd (this is the actual go-live).
 
-**Right after go-live:** the small loaded pool is a pre-launch blast-radius
-throttle, not a steady state. Generate a real batch in App Store Connect (~5k —
-Apple's cap is 1M redemptions/year, so the number is not the constraint) and
-load it with `supabase/scripts/offer-codes-to-sql.py`. Codes sitting in ASC are
-invisible to `get-dispense`; only what's in `offer_code_inventory` can be
-dispensed. Watch `next_expiry` (§2.1) — a batch expires whether it was redeemed
-or not, and the pop query skips anything within 7 days of expiring.
+Codes sitting in either console are invisible to `get-dispense`; only imported
+rows can be dispensed. Watch `next_expiry` (§2.1). Apple one-time batches need
+roughly six-month replenishment; Google promotions can run for up to one year.
 
 ---
 
@@ -367,10 +331,10 @@ order by granted_at desc;
 - **Grants are permanent** — no revoke button, by design. To undo one, delete
   its row by `grant_key`.
 - **Granting and sending consume nothing.** Sending spends a credit and mints a
-  token; an Apple offer code only leaves inventory when the recipient actually
-  opens the `/get` link on an iPhone (§1). An ignored link costs nothing —
+  token; a store code only leaves inventory when the recipient actually taps
+  the redemption button on `/get` (§1). An ignored link costs nothing —
   that is the `never_claimed` bucket in §2.4.
-- **The recipient path is unchanged:** iPhone → Apple offer code
-  (auto-converts to paid after 3 months), Android → SD code (lapses).
-- For codes to distribute *without* the send flow — a podcast link, a flyer —
-  use an App Store Connect custom offer code, or mint SD codes directly (§3.2).
+- **The recipient path is annual-only:** iPhone → Apple yearly offer code,
+  Android → Google yearly promo code; both renew annually after 3 free months.
+- Do not distribute raw codes outside the pass flow; the private token is the
+  control that keeps one store code attached to one pass.

@@ -296,10 +296,9 @@ function RootLayoutNav() {
   // that expired, or an entitlement that has not reattached after a reinstall.
   if (PAYWALL_ENABLED && !isPremium && !paywallDismissed) {
     // Our own RN paywall (components/PaywallScreen) — replaces RevenueCat's
-    // hosted Paywall UI so we control the layout and can host a "Have a code?"
-    // entry wired to gift redemption. Purchases/entitlements still run through
-    // react-native-purchases; PaywallScreen applies the returned CustomerInfo
-    // itself so isPremium flips and the gate falls straight through to Today.
+    // hosted Paywall UI while purchases and entitlements remain store-native
+    // through react-native-purchases. PaywallScreen applies the returned
+    // CustomerInfo so isPremium flips and the gate falls through to Today.
     // Keep this wall dismissible in production too. First-run onboarding and
     // this returning/lapsed-user backstop must expose the same clear close
     // control; dismissal lasts only for this running app session.

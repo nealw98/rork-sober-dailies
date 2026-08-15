@@ -618,10 +618,8 @@ export default function SettingsScreen() {
           </CardGroup>
         )}
 
-        {/* Pass It On — gift codes (Pass It On Handoff 2). The give row is the
-            permanent giver entry; the wallet row appears once codes exist.
-            Redeeming a code now lives on the paywall ("Have a code?"), so it's
-            no longer surfaced here. */}
+        {/* Pass It On — the recipient redeems a store-native annual offer from
+            soberdailies.com/get; Settings only needs the giver entry. */}
         <CardGroup label="Pass It On">
           <CardRow
             label="Pass It On"

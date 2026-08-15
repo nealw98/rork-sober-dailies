@@ -37,10 +37,10 @@ def main() -> None:
     if not rows:
         sys.exit("no rows parsed")
 
-    print("insert into public.offer_code_inventory (code, product, batch_id, redeem_url, expires_at) values")
+    print("insert into public.offer_code_inventory (code, platform, product, batch_id, redeem_url, expires_at) values")
     exp = expires_sql if expires_sql else q(expires_at)
     values = ",\n".join(
-        f"  ({q(code)}, {q(product)}, {q(batch_id)}, {q(url)}, {exp})"
+        f"  ({q(code)}, 'ios', {q(product)}, {q(batch_id)}, {q(url)}, {exp})"
         for code, url in rows
     )
     print(values)

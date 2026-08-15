@@ -360,8 +360,8 @@ export default function OnboardingFlow({
   if (step === 'paywall') {
     // The close (X) returns to the start of the introduction rather than
     // trapping the user here — the visible way out Play's Subscriptions policy
-    // asks for. Advancing is driven by isPremium flipping, which covers a
-    // purchase, a restore, and a redeemed gift code alike.
+    // asks for. Advancing is driven by isPremium flipping after a purchase or
+    // restore, including a store-native Pass It On subscription redemption.
     return (
       <PaywallStep
         onSubscribed={() => setStep('date')}
