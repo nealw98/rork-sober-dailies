@@ -3,9 +3,11 @@
 How to tell whether the pass program is healthy in production, and how to fix
 the things that can go wrong. Written 2026-07-24, when the decision was made
 **not** to build a parallel test environment: the program shares the live
-RevenueCat project, the live App Store and Google Play, and two pools of real
-store offer codes, so observability plus a small blast radius replaces a
-staging rig.
+RevenueCat project, the live App Store and Google Play, and a pool of real Apple
+offer codes, so observability plus a small blast radius replaces a staging rig.
+
+Last revised **2026-08-16** for the Android change in §1 — passes now ride a
+gated offer on the annual Play subscription instead of a promo-code pool.
 
 Everything here is service-role SQL — run it in the Supabase dashboard SQL
 editor. All four tables have RLS on with no policies, so the anon key can't
@@ -25,20 +27,58 @@ gift_credit_grants ────────────── balance = sum(cred
 gift_shares (token)  ──── the SMS carries soberdailies.com/get?g=<token>
    │
    ├── iPhone visitor  → pop yearly Apple code, bind to token → App Store
-   └── Android visitor → pop yearly Google code, bind to token → Google Play
+   │
+   └── Android visitor → hand off into the app (no code minted)
+                            │  intent://pass?g=<token>, Play listing +
+                            │  install referrer when the app is absent
+                            ▼
+                         app claims the token: gift_shares.android_gift_code
+                            │  = 'play:<rc_app_user_id>'
+                            ▼
+                         gated `pass-3mo` offer on the annual product
                                       │
                                       ▼
                      3 months free → annual store renewal
 ```
 
-Two properties drive everything below:
+**The two platforms reach the same place by different means.** Apple spends a
+one-time offer code from `offer_code_inventory`. Android spends nothing: the
+three free months are a *gated offer attached to the annual subscription
+product itself*, so Play bills the purchase and no code exists to lose, expire
+or recycle. Changed 2026-08-16 (`7e8b9282`); before that Android popped a Google
+promo code from the same table.
 
-- **Dispense is atomic and permanently binding.** First fulfillment wins and
-  every later call returns the same store code. A wrong-platform assignment
-  therefore requires support recovery.
-- **Both branches consume finite store inventory.** No pass grants a RevenueCat
-  entitlement directly. Every recipient accepts an annual subscription through
-  Apple or Google and sees its renewal price before confirmation.
+Three properties drive everything below:
+
+- **Apple dispense is atomic and permanently binding.** First fulfillment wins
+  and every later call returns the same store code. A wrong assignment therefore
+  requires support recovery (§3.1).
+- **Android claim is atomic and binds a person, not a code.** The first
+  RevenueCat app user to claim a token owns it; anyone else opening the same
+  link gets `already_claimed`. The claim is written *before* the Play sheet
+  opens, so a cancelled purchase leaves the marker in place — that same app user
+  can retry indefinitely, a different one cannot (§3.1).
+- **No pass grants a RevenueCat entitlement directly.** Every recipient accepts
+  an annual subscription through Apple or Google and sees its renewal price
+  before confirmation. This is what the retired SD-code path did *not* do, and
+  the reason it was retired.
+
+### Offer IDs
+
+Both live in `lib/subscriptionOffers.ts`, which is the only place they appear:
+
+| Constant | Play offer ID | Used by |
+|---|---|---|
+| `PASS_OFFER_ID` | `pass-3mo` | Pass It On only — the gated 3-month offer |
+| `NORMAL_YEARLY_OFFER_ID` | `free-trial-2` | The ordinary annual paywall |
+
+⚠️ **These must match Play Console exactly.** `getNormalSubscriptionOption()`
+deliberately filters the pass offer out of the ordinary paywall — RevenueCat's
+own default favours the longest free trial, which would otherwise hand every
+annual buyer the private three-month offer. If `free-trial-2` stops matching, the
+normal paywall silently falls back to the base plan and buyers are **charged
+immediately with no trial**. That failure is invisible in code and shows up only
+as a conversion drop, so re-check it whenever Play offers are edited.
 
 ### Tables
 
@@ -49,6 +89,18 @@ Two properties drive everything below:
 | `offer_code_inventory` | one row per store code | `code`, `platform`, `product`, `batch_id`, `expires_at`, `share_token`, `dispensed_at` |
 | `gift_codes` | retired SD-code history only | no new rows after 2026-08-15 |
 
+⚠️ **`android_gift_code` is misnamed now.** Since 2026-08-16 it holds a claim
+marker, `play:<rc_app_user_id>` — not a code. Older rows still hold real SD
+codes or Google promo codes, so read it by prefix: a `play:` value is a claimed
+Android pass, anything else is legacy. Left renamed-in-place deliberately; a
+column rename would break the deployed function for no operational gain.
+
+⚠️ **`offer_code_inventory` Android rows are cold standby.** The live Android
+path never touches them. Rows may exist from the brief Google-promo-code window
+(2026-08-15/16) and are kept on purpose in case the gated offer ever has to be
+rolled back — but nothing dispenses them today. Only the **iOS yearly** pool is
+load-bearing.
+
 `grant_key` values: `annual_y1…` (5/yr), `tenure_3`, `tenure_6…` (1 per 3 paid
 months), `monthly_signup` (1, at signup), `founding_y1` (5, grandfathered v1).
 
@@ -58,8 +110,10 @@ months), `monthly_signup` (1, at signup), `founding_y1` (5, grandfathered v1).
 
 ### 2.1 Inventory level — run this weekly
 
-Dispense fails with `out_of_stock` when a product's pool is dry, and the pop
-query skips anything expiring within 7 days.
+**Only the `ios` / `yearly` row matters.** Apple dispense fails with
+`out_of_stock` when that pool is dry, and the pop query skips anything expiring
+within 7 days. Android rows are standby stock (§1) — a dry Android pool breaks
+nothing.
 
 ```sql
 select
@@ -76,13 +130,15 @@ group by platform, product
 order by platform, product;
 ```
 
-`available` is the real blast-radius control. Keeping the loaded pool small is
-the throttle — a batch of 25 caps the worst case at 25 codes.
+`available` is the real blast-radius control for iPhone recipients. Keeping the
+loaded pool small is the throttle — a batch of 25 caps the worst case at 25
+codes. Android has no equivalent ceiling: passes are throttled by credit balance
+alone, since each one is an ordinary Play purchase.
 
-### 2.2 Store codes dispensed but apparently never redeemed
+### 2.2 Apple codes dispensed but apparently never redeemed
 
-This is the signature of an abandoned redemption or wrong-platform assignment.
-The `/get` UA gate prevents desktop assignment and selects the correct pool.
+This is the signature of an abandoned redemption. The `/get` UA gate prevents
+desktop assignment and routes Android away from the Apple pool entirely.
 
 ```sql
 select i.code, i.platform, i.product, i.dispensed_at, s.sender_anonymous_id
@@ -118,7 +174,9 @@ them — a `/get` instructions problem, not a backend one.
 ```sql
 select
   count(*)                                                              as tokens_minted,
-  count(*) filter (where android_gift_code is not null)                 as claimed_android,
+  count(*) filter (where android_gift_code like 'play:%')               as claimed_android,
+  count(*) filter (where android_gift_code is not null
+                     and android_gift_code not like 'play:%')           as claimed_android_legacy,
   count(*) filter (where exists (select 1 from offer_code_inventory i
                                  where i.share_token = gift_shares.token)) as claimed_apple,
   count(*) filter (where android_gift_code is null
@@ -129,6 +187,23 @@ from gift_shares;
 
 `never_claimed` is expected to be non-trivial — links get sent and ignored. A
 sudden spike is worth a look at `/get` (deployed? erroring? gate too strict?).
+
+`claimed_android_legacy` should be a small fixed number and never grow. Growth
+means something is still dispensing Google promo codes — check that the website
+is sending `flow: "play_offer_v1"` (§6).
+
+**A claim is not a purchase.** `claimed_android` counts people who reached the
+Play sheet, not people who bought. The marker is written first so the token can
+be locked to one account, so an abandoned purchase looks identical to a completed
+one in SQL. Confirm Android conversions in RevenueCat, not here.
+
+```sql
+-- Android claims, newest first — cross-check against RevenueCat.
+select token, android_gift_code, created_at
+from gift_shares
+where android_gift_code like 'play:%'
+order by created_at desc;
+```
 
 ### 2.5 Top credit earners — abuse sniff test
 
@@ -150,7 +225,7 @@ this is here to notice if it happens anyway.
 
 ## 3. Recovery
 
-### 3.1 A recipient is stuck with a dead store code
+### 3.1 An iPhone recipient is stuck with a dead Apple code
 
 The case from §2.2: a token is bound to a store code the recipient can't redeem.
 
@@ -175,21 +250,62 @@ If redemption status is uncertain, do not recycle the code. Leave it dispensed,
 unbind the pass only with a support-reviewed replacement procedure, and accept
 one lost code rather than poisoning the available pool.
 
-### 3.2 Refund a spent credit
+### 3.2 An Android recipient can't claim their pass
+
+Nothing to recycle here — no code was ever minted. Diagnose by the message the
+app showed, which maps one-to-one onto a `get-dispense` reason:
+
+| What they saw | Reason | What happened |
+|---|---|---|
+| "already been claimed on another account" | `already_claimed` | A different RevenueCat app user claimed this token first. Usually a reinstall or a second device, not abuse. |
+| "opened using the retired code system" | `legacy_pass` | The token is bound to an `offer_code_inventory` row from the 2026-08-15/16 promo-code window. |
+| "not valid. Ask your friend to send it again" | `invalid_token` | No `gift_shares` row — a mistyped or truncated link. |
+| "This offer isn't available yet" | *(no server call)* | Google withheld `pass-3mo` from this account. Almost always means the account already had the annual subscription; offers are once per account, and Play removes ineligible ones. |
+
+The last row is the common one and is **not** a bug — the person is ineligible
+for an introductory offer, and no amount of unbinding changes that. Refund the
+credit (§3.3) so the giver can pass it to someone else.
+
+For a genuine mis-claim, release the token so the right account can take it:
+
+```sql
+-- Check first: this is the claiming app user id.
+select token, android_gift_code, created_at
+from gift_shares where token = '<token>';
+
+-- Release it. The next app user to open the link wins.
+update gift_shares set android_gift_code = null where token = '<token>';
+```
+
+⚠️ **Confirm no subscription was actually purchased before releasing.** The
+marker is written before the Play sheet opens, so a claimed token may well have
+a paid subscription behind it — check RevenueCat for that app user id. Releasing
+a token whose purchase completed lets the pass be spent twice.
+
+A `legacy_pass` token needs the Apple-side unbind from §3.1 first (clear its
+`offer_code_inventory` row), after which it claims normally.
+
+### 3.3 Refund a spent credit
 
 Balance is `sum(grants) − count(shares)`, so refunding means deleting the share
-row. **Unbind any dispensed code first** (§3.1) or you orphan it.
+row. Deleting it also discards any `play:` claim marker, since the marker is a
+column on that row. **Unbind any dispensed Apple code first** (§3.1) or you
+orphan it.
 
 ```sql
 delete from gift_shares where token = '<token>';
 ```
 
-### 3.3 Top up inventory
+### 3.4 Top up inventory
 
-Generate yearly one-time codes in the relevant store and export them. Convert
-Apple batches with `supabase/scripts/offer-codes-to-sql.py`; convert Google
-batches with `supabase/scripts/google-promo-codes-to-sql.py`. Generated SQL
-contains live codes and must never be committed.
+Generate yearly one-time codes in the App Store and export them, then convert
+with `supabase/scripts/offer-codes-to-sql.py`. Generated SQL contains live codes
+and must never be committed.
+
+**Android needs no inventory.** `supabase/scripts/google-promo-codes-to-sql.py`
+is retained only for the rollback path in §1 — if the gated `pass-3mo` offer ever
+has to be withdrawn, that script plus reverting the website's `flow` flag restores
+the promo-code pool. It is not part of any routine.
 
 ---
 
@@ -202,7 +318,9 @@ No app-store round trip needed for any of these except where noted.
 | `PASSES_ENABLED` | `lib/creditsService.ts` | Master kill switch for earning/sending. Balance reads 0, no token mints, no thank-you. Client-side → ships by **OTA**. |
 | `FOUNDING_CREDITS_ENABLED` | Supabase env (default `true`) | Turns off the 5-credit grandfathered grant. Server-side, instant. |
 | `dev_pass_granters` | Supabase table | Device ids allowed to hand-grant passes (§7). Empty = nobody. Server-side, instant. |
-| Inventory by platform | `offer_code_inventory` | Finite annual-offer pools; monitor both. |
+| iOS inventory | `offer_code_inventory` | Finite Apple annual-offer pool. Dry = iPhone recipients get `out_of_stock`. |
+| `pass-3mo` offer | Play Console | Deactivating it stops Android passes at the app: "This offer isn't available yet". Instant, no deploy. |
+| `flow: "play_offer_v1"` | web repo `src/lib/gift.ts` | Removing it reverts Android to the Google promo-code pool (§3.4). Requires a Lovable publish. |
 
 Server-side gates already in place, for reference: sandbox subscriptions earn
 no credits, and no credits accrue while a subscriber is riding a free/intro
@@ -217,13 +335,32 @@ dispense real codes.
 anything dispenses, so opening a link on desktop, iPhone and Android and looking
 at what appears costs nothing.
 
-**Redemption tests consume codes.** Test one fresh account per platform through
-the complete native purchase sheet. Verify three free months, the annual renewal
+**iPhone redemption tests consume codes.** Test a fresh account through the
+complete native purchase sheet. Verify three free months, the annual renewal
 amount, RevenueCat entitlement attachment, cancellation, and return to the app.
 
 ⚠️ Unverified: Apple offer codes are believed to be redeemable only in
 **production**, not by sandbox Apple accounts. Confirm against Apple's docs
 before planning any sandbox-based test of the iOS recipient path.
+
+**Android redemption tests consume no inventory** — but they do burn the tester's
+Play account, permanently. Introductory offers are once per account, so once a
+Google account has taken `pass-3mo` (or the annual subscription at all) it can
+never test the recipient path again; it will land on "This offer isn't available
+yet" forever. Budget a fresh Google account per full Android test.
+
+**Test the handoff separately from the purchase.** The two halves fail
+independently and only the second is expensive:
+
+1. *Handoff, free to repeat.* Open `soberdailies.com/get?g=<token>` on Android
+   with the app installed — Chrome should hand off to `myapp://pass?g=…` and
+   `PassOfferScreen` should appear over whatever the app was showing, including
+   mid-onboarding. Uninstall and repeat to exercise the Play-listing fallback and
+   install-referrer path; the token is read on first launch after install. Neither
+   consumes the pass — the token is not claimed until **Continue to Google Play**
+   is tapped.
+2. *Purchase, one shot per account.* Only from there does the claim get written
+   and the Play sheet open.
 
 **Device reset.** The Developer Console's "Reset Subscription State" clears the
 anonymous ID and onboarding flags and logs RevenueCat out, which drops
@@ -237,10 +374,14 @@ you need an Apple ID that has never subscribed.
 ## 6. Before the program goes live
 
 - [ ] `/get` UA gate deployed (web repo `sober-day-reflections` — iPhone →
-      yearly Apple pool, Android → yearly Google pool, everything else → open
+      yearly Apple pool, Android → hand off into the app, everything else → open
       on your phone).
-- [ ] Website published at `soberdailies.com` — the app's share links point there.
-- [ ] Active yearly offer-code inventory loaded for both platforms.
+- [ ] Website published at `soberdailies.com` — the app's share links point
+      there. **Publishing is a Lovable step, separate from pushing to `main`.**
+- [ ] Active **iOS** yearly offer-code inventory loaded. Android needs none (§1).
+- [ ] **Play Console: `pass-3mo` active and gated** on the annual subscription
+      product, and `free-trial-2` still the ordinary annual offer. Both IDs must
+      match `lib/subscriptionOffers.ts` exactly — see the warning in §1.
 - [ ] **`supabase functions deploy credits-status credits-share`** — the earn
       gates (sandbox, free-period, promotional) live in `_shared/credits.ts`
       and only apply once deployed. Discovered 2026-07-27: the deployed
@@ -249,9 +390,36 @@ you need an Apple ID that has never subscribed.
       is AFTER the latest `_shared/credits.ts` change.
 - [ ] `PASSES_ENABLED` flipped to `true` and OTA'd (this is the actual go-live).
 
-Codes sitting in either console are invisible to `get-dispense`; only imported
+Apple codes sitting in the console are invisible to `get-dispense`; only imported
 rows can be dispensed. Watch `next_expiry` (§2.1). Apple one-time batches need
-roughly six-month replenishment; Google promotions can run for up to one year.
+roughly six-month replenishment.
+
+### 6.1 ⚠️ Ordering: the app must ship before the website
+
+The Android handoff has a client half and a server half, and **the server half
+went live first**. `get-dispense` and the published website both speak
+`play_offer_v1` as of 2026-08-16, but `PassOfferScreen` and the `myapp://pass`
+route only exist in builds from `7e8b9282` onward.
+
+Until an Android build carrying that code reaches production, an Android
+recipient is handed off to an app that has no route for them and lands on an
+unmatched screen. The pass survives — `get-dispense` returns the handoff URL
+without consuming anything, and binding only happens on the app's explicit claim
+— so the same link works once the client ships. But the giver's credit was spent
+at send time, so every Android link sent in that window looks broken to the
+person receiving it.
+
+**If this ordering is ever inverted again**, the fast fix is an Android-only OTA;
+it reaches shipped Android builds without touching any iOS build, including one
+sitting in App Review:
+
+```bash
+eas update --channel production --platform android -m "Android pass handoff"
+```
+
+That works without a rebuild because `scheme: "myapp"` has been in `app.json`
+since the initial commit and `expo-application` (which supplies the install
+referrer) predates the shipped binaries. Everything else in the handoff is JS.
 
 ---
 
@@ -331,10 +499,12 @@ order by granted_at desc;
 - **Grants are permanent** — no revoke button, by design. To undo one, delete
   its row by `grant_key`.
 - **Granting and sending consume nothing.** Sending spends a credit and mints a
-  token; a store code only leaves inventory when the recipient actually taps
-  the redemption button on `/get` (§1). An ignored link costs nothing —
-  that is the `never_claimed` bucket in §2.4.
+  token; an Apple code only leaves inventory when an iPhone recipient taps the
+  redemption button on `/get`, and an Android pass is only claimed when the
+  recipient taps **Continue to Google Play** inside the app (§1). An ignored link
+  costs nothing — that is the `never_claimed` bucket in §2.4.
 - **The recipient path is annual-only:** iPhone → Apple yearly offer code,
-  Android → Google yearly promo code; both renew annually after 3 free months.
+  Android → the gated `pass-3mo` offer on the annual product; both renew annually
+  after 3 free months, billed by the store.
 - Do not distribute raw codes outside the pass flow; the private token is the
   control that keeps one store code attached to one pass.
