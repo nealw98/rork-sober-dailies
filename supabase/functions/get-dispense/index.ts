@@ -38,7 +38,7 @@ serve(async (req: Request) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
 
   try {
-    const { token, platform, product, action, rc_app_user_id } = await req.json();
+    const { token, platform, product, action, flow, rc_app_user_id } = await req.json();
     const storePlatform = requestedPlatform(platform, product);
     if (typeof token !== 'string' || token.length < 10 || !storePlatform) {
       return json({ success: false, reason: 'bad_request' }, 400);
@@ -62,7 +62,11 @@ serve(async (req: Request) => {
       .maybeSingle();
     if (boundErr) throw boundErr;
 
-    if (storePlatform === 'android') {
+    // Versioned rollout: the already-published website does not send `flow`,
+    // so it keeps receiving the old one-time Google promo code until Lovable
+    // publishes the matching website commit. The app claim always opts in.
+    const usePlaySubscriptionOffer = action === 'claim_play_offer' || flow === 'play_offer_v1';
+    if (storePlatform === 'android' && usePlaySubscriptionOffer) {
       if (bound) {
         if (action === 'claim_play_offer') {
           return json({ success: false, reason: 'legacy_pass' }, 409);
@@ -129,7 +133,8 @@ serve(async (req: Request) => {
       return json({ success: false, reason: 'already_claimed' }, 409);
     }
 
-    // iOS: first fulfillment wins and remains idempotently bound to the token.
+    // Apple, plus rollout compatibility for the old Android website bundle:
+    // first fulfillment wins and remains idempotently bound to the token.
     if (bound) return json({ success: true, kind: 'offer_code', ...bound });
     if (typeof share.android_gift_code === 'string' && share.android_gift_code.startsWith('play:')) {
       return json({ success: false, reason: 'already_claimed' }, 409);
