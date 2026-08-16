@@ -19,6 +19,7 @@ import { formatLocalDate, parseLocalDate } from '@/lib/dateUtils';
 import SoberDateEditor from '@/components/SoberDateEditor';
 import DailiesEditor from '@/components/today/DailiesEditor';
 import PaywallScreen from '@/components/PaywallScreen';
+import PassOfferScreen from '@/components/PassOfferScreen';
 
 // App-icon gradient → interior bridge (prototype `obvGrad`). t=0 = vivid app icon,
 // t=1 = muted interior. Onboarding stays icon-leaning (the retiring teal header
@@ -301,12 +302,16 @@ type Step = 'welcome' | 'inside' | 'disclaimer' | 'paywall' | 'date' | 'dailies'
 export default function OnboardingFlow({
   onDisclaimerAccepted,
   onPaywallBypassed,
+  passToken,
+  onPassHandled,
 }: {
   onDisclaimerAccepted?: () => void;
   // __DEV__ only: the simulator bypass has to release the backstop gate in
   // app/_layout too. Without it, finishing setup without a real entitlement
   // drops straight onto a second paywall.
   onPaywallBypassed?: () => void;
+  passToken?: string | null;
+  onPassHandled?: () => void | Promise<void>;
 }) {
   const { completeOnboarding } = useOnboarding();
   const { setSobrietyDate, sobrietyDate } = useSobriety();
@@ -366,6 +371,8 @@ export default function OnboardingFlow({
       <PaywallStep
         onSubscribed={() => setStep('date')}
         onClose={() => setStep('welcome')}
+        passToken={passToken}
+        onPassHandled={onPassHandled}
         onBypass={() => {
           onPaywallBypassed?.();
           setStep('date');
@@ -402,11 +409,35 @@ export default function OnboardingFlow({
 // the rest of the flow stays reachable on a simulator without a sandbox
 // purchase — the two used to be the same gesture and can't be, now that the
 // tap has a real job.
-function PaywallStep({ onSubscribed, onClose, onBypass }: { onSubscribed: () => void; onClose: () => void; onBypass: () => void }) {
+function PaywallStep({
+  onSubscribed,
+  onClose,
+  onBypass,
+  passToken,
+  onPassHandled,
+}: {
+  onSubscribed: () => void;
+  onClose: () => void;
+  onBypass: () => void;
+  passToken?: string | null;
+  onPassHandled?: () => void | Promise<void>;
+}) {
   const { isPremium } = useSubscription();
   useEffect(() => {
     if (isPremium) onSubscribed();
   }, [isPremium, onSubscribed]);
+  if (passToken) {
+    return (
+      <PassOfferScreen
+        token={passToken}
+        onPurchased={() => onPassHandled?.()}
+        onDismiss={async () => {
+          await onPassHandled?.();
+          onClose();
+        }}
+      />
+    );
+  }
   return (
     <PaywallScreen
       onDismiss={onClose}

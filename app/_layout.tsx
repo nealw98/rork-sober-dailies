@@ -91,6 +91,8 @@ import { SessionProvider } from "@/hooks/useSessionContext";
 import { ThemeProvider } from "@/hooks/useTheme";
 import { useSobrietyBirthday } from "@/hooks/useSobrietyBirthday";
 import SobrietyBirthdayModal from "@/components/SobrietyBirthdayModal";
+import PassOfferScreen from "@/components/PassOfferScreen";
+import { usePendingAndroidPass } from "@/hooks/usePendingAndroidPass";
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync().catch(() => {
@@ -141,6 +143,7 @@ function RootLayoutNav() {
   const { showSnackbar, dismissSnackbar, restartApp } = useOTAUpdates();
   const { showBirthdayModal, closeBirthdayModal } = useSobrietyBirthday();
   const { isLoading: isSubscriptionLoading, isPremium } = useSubscription();
+  const { token: pendingPassToken, isLoading: isPassIntentLoading, clear: clearPendingPass } = usePendingAndroidPass();
   const [fontsLoaded] = useFonts({
     Inter_400Regular,
     Inter_400Regular_Italic,
@@ -232,7 +235,7 @@ function RootLayoutNav() {
   // "white period" between splash and app on reopen.
   useEffect(() => {
     // Only proceed when we know the loading state
-    if (isLoading === false && fontsLoaded && !(PAYWALL_ENABLED && isSubscriptionLoading)) {
+    if (isLoading === false && fontsLoaded && !isPassIntentLoading && !(PAYWALL_ENABLED && isSubscriptionLoading)) {
       console.log('🟢 SPLASH: App ready, isOnboardingComplete:', isOnboardingComplete);
 
       // App is ready to render
@@ -241,7 +244,14 @@ function RootLayoutNav() {
       // Hide splash screen
       hideSplashScreenSafely();
     }
-  }, [isLoading, isOnboardingComplete, fontsLoaded, isSubscriptionLoading]);
+  }, [isLoading, isOnboardingComplete, fontsLoaded, isSubscriptionLoading, isPassIntentLoading]);
+
+  // A pass cannot add anything to an account that is already unlocked. Clear
+  // the local handoff without claiming it server-side, leaving the shared link
+  // available for someone who can actually use it.
+  useEffect(() => {
+    if (!isPassIntentLoading && isPremium && pendingPassToken) clearPendingPass();
+  }, [isPassIntentLoading, isPremium, pendingPassToken, clearPendingPass]);
 
   // Failsafe: hide splash screen after timeout
   useEffect(() => {
@@ -267,7 +277,7 @@ function RootLayoutNav() {
   // and returning subscribers get a welcome-back screen instead of the full
   // introduction), so it must not mount until subscription state has resolved.
   // Mounting early would show a stranger's welcome to a member and then swap it.
-  if (!appReady || isLoading || disclaimerAccepted === null || (PAYWALL_ENABLED && isSubscriptionLoading)) {
+  if (!appReady || isLoading || isPassIntentLoading || disclaimerAccepted === null || (PAYWALL_ENABLED && isSubscriptionLoading)) {
     return <View style={{ flex: 1, backgroundColor: '#3D8B8B' }} />;
   }
 
@@ -281,6 +291,8 @@ function RootLayoutNav() {
       <OnboardingFlow
         onDisclaimerAccepted={() => setDisclaimerAccepted(true)}
         onPaywallBypassed={() => setPaywallDismissed(true)}
+        passToken={pendingPassToken}
+        onPassHandled={clearPendingPass}
       />
     );
   }
@@ -290,6 +302,19 @@ function RootLayoutNav() {
   // is harmless, while charging before the recorded agreement is not.
   if (!disclaimerAccepted) {
     return <DisclaimerStep onAgree={() => setDisclaimerAccepted(true)} />;
+  }
+
+  // Existing, unsubscribed users go straight from the shared link to the
+  // private annual offer. First-run users reach the same screen inside
+  // OnboardingFlow, after the required introduction and disclaimer.
+  if (PAYWALL_ENABLED && !isPremium && pendingPassToken) {
+    return (
+      <PassOfferScreen
+        token={pendingPassToken}
+        onPurchased={clearPendingPass}
+        onDismiss={clearPendingPass}
+      />
+    );
   }
 
   // Backstop for people who onboarded already and later lapsed — a subscription

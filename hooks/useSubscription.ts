@@ -13,6 +13,11 @@ import Purchases, {
 import { supabase } from '@/lib/supabase';
 import { getAnonymousId } from '@/lib/anonymousId';
 import { syncTrialReminder } from '@/lib/trialReminder';
+import {
+  getNormalSubscriptionOption,
+  getPassSubscriptionOption,
+  trialDaysFromSubscriptionOption,
+} from '@/lib/subscriptionOffers';
 
 // ============================================================================
 // CONFIGURATION
@@ -189,6 +194,7 @@ export type SubscriptionState = {
   refresh: () => Promise<void>;
   applyCustomerInfo: (info: CustomerInfo) => void;
   purchasePackage: (pkg: PurchasesPackage) => Promise<CustomerInfo | null>;
+  purchasePassPackage: (pkg: PurchasesPackage) => Promise<CustomerInfo | null>;
   restorePurchases: () => Promise<CustomerInfo | null>;
 };
 
@@ -290,7 +296,11 @@ export const [SubscriptionProvider, useSubscription] = createContextHook(() => {
     if (info.entitlements.active?.[ENTITLEMENT_ID]) setSessionPurchaseUnlock(true);
   }, []);
 
-  // Purchase a subscription package
+  // Purchase a normal subscription package. Android is deliberately explicit:
+  // purchasePackage() lets RevenueCat choose a default, and with the private
+  // pass active that default can be the longest free trial (three months).
+  // Selecting a known non-pass SubscriptionOption keeps the ordinary paywall
+  // on its seven-day offer or the base plan when the user is ineligible.
   const purchasePackage = useCallback(async (pkg: PurchasesPackage) => {
     setError(null);
 
@@ -303,7 +313,13 @@ export const [SubscriptionProvider, useSubscription] = createContextHook(() => {
     if (Platform.OS === 'web') return null;
 
     try {
-      const result = await Purchases.purchasePackage(pkg);
+      const result = Platform.OS === 'android'
+        ? await (async () => {
+            const option = getNormalSubscriptionOption(pkg);
+            if (!option) throw new Error('This subscription plan is not currently available.');
+            return Purchases.purchaseSubscriptionOption(option);
+          })()
+        : await Purchases.purchasePackage(pkg);
       setCustomerInfo(result.customerInfo);
       if (result.customerInfo.entitlements.active?.[ENTITLEMENT_ID]) setSessionPurchaseUnlock(true);
       return result.customerInfo;
@@ -313,6 +329,38 @@ export const [SubscriptionProvider, useSubscription] = createContextHook(() => {
       const msg = isCancelled ? null : (e?.message || 'Purchase failed.');
       if (msg) {
         console.error('[Subscription] Purchase error:', e);
+        setError(msg);
+      }
+      return null;
+    }
+  }, []);
+
+  // Purchase the private Google Play pass option. The caller is responsible
+  // for validating and binding the share token before invoking this method.
+  const purchasePassPackage = useCallback(async (pkg: PurchasesPackage) => {
+    setError(null);
+
+    const configured = await ensurePurchasesConfigured();
+    if (!configured.ok) {
+      setError(configured.error);
+      return null;
+    }
+    if (Platform.OS !== 'android') return null;
+
+    try {
+      const option = getPassSubscriptionOption(pkg);
+      if (!option) {
+        throw new Error('This Google Play account is not eligible for the pass offer.');
+      }
+      const result = await Purchases.purchaseSubscriptionOption(option);
+      setCustomerInfo(result.customerInfo);
+      if (result.customerInfo.entitlements.active?.[ENTITLEMENT_ID]) setSessionPurchaseUnlock(true);
+      return result.customerInfo;
+    } catch (e: any) {
+      const isCancelled = e?.userCancelled || e?.code === '1' || e?.message?.includes('cancelled');
+      const msg = isCancelled ? null : (e?.message || 'Purchase failed.');
+      if (msg) {
+        console.error('[Subscription] Pass purchase error:', e);
         setError(msg);
       }
       return null;
@@ -455,8 +503,13 @@ export const [SubscriptionProvider, useSubscription] = createContextHook(() => {
     if (Platform.OS === 'web') { setTrialEligible(false); return; }
     if (!offerings) return;
     const offering = offerings.all?.['default'] ?? offerings.current ?? null;
-    const trialPkgs = ((offering?.availablePackages ?? []) as any[]).filter((p: any) => {
-      const ip = p?.product?.introPrice;
+    const trialPkgs = ((offering?.availablePackages ?? []) as PurchasesPackage[]).filter((p) => {
+      if (Platform.OS === 'android') {
+        // Ignore the Pass It On option. Its presence must not make the ordinary
+        // paywall advertise a trial the normal purchase path will never select.
+        return trialDaysFromSubscriptionOption(getNormalSubscriptionOption(p)) !== null;
+      }
+      const ip = (p.product as any)?.introPrice;
       return !!ip && ip.price === 0;
     });
     if (!trialPkgs.length) { setTrialEligible(false); return; }
@@ -495,6 +548,7 @@ export const [SubscriptionProvider, useSubscription] = createContextHook(() => {
       refresh,
       applyCustomerInfo,
       purchasePackage,
+      purchasePassPackage,
       restorePurchases,
     }),
     [
@@ -510,6 +564,7 @@ export const [SubscriptionProvider, useSubscription] = createContextHook(() => {
       refresh,
       applyCustomerInfo,
       purchasePackage,
+      purchasePassPackage,
       restorePurchases,
     ]
   );

@@ -10,6 +10,7 @@ import {
   ActivityIndicator,
   Alert,
   Linking,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -26,6 +27,7 @@ import { scheduleTrialEndingReminder } from '@/lib/trialReminder';
 import { logEvent } from '@/lib/analytics';
 import { fontFamily, shadows, type Tokens } from '@/constants/designTokens';
 import { useTokens, useThemedStyles } from '@/hooks/useTokens';
+import { getNormalSubscriptionOption, trialDaysFromSubscriptionOption } from '@/lib/subscriptionOffers';
 
 const TERMS_URL = 'https://www.apple.com/legal/internet-services/itunes/dev/stdeula/';
 const PRIVACY_URL = 'https://soberdailies.com/privacy';
@@ -194,7 +196,15 @@ export default function PaywallScreen({ onDismiss, onDevBypass, onUnavailableDis
   // Trial length comes from the store and drives the timeline/disclosure. The
   // title and CTA deliberately do not advertise the trial, keeping every trial
   // claim visually subordinate to the amount that will actually be billed.
-  const trialLen = trialDaysFrom(chosen) ?? trialDaysFrom(yearly) ?? trialDaysFrom(monthly);
+  const normalTrialDays = (pkg: PurchasesPackage | null) => {
+    if (!pkg) return null;
+    return Platform.OS === 'android'
+      ? trialDaysFromSubscriptionOption(getNormalSubscriptionOption(pkg))
+      : trialDaysFrom(pkg);
+  };
+  const trialLen = chosen
+    ? normalTrialDays(chosen)
+    : (normalTrialDays(yearly) ?? normalTrialDays(monthly));
 
   // Has this person already used their free trial? If so the store bills them
   // the moment they subscribe, so promising a free week would be a lie.
@@ -206,7 +216,7 @@ export default function PaywallScreen({ onDismiss, onDevBypass, onUnavailableDis
   const usedTrial =
     trialEligible === false ||
     ((customerInfo as any)?.allPurchasedProductIdentifiers?.length ?? 0) > 0;
-  const showTrial = forceTrial !== undefined ? forceTrial : !usedTrial;
+  const showTrial = forceTrial !== undefined ? forceTrial : (!usedTrial && trialLen !== null);
   // The reminder fires 48 h before expiry (lib/trialReminder.ts), clamped so it
   // can't land on or before day 1 of a very short trial.
   const trialEndDay = trialLen ?? 7;
