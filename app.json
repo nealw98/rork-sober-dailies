@@ -34,7 +34,7 @@
     },
     "android": {
       "package": "com.nealwagner.soberdailies",
-      "versionCode": 136,
+      "versionCode": 137,
       "edgeToEdgeEnabled": true,
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon-foreground.png",
