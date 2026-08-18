@@ -136,7 +136,7 @@ interface PaywallScreenProps {
 export default function PaywallScreen({ onDismiss, onDevBypass, onUnavailableDismiss, preview, forceTrial }: PaywallScreenProps) {
   const styles = useThemedStyles(makeStyles);
   const { c, colors } = useTokens();
-  const { offerings, isLoading, error, purchasePackage, restorePurchases, refresh, applyCustomerInfo, customerInfo, trialEligible, qaForceNewUser } = useSubscription();
+  const { offerings, isLoading, autoRetrying, error, purchasePackage, restorePurchases, refresh, applyCustomerInfo, customerInfo, trialEligible, qaForceNewUser } = useSubscription();
 
   const [selected, setSelected] = useState<'yearly' | 'monthly'>('yearly');
   const [busy, setBusy] = useState(false);
@@ -170,14 +170,28 @@ export default function PaywallScreen({ onDismiss, onDevBypass, onUnavailableDis
   const packageIds = packages
     .map((p: PurchasesPackage) => `${p.identifier}:${String(p.packageType)}:${p.product?.identifier ?? 'no-product'}`)
     .join(',');
+  // Denominator for the failure rate: every render of this screen, success or
+  // not. Without it `paywall_plans_unavailable` is a count with no base and
+  // "how often does the paywall fail" is unanswerable (as it was on 2026-08-18).
   React.useEffect(() => {
-    if (isLoading || chosen) return;
-    console.warn('[Paywall] No usable subscription plan', { offeringId, packageIds: packageIds || 'none' });
+    logEvent('paywall_view', { preview: !!preview });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  React.useEffect(() => {
+    // Only log the SETTLED failure — after the silent launch retries have run
+    // out, not between attempts.
+    if (isLoading || autoRetrying || chosen) return;
+    console.warn('[Paywall] No usable subscription plan', { offeringId, packageIds: packageIds || 'none', error });
     logEvent('paywall_plans_unavailable', {
       offering_id: offeringId,
       package_ids: packageIds || 'none',
+      // Transport failure vs the store vending nothing — the distinction the
+      // 2026-08-18 App Review rejection made us wish we had recorded.
+      error_message: error ?? 'none',
+      offerings_received: offerings ? 'yes' : 'no',
     });
-  }, [isLoading, chosen, offeringId, packageIds]);
+  }, [isLoading, autoRetrying, chosen, offeringId, packageIds, error, offerings]);
 
   // Structure decided 2026-08-13: the trial timeline, NOT a benefits list. The
   // What's Inside carousel sells one screen earlier, so a benefits list here
@@ -350,9 +364,23 @@ export default function PaywallScreen({ onDismiss, onDevBypass, onUnavailableDis
   // Availability is about having a product we can actually purchase, not just
   // whether the SDK threw. RevenueCat/store calls may succeed with an empty or
   // unsupported catalog, which must not render as a normal paywall with a dead
-  // CTA and no explanation.
-  const cannotSell = !isLoading && !chosen;
+  // CTA and no explanation. While the hook's silent launch retries are still
+  // running this is NOT yet a verdict — hold the spinner, not the fail screen.
+  const cannotSell = !isLoading && !autoRetrying && !chosen;
   const closeAction = cannotSell && onUnavailableDismiss ? onUnavailableDismiss : onDismiss;
+
+  // Nothing to sell yet but retries are still in flight — same resolving
+  // spinner the variant gate uses, so a transient blip never flashes the fail
+  // screen on its way to a working paywall.
+  if (autoRetrying && !chosen) {
+    return (
+      <SafeAreaView style={styles.screen} edges={['top', 'bottom']}>
+        <View style={styles.resolving}>
+          <ActivityIndicator color={colors.primary} />
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   if (cannotSell) {
     return (

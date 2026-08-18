@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Platform } from 'react-native';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { AppState, type AppStateStatus, Platform } from 'react-native';
 import createContextHook from '@nkzw/create-context-hook';
 import * as SecureStore from 'expo-secure-store';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -47,6 +47,38 @@ function getRevenueCatApiKey(): string | null {
         : null;
 
   return typeof key === 'string' && key.trim().length > 0 ? key.trim() : null;
+}
+
+// How long one RevenueCat/store round-trip may run before we surface the error
+// card instead. getOfferings has known native hang modes; without a bound the
+// paywall's resolving spinner never exits — the original pre-fail-screen bug,
+// still latent underneath it.
+const FETCH_TIMEOUT_MS = 10000;
+
+// Silent launch retries. One failed request must not become a terminal fail
+// screen: the 2026-08-18 App Review rejection was a single bad fetch that a
+// retry seconds later would almost certainly have erased. The paywall holds
+// its resolving spinner while these run.
+const RETRY_DELAYS_MS = [2000, 6000];
+
+function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error('Store request timed out.')), ms);
+    promise.then(
+      (value) => { clearTimeout(timer); resolve(value); },
+      (err) => { clearTimeout(timer); reject(err); },
+    );
+  });
+}
+
+const sleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
+
+// "Loaded" means something we can actually sell, not just a 200. RevenueCat
+// can resolve successfully with an empty catalog (the store declined to vend
+// the products) — that must retry exactly like a transport failure.
+function hasSellablePackages(offs: PurchasesOfferings): boolean {
+  const offering = offs.all?.['default'] ?? offs.current ?? null;
+  return (offering?.availablePackages?.length ?? 0) > 0;
 }
 
 let purchasesConfigured = false;
@@ -177,6 +209,9 @@ async function checkGrandfatherStatus(): Promise<GrandfatherStatus> {
 
 export type SubscriptionState = {
   isLoading: boolean;
+  // Silent launch retries in progress — the paywall shows its resolving
+  // spinner, not the fail screen, while this is true.
+  autoRetrying: boolean;
   error: string | null;
 
   isEntitled: boolean;
@@ -191,7 +226,7 @@ export type SubscriptionState = {
   // a QA banner so a forced gate is never mistaken for a real one.
   qaForceNewUser: boolean;
 
-  refresh: () => Promise<void>;
+  refresh: () => Promise<boolean>;
   applyCustomerInfo: (info: CustomerInfo) => void;
   purchasePackage: (pkg: PurchasesPackage) => Promise<CustomerInfo | null>;
   purchasePassPackage: (pkg: PurchasesPackage) => Promise<CustomerInfo | null>;
@@ -237,23 +272,38 @@ export const [SubscriptionProvider, useSubscription] = createContextHook(() => {
         // launching while the grandfather endpoint was unreachable.
         : isEntitled || isGrandfathered || isPremiumOverride;
 
-  // Refresh subscription status from RevenueCat
-  const refresh = useCallback(async () => {
+  // Tracks whether we currently hold a sellable catalog, for the resume-refetch
+  // below. A ref, not state: the AppState listener must read the latest value
+  // without re-subscribing.
+  const offeringsOkRef = useRef(false);
+  // True while the silent launch retry loop runs — the paywall shows its
+  // resolving spinner instead of the fail screen during this window.
+  const [autoRetrying, setAutoRetrying] = useState(false);
+  const autoRetryingRef = useRef(false);
+  const lastResumeAttemptRef = useRef(0);
+
+  // Refresh subscription status from RevenueCat. Returns whether we ended up
+  // with a sellable catalog, so callers (launch retry, resume refetch) can
+  // decide to try again.
+  const refresh = useCallback(async (): Promise<boolean> => {
     setError(null);
 
     const configured = await ensurePurchasesConfigured();
     if (!configured.ok) {
       setError(configured.error);
-      return;
+      return false;
     }
 
-    if (Platform.OS === 'web') return;
+    if (Platform.OS === 'web') return true;
 
     try {
-      const [info, offs] = await Promise.all([
-        Purchases.getCustomerInfo(),
-        Purchases.getOfferings(),
-      ]);
+      const [info, offs] = await withTimeout(
+        Promise.all([
+          Purchases.getCustomerInfo(),
+          Purchases.getOfferings(),
+        ]),
+        FETCH_TIMEOUT_MS,
+      );
       
       // Debug: Log offerings data to help diagnose product issues
       console.log('[Subscription] Customer info received:', {
@@ -278,9 +328,13 @@ export const [SubscriptionProvider, useSubscription] = createContextHook(() => {
       
       setCustomerInfo(info);
       setOfferings(offs);
+      const ok = hasSellablePackages(offs);
+      offeringsOkRef.current = ok;
+      return ok;
     } catch (e: any) {
       console.error('[Subscription] Refresh error:', e);
       setError(e?.message || 'Failed to refresh subscription status.');
+      return false;
     }
   }, []);
 
@@ -404,6 +458,9 @@ export const [SubscriptionProvider, useSubscription] = createContextHook(() => {
     let customerInfoListener: CustomerInfoUpdateListener | null = null;
 
     (async () => {
+      // Whether the launch fetch left us with something to sell — drives the
+      // silent retry loop below. Start true so web/dev short-circuits skip it.
+      let refreshedOk = true;
       try {
         // Step 0: Check for developer premium override
         // SecureStore can fail on some Android devices, so wrap in try-catch
@@ -433,10 +490,11 @@ export const [SubscriptionProvider, useSubscription] = createContextHook(() => {
         // Steps 1+2: the Supabase grandfather check and the RevenueCat refresh
         // are independent network calls — run them concurrently. Both handle
         // their own errors internally (grandfather failure just means false).
-        const [grandfather] = await Promise.all([
+        const [grandfather, ok] = await Promise.all([
           checkGrandfatherStatus(),
           refresh(),
         ]);
+        refreshedOk = ok;
         if (!didCancel) {
           setIsGrandfathered(grandfather === 'yes');
           if (grandfather === 'yes') {
@@ -447,8 +505,28 @@ export const [SubscriptionProvider, useSubscription] = createContextHook(() => {
         }
       } catch (error) {
         console.error('[Subscription] Initialization error:', error);
+        refreshedOk = false;
       } finally {
         if (!didCancel) setIsLoading(false);
+      }
+
+      // Silent launch retries: a failed (or empty) first fetch gets two more
+      // chances before anyone sees the fail screen. Deliberately after
+      // isLoading clears so grandfather/entitlement gating is never delayed —
+      // only the paywall's own resolve waits, on its spinner.
+      if (!didCancel && !refreshedOk && Platform.OS !== 'web') {
+        setAutoRetrying(true);
+        autoRetryingRef.current = true;
+        try {
+          for (const delay of RETRY_DELAYS_MS) {
+            await sleep(delay);
+            if (didCancel) return;
+            if (await refresh()) break;
+          }
+        } finally {
+          autoRetryingRef.current = false;
+          if (!didCancel) setAutoRetrying(false);
+        }
       }
     })();
 
@@ -479,6 +557,23 @@ export const [SubscriptionProvider, useSubscription] = createContextHook(() => {
         customerInfoListener = null;
       }
     };
+  }, [refresh]);
+
+  // A launch that failed offline should heal the moment the user comes back to
+  // the app with connectivity — not wait for them to find the Retry button.
+  // Guarded: only when we hold no sellable catalog, never overlapping the
+  // launch retry loop, at most once per 10s.
+  useEffect(() => {
+    if (Platform.OS === 'web') return;
+    const sub = AppState.addEventListener('change', (state: AppStateStatus) => {
+      if (state !== 'active') return;
+      if (offeringsOkRef.current || autoRetryingRef.current) return;
+      const now = Date.now();
+      if (now - lastResumeAttemptRef.current < 10000) return;
+      lastResumeAttemptRef.current = now;
+      refresh().catch(() => {});
+    });
+    return () => sub.remove();
   }, [refresh]);
 
   // Resolve free-trial eligibility as soon as offerings are available (which
@@ -534,6 +629,7 @@ export const [SubscriptionProvider, useSubscription] = createContextHook(() => {
   return useMemo(
     () => ({
       isLoading,
+      autoRetrying,
       error,
 
       isEntitled,
@@ -553,6 +649,7 @@ export const [SubscriptionProvider, useSubscription] = createContextHook(() => {
     }),
     [
       isLoading,
+      autoRetrying,
       error,
       isEntitled,
       isGrandfathered,
