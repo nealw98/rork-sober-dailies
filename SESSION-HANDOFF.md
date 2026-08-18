@@ -3461,3 +3461,170 @@ prune when not mid-submission; date the notes.
    gifting depends entirely on it and nothing this session touched it.
 5. Android dev console (28.9), iPad connectivity (28.10), migration history
    (28.6).
+
+---
+
+## 29. Latest session — 2026-08-17 (Codex pass work reviewed · 136 SUBMITTED ALONE · ASC localization BLOCKED)
+
+Head `11c1e846`, pushed, tree clean. Three commits this session, all small:
+`23a7e29a` (trial reminder copy), `3f24036e` (runbook), `11c1e846` (Android
+versionCode 137). **No OTA published.** The session was mostly a review of
+work Codex did on 2026-08-15/16, then an App Store submission that is now
+half-blocked.
+
+### 29.1 What Codex built (5 commits, 2026-08-15/16)
+
+Pass It On moved **off homegrown codes onto store-native billing.**
+
+- `16c278a0` — store-native annual offers both platforms. Deleted
+  `lib/giftService.ts`, gutted `gifts-redeem` to a **410 tombstone**, stripped
+  "Have a code?" out of `PaywallScreen` (−172 lines), added migration
+  `20260815150000` (`platform` column + `dispense_store_offer_code`).
+- `095c4125` — renamed the feedback migration to `20260802110000`. Tiny commit,
+  big effect: **this unblocked `supabase db push`. §28.6 is RESOLVED** — local
+  and remote migration history now pair cleanly.
+- `7e8b9282` — **Android abandons promo codes entirely** for a gated Play offer
+  (`pass-3mo`) purchased in-app. Adds `PassOfferScreen`,
+  `usePendingAndroidPass` (deep link + install referrer), `lib/passOffer.ts`,
+  `lib/subscriptionOffers.ts`. **This closes the §28.4 ⚠️** that Android was
+  granting access outside Play billing.
+- `a087afcc` — versions the rollout with `flow: 'play_offer_v1'` so an old
+  website bundle keeps working.
+
+Code quality is good — atomic claims, compare-and-set for the race. Typecheck
+is 143 errors but **zero in the new files**; all pre-existing `Colors.light` /
+BigBook debris.
+
+### 29.2 ⚠️ Android gifting shipped server-first — broken in production
+
+Verified this session:
+
+| Piece | State |
+|---|---|
+| Migration `20260815150000` | ✅ applied (local+remote paired) |
+| `get-dispense` | ✅ deployed 2026-08-16 10:18:37 (matches `a087afcc`) |
+| Website `/get` | ✅ **published** — `play_offer_v1` confirmed in the live JS bundle |
+| App client | ❌ **not shipped** |
+
+Last production OTA is *"Build 134 launch candidate fixes"* (~2026-08-10). Live
+binaries: iOS production 135, Android production **versionCode 134**. Build 136
+existed only as `preview`/channel `dev` at commit `133ddee7`, predating all five
+Codex commits.
+
+So the published site hands Android recipients `intent://pass?g=…` →
+`myapp://pass?g=…`, and no shipped build has `app/pass.tsx` or
+`PassOfferScreen`. They land on an unmatched route.
+
+**The pass is NOT consumed on that path** — `get-dispense` returns the handoff
+URL without binding; binding only happens on the app's explicit
+`action: claim_play_offer`. Tokens survive and the same links work once the
+client ships. But the giver's credit was spent at send time, so links sent in
+this window look broken to the recipient.
+
+**Fix rides in Android 137** (`11c1e846`). An Android-only OTA was the faster
+alternative and is still available if ordering ever inverts again:
+
+```
+eas update --channel production --platform android -m "Android pass handoff"
+```
+
+Verified OTA-safe with no rebuild: `scheme: "myapp"` has been in `app.json`
+since the initial commit, and `expo-application` (install referrer) plus
+`expo-notifications` are both ancestors of the shipped build-134 binary
+(`2b5bcbf2`). Everything else in the handoff is JS. ⚠️ Play keys updates off
+**versionCode**, not the version name — 134 → 137 is an update even though both
+are named 3.0.8. No 3.0.9 is required.
+
+### 29.3 Store build 136 — what was verified before building
+
+- **3.1.2(c) SURVIVED** Codex's heavy `PaywallScreen` rewrite: `planPrice`
+  ($19.99/yr) is 16.5 **bold** `c.text`; `planSub` ($1.67/mo) is 13 regular
+  `c.textMuted`. Billing disclosure on both variants.
+- **3.1.1 clean** — no "Have a code?" anywhere, `gifts-redeem` is a 410
+  tombstone, orphaned `app/(main)/redeem.tsx` is gone, no dangling
+  `giftService` imports.
+- `PASSES_ENABLED` and `PAYWALL_ENABLED` both `true`; dev bypass `__DEV__`-only.
+- Only build **135** had ever been uploaded to ASC, so 136 was free.
+
+### 29.4 ⚠️ BLOCKED — duplicate en-US subscription localizations
+
+Trying to remove "Premium" (§28.2) produced a **second English (U.S.)
+localization** on both subscriptions instead of editing the existing one.
+
+  Yearly (`yearly_support`, Apple ID **6753631876**):
+    "Premium Yearly"      / "Access all app features"       [Approved]
+    "Annual Subscription" / "Full access to Sober Dailies, billed annually"
+                                                  [Prepare for Submission]
+
+  Monthly (`monthly_support`, Apple ID **6753632312**):
+    "Monthly Subscription" / "Access all app features"      [Approved]
+    "Monthly Subscription" / "Full access to Sober Dailies, billed monthly"
+                                                  [Prepare for Submission]
+
+Neither row can be deleted — no control on either. Opening the pending row gives
+a dialog titled **"Add App Store Localization"** with fields pre-filled and
+**Save disabled**. Submission fails with a generic *"There are errors with one
+or more of your items… remove the items and add them again"*. **Remove/re-add
+was tried 3× and never helped** — the invalid state is on the products, not the
+submission. Expanding the group only colors the offending subscription red, with
+no reason given. Note: Monthly's approved *display name* was already clean; only
+its description differed. "Premium" existed solely on Yearly.
+
+⚠️ Validation runs **on pressing Submit**, not on attach — the panel always
+looks clean until then.
+
+**Resolution: build 136 was submitted ALONE**, subscriptions removed. It is
+**Waiting for Review**. A support ticket was filed via
+developer.apple.com/contact → **App Setup → Metadata, Screenshots, and App
+Previews** (no IAP subtopic exists). App Apple ID **6749869819**. The ticket
+states only the desired end state — one en-US localization per subscription with
+the new values — deliberately not prescribing the mechanism.
+
+⚠️ **136 is in review with "Premium Yearly" still live**, which is the exact
+string Apple cited under 2.3.2. If it is rejected again, reply in Resolution
+Center pointing at the support case rather than starting over.
+
+### 29.5 Trial reminder — works for 90 days, one open dependency
+
+`PassOfferScreen` awaits `scheduleTrialEndingReminder(info)` after a successful
+pass purchase. Timing is **generic, not hardcoded**: anchored to the
+entitlement's real `expirationDate` minus 48h, so a 90-day trial fires at day
+88 — matching the paywall timeline's own math
+(`warnDay = min(max(2, 90−2), 89)`).
+
+`23a7e29a` fixed the copy, which was stuck at *"Your free week is almost up"* →
+now **"Your free trial is almost up."** in both the real reminder and the QA
+preview.
+
+⚠️ **OPEN:** `trialReminder.ts:88` bails unless `ent.periodType === 'TRIAL'`.
+RevenueCat reports `TRIAL` for a free-trial phase and `INTRO` for introductory
+pricing — so this depends on how `pass-3mo`'s three free months are configured
+in Play. If it is intro-price-zero, **no reminder schedules at all, silently.**
+Check whether the Android test purchase emitted `trial_reminder_scheduled` in
+Mixpanel.
+
+### 29.6 Runbook rewritten
+
+`3f24036e`, +209/−39 on `docs/gift-program-runbook.md`. It still described
+Android popping a Google promo code. Now documents the gated offer, an **Offer
+IDs** table (`pass-3mo`, `free-trial-2`), that `android_gift_code` holds a
+`play:<rc_app_user_id>` marker (read by prefix), that Android inventory is cold
+standby, a new §3.2 mapping each Android failure message to its `get-dispense`
+reason, and a new §6.1 recording the app-before-website ordering hazard.
+
+### 29.7 State + next actions
+
+1. **Build and upload Android 137.** Carries the pass handoff client (29.2).
+2. **⚠️ `free-trial-2` in Play Console** — drives the *ordinary* annual paywall.
+   `getNormalSubscriptionOption()` filters the pass offer out deliberately; if
+   `free-trial-2` drifts, the paywall silently falls back to the base plan and
+   buyers are **charged immediately with no trial**. Invisible in code.
+3. **`pass-3mo` free trial vs intro-price-zero** (29.5).
+4. **Watch the ASC support case** and the 136 review together (29.4).
+5. ⚠️ **iOS `buildNumber` is still 136** in `app.json` and 136 is spent in ASC —
+   the next iOS build must be 137+.
+6. Mixpanel custom `app_version` is still **empty**, so 3.0.8 as Android
+   133/134/137 and iOS 134/135/136 are indistinguishable on the Release rollout
+   board (§28.11). Populating it with the build number is the fix.
+7. Web repo (`sober-day-reflections`) has **uncommitted `src/pages/Admin.tsx`**
+   (+68) — it will block the next `git pull --rebase` there.
