@@ -104,7 +104,7 @@ function fmtMeditated(sec: number): string {
 
 // Build shareable plain text for a journey entry (Share sheet body).
 function buildShareText(entry: NotebookEntry): string {
-  const dateStr = new Date(entry.ts).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
+  const dateStr = new Date(entry.ts).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
   const header = `${TYPE_LABEL[entry.type]} · ${dateStr}`;
   let body = '';
   switch (entry.type) {
