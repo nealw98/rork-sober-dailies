@@ -1,1 +1,0 @@
-../../../PostHog/vendor/libwebp/ph_quant.h

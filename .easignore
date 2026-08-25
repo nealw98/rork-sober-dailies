@@ -1,6 +1,7 @@
 # Exclude native projects from upload so EAS uses managed prebuild
 /ios
 /android
+/expo
 
 # Common large outputs
 /dist
@@ -9,4 +10,3 @@
 # Local caches and editor junk
 .expo/
 *.log
-
