@@ -12,12 +12,15 @@ import { colors, shadows } from '@/constants/designTokens';
 import { getSponsorById } from '@/constants/sponsors';
 import { useImmersive } from '@/hooks/use-immersive';
 import { useLastSponsor } from '@/hooks/use-last-sponsor';
+import { useGlobalAudioPlayer } from '@/hooks/useGlobalAudioPlayer';
 
 export default function GlobalSponsorFab() {
   const segments = useSegments();
   const { immersive } = useImmersive();
   const { lastSponsorId } = useLastSponsor();
   const insets = useSafeAreaInsets();
+  const player = useGlobalAudioPlayer();
+  const raisedForMiniPlayer = (segments as string[]).includes('speakers') && player.isLoaded;
 
   // The tab bar owns the FAB on the four tabs; skip here to avoid doubling up.
   // Also skip on the meditation screen — it's its own immersive UI, and the FAB
@@ -48,7 +51,7 @@ export default function GlobalSponsorFab() {
       // Locked to the same spot the FloatingTabBar's inline FAB occupies, so it
       // doesn't jump when moving between tab and pushed screens: centered in the
       // 68px bar row that sits above the safe-area pad → bottom = pad + 5.
-      style={({ pressed }) => [styles.fab, { bottom: Math.max(insets.bottom, 16) + 5 }, pressed && { opacity: 0.85 }]}
+      style={({ pressed }) => [styles.fab, { bottom: Math.max(insets.bottom, 16) + 5 + (raisedForMiniPlayer ? 88 : 0) }, pressed && { opacity: 0.85 }]}
     >
       {sponsor?.avatar ? (
         <Image source={sponsor.avatar} style={styles.fabImg} />

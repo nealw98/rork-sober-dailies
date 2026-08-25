@@ -58,6 +58,7 @@ export type Database = {
           sobriety_date: string | null;
           timezone: string | null;
           created_at: string | null;
+          duration_seconds: number | null;
           updated_at: string | null;
           is_grandfathered: boolean; // Computed column: true if created_at < Feb 4, 2026
           city: string | null;
@@ -70,6 +71,7 @@ export type Database = {
           sobriety_date?: string | null;
           timezone?: string | null;
           created_at?: string | null;
+          duration_seconds?: number | null;
           updated_at?: string | null;
           city?: string | null;
           region?: string | null;
@@ -82,6 +84,7 @@ export type Database = {
           sobriety_date?: string | null;
           timezone?: string | null;
           created_at?: string | null;
+          duration_seconds?: number | null;
           updated_at?: string | null;
           city?: string | null;
           region?: string | null;
