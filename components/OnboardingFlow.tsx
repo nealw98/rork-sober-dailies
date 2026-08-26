@@ -4,6 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { StatusBar } from 'expo-status-bar';
 import { Image } from 'expo-image';
+import * as Updates from 'expo-updates';
 import { ArrowRight, Check, ShieldCheck } from 'lucide-react-native';
 
 import { fontFamily, fontSize, shadows, type Tokens } from '@/constants/designTokens';
@@ -423,6 +424,11 @@ function PaywallStep({
   onPassHandled?: () => void | Promise<void>;
 }) {
   const { isPremium } = useSubscription();
+  // Internal preview APKs are installed directly rather than through Google
+  // Play, so Play Billing cannot complete a real subscription purchase in
+  // them. Let the visible close control continue into setup on the preview
+  // channel; store/production builds retain the normal paywall behavior.
+  const isInternalPreview = Updates.channel === 'dev';
   useEffect(() => {
     if (isPremium) onSubscribed();
   }, [isPremium, onSubscribed]);
@@ -440,7 +446,7 @@ function PaywallStep({
   }
   return (
     <PaywallScreen
-      onDismiss={onClose}
+      onDismiss={isInternalPreview ? onBypass : onClose}
       // Backing out to the welcome screen only makes sense while the wall
       // works. If offerings never load, that X just loops someone through the
       // intro and back to the same dead screen — so carry on to setup instead.
