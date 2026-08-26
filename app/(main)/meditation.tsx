@@ -7,7 +7,7 @@ import { StatusBar } from 'expo-status-bar';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter, useFocusEffect } from 'expo-router';
 import Svg, { Circle, Defs, LinearGradient as SvgGradient, Stop } from 'react-native-svg';
-import { ChevronLeft, Play, Pause, Plus, Minus, X, Volume1, Volume2, SlidersHorizontal } from 'lucide-react-native';
+import { ChevronLeft, Play, Pause, Plus, Minus, X, SlidersHorizontal } from 'lucide-react-native';
 
 import { fontFamily } from '@/constants/designTokens';
 import { useMeditation, SOUNDS } from '@/hooks/use-meditation-store';
@@ -158,34 +158,77 @@ function Stepper({ value, onChange }: { value: number; onChange: (n: number) => 
 // onChange fires live during the drag (for immediate audible feedback); onComplete
 // fires once on release with the final value (for persistence).
 function VolumeSlider({ value, onChange, onComplete }: { value: number; onChange: (v: number) => void; onComplete: (v: number) => void }) {
+  const trackRef = useRef<View>(null);
+  const trackX = useRef(0);
   const trackW = useRef(0);
   const last = useRef(value);
+  last.current = value;
   const apply = (x: number) => {
     const w = trackW.current || 1;
     const v = Math.max(0, Math.min(1, x / w));
     last.current = v;
     onChange(v);
   };
+  const applyPageX = (pageX: number) => apply(pageX - trackX.current);
+  const measureTrack = () => {
+    trackRef.current?.measureInWindow((x, _y, width) => {
+      trackX.current = x;
+      trackW.current = width;
+    });
+  };
   const responder = useRef(
     PanResponder.create({
       onStartShouldSetPanResponder: () => true,
       onMoveShouldSetPanResponder: () => true,
-      onPanResponderGrant: (e) => apply(e.nativeEvent.locationX),
-      onPanResponderMove: (e) => apply(e.nativeEvent.locationX),
+      // Android can report locationX relative to a child under the finger,
+      // making the value jump from zero to full volume near the knob. pageX is
+      // stable for the entire gesture; subtract the measured track origin.
+      onPanResponderGrant: (e) => {
+        measureTrack();
+        applyPageX(e.nativeEvent.pageX);
+      },
+      onPanResponderMove: (e) => applyPageX(e.nativeEvent.pageX),
       onPanResponderRelease: () => onComplete(last.current),
       onPanResponderTerminate: () => onComplete(last.current),
     }),
   ).current;
+  const step = (delta: number) => {
+    const next = Math.max(0, Math.min(1, Math.round((value + delta) * 10) / 10));
+    last.current = next;
+    onChange(next);
+    onComplete(next);
+  };
   const pct = `${Math.round(value * 100)}%` as `${number}%`;
   return (
     <View style={styles.volRow}>
-      <Volume1 size={16} color={TH.ink2} strokeWidth={2} />
-      <View style={styles.volTrack} onLayout={(e) => { trackW.current = e.nativeEvent.layout.width; }} {...responder.panHandlers}>
-        <View style={styles.volBar} />
-        <View style={[styles.volFill, { width: pct }]} />
-        <View style={[styles.volKnob, { left: pct }]} />
+      <Pressable
+        style={[styles.volStepBtn, value <= 0 && styles.volStepBtnDisabled]}
+        onPress={() => step(-0.1)}
+        disabled={value <= 0}
+        accessibilityRole="button"
+        accessibilityLabel="Decrease scene volume"
+      >
+        <Minus size={16} color={TH.ink} strokeWidth={2.4} />
+      </Pressable>
+      <View
+        ref={trackRef}
+        style={styles.volTrack}
+        onLayout={() => requestAnimationFrame(measureTrack)}
+        {...responder.panHandlers}
+      >
+        <View pointerEvents="none" style={styles.volBar} />
+        <View pointerEvents="none" style={[styles.volFill, { width: pct }]} />
+        <View pointerEvents="none" style={[styles.volKnob, { left: pct }]} />
       </View>
-      <Volume2 size={18} color={TH.ink2} strokeWidth={2} />
+      <Pressable
+        style={[styles.volStepBtn, value >= 1 && styles.volStepBtnDisabled]}
+        onPress={() => step(0.1)}
+        disabled={value >= 1}
+        accessibilityRole="button"
+        accessibilityLabel="Increase scene volume"
+      >
+        <Plus size={16} color={TH.ink} strokeWidth={2.4} />
+      </Pressable>
     </View>
   );
 }
@@ -536,7 +579,9 @@ const styles = StyleSheet.create({
   soundPill: { flexDirection: 'row', alignItems: 'center', gap: 9, paddingVertical: 8, paddingHorizontal: 16, borderRadius: 999, backgroundColor: TH.soundSelBg, borderWidth: 1, borderColor: TH.soundSelBorder },
   soundPillText: { fontFamily: fontFamily.semiBold, fontSize: 13, color: TH.ink },
 
-  volRow: { flexDirection: 'row', alignItems: 'center', gap: 12, width: 240, alignSelf: 'center' },
+  volRow: { flexDirection: 'row', alignItems: 'center', gap: 12, width: 280, alignSelf: 'center' },
+  volStepBtn: { width: 36, height: 36, borderRadius: 18, borderWidth: 1, borderColor: TH.glassBorder, backgroundColor: TH.glassBg, alignItems: 'center', justifyContent: 'center' },
+  volStepBtnDisabled: { opacity: 0.38 },
   volTrack: { flex: 1, height: 34, justifyContent: 'center' },
   volBar: { position: 'absolute', left: 0, right: 0, top: 15, height: 4, borderRadius: 2, backgroundColor: TH.ringTrack },
   volFill: { position: 'absolute', left: 0, top: 15, height: 4, borderRadius: 2, backgroundColor: TH.ink },
