@@ -616,11 +616,19 @@ function EntrySheet({ entry, onClose, scrollEnabled = true, updateSpotRecord, de
   return (
     <View style={styles.flexFill}>
       <View style={styles.sheetHead}>
-        <View style={[styles.sheetMed, { backgroundColor: t.soft }]}><t.Icon size={22} color={t.ink} strokeWidth={2} /></View>
-        <View style={styles.flex}>
-          <Text style={[styles.sheetTitle, { color: t.ink }]}>{TYPE_LABEL[view.type]}</Text>
-          <Text style={styles.sheetTime}>{timeLabel(view.ts)}</Text>
+        <View style={styles.sheetIdentity}>
+          <View style={[styles.sheetMed, { backgroundColor: t.soft }]}><t.Icon size={22} color={t.ink} strokeWidth={2} /></View>
+          <View style={styles.flex}>
+            <Text style={[styles.sheetTitle, { color: t.ink }]} numberOfLines={1}>{TYPE_LABEL[view.type]}</Text>
+            <Text style={styles.sheetTime}>{timeLabel(view.ts)}</Text>
+          </View>
         </View>
+        <Pressable style={styles.closeBtn} onPress={onClose} hitSlop={8} accessibilityRole="button" accessibilityLabel="Close">
+          <X size={18} color={c.textSecondary} strokeWidth={2} />
+        </Pressable>
+      </View>
+      <View style={styles.sheetDivider} />
+      <View style={styles.sheetActions}>
         {editing ? (
           <>
             <Pressable onPress={() => setEditing(false)} hitSlop={8} style={styles.headTextBtn}><Text style={styles.headCancel}>Cancel</Text></Pressable>
@@ -635,13 +643,9 @@ function EntrySheet({ entry, onClose, scrollEnabled = true, updateSpotRecord, de
             <Pressable style={styles.iconHeadBtn} onPress={confirmDelete} hitSlop={8} accessibilityRole="button" accessibilityLabel={`Delete ${TYPE_LABEL[view.type]}`}>
               <Trash2 size={16} color={c.textSecondary} strokeWidth={2} />
             </Pressable>
-            <Pressable style={styles.closeBtn} onPress={onClose} hitSlop={8} accessibilityRole="button" accessibilityLabel="Close">
-              <X size={18} color={c.textSecondary} strokeWidth={2} />
-            </Pressable>
           </>
         )}
       </View>
-      <View style={styles.sheetDivider} />
       <ScrollView scrollEnabled={scrollEnabled} contentContainerStyle={styles.sheetBody} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled" automaticallyAdjustKeyboardInsets>
         {editing ? (
           <>
@@ -915,7 +919,9 @@ const makeStyles = (tk: Tokens) => {
     // morph overlay + sheets (Option B)
     overlayCard: { position: 'absolute', backgroundColor: isDark ? c.surface : colors.white, borderWidth: 1, borderColor: c.border, overflow: 'hidden', ...shadows.md, ...darkCard },
     overlayRow: { position: 'absolute', top: 0, left: 0, flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 12, paddingHorizontal: 14 },
-    sheetHead: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 14, paddingTop: 12, paddingBottom: 14 },
+    sheetHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12, paddingHorizontal: 14, paddingTop: 12, paddingBottom: 12 },
+    sheetIdentity: { flex: 1, minWidth: 0, flexDirection: 'row', alignItems: 'center', gap: 12 },
+    sheetActions: { minHeight: 50, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingHorizontal: 18, paddingVertical: 8 },
     sheetMed: { width: 44, height: 44, borderRadius: 13, alignItems: 'center', justifyContent: 'center' },
     sheetTitle: { fontFamily: fontFamily.display, fontSize: 22, letterSpacing: -0.4, color: c.text },
     sheetTime: { fontFamily: fontFamily.regular, fontSize: 13, color: c.textMuted, marginTop: 1 },
