@@ -230,25 +230,23 @@ export default function MeditationScreen() {
   const sceneOptions: MeditationScene[] =
     sceneList.length > 0
       ? sceneList
-      : SOUNDS.map((s) => ({ key: s.id, name: s.label, stillUri: null, animatedUri: null, audioUri: null }));
+      : SOUNDS.map((s) => ({ key: s.id, name: s.label, stillUri: null, animatedUri: null, audioSource: null }));
 
   // First-time users land on a real background scene (the experience should begin
   // immediately) — default to the first scene that actually has a soundtrack.
-  const firstAudioKey = sceneOptions.find((s) => s.audioUri)?.key ?? null;
-  const didInitDefault = useRef(false);
+  const firstAudioKey = sceneOptions.find((s) => s.audioSource)?.key ?? null;
+  const didHydrateSettings = useRef(false);
   useEffect(() => {
-    if (didInitDefault.current) return;
-    if (!firstTime) { didInitDefault.current = true; return; }
-    if (firstAudioKey) {
-      setSelKey(firstAudioKey);
-      didInitDefault.current = true;
-    }
-  }, [firstTime, firstAudioKey]);
+    if (med.isLoading || didHydrateSettings.current) return;
+    setSelMinutes(cfg.minutes);
+    setSelKey(firstTime && firstAudioKey ? firstAudioKey : cfg.sound);
+    didHydrateSettings.current = true;
+  }, [med.isLoading, cfg.minutes, cfg.sound, firstTime, firstAudioKey]);
 
   const selScene = sceneOptions.find((s) => s.key === selKey);
   const sceneStill = selScene?.stillUri ?? null;
   const sceneAnimated = selScene?.animatedUri ?? null; // animated webp/video, if any
-  const selAudioUri = selScene?.audioUri ?? null;
+  const selAudioSource = selScene?.audioSource ?? null;
   const selName = selScene?.name ?? selKey;
 
   const minutes = isSetup ? selMinutes : session.minutes;
@@ -275,25 +273,26 @@ export default function MeditationScreen() {
   };
 
   // Ambience follows the meditation SCREEN + selected scene: start/swap on focus
-  // and on scene change, stop when navigating away. Locking the phone keeps the
+  // and on scene change, pause when navigating away. Locking the phone keeps the
   // screen focused, so the bed keeps playing then (background audio in the provider).
+  // Pausing retains the loaded soundtrack, so returning resumes immediately.
   // The saved volume preference seeds the session via startAmbience's volume arg.
-  const { startAmbience, stopAmbience } = session;
+  const { startAmbience, pauseAmbience, stopAmbience } = session;
   const startVolumeRef = useRef(cfg.volume ?? 0.35);
   startVolumeRef.current = cfg.volume ?? 0.35;
   const playOutsideRef = useRef(med.settings.playOutsidePage);
   playOutsideRef.current = med.settings.playOutsidePage;
   useFocusEffect(
     useCallback(() => {
-      if (selAudioUri) {
-        startAmbience({ sceneKey: selKey, sceneName: selName, audioUri: selAudioUri, volume: startVolumeRef.current });
+      if (selAudioSource) {
+        startAmbience({ sceneKey: selKey, sceneName: selName, audioSource: selAudioSource, volume: startVolumeRef.current });
       } else {
         stopAmbience();
       }
-      // Leaving the page stops the bed — unless "play outside this page" is on.
+      // Leaving the page pauses the bed — unless "play outside this page" is on.
       // (Device sleep/lock keeps the page focused, so this cleanup doesn't run then.)
-      return () => { if (!playOutsideRef.current) stopAmbience(); };
-    }, [selKey, selAudioUri, selName, startAmbience, stopAmbience]),
+      return () => { if (!playOutsideRef.current) pauseAmbience(); };
+    }, [selKey, selAudioSource, selName, startAmbience, pauseAmbience, stopAmbience]),
   );
 
   // Begin only starts the countdown — the ambience is already playing.

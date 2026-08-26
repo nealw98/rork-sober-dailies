@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { AppState } from 'react-native';
-import { Audio } from 'expo-av';
+import { Audio, type AVPlaybackSource } from 'expo-av';
 import createContextHook from '@nkzw/create-context-hook';
 import { useMeditationLog } from '@/hooks/use-meditation-log';
 import { useDailies } from '@/hooks/use-dailies-store';
@@ -12,8 +12,9 @@ import { maybeAskForReview } from '@/lib/reviewPrompt';
  *
  *  1. AMBIENCE: the looping scene soundtrack. It's the "space" you're in, tied to
  *     the meditation SCREEN and the selected scene — NOT to the timer. The screen
- *     starts it on focus / scene change and stops it on blur (navigating away), so
- *     it never bleeds into the rest of the app. Because it's owned here at the root
+ *     starts it on focus / scene change and pauses it on blur (navigating away), so
+ *     it never bleeds into the rest of the app while remaining ready for instant
+ *     resume on the next visit. Because it's owned here at the root
  *     with background audio enabled, it keeps playing while the phone is locked /
  *     app is backgrounded (you're still "on" the meditation screen navigationally).
  *
@@ -27,7 +28,7 @@ export type SessionPhase = 'ready' | 'active' | 'complete';
 export interface AmbienceOpts {
   sceneKey: string;
   sceneName: string | null;
-  audioUri: string | null;
+  audioSource: AVPlaybackSource | null;
   volume: number;
 }
 
@@ -56,7 +57,7 @@ export const [MeditationSessionProvider, useMeditationSession] = createContextHo
   const [volume, setVolumeState] = useState(0.35);
 
   const soundRef = useRef<Audio.Sound | null>(null); // the looping ambience
-  const ambienceUriRef = useRef<string | null>(null);
+  const ambienceSceneRef = useRef<string | null>(null);
   const ambienceTokenRef = useRef(0); // invalidates in-flight loads on swap/stop
   const bellRef = useRef<Audio.Sound | null>(null);
   const endAtRef = useRef<number | null>(null); // ms timestamp the sit ends at
@@ -85,10 +86,17 @@ export const [MeditationSessionProvider, useMeditationSession] = createContextHo
   // ─── Ambience ──────────────────────────────────────────────────────────────
   const stopAmbience = useCallback(async () => {
     ambienceTokenRef.current += 1; // any in-flight load will bail
-    ambienceUriRef.current = null;
+    ambienceSceneRef.current = null;
     const s = soundRef.current;
     soundRef.current = null;
     if (s) await s.unloadAsync().catch(() => {});
+  }, []);
+
+  // Leaving the meditation screen should silence the bed without throwing the
+  // loaded audio away. Keeping it loaded makes returning to the same selected
+  // scene an immediate resume without repeating setup work.
+  const pauseAmbience = useCallback(async () => {
+    await soundRef.current?.pauseAsync().catch(() => {});
   }, []);
 
   // Start (or swap to) the ambience for a scene. Idempotent: re-calling with the
@@ -99,21 +107,22 @@ export const [MeditationSessionProvider, useMeditationSession] = createContextHo
       setSceneName(opts.sceneName);
       setVolumeState(opts.volume);
 
-      if (!opts.audioUri) {
+      if (!opts.audioSource) {
         await stopAmbience();
         return;
       }
-      if (ambienceUriRef.current === opts.audioUri && soundRef.current) {
-        soundRef.current.playAsync().catch(() => {});
+      if (ambienceSceneRef.current === opts.sceneKey && soundRef.current) {
+        await applyAudioMode();
+        await soundRef.current.playAsync().catch(() => {});
         return;
       }
       await stopAmbience();
       const token = ++ambienceTokenRef.current;
-      ambienceUriRef.current = opts.audioUri;
+      ambienceSceneRef.current = opts.sceneKey;
       try {
-        applyAudioMode();
+        await applyAudioMode();
         const { sound } = await Audio.Sound.createAsync(
-          { uri: opts.audioUri },
+          opts.audioSource,
           { isLooping: true, shouldPlay: true, volume: opts.volume },
         );
         if (ambienceTokenRef.current !== token) {
@@ -256,12 +265,13 @@ export const [MeditationSessionProvider, useMeditationSession] = createContextHo
       sceneName,
       volume,
       startAmbience,
+      pauseAmbience,
       stopAmbience,
       setVolume,
       begin,
       togglePause,
       stop,
     }),
-    [phase, minutes, remaining, paused, doneMin, sceneKey, sceneName, volume, startAmbience, stopAmbience, setVolume, begin, togglePause, stop],
+    [phase, minutes, remaining, paused, doneMin, sceneKey, sceneName, volume, startAmbience, pauseAmbience, stopAmbience, setVolume, begin, togglePause, stop],
   );
 });

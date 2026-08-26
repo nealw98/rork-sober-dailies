@@ -10,7 +10,7 @@ Help me relax and take it easy. Keep me from forcing outcomes or trying to run t
 
 As I go about my day, show me the next right action. Give me what I need to handle whatever comes my way.
 
-Remove my fear. Direct my attention to what You would have me be. Give me faith in Your plan and the courage to act.
+Remove my fears. Direct my attention to what You would have me be. Give me faith in Your plan and the courage to act.
 
 Remove my selfishness and self-centeredness. Direct my thinking toward others. Show me how I can be of service — useful, kind, and willing.
 
