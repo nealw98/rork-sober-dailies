@@ -310,6 +310,14 @@ export default function MeditationScreen() {
     router.back();
   };
   const pickMinutes = (n: number) => setSelMinutes(n);
+  // A scene begins playing as soon as it is selected, so that selection is
+  // already the user's last-used scene even if they leave before tapping Begin.
+  // Previously only begin() persisted it, which made the next visit fall back
+  // to Silence after sampling a different ambience.
+  const pickScene = (key: string) => {
+    setSelKey(key);
+    med.setTimer({ sound: key });
+  };
 
   return (
     <View style={styles.root}>
@@ -381,7 +389,7 @@ export default function MeditationScreen() {
                     hard to discover). Selection drives background + ambience. */}
                 <View style={styles.chipRow}>
                   {sceneOptions.map((s) => (
-                    <Chip key={s.key} label={s.name} on={s.key === selKey} onPress={() => setSelKey(s.key)} />
+                    <Chip key={s.key} label={s.name} on={s.key === selKey} onPress={() => pickScene(s.key)} />
                   ))}
                 </View>
               </View>
