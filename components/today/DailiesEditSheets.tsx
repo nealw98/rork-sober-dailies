@@ -219,8 +219,11 @@ const makeStyles = (tk: Tokens) => {
 
     sheetWrap: { flex: 1, justifyContent: 'flex-end' },
     backdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: isDark ? c.overlay : 'rgba(20,20,30,0.35)' },
-    sheet: { backgroundColor: isDark ? c.surface : c.background, borderTopLeftRadius: 28, borderTopRightRadius: 28, paddingTop: 10, maxHeight: '88%', overflow: 'hidden', ...(isDark ? { borderWidth: 1, borderColor: 'rgba(255,255,255,0.06)', borderTopColor: 'rgba(255,255,255,0.12)', borderBottomWidth: 0 } : null) },
-    sheetScroll: { flexShrink: 1, minHeight: 0 },
+    // A definite height gives Android an exact viewport for the ScrollView.
+    // `maxHeight` + `flexShrink` can undercount the scroll range when the user
+    // increases the system font size and the catalog rows become taller.
+    sheet: { backgroundColor: isDark ? c.surface : c.background, borderTopLeftRadius: 28, borderTopRightRadius: 28, paddingTop: 10, height: '88%', overflow: 'hidden', ...(isDark ? { borderWidth: 1, borderColor: 'rgba(255,255,255,0.06)', borderTopColor: 'rgba(255,255,255,0.12)', borderBottomWidth: 0 } : null) },
+    sheetScroll: { flex: 1 },
     grabber: { width: 38, height: 4, borderRadius: 2, backgroundColor: isDark ? 'rgba(255,255,255,0.18)' : '#EDEAE2', alignSelf: 'center', marginBottom: 10 },
     sheetHead: { flexDirection: 'row', alignItems: 'flex-start', gap: 12, paddingHorizontal: 22, paddingBottom: 8 },
     sheetHeadRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 22, paddingBottom: 6 },
