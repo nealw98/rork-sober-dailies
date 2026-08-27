@@ -193,7 +193,7 @@ function VolumeSlider({ value, onChange, onComplete }: { value: number; onChange
     }),
   ).current;
   const step = (delta: number) => {
-    const next = Math.max(0, Math.min(1, Math.round((value + delta) * 10) / 10));
+    const next = Math.max(0, Math.min(1, Math.round((value + delta) * 20) / 20));
     last.current = next;
     onChange(next);
     onComplete(next);
@@ -203,7 +203,7 @@ function VolumeSlider({ value, onChange, onComplete }: { value: number; onChange
     <View style={styles.volRow}>
       <Pressable
         style={[styles.volStepBtn, value <= 0 && styles.volStepBtnDisabled]}
-        onPress={() => step(-0.1)}
+        onPress={() => step(-0.05)}
         disabled={value <= 0}
         accessibilityRole="button"
         accessibilityLabel="Decrease scene volume"
@@ -222,7 +222,7 @@ function VolumeSlider({ value, onChange, onComplete }: { value: number; onChange
       </View>
       <Pressable
         style={[styles.volStepBtn, value >= 1 && styles.volStepBtnDisabled]}
-        onPress={() => step(0.1)}
+        onPress={() => step(0.05)}
         disabled={value >= 1}
         accessibilityRole="button"
         accessibilityLabel="Increase scene volume"
