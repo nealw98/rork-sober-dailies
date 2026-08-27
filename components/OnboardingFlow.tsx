@@ -223,7 +223,7 @@ const STARTER: { when: WhenBucket; items: StarterItem[] }[] = [
     { id: 'speaker', label: 'Listen to a speaker', icon: 'mic', color: 'lavender', action: 'speaker', on: false },
     { id: 'journal', label: 'Write in my journal', icon: 'journal', color: 'blue', action: 'journal', on: false },
     { id: 'spotcheck', label: 'Take a spot check inventory', icon: 'check', color: 'coral', action: 'spotcheck', on: false },
-    { id: 'service', label: 'Be of service', icon: 'heartHandshake', color: 'teal', action: 'service', on: false },
+    { id: 'service', label: 'Do some service', icon: 'heartHandshake', color: 'teal', action: 'service', on: false },
   ] },
   { when: 'Evening', items: [
     { id: 'nightly', label: 'Do my nightly review', icon: 'moon', color: 'lavender', action: 'nightly', on: true },

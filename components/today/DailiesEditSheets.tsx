@@ -51,7 +51,7 @@ export const TOOL_CATALOG: Template[] = [
 
 // "Quick actions" — no tool, just check off. Alphabetical by label.
 export const QUICK_CATALOG: Template[] = [
-  { label: 'Be of service', icon: 'heartHandshake', color: 'steel', action: 'service' },
+  { label: 'Do some service', icon: 'heartHandshake', color: 'steel', action: 'service' },
   { label: 'Get some exercise', icon: 'dumbbell', color: 'terracotta', action: 'exercise' },
   { label: 'Make my bed', icon: 'home', color: 'periwinkle', action: 'makeBed' },
 ];
