@@ -17,7 +17,7 @@ import {
 // native window). Use react-native-keyboard-controller inside a KeyboardProvider
 // (no toolbar — these sheets have their own Add/Save button that dismisses).
 import { KeyboardProvider, KeyboardAvoidingView } from 'react-native-keyboard-controller';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { X, Plus, Check } from 'lucide-react-native';
 import { fontFamily, fontSize, shadows, type Tokens } from '@/constants/designTokens';
 import { useTokens, useThemedStyles } from '@/hooks/useTokens';
@@ -78,81 +78,96 @@ export function AddSheet({ section, added, onClose, onAdd, onCreate }: { section
   const styles = useThemedStyles(makeStyles);
   const { c, colors } = useTokens();
   const insets = useSafeAreaInsets();
-  return (
-    <Modal transparent visible animationType="slide" onRequestClose={onClose}>
-      <View style={styles.sheetWrap}>
-        <SheetBackdrop onPress={onClose} />
-        <View style={styles.sheet}>
-          <View style={styles.grabber} />
-          <View style={styles.sheetHead}>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.sheetTitle}>Add to {section}</Text>
-              <Text style={styles.sheetSub}>Pick from your tools, a quick action, or make your own.</Text>
-            </View>
-            <Pressable style={styles.closeBtn} onPress={onClose}>
-              <X size={16} color={c.textSecondary} strokeWidth={2.2} />
-            </Pressable>
-          </View>
-
-          <ScrollView
-            style={styles.sheetScroll}
-            contentContainerStyle={{ paddingBottom: Math.max(28, insets.bottom + 16) }}
-            showsVerticalScrollIndicator={false}
-            nestedScrollEnabled
-          >
-            {/* Create-your-own leads the sheet — at the bottom it was easy to
-                miss below two catalogs (decided Jul 18). */}
-            <Text style={styles.groupLabel}>CREATE YOUR OWN</Text>
-            <Pressable style={styles.createRow} onPress={onCreate}>
-              <View style={styles.createIcon}>
-                <Plus size={20} color={colors.primary} strokeWidth={2.2} />
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.addRowName}>Make a custom action</Text>
-                <Text style={styles.sheetSub}>Something only on your list — name it.</Text>
-              </View>
-            </Pressable>
-
-            <Text style={styles.groupLabel}>FROM YOUR TOOLS</Text>
-            {TOOL_CATALOG.map((t) => (
-              <Pressable key={t.action} style={[styles.addRow, added.has(t.action) && styles.addRowAdded]} disabled={added.has(t.action)} onPress={() => onAdd(t)}>
-                <Medallion icon={t.icon} tone={t.color} soft />
-                <View style={styles.addRowText}>
-                  <Text style={styles.addRowName}>{t.label}</Text>
-                </View>
-                {added.has(t.action) ? (
-                  <View style={styles.addedCheck}>
-                    <Check size={13} color="#fff" strokeWidth={3} />
-                  </View>
-                ) : (
-                  <View style={styles.addPlus}>
-                    <Plus size={13} color={colors.primary} strokeWidth={2.4} />
-                  </View>
-                )}
-              </Pressable>
-            ))}
-
-            <Text style={styles.groupLabel}>QUICK ACTIONS · NO TOOL, JUST CHECK OFF</Text>
-            {QUICK_CATALOG.map((t) => (
-              <Pressable key={t.action} style={[styles.addRow, added.has(t.action) && styles.addRowAdded]} disabled={added.has(t.action)} onPress={() => onAdd(t)}>
-                <Medallion icon={t.icon} tone={t.color} soft />
-                <View style={styles.addRowText}>
-                  <Text style={styles.addRowName}>{t.label}</Text>
-                </View>
-                {added.has(t.action) ? (
-                  <View style={styles.addedCheck}>
-                    <Check size={13} color="#fff" strokeWidth={3} />
-                  </View>
-                ) : (
-                  <View style={styles.addPlus}>
-                    <Plus size={13} color={colors.primary} strokeWidth={2.4} />
-                  </View>
-                )}
-              </Pressable>
-            ))}
-          </ScrollView>
+  const content = (
+    <>
+      {Platform.OS !== 'android' && <View style={styles.grabber} />}
+      <View style={[styles.sheetHead, Platform.OS === 'android' && styles.androidSheetHead]}>
+        <View style={{ flex: 1 }}>
+          <Text style={styles.sheetTitle}>Add to {section}</Text>
+          <Text style={styles.sheetSub}>Pick from your tools, a quick action, or make your own.</Text>
         </View>
+        <Pressable style={styles.closeBtn} onPress={onClose}>
+          <X size={16} color={c.textSecondary} strokeWidth={2.2} />
+        </Pressable>
       </View>
+
+      <ScrollView
+        style={styles.sheetScroll}
+        contentContainerStyle={{ paddingBottom: Math.max(28, insets.bottom + 16) }}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Create-your-own leads the sheet — at the bottom it was easy to
+            miss below two catalogs (decided Jul 18). */}
+        <Text style={styles.groupLabel}>CREATE YOUR OWN</Text>
+        <Pressable style={styles.createRow} onPress={onCreate}>
+          <View style={styles.createIcon}>
+            <Plus size={20} color={colors.primary} strokeWidth={2.2} />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.addRowName}>Make a custom action</Text>
+            <Text style={styles.sheetSub}>Something only on your list — name it.</Text>
+          </View>
+        </Pressable>
+
+        <Text style={styles.groupLabel}>FROM YOUR TOOLS</Text>
+        {TOOL_CATALOG.map((t) => (
+          <Pressable key={t.action} style={[styles.addRow, added.has(t.action) && styles.addRowAdded]} disabled={added.has(t.action)} onPress={() => onAdd(t)}>
+            <Medallion icon={t.icon} tone={t.color} soft />
+            <View style={styles.addRowText}>
+              <Text style={styles.addRowName}>{t.label}</Text>
+            </View>
+            {added.has(t.action) ? (
+              <View style={styles.addedCheck}>
+                <Check size={13} color="#fff" strokeWidth={3} />
+              </View>
+            ) : (
+              <View style={styles.addPlus}>
+                <Plus size={13} color={colors.primary} strokeWidth={2.4} />
+              </View>
+            )}
+          </Pressable>
+        ))}
+
+        <Text style={styles.groupLabel}>QUICK ACTIONS · NO TOOL, JUST CHECK OFF</Text>
+        {QUICK_CATALOG.map((t) => (
+          <Pressable key={t.action} style={[styles.addRow, added.has(t.action) && styles.addRowAdded]} disabled={added.has(t.action)} onPress={() => onAdd(t)}>
+            <Medallion icon={t.icon} tone={t.color} soft />
+            <View style={styles.addRowText}>
+              <Text style={styles.addRowName}>{t.label}</Text>
+            </View>
+            {added.has(t.action) ? (
+              <View style={styles.addedCheck}>
+                <Check size={13} color="#fff" strokeWidth={3} />
+              </View>
+            ) : (
+              <View style={styles.addPlus}>
+                <Plus size={13} color={colors.primary} strokeWidth={2.4} />
+              </View>
+            )}
+          </Pressable>
+        ))}
+      </ScrollView>
+    </>
+  );
+
+  return (
+    <Modal
+      transparent={Platform.OS !== 'android'}
+      visible
+      animationType="slide"
+      presentationStyle={Platform.OS === 'android' ? 'fullScreen' : 'overFullScreen'}
+      onRequestClose={onClose}
+    >
+      {Platform.OS === 'android' ? (
+        <SafeAreaView style={styles.androidPicker} edges={['top', 'bottom']}>
+          {content}
+        </SafeAreaView>
+      ) : (
+        <View style={styles.sheetWrap}>
+          <SheetBackdrop onPress={onClose} />
+          <View style={styles.sheet}>{content}</View>
+        </View>
+      )}
     </Modal>
   );
 }
@@ -224,6 +239,8 @@ const makeStyles = (tk: Tokens) => {
     // increases the system font size and the catalog rows become taller.
     sheet: { backgroundColor: isDark ? c.surface : c.background, borderTopLeftRadius: 28, borderTopRightRadius: 28, paddingTop: 10, height: '88%', overflow: 'hidden', ...(isDark ? { borderWidth: 1, borderColor: 'rgba(255,255,255,0.06)', borderTopColor: 'rgba(255,255,255,0.12)', borderBottomWidth: 0 } : null) },
     sheetScroll: { flex: 1 },
+    androidPicker: { flex: 1, backgroundColor: isDark ? c.surface : c.background },
+    androidSheetHead: { paddingTop: 18, paddingBottom: 12 },
     grabber: { width: 38, height: 4, borderRadius: 2, backgroundColor: isDark ? 'rgba(255,255,255,0.18)' : '#EDEAE2', alignSelf: 'center', marginBottom: 10 },
     sheetHead: { flexDirection: 'row', alignItems: 'flex-start', gap: 12, paddingHorizontal: 22, paddingBottom: 8 },
     sheetHeadRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 22, paddingBottom: 6 },
