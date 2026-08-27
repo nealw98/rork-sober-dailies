@@ -17,6 +17,7 @@ import {
 // native window). Use react-native-keyboard-controller inside a KeyboardProvider
 // (no toolbar — these sheets have their own Add/Save button that dismisses).
 import { KeyboardProvider, KeyboardAvoidingView } from 'react-native-keyboard-controller';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { X, Plus, Check } from 'lucide-react-native';
 import { fontFamily, fontSize, shadows, type Tokens } from '@/constants/designTokens';
 import { useTokens, useThemedStyles } from '@/hooks/useTokens';
@@ -76,6 +77,7 @@ function SheetBackdrop({ onPress }: { onPress: () => void }) {
 export function AddSheet({ section, added, onClose, onAdd, onCreate }: { section: WhenBucket; added: Set<string>; onClose: () => void; onAdd: (t: Template) => void; onCreate: () => void }) {
   const styles = useThemedStyles(makeStyles);
   const { c, colors } = useTokens();
+  const insets = useSafeAreaInsets();
   return (
     <Modal transparent visible animationType="slide" onRequestClose={onClose}>
       <View style={styles.sheetWrap}>
@@ -92,7 +94,12 @@ export function AddSheet({ section, added, onClose, onAdd, onCreate }: { section
             </Pressable>
           </View>
 
-          <ScrollView contentContainerStyle={{ paddingBottom: 28 }} showsVerticalScrollIndicator={false}>
+          <ScrollView
+            style={styles.sheetScroll}
+            contentContainerStyle={{ paddingBottom: Math.max(28, insets.bottom + 16) }}
+            showsVerticalScrollIndicator={false}
+            nestedScrollEnabled
+          >
             {/* Create-your-own leads the sheet — at the bottom it was easy to
                 miss below two catalogs (decided Jul 18). */}
             <Text style={styles.groupLabel}>CREATE YOUR OWN</Text>
@@ -212,7 +219,8 @@ const makeStyles = (tk: Tokens) => {
 
     sheetWrap: { flex: 1, justifyContent: 'flex-end' },
     backdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: isDark ? c.overlay : 'rgba(20,20,30,0.35)' },
-    sheet: { backgroundColor: isDark ? c.surface : c.background, borderTopLeftRadius: 28, borderTopRightRadius: 28, paddingTop: 10, maxHeight: '88%', ...(isDark ? { borderWidth: 1, borderColor: 'rgba(255,255,255,0.06)', borderTopColor: 'rgba(255,255,255,0.12)', borderBottomWidth: 0 } : null) },
+    sheet: { backgroundColor: isDark ? c.surface : c.background, borderTopLeftRadius: 28, borderTopRightRadius: 28, paddingTop: 10, maxHeight: '88%', overflow: 'hidden', ...(isDark ? { borderWidth: 1, borderColor: 'rgba(255,255,255,0.06)', borderTopColor: 'rgba(255,255,255,0.12)', borderBottomWidth: 0 } : null) },
+    sheetScroll: { flexShrink: 1, minHeight: 0 },
     grabber: { width: 38, height: 4, borderRadius: 2, backgroundColor: isDark ? 'rgba(255,255,255,0.18)' : '#EDEAE2', alignSelf: 'center', marginBottom: 10 },
     sheetHead: { flexDirection: 'row', alignItems: 'flex-start', gap: 12, paddingHorizontal: 22, paddingBottom: 8 },
     sheetHeadRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 22, paddingBottom: 6 },
