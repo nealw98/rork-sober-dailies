@@ -5,8 +5,9 @@
 // (the Apple Books model), not a per-screen size.
 //
 // The ladder mirrors Apple's Dynamic Type "Body" sizes across the standard
-// content-size categories (Small…xxxLarge): 15/17/19/21/23, default 17 (Apple
-// Body). Values are absolute pt; RN's default allowFontScaling still multiplies
+// content-size categories (Small…xxxLarge): 15/17/19/21/23, default 19 (the
+// middle step). Values are absolute pt; RN's default allowFontScaling still
+// multiplies
 // by the OS text-size, so this layers ON TOP of Dynamic Type rather than
 // overriding it. The big accessibility sizes stay the OS's job.
 import { useCallback, useEffect, useState } from 'react';
@@ -20,7 +21,7 @@ const LINE_HEIGHT_RATIO = 1.5;
 export const READING_SIZE_STEPS = [15, 17, 19, 21, 23] as const;
 const MIN = READING_SIZE_STEPS[0];
 const MAX = READING_SIZE_STEPS[READING_SIZE_STEPS.length - 1];
-const DEFAULT_SIZE = READING_FONT_SIZE; // 17 = Apple Body = the middle step
+const DEFAULT_SIZE = READING_FONT_SIZE; // 19 = the middle step
 
 const clamp = (n: number) => Math.min(MAX, Math.max(MIN, n));
 

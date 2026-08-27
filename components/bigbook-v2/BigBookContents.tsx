@@ -33,6 +33,8 @@ import { ReadingSizeSheet } from '@/components/ReadingSizeSheet';
 import { useTokens, useThemedStyles } from '@/hooks/useTokens';
 
 const BOOK = 'bigbook';
+const isCollapsibleGroup = (label: string) =>
+  label === 'Front Matter' || label.startsWith('Personal Stories') || label === 'Appendices';
 
 export function BigBookContents({ onOpenText, onOpenPdf, onOpenTextAtParagraph }: {
   onOpenText: (chapterId: string, page?: number, searchTerm?: string, paragraphId?: string) => void;
@@ -57,7 +59,11 @@ export function BigBookContents({ onOpenText, onOpenPdf, onOpenTextAtParagraph }
   const [query, setQuery] = useState('');
   const [debounced, setDebounced] = useState('');
   const [sizeSheetOpen, setSizeSheetOpen] = useState(false);
-  const [expandedGroups, setExpandedGroups] = useState<Set<string>>(() => new Set());
+  const [expandedGroups, setExpandedGroups] = useState<Set<string>>(
+    () => new Set(BIGBOOK_TOC
+      .filter((group) => isCollapsibleGroup(group.label))
+      .map((group) => group.label)),
+  );
   const insets = useSafeAreaInsets();
 
   const toggleGroup = (label: string) => {
@@ -281,7 +287,7 @@ export function BigBookContents({ onOpenText, onOpenPdf, onOpenTextAtParagraph }
         ) : (
         <View style={styles.body}>
           {BIGBOOK_TOC.map((g) => {
-            const collapsible = g.label.startsWith('Personal Stories') || g.label === 'Appendices';
+            const collapsible = isCollapsibleGroup(g.label);
             const expanded = !collapsible || expandedGroups.has(g.label);
             return (
             <View key={g.label} style={styles.group}>
