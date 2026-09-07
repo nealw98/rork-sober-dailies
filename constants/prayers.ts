@@ -9,7 +9,7 @@ When I don’t know what to do, grant me inspiration—an intuitive thought, a g
 
 As I go about my day, show me the next right action and give me what I need to handle whatever comes my way.
 
-Remove my fears. Direct my attention to what You would have me be. Give me faith in Your plan and the courage to act.
+Remove my fear. Direct my attention to what You would have me be. Give me faith in Your plan and the courage to act.
 
 Remove my selfishness and self-centeredness. Direct my thinking toward others. Show me how I can be of service—useful, kind, and willing.
 
