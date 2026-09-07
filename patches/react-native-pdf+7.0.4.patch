@@ -1,11 +1,118 @@
+diff --git a/node_modules/react-native-pdf/android/src/main/java/org/wonday/pdf/PdfManager.java b/node_modules/react-native-pdf/android/src/main/java/org/wonday/pdf/PdfManager.java
+index 03e6de2..3329837 100644
+--- a/node_modules/react-native-pdf/android/src/main/java/org/wonday/pdf/PdfManager.java
++++ b/node_modules/react-native-pdf/android/src/main/java/org/wonday/pdf/PdfManager.java
+@@ -131,0 +132,5 @@ public class PdfManager extends SimpleViewManager<PdfView> implements RNPDFPdfVi
++    @ReactProp(name = "nightMode")
++    public void setNightMode(PdfView pdfView, boolean nightMode) {
++        pdfView.setNightMode(nightMode);
++    }
++
+diff --git a/node_modules/react-native-pdf/android/src/main/java/org/wonday/pdf/PdfView.java b/node_modules/react-native-pdf/android/src/main/java/org/wonday/pdf/PdfView.java
+index e9a1d16..b034afd 100644
+--- a/node_modules/react-native-pdf/android/src/main/java/org/wonday/pdf/PdfView.java
++++ b/node_modules/react-native-pdf/android/src/main/java/org/wonday/pdf/PdfView.java
+@@ -76,0 +77 @@ public class PdfView extends PDFView implements OnPageChangeListener,OnLoadCompl
++    private boolean nightMode = false;
+@@ -339,0 +341 @@ public class PdfView extends PDFView implements OnPageChangeListener,OnLoadCompl
++                .nightMode(this.nightMode)
+@@ -380,0 +383,4 @@ public class PdfView extends PDFView implements OnPageChangeListener,OnLoadCompl
++    public void setNightMode(boolean nightMode) {
++        this.nightMode = nightMode;
++    }
++
+diff --git a/node_modules/react-native-pdf/android/src/paper/java/com/facebook/react/viewmanagers/RNPDFPdfViewManagerDelegate.java b/node_modules/react-native-pdf/android/src/paper/java/com/facebook/react/viewmanagers/RNPDFPdfViewManagerDelegate.java
+index 43848d9..5efc70b 100644
+--- a/node_modules/react-native-pdf/android/src/paper/java/com/facebook/react/viewmanagers/RNPDFPdfViewManagerDelegate.java
++++ b/node_modules/react-native-pdf/android/src/paper/java/com/facebook/react/viewmanagers/RNPDFPdfViewManagerDelegate.java
+@@ -67,0 +68,3 @@ public class RNPDFPdfViewManagerDelegate<T extends View, U extends BaseViewManag
++      case "nightMode":
++        mViewManager.setNightMode(view, value == null ? false : (boolean) value);
++        break;
+diff --git a/node_modules/react-native-pdf/android/src/paper/java/com/facebook/react/viewmanagers/RNPDFPdfViewManagerInterface.java b/node_modules/react-native-pdf/android/src/paper/java/com/facebook/react/viewmanagers/RNPDFPdfViewManagerInterface.java
+index 397268f..eee543b 100644
+--- a/node_modules/react-native-pdf/android/src/paper/java/com/facebook/react/viewmanagers/RNPDFPdfViewManagerInterface.java
++++ b/node_modules/react-native-pdf/android/src/paper/java/com/facebook/react/viewmanagers/RNPDFPdfViewManagerInterface.java
+@@ -29,0 +30 @@ public interface RNPDFPdfViewManagerInterface<T extends View> {
++  void setNightMode(T view, boolean value);
+diff --git a/node_modules/react-native-pdf/fabric/RNPDFPdfNativeComponent.js b/node_modules/react-native-pdf/fabric/RNPDFPdfNativeComponent.js
+index 43fea3b..d2b9552 100644
+--- a/node_modules/react-native-pdf/fabric/RNPDFPdfNativeComponent.js
++++ b/node_modules/react-native-pdf/fabric/RNPDFPdfNativeComponent.js
+@@ -28,0 +29 @@
++   nightMode: ?boolean,
+diff --git a/node_modules/react-native-pdf/index.d.ts b/node_modules/react-native-pdf/index.d.ts
+index cfcea72..d1af727 100644
+--- a/node_modules/react-native-pdf/index.d.ts
++++ b/node_modules/react-native-pdf/index.d.ts
+@@ -45,0 +46 @@ export interface PdfProps {
++    nightMode?: boolean,
+diff --git a/node_modules/react-native-pdf/index.js b/node_modules/react-native-pdf/index.js
+index f807178..df97ef1 100644
+--- a/node_modules/react-native-pdf/index.js
++++ b/node_modules/react-native-pdf/index.js
+@@ -50,0 +51 @@ export default class Pdf extends Component {
++        nightMode: PropTypes.bool,
+@@ -88,0 +90 @@ export default class Pdf extends Component {
++        nightMode: false,
+diff --git a/node_modules/react-native-pdf/index.js.flow b/node_modules/react-native-pdf/index.js.flow
+index 693070a..38f5010 100644
+--- a/node_modules/react-native-pdf/index.js.flow
++++ b/node_modules/react-native-pdf/index.js.flow
+@@ -37,0 +38 @@ export type Props = {
++  nightMode?: boolean,
+diff --git a/node_modules/react-native-pdf/ios/RNPDFPdf/RNPDFPdfView.h b/node_modules/react-native-pdf/ios/RNPDFPdf/RNPDFPdfView.h
+index 723ca7b..b413c3e 100644
+--- a/node_modules/react-native-pdf/ios/RNPDFPdf/RNPDFPdfView.h
++++ b/node_modules/react-native-pdf/ios/RNPDFPdf/RNPDFPdfView.h
+@@ -49,0 +50 @@ UIView
++@property(nonatomic) BOOL nightMode;
 diff --git a/node_modules/react-native-pdf/ios/RNPDFPdf/RNPDFPdfView.mm b/node_modules/react-native-pdf/ios/RNPDFPdf/RNPDFPdfView.mm
-index de46c98..d4ea829 100644
+index de46c98..1ca6925 100644
 --- a/node_modules/react-native-pdf/ios/RNPDFPdf/RNPDFPdfView.mm
 +++ b/node_modules/react-native-pdf/ios/RNPDFPdf/RNPDFPdfView.mm
-@@ -564,6 +564,16 @@ - (void)didSetProps:(NSArray<NSString *> *)changedProps
-             }
-         }
-
+@@ -56,0 +57,26 @@ + (RCTBridge *)currentBridge;
++@protocol RNPDFNightModeProviding <NSObject>
++- (BOOL)isNightModeEnabled;
++@end
++
++// PDFKit has no public night-mode switch. Render the normal page first, then
++// blend an opaque white rectangle with Difference mode: white becomes black
++// and black becomes white while the surrounding reader chrome is untouched.
++@interface RNPDFNightPage : PDFPage
++@end
++
++@implementation RNPDFNightPage
++- (void)drawWithBox:(PDFDisplayBox)box toContext:(CGContextRef)context
++{
++    [super drawWithBox:box toContext:context];
++
++    id<RNPDFNightModeProviding> provider = (id<RNPDFNightModeProviding>)self.document.delegate;
++    if ([provider respondsToSelector:@selector(isNightModeEnabled)] && [provider isNightModeEnabled]) {
++        CGContextSaveGState(context);
++        CGContextSetBlendMode(context, kCGBlendModeDifference);
++        CGContextSetRGBFillColor(context, 1.0, 1.0, 1.0, 1.0);
++        CGContextFillRect(context, [self boundsForBox:box]);
++        CGContextRestoreGState(context);
++    }
++}
++@end
++
+@@ -60,0 +87 @@ @interface RNPDFPdfView() <PDFDocumentDelegate, PDFViewDelegate
++, RNPDFNightModeProviding
+@@ -148,0 +176,4 @@ - (void)updateProps:(Props::Shared const &)props oldProps:(Props::Shared const &
++    if (_nightMode != newProps.nightMode) {
++        _nightMode = newProps.nightMode;
++        [updatedPropNames addObject:@"nightMode"];
++    }
+@@ -260,0 +292 @@ - (void)initCommonProps
++    _nightMode = NO;
+@@ -383,0 +416,4 @@ - (void)didSetProps:(NSArray<NSString *> *)changedProps
++                // Set the delegate before PDFKit lazily creates any pages so
++                // classForPage can supply the night-mode-aware page subclass.
++                _pdfDocument.delegate = self;
++
+@@ -566,0 +603,10 @@ - (void)didSetProps:(NSArray<NSString *> *)changedProps
 +        // Keep the safe area out of the internal scroll view: with automatic
 +        // adjustment, landscape notch insets add horizontal scrollable slack to
 +        // a width-fit page, letting it wander side to side.
@@ -16,6 +123,20 @@ index de46c98..d4ea829 100644
 +            }
 +        }
 +
-         _pdfView.backgroundColor = [UIColor clearColor];
-         [_pdfView layoutDocumentView];
-         [self setNeedsDisplay];
+@@ -572,0 +619,10 @@ - (void)didSetProps:(NSArray<NSString *> *)changedProps
++- (Class)classForPage
++{
++    return [RNPDFNightPage class];
++}
++
++- (BOOL)isNightModeEnabled
++{
++    return _nightMode;
++}
++
+diff --git a/node_modules/react-native-pdf/ios/RNPDFPdf/RNPDFPdfViewManager.mm b/node_modules/react-native-pdf/ios/RNPDFPdf/RNPDFPdfViewManager.mm
+index 2dfa7f5..324dd5a 100644
+--- a/node_modules/react-native-pdf/ios/RNPDFPdf/RNPDFPdfViewManager.mm
++++ b/node_modules/react-native-pdf/ios/RNPDFPdf/RNPDFPdfViewManager.mm
+@@ -42,0 +43 @@ - (UIView *)view
++RCT_EXPORT_VIEW_PROPERTY(nightMode, BOOL);

@@ -39,7 +39,7 @@ export default function PdfReader({
   onClose: () => void;
 }) {
   const styles = useThemedStyles(makeStyles);
-  const { c } = useTokens();
+  const { c, isDark } = useTokens();
   const { isBookmarked, toggle } = usePdfBookmarks();
   useReadingTime(BOOK_NAMES[book] ?? book, { format: 'pdf', section: sectionId });
   const pdfRef = useRef<any>(null);
@@ -150,8 +150,9 @@ export default function PdfReader({
           ) : (
             <Pdf
               ref={pdfRef}
-              key={landscape ? 'landscape' : 'portrait'}
+              key={`${landscape ? 'landscape' : 'portrait'}-${isDark ? 'dark' : 'light'}`}
               source={{ uri, cache: true }}
+              nightMode={isDark}
               // NO `page` prop here: passing it makes the native mount route
               // through goToDestination + a scale re-application that runs
               // before the fit scale settles, leaving landscape rendered at
