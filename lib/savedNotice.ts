@@ -43,7 +43,6 @@ export function confirmSaved(): void {
       },
       {
         text: 'OK',
-        style: 'cancel',
         // Back on Today, then the nudge — maybePromptBackup waits for the
         // destination to settle, so it appears there rather than mid-transition.
         onPress: () => { router.back(); maybePromptBackup(); },
