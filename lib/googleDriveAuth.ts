@@ -52,10 +52,29 @@ export async function getDriveAccountEmail(): Promise<string | null> {
   try { return (await GoogleSignin.getCurrentUser())?.user?.email ?? null; } catch { return null; }
 }
 
+// Serialize token requests. The native module services ONE getTokens() at a
+// time and rejects any overlapping call outright ("previous promise did not
+// settle and was overwritten"), which surfaced to the user as a bogus "sign-in
+// did not complete" on the very first connect. The overlap is structural, not a
+// rare race: the account picker is its own activity, so opening it backgrounds
+// the app and closing it foregrounds it — firing use-cloud-sync's background
+// push and foreground pull on either side of the interactive request that's
+// still in flight. Chaining makes them queue instead of clobbering each other.
+let tokenQueue: Promise<unknown> = Promise.resolve();
+
 // Get a fresh access token. Auto sync passes interactive=false (silent only —
 // no-ops until the user has connected once); the Backup screen's "Connect"
 // passes interactive=true to show the account picker.
-export async function getDriveAccessToken(interactive: boolean): Promise<string | null> {
+export function getDriveAccessToken(interactive: boolean): Promise<string | null> {
+  const run = tokenQueue.then(
+    () => requestDriveAccessToken(interactive),
+    () => requestDriveAccessToken(interactive), // a failed predecessor must not skip us
+  );
+  tokenQueue = run.catch(() => null); // never let a rejection poison the queue
+  return run;
+}
+
+async function requestDriveAccessToken(interactive: boolean): Promise<string | null> {
   if (!driveAuthSupported() || !ensureConfigured()) return null;
   try {
     let signedIn = false;

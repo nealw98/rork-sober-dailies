@@ -1,6 +1,0 @@
-module posthog_react_native_session_replay {
-  umbrella header "posthog-react-native-session-replay-umbrella.h"
-
-  export *
-  module * { export * }
-}

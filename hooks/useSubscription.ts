@@ -1,17 +1,23 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Platform } from 'react-native';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { AppState, type AppStateStatus, Platform } from 'react-native';
 import createContextHook from '@nkzw/create-context-hook';
 import * as SecureStore from 'expo-secure-store';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Purchases, {
-  CustomerInfo,
   LOG_LEVEL,
-  Offerings,
-  Package,
+  type CustomerInfo,
+  type CustomerInfoUpdateListener,
+  type PurchasesOfferings,
+  type PurchasesPackage,
 } from 'react-native-purchases';
 import { supabase } from '@/lib/supabase';
 import { getAnonymousId } from '@/lib/anonymousId';
 import { syncTrialReminder } from '@/lib/trialReminder';
+import {
+  getNormalSubscriptionOption,
+  getPassSubscriptionOption,
+  trialDaysFromSubscriptionOption,
+} from '@/lib/subscriptionOffers';
 
 // ============================================================================
 // CONFIGURATION
@@ -41,6 +47,38 @@ function getRevenueCatApiKey(): string | null {
         : null;
 
   return typeof key === 'string' && key.trim().length > 0 ? key.trim() : null;
+}
+
+// How long one RevenueCat/store round-trip may run before we surface the error
+// card instead. getOfferings has known native hang modes; without a bound the
+// paywall's resolving spinner never exits — the original pre-fail-screen bug,
+// still latent underneath it.
+const FETCH_TIMEOUT_MS = 10000;
+
+// Silent launch retries. One failed request must not become a terminal fail
+// screen: the 2026-08-18 App Review rejection was a single bad fetch that a
+// retry seconds later would almost certainly have erased. The paywall holds
+// its resolving spinner while these run.
+const RETRY_DELAYS_MS = [2000, 6000];
+
+function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error('Store request timed out.')), ms);
+    promise.then(
+      (value) => { clearTimeout(timer); resolve(value); },
+      (err) => { clearTimeout(timer); reject(err); },
+    );
+  });
+}
+
+const sleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
+
+// "Loaded" means something we can actually sell, not just a 200. RevenueCat
+// can resolve successfully with an empty catalog (the store declined to vend
+// the products) — that must retry exactly like a transport failure.
+function hasSellablePackages(offs: PurchasesOfferings): boolean {
+  const offering = offs.all?.['default'] ?? offs.current ?? null;
+  return (offering?.availablePackages?.length ?? 0) > 0;
 }
 
 let purchasesConfigured = false;
@@ -112,14 +150,18 @@ async function rememberGrandfather(anonymousId: string, yes: boolean): Promise<v
   } catch {}
 }
 
-async function checkGrandfatherStatus(): Promise<boolean> {
+// 'unknown' = we couldn't ASK, which is not the same as a "no". Collapsing the
+// two is what used to wall a grandfathered member who happened to be offline.
+type GrandfatherStatus = 'yes' | 'no' | 'unknown';
+
+async function checkGrandfatherStatus(): Promise<GrandfatherStatus> {
   let anonymousId = '';
   try {
     // Get the anonymous ID from usage logger
     anonymousId = (await getAnonymousId()) ?? '';
     if (!anonymousId) {
       console.log('[Subscription] No anonymous ID available - not grandfathered');
-      return false;
+      return 'no';
     }
 
     console.log('[Subscription] Checking grandfather status for:', anonymousId);
@@ -137,26 +179,27 @@ async function checkGrandfatherStatus(): Promise<boolean> {
       if (error.code === 'PGRST116') {
         console.log('[Subscription] User not found in user_profiles - not grandfathered');
         await rememberGrandfather(anonymousId, false);
-        return false;
+        return 'no';
       }
-      // Anything else is the check FAILING, not answering. Honour a cached yes.
+      // Anything else is the check FAILING, not answering. Honour a cached yes;
+      // otherwise say so, rather than pretending we got a "no".
       console.error('[Subscription] Error checking grandfather status:', error);
       const remembered = await cachedGrandfather(anonymousId);
       if (remembered) console.log('[Subscription] Check failed - honouring cached grandfather status');
-      return remembered;
+      return remembered ? 'yes' : 'unknown';
     }
 
     const isGrandfathered = data?.is_grandfathered === true;
     console.log('[Subscription] Grandfather status:', isGrandfathered);
     await rememberGrandfather(anonymousId, isGrandfathered);
-    return isGrandfathered;
+    return isGrandfathered ? 'yes' : 'no';
   } catch (error) {
     // Thrown (offline, DNS, timeout) — same rule as an error response.
     console.error('[Subscription] Grandfather check error:', error);
-    if (!anonymousId) return false;
+    if (!anonymousId) return 'unknown';
     const remembered = await cachedGrandfather(anonymousId);
     if (remembered) console.log('[Subscription] Check threw - honouring cached grandfather status');
-    return remembered;
+    return remembered ? 'yes' : 'unknown';
   }
 }
 
@@ -166,13 +209,16 @@ async function checkGrandfatherStatus(): Promise<boolean> {
 
 export type SubscriptionState = {
   isLoading: boolean;
+  // Silent launch retries in progress — the paywall shows its resolving
+  // spinner, not the fail screen, while this is true.
+  autoRetrying: boolean;
   error: string | null;
 
   isEntitled: boolean;
   isGrandfathered: boolean;
   isPremium: boolean;
 
-  offerings: Offerings | null;
+  offerings: PurchasesOfferings | null;
   customerInfo: CustomerInfo | null;
   trialEligible: boolean | null;
   // QA force-new-user flag (Developer Console) is active — the paywall is gating
@@ -180,9 +226,10 @@ export type SubscriptionState = {
   // a QA banner so a forced gate is never mistaken for a real one.
   qaForceNewUser: boolean;
 
-  refresh: () => Promise<void>;
+  refresh: () => Promise<boolean>;
   applyCustomerInfo: (info: CustomerInfo) => void;
-  purchasePackage: (pkg: Package) => Promise<CustomerInfo | null>;
+  purchasePackage: (pkg: PurchasesPackage) => Promise<CustomerInfo | null>;
+  purchasePassPackage: (pkg: PurchasesPackage) => Promise<CustomerInfo | null>;
   restorePurchases: () => Promise<CustomerInfo | null>;
 };
 
@@ -190,7 +237,7 @@ export const [SubscriptionProvider, useSubscription] = createContextHook(() => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const [offerings, setOfferings] = useState<Offerings | null>(null);
+  const [offerings, setOfferings] = useState<PurchasesOfferings | null>(null);
   const [customerInfo, setCustomerInfo] = useState<CustomerInfo | null>(null);
   const [isPremiumOverride, setIsPremiumOverride] = useState(false);
   const [isGrandfathered, setIsGrandfathered] = useState(false);
@@ -218,25 +265,45 @@ export const [SubscriptionProvider, useSubscription] = createContextHook(() => {
       ? true
       : forceNewUser
         ? sessionPurchaseUnlock
+        // An unanswerable grandfather check does NOT grant access. Previously
+        // verified members are still protected: checkGrandfatherStatus() turns
+        // their cached confirmation into "yes" during an outage. Treating every
+        // uncached "unknown" as premium let a fresh user bypass the paywall by
+        // launching while the grandfather endpoint was unreachable.
         : isEntitled || isGrandfathered || isPremiumOverride;
 
-  // Refresh subscription status from RevenueCat
-  const refresh = useCallback(async () => {
+  // Tracks whether we currently hold a sellable catalog, for the resume-refetch
+  // below. A ref, not state: the AppState listener must read the latest value
+  // without re-subscribing.
+  const offeringsOkRef = useRef(false);
+  // True while the silent launch retry loop runs — the paywall shows its
+  // resolving spinner instead of the fail screen during this window.
+  const [autoRetrying, setAutoRetrying] = useState(false);
+  const autoRetryingRef = useRef(false);
+  const lastResumeAttemptRef = useRef(0);
+
+  // Refresh subscription status from RevenueCat. Returns whether we ended up
+  // with a sellable catalog, so callers (launch retry, resume refetch) can
+  // decide to try again.
+  const refresh = useCallback(async (): Promise<boolean> => {
     setError(null);
 
     const configured = await ensurePurchasesConfigured();
     if (!configured.ok) {
       setError(configured.error);
-      return;
+      return false;
     }
 
-    if (Platform.OS === 'web') return;
+    if (Platform.OS === 'web') return true;
 
     try {
-      const [info, offs] = await Promise.all([
-        Purchases.getCustomerInfo(),
-        Purchases.getOfferings(),
-      ]);
+      const [info, offs] = await withTimeout(
+        Promise.all([
+          Purchases.getCustomerInfo(),
+          Purchases.getOfferings(),
+        ]),
+        FETCH_TIMEOUT_MS,
+      );
       
       // Debug: Log offerings data to help diagnose product issues
       console.log('[Subscription] Customer info received:', {
@@ -261,9 +328,13 @@ export const [SubscriptionProvider, useSubscription] = createContextHook(() => {
       
       setCustomerInfo(info);
       setOfferings(offs);
+      const ok = hasSellablePackages(offs);
+      offeringsOkRef.current = ok;
+      return ok;
     } catch (e: any) {
       console.error('[Subscription] Refresh error:', e);
       setError(e?.message || 'Failed to refresh subscription status.');
+      return false;
     }
   }, []);
 
@@ -279,8 +350,12 @@ export const [SubscriptionProvider, useSubscription] = createContextHook(() => {
     if (info.entitlements.active?.[ENTITLEMENT_ID]) setSessionPurchaseUnlock(true);
   }, []);
 
-  // Purchase a subscription package
-  const purchasePackage = useCallback(async (pkg: Package) => {
+  // Purchase a normal subscription package. Android is deliberately explicit:
+  // purchasePackage() lets RevenueCat choose a default, and with the private
+  // pass active that default can be the longest free trial (three months).
+  // Selecting a known non-pass SubscriptionOption keeps the ordinary paywall
+  // on its seven-day offer or the base plan when the user is ineligible.
+  const purchasePackage = useCallback(async (pkg: PurchasesPackage) => {
     setError(null);
 
     const configured = await ensurePurchasesConfigured();
@@ -292,7 +367,13 @@ export const [SubscriptionProvider, useSubscription] = createContextHook(() => {
     if (Platform.OS === 'web') return null;
 
     try {
-      const result = await Purchases.purchasePackage(pkg);
+      const result = Platform.OS === 'android'
+        ? await (async () => {
+            const option = getNormalSubscriptionOption(pkg);
+            if (!option) throw new Error('This subscription plan is not currently available.');
+            return Purchases.purchaseSubscriptionOption(option);
+          })()
+        : await Purchases.purchasePackage(pkg);
       setCustomerInfo(result.customerInfo);
       if (result.customerInfo.entitlements.active?.[ENTITLEMENT_ID]) setSessionPurchaseUnlock(true);
       return result.customerInfo;
@@ -302,6 +383,38 @@ export const [SubscriptionProvider, useSubscription] = createContextHook(() => {
       const msg = isCancelled ? null : (e?.message || 'Purchase failed.');
       if (msg) {
         console.error('[Subscription] Purchase error:', e);
+        setError(msg);
+      }
+      return null;
+    }
+  }, []);
+
+  // Purchase the private Google Play pass option. The caller is responsible
+  // for validating and binding the share token before invoking this method.
+  const purchasePassPackage = useCallback(async (pkg: PurchasesPackage) => {
+    setError(null);
+
+    const configured = await ensurePurchasesConfigured();
+    if (!configured.ok) {
+      setError(configured.error);
+      return null;
+    }
+    if (Platform.OS !== 'android') return null;
+
+    try {
+      const option = getPassSubscriptionOption(pkg);
+      if (!option) {
+        throw new Error('This Google Play account is not eligible for the pass offer.');
+      }
+      const result = await Purchases.purchaseSubscriptionOption(option);
+      setCustomerInfo(result.customerInfo);
+      if (result.customerInfo.entitlements.active?.[ENTITLEMENT_ID]) setSessionPurchaseUnlock(true);
+      return result.customerInfo;
+    } catch (e: any) {
+      const isCancelled = e?.userCancelled || e?.code === '1' || e?.message?.includes('cancelled');
+      const msg = isCancelled ? null : (e?.message || 'Purchase failed.');
+      if (msg) {
+        console.error('[Subscription] Pass purchase error:', e);
         setError(msg);
       }
       return null;
@@ -342,9 +455,12 @@ export const [SubscriptionProvider, useSubscription] = createContextHook(() => {
   // Initialize on mount
   useEffect(() => {
     let didCancel = false;
-    let removeListener: null | (() => void) = null;
+    let customerInfoListener: CustomerInfoUpdateListener | null = null;
 
     (async () => {
+      // Whether the launch fetch left us with something to sell — drives the
+      // silent retry loop below. Start true so web/dev short-circuits skip it.
+      let refreshedOk = true;
       try {
         // Step 0: Check for developer premium override
         // SecureStore can fail on some Android devices, so wrap in try-catch
@@ -374,20 +490,43 @@ export const [SubscriptionProvider, useSubscription] = createContextHook(() => {
         // Steps 1+2: the Supabase grandfather check and the RevenueCat refresh
         // are independent network calls — run them concurrently. Both handle
         // their own errors internally (grandfather failure just means false).
-        const [grandfathered] = await Promise.all([
+        const [grandfather, ok] = await Promise.all([
           checkGrandfatherStatus(),
           refresh(),
         ]);
+        refreshedOk = ok;
         if (!didCancel) {
-          setIsGrandfathered(grandfathered);
-          if (grandfathered) {
+          setIsGrandfathered(grandfather === 'yes');
+          if (grandfather === 'yes') {
             console.log('[Subscription] User is grandfathered - unlocking premium features');
+          } else if (grandfather === 'unknown') {
+            console.warn('[Subscription] Grandfather status UNKNOWN - access requires another entitlement');
           }
         }
       } catch (error) {
         console.error('[Subscription] Initialization error:', error);
+        refreshedOk = false;
       } finally {
         if (!didCancel) setIsLoading(false);
+      }
+
+      // Silent launch retries: a failed (or empty) first fetch gets two more
+      // chances before anyone sees the fail screen. Deliberately after
+      // isLoading clears so grandfather/entitlement gating is never delayed —
+      // only the paywall's own resolve waits, on its spinner.
+      if (!didCancel && !refreshedOk && Platform.OS !== 'web') {
+        setAutoRetrying(true);
+        autoRetryingRef.current = true;
+        try {
+          for (const delay of RETRY_DELAYS_MS) {
+            await sleep(delay);
+            if (didCancel) return;
+            if (await refresh()) break;
+          }
+        } finally {
+          autoRetryingRef.current = false;
+          if (!didCancel) setAutoRetrying(false);
+        }
       }
     })();
 
@@ -399,9 +538,10 @@ export const [SubscriptionProvider, useSubscription] = createContextHook(() => {
           // Wait for RevenueCat to be configured
           const configured = await ensurePurchasesConfigured();
           if (configured.ok && !didCancel) {
-            removeListener = Purchases.addCustomerInfoUpdateListener((info) => {
-              setCustomerInfo(info);
-            });
+            customerInfoListener = (info) => {
+              if (!didCancel) setCustomerInfo(info);
+            };
+            Purchases.addCustomerInfoUpdateListener(customerInfoListener);
           }
         } catch (listenerError) {
           console.warn('[Subscription] Failed to add customer info listener (non-fatal):', listenerError);
@@ -412,21 +552,59 @@ export const [SubscriptionProvider, useSubscription] = createContextHook(() => {
 
     return () => {
       didCancel = true;
-      removeListener?.();
+      if (customerInfoListener) {
+        Purchases.removeCustomerInfoUpdateListener(customerInfoListener);
+        customerInfoListener = null;
+      }
     };
   }, [refresh]);
 
+  // A launch that failed offline should heal the moment the user comes back to
+  // the app with connectivity — not wait for them to find the Retry button.
+  // Guarded: only when we hold no sellable catalog, never overlapping the
+  // launch retry loop, at most once per 10s.
+  useEffect(() => {
+    if (Platform.OS === 'web') return;
+    const sub = AppState.addEventListener('change', (state: AppStateStatus) => {
+      if (state !== 'active') return;
+      if (offeringsOkRef.current || autoRetryingRef.current) return;
+      const now = Date.now();
+      if (now - lastResumeAttemptRef.current < 10000) return;
+      lastResumeAttemptRef.current = now;
+      refresh().catch(() => {});
+    });
+    return () => sub.remove();
+  }, [refresh]);
+
   // Resolve free-trial eligibility as soon as offerings are available (which
-  // happens at launch, during onboarding). Apple grants the intro offer once
-  // per account, so a returning/lapsed user comes back INELIGIBLE. Android can't
-  // be checked ahead of purchase (always UNKNOWN → treated as eligible; Google
-  // enforces it). On error we fall back to ineligible (honest > false "free").
+  // happens at launch, during onboarding).
+  //
+  // TWO routes to "ineligible", and Android relies on the first:
+  //
+  //  1. No zero-price intro in the offering at all. Play returns only the
+  //     offers an account QUALIFIES for, so a Google account that has already
+  //     used the trial simply doesn't get the free-trial offer back — no
+  //     introPrice, no trial packages, ineligible. This is the Android signal;
+  //     checkTrialOrIntroductoryPriceEligibility below always answers UNKNOWN
+  //     there, so it can never be the one that fires.
+  //
+  //  2. StoreKit says INELIGIBLE. iOS only. Apple grants the intro offer once
+  //     per subscription GROUP per Apple ID, so a lapsed user comes back
+  //     ineligible even on a brand-new device with no local history.
+  //
+  // On error we fall back to ineligible: an honest "no trial" beats promising
+  // a free week the store will refuse to honour.
   useEffect(() => {
     if (Platform.OS === 'web') { setTrialEligible(false); return; }
     if (!offerings) return;
     const offering = offerings.all?.['default'] ?? offerings.current ?? null;
-    const trialPkgs = ((offering?.availablePackages ?? []) as any[]).filter((p: any) => {
-      const ip = p?.product?.introPrice;
+    const trialPkgs = ((offering?.availablePackages ?? []) as PurchasesPackage[]).filter((p) => {
+      if (Platform.OS === 'android') {
+        // Ignore the Pass It On option. Its presence must not make the ordinary
+        // paywall advertise a trial the normal purchase path will never select.
+        return trialDaysFromSubscriptionOption(getNormalSubscriptionOption(p)) !== null;
+      }
+      const ip = (p.product as any)?.introPrice;
       return !!ip && ip.price === 0;
     });
     if (!trialPkgs.length) { setTrialEligible(false); return; }
@@ -451,6 +629,7 @@ export const [SubscriptionProvider, useSubscription] = createContextHook(() => {
   return useMemo(
     () => ({
       isLoading,
+      autoRetrying,
       error,
 
       isEntitled,
@@ -465,10 +644,12 @@ export const [SubscriptionProvider, useSubscription] = createContextHook(() => {
       refresh,
       applyCustomerInfo,
       purchasePackage,
+      purchasePassPackage,
       restorePurchases,
     }),
     [
       isLoading,
+      autoRetrying,
       error,
       isEntitled,
       isGrandfathered,
@@ -480,6 +661,7 @@ export const [SubscriptionProvider, useSubscription] = createContextHook(() => {
       refresh,
       applyCustomerInfo,
       purchasePackage,
+      purchasePassPackage,
       restorePurchases,
     ]
   );

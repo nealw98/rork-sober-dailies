@@ -126,19 +126,30 @@ export default function SettingsScreen() {
   const { colorScheme, setColorScheme } = useTheme();
   const { customerInfo } = useSubscription();
 
-  // Only store subscribers get the row: managementURL is null for
-  // grandfathered members, pass riders, and free users, so none of them see
-  // a "subscription" they don't have.
+  // Prefer RevenueCat's store-specific destination when available. CustomerInfo
+  // can briefly be empty/stale, though, so never make the management row itself
+  // disappear with that URL; the standard store pages remain valid fallbacks.
   const managementURL = customerInfo?.managementURL ?? null;
+  const subscriptionManagementURL = managementURL ?? (
+    Platform.OS === 'ios'
+      ? 'https://apps.apple.com/account/subscriptions'
+      : 'https://play.google.com/store/account/subscriptions'
+  );
   const openManageSubscription = async () => {
     try {
-      // Lazy require, getSMS()-style: purchases-ui ships in the 3.0.8 binary,
-      // but an OTA of this file must never crash a binary without the module.
-      const RevenueCatUI = require('react-native-purchases-ui').default;
-      await RevenueCatUI.presentCustomerCenter();
+      // RevenueCat supplies the correct store URL for the active subscription:
+      // App Store on iOS, Google Play on Android. If CustomerInfo is temporarily
+      // unavailable, the platform's standard subscriptions page is still a
+      // reliable destination and never depends on Customer Center loading.
+      await Linking.openURL(subscriptionManagementURL);
     } catch (e) {
-      console.warn('[Settings] Customer Center unavailable, opening store page:', e);
-      if (managementURL) Linking.openURL(managementURL);
+      console.warn('[Settings] Could not open subscription management URL:', e);
+      Alert.alert(
+        'Couldn\'t open subscriptions',
+        Platform.OS === 'ios'
+          ? 'You can manage Sober Dailies in Settings under Apple Account > Subscriptions.'
+          : 'You can manage Sober Dailies in Google Play under Payments & subscriptions > Subscriptions.',
+      );
     }
   };
 
@@ -146,13 +157,11 @@ export default function SettingsScreen() {
 
   const [logsVisible, setLogsVisible] = useState(false);
   const [isCheckingDeveloperAccess, setIsCheckingDeveloperAccess] = useState(false);
-  const [developerPinVisible, setDeveloperPinVisible] = useState(false);
-  const [developerPin, setDeveloperPin] = useState('');
-  const [developerPinError, setDeveloperPinError] = useState<string | null>(null);
   const [logsText, setLogsText] = useState('');
-  // QA: preview the paywall in either state ('trial' | 'notrial'). Close the
-  // Developer Console first, else the preview modal opens behind it (iOS stacks
-  // modals — a second modal presented under an open one never shows).
+  // QA: preview either paywall layout ('trial' | 'notrial'), forced regardless
+  // of real trial history. Close the Developer Console first, else the preview
+  // modal opens behind it (iOS stacks modals — a second modal presented under
+  // an open one never shows).
   const [paywallPreview, setPaywallPreview] = useState<'trial' | 'notrial' | null>(null);
   const openPaywallPreview = (mode: 'trial' | 'notrial') => {
     setLogsVisible(false);
@@ -339,30 +348,20 @@ export default function SettingsScreen() {
     try {
       const access = await checkDeveloperAccess();
       if (access.authorized) setLogsVisible(true);
-      else if (access.pinRequired) {
-        setDeveloperPinError(access.locked ? 'Too many attempts. Try again in 15 minutes.' : null);
-        setDeveloperPinVisible(true);
-      }
-    } finally {
-      setIsCheckingDeveloperAccess(false);
-    }
-  };
-
-  const submitDeveloperPin = async () => {
-    const pin = developerPin.trim();
-    if (!pin || isCheckingDeveloperAccess) return;
-    setIsCheckingDeveloperAccess(true);
-    setDeveloperPinError(null);
-    try {
-      const access = await checkDeveloperAccess(pin);
-      if (access.authorized) {
-        setDeveloperPin('');
-        setDeveloperPinVisible(false);
-        setLogsVisible(true);
-      } else {
-        setDeveloperPinError(access.locked
-          ? 'Too many attempts. Try again in 15 minutes.'
-          : 'That PIN wasn’t accepted.');
+      else {
+        // Previously this fell through to nothing, so a failed check and a
+        // mis-aimed long press looked identical. Only ever seen by someone who
+        // found a hidden gesture, so naming the cause costs nothing. The
+        // not-authorized text names the fix, since the fix is always the same:
+        // send the Support ID to be added to authorized_devices.
+        Alert.alert(
+          'Developer access unavailable',
+          access.unavailable === 'unreachable'
+            ? "Couldn't reach the authorization server. Check the connection and try again."
+            : access.unavailable === 'server_error'
+              ? 'The authorization server errored. Check the developer-access function logs.'
+              : 'This device is not authorized. Tap the version 7× for the Support ID and send it to be added.',
+        );
       }
     } finally {
       setIsCheckingDeveloperAccess(false);
@@ -619,10 +618,8 @@ export default function SettingsScreen() {
           </CardGroup>
         )}
 
-        {/* Pass It On — gift codes (Pass It On Handoff 2). The give row is the
-            permanent giver entry; the wallet row appears once codes exist.
-            Redeeming a code now lives on the paywall ("Have a code?"), so it's
-            no longer surfaced here. */}
+        {/* Pass It On — the recipient redeems a store-native annual offer from
+            soberdailies.com/get; Settings only needs the giver entry. */}
         <CardGroup label="Pass It On">
           <CardRow
             label="Pass It On"
@@ -647,17 +644,16 @@ export default function SettingsScreen() {
           />
         </CardGroup>
 
-        {/* Subscription — store subscribers only (RC Customer Center) */}
-        {managementURL != null && (
-          <CardGroup label="Subscription">
-            <CardRow
-              label="Manage Subscription"
-              sub="Change plan or cancel"
-              last
-              onPress={openManageSubscription}
-            />
-          </CardGroup>
-        )}
+        {/* Always available: RevenueCat's exact store URL when known, otherwise
+            the platform's standard subscription-management page. */}
+        <CardGroup label="Subscription">
+          <CardRow
+            label="Manage Subscription"
+            sub="Change plan or cancel"
+            last
+            onPress={openManageSubscription}
+          />
+        </CardGroup>
 
         {/* Support Sober Dailies */}
         <CardGroup label="Support Sober Dailies">
@@ -690,42 +686,6 @@ export default function SettingsScreen() {
           <Text style={styles.copyright}>© 2026 Daily Growth LLC</Text>
         </View>
       </ScrollView>
-
-      {/* One-time enrollment for a new installation under an authorized Support ID. */}
-      <Modal visible={developerPinVisible} transparent animationType="fade" onRequestClose={() => setDeveloperPinVisible(false)}>
-        <View style={styles.pinOverlay}>
-          <View style={styles.pinCard}>
-            <Text style={styles.pinTitle}>Developer PIN</Text>
-            <Text style={styles.pinBody}>Enter your private PIN once to authorize this installation.</Text>
-            <TextInput
-              value={developerPin}
-              onChangeText={setDeveloperPin}
-              onSubmitEditing={submitDeveloperPin}
-              secureTextEntry
-              autoCapitalize="none"
-              autoCorrect={false}
-              textContentType="password"
-              placeholder="PIN"
-              placeholderTextColor={c.textMuted}
-              style={styles.pinInput}
-              editable={!isCheckingDeveloperAccess}
-              autoFocus
-            />
-            {!!developerPinError && <Text style={styles.pinError}>{developerPinError}</Text>}
-            <TouchableOpacity
-              style={[styles.pinSubmit, (!developerPin.trim() || isCheckingDeveloperAccess) && { opacity: 0.5 }]}
-              onPress={submitDeveloperPin}
-              disabled={!developerPin.trim() || isCheckingDeveloperAccess}
-              activeOpacity={0.8}
-            >
-              {isCheckingDeveloperAccess ? <ActivityIndicator color="#fff" /> : <Text style={styles.pinSubmitText}>Authorize Device</Text>}
-            </TouchableOpacity>
-            <TouchableOpacity onPress={() => { setDeveloperPinVisible(false); setDeveloperPin(''); setDeveloperPinError(null); }} style={styles.pinCancel}>
-              <Text style={styles.pinCancelText}>Cancel</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </Modal>
 
       {/* Developer Console Modal (hidden QA screen — long-press the version number).
           App-styled per the Jul 18 mock: info cards, THIS DEVICE / PAYWALL &
@@ -817,10 +777,9 @@ export default function SettingsScreen() {
                 style={styles.dcRow}
                 activeOpacity={0.6}
                 onPress={() => {
-                  // QA: present RC Customer Center unconditionally — the
-                  // Settings row is gated on managementURL (store subscribers
-                  // only), which hides it on a grandfathered device. This
-                  // also verifies the RC dashboard config end-to-end.
+                  // QA only: Customer Center is no longer part of the production
+                  // Settings path, but keeping this test verifies RevenueCat's
+                  // remote dashboard configuration end-to-end.
                   setLogsVisible(false);
                   setTimeout(async () => {
                     try {
@@ -835,7 +794,31 @@ export default function SettingsScreen() {
                 <View style={styles.dcIcon}><CircleDot size={17} color={colors.primaryDark} strokeWidth={2} /></View>
                 <View style={styles.dcRowBody}>
                   <Text style={styles.dcRowLabel}>Present Customer Center</Text>
-                  <Text style={styles.dcRowSub}>Ungated — Settings row needs a store sub</Text>
+                  <Text style={styles.dcRowSub}>QA only — not used by Settings</Text>
+                </View>
+                <ChevronRight size={18} color={c.textMuted} />
+              </TouchableOpacity>
+              <View style={styles.dcDivider} />
+              {/* The production Manage Subscription behavior: straight to the
+                  store's subscription page, with no Customer Center dependency. */}
+              <TouchableOpacity
+                style={styles.dcRow}
+                activeOpacity={0.6}
+                onPress={async () => {
+                  setLogsVisible(false);
+                  try {
+                    await Linking.openURL(subscriptionManagementURL);
+                  } catch (e: any) {
+                    Alert.alert('Could not open store page', e?.message ?? String(e));
+                  }
+                }}
+              >
+                <View style={styles.dcIcon}><CircleDot size={17} color={colors.primaryDark} strokeWidth={2} /></View>
+                <View style={styles.dcRowBody}>
+                  <Text style={styles.dcRowLabel}>Open store subscription page</Text>
+                  <Text style={styles.dcRowSub}>
+                    {managementURL ? 'RevenueCat managementURL' : 'Fallback — no managementURL yet'}
+                  </Text>
                 </View>
                 <ChevronRight size={18} color={c.textMuted} />
               </TouchableOpacity>
@@ -982,20 +965,13 @@ export default function SettingsScreen() {
         </RNSafeAreaView>
       </Modal>
 
-      {/* QA: paywall preview (trial / no-trial), forced regardless of real eligibility */}
+      {/* QA: paywall preview — both layouts, forced regardless of trial history.
+          The screen's own X closes the preview, so there's no floating pill
+          sitting on top of the very control being reviewed. */}
       <Modal visible={!!paywallPreview} animationType="slide" onRequestClose={() => setPaywallPreview(null)}>
         <SafeAreaProvider initialMetrics={initialWindowMetrics}>
         <View style={{ flex: 1 }}>
           <PaywallScreen preview forceTrial={paywallPreview === 'trial'} onDismiss={() => setPaywallPreview(null)} />
-          <TouchableOpacity
-            onPress={() => setPaywallPreview(null)}
-            style={styles.previewCloseButton}
-            activeOpacity={0.8}
-            hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
-          >
-            <X size={22} color="#fff" />
-            <Text style={styles.previewCloseText}>Close preview</Text>
-          </TouchableOpacity>
         </View>
         </SafeAreaProvider>
       </Modal>
@@ -1211,16 +1187,6 @@ const makeStyles = (tk: Tokens) => {
   versionText: { fontFamily: fontFamily.regular, fontSize: 12, color: c.textMuted },
   copyright: { fontFamily: fontFamily.regular, fontSize: 11.5, color: c.textMuted },
 
-  pinOverlay: { flex: 1, backgroundColor: c.overlay, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 28 },
-  pinCard: { width: '100%', maxWidth: 390, borderRadius: 20, backgroundColor: c.surface, borderWidth: 1, borderColor: c.border, padding: 22, ...shadows.lg },
-  pinTitle: { fontFamily: fontFamily.displayBold, fontSize: 22, color: c.text, textAlign: 'center' },
-  pinBody: { fontFamily: fontFamily.regular, fontSize: 14, lineHeight: 20, color: c.textSecondary, textAlign: 'center', marginTop: 7 },
-  pinInput: { marginTop: 18, borderWidth: 1, borderColor: c.border, borderRadius: 12, backgroundColor: c.background, color: c.text, fontFamily: fontFamily.semiBold, fontSize: 18, letterSpacing: 2, paddingHorizontal: 14, paddingVertical: 13, textAlign: 'center' },
-  pinError: { fontFamily: fontFamily.regular, fontSize: 12.5, lineHeight: 18, color: DANGER, textAlign: 'center', marginTop: 9 },
-  pinSubmit: { marginTop: 16, minHeight: 48, borderRadius: 13, backgroundColor: colors.primary, alignItems: 'center', justifyContent: 'center' },
-  pinSubmitText: { fontFamily: fontFamily.semiBold, fontSize: 15, color: '#fff' },
-  pinCancel: { paddingVertical: 12, alignItems: 'center', marginTop: 2 },
-  pinCancelText: { fontFamily: fontFamily.semiBold, fontSize: 14, color: c.textMuted },
 
   // ── Developer Console (app-styled QA modal, Jul 18 mock) ──
   dcContainer: { flex: 1, backgroundColor: c.background },
@@ -1262,10 +1228,6 @@ const makeStyles = (tk: Tokens) => {
   dcLogsCard: { backgroundColor: c.surface, borderWidth: 1, borderColor: c.border, borderRadius: 14, padding: 14, ...shadows.sm },
   dcLogsText: { fontFamily: Platform.select({ ios: 'Menlo', android: 'monospace' }), fontSize: 11, lineHeight: 17, color: c.textSecondary },
 
-  previewCloseButton: { position: 'absolute', top: 54, right: 16, flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: 'rgba(0,0,0,0.78)', paddingVertical: 9, paddingHorizontal: 14, borderRadius: 999, borderWidth: 1, borderColor: 'rgba(255,255,255,0.5)', zIndex: 9999, elevation: 24 },
-  previewCloseText: { color: '#fff', fontSize: 13, fontWeight: '700' },
-
-  // ── Feedback modal ──
   feedbackContainer: { flex: 1, backgroundColor: c.background },
   feedbackHeader: {
     paddingTop: 18,

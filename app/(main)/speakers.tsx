@@ -5,15 +5,16 @@
 // audio player + downloads + the local favorites store. Net-new: Saved filter.
 import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import { AppState, AppStateStatus, StyleSheet, View, Text, Pressable, FlatList, ActivityIndicator, TextInput, Modal } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router, Stack, useFocusEffect } from 'expo-router';
-import { Search, X, Mic, Play, Bookmark, CircleCheck, ChevronDown, Check } from 'lucide-react-native';
+import { Search, X, Mic, Play, Pause, Bookmark, CircleCheck, ChevronDown, Check } from 'lucide-react-native';
 import BackButton from '@/components/BackButton';
 import { useSpeakers, Speaker } from '@/hooks/useSpeakers';
 import { useScreenTimeTracking } from '@/hooks/useScreenTimeTracking';
 import { useGlobalAudioPlayer } from '@/hooks/useGlobalAudioPlayer';
 import { useDownloadedSpeakerIds } from '@/hooks/useSpeakerDownload';
 import { useSpeakerFavorites } from '@/hooks/use-speaker-favorites';
+import { EqualizerOverlay } from '@/components/EqualizerOverlay';
 import { fontFamily, shadows, families, steelFill, steelPlay, type Tokens } from '@/constants/designTokens';
 import { useTokens, useThemedStyles } from '@/hooks/useTokens';
 
@@ -37,6 +38,23 @@ function fmtDate(iso: string | null): string | null {
   const M = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][parseInt(m, 10) - 1];
   return `${M} ${parseInt(d, 10)}, ${y}`;
 }
+function fmtDuration(seconds?: number | null): string | null {
+  if (seconds == null || seconds <= 0) return null;
+  const total = Math.round(seconds);
+  return `${Math.floor(total / 60)} min ${total % 60} sec`;
+}
+function fmtFeaturedDuration(seconds?: number | null): string | null {
+  if (seconds == null || seconds <= 0) return null;
+  const minutes = Math.max(1, Math.round(seconds / 60));
+  if (minutes < 60) return `${minutes} min`;
+  const hours = Math.floor(minutes / 60);
+  const remainder = minutes % 60;
+  return remainder ? `${hours} h ${remainder} m` : `${hours} h`;
+}
+function fmtRemaining(ms: number): string {
+  const total = Math.max(0, Math.ceil(ms / 1000));
+  return `${Math.floor(total / 60)}:${String(total % 60).padStart(2, '0')} left`;
+}
 const stripQuote = (q?: string | null) => (q ? q.replace(/^["“]|["”]$/g, '') : '');
 
 type Filter = 'All' | 'Saved' | 'Offline';
@@ -57,17 +75,17 @@ function sortSpeakers(list: Speaker[], sortBy: SortKey): Speaker[] {
 }
 
 // ─── Gradient mic-art thumbnail ──────────────────────────────────────────────
-function MicThumb({ size, radius }: { id: string; size: number; radius: number }) {
+function MicThumb({ size, radius, active = false, playing = false }: { id: string; size: number; radius: number; active?: boolean; playing?: boolean }) {
   const sp = steelSp(useTokens());
   return (
-    <View style={{ width: size, height: size, borderRadius: radius, backgroundColor: sp.fill, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
-      <Mic size={size * 0.42} color="rgba(255,255,255,0.55)" strokeWidth={1.3} />
+    <View style={{ width: size, height: size, borderRadius: radius, backgroundColor: active ? families.steel[700] : sp.fill, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
+      {active ? <View style={{ width: size * 0.48, height: size * 0.36 }}><EqualizerOverlay isPlaying={playing} barCount={4} barColor="#fff" /></View> : <Mic size={size * 0.42} color="rgba(255,255,255,0.55)" strokeWidth={1.3} />}
     </View>
   );
 }
 
 // ─── Featured hero (gradient quote card) ─────────────────────────────────────
-function FeaturedHero({ tape, onOpen, onPlay }: { tape: Speaker; onOpen: () => void; onPlay: () => void }) {
+function FeaturedHero({ tape, onOpen, onPlay, isActive, isPlaying }: { tape: Speaker; onOpen: () => void; onPlay: () => void; isActive: boolean; isPlaying: boolean }) {
   const styles = useThemedStyles(makeStyles);
   const sp = steelSp(useTokens());
   const quote = stripQuote(tape.quote) || tape.subtitle || '';
@@ -88,8 +106,8 @@ function FeaturedHero({ tape, onOpen, onPlay }: { tape: Speaker; onOpen: () => v
             <Text style={styles.featuredSpeaker} numberOfLines={1}>{tape.speaker}</Text>
             <Text style={styles.featuredTitle} numberOfLines={1}>{tape.title}</Text>
           </View>
-          <Pressable onPress={onPlay} hitSlop={6} style={styles.featuredPlay} accessibilityLabel={`Play ${tape.speaker}`}>
-            <Play size={22} color={sp.play} fill={sp.play} style={{ marginLeft: 2 }} />
+          <Pressable onPress={isActive ? onOpen : onPlay} hitSlop={6} style={styles.featuredPlay} accessibilityLabel={isActive ? `Open ${tape.speaker}` : `Play ${tape.speaker}`}>
+            {isActive ? <><View style={styles.featuredPlaybackEq}><EqualizerOverlay isPlaying={isPlaying} barCount={4} barColor={sp.play} /></View><Text style={styles.featuredPlayText}>{isPlaying ? 'Playing' : 'Paused'}</Text></> : <><Play size={16} color={sp.play} fill={sp.play} /><Text style={styles.featuredPlayText} numberOfLines={1}>Play{fmtFeaturedDuration(tape.duration_seconds) ? ` · ${fmtFeaturedDuration(tape.duration_seconds)}` : ''}</Text></>}
           </Pressable>
         </View>
       </View>
@@ -98,14 +116,14 @@ function FeaturedHero({ tape, onOpen, onPlay }: { tape: Speaker; onOpen: () => v
 }
 
 // ─── Tape row ────────────────────────────────────────────────────────────────
-function TapeRow({ tape, saved, downloaded, onOpen, onPlay, onToggleSave }: { tape: Speaker; saved: boolean; downloaded: boolean; onOpen: () => void; onPlay: () => void; onToggleSave: () => void }) {
+function TapeRow({ tape, saved, downloaded, isActive, isPlaying, onOpen }: { tape: Speaker; saved: boolean; downloaded: boolean; isActive: boolean; isPlaying: boolean; onOpen: () => void }) {
   const styles = useThemedStyles(makeStyles);
   const tk = useTokens();
   const sp = steelSp(tk);
   return (
     <View style={styles.row}>
       <Pressable style={styles.rowBody} onPress={onOpen}>
-        <MicThumb id={tape.id} size={56} radius={12} />
+        <MicThumb id={tape.id} size={56} radius={12} active={isActive} playing={isPlaying} />
         <View style={{ flex: 1, minWidth: 0 }}>
           <View style={styles.rowNameLine}>
             <Text style={styles.rowSpeaker} numberOfLines={1}>{tape.speaker}</Text>
@@ -114,16 +132,34 @@ function TapeRow({ tape, saved, downloaded, onOpen, onPlay, onToggleSave }: { ta
           <Text style={styles.rowTitle} numberOfLines={1}>{tape.title}</Text>
           {tape.subtitle ? <Text style={styles.rowSubtitle} numberOfLines={2}>{tape.subtitle}</Text> : null}
           <View style={styles.rowMeta}>
-            {fmtDate(tape.date) ? <Text style={styles.rowMetaText}>{fmtDate(tape.date)}</Text> : null}
+            {[fmtDuration(tape.duration_seconds), fmtDate(tape.date)].filter(Boolean).length ? <Text style={styles.rowMetaText}>{[fmtDuration(tape.duration_seconds), fmtDate(tape.date)].filter(Boolean).join(' · ')}</Text> : null}
             {downloaded ? <CircleCheck size={13} color={tk.colors.primary} /> : null}
-            <Pressable onPress={onToggleSave} hitSlop={10} accessibilityLabel={saved ? `Unsave ${tape.speaker}` : `Save ${tape.speaker}`}>
-              <Bookmark size={14} color={saved ? sp.accent : tk.c.textMuted} fill={saved ? sp.accent : 'transparent'} strokeWidth={2} />
-            </Pressable>
+            {saved ? <Bookmark size={14} color={sp.accent} fill={sp.accent} strokeWidth={2} /> : null}
           </View>
         </View>
       </Pressable>
-      <Pressable onPress={onPlay} hitSlop={6} style={styles.rowPlay} accessibilityLabel={`Play ${tape.speaker}`}>
-        <Play size={15} color={sp.play} fill={sp.play} style={{ marginLeft: 2 }} />
+    </View>
+  );
+}
+
+function MiniPlayer({ speaker, onOpen }: { speaker: Speaker; onOpen: () => void }) {
+  const player = useGlobalAudioPlayer();
+  const insets = useSafeAreaInsets();
+  const styles = useThemedStyles(makeStyles);
+  const remaining = Math.max(0, player.durationMs - player.positionMs);
+  const progress = player.durationMs > 0 ? player.positionMs / player.durationMs : 0;
+  return (
+    <View style={[styles.miniDock, { bottom: Math.max(insets.bottom, 16) + 4 }]}>
+      <View style={styles.miniProgressTrack}><View style={[styles.miniProgressFill, { width: `${Math.round(progress * 100)}%` }]} /></View>
+      <Pressable style={styles.miniBody} onPress={onOpen} accessibilityLabel={`Open ${speaker.speaker} player`}>
+        <MicThumb id={speaker.id} size={44} radius={11} active playing={player.isPlaying} />
+        <View style={styles.miniText}>
+          <Text numberOfLines={1}><Text style={styles.miniName}>{speaker.speaker}</Text><Text style={styles.miniTitle}> · {speaker.title}</Text></Text>
+          <Text style={styles.miniSub}>{player.isPlaying ? 'Now playing' : 'Paused'} · {fmtRemaining(remaining)}</Text>
+        </View>
+      </Pressable>
+      <Pressable style={styles.miniToggle} onPress={player.isPlaying ? player.pause : player.play} accessibilityLabel={player.isPlaying ? 'Pause' : 'Resume'}>
+        {player.isPlaying ? <Pause size={20} color="#fff" fill="#fff" /> : <Play size={20} color="#fff" fill="#fff" style={{ marginLeft: 2 }} />}
       </Pressable>
     </View>
   );
@@ -144,8 +180,13 @@ export default function SpeakersScreen() {
 
   const player = useGlobalAudioPlayer();
   const { downloadedIds, refresh: refreshDownloads } = useDownloadedSpeakerIds();
-  const { isSaved, toggleSaved, savedIds } = useSpeakerFavorites();
+  const { savedIds } = useSpeakerFavorites();
   useScreenTimeTracking('Speakers');
+
+  const goBack = useCallback(() => {
+    if (router.canGoBack()) router.back();
+    else router.replace('/(main)/(tabs)/tools');
+  }, []);
 
   useFocusEffect(useCallback(() => { refreshDownloads(); }, [refreshDownloads]));
   useEffect(() => {
@@ -179,7 +220,7 @@ export default function SpeakersScreen() {
   }, [showFeatured, speakers]);
   const rows = featured ? list.filter((t) => t.id !== featured.id) : list;
 
-  const openDetail = useCallback((s: Speaker, autoplay?: boolean) => {
+  const openDetail = useCallback((s: Speaker, autoplay = false) => {
     router.push({ pathname: '/(main)/speaker-detail', params: autoplay ? { id: s.id, autoplay: '1' } : { id: s.id } } as any);
   }, []);
 
@@ -194,16 +235,16 @@ export default function SpeakersScreen() {
       tape={item}
       saved={savedSet.has(item.id)}
       downloaded={downloadedIds.has(item.id)}
+      isActive={player.isLoaded && player.currentSpeakerId === item.id}
+      isPlaying={player.isPlaying}
       onOpen={() => openDetail(item)}
-      onPlay={() => openDetail(item, true)}
-      onToggleSave={() => toggleSaved(item.id)}
     />
-  ), [savedSet, downloadedIds, openDetail, toggleSaved]);
+  ), [savedSet, downloadedIds, openDetail, player.isLoaded, player.currentSpeakerId, player.isPlaying]);
 
-  // Filter-chip inversion (handoff): active = ink-black bg + white text on light;
-  // on dark it flips to the bright steel with dark ink so it doesn't fight the glow.
-  const chipOnText = isDark ? '#12100C' : '#fff';
-  const chipOnCount = isDark ? 'rgba(18,16,12,0.7)' : 'rgba(255,255,255,0.75)';
+  const activeSpeaker = player.isLoaded ? speakers.find((s) => s.id === player.currentSpeakerId) ?? null : null;
+
+  const chipOnText = '#fff';
+  const chipOnCount = 'rgba(255,255,255,0.75)';
 
   const ListHeader = (
     <View>
@@ -240,10 +281,17 @@ export default function SpeakersScreen() {
         })}
       </View>
 
-      {featured && <FeaturedHero tape={featured} onOpen={() => openDetail(featured)} onPlay={() => openDetail(featured, true)} />}
+      {featured && (
+        <FeaturedHero
+          tape={featured}
+          onOpen={() => openDetail(featured)}
+          onPlay={() => openDetail(featured, true)}
+          isActive={player.isLoaded && player.currentSpeakerId === featured.id}
+          isPlaying={player.isPlaying}
+        />
+      )}
 
       <View style={styles.listLabelRow}>
-        <Text style={styles.listLabel}>{showFeatured ? 'RECENTLY ADDED' : `${rows.length} ${rows.length === 1 ? 'TAPE' : 'TAPES'}`}</Text>
         <Pressable onPress={() => setSortOpen(true)} style={styles.sortBtn} hitSlop={8}>
           <Text style={styles.sortBtnText}>{SORT_LABEL[sortBy]}</Text>
           <ChevronDown size={14} color={sp.ink} />
@@ -256,7 +304,7 @@ export default function SpeakersScreen() {
     <SafeAreaView style={styles.screen} edges={['top']}>
       <Stack.Screen options={{ headerShown: false }} />
       <View style={styles.header}>
-        <BackButton onPress={() => router.back()} style={{ marginBottom: 8 }} />
+        <BackButton onPress={goBack} style={{ marginBottom: 8 }} />
         <View style={styles.headerRow}>
           <Text style={styles.title}>Speaker Tapes</Text>
           <Pressable onPress={() => setSearchOpen((o) => !o)} style={[styles.searchToggle, searchOpen && styles.searchToggleOn]} hitSlop={6} accessibilityLabel="Search">
@@ -274,7 +322,7 @@ export default function SpeakersScreen() {
           keyExtractor={(s) => s.id}
           extraData={[savedSet, downloadedIds, player.currentSpeakerId, player.isPlaying]}
           ListHeaderComponent={ListHeader}
-          contentContainerStyle={styles.listContent}
+          contentContainerStyle={[styles.listContent, activeSpeaker && styles.listContentPlaying]}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
           initialNumToRender={8}
@@ -287,6 +335,8 @@ export default function SpeakersScreen() {
           }
         />
       )}
+
+      {activeSpeaker ? <MiniPlayer speaker={activeSpeaker} onOpen={() => openDetail(activeSpeaker)} /> : null}
 
       {/* Sort menu */}
       <Modal transparent visible={sortOpen} animationType="fade" onRequestClose={() => setSortOpen(false)}>
@@ -324,16 +374,17 @@ const makeStyles = (tk: Tokens) => {
   searchToggleOn: { backgroundColor: c.text, borderColor: c.text },
 
   listContent: { paddingHorizontal: 16, paddingBottom: 120 },
+  listContentPlaying: { paddingBottom: 230 },
 
   // search
   searchWrap: { paddingTop: 6, paddingBottom: 2 },
   searchBar: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 14, paddingVertical: 10, borderRadius: 12, backgroundColor: c.surface, borderWidth: 1, borderColor: c.border, ...darkCard },
   searchInput: { flex: 1, fontFamily: fontFamily.regular, fontSize: 14, color: c.text, padding: 0 },
 
-  // segment filter — active chip inverts on dark (bright steel + dark ink)
+  // segment filter — selected uses the same steel fill as the featured card.
   filterRow: { flexDirection: 'row', gap: 8, paddingTop: 12, paddingBottom: 2 },
   filterChip: { flexDirection: 'row', alignItems: 'baseline', gap: 6, paddingHorizontal: 14, paddingVertical: 8, borderRadius: 10 },
-  filterChipOn: { backgroundColor: isDark ? tk.colors.steel : c.text },
+  filterChipOn: { backgroundColor: sp.fill },
   filterChipOff: { backgroundColor: c.surface, borderWidth: 1, borderColor: c.border, ...darkCard },
   filterText: { fontFamily: fontFamily.semiBold, fontSize: 13 },
   filterCount: { fontFamily: fontFamily.regular, fontSize: 11 },
@@ -351,11 +402,11 @@ const makeStyles = (tk: Tokens) => {
   featuredTitle: { fontFamily: fontFamily.serifItalic, fontSize: 13, color: 'rgba(255,255,255,0.9)', marginTop: 3 },
   // Play chip: white circle w/ dark triangle on light; on dark it becomes a lit
   // surface chip and the triangle flips to steelPlay.dark (handoff).
-  featuredPlay: { width: 52, height: 52, borderRadius: 26, backgroundColor: isDark ? c.surface : '#fff', alignItems: 'center', justifyContent: 'center', ...shadows.md, ...(isDark ? { borderWidth: 1, ...darkCard } : null) },
+  featuredPlay: { minHeight: 52, borderRadius: 26, paddingHorizontal: 16, flexDirection: 'row', gap: 7, flexShrink: 0, backgroundColor: isDark ? c.surface : '#fff', alignItems: 'center', justifyContent: 'center', ...shadows.md, ...(isDark ? { borderWidth: 1, ...darkCard } : null) },
+  featuredPlayText: { fontFamily: fontFamily.semiBold, fontSize: 13.5, color: sp.play },
 
   // list label + sort
-  listLabelRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 18, marginBottom: 4 },
-  listLabel: { fontFamily: fontFamily.bold, fontSize: 10, letterSpacing: 1.6, color: c.textMuted },
+  listLabelRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', marginTop: 18, marginBottom: 4 },
   sortBtn: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   sortBtnText: { fontFamily: fontFamily.semiBold, fontSize: 11.5, color: sp.ink },
 
@@ -369,7 +420,17 @@ const makeStyles = (tk: Tokens) => {
   rowSubtitle: { fontFamily: fontFamily.regular, fontSize: 13, lineHeight: 18, color: c.textMuted, marginTop: 5 },
   rowMeta: { flexDirection: 'row', alignItems: 'center', gap: 7, marginTop: 6 },
   rowMetaText: { fontFamily: fontFamily.regular, fontSize: 11, color: c.textMuted, letterSpacing: 0.3 },
-  rowPlay: { width: 38, height: 38, borderRadius: 19, borderWidth: 1.5, borderColor: sp.accent, backgroundColor: sp.soft, alignItems: 'center', justifyContent: 'center' },
+  featuredPlaybackEq: { width: 38, height: 18 },
+
+  miniDock: { position: 'absolute', left: 16, right: 16, minHeight: 76, borderRadius: 18, backgroundColor: c.surface, borderWidth: 1, borderColor: c.border, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 10, overflow: 'hidden', ...shadows.lg, ...(isDark ? darkCard : null) },
+  miniProgressTrack: { position: 'absolute', left: 0, right: 0, top: 0, height: 3, backgroundColor: c.divider },
+  miniProgressFill: { height: 3, backgroundColor: families.steel[700] },
+  miniBody: { flex: 1, minWidth: 0, flexDirection: 'row', alignItems: 'center', gap: 10, paddingRight: 8 },
+  miniText: { flex: 1, minWidth: 0 },
+  miniName: { fontFamily: fontFamily.displayBold, fontSize: 15.5, color: c.text },
+  miniTitle: { fontFamily: fontFamily.serifItalic, fontSize: 14.5, color: c.text },
+  miniSub: { fontFamily: fontFamily.regular, fontSize: 12.5, color: c.textMuted, marginTop: 3 },
+  miniToggle: { width: 44, height: 44, borderRadius: 22, backgroundColor: families.steel[700], alignItems: 'center', justifyContent: 'center' },
 
   // sort menu
   sortBackdrop: { flex: 1, backgroundColor: isDark ? c.overlay : 'rgba(20,18,30,0.18)', alignItems: 'flex-end', justifyContent: 'flex-start', paddingTop: 150, paddingHorizontal: 20 },

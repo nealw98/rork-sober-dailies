@@ -20,6 +20,7 @@ export interface Speaker {
   audio_url: string | null;
   quote: string | null;
   created_at: string | null;
+  duration_seconds: number | null;
 }
 
 interface CachedSpeakers {

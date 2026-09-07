@@ -104,7 +104,7 @@ function fmtMeditated(sec: number): string {
 
 // Build shareable plain text for a journey entry (Share sheet body).
 function buildShareText(entry: NotebookEntry): string {
-  const dateStr = new Date(entry.ts).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
+  const dateStr = new Date(entry.ts).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
   const header = `${TYPE_LABEL[entry.type]} · ${dateStr}`;
   let body = '';
   switch (entry.type) {
@@ -215,22 +215,18 @@ export default function JourneyScreen() {
       .map((k) => {
         const comp = completion[k];
         const isToday = k === todayKey;
-        // Count a past day on the SAME basis as the detail sheet (DaySheet),
-        // which reconstructs the checklist from the CURRENT program + the
-        // reflection hero. Counting comp.done raw would include completions for
-        // dailies since removed from the program — inflating the tally past the
-        // total (the "11 of 10" bug) and disagreeing with what the opened day
-        // shows. So the total is the current program size and done only counts
-        // completions whose ids are still in the program.
+        // Past days keep the numerator and denominator recorded on that date.
+        // A daily removed later is still a valid historical completion, and a
+        // later program change must not rewrite an old "2 of 6" as "2 of 9".
+        // This is the same per-day basis Trends uses for completion percentages.
         // Legacy v2 days don't get a day card — the v2 Nightly Review shows as
         // ONE notebook entry (checklist included), the shape it had in v2. The
         // backfilled record still exists underneath so Trends bridges streaks;
         // it just doesn't count here.
         const card = comp?.v2 ? undefined : comp;
-        const total = isToday ? dailies.totalCount : dailies.program.length + 1;
-        const done = isToday
-          ? dailies.doneCount
-          : (card?.reflection ? 1 : 0) + (card ? dailies.program.filter((p) => card.done.includes(p.id)).length : 0);
+        const total = isToday ? dailies.totalCount : (card?.total ?? dailies.program.length + 1);
+        const rawDone = (card?.reflection ? 1 : 0) + (card?.done.length ?? 0);
+        const done = isToday ? dailies.doneCount : Math.min(rawDone, total);
         return { key: k, label: dateLabel(k, todayKey), dayN: dayNFor(k, sobrietyDate ?? null), done, total, isToday, isYesterday: k === yesterdayKey, entries: byDay.get(k) ?? [], medSeconds: medByDate[k] ?? 0 };
       })
       .filter((d) => d.isToday || d.isYesterday || d.entries.length > 0 || d.done > 0 || d.medSeconds > 0);
@@ -620,11 +616,19 @@ function EntrySheet({ entry, onClose, scrollEnabled = true, updateSpotRecord, de
   return (
     <View style={styles.flexFill}>
       <View style={styles.sheetHead}>
-        <View style={[styles.sheetMed, { backgroundColor: t.soft }]}><t.Icon size={22} color={t.ink} strokeWidth={2} /></View>
-        <View style={styles.flex}>
-          <Text style={[styles.sheetTitle, { color: t.ink }]}>{TYPE_LABEL[view.type]}</Text>
-          <Text style={styles.sheetTime}>{timeLabel(view.ts)}</Text>
+        <View style={styles.sheetIdentity}>
+          <View style={[styles.sheetMed, { backgroundColor: t.soft }]}><t.Icon size={22} color={t.ink} strokeWidth={2} /></View>
+          <View style={styles.flex}>
+            <Text style={[styles.sheetTitle, { color: t.ink }]} numberOfLines={1}>{TYPE_LABEL[view.type]}</Text>
+            <Text style={styles.sheetTime}>{timeLabel(view.ts)}</Text>
+          </View>
         </View>
+        <Pressable style={styles.closeBtn} onPress={onClose} hitSlop={8} accessibilityRole="button" accessibilityLabel="Close">
+          <X size={18} color={c.textSecondary} strokeWidth={2} />
+        </Pressable>
+      </View>
+      <View style={styles.sheetDivider} />
+      <View style={styles.sheetActions}>
         {editing ? (
           <>
             <Pressable onPress={() => setEditing(false)} hitSlop={8} style={styles.headTextBtn}><Text style={styles.headCancel}>Cancel</Text></Pressable>
@@ -639,13 +643,9 @@ function EntrySheet({ entry, onClose, scrollEnabled = true, updateSpotRecord, de
             <Pressable style={styles.iconHeadBtn} onPress={confirmDelete} hitSlop={8} accessibilityRole="button" accessibilityLabel={`Delete ${TYPE_LABEL[view.type]}`}>
               <Trash2 size={16} color={c.textSecondary} strokeWidth={2} />
             </Pressable>
-            <Pressable style={styles.closeBtn} onPress={onClose} hitSlop={8} accessibilityRole="button" accessibilityLabel="Close">
-              <X size={18} color={c.textSecondary} strokeWidth={2} />
-            </Pressable>
           </>
         )}
       </View>
-      <View style={styles.sheetDivider} />
       <ScrollView scrollEnabled={scrollEnabled} contentContainerStyle={styles.sheetBody} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled" automaticallyAdjustKeyboardInsets>
         {editing ? (
           <>
@@ -919,7 +919,9 @@ const makeStyles = (tk: Tokens) => {
     // morph overlay + sheets (Option B)
     overlayCard: { position: 'absolute', backgroundColor: isDark ? c.surface : colors.white, borderWidth: 1, borderColor: c.border, overflow: 'hidden', ...shadows.md, ...darkCard },
     overlayRow: { position: 'absolute', top: 0, left: 0, flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 12, paddingHorizontal: 14 },
-    sheetHead: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 14, paddingTop: 12, paddingBottom: 14 },
+    sheetHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12, paddingHorizontal: 14, paddingTop: 12, paddingBottom: 12 },
+    sheetIdentity: { flex: 1, minWidth: 0, flexDirection: 'row', alignItems: 'center', gap: 12 },
+    sheetActions: { minHeight: 50, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingHorizontal: 18, paddingVertical: 8 },
     sheetMed: { width: 44, height: 44, borderRadius: 13, alignItems: 'center', justifyContent: 'center' },
     sheetTitle: { fontFamily: fontFamily.display, fontSize: 22, letterSpacing: -0.4, color: c.text },
     sheetTime: { fontFamily: fontFamily.regular, fontSize: 13, color: c.textMuted, marginTop: 1 },

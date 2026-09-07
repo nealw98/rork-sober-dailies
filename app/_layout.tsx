@@ -91,6 +91,8 @@ import { SessionProvider } from "@/hooks/useSessionContext";
 import { ThemeProvider } from "@/hooks/useTheme";
 import { useSobrietyBirthday } from "@/hooks/useSobrietyBirthday";
 import SobrietyBirthdayModal from "@/components/SobrietyBirthdayModal";
+import PassOfferScreen from "@/components/PassOfferScreen";
+import { usePendingAndroidPass } from "@/hooks/usePendingAndroidPass";
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync().catch(() => {
@@ -141,6 +143,7 @@ function RootLayoutNav() {
   const { showSnackbar, dismissSnackbar, restartApp } = useOTAUpdates();
   const { showBirthdayModal, closeBirthdayModal } = useSobrietyBirthday();
   const { isLoading: isSubscriptionLoading, isPremium } = useSubscription();
+  const { token: pendingPassToken, isLoading: isPassIntentLoading, clear: clearPendingPass } = usePendingAndroidPass();
   const [fontsLoaded] = useFonts({
     Inter_400Regular,
     Inter_400Regular_Italic,
@@ -177,10 +180,13 @@ function RootLayoutNav() {
 
   // Local state to prevent re-renders from affecting rendering logic
   const [appReady, setAppReady] = useState(false);
-  // Dev-only: allow dismissing the paywall
+  // Session-only paywall dismissal. Never persisted: a lapsed user can close
+  // the wall and continue for this running session, but it returns on the next
+  // cold launch unless an entitlement has been restored or purchased.
   const [paywallDismissed, setPaywallDismissed] = useState(false);
-  // Disclaimer gate — rendered AFTER the paywall so it's the last screen
-  // before Today. null = still reading AsyncStorage (covered by the teal fill).
+  // Disclaimer acceptance backstop. null = still reading AsyncStorage (covered
+  // by the teal fill). First-run users accept inside OnboardingFlow; this gate
+  // records acceptance for legacy installs whose earlier consent was not stored.
   const [disclaimerAccepted, setDisclaimerAccepted] = useState<boolean | null>(null);
   useEffect(() => {
     hasAcceptedDisclaimer().then(setDisclaimerAccepted).catch(() => setDisclaimerAccepted(true));
@@ -229,7 +235,7 @@ function RootLayoutNav() {
   // "white period" between splash and app on reopen.
   useEffect(() => {
     // Only proceed when we know the loading state
-    if (isLoading === false && fontsLoaded && !(PAYWALL_ENABLED && isSubscriptionLoading)) {
+    if (isLoading === false && fontsLoaded && !isPassIntentLoading && !(PAYWALL_ENABLED && isSubscriptionLoading)) {
       console.log('🟢 SPLASH: App ready, isOnboardingComplete:', isOnboardingComplete);
 
       // App is ready to render
@@ -238,7 +244,14 @@ function RootLayoutNav() {
       // Hide splash screen
       hideSplashScreenSafely();
     }
-  }, [isLoading, isOnboardingComplete, fontsLoaded, isSubscriptionLoading]);
+  }, [isLoading, isOnboardingComplete, fontsLoaded, isSubscriptionLoading, isPassIntentLoading]);
+
+  // A pass cannot add anything to an account that is already unlocked. Clear
+  // the local handoff without claiming it server-side, leaving the shared link
+  // available for someone who can actually use it.
+  useEffect(() => {
+    if (!isPassIntentLoading && isPremium && pendingPassToken) clearPendingPass();
+  }, [isPassIntentLoading, isPremium, pendingPassToken, clearPendingPass]);
 
   // Failsafe: hide splash screen after timeout
   useEffect(() => {
@@ -259,37 +272,69 @@ function RootLayoutNav() {
   // test 2026-07-31 — first run only, correct on every later render). The
   // 3-second splash failsafe below is what let it show at all. Teal fill
   // matches the native splash, so the wait reads as the splash, not a flash.
-  if (!isOnboardingComplete) {
-    if (!fontsLoaded) return <View style={{ flex: 1, backgroundColor: '#3D8B8B' }} />;
-    return <OnboardingFlow />;
-  }
-
-  // Only show main app after consent is complete AND other initialization is
-  // done. Return a brand-teal fill (matches the native splash background) rather
-  // than null, so any brief gate never flashes white.
-  if (!appReady || isLoading || disclaimerAccepted === null || (PAYWALL_ENABLED && isSubscriptionLoading)) {
+  // Readiness FIRST, then onboarding. This order matters: OnboardingFlow now
+  // branches on whether the person already has access (grandfathered members
+  // and returning subscribers get a welcome-back screen instead of the full
+  // introduction), so it must not mount until subscription state has resolved.
+  // Mounting early would show a stranger's welcome to a member and then swap it.
+  if (!appReady || isLoading || isPassIntentLoading || disclaimerAccepted === null || (PAYWALL_ENABLED && isSubscriptionLoading)) {
     return <View style={{ flex: 1, backgroundColor: '#3D8B8B' }} />;
   }
 
-  if (PAYWALL_ENABLED && !isPremium && !paywallDismissed) {
-    // Our own RN paywall (components/PaywallScreen) — replaces RevenueCat's
-    // hosted Paywall UI so we control the layout and can host a "Have a code?"
-    // entry wired to gift redemption. Purchases/entitlements still run through
-    // react-native-purchases; PaywallScreen applies the returned CustomerInfo
-    // itself so isPremium flips and the gate falls straight through to Today.
-    // PaywallScreen renders its own close (X) that calls onDismiss; in a
-    // production build onDismiss is undefined, so the wall stays hard on
-    // BOTH platforms. (The Android tester escape hatch was removed for the
-    // 3.0.8 store release — 2026-08-02.)
-    const paywallDismissable = __DEV__;
-    return <PaywallScreen onDismiss={paywallDismissable ? () => setPaywallDismissed(true) : undefined} />;
+  if (!isOnboardingComplete) {
+    if (!fontsLoaded) return <View style={{ flex: 1, backgroundColor: '#3D8B8B' }} />;
+    // The whole first run lives in OnboardingFlow now — including the
+    // disclaimer and the paywall, in that order, so nobody pays before they
+    // have agreed to what the app is and nobody sets up an app they have not
+    // bought. The two gates below remain for everyone PAST first run.
+    return (
+      <OnboardingFlow
+        onDisclaimerAccepted={() => setDisclaimerAccepted(true)}
+        onPaywallBypassed={() => setPaywallDismissed(true)}
+        passToken={pendingPassToken}
+        onPassHandled={clearPendingPass}
+      />
+    );
   }
 
-  // Disclaimer last — after onboarding AND the paywall, so agreeing drops the
-  // user straight into Today. DisclaimerStep records acceptance (local +
-  // server sync) itself before calling onAgree.
+  // Legacy users may have agreed to an older disclaimer without that acceptance
+  // being captured. Record it before any subscription decision; seeing it twice
+  // is harmless, while charging before the recorded agreement is not.
   if (!disclaimerAccepted) {
     return <DisclaimerStep onAgree={() => setDisclaimerAccepted(true)} />;
+  }
+
+  // Existing, unsubscribed users go straight from the shared link to the
+  // private annual offer. First-run users reach the same screen inside
+  // OnboardingFlow, after the required introduction and disclaimer.
+  if (PAYWALL_ENABLED && !isPremium && pendingPassToken) {
+    return (
+      <PassOfferScreen
+        token={pendingPassToken}
+        onPurchased={clearPendingPass}
+        onDismiss={clearPendingPass}
+      />
+    );
+  }
+
+  // Backstop for people who onboarded already and later lapsed — a subscription
+  // that expired, or an entitlement that has not reattached after a reinstall.
+  if (PAYWALL_ENABLED && !isPremium && !paywallDismissed) {
+    // Our own RN paywall (components/PaywallScreen) — replaces RevenueCat's
+    // hosted Paywall UI while purchases and entitlements remain store-native
+    // through react-native-purchases. PaywallScreen applies the returned
+    // CustomerInfo so isPremium flips and the gate falls through to Today.
+    // Keep this wall dismissible in production too. First-run onboarding and
+    // this returning/lapsed-user backstop must expose the same clear close
+    // control; dismissal lasts only for this running app session.
+    return (
+      <PaywallScreen
+        onDismiss={() => setPaywallDismissed(true)}
+        // If offerings never load there is nothing to buy, so don't hold them
+        // here. Dismissed for the session only — the wall returns next launch.
+        onUnavailableDismiss={() => setPaywallDismissed(true)}
+      />
+    );
   }
 
   return (

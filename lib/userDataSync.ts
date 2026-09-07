@@ -31,6 +31,7 @@ export const SYNC_KEYS: string[] = [
   'reach_out_contacts_v1',
   'sponsor_contact_v1',
   'speaker_favorites_v1',
+  'speaker_progress_v1',
   // ── AI Sponsor (3 personas) ──
   'aa-chat-messages-supportive',
   'aa-chat-messages-salty',

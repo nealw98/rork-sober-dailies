@@ -37,14 +37,13 @@ export const readerSerifItalic: TextStyle = Platform.select({
   default: { fontFamily: 'Gelasio_400Regular_Italic' },
 })!;
 
-// Long-form reading size. We use Apple's "Body" text style (17pt) as the fixed
-// base for every reading surface (Big Book, Daily Reflection, meeting readings,
-// prayers, sponsor chat, markdown). It is NOT an in-app setting: React Native's
-// default allowFontScaling lets these scale with the OS text-size / Dynamic Type
-// preference, so accessibility sizing is handled by the system, not a custom
-// control. Bump this one number to retune all reading text at once.
-export const READING_FONT_SIZE = 17;
-export const READING_LINE_HEIGHT = Math.round(READING_FONT_SIZE * 1.5); // 26
+// Long-form reading size. The default is the middle option in the shared
+// five-step reading-size control (19pt). It is the base for every reading
+// surface (Big Book, Daily Reflection, meeting readings, prayers, sponsor chat,
+// markdown). React Native's default allowFontScaling also applies the OS text
+// size on top of this preference.
+export const READING_FONT_SIZE = 19;
+export const READING_LINE_HEIGHT = Math.round(READING_FONT_SIZE * 1.5); // 29
 
 // Utility function to get platform-specific screen padding
 export const getScreenPadding = (): ViewStyle => {

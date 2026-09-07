@@ -1,44 +1,33 @@
 // Custom RN paywall (replaces RevenueCat's hosted Paywall UI). Matches the
 // "Your first week is free" design: trial timeline (Today / Day 5 / Day 7),
-// a select-a-plan-then-one-CTA selector, and a footer that includes a
-// "Have a code?" entry wired straight into our Pass It On gift redemption
-// (redeemGiftCode → Supabase). Purchases/entitlements still run through
-// react-native-purchases via useSubscription — only the UI is ours.
+// a select-a-plan-then-one-CTA selector, and store-native subscription
+// purchases through react-native-purchases.
 //
-// Rendered as the paywall gate in app/_layout.tsx: there's no navigator mounted
-// behind the gate, so "Have a code?" opens redemption as a Modal (not a route),
-// and a successful redeem/purchase flips isPremium via refresh()/applyCustomerInfo
-// so the gate falls through to Today.
+// Rendered as the paywall gate in app/_layout.tsx. A successful purchase flips
+// isPremium via applyCustomerInfo so the gate falls through to Today.
 import React, { useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
-  Keyboard,
   Linking,
-  Modal,
   Platform,
   Pressable,
   ScrollView,
   StyleSheet,
   Text,
-  TextInput,
   View,
 } from 'react-native';
-// RN's KeyboardAvoidingView doesn't track the keyboard inside a <Modal>, and
-// nothing resizes the Android modal window either — use keyboard-controller's,
-// scoped by its own provider (same pattern as PrayerEditSheet).
-import { KeyboardProvider, KeyboardAvoidingView } from 'react-native-keyboard-controller';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Bell, Check, Lock, MessageCircle, RefreshCw, SlidersHorizontal, Star, TrendingUp, Wrench, X } from 'lucide-react-native';
-import Purchases, { type PurchasesPackage } from 'react-native-purchases';
+import { type PurchasesPackage } from 'react-native-purchases';
 import { useSubscription } from '@/hooks/useSubscription';
-import { redeemGiftCode, type RedeemReason } from '@/lib/giftService';
 import { fetchCreditStatus, setPendingAnnouncement } from '@/lib/creditsService';
 import { scheduleTrialEndingReminder } from '@/lib/trialReminder';
 import { logEvent } from '@/lib/analytics';
 import { fontFamily, shadows, type Tokens } from '@/constants/designTokens';
 import { useTokens, useThemedStyles } from '@/hooks/useTokens';
+import { getNormalSubscriptionOption, trialDaysFromSubscriptionOption } from '@/lib/subscriptionOffers';
 
 const TERMS_URL = 'https://www.apple.com/legal/internet-services/itunes/dev/stdeula/';
 const PRIVACY_URL = 'https://soberdailies.com/privacy';
@@ -100,16 +89,22 @@ function trialDaysFrom(pkg: PurchasesPackage | null): number | null {
   }
 }
 
-// Natural-language trial copy. 7 days reproduces the approved wording exactly,
-// so today's offering renders identically — this only diverges if the store
-// config does.
-function trialCopy(days: number | null): { title: string; cta: string } {
-  const d = days ?? 7; // unresolved offerings → the configured default
-  if (d === 7) return { title: 'Your first week is free', cta: 'Start my free week' };
-  if (d === 14) return { title: 'Your first two weeks are free', cta: 'Start my free two weeks' };
-  if (d >= 28 && d <= 31) return { title: 'Your first month is free', cta: 'Start my free month' };
-  return { title: `Your first ${d} days are free`, cta: 'Start my free trial' };
-}
+// Deliberately says nothing about price or trial. 3.1.2(c) requires every
+// pricing element — free trial included — to sit subordinate in position and
+// size to the billed amount, and the old headline ("Your first week is free")
+// was the largest thing on the screen by some margin. Making the title a
+// direction rather than a claim removes it from that comparison entirely,
+// leaving $19.99/yr as the most conspicuous price without shrinking anything.
+// The trial is still stated three times below: the timeline, the CTA, and the
+// billing disclosure.
+const PAYWALL_TITLE = 'Pick your plan and start today';
+
+// Length-neutral on purpose. Someone who is ineligible gets NO intro offer back
+// from the store, so trialLen is null and any specific wording ("your free week
+// is up") would be a guess from the current default — wrong for anyone who took
+// a 14-day or one-month promo. This is the only version we can state truthfully,
+// and it covers every trial length we might ever configure.
+const TRIAL_OVER_TITLE = 'Your free trial is up';
 
 function savingsPct(monthly: PurchasesPackage | null, yearly: PurchasesPackage | null): number | null {
   const m = (monthly?.product as any)?.price ?? 0;
@@ -120,22 +115,37 @@ function savingsPct(monthly: PurchasesPackage | null, yearly: PurchasesPackage |
 }
 
 interface PaywallScreenProps {
+  // Tapping the close (X). Shown in EVERY build when provided — this is the
+  // visible dismiss Play's Subscriptions policy asks for, not a dev shortcut.
   onDismiss?: () => void;
-  // QA preview (Developer Console): always allow closing, and force the trial vs
-  // no-trial layout instead of deriving it from real store eligibility.
+  // __DEV__ only: its own control on the LEFT, so the real close on the right
+  // keeps a single unambiguous meaning. Jumps past the wall to the screens
+  // behind it, so the rest of the flow is reachable on a simulator without a
+  // sandbox purchase. Never rendered in a release build.
+  onDevBypass?: () => void;
+  // Escape hatch for a paywall that CANNOT SELL — offerings failed to load, so
+  // there are no plans and the CTA is dead. Holding someone there achieves
+  // nothing; this takes precedence over onDismiss when that state is reached.
+  onUnavailableDismiss?: () => void;
   preview?: boolean;
+  // Developer Console only: force either layout instead of deriving it from
+  // real trial history, so both can be reviewed on one device.
   forceTrial?: boolean;
 }
 
-export default function PaywallScreen({ onDismiss, preview, forceTrial }: PaywallScreenProps) {
+export default function PaywallScreen({ onDismiss, onDevBypass, onUnavailableDismiss, preview, forceTrial }: PaywallScreenProps) {
   const styles = useThemedStyles(makeStyles);
   const { c, colors } = useTokens();
-  const { offerings, isLoading, error, purchasePackage, restorePurchases, refresh, applyCustomerInfo, trialEligible, qaForceNewUser } = useSubscription();
+  const { offerings, isLoading, autoRetrying, error, purchasePackage, restorePurchases, refresh, applyCustomerInfo, customerInfo, trialEligible, qaForceNewUser } = useSubscription();
 
   const [selected, setSelected] = useState<'yearly' | 'monthly'>('yearly');
   const [busy, setBusy] = useState(false);
+  // `error` is shared subscription state — a background refresh can set it with
+  // no user action behind it. Only a purchase the user actually attempted earns
+  // the message under the CTA, so gate on this rather than on `error` alone.
+  const [purchaseFailed, setPurchaseFailed] = useState(false);
   const [restoring, setRestoring] = useState(false);
-  const [showRedeem, setShowRedeem] = useState(false);
+  const [retrying, setRetrying] = useState(false);
   // Measured top of each timeline row (relative to the card) so the continuous
   // gradient rail can be positioned to pass through the circle centers exactly.
   const [rowY, setRowY] = useState<number[]>([]);
@@ -152,15 +162,75 @@ export default function PaywallScreen({ onDismiss, preview, forceTrial }: Paywal
 
   const chosen = selected === 'yearly' ? (yearly ?? monthly) : (monthly ?? yearly);
 
-  // Trial vs no-trial view. Eligibility is resolved early in the provider (during
-  // onboarding), so it's already known by the time the gate renders — no flash.
-  // Treat "not yet resolved" (null) as trial (the common new-user case). A QA
-  // preview can force either layout.
-  const showTrial = forceTrial !== undefined ? forceTrial : trialEligible !== false;
+  // A successful SDK response can still contain no product this UI can sell:
+  // an empty/current-less offering, or packages other than annual/monthly. Log
+  // the exact catalog shape once per shape so production diagnostics distinguish
+  // a store/configuration problem from a transport failure.
+  const offeringId = offering?.identifier ?? 'none';
+  const packageIds = packages
+    .map((p: PurchasesPackage) => `${p.identifier}:${String(p.packageType)}:${p.product?.identifier ?? 'no-product'}`)
+    .join(',');
+  // Denominator for the failure rate: every render of this screen, success or
+  // not. Without it `paywall_plans_unavailable` is a count with no base and
+  // "how often does the paywall fail" is unanswerable (as it was on 2026-08-18).
+  React.useEffect(() => {
+    logEvent('paywall_view', { preview: !!preview });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
-  // Trial length + the copy derived from it (see trialDaysFrom/trialCopy).
-  const trialLen = trialDaysFrom(chosen) ?? trialDaysFrom(yearly) ?? trialDaysFrom(monthly);
-  const { title: trialTitle, cta: trialCta } = trialCopy(trialLen);
+  React.useEffect(() => {
+    // Only log the SETTLED failure — after the silent launch retries have run
+    // out, not between attempts.
+    if (isLoading || autoRetrying || chosen) return;
+    console.warn('[Paywall] No usable subscription plan', { offeringId, packageIds: packageIds || 'none', error });
+    logEvent('paywall_plans_unavailable', {
+      offering_id: offeringId,
+      package_ids: packageIds || 'none',
+      // Transport failure vs the store vending nothing — the distinction the
+      // 2026-08-18 App Review rejection made us wish we had recorded.
+      error_message: error ?? 'none',
+      offerings_received: offerings ? 'yes' : 'no',
+    });
+  }, [isLoading, autoRetrying, chosen, offeringId, packageIds, error, offerings]);
+
+  // Structure decided 2026-08-13: the trial timeline, NOT a benefits list. The
+  // What's Inside carousel sells one screen earlier, so a benefits list here
+  // would restate it; the timeline instead answers the one question the
+  // carousel can't ("what happens to my money"), and its final step carries the
+  // Play-required "a subscription is required" disclosure. A benefits layout
+  // existed once, for no-trial users, and was removed with that variant.
+  //
+  // One paywall for everyone: the trial offer. There is deliberately no
+  // "already used your trial" variant — Play can't report eligibility before
+  // purchase anyway (it always answers UNKNOWN), so an Android user who'd
+  // already had a trial saw this screen regardless and the two layouts only
+  // ever diverged on iOS. Both stores state the real terms in their own
+  // purchase sheet, which is what a returning user is actually charged on.
+
+  // Trial length comes from the store and drives the timeline/disclosure. The
+  // title and CTA deliberately do not advertise the trial, keeping every trial
+  // claim visually subordinate to the amount that will actually be billed.
+  const normalTrialDays = (pkg: PurchasesPackage | null) => {
+    if (!pkg) return null;
+    return Platform.OS === 'android'
+      ? trialDaysFromSubscriptionOption(getNormalSubscriptionOption(pkg))
+      : trialDaysFrom(pkg);
+  };
+  const trialLen = chosen
+    ? normalTrialDays(chosen)
+    : (normalTrialDays(yearly) ?? normalTrialDays(monthly));
+
+  // Has this person already used their free trial? If so the store bills them
+  // the moment they subscribe, so promising a free week would be a lie.
+  // Two signals, because neither covers both platforms on its own:
+  //  · trialEligible === false — StoreKit's answer, iOS only (Play always
+  //    reports UNKNOWN before purchase, so it never fires on Android).
+  //  · any prior purchase on the account — works on both. An ACTIVE subscriber
+  //    never reaches this screen, so history here means lapsed or expired.
+  const usedTrial =
+    trialEligible === false ||
+    ((customerInfo as any)?.allPurchasedProductIdentifiers?.length ?? 0) > 0;
+  const showTrial = forceTrial !== undefined ? forceTrial : (!usedTrial && trialLen !== null);
   // The reminder fires 48 h before expiry (lib/trialReminder.ts), clamped so it
   // can't land on or before day 1 of a very short trial.
   const trialEndDay = trialLen ?? 7;
@@ -187,12 +257,22 @@ export default function PaywallScreen({ onDismiss, preview, forceTrial }: Paywal
       icon: <Star size={18} color={colors.primary} strokeWidth={2} fill={colors.primary} />,
       ring: RAIL_LAV,
       title: `Day ${trialEndDay}`,
-      body: 'Your subscription starts. Cancel before then and you pay nothing.',
+      // Price comes from the chosen package, never hardcoded: the copy must not
+      // contradict the sheet the user is about to sign. Falls back to the
+      // priceless sentence while offerings are still loading.
+      // "…is required to maintain access" is the Play Subscriptions disclosure
+      // this screen was rejected for missing. It sits here rather than in the
+      // subtitle because at Day 7 the subscription genuinely does begin —
+      // saying it up front would imply the trial isn't already a subscription.
+      body: chosen
+        ? `Your subscription starts at ${chosen.product.priceString}/${selected === 'yearly' ? 'year' : 'month'} and is required to maintain access to the app. Cancel before then and you pay nothing.`
+        : 'Your subscription starts and is required to maintain access to the app. Cancel before then and you pay nothing.',
     },
   ];
 
-  // No-trial (ineligible) view — emotional value props. Icons match the trial
-  // beads: white circle, bold colored ring (BENEFIT_RAIL[i]), solid glyph.
+  // No-trial view — what the subscription buys, since there's no trial
+  // countdown to show. Icons match the trial beads: white circle, bold colored
+  // ring (BENEFIT_RAIL[i]), solid glyph.
   const BENEFITS = [
     {
       key: 'fits',
@@ -223,6 +303,7 @@ export default function PaywallScreen({ onDismiss, preview, forceTrial }: Paywal
   const buy = async () => {
     if (!chosen || busy) return;
     setBusy(true);
+    setPurchaseFailed(false);
     logEvent('paywall_purchase_tapped', { plan: selected });
     try {
       const info = await purchasePackage(chosen);
@@ -239,8 +320,11 @@ export default function PaywallScreen({ onDismiss, preview, forceTrial }: Paywal
         await scheduleTrialEndingReminder(info);
         fetchCreditStatus();
         applyCustomerInfo(info); // flips isPremium next render → gate drops
+      } else {
+        // Null covers both a real failure and a plain cancellation; the two are
+        // told apart by whether useSubscription left a message on `error`.
+        setPurchaseFailed(true);
       }
-      refresh();
     } catch {
       // RC surfaces user-cancel as a throw; nothing to do.
     } finally {
@@ -258,26 +342,164 @@ export default function PaywallScreen({ onDismiss, preview, forceTrial }: Paywal
         applyCustomerInfo(info);
         refresh();
       } else {
-        Alert.alert('No active subscription', "We couldn't find a purchase to restore on this account. If you have a code, tap “Have a code?”.");
+        Alert.alert('No active subscription', "We couldn't find a purchase to restore on this account.");
       }
     } finally {
       setRestoring(false);
     }
   };
 
-  const processing = isLoading || busy || restoring;
+  const retryPlans = async () => {
+    if (retrying) return;
+    setRetrying(true);
+    try {
+      await refresh();
+    } finally {
+      setRetrying(false);
+    }
+  };
+
+  const processing = isLoading || busy || restoring || retrying;
+
+  // Availability is about having a product we can actually purchase, not just
+  // whether the SDK threw. RevenueCat/store calls may succeed with an empty or
+  // unsupported catalog, which must not render as a normal paywall with a dead
+  // CTA and no explanation. While the hook's silent launch retries are still
+  // running this is NOT yet a verdict — hold the spinner, not the fail screen.
+  const cannotSell = !isLoading && !autoRetrying && !chosen;
+  const closeAction = cannotSell && onUnavailableDismiss ? onUnavailableDismiss : onDismiss;
+
+  // Nothing to sell yet but retries are still in flight — same resolving
+  // spinner the variant gate uses, so a transient blip never flashes the fail
+  // screen on its way to a working paywall.
+  if (autoRetrying && !chosen) {
+    return (
+      <SafeAreaView style={styles.screen} edges={['top', 'bottom']}>
+        <View style={styles.resolving}>
+          <ActivityIndicator color={colors.primary} />
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  if (cannotSell) {
+    return (
+      <SafeAreaView style={styles.screen} edges={['top', 'bottom']}>
+        <View style={styles.unavailablePage}>
+          <View style={styles.header}>
+            {__DEV__ && !!onDevBypass && (
+              <Pressable
+                style={styles.devPass}
+                onPress={onDevBypass}
+                hitSlop={10}
+                accessibilityRole="button"
+                accessibilityLabel="Developer: skip paywall"
+              >
+                <Text style={styles.devPassText}>DEV SKIP</Text>
+              </Pressable>
+            )}
+            <View style={styles.flex} />
+            {closeAction && (
+              <Pressable
+                style={styles.close}
+                onPress={closeAction}
+                hitSlop={10}
+                accessibilityRole="button"
+                accessibilityLabel="Close"
+              >
+                <X size={24} color={c.textMuted} strokeWidth={2} />
+              </Pressable>
+            )}
+          </View>
+
+          <View style={styles.unavailableBody}>
+            <View style={styles.unavailableIcon}>
+              <RefreshCw size={25} color={colors.primary} strokeWidth={2} />
+            </View>
+            <Text style={styles.unavailableTitle}>Plans temporarily unavailable</Text>
+            <Text style={styles.unavailableText}>
+              We couldn&apos;t load a subscription plan right now. Please try again in a moment.
+            </Text>
+            <Pressable
+              style={[styles.unavailableRetry, retrying && styles.ctaDisabled]}
+              onPress={retryPlans}
+              disabled={retrying}
+              accessibilityRole="button"
+            >
+              {retrying ? (
+                <ActivityIndicator color="#fff" />
+              ) : (
+                <>
+                  <RefreshCw size={17} color="#fff" strokeWidth={2.2} />
+                  <Text style={styles.unavailableRetryText}>Try again</Text>
+                </>
+              )}
+            </Pressable>
+            <Pressable
+              style={styles.unavailableRestore}
+              onPress={restore}
+              disabled={restoring}
+              accessibilityRole="button"
+            >
+              <Text style={styles.unavailableRestoreText}>
+                {restoring ? 'Checking purchases…' : 'Restore Purchases'}
+              </Text>
+            </Pressable>
+          </View>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  // Don't paint a variant we might have to swap. isLoading clears as soon as
+  // offerings land, but eligibility resolves in a SEPARATE effect keyed on
+  // those offerings — and on iOS that's an async StoreKit round-trip after it.
+  // Rendering in the meantime shows "Your first week is free" and then rewrites
+  // the title, the card and the CTA in front of the user, which reads as a bug.
+  //
+  // Bounded three ways so this can never hang: a forced preview knows its own
+  // variant, an offerings failure resolves to the error card rather than
+  // waiting forever, and Android settles synchronously with the offering.
+  const variantResolved = forceTrial !== undefined || trialEligible !== null || !!error;
+  if (!variantResolved) {
+    return (
+      <SafeAreaView style={styles.screen} edges={['top', 'bottom']}>
+        <View style={styles.resolving}>
+          <ActivityIndicator color={colors.primary} />
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.screen} edges={['top', 'bottom']}>
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
-        {/* Header — close (dev/preview, plus Android test builds) on the right.
-            The Android case is a TEMPORARY testing escape hatch: that track has
-            no Play license testers, so Billing is unavailable and the wall would
-            be unescapable. Remove with the _layout gate before public release. */}
+        {/* Header — close (X) on the RIGHT, where a dismiss belongs. Play
+            rejected this screen for an "unclear or invisible dismiss button",
+            so it renders in production wherever the caller supplies a way out;
+            during first run that is a return to the start of onboarding.
+            The dev pass sits on the left so the two never share a gesture. */}
         <View style={styles.header}>
+          {__DEV__ && !!onDevBypass && (
+            <Pressable
+              style={styles.devPass}
+              onPress={onDevBypass}
+              hitSlop={10}
+              accessibilityRole="button"
+              accessibilityLabel="Developer: skip paywall"
+            >
+              <Text style={styles.devPassText}>DEV SKIP</Text>
+            </Pressable>
+          )}
           <View style={styles.flex} />
-          {(preview || __DEV__) && onDismiss && (
-            <Pressable style={styles.close} onPress={onDismiss} hitSlop={10}>
+          {closeAction && (
+            <Pressable
+              style={styles.close}
+              onPress={closeAction}
+              hitSlop={10}
+              accessibilityRole="button"
+              accessibilityLabel="Close"
+            >
               <X size={24} color={c.textMuted} strokeWidth={2} />
             </Pressable>
           )}
@@ -294,14 +516,17 @@ export default function PaywallScreen({ onDismiss, preview, forceTrial }: Paywal
           </View>
         )}
 
-        <Text style={styles.title}>{showTrial ? trialTitle : 'Start your journey'}</Text>
-        {showTrial && (
-          <Text style={styles.subtitle}>
-            You&apos;ve defined your day — now put it to work.
-          </Text>
+        <Text style={styles.title}>{showTrial ? PAYWALL_TITLE : TRIAL_OVER_TITLE}</Text>
+        {/* Trial variant carries no subtitle: the timeline sits directly below
+            and already covers what unlocks, when billing starts and how to
+            cancel, so a line between the two only repeated it. The no-trial
+            face has no timeline, so its line still has to state the
+            requirement itself. */}
+        {!showTrial && (
+          <Text style={styles.subtitle}>Subscribe to access the app.</Text>
         )}
 
-        {/* No-trial (ineligible) view — emotional value props with tinted icon tiles */}
+        {/* No-trial view — the benefits list stands in for the timeline. */}
         {!showTrial && (
           <View style={styles.benefits}>
             {benefitY[0] != null && benefitY[1] != null && benefitY[2] != null && benefitY[3] != null && (() => {
@@ -336,7 +561,10 @@ export default function PaywallScreen({ onDismiss, preview, forceTrial }: Paywal
           </View>
         )}
 
-        {/* Trial timeline — continuous gradient rail behind white bead circles */}
+        {/* Trial timeline — continuous gradient rail behind white bead circles.
+            Hidden once the trial has been used: there is no countdown left to
+            show, and the "Subscribe to use the app" line above already carries
+            the Play disclosure that the timeline carried for trial users. */}
         {showTrial && (
         <View style={styles.timeline}>
           {rowY[0] != null && rowY[1] != null && rowY[2] != null && (() => {
@@ -375,7 +603,10 @@ export default function PaywallScreen({ onDismiss, preview, forceTrial }: Paywal
         </View>
         )}
 
-        {/* Error / loading for packages */}
+        {/* Error / loading for packages. This card is the LOAD failure — no
+            plans to show, so Retry is the only useful action. A failure during
+            a purchase has plans on screen and is reported under the CTA
+            instead; see purchaseError below. */}
         {!!error && !packages.length && (
           <View style={styles.errorCard}>
             <Text style={styles.errorText}>{error}</Text>
@@ -393,7 +624,7 @@ export default function PaywallScreen({ onDismiss, preview, forceTrial }: Paywal
         {!!packages.length && (
           <View style={styles.plans}>
             {!!yearly && (
-              <Pressable style={[styles.plan, selected === 'yearly' && styles.planOn]} onPress={() => setSelected('yearly')}>
+              <Pressable style={[styles.plan, selected === 'yearly' && styles.planOn]} onPress={() => { setSelected('yearly'); setPurchaseFailed(false); }}>
                 {save != null && (
                   <View style={styles.saveBadge}><Text style={styles.saveBadgeText}>SAVE {save}%</Text></View>
                 )}
@@ -401,14 +632,18 @@ export default function PaywallScreen({ onDismiss, preview, forceTrial }: Paywal
                   <Radio on={selected === 'yearly'} />
                   <Text style={styles.planName}>Yearly</Text>
                 </View>
+                {/* The actual charge and its actual period lead; the derived
+                    per-month figure is secondary. App Review rejected the
+                    reverse (a big "$1.67/mo" over a small "$19.99/yr") on the
+                    annual plan — the price shown must be the price billed. */}
                 <View style={styles.planRight}>
-                  <Text style={styles.planPrice}>{perMonthFromYearly(yearly)}/mo</Text>
-                  <Text style={styles.planSub}>{yearly.product.priceString}/yr</Text>
+                  <Text style={styles.planPrice}>{yearly.product.priceString}/yr</Text>
+                  <Text style={styles.planSub}>{perMonthFromYearly(yearly)}/mo</Text>
                 </View>
               </Pressable>
             )}
             {!!monthly && (
-              <Pressable style={[styles.plan, selected === 'monthly' && styles.planOn]} onPress={() => setSelected('monthly')}>
+              <Pressable style={[styles.plan, selected === 'monthly' && styles.planOn]} onPress={() => { setSelected('monthly'); setPurchaseFailed(false); }}>
                 {/* Monthly's label and price move together: both muted when the
                     row is the road not taken, both full ink when it's chosen.
                     (Yearly is the default pick and always reads full-strength.) */}
@@ -426,23 +661,34 @@ export default function PaywallScreen({ onDismiss, preview, forceTrial }: Paywal
           </View>
         )}
 
-        {/* CTA — kept directly under the plans so the whole action cluster
-            (CTA + "Have a code?" + footer) sits together, no dead space. */}
+        {/* CTA — kept directly under the plans so the action cluster stays
+            together with no dead space. */}
         <Pressable style={[styles.cta, (!chosen || processing) && styles.ctaDisabled]} onPress={buy} disabled={!chosen || processing}>
-          {busy ? <ActivityIndicator color="#fff" /> : <Text style={styles.ctaText}>{showTrial ? trialCta : 'Subscribe'}</Text>}
+          {busy ? <ActivityIndicator color="#fff" /> : <Text style={styles.ctaText}>{showTrial ? 'Continue' : 'Subscribe'}</Text>}
         </Pressable>
 
-        {/* Billing disclosure — no-trial only (the trial timeline already explains billing) */}
-        {!showTrial && !!chosen && (
-          <Text style={styles.billing}>
-            Billed {chosen.product.priceString}/{selected === 'yearly' ? 'year' : 'month'}. Cancel anytime in Settings.
-          </Text>
+        {/* A failed purchase used to say nothing at all: the card above only
+            renders when there are NO packages, so with plans on screen the
+            store's reason was set on `error` and never drawn — the spinner
+            simply stopped and the button looked dead. That's how "you're
+            already subscribed to this" read as a broken app. Report it against
+            the CTA that failed. User cancellations never land here;
+            useSubscription maps those to a null error on purpose. */}
+        {purchaseFailed && !!error && (
+          <Text style={styles.purchaseError} accessibilityLiveRegion="polite">{error}</Text>
         )}
 
-        {/* Have a code? */}
-        <Pressable onPress={() => setShowRedeem(true)} style={styles.haveCode} hitSlop={8}>
-          <Text style={styles.haveCodeText}>Have a code?</Text>
-        </Pressable>
+        {/* Billing disclosure. The timeline says when billing starts but never
+            what gets charged, and App Review read that omission as an
+            undisclosed renewal price (3.1.2(c)) — so the amount and the period
+            are spelled out here, next to the button that commits to them. */}
+        {!!chosen && (
+          <Text style={styles.billing}>
+            {showTrial
+              ? `Free for ${trialLen ?? 7} days, then ${chosen.product.priceString}/${selected === 'yearly' ? 'year' : 'month'}. Renews automatically until cancelled. Cancel anytime in Settings.`
+              : `Billed ${chosen.product.priceString}/${selected === 'yearly' ? 'year' : 'month'}. Renews automatically until cancelled. Cancel anytime in Settings.`}
+          </Text>
+        )}
 
         {/* Footer links */}
         <View style={styles.footer}>
@@ -454,19 +700,6 @@ export default function PaywallScreen({ onDismiss, preview, forceTrial }: Paywal
         </View>
       </ScrollView>
 
-      <HaveACodeModal
-        visible={showRedeem}
-        onClose={() => setShowRedeem(false)}
-        onRedeemed={async () => {
-          setShowRedeem(false);
-          // The gift entitlement was granted SERVER-side (RC REST), so the
-          // SDK's cached CustomerInfo predates it — getCustomerInfo() alone
-          // re-reads the stale cache and the wall stays up until a cold
-          // start. Invalidate first so refresh() actually hits the network.
-          try { await Purchases.invalidateCustomerInfoCache(); } catch {}
-          refresh();
-        }}
-      />
     </SafeAreaView>
   );
 }
@@ -480,97 +713,6 @@ function Radio({ on }: { on: boolean }) {
   );
 }
 
-// ── "Have a code?" redemption — bottom sheet over the gate ─────────────────
-// Auto-insert the SD-XXXX-XXXX dashes as the user types (the server looks the
-// code up dashed, so free-typed "SDABCD1234" would otherwise never match).
-// Reformatting from the stripped characters keeps deletion natural: removing
-// a trailing dash also drops the group it introduced.
-function formatGiftCode(raw: string): string {
-  const chars = raw.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 10);
-  return [chars.slice(0, 2), chars.slice(2, 6), chars.slice(6, 10)].filter(Boolean).join('-');
-}
-
-function HaveACodeModal({ visible, onClose, onRedeemed }: { visible: boolean; onClose: () => void; onRedeemed: () => void }) {
-  const styles = useThemedStyles(makeStyles);
-  const { c } = useTokens();
-  const [code, setCode] = useState('');
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  const canRedeem = code.replace(/[^A-Z0-9]/gi, '').length >= 8 && !busy;
-
-  const submit = async () => {
-    if (!canRedeem) return;
-    setBusy(true);
-    setError(null);
-    logEvent('gift_redeem_attempted', { from: 'paywall' });
-    try {
-      const res = await redeemGiftCode(code);
-      if (res.success) {
-        logEvent('gift_redeem_succeeded', { from: 'paywall' });
-        onRedeemed();
-      } else {
-        logEvent('gift_redeem_failed', { from: 'paywall', reason: res.reason });
-        setError(redeemMessage(res.reason, res.message));
-      }
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  const close = () => { setCode(''); setError(null); onClose(); };
-  // With the keyboard up, a backdrop tap is usually "get the keyboard out of
-  // the way", not "abandon my code" — dismiss the keyboard first; a second
-  // tap closes.
-  const onBackdrop = () => { if (Keyboard.isVisible()) { Keyboard.dismiss(); return; } close(); };
-
-  return (
-    <Modal visible={visible} transparent animationType="slide" onRequestClose={close}>
-      <Pressable style={styles.sheetBackdrop} onPress={onBackdrop} />
-      <KeyboardProvider>
-      <KeyboardAvoidingView
-        behavior="padding"
-        style={styles.sheetKav}
-        pointerEvents="box-none"
-      >
-      <View style={styles.sheet}>
-        <View style={styles.sheetHead}>
-          <Text style={styles.sheetTitle}>Have a code?</Text>
-          <Pressable onPress={close} hitSlop={8} style={styles.sheetClose}><X size={18} color={c.textSecondary} strokeWidth={2} /></Pressable>
-        </View>
-        <Text style={styles.sheetBody}>If someone gave you a Sober Dailies code, enter it here to unlock everything for three months.</Text>
-        <TextInput
-          style={[styles.codeField, error && styles.codeFieldError]}
-          value={code}
-          onChangeText={(t) => { setCode(formatGiftCode(t)); if (error) setError(null); }}
-          placeholder="SD-XXXX-XXXX"
-          placeholderTextColor={c.textMuted}
-          autoCapitalize="characters"
-          autoCorrect={false}
-          maxLength={14}
-          editable={!busy}
-          textAlign="center"
-          returnKeyType="go"
-          onSubmitEditing={submit}
-        />
-        {!!error && <Text style={styles.codeError}>{error}</Text>}
-        <Pressable style={[styles.sheetCta, !canRedeem && styles.ctaDisabled]} onPress={submit} disabled={!canRedeem}>
-          {busy ? <ActivityIndicator color="#fff" /> : <Text style={styles.sheetCtaText}>Redeem</Text>}
-        </Pressable>
-        <Text style={styles.sheetNote}>Nothing to pay. Nothing renews.</Text>
-      </View>
-      </KeyboardAvoidingView>
-      </KeyboardProvider>
-    </Modal>
-  );
-}
-
-function redeemMessage(reason: RedeemReason | undefined, fallback: string): string {
-  if (reason === 'already_redeemed') return 'This code has already been used. Check with the person who gave it to you — they may have another.';
-  if (reason === 'invalid') return "That code isn't valid. Double-check the letters and numbers, then try again.";
-  return fallback;
-}
-
 const makeStyles = (tk: Tokens) => {
   const { c, colors, isDark } = tk;
   const darkCard = isDark ? { borderColor: 'rgba(255,255,255,0.06)', borderTopColor: 'rgba(255,255,255,0.12)' } : null;
@@ -580,14 +722,41 @@ const makeStyles = (tk: Tokens) => {
     scroll: { paddingHorizontal: 26, paddingTop: 20, paddingBottom: 32 },
     header: { flexDirection: 'row', alignItems: 'center' },
     close: { width: 32, height: 32, alignItems: 'center', justifyContent: 'center' },
+    resolving: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+    unavailablePage: { flex: 1, paddingHorizontal: 26, paddingTop: 20, paddingBottom: 32 },
+    unavailableBody: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 10, paddingBottom: 52 },
+    unavailableIcon: { width: 58, height: 58, borderRadius: 29, alignItems: 'center', justifyContent: 'center', backgroundColor: isDark ? 'rgba(45,148,148,0.16)' : '#E8F5F5', marginBottom: 20 },
+    unavailableTitle: { fontFamily: fontFamily.displayBold, fontSize: 27, lineHeight: 32, letterSpacing: -0.5, color: c.text, textAlign: 'center' },
+    unavailableText: { fontFamily: fontFamily.regular, fontSize: 15, lineHeight: 22, color: c.textSecondary, textAlign: 'center', maxWidth: 320, marginTop: 10 },
+    unavailableRetry: { minWidth: 190, minHeight: 52, borderRadius: 16, backgroundColor: colors.primary, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, marginTop: 28, paddingHorizontal: 24, ...shadows.sm },
+    unavailableRetryText: { fontFamily: fontFamily.semiBold, fontSize: 16, color: '#fff' },
+    unavailableRestore: { paddingVertical: 10, paddingHorizontal: 16, marginTop: 8 },
+    unavailableRestoreText: { fontFamily: fontFamily.medium, fontSize: 14, color: c.textMuted, textDecorationLine: 'underline' },
+    // Deliberately ugly and labelled — this must never be mistaken for shipping UI.
+    devPass: { height: 32, paddingHorizontal: 10, borderRadius: 8, borderWidth: 1, borderStyle: 'dashed', borderColor: c.border, alignItems: 'center', justifyContent: 'center' },
+    devPassText: { fontFamily: fontFamily.bold, fontSize: 10, letterSpacing: 1, color: c.textMuted },
 
     qaBanner: { backgroundColor: isDark ? 'rgba(251,146,60,0.16)' : '#FEF0E2', borderWidth: 1, borderColor: isDark ? 'rgba(251,146,60,0.5)' : '#F0B27A', borderRadius: 12, paddingVertical: 10, paddingHorizontal: 14, marginBottom: 14 },
     qaBannerText: { fontFamily: fontFamily.medium, fontSize: 13, lineHeight: 18, color: isDark ? '#FDBA74' : '#9A5B22' },
 
-    title: { fontFamily: fontFamily.displayBold, fontSize: 32, lineHeight: 36, letterSpacing: -0.8, color: c.text },
-    subtitle: { fontFamily: fontFamily.serifItalic, fontSize: 16, lineHeight: 23, color: c.textSecondary, marginTop: 10 },
+    // Inset to CARD_PAD_H so the header starts on the same column as the text
+    // inside the cards, not on their outer border. Flush with the border, 32pt
+    // display type reads as running to the screen edge while every line beneath
+    // it sits 20pt further in — the title looked wider than the cards because
+    // it was wider than everything they contain.
+    title: { fontFamily: fontFamily.displayBold, fontSize: 32, lineHeight: 36, letterSpacing: -0.8, color: c.text, paddingHorizontal: CARD_PAD_H },
+    subtitle: { fontFamily: fontFamily.serifItalic, fontSize: 16, lineHeight: 23, color: c.textSecondary, marginTop: 10, paddingHorizontal: CARD_PAD_H },
 
-    // timeline card
+    // Sits directly under the title so it is read before the plans, not after.
+    // Tinted card rather than muted footnote type — a reviewer looking for the
+    // disclosure has to be able to find it at a glance.
+    benefits: { position: 'relative', overflow: 'hidden', marginTop: 30, backgroundColor: c.surface, borderRadius: 22, borderWidth: 1, borderColor: c.border, paddingVertical: 22, paddingHorizontal: CARD_PAD_H, gap: 20, ...shadows.sm, ...darkCard },
+    benefitRail: { position: 'absolute', left: CARD_PAD_H + TILE / 2 - RAIL_WIDTH / 2, width: RAIL_WIDTH, borderTopLeftRadius: RAIL_WIDTH / 2, borderTopRightRadius: RAIL_WIDTH / 2, zIndex: 0 },
+    benefitRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 14 },
+    benefitTile: { width: TILE, height: TILE, borderRadius: TILE / 2, borderWidth: 3, backgroundColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center', zIndex: 2, ...shadows.sm },
+    benefitTitle: { fontFamily: fontFamily.bold, fontSize: 16.5, letterSpacing: -0.2, color: c.text },
+    benefitBody: { fontFamily: fontFamily.regular, fontSize: 14, lineHeight: 20, color: c.textSecondary, marginTop: 2 },
+
     timeline: { position: 'relative', overflow: 'hidden', marginTop: 30, backgroundColor: c.surface, borderRadius: 22, borderWidth: 1, borderColor: c.border, paddingVertical: 22, paddingHorizontal: CARD_PAD_H, ...shadows.sm, ...darkCard },
     rail: { position: 'absolute', left: CARD_PAD_H + CIRCLE / 2 - RAIL_WIDTH / 2, width: RAIL_WIDTH, borderTopLeftRadius: RAIL_WIDTH / 2, borderTopRightRadius: RAIL_WIDTH / 2, zIndex: 0 },
     step: { flexDirection: 'row', gap: 15 },
@@ -599,16 +768,9 @@ const makeStyles = (tk: Tokens) => {
     stepBody: { fontFamily: fontFamily.regular, fontSize: 14, lineHeight: 20, color: c.textSecondary, marginTop: 3 },
 
     // no-trial benefits — tinted icon tiles inside the same card as the trial timeline
-    benefits: { position: 'relative', overflow: 'hidden', marginTop: 30, backgroundColor: c.surface, borderRadius: 22, borderWidth: 1, borderColor: c.border, paddingVertical: 22, paddingHorizontal: CARD_PAD_H, gap: 20, ...shadows.sm, ...darkCard },
-    benefitRail: { position: 'absolute', left: CARD_PAD_H + TILE / 2 - RAIL_WIDTH / 2, width: RAIL_WIDTH, borderTopLeftRadius: RAIL_WIDTH / 2, borderTopRightRadius: RAIL_WIDTH / 2, zIndex: 0 },
-    benefitRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 14 },
-    benefitTile: { width: TILE, height: TILE, borderRadius: TILE / 2, borderWidth: 3, backgroundColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center', zIndex: 2, ...shadows.sm },
-    benefitTitle: { fontFamily: fontFamily.bold, fontSize: 16.5, letterSpacing: -0.2, color: c.text },
-    benefitBody: { fontFamily: fontFamily.regular, fontSize: 14, lineHeight: 20, color: c.textSecondary, marginTop: 2 },
-
-    // error / retry
     errorCard: { marginTop: 20, padding: 16, borderRadius: 14, backgroundColor: c.surface, borderWidth: 1, borderColor: c.border, ...darkCard },
     errorText: { fontFamily: fontFamily.regular, fontSize: 14, lineHeight: 20, color: c.textSecondary },
+    purchaseError: { fontFamily: fontFamily.regular, fontSize: 13.5, lineHeight: 19, color: colors.destructive, textAlign: 'center', marginTop: 10 },
     retry: { flexDirection: 'row', alignItems: 'center', alignSelf: 'flex-start', gap: 7, marginTop: 12, paddingVertical: 8, paddingHorizontal: 14, borderRadius: 20, borderWidth: 1, borderColor: colors.primary },
     retryText: { fontFamily: fontFamily.semiBold, fontSize: 14, color: colors.primary },
 
@@ -623,9 +785,10 @@ const makeStyles = (tk: Tokens) => {
     planRight: { alignItems: 'flex-end' },
     planPrice: { fontFamily: fontFamily.bold, fontSize: 16.5, color: c.text },
     planSub: { fontFamily: fontFamily.regular, fontSize: 13, color: c.textMuted, marginTop: 2 },
-    // Monthly's only price line — same weight as Yearly's headline price so the
-    // two rows read as the same kind of thing.
-    planSubOnly: { fontFamily: fontFamily.bold, fontSize: 14.5, color: c.textMuted },
+    // Monthly's only price line — matches Yearly's headline price exactly (size
+    // and weight) so the two rows read as the same kind of thing. Both are
+    // billed amounts; only the derived per-month figure sits below them.
+    planSubOnly: { fontFamily: fontFamily.bold, fontSize: 16.5, color: c.textMuted },
     // Monthly row only — the label and price follow the selection together.
     planTextMuted: { color: c.textMuted },
     planTextInk: { color: c.text },
@@ -642,28 +805,9 @@ const makeStyles = (tk: Tokens) => {
 
     billing: { fontFamily: fontFamily.regular, fontSize: 12.5, lineHeight: 18, color: c.textMuted, textAlign: 'center', marginTop: 10 },
 
-    haveCode: { alignSelf: 'center', marginTop: 12, paddingVertical: 6 },
-    haveCodeText: { fontFamily: fontFamily.semiBold, fontSize: 14.5, color: c.text, textDecorationLine: 'underline' },
-
     footer: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, marginTop: 10 },
     footerLink: { fontFamily: fontFamily.medium, fontSize: 13, color: c.textMuted },
     footerDot: { color: c.textMuted, fontSize: 13 },
 
-    // have-a-code sheet
-    sheetBackdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: isDark ? c.overlay : 'rgba(20,18,14,0.4)' },
-    // Full-screen container that bottom-aligns the sheet; KeyboardAvoidingView
-    // pads it up so the field + Redeem button clear the keyboard.
-    sheetKav: { flex: 1, justifyContent: 'flex-end' },
-    sheet: { backgroundColor: isDark ? c.surface : c.background, borderTopLeftRadius: 22, borderTopRightRadius: 22, paddingHorizontal: 22, paddingTop: 18, paddingBottom: 34, ...(isDark ? { borderWidth: 1, ...darkCard } : null) },
-    sheetHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-    sheetTitle: { fontFamily: fontFamily.displayBold, fontSize: 20, letterSpacing: -0.3, color: c.text },
-    sheetClose: { width: 34, height: 34, borderRadius: 17, borderWidth: 1, borderColor: c.border, alignItems: 'center', justifyContent: 'center' },
-    sheetBody: { fontFamily: fontFamily.regular, fontSize: 13.5, lineHeight: 20, color: c.textSecondary, marginTop: 10 },
-    codeField: { fontFamily: fontFamily.semiBold, fontSize: 19, letterSpacing: 2.5, color: c.text, backgroundColor: c.surface, borderWidth: 1, borderColor: c.border, borderRadius: 14, paddingVertical: 16, marginTop: 16, ...shadows.sm },
-    codeFieldError: { borderWidth: 1.5, borderColor: colors.rose ?? '#B55A68' },
-    codeError: { fontFamily: fontFamily.regular, fontSize: 13, lineHeight: 19, color: c.textSecondary, textAlign: 'center', marginTop: 12 },
-    sheetCta: { marginTop: 16, paddingVertical: 15, borderRadius: 14, backgroundColor: colors.primary, alignItems: 'center', justifyContent: 'center' },
-    sheetCtaText: { fontFamily: fontFamily.semiBold, fontSize: 16, color: '#fff' },
-    sheetNote: { fontFamily: fontFamily.regular, fontSize: 12, color: c.textMuted, textAlign: 'center', marginTop: 12 },
   });
 };

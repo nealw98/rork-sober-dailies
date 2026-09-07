@@ -12,7 +12,7 @@ import { CloudUpload, CloudDownload, LogIn } from 'lucide-react-native';
 import BackButton from '@/components/BackButton';
 import { countStoredItems } from '@/lib/userDataSync';
 import { cloudBackupSupported, cloudAvailable, pushToCloud, pullFromCloud, isSyncPaused, setSyncPaused, CLOUD_NAME } from '@/lib/cloudSync';
-import { isDriveSignedIn, getDriveAccountEmail, getDriveAccessToken, signOutDrive } from '@/lib/googleDriveAuth';
+import { getDriveAccountEmail, getDriveAccessToken, signOutDrive } from '@/lib/googleDriveAuth';
 import { fontFamily, shadows, type Tokens } from '@/constants/designTokens';
 import { useTokens, useThemedStyles } from '@/hooks/useTokens';
 
@@ -35,28 +35,51 @@ export default function BackupScreen() {
   const [email, setEmail] = useState<string | null>(null);
   const [paused, setPaused] = useState(false);
 
+  // Ask Drive whether we can actually get a token, rather than whether an
+  // account was ever picked here. hasPreviousSignIn() is a cached local flag
+  // that survives signOut and says nothing about whether a backup would work —
+  // it let the screen offer "Back up now" with no live credential behind it.
+  // A silent token is the same thing a backup does, so the status can't lie.
+  const refreshDriveStatus = React.useCallback(async () => {
+    const token = await getDriveAccessToken(false);
+    setConnected(!!token);
+    if (token) getDriveAccountEmail().then(setEmail).catch(() => {});
+    else setEmail(null);
+    return !!token;
+  }, []);
+
   useEffect(() => {
     countStoredItems().then(setCount).catch(() => {});
     isSyncPaused().then(setPaused).catch(() => {});
     if (!supported) return;
     if (isAndroid) {
-      isDriveSignedIn().then((s) => {
-        setConnected(s);
-        if (s) getDriveAccountEmail().then(setEmail).catch(() => {});
-      }).catch(() => setConnected(false));
+      refreshDriveStatus().catch(() => setConnected(false));
     } else {
       cloudAvailable().then(setAvailable).catch(() => setAvailable(false));
     }
-  }, [supported, isAndroid]);
+  }, [supported, isAndroid, refreshDriveStatus]);
 
   const backupNow = async () => {
     setBusy(true);
     try {
       await setSyncPaused(false); setPaused(false); // an explicit backup resumes sync
       const ok = await pushToCloud(true);
-      Alert.alert(ok ? `Backed up to ${CLOUD_NAME}` : `${CLOUD_NAME} unavailable`, ok
-        ? `Your data is in ${CLOUD_NAME}. It will restore automatically on a reinstall or another device signed into the same account.`
-        : isAndroid ? 'Connect your Google account, then try again.' : 'Sign into iCloud in Settings, then try again.');
+      if (ok) {
+        Alert.alert(`Backed up to ${CLOUD_NAME}`,
+          `Your data is in ${CLOUD_NAME}. It will restore automatically on a reinstall or another device signed into the same account.`);
+        return;
+      }
+      // Failed: don't just tell the user to "connect your Google account" —
+      // this screen is the only place that can do it, so put the button here.
+      if (isAndroid) {
+        await refreshDriveStatus().catch(() => {});
+        Alert.alert(`${CLOUD_NAME} unavailable`, 'Your Google account needs to be reconnected.', [
+          { text: 'Not now', style: 'cancel' },
+          { text: 'Connect', onPress: connectDrive },
+        ]);
+      } else {
+        Alert.alert(`${CLOUD_NAME} unavailable`, 'Sign into iCloud in Settings, then try again.');
+      }
     } finally { setBusy(false); }
   };
 
@@ -82,7 +105,12 @@ export default function BackupScreen() {
   const connectDrive = async () => {
     setBusy(true);
     try {
-      const token = await getDriveAccessToken(true);
+      let token = await getDriveAccessToken(true);
+      // The interactive leg can come back empty even though the account grant
+      // landed (the picker's own activity churn is enough to disturb it). One
+      // silent retry settles it without putting a second picker in the user's
+      // face — and only a genuine failure gets reported as one.
+      if (!token) token = await getDriveAccessToken(false);
       if (!token) {
         Alert.alert("Couldn't connect", 'Google sign-in did not complete. Please try again.');
         return;

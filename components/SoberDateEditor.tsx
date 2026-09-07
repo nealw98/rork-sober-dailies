@@ -19,6 +19,16 @@ import BackButton from '@/components/BackButton';
 // ink/placeholder stay the light-mode values.
 const lightC = getSemanticColors('light');
 
+// Dark-mode fill for the date card, THIS SCREEN ONLY — shared tokens untouched.
+// This card is the only surface in the app painted with
+// [colors.primary, colors.primaryDark], and in dark mode that reads
+// #4FB3AC → #63C8C0 — light to LIGHTER. A large filled area that brightens as
+// it descends is what glared, not the teal itself: the Save button below it
+// uses plain colors.primary, exactly like "Start my program" and the paywall
+// CTA, and those look right. So only the gradient is corrected — the LIGHT
+// brand teal (#3D8B8B) darkened, same family, OLED luminance.
+const DARK_CARD_GRAD = ['#316F6F', '#275959'] as const;
+
 function formatDateInput(text: string) {
   const n = text.replace(/\D/g, '');
   if (n.length <= 2) return n;
@@ -54,16 +64,23 @@ function ymdLabel(date: Date): string {
 export interface SoberDateEditorProps {
   current: Date | null;
   onSave: (date: Date) => void;
-  onBack: () => void;
+  // Optional: the first-run setup steps come AFTER the purchase, so there is
+  // nowhere to go back to from there.
+  onBack?: () => void;
   onRemove?: () => void;
   onSkip?: () => void;
   primaryLabel?: string;
   skipLabel?: string;
+  // First-run only: the "Setting up · 1 of 2" progress header, rendered above
+  // the content in place of the plain back row. Also lets onboarding shorten
+  // the body copy without touching the standalone editor.
+  header?: React.ReactNode;
+  body?: string;
 }
 
-export default function SoberDateEditor({ current, onSave, onBack, onRemove, onSkip, primaryLabel = 'Save date', skipLabel }: SoberDateEditorProps) {
+export default function SoberDateEditor({ current, onSave, onBack, onRemove, onSkip, primaryLabel = 'Save date', skipLabel, header, body }: SoberDateEditorProps) {
   const styles = useThemedStyles(makeStyles);
-  const { colors } = useTokens();
+  const { colors, isDark } = useTokens();
   const initial = current
     ? `${String(current.getMonth() + 1).padStart(2, '0')}/${String(current.getDate()).padStart(2, '0')}/${current.getFullYear()}`
     : '';
@@ -75,19 +92,21 @@ export default function SoberDateEditor({ current, onSave, onBack, onRemove, onS
   return (
     <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1 }}>
-        <View style={styles.topBar}>
-          <BackButton onPress={onBack} />
-        </View>
+        {header ?? (
+          <View style={styles.topBar}>
+            {onBack && <BackButton onPress={onBack} />}
+          </View>
+        )}
 
         <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
           <Text style={styles.affirmation}>One day at a time.</Text>
-          <Text style={styles.heading}>What&apos;s your{'\n'}sobriety date?</Text>
+          <Text style={styles.heading}>What&apos;s your sobriety date?</Text>
           <Text style={styles.body}>
-            Counting days helps some people stay grounded. There&apos;s no pressure — add it now or anytime later, and change it whenever you need.
+            {body ?? 'Counting days helps some people stay grounded. There’s no pressure — add it now or anytime later, and change it whenever you need.'}
           </Text>
 
           <LinearGradient
-            colors={[colors.primary, colors.primaryDark]}
+            colors={isDark ? [...DARK_CARD_GRAD] : [colors.primary, colors.primaryDark]}
             start={{ x: 0.1, y: 0 }}
             end={{ x: 0.9, y: 1 }}
             style={styles.card}

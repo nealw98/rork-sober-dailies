@@ -15,7 +15,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
 import * as Clipboard from 'expo-clipboard';
 import { ChatStoreProvider, useChatStore } from '@/hooks/use-chat-store';
-import { getSponsorById } from '@/constants/sponsors';
+import { getSponsorById, vibeString } from '@/constants/sponsors';
 import { BR_INK as BR_INK_LIGHT, BR_SOFT as BR_SOFT_LIGHT } from '@/constants/sponsorTones';
 import { SpotCheckCard } from '@/components/SpotCheckCard';
 import { SponsorSwitchSheet } from '@/components/SponsorSwitchSheet';
@@ -43,8 +43,6 @@ const LORA_SCALE = 0.92;
 const SUGGESTIONS = ['I’m struggling today', 'Help me think this through', 'I just need to vent', 'I’m fighting a craving'];
 
 // The dotted "vibe" string under the name, e.g. "Patient · Steady · Wise".
-const titleCase = (s: string) => s.toLowerCase().replace(/\b\w/g, (ch) => ch.toUpperCase());
-const vibeString = (tags?: string[]) => (tags ?? []).map(titleCase).join(' · ');
 
 const getSponsorDisplayName = (type: string): string => {
   switch (type) {

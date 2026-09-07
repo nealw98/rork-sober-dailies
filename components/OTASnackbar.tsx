@@ -71,14 +71,14 @@ export default function OTASnackbar({ visible, onDismiss, onRestart }: OTASnackb
       <SafeAreaView edges={['bottom']} style={styles.safeArea}>
         <View style={styles.snackbar}>
           <View style={styles.content}>
-            <Text style={styles.message}>An update is ready. Tap Update to apply it.</Text>
+            <Text style={styles.message}>An update is ready.</Text>
             <View style={styles.buttonContainer}>
               <TouchableOpacity
                 style={styles.restartButton}
                 onPress={onRestart}
                 activeOpacity={0.7}
               >
-                <Text style={styles.restartButtonText}>Update</Text>
+                <Text style={styles.restartButtonText}>Apply</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={styles.laterButton}

@@ -1,1 +1,0 @@
-../../../../../node_modules/posthog-react-native-session-replay/ios/PosthogReactNativeSessionReplay-Bridging-Header.h

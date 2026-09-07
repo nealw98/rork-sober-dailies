@@ -32,6 +32,12 @@ export interface SponsorConfig {
   chatPlaceholder?: string;
 }
 
+// The "Patient · Steady · Wise" triad shown under a sponsor's name. Lives here,
+// beside the `tags` it formats, so the chat header and the onboarding carousel
+// render the identical string from the identical field.
+const titleCase = (s: string) => s.toLowerCase().replace(/\b\w/g, (ch) => ch.toUpperCase());
+export const vibeString = (tags?: string[]) => (tags ?? []).map(titleCase).join(' · ');
+
 export const SPONSORS: SponsorConfig[] = [
   {
     id: "supportive",

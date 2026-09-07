@@ -1,8 +1,12 @@
 # Invite Rewards / Gift Acquisition — Design
 
-**Status:** program design FINAL 2026-07-20 (§0). Sends-counting is built and
-undeployed; everything else is design. Sections after §0 are the working
-history that produced it — §0 wins on any conflict.
+**Status update — FINAL 2026-08-15:** recipient passes are annual-only and
+store-native on both platforms. `/get` dispenses a one-time Apple yearly offer
+code on iPhone or a one-time Google Play yearly promo code on Android. Both
+provide 3 months free and then renew annually at the store-disclosed price.
+The monthly Apple gift offer and the Android SD-code/RevenueCat grant path are
+retired. This paragraph supersedes every older conflicting decision below;
+the remainder is retained as the working history that produced the program.
 
 ---
 

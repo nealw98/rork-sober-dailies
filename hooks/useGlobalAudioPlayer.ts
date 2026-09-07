@@ -3,6 +3,7 @@ import { AppState, AppStateStatus } from 'react-native';
 import { Audio, AVPlaybackStatus } from 'expo-av';
 import { logEvent } from '@/lib/analytics';
 import { maybeAskForReview } from '@/lib/reviewPrompt';
+import { getSpeakerProgress, saveSpeakerProgress } from '@/lib/speakerProgress';
 
 /**
  * Global audio player context + hook.
@@ -76,6 +77,8 @@ export function AudioPlayerProvider({ children }: { children: React.ReactNode })
   const [rate, setRateState] = useState(1);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [didJustFinish, setDidJustFinish] = useState(false);
+  const progressSaveAtRef = useRef(0);
+  const finishHandledRef = useRef(false);
 
   // Configure audio mode — called on mount and on every AppState resume
   // to prevent iOS from dropping the audio session after interruptions
@@ -110,6 +113,27 @@ export function AudioPlayerProvider({ children }: { children: React.ReactNode })
   const playStartRef = useRef<number | null>(null);
   const lastPositionMsRef = useRef(0);
   const lastDurationMsRef = useRef(0);
+
+  const persistProgress = useCallback(async (didFinish = false) => {
+    const speakerId = listenSpeakerRef.current;
+    if (!speakerId) return;
+    await saveSpeakerProgress(speakerId, {
+      positionMs: didFinish ? lastDurationMsRef.current : lastPositionMsRef.current,
+      durationMs: lastDurationMsRef.current,
+      rate,
+      didFinish,
+    });
+  }, [rate]);
+
+  // Save immediately when the app leaves the foreground. The periodic save is
+  // useful during playback, but this closes the small gap between ticks when a
+  // listener backgrounds or closes the app.
+  useEffect(() => {
+    const sub = AppState.addEventListener('change', (state: AppStateStatus) => {
+      if (state !== 'active') void persistProgress(false);
+    });
+    return () => sub.remove();
+  }, [persistProgress]);
 
   const pauseListenClock = useCallback(() => {
     if (playStartRef.current != null) {
@@ -169,12 +193,30 @@ export function AudioPlayerProvider({ children }: { children: React.ReactNode })
     // Listen clock: run only while actually playing; flush when the talk ends.
     if (status.didJustFinish) {
       flushListenTime();
+      if (!finishHandledRef.current) {
+        finishHandledRef.current = true;
+        void persistProgress(true).finally(async () => {
+          try { await soundRef.current?.unloadAsync(); } catch {}
+          soundRef.current = null;
+          currentUriRef.current = null;
+          setCurrentSpeakerId(null);
+          setIsLoaded(false);
+          setIsPlaying(false);
+          setIsBuffering(false);
+          setPositionMs(0);
+          setDurationMs(0);
+        });
+      }
     } else if (status.isPlaying && playStartRef.current == null) {
       playStartRef.current = Date.now();
     } else if (!status.isPlaying) {
       pauseListenClock();
     }
-  }, [flushListenTime, pauseListenClock]);
+    if (!status.didJustFinish && Date.now() - progressSaveAtRef.current >= 5000) {
+      progressSaveAtRef.current = Date.now();
+      void persistProgress(false);
+    }
+  }, [flushListenTime, pauseListenClock, persistProgress]);
 
   // Load audio for a speaker
   const load = useCallback(
@@ -195,6 +237,8 @@ export function AudioPlayerProvider({ children }: { children: React.ReactNode })
         setPositionMs(0);
         setDurationMs(0);
         setCurrentSpeakerId(speakerId);
+        finishHandledRef.current = false;
+        await persistProgress(false);
         flushListenTime(); // close out the previous talk's listen time
         listenSpeakerRef.current = speakerId;
         listenNameRef.current = meta?.name ?? null;
@@ -213,9 +257,14 @@ export function AudioPlayerProvider({ children }: { children: React.ReactNode })
           setTimeout(() => reject(new Error('Audio load timed out')), LOAD_TIMEOUT_MS)
         );
 
+        const saved = await getSpeakerProgress(speakerId);
+        const savedPosition = saved && !saved.didFinish ? saved.positionMs : 0;
+        const savedRate = saved?.rate ?? rate;
+        setRateState(savedRate);
+
         const loadPromise = Audio.Sound.createAsync(
           { uri },
-          { shouldPlay: autoPlay, rate, shouldCorrectPitch: true },
+          { shouldPlay: autoPlay, rate: savedRate, positionMillis: savedPosition, shouldCorrectPitch: true },
           onStatusUpdate
         );
 
@@ -234,7 +283,7 @@ export function AudioPlayerProvider({ children }: { children: React.ReactNode })
         setIsBuffering(false);
       }
     },
-    [rate, onStatusUpdate, flushListenTime]
+    [rate, onStatusUpdate, flushListenTime, persistProgress]
   );
 
   const play = useCallback(async () => {
@@ -248,15 +297,17 @@ export function AudioPlayerProvider({ children }: { children: React.ReactNode })
   const pause = useCallback(async () => {
     try {
       await soundRef.current?.pauseAsync();
+      await persistProgress(false);
     } catch (err) {
       console.error('[AudioPlayer] Pause failed:', err);
     }
-  }, []);
+  }, [persistProgress]);
 
   // Stop = full unload, reset everything
   const stop = useCallback(async () => {
     try {
       flushListenTime();
+      await persistProgress(false);
       if (soundRef.current) {
         await soundRef.current.unloadAsync();
         soundRef.current = null;
@@ -272,7 +323,7 @@ export function AudioPlayerProvider({ children }: { children: React.ReactNode })
     } catch (err) {
       console.error('[AudioPlayer] Stop failed:', err);
     }
-  }, [flushListenTime]);
+  }, [flushListenTime, persistProgress]);
 
   const seekTo = useCallback(async (ms: number) => {
     try {
@@ -306,10 +357,11 @@ export function AudioPlayerProvider({ children }: { children: React.ReactNode })
   // Cleanup on unmount
   useEffect(() => {
     return () => {
+      void persistProgress(false);
       flushListenTime();
       soundRef.current?.unloadAsync();
     };
-  }, [flushListenTime]);
+  }, [flushListenTime, persistProgress]);
 
   const value: AudioPlayerContextType = {
     currentSpeakerId,

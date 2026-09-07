@@ -2,8 +2,8 @@
 // Gifts are EARNED with membership (annual 5/yr · monthly 1 per 3 months ·
 // founding members 5/yr), never bought — the purchase tiers this screen used
 // to sell are retired (2026-07-20, acquisition pivot). Each gift is a private
-// soberdailies.com/get link that gives the recipient 3 free months via an
-// Apple offer code (Android recipients get a classic in-app code on /get).
+// soberdailies.com/get link that gives the recipient 3 free months on an
+// annual subscription through the App Store or Google Play.
 //
 // Give flow: mint/reuse a share token (a cancelled composer never burns a
 // credit — the unsent token is cached and reused) → Messages composer with the
@@ -261,8 +261,8 @@ export default function PassItOnScreen() {
 
         <Text style={styles.footnote}>
           A pass is a private link that unlocks 3 free months for someone new — a sponsee, a
-          newcomer, anyone who could use it. They pick their own plan; nothing is charged for
-          3 months and they can cancel anytime.
+          newcomer, anyone who could use it. It starts an annual subscription through their
+          app store; nothing is charged for 3 months and they can cancel anytime.
         </Text>
       </ScrollView>
 

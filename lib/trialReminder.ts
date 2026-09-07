@@ -112,7 +112,7 @@ export async function scheduleTrialEndingReminder(info: CustomerInfo): Promise<v
     const endsOn = new Date(endsAt).toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' });
     const id = await N.scheduleNotificationAsync({
       content: {
-        title: 'Your free week is almost up',
+        title: 'Your free trial is almost up.',
         body: `Your Sober Dailies trial ends ${endsOn}. Keep going — or cancel before then and you won't be charged.`,
       },
       trigger: { type: N.SchedulableTriggerInputTypes.DATE, date: fireAt, channelId: 'reminders' },
@@ -163,7 +163,7 @@ export async function qaPreviewTrialReminder(): Promise<string | null> {
     });
     await N.scheduleNotificationAsync({
       content: {
-        title: 'Your free week is almost up',
+        title: 'Your free trial is almost up.',
         body: `Your Sober Dailies trial ends ${endsOn}. Keep going — or cancel before then and you won't be charged.`,
       },
       trigger: { type: N.SchedulableTriggerInputTypes.TIME_INTERVAL, seconds: 8, channelId: 'reminders' },

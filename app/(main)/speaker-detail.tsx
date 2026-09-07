@@ -11,19 +11,16 @@ import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { Mic } from 'lucide-react-native';
 import BackButton from '@/components/BackButton';
 import { SpeakerPlayer } from '@/components/SpeakerPlayer';
-import { EqualizerOverlay } from '@/components/EqualizerOverlay';
 import { useSpeakers } from '@/hooks/useSpeakers';
 import { useScreenTimeTracking } from '@/hooks/useScreenTimeTracking';
-import { useGlobalAudioPlayer } from '@/hooks/useGlobalAudioPlayer';
 import { useSpeakerFavorites } from '@/hooks/use-speaker-favorites';
 import { fontFamily, shadows, families, type Tokens } from '@/constants/designTokens';
-import { useTokens, useThemedStyles } from '@/hooks/useTokens';
+import { useThemedStyles } from '@/hooks/useTokens';
 
 // Steel Navy, one ramp step lighter than the global steel (speaker pages read too
 // dark at full strength). The gradient hero is a "jewel" — it keeps full chroma
 // on dark; only the ink (badge text/eq bars) brightens.
 const MT = families.steel[400];
-const spInk = (tk: Tokens) => (tk.isDark ? tk.colors.steelDark : families.steel[600]);
 
 // Steel Navy mic-art gradient (token-derived), one step lighter.
 const HERO_GRAD: readonly string[] = [families.steel[200], families.steel[400], families.steel[600]];
@@ -36,19 +33,21 @@ function fmtDate(iso: string | null): string | null {
   const M = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][parseInt(m, 10) - 1];
   return `${M} ${parseInt(d, 10)}, ${y}`;
 }
+function fmtDuration(seconds?: number | null): string | null {
+  if (seconds == null || seconds <= 0) return null;
+  const total = Math.round(seconds);
+  return `${Math.floor(total / 60)} min ${total % 60} sec`;
+}
 const stripQuote = (q?: string | null) => (q ? q.replace(/^["“]|["”]$/g, '') : '');
 
 export default function SpeakerDetailScreen() {
   const { id, autoplay } = useLocalSearchParams<{ id: string; autoplay?: string }>();
   const { speakers } = useSpeakers();
   const router = useRouter();
-  const player = useGlobalAudioPlayer();
   const { isSaved, toggleSaved } = useSpeakerFavorites();
   useScreenTimeTracking('SpeakerDetail');
 
   const styles = useThemedStyles(makeStyles);
-  const tk = useTokens();
-  const ink = spInk(tk);
 
   const speaker = useMemo(() => speakers.find((s) => s.id === id), [speakers, id]);
 
@@ -62,8 +61,6 @@ export default function SpeakerDetailScreen() {
     ].filter(Boolean);
     Share.share({ message: parts.join('\n\n') }).catch(() => {});
   }, [speaker]);
-
-  const isActive = speaker ? player.currentSpeakerId === speaker.id && player.isLoaded : false;
 
   if (!speaker) {
     return (
@@ -83,12 +80,6 @@ export default function SpeakerDetailScreen() {
       <Stack.Screen options={{ headerShown: false }} />
       <View style={styles.header}>
         <BackButton onPress={() => router.back()} />
-        {isActive && (
-          <View style={styles.playingBadge}>
-            <View style={styles.eq}><EqualizerOverlay isPlaying={player.isPlaying} barCount={3} barColor={ink} /></View>
-            <Text style={styles.playingText}>{player.isPlaying ? 'Playing' : 'Paused'}</Text>
-          </View>
-        )}
       </View>
 
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
@@ -98,7 +89,7 @@ export default function SpeakerDetailScreen() {
             <Mic size={172} color="rgba(255,255,255,0.15)" strokeWidth={1} />
           </View>
           <View style={styles.heroMetaRow}>
-            <Text style={styles.heroMeta} numberOfLines={1}>{[speaker.hometown, fmtDate(speaker.date)].filter(Boolean).join(' · ')}</Text>
+            <Text style={styles.heroMeta} numberOfLines={1}>{[speaker.hometown, fmtDate(speaker.date), fmtDuration(speaker.duration_seconds)].filter(Boolean).join(' · ')}</Text>
             {speaker.explicit ? <Text style={styles.explicit}>EXPLICIT</Text> : null}
           </View>
           <Text style={styles.heroName}>{speaker.speaker}</Text>
@@ -129,6 +120,7 @@ export default function SpeakerDetailScreen() {
             onToggleSave={() => toggleSaved(speaker.id)}
             onShare={onShare}
             autoplay={autoplay === '1'}
+            durationSeconds={speaker.duration_seconds}
           />
         </View>
 
@@ -140,13 +132,9 @@ export default function SpeakerDetailScreen() {
 
 const makeStyles = (tk: Tokens) => {
   const { c, isDark } = tk;
-  const ink = spInk(tk);
   return StyleSheet.create({
   screen: { flex: 1, backgroundColor: c.background },
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingTop: 8, paddingBottom: 4 },
-  playingBadge: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  eq: { width: 18, height: 16 },
-  playingText: { fontFamily: fontFamily.semiBold, fontSize: 11, color: ink, textTransform: 'uppercase', letterSpacing: 0.5 },
 
   scroll: { paddingHorizontal: 22, paddingTop: 4 },
 
