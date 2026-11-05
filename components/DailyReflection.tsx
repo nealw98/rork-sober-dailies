@@ -40,9 +40,10 @@ const WEEKDAYS = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
 // roman-in-italic emphasis). The span must start and end on non-space so
 // stray asterisks ("2 * 3", a lone footnote star) render literally.
 const EM_RE = /\*(\S(?:[^*\n]*\S)?)\*/g;
-const EM_ITALIC: TextStyle = readerSerifItalic;
-const EM_UPRIGHT: TextStyle = { fontFamily: readerSerif, fontStyle: 'normal' };
-function withEmphasis(text: string, em: TextStyle): React.ReactNode {
+// Exported: the Today reading pane (ReflectionPane) renders the same markup.
+export const EM_ITALIC: TextStyle = readerSerifItalic;
+export const EM_UPRIGHT: TextStyle = { fontFamily: readerSerif, fontStyle: 'normal' };
+export function withEmphasis(text: string, em: TextStyle): React.ReactNode {
   if (!text.includes('*')) return text;
   const out: React.ReactNode[] = [];
   let last = 0;

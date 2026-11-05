@@ -22,6 +22,9 @@ import * as Haptics from 'expo-haptics';
 import { fontFamily, fontSize, spacing, radii, shadows, type Tokens } from '@/constants/designTokens';
 import { useTokens, useThemedStyles } from '@/hooks/useTokens';
 import { getRowTones, resolveGlyph, resolveTone } from '@/components/dailyTokens';
+import { useLayoutMode } from '@/hooks/useLayoutMode';
+import ListDetailLayout from '@/components/layout/ListDetailLayout';
+import ReflectionPane from '@/components/today/ReflectionPane';
 import DailiesEditor from '@/components/today/DailiesEditor';
 import { useScreenTimeTracking } from '@/hooks/useScreenTimeTracking';
 import { useDailies, type DailyItem, type WhenBucket } from '@/hooks/use-dailies-store';
@@ -169,13 +172,15 @@ const HERO_FALLBACK = require('@/assets/reflections_images/reflection_bg7.webp')
 const ROTATE_HERO = true;
 const STATIC_HERO = require('@/assets/images/reflection_bg2.webp');
 
-function ReflectionHero({ title, imageUri, alt, staticSource, done, onRead, onToggle }: { title: string; imageUri?: string; alt?: string; staticSource?: number; done: boolean; onRead: () => void; onToggle: () => void }) {
+function ReflectionHero({ title, imageUri, alt, staticSource, done, selected, onRead, onToggle }: { title: string; imageUri?: string; alt?: string; staticSource?: number; done: boolean; selected?: boolean; onRead: () => void; onToggle: () => void }) {
   const styles = useThemedStyles(makeStyles);
-  const { mode } = useTokens();
+  const { mode, colors } = useTokens();
   const teal = getRowTones(mode).teal;
   const fallback = staticSource ?? HERO_FALLBACK;
   return (
-    <View style={styles.hero}>
+    // On expanded widths the hero doubles as the "selected row" for the
+    // reading pane beside it — it gets the handoff's 1.5pt accent outline.
+    <View style={[styles.hero, selected && { borderWidth: 1.5, borderColor: colors.primary }]}>
       {/* The card IS the image now — no meta band. Eyebrow + title bottom-left. */}
       <Pressable style={styles.heroCover} onPress={onRead}>
         <Image
@@ -208,6 +213,11 @@ export default function TodayScreen() {
   const { c, colors } = useTokens();
   const dailies = useDailies();
   const { sobrietyDate } = useSobriety();
+  // Expanded widths (unfolded Duo landscape, iPad) render Today as two panes:
+  // the list column keeps today's UI, and the Daily Reflection — the one
+  // content daily — reads in a pane beside it instead of pushing the full
+  // reader. Tool dailies (prayers, journal, …) still push their screens.
+  const expanded = useLayoutMode() === 'expanded';
 
   // Milestone day — a full-bleed band above the counter that celebrates all day
   // and replays the takeover on tap (the auto-show only fires once). See
@@ -337,7 +347,11 @@ export default function TodayScreen() {
     dailies.toggleDone(id);
   };
 
-  const openReflection = () => router.push('/daily-reflections');
+  // Compact pushes the full reader; expanded already shows the reading in the
+  // pane, so the hero tap has nothing to open (the pane IS the selection).
+  const openReflection = () => {
+    if (!expanded) router.push('/daily-reflections');
+  };
 
   // Counter + Daily Reflection hero — shown above the list in both modes.
   const topContent = (
@@ -375,6 +389,7 @@ export default function TodayScreen() {
           alt={ROTATE_HERO ? heroImage?.alt : 'A seedling reaching toward the light'}
           staticSource={ROTATE_HERO ? undefined : STATIC_HERO}
           done={dailies.reflectionDone}
+          selected={expanded}
           onRead={openReflection}
           onToggle={dailies.toggleReflection}
         />
@@ -397,8 +412,11 @@ export default function TodayScreen() {
     </Pressable>
   );
 
-  return (
-    <View style={[styles.root, { backgroundColor: c.background }]}>
+  // The whole of today's Today screen — header + ledger (or editor). On
+  // compact it IS the screen; on expanded it becomes the list column, with
+  // the reading pane beside it (editing stays single-column in this pane,
+  // per the handoff).
+  const listColumn = (
     <SafeAreaView style={styles.safe} edges={['top']}>
       {/* Milestone day: tuck the band up close under the date — it's part of
           "what today is", so it hangs off the header, not off the counter. */}
@@ -457,11 +475,40 @@ export default function TodayScreen() {
           })}
         </ScrollView>
       )}
-
     </SafeAreaView>
+  );
+
+  if (expanded) {
+    return (
+      <View style={[styles.root, { backgroundColor: c.background }]}>
+        <ListDetailLayout
+          listWidth={TODAY_LIST_WIDTH}
+          list={listColumn}
+          detail={
+            <SafeAreaView style={styles.safe} edges={['top']}>
+              <ReflectionPane
+                reflection={reflection}
+                dateLabel={dateLabel}
+                done={dailies.reflectionDone}
+                onToggleDone={dailies.toggleReflection}
+              />
+            </SafeAreaView>
+          }
+        />
+      </View>
+    );
+  }
+
+  return (
+    <View style={[styles.root, { backgroundColor: c.background }]}>
+      {listColumn}
     </View>
   );
 }
+
+// A touch wider than the shared 330 default: Today's rows carry a trailing
+// Done button and the hero card, which need the extra room at 22pt gutters.
+const TODAY_LIST_WIDTH = 360;
 
 const makeStyles = (tk: Tokens) => {
   const { c, colors, isDark } = tk;
