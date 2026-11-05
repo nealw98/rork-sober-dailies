@@ -1,6 +1,6 @@
 // Speaker player — reskinned to the prototype (frames/hifi-speaker-v2.jsx · the
 // tape utilities + scrubber + transport). All playback/download logic is
-// unchanged (expo-av via useGlobalAudioPlayer + useSpeakerDownload); only the UI
+// unchanged (expo-audio via useGlobalAudioPlayer + useSpeakerDownload); only the UI
 // is new. The detail screen passes Save/Share so the action row is complete.
 import React, { useEffect, useCallback, useRef, useMemo } from 'react';
 import { StyleSheet, View, Text, Pressable, ActivityIndicator, Alert } from 'react-native';

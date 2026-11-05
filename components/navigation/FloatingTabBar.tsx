@@ -12,10 +12,10 @@ import React, { useEffect, useRef } from 'react';
 import { View, Text, Pressable, StyleSheet, Image, Animated, Easing, Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
-import type { BottomTabBarProps } from '@react-navigation/bottom-tabs';
+import type { BottomTabBarProps } from 'expo-router/js-tabs';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
-import MaskedView from '@react-native-masked-view/masked-view';
+import MaskedViewLib from '@react-native-masked-view/masked-view';
 import Svg, { Path, Defs, RadialGradient, Stop, Circle } from 'react-native-svg';
 import { BookOpen, Library, PenLine } from 'lucide-react-native';
 import { ChatCircleDots } from 'phosphor-react-native';
@@ -190,7 +190,17 @@ function TabButton({
   );
 }
 
-export default function FloatingTabBar({ state, navigation }: BottomTabBarProps) {
+// RN 0.88 removed the NativeMethods type that masked-view's .d.ts builds its
+// class typing from, which voids the component type — recast to a plain
+// component with the lib's documented props.
+const MaskedView = MaskedViewLib as unknown as React.ComponentType<
+  React.ComponentProps<typeof View> & {
+    maskElement: React.ReactElement;
+    androidRenderingMode?: 'software' | 'hardware';
+  }
+>;
+
+export default function FloatingTabBar({ state, emitter, navigateToTab }: BottomTabBarProps) {
   const insets = useSafeAreaInsets();
   const { immersive } = useImmersive();
   const { c, colors: tc, isDark } = useTokens();
@@ -270,8 +280,8 @@ export default function FloatingTabBar({ state, navigation }: BottomTabBarProps)
             const focused = state.index === index;
 
             const onPress = () => {
-              const event = navigation.emit({ type: 'tabPress', target: route.key, canPreventDefault: true });
-              if (!focused && !event.defaultPrevented) navigation.navigate(route.name);
+              const event = emitter.emit({ type: 'tabPress', target: route.key, canPreventDefault: true });
+              if (!focused && !event.defaultPrevented) navigateToTab(route.key);
             };
 
             return (
@@ -313,7 +323,7 @@ const styles = StyleSheet.create({
   },
   // Full-width frosted band behind the pill — fills the wrapper edge to edge.
   band: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
   },
   // The floating pill + FAB row, pinned to the bottom of the band.
   pillRow: {
@@ -374,7 +384,7 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   bevel: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     borderRadius: 20,
   },
   label: {

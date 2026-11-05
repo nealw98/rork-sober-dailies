@@ -187,8 +187,8 @@ export const useOTAUpdates = () => {
         }
 
         if (fetched.isNew) {
-          const updateId = fetched.manifest?.id || fetched.manifest?.createdAt?.toString() || 'unknown';
-          const manifestHash = fetched.manifest?.extra?.expoClient?.updates?.hash;
+          const updateId = fetched.manifest?.id || (fetched.manifest as any)?.createdAt?.toString() || 'unknown';
+          const manifestHash = (fetched.manifest as any)?.extra?.expoClient?.updates?.hash;
 
           console.log('[OTA] fetched:new', { updateId, manifestHash });
 
@@ -246,7 +246,7 @@ export const useOTAUpdates = () => {
   // Handle app state changes
   useEffect(() => {
     const handleAppStateChange = (nextAppState: AppStateStatus) => {
-      if (appState.current.match(/inactive|background/) && nextAppState === 'active') {
+      if (appState.current?.match(/inactive|background/) && nextAppState === 'active') {
         console.log('[OTA] App came to foreground, checking for updates');
         checkForUpdates();
       }

@@ -15,7 +15,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { View, Text, Pressable, StyleSheet, Animated, Easing, AccessibilityInfo } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useIsFocused } from '@react-navigation/native';
+import { useIsFocused } from 'expo-router/react-navigation';
 import * as Haptics from 'expo-haptics';
 import { PartyPopper, RotateCcw } from 'lucide-react-native';
 import { fontFamily, spacing, gradients } from '@/constants/designTokens';

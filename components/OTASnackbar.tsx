@@ -5,7 +5,6 @@ import {
   TouchableOpacity,
   StyleSheet,
   Animated,
-  Dimensions,
   Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -17,8 +16,6 @@ interface OTASnackbarProps {
   onDismiss: () => void;
   onRestart: () => void;
 }
-
-const { width } = Dimensions.get('window');
 
 export default function OTASnackbar({ visible, onDismiss, onRestart }: OTASnackbarProps) {
   const translateY = useRef(new Animated.Value(100)).current;

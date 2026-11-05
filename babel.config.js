@@ -12,8 +12,8 @@ module.exports = function (api) {
           },
         },
       ],
-      // IMPORTANT: Reanimated plugin must be listed last
-      'react-native-reanimated/plugin',
+      // Reanimated/worklets transform is applied automatically by
+      // babel-preset-expo since SDK 54 — no manual plugin entry.
     ],
   };
 };

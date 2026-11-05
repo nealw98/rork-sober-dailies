@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { AppState } from 'react-native';
-import { Audio, type AVPlaybackSource } from 'expo-av';
+import { createAudioPlayer, setAudioModeAsync, type AudioPlayer, type AudioSource } from 'expo-audio';
 import createContextHook from '@nkzw/create-context-hook';
 import { useMeditationLog } from '@/hooks/use-meditation-log';
 import { useDailies } from '@/hooks/use-dailies-store';
@@ -28,19 +28,22 @@ export type SessionPhase = 'ready' | 'active' | 'complete';
 export interface AmbienceOpts {
   sceneKey: string;
   sceneName: string | null;
-  audioSource: AVPlaybackSource | null;
+  audioSource: AudioSource | null;
   volume: number;
 }
 
 const BELL = require('@/assets/soundreality-bell-fx-410608.mp3');
 
 const applyAudioMode = () =>
-  Audio.setAudioModeAsync({
-    allowsRecordingIOS: false,
-    staysActiveInBackground: true,
-    playsInSilentModeIOS: true,
-    shouldDuckAndroid: true,
-    playThroughEarpieceAndroid: false,
+  setAudioModeAsync({
+    allowsRecording: false,
+    shouldPlayInBackground: true,
+    playsInSilentMode: true,
+    // Exclusive focus: lock-screen/notification controls require doNotMix,
+    // and that presence is what keeps a backgrounded ambience playing past
+    // Android's ~3-minute cap on uncontrolled background audio.
+    interruptionMode: 'doNotMix',
+    shouldRouteThroughEarpiece: false,
   }).catch(() => {});
 
 export const [MeditationSessionProvider, useMeditationSession] = createContextHook(() => {
@@ -56,10 +59,10 @@ export const [MeditationSessionProvider, useMeditationSession] = createContextHo
   const [sceneName, setSceneName] = useState<string | null>(null);
   const [volume, setVolumeState] = useState(0.35);
 
-  const soundRef = useRef<Audio.Sound | null>(null); // the looping ambience
+  const soundRef = useRef<AudioPlayer | null>(null); // the looping ambience
   const ambienceSceneRef = useRef<string | null>(null);
   const ambienceTokenRef = useRef(0); // invalidates in-flight loads on swap/stop
-  const bellRef = useRef<Audio.Sound | null>(null);
+  const bellRef = useRef<AudioPlayer | null>(null);
   const endAtRef = useRef<number | null>(null); // ms timestamp the sit ends at
 
   const phaseRef = useRef(phase);
@@ -89,14 +92,17 @@ export const [MeditationSessionProvider, useMeditationSession] = createContextHo
     ambienceSceneRef.current = null;
     const s = soundRef.current;
     soundRef.current = null;
-    if (s) await s.unloadAsync().catch(() => {});
+    if (s) {
+      try { s.setActiveForLockScreen(false); } catch {}
+      try { s.release(); } catch {}
+    }
   }, []);
 
   // Leaving the meditation screen should silence the bed without throwing the
   // loaded audio away. Keeping it loaded makes returning to the same selected
   // scene an immediate resume without repeating setup work.
   const pauseAmbience = useCallback(async () => {
-    await soundRef.current?.pauseAsync().catch(() => {});
+    try { soundRef.current?.pause(); } catch {}
   }, []);
 
   // Start (or swap to) the ambience for a scene. Idempotent: re-calling with the
@@ -113,7 +119,7 @@ export const [MeditationSessionProvider, useMeditationSession] = createContextHo
       }
       if (ambienceSceneRef.current === opts.sceneKey && soundRef.current) {
         await applyAudioMode();
-        await soundRef.current.playAsync().catch(() => {});
+        try { soundRef.current.play(); } catch {}
         return;
       }
       await stopAmbience();
@@ -121,15 +127,20 @@ export const [MeditationSessionProvider, useMeditationSession] = createContextHo
       ambienceSceneRef.current = opts.sceneKey;
       try {
         await applyAudioMode();
-        const { sound } = await Audio.Sound.createAsync(
-          opts.audioSource,
-          { isLooping: true, shouldPlay: true, volume: opts.volume },
-        );
-        if (ambienceTokenRef.current !== token) {
-          sound.unloadAsync().catch(() => {});
-          return;
-        }
-        soundRef.current = sound;
+        if (ambienceTokenRef.current !== token) return;
+        const player = createAudioPlayer(opts.audioSource, { updateInterval: 1000 });
+        player.loop = true;
+        player.volume = opts.volume;
+        // Named lock-screen presence: shows the scene on the lock screen and
+        // keeps the backgrounded loop alive on Android.
+        try {
+          player.setActiveForLockScreen(true, {
+            title: opts.sceneName ?? 'Meditation',
+            artist: 'Sober Dailies',
+          });
+        } catch {}
+        player.play();
+        soundRef.current = player;
       } catch {
         // A missing/failed soundtrack must never break the screen.
       }
@@ -139,7 +150,8 @@ export const [MeditationSessionProvider, useMeditationSession] = createContextHo
 
   const setVolume = useCallback((v: number) => {
     setVolumeState(v);
-    soundRef.current?.setVolumeAsync(v).catch(() => {});
+    const p = soundRef.current;
+    if (p) { try { p.volume = v; } catch {} }
   }, []);
 
   // ─── Timer ─────────────────────────────────────────────────────────────────
@@ -147,15 +159,19 @@ export const [MeditationSessionProvider, useMeditationSession] = createContextHo
     try {
       applyAudioMode();
       // Bell follows the scene volume so it isn't jarring at low levels.
-      const { sound } = await Audio.Sound.createAsync(BELL, { volume: volumeRef.current });
-      bellRef.current = sound;
-      sound.setOnPlaybackStatusUpdate((s) => {
-        if (s.isLoaded && s.didJustFinish) {
-          sound.unloadAsync().catch(() => {});
-          if (bellRef.current === sound) bellRef.current = null;
+      const prev = bellRef.current;
+      if (prev) { try { prev.release(); } catch {} }
+      const bell = createAudioPlayer(BELL);
+      bellRef.current = bell;
+      bell.volume = volumeRef.current;
+      const sub = bell.addListener('playbackStatusUpdate', (s) => {
+        if (s.didJustFinish) {
+          sub.remove();
+          try { bell.release(); } catch {}
+          if (bellRef.current === bell) bellRef.current = null;
         }
       });
-      await sound.playAsync();
+      bell.play();
     } catch {
       // A missing/failed bell must never break the sit.
     }
@@ -209,8 +225,8 @@ export const [MeditationSessionProvider, useMeditationSession] = createContextHo
 
   useEffect(
     () => () => {
-      soundRef.current?.unloadAsync().catch(() => {});
-      bellRef.current?.unloadAsync().catch(() => {});
+      try { soundRef.current?.release(); } catch {}
+      try { bellRef.current?.release(); } catch {}
     },
     [],
   );

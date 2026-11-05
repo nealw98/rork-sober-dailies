@@ -435,7 +435,7 @@ export default function RootLayout() {
                       <GestureHandlerRootView style={{ flex: 1 }}>
                         <KeyboardProvider>
                         {Platform.OS === 'android' && (
-                          <StatusBar translucent backgroundColor="transparent" barStyle="light-content" />
+                          <StatusBar barStyle="light-content" />
                         )}
                         <ActionSheetProvider>
                           <ErrorBoundary>

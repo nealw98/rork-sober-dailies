@@ -80,8 +80,8 @@ export function ReadingSizeSheet({
 const makeStyles = (tk: Tokens) => {
   const { c, isDark } = tk;
   return StyleSheet.create({
-    embeddedOverlay: { ...StyleSheet.absoluteFillObject, zIndex: 100, elevation: 100 },
-    backdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: isDark ? c.overlay : 'rgba(26,26,46,0.32)' },
+    embeddedOverlay: { ...StyleSheet.absoluteFill, zIndex: 100, elevation: 100 },
+    backdrop: { ...StyleSheet.absoluteFill, backgroundColor: isDark ? c.overlay : 'rgba(26,26,46,0.32)' },
     // Top hairline + elevation (no negative-offset shadow — that doesn't render
     // on Android) so the sheet reads as raised on both platforms.
     sheet: {

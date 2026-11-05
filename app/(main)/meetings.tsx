@@ -585,7 +585,7 @@ const makeStyles = (tk: Tokens) => {
   fnSub: { fontFamily: fontFamily.regular, fontSize: 12.5, color: c.textMuted, marginTop: 3 },
 
   // add sheet
-  sheetBackdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: isDark ? c.overlay : 'rgba(20,18,14,0.4)' },
+  sheetBackdrop: { ...StyleSheet.absoluteFill, backgroundColor: isDark ? c.overlay : 'rgba(20,18,14,0.4)' },
   sheet: { position: 'absolute', left: 0, right: 0, bottom: 0, maxHeight: '90%', backgroundColor: isDark ? c.surface : c.background, borderTopLeftRadius: 22, borderTopRightRadius: 22, paddingHorizontal: 18, paddingTop: 14, paddingBottom: 24, ...(isDark ? { borderWidth: 1, ...darkCard } : null) },
   grabber: { width: 36, height: 4, borderRadius: 2, backgroundColor: isDark ? 'rgba(255,255,255,0.16)' : '#D8D3C8', alignSelf: 'center', marginBottom: 16 },
   sheetHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 },

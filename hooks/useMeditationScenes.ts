@@ -1,5 +1,5 @@
 import { supabase } from '@/lib/supabase';
-import type { AVPlaybackSource } from 'expo-av';
+import type { AudioSource } from 'expo-audio';
 
 /**
  * Meditation scenes (ambiences). With only a handful of scenes there's no need
@@ -18,7 +18,7 @@ export interface MeditationScene {
   name: string;
   stillUri: string | null;
   animatedUri: string | null;
-  audioSource: AVPlaybackSource | null;
+  audioSource: AudioSource | null;
 }
 
 const IMAGE_BUCKET = 'meditation-images';
@@ -27,7 +27,7 @@ const publicUrl = (bucket: string, path: string | null): string | null =>
   path ? supabase.storage.from(bucket).getPublicUrl(path).data.publicUrl : null;
 
 // Scene images remain remotely managed; soundtrack modules ship with the app/update.
-const SCENE_DEFS: { key: string; name: string; still: string | null; animated: string | null; audioSource: AVPlaybackSource | null }[] = [
+const SCENE_DEFS: { key: string; name: string; still: string | null; animated: string | null; audioSource: AudioSource | null }[] = [
   { key: 'silence', name: 'Silence', still: 'meditation-hero1.webp', animated: null, audioSource: null },
   { key: 'autumn-sky', name: 'Autumn Sky', still: 'autumn-sky.webp', animated: null, audioSource: require('@/assets/autumn-sky-meditation.m4a') },
   { key: 'sunrise', name: 'Sunrise', still: 'sunrise.webp', animated: null, audioSource: require('@/assets/sunrise.m4a') },

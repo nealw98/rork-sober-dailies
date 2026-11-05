@@ -17,7 +17,7 @@ import { useSobriety } from '@/hooks/useSobrietyStore';
 import { calculateMilestone, milestoneSeenKey } from '@/hooks/useSobrietyBirthday';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Haptics from 'expo-haptics';
-import { Audio } from 'expo-av';
+import { createAudioPlayer, type AudioPlayer } from 'expo-audio';
 import { fontFamily, gradients } from '@/constants/designTokens';
 
 // Guarded require: binaries older than the lottie build (runtime 3.0.7 test
@@ -39,7 +39,7 @@ const SobrietyBirthdayModal: React.FC<SobrietyBirthdayModalProps> = ({ visible, 
   const { height: screenH } = useWindowDimensions();
   const [milestone, setMilestone] = useState<string>('');
   const [reduceMotion, setReduceMotion] = useState(false);
-  const soundRef = useRef<Audio.Sound | null>(null);
+  const soundRef = useRef<AudioPlayer | null>(null);
   const [fade] = useState(new Animated.Value(0));
   const [numberScale] = useState(new Animated.Value(0));
   const [ctaFade] = useState(new Animated.Value(0));
@@ -65,28 +65,27 @@ const SobrietyBirthdayModal: React.FC<SobrietyBirthdayModalProps> = ({ visible, 
       Animated.spring(numberScale, { toValue: 1, useNativeDriver: true, tension: 60, friction: 7, delay: reduceMotion ? 0 : 250 }).start();
       Animated.timing(ctaFade, { toValue: 1, duration: 400, delay: reduceMotion ? 400 : 1500, useNativeDriver: true }).start();
       // Celebration chime (bundled, synthesized in-house — license-clean).
-      // expo-av respects the iOS silent switch by default, so a muted phone
-      // celebrates silently, iMessage-style.
+      // Plays through the app-wide expo-audio session, which the speaker and
+      // meditation providers configure to bypass the silent switch — the same
+      // effective behavior the chime has always shipped with.
       //
-      // The sound MUST be tracked in a ref and released before the next play:
-      // dismissing the takeover before createAsync resolves used to leave the
-      // player loaded (the cleanup closure still saw null), so replaying from
-      // the Today badge opened a second AudioQueue on top of the leaked one
-      // and CoreAudio died in its allocator. Release-then-create keeps exactly
+      // The player MUST be tracked in a ref and released before the next play:
+      // dismissing the takeover mid-setup used to leave the old player loaded
+      // (the cleanup closure still saw null), so replaying from the Today
+      // badge opened a second AudioQueue on top of the leaked one and
+      // CoreAudio died in its allocator. Release-then-create keeps exactly
       // one player alive.
       let cancelled = false;
-      const play = async () => {
+      const play = () => {
         try {
           const prev = soundRef.current;
           soundRef.current = null;
-          if (prev) await prev.unloadAsync().catch(() => {});
-          const { sound } = await Audio.Sound.createAsync(
-            require('@/assets/sounds/celebration.wav'),
-            { shouldPlay: true, volume: 0.9 },
-          );
-          // Dismissed while loading — don't leave an orphan player behind.
-          if (cancelled) { await sound.unloadAsync().catch(() => {}); return; }
-          soundRef.current = sound;
+          if (prev) { try { prev.release(); } catch {} }
+          if (cancelled) return;
+          const player = createAudioPlayer(require('@/assets/sounds/celebration.wav'));
+          player.volume = 0.9;
+          player.play();
+          soundRef.current = player;
         } catch {}
       };
       play();
@@ -94,7 +93,7 @@ const SobrietyBirthdayModal: React.FC<SobrietyBirthdayModalProps> = ({ visible, 
         cancelled = true;
         const s = soundRef.current;
         soundRef.current = null;
-        s?.unloadAsync().catch(() => {});
+        if (s) { try { s.release(); } catch {} }
       };
       if (!reduceMotion) {
         const t1 = setTimeout(() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {}), 350);

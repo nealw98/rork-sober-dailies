@@ -3628,3 +3628,141 @@ reason, and a new §6.1 recording the app-before-website ordering hazard.
    board (§28.11). Populating it with the build number is the fix.
 7. Web repo (`sober-day-reflections`) has **uncommitted `src/pages/Admin.tsx`**
    (+68) — it will block the next `git pull --rebase` there.
+
+## 30. Latest session — 2026-11-04 (SDK 58 / iPHONE DUO MODERNIZATION · all UNCOMMITTED on `codex/3.5-duo-modernization`)
+
+Neal got an iPhone Duo; the store binary (SDK 53 = iOS 18 SDK) runs
+**windowboxed** on it (black strip, no edge-to-edge). Duo-native full screen
+requires building with the iOS 27 SDK → Expo SDK 58. No OTA can deliver this.
+
+**Scope (Neal, explicit):** fix the CLOSED screen first — background bleeds
+edge-to-edge under the floating system column, content keeps its width (that
+is the default safe-area behavior once rebuilt). The OPEN (inner) screen's
+expanded layout is a **separate later design project**: keep Today/home on the
+left, open individual tools in a right pane. Store release "once we get things
+ready" — no timeline. No version/buildNumber changes were made.
+
+### 30.1 Platform upgrade (Phase 1+2 of docs/3.5-duo-modernization-plan.md)
+
+- expo ^58 / RN 0.88.1 / React 19.3 / New Architecture (mandatory) /
+  Reanimated 4.7.1 + react-native-worklets / RNGH 3.3 / TS 6.0.3.
+- app.json: removed `newArchEnabled`, `android.edgeToEdgeEnabled`, top-level
+  `splash` (all left the schema), and the expo-build-properties SDK pins
+  (defaults now exceed them; `allowBackup: true` kept). expo-audio plugin added.
+- Removed: metro 0.82.5 overrides, metro `sourceExts` hack, manual babel
+  reanimated plugin, `plugins/withFmtConstevalFix.js` (RN 0.79-era fmt fix).
+  Kept: `withModularHeaders` (Google pods). `keep_fnames` + pdf assetExts kept.
+- **expo-av → expo-audio** (expo-av retired in SDK 55):
+  `useGlobalAudioPlayer` rewritten (public ms-based context API unchanged;
+  now also calls `setActiveForLockScreen` ⇒ lock-screen/Now Playing controls,
+  closing the §28-era "Not Playing" gap — device verification pending),
+  `use-meditation-session` (ambience + bell; scene named on lock screen so
+  Android background audio survives past its ~3-min cap),
+  `SobrietyBirthdayModal` chime, `useMeditationScenes` types.
+  `interruptionMode: 'doNotMix'` app-wide (was duck) — required for controls.
+- expo-file-system → `expo-file-system/legacy` (useSpeakerDownload).
+- expo-router 58: `BottomTabBarProps` is now `{ state, descriptors, emitter,
+  navigateToTab, insets }` (FloatingTabBar migrated off `navigation`);
+  `useIsFocused` → `expo-router/react-navigation`; `useFocusEffect` →
+  `expo-router`; Stack `initialRouteName` → `unstable_settings.anchor`.
+- RN 0.88 fixes: `absoluteFillObject` → `absoluteFill` (10 files); StatusBar
+  `translucent`/`backgroundColor` props deleted; `useRef<View>` →
+  `React.ComponentRef<typeof View>`; MaskedView recast in FloatingTabBar
+  (RN removed the NativeMethods type its .d.ts used).
+- Deps removed as unused: nativewind, react-native-date-picker,
+  @react-native-picker/picker, react-native-modal-datetime-picker,
+  @react-navigation/native, react-native-draggable-flatlist (see 30.2).
+- **RevenueCat pinned `^10.16.0`** — v11.0.0 says "Expo apps should stay on
+  10.x for now" and its iOS pod (PurchasesHybridCommon 20.1.0) is unpublished
+  until ~Nov 7, 2026. v11 later: `periodType` becomes a literal union;
+  offerings-load failures surface as NETWORK_ERROR. CocoaPods trunk goes
+  read-only Dec 2, 2026 (SPM eventually; Expo SPM not ready).
+- google-signin ^17.0.0 (JS API unchanged, CocoaPods default).
+  react-native-cloud-storage held at 2.3.0 (v3 exists; migrate deliberately).
+- `tsc` = **142 errors, below the 143 pre-upgrade baseline** (remaining =
+  legacy Colors.light / BigBook / supabase-deno debris). expo-doctor clean
+  except the MLKit new-arch directory warning (see 30.4).
+
+### 30.2 Dailies reorder: draggable-flatlist → react-native-sortables
+
+react-native-draggable-flatlist (unmaintained, 2023) is **broken under
+RNGH 3 + New Arch**: drag lifts, release never commits — verified live (row
+hovers forever, list never settles). Replaced with **react-native-sortables
+1.10.1** (supports RNGH 2/3, Reanimated 3/4, New Arch; pure JS — no rebuild).
+`DailiesEditor` ported: outer Reanimated `Animated.ScrollView` +
+`Sortable.Grid` (`customHandle`; only daily rows render a `Sortable.Handle`,
+headers/add-pills are displaced but not draggable; `onDragEnd({ data })` is
+shape-compatible with the old handler; `activeItemScale 1.03`,
+`inactiveItemOpacity 1`, `overDrag "vertical"`). **Drag verified working** in
+onboarding; same component serves Today's edit mode. Cosmetic: Reanimated
+logs a benign "dependencies are web-only" warning.
+
+### 30.3 ⚠️ react-native-pdf patch was stacking on every install
+
+bun runs `postinstall` on EVERY install, and the patch's insert-only hunks
+re-apply "cleanly" onto already-patched files — each local `bun add`/`install`
+stacked another copy (seen ×3). Old toolchains tolerated it; **RN 0.88 codegen
+fails with "A prop was already defined with the name nightMode"**. EAS (fresh
+installs) was never affected. Fix: postinstall is now sentinel-guarded
+(`node_modules/react-native-pdf/.sd-patched`). The patch also carries the
+whole **nightMode dark-inversion feature** (`e4531c89`) — upstream 7.0.4 AND
+7.0.5 have none of it; any version bump means re-porting both features.
+`react-native-pdf` is now pinned **exact 7.0.4**.
+
+### 30.4 MLKit cannot run in iOS 26+/27 simulators
+
+GoogleMLKit 8.0.0 still ships fat frameworks with **no arm64-simulator
+slice**, and iOS 26+/27 simulator runtimes dropped Rosetta — so an MLKit-
+linked app can't install on them at all. New `react-native.config.js`:
+`RN_SIM_NO_MLKIT=1` during `pod install` unlinks the iOS pod for **local
+simulator builds only** (lib/meetingOcr.ts already lazy-requires and degrades);
+device/EAS builds keep the OCR scanner. RN Directory still flags MLKit as
+new-arch-untested → **test the meeting scanner on a real device**.
+
+### 30.5 Verified today (local Xcode 27.2; EAS Xcode 27 images unconfirmed)
+
+- **iPhone Duo simulator exists**: device type needs the iOS **27.1+** runtime
+  (27.0/27.2 report no Duo support; 27.1 downloaded via
+  `xcodebuild -downloadPlatform iOS -buildVersion 27.1`). The Duo is TWO
+  displays: cover 1398×2034 (466×678pt) — wider than any classic iPhone —
+  and inner 2007×2853 (669×951pt).
+- **Closed-screen goal CONFIRMED on the Duo sim**: splash, welcome, carousel,
+  disclaimer and paywall all render edge-to-edge with the clock/Wi-Fi column
+  floating over the app's own background. No compatibility window.
+- **Full E2E on iPhone 17 (iOS 27.2)**: onboarding (incl. resize-safe
+  carousel) → disclaimer → paywall (**RevenueCat 10.16 fetched live offerings
+  on New Arch**; $19.99/$1.67 compliance formatting intact; DEV SKIP works) →
+  date → dailies (drag reorder ✔) → **Today renders pixel-faithful** →
+  Tools → Speaker Tapes (Supabase list) → **audio streams via expo-audio**
+  (position advancing, rate controls). Lock-screen metadata can't be verified
+  in the sim (Control Center there is a stub) — device test.
+- Resize safety shipped: runtime portrait lock KEPT deliberately (classic
+  phones keep today's UX; iOS 27 ignores it on resizable devices), but the
+  frozen `Dimensions.get` captures are gone: WhatsInsideCarousel (live width +
+  resnap + re-measure), HamburgerMenu (live width, resize-aware anims),
+  OTASnackbar (dead code removed).
+- Sim workflow gotchas: `pod install` needs `LANG=en_US.UTF-8`; after
+  installing a runtime, kill CoreSimulatorService or xcodebuild can't match
+  destinations; `expo run:ios` reuses a stale `ios/` (delete it after SDK
+  jumps); port 8081 belongs to the hands-off repo's Metro — use 8082; the
+  dev-client first-launch sheet and floating gear overlay EAT taps (several
+  "dead button" ghosts today were exactly that).
+
+### 30.6 Before this ships (3.5 checklist seed)
+
+1. Real-device pass: lock-screen/Now Playing + CarPlay (code landed, sim can't
+   show it), meeting-scanner OCR (MLKit on New Arch), RC sandbox purchase +
+   `pass-3mo` gated Play offer, iCloud/Drive backup (cloud-storage 2.3.0 on
+   interop), PDF reader incl. landscape patch + nightMode inversion.
+2. Neal's physical Duo via TestFlight/dev build — the definitive closed+open
+   screen check, incl. fold/unfold mid-audio and mid-form.
+3. Android: build + release-mode test (R8 is now ON by default in SDK 58).
+4. EAS: confirm Xcode 27 build images landed (local archive is the fallback);
+   do NOT touch eas.json without approval.
+5. Duo polish for the design pass: onboarding "Skip" pill sits under the
+   floating system column on the cover display (needs a right-edge inset).
+6. App Store will require Duo screenshots starting ~April 2027.
+7. RevenueCat → 11.x after the pod publishes AND an Expo-clearance re-check.
+
+Committed on `codex/3.5-duo-modernization` in this commit (local only — not
+pushed, branch has no upstream). No OTA, no versions touched, `main` untouched. Memory: [[session-handoff-sdk58-duo-upgrade]].

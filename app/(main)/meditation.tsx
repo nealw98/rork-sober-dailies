@@ -158,7 +158,7 @@ function Stepper({ value, onChange }: { value: number; onChange: (n: number) => 
 // onChange fires live during the drag (for immediate audible feedback); onComplete
 // fires once on release with the final value (for persistence).
 function VolumeSlider({ value, onChange, onComplete }: { value: number; onChange: (v: number) => void; onComplete: (v: number) => void }) {
-  const trackRef = useRef<View>(null);
+  const trackRef = useRef<React.ComponentRef<typeof View>>(null);
   const trackX = useRef(0);
   const trackW = useRef(0);
   const last = useRef(value);
@@ -559,7 +559,7 @@ const styles = StyleSheet.create({
 
   sceneSection: { width: '100%', paddingHorizontal: 22 },
 
-  prefsOverlay: { ...StyleSheet.absoluteFillObject, justifyContent: 'flex-end', backgroundColor: 'rgba(6,12,26,0.55)' },
+  prefsOverlay: { ...StyleSheet.absoluteFill, justifyContent: 'flex-end', backgroundColor: 'rgba(6,12,26,0.55)' },
   prefsPanel: { backgroundColor: '#16223C', borderTopLeftRadius: 22, borderTopRightRadius: 22, paddingHorizontal: 22, paddingTop: 18, paddingBottom: 10, borderTopWidth: 1, borderColor: TH.glassBorder },
   prefsHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 },
   prefsTitle: { fontFamily: fontFamily.display, fontSize: 20, color: TH.ink },

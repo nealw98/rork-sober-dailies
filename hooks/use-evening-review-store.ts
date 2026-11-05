@@ -171,7 +171,7 @@ export const [EveningReviewProvider, useEveningReviewStore] = createContextHook(
       if (stored) {
         const parsedEntries = JSON.parse(stored);
         console.log('Evening Review - Loaded entries:', parsedEntries.length, 'entries');
-        console.log('Evening Review - Entry dates:', parsedEntries.map(e => e.date));
+        console.log('Evening Review - Entry dates:', parsedEntries.map((e: any) => e.date));
         setEntries(parsedEntries);
       } else {
         console.log('Evening Review - No stored entries found');

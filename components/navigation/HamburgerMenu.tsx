@@ -5,7 +5,7 @@ import {
   Text,
   TouchableOpacity,
   Animated,
-  Dimensions,
+  useWindowDimensions,
   Platform,
 } from 'react-native';
 import { useRouter } from 'expo-router';
@@ -32,7 +32,6 @@ import {
 } from '@/constants/designTokens';
 
 const MENU_WIDTH = 280;
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const sem = semanticColors.light;
 
 interface MenuItem {
@@ -57,14 +56,16 @@ export default function HamburgerMenu() {
   const { isOpen, close } = useHamburgerMenu();
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const slideAnim = useRef(new Animated.Value(SCREEN_WIDTH)).current;
+  // Live width so the drawer tracks window resizes (Duo fold/unfold, rotation).
+  const { width: screenWidth } = useWindowDimensions();
+  const slideAnim = useRef(new Animated.Value(screenWidth)).current;
   const backdropAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     if (isOpen) {
       Animated.parallel([
         Animated.timing(slideAnim, {
-          toValue: SCREEN_WIDTH - MENU_WIDTH,
+          toValue: screenWidth - MENU_WIDTH,
           duration: 250,
           useNativeDriver: true,
         }),
@@ -77,7 +78,7 @@ export default function HamburgerMenu() {
     } else {
       Animated.parallel([
         Animated.timing(slideAnim, {
-          toValue: SCREEN_WIDTH,
+          toValue: screenWidth,
           duration: 200,
           useNativeDriver: true,
         }),
@@ -88,7 +89,7 @@ export default function HamburgerMenu() {
         }),
       ]).start();
     }
-  }, [isOpen]);
+  }, [isOpen, screenWidth]);
 
   const handleNavigate = (route: string) => {
     close();
@@ -174,7 +175,7 @@ export default function HamburgerMenu() {
 
 const styles = StyleSheet.create({
   backdrop: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     backgroundColor: 'rgba(0, 0, 0, 0.4)',
   },
   panel: {

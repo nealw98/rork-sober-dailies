@@ -6,7 +6,7 @@ interface CustomTextRendererProps {
   content: string;
   searchTerm?: string;
   style?: any;
-  onPageRef?: (pageNumber: string, ref: View | null) => void;
+  onPageRef?: (pageNumber: string, ref: React.ComponentRef<typeof View> | null) => void;
   onPageLayout?: (pageNumber: string, y: number) => void;
   getScrollViewNode?: () => any;
 }
@@ -80,7 +80,7 @@ export const CustomTextRenderer: React.FC<CustomTextRendererProps> = ({
   }
 
   // Keep refs to invisible anchors so we can measure against the ScrollView
-  const anchorRefs = useRef<{ [page: string]: View | null }>({});
+  const anchorRefs = useRef<{ [page: string]: React.ComponentRef<typeof View> | null }>({});
 
   // If no markers present (e.g., Android FlatList item content), render content directly
   if (!hasMarkers) {

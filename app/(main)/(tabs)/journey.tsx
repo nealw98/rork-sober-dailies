@@ -342,7 +342,7 @@ function SummaryContent({ day }: { day: DayBlockData }) {
 function DayBlock({ day, onOpenDay, onOpenEntry }: { day: DayBlockData; onOpenDay: (rect: Rect | null) => void; onOpenEntry: (entry: NotebookEntry, rect: Rect | null) => void }) {
   const styles = useThemedStyles(makeStyles);
   const { colors } = useTokens();
-  const ref = useRef<View>(null);
+  const ref = useRef<React.ComponentRef<typeof View>>(null);
   const press = () => {
     const node = ref.current;
     if (!node) { onOpenDay(null); return; }
@@ -388,7 +388,7 @@ function DayBlock({ day, onOpenDay, onOpenEntry }: { day: DayBlockData; onOpenDa
 function EntryRow({ entry, onOpen }: { entry: NotebookEntry; onOpen: (entry: NotebookEntry, rect: Rect | null) => void }) {
   const styles = useThemedStyles(makeStyles);
   const { c } = useTokens();
-  const ref = useRef<View>(null);
+  const ref = useRef<React.ComponentRef<typeof View>>(null);
   const press = () => {
     const node = ref.current;
     if (!node) { onOpen(entry, null); return; }

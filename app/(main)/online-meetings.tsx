@@ -47,6 +47,6 @@ const makeStyles = (tk: Tokens) => {
   header: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 16, paddingVertical: 8 },
   title: { fontFamily: fontFamily.display, fontSize: 18, color: c.text, letterSpacing: -0.3 },
   sub: { fontFamily: fontFamily.regular, fontSize: 12, color: c.textMuted, marginTop: 1 },
-  loading: { ...StyleSheet.absoluteFillObject, alignItems: 'center', justifyContent: 'center', backgroundColor: c.background },
+  loading: { ...StyleSheet.absoluteFill, alignItems: 'center', justifyContent: 'center', backgroundColor: c.background },
   });
 };

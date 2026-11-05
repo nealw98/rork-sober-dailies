@@ -233,7 +233,7 @@ const makeStyles = (tk: Tokens) => {
     medallion: { width: 40, height: 40, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
 
     sheetWrap: { flex: 1, justifyContent: 'flex-end' },
-    backdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: isDark ? c.overlay : 'rgba(20,20,30,0.35)' },
+    backdrop: { ...StyleSheet.absoluteFill, backgroundColor: isDark ? c.overlay : 'rgba(20,20,30,0.35)' },
     // A definite height gives Android an exact viewport for the ScrollView.
     // `maxHeight` + `flexShrink` can undercount the scroll range when the user
     // increases the system font size and the catalog rows become taller.

@@ -421,7 +421,7 @@ const makeStyles = (tk: Tokens) => {
   copyright: { marginTop: 18, fontFamily: fontFamily.regular, fontSize: 10, color: c.textMuted, lineHeight: 15, textAlign: 'center' },
 
   // sheets
-  sheetBackdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: isDark ? c.overlay : 'rgba(26,26,46,0.32)' },
+  sheetBackdrop: { ...StyleSheet.absoluteFill, backgroundColor: isDark ? c.overlay : 'rgba(26,26,46,0.32)' },
   calSheet: { position: 'absolute', left: 12, right: 12, bottom: 18, backgroundColor: c.surface, borderRadius: 24, padding: 18, shadowColor: '#000', shadowOpacity: 0.18, shadowRadius: 60, shadowOffset: { width: 0, height: 24 }, elevation: 12, ...(isDark ? { borderWidth: 1, ...darkCard } : null) },
   calHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 },
   calNav: { width: 32, height: 32, borderRadius: 16, backgroundColor: c.surface, borderWidth: 1, borderColor: c.border, alignItems: 'center', justifyContent: 'center', ...darkCard },

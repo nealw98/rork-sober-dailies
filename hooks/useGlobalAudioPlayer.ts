@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef, createContext, useContext } from 'react';
 import { AppState, AppStateStatus } from 'react-native';
-import { Audio, AVPlaybackStatus } from 'expo-av';
+import { createAudioPlayer, setAudioModeAsync, type AudioPlayer, type AudioStatus } from 'expo-audio';
 import { logEvent } from '@/lib/analytics';
 import { maybeAskForReview } from '@/lib/reviewPrompt';
 import { getSpeakerProgress, saveSpeakerProgress } from '@/lib/speakerProgress';
@@ -12,6 +12,12 @@ import { getSpeakerProgress, saveSpeakerProgress } from '@/lib/speakerProgress';
  * all screen navigation. Any screen can read playback state (e.g.,
  * SpeakerCard showing "Now Playing") and the player detail screen
  * can control playback.
+ *
+ * Built on expo-audio (expo-av was retired in SDK 55). expo-audio speaks
+ * seconds; this context's public API stays millisecond-based so consumers
+ * are untouched — the conversion lives here and nowhere else. Going
+ * through expo-audio also gains lock-screen / Now Playing controls,
+ * which expo-av never supported.
  */
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -66,8 +72,10 @@ const AudioPlayerContext = createContext<AudioPlayerContextType>(defaultState);
 const LOAD_TIMEOUT_MS = 15000;
 
 export function AudioPlayerProvider({ children }: { children: React.ReactNode }) {
-  const soundRef = useRef<Audio.Sound | null>(null);
+  const playerRef = useRef<AudioPlayer | null>(null);
+  const statusSubRef = useRef<{ remove: () => void } | null>(null);
   const currentUriRef = useRef<string | null>(null);
+  const loadTokenRef = useRef(0);
   const [currentSpeakerId, setCurrentSpeakerId] = useState<string | null>(null);
   const [isLoaded, setIsLoaded] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -81,14 +89,17 @@ export function AudioPlayerProvider({ children }: { children: React.ReactNode })
   const finishHandledRef = useRef(false);
 
   // Configure audio mode — called on mount and on every AppState resume
-  // to prevent iOS from dropping the audio session after interruptions
+  // to prevent iOS from dropping the audio session after interruptions.
+  // doNotMix (exclusive focus) is required for lock-screen controls, and on
+  // Android that presence keeps background playback alive past the OS's
+  // ~3-minute cap on uncontrolled background audio.
   const applyAudioMode = useCallback(() => {
-    Audio.setAudioModeAsync({
-      allowsRecordingIOS: false,
-      staysActiveInBackground: true,
-      playsInSilentModeIOS: true,
-      shouldDuckAndroid: true,
-      playThroughEarpieceAndroid: false,
+    setAudioModeAsync({
+      allowsRecording: false,
+      shouldPlayInBackground: true,
+      playsInSilentMode: true,
+      interruptionMode: 'doNotMix',
+      shouldRouteThroughEarpiece: false,
     }).catch((err) => {
       console.warn('[AudioPlayer] Failed to set audio mode:', err);
     });
@@ -170,35 +181,50 @@ export function AudioPlayerProvider({ children }: { children: React.ReactNode })
     lastPositionMsRef.current = 0;
   }, [pauseListenClock]);
 
+  // Tear down the live player: unhook status updates, drop lock-screen
+  // controls, release the native object. createAudioPlayer players are not
+  // auto-released, so every exit path must come through here.
+  const releasePlayer = useCallback(() => {
+    statusSubRef.current?.remove();
+    statusSubRef.current = null;
+    const p = playerRef.current;
+    playerRef.current = null;
+    currentUriRef.current = null;
+    if (p) {
+      try { p.setActiveForLockScreen(false); } catch {}
+      try { p.release(); } catch {}
+    }
+  }, []);
+
   // Playback status callback
-  const onStatusUpdate = useCallback((status: AVPlaybackStatus) => {
+  const onStatusUpdate = useCallback((status: AudioStatus) => {
     if (!status.isLoaded) {
       setIsLoaded(false);
-      if ('error' in status && status.error) {
+      if (status.error) {
         console.error('[AudioPlayer] Playback error:', status.error);
         setLoadError(status.error);
       }
       return;
     }
+    const positionMillis = Math.round(status.currentTime * 1000);
+    const durationMillis = Math.round((status.duration || 0) * 1000);
     setIsLoaded(true);
-    setIsPlaying(status.isPlaying);
+    setIsPlaying(status.playing);
     setIsBuffering(status.isBuffering);
-    setPositionMs(status.positionMillis);
-    setDurationMs(status.durationMillis ?? 0);
+    setPositionMs(positionMillis);
+    setDurationMs(durationMillis);
     setLoadError(null);
     setDidJustFinish(status.didJustFinish ?? false);
-    lastPositionMsRef.current = status.positionMillis;
-    if (status.durationMillis) lastDurationMsRef.current = status.durationMillis;
+    lastPositionMsRef.current = positionMillis;
+    if (durationMillis) lastDurationMsRef.current = durationMillis;
 
     // Listen clock: run only while actually playing; flush when the talk ends.
     if (status.didJustFinish) {
       flushListenTime();
       if (!finishHandledRef.current) {
         finishHandledRef.current = true;
-        void persistProgress(true).finally(async () => {
-          try { await soundRef.current?.unloadAsync(); } catch {}
-          soundRef.current = null;
-          currentUriRef.current = null;
+        void persistProgress(true).finally(() => {
+          releasePlayer();
           setCurrentSpeakerId(null);
           setIsLoaded(false);
           setIsPlaying(false);
@@ -207,26 +233,26 @@ export function AudioPlayerProvider({ children }: { children: React.ReactNode })
           setDurationMs(0);
         });
       }
-    } else if (status.isPlaying && playStartRef.current == null) {
+    } else if (status.playing && playStartRef.current == null) {
       playStartRef.current = Date.now();
-    } else if (!status.isPlaying) {
+    } else if (!status.playing) {
       pauseListenClock();
     }
     if (!status.didJustFinish && Date.now() - progressSaveAtRef.current >= 5000) {
       progressSaveAtRef.current = Date.now();
       void persistProgress(false);
     }
-  }, [flushListenTime, pauseListenClock, persistProgress]);
+  }, [flushListenTime, pauseListenClock, persistProgress, releasePlayer]);
 
   // Load audio for a speaker
   const load = useCallback(
     async (speakerId: string, uri: string, autoPlay = false, meta?: { name?: string; title?: string }) => {
       try {
         // If the same URI is already loaded, just toggle play
-        if (currentUriRef.current === uri && soundRef.current) {
+        if (currentUriRef.current === uri && playerRef.current) {
           setCurrentSpeakerId(speakerId);
           if (autoPlay) {
-            await soundRef.current.playAsync();
+            playerRef.current.play();
           }
           return;
         }
@@ -245,50 +271,77 @@ export function AudioPlayerProvider({ children }: { children: React.ReactNode })
         listenTitleRef.current = meta?.title ?? null;
         logEvent('speaker_played', { speaker: speakerId, speaker_name: meta?.name, title: meta?.title });
 
-        // Unload previous sound
-        if (soundRef.current) {
-          await soundRef.current.unloadAsync();
-          soundRef.current = null;
-          currentUriRef.current = null;
-        }
-
-        // Race load against timeout
-        const timeoutPromise = new Promise<never>((_, reject) =>
-          setTimeout(() => reject(new Error('Audio load timed out')), LOAD_TIMEOUT_MS)
-        );
+        // Unload previous player
+        releasePlayer();
+        applyAudioMode();
 
         const saved = await getSpeakerProgress(speakerId);
         const savedPosition = saved && !saved.didFinish ? saved.positionMs : 0;
         const savedRate = saved?.rate ?? rate;
         setRateState(savedRate);
 
-        const loadPromise = Audio.Sound.createAsync(
-          { uri },
-          { shouldPlay: autoPlay, rate: savedRate, positionMillis: savedPosition, shouldCorrectPitch: true },
-          onStatusUpdate
-        );
-
-        const { sound } = await Promise.race([loadPromise, timeoutPromise]);
-        soundRef.current = sound;
+        const player = createAudioPlayer({ uri }, { updateInterval: 500 });
+        playerRef.current = player;
         currentUriRef.current = uri;
 
-        console.log('[AudioPlayer] Loaded:', uri.substring(uri.length - 30));
+        // Lock screen / Now Playing — must be set while interruptionMode is
+        // doNotMix (applyAudioMode above) for the OS to attach controls.
+        try {
+          player.setActiveForLockScreen(
+            true,
+            {
+              title: meta?.title ?? 'Speaker Tape',
+              artist: meta?.name ?? 'Sober Dailies',
+              albumTitle: 'Sober Dailies',
+            },
+            { showSeekBackward: true, showSeekForward: true },
+          );
+        } catch {}
+
+        // expo-audio has no initialStatus: wait for the first loaded status,
+        // then apply resume position + saved rate before (optionally) playing.
+        const token = ++loadTokenRef.current;
+        let initDone = false;
+        const applyInit = async (st: AudioStatus) => {
+          if (initDone || !st.isLoaded) return;
+          initDone = true;
+          if (loadTokenRef.current !== token || playerRef.current !== player) return;
+          try {
+            if (savedRate !== 1) player.setPlaybackRate(savedRate, 'high');
+            if (savedPosition > 0) await player.seekTo(savedPosition / 1000);
+            if (autoPlay) player.play();
+          } catch (err) {
+            console.warn('[AudioPlayer] Resume-state apply failed:', err);
+          }
+        };
+        statusSubRef.current = player.addListener('playbackStatusUpdate', (st) => {
+          void applyInit(st);
+          onStatusUpdate(st);
+        });
+
+        // No load promise to race anymore — surface a timeout ourselves.
+        setTimeout(() => {
+          if (loadTokenRef.current === token && playerRef.current === player && !initDone) {
+            console.error('[AudioPlayer] Load timed out');
+            releasePlayer();
+            setLoadError('Audio file not found');
+            setIsBuffering(false);
+          }
+        }, LOAD_TIMEOUT_MS);
+
+        console.log('[AudioPlayer] Loading:', uri.substring(uri.length - 30));
       } catch (err: any) {
         console.error('[AudioPlayer] Load failed:', err?.message || err);
-        setLoadError(
-          err?.message?.includes('timed out')
-            ? 'Audio file not found'
-            : 'Failed to load audio'
-        );
+        setLoadError('Failed to load audio');
         setIsBuffering(false);
       }
     },
-    [rate, onStatusUpdate, flushListenTime, persistProgress]
+    [rate, onStatusUpdate, flushListenTime, persistProgress, releasePlayer, applyAudioMode]
   );
 
   const play = useCallback(async () => {
     try {
-      await soundRef.current?.playAsync();
+      playerRef.current?.play();
     } catch (err) {
       console.error('[AudioPlayer] Play failed:', err);
     }
@@ -296,23 +349,19 @@ export function AudioPlayerProvider({ children }: { children: React.ReactNode })
 
   const pause = useCallback(async () => {
     try {
-      await soundRef.current?.pauseAsync();
+      playerRef.current?.pause();
       await persistProgress(false);
     } catch (err) {
       console.error('[AudioPlayer] Pause failed:', err);
     }
   }, [persistProgress]);
 
-  // Stop = full unload, reset everything
+  // Stop = full release, reset everything
   const stop = useCallback(async () => {
     try {
       flushListenTime();
       await persistProgress(false);
-      if (soundRef.current) {
-        await soundRef.current.unloadAsync();
-        soundRef.current = null;
-        currentUriRef.current = null;
-      }
+      releasePlayer();
       setCurrentSpeakerId(null);
       setIsLoaded(false);
       setIsPlaying(false);
@@ -323,11 +372,11 @@ export function AudioPlayerProvider({ children }: { children: React.ReactNode })
     } catch (err) {
       console.error('[AudioPlayer] Stop failed:', err);
     }
-  }, [flushListenTime, persistProgress]);
+  }, [flushListenTime, persistProgress, releasePlayer]);
 
   const seekTo = useCallback(async (ms: number) => {
     try {
-      await soundRef.current?.setPositionAsync(ms);
+      await playerRef.current?.seekTo(ms / 1000);
     } catch (err) {
       console.error('[AudioPlayer] Seek failed:', err);
     }
@@ -337,7 +386,7 @@ export function AudioPlayerProvider({ children }: { children: React.ReactNode })
     async (seconds: number) => {
       const target = Math.max(0, Math.min(positionMs + seconds * 1000, durationMs));
       try {
-        await soundRef.current?.setPositionAsync(target);
+        await playerRef.current?.seekTo(target / 1000);
       } catch (err) {
         console.error('[AudioPlayer] SeekBy failed:', err);
       }
@@ -348,7 +397,7 @@ export function AudioPlayerProvider({ children }: { children: React.ReactNode })
   const setRate = useCallback(async (newRate: number) => {
     setRateState(newRate);
     try {
-      await soundRef.current?.setRateAsync(newRate, true);
+      playerRef.current?.setPlaybackRate(newRate, 'high');
     } catch (err) {
       console.error('[AudioPlayer] SetRate failed:', err);
     }
@@ -359,9 +408,9 @@ export function AudioPlayerProvider({ children }: { children: React.ReactNode })
     return () => {
       void persistProgress(false);
       flushListenTime();
-      soundRef.current?.unloadAsync();
+      releasePlayer();
     };
-  }, [flushListenTime, persistProgress]);
+  }, [flushListenTime, persistProgress, releasePlayer]);
 
   const value: AudioPlayerContextType = {
     currentSpeakerId,

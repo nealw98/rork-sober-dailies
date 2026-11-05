@@ -3,12 +3,14 @@
 // directly on the dailies store (useDailies): drag to reorder + re-bucket, "−"
 // to remove, "+ Add to {section}" to pull from the catalog or create a custom.
 //
-// `header` renders inside the list, above the pinned first section ("Morning"),
-// so a row can never be dragged above it. Today passes the counter + hero;
-// onboarding passes its title + intro card.
+// `header` renders inside the scroll view, above the pinned first section
+// ("Morning") and the sortable grid, so a row can never be dragged above it.
+// Today passes the counter + hero; onboarding passes its title + intro card.
+// Reordering is react-native-sortables (draggable-flatlist died with RNGH 3).
 import React, { useMemo, useState, useCallback } from 'react';
 import { View, Text, Pressable, StyleSheet, type StyleProp, type ViewStyle } from 'react-native';
-import DraggableFlatList, { ScaleDecorator, type RenderItemParams } from 'react-native-draggable-flatlist';
+import Animated, { useAnimatedRef } from 'react-native-reanimated';
+import Sortable, { type SortableGridRenderItem } from 'react-native-sortables';
 import { Minus, Plus, Menu } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 import { fontFamily, fontSize, spacing, shadows, type Tokens } from '@/constants/designTokens';
@@ -28,8 +30,8 @@ type EditRow =
 
 // A single editable daily row: drag handle (long-press to reorder) + the action's
 // own icon + label + remove.
-function EditDailyRow({ item, dragging, onRemove, onDragStart }: {
-  item: DailyItem; dragging: boolean; onRemove: () => void; onDragStart: () => void;
+function EditDailyRow({ item, onRemove }: {
+  item: DailyItem; onRemove: () => void;
 }) {
   const styles = useThemedStyles(makeStyles);
   const { c, mode } = useTokens();
@@ -38,10 +40,13 @@ function EditDailyRow({ item, dragging, onRemove, onDragStart }: {
   // Canned subtitles are permanently off; only user-entered ones render.
   const sub = item.subtitle;
   return (
-    <View style={[styles.row, dragging && styles.rowDragging]}>
-      <Pressable style={styles.dragHandle} onLongPress={onDragStart} delayLongPress={150} accessibilityLabel={`Drag ${item.label} to reorder`}>
-        <Menu size={22} color={c.textMuted} strokeWidth={2} />
-      </Pressable>
+    <View style={styles.row}>
+      {/* press-and-hold the handle (dragActivationDelay) starts the drag */}
+      <Sortable.Handle style={styles.dragHandle}>
+        <View accessibilityLabel={`Drag ${item.label} to reorder`}>
+          <Menu size={22} color={c.textMuted} strokeWidth={2} />
+        </View>
+      </Sortable.Handle>
       <View style={[styles.med, { backgroundColor: tone.soft }]}>
         <Glyph size={20} color={tone.ink} />
       </View>
@@ -71,6 +76,9 @@ export default function DailiesEditor({ header, headerAccessory, contentContaine
   const dailies = useDailies();
   const [addSection, setAddSection] = useState<WhenBucket | null>(null);
   const [createSection, setCreateSection] = useState<WhenBucket | null>(null);
+  // Reanimated scroll ref: Sortable.Grid auto-scrolls this container while a
+  // row is dragged near the edges.
+  const scrollRef = useAnimatedRef<Animated.ScrollView>();
 
   // One flat drag list across all three sections. The FIRST section's header
   // (Morning) is pinned in the list header instead of the data, so a row can
@@ -112,7 +120,9 @@ export default function DailiesEditor({ header, headerAccessory, contentContaine
 
   const addedActions = new Set(dailies.program.map((i) => i.action));
 
-  const renderEditRow = useCallback(({ item: row, drag, isActive }: RenderItemParams<EditRow>) => {
+  // With `customHandle`, only rows that render a Sortable.Handle (the dailies)
+  // can be dragged; header and "+ Add" rows just get displaced around them.
+  const renderEditRow = useCallback<SortableGridRenderItem<EditRow>>(({ item: row }) => {
     if (row.type === 'header') {
       return (
         <View style={styles.dragHeader}>
@@ -131,31 +141,36 @@ export default function DailiesEditor({ header, headerAccessory, contentContaine
       );
     }
     return (
-      <ScaleDecorator activeScale={1.03}>
-        <EditDailyRow
-          item={row.item}
-          dragging={isActive}
-          onRemove={() => dailies.removeDaily(row.item.id)}
-          onDragStart={drag}
-        />
-      </ScaleDecorator>
+      <EditDailyRow
+        item={row.item}
+        onRemove={() => dailies.removeDaily(row.item.id)}
+      />
     );
   }, [c.text, colors.primary, dailies, styles]);
 
   return (
     <>
-      <DraggableFlatList
-        data={editData}
-        keyExtractor={(row) => row.key}
-        renderItem={renderEditRow}
-        onDragEnd={handleDragEnd}
-        onDragBegin={() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium)}
-        ListHeaderComponent={listHeader}
-        containerStyle={styles.flex}
+      <Animated.ScrollView
+        ref={scrollRef}
+        style={styles.flex}
         contentContainerStyle={contentContainerStyle ?? styles.scroll}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
-      />
+      >
+        {listHeader}
+        <Sortable.Grid
+          data={editData}
+          keyExtractor={(row: EditRow) => row.key}
+          renderItem={renderEditRow}
+          onDragEnd={handleDragEnd}
+          onDragStart={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); }}
+          customHandle
+          scrollableRef={scrollRef}
+          activeItemScale={1.03}
+          inactiveItemOpacity={1}
+          overDrag="vertical"
+        />
+      </Animated.ScrollView>
 
       {addSection && (
         <AddSheet

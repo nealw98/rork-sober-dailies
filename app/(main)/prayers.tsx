@@ -76,7 +76,7 @@ export default function PrayersScreen() {
   const [mode, setMode] = useState<Mode>('list');
   const [source, setSource] = useState<Rect | null>(null);
   const [sizeSheetOpen, setSizeSheetOpen] = useState(false);
-  const cardRefs = useRef<Array<View | null>>([]);
+  const cardRefs = useRef<Array<React.ComponentRef<typeof View> | null>>([]);
 
   useScreenTimeTracking('Prayers');
 

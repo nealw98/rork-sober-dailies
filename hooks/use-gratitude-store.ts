@@ -123,7 +123,7 @@ export const [GratitudeProvider, useGratitudeStore] = createContextHook(() => {
       if (stored) {
         const parsedEntries = JSON.parse(stored);
         console.log('Gratitude - Loaded entries:', parsedEntries.length, 'entries');
-        console.log('Gratitude - Entry dates:', parsedEntries.map(e => e.date));
+        console.log('Gratitude - Entry dates:', parsedEntries.map((e: any) => e.date));
         setEntries(parsedEntries);
       } else {
         console.log('Gratitude - No stored entries found');

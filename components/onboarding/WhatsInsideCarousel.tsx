@@ -10,8 +10,8 @@
 //   streaks 21/14/9, the heatmap, "26 of 31 days"). Do not wire them to stores —
 //   decided. The ONLY live data is SPONSORS (names/taglines/avatars verbatim).
 
-import React, { useRef, useState } from 'react';
-import { View, Text, StyleSheet, Pressable, ScrollView, Dimensions, NativeSyntheticEvent, NativeScrollEvent } from 'react-native';
+import React, { useEffect, useRef, useState } from 'react';
+import { View, Text, StyleSheet, Pressable, ScrollView, useWindowDimensions, NativeSyntheticEvent, NativeScrollEvent } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { StatusBar } from 'expo-status-bar';
@@ -37,9 +37,7 @@ const HEAT_HI = '#2E7D74';
 const HEAT_MID = '#3E9186';
 const HEAT_LO = '#CFE3DF';
 
-const { width: SCREEN_W } = Dimensions.get('window');
 const PAGE_PAD = 26;
-const CARD_W = SCREEN_W - PAGE_PAD * 2;
 
 function Sunrise({ size = 21, color = '#2E6F6F' }: { size?: number; color?: string }) {
   return (
@@ -351,7 +349,7 @@ export default function WhatsInsideCarousel({ onSkip, onContinue }: {
 }) {
   const styles = useThemedStyles(makeStyles);
   const cards = useCards();
-  const scrollRef = useRef<ScrollView>(null);
+  const scrollRef = useRef<React.ComponentRef<typeof ScrollView>>(null);
   const [index, setIndex] = useState(0);
   // All four cards share the height of the tallest, so the carousel doesn't
   // resize as you page. Measured, not hardcoded: the tallest card differs by
@@ -359,16 +357,25 @@ export default function WhatsInsideCarousel({ onSkip, onContinue }: {
   // applied, the re-measure reports the same value and the max stops moving.
   const [cardH, setCardH] = useState(0);
   const measure = (h: number) => setCardH((m) => (h > m ? h : m));
+  // Live width: resnap when the window resizes (Duo fold/unfold, rotation)
+  // instead of keeping the width captured at first render.
+  const { width: screenW } = useWindowDimensions();
+  const indexRef = useRef(index);
+  indexRef.current = index;
+  useEffect(() => {
+    setCardH(0); // tallest-card height is width-dependent — re-measure
+    scrollRef.current?.scrollTo({ x: indexRef.current * screenW, animated: false });
+  }, [screenW]);
   const last = index === cards.length - 1;
   const { isDark } = useTokens();
 
   const onMomentumEnd = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
-    const i = Math.round(e.nativeEvent.contentOffset.x / SCREEN_W);
+    const i = Math.round(e.nativeEvent.contentOffset.x / screenW);
     if (i !== index) setIndex(Math.max(0, Math.min(cards.length - 1, i)));
   };
 
   const goTo = (i: number) => {
-    scrollRef.current?.scrollTo({ x: i * SCREEN_W, animated: true });
+    scrollRef.current?.scrollTo({ x: i * screenW, animated: true });
     setIndex(i);
   };
 
@@ -395,12 +402,12 @@ export default function WhatsInsideCarousel({ onSkip, onContinue }: {
           {cards.map((m) => (
             <ScrollView
               key={m.key}
-              style={styles.page}
+              style={[styles.page, { width: screenW }]}
               contentContainerStyle={styles.pageContent}
               showsVerticalScrollIndicator={false}
             >
               <View
-                style={[styles.card, cardH > 0 && { minHeight: cardH }]}
+                style={[styles.card, { width: screenW - PAGE_PAD * 2 }, cardH > 0 && { minHeight: cardH }]}
                 onLayout={(e) => measure(e.nativeEvent.layout.height)}
               >
                 <View style={styles.cardHead}>
@@ -450,10 +457,10 @@ const makeStyles = (tk: Tokens) => {
     skipPill: { paddingVertical: 6, paddingHorizontal: 15, borderRadius: 999, backgroundColor: 'rgba(255,255,255,0.16)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.32)' },
     skipText: { fontFamily: fontFamily.bold, fontSize: 13.5, color: '#fff' },
 
-    page: { width: SCREEN_W },
+    page: {},
     // grow so a card shorter than the viewport still centres
     pageContent: { flexGrow: 1, paddingHorizontal: PAGE_PAD, paddingVertical: 8, justifyContent: 'center' },
-    card: { width: CARD_W, backgroundColor: c.surface, borderRadius: 24, paddingVertical: 20, paddingHorizontal: 18, ...shadows.lg, shadowOpacity: 0.22, shadowRadius: 25, shadowOffset: { width: 0, height: 12 } },
+    card: { backgroundColor: c.surface, borderRadius: 24, paddingVertical: 20, paddingHorizontal: 18, ...shadows.lg, shadowOpacity: 0.22, shadowRadius: 25, shadowOffset: { width: 0, height: 12 } },
     cardHead: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 8 },
     cardIconBox: { width: 42, height: 42, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
     cardTitle: { flex: 1, fontFamily: fontFamily.display, fontSize: 21, color: c.text, letterSpacing: -0.4 },

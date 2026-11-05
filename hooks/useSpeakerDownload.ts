@@ -1,5 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import * as FileSystem from 'expo-file-system';
+// SDK 54+ replaced the FileSystem API; the download/resumable surface this
+// hook uses lives on unchanged in the legacy entry point.
+import * as FileSystem from 'expo-file-system/legacy';
 
 const { documentDirectory } = FileSystem;
 type DownloadResumable = FileSystem.DownloadResumable;

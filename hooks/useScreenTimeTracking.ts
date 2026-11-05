@@ -1,6 +1,6 @@
 import { useEffect, useRef, useCallback } from 'react';
 import { AppState, AppStateStatus } from 'react-native';
-import { useFocusEffect } from '@react-navigation/native';
+import { useFocusEffect } from 'expo-router';
 import { logEvent } from '@/lib/analytics';
 import { recordLiteratureSeconds } from '@/lib/reviewPrompt';
 

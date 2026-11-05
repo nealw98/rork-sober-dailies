@@ -5,6 +5,10 @@ import { StatusBar } from "expo-status-bar";
 import { useTokens } from "@/hooks/useTokens";
 import GlobalSponsorFab from "@/components/navigation/GlobalSponsorFab";
 
+// Expo Router SDK 58 removed the navigator initialRouteName prop; the anchor
+// setting is how a stack declares its default screen now.
+export const unstable_settings = { anchor: '(tabs)' };
+
 export default function MainLayout() {
   const { c, isDark } = useTokens();
 
@@ -13,7 +17,6 @@ export default function MainLayout() {
     {/* Follow the app's appearance setting (which may differ from the system's) */}
     <StatusBar style={isDark ? "light" : "dark"} />
     <Stack
-      initialRouteName="(tabs)"
       screenOptions={{
         headerShown: false,
         contentStyle: { backgroundColor: c.background },
