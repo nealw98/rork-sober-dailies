@@ -369,18 +369,17 @@ export default function PaywallScreen({ onDismiss, onDevBypass, onUnavailableDis
   const cannotSell = !isLoading && !autoRetrying && !chosen;
   const closeAction = cannotSell && onUnavailableDismiss ? onUnavailableDismiss : onDismiss;
 
-  // All branches respect the horizontal safe-area edges too: on the unfolded
-  // Duo in landscape iOS reports an 84pt RIGHT inset (camera + floating status
-  // cluster) with top = 0, and without it the close X rendered exactly under
-  // the system clock — an undismissable wall. Portrait phones report 0 left/
-  // right, so compact is untouched.
+  // Horizontal safe-area edges (the Duo's 84pt side inset, where the close X
+  // once hid under the system clock) are applied once by the root
+  // SideInsetGuard in app/_layout.tsx — adding 'left'/'right' here again
+  // would double-inset this screen.
 
   // Nothing to sell yet but retries are still in flight — same resolving
   // spinner the variant gate uses, so a transient blip never flashes the fail
   // screen on its way to a working paywall.
   if (autoRetrying && !chosen) {
     return (
-      <SafeAreaView style={styles.screen} edges={['top', 'bottom', 'left', 'right']}>
+      <SafeAreaView style={styles.screen} edges={['top', 'bottom']}>
         <View style={styles.resolving}>
           <ActivityIndicator color={colors.primary} />
         </View>
@@ -390,7 +389,7 @@ export default function PaywallScreen({ onDismiss, onDevBypass, onUnavailableDis
 
   if (cannotSell) {
     return (
-      <SafeAreaView style={styles.screen} edges={['top', 'bottom', 'left', 'right']}>
+      <SafeAreaView style={styles.screen} edges={['top', 'bottom']}>
         <View style={styles.unavailablePage}>
           <View style={styles.header}>
             {__DEV__ && !!onDevBypass && (
@@ -469,7 +468,7 @@ export default function PaywallScreen({ onDismiss, onDevBypass, onUnavailableDis
   const variantResolved = forceTrial !== undefined || trialEligible !== null || !!error;
   if (!variantResolved) {
     return (
-      <SafeAreaView style={styles.screen} edges={['top', 'bottom', 'left', 'right']}>
+      <SafeAreaView style={styles.screen} edges={['top', 'bottom']}>
         <View style={styles.resolving}>
           <ActivityIndicator color={colors.primary} />
         </View>
@@ -478,7 +477,7 @@ export default function PaywallScreen({ onDismiss, onDevBypass, onUnavailableDis
   }
 
   return (
-    <SafeAreaView style={styles.screen} edges={['top', 'bottom', 'left', 'right']}>
+    <SafeAreaView style={styles.screen} edges={['top', 'bottom']}>
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
         {/* Header — close (X) on the RIGHT, where a dismiss belongs. Play
             rejected this screen for an "unclear or invisible dismiss button",

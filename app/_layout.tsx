@@ -92,6 +92,7 @@ import { ThemeProvider } from "@/hooks/useTheme";
 import { useSobrietyBirthday } from "@/hooks/useSobrietyBirthday";
 import SobrietyBirthdayModal from "@/components/SobrietyBirthdayModal";
 import PassOfferScreen from "@/components/PassOfferScreen";
+import SideInsetGuard from "@/components/layout/SideInsetGuard";
 import { usePendingAndroidPass } from "@/hooks/usePendingAndroidPass";
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
@@ -437,6 +438,7 @@ export default function RootLayout() {
                         {Platform.OS === 'android' && (
                           <StatusBar barStyle="light-content" />
                         )}
+                        <SideInsetGuard>
                         <ActionSheetProvider>
                           <ErrorBoundary>
                             <AudioPlayerProvider>
@@ -448,6 +450,7 @@ export default function RootLayout() {
                             </AudioPlayerProvider>
                           </ErrorBoundary>
                         </ActionSheetProvider>
+                        </SideInsetGuard>
                         </KeyboardProvider>
                       </GestureHandlerRootView>
                     </ImmersiveProvider>

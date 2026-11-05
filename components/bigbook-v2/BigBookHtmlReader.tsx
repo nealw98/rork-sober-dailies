@@ -837,8 +837,11 @@ export function BigBookHtmlReader({ visible, initialChapterId, scrollToPage, scr
 
   const isCurrentPageBookmarked = currentPageNumber ? isPageBookmarked(currentPageNumber) : false;
 
+  // Embedded: inside the app tree, where the root SideInsetGuard already pads
+  // the sides. Modal: its own native window, so it must respect the left/right
+  // insets (the Duo's 84pt camera strip) itself.
   const body = (
-        <SafeAreaView style={styles.screen} edges={embedded ? ['top'] : ['top', 'bottom']}>
+        <SafeAreaView style={styles.screen} edges={embedded ? ['top'] : ['top', 'bottom', 'left', 'right']}>
           <View style={styles.header}>
             {!embedded && (
               <Pressable onPress={onClose} hitSlop={8} style={styles.backBtn} accessibilityRole="button" accessibilityLabel="Close">

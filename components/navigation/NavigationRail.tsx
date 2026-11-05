@@ -103,8 +103,9 @@ export default function NavigationRail() {
       style={[
         styles.rail,
         {
-          width: RAIL_WIDTH + insets.left,
-          paddingLeft: insets.left,
+          // Left safe-area inset comes from the root SideInsetGuard; the rail
+          // itself only sizes to its content.
+          width: RAIL_WIDTH,
           paddingTop: insets.top + 16,
           paddingBottom: Math.max(insets.bottom, 16),
           backgroundColor: c.background,
