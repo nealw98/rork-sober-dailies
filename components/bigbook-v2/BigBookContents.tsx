@@ -36,10 +36,13 @@ const BOOK = 'bigbook';
 const isCollapsibleGroup = (label: string) =>
   label === 'Front Matter' || label.startsWith('Personal Stories') || label === 'Appendices';
 
-export function BigBookContents({ onOpenText, onOpenPdf, onOpenTextAtParagraph }: {
+export function BigBookContents({ onOpenText, onOpenPdf, onOpenTextAtParagraph, selectedId }: {
   onOpenText: (chapterId: string, page?: number, searchTerm?: string, paragraphId?: string) => void;
   onOpenPdf: (entry: TocEntry, initialPage?: number) => void;
   onOpenTextAtParagraph: (chapterId: string, paragraphId: string) => void;
+  // 3.5 wide layouts: the entry open in the reader pane beside this list —
+  // its row gets the light steel tint. Compact passes nothing.
+  selectedId?: string | null;
 }) {
   const router = useRouter();
   const styles = useThemedStyles(makeStyles);
@@ -337,6 +340,7 @@ export function BigBookContents({ onOpenText, onOpenPdf, onOpenTextAtParagraph }
                     title={m ? m[2] : e.title}
                     caption={caption + note}
                     last={i === g.entries.length - 1}
+                    selected={selectedId != null && (e.chapterId === selectedId || e.id === selectedId)}
                     onPress={() => open(e)}
                   />
                 );
@@ -481,16 +485,24 @@ export function BigBookContents({ onOpenText, onOpenPdf, onOpenTextAtParagraph }
 // line, its page metadata follows in a caption underneath, and a chevron opens
 // it. Chapters add a numeral column in front; everything else starts at the
 // margin.
-function Row({ num, title, caption, last, onPress }: { num?: string; title: string; caption?: string; last: boolean; onPress: () => void }) {
+function Row({ num, title, caption, last, selected, onPress }: { num?: string; title: string; caption?: string; last: boolean; selected?: boolean; onPress: () => void }) {
   const styles = useThemedStyles(makeStyles);
-  const { c } = useTokens();
+  const { c, colors } = useTokens();
   // Entry text rides the shared "Aa" reading scale, like the readers.
   const { readingSize: size, readingLineHeight: lineHeight } = useReadingSize();
   return (
     <Pressable
       onPress={onPress}
-      style={({ pressed }) => [styles.row, !last && styles.rowBorder, pressed && { opacity: 0.6 }]}
+      // Wide layouts: the chapter open in the pane gets the handoff's light
+      // steel tint + 3pt steel bar on its left edge (selection, not pressed).
+      style={({ pressed }) => [
+        styles.row,
+        !last && styles.rowBorder,
+        selected && [styles.rowSelected, { backgroundColor: colors.steelSoft, borderLeftColor: colors.steel }],
+        pressed && { opacity: 0.6 },
+      ]}
       accessibilityRole="button"
+      accessibilityState={selected ? { selected: true } : {}}
       accessibilityLabel={num !== undefined ? `Chapter ${num}. ${title}` : title}
     >
       {/* Numeral rides the title's line; column sized for two digits (10, 11). */}
@@ -537,6 +549,9 @@ const makeStyles = (tk: Tokens) => {
   groupLabel: { fontFamily: fontFamily.bold, fontSize: 11, letterSpacing: 1, color: c.textMuted },
   groupSub: { fontFamily: fontFamily.regular, fontSize: 10.5, color: c.textMuted },
   row: { flexDirection: 'row', alignItems: 'flex-start', gap: 12, paddingVertical: 14 },
+  // Selection (wide layouts): tint + left bar, pulled out to the margins so
+  // the text column stays aligned with unselected rows.
+  rowSelected: { borderLeftWidth: 3, borderRadius: 10, paddingHorizontal: 10, marginHorizontal: -13 },
   rowBorder: { borderBottomWidth: 1, borderBottomColor: c.divider },
   // Chapter numeral column — navy serif, sized to sit with the serif titles.
   rowNum: { fontFamily: readerSerif, fontWeight: '700', fontSize: 20, lineHeight: 22, color: AMBER_INK, width: 26, textAlign: 'left' },

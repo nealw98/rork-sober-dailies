@@ -69,6 +69,13 @@ interface BigBookHtmlReaderProps {
   scrollToParagraphId?: string | null;
   searchTerm?: string | null;
   onClose: () => void;
+  // 3.5 wide layouts: render inline as the Big Book detail pane instead of a
+  // full-screen Modal. Embedded drops the close button (the Contents list is
+  // visible beside the pane) and the Android back-press hijack.
+  embedded?: boolean;
+  // Fires whenever the displayed chapter changes (initial load and the
+  // footer's Prev/Next), so the Contents list can track the selection.
+  onChapterChange?: (chapterId: string) => void;
 }
 
 type WebMessage =
@@ -581,7 +588,7 @@ function buildHtml(params: {
 </html>`;
 }
 
-export function BigBookHtmlReader({ visible, initialChapterId, scrollToPage, scrollToParagraphId, searchTerm, onClose }: BigBookHtmlReaderProps) {
+export function BigBookHtmlReader({ visible, initialChapterId, scrollToPage, scrollToParagraphId, searchTerm, onClose, embedded, onChapterChange }: BigBookHtmlReaderProps) {
   useReadingTime('Big Book', { format: 'text' });
   const styles = useThemedStyles(makeStyles);
   const { c, colors, isDark, mode } = useTokens();
@@ -625,11 +632,19 @@ export function BigBookHtmlReader({ visible, initialChapterId, scrollToPage, scr
 
   useEffect(() => { loadChapter(initialChapterId); }, [initialChapterId, loadChapter]);
 
+  // Let the host track which chapter is actually showing (Prev/Next moves it
+  // without touching initialChapterId).
   useEffect(() => {
-    if (!visible) return;
+    if (currentChapterId) onChapterChange?.(currentChapterId);
+  }, [currentChapterId, onChapterChange]);
+
+  useEffect(() => {
+    // Embedded panes must not swallow Android back presses — the reader is
+    // part of the screen there, not an overlay to dismiss.
+    if (!visible || embedded) return;
     const sub = BackHandler.addEventListener('hardwareBackPress', () => { onClose(); return true; });
     return () => sub.remove();
-  }, [visible, onClose]);
+  }, [visible, embedded, onClose]);
 
   useEffect(() => {
     if (currentChapter) setCurrentPageNumber(currentChapter.pageRange[0]);
@@ -822,16 +837,16 @@ export function BigBookHtmlReader({ visible, initialChapterId, scrollToPage, scr
 
   const isCurrentPageBookmarked = currentPageNumber ? isPageBookmarked(currentPageNumber) : false;
 
-  return (
-    <Modal visible={visible} animationType="slide" presentationStyle="fullScreen" onRequestClose={onClose}>
-      <SafeAreaProvider initialMetrics={initialWindowMetrics}>
-        <SafeAreaView style={styles.screen} edges={['top', 'bottom']}>
+  const body = (
+        <SafeAreaView style={styles.screen} edges={embedded ? ['top'] : ['top', 'bottom']}>
           <View style={styles.header}>
-            <Pressable onPress={onClose} hitSlop={8} style={styles.backBtn} accessibilityRole="button" accessibilityLabel="Close">
-              <ChevronLeft size={22} color={c.text} strokeWidth={2} />
-            </Pressable>
+            {!embedded && (
+              <Pressable onPress={onClose} hitSlop={8} style={styles.backBtn} accessibilityRole="button" accessibilityLabel="Close">
+                <ChevronLeft size={22} color={c.text} strokeWidth={2} />
+              </Pressable>
+            )}
             <View style={styles.flex}>
-              <Text style={styles.title} numberOfLines={1}>{displayTitle || 'Loading...'}</Text>
+              <Text style={[styles.title, embedded && styles.titleEmbedded]} numberOfLines={1}>{displayTitle || 'Loading...'}</Text>
             </View>
           </View>
 
@@ -907,6 +922,16 @@ export function BigBookHtmlReader({ visible, initialChapterId, scrollToPage, scr
             embedded
           />
         </SafeAreaView>
+  );
+
+  // Embedded (wide-layout detail pane): the reader is part of the screen —
+  // no Modal, and no nested SafeAreaProvider (the app's own provider is live).
+  if (embedded) return body;
+
+  return (
+    <Modal visible={visible} animationType="slide" presentationStyle="fullScreen" onRequestClose={onClose}>
+      <SafeAreaProvider initialMetrics={initialWindowMetrics}>
+        {body}
       </SafeAreaProvider>
     </Modal>
   );
@@ -922,6 +947,8 @@ const makeStyles = (tk: Tokens) => {
   header: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 14, paddingTop: 8, paddingBottom: 10 },
   backBtn: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center', backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.04)' },
   title: { fontFamily: fontFamily.displayBold, fontSize: 20, letterSpacing: -0.4, color: c.text },
+  // Embedded pane: no back button in front, so the title carries the inset.
+  titleEmbedded: { paddingLeft: 6, paddingTop: 6 },
   actionRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 18, paddingBottom: 8, borderBottomWidth: 1, borderBottomColor: c.divider },
   pageLabel: { fontFamily: fontFamily.semiBold, fontSize: 12.5, color: c.textSecondary },
   actions: { flexDirection: 'row', alignItems: 'center', gap: 8 },
