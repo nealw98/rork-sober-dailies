@@ -2,16 +2,24 @@
 // on a shelf — the images themselves are the buttons, no card/container —
 // with serif titles beneath, and Meeting Readings listed in full below.
 // The Big Book and 12 & 12 readers are the existing routes; Meeting Readings
-// live entirely in-app.
-import React from 'react';
+// live entirely in-app. On expanded widths (3.5 wide layouts) the tab becomes
+// list | reading: the selected meeting reading renders in a pane beside the
+// shelf instead of pushing, while the books still push their own readers
+// (they stay full-screen worlds until the Big Book spread slice).
+import React, { useState } from 'react';
 import { View, Text, Pressable, StyleSheet, ScrollView } from 'react-native';
 import { Image } from 'expo-image';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Stack, useRouter } from 'expo-router';
 import SettingsGear from '@/components/navigation/SettingsGear';
 import PassItOnGift from '@/components/navigation/PassItOnGift';
 import { MeetingReadingCard } from '@/components/literature/literature-ui';
+import MeetingReadingContent from '@/components/literature/MeetingReadingContent';
 import { MEETING_READINGS } from '@/constants/meeting-readings';
+import { useLayoutMode } from '@/hooks/useLayoutMode';
+import ListDetailLayout from '@/components/layout/ListDetailLayout';
+import ReadingColumn from '@/components/layout/ReadingColumn';
+import { ReadingSizeSheet } from '@/components/ReadingSizeSheet';
 import { useReadingSession } from '@/hooks/useReadingSession';
 import { useScreenTimeTracking } from '@/hooks/useScreenTimeTracking';
 import { readerSerif } from '@/constants/fonts';
@@ -28,8 +36,22 @@ export default function LiteratureScreen() {
   useScreenTimeTracking('Literature');
   const router = useRouter();
   const styles = useThemedStyles(makeStyles);
+  const insets = useSafeAreaInsets();
+  const expanded = useLayoutMode() === 'expanded';
 
-  return (
+  // Wide layouts: which meeting reading is open in the detail pane. Lives in
+  // state (not the route) so it survives fold/unfold; compact ignores it and
+  // keeps pushing the dedicated reader screen.
+  const [selectedId, setSelectedId] = useState(MEETING_READINGS[0].id);
+  const [sizeSheetOpen, setSizeSheetOpen] = useState(false);
+  const selectedReading = MEETING_READINGS.find((r) => r.id === selectedId) ?? MEETING_READINGS[0];
+
+  const openReading = (id: string) => {
+    if (expanded) setSelectedId(id);
+    else router.push(`/(main)/meeting-reading?id=${id}`);
+  };
+
+  const listColumn = (
     <SafeAreaView style={styles.screen} edges={['top']}>
       <Stack.Screen options={{ headerShown: false }} />
       <View style={styles.header}>
@@ -75,16 +97,51 @@ export default function LiteratureScreen() {
 
         <View style={styles.readingList}>
           {MEETING_READINGS.map((r) => (
-            <MeetingReadingCard key={r.id} reading={r} onPress={() => router.push(`/(main)/meeting-reading?id=${r.id}`)} />
+            <MeetingReadingCard
+              key={r.id}
+              reading={r}
+              selected={expanded && r.id === selectedId}
+              onPress={() => openReading(r.id)}
+            />
           ))}
         </View>
       </ScrollView>
     </SafeAreaView>
   );
+
+  if (expanded) {
+    return (
+      <ListDetailLayout
+        listWidth={LIT_LIST_WIDTH}
+        list={listColumn}
+        detail={
+          <SafeAreaView style={styles.screen} edges={['top']}>
+            {/* Pane chrome: just the "aA" size control, top-right. */}
+            <View style={styles.paneBar}>
+              <Pressable onPress={() => setSizeSheetOpen(true)} hitSlop={8} accessibilityRole="button" accessibilityLabel="Text size" style={styles.aaBtn}>
+                <Text style={styles.aaLabel}>aA</Text>
+              </Pressable>
+            </View>
+            <ScrollView contentContainerStyle={styles.paneScroll} showsVerticalScrollIndicator={false}>
+              <ReadingColumn>
+                <MeetingReadingContent reading={selectedReading} />
+              </ReadingColumn>
+            </ScrollView>
+            <ReadingSizeSheet visible={sizeSheetOpen} onClose={() => setSizeSheetOpen(false)} bottomInset={insets.bottom} />
+          </SafeAreaView>
+        }
+      />
+    );
+  }
+
+  return listColumn;
 }
 
+// Matches Today's list column so the two tabs' panes align on the Duo.
+const LIT_LIST_WIDTH = 360;
+
 const makeStyles = (tk: Tokens) => {
-  const { c } = tk;
+  const { c, isDark } = tk;
   return StyleSheet.create({
     screen: { flex: 1, backgroundColor: c.background },
     // Tab header: title row starts at paddingTop 54 — the y where back-button
@@ -117,5 +174,11 @@ const makeStyles = (tk: Tokens) => {
     catSub: { fontFamily: fontFamily.regular, fontSize: 13, color: c.textSecondary, marginTop: 4 },
 
     readingList: { paddingHorizontal: 16, gap: 8 },
+
+    // Wide-layout detail pane chrome
+    paneBar: { flexDirection: 'row', justifyContent: 'flex-end', paddingHorizontal: 20, paddingTop: 10 },
+    aaBtn: { width: 32, height: 32, borderRadius: 16, alignItems: 'center', justifyContent: 'center', backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)' },
+    aaLabel: { fontFamily: fontFamily.bold, fontSize: 13, color: c.textSecondary, letterSpacing: -0.2 },
+    paneScroll: { paddingHorizontal: 32, paddingTop: 10, paddingBottom: 48 },
   });
 };

@@ -169,11 +169,22 @@ export function FindRow({
   );
 }
 
-export function MeetingReadingCard({ reading, onPress }: { reading: MeetingReading; onPress: () => void }) {
+export function MeetingReadingCard({ reading, onPress, selected }: { reading: MeetingReading; onPress: () => void; selected?: boolean }) {
   const styles = useThemedStyles(makeStyles);
-  const { c } = useTokens();
+  const { c, colors } = useTokens();
   return (
-    <Pressable onPress={onPress} style={({ pressed }) => [styles.card, pressed && { opacity: 0.85 }]} accessibilityRole="button">
+    <Pressable
+      onPress={onPress}
+      // Wide layouts: the selected reading (open in the detail pane beside the
+      // list) gets the handoff's light steel tint; its tone spine is the bar.
+      style={({ pressed }) => [
+        styles.card,
+        selected && { backgroundColor: colors.steelSoft, borderColor: colors.steel },
+        pressed && { opacity: 0.85 },
+      ]}
+      accessibilityRole="button"
+      accessibilityState={selected ? { selected: true } : {}}
+    >
       <View style={[styles.spine, { backgroundColor: reading.tone }]} />
       <View style={styles.flex}>
         <Text style={styles.cardTitle}>{reading.title}</Text>
