@@ -26,6 +26,7 @@ import { SponsorType, ChatMessage } from '@/types';
 import { ChatMarkdownRenderer } from '@/components/ChatMarkdownRenderer';
 import { ReadingSizeSheet } from '@/components/ReadingSizeSheet';
 import BackButton from '@/components/BackButton';
+import ReadingColumn from '@/components/layout/ReadingColumn';
 import { logEvent } from '@/lib/analytics';
 import { checkSponsorMessageLimit, recordSponsorMessage, DAILY_SPONSOR_LIMIT } from '@/lib/sponsorChatLimits';
 import { fontFamily, shadows, type Tokens } from '@/constants/designTokens';
@@ -235,6 +236,9 @@ function SponsorChatContent({ initialSponsor }: { initialSponsor: string }) {
 
       {/* ── Conversation ── */}
       <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+        {/* Wide screens: the whole conversation column (messages → composer)
+            centers at reading width — a no-op on phones (handoff: AI Sponsor). */}
+        <ReadingColumn style={styles.flex}>
         <FlatList
           ref={listRef}
           style={styles.flex}
@@ -298,6 +302,7 @@ function SponsorChatContent({ initialSponsor }: { initialSponsor: string }) {
             <Send size={16} color="#fff" strokeWidth={2} />
           </Pressable>
         </View>
+        </ReadingColumn>
       </KeyboardAvoidingView>
 
       <ReadingSizeSheet visible={sizeSheetOpen} onClose={() => setSizeSheetOpen(false)} bottomInset={insets.bottom} />
