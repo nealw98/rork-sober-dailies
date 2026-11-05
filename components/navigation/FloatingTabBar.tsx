@@ -48,7 +48,8 @@ function Halo({ tone }: { tone: string }) {
 
 // Today's brand "sunrise" glyph — a custom sun-over-horizon with rays (no
 // up-arrow). Lucide's Sunrise differs, so we draw the prototype's exact paths.
-function SunriseGlyph({ size = 24, color = '#000', strokeWidth = 2 }: GlyphProps) {
+// Exported: NavigationRail renders the same four destinations.
+export function SunriseGlyph({ size = 24, color = '#000', strokeWidth = 2 }: GlyphProps) {
   return (
     <Svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color}
       strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round">
