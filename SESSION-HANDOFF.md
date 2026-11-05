@@ -3766,3 +3766,19 @@ new-arch-untested → **test the meeting scanner on a real device**.
 
 Committed on `codex/3.5-duo-modernization` in this commit (local only — not
 pushed, branch has no upstream). No OTA, no versions touched, `main` untouched. Memory: [[session-handoff-sdk58-duo-upgrade]].
+
+### 30.7 TestFlight: 3.5.0 (137) BUILT + SUBMITTED (2026-11-04 evening)
+
+Neal asked to start personal TestFlight testing. Version/runtimeVersion bumped
+to **3.5.0** (his pick; runtime 3.0.9 was never used by any OTA, but 3.5.0
+fully isolates the SDK 58 binary from 3.0.x bundles). iOS buildNumber 137.
+EAS production build ran on **macos-tahoe-26.6-xcode-27.1** (`latest` — EAS
+shipped Xcode 27 images in October; our profile's `image: "latest"` resolves
+there), so this binary carries the iOS 27 SDK = real Duo edge-to-edge.
+Build 36923781-0ba1-4e92-ac75-fd8ed43ada8e → submitted to ASC via
+`eas submit` (stored credentials; fully non-interactive). Internal testing
+only — no Beta App Review. If the internal group isn't on automatic
+distribution, enable build 137 for it in ASC → TestFlight.
+NOTE: ASC still has the rejected 136 + the duplicate-localization case
+(§29.4) pending — unrelated to internal TestFlight, but 137 is now the
+binary that would go to review once that's sorted.
