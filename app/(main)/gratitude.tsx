@@ -4,7 +4,7 @@
 // store (local-first) and, when opened from a Today daily, checks it off.
 // History/Share live in the deferred Journey "Notebook", not in this editor.
 import React, { useEffect, useRef, useState } from 'react';
-import { View, Text, TextInput, Pressable, StyleSheet, Keyboard } from 'react-native';
+import { View, Text, TextInput, Pressable, StyleSheet, Keyboard, Share } from 'react-native';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
 import { Stack, useRouter, useLocalSearchParams } from 'expo-router';
 import * as Haptics from 'expo-haptics';
@@ -71,10 +71,18 @@ export default function GratitudeScreen() {
     router.back();
   };
 
+  // Share the list as it reads on screen (saved or not) via the system sheet.
+  const shareList = async () => {
+    if (items.length === 0) return;
+    const body = `Today I'm grateful for:\n\n${items.map((it) => `• ${it}`).join('\n')}`;
+    try { await Share.share({ message: body }); }
+    catch (e) { console.error('Error sharing gratitude list:', e); }
+  };
+
   return (
     <View style={styles.screen}>
       <Stack.Screen options={{ headerShown: false }} />
-      <ToolHeader tool={tool} dirty={dirty} onCommit={commit} />
+      <ToolHeader tool={tool} dirty={dirty} onCommit={commit} onShare={shareList} shareDisabled={items.length === 0} />
       <KeyboardAwareScrollView
         style={styles.flex}
         contentContainerStyle={styles.scroll}

@@ -7,6 +7,7 @@ import React from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
+import { Share as ShareIcon } from 'lucide-react-native';
 import { colors, fontFamily, families, type Tokens, type FamilyName } from '@/constants/designTokens';
 import { useTokens, useThemedStyles } from '@/hooks/useTokens';
 import BackButton from '@/components/BackButton';
@@ -45,7 +46,12 @@ export function todayLabel(): string {
 // Large header: back chevron + Save/Cancel pill, then the tool title + date.
 // The pill reads "Cancel" (ghost) until the entry is dirty, then "Save"
 // (filled). Both invoke onCommit, which saves when dirty and always goes back.
-export function ToolHeader({ tool, dirty, onCommit }: { tool: ToolMeta; dirty: boolean; onCommit: () => void }) {
+// Pass onShare to add a round share button beside the pill (dimmed while
+// shareDisabled — e.g. an empty list).
+export function ToolHeader({ tool, dirty, onCommit, onShare, shareDisabled }: {
+  tool: ToolMeta; dirty: boolean; onCommit: () => void;
+  onShare?: () => void; shareDisabled?: boolean;
+}) {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const styles = useThemedStyles(makeStyles);
@@ -55,14 +61,27 @@ export function ToolHeader({ tool, dirty, onCommit }: { tool: ToolMeta; dirty: b
     <View style={[styles.header, { paddingTop: insets.top + 8 }]}>
       <View style={styles.backRow}>
         <BackButton onPress={() => router.back()} />
-        <Pressable
-          onPress={onCommit}
-          accessibilityRole="button"
-          accessibilityLabel={dirty ? 'Save' : 'Cancel'}
-          style={[styles.saveBtn, dirty ? { backgroundColor: accent } : styles.saveBtnGhost]}
-        >
-          <Text style={[styles.saveText, { color: dirty ? '#fff' : c.textSecondary }]}>{dirty ? 'Save' : 'Cancel'}</Text>
-        </Pressable>
+        <View style={styles.headerActions}>
+          {onShare ? (
+            <Pressable
+              onPress={onShare}
+              disabled={shareDisabled}
+              accessibilityRole="button"
+              accessibilityLabel="Share"
+              style={[styles.shareBtn, shareDisabled && styles.shareBtnDisabled]}
+            >
+              <ShareIcon size={16} color={c.textSecondary} strokeWidth={2} />
+            </Pressable>
+          ) : null}
+          <Pressable
+            onPress={onCommit}
+            accessibilityRole="button"
+            accessibilityLabel={dirty ? 'Save' : 'Cancel'}
+            style={[styles.saveBtn, dirty ? { backgroundColor: accent } : styles.saveBtnGhost]}
+          >
+            <Text style={[styles.saveText, { color: dirty ? '#fff' : c.textSecondary }]}>{dirty ? 'Save' : 'Cancel'}</Text>
+          </Pressable>
+        </View>
       </View>
       <Text style={styles.title}>{tool.label}</Text>
       <Text style={styles.subtitle}>{todayLabel()}</Text>
@@ -122,6 +141,10 @@ const makeStyles = (tk: Tokens) => {
   return StyleSheet.create({
     header: { paddingHorizontal: 22, paddingBottom: 28 },
     backRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 },
+    headerActions: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+    // Round share button — same chrome as the Daily Reflection reader's aA/share.
+    shareBtn: { width: 34, height: 34, borderRadius: 17, backgroundColor: c.surface, borderWidth: 1, borderColor: c.border, alignItems: 'center', justifyContent: 'center' },
+    shareBtnDisabled: { opacity: 0.4 },
     saveBtn: { paddingHorizontal: 18, paddingVertical: 9, borderRadius: 999 },
     saveBtnGhost: { borderWidth: 1.5, borderColor: c.border },
     saveText: { fontFamily: fontFamily.semiBold, fontSize: 13.5 },
