@@ -34,7 +34,7 @@ const JOURNEY: Href = '/(main)/(tabs)/journey' as Href;
 export function confirmSaved(onDone?: () => void): void {
   // Title only — the sentence said nothing the title didn't (Neal, 2026-07-31).
   Alert.alert(
-    'Saved to your Journey',
+    'Saved to your Journal',
     undefined,
     [
       {

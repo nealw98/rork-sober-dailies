@@ -74,7 +74,7 @@ const TAB_META: Record<TabKey, { label: string; Glyph: GlyphComponent }> = {
   index: { label: 'Today', Glyph: SunriseGlyph },
   tools: { label: 'Tools', Glyph: Library },
   literature: { label: 'Literature', Glyph: BookOpen },
-  journey: { label: 'Journey', Glyph: PenLine },
+  journey: { label: 'Journal', Glyph: PenLine },
 };
 
 // "#RRGGBB" (or shorthand) → "r, g, b" so we can build rgba() tint stops from a

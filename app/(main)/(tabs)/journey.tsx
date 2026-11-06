@@ -255,7 +255,7 @@ export default function JourneyScreen() {
         <SafeAreaView style={styles.screen} edges={['top']}>
           <View style={styles.header}>
             <View style={styles.flexFill}>
-              <Text style={styles.title}>Journey</Text>
+              <Text style={styles.title}>Journal</Text>
               <Text style={styles.subtitle}>Your path of recovery</Text>
             </View>
             <Pressable style={styles.trendsBtn} onPress={() => router.push('/(main)/trends' as never)} accessibilityRole="button" accessibilityLabel="Trends">

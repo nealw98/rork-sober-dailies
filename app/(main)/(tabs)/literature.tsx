@@ -11,8 +11,8 @@ import { View, Text, Pressable, StyleSheet, ScrollView } from 'react-native';
 import { Image } from 'expo-image';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Stack, useRouter } from 'expo-router';
-import { BookOpen } from 'lucide-react-native';
 import PaneExpandButton from '@/components/layout/PaneExpandButton';
+import BackButton from '@/components/BackButton';
 import SettingsGear from '@/components/navigation/SettingsGear';
 import PassItOnGift from '@/components/navigation/PassItOnGift';
 import { MeetingReadingCard } from '@/components/literature/literature-ui';
@@ -26,7 +26,7 @@ import { useReadingSession } from '@/hooks/useReadingSession';
 import { useScreenTimeTracking } from '@/hooks/useScreenTimeTracking';
 import { readerSerif } from '@/constants/fonts';
 import { fontFamily, type Tokens } from '@/constants/designTokens';
-import { useTokens, useThemedStyles } from '@/hooks/useTokens';
+import { useThemedStyles } from '@/hooks/useTokens';
 
 const BIG_BOOK_COVER = require('@/assets/images/big-book_cover.webp');
 const TWELVE_COVER = require('@/assets/images/new_12x12_cover.webp');
@@ -38,7 +38,6 @@ export default function LiteratureScreen() {
   useScreenTimeTracking('Literature');
   const router = useRouter();
   const styles = useThemedStyles(makeStyles);
-  const { c } = useTokens();
   const insets = useSafeAreaInsets();
   const expanded = useLayoutMode() === 'expanded';
 
@@ -55,42 +54,140 @@ export default function LiteratureScreen() {
     else router.push(`/(main)/meeting-reading?id=${id}`);
   };
 
-  const listColumn = (
+  // The book shelf — bare cover images, the covers ARE the buttons. Shared by
+  // the compact page and the expanded landing's left pane.
+  const shelf = (
+    <>
+      <View style={styles.booksRow}>
+        <Pressable
+          onPress={() => router.push('/(main)/bigbook')}
+          style={({ pressed }) => [styles.bookBtn, pressed && { opacity: 0.85 }]}
+          accessibilityRole="button"
+          accessibilityLabel="Alcoholics Anonymous"
+        >
+          <Image source={BIG_BOOK_COVER} style={styles.bookImg} contentFit="contain" />
+        </Pressable>
+        <Pressable
+          onPress={() => router.push('/(main)/twelve-and-twelve')}
+          style={({ pressed }) => [styles.bookBtn, pressed && { opacity: 0.85 }]}
+          accessibilityRole="button"
+          accessibilityLabel="Twelve Steps and Twelve Traditions"
+        >
+          <Image source={TWELVE_COVER} style={styles.bookImg} contentFit="contain" />
+        </Pressable>
+      </View>
+      <View style={styles.titlesRow}>
+        <Text style={styles.bookTitle}>Alcoholics{'\n'}Anonymous</Text>
+        <Text style={styles.bookTitle}>Twelve Steps &{'\n'}Twelve Traditions</Text>
+      </View>
+    </>
+  );
+
+  // The tab header — Literature title + gift/gear.
+  const header = (
+    <View style={styles.header}>
+      <View style={styles.flexFill}>
+        <Text style={styles.title}>Literature</Text>
+        <Text style={styles.sub}>The texts of recovery, always with you.</Text>
+      </View>
+      <PassItOnGift style={styles.giftBtn} />
+      <SettingsGear style={styles.gear} />
+    </View>
+  );
+
+  // ── Expanded (3.5 wide layouts): the tab is a two-pane world ─────────────
+  //  · Landing (nothing open): books on the left, the Meeting Readings index
+  //    on the right — the whole tab IS the landing page.
+  //  · Reading open: the readings list moves to the left (back returns to the
+  //    landing) and the reading itself fills the right. The books push their
+  //    own two-pane readers (TOC left, content right).
+  if (expanded) {
+    if (!selectedReading) {
+      return (
+        <ListDetailLayout
+          listWidth={LIT_LIST_WIDTH}
+          list={
+            <SafeAreaView style={styles.screen} edges={['top']}>
+              <Stack.Screen options={{ headerShown: false }} />
+              {header}
+              <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
+                {shelf}
+              </ScrollView>
+            </SafeAreaView>
+          }
+          detail={
+            <SafeAreaView style={styles.screen} edges={['top']}>
+              <ScrollView contentContainerStyle={styles.indexScroll} showsVerticalScrollIndicator={false}>
+                <ReadingColumn>
+                  <View style={styles.catHead}>
+                    <Text style={styles.catTitle}>Meeting Readings</Text>
+                    <Text style={styles.catSub}>Everything you need to host a meeting.</Text>
+                  </View>
+                  <View style={styles.readingList}>
+                    {MEETING_READINGS.map((r) => (
+                      <MeetingReadingCard key={r.id} reading={r} onPress={() => openReading(r.id)} />
+                    ))}
+                  </View>
+                </ReadingColumn>
+              </ScrollView>
+            </SafeAreaView>
+          }
+        />
+      );
+    }
+    return (
+      <ListDetailLayout
+        listWidth={LIT_LIST_WIDTH}
+        list={
+          <SafeAreaView style={styles.screen} edges={['top']}>
+            <Stack.Screen options={{ headerShown: false }} />
+            {/* Back returns to the landing (books | readings index). */}
+            <View style={styles.readingsHead}>
+              <BackButton onPress={() => setSelectedId(null)} />
+              <Text style={styles.readingsHeadTitle}>Meeting Readings</Text>
+            </View>
+            <ScrollView contentContainerStyle={styles.readingsListScroll} showsVerticalScrollIndicator={false}>
+              <View style={styles.readingList}>
+                {MEETING_READINGS.map((r) => (
+                  <MeetingReadingCard
+                    key={r.id}
+                    reading={r}
+                    selected={r.id === selectedId}
+                    onPress={() => openReading(r.id)}
+                  />
+                ))}
+              </View>
+            </ScrollView>
+          </SafeAreaView>
+        }
+        detail={
+          <SafeAreaView style={styles.screen} edges={['top']}>
+            {/* Pane chrome: "aA" size control + expand, top-right. */}
+            <View style={styles.paneBar}>
+              <Pressable onPress={() => setSizeSheetOpen(true)} hitSlop={8} accessibilityRole="button" accessibilityLabel="Text size" style={styles.aaBtn}>
+                <Text style={styles.aaLabel}>aA</Text>
+              </Pressable>
+              <PaneExpandButton onPress={() => router.push(`/(main)/meeting-reading?id=${selectedReading.id}`)} />
+            </View>
+            <ScrollView contentContainerStyle={styles.paneScroll} showsVerticalScrollIndicator={false}>
+              <ReadingColumn>
+                <MeetingReadingContent reading={selectedReading} />
+              </ReadingColumn>
+            </ScrollView>
+            <ReadingSizeSheet visible={sizeSheetOpen} onClose={() => setSizeSheetOpen(false)} bottomInset={insets.bottom} />
+          </SafeAreaView>
+        }
+      />
+    );
+  }
+
+  // ── Compact: the single-column page, unchanged ───────────────────────────
+  return (
     <SafeAreaView style={styles.screen} edges={['top']}>
       <Stack.Screen options={{ headerShown: false }} />
-      <View style={styles.header}>
-        <View style={styles.flexFill}>
-          <Text style={styles.title}>Literature</Text>
-          <Text style={styles.sub}>The texts of recovery, always with you.</Text>
-        </View>
-        <PassItOnGift style={styles.giftBtn} />
-        <SettingsGear style={styles.gear} />
-      </View>
-
+      {header}
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
-        {/* Hero books: bare cover images on a shelf — the covers ARE the buttons. */}
-        <View style={styles.booksRow}>
-          <Pressable
-            onPress={() => router.push('/(main)/bigbook')}
-            style={({ pressed }) => [styles.bookBtn, pressed && { opacity: 0.85 }]}
-            accessibilityRole="button"
-            accessibilityLabel="Alcoholics Anonymous"
-          >
-            <Image source={BIG_BOOK_COVER} style={styles.bookImg} contentFit="contain" />
-          </Pressable>
-          <Pressable
-            onPress={() => router.push('/(main)/twelve-and-twelve')}
-            style={({ pressed }) => [styles.bookBtn, pressed && { opacity: 0.85 }]}
-            accessibilityRole="button"
-            accessibilityLabel="Twelve Steps and Twelve Traditions"
-          >
-            <Image source={TWELVE_COVER} style={styles.bookImg} contentFit="contain" />
-          </Pressable>
-        </View>
-        <View style={styles.titlesRow}>
-          <Text style={styles.bookTitle}>Alcoholics{'\n'}Anonymous</Text>
-          <Text style={styles.bookTitle}>Twelve Steps &{'\n'}Twelve Traditions</Text>
-        </View>
+        {shelf}
 
         {/* Meeting Readings — a major category */}
         <View style={styles.divider} />
@@ -101,56 +198,12 @@ export default function LiteratureScreen() {
 
         <View style={styles.readingList}>
           {MEETING_READINGS.map((r) => (
-            <MeetingReadingCard
-              key={r.id}
-              reading={r}
-              selected={expanded && r.id === selectedId}
-              onPress={() => openReading(r.id)}
-            />
+            <MeetingReadingCard key={r.id} reading={r} onPress={() => openReading(r.id)} />
           ))}
         </View>
       </ScrollView>
     </SafeAreaView>
   );
-
-  if (expanded) {
-    return (
-      <ListDetailLayout
-        listWidth={LIT_LIST_WIDTH}
-        list={listColumn}
-        detail={
-          <SafeAreaView style={styles.screen} edges={['top']}>
-            {selectedReading ? (
-              <>
-                {/* Pane chrome: "aA" size control + expand, top-right. */}
-                <View style={styles.paneBar}>
-                  <Pressable onPress={() => setSizeSheetOpen(true)} hitSlop={8} accessibilityRole="button" accessibilityLabel="Text size" style={styles.aaBtn}>
-                    <Text style={styles.aaLabel}>aA</Text>
-                  </Pressable>
-                  <PaneExpandButton onPress={() => router.push(`/(main)/meeting-reading?id=${selectedReading.id}`)} />
-                </View>
-                <ScrollView contentContainerStyle={styles.paneScroll} showsVerticalScrollIndicator={false}>
-                  <ReadingColumn>
-                    <MeetingReadingContent reading={selectedReading} />
-                  </ReadingColumn>
-                </ScrollView>
-              </>
-            ) : (
-              // Nothing chosen yet — a quiet placeholder instead of
-              // auto-opening the first reading.
-              <View style={styles.paneEmpty}>
-                <BookOpen size={30} color={c.textMuted} strokeWidth={1.6} />
-                <Text style={styles.paneEmptyText}>Choose a book or a meeting reading</Text>
-              </View>
-            )}
-            <ReadingSizeSheet visible={sizeSheetOpen} onClose={() => setSizeSheetOpen(false)} bottomInset={insets.bottom} />
-          </SafeAreaView>
-        }
-      />
-    );
-  }
-
-  return listColumn;
 }
 
 // Matches Today's list column so the two tabs' panes align on the Duo.
@@ -193,8 +246,13 @@ const makeStyles = (tk: Tokens) => {
 
     // Wide-layout detail pane chrome
     paneBar: { flexDirection: 'row', justifyContent: 'flex-end', alignItems: 'center', gap: 8, paddingHorizontal: 20, paddingTop: 10 },
-    paneEmpty: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 12, paddingHorizontal: 40, paddingBottom: 60 },
-    paneEmptyText: { fontFamily: fontFamily.regular, fontSize: 14.5, color: c.textMuted, textAlign: 'center' },
+    // Landing's right pane: the Meeting Readings index. Top padding sets the
+    // category title on the same optical line as the Literature title.
+    indexScroll: { paddingTop: 42, paddingBottom: 48, paddingHorizontal: 16 },
+    // Reading-open left pane: back + list.
+    readingsHead: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 22, paddingTop: 8, paddingBottom: 14 },
+    readingsHeadTitle: { fontFamily: fontFamily.display, fontSize: 22, letterSpacing: -0.4, color: c.text, flexShrink: 1 },
+    readingsListScroll: { paddingBottom: 48 },
     aaBtn: { width: 32, height: 32, borderRadius: 16, alignItems: 'center', justifyContent: 'center', backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)' },
     aaLabel: { fontFamily: fontFamily.bold, fontSize: 13, color: c.textSecondary, letterSpacing: -0.2 },
     paneScroll: { paddingHorizontal: 32, paddingTop: 10, paddingBottom: 48 },

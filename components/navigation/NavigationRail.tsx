@@ -33,7 +33,7 @@ const RAIL_ITEMS = [
   { path: '/', label: 'Today', Glyph: SunriseGlyph },
   { path: '/tools', label: 'Tools', Glyph: Library },
   { path: '/literature', label: 'Literature', Glyph: BookOpen },
-  { path: '/journey', label: 'Journey', Glyph: PenLine },
+  { path: '/journey', label: 'Journal', Glyph: PenLine },
 ] as const;
 
 function RailItem({

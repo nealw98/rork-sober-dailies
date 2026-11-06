@@ -93,6 +93,7 @@ import { useSobrietyBirthday } from "@/hooks/useSobrietyBirthday";
 import SobrietyBirthdayModal from "@/components/SobrietyBirthdayModal";
 import PassOfferScreen from "@/components/PassOfferScreen";
 import SideInsetGuard from "@/components/layout/SideInsetGuard";
+import { watchDisplayOrientationRule } from "@/lib/orientation";
 import { usePendingAndroidPass } from "@/hooks/usePendingAndroidPass";
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
@@ -100,16 +101,11 @@ SplashScreen.preventAutoHideAsync().catch(() => {
   console.log('🟢 SPLASH: Failed to prevent auto-hide, continuing anyway');
 });
 
-// The app is portrait-only EXCEPT the PDF reader (which unlocks rotation so
-// landscape can render pages larger — PDF text can't reflow like the readers).
-// app.json orientation is "default" so the native shell allows landscape; this
-// runtime lock keeps everything portrait until a screen opts out. Guarded:
-// binaries older than the one bundling expo-screen-orientation (≤126) reject
-// the call — they're natively portrait-locked anyway, so it's a no-op there.
-try {
-  const ScreenOrientation = require('expo-screen-orientation');
-  ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP).catch(() => {});
-} catch {}
+// Orientation: portrait on phone-class displays (and the Duo's cover screen),
+// free rotation on tablet-class ones (the unfolded Duo, iPad) — and the PDF
+// reader still unlocks rotation for itself on phones. The rule lives in
+// lib/orientation and re-applies itself on fold/unfold.
+watchDisplayOrientationRule();
 
 const queryClient = new QueryClient();
 

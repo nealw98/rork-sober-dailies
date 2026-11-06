@@ -8,8 +8,9 @@
  * unified bookmarks list can jump into either format at a specific page.
  */
 
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { View, Modal } from 'react-native';
+import PaneExpandButton from '@/components/layout/PaneExpandButton';
 import { BigBookContents } from './BigBookContents';
 import { BigBookHtmlReader } from './BigBookHtmlReader';
 import { BigBookHighlightsProvider } from '@/hooks/use-bigbook-highlights';
@@ -39,6 +40,12 @@ export function BigBookMain() {
   // the whole screen (same Modal reader as compact); closing hands it back to
   // the pane via liveChapterId.
   const [fullReader, setFullReader] = useState(false);
+  // Expanded: a PDF entry (forewords, Personal Stories) reads embedded in the
+  // detail pane — like the 12 & 12 — instead of jumping straight to the
+  // full-screen viewer. Expand reopens it in that viewer, on the page the
+  // pane is sitting on (panePdfPageRef). Compact keeps the Modal.
+  const [panePdf, setPanePdf] = useState<OpenPdf | null>(null);
+  const panePdfPageRef = useRef(1);
 
   // 3.5 wide layouts: on expanded widths the text reader docks in a pane
   // beside the Contents (handoff Screen 3) instead of presenting full-screen.
@@ -56,6 +63,7 @@ export function BigBookMain() {
   // paragraph so the reader centers the term itself, not just the page top.
   const openText = (id: string, page?: number, term?: string, paragraphId?: string) => {
     logEvent('literature_opened', { book: 'Big Book', format: 'text', section: id });
+    setPanePdf(null); // the pane goes back to the text reader
     setChapterId(id);
     setLiveChapterId(id);
     setScrollToPage(page ?? null);
@@ -67,6 +75,7 @@ export function BigBookMain() {
   // highlight nav → open the reader at the highlight's chapter and scroll
   // to its paragraph.
   const openTextAtParagraph = (id: string, paragraphId: string) => {
+    setPanePdf(null);
     setChapterId(id);
     setLiveChapterId(id);
     setScrollToPage(null);
@@ -75,11 +84,18 @@ export function BigBookMain() {
     setShowReader(true);
   };
 
-  // pdf entry → open the bundled PDF, optionally at a page
+  // pdf entry → open the bundled PDF, optionally at a page. Expanded docks it
+  // in the detail pane; compact presents the full-screen viewer.
   const openPdf = (entry: TocEntry, initialPage?: number) => {
     if (!entry.pdfKey) return;
     logEvent('literature_opened', { book: 'Big Book', format: 'pdf', section: entry.id });
-    setPdf({ id: entry.id, title: entry.title, pdfKey: entry.pdfKey, startPage: entry.startPage ?? 0, initialPage });
+    const open: OpenPdf = { id: entry.id, title: entry.title, pdfKey: entry.pdfKey, startPage: entry.startPage ?? 0, initialPage };
+    if (expanded) {
+      panePdfPageRef.current = initialPage ?? 1;
+      setPanePdf(open);
+    } else {
+      setPdf(open);
+    }
   };
 
   const handleCloseReader = () => {
@@ -94,7 +110,7 @@ export function BigBookMain() {
       onOpenText={openText}
       onOpenPdf={openPdf}
       onOpenTextAtParagraph={openTextAtParagraph}
-      selectedId={expanded ? (liveChapterId ?? paneChapterId) : undefined}
+      selectedId={expanded ? (panePdf ? panePdf.id : liveChapterId ?? paneChapterId) : undefined}
     />
   );
 
@@ -106,20 +122,39 @@ export function BigBookMain() {
             listWidth={BB_LIST_WIDTH}
             list={<View style={{ flex: 1 }}>{contents}</View>}
             detail={
-              <BigBookHtmlReader
-                embedded
-                visible
-                // liveChapterId first, so a fold/unfold resumes at the chapter
-                // the OTHER reader was last showing (loadChapter no-ops when
-                // the id is already displayed, so this never forces a reload).
-                initialChapterId={liveChapterId ?? paneChapterId}
-                scrollToPage={scrollToPage}
-                scrollToParagraphId={scrollToParagraphId}
-                searchTerm={searchTerm}
-                onClose={handleCloseReader}
-                onChapterChange={setLiveChapterId}
-                onExpand={() => setFullReader(true)}
-              />
+              panePdf && BIGBOOK_PDFS[panePdf.pdfKey] != null ? (
+                // A PDF entry, embedded like the 12 & 12's essays. Keyed so a
+                // new story (or a jump to a page) remounts at the right spot.
+                <PdfReader
+                  key={`${panePdf.pdfKey}-${panePdf.initialPage ?? 1}`}
+                  embedded
+                  assetModule={BIGBOOK_PDFS[panePdf.pdfKey]}
+                  title={panePdf.title}
+                  book="bigbook"
+                  sectionId={panePdf.id}
+                  startPage={panePdf.startPage}
+                  initialPage={panePdf.initialPage}
+                  accent={PDF_ACCENT}
+                  onClose={() => setPanePdf(null)}
+                  onPageSettled={(p) => { panePdfPageRef.current = p; }}
+                  headerRight={<PaneExpandButton onPress={() => setPdf({ ...panePdf, initialPage: panePdfPageRef.current })} />}
+                />
+              ) : (
+                <BigBookHtmlReader
+                  embedded
+                  visible
+                  // liveChapterId first, so a fold/unfold resumes at the chapter
+                  // the OTHER reader was last showing (loadChapter no-ops when
+                  // the id is already displayed, so this never forces a reload).
+                  initialChapterId={liveChapterId ?? paneChapterId}
+                  scrollToPage={scrollToPage}
+                  scrollToParagraphId={scrollToParagraphId}
+                  searchTerm={searchTerm}
+                  onClose={handleCloseReader}
+                  onChapterChange={setLiveChapterId}
+                  onExpand={() => setFullReader(true)}
+                />
+              )
             }
           />
         ) : (

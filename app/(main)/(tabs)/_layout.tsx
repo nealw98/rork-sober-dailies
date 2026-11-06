@@ -38,7 +38,7 @@ export default function TabsLayout() {
           <Tabs.Screen name="index" options={{ title: 'Today' }} />
           <Tabs.Screen name="tools" options={{ title: 'Tools' }} />
           <Tabs.Screen name="literature" options={{ title: 'Literature' }} />
-          <Tabs.Screen name="journey" options={{ title: 'Journey' }} />
+          <Tabs.Screen name="journey" options={{ title: 'Journal' }} />
           {/* Settings lives in the tab group but has NO bar button (not in
               FloatingTabBar's TAB_META) — reached from each tab's header gear
               or the rail. It stays in the group so the tab chrome remains

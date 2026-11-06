@@ -13,6 +13,7 @@ import { ChevronLeft, Bookmark } from 'lucide-react-native';
 import { colors, fontFamily, type Tokens } from '@/constants/designTokens';
 import { useTokens, useThemedStyles } from '@/hooks/useTokens';
 import { usePdfBookmarks } from '@/hooks/use-pdf-bookmarks';
+import { applyDisplayOrientationRule } from '@/lib/orientation';
 import { useReadingTime } from '@/hooks/useReadingTime';
 
 // bookmark-namespace → display name for analytics
@@ -87,9 +88,9 @@ export default function PdfReader({
     // portrait on unmount there would yank the whole app out of landscape.
     if (!ScreenOrientation || embedded) return;
     ScreenOrientation.unlockAsync().catch(() => {});
-    return () => {
-      ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP).catch(() => {});
-    };
+    // On close, back to the app-wide rule (portrait on phone-class displays,
+    // free rotation on tablet-class) instead of a blanket portrait lock.
+    return () => { applyDisplayOrientationRule(); };
   }, [embedded]);
 
   useEffect(() => {
