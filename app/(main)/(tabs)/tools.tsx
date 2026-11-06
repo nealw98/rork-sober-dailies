@@ -8,7 +8,7 @@ import {
   useWindowDimensions,
 } from 'react-native';
 import { Image } from 'expo-image';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter, type Href } from 'expo-router';
 import {
@@ -126,11 +126,17 @@ function AppTile({ app, color, width, onPress, isDark, styles }: {
 export default function ToolsScreen() {
   const router = useRouter();
   const { width: screenW } = useWindowDimensions();
+  const insets = useSafeAreaInsets();
+  // The window width isn't what this screen gets: the root SideInsetGuard pads
+  // the Duo's side safe strip and expanded widths add the NavigationRail. Size
+  // the hero and grid from the measured width, seeded with an inset-corrected
+  // estimate for the first frame.
+  const [availW, setAvailW] = React.useState(screenW - insets.left - insets.right);
   const styles = useThemedStyles(makeStyles);
   const { isDark, colors, c } = useTokens();
   useScreenTimeTracking('Tools');
 
-  const heroH = Math.round((screenW - H_PAD * 2) * 0.55);
+  const heroH = Math.round((availW - H_PAD * 2) * 0.55);
 
   // Flagship tones: light keeps the tinted cards; dark goes neutral with a
   // solid family circle (steelFill carries white on dark — handoff).
@@ -141,11 +147,17 @@ export default function ToolsScreen() {
     ? { bg: c.surface, circle: '#8273B5' }
     : { bg: lighten(colors.tertiary, 0.56), circle: colors.tertiary };
 
-  // 3-column grid: each tile's width fits three across the padded content with a CARD_GAP between.
-  const tileW = Math.floor((screenW - H_PAD * 2 - CARD_GAP * 2) / 3);
+  // 3-column grid: each tile's width fits three across the padded content with
+  // a CARD_GAP between. Exact division (no floor) so the row's outer edges stay
+  // flush with the hero and flagship cards.
+  const tileW = (availW - H_PAD * 2 - CARD_GAP * 2) / 3;
 
   return (
-    <SafeAreaView style={styles.safe} edges={['top']}>
+    <SafeAreaView
+      style={styles.safe}
+      edges={['top']}
+      onLayout={(e) => setAvailW(e.nativeEvent.layout.width)}
+    >
       {/* Header */}
       <View style={styles.header}>
         <View style={{ flex: 1 }}>
