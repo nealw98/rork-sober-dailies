@@ -42,12 +42,59 @@
 //   · SideInsetGuard onLayout — the root view re-laying out.
 // Guarded require: binaries without the native module (≤126) reject the
 // calls — they're natively portrait-locked anyway, so this is a no-op there.
-import { AppState, Dimensions } from 'react-native';
+import { AppState, Dimensions, Platform } from 'react-native';
+
+import { getAnonymousIdSync } from '@/lib/anonymousId';
 
 let ScreenOrientation: any = null;
 try { ScreenOrientation = require('expo-screen-orientation'); } catch {}
 
 const TABLET_MIN_DIM = 600;
+
+// --- Field diagnostics (Neal, 2026-11-06: fold handoff still intermittent on
+// hardware; the sim can't fold, so the device itself must tell us what it
+// sees). Posts straight to Mixpanel — deliberately NOT through lib/analytics,
+// whose Developer Mode switch drops every event on Neal's own phone, the one
+// device we need to hear from. Remove this block once the handoff is solid.
+const DIAG_VERSION = 'v5';
+const DIAG_TOKEN = process.env.EXPO_PUBLIC_MIXPANEL_TOKEN || '';
+const diagT0 = Date.now();
+function diag(step: string, extra?: Record<string, unknown>): void {
+  const s = Dimensions.get('screen');
+  const w = Dimensions.get('window');
+  const props = {
+    step,
+    v: DIAG_VERSION,
+    t_ms: Date.now() - diagT0,
+    sw: Math.round(s.width), sh: Math.round(s.height),
+    ww: Math.round(w.width), wh: Math.round(w.height),
+    cls: isTabletNow() ? 'tablet' : 'phone',
+    prev: lastClass,
+    steer_left_ms: steerUntil ? Math.max(0, steerUntil - Date.now()) : 0,
+    steering,
+    suspended,
+    os: String(Platform.Version),
+    ...extra,
+  };
+  try { console.log('[orientation]', JSON.stringify(props)); } catch {}
+  if (!DIAG_TOKEN) return;
+  try {
+    fetch('https://api.mixpanel.com/track', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Accept: 'text/plain' },
+      body: JSON.stringify([{
+        event: 'duo_orientation_debug',
+        properties: {
+          token: DIAG_TOKEN,
+          distinct_id: getAnonymousIdSync() ?? 'unknown',
+          time: Date.now(),
+          $insert_id: `orient-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+          ...props,
+        },
+      }]),
+    }).catch(() => {});
+  } catch {}
+}
 
 // How long after a cover→inner handoff we keep nudging toward landscape
 // before giving up into free rotation (a physical rotation then fixes it).
@@ -79,10 +126,20 @@ const isWindowLandscape = () => {
   const { width, height } = Dimensions.get('window');
   return width > height;
 };
+// The Duo's cover screen is uniquely squat (~466×678pt); regular iPhones are
+// all narrower and taller. Used to scope cover-only behavior so ordinary
+// phones never see it.
+const looksLikeDuoCover = () => {
+  const { width, height } = Dimensions.get('screen');
+  const short = Math.min(width, height);
+  const long = Math.max(width, height);
+  return short >= 440 && short <= 520 && long >= 600 && long <= 740;
+};
 
 async function steerToLandscape(): Promise<void> {
   if (steering || !ScreenOrientation) return;
   steering = true;
+  diag('steer_start');
   try {
     await sleep(500); // let the fold transition's size churn settle
     while (isTabletNow() && !isWindowLandscape() && Date.now() < steerUntil) {
@@ -91,7 +148,10 @@ async function steerToLandscape(): Promise<void> {
       // because nudges fired before iOS settles are silently dropped.
       try {
         await ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.LANDSCAPE);
-      } catch {}
+        diag('steer_lock_ok');
+      } catch (e: any) {
+        diag('steer_lock_err', { err: String(e?.message ?? e).slice(0, 200) });
+      }
       for (let i = 0; i < STEER_RETRY_MS / 100; i++) {
         if (isWindowLandscape() || !isTabletNow()) break;
         await sleep(100);
@@ -99,30 +159,34 @@ async function steerToLandscape(): Promise<void> {
     }
   } catch {
   } finally {
+    diag('steer_end', { landed: isWindowLandscape() });
     if (isWindowLandscape() || !isTabletNow() || Date.now() >= steerUntil) {
       steerUntil = 0; // resolved (or expired): back to the plain rule
     }
     steering = false;
     // Tablet + landscape → unlock (free rotation, keeping the landscape it
     // now has); folded back mid-steer → the rule re-locks portrait.
-    applyDisplayOrientationRule();
+    applyDisplayOrientationRule('steer_end');
   }
 }
 
-export async function applyDisplayOrientationRule(): Promise<void> {
+export async function applyDisplayOrientationRule(trigger?: unknown): Promise<void> {
   if (!ScreenOrientation || suspended || steering) return;
+  const trig = typeof trigger === 'string' ? trigger : 'unspecified';
   const cls = isTabletNow() ? 'tablet' : 'phone';
   const prev = lastClass;
   lastClass = cls;
   try {
     if (cls === 'phone') {
       steerUntil = 0;
+      diag('apply_lock_portrait', { trig });
       await ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP);
       return;
     }
     if (prev === 'phone') {
       // The cover→inner handoff: open the steer window and start nudging.
       steerUntil = Date.now() + STEER_WINDOW_MS;
+      diag('apply_handoff', { trig });
       steerToLandscape();
       return;
     }
@@ -130,14 +194,18 @@ export async function applyDisplayOrientationRule(): Promise<void> {
       if (Date.now() < steerUntil) {
         // Handoff still unresolved: a new trigger re-enters the steer.
         // Never unlock here — unlock would natively re-pin portrait.
+        diag('apply_resteer', { trig });
         steerToLandscape();
         return;
       }
       steerUntil = 0; // window expired: fall through to free rotation
     }
     steerUntil = 0;
+    diag('apply_unlock', { trig });
     await ScreenOrientation.unlockAsync();
-  } catch {}
+  } catch (e: any) {
+    diag('apply_err', { trig, err: String(e?.message ?? e).slice(0, 200) });
+  }
 }
 
 // The PDF reader calls these around its own unlock. Resume re-applies the
@@ -154,18 +222,34 @@ export function resumeOrientationRule(): void {
 // unfold animates for around a second, and a call issued mid-transition can
 // be evaluated against the old display (or dropped) — the trailing calls
 // are the ones that actually take on a cover→inner handoff.
-export function reassertDisplayOrientationRule(): void {
-  applyDisplayOrientationRule();
-  setTimeout(applyDisplayOrientationRule, 400);
-  setTimeout(applyDisplayOrientationRule, 1200);
+export function reassertDisplayOrientationRule(trigger?: unknown): void {
+  const trig = typeof trigger === 'string' ? trigger : 'layout';
+  applyDisplayOrientationRule(trig);
+  setTimeout(() => applyDisplayOrientationRule(`${trig}+400`), 400);
+  setTimeout(() => applyDisplayOrientationRule(`${trig}+1200`), 1200);
 }
 
 // Apply now and on every trigger above. Called once from the app root; the
 // subscriptions live as long as the app, so nothing unsubscribes.
 export function watchDisplayOrientationRule(): void {
-  applyDisplayOrientationRule();
-  Dimensions.addEventListener('change', reassertDisplayOrientationRule);
+  diag('watch_start');
+  applyDisplayOrientationRule('startup');
+  Dimensions.addEventListener('change', () => reassertDisplayOrientationRule('dimensions'));
   AppState.addEventListener('change', (s) => {
-    if (s === 'active') reassertDisplayOrientationRule();
+    if (s === 'active') {
+      reassertDisplayOrientationRule('appstate_active');
+      return;
+    }
+    // Leaving the foreground on the Duo's COVER screen is, as often as not,
+    // the start of an unfold — and a portrait lock that is still asserted
+    // when the scene moves to the inner display is what gets carried over
+    // and stuck there (the inner display refuses to change it afterwards).
+    // So release the hold on the way out; the rule re-locks portrait the
+    // moment the app is active on a phone-class display again. Scoped to
+    // the cover's distinctive size so ordinary iPhones keep their lock.
+    if ((s === 'inactive' || s === 'background') && looksLikeDuoCover() && !suspended && ScreenOrientation) {
+      diag('cover_release', { appstate: s });
+      ScreenOrientation.unlockAsync().catch(() => {});
+    }
   });
 }
