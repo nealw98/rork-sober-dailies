@@ -60,6 +60,12 @@ export function withEmphasis(text: string, em: TextStyle): React.ReactNode {
 // Plain-text form for the share sheet.
 const stripEmphasis = (t: string) => t.replace(EM_RE, '$1');
 
+// Paragraphs: most multi-paragraph days in Supabase separate paragraphs with a
+// single newline (only a couple use a blank line), so any run of newlines is a
+// paragraph break. Exported — the Today reading pane renders the same text.
+export const splitParagraphs = (t: string) =>
+  t.split(/\n+/).map((s) => s.trim()).filter(Boolean);
+
 const isSameDay = (a: Date, b: Date) =>
   a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
 const heroDate = (d: Date) =>
@@ -297,7 +303,7 @@ const ReflectionPage = React.memo(function ReflectionPage({ date, width, fetchRe
 
             {/* Reflection body */}
             <View style={styles.bodyWrap}>
-              {reflection.reflection.split('\n\n').map((p, i) => (
+              {splitParagraphs(reflection.reflection).map((p, i) => (
                 <Text key={i} style={[styles.body, { fontSize: readSize, lineHeight: readLine, marginTop: i === 0 ? 0 : 14 }]}>{withEmphasis(p, EM_ITALIC)}</Text>
               ))}
             </View>

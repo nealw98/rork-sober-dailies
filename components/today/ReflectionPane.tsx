@@ -18,7 +18,7 @@ import { useRouter, type Href } from 'expo-router';
 import { Check, PenLine, Sparkles } from 'lucide-react-native';
 
 import ReadingColumn from '@/components/layout/ReadingColumn';
-import { withEmphasis, EM_ITALIC, EM_UPRIGHT } from '@/components/DailyReflection';
+import { withEmphasis, splitParagraphs, EM_ITALIC, EM_UPRIGHT } from '@/components/DailyReflection';
 import { titleCase } from '@/lib/titleCase';
 import { fontFamily, radii, type Tokens } from '@/constants/designTokens';
 import { readerSerif } from '@/constants/fonts';
@@ -55,7 +55,7 @@ export default function ReflectionPane({ reflection, dateLabel, done, onToggleDo
 
         {/* Reflection body */}
         <View style={styles.bodyWrap}>
-          {reflection.reflection.split('\n\n').map((p, i) => (
+          {splitParagraphs(reflection.reflection).map((p, i) => (
             <Text key={i} style={[styles.body, { fontSize: readSize, lineHeight: readLine, marginTop: i === 0 ? 0 : 14 }]}>
               {withEmphasis(p, EM_ITALIC)}
             </Text>
