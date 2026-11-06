@@ -8,15 +8,38 @@
 // 600pt, the same threshold the wide layouts use (hooks/useLayoutMode).
 //
 // app.json orientation is "default" (the native shell allows landscape); this
-// runtime lock/unlock is what actually governs. The rule re-applies on every
-// trigger that can accompany a fold/unfold (the app moving between the Duo's
-// displays), because any single one can be missed (Neal, 2026-11-06: "works
-// sometimes"):
+// runtime lock/unlock is what actually governs on phones. The inner display
+// is different, and everything in steerToLandscape below exists because of
+// three facts confirmed across Apple's Duo tech talk, Apple DTS answers,
+// Unity's SDK-27 testing, and the fold-handoff fixes in other projects
+// (Usernode-Labs/flutter-mobile-app#636, react-native-orientation-director#116):
+//   1. Unfolding emits NO device-rotation event. iOS rotates apps on rotation
+//      events, so the cover screen's portrait is carried over and simply
+//      stays, even though the inner display would rotate freely.
+//   2. The inner display refuses programmatic orientation changes
+//      ("the current windowing mode does not allow…") and ignores the app's
+//      declared orientation masks. The ONLY nudge that still lands is the
+//      synthesized device-rotation that expo-screen-orientation's lockAsync
+//      sends natively — and only once the fold transition has settled, which
+//      takes an unpredictable amount of time.
+//   3. expo's unlockAsync re-asserts the CURRENT orientation natively. Called
+//      while the handoff is still stuck in portrait, it actively re-pins
+//      portrait. So while a handoff is unresolved we must never unlock; we
+//      hold the landscape-only lock and keep nudging until the window has
+//      actually turned, then unlock for free rotation.
+// The previous version gave the steer one 2.5-second shot and then unlocked
+// regardless — when iOS settled slower than that, the unlock re-pinned
+// portrait and every later trigger kept re-pinning it (Neal, 2026-11-06:
+// "worked a couple times but then not"). Now the steer is a bounded
+// retry loop driven by the same triggers, and it only ends in unlock once
+// landscape has landed or the window expires into free rotation.
+//
+// Triggers that re-apply the rule (any single one can be missed, so all run):
 //   · Dimensions change — the normal foreground fold/unfold signal, plus a
-//     delayed re-assert because the unlock can race the move itself and run
-//     against the OLD display's metrics;
+//     delayed re-assert because events during the transition can be dropped;
 //   · AppState active — a fold/unfold that happens while the app is
-//     backgrounded delivers no Dimensions event at all.
+//     backgrounded delivers no Dimensions event at all;
+//   · SideInsetGuard onLayout — the root view re-laying out.
 // Guarded require: binaries without the native module (≤126) reject the
 // calls — they're natively portrait-locked anyway, so this is a no-op there.
 import { AppState, Dimensions } from 'react-native';
@@ -26,52 +49,62 @@ try { ScreenOrientation = require('expo-screen-orientation'); } catch {}
 
 const TABLET_MIN_DIM = 600;
 
+// How long after a cover→inner handoff we keep nudging toward landscape
+// before giving up into free rotation (a physical rotation then fixes it).
+// Also the window in which someone deliberately unfolding in portrait gets
+// steered to landscape; the sensor corrects them on their first movement.
+const STEER_WINDOW_MS = 20000;
+// Pause between landscape nudges while waiting for one to take.
+const STEER_RETRY_MS = 1200;
+
 // While a screen holds its own orientation (the PDF reader's full-screen
 // Modal unlocks rotation on phones), the rule stands aside so a background/
 // foreground hop can't yank that screen back to portrait mid-read.
 let suspended = false;
 
-// Which display class the last apply saw; a steer runs on phone→tablet.
+// Which display class the last apply saw; a steer starts on phone→tablet.
 let lastClass: 'phone' | 'tablet' | null = null;
 let steering = false;
+// Set on the phone→tablet handoff; cleared when landscape lands, the steer
+// window expires, or the device folds back. While set and the window is
+// still portrait, every trigger re-enters the steer instead of unlocking.
+let steerUntil = 0;
 
 const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
 const isTabletNow = () => {
   const { width, height } = Dimensions.get('screen');
   return Math.min(width, height) >= TABLET_MIN_DIM;
 };
+const isWindowLandscape = () => {
+  const { width, height } = Dimensions.get('window');
+  return width > height;
+};
 
-// Unfolding carries the cover screen's PORTRAIT over to the inner display,
-// and no amount of unlocking fixes it: on the inner display iOS refuses
-// programmatic orientation changes ("the current windowing mode does not
-// allow…") and only honors a re-read of what the app ALLOWS — and an
-// unlocked mask allows portrait, so the re-read keeps it. (The same bug and
-// fix shape: Usernode-Labs/flutter-mobile-app#635/#636.) So the handoff
-// steers: wait for the unfold's size churn to settle, lock to LANDSCAPE —
-// a mask portrait is NOT in, which iOS must honor — and HOLD that lock
-// until the window has actually turned before unlocking for free rotation.
-// The previous attempt locked and unlocked back-to-back, restoring the
-// portrait-friendly mask before iOS ever re-read it; the hold is the fix.
-// Someone unfolding while deliberately holding portrait lands in landscape
-// and is corrected by the sensor on their first movement.
 async function steerToLandscape(): Promise<void> {
   if (steering || !ScreenOrientation) return;
   steering = true;
   try {
-    await sleep(500); // let the fold transition settle (metrics stop churning)
-    if (!isTabletNow()) return; // folded back meanwhile
-    await ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.LANDSCAPE);
-    for (let i = 0; i < 20; i++) {
-      const { width, height } = Dimensions.get('window');
-      if (width > height) break; // the window turned — landscape took
-      if (!isTabletNow()) break; // folded back — let the rule re-lock portrait
-      await sleep(100);
+    await sleep(500); // let the fold transition's size churn settle
+    while (isTabletNow() && !isWindowLandscape() && Date.now() < steerUntil) {
+      // Landscape-only lock: portrait is NOT in the mask, and the native
+      // enforce sends a synthesized landscape rotation. Re-sent every pass
+      // because nudges fired before iOS settles are silently dropped.
+      try {
+        await ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.LANDSCAPE);
+      } catch {}
+      for (let i = 0; i < STEER_RETRY_MS / 100; i++) {
+        if (isWindowLandscape() || !isTabletNow()) break;
+        await sleep(100);
+      }
     }
   } catch {
   } finally {
+    if (isWindowLandscape() || !isTabletNow() || Date.now() >= steerUntil) {
+      steerUntil = 0; // resolved (or expired): back to the plain rule
+    }
     steering = false;
-    // Back to the rule: tablet → unlock (keeping the landscape it now has),
-    // phone (folded back mid-steer) → portrait.
+    // Tablet + landscape → unlock (free rotation, keeping the landscape it
+    // now has); folded back mid-steer → the rule re-locks portrait.
     applyDisplayOrientationRule();
   }
 }
@@ -83,14 +116,26 @@ export async function applyDisplayOrientationRule(): Promise<void> {
   lastClass = cls;
   try {
     if (cls === 'phone') {
+      steerUntil = 0;
       await ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP);
       return;
     }
     if (prev === 'phone') {
-      // The cover→inner handoff: steer instead of unlocking (see above).
+      // The cover→inner handoff: open the steer window and start nudging.
+      steerUntil = Date.now() + STEER_WINDOW_MS;
       steerToLandscape();
       return;
     }
+    if (steerUntil > 0 && !isWindowLandscape()) {
+      if (Date.now() < steerUntil) {
+        // Handoff still unresolved: a new trigger re-enters the steer.
+        // Never unlock here — unlock would natively re-pin portrait.
+        steerToLandscape();
+        return;
+      }
+      steerUntil = 0; // window expired: fall through to free rotation
+    }
+    steerUntil = 0;
     await ScreenOrientation.unlockAsync();
   } catch {}
 }
@@ -106,8 +151,8 @@ export function resumeOrientationRule(): void {
 }
 
 // Apply now, then re-assert after the fold transition has settled. The Duo's
-// unfold animates for around a second, and an unlock issued mid-transition
-// can be evaluated against the old display (or dropped) — the trailing calls
+// unfold animates for around a second, and a call issued mid-transition can
+// be evaluated against the old display (or dropped) — the trailing calls
 // are the ones that actually take on a cover→inner handoff.
 export function reassertDisplayOrientationRule(): void {
   applyDisplayOrientationRule();
