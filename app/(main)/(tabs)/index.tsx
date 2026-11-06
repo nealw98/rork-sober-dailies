@@ -24,7 +24,21 @@ import { useTokens, useThemedStyles } from '@/hooks/useTokens';
 import { getRowTones, resolveGlyph, resolveTone } from '@/components/dailyTokens';
 import { useLayoutMode } from '@/hooks/useLayoutMode';
 import ListDetailLayout from '@/components/layout/ListDetailLayout';
+import { PaneProvider } from '@/components/layout/PaneContext';
+import PaneExpandButton from '@/components/layout/PaneExpandButton';
 import ReflectionPane from '@/components/today/ReflectionPane';
+// Tool screens, embedded in the detail pane on expanded widths. They are the
+// same components the routes render — PaneContext redirects their back/save
+// navigation to the pane.
+import PrayersScreen from '@/app/(main)/prayers';
+import GratitudeScreen from '@/app/(main)/gratitude';
+import JournalScreen from '@/app/(main)/journal';
+import InventoryScreen from '@/app/(main)/inventory';
+import NightlyReviewScreen from '@/app/(main)/evening-review';
+import MeditationScreen from '@/app/(main)/meditation';
+import ReachOutScreen from '@/app/(main)/reach-out';
+import SpeakersScreen from '@/app/(main)/speakers';
+import MeetingsScreen from '@/app/(main)/meetings';
 import DailiesEditor from '@/components/today/DailiesEditor';
 import { useScreenTimeTracking } from '@/hooks/useScreenTimeTracking';
 import { useDailies, type DailyItem, type WhenBucket } from '@/hooks/use-dailies-store';
@@ -68,6 +82,23 @@ const ACTION_ROUTE: Record<string, Href | null> = {
 // Prayer dailies land on the full prayer library rather than deep-linking to
 // the one prayer — the whole list is the point, and morning/evening are the
 // first things on it anyway.
+
+// On expanded widths these actions open INSIDE the detail pane instead of
+// pushing full-screen (everything opened from Today lives in the right pane;
+// its Expand control reopens it as the pushed route). `lit` switches tabs and
+// `callSponsor` is an action sheet, so they stay as they are.
+const PANE_SCREENS: Record<string, React.ComponentType> = {
+  prayerMorning: PrayersScreen,
+  prayerEvening: PrayersScreen,
+  gratitude: GratitudeScreen,
+  journal: JournalScreen,
+  spotcheck: InventoryScreen,
+  nightly: NightlyReviewScreen,
+  speaker: SpeakersScreen,
+  meditation: MeditationScreen,
+  callAnother: ReachOutScreen,
+  meeting: MeetingsScreen,
+};
 
 const SECTIONS: WhenBucket[] = ['Morning', 'Anytime', 'Evening'];
 
@@ -113,9 +144,12 @@ function DoneButton({ done, tone, onPress, onDark }: { done: boolean; tone: { in
 // grip-handle medallion long-presses to reorder. Outside edit mode: tap to
 // open the tool.
 function DailyRow({
-  item, done, isLast, editing, onOpen, onToggle, onRemove, onDragStart, dragging,
+  item, done, isLast, editing, selected, onOpen, onToggle, onRemove, onDragStart, dragging,
 }: {
   item: DailyItem; done: boolean; isLast: boolean; editing: boolean;
+  // Expanded widths: this daily's tool is open in the pane beside the list —
+  // the row gets the same 1.5pt accent outline as the selected hero.
+  selected?: boolean;
   onOpen: () => void; onToggle: () => void; onRemove: () => void;
   onDragStart?: () => void; dragging?: boolean;
 }) {
@@ -148,7 +182,7 @@ function DailyRow({
   }
 
   return (
-    <View style={styles.row}>
+    <View style={[styles.row, selected && { borderWidth: 1.5, borderColor: tone.ink }]}>
       <Pressable style={styles.rowMain} onPress={onOpen}>
         <View style={[styles.med, { backgroundColor: tone.soft }]}>
           <Glyph size={20} color={tone.ink} />
@@ -222,6 +256,11 @@ export default function TodayScreen() {
   // Milestone day — a full-bleed band above the counter that celebrates all day
   // and replays the takeover on tap (the auto-show only fires once). See
   // components/today/MilestoneBand for why it's a band and not a header chip.
+  // Which tool daily is open in the detail pane (expanded only); null = the
+  // Daily Reflection, the pane's resting state. Keyed by action so switching
+  // dailies remounts the tool fresh.
+  const [paneTool, setPaneTool] = useState<{ action: string; route: Href } | null>(null);
+
   const milestone = sobrietyDate ? calculateMilestone(sobrietyDate) : null;
   const milestoneLabel = (() => {
     if (!milestone) return null;
@@ -339,6 +378,12 @@ export default function TodayScreen() {
       Alert.alert('Coming soon', `${item.label} is on the way in the redesign.`);
       return;
     }
+    // Expanded: the tool reads/writes in the pane beside the list. Compact
+    // (and the few non-pane actions, like the Literature tab switch) pushes.
+    if (expanded && PANE_SCREENS[item.action]) {
+      setPaneTool({ action: item.action, route });
+      return;
+    }
     router.push(route);
   };
 
@@ -347,10 +392,11 @@ export default function TodayScreen() {
     dailies.toggleDone(id);
   };
 
-  // Compact pushes the full reader; expanded already shows the reading in the
-  // pane, so the hero tap has nothing to open (the pane IS the selection).
+  // Compact pushes the full reader; expanded shows the reading in the pane —
+  // a hero tap there brings the pane back to the reflection if a tool has it.
   const openReflection = () => {
-    if (!expanded) router.push('/daily-reflections');
+    if (expanded) setPaneTool(null);
+    else router.push('/daily-reflections');
   };
 
   // Counter + Daily Reflection hero — shown above the list in both modes.
@@ -389,7 +435,7 @@ export default function TodayScreen() {
           alt={ROTATE_HERO ? heroImage?.alt : 'A seedling reaching toward the light'}
           staticSource={ROTATE_HERO ? undefined : STATIC_HERO}
           done={dailies.reflectionDone}
-          selected={expanded}
+          selected={expanded && !paneTool}
           onRead={openReflection}
           onToggle={dailies.toggleReflection}
         />
@@ -464,6 +510,7 @@ export default function TodayScreen() {
                       done={dailies.isDone(item.id)}
                       isLast={idx === items.length - 1}
                       editing={false}
+                      selected={expanded && paneTool?.action === item.action}
                       onOpen={() => openDaily(item)}
                       onToggle={() => toggleDaily(item.id)}
                       onRemove={() => {}}
@@ -479,20 +526,36 @@ export default function TodayScreen() {
   );
 
   if (expanded) {
+    const PaneTool = paneTool ? PANE_SCREENS[paneTool.action] : null;
     return (
       <View style={[styles.root, { backgroundColor: c.background }]}>
         <ListDetailLayout
           listWidth={TODAY_LIST_WIDTH}
           list={listColumn}
           detail={
-            <SafeAreaView style={styles.safe} edges={['top']}>
-              <ReflectionPane
-                reflection={reflection}
-                dateLabel={dateLabel}
-                done={dailies.reflectionDone}
-                onToggleDone={dailies.toggleReflection}
-              />
-            </SafeAreaView>
+            paneTool && PaneTool ? (
+              // A tool daily, embedded. The provider points its back/save at
+              // the pane; Expand reopens it as the full-screen route. Keyed so
+              // switching dailies starts the next tool fresh.
+              <PaneProvider
+                key={paneTool.action}
+                value={{ close: () => setPaneTool(null), expand: () => router.push(paneTool.route) }}
+              >
+                <PaneTool />
+              </PaneProvider>
+            ) : (
+              <SafeAreaView style={styles.safe} edges={['top']}>
+                <View style={styles.paneBar}>
+                  <PaneExpandButton onPress={() => router.push('/daily-reflections')} />
+                </View>
+                <ReflectionPane
+                  reflection={reflection}
+                  dateLabel={dateLabel}
+                  done={dailies.reflectionDone}
+                  onToggleDone={dailies.toggleReflection}
+                />
+              </SafeAreaView>
+            )
           }
         />
       </View>
@@ -546,6 +609,8 @@ const makeStyles = (tk: Tokens) => {
   scroll: { paddingHorizontal: 22, paddingBottom: 120 },
 
   heroTop: { marginTop: spacing.xl },
+  // Reflection pane chrome (expanded): the expand control, top-right.
+  paneBar: { flexDirection: 'row', justifyContent: 'flex-end', paddingHorizontal: 20, paddingTop: 10 },
   section: { marginTop: spacing.xl },
   sectionTitle: { fontFamily: fontFamily.semiBold, fontSize: fontSize.xl },
   // Drag-list cells use padding (not margin) so onLayout heights stay correct.

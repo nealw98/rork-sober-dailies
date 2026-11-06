@@ -89,7 +89,13 @@ interface DailyReflectionProps {
 export default function DailyReflection({ jumpToDate = null, onJumpApplied }: DailyReflectionProps) {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { width } = useWindowDimensions();
+  // Page width = the pager's MEASURED width, not the window's. The root
+  // SideInsetGuard pads the Duo's 84pt side strip off the content, so window
+  // width over-sizes the pages there: text clips at the right edge and
+  // pagingEnabled (which snaps by the list's real width) lands between days.
+  // Seeded from window minus side insets so the first frame is already right.
+  const { width: windowWidth } = useWindowDimensions();
+  const [width, setWidth] = useState(windowWidth - insets.left - insets.right);
 
   const styles = useThemedStyles(makeStyles);
   const { c, colors } = useTokens();
@@ -142,7 +148,7 @@ export default function DailyReflection({ jumpToDate = null, onJumpApplied }: Da
     setSelectedDate((prev) => (isSameDay(prev, d) ? prev : d));
   }, [dates, width]);
 
-  // Rotation/resize: page offsets are in the old width — re-snap to the page.
+  // Rotation/resize/fold: page offsets are in the old width — re-snap to the page.
   const widthRef = useRef(width);
   useEffect(() => {
     if (widthRef.current === width) return;
@@ -221,6 +227,7 @@ export default function DailyReflection({ jumpToDate = null, onJumpApplied }: Da
           under your finger (and from the chevrons) instead of swapping in place. */}
       <FlatList
         ref={listRef}
+        onLayout={(e) => setWidth(e.nativeEvent.layout.width)}
         data={dates}
         keyExtractor={dateKey}
         renderItem={({ item }) => <ReflectionPage date={item} width={width} fetchReflection={fetchReflection} />}

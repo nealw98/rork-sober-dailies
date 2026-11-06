@@ -9,6 +9,8 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import { Stack, useRouter, useLocalSearchParams } from 'expo-router';
 import { ChevronRight, BookOpen, X, Plus, Pencil } from 'lucide-react-native';
 import BackButton from '@/components/BackButton';
+import { usePane } from '@/components/layout/PaneContext';
+import PaneExpandButton from '@/components/layout/PaneExpandButton';
 import { useUserPrayers, type UserPrayer } from '@/hooks/use-user-prayers-store';
 import { PrayerEditSheet } from '@/components/PrayerEditSheet';
 import { useTheme } from '@/hooks/useTheme';
@@ -65,6 +67,8 @@ function PrayerBody({ prayer }: { prayer: ReadPrayer }) {
 }
 
 export default function PrayersScreen() {
+  // Non-null inside Today's wide-layout pane - back means closing the pane.
+  const pane = usePane();
   const router = useRouter();
   const params = useLocalSearchParams<{ prayer?: string }>();
   const { width: screenW, height: screenH } = useWindowDimensions();
@@ -124,7 +128,7 @@ export default function PrayersScreen() {
         if (done) runOnJS(finishClose)();
       });
     } else {
-      router.back(); // deep-linked: no source card to morph back to
+      if (pane) pane.close(); else router.back(); // deep-linked: no source card to morph back to
     }
   };
 
@@ -182,7 +186,10 @@ export default function PrayersScreen() {
         {/* Library list — kept mounted (scroll preserved); fades out as a prayer opens. */}
         <Animated.View style={[styles.flex, listFade]} pointerEvents={isList ? 'auto' : 'none'}>
           <View style={styles.header}>
-            <BackButton onPress={() => router.back()} style={styles.headerBack} />
+            <View style={styles.headerTopRow}>
+              <BackButton onPress={() => (pane ? pane.close() : router.back())} />
+              <PaneExpandButton />
+            </View>
             <Text style={styles.bigTitle}>Prayers</Text>
             <Text style={styles.bigSub}>Tap any prayer to read it.</Text>
           </View>
@@ -317,6 +324,7 @@ const makeStyles = (tk: Tokens) => {
   // library header
   header: { paddingHorizontal: 22, paddingTop: 8, paddingBottom: 28 },
   headerBack: { marginBottom: 10 },
+  headerTopRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 },
   bigTitle: { fontFamily: fontFamily.display, fontSize: 28, letterSpacing: -0.5, color: c.text, lineHeight: 29 },
   bigSub: { fontFamily: fontFamily.regular, fontSize: 14, color: c.textMuted, marginTop: 3 },
 

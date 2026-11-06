@@ -28,6 +28,7 @@ try { ScreenOrientation = require('expo-screen-orientation'); } catch {}
 
 export default function PdfReader({
   assetModule, title, book, sectionId, startPage, initialPage, accent = colors.primary, onClose,
+  embedded = false, headerRight, onPageSettled,
 }: {
   assetModule: number;
   title: string;
@@ -37,6 +38,13 @@ export default function PdfReader({
   initialPage?: number;  // open at this PDF page (e.g. from a bookmark)
   accent?: string;
   onClose: () => void;
+  // Embedded = rendered inside a wide-layout detail pane rather than a
+  // full-screen Modal: use the app's ambient safe-area context (the pane is
+  // already inside SideInsetGuard, so no left/right edges of its own), show
+  // no close button, and leave the orientation lock alone.
+  embedded?: boolean;
+  headerRight?: React.ReactNode; // extra control(s) after the title, e.g. expand
+  onPageSettled?: (pdfPage: number) => void; // reports the confirmed native page
 }) {
   const styles = useThemedStyles(makeStyles);
   const { c, isDark } = useTokens();
@@ -75,12 +83,14 @@ export default function PdfReader({
   }
 
   useEffect(() => {
-    if (!ScreenOrientation) return;
+    // Embedded panes live on the already-unlocked wide layout — locking
+    // portrait on unmount there would yank the whole app out of landscape.
+    if (!ScreenOrientation || embedded) return;
     ScreenOrientation.unlockAsync().catch(() => {});
     return () => {
       ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP).catch(() => {});
     };
-  }, []);
+  }, [embedded]);
 
   useEffect(() => {
     let alive = true;
@@ -111,18 +121,19 @@ export default function PdfReader({
     toggle({ book, sectionId, title, startPage, pdfPage, bookPage });
   };
 
-  return (
-    <SafeAreaProvider initialMetrics={initialWindowMetrics}>
-      <SafeAreaView style={styles.screen} edges={['top', 'bottom']}>
-        {/* Horizontal insets apply to the chrome only (back button / title /
-            bookmark clear of the landscape notch) — NOT the screen, so the
-            PDF itself runs edge-to-edge and landscape actually reads bigger. */}
-        <SafeAreaView edges={['left', 'right']}>
+  // The chrome + PDF body, shared by both presentations. In the Modal the
+  // chrome gets its own left/right SafeAreaView (the Modal sits outside
+  // SideInsetGuard); embedded panes are already inside the guard.
+  const chrome = (
+          <>
           <View style={styles.header}>
-            <Pressable onPress={onClose} hitSlop={8} style={styles.backBtn} accessibilityRole="button" accessibilityLabel="Close">
-              <ChevronLeft size={22} color={c.text} strokeWidth={2} />
-            </Pressable>
+            {!embedded && (
+              <Pressable onPress={onClose} hitSlop={8} style={styles.backBtn} accessibilityRole="button" accessibilityLabel="Close">
+                <ChevronLeft size={22} color={c.text} strokeWidth={2} />
+              </Pressable>
+            )}
             <Text style={[styles.title, styles.flex]} numberOfLines={1}>{title}</Text>
+            {headerRight}
           </View>
 
           {/* Action row — live BOOK page + bookmark toggle */}
@@ -140,8 +151,10 @@ export default function PdfReader({
               <Text style={[styles.bmText, { color: marked ? '#fff' : accent }]}>{marked ? 'Saved' : 'Bookmark'}</Text>
             </Pressable>
           </View>
-        </SafeAreaView>
+          </>
+  );
 
+  const body = (
         <View style={styles.body}>
           {failed ? (
             <Text style={styles.msg}>This document couldn’t be opened.</Text>
@@ -184,12 +197,32 @@ export default function PdfReader({
                 currentPageRef.current = p;
                 if (p === restorePageRef.current) pendingRestoreRef.current = false;
                 setPdfPage(p);
+                onPageSettled?.(p);
               }}
               onError={(e) => { console.warn('[pdf] render error', e); setFailed(true); }}
               style={styles.pdf}
             />
           )}
         </View>
+  );
+
+  if (embedded) {
+    return (
+      <SafeAreaView style={styles.screen} edges={['top']}>
+        {chrome}
+        {body}
+      </SafeAreaView>
+    );
+  }
+
+  return (
+    <SafeAreaProvider initialMetrics={initialWindowMetrics}>
+      <SafeAreaView style={styles.screen} edges={['top', 'bottom']}>
+        {/* Horizontal insets apply to the chrome only (back button / title /
+            bookmark clear of the landscape notch) — NOT the screen, so the
+            PDF itself runs edge-to-edge and landscape actually reads bigger. */}
+        <SafeAreaView edges={['left', 'right']}>{chrome}</SafeAreaView>
+        {body}
       </SafeAreaView>
     </SafeAreaProvider>
   );

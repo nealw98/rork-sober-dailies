@@ -14,11 +14,14 @@ import { fontFamily, type Tokens } from '@/constants/designTokens';
 import { useTokens, useThemedStyles } from '@/hooks/useTokens';
 import { logEvent } from '@/lib/analytics';
 import { confirmSaved } from '@/lib/savedNotice';
+import { usePane } from '@/components/layout/PaneContext';
 
 const tool = TOOLS.journal;
 
 export default function JournalScreen() {
   const router = useRouter();
+  // Non-null inside Today's wide-layout pane - back means closing the pane.
+  const pane = usePane();
   const { dailyId } = useLocalSearchParams<{ dailyId?: string }>();
   const styles = useThemedStyles(makeStyles);
   const { c, isDark } = useTokens();
@@ -37,10 +40,10 @@ export default function JournalScreen() {
       // Tell them where it went, and let the dialog do the navigating so the
       // Alert is never presented mid-transition. It also fires the one-time
       // backup nudge afterwards, so the two queue instead of stacking.
-      confirmSaved();
+      confirmSaved(pane?.close);
       return;
     }
-    router.back();
+    if (pane) pane.close(); else router.back();
   };
 
   return (

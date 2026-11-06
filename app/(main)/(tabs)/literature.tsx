@@ -11,6 +11,8 @@ import { View, Text, Pressable, StyleSheet, ScrollView } from 'react-native';
 import { Image } from 'expo-image';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Stack, useRouter } from 'expo-router';
+import { BookOpen } from 'lucide-react-native';
+import PaneExpandButton from '@/components/layout/PaneExpandButton';
 import SettingsGear from '@/components/navigation/SettingsGear';
 import PassItOnGift from '@/components/navigation/PassItOnGift';
 import { MeetingReadingCard } from '@/components/literature/literature-ui';
@@ -24,7 +26,7 @@ import { useReadingSession } from '@/hooks/useReadingSession';
 import { useScreenTimeTracking } from '@/hooks/useScreenTimeTracking';
 import { readerSerif } from '@/constants/fonts';
 import { fontFamily, type Tokens } from '@/constants/designTokens';
-import { useThemedStyles } from '@/hooks/useTokens';
+import { useTokens, useThemedStyles } from '@/hooks/useTokens';
 
 const BIG_BOOK_COVER = require('@/assets/images/big-book_cover.webp');
 const TWELVE_COVER = require('@/assets/images/new_12x12_cover.webp');
@@ -36,15 +38,17 @@ export default function LiteratureScreen() {
   useScreenTimeTracking('Literature');
   const router = useRouter();
   const styles = useThemedStyles(makeStyles);
+  const { c } = useTokens();
   const insets = useSafeAreaInsets();
   const expanded = useLayoutMode() === 'expanded';
 
   // Wide layouts: which meeting reading is open in the detail pane. Lives in
   // state (not the route) so it survives fold/unfold; compact ignores it and
-  // keeps pushing the dedicated reader screen.
-  const [selectedId, setSelectedId] = useState(MEETING_READINGS[0].id);
+  // keeps pushing the dedicated reader screen. Starts EMPTY — nothing reads
+  // in the pane until a reading is chosen (Neal, 2026-11-06).
+  const [selectedId, setSelectedId] = useState<string | null>(null);
   const [sizeSheetOpen, setSizeSheetOpen] = useState(false);
-  const selectedReading = MEETING_READINGS.find((r) => r.id === selectedId) ?? MEETING_READINGS[0];
+  const selectedReading = selectedId ? MEETING_READINGS.find((r) => r.id === selectedId) ?? null : null;
 
   const openReading = (id: string) => {
     if (expanded) setSelectedId(id);
@@ -116,17 +120,29 @@ export default function LiteratureScreen() {
         list={listColumn}
         detail={
           <SafeAreaView style={styles.screen} edges={['top']}>
-            {/* Pane chrome: just the "aA" size control, top-right. */}
-            <View style={styles.paneBar}>
-              <Pressable onPress={() => setSizeSheetOpen(true)} hitSlop={8} accessibilityRole="button" accessibilityLabel="Text size" style={styles.aaBtn}>
-                <Text style={styles.aaLabel}>aA</Text>
-              </Pressable>
-            </View>
-            <ScrollView contentContainerStyle={styles.paneScroll} showsVerticalScrollIndicator={false}>
-              <ReadingColumn>
-                <MeetingReadingContent reading={selectedReading} />
-              </ReadingColumn>
-            </ScrollView>
+            {selectedReading ? (
+              <>
+                {/* Pane chrome: "aA" size control + expand, top-right. */}
+                <View style={styles.paneBar}>
+                  <Pressable onPress={() => setSizeSheetOpen(true)} hitSlop={8} accessibilityRole="button" accessibilityLabel="Text size" style={styles.aaBtn}>
+                    <Text style={styles.aaLabel}>aA</Text>
+                  </Pressable>
+                  <PaneExpandButton onPress={() => router.push(`/(main)/meeting-reading?id=${selectedReading.id}`)} />
+                </View>
+                <ScrollView contentContainerStyle={styles.paneScroll} showsVerticalScrollIndicator={false}>
+                  <ReadingColumn>
+                    <MeetingReadingContent reading={selectedReading} />
+                  </ReadingColumn>
+                </ScrollView>
+              </>
+            ) : (
+              // Nothing chosen yet — a quiet placeholder instead of
+              // auto-opening the first reading.
+              <View style={styles.paneEmpty}>
+                <BookOpen size={30} color={c.textMuted} strokeWidth={1.6} />
+                <Text style={styles.paneEmptyText}>Choose a book or a meeting reading</Text>
+              </View>
+            )}
             <ReadingSizeSheet visible={sizeSheetOpen} onClose={() => setSizeSheetOpen(false)} bottomInset={insets.bottom} />
           </SafeAreaView>
         }
@@ -176,7 +192,9 @@ const makeStyles = (tk: Tokens) => {
     readingList: { paddingHorizontal: 16, gap: 8 },
 
     // Wide-layout detail pane chrome
-    paneBar: { flexDirection: 'row', justifyContent: 'flex-end', paddingHorizontal: 20, paddingTop: 10 },
+    paneBar: { flexDirection: 'row', justifyContent: 'flex-end', alignItems: 'center', gap: 8, paddingHorizontal: 20, paddingTop: 10 },
+    paneEmpty: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 12, paddingHorizontal: 40, paddingBottom: 60 },
+    paneEmptyText: { fontFamily: fontFamily.regular, fontSize: 14.5, color: c.textMuted, textAlign: 'center' },
     aaBtn: { width: 32, height: 32, borderRadius: 16, alignItems: 'center', justifyContent: 'center', backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)' },
     aaLabel: { fontFamily: fontFamily.bold, fontSize: 13, color: c.textSecondary, letterSpacing: -0.2 },
     paneScroll: { paddingHorizontal: 32, paddingTop: 10, paddingBottom: 48 },

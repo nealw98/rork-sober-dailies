@@ -26,6 +26,8 @@ import { askFormReflection } from '@/lib/spotCheckLLM';
 import { useTokens, useThemedStyles } from '@/hooks/useTokens';
 import { logEvent } from '@/lib/analytics';
 import { confirmSaved } from '@/lib/savedNotice';
+import { usePane } from '@/components/layout/PaneContext';
+import PaneExpandButton from '@/components/layout/PaneExpandButton';
 import { fontFamily, type Tokens } from '@/constants/designTokens';
 import type { SponsorType } from '@/types';
 import type { SpotCheckEntry } from '@/types/spotCheck';
@@ -40,6 +42,8 @@ const RECORD_SPONSOR_ID: SponsorType = 'supportive';
 
 export default function InventoryScreen() {
   const router = useRouter();
+  // Non-null inside Today's wide-layout pane — back means closing the pane.
+  const pane = usePane();
   const insets = useSafeAreaInsets();
   const styles = useThemedStyles(makeStyles);
   const { c, colors } = useTokens();
@@ -153,7 +157,7 @@ export default function InventoryScreen() {
   };
 
   // States 2 & 3 — leaving. Clean form (or saved + unedited) just exits.
-  const exit = () => { if (router.canGoBack()) router.back(); else router.replace('/'); };
+  const exit = () => { if (pane) pane.close(); else if (router.canGoBack()) router.back(); else router.replace('/'); };
   const confirmExit = () => {
     if (!dirty) { exit(); return; }
     Alert.alert('Save this spot check?', 'What you’ve entered will show up in Journey.', [
@@ -162,7 +166,7 @@ export default function InventoryScreen() {
       {
         text: 'Save & close',
         onPress: async () => {
-          try { await save(); confirmSaved(); } catch (e) { console.error('Spot check save failed:', e); }
+          try { await save(); confirmSaved(pane?.close); } catch (e) { console.error('Spot check save failed:', e); }
         },
       },
     ]);
@@ -185,6 +189,7 @@ export default function InventoryScreen() {
       <View style={styles.headerRow}>
         <BackButton onPress={confirmExit} />
         <Text style={styles.title}>Spot Check</Text>
+        <PaneExpandButton />
         <Pressable
           onPress={onSave}
           disabled={!savePillActive || saving}

@@ -13,6 +13,7 @@ import { useGratitudeStore } from '@/hooks/use-gratitude-store';
 import { useGratitudeQuote } from '@/hooks/useGratitudeQuote';
 import { useDailies } from '@/hooks/use-dailies-store';
 import { ToolHeader, ToolIntro, TOOLS } from '@/components/ToolScreen';
+import { usePane } from '@/components/layout/PaneContext';
 import { fontFamily, type Tokens } from '@/constants/designTokens';
 import { useTokens, useThemedStyles } from '@/hooks/useTokens';
 import { logEvent } from '@/lib/analytics';
@@ -22,6 +23,9 @@ const tool = TOOLS.gratitude;
 
 export default function GratitudeScreen() {
   const router = useRouter();
+  // Non-null when this screen renders inside Today's wide-layout pane —
+  // "back" there means closing the pane, not popping the navigator.
+  const pane = usePane();
   const { dailyId } = useLocalSearchParams<{ dailyId?: string }>();
   const styles = useThemedStyles(makeStyles);
   const { c, colors, isDark } = useTokens();
@@ -65,10 +69,10 @@ export default function GratitudeScreen() {
       // Tell them where it went, and let the dialog do the navigating so the
       // Alert is never presented mid-transition. It also fires the one-time
       // backup nudge afterwards, so the two queue instead of stacking.
-      confirmSaved();
+      confirmSaved(pane?.close);
       return;
     }
-    router.back();
+    if (pane) pane.close(); else router.back();
   };
 
   // Share the list as it reads on screen (saved or not) via the system sheet.

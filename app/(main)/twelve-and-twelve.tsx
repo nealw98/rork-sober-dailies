@@ -4,7 +4,7 @@
 // Step's own words on the row (title + page ride above as an eyebrow); front
 // matter stays a plain title + page. Every row opens the official A.A. essay as
 // a bundled, offline PDF — real BOOK pages, per-page bookmarks.
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { View, Text, Pressable, StyleSheet, ScrollView, Modal, TextInput, Keyboard } from 'react-native';
 import { KeyboardModalScope } from '@/components/KeyboardModalScope';
 import { SafeAreaView, SafeAreaProvider, initialWindowMetrics, useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -23,6 +23,9 @@ import { twelveAndTwelveData } from '@/constants/twelve-and-twelve';
 import { TWELVE_PDFS } from '@/constants/twelve-and-twelve-pdfs';
 import { searchTwelvePdfs } from '@/lib/pdf-search';
 import { usePdfBookmarks, type PdfBookmark } from '@/hooks/use-pdf-bookmarks';
+import { useLayoutMode } from '@/hooks/useLayoutMode';
+import ListDetailLayout from '@/components/layout/ListDetailLayout';
+import PaneExpandButton from '@/components/layout/PaneExpandButton';
 import { useReadingSession } from '@/hooks/useReadingSession';
 import { useScreenTimeTracking } from '@/hooks/useScreenTimeTracking';
 import { fontFamily, type Tokens } from '@/constants/designTokens';
@@ -78,10 +81,29 @@ export default function TwelveAndTwelveScreen() {
   const { forBook, remove } = usePdfBookmarks();
   const [pdf, setPdf] = useState<OpenPdf | null>(null);
 
+  // Wide layouts (3.5): the TOC keeps the left pane and the open essay reads
+  // embedded on the right — like the Big Book spread. Starts on the first
+  // section; selection lives in state so it survives fold/unfold. Compact
+  // keeps presenting the full-screen Modal. Expand reopens the pane's essay
+  // in that same Modal, on the page the pane is sitting on (panePageRef).
+  const expanded = useLayoutMode() === 'expanded';
+  const [paneSel, setPaneSel] = useState<OpenPdf>(() => {
+    const s = SECTIONS[0];
+    return { id: s.id, title: s.title, startPage: parsePage(s.pageNumber) };
+  });
+  const panePageRef = useRef(1);
+  const openSection = (o: OpenPdf) => {
+    if (expanded) { panePageRef.current = o.initialPage ?? 1; setPaneSel(o); }
+    else setPdf(o);
+  };
+
   // Analytics: one site covers every way a section opens (row, bookmark, search, go-to).
   useEffect(() => {
     if (pdf) logEvent('literature_opened', { book: '12 & 12', format: 'pdf', section: pdf.id });
   }, [pdf]);
+  useEffect(() => {
+    if (expanded) logEvent('literature_opened', { book: '12 & 12', format: 'pdf', section: paneSel.id });
+  }, [expanded, paneSel]);
   const [showBookmarks, setShowBookmarks] = useState(false);
   const [showSearch, setShowSearch] = useState(false);
   const [showGoTo, setShowGoTo] = useState(false);
@@ -104,7 +126,7 @@ export default function TwelveAndTwelveScreen() {
   const [panel, setPanel] = useState<null | 'bookmarks'>(null);
   const onQueryChange = (next: string) => { setQuery(next); if (next) setPanel(null); };
 
-  const openBookmark = (b: PdfBookmark) => jump(() => setPdf({ id: b.sectionId, title: b.title, startPage: b.startPage, initialPage: b.pdfPage }));
+  const openBookmark = (b: PdfBookmark) => jump(() => openSection({ id: b.sectionId, title: b.title, startPage: b.startPage, initialPage: b.pdfPage }));
 
   const searchResults = useMemo(() => {
     const q = debounced.trim();
@@ -118,7 +140,7 @@ export default function TwelveAndTwelveScreen() {
         const start = parsePage(s.pageNumber);
         out.push({
           key: `goto-${n}`, title: `Go to page ${n}`, pageLabel: String(n), before: '', match: '', after: s.title,
-          open: () => jump(() => setPdf({ id: s.id, title: s.title, startPage: start, initialPage: Math.max(1, n - start + 1) })),
+          open: () => jump(() => openSection({ id: s.id, title: s.title, startPage: start, initialPage: Math.max(1, n - start + 1) })),
         });
       }
     }
@@ -128,7 +150,7 @@ export default function TwelveAndTwelveScreen() {
       if (!s) continue;
       out.push({
         key: `${h.pdfKey}-${h.pdfPage}`, title: s.title, pageLabel: h.bookPage, before: h.before, match: h.match, after: h.after,
-        open: () => jump(() => setPdf({ id: s.id, title: s.title, startPage: parsePage(s.pageNumber), initialPage: h.pdfPage })),
+        open: () => jump(() => openSection({ id: s.id, title: s.title, startPage: parsePage(s.pageNumber), initialPage: h.pdfPage })),
       });
     }
     return out;
@@ -142,12 +164,13 @@ export default function TwelveAndTwelveScreen() {
     const s = findSectionForPage(n);
     if (!s) { setShowGoTo(false); return; }
     const start = parsePage(s.pageNumber);
-    jump(() => setPdf({ id: s.id, title: s.title, startPage: start, initialPage: Math.max(1, n - start + 1) }));
+    jump(() => openSection({ id: s.id, title: s.title, startPage: start, initialPage: Math.max(1, n - start + 1) }));
   };
 
-  return (
+  // The TOC (header + find tools + list) — the whole screen on compact, the
+  // left pane on expanded.
+  const tocColumn = (
     <SafeAreaView style={styles.screen} edges={['top']}>
-      <Stack.Screen options={{ headerShown: false }} />
       <View style={styles.header}>
         <BackButton onPress={() => router.back()} />
         <Pressable onPress={() => setSizeSheetOpen(true)} hitSlop={8} accessibilityRole="button" accessibilityLabel="Text size" style={styles.aaBtn}>
@@ -237,7 +260,8 @@ export default function TwelveAndTwelveScreen() {
                   section={s}
                   numbered={group.id !== 'intro'}
                   last={i === group.sections.length - 1}
-                  onOpen={() => setPdf({ id: s.id, title: s.title, startPage: parsePage(s.pageNumber) })}
+                  selected={expanded && s.id === paneSel.id}
+                  onOpen={() => openSection({ id: s.id, title: s.title, startPage: parsePage(s.pageNumber) })}
                 />
               ))}
             </View>
@@ -246,7 +270,12 @@ export default function TwelveAndTwelveScreen() {
         </View>
         )}
       </ScrollView>
+    </SafeAreaView>
+  );
 
+  // Modals + sheets — presented over either layout.
+  const overlays = (
+    <>
       {/* PDF reader. supportedOrientations: iOS Modals stay portrait-only
           without it, even though PdfReader unlocks rotation — landscape =
           bigger PDF text. */}
@@ -358,20 +387,64 @@ export default function TwelveAndTwelveScreen() {
       </Modal>
 
       <ReadingSizeSheet visible={sizeSheetOpen} onClose={() => setSizeSheetOpen(false)} bottomInset={insets.bottom} />
-    </SafeAreaView>
+    </>
+  );
+
+  if (expanded) {
+    return (
+      <View style={styles.screen}>
+        <Stack.Screen options={{ headerShown: false }} />
+        <ListDetailLayout
+          listWidth={TT_LIST_WIDTH}
+          list={tocColumn}
+          detail={
+            TWELVE_PDFS[paneSel.id] != null ? (
+              <PdfReader
+                // Remount on a new section or a jump-to-page so initialPage applies.
+                key={`${paneSel.id}-${paneSel.initialPage ?? 1}`}
+                embedded
+                assetModule={TWELVE_PDFS[paneSel.id]}
+                title={paneSel.title}
+                book={BOOK}
+                sectionId={paneSel.id}
+                startPage={paneSel.startPage}
+                initialPage={paneSel.initialPage}
+                accent={TT_INK}
+                onClose={() => {}}
+                onPageSettled={(p) => { panePageRef.current = p; }}
+                headerRight={<PaneExpandButton onPress={() => setPdf({ ...paneSel, initialPage: panePageRef.current })} />}
+              />
+            ) : null
+          }
+        />
+        {overlays}
+      </View>
+    );
+  }
+
+  return (
+    <View style={styles.screen}>
+      <Stack.Screen options={{ headerShown: false }} />
+      {tocColumn}
+      {overlays}
+    </View>
   );
 }
+
+// Matches the other wide layouts' list columns so the panes align on the Duo.
+const TT_LIST_WIDTH = 360;
 
 // Two row shapes. Front matter is a plain title + page. A Step or Tradition
 // leads with its numeral and gives the row to the Step's own words, in full —
 // the title and page follow underneath as a caption, so the list reads like
 // the book rather than like a table of contents.
-function TTRow({ section, numbered, last, onOpen }: { section: Section; numbered: boolean; last: boolean; onOpen: () => void }) {
+function TTRow({ section, numbered, last, selected, onOpen }: { section: Section; numbered: boolean; last: boolean; selected?: boolean; onOpen: () => void }) {
   const styles = useThemedStyles(makeStyles);
   const { c } = useTokens();
   // Entry text rides the shared "Aa" reading scale, like the readers.
   const { readingSize: size, readingLineHeight: lineHeight } = useReadingSize();
-  const press = ({ pressed }: { pressed: boolean }) => [styles.row, !last && styles.rowBorder, pressed && { opacity: 0.6 }];
+  // `selected` = this essay is open in the wide layout's reading pane.
+  const press = ({ pressed }: { pressed: boolean }) => [styles.row, !last && styles.rowBorder, selected && styles.rowSelected, pressed && { opacity: 0.6 }];
 
   if (!numbered) {
     return (
@@ -430,6 +503,8 @@ const makeStyles = (tk: Tokens) => {
   groupLabel: { fontFamily: fontFamily.bold, fontSize: 11, letterSpacing: 1, color: c.textMuted, marginBottom: 4 },
   row: { flexDirection: 'row', alignItems: 'flex-start', gap: 12, paddingVertical: 14 },
   rowBorder: { borderBottomWidth: 1, borderBottomColor: c.divider },
+  // Wide layouts: the essay open in the reading pane gets a soft tint.
+  rowSelected: { backgroundColor: colors.primarySoft, borderRadius: 12, paddingHorizontal: 12, marginHorizontal: -12 },
   rowTitle: { fontFamily: readerSerif, fontSize: 16.5, lineHeight: 22, color: c.text },
   // Step / Tradition numeral — bold serif in the text ink, riding the first line.
   rowNum: { fontFamily: readerSerif, fontWeight: '700', color: c.text, textAlign: 'left' },

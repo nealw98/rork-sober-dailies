@@ -35,6 +35,10 @@ export function BigBookMain() {
   const [searchTerm, setSearchTerm] = useState<string | null>(null);
   const [showReader, setShowReader] = useState(false);
   const [pdf, setPdf] = useState<OpenPdf | null>(null);
+  // Expanded: the pane reader's expand control takes the current chapter over
+  // the whole screen (same Modal reader as compact); closing hands it back to
+  // the pane via liveChapterId.
+  const [fullReader, setFullReader] = useState(false);
 
   // 3.5 wide layouts: on expanded widths the text reader docks in a pane
   // beside the Contents (handoff Screen 3) instead of presenting full-screen.
@@ -114,11 +118,23 @@ export function BigBookMain() {
                 searchTerm={searchTerm}
                 onClose={handleCloseReader}
                 onChapterChange={setLiveChapterId}
+                onExpand={() => setFullReader(true)}
               />
             }
           />
         ) : (
           contents
+        )}
+
+        {/* Expanded: the pane's expand control presents the same Modal reader
+            over the spread; closing returns to the pane at the same chapter. */}
+        {expanded && fullReader && (
+          <BigBookHtmlReader
+            visible
+            initialChapterId={liveChapterId ?? paneChapterId}
+            onClose={() => setFullReader(false)}
+            onChapterChange={setLiveChapterId}
+          />
         )}
 
         {/* Compact (and a fold mid-read): the full-screen Modal reader. On

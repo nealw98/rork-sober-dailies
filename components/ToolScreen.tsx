@@ -11,6 +11,8 @@ import { Share as ShareIcon } from 'lucide-react-native';
 import { colors, fontFamily, families, type Tokens, type FamilyName } from '@/constants/designTokens';
 import { useTokens, useThemedStyles } from '@/hooks/useTokens';
 import BackButton from '@/components/BackButton';
+import { usePane } from '@/components/layout/PaneContext';
+import PaneExpandButton from '@/components/layout/PaneExpandButton';
 
 export type ToolMeta = { id: string; label: string; accent: string; soft: string; dark: string };
 
@@ -57,11 +59,15 @@ export function ToolHeader({ tool, dirty, onCommit, onShare, shareDisabled }: {
   const styles = useThemedStyles(makeStyles);
   const { c } = useTokens();
   const accent = useToolAccent(tool);
+  // Inside a wide-layout pane (Today's detail), back closes the pane instead
+  // of popping the navigator, and an expand control joins the actions.
+  const pane = usePane();
   return (
     <View style={[styles.header, { paddingTop: insets.top + 8 }]}>
       <View style={styles.backRow}>
-        <BackButton onPress={() => router.back()} />
+        <BackButton onPress={() => (pane ? pane.close() : router.back())} />
         <View style={styles.headerActions}>
+          <PaneExpandButton />
           {onShare ? (
             <Pressable
               onPress={onShare}

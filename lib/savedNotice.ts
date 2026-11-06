@@ -28,7 +28,10 @@ const JOURNEY: Href = '/(main)/(tabs)/journey' as Href;
 
 // Presenting an Alert mid-transition can silently fail on iOS, so the tools
 // call this INSTEAD of navigating and let the buttons do the navigating.
-export function confirmSaved(): void {
+// `onDone` replaces the OK path's router.back() when the tool isn't a pushed
+// screen — on expanded widths the tools render inside Today's detail pane
+// (components/layout/PaneContext), and "back" there means closing the pane.
+export function confirmSaved(onDone?: () => void): void {
   // Title only — the sentence said nothing the title didn't (Neal, 2026-07-31).
   Alert.alert(
     'Saved to your Journey',
@@ -45,7 +48,7 @@ export function confirmSaved(): void {
         text: 'OK',
         // Back on Today, then the nudge — maybePromptBackup waits for the
         // destination to settle, so it appears there rather than mid-transition.
-        onPress: () => { router.back(); maybePromptBackup(); },
+        onPress: () => { if (onDone) onDone(); else router.back(); maybePromptBackup(); },
       },
     ],
     { cancelable: false },

@@ -11,6 +11,8 @@ import { Search, X, Mic, Play, Pause, Bookmark, CircleCheck, ChevronDown, Check 
 import BackButton from '@/components/BackButton';
 import { useSpeakers, Speaker } from '@/hooks/useSpeakers';
 import { useScreenTimeTracking } from '@/hooks/useScreenTimeTracking';
+import { usePane } from '@/components/layout/PaneContext';
+import PaneExpandButton from '@/components/layout/PaneExpandButton';
 import { useGlobalAudioPlayer } from '@/hooks/useGlobalAudioPlayer';
 import { useDownloadedSpeakerIds } from '@/hooks/useSpeakerDownload';
 import { useSpeakerFavorites } from '@/hooks/use-speaker-favorites';
@@ -166,6 +168,8 @@ function MiniPlayer({ speaker, onOpen }: { speaker: Speaker; onOpen: () => void 
 }
 
 export default function SpeakersScreen() {
+  // Non-null inside Today's wide-layout pane - back means closing the pane.
+  const pane = usePane();
   const { speakers, isLoading } = useSpeakers();
   const [searchOpen, setSearchOpen] = useState(false);
   const [q, setQ] = useState('');
@@ -184,9 +188,10 @@ export default function SpeakersScreen() {
   useScreenTimeTracking('Speakers');
 
   const goBack = useCallback(() => {
-    if (router.canGoBack()) router.back();
+    if (pane) pane.close();
+    else if (router.canGoBack()) router.back();
     else router.replace('/(main)/(tabs)/tools');
-  }, []);
+  }, [pane]);
 
   useFocusEffect(useCallback(() => { refreshDownloads(); }, [refreshDownloads]));
   useEffect(() => {
@@ -304,7 +309,10 @@ export default function SpeakersScreen() {
     <SafeAreaView style={styles.screen} edges={['top']}>
       <Stack.Screen options={{ headerShown: false }} />
       <View style={styles.header}>
-        <BackButton onPress={goBack} style={{ marginBottom: 8 }} />
+        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+          <BackButton onPress={goBack} />
+          <PaneExpandButton />
+        </View>
         <View style={styles.headerRow}>
           <Text style={styles.title}>Speaker Tapes</Text>
           <Pressable onPress={() => setSearchOpen((o) => !o)} style={[styles.searchToggle, searchOpen && styles.searchToggleOn]} hitSlop={6} accessibilityLabel="Search">

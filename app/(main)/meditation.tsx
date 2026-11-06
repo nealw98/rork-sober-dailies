@@ -10,6 +10,8 @@ import Svg, { Circle, Defs, LinearGradient as SvgGradient, Stop } from 'react-na
 import { ChevronLeft, Play, Pause, Plus, Minus, X, SlidersHorizontal } from 'lucide-react-native';
 
 import { fontFamily } from '@/constants/designTokens';
+import { usePane } from '@/components/layout/PaneContext';
+import PaneExpandButton from '@/components/layout/PaneExpandButton';
 import { useMeditation, SOUNDS } from '@/hooks/use-meditation-store';
 import { useMeditationSession } from '@/hooks/use-meditation-session';
 import { useMeditationScenes, type MeditationScene } from '@/hooks/useMeditationScenes';
@@ -240,6 +242,7 @@ function TopBar({ onClose, onPrefs }: { onClose: () => void; onPrefs: () => void
         <ChevronLeft size={20} color={TH.topBtnInk} />
       </Pressable>
       <Text style={styles.topTitle}>Meditation</Text>
+      <PaneExpandButton />
       <Pressable style={styles.topBtn} onPress={onPrefs} accessibilityLabel="Preferences">
         <SlidersHorizontal size={18} color={TH.topBtnInk} />
       </Pressable>
@@ -249,6 +252,8 @@ function TopBar({ onClose, onPrefs }: { onClose: () => void; onPrefs: () => void
 
 export default function MeditationScreen() {
   const router = useRouter();
+  // Non-null inside Today's wide-layout pane - back means closing the pane.
+  const pane = usePane();
   const med = useMeditation();
   const session = useMeditationSession();
 
@@ -350,7 +355,7 @@ export default function MeditationScreen() {
   // bed (it keeps playing only if "play outside this page" is on).
   const done = () => {
     session.stop();
-    router.back();
+    if (pane) pane.close(); else router.back();
   };
   const pickMinutes = (n: number) => setSelMinutes(n);
   // A scene begins playing as soon as it is selected, so that selection is
@@ -394,7 +399,7 @@ export default function MeditationScreen() {
 
       <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
         <KeyboardAvoidingView style={styles.safe} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-        <TopBar onClose={() => router.back()} onPrefs={() => setShowPrefs(true)} />
+        <TopBar onClose={() => (pane ? pane.close() : router.back())} onPrefs={() => setShowPrefs(true)} />
 
         {isSetup && (
           <>

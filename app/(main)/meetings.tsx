@@ -13,6 +13,8 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import { Plus, Globe, MapPin, BookOpen, ChevronRight, ExternalLink, ClipboardList, Sparkles, ImagePlus, Camera, Pencil, Trash2 } from 'lucide-react-native';
 import { Image } from 'expo-image';
 import BackButton from '@/components/BackButton';
+import { usePane } from '@/components/layout/PaneContext';
+import PaneExpandButton from '@/components/layout/PaneExpandButton';
 import { ThemedCard } from '@/components/ThemedCard';
 import { useMeetings, nextUpMeeting, nextOccurrence, whenLabel, formatTime, WEEKDAY_ABBR, type Meeting } from '@/hooks/use-meetings-store';
 import { scanMeetingScreenshot } from '@/lib/meetingOcr';
@@ -50,6 +52,8 @@ const openOnline = (m: Meeting) => {
 };
 
 export default function MeetingsScreen() {
+  // Non-null inside Today's wide-layout pane - back means closing the pane.
+  const pane = usePane();
   const router = useRouter();
   const { meetings, addMeeting, updateMeeting, removeMeeting } = useMeetings();
   // null = closed · {mode:'add'} = new · {mode:'edit', meeting} = editing a saved one
@@ -96,7 +100,10 @@ export default function MeetingsScreen() {
     <SafeAreaView style={styles.screen} edges={['top']}>
       <Stack.Screen options={{ headerShown: false }} />
       <View style={styles.header}>
-        <BackButton onPress={() => router.back()} style={{ marginBottom: 8 }} />
+        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+          <BackButton onPress={() => (pane ? pane.close() : router.back())} />
+          <PaneExpandButton />
+        </View>
         <Text style={styles.title}>Meetings</Text>
         <Text style={styles.sub}>Save your regular meetings and find ways to discover more.</Text>
       </View>

@@ -10,7 +10,7 @@ import { SafeAreaProvider, SafeAreaView, initialWindowMetrics, useSafeAreaInsets
 import { WebView, WebViewMessageEvent } from 'react-native-webview';
 import * as Clipboard from 'expo-clipboard';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Bookmark as BookmarkIcon, ChevronLeft, ChevronRight, X } from 'lucide-react-native';
+import { Bookmark as BookmarkIcon, ChevronLeft, ChevronRight, Maximize2, X } from 'lucide-react-native';
 import { useReadingSize } from '@/hooks/use-reading-size';
 import { ReadingSizeSheet } from '@/components/ReadingSizeSheet';
 import { useBigBookContent } from '@/hooks/use-bigbook-content';
@@ -76,6 +76,9 @@ interface BigBookHtmlReaderProps {
   // Fires whenever the displayed chapter changes (initial load and the
   // footer's Prev/Next), so the Contents list can track the selection.
   onChapterChange?: (chapterId: string) => void;
+  // Embedded only: offered as an expand-to-full-screen control in the action
+  // row (the wide layouts' "the pane is the content, expand takes it over").
+  onExpand?: () => void;
 }
 
 type WebMessage =
@@ -588,7 +591,7 @@ function buildHtml(params: {
 </html>`;
 }
 
-export function BigBookHtmlReader({ visible, initialChapterId, scrollToPage, scrollToParagraphId, searchTerm, onClose, embedded, onChapterChange }: BigBookHtmlReaderProps) {
+export function BigBookHtmlReader({ visible, initialChapterId, scrollToPage, scrollToParagraphId, searchTerm, onClose, embedded, onChapterChange, onExpand }: BigBookHtmlReaderProps) {
   useReadingTime('Big Book', { format: 'text' });
   const styles = useThemedStyles(makeStyles);
   const { c, colors, isDark, mode } = useTokens();
@@ -867,6 +870,11 @@ export function BigBookHtmlReader({ visible, initialChapterId, scrollToPage, scr
               <Pressable onPress={handleBookmarkPress} hitSlop={6} style={[styles.bmBtn, { borderColor: isCurrentPageBookmarked ? ACCENT : c.border }]} accessibilityRole="button" accessibilityLabel="Bookmark this page">
                 <BookmarkIcon size={16} color={isCurrentPageBookmarked ? ACCENT_INK : c.textSecondary} fill={isCurrentPageBookmarked ? ACCENT : 'transparent'} strokeWidth={2} />
               </Pressable>
+              {embedded && onExpand ? (
+                <Pressable onPress={onExpand} hitSlop={6} style={[styles.bmBtn, { borderColor: c.border }]} accessibilityRole="button" accessibilityLabel="Expand to full screen">
+                  <Maximize2 size={15} color={c.textSecondary} strokeWidth={2} />
+                </Pressable>
+              ) : null}
             </View>
           </View>
 

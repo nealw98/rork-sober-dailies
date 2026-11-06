@@ -11,6 +11,8 @@ import { useActionSheet } from '@expo/react-native-action-sheet';
 import { Stack, useRouter } from 'expo-router';
 import { Plus, ChevronRight } from 'lucide-react-native';
 import BackButton from '@/components/BackButton';
+import { usePane } from '@/components/layout/PaneContext';
+import PaneExpandButton from '@/components/layout/PaneExpandButton';
 import { useContacts, normalizePhone, type Contact } from '@/hooks/use-contacts-store';
 import { pickContact } from '@/lib/pickContact';
 import { fontFamily, shadows, type Tokens } from '@/constants/designTokens';
@@ -28,6 +30,8 @@ const text = (phone: string) => {
 };
 
 export default function ReachOutScreen() {
+  // Non-null inside Today's wide-layout pane - back means closing the pane.
+  const pane = usePane();
   const router = useRouter();
   const styles = useThemedStyles(makeStyles);
   const { c, colors, isDark } = useTokens();
@@ -114,7 +118,10 @@ export default function ReachOutScreen() {
     <SafeAreaView style={styles.screen} edges={['top']}>
       <Stack.Screen options={{ headerShown: false }} />
       <View style={styles.header}>
-        <BackButton onPress={() => router.back()} style={{ marginBottom: 8 }} />
+        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+          <BackButton onPress={() => (pane ? pane.close() : router.back())} />
+          <PaneExpandButton />
+        </View>
         <Text style={styles.title}>Talk with another alcoholic</Text>
         <Text style={styles.sub}>Keep connected with the program.</Text>
       </View>
