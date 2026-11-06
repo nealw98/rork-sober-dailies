@@ -31,16 +31,54 @@ const TABLET_MIN_DIM = 600;
 // foreground hop can't yank that screen back to portrait mid-read.
 let suspended = false;
 
-// Which display class the last apply saw, and how long the landscape steer
-// stays active after a phone→tablet handoff (covers the whole re-assert
-// burst, so a steer dropped mid-transition is retried).
+// Which display class the last apply saw; a steer runs on phone→tablet.
 let lastClass: 'phone' | 'tablet' | null = null;
-let steerUntil = 0;
+let steering = false;
+
+const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
+const isTabletNow = () => {
+  const { width, height } = Dimensions.get('screen');
+  return Math.min(width, height) >= TABLET_MIN_DIM;
+};
+
+// Unfolding carries the cover screen's PORTRAIT over to the inner display,
+// and no amount of unlocking fixes it: on the inner display iOS refuses
+// programmatic orientation changes ("the current windowing mode does not
+// allow…") and only honors a re-read of what the app ALLOWS — and an
+// unlocked mask allows portrait, so the re-read keeps it. (The same bug and
+// fix shape: Usernode-Labs/flutter-mobile-app#635/#636.) So the handoff
+// steers: wait for the unfold's size churn to settle, lock to LANDSCAPE —
+// a mask portrait is NOT in, which iOS must honor — and HOLD that lock
+// until the window has actually turned before unlocking for free rotation.
+// The previous attempt locked and unlocked back-to-back, restoring the
+// portrait-friendly mask before iOS ever re-read it; the hold is the fix.
+// Someone unfolding while deliberately holding portrait lands in landscape
+// and is corrected by the sensor on their first movement.
+async function steerToLandscape(): Promise<void> {
+  if (steering || !ScreenOrientation) return;
+  steering = true;
+  try {
+    await sleep(500); // let the fold transition settle (metrics stop churning)
+    if (!isTabletNow()) return; // folded back meanwhile
+    await ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.LANDSCAPE);
+    for (let i = 0; i < 20; i++) {
+      const { width, height } = Dimensions.get('window');
+      if (width > height) break; // the window turned — landscape took
+      if (!isTabletNow()) break; // folded back — let the rule re-lock portrait
+      await sleep(100);
+    }
+  } catch {
+  } finally {
+    steering = false;
+    // Back to the rule: tablet → unlock (keeping the landscape it now has),
+    // phone (folded back mid-steer) → portrait.
+    applyDisplayOrientationRule();
+  }
+}
 
 export async function applyDisplayOrientationRule(): Promise<void> {
-  if (!ScreenOrientation || suspended) return;
-  const { width, height } = Dimensions.get('screen');
-  const cls = Math.min(width, height) >= TABLET_MIN_DIM ? 'tablet' : 'phone';
+  if (!ScreenOrientation || suspended || steering) return;
+  const cls = isTabletNow() ? 'tablet' : 'phone';
   const prev = lastClass;
   lastClass = cls;
   try {
@@ -48,19 +86,10 @@ export async function applyDisplayOrientationRule(): Promise<void> {
       await ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP);
       return;
     }
-    // Unfolding carries the cover screen's PORTRAIT over to the inner
-    // display, and unlockAsync alone can never fix it: the native module
-    // re-pins the CURRENT orientation whenever the new mask allows it
-    // (ScreenOrientationRegistry.enforceDesiredDeviceOrientation), and the
-    // accelerometer only corrects after a fresh physical rotation — so the
-    // app sat sideways until the user wiggled the device. On the handoff
-    // from a phone-class display, steer to landscape first (a mask WITHOUT
-    // portrait forces the rotation), then unlock for free rotation. People
-    // unfold into landscape; one who unfolds holding portrait gets corrected
-    // by the sensor on the first movement.
-    if (prev === 'phone') steerUntil = Date.now() + 1600;
-    if (Date.now() < steerUntil) {
-      await ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.LANDSCAPE);
+    if (prev === 'phone') {
+      // The cover→inner handoff: steer instead of unlocking (see above).
+      steerToLandscape();
+      return;
     }
     await ScreenOrientation.unlockAsync();
   } catch {}
