@@ -68,6 +68,14 @@ analytics.
       testers can escape the wall during testing. Revert both gates to
       `__DEV__` only at ship time so store builds on both platforms get
       the hard wall.
+- [ ] **Decide the Developer Console gate before the 3.5 store release** —
+      2026-11-06 (Neal): the `authorized_devices` server check was REMOVED
+      client-side (`openDeveloperConsole` in settings.tsx opens directly;
+      `lib/developerAccess.ts` and the edge function still exist, unused)
+      because it kept locking out his own new devices (the Duo). Currently
+      only the 3.5.0 TestFlight fleet has this. At ship time either restore
+      the `checkDeveloperAccess()` call or re-affirm the open-console stance
+      below.
 - [x] ~~Remove or `__DEV__`-gate the QA "Force New-User (paywall)" toggle~~ —
       **DECIDED 2026-08-02 (Neal): the Developer Console STAYS in production
       builds**, long-press and all. Rationale: the risky pieces are
