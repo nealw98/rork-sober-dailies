@@ -31,14 +31,39 @@ const TABLET_MIN_DIM = 600;
 // foreground hop can't yank that screen back to portrait mid-read.
 let suspended = false;
 
-export function applyDisplayOrientationRule(): void {
+// Which display class the last apply saw, and how long the landscape steer
+// stays active after a phone→tablet handoff (covers the whole re-assert
+// burst, so a steer dropped mid-transition is retried).
+let lastClass: 'phone' | 'tablet' | null = null;
+let steerUntil = 0;
+
+export async function applyDisplayOrientationRule(): Promise<void> {
   if (!ScreenOrientation || suspended) return;
   const { width, height } = Dimensions.get('screen');
-  if (Math.min(width, height) >= TABLET_MIN_DIM) {
-    ScreenOrientation.unlockAsync().catch(() => {});
-  } else {
-    ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP).catch(() => {});
-  }
+  const cls = Math.min(width, height) >= TABLET_MIN_DIM ? 'tablet' : 'phone';
+  const prev = lastClass;
+  lastClass = cls;
+  try {
+    if (cls === 'phone') {
+      await ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP);
+      return;
+    }
+    // Unfolding carries the cover screen's PORTRAIT over to the inner
+    // display, and unlockAsync alone can never fix it: the native module
+    // re-pins the CURRENT orientation whenever the new mask allows it
+    // (ScreenOrientationRegistry.enforceDesiredDeviceOrientation), and the
+    // accelerometer only corrects after a fresh physical rotation — so the
+    // app sat sideways until the user wiggled the device. On the handoff
+    // from a phone-class display, steer to landscape first (a mask WITHOUT
+    // portrait forces the rotation), then unlock for free rotation. People
+    // unfold into landscape; one who unfolds holding portrait gets corrected
+    // by the sensor on the first movement.
+    if (prev === 'phone') steerUntil = Date.now() + 1600;
+    if (Date.now() < steerUntil) {
+      await ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.LANDSCAPE);
+    }
+    await ScreenOrientation.unlockAsync();
+  } catch {}
 }
 
 // The PDF reader calls these around its own unlock. Resume re-applies the
