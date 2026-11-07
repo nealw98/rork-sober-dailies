@@ -3,7 +3,7 @@ import { View, Text, TextInput, Pressable, StyleSheet, Modal, Platform, ScrollVi
 // RN's KeyboardAvoidingView doesn't track the keyboard inside a <Modal>; use the
 // keyboard-controller versions within a KeyboardProvider (no toolbar — Save dismisses).
 import { KeyboardProvider, KeyboardAvoidingView } from 'react-native-keyboard-controller';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ResolvedPalette } from '@/types/theme';
 
 /**
@@ -38,7 +38,9 @@ export function PrayerEditSheet({
       <KeyboardProvider>
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.wrap}>
         <Pressable style={StyleSheet.absoluteFill} onPress={onClose} accessibilityLabel="Close" />
-        <View style={[styles.sheet, { backgroundColor: palette.cardBackground, paddingBottom: insets.bottom + 10 }]}>
+        {/* edges left/right: native Modals escape the root SideInsetGuard, so
+            the sheet pads the Duo's side safe strips itself. */}
+        <SafeAreaView edges={['left', 'right']} style={[styles.sheet, { backgroundColor: palette.cardBackground, paddingBottom: insets.bottom + 10 }]}>
           <View style={styles.grabber} />
           <View style={styles.headRow}>
             <Pressable onPress={onClose} hitSlop={8}>
@@ -79,7 +81,7 @@ export function PrayerEditSheet({
               </Pressable>
             ) : null}
           </ScrollView>
-        </View>
+        </SafeAreaView>
       </KeyboardAvoidingView>
       </KeyboardProvider>
     </Modal>

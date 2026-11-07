@@ -165,7 +165,9 @@ export function AddSheet({ section, added, onClose, onAdd, onCreate }: { section
       ) : (
         <View style={styles.sheetWrap}>
           <SheetBackdrop onPress={onClose} />
-          <View style={styles.sheet}>{content}</View>
+          {/* edges left/right: native Modals escape the root SideInsetGuard,
+              so the sheet pads the Duo's side safe strips itself. */}
+          <SafeAreaView edges={['left', 'right']} style={styles.sheet}>{content}</SafeAreaView>
         </View>
       )}
     </Modal>
@@ -185,7 +187,7 @@ export function CreateSheet({ section, onClose, onCreate }: { section: WhenBucke
       <KeyboardProvider>
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.sheetWrap}>
         <SheetBackdrop onPress={onClose} />
-        <View style={styles.sheet}>
+        <SafeAreaView edges={['left', 'right']} style={styles.sheet}>
           <View style={styles.grabber} />
           <View style={styles.sheetHeadRow}>
             <Pressable onPress={onClose}><Text style={styles.cancel}>Cancel</Text></Pressable>
@@ -216,7 +218,7 @@ export function CreateSheet({ section, onClose, onCreate }: { section: WhenBucke
               keyboardAppearance={isDark ? 'dark' : 'light'}
             />
           </View>
-        </View>
+        </SafeAreaView>
       </KeyboardAvoidingView>
       </KeyboardProvider>
     </Modal>

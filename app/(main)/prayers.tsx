@@ -81,6 +81,16 @@ export default function PrayersScreen() {
   const [source, setSource] = useState<Rect | null>(null);
   const [sizeSheetOpen, setSizeSheetOpen] = useState(false);
   const cardRefs = useRef<Array<React.ComponentRef<typeof View> | null>>([]);
+  const rootRef = useRef<React.ComponentRef<typeof View>>(null);
+
+  // The window isn't what this screen gets: the root SideInsetGuard pads the
+  // Duo's side safe strip, and inside Today's wide-layout pane the container
+  // is narrower still (rail + list column). The morph overlay is positioned
+  // in THIS view's coordinates, so both the target rect and the measured
+  // source rects must be container-relative, never window-relative.
+  const [box, setBox] = useState<{ w: number; h: number } | null>(null);
+  const boxW = box?.w ?? screenW - insets.left - insets.right;
+  const boxH = box?.h ?? screenH;
 
   useScreenTimeTracking('Prayers');
 
@@ -98,9 +108,9 @@ export default function PrayersScreen() {
   const target = useMemo<Rect>(() => ({
     x: SIDE,
     y: insets.top + TOP_GAP,
-    w: screenW - SIDE * 2,
-    h: screenH - (insets.top + TOP_GAP) - (insets.bottom + SIDE),
-  }), [screenW, screenH, insets.top, insets.bottom]);
+    w: boxW - SIDE * 2,
+    h: boxH - (insets.top + TOP_GAP) - (insets.bottom + SIDE),
+  }), [boxW, boxH, insets.top, insets.bottom]);
 
   const finishOpen = () => setMode('read');
   const finishClose = () => { setMode('list'); setSelected(null); setSource(null); };
@@ -109,14 +119,19 @@ export default function PrayersScreen() {
     const opened = allPrayers[i];
     if (opened) logEvent('prayer_viewed', { prayer: opened.title, custom: i >= aaPrayers.length });
     const node = cardRefs.current[i];
-    if (!node) { setSelected(i); setMode('read'); progress.value = 1; return; }
+    const root = rootRef.current;
+    if (!node || !root) { setSelected(i); setMode('read'); progress.value = 1; return; }
+    // measureInWindow gives window coordinates; subtract the root's own window
+    // origin so the rect lands in the overlay's (container) coordinate space.
     node.measureInWindow((x, y, w, h) => {
-      setSource({ x, y, w, h });
-      setSelected(i);
-      setMode('opening');
-      progress.value = 0;
-      progress.value = withTiming(1, { duration: DUR, easing: Easing.inOut(Easing.cubic) }, (done) => {
-        if (done) runOnJS(finishOpen)();
+      root.measureInWindow((rootX, rootY) => {
+        setSource({ x: x - rootX, y: y - rootY, w, h });
+        setSelected(i);
+        setMode('opening');
+        progress.value = 0;
+        progress.value = withTiming(1, { duration: DUR, easing: Easing.inOut(Easing.cubic) }, (done) => {
+          if (done) runOnJS(finishOpen)();
+        });
       });
     });
   };
@@ -180,7 +195,11 @@ export default function PrayersScreen() {
   const showOverlay = mode !== 'list' && !!prayer;
 
   return (
-    <View style={styles.root}>
+    <View
+      ref={rootRef}
+      style={styles.root}
+      onLayout={(e) => setBox({ w: e.nativeEvent.layout.width, h: e.nativeEvent.layout.height })}
+    >
       <Stack.Screen options={{ headerShown: false }} />
       <SafeAreaView style={styles.screen} edges={['top']}>
         {/* Library list — kept mounted (scroll preserved); fades out as a prayer opens. */}

@@ -362,7 +362,9 @@ function AddMeetingSheet({ visible, meeting, onClose, onSave, onDelete }: { visi
     <Modal visible={visible} transparent animationType="slide" onRequestClose={requestClose}>
       <KeyboardModalScope>
       <Pressable style={styles.sheetBackdrop} onPress={requestClose} />
-      <View style={styles.sheet}>
+      {/* edges left/right: native Modals escape the root SideInsetGuard, so
+          the sheet pads the Duo's side safe strips itself. */}
+      <SafeAreaView edges={['left', 'right']} style={styles.sheet}>
         <View style={styles.grabber} />
         <View style={styles.sheetHead}>
           <Text style={styles.sheetTitle}>{editing ? 'Edit meeting' : 'Add a meeting'}</Text>
@@ -500,7 +502,7 @@ function AddMeetingSheet({ visible, meeting, onClose, onSave, onDelete }: { visi
             </View>
           )}
         </KeyboardAwareScrollView>
-      </View>
+      </SafeAreaView>
       </KeyboardModalScope>
     </Modal>
   );

@@ -157,6 +157,15 @@ export default function JourneyScreen() {
   const [source, setSource] = useState<Rect | null>(null);
   const [mode, setMode] = useState<Mode>('list');
   const progress = useSharedValue(0);
+  const rootRef = useRef<React.ComponentRef<typeof View>>(null);
+
+  // The window isn't what this screen gets: the root SideInsetGuard pads the
+  // Duo's side safe strip, and expanded widths add the NavigationRail. The
+  // morph overlay is positioned in THIS view's coordinates, so the target
+  // rect and the measured source rects must be container-relative.
+  const [box, setBox] = useState<{ w: number; h: number } | null>(null);
+  const boxW = box?.w ?? screenW - insets.left - insets.right;
+  const boxH = box?.h ?? screenH;
 
   const todayKey = dailies.dayKey;
   const completion = dailies.completion ?? {};
@@ -164,13 +173,13 @@ export default function JourneyScreen() {
   const target = useMemo<Rect>(() => ({
     x: SIDE,
     y: insets.top + 6,
-    w: screenW - SIDE * 2,
-    h: screenH - (insets.top + 6) - (insets.bottom + 8),
-  }), [screenW, screenH, insets.top, insets.bottom]);
+    w: boxW - SIDE * 2,
+    h: boxH - (insets.top + 6) - (insets.bottom + 8),
+  }), [boxW, boxH, insets.top, insets.bottom]);
 
   const finishClose = () => { setMode('list'); setMorph(null); setSource(null); setImmersive(false); };
 
-  const openMorph = useCallback((t: MorphTarget, rect: Rect | null) => {
+  const beginMorph = useCallback((t: MorphTarget, rect: Rect | null) => {
     setMorph(t);
     setSource(rect);
     setMode('opening');
@@ -180,6 +189,17 @@ export default function JourneyScreen() {
       if (done) runOnJS(setMode)('read');
     });
   }, []);
+
+  // Rects arrive from measureInWindow (window coordinates); shift them into
+  // this screen's container coordinates, where the overlay is positioned.
+  const openMorph = useCallback((t: MorphTarget, rect: Rect | null) => {
+    const root = rootRef.current;
+    if (rect && root) {
+      root.measureInWindow((rootX, rootY) => beginMorph(t, { ...rect, x: rect.x - rootX, y: rect.y - rootY }));
+    } else {
+      beginMorph(t, rect);
+    }
+  }, [beginMorph]);
 
   const closeMorph = useCallback(() => {
     setMode('closing');
@@ -250,7 +270,11 @@ export default function JourneyScreen() {
   const baseFade = useAnimatedStyle(() => ({ opacity: interpolate(progress.value, [0, 0.85], [1, 0], Extrapolation.CLAMP) }));
 
   return (
-    <View style={styles.root}>
+    <View
+      ref={rootRef}
+      style={styles.root}
+      onLayout={(e) => setBox({ w: e.nativeEvent.layout.width, h: e.nativeEvent.layout.height })}
+    >
       <Animated.View style={[styles.flexFill, baseFade]} pointerEvents={mode === 'list' ? 'auto' : 'none'}>
         <SafeAreaView style={styles.screen} edges={['top']}>
           <View style={styles.header}>

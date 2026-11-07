@@ -7,6 +7,8 @@ import React, { useRef, useState } from 'react';
 import { View, Text, ScrollView, Pressable, StyleSheet, Linking, Alert, TextInput, Modal, Platform } from 'react-native';
 import { KeyboardProvider, KeyboardAvoidingView } from 'react-native-keyboard-controller';
 import { SafeAreaView } from 'react-native-safe-area-context';
+// (SafeAreaView is also used inside the manual-add Modal: native Modals
+// escape the root SideInsetGuard, so the sheet pads the Duo's side strips.)
 import { useActionSheet } from '@expo/react-native-action-sheet';
 import { Stack, useRouter } from 'expo-router';
 import { Plus, ChevronRight } from 'lucide-react-native';
@@ -152,7 +154,7 @@ export default function ReachOutScreen() {
         <KeyboardProvider>
           <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.manualWrap}>
             <Pressable style={StyleSheet.absoluteFill} onPress={() => setShowManual(false)} accessibilityLabel="Close" />
-            <View style={styles.manualSheet}>
+            <SafeAreaView edges={['left', 'right']} style={styles.manualSheet}>
               <View style={styles.manualHead}>
                 <Pressable onPress={() => setShowManual(false)} hitSlop={8}><Text style={styles.manualCancel}>Cancel</Text></Pressable>
                 <Text style={styles.manualTitle}>New contact</Text>
@@ -183,7 +185,7 @@ export default function ReachOutScreen() {
                   keyboardAppearance={isDark ? 'dark' : 'light'}
                 />
               </View>
-            </View>
+            </SafeAreaView>
           </KeyboardAvoidingView>
         </KeyboardProvider>
       </Modal>

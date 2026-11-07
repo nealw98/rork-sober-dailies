@@ -350,7 +350,9 @@ function CalendarSheet({ visible, month, selected, onMonth, onPick, onToday, onC
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
       <Pressable style={styles.sheetBackdrop} onPress={onClose} />
-      <View style={[styles.calSheet, { paddingBottom: bottomInset + 18 }]}>
+      {/* mode="margin": the floating card shifts inward off the Duo's side
+          safe strips (the Modal escapes the root SideInsetGuard). */}
+      <SafeAreaView mode="margin" edges={['left', 'right']} style={[styles.calSheet, { paddingBottom: bottomInset + 18 }]}>
         <View style={styles.calHead}>
           <Pressable style={styles.calNav} onPress={() => onMonth('prev')}><ChevronLeft size={16} color={colors.primary} /></Pressable>
           <Text style={styles.calMonth}>{monthLabel}</Text>
@@ -376,7 +378,7 @@ function CalendarSheet({ visible, month, selected, onMonth, onPick, onToday, onC
           <Pressable onPress={onClose}><Text style={styles.calCancel}>Cancel</Text></Pressable>
           <Pressable style={styles.calTodayBtn} onPress={onToday}><Text style={styles.calTodayText}>Today</Text></Pressable>
         </View>
-      </View>
+      </SafeAreaView>
     </Modal>
   );
 }

@@ -170,6 +170,7 @@ function MiniPlayer({ speaker, onOpen }: { speaker: Speaker; onOpen: () => void 
 export default function SpeakersScreen() {
   // Non-null inside Today's wide-layout pane - back means closing the pane.
   const pane = usePane();
+  const insets = useSafeAreaInsets(); // sort-menu Modal: Duo side-strip padding
   const { speakers, isLoading } = useSpeakers();
   const [searchOpen, setSearchOpen] = useState(false);
   const [q, setQ] = useState('');
@@ -348,7 +349,13 @@ export default function SpeakersScreen() {
 
       {/* Sort menu */}
       <Modal transparent visible={sortOpen} animationType="fade" onRequestClose={() => setSortOpen(false)}>
-        <Pressable style={styles.sortBackdrop} onPress={() => setSortOpen(false)}>
+        {/* The Modal escapes the root SideInsetGuard, so the backdrop padding
+            adds the Duo's side insets to keep the card out of the safe strip
+            and aligned under the (guard-padded) sort button. */}
+        <Pressable
+          style={[styles.sortBackdrop, { paddingLeft: 20 + insets.left, paddingRight: 20 + insets.right }]}
+          onPress={() => setSortOpen(false)}
+        >
           <View style={styles.sortCard}>
             {(Object.keys(SORT_LABEL) as SortKey[]).map((k, i) => {
               const on = sortBy === k;

@@ -355,7 +355,9 @@ export function BigBookContents({ onOpenText, onOpenPdf, onOpenTextAtParagraph, 
 
       {/* Unified bookmarks sheet */}
       <Modal visible={showBookmarks} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setShowBookmarks(false)}>
-        <View style={styles.sheet}>
+        {/* Native SafeAreaView: pads the Duo's side strips when the sheet is
+            full-width, measures 0 when iOS floats the pageSheet. */}
+        <SafeAreaView edges={['left', 'right']} style={styles.sheet}>
           <View style={styles.sheetHead}>
             <Text style={styles.sheetTitle}>Bookmarks</Text>
             <Pressable onPress={() => setShowBookmarks(false)} hitSlop={8} style={styles.closeBtn}><X size={18} color={c.textSecondary} strokeWidth={2} /></Pressable>
@@ -385,14 +387,16 @@ export function BigBookContents({ onOpenText, onOpenPdf, onOpenTextAtParagraph, 
               ))}
             </ScrollView>
           )}
-        </View>
+        </SafeAreaView>
       </Modal>
 
       {/* Search — in-app text + PDF stories */}
       <Modal visible={showSearch} animationType="slide" presentationStyle="fullScreen" onRequestClose={() => setShowSearch(false)}>
         <KeyboardModalScope>
         <SafeAreaProvider initialMetrics={initialWindowMetrics}>
-          <SafeAreaView style={styles.sheet} edges={['top']}>
+          {/* left/right too: this Modal escapes the root SideInsetGuard, so
+              it pads the Duo's side safe strips itself. */}
+          <SafeAreaView style={styles.sheet} edges={['top', 'left', 'right']}>
             <View style={styles.searchHeader}>
               <Text style={styles.sheetTitle}>Search</Text>
               <Pressable onPress={() => { setQuery(''); setDebounced(''); setShowSearch(false); }} hitSlop={8} style={styles.closeBtn}>
@@ -459,7 +463,12 @@ export function BigBookContents({ onOpenText, onOpenPdf, onOpenTextAtParagraph, 
       {/* Go to page */}
       <Modal visible={showGoTo} transparent animationType="fade" onRequestClose={() => setShowGoTo(false)}>
         <KeyboardModalScope>
-        <Pressable style={styles.goToBackdrop} onPress={() => { Keyboard.dismiss(); setShowGoTo(false); }}>
+        {/* Backdrop padding grows by the Duo's side insets so the centered
+            card clears the safe strips (the Modal escapes the guard). */}
+        <Pressable
+          style={[styles.goToBackdrop, { paddingLeft: 40 + insets.left, paddingRight: 40 + insets.right }]}
+          onPress={() => { Keyboard.dismiss(); setShowGoTo(false); }}
+        >
           <Pressable style={styles.goToCard} onPress={() => {}}>
             <Text style={styles.goToTitle}>Go to page</Text>
             <Text style={styles.goToSub}>Enter a page number (1–575).</Text>

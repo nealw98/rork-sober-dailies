@@ -5,6 +5,7 @@
 // rose gift moment completes.
 import React from 'react';
 import { View, Text, StyleSheet, Modal, Pressable, TouchableOpacity } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Check } from 'lucide-react-native';
 import { fontFamily, shadows, colors as lightColors, type Tokens } from '@/constants/designTokens';
 import { useThemedStyles, useTokens } from '@/hooks/useTokens';
@@ -29,7 +30,9 @@ export default function GiftSentSheet({
   return (
     <Modal visible transparent animationType="slide" onRequestClose={onClose}>
       <Pressable style={styles.scrim} onPress={onClose} />
-      <View style={styles.sheet}>
+      {/* edges left/right: native Modals escape the root SideInsetGuard, so
+          the sheet pads the Duo's side safe strips itself. */}
+      <SafeAreaView edges={['left', 'right']} style={styles.sheet}>
         <View style={styles.handle} />
         <View style={{ alignItems: 'center' }}>
           <View style={styles.coin}>
@@ -59,7 +62,7 @@ export default function GiftSentSheet({
             <Text style={styles.quietBtnText}>Give another pass</Text>
           </TouchableOpacity>
         )}
-      </View>
+      </SafeAreaView>
     </Modal>
   );
 }

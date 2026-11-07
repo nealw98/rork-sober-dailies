@@ -357,30 +357,33 @@ export default function WhatsInsideCarousel({ onSkip, onContinue }: {
   // applied, the re-measure reports the same value and the max stops moving.
   const [cardH, setCardH] = useState(0);
   const measure = (h: number) => setCardH((m) => (h > m ? h : m));
-  // Live width: resnap when the window resizes (Duo fold/unfold, rotation)
-  // instead of keeping the width captured at first render.
+  // Live width: resnap when the container resizes (Duo fold/unfold, rotation)
+  // instead of keeping the width captured at first render. Measured from the
+  // container, not the window — the root SideInsetGuard pads the Duo's side
+  // safe strips, so window-width pages would overshoot and break the paging.
   const { width: screenW } = useWindowDimensions();
+  const [pageW, setPageW] = useState(screenW);
   const indexRef = useRef(index);
   indexRef.current = index;
   useEffect(() => {
     setCardH(0); // tallest-card height is width-dependent — re-measure
-    scrollRef.current?.scrollTo({ x: indexRef.current * screenW, animated: false });
-  }, [screenW]);
+    scrollRef.current?.scrollTo({ x: indexRef.current * pageW, animated: false });
+  }, [pageW]);
   const last = index === cards.length - 1;
   const { isDark } = useTokens();
 
   const onMomentumEnd = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
-    const i = Math.round(e.nativeEvent.contentOffset.x / screenW);
+    const i = Math.round(e.nativeEvent.contentOffset.x / pageW);
     if (i !== index) setIndex(Math.max(0, Math.min(cards.length - 1, i)));
   };
 
   const goTo = (i: number) => {
-    scrollRef.current?.scrollTo({ x: i * screenW, animated: true });
+    scrollRef.current?.scrollTo({ x: i * pageW, animated: true });
     setIndex(i);
   };
 
   return (
-    <View style={{ flex: 1 }}>
+    <View style={{ flex: 1 }} onLayout={(e) => setPageW(e.nativeEvent.layout.width)}>
       <StatusBar style="light" />
       <LinearGradient colors={isDark ? [...WI_GRAD_DARK] : [...WI_GRAD]} start={{ x: 0.1, y: 0 }} end={{ x: 0.9, y: 1 }} style={StyleSheet.absoluteFill} />
       <SafeAreaView style={{ flex: 1 }} edges={['top', 'bottom']}>
@@ -402,12 +405,12 @@ export default function WhatsInsideCarousel({ onSkip, onContinue }: {
           {cards.map((m) => (
             <ScrollView
               key={m.key}
-              style={[styles.page, { width: screenW }]}
+              style={[styles.page, { width: pageW }]}
               contentContainerStyle={styles.pageContent}
               showsVerticalScrollIndicator={false}
             >
               <View
-                style={[styles.card, { width: screenW - PAGE_PAD * 2 }, cardH > 0 && { minHeight: cardH }]}
+                style={[styles.card, { width: pageW - PAGE_PAD * 2 }, cardH > 0 && { minHeight: cardH }]}
                 onLayout={(e) => measure(e.nativeEvent.layout.height)}
               >
                 <View style={styles.cardHead}>

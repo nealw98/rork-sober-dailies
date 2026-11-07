@@ -22,6 +22,7 @@ import {
   Pressable,
   Modal,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { X, Trash2, Highlighter } from 'lucide-react-native';
 import { useReadingSize } from '@/hooks/use-reading-size';
 import { useBigBookHighlights } from '@/hooks/use-bigbook-highlights';
@@ -289,7 +290,9 @@ export function BigBookHighlightsList({
       presentationStyle="pageSheet"
       onRequestClose={onClose}
     >
-      <View style={styles.sheet}>
+      {/* Native SafeAreaView: pads the Duo's side strips when the sheet is
+          full-width, measures 0 when iOS floats the pageSheet. */}
+      <SafeAreaView edges={['left', 'right']} style={styles.sheet}>
         <View style={styles.sheetHead}>
           <Text style={styles.sheetTitle}>Highlights</Text>
           <Pressable onPress={onClose} hitSlop={8} style={styles.closeBtn}>
@@ -297,7 +300,7 @@ export function BigBookHighlightsList({
           </Pressable>
         </View>
         {body}
-      </View>
+      </SafeAreaView>
     </Modal>
   );
 

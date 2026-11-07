@@ -5,6 +5,10 @@
 // surfaced wherever you read. Only reading text changes; chrome is untouched.
 import React from 'react';
 import { View, Text, Pressable, StyleSheet, Modal } from 'react-native';
+// Native-measuring SafeAreaView: pads the Duo's 84pt side strips when the
+// sheet spans the window (native Modal / reader overlay), adds nothing when
+// the sheet already sits inside the root SideInsetGuard's padding.
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { fontFamily, shadows, type Tokens } from '@/constants/designTokens';
 import { useTokens, useThemedStyles } from '@/hooks/useTokens';
 import { useReadingSize, READING_SIZE_STEPS } from '@/hooks/use-reading-size';
@@ -30,7 +34,7 @@ export function ReadingSizeSheet({
   const content = (
     <>
       <Pressable style={styles.backdrop} onPress={onClose} />
-      <View style={[styles.sheet, { paddingBottom: bottomInset + 28 }]}>
+      <SafeAreaView edges={['left', 'right']} style={[styles.sheet, { paddingBottom: bottomInset + 28 }]}>
         <View style={styles.grabber} />
         <Text style={styles.label}>TEXT SIZE</Text>
         <View style={styles.row}>
@@ -61,7 +65,7 @@ export function ReadingSizeSheet({
         <Pressable style={styles.done} onPress={onClose} accessibilityRole="button">
           <Text style={styles.doneText}>Done</Text>
         </Pressable>
-      </View>
+      </SafeAreaView>
     </>
   );
 

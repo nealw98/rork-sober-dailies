@@ -14,6 +14,7 @@ import {
   Modal,
   TextInput,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { KeyboardModalScope } from '@/components/KeyboardModalScope';
 import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
 import { X, Trash2 } from 'lucide-react-native';
@@ -68,7 +69,9 @@ export function HighlightEditMenu({
     >
       <KeyboardModalScope>
       <KeyboardAvoidingView style={styles.avoider} behavior="padding">
-      <View style={styles.overlay}>
+      {/* SafeAreaView: the backdrop padding grows by the Duo's side insets so
+          the centered card clears the safe strips (Modals escape the guard). */}
+      <SafeAreaView edges={['left', 'right']} style={styles.overlay}>
         <View style={styles.container}>
           {/* Header */}
           <View style={styles.header}>
@@ -115,7 +118,7 @@ export function HighlightEditMenu({
             </TouchableOpacity>
           </View>
         </View>
-      </View>
+      </SafeAreaView>
       </KeyboardAvoidingView>
       </KeyboardModalScope>
     </Modal>

@@ -29,6 +29,7 @@ import { ThemedCard } from '@/components/ThemedCard';
 import BackButton from '@/components/BackButton';
 import GiftGlyph from '@/components/GiftGlyph';
 import PaywallScreen from '@/components/PaywallScreen';
+import SideInsetGuard from '@/components/layout/SideInsetGuard';
 import { QA_FORCE_NEW_USER_KEY, useSubscription } from '@/hooks/useSubscription';
 import Constants from 'expo-constants';
 import * as Application from 'expo-application';
@@ -951,9 +952,11 @@ export default function SettingsScreen() {
           sitting on top of the very control being reviewed. */}
       <Modal visible={!!paywallPreview} animationType="slide" onRequestClose={() => setPaywallPreview(null)}>
         <SafeAreaProvider initialMetrics={initialWindowMetrics}>
-        <View style={{ flex: 1 }}>
+        {/* PaywallScreen relies on the root SideInsetGuard for the Duo's side
+            strips; this Modal escapes it, so the preview re-wraps itself. */}
+        <SideInsetGuard>
           <PaywallScreen preview forceTrial={paywallPreview === 'trial'} onDismiss={() => setPaywallPreview(null)} />
-        </View>
+        </SideInsetGuard>
         </SafeAreaProvider>
       </Modal>
 
@@ -980,7 +983,9 @@ export default function SettingsScreen() {
       {/* Feedback Modal */}
       <Modal visible={feedbackVisible} animationType="slide" presentationStyle="pageSheet" onRequestClose={handleFeedbackClose}>
         <KeyboardModalScope>
-        <View style={styles.feedbackContainer}>
+        {/* Native SafeAreaView: pads the Duo's side strips when the sheet is
+            full-width, measures 0 when iOS floats the pageSheet. */}
+        <SafeAreaView edges={['left', 'right']} style={styles.feedbackContainer}>
           <View style={styles.feedbackHeader}>
             <Text style={styles.feedbackHeaderTitle}>Send Feedback</Text>
             <TouchableOpacity onPress={handleFeedbackClose} style={styles.feedbackCloseButton}>
@@ -1020,13 +1025,15 @@ export default function SettingsScreen() {
               {isSubmitting ? <ActivityIndicator color="#fff" /> : <Text style={styles.feedbackSubmitButtonText}>Submit Feedback</Text>}
             </TouchableOpacity>
           </KeyboardAwareScrollView>
-        </View>
+        </SafeAreaView>
         </KeyboardModalScope>
       </Modal>
 
       {/* Support ID Modal (hidden — 7 version taps) */}
       <Modal visible={supportIdModalVisible} transparent animationType="fade" onRequestClose={() => setSupportIdModalVisible(false)}>
-        <View style={styles.supportIdModalOverlay}>
+        {/* SafeAreaView: backdrop padding grows by the Duo's side insets so
+            the centered card clears the safe strips. */}
+        <SafeAreaView edges={['left', 'right']} style={styles.supportIdModalOverlay}>
           <View style={styles.supportIdModalContent}>
             <Text style={styles.supportIdModalTitle}>Support ID</Text>
             <TouchableOpacity onPress={copySupportId} activeOpacity={0.7}>
@@ -1037,7 +1044,7 @@ export default function SettingsScreen() {
               <Text style={styles.supportIdModalDoneText}>Done</Text>
             </TouchableOpacity>
           </View>
-        </View>
+        </SafeAreaView>
       </Modal>
     </View>
   );
