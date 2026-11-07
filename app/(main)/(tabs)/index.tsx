@@ -539,14 +539,16 @@ export default function TodayScreen() {
               // switching dailies starts the next tool fresh.
               <PaneProvider
                 key={paneTool.action}
-                value={{ close: () => setPaneTool(null), expand: () => router.push(paneTool.route) }}
+                // expanded=1: the pushed screen's back control renders as the
+                // collapse glyph (it returns here), not a chevron — BackButton.
+                value={{ close: () => setPaneTool(null), expand: () => router.push({ pathname: paneTool.route as never, params: { expanded: '1' } }) }}
               >
                 <PaneTool />
               </PaneProvider>
             ) : (
               <SafeAreaView style={styles.safe} edges={['top']}>
                 <View style={styles.paneBar}>
-                  <PaneExpandButton onPress={() => router.push('/daily-reflections')} />
+                  <PaneExpandButton onPress={() => router.push({ pathname: '/daily-reflections', params: { expanded: '1' } })} />
                 </View>
                 <ReflectionPane
                   reflection={reflection}

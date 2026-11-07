@@ -11,8 +11,11 @@ import { Search, X, Mic, Play, Pause, Bookmark, CircleCheck, ChevronDown, Check 
 import BackButton from '@/components/BackButton';
 import { useSpeakers, Speaker } from '@/hooks/useSpeakers';
 import { useScreenTimeTracking } from '@/hooks/useScreenTimeTracking';
-import { usePane } from '@/components/layout/PaneContext';
+import { usePane, PaneProvider } from '@/components/layout/PaneContext';
 import PaneExpandButton from '@/components/layout/PaneExpandButton';
+import ListDetailLayout from '@/components/layout/ListDetailLayout';
+import { useLayoutMode } from '@/hooks/useLayoutMode';
+import { SpeakerDetailBody } from '@/app/(main)/speaker-detail';
 import { useGlobalAudioPlayer } from '@/hooks/useGlobalAudioPlayer';
 import { useDownloadedSpeakerIds } from '@/hooks/useSpeakerDownload';
 import { useSpeakerFavorites } from '@/hooks/use-speaker-favorites';
@@ -118,12 +121,14 @@ function FeaturedHero({ tape, onOpen, onPlay, isActive, isPlaying }: { tape: Spe
 }
 
 // ─── Tape row ────────────────────────────────────────────────────────────────
-function TapeRow({ tape, saved, downloaded, isActive, isPlaying, onOpen }: { tape: Speaker; saved: boolean; downloaded: boolean; isActive: boolean; isPlaying: boolean; onOpen: () => void }) {
+function TapeRow({ tape, saved, downloaded, isActive, isPlaying, selected = false, onOpen }: { tape: Speaker; saved: boolean; downloaded: boolean; isActive: boolean; isPlaying: boolean; selected?: boolean; onOpen: () => void }) {
   const styles = useThemedStyles(makeStyles);
   const tk = useTokens();
   const sp = steelSp(tk);
   return (
-    <View style={styles.row}>
+    // `selected` = the tape open in the wide spread's detail pane (soft tint,
+    // per the settled pane-model selection treatment).
+    <View style={[styles.row, selected && styles.rowSelected]}>
       <Pressable style={styles.rowBody} onPress={onOpen}>
         <MicThumb id={tape.id} size={56} radius={12} active={isActive} playing={isPlaying} />
         <View style={{ flex: 1, minWidth: 0 }}>
@@ -171,6 +176,14 @@ export default function SpeakersScreen() {
   // Non-null inside Today's wide-layout pane - back means closing the pane.
   const pane = usePane();
   const insets = useSafeAreaInsets(); // sort-menu Modal: Duo side-strip padding
+  // Wide spread (expanded widths): tape list in the list pane, the open tape's
+  // detail + player docked on the right. Window class like every other hub —
+  // the guard's side padding leaves less than the raw window, so a measured
+  // width here would disagree with the rail's own expanded decision. Embedded
+  // in Today's pane (far narrower than the window) `pane` keeps it a plain list.
+  const wide = useLayoutMode() === 'expanded' && !pane;
+  const [openTape, setOpenTape] = useState<{ id: string; autoplay: boolean } | null>(null);
+
   const { speakers, isLoading } = useSpeakers();
   const [searchOpen, setSearchOpen] = useState(false);
   const [q, setQ] = useState('');
@@ -227,8 +240,11 @@ export default function SpeakersScreen() {
   const rows = featured ? list.filter((t) => t.id !== featured.id) : list;
 
   const openDetail = useCallback((s: Speaker, autoplay = false) => {
+    // On the wide spread the tape opens in the detail pane; compact keeps
+    // pushing the full-screen route.
+    if (wide) { setOpenTape({ id: s.id, autoplay }); return; }
     router.push({ pathname: '/(main)/speaker-detail', params: autoplay ? { id: s.id, autoplay: '1' } : { id: s.id } } as any);
-  }, []);
+  }, [wide]);
 
   const counts = useMemo(() => ({
     All: speakers.length,
@@ -243,9 +259,10 @@ export default function SpeakersScreen() {
       downloaded={downloadedIds.has(item.id)}
       isActive={player.isLoaded && player.currentSpeakerId === item.id}
       isPlaying={player.isPlaying}
+      selected={wide && openTape?.id === item.id}
       onOpen={() => openDetail(item)}
     />
-  ), [savedSet, downloadedIds, openDetail, player.isLoaded, player.currentSpeakerId, player.isPlaying]);
+  ), [savedSet, downloadedIds, openDetail, player.isLoaded, player.currentSpeakerId, player.isPlaying, wide, openTape?.id]);
 
   const activeSpeaker = player.isLoaded ? speakers.find((s) => s.id === player.currentSpeakerId) ?? null : null;
 
@@ -306,9 +323,10 @@ export default function SpeakersScreen() {
     </View>
   );
 
-  return (
+  // The list column — the whole screen on compact widths, the 360pt list pane
+  // on the wide spread.
+  const listColumn = (
     <SafeAreaView style={styles.screen} edges={['top']}>
-      <Stack.Screen options={{ headerShown: false }} />
       <View style={styles.header}>
         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
           <BackButton onPress={goBack} />
@@ -345,7 +363,49 @@ export default function SpeakersScreen() {
         />
       )}
 
-      {activeSpeaker ? <MiniPlayer speaker={activeSpeaker} onOpen={() => openDetail(activeSpeaker)} /> : null}
+      {/* Hidden on the spread while that tape's full player is already in the
+          pane; still docks when something ELSE is playing than is open. */}
+      {activeSpeaker && !(wide && openTape?.id === activeSpeaker.id)
+        ? <MiniPlayer speaker={activeSpeaker} onOpen={() => openDetail(activeSpeaker)} />
+        : null}
+    </SafeAreaView>
+  );
+
+  return (
+    <View style={styles.screen}>
+      <Stack.Screen options={{ headerShown: false }} />
+      {wide ? (
+        <ListDetailLayout
+          listWidth={360}
+          list={listColumn}
+          detail={
+            openTape ? (
+              // Keyed so switching tapes starts the detail fresh; the provider
+              // turns its back control into the pane collapse and powers the
+              // expand button (reopens the same tape as the full-screen route).
+              <PaneProvider
+                key={openTape.id}
+                value={{
+                  close: () => setOpenTape(null),
+                  // expanded=1 → the full screen's back control is the collapse glyph
+                  expand: () => router.push({ pathname: '/(main)/speaker-detail', params: { id: openTape.id, expanded: '1' } } as any),
+                }}
+              >
+                <SpeakerDetailBody id={openTape.id} autoplay={openTape.autoplay} />
+              </PaneProvider>
+            ) : (
+              // Resting state — never auto-open a tape nobody chose.
+              <SafeAreaView style={styles.resting} edges={['top']}>
+                <View style={styles.restingArt}><Mic size={26} color={sp.accent} strokeWidth={1.8} /></View>
+                <Text style={styles.restingTitle}>Pick a tape</Text>
+                <Text style={styles.restingSub}>Choose a speaker — their story and player open here.</Text>
+              </SafeAreaView>
+            )
+          }
+        />
+      ) : (
+        listColumn
+      )}
 
       {/* Sort menu */}
       <Modal transparent visible={sortOpen} animationType="fade" onRequestClose={() => setSortOpen(false)}>
@@ -369,7 +429,7 @@ export default function SpeakersScreen() {
           </View>
         </Pressable>
       </Modal>
-    </SafeAreaView>
+    </View>
   );
 }
 
@@ -382,6 +442,13 @@ const makeStyles = (tk: Tokens) => {
     : null;
   return StyleSheet.create({
   screen: { flex: 1, backgroundColor: c.background },
+
+  // wide-spread detail pane, resting state
+  resting: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 40, gap: 6 },
+  restingArt: { width: 64, height: 64, borderRadius: 32, backgroundColor: sp.soft, alignItems: 'center', justifyContent: 'center', marginBottom: 8 },
+  restingTitle: { fontFamily: fontFamily.display, fontSize: 20, letterSpacing: -0.3, color: c.text },
+  restingSub: { fontFamily: fontFamily.regular, fontSize: 13.5, lineHeight: 19, color: c.textMuted, textAlign: 'center' },
+
   header: { paddingHorizontal: 22, paddingTop: 8, paddingBottom: 28 },
   headerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   title: { fontFamily: fontFamily.display, fontSize: 28, letterSpacing: -0.5, color: c.text, lineHeight: 29 },
@@ -427,6 +494,7 @@ const makeStyles = (tk: Tokens) => {
 
   // tape row
   row: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 13, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: c.divider },
+  rowSelected: { backgroundColor: sp.soft, borderRadius: 14, paddingHorizontal: 10, marginHorizontal: -10, borderBottomColor: 'transparent' },
   rowBody: { flex: 1, flexDirection: 'row', alignItems: 'flex-start', gap: 12, minWidth: 0 },
   rowNameLine: { flexDirection: 'row', alignItems: 'baseline', gap: 8 },
   rowSpeaker: { fontFamily: fontFamily.displayBold, fontSize: 18, letterSpacing: -0.3, color: c.text, flexShrink: 1 },

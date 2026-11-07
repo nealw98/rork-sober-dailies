@@ -10,6 +10,8 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { Mic } from 'lucide-react-native';
 import BackButton from '@/components/BackButton';
+import { usePane } from '@/components/layout/PaneContext';
+import PaneExpandButton from '@/components/layout/PaneExpandButton';
 import { SpeakerPlayer } from '@/components/SpeakerPlayer';
 import { useSpeakers } from '@/hooks/useSpeakers';
 import { useScreenTimeTracking } from '@/hooks/useScreenTimeTracking';
@@ -40,10 +42,20 @@ function fmtDuration(seconds?: number | null): string | null {
 }
 const stripQuote = (q?: string | null) => (q ? q.replace(/^["“]|["”]$/g, '') : '');
 
+// Route wrapper — the body is exported separately so the Speakers screen can
+// embed it in the detail pane of its wide-layout spread (playbook pattern:
+// one screen, an embedded mode, never a second player).
 export default function SpeakerDetailScreen() {
   const { id, autoplay } = useLocalSearchParams<{ id: string; autoplay?: string }>();
+  return <SpeakerDetailBody id={id} autoplay={autoplay === '1'} />;
+}
+
+export function SpeakerDetailBody({ id, autoplay = false }: { id?: string; autoplay?: boolean }) {
   const { speakers } = useSpeakers();
   const router = useRouter();
+  // Non-null when embedded in a pane: back collapses the pane, and the expand
+  // button (which renders nothing full-screen) reopens this tape full screen.
+  const pane = usePane();
   const { isSaved, toggleSaved } = useSpeakerFavorites();
   useScreenTimeTracking('SpeakerDetail');
 
@@ -66,7 +78,7 @@ export default function SpeakerDetailScreen() {
     return (
       <SafeAreaView style={styles.screen} edges={['top']}>
         <Stack.Screen options={{ headerShown: false }} />
-        <View style={styles.header}><BackButton onPress={() => router.back()} /></View>
+        <View style={styles.header}><BackButton onPress={() => (pane ? pane.close() : router.back())} /></View>
         <View style={styles.loading}><Text style={styles.loadingText}>Loading…</Text></View>
       </SafeAreaView>
     );
@@ -79,7 +91,12 @@ export default function SpeakerDetailScreen() {
     <SafeAreaView style={styles.screen} edges={['top']}>
       <Stack.Screen options={{ headerShown: false }} />
       <View style={styles.header}>
-        <BackButton onPress={() => router.back()} />
+        {/* Embedded in the spread there is NO collapse control (reader-spread
+            rule: the list is visible beside the pane, and a second arrows
+            button reads as expand and empties the pane when mis-hit). Expand
+            is the pane's only control. */}
+        {pane ? <View /> : <BackButton onPress={() => router.back()} />}
+        <PaneExpandButton />
       </View>
 
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
@@ -119,7 +136,7 @@ export default function SpeakerDetailScreen() {
             saved={isSaved(speaker.id)}
             onToggleSave={() => toggleSaved(speaker.id)}
             onShare={onShare}
-            autoplay={autoplay === '1'}
+            autoplay={autoplay}
             durationSeconds={speaker.duration_seconds}
           />
         </View>

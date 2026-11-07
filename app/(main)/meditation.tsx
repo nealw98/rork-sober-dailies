@@ -1,8 +1,8 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { View, Text, TextInput, Pressable, StyleSheet, Animated, Easing, PanResponder, Switch, Keyboard, Platform } from 'react-native';
+import { View, Text, TextInput, Pressable, StyleSheet, Animated, Easing, PanResponder, Switch, Keyboard, Platform, ScrollView, useWindowDimensions } from 'react-native';
 import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
 import { Image } from 'expo-image';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter, useFocusEffect } from 'expo-router';
@@ -12,6 +12,7 @@ import { ChevronLeft, Play, Pause, Plus, Minus, X, SlidersHorizontal } from 'luc
 import { fontFamily } from '@/constants/designTokens';
 import { usePane } from '@/components/layout/PaneContext';
 import PaneExpandButton from '@/components/layout/PaneExpandButton';
+import { useSideBackdrop } from '@/components/layout/SideInsetGuard';
 import { useMeditation, SOUNDS } from '@/hooks/use-meditation-store';
 import { useMeditationSession } from '@/hooks/use-meditation-session';
 import { useMeditationScenes, type MeditationScene } from '@/hooks/useMeditationScenes';
@@ -54,8 +55,12 @@ const pad = (n: number) => String(n).padStart(2, '0');
 const fmtMMSS = (sec: number) => `${pad(Math.floor(Math.max(0, sec) / 60))}:${pad(Math.max(0, sec) % 60)}`;
 const fmtMin = (m: number) => `${pad(m)}:00`;
 
-function TimerRing({ progress, big, label, pulsing }: { progress: number; big: string; label?: string; pulsing?: boolean }) {
-  const R = 128;
+// `size` scales the whole ring (default = the prototype's 296pt). Short
+// screens — the Duo cover and the unfolded landscape, both ~670pt tall —
+// pass a smaller size so the setup stack fits without crowding the chips.
+function TimerRing({ progress, big, label, pulsing, size = 296 }: { progress: number; big: string; label?: string; pulsing?: boolean; size?: number }) {
+  const k = size / 296;
+  const R = 128 * k;
   const C = 2 * Math.PI * R;
   const pulse = useRef(new Animated.Value(0)).current;
   useEffect(() => {
@@ -73,30 +78,34 @@ function TimerRing({ progress, big, label, pulsing }: { progress: number; big: s
   const opacity = pulse.interpolate({ inputRange: [0, 1], outputRange: [0.25, 0.55] });
 
   return (
-    <View style={styles.ringWrap}>
-      {pulsing && <Animated.View style={[styles.glow, { transform: [{ scale }], opacity }]} />}
-      <Svg width={296} height={296} style={{ transform: [{ rotate: '-90deg' }] }}>
+    <View style={[styles.ringWrap, { width: size, height: size }]}>
+      {pulsing && (
+        <Animated.View
+          style={[styles.glow, { width: 236 * k, height: 236 * k, borderRadius: 118 * k, transform: [{ scale }], opacity }]}
+        />
+      )}
+      <Svg width={size} height={size} style={{ transform: [{ rotate: '-90deg' }] }}>
         <Defs>
           <SvgGradient id="medRing" x1="0" y1="0" x2="1" y2="1">
             <Stop offset="0" stopColor={TH.ringFrom} />
             <Stop offset="1" stopColor={TH.ringTo} />
           </SvgGradient>
         </Defs>
-        <Circle cx={148} cy={148} r={R} fill="none" stroke={TH.ringTrack} strokeWidth={9} />
+        <Circle cx={size / 2} cy={size / 2} r={R} fill="none" stroke={TH.ringTrack} strokeWidth={9 * k} />
         <Circle
-          cx={148}
-          cy={148}
+          cx={size / 2}
+          cy={size / 2}
           r={R}
           fill="none"
           stroke="url(#medRing)"
-          strokeWidth={9}
+          strokeWidth={9 * k}
           strokeLinecap="round"
           strokeDasharray={C}
           strokeDashoffset={C * (1 - progress)}
         />
       </Svg>
       <View style={styles.ringCenter} pointerEvents="none">
-        <Text style={styles.ringBig}>{big}</Text>
+        <Text style={[styles.ringBig, { fontSize: 64 * k, lineHeight: 66 * k }]}>{big}</Text>
         {label ? <Text style={styles.ringLabel}>{label}</Text> : null}
       </View>
     </View>
@@ -257,6 +266,27 @@ export default function MeditationScreen() {
   const med = useMeditation();
   const session = useMeditationSession();
 
+  // Short screens — the Duo cover (678pt tall) and the unfolded landscape
+  // (669pt) — get a smaller ring and tighter gaps so the setup stack fits;
+  // the setup area also scrolls, so however many scene pills arrive from
+  // Supabase they can never slide under the Begin button.
+  const { height: windowH } = useWindowDimensions();
+  const compact = windowH < 760;
+  const ringSize = compact ? 220 : 296;
+
+  // The scene should read edge-to-edge, including under the Duo's side safe
+  // strips — but navigator screens clip at the guard-padded bounds, so this
+  // screen's own layers can never reach the strips. Full screen, the scene
+  // renders TWICE: registered as the guard's full-window backdrop (visible
+  // only in the strips), and locally, laid out at the same window width and
+  // shifted left by the guard's padding so the clipped copy lines up
+  // pixel-for-pixel with the backdrop at the strip edge. Both share the
+  // same Ken Burns value, so they move as one. Inside Today's pane the
+  // scene stays contained (no backdrop, no shift).
+  const backdropSlot = useSideBackdrop();
+  const { width: windowW } = useWindowDimensions();
+  const insets = useSafeAreaInsets();
+
   const cfg = med.settings.timer;
   const firstTime = med.settings.source === null && !med.settings.hintSeen;
 
@@ -367,9 +397,10 @@ export default function MeditationScreen() {
     med.setTimer({ sound: key });
   };
 
-  return (
-    <View style={styles.root}>
-      <StatusBar style="light" />
+  // The scene stack: shell underlay (covers while the photo loads), the
+  // photo (real motion, or a Ken Burns still), and the darkening gradient.
+  const sceneLayers = (
+    <View style={[StyleSheet.absoluteFill, { backgroundColor: TH.shell }]}>
       {sceneAnimated ? (
         // Real motion already baked in — play it, no Ken Burns.
         <Image
@@ -396,6 +427,38 @@ export default function MeditationScreen() {
         locations={[0, 0.45, 1]}
         style={StyleSheet.absoluteFill}
       />
+    </View>
+  );
+
+  // Full screen, hoist the scene into the guard's full-window backdrop while
+  // focused (re-registered when the scene changes); cleared on blur. In the
+  // pane it renders locally below instead.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const registerBackdrop = useCallback(() => {
+    if (pane) return;
+    backdropSlot.set(sceneLayers);
+    return () => backdropSlot.set(null);
+    // sceneLayers is rebuilt every render; these are its real inputs.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pane, sceneStill, sceneAnimated, backdropSlot]);
+  useFocusEffect(registerBackdrop);
+
+  return (
+    <View style={styles.root}>
+      <StatusBar style="light" />
+      {pane ? (
+        <View style={StyleSheet.absoluteFill} pointerEvents="none">{sceneLayers}</View>
+      ) : (
+        // Window-aligned copy — full window width, shifted left by the
+        // guard's padding; what survives the screen's clip matches the
+        // strip backdrop exactly.
+        <View
+          style={{ position: 'absolute', top: 0, bottom: 0, left: -insets.left, width: windowW }}
+          pointerEvents="none"
+        >
+          {sceneLayers}
+        </View>
+      )}
 
       <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
         <KeyboardAvoidingView style={styles.safe} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
@@ -414,34 +477,47 @@ export default function MeditationScreen() {
                 </Pressable>
               </View>
             )}
-            <Pressable style={styles.center} onPress={() => Keyboard.dismiss()} accessible={false}>
-              <TimerRing progress={1} big={fmtMin(minutes)} label="MINUTES" />
-              <View style={styles.section}>
-                <Text style={styles.sectionLabel}>LENGTH</Text>
-                <View style={styles.chipRow}>
-                  {PRESETS.map((n) => (
-                    <Chip key={n} label={String(n)} on={n === minutes} onPress={() => pickMinutes(n)} />
-                  ))}
-                  <Chip label={isCustom ? String(minutes) : 'Custom'} on={isCustom} wide onPress={() => pickMinutes(isCustom ? minutes : 25)} />
-                </View>
-                {isCustom && (
-                  <View style={{ marginTop: 14 }}>
-                    <Stepper value={minutes} onChange={pickMinutes} />
+            {/* Scrolls when the stack is taller than the screen (cover display,
+                landscape, or many scenes); centers itself when there is room. */}
+            <ScrollView
+              style={styles.safe}
+              contentContainerStyle={styles.setupScroll}
+              keyboardShouldPersistTaps="handled"
+              showsVerticalScrollIndicator={false}
+            >
+              <Pressable
+                style={[styles.setupStack, { gap: compact ? 16 : 28 }]}
+                onPress={() => Keyboard.dismiss()}
+                accessible={false}
+              >
+                <TimerRing progress={1} big={fmtMin(minutes)} label="MINUTES" size={ringSize} />
+                <View style={styles.section}>
+                  <Text style={styles.sectionLabel}>LENGTH</Text>
+                  <View style={styles.chipRow}>
+                    {PRESETS.map((n) => (
+                      <Chip key={n} label={String(n)} on={n === minutes} onPress={() => pickMinutes(n)} />
+                    ))}
+                    <Chip label={isCustom ? String(minutes) : 'Custom'} on={isCustom} wide onPress={() => pickMinutes(isCustom ? minutes : 25)} />
                   </View>
-                )}
-              </View>
-              <View style={styles.sceneSection}>
-                <Text style={styles.sectionLabel}>SCENE</Text>
-                {/* Pills, not a carousel — every scene visible at once (the old
-                    swipe carousel hid all but the neighbours, so scenes were
-                    hard to discover). Selection drives background + ambience. */}
-                <View style={styles.chipRow}>
-                  {sceneOptions.map((s) => (
-                    <Chip key={s.key} label={s.name} on={s.key === selKey} onPress={() => pickScene(s.key)} />
-                  ))}
+                  {isCustom && (
+                    <View style={{ marginTop: 14 }}>
+                      <Stepper value={minutes} onChange={pickMinutes} />
+                    </View>
+                  )}
                 </View>
-              </View>
-            </Pressable>
+                <View style={styles.sceneSection}>
+                  <Text style={styles.sectionLabel}>SCENE</Text>
+                  {/* Pills, not a carousel — every scene visible at once (the old
+                      swipe carousel hid all but the neighbours, so scenes were
+                      hard to discover). Selection drives background + ambience. */}
+                  <View style={styles.chipRow}>
+                    {sceneOptions.map((s) => (
+                      <Chip key={s.key} label={s.name} on={s.key === selKey} onPress={() => pickScene(s.key)} />
+                    ))}
+                  </View>
+                </View>
+              </Pressable>
+            </ScrollView>
             <View style={styles.footer}>
               <Pressable style={styles.primaryBtn} onPress={begin}>
                 <Play size={17} color={TH.primaryText} />
@@ -453,9 +529,9 @@ export default function MeditationScreen() {
 
         {session.phase === 'active' && (
           <>
-            <View style={styles.center}>
+            <View style={[styles.center, { gap: compact ? 18 : 28 }]}>
               <Text style={styles.breatheLabel}>{paused ? 'PAUSED' : 'BREATHE'}</Text>
-              <TimerRing progress={session.minutes ? session.remaining / (session.minutes * 60) : 0} big={fmtMMSS(session.remaining)} pulsing={!paused} />
+              <TimerRing progress={session.minutes ? session.remaining / (session.minutes * 60) : 0} big={fmtMMSS(session.remaining)} pulsing={!paused} size={ringSize} />
               {selKey !== 'silence' ? (
                 <View style={styles.soundPill}>
                   <Text style={styles.soundPillText}>{selName}</Text>
@@ -540,6 +616,9 @@ const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: TH.shell },
   safe: { flex: 1 },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 28 },
+  // Setup content: centered while it fits, scrollable once it doesn't.
+  setupScroll: { flexGrow: 1, justifyContent: 'center', paddingVertical: 12 },
+  setupStack: { alignItems: 'center' },
   footer: { paddingHorizontal: 22, paddingBottom: 24 },
 
   topBar: { paddingHorizontal: 14, paddingTop: 4, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
