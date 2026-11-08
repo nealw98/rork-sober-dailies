@@ -103,7 +103,7 @@ export default function ReflectionStep({ onContinue, onSkip }: { onContinue: () 
           <View style={styles.footer}>
             <View style={styles.checkLine}>
               <Check size={16} color={colors.primaryDark} strokeWidth={2.4} />
-              <Text style={styles.checkText}>A new reading waits here every morning</Text>
+              <Text style={styles.checkText}>A new reading every morning, right on your Today page</Text>
             </View>
             <PrimaryButton label="See what else is inside" onPress={onContinue} />
           </View>
