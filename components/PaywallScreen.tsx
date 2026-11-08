@@ -105,10 +105,19 @@ const PAYWALL_TITLE = 'Unlock every tool';
 const ONBOARDING_SUBTITLE = 'Everything you just saw, plus your count and your daily program.';
 
 // What "every tool" means, in the same imagery the onboarding tour just showed.
+// Literature is drawn from the two covers (see LiteratureTile) — no photo
+// shows both books inside a square tile.
+const BIG_BOOK_COVER = require('@/assets/images/big-book_cover.webp');
+const TWELVE_TWELVE_COVER = require('@/assets/images/new_12x12_cover.webp');
+// The left (people) side of the meeting photo, blurred, then shaded darker
+// toward the bottom right so the covers stand off it. Fixed in both modes,
+// like the photos beside it.
+const MEETING_PHOTO = require('@/assets/images/literature_hero2.webp');
+const LIT_TILE_SHADE = ['rgba(18,26,38,0.15)', 'rgba(18,26,38,0.45)', 'rgba(18,26,38,0.75)'] as const;
 const TOOL_TILES = [
-  // The cover is cropped from the top so the title stays in a wide tile.
-  { key: 'literature', label: 'Literature', source: require('@/assets/images/big-book_cover.webp'), position: 'top' as const },
-  { key: 'reflections', label: 'Reflections', source: require('@/assets/images/reflection_bg2.webp') },
+  { key: 'literature', label: 'Literature', source: null },
+  // Green, so it doesn't read as the same warm photo as the Speakers tile next to it.
+  { key: 'reflections', label: 'Reflections', source: require('@/assets/reflections_images/reflection_bg3.webp') },
   { key: 'speakers', label: 'Speakers', source: require('@/assets/images/speakers_hero2.webp') },
   { key: 'sponsor', label: 'AI sponsor', source: require('@/assets/images/ai_sponsor_hero2.webp') },
 ];
@@ -556,7 +565,40 @@ export default function PaywallScreen({ onDismiss, onDevBypass, onUnavailableDis
           <View style={styles.tiles}>
             {TOOL_TILES.map((t) => (
               <View key={t.key} style={styles.tile}>
-                <Image source={t.source} style={styles.tileImage} contentFit="cover" contentPosition={'position' in t ? t.position : 'center'} />
+                {t.source ? (
+                  <Image source={t.source} style={styles.tileImage} contentFit="cover" />
+                ) : (
+                  // The Big Book in front and centered, running off the bottom;
+                  // the Twelve and Twelve tucked behind it, peeking out at the
+                  // upper right. The tile clips both.
+                  <View style={[styles.tileImage, styles.litTile]}>
+                    {/* A meeting room, blurred and darkened, behind the books —
+                        so the tile reads as a photo like the three beside it. */}
+                    <Image
+                      source={MEETING_PHOTO}
+                      style={StyleSheet.absoluteFill}
+                      contentFit="cover"
+                      // Top-left: the room and the people, clear of the
+                      // photo's own books at the bottom right.
+                      contentPosition="top left"
+                      // In source pixels — the photo is 2848px wide, so it
+                      // takes a large radius to read as blurred at tile size.
+                      blurRadius={40}
+                    />
+                    <LinearGradient
+                      colors={LIT_TILE_SHADE}
+                      start={{ x: 0, y: 0 }}
+                      end={{ x: 1, y: 1 }}
+                      style={StyleSheet.absoluteFill}
+                    />
+                    <View style={[styles.litCover, styles.litBack]}>
+                      <Image source={TWELVE_TWELVE_COVER} style={styles.litImg} contentFit="cover" />
+                    </View>
+                    <View style={[styles.litCover, styles.litFront]}>
+                      <Image source={BIG_BOOK_COVER} style={styles.litImg} contentFit="cover" />
+                    </View>
+                  </View>
+                )}
                 <Text style={styles.tileLabel} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8}>{t.label}</Text>
               </View>
             ))}
@@ -768,6 +810,11 @@ const makeStyles = (tk: Tokens) => {
     tiles: { flexDirection: 'row', gap: 8, marginTop: 16 },
     tile: { flex: 1, alignItems: 'center', gap: 6 },
     tileImage: { width: '100%', height: 76, borderRadius: 12, backgroundColor: c.border },
+    litTile: { backgroundColor: '#121A26', overflow: 'hidden' },
+    litCover: { position: 'absolute', width: '60%', aspectRatio: 0.76 },
+    litImg: { width: '100%', height: '100%', borderRadius: 4 },
+    litBack: { left: '46%', top: '-4%', transform: [{ rotate: '10deg' }] },
+    litFront: { left: '8%', top: '22%', transform: [{ rotate: '-6deg' }], shadowColor: '#000', shadowOpacity: 0.35, shadowRadius: 6, shadowOffset: { width: 2, height: 2 } },
     tileLabel: { fontFamily: fontFamily.semiBold, fontSize: 11, color: c.text },
 
     // Sits directly under the title so it is read before the plans, not after.

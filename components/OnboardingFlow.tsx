@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useLayoutEffect, useRef } from 'react';
 import { View, Text, StyleSheet, Pressable, Linking, ActivityIndicator, ScrollView, BackHandler, useWindowDimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -16,6 +16,7 @@ import { useSobriety } from '@/hooks/useSobrietyStore';
 import { useSubscription } from '@/hooks/useSubscription';
 import { formatLocalDate, parseLocalDate } from '@/lib/dateUtils';
 import { SPONSORS } from '@/constants/sponsors';
+import { useSideBackdrop } from '@/components/layout/SideInsetGuard';
 import PaywallScreen from '@/components/PaywallScreen';
 import PassOfferScreen from '@/components/PassOfferScreen';
 import { logEvent } from '@/lib/analytics';
@@ -51,6 +52,24 @@ function obvGrad(t: number, dark = false): [string, string, string] {
   ];
   return dark ? [shade(g[0], DARK_GRAD_K), shade(g[1], DARK_GRAD_K), shade(g[2], DARK_GRAD_K)] : g;
 }
+// The two gradient screens (Welcome, disclaimer) hand their gradient to the
+// app root's SideInsetGuard instead of drawing it themselves. The guard pads
+// every screen out of the Duo's side strips (84pt, both displays), so a
+// gradient drawn by the screen stopped at the strip and left a band of the
+// paper background under the clock column; the guard draws a backdrop across
+// the full window. On phones the insets are 0 and this is pixel-identical.
+// Layout effect, so the backdrop is in place before the first paint.
+function useGradientBackdrop(t: number, dark: boolean) {
+  const backdrop = useSideBackdrop();
+  const [c0, c1, c2] = obvGrad(t, dark);
+  useLayoutEffect(() => {
+    backdrop.set(
+      <LinearGradient colors={[c0, c1, c2]} start={{ x: 0.05, y: 0 }} end={{ x: 0.95, y: 1 }} style={StyleSheet.absoluteFill} />,
+    );
+    return () => backdrop.set(null);
+  }, [backdrop, c0, c1, c2]);
+}
+
 function obvInk(t: number): string {
   return lerpHex('#0086C2', '#2F6E6E', t);
 }
@@ -99,7 +118,9 @@ function WelcomeCollage() {
           </View>
         </View>
         <View style={styles.collageReflection}>
-          <Image source={require('@/assets/images/reflection_bg2.webp')} style={StyleSheet.absoluteFill} contentFit="cover" />
+          {/* The green cairn, not the seedling: the seedling's warm browns read
+              as the same photo as the speaker-tapes card beside it. */}
+          <Image source={require('@/assets/reflections_images/reflection_bg3.webp')} style={StyleSheet.absoluteFill} contentFit="cover" />
           <LinearGradient colors={['rgba(0,0,0,0.05)', 'rgba(0,0,0,0.7)']} style={StyleSheet.absoluteFill} />
           <View style={styles.collageReflectionText}>
             <Text style={styles.collageOverline}>DAILY REFLECTIONS</Text>
@@ -121,11 +142,11 @@ function WelcomeCollage() {
 function WelcomeStep({ onContinue }: { onContinue: () => void }) {
   const styles = useThemedStyles(makeStyles);
   const { isDark } = useTokens();
+  useGradientBackdrop(0.18, isDark);
   const tall = isTall(useWindowDimensions().height);
   return (
     <View style={styles.welcomeRoot}>
       <StatusBar style="light" />
-      <LinearGradient colors={obvGrad(0.18, isDark)} start={{ x: 0.05, y: 0 }} end={{ x: 0.95, y: 1 }} style={StyleSheet.absoluteFill} />
       <SafeAreaView style={styles.flex} edges={['top', 'bottom']}>
         <OnboardingColumn style={styles.welcomeSafe}>
           <ScrollView contentContainerStyle={styles.welcomeScroll} showsVerticalScrollIndicator={false} bounces={false}>
@@ -175,6 +196,7 @@ const DISCLAIMER_BULLETS = [
 export function DisclaimerStep({ onAgree }: { onAgree: () => void | Promise<void> }) {
   const styles = useThemedStyles(makeStyles);
   const { isDark } = useTokens();
+  useGradientBackdrop(0.5, isDark);
   const [checked, setChecked] = useState(false);
   const [saving, setSaving] = useState(false);
 
@@ -189,7 +211,6 @@ export function DisclaimerStep({ onAgree }: { onAgree: () => void | Promise<void
   return (
     <View style={styles.welcomeRoot}>
       <StatusBar style="light" />
-      <LinearGradient colors={obvGrad(0.5, isDark)} start={{ x: 0.05, y: 0 }} end={{ x: 0.95, y: 1 }} style={StyleSheet.absoluteFill} />
       <SafeAreaView style={{ flex: 1 }} edges={['top', 'bottom']}>
         {/* Same centered column as the tour screens, so on an iPad or an
             unfolded Duo the card and the checkbox line don't run edge to edge. */}
