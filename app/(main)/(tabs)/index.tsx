@@ -7,6 +7,7 @@ import {
   Pressable,
   Alert,
   Linking,
+  Dimensions,
 } from 'react-native';
 import { useActionSheet } from '@expo/react-native-action-sheet';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -27,6 +28,7 @@ import ListDetailLayout from '@/components/layout/ListDetailLayout';
 import { PaneProvider } from '@/components/layout/PaneContext';
 import PaneExpandButton from '@/components/layout/PaneExpandButton';
 import ReflectionPane from '@/components/today/ReflectionPane';
+import EditDailiesTip, { type TipRect } from '@/components/today/EditDailiesTip';
 // Tool screens, embedded in the detail pane on expanded widths. They are the
 // same components the routes render — PaneContext redirects their back/save
 // navigation to the pane.
@@ -342,6 +344,65 @@ export default function TodayScreen() {
     setEditing((v) => !v);
   }, []);
 
+  // One-time "Edit your dailies" tip, right after onboarding (which sets the
+  // pending flag — so anyone who finished onboarding before it existed never
+  // sees it). Waits for the thank-you sheet a purchase leaves behind, then
+  // measures the first dailies section and its pencil and spotlights them.
+  const scrollRef = useRef<React.ComponentRef<typeof ScrollView>>(null);
+  const scrollYRef = useRef(0);
+  const firstSectionRef = useRef<React.ComponentRef<typeof View>>(null);
+  const pencilRef = useRef<React.ComponentRef<typeof View>>(null);
+  const [tip, setTip] = useState<{ section: TipRect; edit: TipRect } | null>(null);
+  const tipCheckedRef = useRef(false);
+  const blockedByOtherSheet = !!announcePlan || arrivedCount != null;
+  useEffect(() => {
+    if (tipCheckedRef.current || blockedByOtherSheet || editing) return;
+    let cancelled = false;
+    const measure = (ref: React.RefObject<React.ComponentRef<typeof View> | null>) =>
+      new Promise<TipRect | null>((resolve) => {
+        if (!ref.current) return resolve(null);
+        ref.current.measureInWindow((x, y, width, height) => resolve(width > 0 ? { x, y, width, height } : null));
+      });
+    const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
+    // The screen is still settling when it first mounts (the gate's swap-in,
+    // the counter and hero filling in), so a single early measure can land
+    // tens of points off. Re-measure until two reads agree.
+    const measureStable = async (ref: React.RefObject<React.ComponentRef<typeof View> | null>) => {
+      let prev = await measure(ref);
+      for (let i = 0; i < 8; i++) {
+        await wait(150);
+        const next = await measure(ref);
+        if (prev && next && Math.abs(prev.y - next.y) < 1 && Math.abs(prev.height - next.height) < 1) return next;
+        prev = next;
+      }
+      return prev;
+    };
+    (async () => {
+      const [[, pending], [, seen]] = await AsyncStorage.multiGet(['today_edit_tip_pending', 'today_edit_tip_seen']);
+      if (cancelled || pending !== '1' || seen === '1') return;
+      tipCheckedRef.current = true;
+      await wait(600); // first layout + the gate's swap-in
+      let section = await measureStable(firstSectionRef);
+      // A tall counter + hero (or a short screen) can push the dailies below
+      // the fold: bring the section's header up before spotlighting it.
+      const winH = Dimensions.get('window').height;
+      if (section && section.y > winH * 0.62) {
+        scrollRef.current?.scrollTo({ y: scrollYRef.current + section.y - winH * 0.42, animated: true });
+        section = await measureStable(firstSectionRef);
+      }
+      const edit = await measureStable(pencilRef);
+      if (cancelled || !section || !edit) return;
+      await AsyncStorage.multiSet([['today_edit_tip_seen', '1'], ['today_edit_tip_pending', '0']]).catch(() => {});
+      logEvent('today_tip_shown', { flow_version: 'v2_tools' });
+      setTip({ section, edit });
+    })().catch(() => {});
+    return () => { cancelled = true; };
+  }, [blockedByOtherSheet, editing]);
+  const dismissTip = () => {
+    logEvent('today_tip_dismissed', { flow_version: 'v2_tools' });
+    setTip(null);
+  };
+
   useEffect(() => {
     getTodaysReflection().then(setReflection).catch((e) => console.error('[today] reflection', e));
   }, [dailies.dayKey]);
@@ -479,7 +540,13 @@ export default function TodayScreen() {
       {editing ? (
         <DailiesEditor header={topContent} headerAccessory={saveButton} />
       ) : (
-        <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
+        <ScrollView
+          ref={scrollRef}
+          contentContainerStyle={styles.scroll}
+          showsVerticalScrollIndicator={false}
+          onScroll={(e) => { scrollYRef.current = e.nativeEvent.contentOffset.y; }}
+          scrollEventThrottle={64}
+        >
           {topContent}
           {SECTIONS.map((when) => {
             const items = dailies.section(when);
@@ -487,11 +554,12 @@ export default function TodayScreen() {
             // The edit pencil sits across from the FIRST visible section title.
             const showPencil = when === SECTIONS.find((w) => dailies.section(w).length > 0);
             return (
-              <View key={when} style={styles.section}>
+              <View key={when} style={styles.section} ref={showPencil ? firstSectionRef : undefined} collapsable={false}>
                 <View style={styles.sectionHead}>
                   <Text style={[styles.sectionTitle, { color: c.text }]}>{when}</Text>
                   {showPencil && (
                     <Pressable
+                      ref={pencilRef}
                       hitSlop={12}
                       onPress={toggleEditing}
                       accessibilityRole="button"
@@ -522,6 +590,7 @@ export default function TodayScreen() {
           })}
         </ScrollView>
       )}
+      {tip && <EditDailiesTip section={tip.section} edit={tip.edit} onDismiss={dismissTip} />}
     </SafeAreaView>
   );
 

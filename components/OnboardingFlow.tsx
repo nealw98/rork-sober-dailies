@@ -1,26 +1,28 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, Pressable, Linking, ActivityIndicator, ScrollView } from 'react-native';
+import React, { useState, useEffect, useRef } from 'react';
+import { View, Text, StyleSheet, Pressable, Linking, ActivityIndicator, ScrollView, BackHandler, useWindowDimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { StatusBar } from 'expo-status-bar';
 import { Image } from 'expo-image';
 import * as Updates from 'expo-updates';
-import { ArrowRight, Check, ShieldCheck } from 'lucide-react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { ArrowRight, Check, Play, ShieldCheck } from 'lucide-react-native';
 
 import { fontFamily, fontSize, shadows, type Tokens } from '@/constants/designTokens';
 import { useTokens, useThemedStyles } from '@/hooks/useTokens';
-import BackButton from '@/components/BackButton';
-import WhatsInsideCarousel from '@/components/onboarding/WhatsInsideCarousel';
 import { useOnboarding } from '@/hooks/useOnboardingStore';
 import { recordDisclaimerAcceptance } from '@/lib/disclaimerConsent';
 import { useSobriety } from '@/hooks/useSobrietyStore';
-import { useDailies, type WhenBucket } from '@/hooks/use-dailies-store';
 import { useSubscription } from '@/hooks/useSubscription';
 import { formatLocalDate, parseLocalDate } from '@/lib/dateUtils';
-import SoberDateEditor from '@/components/SoberDateEditor';
-import DailiesEditor from '@/components/today/DailiesEditor';
+import { SPONSORS } from '@/constants/sponsors';
 import PaywallScreen from '@/components/PaywallScreen';
 import PassOfferScreen from '@/components/PassOfferScreen';
+import { logEvent } from '@/lib/analytics';
+import { ONBOARDING_MAX_WIDTH, OnboardingColumn } from '@/components/onboarding/OnboardingChrome';
+import CounterStep from '@/components/onboarding/CounterStep';
+import ReflectionStep from '@/components/onboarding/ReflectionStep';
+import { ReadListenStep, TalkPracticeStep } from '@/components/onboarding/ToolsSteps';
 
 // App-icon gradient → interior bridge (prototype `obvGrad`). t=0 = vivid app icon,
 // t=1 = muted interior. Onboarding stays icon-leaning (the retiring teal header
@@ -60,75 +62,100 @@ function obvInk(t: number): string {
 const openTerms = () => Linking.openURL('https://www.apple.com/legal/internet-services/itunes/dev/stdeula/').catch(() => {});
 const openPrivacy = () => Linking.openURL('https://soberdailies.com/privacy').catch(() => {});
 
-// ─── Step 1 · Welcome (logo + promise) ──────────────────────────────────────
+// ─── Step 1 · Welcome (the toolkit, shown) ──────────────────────────────────
 // One welcome for everyone. There is deliberately no "welcome back" variant:
 // to a v2 upgrader this IS a new app, so they are introduced to it the same
 // way a stranger is. Access only ever changes whether the paywall step runs.
-function WelcomeStep({ onContinue }: { onContinue: () => void }) {
+//
+// The collage is real app imagery — the Big Book, today's-reading card, a
+// speaker tape and Gentle Grace — so the first screen shows what people came
+// for rather than describing it. Laid out at the mockup's 334×330 and scaled
+// as one piece, so narrow or short screens shrink it instead of re-flowing it.
+const COLLAGE_W = 334;
+const COLLAGE_H = 330;
+const GRACE = SPONSORS.find((s) => s.id === 'grace');
+
+// iPad / unfolded-Duo heights. On a phone the headline sits at the bottom,
+// above the button (the mockup); on a tall screen that leaves a band of empty
+// gradient between it and the collage, so there the two are kept together and
+// the group is centered instead.
+const isTall = (h: number) => h >= 1000;
+
+function WelcomeCollage() {
   const styles = useThemedStyles(makeStyles);
-  const { isDark } = useTokens();
+  const { width, height } = useWindowDimensions();
+  // Up to 1.3× on a tall screen (iPad, unfolded Duo) so it fills the column.
+  const scale = Math.min(isTall(height) ? 1.3 : 1, (Math.min(width, ONBOARDING_MAX_WIDTH) - 56) / COLLAGE_W, height / 844);
   return (
-    <View style={styles.welcomeRoot}>
-      <StatusBar style="light" />
-      <LinearGradient colors={obvGrad(0.18, isDark)} start={{ x: 0.05, y: 0 }} end={{ x: 0.95, y: 1 }} style={StyleSheet.absoluteFill} />
-      <SafeAreaView style={styles.welcomeSafe} edges={['top', 'bottom']}>
-        <View style={styles.welcomeCenter}>
-          <Image source={require('@/assets/images/icon.png')} style={styles.welcomeLogo} contentFit="cover" />
-          {/* Two lines, always; adjustsFontSizeToFit is the backstop for narrow
-              screens and large Dynamic Type. */}
-          <Text
-            style={[styles.welcomePromise, styles.welcomePromiseLong]}
-            numberOfLines={2}
-            adjustsFontSizeToFit
-            minimumFontScale={0.8}
-          >
-            The daily habits that build long-term sobriety
-          </Text>
-          <Text style={styles.welcomeSubtitle}>One day. Every day.</Text>
+    <View style={{ height: COLLAGE_H * scale, alignItems: 'center' }} importantForAccessibility="no-hide-descendants" accessibilityElementsHidden>
+      <View style={[styles.collage, { transform: [{ scale }], marginTop: (COLLAGE_H * (scale - 1)) / 2 }]}>
+        <Image source={require('@/assets/images/big-book_cover.webp')} style={styles.collageBook} contentFit="cover" />
+        <View style={styles.collageSpeakers}>
+          <Image source={require('@/assets/images/speakers_hero2.webp')} style={StyleSheet.absoluteFill} contentFit="cover" />
+          <LinearGradient colors={['rgba(0,0,0,0)', 'rgba(0,0,0,0.7)']} locations={[0.4, 1]} style={StyleSheet.absoluteFill} />
+          <View style={styles.collageSpeakersRow}>
+            <View style={styles.collagePlay}><Play size={12} color="#2D5882" fill="#2D5882" /></View>
+            <Text style={styles.collageSpeakersText}>Speaker tapes</Text>
+          </View>
         </View>
-        <View style={styles.welcomeFooter}>
-          <Pressable style={styles.welcomeBtn} onPress={onContinue}>
-            <Text style={styles.welcomeBtnText}>Get started</Text>
-            <ArrowRight size={18} color={obvInk(0.55)} />
-          </Pressable>
-          <Text style={styles.welcomeAgreeLine}>
-            By continuing, you agree to our <Text style={styles.welcomeAgreeLink} onPress={openTerms}>Terms of Use</Text> and <Text style={styles.welcomeAgreeLink} onPress={openPrivacy}>Privacy Policy</Text>.
-          </Text>
+        <View style={styles.collageReflection}>
+          <Image source={require('@/assets/images/reflection_bg2.webp')} style={StyleSheet.absoluteFill} contentFit="cover" />
+          <LinearGradient colors={['rgba(0,0,0,0.05)', 'rgba(0,0,0,0.7)']} style={StyleSheet.absoluteFill} />
+          <View style={styles.collageReflectionText}>
+            <Text style={styles.collageOverline}>DAILY REFLECTIONS</Text>
+            <Text style={styles.collageReflectionTitle}>Today&apos;s reading</Text>
+          </View>
         </View>
-      </SafeAreaView>
+        <View style={styles.collageChat}>
+          {GRACE && <Image source={GRACE.avatar} style={styles.collageAvatar} contentFit="cover" />}
+          <View>
+            <Text style={styles.collageChatName}>Gentle Grace</Text>
+            <Text style={styles.collageChatText}>I&apos;m here. What&apos;s going on?</Text>
+          </View>
+        </View>
+      </View>
     </View>
   );
 }
 
-// ─── Setup progress header (steps 1 and 2 of first-run setup) ──────────────
-// Shared by the sobriety-date and dailies screens so the two read as one task.
-// Setup is always both steps — an upgrader sees the date screen prefilled
-// rather than skipping it.
-function SetupHeader({ step, onBack }: { step: 1 | 2; onBack?: () => void }) {
+function WelcomeStep({ onContinue }: { onContinue: () => void }) {
   const styles = useThemedStyles(makeStyles);
-  const { c, colors } = useTokens();
+  const { isDark } = useTokens();
+  const tall = isTall(useWindowDimensions().height);
   return (
-    <View style={styles.setupHead}>
-      <View style={styles.setupTopRow}>
-        {onBack && <BackButton onPress={onBack} />}
-        <Text style={styles.setupOverline}>{`SETTING UP · ${step} OF 2`}</Text>
-      </View>
-
-      <>
-          <View style={styles.setupRailRow}>
-            <View style={[styles.setupRail, { backgroundColor: step > 1 ? colors.primaryLight : colors.primaryDark }]} />
-            <View style={[styles.setupRail, { backgroundColor: step > 1 ? colors.primaryDark : c.border }]} />
-          </View>
-          <View style={styles.setupRailRow}>
-            <View style={styles.setupLabelCell}>
-              {step > 1 && <Check size={14} color={colors.primary} strokeWidth={3} />}
-              <Text style={[styles.setupLabel, step === 1 ? styles.setupLabelOn : styles.setupLabelDone]}>Sobriety date</Text>
+    <View style={styles.welcomeRoot}>
+      <StatusBar style="light" />
+      <LinearGradient colors={obvGrad(0.18, isDark)} start={{ x: 0.05, y: 0 }} end={{ x: 0.95, y: 1 }} style={StyleSheet.absoluteFill} />
+      <SafeAreaView style={styles.flex} edges={['top', 'bottom']}>
+        <OnboardingColumn style={styles.welcomeSafe}>
+          <ScrollView contentContainerStyle={styles.welcomeScroll} showsVerticalScrollIndicator={false} bounces={false}>
+            <View style={styles.wordmarkRow}>
+              <Image source={require('@/assets/images/icon.png')} style={styles.wordmarkIcon} contentFit="cover" />
+              <Text style={styles.wordmark}>Sober Dailies</Text>
             </View>
-            <View style={styles.setupLabelCell}>
-              <Text style={[styles.setupLabel, step === 2 ? styles.setupLabelOn : styles.setupLabelOff]}>Your dailies</Text>
+            {tall && <View style={styles.flex} />}
+            <View style={styles.collageWrap}>
+              <WelcomeCollage />
             </View>
+            <View style={[styles.welcomeCopy, tall && styles.welcomeCopyTall]}>
+              <Text style={styles.welcomeHeadline} accessibilityRole="header">Your whole recovery toolkit, in one place</Text>
+              <Text style={styles.welcomeBody}>
+                The Big Book, Daily Reflections, speaker tapes, prayers, your sobriety count — and a sponsor to talk to at 2am.
+              </Text>
+            </View>
+            {tall && <View style={styles.flex} />}
+          </ScrollView>
+          <View style={styles.welcomeFooter}>
+            <Pressable style={styles.welcomeBtn} onPress={onContinue} accessibilityRole="button">
+              <Text style={styles.welcomeBtnText}>Get started</Text>
+              <ArrowRight size={18} color={obvInk(0.55)} />
+            </Pressable>
+            <Text style={styles.welcomeAgreeLine}>
+              By continuing, you agree to our <Text style={styles.welcomeAgreeLink} onPress={openTerms}>Terms of Use</Text> and <Text style={styles.welcomeAgreeLink} onPress={openPrivacy}>Privacy Policy</Text>.
+            </Text>
           </View>
-      </>
+        </OnboardingColumn>
+      </SafeAreaView>
     </View>
   );
 }
@@ -164,6 +191,9 @@ export function DisclaimerStep({ onAgree }: { onAgree: () => void | Promise<void
       <StatusBar style="light" />
       <LinearGradient colors={obvGrad(0.5, isDark)} start={{ x: 0.05, y: 0 }} end={{ x: 0.95, y: 1 }} style={StyleSheet.absoluteFill} />
       <SafeAreaView style={{ flex: 1 }} edges={['top', 'bottom']}>
+        {/* Same centered column as the tour screens, so on an iPad or an
+            unfolded Duo the card and the checkbox line don't run edge to edge. */}
+        <OnboardingColumn>
         <ScrollView contentContainerStyle={styles.consentScroll} showsVerticalScrollIndicator={false}>
           <View style={styles.consentMark}>
             <ShieldCheck size={30} color="#fff" strokeWidth={1.8} />
@@ -201,104 +231,33 @@ export function DisclaimerStep({ onAgree }: { onAgree: () => void | Promise<void
             {saving ? <ActivityIndicator color={obvInk(0.55)} /> : <Text style={styles.consentContinueText}>Continue</Text>}
           </Pressable>
         </ScrollView>
+        </OnboardingColumn>
       </SafeAreaView>
     </View>
   );
 }
 
-// ─── Step 4 · Define your dailies (starter catalog → setAll) ────────────────
-type StarterItem = { id: string; label: string; icon: string; color: string; action: string; on: boolean };
-const STARTER: { when: WhenBucket; items: StarterItem[] }[] = [
-  { when: 'Morning', items: [
-    { id: 'prayerM', label: 'Say my morning prayers', icon: 'pray', color: 'amber', action: 'prayerMorning', on: true },
-    { id: 'grat', label: 'Write a gratitude list', icon: 'heart', color: 'amber', action: 'gratitude', on: true },
-    { id: 'bed', label: 'Make my bed', icon: 'home', color: 'gray', action: 'makeBed', on: false },
-    { id: 'exAM', label: 'Get some exercise', icon: 'dumbbell', color: 'coral', action: 'exercise', on: false },
-  ] },
-  { when: 'Anytime', items: [
-    { id: 'meeting', label: 'Attend a meeting', icon: 'users', color: 'lavender', action: 'meeting', on: true },
-    { id: 'lit', label: 'Read the literature', icon: 'library', color: 'teal', action: 'lit', on: true },
-    { id: 'med', label: 'Take time to meditate', icon: 'lotus', color: 'lavender', action: 'meditation', on: false },
-    { id: 'call', label: 'Talk with another alcoholic', icon: 'phone', color: 'blue', action: 'callAnother', on: false },
-    { id: 'speaker', label: 'Listen to a speaker', icon: 'mic', color: 'lavender', action: 'speaker', on: false },
-    { id: 'journal', label: 'Write in my journal', icon: 'journal', color: 'blue', action: 'journal', on: false },
-    { id: 'spotcheck', label: 'Take a spot check inventory', icon: 'check', color: 'coral', action: 'spotcheck', on: false },
-    { id: 'service', label: 'Do some service', icon: 'heartHandshake', color: 'teal', action: 'service', on: false },
-  ] },
-  { when: 'Evening', items: [
-    { id: 'nightly', label: 'Do my nightly review', icon: 'moon', color: 'lavender', action: 'nightly', on: true },
-    { id: 'prayerE', label: 'Say my evening prayers', icon: 'pray', color: 'amber', action: 'prayerEvening', on: true },
-  ] },
-];
-
-// Soft icon-box + dark outline glyph per tone (prototype OBV_TONE).
-const DEF_TONE: Record<string, { solid: string; ink: string }> = {
-  amber: { solid: '#E8A95D', ink: '#B07A33' },
-  blue: { solid: '#5C8DFF', ink: '#3A6AE0' },
-  lavender: { solid: '#A386D5', ink: '#7A5FB5' },
-  teal: { solid: '#3D8B8B', ink: '#2E6F6F' },
-  coral: { solid: '#D36A5A', ink: '#C0533F' },
-  gray: { solid: '#9A98A4', ink: '#5A5A68' },
-};
-
-function DefineDailiesStep({ onBack, onComplete }: { onBack?: () => void; onComplete: () => void | Promise<void> }) {
-  const styles = useThemedStyles(makeStyles);
-  const { isDark } = useTokens();
-  const dailies = useDailies();
-  // Completing writes AsyncStorage and swaps in the paywall/app, which takes a
-  // beat — show a spinner so the tap doesn't feel dead. No reset: we unmount.
-  const [saving, setSaving] = useState(false);
-
-  // No seeding here. use-dailies-store already starts at DEFAULT_PROGRAM — the
-  // same six practices the starter set marks on — so a new user sees exactly
-  // this list without being written to. Seeding unconditionally used to
-  // overwrite whatever was already in the store, which now matters: members
-  // reach this screen too, and `dailies_program` is a SYNC_KEY, so a
-  // cloud-restored program would have been replaced by the defaults.
-
-  const handleComplete = async () => {
-    if (saving) return;
-    setSaving(true);
-    await onComplete();
-  };
-
-  const header = (
-    <>
-      <Text style={styles.insideTitle}>What are your daily practices?</Text>
-      <Text style={styles.dailiesBody}>
-        These appear on your Today page every day. Add, remove and reorder them any time.
-      </Text>
-    </>
-  );
-
-  return (
-    <SafeAreaView style={styles.paper} edges={['top', 'bottom']}>
-      <StatusBar style={isDark ? 'light' : 'dark'} />
-      <SetupHeader step={2} onBack={onBack} />
-      <DailiesEditor header={header} contentContainerStyle={styles.dailiesScroll} />
-      <View style={styles.footerBordered}>
-        <Pressable style={styles.primaryBtn} onPress={handleComplete} disabled={saving}>
-          {saving ? (
-            <ActivityIndicator color="#fff" />
-          ) : (
-            <>
-              <Text style={styles.primaryText}>Start my program</Text>
-              <ArrowRight size={18} color="#fff" />
-            </>
-          )}
-        </Pressable>
-      </View>
-    </SafeAreaView>
-  );
-}
-
 // ─── The flow ───────────────────────────────────────────────────────────────
-// Understand it → agree to it → subscribe → set it up. Each step is a
-// precondition of the next, which is why the disclaimer and the paywall moved
-// inside this flow: nobody is charged before agreeing to what the app is, and
-// nobody configures an app they have not bought. The setup steps read as
-// setting up the subscription you just started, not as a toll before it.
-type Step = 'welcome' | 'inside' | 'disclaimer' | 'paywall' | 'date' | 'dailies';
+// Show it → agree to it → subscribe. The four tour screens show what people
+// came for (their count, today's reading, the literature and speakers, the
+// sponsor and the practices) before anything is asked of them; the disclaimer
+// still comes before the paywall so nobody is charged before agreeing to what
+// the app is. There is no setup after the paywall any more: the program is
+// already the six defaults, and Today introduces Edit with a one-time tip.
+type Step = 'welcome' | 'counter' | 'reflection' | 'read_listen' | 'talk_practice' | 'disclaimer' | 'paywall';
+
+// Funnel position for `onboarding_step`. Fixed per step rather than counted, so
+// a member (no paywall) and a new user report the same index for the same
+// screen and the two funnels line up in Mixpanel.
+const STEP_INDEX: Record<Step, number> = {
+  welcome: 0, counter: 1, reflection: 2, read_listen: 3, talk_practice: 4, disclaimer: 5, paywall: 6,
+};
+// Tags every onboarding event so this flow and the carousel one it replaced
+// can be compared side by side.
+const FLOW_VERSION = 'v2_tools';
+// Read by Today: show the one-time "Edit your dailies" tip after this flow.
+// Only this flow sets it, so people already past onboarding never see the tip.
+export const TODAY_TIP_PENDING_KEY = 'today_edit_tip_pending';
 
 export default function OnboardingFlow({
   onDisclaimerAccepted,
@@ -308,8 +267,8 @@ export default function OnboardingFlow({
 }: {
   onDisclaimerAccepted?: () => void;
   // __DEV__ only: the simulator bypass has to release the backstop gate in
-  // app/_layout too. Without it, finishing setup without a real entitlement
-  // drops straight onto a second paywall.
+  // app/_layout too. Without it, finishing without a real entitlement drops
+  // straight onto a second paywall.
   onPaywallBypassed?: () => void;
   passToken?: string | null;
   onPassHandled?: () => void | Promise<void>;
@@ -317,9 +276,8 @@ export default function OnboardingFlow({
   const { completeOnboarding } = useOnboarding();
   const { setSobrietyDate, sobrietyDate } = useSobriety();
   // Everyone runs the same introduction — grandfathered members included. To
-  // them this IS a new app, so they get the welcome, the tour, the disclaimer
-  // and both setup steps. The ONLY thing their access buys them is skipping
-  // the paywall.
+  // them this IS a new app, so they get the welcome, the tour and the
+  // disclaimer. The ONLY thing their access buys them is skipping the paywall.
   //
   // Frozen at mount, deliberately: a new user who subscribes at the paywall
   // step flips isPremium true mid-flow, and re-reading it live would change
@@ -328,13 +286,42 @@ export default function OnboardingFlow({
   const { isPremium } = useSubscription();
   const [alreadyHadAccess] = useState(isPremium);
   const [step, setStep] = useState<Step>('welcome');
+  // The steps behind this one, for Android back. Skip jumps ahead, so back
+  // returns to wherever Skip was tapped rather than walking every screen.
+  const historyRef = useRef<Step[]>([]);
 
-  // Setup is always two steps. Upgraders used to skip the date screen because
-  // they already had one; now it is shown with their date filled in, so they
-  // can confirm or correct it rather than have it silently assumed.
-  const afterDisclaimer: Step = alreadyHadAccess ? 'date' : 'paywall';
+  // Funnel tracking. Every event carries is_member so the two populations can
+  // be split; the step event fires once per showing (keyed on the step, so
+  // re-renders don't repeat it but coming back to a step does).
+  const track = (event: string, props?: Record<string, any>) =>
+    logEvent(event, { is_member: alreadyHadAccess, flow_version: FLOW_VERSION, ...props });
+  const startedRef = useRef(false);
+  useEffect(() => {
+    if (startedRef.current) return;
+    startedRef.current = true;
+    track('onboarding_started');
+  }, []);
+  useEffect(() => {
+    track('onboarding_step', { step, step_index: STEP_INDEX[step] });
+  }, [step]);
 
+  const go = (next: Step) => {
+    historyRef.current.push(step);
+    setStep(next);
+  };
+  const skipTour = () => {
+    track('onboarding_skip_tapped', { from_step: step });
+    if (step === 'counter') track('onboarding_counter_skipped');
+    go('disclaimer');
+  };
+
+  // Members skip only the paywall.
+  const finishedRef = useRef(false);
   const finish = async () => {
+    if (finishedRef.current) return;
+    finishedRef.current = true;
+    track('onboarding_completed');
+    await AsyncStorage.setItem(TODAY_TIP_PENDING_KEY, '1').catch(() => {});
     await completeOnboarding();
     // No router.replace here: onboarding is a render gate in app/_layout, not a
     // route. When the flag flips, the gate swaps this flow out for the Stack
@@ -342,63 +329,75 @@ export default function OnboardingFlow({
     // forces a root re-mount that flashes the teal fill.
   };
 
-  if (step === 'welcome') return <WelcomeStep onContinue={() => setStep('inside')} />;
-  if (step === 'inside') {
+  // The paywall X (and Android back on the paywall) returns to the start of
+  // the introduction rather than trapping someone there — the visible way out
+  // Play's Subscriptions policy asks for.
+  const closePaywall = () => {
+    track('onboarding_paywall_closed');
+    historyRef.current = [];
+    setStep('welcome');
+  };
+
+  // Android back walks back through the steps. On Welcome it falls through to
+  // the system (leaves the app), as it always has.
+  useEffect(() => {
+    const sub = BackHandler.addEventListener('hardwareBackPress', () => {
+      if (step === 'paywall') { closePaywall(); return true; }
+      const prev = historyRef.current.pop();
+      if (!prev) return false;
+      setStep(prev);
+      return true;
+    });
+    return () => sub.remove();
+  }, [step]);
+
+  if (step === 'welcome') return <WelcomeStep onContinue={() => go('counter')} />;
+  if (step === 'counter') {
     return (
-      <WhatsInsideCarousel
-        onSkip={() => setStep('disclaimer')}
-        onContinue={() => setStep('disclaimer')}
+      <CounterStep
+        // Prefilled for anyone who already has a date — a v2 upgrader confirms
+        // theirs rather than retyping it.
+        current={sobrietyDate ? parseLocalDate(sobrietyDate) : null}
+        onSave={(date, method) => {
+          track('onboarding_counter_saved', { method, had_date: !!sobrietyDate });
+          setSobrietyDate(formatLocalDate(date));
+          go('reflection');
+        }}
+        onSkip={skipTour}
       />
     );
   }
+  if (step === 'reflection') return <ReflectionStep onContinue={() => go('read_listen')} onSkip={skipTour} />;
+  if (step === 'read_listen') return <ReadListenStep onContinue={() => go('talk_practice')} onSkip={skipTour} />;
+  if (step === 'talk_practice') return <TalkPracticeStep onContinue={() => go('disclaimer')} onSkip={skipTour} />;
   if (step === 'disclaimer') {
     // Before the paywall: agreeing to what this app is and isn't shouldn't come
     // after we've taken the money. DisclaimerStep records acceptance itself.
     return (
       <DisclaimerStep
-        onAgree={() => {
+        onAgree={async () => {
+          track('onboarding_disclaimer_accepted');
           onDisclaimerAccepted?.();
-          setStep(afterDisclaimer);
+          if (alreadyHadAccess) await finish();
+          else go('paywall');
         }}
       />
     );
   }
-  if (step === 'paywall') {
-    // The close (X) returns to the start of the introduction rather than
-    // trapping the user here — the visible way out Play's Subscriptions policy
-    // asks for. Advancing is driven by isPremium flipping after a purchase or
-    // restore, including a store-native Pass It On subscription redemption.
-    return (
-      <PaywallStep
-        onSubscribed={() => setStep('date')}
-        onClose={() => setStep('welcome')}
-        passToken={passToken}
-        onPassHandled={onPassHandled}
-        onBypass={() => {
-          onPaywallBypassed?.();
-          setStep('date');
-        }}
-      />
-    );
-  }
-  if (step === 'date') {
-    return (
-      <SoberDateEditor
-        // Prefilled for anyone who already has a date — a v2 upgrader confirms
-        // theirs rather than retyping it.
-        current={sobrietyDate ? parseLocalDate(sobrietyDate) : null}
-        // No back on step 1: for a new user the paywall is behind it and they
-        // have just paid; for a member there is only the disclaimer.
-        header={<SetupHeader step={1} />}
-        body="No pressure — add it now or later, and change it whenever you need."
-        onSave={(date) => { setSobrietyDate(formatLocalDate(date)); setStep('dailies'); }}
-        onSkip={() => setStep('dailies')}
-        primaryLabel="Set my date"
-        skipLabel="Skip for now"
-      />
-    );
-  }
-  return <DefineDailiesStep onBack={() => setStep('date')} onComplete={finish} />;
+  // Paywall. Advancing is driven by isPremium flipping after a purchase or
+  // restore, including a store-native Pass It On subscription redemption.
+  return (
+    <PaywallStep
+      onSubscribed={finish}
+      onClose={closePaywall}
+      passToken={passToken}
+      onPassHandled={onPassHandled}
+      onBypass={() => {
+        onPaywallBypassed?.();
+        finish();
+      }}
+    />
+  );
 }
 
 // Paywall as a step. PaywallScreen applies the purchased CustomerInfo itself,
@@ -406,7 +405,7 @@ export default function OnboardingFlow({
 // hooking the buy button, so a restore or a gift code advances too.
 //
 // Tapping the X backs out to the start of onboarding, in every build. In
-// __DEV__ only, LONG-PRESSING it jumps forward to the setup screens instead, so
+// __DEV__ only, the DEV SKIP control jumps past the paywall instead, so
 // the rest of the flow stays reachable on a simulator without a sandbox
 // purchase — the two used to be the same gesture and can't be, now that the
 // tap has a real job.
@@ -426,7 +425,7 @@ function PaywallStep({
   const { isPremium } = useSubscription();
   // Internal preview APKs are installed directly rather than through Google
   // Play, so Play Billing cannot complete a real subscription purchase in
-  // them. Let the visible close control continue into setup on the preview
+  // them. Let the visible close control continue into the app on the preview
   // channel; store/production builds retain the normal paywall behavior.
   const isInternalPreview = Updates.channel === 'dev';
   useEffect(() => {
@@ -449,9 +448,10 @@ function PaywallStep({
       onDismiss={isInternalPreview ? onBypass : onClose}
       // Backing out to the welcome screen only makes sense while the wall
       // works. If offerings never load, that X just loops someone through the
-      // intro and back to the same dead screen — so carry on to setup instead.
+      // intro and back to the same dead screen — so carry on into the app instead.
       onUnavailableDismiss={onBypass}
       onDevBypass={onBypass}
+      context="onboarding"
     />
   );
 }
@@ -484,45 +484,18 @@ const makeStyles = (tk: Tokens) => {
   consentContinueText: { fontFamily: fontFamily.semiBold, fontSize: fontSize.xl, color: obvInk(0.55) },
 
   // welcome
+  flex: { flex: 1 },
   welcomeRoot: { flex: 1 },
-  welcomeSafe: { flex: 1, paddingHorizontal: 28 },
-  welcomeCenter: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingBottom: 42 },
-  welcomeLogo: {
-    width: 126,
-    height: 126,
-    borderRadius: 29,
-    marginBottom: 34,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.42)',
-    // Soft, ambient shadow — spreads fairly evenly around the icon with a gentle
-    // downward weight (large blur, small offset), so it floats without a heavy
-    // bottom-drop.
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 11 },
-    shadowOpacity: 0.4,
-    shadowRadius: 40,
-    elevation: 22,
-  },
-  welcomePromise: {
-    fontFamily: fontFamily.displayBold,
-    fontSize: 35,
-    lineHeight: 39,
-    color: '#fff',
-    textAlign: 'center',
-    letterSpacing: -0.5,
-  },
-  // "The daily habits that build long-term sobriety" needs ~5 more characters
-  // per line than the upgrader greeting to hold at two lines.
-  welcomePromiseLong: { fontSize: 30, lineHeight: 34 },
-  welcomeSubtitle: {
-    fontFamily: fontFamily.serifItalic,
-    fontSize: 18,
-    lineHeight: 24,
-    color: '#fff',
-    textAlign: 'center',
-    marginTop: 16,
-    opacity: 0.95,
-  },
+  welcomeSafe: { paddingHorizontal: 28 },
+  welcomeScroll: { flexGrow: 1 },
+  wordmarkRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingTop: 6 },
+  wordmarkIcon: { width: 30, height: 30, borderRadius: 8, borderWidth: 1, borderColor: 'rgba(255,255,255,0.4)' },
+  wordmark: { fontFamily: fontFamily.displayBold, fontSize: 17, letterSpacing: -0.2, color: '#fff' },
+  collageWrap: { marginTop: 22 },
+  welcomeCopy: { flexGrow: 1, justifyContent: 'flex-end', paddingTop: 20, paddingBottom: 26 },
+  welcomeCopyTall: { flexGrow: 0, paddingTop: 48 },
+  welcomeHeadline: { fontFamily: fontFamily.displayBold, fontSize: 33, lineHeight: 37, letterSpacing: -0.7, color: '#fff' },
+  welcomeBody: { fontFamily: fontFamily.regular, fontSize: fontSize.lg, lineHeight: 23, color: 'rgba(255,255,255,0.94)', marginTop: 14 },
   welcomeFooter: { paddingBottom: 14 },
   welcomeBtn: {
     minHeight: 56,
@@ -538,42 +511,23 @@ const makeStyles = (tk: Tokens) => {
   welcomeAgreeLine: { fontFamily: fontFamily.regular, fontSize: 11.5, lineHeight: 16, color: 'rgba(255,255,255,0.86)', textAlign: 'center', marginTop: 12, paddingHorizontal: 8 },
   welcomeAgreeLink: { fontFamily: fontFamily.semiBold, color: '#fff', textDecorationLine: 'underline' },
 
-  // paper screens (inside + dailies)
-  paper: { flex: 1, backgroundColor: c.background },
-  topBar: { paddingHorizontal: 16, paddingTop: 4, paddingBottom: 4 },
-  setupHead: { paddingHorizontal: 24, paddingTop: 4, paddingBottom: 18 },
-  setupTopRow: { flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 38 },
-  setupOverline: { fontFamily: fontFamily.bold, fontSize: 12, letterSpacing: 1.6, color: c.textMuted },
-  setupRailRow: { flexDirection: 'row', gap: 12, marginTop: 12 },
-  setupRail: { flex: 1, height: 3, borderRadius: 2 },
-  setupLabelCell: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: -6 },
-  setupLabel: { fontFamily: fontFamily.semiBold, fontSize: 13.5 },
-  setupLabelOn: { color: c.text },
-  setupLabelOff: { color: c.textMuted },
-  setupLabelDone: { color: colors.primary },
-  dailiesBody: { fontFamily: fontFamily.regular, fontSize: fontSize.md, color: c.textSecondary, lineHeight: 22, marginTop: 10, marginBottom: 4 },
-  insideTitle: { fontFamily: fontFamily.displayBold, fontSize: fontSize.hero, color: c.text, letterSpacing: -0.5 },
-  insideSub: { fontFamily: fontFamily.regular, fontSize: fontSize.md, color: c.textSecondary, lineHeight: 21, marginTop: 8, marginBottom: 8 },
-
-  // define dailies
-  dailiesScroll: { paddingHorizontal: 22, paddingTop: 6, paddingBottom: 16 },
-  infoBold: { fontFamily: fontFamily.semiBold, color: c.text },
-  dailiesSection: { marginTop: 4 },
-  sectionLabelRow: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', marginTop: 14, marginBottom: 8 },
-  sectionLabelName: { fontFamily: fontFamily.display, fontSize: 18, color: c.text },
-  sectionLabelCount: { fontFamily: fontFamily.medium, fontSize: 11, color: c.textMuted },
-  dailyRow: { flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: c.surface, borderWidth: 1, borderRadius: 14, paddingVertical: 12, paddingHorizontal: 14, marginBottom: 6 },
-  dailyIconBox: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },
-  dailyLabel: { flex: 1, fontFamily: fontFamily.semiBold, fontSize: fontSize.base, color: c.text },
-  dailyCheck: { width: 26, height: 26, borderRadius: 13, borderWidth: 2, alignItems: 'center', justifyContent: 'center' },
-  footerBordered: { paddingHorizontal: 24, paddingTop: 12, paddingBottom: 12, borderTopWidth: 1, borderTopColor: c.border },
-
-  // shared footer
-  footer: { paddingHorizontal: 24, paddingTop: 12, paddingBottom: 12 },
-  primaryBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 9, paddingVertical: 16, borderRadius: 16, backgroundColor: colors.primary, ...shadows.md },
-  primaryBtnOff: { backgroundColor: '#C7C9C4', shadowOpacity: 0 },
-  primaryText: { fontFamily: fontFamily.semiBold, fontSize: fontSize.xl, color: '#fff' },
-  agreeLine: { fontFamily: fontFamily.regular, fontSize: 11.5, lineHeight: 16, color: c.textMuted, textAlign: 'center', marginTop: 12, paddingHorizontal: 8 },
-  agreeLink: { fontFamily: fontFamily.semiBold, color: colors.primaryDark },
+  // welcome collage — positions are the mockup's, inside a 334×330 box that
+  // WelcomeCollage scales as a whole. Its cards are photos with white text and
+  // a white chat chip, so they read the same on the light and dark gradients.
+  collage: { width: COLLAGE_W, height: COLLAGE_H },
+  collageBook: { position: 'absolute', left: 0, top: 46, width: 128, height: 168, borderRadius: 10, transform: [{ rotate: '-9deg' }], shadowColor: '#000', shadowOpacity: 0.35, shadowRadius: 15, shadowOffset: { width: 0, height: 16 } },
+  collageSpeakers: { position: 'absolute', right: 0, top: 30, width: 140, height: 176, borderRadius: 16, overflow: 'hidden', backgroundColor: '#3A2A20', transform: [{ rotate: '8deg' }] },
+  // Right-aligned: the reflection card overlaps this one's left third.
+  collageSpeakersRow: { position: 'absolute', right: 12, bottom: 12, alignItems: 'flex-end', gap: 6 },
+  collagePlay: { width: 28, height: 28, borderRadius: 14, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center', paddingLeft: 2 },
+  collageSpeakersText: { fontFamily: fontFamily.bold, fontSize: 11.5, lineHeight: 14, color: '#fff', textAlign: 'right', maxWidth: 60 },
+  collageReflection: { position: 'absolute', left: 82, top: 0, width: 170, height: 220, borderRadius: 18, overflow: 'hidden', backgroundColor: '#2E5A5A', ...shadows.lg },
+  collageReflectionText: { position: 'absolute', left: 14, right: 14, bottom: 14 },
+  collageOverline: { fontFamily: fontFamily.bold, fontSize: 9, letterSpacing: 1.4, color: 'rgba(255,255,255,0.92)' },
+  collageReflectionTitle: { fontFamily: fontFamily.serif, fontSize: 18, lineHeight: 22, color: '#fff', marginTop: 4 },
+  collageChat: { position: 'absolute', left: 50, top: 226, flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: '#fff', borderRadius: 18, paddingVertical: 10, paddingLeft: 10, paddingRight: 14, shadowColor: '#000', shadowOpacity: 0.28, shadowRadius: 14, shadowOffset: { width: 0, height: 14 }, elevation: 8 },
+  collageAvatar: { width: 36, height: 36, borderRadius: 18 },
+  collageChatName: { fontFamily: fontFamily.bold, fontSize: 12, color: '#232529' },
+  collageChatText: { fontFamily: fontFamily.regular, fontSize: 12, color: '#474A52' },
   });
 };

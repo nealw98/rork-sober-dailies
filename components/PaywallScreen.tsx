@@ -19,6 +19,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
+import { Image } from 'expo-image';
 import { Bell, Check, Lock, MessageCircle, RefreshCw, SlidersHorizontal, Star, TrendingUp, Wrench, X } from 'lucide-react-native';
 import { type PurchasesPackage } from 'react-native-purchases';
 import { useSubscription } from '@/hooks/useSubscription';
@@ -36,9 +37,8 @@ const PRIVACY_URL = 'https://soberdailies.com/privacy';
 const RAIL_GREEN = '#86CBA6';
 const RAIL_TEAL = '#74C7D3';
 const RAIL_LAV = '#BCB3EA';
-const CIRCLE = 48;       // timeline bead diameter
-const RAIL_WIDTH = 32;   // rail runs behind the beads
-const RAIL_FADE = 72;    // extra length past the last bead center, fading out below the star
+const BEAD = 30;         // compact trial-timeline bead diameter
+const RAIL_WIDTH = 32;   // no-trial rail runs behind the benefit tiles
 const CARD_PAD_H = 20;   // timeline card horizontal padding (rail left aligns to this)
 const TILE = 48;         // no-trial benefit icon circle (matches the trial bead)
 const BENEFIT_FADE = 56; // rail length past the last tile center, fading out
@@ -97,7 +97,21 @@ function trialDaysFrom(pkg: PurchasesPackage | null): number | null {
 // leaving $19.99/yr as the most conspicuous price without shrinking anything.
 // The trial is still stated three times below: the timeline, the CTA, and the
 // billing disclosure.
-const PAYWALL_TITLE = 'Pick your plan and start today';
+//
+// "Unlock every tool" (onboarding redesign, 2026-11-08) keeps that rule: it
+// names what is bought, not a price or a trial.
+const PAYWALL_TITLE = 'Unlock every tool';
+// Only after the onboarding tour, which this line points back to.
+const ONBOARDING_SUBTITLE = 'Everything you just saw, plus your count and your daily program.';
+
+// What "every tool" means, in the same imagery the onboarding tour just showed.
+const TOOL_TILES = [
+  // The cover is cropped from the top so the title stays in a wide tile.
+  { key: 'literature', label: 'Literature', source: require('@/assets/images/big-book_cover.webp'), position: 'top' as const },
+  { key: 'reflections', label: 'Reflections', source: require('@/assets/images/reflection_bg2.webp') },
+  { key: 'speakers', label: 'Speakers', source: require('@/assets/images/speakers_hero2.webp') },
+  { key: 'sponsor', label: 'AI sponsor', source: require('@/assets/images/ai_sponsor_hero2.webp') },
+];
 
 // Length-neutral on purpose. Someone who is ineligible gets NO intro offer back
 // from the store, so trialLen is null and any specific wording ("your free week
@@ -131,9 +145,12 @@ interface PaywallScreenProps {
   // Developer Console only: force either layout instead of deriving it from
   // real trial history, so both can be reviewed on one device.
   forceTrial?: boolean;
+  // Where it is shown from. 'onboarding' adds the subtitle that refers back to
+  // the tour; the lapsed-user backstop and previews show none.
+  context?: 'onboarding';
 }
 
-export default function PaywallScreen({ onDismiss, onDevBypass, onUnavailableDismiss, preview, forceTrial }: PaywallScreenProps) {
+export default function PaywallScreen({ onDismiss, onDevBypass, onUnavailableDismiss, preview, forceTrial, context }: PaywallScreenProps) {
   const styles = useThemedStyles(makeStyles);
   const { c, colors } = useTokens();
   const { offerings, isLoading, autoRetrying, error, purchasePackage, restorePurchases, refresh, applyCustomerInfo, customerInfo, trialEligible, qaForceNewUser } = useSubscription();
@@ -146,10 +163,10 @@ export default function PaywallScreen({ onDismiss, onDevBypass, onUnavailableDis
   const [purchaseFailed, setPurchaseFailed] = useState(false);
   const [restoring, setRestoring] = useState(false);
   const [retrying, setRetrying] = useState(false);
-  // Measured top of each timeline row (relative to the card) so the continuous
-  // gradient rail can be positioned to pass through the circle centers exactly.
-  const [rowY, setRowY] = useState<number[]>([]);
-  const [benefitY, setBenefitY] = useState<number[]>([]); // same, for the no-trial tiles
+  // Measured top of each no-trial benefit row (relative to the card) so the
+  // continuous gradient rail can be positioned to pass through the tile
+  // centers exactly.
+  const [benefitY, setBenefitY] = useState<number[]>([]);
 
   const offering = offerings?.all?.['default'] ?? offerings?.current ?? null;
   const packages = offering?.availablePackages ?? [];
@@ -240,21 +257,21 @@ export default function PaywallScreen({ onDismiss, onDevBypass, onUnavailableDis
   const STEPS = [
     {
       key: 'today',
-      icon: <Lock size={19} color="#2E7A5F" strokeWidth={2.2} />,
+      icon: <Lock size={13} color="#2E7A5F" strokeWidth={2.4} />,
       ring: RAIL_GREEN,
       title: 'Today',
-      body: 'Everything unlocks — your dailies, literature, speaker tapes, your AI sponsor, and more.',
+      body: 'everything unlocks.',
     },
     {
       key: 'day5',
-      icon: <Bell size={18} color={colors.primaryDark} strokeWidth={2} fill={colors.primaryDark} />,
+      icon: <Bell size={13} color={colors.primaryDark} strokeWidth={2} fill={colors.primaryDark} />,
       ring: RAIL_TEAL,
       title: `Day ${warnDay}`,
-      body: "We'll notify you that your trial is ending soon.",
+      body: "we'll remind you the trial is ending.",
     },
     {
       key: 'day7',
-      icon: <Star size={18} color={colors.primary} strokeWidth={2} fill={colors.primary} />,
+      icon: <Star size={13} color={colors.primary} strokeWidth={2} fill={colors.primary} />,
       ring: RAIL_LAV,
       title: `Day ${trialEndDay}`,
       // Price comes from the chosen package, never hardcoded: the copy must not
@@ -522,13 +539,28 @@ export default function PaywallScreen({ onDismiss, onDevBypass, onUnavailableDis
         )}
 
         <Text style={styles.title}>{showTrial ? PAYWALL_TITLE : TRIAL_OVER_TITLE}</Text>
-        {/* Trial variant carries no subtitle: the timeline sits directly below
-            and already covers what unlocks, when billing starts and how to
-            cancel, so a line between the two only repeated it. The no-trial
-            face has no timeline, so its line still has to state the
-            requirement itself. */}
+        {/* The trial variant's only subtitle is the onboarding one, which
+            points back at the tour rather than restating the timeline (that
+            already covers what unlocks, when billing starts and how to
+            cancel). The no-trial face has no timeline, so its line still has
+            to state the requirement itself. */}
         {!showTrial && (
           <Text style={styles.subtitle}>Subscribe to access the app.</Text>
+        )}
+        {showTrial && context === 'onboarding' && (
+          <Text style={styles.onboardingSubtitle}>{ONBOARDING_SUBTITLE}</Text>
+        )}
+
+        {/* What "every tool" is — static tiles, not links. */}
+        {showTrial && (
+          <View style={styles.tiles}>
+            {TOOL_TILES.map((t) => (
+              <View key={t.key} style={styles.tile}>
+                <Image source={t.source} style={styles.tileImage} contentFit="cover" contentPosition={'position' in t ? t.position : 'center'} />
+                <Text style={styles.tileLabel} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8}>{t.label}</Text>
+              </View>
+            ))}
+          </View>
         )}
 
         {/* No-trial view — the benefits list stands in for the timeline. */}
@@ -566,46 +598,24 @@ export default function PaywallScreen({ onDismiss, onDevBypass, onUnavailableDis
           </View>
         )}
 
-        {/* Trial timeline — continuous gradient rail behind white bead circles.
+        {/* Trial timeline — compact: one line per step, small ringed beads,
+            so the plans and the button fit on a standard iPhone without
+            scrolling. The Day 7 sentence is the Play disclosure ("…required to
+            maintain access…") with the real price; keep it word for word.
             Hidden once the trial has been used: there is no countdown left to
-            show, and the "Subscribe to use the app" line above already carries
-            the Play disclosure that the timeline carried for trial users. */}
+            show, and the "Subscribe to access the app" line above already
+            carries the disclosure. */}
         {showTrial && (
-        <View style={styles.timeline}>
-          {rowY[0] != null && rowY[1] != null && rowY[2] != null && (() => {
-            const height = rowY[2] - rowY[0] + RAIL_FADE;
-            return (
-              <LinearGradient
-                colors={[RAIL_GREEN, RAIL_TEAL, RAIL_LAV, 'rgba(188,179,234,0)']}
-                // Stops pinned to the measured circle centers; last one fades out
-                // below the star bead.
-                locations={[0, (rowY[1] - rowY[0]) / height, (rowY[2] - rowY[0]) / height, 1]}
-                start={{ x: 0.5, y: 0 }}
-                end={{ x: 0.5, y: 1 }}
-                pointerEvents="none"
-                style={[styles.rail, { top: rowY[0] + CIRCLE / 2, height }]}
-              />
-            );
-          })()}
-          {STEPS.map((s, i) => (
-            <View
-              key={s.key}
-              style={[styles.step, i < STEPS.length - 1 && styles.stepGap]}
-              onLayout={(e) => {
-                const y = e.nativeEvent.layout.y;
-                setRowY((prev) => (prev[i] === y ? prev : Object.assign([...prev], { [i]: y })));
-              }}
-            >
-              <View style={styles.iconCol}>
-                <View style={[styles.circle, { borderColor: s.ring }]}>{s.icon}</View>
+          <View style={styles.timeline}>
+            {STEPS.map((st) => (
+              <View key={st.key} style={styles.step}>
+                <View style={[styles.bead, { borderColor: st.ring }]}>{st.icon}</View>
+                <Text style={styles.stepLine}>
+                  <Text style={styles.stepTitle}>{st.title}</Text> — {st.body}
+                </Text>
               </View>
-              <View style={styles.stepText}>
-                <Text style={styles.stepTitle}>{s.title}</Text>
-                <Text style={styles.stepBody}>{s.body}</Text>
-              </View>
-            </View>
-          ))}
-        </View>
+            ))}
+          </View>
         )}
 
         {/* Error / loading for packages. This card is the LOAD failure — no
@@ -724,7 +734,9 @@ const makeStyles = (tk: Tokens) => {
   return StyleSheet.create({
     screen: { flex: 1, backgroundColor: c.background },
     flex: { flex: 1 },
-    scroll: { paddingHorizontal: 26, paddingTop: 20, paddingBottom: 32 },
+    // Capped and centered like the onboarding screens before it, so on an
+    // iPad or an unfolded Duo the plans and tiles don't stretch edge to edge.
+    scroll: { paddingHorizontal: 26, paddingTop: 20, paddingBottom: 32, width: '100%', maxWidth: 520, alignSelf: 'center' },
     header: { flexDirection: 'row', alignItems: 'center' },
     close: { width: 32, height: 32, alignItems: 'center', justifyContent: 'center' },
     resolving: { flex: 1, alignItems: 'center', justifyContent: 'center' },
@@ -751,6 +763,12 @@ const makeStyles = (tk: Tokens) => {
     // it was wider than everything they contain.
     title: { fontFamily: fontFamily.displayBold, fontSize: 32, lineHeight: 36, letterSpacing: -0.8, color: c.text, paddingHorizontal: CARD_PAD_H },
     subtitle: { fontFamily: fontFamily.serifItalic, fontSize: 16, lineHeight: 23, color: c.textSecondary, marginTop: 10, paddingHorizontal: CARD_PAD_H },
+    onboardingSubtitle: { fontFamily: fontFamily.regular, fontSize: 14.5, lineHeight: 20, color: c.textSecondary, marginTop: 6, paddingHorizontal: CARD_PAD_H },
+
+    tiles: { flexDirection: 'row', gap: 8, marginTop: 16 },
+    tile: { flex: 1, alignItems: 'center', gap: 6 },
+    tileImage: { width: '100%', height: 76, borderRadius: 12, backgroundColor: c.border },
+    tileLabel: { fontFamily: fontFamily.semiBold, fontSize: 11, color: c.text },
 
     // Sits directly under the title so it is read before the plans, not after.
     // Tinted card rather than muted footnote type — a reviewer looking for the
@@ -762,15 +780,11 @@ const makeStyles = (tk: Tokens) => {
     benefitTitle: { fontFamily: fontFamily.bold, fontSize: 16.5, letterSpacing: -0.2, color: c.text },
     benefitBody: { fontFamily: fontFamily.regular, fontSize: 14, lineHeight: 20, color: c.textSecondary, marginTop: 2 },
 
-    timeline: { position: 'relative', overflow: 'hidden', marginTop: 30, backgroundColor: c.surface, borderRadius: 22, borderWidth: 1, borderColor: c.border, paddingVertical: 22, paddingHorizontal: CARD_PAD_H, ...shadows.sm, ...darkCard },
-    rail: { position: 'absolute', left: CARD_PAD_H + CIRCLE / 2 - RAIL_WIDTH / 2, width: RAIL_WIDTH, borderTopLeftRadius: RAIL_WIDTH / 2, borderTopRightRadius: RAIL_WIDTH / 2, zIndex: 0 },
-    step: { flexDirection: 'row', gap: 15 },
-    stepGap: { marginBottom: 22 },
-    iconCol: { width: CIRCLE, alignItems: 'center' },
-    circle: { width: CIRCLE, height: CIRCLE, borderRadius: CIRCLE / 2, borderWidth: 3, backgroundColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center', zIndex: 2, ...shadows.sm },
-    stepText: { flex: 1, paddingTop: 10 },
-    stepTitle: { fontFamily: fontFamily.displayBold, fontSize: 18, letterSpacing: -0.2, color: c.text },
-    stepBody: { fontFamily: fontFamily.regular, fontSize: 14, lineHeight: 20, color: c.textSecondary, marginTop: 3 },
+    timeline: { marginTop: 16, backgroundColor: c.surface, borderRadius: 18, borderWidth: 1, borderColor: c.border, paddingVertical: 14, paddingHorizontal: 16, gap: 12, ...shadows.sm, ...darkCard },
+    step: { flexDirection: 'row', alignItems: 'flex-start', gap: 12 },
+    bead: { width: BEAD, height: BEAD, borderRadius: BEAD / 2, borderWidth: 2.5, backgroundColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center' },
+    stepLine: { flex: 1, fontFamily: fontFamily.regular, fontSize: 13, lineHeight: 18, color: c.text, paddingTop: 5 },
+    stepTitle: { fontFamily: fontFamily.bold },
 
     // no-trial benefits — tinted icon tiles inside the same card as the trial timeline
     errorCard: { marginTop: 20, padding: 16, borderRadius: 14, backgroundColor: c.surface, borderWidth: 1, borderColor: c.border, ...darkCard },
@@ -780,7 +794,7 @@ const makeStyles = (tk: Tokens) => {
     retryText: { fontFamily: fontFamily.semiBold, fontSize: 14, color: colors.primary },
 
     // plans
-    plans: { marginTop: 30, gap: 11 },
+    plans: { marginTop: 18, gap: 10 },
     plan: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 15, paddingHorizontal: 18, borderRadius: 16, borderWidth: 1.5, borderColor: c.border, backgroundColor: c.surface, ...darkCard },
     // borderTopColor must be set explicitly: the darkCard spread on `plan`
     // pins a lighter top edge, and the specific side color beats borderColor.
@@ -804,7 +818,7 @@ const makeStyles = (tk: Tokens) => {
 
     // cta — sits just below the plans (tighter than the old 28 so there's no
     // dead space between Monthly and the CTA).
-    cta: { marginTop: 20, paddingVertical: 16, borderRadius: 16, backgroundColor: colors.primary, alignItems: 'center', justifyContent: 'center', shadowColor: colors.primary, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.28, shadowRadius: 12, elevation: 4 },
+    cta: { marginTop: 16, paddingVertical: 16, borderRadius: 16, backgroundColor: colors.primary, alignItems: 'center', justifyContent: 'center', shadowColor: colors.primary, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.28, shadowRadius: 12, elevation: 4 },
     ctaDisabled: { opacity: 0.5 },
     ctaText: { fontFamily: fontFamily.semiBold, fontSize: 16.5, color: '#fff' },
 

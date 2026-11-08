@@ -22,7 +22,7 @@ import { HandsPraying, FlowerLotus, ChatCircleDots } from 'phosphor-react-native
 
 import { fontFamily, families, shadows, type Tokens } from '@/constants/designTokens';
 import { useTokens, useThemedStyles } from '@/hooks/useTokens';
-import { SPONSORS, vibeString } from '@/constants/sponsors';
+import { SPONSORS, SPONSOR_SAMPLE_PROMPT as SPONSOR_PROMPT, SPONSOR_SAMPLE_REPLIES as SPONSOR_REPLIES, vibeString } from '@/constants/sponsors';
 
 // Carousel gradient (prototype WI_GRAD) — one step past Welcome on the
 // icon→interior cooling bridge.
@@ -136,17 +136,6 @@ function VigToday() {
 }
 
 // ─── 2 · AI Sponsor — one message, answered three ways ──────────────────────
-
-// Static illustration copy, keyed by the real sponsor ids in constants/sponsors
-// ("supportive" / "salty" / "grace" — not the display first names). Samples,
-// like the 247 coin and the heatmap: never generated at runtime, never read
-// from chat history.
-const SPONSOR_PROMPT = 'Rough night. I got close.';
-const SPONSOR_REPLIES: Record<string, string> = {
-  supportive: 'That’s serious — but you made it through. Call someone sober; one hour at a time.',
-  salty: '“Got close” is how people dress up danger. Get away from it and call somebody.',
-  grace: 'I’m glad you told me. I know this leaves you shaken and exhausted. Reach out, and ask your Higher Power for help.',
-};
 
 function VigSponsor() {
   const styles = useThemedStyles(makeStyles);
@@ -343,9 +332,12 @@ function useCards(): CardDef[] {
 
 // ─── the carousel ─────────────────────────────────────────────────────────────
 
-export default function WhatsInsideCarousel({ onSkip, onContinue }: {
-  onSkip: () => void;
+export default function WhatsInsideCarousel({ onSkip, onContinue, onIndexChange }: {
+  // Called with the card that was showing (0-based), for funnel tracking.
+  onSkip: (index: number) => void;
   onContinue: () => void;
+  // Reports each card as it becomes visible, swiped or tapped to.
+  onIndexChange?: (index: number) => void;
 }) {
   const styles = useThemedStyles(makeStyles);
   const cards = useCards();
@@ -371,6 +363,7 @@ export default function WhatsInsideCarousel({ onSkip, onContinue }: {
   }, [pageW]);
   const last = index === cards.length - 1;
   const { isDark } = useTokens();
+  useEffect(() => { onIndexChange?.(index); }, [index]);
 
   const onMomentumEnd = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
     const i = Math.round(e.nativeEvent.contentOffset.x / pageW);
@@ -389,7 +382,7 @@ export default function WhatsInsideCarousel({ onSkip, onContinue }: {
       <SafeAreaView style={{ flex: 1 }} edges={['top', 'bottom']}>
         <View style={styles.headerRow}>
           <Text style={styles.overline}>WHAT’S INSIDE</Text>
-          <Pressable onPress={onSkip} hitSlop={8} style={styles.skipPill} accessibilityRole="button" accessibilityLabel="Skip">
+          <Pressable onPress={() => onSkip(index)} hitSlop={8} style={styles.skipPill} accessibilityRole="button" accessibilityLabel="Skip">
             <Text style={styles.skipText}>Skip</Text>
           </Pressable>
         </View>

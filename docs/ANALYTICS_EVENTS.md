@@ -51,6 +51,26 @@ Controlled by `EXPO_PUBLIC_ANALYTICS_ENV` in `.env` — currently **`test`**. Fl
 
 **Reports:** screen popularity = count `screen_opened` by `screen`; time by area = sum `duration_seconds` on `screen_closed` by `screen`.
 
+### Onboarding funnel
+
+Two flows share these event names. **`flow_version`** tells them apart: absent = the carousel flow (store builds up to 3.5.x), `v2_tools` = the "lead with the tools" flow (the Duo release). Every event carries `is_member` (access frozen when onboarding mounts — members skip only the paywall). `paywall_view` is separate and also fires outside onboarding.
+
+| Event | Properties | Notes |
+|---|---|---|
+| `onboarding_started` | `is_member`, `flow_version` | Once, when the flow first mounts |
+| `onboarding_step` | `step`, `step_index`, `is_member`, `flow_version` | Once per showing of a step. Index is fixed per step, so members show no 6. **v2_tools:** `welcome` (0), `counter` (1), `reflection` (2), `read_listen` (3), `talk_practice` (4), `disclaimer` (5), `paywall` (6, only when it runs). **Carousel flow:** `welcome` (0), `inside_1`…`inside_4` (1–4), `disclaimer` (5), `paywall` (6), `date` (7), `dailies` (8) |
+| `onboarding_skip_tapped` | `from_step` | v2_tools: Skip on counter / reflection / read_listen / talk_practice (→ disclaimer) |
+| `onboarding_counter_saved` | `method` (`typed` \| `day_one`), `had_date` | v2_tools: "Start my count" or "Today is my day one". `had_date` = a date already existed (prefilled for members) |
+| `onboarding_counter_skipped` | — | v2_tools: Skip on the counter step; the date stays unset |
+| `onboarding_carousel_skipped` | `card_index` (1–4) | Carousel flow only |
+| `onboarding_disclaimer_accepted` | `is_member` | |
+| `onboarding_paywall_closed` | `is_member` | X on the paywall (or Pass It On offer), or Android back on it → back to Welcome; the next `onboarding_step` is `welcome` again |
+| `onboarding_date_saved` / `onboarding_date_skipped` | `had_date` | Carousel flow only (its post-paywall date step) |
+| `onboarding_completed` | `is_member` | v2_tools: after the paywall (or after the disclaimer, for members). Carousel flow: "Start my program" |
+| `today_tip_shown` / `today_tip_dismissed` | `flow_version` | v2_tools: the one-time "Edit your dailies" coach mark on the first Today after onboarding |
+
+**Reports:** funnel on `onboarding_step` ordered by `step_index`, broken down by `flow_version` (and `is_member`); paywall conversion = users with `step = paywall` who reach `onboarding_completed`.
+
 ### Today page / Dailies
 
 | Event | Properties | Question it answers |

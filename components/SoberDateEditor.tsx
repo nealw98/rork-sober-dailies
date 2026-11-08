@@ -6,13 +6,14 @@ import { ArrowRight } from 'lucide-react-native';
 import { fontFamily, fontSize, shadows, getSemanticColors, type Tokens } from '@/constants/designTokens';
 import { useTokens, useThemedStyles } from '@/hooks/useTokens';
 import BackButton from '@/components/BackButton';
+import { formatDateInput, parseDateInput, toDateInput, ymdLabel } from '@/lib/soberDateInput';
 
 /**
  * Sober-date screen (prototype `ObvSoberDate`). A full screen — typed mm/dd/yyyy
  * entry with a live day-count preview, sized for the shippable RN text-field +
- * numeric keypad. Reused by the Today/Settings editor AND the onboarding step;
- * callers decide what Save does and whether to show Remove (editor) or Skip
- * (onboarding).
+ * numeric keypad. Used from Today and Settings; callers decide what Save does
+ * and whether to show Remove or Skip. Onboarding has its own counter screen
+ * (components/onboarding/CounterStep) on the same parsing in lib/soberDateInput.
  */
 
 // The date field sits on a white pill inside the teal card in BOTH modes, so its
@@ -28,38 +29,6 @@ const lightC = getSemanticColors('light');
 // CTA, and those look right. So only the gradient is corrected — the LIGHT
 // brand teal (#3D8B8B) darkened, same family, OLED luminance.
 const DARK_CARD_GRAD = ['#316F6F', '#275959'] as const;
-
-function formatDateInput(text: string) {
-  const n = text.replace(/\D/g, '');
-  if (n.length <= 2) return n;
-  if (n.length <= 4) return `${n.slice(0, 2)}/${n.slice(2)}`;
-  return `${n.slice(0, 2)}/${n.slice(2, 4)}/${n.slice(4, 8)}`;
-}
-
-function parseValid(s: string): Date | null {
-  if (!s || s.length < 10 || !/^\d{2}\/\d{2}\/\d{4}$/.test(s)) return null;
-  const [m, d, y] = s.split('/').map(Number);
-  if (m < 1 || m > 12 || d < 1 || d > 31) return null;
-  const date = new Date(y, m - 1, d);
-  if (date.getFullYear() !== y || date.getMonth() !== m - 1 || date.getDate() !== d) return null;
-  const end = new Date();
-  end.setHours(23, 59, 59, 999);
-  return date <= end ? date : null;
-}
-
-function ymdLabel(date: Date): string {
-  const now = new Date();
-  let y = now.getFullYear() - date.getFullYear();
-  let m = now.getMonth() - date.getMonth();
-  let d = now.getDate() - date.getDate();
-  if (d < 0) { m -= 1; d += new Date(now.getFullYear(), now.getMonth(), 0).getDate(); }
-  if (m < 0) { y -= 1; m += 12; }
-  const parts: string[] = [];
-  if (y) parts.push(`${y} ${y === 1 ? 'year' : 'years'}`);
-  if (m) parts.push(`${m} ${m === 1 ? 'month' : 'months'}`);
-  parts.push(`${d} ${d === 1 ? 'day' : 'days'}`);
-  return parts.join(' · ');
-}
 
 export interface SoberDateEditorProps {
   current: Date | null;
@@ -81,11 +50,8 @@ export interface SoberDateEditorProps {
 export default function SoberDateEditor({ current, onSave, onBack, onRemove, onSkip, primaryLabel = 'Save date', skipLabel, header, body }: SoberDateEditorProps) {
   const styles = useThemedStyles(makeStyles);
   const { colors, isDark } = useTokens();
-  const initial = current
-    ? `${String(current.getMonth() + 1).padStart(2, '0')}/${String(current.getDate()).padStart(2, '0')}/${current.getFullYear()}`
-    : '';
-  const [value, setValue] = useState(initial);
-  const parsed = parseValid(value);
+  const [value, setValue] = useState(() => toDateInput(current));
+  const parsed = parseDateInput(value);
   const valid = parsed !== null;
   const badDate = value.length === 10 && !valid;
 

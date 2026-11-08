@@ -38,6 +38,16 @@ export interface SponsorConfig {
 const titleCase = (s: string) => s.toLowerCase().replace(/\b\w/g, (ch) => ch.toUpperCase());
 export const vibeString = (tags?: string[]) => (tags ?? []).map(titleCase).join(' · ');
 
+// Static illustration copy for onboarding (the "What's inside" carousel and
+// the Talk & practice screen), keyed by the real sponsor ids — not the display
+// first names. Samples: never generated at runtime, never read from chat history.
+export const SPONSOR_SAMPLE_PROMPT = 'Rough night. I got close.';
+export const SPONSOR_SAMPLE_REPLIES: Record<string, string> = {
+  supportive: 'That’s serious — but you made it through. Call someone sober; one hour at a time.',
+  salty: '“Got close” is how people dress up danger. Get away from it and call somebody.',
+  grace: 'I’m glad you told me. I know this leaves you shaken and exhausted. Reach out, and ask your Higher Power for help.',
+};
+
 export const SPONSORS: SponsorConfig[] = [
   {
     id: "supportive",
