@@ -1,12 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, ActivityIndicator, Platform, useWindowDimensions } from 'react-native';
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { StatusBar } from 'expo-status-bar';
 import { Image } from 'expo-image';
-import { Check } from 'lucide-react-native';
+import { Sparkles } from 'lucide-react-native';
 
-import { fontFamily, fontSize, type Tokens } from '@/constants/designTokens';
+import { fontFamily, type Tokens } from '@/constants/designTokens';
 import { readerSerif, readerSerifItalic } from '@/constants/fonts';
 import { useTokens, useThemedStyles } from '@/hooks/useTokens';
 import { useReadingSize } from '@/hooks/use-reading-size';
@@ -28,6 +28,9 @@ const HERO_BELOW_INSET = 271;
 // leave about one line of the reading above the button, so it takes a share
 // of the height instead.
 const HERO_LANDSCAPE_SHARE = 0.3;
+// Room under the last line of the reading so it can scroll clear of the
+// floating button.
+const FLOAT_CLEARANCE = 96;
 const MONTHS = ['JANUARY', 'FEBRUARY', 'MARCH', 'APRIL', 'MAY', 'JUNE', 'JULY', 'AUGUST', 'SEPTEMBER', 'OCTOBER', 'NOVEMBER', 'DECEMBER'];
 
 export default function ReflectionStep({ onContinue, onSkip }: { onContinue: () => void; onSkip: () => void }) {
@@ -79,9 +82,14 @@ export default function ReflectionStep({ onContinue, onSkip }: { onContinue: () 
         </View>
       </View>
 
-      <SafeAreaView style={styles.flex} edges={['bottom']}>
+      {/* The reading runs to the bottom of the screen and the button floats
+          over it — the text stays visible as it scrolls behind the button. */}
+      <View style={styles.flex}>
         <OnboardingColumn>
-          <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
+          <ScrollView
+            contentContainerStyle={[styles.scroll, { paddingBottom: insets.bottom + FLOAT_CLEARANCE }]}
+            showsVerticalScrollIndicator={false}
+          >
             {reflection ? (
               <>
                 <View style={styles.quoteWrap}>
@@ -93,6 +101,14 @@ export default function ReflectionStep({ onContinue, onSkip }: { onContinue: () 
                     <Text key={i} style={[styles.body, { fontSize: readSize, lineHeight: readLine, marginTop: i === 0 ? 0 : 14 }]}>{withEmphasis(p, EM_ITALIC)}</Text>
                   ))}
                 </View>
+                {/* The day's Meditation, as the Daily Reflection reader shows it. */}
+                <View style={styles.medTile}>
+                  <View style={styles.medLabelRow}>
+                    <Sparkles size={11} color={colors.primaryDark} strokeWidth={2} />
+                    <Text style={styles.medLabel}>MEDITATION</Text>
+                  </View>
+                  <Text style={[styles.medText, { fontSize: readSize, lineHeight: Math.round(readSize * 1.4) }]}>&ldquo;{withEmphasis(reflection.thought, EM_UPRIGHT)}&rdquo;</Text>
+                </View>
                 <Text style={styles.copyright}>Copyright © 1990 by Alcoholics Anonymous World Services, Inc. All rights reserved.</Text>
               </>
             ) : (
@@ -100,15 +116,11 @@ export default function ReflectionStep({ onContinue, onSkip }: { onContinue: () 
             )}
           </ScrollView>
 
-          <View style={styles.footer}>
-            <View style={styles.checkLine}>
-              <Check size={16} color={colors.primaryDark} strokeWidth={2.4} />
-              <Text style={styles.checkText}>A new reading every morning, right on your Today page</Text>
-            </View>
+          <View style={[styles.footer, { bottom: insets.bottom + 12 }]}>
             <PrimaryButton label="See what else is inside" onPress={onContinue} />
           </View>
         </OnboardingColumn>
-      </SafeAreaView>
+      </View>
     </View>
   );
 }
@@ -125,16 +137,18 @@ const makeStyles = (tk: Tokens) => {
     // Android clips Lora's descenders to the line box; give it the taller line.
     heroTitle: { fontFamily: fontFamily.serifMedium, fontSize: 28, lineHeight: Platform.select({ android: 38, default: 33 }), color: '#fff', marginTop: 6 },
 
-    scroll: { paddingHorizontal: 26, paddingTop: 24, paddingBottom: 20 },
+    scroll: { paddingHorizontal: 26, paddingTop: 24 },
     quoteWrap: { paddingLeft: 16, borderLeftWidth: 3, borderLeftColor: colors.primaryLight },
     quote: { ...readerSerifItalic, color: c.text, letterSpacing: -0.05 },
     source: { fontFamily: fontFamily.semiBold, fontSize: 11, color: c.textMuted, marginTop: 10, letterSpacing: 1, textTransform: 'uppercase' },
     bodyWrap: { marginTop: 24 },
     body: { fontFamily: readerSerif, color: c.text, letterSpacing: -0.05 },
+    medTile: { marginTop: 24, padding: 18, backgroundColor: colors.primarySoft, borderRadius: 18, borderWidth: 1, borderColor: colors.primary + '28' },
+    medLabelRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+    medLabel: { fontFamily: fontFamily.bold, fontSize: 10, letterSpacing: 1.4, color: colors.primaryDark },
+    medText: { ...readerSerifItalic, color: c.text, marginTop: 8, letterSpacing: -0.3 },
     copyright: { marginTop: 18, fontFamily: fontFamily.regular, fontSize: 10, color: c.textMuted, lineHeight: 15, textAlign: 'center' },
 
-    footer: { paddingHorizontal: 24, paddingTop: 12, paddingBottom: 12, gap: 10, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: c.border },
-    checkLine: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
-    checkText: { fontFamily: fontFamily.semiBold, fontSize: fontSize.md, color: colors.primaryDark, flexShrink: 1, textAlign: 'center' },
+    footer: { position: 'absolute', left: 24, right: 24 },
   });
 };
