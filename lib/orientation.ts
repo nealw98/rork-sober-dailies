@@ -56,7 +56,7 @@ const TABLET_MIN_DIM = 600;
 // sees). Posts straight to Mixpanel — deliberately NOT through lib/analytics,
 // whose Developer Mode switch drops every event on Neal's own phone, the one
 // device we need to hear from. Remove this block once the handoff is solid.
-const DIAG_VERSION = 'v5';
+const DIAG_VERSION = 'v6';
 const DIAG_TOKEN = process.env.EXPO_PUBLIC_MIXPANEL_TOKEN || '';
 const diagT0 = Date.now();
 function diag(step: string, extra?: Record<string, unknown>): void {
@@ -142,15 +142,29 @@ async function steerToLandscape(): Promise<void> {
   diag('steer_start');
   try {
     await sleep(500); // let the fold transition's size churn settle
+    // Cycle the lock target between retries. Telemetry (2026-11-08) showed
+    // repeated identical LANDSCAPE locks all "succeeding" while iOS ignored
+    // them for 5–16s: a repeat of the current mask is a no-op, and only a
+    // CHANGE re-triggers the synthesized rotation. Every mask here is
+    // landscape-only, so portrait never flashes.
+    const targets = [
+      ScreenOrientation.OrientationLock.LANDSCAPE,
+      ScreenOrientation.OrientationLock.LANDSCAPE_RIGHT,
+      ScreenOrientation.OrientationLock.LANDSCAPE_LEFT,
+    ];
+    const targetNames = ['L', 'LR', 'LL'];
+    let attempt = 0;
     while (isTabletNow() && !isWindowLandscape() && Date.now() < steerUntil) {
       // Landscape-only lock: portrait is NOT in the mask, and the native
       // enforce sends a synthesized landscape rotation. Re-sent every pass
       // because nudges fired before iOS settles are silently dropped.
+      const pick = attempt % targets.length;
+      attempt += 1;
       try {
-        await ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.LANDSCAPE);
-        diag('steer_lock_ok');
+        await ScreenOrientation.lockAsync(targets[pick]);
+        diag('steer_lock_ok', { m: targetNames[pick] });
       } catch (e: any) {
-        diag('steer_lock_err', { err: String(e?.message ?? e).slice(0, 200) });
+        diag('steer_lock_err', { m: targetNames[pick], err: String(e?.message ?? e).slice(0, 200) });
       }
       for (let i = 0; i < STEER_RETRY_MS / 100; i++) {
         if (isWindowLandscape() || !isTabletNow()) break;
