@@ -101,11 +101,21 @@ const MEETING_PHOTO = require('@/assets/images/literature_hero2.webp');
 // the group is centered instead.
 const isTall = (h: number) => h >= 1000;
 
-function WelcomeCollage() {
+// The collage's labels are part of the picture, so they keep their designed
+// size (allowFontScaling off) — the collage as a whole shrinks for large text.
+// Below this the collage stops shrinking and the page scrolls instead.
+const COLLAGE_MIN_SCALE = 0.55;
+const COLLAGE_TOP_GAP = 22;
+
+function WelcomeCollage({ maxHeight }: { maxHeight?: number }) {
   const styles = useThemedStyles(makeStyles);
   const { width, height } = useWindowDimensions();
   // Up to 1.3× on a tall screen (iPad, unfolded Duo) so it fills the column.
-  const scale = Math.min(isTall(height) ? 1.3 : 1, (Math.min(width, ONBOARDING_MAX_WIDTH) - 56) / COLLAGE_W, height / 844);
+  // `maxHeight` is the room the headline and body leave (measured, so large
+  // Dynamic Type or a short screen like the folded Duo shrinks the collage
+  // instead of pushing the copy under the button).
+  const fit = maxHeight != null ? Math.max(COLLAGE_MIN_SCALE, maxHeight / COLLAGE_H) : Infinity;
+  const scale = Math.min(isTall(height) ? 1.3 : 1, (Math.min(width, ONBOARDING_MAX_WIDTH) - 56) / COLLAGE_W, height / 844, fit);
   return (
     <View style={{ height: COLLAGE_H * scale, alignItems: 'center' }} importantForAccessibility="no-hide-descendants" accessibilityElementsHidden>
       <View style={[styles.collage, { transform: [{ scale }], marginTop: (COLLAGE_H * (scale - 1)) / 2 }]}>
@@ -123,7 +133,7 @@ function WelcomeCollage() {
           <LinearGradient colors={['rgba(0,0,0,0)', 'rgba(0,0,0,0.7)']} locations={[0.4, 1]} style={StyleSheet.absoluteFill} />
           <View style={styles.collageSpeakersRow}>
             <View style={styles.collagePlay}><Play size={12} color="#2D5882" fill="#2D5882" /></View>
-            <Text style={styles.collageSpeakersText}>Speaker tapes</Text>
+            <Text style={styles.collageSpeakersText} allowFontScaling={false}>Speaker tapes</Text>
           </View>
         </View>
         <View style={styles.collageReflection}>
@@ -132,15 +142,15 @@ function WelcomeCollage() {
           <Image source={require('@/assets/reflections_images/reflection_bg3.webp')} style={StyleSheet.absoluteFill} contentFit="cover" />
           <LinearGradient colors={['rgba(0,0,0,0.05)', 'rgba(0,0,0,0.7)']} style={StyleSheet.absoluteFill} />
           <View style={styles.collageReflectionText}>
-            <Text style={styles.collageOverline}>DAILY REFLECTIONS</Text>
-            <Text style={styles.collageReflectionTitle}>Today&apos;s reading</Text>
+            <Text style={styles.collageOverline} allowFontScaling={false}>DAILY REFLECTIONS</Text>
+            <Text style={styles.collageReflectionTitle} allowFontScaling={false}>Today&apos;s reading</Text>
           </View>
         </View>
         <View style={styles.collageChat}>
           {GRACE && <Image source={GRACE.avatar} style={styles.collageAvatar} contentFit="cover" />}
           <View>
-            <Text style={styles.collageChatName}>Gentle Grace</Text>
-            <Text style={styles.collageChatText}>I&apos;m here. What&apos;s going on?</Text>
+            <Text style={styles.collageChatName} allowFontScaling={false}>Gentle Grace</Text>
+            <Text style={styles.collageChatText} allowFontScaling={false}>I&apos;m here. What&apos;s going on?</Text>
           </View>
         </View>
       </View>
@@ -153,25 +163,40 @@ function WelcomeStep({ onContinue }: { onContinue: () => void }) {
   const { isDark } = useTokens();
   useGradientBackdrop(0.18, isDark);
   const tall = isTall(useWindowDimensions().height);
+  // Measured: the scroll viewport, the wordmark row and the copy block. What's
+  // left between them is the collage's room.
+  const [viewportH, setViewportH] = useState(0);
+  const [wordmarkH, setWordmarkH] = useState(0);
+  const [copyH, setCopyH] = useState(0);
+  const collageRoom = viewportH && copyH ? viewportH - wordmarkH - COLLAGE_TOP_GAP - copyH : undefined;
   return (
     <View style={styles.welcomeRoot}>
       <StatusBar style="light" />
       <SafeAreaView style={styles.flex} edges={['top', 'bottom']}>
         <OnboardingColumn style={styles.welcomeSafe}>
-          <ScrollView contentContainerStyle={styles.welcomeScroll} showsVerticalScrollIndicator={false} bounces={false}>
-            <View style={styles.wordmarkRow}>
+          <ScrollView
+            contentContainerStyle={styles.welcomeScroll}
+            showsVerticalScrollIndicator={false}
+            bounces={false}
+            onLayout={(e) => setViewportH(e.nativeEvent.layout.height)}
+          >
+            <View style={styles.wordmarkRow} onLayout={(e) => setWordmarkH(e.nativeEvent.layout.height)}>
               <Image source={require('@/assets/images/icon.png')} style={styles.wordmarkIcon} contentFit="cover" />
               <Text style={styles.wordmark}>Sober Dailies</Text>
             </View>
             {tall && <View style={styles.flex} />}
             <View style={styles.collageWrap}>
-              <WelcomeCollage />
+              <WelcomeCollage maxHeight={collageRoom} />
             </View>
             <View style={[styles.welcomeCopy, tall && styles.welcomeCopyTall]}>
-              <Text style={styles.welcomeHeadline} accessibilityRole="header">Your whole recovery toolkit, in one place</Text>
-              <Text style={styles.welcomeBody}>
-                The Big Book, Daily Reflections, speaker tapes, prayers, your sobriety count — and a sponsor to talk to at 2am.
-              </Text>
+              {/* Measured on its own (the block above it grows to fill), plus
+                  the block's own top and bottom padding. */}
+              <View onLayout={(e) => setCopyH(e.nativeEvent.layout.height + (tall ? 48 : 20) + 26)}>
+                <Text style={styles.welcomeHeadline} accessibilityRole="header">Your whole recovery toolkit, in one place</Text>
+                <Text style={styles.welcomeBody}>
+                  The Big Book, Daily Reflections, speaker tapes, prayers, your sobriety count — and a sponsor to talk to at 2am.
+                </Text>
+              </View>
             </View>
             {tall && <View style={styles.flex} />}
           </ScrollView>
@@ -521,7 +546,7 @@ const makeStyles = (tk: Tokens) => {
   wordmarkRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingTop: 6 },
   wordmarkIcon: { width: 30, height: 30, borderRadius: 8, borderWidth: 1, borderColor: 'rgba(255,255,255,0.4)' },
   wordmark: { fontFamily: fontFamily.displayBold, fontSize: 17, letterSpacing: -0.2, color: '#fff' },
-  collageWrap: { marginTop: 22 },
+  collageWrap: { marginTop: COLLAGE_TOP_GAP },
   welcomeCopy: { flexGrow: 1, justifyContent: 'flex-end', paddingTop: 20, paddingBottom: 26 },
   welcomeCopyTall: { flexGrow: 0, paddingTop: 48 },
   welcomeHeadline: { fontFamily: fontFamily.displayBold, fontSize: 33, lineHeight: 37, letterSpacing: -0.7, color: '#fff' },
