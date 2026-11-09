@@ -7,7 +7,7 @@ import { Image } from 'expo-image';
 import { Play, CircleCheck, Heart } from 'lucide-react-native';
 import { HandsPraying } from 'phosphor-react-native';
 
-import { colors as lightColors, fontFamily, fontSize, steelPlay, type Tokens } from '@/constants/designTokens';
+import { colors as lightColors, fontFamily, fontSize, type Tokens } from '@/constants/designTokens';
 import { useTokens, useThemedStyles } from '@/hooks/useTokens';
 import { SPONSORS } from '@/constants/sponsors';
 import { OnboardingColumn, PrimaryButton, TourProgress } from '@/components/onboarding/OnboardingChrome';
@@ -17,13 +17,8 @@ import { OnboardingColumn, PrimaryButton, TourProgress } from '@/components/onbo
 
 const BIG_BOOK = require('@/assets/images/big-book_cover.webp');
 const TWELVE_TWELVE = require('@/assets/images/new_12x12_cover.webp');
-const SPEAKERS_HERO = require('@/assets/images/speakers_hero2.webp');
+const SPEAKERS_BRIGHT = require('@/assets/images/speakers_hero_bright.webp');
 const MEDITATION_HERO = require('@/assets/images/meditation-hero1.webp');
-
-// A real entry from the speaker catalog (checked against the live `speakers`
-// table, 2026-11-08) — the row is a still, not a player, but the name on it
-// should be someone you can actually find in Speaker tapes.
-const SAMPLE_SPEAKER = 'Andrew I. · Anchorage, AK';
 
 // The sample exchange on the AI sponsor card: Steady Eddie, condensed from a
 // real reply to fit three lines. A still illustration — never generated at
@@ -80,7 +75,7 @@ function TourScreen({ index, overline, overlineColor, title, children, gap, foot
 
 export function ReadListenStep({ onContinue, onSkip, onBack }: { onContinue: () => void; onSkip: () => void; onBack: () => void }) {
   const styles = useThemedStyles(makeStyles);
-  const { colors, mode } = useTokens();
+  const { colors } = useTokens();
   return (
     <TourScreen
       index={2}
@@ -92,29 +87,42 @@ export function ReadListenStep({ onContinue, onSkip, onBack }: { onContinue: () 
       onSkip={onSkip}
       onBack={onBack}
     >
-      <View style={styles.litCard}>
-        <View style={styles.covers}>
-          <Image source={BIG_BOOK} style={[styles.cover, { transform: [{ rotate: '-3deg' }] }]} contentFit="cover" accessibilityLabel="Big Book cover" />
-          <Image source={TWELVE_TWELVE} style={[styles.cover, { transform: [{ rotate: '3deg' }] }]} contentFit="cover" accessibilityLabel="Twelve Steps and Twelve Traditions cover" />
-        </View>
-        <Text style={styles.cardTitle}>Literature</Text>
-        <Text style={styles.cardBody}>The Big Book and the Twelve and Twelve, always in your pocket.</Text>
+      {/* Deep navy in both modes (the light palette's steel) so both covers
+          pop — the 12&12's pale blue vanished on the old pale card. */}
+      <View style={styles.litShadow}>
+        <LinearGradient colors={[lightColors.steel, lightColors.steelDark]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.litCard}>
+          <View style={styles.covers}>
+            {/* Bare 3D covers with the Literature tab's lift: the shadow sits on
+                a background-less wrapper so it follows the book's shape. */}
+            <View style={[styles.coverLift, { transform: [{ rotate: '-3deg' }] }]}>
+              <Image source={BIG_BOOK} style={styles.cover} contentFit="contain" accessibilityLabel="Big Book cover" />
+            </View>
+            <View style={[styles.coverLift, { transform: [{ rotate: '3deg' }] }]}>
+              <Image source={TWELVE_TWELVE} style={styles.cover} contentFit="contain" accessibilityLabel="Twelve Steps and Twelve Traditions cover" />
+            </View>
+          </View>
+          <Text style={styles.litTitle}>Literature</Text>
+          <Text style={styles.litBody}>The Big Book and the Twelve and Twelve, always in your pocket.</Text>
+        </LinearGradient>
       </View>
 
-      <View style={styles.photoCard}>
-        <Image source={SPEAKERS_HERO} style={StyleSheet.absoluteFill} contentFit="cover" contentPosition={{ top: '70%' }} />
-        <LinearGradient colors={['rgba(0,0,0,0.05)', 'rgba(0,0,0,0.78)']} locations={[0.2, 1]} style={StyleSheet.absoluteFill} pointerEvents="none" />
-        <View style={styles.photoText}>
-          <Text style={styles.photoTitle}>Speaker tapes</Text>
-          <Text style={styles.photoBody}>Experience, strength and hope — a meeting&apos;s worth, whenever you need it.</Text>
-          <View style={styles.player}>
-            <View style={styles.playBtn}>
-              <Play size={14} color={steelPlay[mode]} fill={steelPlay[mode]} />
-            </View>
-            <View style={styles.flex}>
-              <Text style={styles.playerName} numberOfLines={1}>{SAMPLE_SPEAKER}</Text>
-              <View style={styles.playerTrack}><View style={styles.playerFill} /></View>
-            </View>
+      {/* A bright photo: the text sits on the blanket under a cream fade, so
+          the headphones and phone stay clear above it. Dark ink in both modes. */}
+      <View style={styles.speakerShadow}>
+        <View style={styles.speakerCard}>
+          <Image source={SPEAKERS_BRIGHT} style={StyleSheet.absoluteFill} contentFit="cover" contentPosition={{ top: '8%' }} />
+          <LinearGradient
+            colors={['rgba(250,246,239,0)', 'rgba(250,246,239,0)', 'rgba(250,246,239,0.55)', 'rgba(250,246,239,0.8)']}
+            locations={[0, 0.5, 0.75, 1]}
+            style={StyleSheet.absoluteFill}
+            pointerEvents="none"
+          />
+          <View style={styles.speakerText}>
+            <Text style={styles.speakerTitle}>Speaker tapes</Text>
+            <Text style={styles.speakerBody}>Experience, strength and hope — a meeting&apos;s worth, whenever you need it.</Text>
+          </View>
+          <View style={styles.speakerPlay}>
+            <Play size={18} color="#fff" fill="#fff" />
           </View>
         </View>
       </View>
@@ -232,18 +240,21 @@ const makeStyles = (tk: Tokens) => {
     cardBody: { fontFamily: fontFamily.regular, fontSize: fontSize.md, lineHeight: 20, color: c.textSecondary, marginTop: 3 },
 
     // Read & listen
-    litCard: { backgroundColor: colors.steelSoft, borderRadius: 22, paddingHorizontal: 18, paddingTop: 18, paddingBottom: 16, ...cardEdge },
+    litShadow: { borderRadius: 22, backgroundColor: lightColors.steelDark, shadowColor: lightColors.steelDark, shadowOpacity: 0.25, shadowRadius: 12, shadowOffset: { width: 0, height: 10 }, elevation: 6 },
+    litCard: { borderRadius: 22, paddingHorizontal: 18, paddingTop: 18, paddingBottom: 16 },
     covers: { flexDirection: 'row', justifyContent: 'center', gap: 16, paddingTop: 4, marginBottom: 14 },
-    cover: { width: 112, height: 148, borderRadius: 8, shadowColor: '#171A22', shadowOpacity: 0.28, shadowRadius: 11, shadowOffset: { width: 0, height: 12 } },
-    photoCard: { flexGrow: 1, minHeight: 236, borderRadius: 22, overflow: 'hidden', backgroundColor: '#3A2A20', justifyContent: 'flex-end' },
-    photoText: { paddingHorizontal: 18, paddingBottom: 16, paddingTop: 60 },
-    photoTitle: { fontFamily: fontFamily.displayBold, fontSize: 19, color: '#fff' },
+    // Same lift as the Literature tab's shelf (bookBtn there).
+    coverLift: { shadowColor: '#1F3A4D', shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.28, shadowRadius: 14, elevation: 7 },
+    cover: { width: 118, height: 156 },
+    litTitle: { fontFamily: fontFamily.displayBold, fontSize: 19, color: '#fff' },
+    litBody: { fontFamily: fontFamily.regular, fontSize: fontSize.md, lineHeight: 20, color: 'rgba(255,255,255,0.92)', marginTop: 3 },
+    speakerShadow: { flexGrow: 1, borderRadius: 22, backgroundColor: '#EDE6DA', shadowColor: '#171A22', shadowOpacity: 0.1, shadowRadius: 10, shadowOffset: { width: 0, height: 6 }, elevation: 3 },
+    speakerCard: { flexGrow: 1, minHeight: 236, borderRadius: 22, overflow: 'hidden', backgroundColor: '#EDE6DA', justifyContent: 'flex-end' },
+    speakerText: { paddingLeft: 18, paddingRight: 78, paddingBottom: 16, paddingTop: 60 },
+    speakerTitle: { fontFamily: fontFamily.displayBold, fontSize: 19, color: '#232529' },
+    speakerBody: { fontFamily: fontFamily.regular, fontSize: 14, lineHeight: 20, color: '#3A3D44', marginTop: 3 },
+    speakerPlay: { position: 'absolute', right: 16, bottom: 18, width: 48, height: 48, borderRadius: 24, backgroundColor: lightColors.steel, alignItems: 'center', justifyContent: 'center', paddingLeft: 3, shadowColor: '#171A22', shadowOpacity: 0.22, shadowRadius: 8, shadowOffset: { width: 0, height: 4 }, elevation: 4 },
     photoBody: { fontFamily: fontFamily.regular, fontSize: fontSize.md, lineHeight: 20, color: 'rgba(255,255,255,0.92)', marginTop: 3 },
-    player: { flexDirection: 'row', alignItems: 'center', gap: 11, marginTop: 12, backgroundColor: 'rgba(255,255,255,0.16)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.28)', borderRadius: 14, paddingVertical: 9, paddingLeft: 9, paddingRight: 12 },
-    playBtn: { width: 34, height: 34, borderRadius: 17, backgroundColor: isDark ? '#2B3A4E' : '#fff', alignItems: 'center', justifyContent: 'center', paddingLeft: 2 },
-    playerName: { fontFamily: fontFamily.semiBold, fontSize: 13, color: '#fff' },
-    playerTrack: { marginTop: 6, height: 3, borderRadius: 2, backgroundColor: 'rgba(255,255,255,0.3)' },
-    playerFill: { width: '34%', height: 3, borderRadius: 2, backgroundColor: '#fff' },
 
     // Talk & practice
     groups: { gap: 18 },
