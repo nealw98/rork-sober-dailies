@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useLayoutEffect, useRef } from 'react';
-import { View, Text, StyleSheet, Pressable, Linking, ActivityIndicator, ScrollView, BackHandler, useWindowDimensions } from 'react-native';
+import { View, Text, StyleSheet, Pressable, Linking, ActivityIndicator, ScrollView, BackHandler, PanResponder, Platform, useWindowDimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { StatusBar } from 'expo-status-bar';
@@ -22,6 +22,7 @@ import PassOfferScreen from '@/components/PassOfferScreen';
 import { logEvent } from '@/lib/analytics';
 import { ONBOARDING_MAX_WIDTH, OnboardingColumn } from '@/components/onboarding/OnboardingChrome';
 import CounterStep from '@/components/onboarding/CounterStep';
+import { toDateInput } from '@/lib/soberDateInput';
 import ReflectionStep from '@/components/onboarding/ReflectionStep';
 import { ReadListenStep, TalkPracticeStep } from '@/components/onboarding/ToolsSteps';
 
@@ -307,6 +308,15 @@ type Step = 'welcome' | 'counter' | 'reflection' | 'read_listen' | 'talk_practic
 const STEP_INDEX: Record<Step, number> = {
   welcome: 0, counter: 1, reflection: 2, read_listen: 3, talk_practice: 4, disclaimer: 5, paywall: 6,
 };
+// Where back goes — always the screen before in the tour, even when Skip
+// jumped past it. Welcome, the paywall and everything after have no back.
+const PREV_STEP: Partial<Record<Step, Step>> = {
+  counter: 'welcome', reflection: 'counter', read_listen: 'reflection', talk_practice: 'read_listen', disclaimer: 'talk_practice',
+};
+// iPhone swipe-back: a drag that starts this close to the left edge and
+// travels this far (or flicks) goes back a step.
+const EDGE_WIDTH = 24;
+const SWIPE_DISTANCE = 70;
 // Tags every onboarding event so this flow and the carousel one it replaced
 // can be compared side by side.
 const FLOW_VERSION = 'v2_tools';
@@ -341,9 +351,13 @@ export default function OnboardingFlow({
   const { isPremium } = useSubscription();
   const [alreadyHadAccess] = useState(isPremium);
   const [step, setStep] = useState<Step>('welcome');
-  // The steps behind this one, for Android back. Skip jumps ahead, so back
-  // returns to wherever Skip was tapped rather than walking every screen.
-  const historyRef = useRef<Step[]>([]);
+  // The counter's typed date lives here, not in the step, so it survives
+  // going back to Welcome before it's saved.
+  const [dateDraft, setDateDraft] = useState(() => toDateInput(sobrietyDate ? parseLocalDate(sobrietyDate) : null));
+  // A saved date that loads after mount still prefills an untouched field.
+  useEffect(() => {
+    if (sobrietyDate && !dateDraft) setDateDraft(toDateInput(parseLocalDate(sobrietyDate)));
+  }, [sobrietyDate]);
 
   // Funnel tracking. Every event carries is_member so the two populations can
   // be split; the step event fires once per showing (keyed on the step, so
@@ -360,10 +374,29 @@ export default function OnboardingFlow({
     track('onboarding_step', { step, step_index: STEP_INDEX[step] });
   }, [step]);
 
-  const go = (next: Step) => {
-    historyRef.current.push(step);
-    setStep(next);
+  const go = (next: Step) => setStep(next);
+  const back = (via: 'button' | 'swipe' | 'android_back') => {
+    const prev = PREV_STEP[step];
+    if (!prev) return false;
+    track('onboarding_back_tapped', { from_step: step, via });
+    setStep(prev);
+    return true;
   };
+  // The swipe handler is created once, so it reads the current back() here.
+  const backRef = useRef(back);
+  backRef.current = back;
+  const edgeTouchRef = useRef(false);
+  const swipeBack = useRef(PanResponder.create({
+    onStartShouldSetPanResponderCapture: (e) => {
+      edgeTouchRef.current = e.nativeEvent.pageX < EDGE_WIDTH;
+      return false;
+    },
+    onMoveShouldSetPanResponderCapture: (_, g) =>
+      edgeTouchRef.current && g.dx > 12 && Math.abs(g.dx) > Math.abs(g.dy) * 2,
+    onPanResponderRelease: (_, g) => {
+      if (g.dx > SWIPE_DISTANCE || g.vx > 0.5) backRef.current('swipe');
+    },
+  })).current;
   const skipTour = () => {
     track('onboarding_skip_tapped', { from_step: step });
     if (step === 'counter') track('onboarding_counter_skipped');
@@ -389,70 +422,76 @@ export default function OnboardingFlow({
   // Play's Subscriptions policy asks for.
   const closePaywall = () => {
     track('onboarding_paywall_closed');
-    historyRef.current = [];
     setStep('welcome');
   };
 
-  // Android back walks back through the steps. On Welcome it falls through to
-  // the system (leaves the app), as it always has.
+  // Android back walks back through the tour (PREV_STEP) and closes the
+  // paywall like its X. On Welcome it falls through to the system (leaves the
+  // app), as it always has.
   useEffect(() => {
     const sub = BackHandler.addEventListener('hardwareBackPress', () => {
       if (step === 'paywall') { closePaywall(); return true; }
-      const prev = historyRef.current.pop();
-      if (!prev) return false;
-      setStep(prev);
-      return true;
+      return back('android_back');
     });
     return () => sub.remove();
   }, [step]);
 
-  if (step === 'welcome') return <WelcomeStep onContinue={() => go('counter')} />;
-  if (step === 'counter') {
+  const content = renderStep();
+  // iPhone only: Android has its own back gesture, which arrives above.
+  if (Platform.OS !== 'ios' || !PREV_STEP[step]) return content;
+  return <View style={{ flex: 1 }} {...swipeBack.panHandlers}>{content}</View>;
+
+  function renderStep() {
+    if (step === 'welcome') return <WelcomeStep onContinue={() => go('counter')} />;
+    if (step === 'counter') {
+      return (
+        <CounterStep
+          // Prefilled for anyone who already has a date — a v2 upgrader confirms
+          // theirs rather than retyping it.
+          value={dateDraft}
+          onChangeValue={setDateDraft}
+          onSave={(date, method) => {
+            track('onboarding_counter_saved', { method, had_date: !!sobrietyDate });
+            setSobrietyDate(formatLocalDate(date));
+            go('reflection');
+          }}
+          onSkip={skipTour}
+          onBack={() => back('button')}
+        />
+      );
+    }
+    if (step === 'reflection') return <ReflectionStep onContinue={() => go('read_listen')} onSkip={skipTour} onBack={() => back('button')} />;
+    if (step === 'read_listen') return <ReadListenStep onContinue={() => go('talk_practice')} onSkip={skipTour} onBack={() => back('button')} />;
+    if (step === 'talk_practice') return <TalkPracticeStep onContinue={() => go('disclaimer')} onSkip={skipTour} onBack={() => back('button')} />;
+    if (step === 'disclaimer') {
+      // Before the paywall: agreeing to what this app is and isn't shouldn't come
+      // after we've taken the money. DisclaimerStep records acceptance itself.
+      return (
+        <DisclaimerStep
+          onAgree={async () => {
+            track('onboarding_disclaimer_accepted');
+            onDisclaimerAccepted?.();
+            if (alreadyHadAccess) await finish();
+            else go('paywall');
+          }}
+        />
+      );
+    }
+    // Paywall. Advancing is driven by isPremium flipping after a purchase or
+    // restore, including a store-native Pass It On subscription redemption.
     return (
-      <CounterStep
-        // Prefilled for anyone who already has a date — a v2 upgrader confirms
-        // theirs rather than retyping it.
-        current={sobrietyDate ? parseLocalDate(sobrietyDate) : null}
-        onSave={(date, method) => {
-          track('onboarding_counter_saved', { method, had_date: !!sobrietyDate });
-          setSobrietyDate(formatLocalDate(date));
-          go('reflection');
+      <PaywallStep
+        onSubscribed={finish}
+        onClose={closePaywall}
+        passToken={passToken}
+        onPassHandled={onPassHandled}
+        onBypass={() => {
+          onPaywallBypassed?.();
+          finish();
         }}
-        onSkip={skipTour}
       />
     );
   }
-  if (step === 'reflection') return <ReflectionStep onContinue={() => go('read_listen')} onSkip={skipTour} />;
-  if (step === 'read_listen') return <ReadListenStep onContinue={() => go('talk_practice')} onSkip={skipTour} />;
-  if (step === 'talk_practice') return <TalkPracticeStep onContinue={() => go('disclaimer')} onSkip={skipTour} />;
-  if (step === 'disclaimer') {
-    // Before the paywall: agreeing to what this app is and isn't shouldn't come
-    // after we've taken the money. DisclaimerStep records acceptance itself.
-    return (
-      <DisclaimerStep
-        onAgree={async () => {
-          track('onboarding_disclaimer_accepted');
-          onDisclaimerAccepted?.();
-          if (alreadyHadAccess) await finish();
-          else go('paywall');
-        }}
-      />
-    );
-  }
-  // Paywall. Advancing is driven by isPremium flipping after a purchase or
-  // restore, including a store-native Pass It On subscription redemption.
-  return (
-    <PaywallStep
-      onSubscribed={finish}
-      onClose={closePaywall}
-      passToken={passToken}
-      onPassHandled={onPassHandled}
-      onBypass={() => {
-        onPaywallBypassed?.();
-        finish();
-      }}
-    />
-  );
 }
 
 // Paywall as a step. PaywallScreen applies the purchased CustomerInfo itself,

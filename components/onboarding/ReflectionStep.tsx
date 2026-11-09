@@ -33,7 +33,7 @@ const HERO_LANDSCAPE_SHARE = 0.3;
 const FLOAT_CLEARANCE = 96;
 const MONTHS = ['JANUARY', 'FEBRUARY', 'MARCH', 'APRIL', 'MAY', 'JUNE', 'JULY', 'AUGUST', 'SEPTEMBER', 'OCTOBER', 'NOVEMBER', 'DECEMBER'];
 
-export default function ReflectionStep({ onContinue, onSkip }: { onContinue: () => void; onSkip: () => void }) {
+export default function ReflectionStep({ onContinue, onSkip, onBack }: { onContinue: () => void; onSkip: () => void; onBack: () => void }) {
   const styles = useThemedStyles(makeStyles);
   const { colors } = useTokens();
   const insets = useSafeAreaInsets();
@@ -67,7 +67,7 @@ export default function ReflectionStep({ onContinue, onSkip }: { onContinue: () 
         />
         <View style={{ paddingTop: insets.top }}>
           <OnboardingColumn style={{ flex: 0 }}>
-            <TourProgress index={1} onSkip={onSkip} onImage />
+            <TourProgress index={1} onSkip={onSkip} onBack={onBack} onImage />
           </OnboardingColumn>
         </View>
         <View style={styles.heroTextWrap}>

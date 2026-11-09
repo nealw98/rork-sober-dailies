@@ -38,7 +38,7 @@ const SAMPLE_REPLY = 'Yeah, that’s tough — some days just feel heavy. Tell m
 const SPREAD_MIN_WIDTH = 800;
 const SPREAD_MAX_WIDTH = 860;
 
-function TourScreen({ index, overline, overlineColor, title, children, gap, footnote, buttonLabel, onContinue, onSkip }: {
+function TourScreen({ index, overline, overlineColor, title, children, gap, footnote, buttonLabel, onContinue, onSkip, onBack }: {
   index: number;
   overline?: string;
   overlineColor?: string;
@@ -49,6 +49,7 @@ function TourScreen({ index, overline, overlineColor, title, children, gap, foot
   buttonLabel: string;
   onContinue: () => void;
   onSkip: () => void;
+  onBack: () => void;
 }) {
   const styles = useThemedStyles(makeStyles);
   const { isDark } = useTokens();
@@ -58,7 +59,7 @@ function TourScreen({ index, overline, overlineColor, title, children, gap, foot
     <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
       <StatusBar style={isDark ? 'light' : 'dark'} />
       <OnboardingColumn maxWidth={spread ? SPREAD_MAX_WIDTH : undefined}>
-        <TourProgress index={index} onSkip={onSkip} />
+        <TourProgress index={index} onSkip={onSkip} onBack={onBack} />
         <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
           {!!overline && <Text style={[styles.overline, { color: overlineColor }]}>{overline}</Text>}
           <Text style={[styles.title, !overline && styles.titleAlone]} accessibilityRole="header">{title}</Text>
@@ -77,7 +78,7 @@ function TourScreen({ index, overline, overlineColor, title, children, gap, foot
   );
 }
 
-export function ReadListenStep({ onContinue, onSkip }: { onContinue: () => void; onSkip: () => void }) {
+export function ReadListenStep({ onContinue, onSkip, onBack }: { onContinue: () => void; onSkip: () => void; onBack: () => void }) {
   const styles = useThemedStyles(makeStyles);
   const { colors, mode } = useTokens();
   return (
@@ -89,6 +90,7 @@ export function ReadListenStep({ onContinue, onSkip }: { onContinue: () => void;
       buttonLabel="Next"
       onContinue={onContinue}
       onSkip={onSkip}
+      onBack={onBack}
     >
       <View style={styles.litCard}>
         <View style={styles.covers}>
@@ -120,22 +122,23 @@ export function ReadListenStep({ onContinue, onSkip }: { onContinue: () => void;
   );
 }
 
-// R5 · For the hard moments, and every day — the tools grouped by when you'd
+// R5 · Talk it through, and practice every day — the tools grouped by when you'd
 // reach for them. Two children so the spread puts "When it's hard" beside the
 // everyday and quiet groups.
-export function TalkPracticeStep({ onContinue, onSkip }: { onContinue: () => void; onSkip: () => void }) {
+export function TalkPracticeStep({ onContinue, onSkip, onBack }: { onContinue: () => void; onSkip: () => void; onBack: () => void }) {
   const styles = useThemedStyles(makeStyles);
   const { colors } = useTokens();
   const eddie = SPONSORS.find((s) => s.id === 'supportive');
   return (
     <TourScreen
       index={3}
-      title="For the hard moments, and every day"
+      title="Talk it through, and practice every day"
       gap={18}
       footnote="Plus journal, nightly review, meeting finder and more."
       buttonLabel="Continue"
       onContinue={onContinue}
       onSkip={onSkip}
+      onBack={onBack}
     >
       <View>
         <Text style={[styles.groupLabel, { color: colors.tertiaryDark }]}>WHEN IT&apos;S HARD</Text>

@@ -1,9 +1,9 @@
 import React from 'react';
 import { View, Text, StyleSheet, Pressable, type StyleProp, type ViewStyle } from 'react-native';
-import { ArrowRight } from 'lucide-react-native';
+import { ArrowRight, ChevronLeft } from 'lucide-react-native';
 
 import { fontFamily, fontSize, shadows, type Tokens } from '@/constants/designTokens';
-import { useThemedStyles } from '@/hooks/useTokens';
+import { useThemedStyles, useTokens } from '@/hooks/useTokens';
 import ReadingColumn from '@/components/layout/ReadingColumn';
 
 // Shared pieces of the "lead with the tools" onboarding screens (counter,
@@ -23,12 +23,19 @@ export function OnboardingColumn({ children, style, maxWidth = ONBOARDING_MAX_WI
   );
 }
 
-// Position in the four tour screens, plus Skip (straight to the disclaimer).
-// `onImage` is the reflection screen's variant: drawn in white over its photo.
-export function TourProgress({ index, onSkip, onImage = false }: { index: number; onSkip: () => void; onImage?: boolean }) {
+// Position in the four tour screens, plus Skip (straight to the disclaimer)
+// and, when `onBack` is set, a back chevron across from it. `onImage` is the
+// reflection screen's variant: drawn in white over its photo.
+export function TourProgress({ index, onSkip, onBack, onImage = false }: { index: number; onSkip: () => void; onBack?: () => void; onImage?: boolean }) {
   const styles = useThemedStyles(makeStyles);
+  const { c } = useTokens();
   return (
     <View style={styles.progressRow}>
+      {onBack && (
+        <Pressable onPress={onBack} style={styles.back} accessibilityRole="button" accessibilityLabel="Back">
+          <ChevronLeft size={24} color={onImage ? '#fff' : c.textSecondary} strokeWidth={2} />
+        </Pressable>
+      )}
       <View
         style={styles.segments}
         accessible
@@ -74,6 +81,9 @@ const makeStyles = (tk: Tokens) => {
   const { c, colors, isDark } = tk;
   return StyleSheet.create({
     progressRow: { flexDirection: 'row', alignItems: 'center', gap: 14, paddingHorizontal: 24, paddingTop: 8, minHeight: 44 },
+    // 44pt target; the negative margins keep the glyph on the row's 24pt edge
+    // and the bar where it was.
+    back: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center', marginLeft: -14, marginRight: -10 },
     segments: { flex: 1, flexDirection: 'row', gap: 6 },
     segment: { flex: 1, height: 4, borderRadius: 2 },
     segmentOn: { backgroundColor: colors.primary },
