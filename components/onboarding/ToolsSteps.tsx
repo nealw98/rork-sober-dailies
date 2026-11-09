@@ -4,11 +4,11 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { StatusBar } from 'expo-status-bar';
 import { Image } from 'expo-image';
-import { Play } from 'lucide-react-native';
+import { Play, CircleCheck, Heart } from 'lucide-react-native';
+import { HandsPraying } from 'phosphor-react-native';
 
-import { fontFamily, fontSize, steelPlay, type Tokens } from '@/constants/designTokens';
+import { colors as lightColors, fontFamily, fontSize, steelPlay, type Tokens } from '@/constants/designTokens';
 import { useTokens, useThemedStyles } from '@/hooks/useTokens';
-import { resolveGlyph, resolveTone } from '@/components/dailyTokens';
 import { SPONSORS } from '@/constants/sponsors';
 import { OnboardingColumn, PrimaryButton, TourProgress } from '@/components/onboarding/OnboardingChrome';
 
@@ -31,16 +31,6 @@ const SAMPLE_SPEAKER = 'Andrew I. · Anchorage, AK';
 const SAMPLE_PROMPT = 'I’m having a hard time today';
 const SAMPLE_REPLY = 'Yeah, that’s tough — some days just feel heavy. Tell me what’s actually going on: are you thinking about drinking, or is something else weighing on you?';
 
-// Six of the everyday tools, in their Today glyphs and family tones.
-const TOOL_CHIPS = [
-  { label: 'Journal', icon: 'journal', tone: 'teal' },
-  { label: 'Gratitude', icon: 'heart', tone: 'terracotta' },
-  { label: 'Nightly review', icon: 'moon', tone: 'periwinkle' },
-  { label: 'Spot check', icon: 'check', tone: 'terracotta' },
-  { label: 'Meetings', icon: 'users', tone: 'steel' },
-  { label: 'Reach out', icon: 'phone', tone: 'steel' },
-];
-
 // Wide landscape (the unfolded Duo, an iPad on its side): a single 520pt
 // column of stacked cards runs off the bottom of a 669pt-tall screen while
 // most of the width sits empty, so the column widens and the cards go side
@@ -48,12 +38,14 @@ const TOOL_CHIPS = [
 const SPREAD_MIN_WIDTH = 800;
 const SPREAD_MAX_WIDTH = 860;
 
-function TourScreen({ index, overline, overlineColor, title, children, buttonLabel, onContinue, onSkip }: {
+function TourScreen({ index, overline, overlineColor, title, children, gap, footnote, buttonLabel, onContinue, onSkip }: {
   index: number;
-  overline: string;
-  overlineColor: string;
+  overline?: string;
+  overlineColor?: string;
   title: string;
   children: React.ReactNode;
+  gap?: number;
+  footnote?: string;
   buttonLabel: string;
   onContinue: () => void;
   onSkip: () => void;
@@ -68,15 +60,16 @@ function TourScreen({ index, overline, overlineColor, title, children, buttonLab
       <OnboardingColumn maxWidth={spread ? SPREAD_MAX_WIDTH : undefined}>
         <TourProgress index={index} onSkip={onSkip} />
         <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
-          <Text style={[styles.overline, { color: overlineColor }]}>{overline}</Text>
-          <Text style={styles.title} accessibilityRole="header">{title}</Text>
-          <View style={[styles.cards, spread && styles.cardsSpread]}>
+          {!!overline && <Text style={[styles.overline, { color: overlineColor }]}>{overline}</Text>}
+          <Text style={[styles.title, !overline && styles.titleAlone]} accessibilityRole="header">{title}</Text>
+          <View style={[styles.cards, gap !== undefined && { gap }, spread && styles.cardsSpread]}>
             {spread
               ? React.Children.map(children, (child) => <View style={styles.flex}>{child}</View>)
               : children}
           </View>
         </ScrollView>
         <View style={styles.footer}>
+          {!!footnote && <Text style={styles.footnote}>{footnote}</Text>}
           <PrimaryButton label={buttonLabel} onPress={onContinue} />
         </View>
       </OnboardingColumn>
@@ -127,67 +120,91 @@ export function ReadListenStep({ onContinue, onSkip }: { onContinue: () => void;
   );
 }
 
+// R5 · For the hard moments, and every day — the tools grouped by when you'd
+// reach for them. Two children so the spread puts "When it's hard" beside the
+// everyday and quiet groups.
 export function TalkPracticeStep({ onContinue, onSkip }: { onContinue: () => void; onSkip: () => void }) {
   const styles = useThemedStyles(makeStyles);
-  const { colors, mode } = useTokens();
+  const { colors } = useTokens();
   const eddie = SPONSORS.find((s) => s.id === 'supportive');
   return (
     <TourScreen
       index={3}
-      overline="TALK & PRACTICE"
-      overlineColor={colors.tertiaryDark}
-      title="Someone to talk to, and the practices that keep you steady"
+      title="For the hard moments, and every day"
+      gap={18}
+      footnote="Plus journal, nightly review, meeting finder and more."
       buttonLabel="Continue"
       onContinue={onContinue}
       onSkip={onSkip}
     >
-      <View style={styles.sponsorCard}>
-        <View style={styles.sponsorHead}>
-          <View style={styles.flex}>
-            <Text style={styles.cardTitle}>AI sponsor</Text>
-            <Text style={styles.cardBody}>Three personalities. Any hour.</Text>
-          </View>
-          <View style={styles.avatars}>
-            {SPONSORS.map((s, i) => (
-              <Image key={s.id} source={s.avatar} style={[styles.avatar, i > 0 && styles.avatarOverlap]} contentFit="cover" accessibilityLabel={s.name} />
-            ))}
-          </View>
-        </View>
-        <View style={styles.userBubble}>
-          <Text style={styles.userText}>{SAMPLE_PROMPT}</Text>
-        </View>
-        <View style={styles.replyRow}>
-          {eddie && <Image source={eddie.avatar} style={styles.replyAvatar} contentFit="cover" />}
-          <View style={[styles.replyBubble, eddie?.bubbleColor ? { backgroundColor: eddie.bubbleColor } : null]}>
-            <Text style={styles.replyText}>{SAMPLE_REPLY}</Text>
-          </View>
-        </View>
-      </View>
-
-      <View style={styles.practices}>
-      <View style={styles.meditationCard}>
-        <Image source={MEDITATION_HERO} style={StyleSheet.absoluteFill} contentFit="cover" />
-        <LinearGradient colors={['rgba(23,26,34,0.62)', 'rgba(23,26,34,0.1)']} start={{ x: 0, y: 0.5 }} end={{ x: 1, y: 0.5 }} style={StyleSheet.absoluteFill} pointerEvents="none" />
-        <View style={styles.meditationText}>
-          <Text style={styles.photoTitle}>Prayers &amp; meditation</Text>
-          <Text style={styles.photoBody}>Morning, evening, and a quiet minute in between.</Text>
-        </View>
-      </View>
-
-      <View style={styles.chips}>
-        {TOOL_CHIPS.map((t) => {
-          const Glyph = resolveGlyph(t.icon);
-          const tone = resolveTone(t.tone, mode);
-          return (
-            <View key={t.label} style={styles.chip}>
-              <View style={[styles.chipIcon, { backgroundColor: tone.soft }]}>
-                <Glyph size={14} color={tone.ink} />
-              </View>
-              <Text style={styles.chipLabel}>{t.label}</Text>
+      <View>
+        <Text style={[styles.groupLabel, { color: colors.tertiaryDark }]}>WHEN IT&apos;S HARD</Text>
+        <View style={styles.sponsorCard}>
+          <View style={styles.sponsorHead}>
+            <View style={styles.flex}>
+              <Text style={styles.cardTitle}>AI sponsor</Text>
+              <Text style={styles.cardBody}>Three personalities. Any hour.</Text>
             </View>
-          );
-        })}
+            <View style={styles.avatars}>
+              {SPONSORS.map((s, i) => (
+                <Image key={s.id} source={s.avatar} style={[styles.avatar, i > 0 && styles.avatarOverlap]} contentFit="cover" accessibilityLabel={s.name} />
+              ))}
+            </View>
+          </View>
+          <View style={styles.userBubble}>
+            <Text style={styles.userText}>{SAMPLE_PROMPT}</Text>
+          </View>
+          <View style={styles.replyRow}>
+            {eddie && <Image source={eddie.avatar} style={styles.replyAvatar} contentFit="cover" />}
+            <View style={styles.replyBubble}>
+              <Text style={styles.replyText}>{SAMPLE_REPLY}</Text>
+            </View>
+          </View>
+        </View>
+
+        <View style={styles.spotCard}>
+          <View style={styles.spotIcon}>
+            <CircleCheck size={20} color={colors.accentDark} strokeWidth={2} />
+          </View>
+          <View style={styles.flex}>
+            <Text style={styles.smallTitle}>Spot check inventory</Text>
+            <Text style={styles.smallBody}>Upset right now? Work through it on the spot.</Text>
+          </View>
+        </View>
       </View>
+
+      <View style={styles.groups}>
+        <View>
+          <Text style={[styles.groupLabel, { color: colors.primaryDark }]}>EVERY DAY</Text>
+          <View style={styles.pair}>
+            <View style={[styles.dayCard, { backgroundColor: colors.primarySoft }]}>
+              <View style={[styles.dayIcon, { backgroundColor: colors.primary }]}>
+                <HandsPraying size={18} color="#fff" />
+              </View>
+              <Text style={styles.smallTitle}>Prayers</Text>
+              <Text style={styles.dayBody}>Morning, evening and the ones in between.</Text>
+            </View>
+            <View style={[styles.dayCard, { backgroundColor: colors.accentSoft }]}>
+              <View style={[styles.dayIcon, { backgroundColor: colors.accent }]}>
+                <Heart size={18} color="#fff" strokeWidth={2} />
+              </View>
+              <Text style={styles.smallTitle}>Gratitude list</Text>
+              <Text style={styles.dayBody}>A few lines that change the whole day.</Text>
+            </View>
+          </View>
+        </View>
+
+        <View>
+          <Text style={[styles.groupLabel, { color: colors.tertiaryDark }]}>WHEN YOU NEED QUIET</Text>
+          <View style={styles.meditationCard}>
+            <Image source={MEDITATION_HERO} style={StyleSheet.absoluteFill} contentFit="cover" />
+            <LinearGradient colors={['rgba(23,26,34,0.66)', 'rgba(23,26,34,0.12)']} start={{ x: 0, y: 0.5 }} end={{ x: 1, y: 0.5 }} style={StyleSheet.absoluteFill} pointerEvents="none" />
+            <View style={styles.meditationText}>
+              <Text style={styles.meditationTitle}>Meditation</Text>
+              <Text style={styles.photoBody}>Its own quiet corner of the app.</Text>
+            </View>
+          </View>
+        </View>
       </View>
     </TourScreen>
   );
@@ -202,10 +219,11 @@ const makeStyles = (tk: Tokens) => {
     scroll: { paddingHorizontal: 22, paddingTop: 20, paddingBottom: 16 },
     overline: { fontFamily: fontFamily.bold, fontSize: 11, letterSpacing: 1.8 },
     title: { fontFamily: fontFamily.displayBold, fontSize: 28, lineHeight: 32, letterSpacing: -0.6, color: c.text, marginTop: 6 },
+    titleAlone: { marginTop: 0 },
     cards: { gap: 14, marginTop: 18 },
     cardsSpread: { flexDirection: 'row', alignItems: 'stretch' },
-    practices: { gap: 12 },
     footer: { paddingHorizontal: 24, paddingTop: 12, paddingBottom: 12 },
+    footnote: { fontFamily: fontFamily.regular, fontSize: 12.5, lineHeight: 17, color: c.textMuted, textAlign: 'center', marginBottom: 12 },
 
     cardTitle: { fontFamily: fontFamily.displayBold, fontSize: 19, color: c.text },
     cardBody: { fontFamily: fontFamily.regular, fontSize: fontSize.md, lineHeight: 20, color: c.textSecondary, marginTop: 3 },
@@ -225,6 +243,8 @@ const makeStyles = (tk: Tokens) => {
     playerFill: { width: '34%', height: 3, borderRadius: 2, backgroundColor: '#fff' },
 
     // Talk & practice
+    groups: { gap: 18 },
+    groupLabel: { fontFamily: fontFamily.bold, fontSize: 11, letterSpacing: 1.8, marginBottom: 8 },
     sponsorCard: { backgroundColor: colors.tertiarySoft, borderRadius: 22, paddingHorizontal: 16, paddingTop: 16, paddingBottom: 14, gap: 10, ...cardEdge },
     sponsorHead: { flexDirection: 'row', alignItems: 'center', gap: 12 },
     avatars: { flexDirection: 'row' },
@@ -234,15 +254,20 @@ const makeStyles = (tk: Tokens) => {
     userText: { fontFamily: fontFamily.regular, fontSize: 13.5, lineHeight: 19, color: c.text },
     replyRow: { flexDirection: 'row', alignItems: 'flex-end', gap: 8 },
     replyAvatar: { width: 28, height: 28, borderRadius: 14 },
-    // Eddie's own green (SPONSORS bubbleColor) in both modes, so its ink is
-    // fixed dark too.
-    replyBubble: { flex: 1, borderRadius: 14, borderBottomLeftRadius: 4, paddingVertical: 8, paddingHorizontal: 12 },
-    replyText: { fontFamily: fontFamily.regular, fontSize: 13.5, lineHeight: 19, color: '#232529' },
-    meditationCard: { minHeight: 122, borderRadius: 22, overflow: 'hidden', backgroundColor: colors.primary, justifyContent: 'center' },
-    meditationText: { paddingVertical: 18, paddingLeft: 16, paddingRight: 120 },
-    chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-    chip: { flexBasis: '30%', flexGrow: 1, flexDirection: 'row', alignItems: 'center', gap: 7, backgroundColor: c.surface, borderWidth: 1, borderColor: c.border, borderRadius: 12, padding: 8 },
-    chipIcon: { width: 26, height: 26, borderRadius: 13, alignItems: 'center', justifyContent: 'center' },
-    chipLabel: { flex: 1, fontFamily: fontFamily.semiBold, fontSize: 11.5, lineHeight: 14, color: c.text },
+    // Periwinkle with white ink in both modes (the light-palette tone, so it
+    // doesn't wash out to the brighter dark-mode periwinkle).
+    replyBubble: { flex: 1, backgroundColor: lightColors.tertiary, borderRadius: 14, borderBottomLeftRadius: 4, paddingVertical: 8, paddingHorizontal: 12 },
+    replyText: { fontFamily: fontFamily.regular, fontSize: 13.5, lineHeight: 19, color: '#fff' },
+    spotCard: { flexDirection: 'row', alignItems: 'center', gap: 12, marginTop: 8, backgroundColor: c.surface, borderWidth: 1, borderColor: c.border, borderRadius: 18, paddingVertical: 12, paddingHorizontal: 14 },
+    spotIcon: { width: 40, height: 40, borderRadius: 12, backgroundColor: colors.accentSoft, alignItems: 'center', justifyContent: 'center' },
+    smallTitle: { fontFamily: fontFamily.displayBold, fontSize: 16, color: c.text },
+    smallBody: { fontFamily: fontFamily.regular, fontSize: 13, lineHeight: 18, color: c.textSecondary, marginTop: 1 },
+    pair: { flexDirection: 'row', gap: 8 },
+    dayCard: { flex: 1, borderRadius: 18, paddingVertical: 13, paddingHorizontal: 14, gap: 8, ...cardEdge },
+    dayIcon: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },
+    dayBody: { fontFamily: fontFamily.regular, fontSize: 12.5, lineHeight: 17, color: c.textSecondary },
+    meditationCard: { minHeight: 78, borderRadius: 18, overflow: 'hidden', backgroundColor: colors.primary, justifyContent: 'center' },
+    meditationText: { paddingVertical: 14, paddingLeft: 16, paddingRight: 90 },
+    meditationTitle: { fontFamily: fontFamily.displayBold, fontSize: 17, color: '#fff' },
   });
 };
