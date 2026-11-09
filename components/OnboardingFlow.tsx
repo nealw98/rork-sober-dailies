@@ -8,7 +8,7 @@ import * as Updates from 'expo-updates';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { ArrowRight, Check, Play, ShieldCheck } from 'lucide-react-native';
 
-import { fontFamily, fontSize, shadows, type Tokens } from '@/constants/designTokens';
+import { families, fontFamily, fontSize, shadows, type Tokens } from '@/constants/designTokens';
 import { useTokens, useThemedStyles } from '@/hooks/useTokens';
 import { useOnboarding } from '@/hooks/useOnboardingStore';
 import { recordDisclaimerAcceptance } from '@/lib/disclaimerConsent';
@@ -88,13 +88,16 @@ const openPrivacy = () => Linking.openURL('https://soberdailies.com/privacy').ca
 // way a stranger is. Access only ever changes whether the paywall step runs.
 //
 // The collage is real app imagery — the Big Book, today's-reading card, a
-// speaker tape and Gentle Grace — so the first screen shows what people came
-// for rather than describing it. Laid out at the mockup's 334×330 and scaled
+// speaker tape and the three AI sponsors — so the first screen shows what
+// people came for rather than describing it. No single person is the face of
+// it, so it doesn't read as a men's or a women's app. Laid out at the mockup's 334×330 and scaled
 // as one piece, so narrow or short screens shrink it instead of re-flowing it.
 const COLLAGE_W = 334;
 const COLLAGE_H = 330;
-const GRACE = SPONSORS.find((s) => s.id === 'grace');
-const MEETING_PHOTO = require('@/assets/images/literature_hero2.webp');
+// Steady Eddie · Gentle Grace · Salty Sam, overlapped on the chat chip.
+const CHIP_SPONSORS = ['supportive', 'grace', 'salty']
+  .map((id) => SPONSORS.find((s) => s.id === id))
+  .filter((s) => s != null);
 
 // iPad / unfolded-Duo heights. On a phone the headline sits at the bottom,
 // above the button (the mockup); on a tall screen that leaves a band of empty
@@ -120,37 +123,38 @@ function WelcomeCollage({ maxHeight }: { maxHeight?: number }) {
   return (
     <View style={{ height: COLLAGE_H * scale, alignItems: 'center' }} importantForAccessibility="no-hide-descendants" accessibilityElementsHidden>
       <View style={[styles.collage, { transform: [{ scale }], marginTop: (COLLAGE_H * (scale - 1)) / 2 }]}>
-        {/* The Big Book as a card like the other two: the cover over the same
-            blurred, darkened meeting room the paywall's Literature tile uses. */}
+        {/* The Big Book is a 3D render on a transparent background, so it
+            stands on its own — no card — with a shadow that follows its shape. */}
         <View style={styles.collageBook}>
-          <View style={styles.collageBookCard}>
-            <Image source={MEETING_PHOTO} style={StyleSheet.absoluteFill} contentFit="cover" contentPosition="top left" blurRadius={40} />
-            <LinearGradient colors={['rgba(18,26,38,0.15)', 'rgba(18,26,38,0.45)', 'rgba(18,26,38,0.75)']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFill} />
-            <Image source={require('@/assets/images/big-book_cover.webp')} style={styles.collageBookCover} contentFit="cover" />
-          </View>
+          <Image source={require('@/assets/images/big-book_cover.webp')} style={StyleSheet.absoluteFill} contentFit="contain" />
         </View>
         <View style={styles.collageSpeakers}>
           <Image source={require('@/assets/images/speakers_hero2.webp')} style={StyleSheet.absoluteFill} contentFit="cover" />
           <LinearGradient colors={['rgba(0,0,0,0)', 'rgba(0,0,0,0.7)']} locations={[0.4, 1]} style={StyleSheet.absoluteFill} />
           <View style={styles.collageSpeakersRow}>
             <View style={styles.collagePlay}><Play size={12} color="#2D5882" fill="#2D5882" /></View>
-            <Text style={styles.collageSpeakersText} allowFontScaling={false}>Speaker tapes</Text>
+            <Text style={styles.collageSpeakersText} allowFontScaling={false}>{'Speaker\ntapes'}</Text>
           </View>
         </View>
         <View style={styles.collageReflection}>
-          {/* The green cairn, not the seedling: the seedling's warm browns read
-              as the same photo as the speaker-tapes card beside it. */}
-          <Image source={require('@/assets/reflections_images/reflection_bg3.webp')} style={StyleSheet.absoluteFill} contentFit="cover" />
-          <LinearGradient colors={['rgba(0,0,0,0.05)', 'rgba(0,0,0,0.7)']} style={StyleSheet.absoluteFill} />
+          {/* The alarm clock on a sunny windowsill, pinned to the bottom so the
+              clock stays in view; a white fade under the bright window carries
+              the dark label. */}
+          <Image source={require('@/assets/images/onboarding-reflection-clock.webp')} style={StyleSheet.absoluteFill} contentFit="cover" contentPosition={{ left: '30%', bottom: 0 }} />
+          <LinearGradient colors={['rgba(255,255,255,0.82)', 'rgba(255,255,255,0.5)', 'rgba(255,255,255,0)']} style={styles.collageReflectionFade} />
           <View style={styles.collageReflectionText}>
             <Text style={styles.collageOverline} allowFontScaling={false}>DAILY REFLECTIONS</Text>
             <Text style={styles.collageReflectionTitle} allowFontScaling={false}>Today&apos;s reading</Text>
           </View>
         </View>
         <View style={styles.collageChat}>
-          {GRACE && <Image source={GRACE.avatar} style={styles.collageAvatar} contentFit="cover" />}
+          <View style={styles.collageAvatars}>
+            {CHIP_SPONSORS.map((s, i) => (
+              <Image key={s.id} source={s.avatar} style={[styles.collageAvatar, i > 0 && styles.collageAvatarOverlap]} contentFit="cover" />
+            ))}
+          </View>
           <View>
-            <Text style={styles.collageChatName} allowFontScaling={false}>Gentle Grace</Text>
+            <Text style={styles.collageChatName} allowFontScaling={false}>Your AI sponsor</Text>
             <Text style={styles.collageChatText} allowFontScaling={false}>I&apos;m here. What&apos;s going on?</Text>
           </View>
         </View>
@@ -608,27 +612,32 @@ const makeStyles = (tk: Tokens) => {
   // welcome collage — positions are the mockup's, inside a 334×330 box that
   // WelcomeCollage scales as a whole. Its cards are photos with white text and
   // a white chat chip, so they read the same on the light and dark gradients.
+  // The reading card's label is dark on its white fade in both themes too.
   collage: { width: COLLAGE_W, height: COLLAGE_H },
-  // Outer view carries the tilt and shadow; the inner card clips to its
-  // rounded corners (a clipping view can't also cast the shadow).
-  // Mirrors the speaker card (same size and height, opposite tilt) so the two
-  // side cards balance around the reflection card.
-  collageBook: { position: 'absolute', left: 0, top: 30, width: 140, height: 176, transform: [{ rotate: '-8deg' }], shadowColor: '#000', shadowOpacity: 0.35, shadowRadius: 15, shadowOffset: { width: 0, height: 16 } },
-  collageBookCard: { flex: 1, borderRadius: 16, overflow: 'hidden', backgroundColor: '#121A26' },
-  // Fills most of the card, leaving a narrow band of the meeting room around
-  // it; cover aspect is 0.76.
-  collageBookCover: { position: 'absolute', left: 8, top: 7, width: 124, height: 162, borderRadius: 5 },
+  // No background, so iOS draws the shadow from the image's alpha (the book's
+  // outline). Android's elevation would draw a box; its drop-shadow filter
+  // follows the outline instead.
+  collageBook: {
+    position: 'absolute', left: -4, top: 22, width: 146, height: 192, transform: [{ rotate: '-7deg' }],
+    ...Platform.select({
+      ios: { shadowColor: '#000', shadowOpacity: 0.38, shadowRadius: 9, shadowOffset: { width: 0, height: 14 } },
+      android: { filter: [{ dropShadow: { offsetX: 0, offsetY: 14, standardDeviation: 9, color: 'rgba(0,0,0,0.38)' } }] },
+    }),
+  },
   collageSpeakers: { position: 'absolute', right: 0, top: 30, width: 140, height: 176, borderRadius: 16, overflow: 'hidden', backgroundColor: '#3A2A20', transform: [{ rotate: '8deg' }] },
   // Right-aligned: the reflection card overlaps this one's left third.
   collageSpeakersRow: { position: 'absolute', right: 12, bottom: 12, alignItems: 'flex-end', gap: 6 },
-  collagePlay: { width: 28, height: 28, borderRadius: 14, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center', paddingLeft: 2 },
-  collageSpeakersText: { fontFamily: fontFamily.bold, fontSize: 11.5, lineHeight: 14, color: '#fff', textAlign: 'right', maxWidth: 60 },
-  collageReflection: { position: 'absolute', left: 82, top: 0, width: 170, height: 220, borderRadius: 18, overflow: 'hidden', backgroundColor: '#2E5A5A', ...shadows.lg },
-  collageReflectionText: { position: 'absolute', left: 14, right: 14, bottom: 14 },
-  collageOverline: { fontFamily: fontFamily.bold, fontSize: 9, letterSpacing: 1.4, color: 'rgba(255,255,255,0.92)' },
-  collageReflectionTitle: { fontFamily: fontFamily.serif, fontSize: 18, lineHeight: 22, color: '#fff', marginTop: 4 },
+  collagePlay: { width: 30, height: 30, borderRadius: 15, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center', paddingLeft: 2 },
+  collageSpeakersText: { fontFamily: fontFamily.bold, fontSize: 12, lineHeight: 14, color: '#fff', textAlign: 'right' },
+  collageReflection: { position: 'absolute', left: 82, top: 0, width: 170, height: 220, borderRadius: 18, overflow: 'hidden', backgroundColor: '#EEF5F2', ...shadows.lg },
+  collageReflectionFade: { position: 'absolute', left: 0, right: 0, top: 0, height: 90 },
+  collageReflectionText: { position: 'absolute', left: 14, right: 14, top: 14 },
+  collageOverline: { fontFamily: fontFamily.bold, fontSize: 9, letterSpacing: 1.4, color: families.teal[700] },
+  collageReflectionTitle: { fontFamily: fontFamily.serif, fontSize: 19, lineHeight: 23, color: '#232529', marginTop: 4 },
   collageChat: { position: 'absolute', left: 50, top: 226, flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: '#fff', borderRadius: 18, paddingVertical: 10, paddingLeft: 10, paddingRight: 14, shadowColor: '#000', shadowOpacity: 0.28, shadowRadius: 14, shadowOffset: { width: 0, height: 14 }, elevation: 8 },
-  collageAvatar: { width: 36, height: 36, borderRadius: 18 },
+  collageAvatars: { flexDirection: 'row' },
+  collageAvatar: { width: 30, height: 30, borderRadius: 15, borderWidth: 2, borderColor: '#fff' },
+  collageAvatarOverlap: { marginLeft: -10 },
   collageChatName: { fontFamily: fontFamily.bold, fontSize: 12, color: '#232529' },
   collageChatText: { fontFamily: fontFamily.regular, fontSize: 12, color: '#474A52' },
   });
