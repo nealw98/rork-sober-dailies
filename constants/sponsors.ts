@@ -38,8 +38,8 @@ export interface SponsorConfig {
 const titleCase = (s: string) => s.toLowerCase().replace(/\b\w/g, (ch) => ch.toUpperCase());
 export const vibeString = (tags?: string[]) => (tags ?? []).map(titleCase).join(' · ');
 
-// Static illustration copy for onboarding (the "What's inside" carousel and
-// the Talk & practice screen), keyed by the real sponsor ids — not the display
+// Static illustration copy for the retired "What's inside" carousel (the Talk &
+// practice screen has its own Eddie sample), keyed by the real sponsor ids — not the display
 // first names. Samples: never generated at runtime, never read from chat history.
 export const SPONSOR_SAMPLE_PROMPT = 'Rough night. I got close.';
 export const SPONSOR_SAMPLE_REPLIES: Record<string, string> = {

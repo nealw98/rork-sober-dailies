@@ -6,10 +6,10 @@ import { StatusBar } from 'expo-status-bar';
 import { Image } from 'expo-image';
 import { Play } from 'lucide-react-native';
 
-import { colors as lightColors, fontFamily, fontSize, steelPlay, type Tokens } from '@/constants/designTokens';
+import { fontFamily, fontSize, steelPlay, type Tokens } from '@/constants/designTokens';
 import { useTokens, useThemedStyles } from '@/hooks/useTokens';
 import { resolveGlyph, resolveTone } from '@/components/dailyTokens';
-import { SPONSORS, SPONSOR_SAMPLE_PROMPT, SPONSOR_SAMPLE_REPLIES } from '@/constants/sponsors';
+import { SPONSORS } from '@/constants/sponsors';
 import { OnboardingColumn, PrimaryButton, TourProgress } from '@/components/onboarding/OnboardingChrome';
 
 // R4 · Read & listen and R5 · Talk & practice — static previews of the tools
@@ -24,6 +24,12 @@ const MEDITATION_HERO = require('@/assets/images/meditation-hero1.webp');
 // table, 2026-11-08) — the row is a still, not a player, but the name on it
 // should be someone you can actually find in Speaker tapes.
 const SAMPLE_SPEAKER = 'Andrew I. · Anchorage, AK';
+
+// The sample exchange on the AI sponsor card: Steady Eddie, condensed from a
+// real reply to fit three lines. A still illustration — never generated at
+// runtime, never read from chat history.
+const SAMPLE_PROMPT = 'I’m having a hard time today';
+const SAMPLE_REPLY = 'Yeah, that’s tough — some days just feel heavy. Tell me what’s actually going on: are you thinking about drinking, or is something else weighing on you?';
 
 // Six of the everyday tools, in their Today glyphs and family tones.
 const TOOL_CHIPS = [
@@ -124,7 +130,7 @@ export function ReadListenStep({ onContinue, onSkip }: { onContinue: () => void;
 export function TalkPracticeStep({ onContinue, onSkip }: { onContinue: () => void; onSkip: () => void }) {
   const styles = useThemedStyles(makeStyles);
   const { colors, mode } = useTokens();
-  const sam = SPONSORS.find((s) => s.id === 'salty');
+  const eddie = SPONSORS.find((s) => s.id === 'supportive');
   return (
     <TourScreen
       index={3}
@@ -148,12 +154,12 @@ export function TalkPracticeStep({ onContinue, onSkip }: { onContinue: () => voi
           </View>
         </View>
         <View style={styles.userBubble}>
-          <Text style={styles.userText}>{SPONSOR_SAMPLE_PROMPT}</Text>
+          <Text style={styles.userText}>{SAMPLE_PROMPT}</Text>
         </View>
         <View style={styles.replyRow}>
-          {sam && <Image source={sam.avatar} style={styles.replyAvatar} contentFit="cover" />}
-          <View style={styles.replyBubble}>
-            <Text style={styles.replyText}>{SPONSOR_SAMPLE_REPLIES.salty}</Text>
+          {eddie && <Image source={eddie.avatar} style={styles.replyAvatar} contentFit="cover" />}
+          <View style={[styles.replyBubble, eddie?.bubbleColor ? { backgroundColor: eddie.bubbleColor } : null]}>
+            <Text style={styles.replyText}>{SAMPLE_REPLY}</Text>
           </View>
         </View>
       </View>
@@ -228,10 +234,10 @@ const makeStyles = (tk: Tokens) => {
     userText: { fontFamily: fontFamily.regular, fontSize: 13.5, lineHeight: 19, color: c.text },
     replyRow: { flexDirection: 'row', alignItems: 'flex-end', gap: 8 },
     replyAvatar: { width: 28, height: 28, borderRadius: 14 },
-    // The periwinkle bubble keeps its light-mode fill in both modes: white text
-    // needs the mid tone, and the dark ramp's lighter periwinkle can't carry it.
-    replyBubble: { flex: 1, backgroundColor: lightColors.tertiary, borderRadius: 14, borderBottomLeftRadius: 4, paddingVertical: 8, paddingHorizontal: 12 },
-    replyText: { fontFamily: fontFamily.regular, fontSize: 13.5, lineHeight: 19, color: '#fff' },
+    // Eddie's own green (SPONSORS bubbleColor) in both modes, so its ink is
+    // fixed dark too.
+    replyBubble: { flex: 1, borderRadius: 14, borderBottomLeftRadius: 4, paddingVertical: 8, paddingHorizontal: 12 },
+    replyText: { fontFamily: fontFamily.regular, fontSize: 13.5, lineHeight: 19, color: '#232529' },
     meditationCard: { minHeight: 122, borderRadius: 22, overflow: 'hidden', backgroundColor: colors.primary, justifyContent: 'center' },
     meditationText: { paddingVertical: 18, paddingLeft: 16, paddingRight: 120 },
     chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
