@@ -63,6 +63,12 @@ function InsightRow({ label, value, last }: { label: string; value: string; last
 
 export default function TrendsScreen() {
   useScreenTimeTracking('Trends');
+  return <TrendsView />;
+}
+
+// `embedded`: the Journal tab's side column on expanded widths — a plain
+// heading lined up with the Journal title instead of the back-button header.
+export function TrendsView({ embedded = false }: { embedded?: boolean }) {
   const router = useRouter();
   const styles = useThemedStyles(makeStyles);
   const { c, colors } = useTokens();
@@ -96,6 +102,11 @@ export default function TrendsScreen() {
   return (
     <View style={styles.root}>
       <SafeAreaView edges={['top']}>
+        {embedded ? (
+          <View style={styles.embeddedHeader}>
+            <Text style={styles.headerTitle}>Trends</Text>
+          </View>
+        ) : (
         <View style={styles.header}>
           <Pressable onPress={() => router.back()} style={styles.backBtn} hitSlop={8} accessibilityLabel="Back">
             <ChevronLeft size={22} color={c.text} />
@@ -103,6 +114,7 @@ export default function TrendsScreen() {
           <Text style={styles.headerTitle}>Trends</Text>
           <View style={{ width: 40 }} />
         </View>
+        )}
       </SafeAreaView>
 
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
@@ -205,6 +217,8 @@ const makeStyles = (tk: Tokens) => {
     flex: { flex: 1 },
     header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 14, paddingTop: 4, paddingBottom: 6 },
     backBtn: { width: 40, height: 40, borderRadius: 20, borderWidth: 1, borderColor: c.border, backgroundColor: c.surface, alignItems: 'center', justifyContent: 'center' },
+    // Same title position as the Journal tab header beside it.
+    embeddedHeader: { paddingHorizontal: 22, paddingTop: 54, paddingBottom: 28 },
     headerTitle: { fontFamily: fontFamily.display, fontSize: 28, letterSpacing: -0.5, lineHeight: 29, color: c.text },
 
     scroll: { paddingHorizontal: 16, paddingBottom: 32, gap: 12 },

@@ -33,6 +33,13 @@ import SettingsGear from '@/components/navigation/SettingsGear';
 import PassItOnGift from '@/components/navigation/PassItOnGift';
 import { fontFamily, getColors, shadows, type ColorMode, type Tokens } from '@/constants/designTokens';
 import { useTokens, useThemedStyles } from '@/hooks/useTokens';
+import { useLayoutMode } from '@/hooks/useLayoutMode';
+import { TrendsView } from '@/app/(main)/trends';
+
+// Expanded widths (the unfolded Duo held sideways, iPad landscape) show Trends
+// in a column beside the feed instead of behind the header button. An open
+// day or entry sheet still covers both columns.
+const TRENDS_PANE_WIDTH = 380;
 
 const SIDE = 14;
 const DUR = 340;
@@ -152,6 +159,7 @@ export default function JourneyScreen() {
   const { setImmersive } = useImmersive();
   const insets = useSafeAreaInsets();
   const { width: screenW, height: screenH } = useWindowDimensions();
+  const wide = useLayoutMode() === 'expanded';
 
   const [morph, setMorph] = useState<MorphTarget | null>(null);
   const [source, setSource] = useState<Rect | null>(null);
@@ -275,17 +283,19 @@ export default function JourneyScreen() {
       style={styles.root}
       onLayout={(e) => setBox({ w: e.nativeEvent.layout.width, h: e.nativeEvent.layout.height })}
     >
-      <Animated.View style={[styles.flexFill, baseFade]} pointerEvents={mode === 'list' ? 'auto' : 'none'}>
+      <Animated.View style={[styles.flexFill, wide && styles.row, baseFade]} pointerEvents={mode === 'list' ? 'auto' : 'none'}>
         <SafeAreaView style={styles.screen} edges={['top']}>
           <View style={styles.header}>
             <View style={styles.flexFill}>
               <Text style={styles.title}>Journal</Text>
               <Text style={styles.subtitle}>Your path of recovery</Text>
             </View>
-            <Pressable style={styles.trendsBtn} onPress={() => router.push('/(main)/trends' as never)} accessibilityRole="button" accessibilityLabel="Trends">
-              <BarChart3 size={16} color={colors.primary} strokeWidth={2.2} />
-              <Text style={styles.trendsBtnText}>Trends</Text>
-            </Pressable>
+            {!wide && (
+              <Pressable style={styles.trendsBtn} onPress={() => router.push('/(main)/trends' as never)} accessibilityRole="button" accessibilityLabel="Trends">
+                <BarChart3 size={16} color={colors.primary} strokeWidth={2.2} />
+                <Text style={styles.trendsBtnText}>Trends</Text>
+              </Pressable>
+            )}
             <PassItOnGift style={styles.gear} />
             <SettingsGear style={styles.gear} />
           </View>
@@ -304,6 +314,11 @@ export default function JourneyScreen() {
             )}
           </ScrollView>
         </SafeAreaView>
+        {wide && (
+          <View style={[styles.trendsPane, { borderLeftColor: c.border }]}>
+            <TrendsView embedded />
+          </View>
+        )}
       </Animated.View>
 
       {morph && (
@@ -901,6 +916,8 @@ const makeStyles = (tk: Tokens) => {
     screen: { flex: 1, backgroundColor: c.background },
     flex: { flex: 1, minWidth: 0 },
     flexFill: { flex: 1 },
+    row: { flexDirection: 'row' },
+    trendsPane: { width: TRENDS_PANE_WIDTH, borderLeftWidth: StyleSheet.hairlineWidth },
     // Tab header: title row starts at paddingTop 54 — the y where back-button
     // screens' titles land — with the actions inline, and a roomy paddingBottom.
     header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 22, paddingTop: 54, paddingBottom: 28 },
