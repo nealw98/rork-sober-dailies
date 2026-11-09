@@ -68,8 +68,9 @@ function RailSponsorFab() {
   const { lastSponsorId } = useLastSponsor();
   const sponsor = lastSponsorId ? getSponsorById(lastSponsorId) : null;
   const openSponsor = () => {
-    if (sponsor) router.push(`/sponsor-chat?sponsor=${sponsor.id}`);
-    else router.push('/(main)/chat');
+    // The rail only shows on expanded widths, where the AI Sponsor screen is
+    // picker | chat — open it on this sponsor's chat.
+    router.push(sponsor ? `/(main)/chat?sponsor=${sponsor.id}` : '/(main)/chat');
   };
   return (
     <Pressable

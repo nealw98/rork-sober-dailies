@@ -13,6 +13,7 @@ import { getSponsorById } from '@/constants/sponsors';
 import { useImmersive } from '@/hooks/use-immersive';
 import { useLastSponsor } from '@/hooks/use-last-sponsor';
 import { useGlobalAudioPlayer } from '@/hooks/useGlobalAudioPlayer';
+import { useLayoutMode } from '@/hooks/useLayoutMode';
 
 export default function GlobalSponsorFab() {
   const segments = useSegments();
@@ -20,14 +21,17 @@ export default function GlobalSponsorFab() {
   const { lastSponsorId } = useLastSponsor();
   const insets = useSafeAreaInsets();
   const player = useGlobalAudioPlayer();
+  const expanded = useLayoutMode() === 'expanded';
   const raisedForMiniPlayer = (segments as string[]).includes('speakers') && player.isLoaded;
 
   // The tab bar owns the FAB on the four tabs; skip here to avoid doubling up.
   // Also skip on the meditation screen — it's its own immersive UI, and the FAB
   // would sit over its controls / Preferences sheet. Skip the Spot Check form
   // too — it's a focused writing surface and a chat FAB over it reads as a
-  // competing exit.
+  // competing exit. And skip the AI Sponsor screen on expanded widths, where
+  // it already shows a chat beside the picker.
   if (
+    (expanded && (segments as string[]).includes('chat')) ||
     (segments as string[]).includes('(tabs)') ||
     (segments as string[]).includes('meditation') ||
     (segments as string[]).includes('trends') ||

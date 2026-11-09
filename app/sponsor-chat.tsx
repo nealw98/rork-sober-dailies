@@ -3,6 +3,9 @@
 // pinned above the composer, an icon header (Reset + Switch) showing the vibe
 // string, and one consistent teal accent (no per-persona color).
 // Plumbing is UNCHANGED — messages/send/limits flow through use-chat-store.
+// On expanded widths the picker (app/(main)/chat) hosts this same chat in its
+// detail pane via <SponsorChat/>: no back control or switch dropdown there
+// (the picker sits beside it), and an expand button reopens it full-screen.
 import React, { useState, useRef, useEffect } from 'react';
 import {
   View, Text, TextInput, Pressable, FlatList, ScrollView, KeyboardAvoidingView,
@@ -27,6 +30,8 @@ import { ChatMarkdownRenderer } from '@/components/ChatMarkdownRenderer';
 import { ReadingSizeSheet } from '@/components/ReadingSizeSheet';
 import BackButton from '@/components/BackButton';
 import ReadingColumn from '@/components/layout/ReadingColumn';
+import { usePane } from '@/components/layout/PaneContext';
+import PaneExpandButton from '@/components/layout/PaneExpandButton';
 import { logEvent } from '@/lib/analytics';
 import { checkSponsorMessageLimit, recordSponsorMessage, DAILY_SPONSOR_LIMIT } from '@/lib/sponsorChatLimits';
 import { fontFamily, shadows, type Tokens } from '@/constants/designTokens';
@@ -105,6 +110,10 @@ function Bubble({ message, size }: { message: ChatMessage; size: number }) {
 // ── Chat content ────────────────────────────────────────────────────────────
 function SponsorChatContent({ initialSponsor }: { initialSponsor: string }) {
   const router = useRouter();
+  const pane = usePane();
+  // Carried through a sponsor switch so a full-screen chat opened by the
+  // pane's expand keeps its collapse control.
+  const { expanded } = useLocalSearchParams<{ expanded?: string }>();
   const insets = useSafeAreaInsets();
   const styles = useThemedStyles(makeStyles);
   const { c, colors, isDark } = useTokens();
@@ -122,7 +131,9 @@ function SponsorChatContent({ initialSponsor }: { initialSponsor: string }) {
   const { setLastSponsor } = useLastSponsor();
 
   const exitChat = () => {
-    if (router.canGoBack()) {
+    if (pane) {
+      pane.close();
+    } else if (router.canGoBack()) {
       router.back();
     } else {
       router.replace('/');
@@ -174,7 +185,7 @@ function SponsorChatContent({ initialSponsor }: { initialSponsor: string }) {
 
   const onSwitch = (id: string) => {
     setSwitchOpen(false);
-    if (id !== initialSponsor) router.replace(`/sponsor-chat?sponsor=${id}`);
+    if (id !== initialSponsor) router.replace(`/sponsor-chat?sponsor=${id}${expanded === '1' ? '&expanded=1' : ''}`);
   };
 
   if (sponsorType !== initialSponsor) return null;
@@ -198,16 +209,17 @@ function SponsorChatContent({ initialSponsor }: { initialSponsor: string }) {
 
       {/* ── Header ── */}
       <View style={[styles.header, { paddingTop: insets.top + 6 }]}>
-        <BackButton onPress={exitChat} style={{ marginBottom: 10 }} />
+        {!pane && <BackButton onPress={exitChat} style={{ marginBottom: 10 }} />}
         <View style={styles.sponsorRow}>
           {/* The identity IS the switch affordance — tap the avatar/name (chevron
-              cue) to open the sponsor menu (quick-switch + "Meet all three"). */}
-          <Pressable style={styles.identity} onPress={() => setSwitchOpen((o) => !o)} accessibilityRole="button" accessibilityLabel="Switch sponsor">
+              cue) to open the sponsor menu (quick-switch + "Meet all three").
+              In the picker's pane the picker itself does the switching. */}
+          <Pressable style={styles.identity} disabled={!!pane} onPress={() => setSwitchOpen((o) => !o)} accessibilityRole={pane ? undefined : 'button'} accessibilityLabel={pane ? undefined : 'Switch sponsor'}>
             <Image source={sponsor.avatar} style={styles.hAvatar} contentFit="cover" />
             <View style={styles.flex}>
               <View style={styles.nameRow}>
                 <Text style={styles.hName} numberOfLines={1}>{sponsor.name}</Text>
-                <ChevronDown size={18} color={c.textMuted} strokeWidth={2.4} style={switchOpen && { transform: [{ rotate: '180deg' }] }} />
+                {!pane && <ChevronDown size={18} color={c.textMuted} strokeWidth={2.4} style={switchOpen && { transform: [{ rotate: '180deg' }] }} />}
               </View>
               <Text style={styles.vibe} numberOfLines={1}>{vibeString(sponsor.tags)}</Text>
             </View>
@@ -219,6 +231,7 @@ function SponsorChatContent({ initialSponsor }: { initialSponsor: string }) {
             <Pressable onPress={handleRefresh} style={styles.resetBtn} accessibilityLabel="Reset conversation">
               <RotateCcw size={16} color={isDark ? c.textSecondary : '#4A4A5E'} strokeWidth={2} />
             </Pressable>
+            <PaneExpandButton />
           </View>
         </View>
       </View>
@@ -310,14 +323,19 @@ function SponsorChatContent({ initialSponsor }: { initialSponsor: string }) {
   );
 }
 
-export default function SponsorChatScreen() {
-  const params = useLocalSearchParams<{ sponsor: string }>();
-  const initialSponsor = params.sponsor || 'supportive';
+// The chat for one sponsor, with its own store — the route below, and the
+// picker's detail pane on expanded widths (key it by sponsor there).
+export function SponsorChat({ sponsorId }: { sponsorId: string }) {
   return (
     <ChatStoreProvider>
-      <SponsorChatContent initialSponsor={initialSponsor} />
+      <SponsorChatContent initialSponsor={sponsorId} />
     </ChatStoreProvider>
   );
+}
+
+export default function SponsorChatScreen() {
+  const params = useLocalSearchParams<{ sponsor: string }>();
+  return <SponsorChat sponsorId={params.sponsor || 'supportive'} />;
 }
 
 const makeStyles = (tk: Tokens) => {
