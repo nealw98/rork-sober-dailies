@@ -3,25 +3,24 @@
  *
  * On expanded widths the Daily Reflection renders HERE, beside the dailies
  * list, instead of pushing the full-screen reader. Layout per the handoff
- * mock: eyebrow ("Daily Reflections · <date>"), serif title, the pull-quote
- * in a soft teal-tinted block, the reflection body at reading width, then an
- * action row — Mark done (filled pill) and Journal about this (outline pill).
- * The meditation tile and copyright follow the pushed reader so the pane is a
- * complete, faithful reading of the day.
+ * mock: eyebrow ("Daily Reflections · <date>"), serif title, then the same
+ * reading as the pushed reader — pull-quote on a teal rule, body, the teal
+ * Meditation tile — with the shared action row (Mark done, Journal about
+ * this) after the body.
  *
  * Typography matches the reader: Lora title, reader serif at the shared "Aa"
  * reading size, and the same *emphasis* markup via withEmphasis.
  */
 import React from 'react';
 import { View, Text, ScrollView, Pressable, StyleSheet } from 'react-native';
-import { useRouter, type Href } from 'expo-router';
-import { Check, PenLine, Sparkles } from 'lucide-react-native';
+import { Sparkles } from 'lucide-react-native';
 
 import ReadingColumn from '@/components/layout/ReadingColumn';
+import ReflectionActions from '@/components/today/ReflectionActions';
 import { withEmphasis, splitParagraphs, EM_ITALIC, EM_UPRIGHT } from '@/components/DailyReflection';
 import { titleCase } from '@/lib/titleCase';
-import { fontFamily, radii, type Tokens } from '@/constants/designTokens';
-import { readerSerif } from '@/constants/fonts';
+import { fontFamily, type Tokens } from '@/constants/designTokens';
+import { readerSerif, readerSerifItalic } from '@/constants/fonts';
 import { useReadingSize } from '@/hooks/use-reading-size';
 import { useThemedStyles, useTokens } from '@/hooks/useTokens';
 import type { Reflection } from '@/types';
@@ -32,7 +31,6 @@ export default function ReflectionPane({ reflection, dateLabel, done, onToggleDo
   done: boolean;
   onToggleDone: () => void;
 }) {
-  const router = useRouter();
   const styles = useThemedStyles(makeStyles);
   const { colors } = useTokens();
   const { readingSize: readSize, readingLineHeight: readLine } = useReadingSize();
@@ -45,8 +43,8 @@ export default function ReflectionPane({ reflection, dateLabel, done, onToggleDo
         <Text style={styles.eyebrow}>Daily Reflections · {dateLabel}</Text>
         <Text style={styles.title}>{titleCase(reflection.title)}</Text>
 
-        {/* Pull-quote in a soft teal-tinted block (handoff Screen 1) */}
-        <View style={styles.quoteBlock}>
+        {/* Pull-quote on a teal rule, as in the pushed reader */}
+        <View style={styles.quoteWrap}>
           <Text style={[styles.quote, { fontSize: readSize, lineHeight: readLine - Math.round(readSize * 0.1) }]}>
             {withEmphasis(reflection.quote, EM_UPRIGHT)}
           </Text>
@@ -62,28 +60,7 @@ export default function ReflectionPane({ reflection, dateLabel, done, onToggleDo
           ))}
         </View>
 
-        {/* Action row — completion stays manual, same rule as the Today list. */}
-        <View style={styles.actions}>
-          <Pressable
-            onPress={onToggleDone}
-            accessibilityRole="checkbox"
-            accessibilityState={{ checked: done }}
-            style={[styles.doneBtn, done ? { backgroundColor: colors.primary, borderColor: colors.primary } : { borderColor: colors.primary }]}
-          >
-            {done && <Check size={14} color="#fff" strokeWidth={3} />}
-            <Text style={[styles.doneBtnText, { color: done ? '#fff' : colors.primaryDark }]}>
-              {done ? 'Done' : 'Mark done'}
-            </Text>
-          </Pressable>
-          <Pressable
-            onPress={() => router.push('/(main)/journal' as Href)}
-            accessibilityRole="button"
-            style={styles.journalBtn}
-          >
-            <PenLine size={14} color={colors.primaryDark} strokeWidth={2} />
-            <Text style={styles.journalText}>Journal about this</Text>
-          </Pressable>
-        </View>
+        <ReflectionActions done={done} onToggleDone={onToggleDone} />
 
         {/* Meditation tile + copyright — parity with the pushed reader. */}
         <View style={styles.medTile}>
@@ -104,7 +81,7 @@ export default function ReflectionPane({ reflection, dateLabel, done, onToggleDo
 }
 
 const makeStyles = (tk: Tokens) => {
-  const { c, colors, isDark } = tk;
+  const { c, colors } = tk;
   return StyleSheet.create({
     flex: { flex: 1 },
     scroll: { paddingHorizontal: 32, paddingTop: 28, paddingBottom: 48 },
@@ -123,51 +100,16 @@ const makeStyles = (tk: Tokens) => {
       color: c.text,
       marginBottom: 20,
     },
-    quoteBlock: {
-      backgroundColor: colors.primarySoft,
-      borderRadius: 14,
-      paddingVertical: 18,
-      paddingHorizontal: 20,
-      marginBottom: 22,
-    },
-    quote: { fontFamily: readerSerif, fontStyle: 'italic', color: c.text },
-    source: { fontFamily: fontFamily.regular, fontSize: 13, color: c.textSecondary, marginTop: 10 },
-    bodyWrap: {},
-    body: { fontFamily: readerSerif, color: c.text },
-    actions: { flexDirection: 'row', alignItems: 'center', gap: 12, marginTop: 26 },
-    doneBtn: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 6,
-      paddingVertical: 10,
-      paddingHorizontal: 18,
-      borderRadius: radii.full,
-      borderWidth: 1.5,
-    },
-    doneBtnText: { fontFamily: fontFamily.semiBold, fontSize: 14 },
-    journalBtn: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 6,
-      paddingVertical: 10,
-      paddingHorizontal: 18,
-      borderRadius: radii.full,
-      borderWidth: 1.5,
-      borderColor: isDark ? c.border : colors.primaryDark + '55',
-    },
-    journalText: { fontFamily: fontFamily.semiBold, fontSize: 14, color: colors.primaryDark },
-    medTile: {
-      marginTop: 30,
-      backgroundColor: c.surface,
-      borderWidth: 1,
-      borderColor: c.border,
-      borderRadius: 14,
-      paddingVertical: 16,
-      paddingHorizontal: 18,
-    },
+    // Quote, body and Meditation match the pushed reader (DailyReflection).
+    quoteWrap: { paddingLeft: 18, borderLeftWidth: 2, borderLeftColor: colors.primary },
+    quote: { ...readerSerifItalic, color: c.text, letterSpacing: -0.05 },
+    source: { fontFamily: fontFamily.semiBold, fontSize: 11, color: c.textMuted, marginTop: 10, letterSpacing: 1, textTransform: 'uppercase' },
+    bodyWrap: { marginTop: 28 },
+    body: { fontFamily: readerSerif, color: c.text, letterSpacing: -0.05 },
+    medTile: { marginTop: 30, padding: 18, backgroundColor: colors.primarySoft, borderRadius: 18, borderWidth: 1, borderColor: colors.primary + '28' },
     medLabelRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 8 },
-    medLabel: { fontFamily: fontFamily.bold, fontSize: 11, letterSpacing: 1.2, color: colors.primaryDark },
-    medText: { fontFamily: readerSerif, fontStyle: 'italic', color: c.text },
+    medLabel: { fontFamily: fontFamily.bold, fontSize: 10, letterSpacing: 1.4, color: colors.primaryDark },
+    medText: { ...readerSerifItalic, color: c.text, letterSpacing: -0.3 },
     copyright: { fontFamily: fontFamily.regular, fontSize: 11, color: c.textMuted, marginTop: 24 },
   });
 };

@@ -3,8 +3,8 @@
 // masthead (seedling-photo chip + live date kicker, then the day's title in
 // Lora 500), the day's pull-quote (reader serif italic) + reflection body,
 // a separate Meditation tile, and copyright. (The handoff's Lora drop cap was
-// dropped — a true floated drop cap isn't achievable cleanly in RN.) No audio,
-// no in-reader "Mark as read" CTA (that's done from the Today checklist).
+// dropped — a true floated drop cap isn't achievable cleanly in RN.) No audio.
+// Today's page carries the same Mark done / Journal row as the Today pane.
 // Bookmarks were intentionally cut. Reflection text + date come from Supabase
 // (constants/reflections.ts); the chip reuses the Today photo.
 //
@@ -31,6 +31,8 @@ import { readerSerif, readerSerifItalic } from '@/constants/fonts';
 import { useReadingSize } from '@/hooks/use-reading-size';
 import { ReadingSizeSheet } from '@/components/ReadingSizeSheet';
 import { useTokens, useThemedStyles } from '@/hooks/useTokens';
+import { useDailies } from '@/hooks/use-dailies-store';
+import ReflectionActions from '@/components/today/ReflectionActions';
 
 const WEEKDAYS = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
 
@@ -270,6 +272,9 @@ const ReflectionPage = React.memo(function ReflectionPage({ date, width, fetchRe
   const styles = useThemedStyles(makeStyles);
   const { colors, isDark } = useTokens();
   const [reflection, setReflection] = useState<Reflection | null>(null);
+  // Done is tracked for today only, so other days' pages read without the row.
+  const { reflectionDone, toggleReflection } = useDailies();
+  const isToday = isSameDay(date, new Date());
 
   useEffect(() => {
     let alive = true;
@@ -315,6 +320,8 @@ const ReflectionPage = React.memo(function ReflectionPage({ date, width, fetchRe
               ))}
             </View>
           </View>
+
+          {isToday && <ReflectionActions done={reflectionDone} onToggleDone={toggleReflection} />}
 
           {/* Meditation tile (separate, app-added section) */}
           <View style={styles.medTile}>
