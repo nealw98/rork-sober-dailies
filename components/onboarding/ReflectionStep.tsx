@@ -15,7 +15,7 @@ import { getTodaysReflection } from '@/constants/reflections';
 import { EM_ITALIC, EM_UPRIGHT, splitParagraphs, withEmphasis } from '@/components/DailyReflection';
 import { titleCase } from '@/lib/titleCase';
 import { Reflection } from '@/types';
-import { OnboardingColumn, PrimaryButton, TourProgress } from '@/components/onboarding/OnboardingChrome';
+import { OnboardingColumn, PrimaryButton, TourProgress, TOUR_MAX_FONT_SCALE } from '@/components/onboarding/OnboardingChrome';
 
 // R3 · Today's Daily Reflection, in full — the same reading and the same
 // rotating hero the Today page shows. Read-only: nothing is marked done here,
@@ -73,8 +73,8 @@ export default function ReflectionStep({ onContinue, onSkip, onBack }: { onConti
         <View style={styles.heroTextWrap}>
           <OnboardingColumn style={{ flex: 0 }}>
             <View style={styles.heroText}>
-              <Text style={styles.heroOverline}>{`DAILY REFLECTIONS · ${MONTHS[now.getMonth()]} ${now.getDate()}`}</Text>
-              <Text style={styles.heroTitle} accessibilityRole="header">
+              <Text maxFontSizeMultiplier={TOUR_MAX_FONT_SCALE} style={styles.heroOverline}>{`DAILY REFLECTIONS · ${MONTHS[now.getMonth()]} ${now.getDate()}`}</Text>
+              <Text maxFontSizeMultiplier={TOUR_MAX_FONT_SCALE} style={styles.heroTitle} accessibilityRole="header">
                 {reflection?.title ? titleCase(reflection.title) : ' '}
               </Text>
             </View>
@@ -93,23 +93,23 @@ export default function ReflectionStep({ onContinue, onSkip, onBack }: { onConti
             {reflection ? (
               <>
                 <View style={styles.quoteWrap}>
-                  <Text style={[styles.quote, { fontSize: readSize, lineHeight: readLine - readSize * 0.1 }]}>{withEmphasis(reflection.quote, EM_UPRIGHT)}</Text>
-                  <Text style={styles.source}>— {reflection.source}</Text>
+                  <Text maxFontSizeMultiplier={TOUR_MAX_FONT_SCALE} style={[styles.quote, { fontSize: readSize, lineHeight: readLine - readSize * 0.1 }]}>{withEmphasis(reflection.quote, EM_UPRIGHT)}</Text>
+                  <Text maxFontSizeMultiplier={TOUR_MAX_FONT_SCALE} style={styles.source}>— {reflection.source}</Text>
                 </View>
                 <View style={styles.bodyWrap}>
                   {splitParagraphs(reflection.reflection).map((p, i) => (
-                    <Text key={i} style={[styles.body, { fontSize: readSize, lineHeight: readLine, marginTop: i === 0 ? 0 : 14 }]}>{withEmphasis(p, EM_ITALIC)}</Text>
+                    <Text maxFontSizeMultiplier={TOUR_MAX_FONT_SCALE} key={i} style={[styles.body, { fontSize: readSize, lineHeight: readLine, marginTop: i === 0 ? 0 : 14 }]}>{withEmphasis(p, EM_ITALIC)}</Text>
                   ))}
                 </View>
                 {/* The day's Meditation, as the Daily Reflection reader shows it. */}
                 <View style={styles.medTile}>
                   <View style={styles.medLabelRow}>
                     <Sparkles size={11} color={colors.primaryDark} strokeWidth={2} />
-                    <Text style={styles.medLabel}>MEDITATION</Text>
+                    <Text maxFontSizeMultiplier={TOUR_MAX_FONT_SCALE} style={styles.medLabel}>MEDITATION</Text>
                   </View>
-                  <Text style={[styles.medText, { fontSize: readSize, lineHeight: Math.round(readSize * 1.4) }]}>&ldquo;{withEmphasis(reflection.thought, EM_UPRIGHT)}&rdquo;</Text>
+                  <Text maxFontSizeMultiplier={TOUR_MAX_FONT_SCALE} style={[styles.medText, { fontSize: readSize, lineHeight: Math.round(readSize * 1.4) }]}>&ldquo;{withEmphasis(reflection.thought, EM_UPRIGHT)}&rdquo;</Text>
                 </View>
-                <Text style={styles.copyright}>Copyright © 1990 by Alcoholics Anonymous World Services, Inc. All rights reserved.</Text>
+                <Text maxFontSizeMultiplier={TOUR_MAX_FONT_SCALE} style={styles.copyright}>Copyright © 1990 by Alcoholics Anonymous World Services, Inc. All rights reserved.</Text>
               </>
             ) : (
               <ActivityIndicator style={{ marginTop: 40 }} color={colors.primary} />

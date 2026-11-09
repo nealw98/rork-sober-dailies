@@ -20,7 +20,7 @@ import { useSideBackdrop } from '@/components/layout/SideInsetGuard';
 import PaywallScreen from '@/components/PaywallScreen';
 import PassOfferScreen from '@/components/PassOfferScreen';
 import { logEvent } from '@/lib/analytics';
-import { ONBOARDING_MAX_WIDTH, OnboardingColumn } from '@/components/onboarding/OnboardingChrome';
+import { ONBOARDING_MAX_WIDTH, OnboardingColumn, TOUR_MAX_FONT_SCALE } from '@/components/onboarding/OnboardingChrome';
 import CounterStep from '@/components/onboarding/CounterStep';
 import { toDateInput } from '@/lib/soberDateInput';
 import ReflectionStep from '@/components/onboarding/ReflectionStep';
@@ -187,7 +187,7 @@ function WelcomeStep({ onContinue }: { onContinue: () => void }) {
           >
             <View style={styles.wordmarkRow} onLayout={(e) => setWordmarkH(e.nativeEvent.layout.height)}>
               <Image source={require('@/assets/images/icon.png')} style={styles.wordmarkIcon} contentFit="cover" />
-              <Text style={styles.wordmark}>Sober Dailies</Text>
+              <Text maxFontSizeMultiplier={TOUR_MAX_FONT_SCALE} style={styles.wordmark}>Sober Dailies</Text>
             </View>
             {tall && <View style={styles.flex} />}
             <View style={styles.collageWrap}>
@@ -197,8 +197,8 @@ function WelcomeStep({ onContinue }: { onContinue: () => void }) {
               {/* Measured on its own (the block above it grows to fill), plus
                   the block's own top and bottom padding. */}
               <View onLayout={(e) => setCopyH(e.nativeEvent.layout.height + (tall ? 48 : 20) + 26)}>
-                <Text style={styles.welcomeHeadline} accessibilityRole="header">Your whole recovery toolkit, in one place</Text>
-                <Text style={styles.welcomeBody}>
+                <Text maxFontSizeMultiplier={TOUR_MAX_FONT_SCALE} style={styles.welcomeHeadline} accessibilityRole="header">Your whole recovery toolkit, in one place</Text>
+                <Text maxFontSizeMultiplier={TOUR_MAX_FONT_SCALE} style={styles.welcomeBody}>
                   The Big Book, Daily Reflections, speaker tapes, prayers, your sobriety count — and a sponsor to talk to at 2am.
                 </Text>
               </View>
@@ -207,11 +207,11 @@ function WelcomeStep({ onContinue }: { onContinue: () => void }) {
           </ScrollView>
           <View style={styles.welcomeFooter}>
             <Pressable style={styles.welcomeBtn} onPress={onContinue} accessibilityRole="button">
-              <Text style={styles.welcomeBtnText}>Get started</Text>
+              <Text maxFontSizeMultiplier={TOUR_MAX_FONT_SCALE} style={styles.welcomeBtnText}>Get started</Text>
               <ArrowRight size={18} color={obvInk(0.55)} />
             </Pressable>
-            <Text style={styles.welcomeAgreeLine}>
-              By continuing, you agree to our <Text style={styles.welcomeAgreeLink} onPress={openTerms}>Terms of Use</Text> and <Text style={styles.welcomeAgreeLink} onPress={openPrivacy}>Privacy Policy</Text>.
+            <Text maxFontSizeMultiplier={TOUR_MAX_FONT_SCALE} style={styles.welcomeAgreeLine}>
+              By continuing, you agree to our <Text maxFontSizeMultiplier={TOUR_MAX_FONT_SCALE} style={styles.welcomeAgreeLink} onPress={openTerms}>Terms of Use</Text> and <Text maxFontSizeMultiplier={TOUR_MAX_FONT_SCALE} style={styles.welcomeAgreeLink} onPress={openPrivacy}>Privacy Policy</Text>.
             </Text>
           </View>
         </OnboardingColumn>
@@ -258,28 +258,28 @@ export function DisclaimerStep({ onAgree }: { onAgree: () => void | Promise<void
           <View style={styles.consentMark}>
             <ShieldCheck size={30} color="#fff" strokeWidth={1.8} />
           </View>
-          <Text style={styles.consentTitle}>Before you begin</Text>
-          <Text style={styles.consentDesc}>A word about safety.</Text>
+          <Text maxFontSizeMultiplier={TOUR_MAX_FONT_SCALE} style={styles.consentTitle}>Before you begin</Text>
+          <Text maxFontSizeMultiplier={TOUR_MAX_FONT_SCALE} style={styles.consentDesc}>A word about safety.</Text>
 
           <View style={styles.consentCard}>
-            <Text style={styles.consentNote}>Please note:</Text>
+            <Text maxFontSizeMultiplier={TOUR_MAX_FONT_SCALE} style={styles.consentNote}>Please note:</Text>
             {DISCLAIMER_BULLETS.map((line, i) => (
               <View key={i} style={[styles.consentBullet, i > 0 && { marginTop: 12 }]}>
-                <Text style={styles.consentBulletDot}>•</Text>
-                <Text style={styles.consentBulletText}>{line}</Text>
+                <Text maxFontSizeMultiplier={TOUR_MAX_FONT_SCALE} style={styles.consentBulletDot}>•</Text>
+                <Text maxFontSizeMultiplier={TOUR_MAX_FONT_SCALE} style={styles.consentBulletText}>{line}</Text>
               </View>
             ))}
           </View>
 
-          <Text style={styles.consentAgree}>
-            By continuing, you agree to our <Text style={styles.consentLink} onPress={openTerms}>Terms of Use</Text> and <Text style={styles.consentLink} onPress={openPrivacy}>Privacy Policy</Text>.
+          <Text maxFontSizeMultiplier={TOUR_MAX_FONT_SCALE} style={styles.consentAgree}>
+            By continuing, you agree to our <Text maxFontSizeMultiplier={TOUR_MAX_FONT_SCALE} style={styles.consentLink} onPress={openTerms}>Terms of Use</Text> and <Text maxFontSizeMultiplier={TOUR_MAX_FONT_SCALE} style={styles.consentLink} onPress={openPrivacy}>Privacy Policy</Text>.
           </Text>
 
           <Pressable style={styles.consentCheckRow} onPress={() => setChecked((v) => !v)} accessibilityRole="checkbox" accessibilityState={{ checked }}>
             <View style={[styles.consentCheckbox, checked && styles.consentCheckboxOn]}>
               {checked && <Check size={15} color="#fff" strokeWidth={3} />}
             </View>
-            <Text style={styles.consentCheckText}>I understand the above, and have read and agree to the Terms of Use and Privacy Policy.</Text>
+            <Text maxFontSizeMultiplier={TOUR_MAX_FONT_SCALE} style={styles.consentCheckText}>I understand the above, and have read and agree to the Terms of Use and Privacy Policy.</Text>
           </Pressable>
 
           <Pressable
@@ -288,7 +288,7 @@ export function DisclaimerStep({ onAgree }: { onAgree: () => void | Promise<void
             disabled={!checked || saving}
             accessibilityRole="button"
           >
-            {saving ? <ActivityIndicator color={obvInk(0.55)} /> : <Text style={styles.consentContinueText}>Continue</Text>}
+            {saving ? <ActivityIndicator color={obvInk(0.55)} /> : <Text maxFontSizeMultiplier={TOUR_MAX_FONT_SCALE} style={styles.consentContinueText}>Continue</Text>}
           </Pressable>
         </ScrollView>
         </OnboardingColumn>

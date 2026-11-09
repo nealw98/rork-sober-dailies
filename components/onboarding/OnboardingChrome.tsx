@@ -15,6 +15,12 @@ import ReadingColumn from '@/components/layout/ReadingColumn';
 export const ONBOARDING_MAX_WIDTH = 520;
 export const TOUR_STEPS = 4;
 
+// How far the OS text size may grow the onboarding's type. Beyond ~1.5× (the
+// accessibility sizes, up to ~3×) the fixed one-screen layouts break apart:
+// titles split mid-word and buttons overflow. Still larger than the biggest
+// standard size (~1.35×).
+export const TOUR_MAX_FONT_SCALE = 1.5;
+
 export function OnboardingColumn({ children, style, maxWidth = ONBOARDING_MAX_WIDTH }: { children: React.ReactNode; style?: StyleProp<ViewStyle>; maxWidth?: number }) {
   return (
     <ReadingColumn maxWidth={maxWidth} style={[{ flex: 1 }, style]}>
@@ -55,7 +61,7 @@ export function TourProgress({ index, onSkip, onBack, onImage = false }: { index
         ))}
       </View>
       <Pressable onPress={onSkip} hitSlop={12} accessibilityRole="button" accessibilityLabel="Skip">
-        <Text style={[styles.skip, onImage && styles.skipOnImage]}>Skip</Text>
+        <Text maxFontSizeMultiplier={TOUR_MAX_FONT_SCALE} style={[styles.skip, onImage && styles.skipOnImage]}>Skip</Text>
       </Pressable>
     </View>
   );
@@ -71,7 +77,7 @@ export function PrimaryButton({ label, onPress, disabled = false }: { label: str
       accessibilityRole="button"
       accessibilityState={{ disabled }}
     >
-      <Text style={styles.primaryText}>{label}</Text>
+      <Text maxFontSizeMultiplier={TOUR_MAX_FONT_SCALE} style={styles.primaryText}>{label}</Text>
       <ArrowRight size={18} color="#fff" />
     </Pressable>
   );

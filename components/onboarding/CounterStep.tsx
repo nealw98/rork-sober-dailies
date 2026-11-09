@@ -20,7 +20,7 @@ import Animated, {
 import { colors as lightColors, fontFamily, fontSize, getSemanticColors, type Tokens } from '@/constants/designTokens';
 import { useTokens, useThemedStyles } from '@/hooks/useTokens';
 import { daysSince, formatDateInput, parseDateInput, toDateInput, ymdLabel } from '@/lib/soberDateInput';
-import { OnboardingColumn, PrimaryButton, TourProgress } from '@/components/onboarding/OnboardingChrome';
+import { OnboardingColumn, PrimaryButton, TourProgress, TOUR_MAX_FONT_SCALE } from '@/components/onboarding/OnboardingChrome';
 
 // R2 · "When did you get sober?" — the count is the first thing the app
 // gives back, so it leads the tour. Typed mm/dd/yyyy (same parsing and
@@ -166,8 +166,8 @@ export default function CounterStep({ value, onChangeValue, onSave, onSkip, onBa
         <OnboardingColumn>
           <TourProgress index={0} onSkip={onSkip} onBack={onBack} />
           <ScrollView ref={scrollRef} contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
-            <Text style={styles.affirmation}>One day at a time.</Text>
-            <Text style={styles.title} accessibilityRole="header">When did you get sober?</Text>
+            <Text maxFontSizeMultiplier={TOUR_MAX_FONT_SCALE} style={styles.affirmation}>One day at a time.</Text>
+            <Text maxFontSizeMultiplier={TOUR_MAX_FONT_SCALE} style={styles.title} accessibilityRole="header">When did you get sober?</Text>
 
             <View style={styles.center}>
               <View style={{ width: coin + RING_GAP * 2, height: coin + RING_GAP * 2, alignItems: 'center', justifyContent: 'center' }}>
@@ -211,13 +211,15 @@ export default function CounterStep({ value, onChangeValue, onSave, onSkip, onBa
                         />
                       </Animated.View>
 
+                      {/* Sized to the coin, so the OS text size doesn't apply. */}
                       {days == null ? (
-                        <Text style={[styles.coinNumber, { fontSize: numberSize }]}>—</Text>
+                        <Text allowFontScaling={false} style={[styles.coinNumber, { fontSize: numberSize }]}>—</Text>
                       ) : isDayOne ? (
-                        <Text style={[styles.coinNumber, { fontSize: Math.round(coin * 0.24) }]} numberOfLines={1}>Day 1</Text>
+                        <Text allowFontScaling={false} style={[styles.coinNumber, { fontSize: Math.round(coin * 0.24) }]} numberOfLines={1}>Day 1</Text>
                       ) : (
                         <AnimatedTextInput
                           editable={false}
+                          allowFontScaling={false}
                           pointerEvents="none"
                           underlineColorAndroid="transparent"
                           defaultValue={daysText}
@@ -225,7 +227,7 @@ export default function CounterStep({ value, onChangeValue, onSave, onSkip, onBa
                           style={[styles.coinNumber, styles.coinInput, { fontSize: numberSize, width: coin - 24 }]}
                         />
                       )}
-                      <Text style={styles.coinUnit}>{isDayOne ? 'the bravest one' : days === 1 ? 'day' : 'days'}</Text>
+                      <Text allowFontScaling={false} style={styles.coinUnit}>{isDayOne ? 'the bravest one' : days === 1 ? 'day' : 'days'}</Text>
                     </LinearGradient>
                   </Animated.View>
                 </Pressable>
@@ -233,19 +235,20 @@ export default function CounterStep({ value, onChangeValue, onSave, onSkip, onBa
 
               <View style={styles.lines}>
                 {badDate ? (
-                  <Text style={styles.ymdBad}>That&apos;s not a valid date</Text>
+                  <Text maxFontSizeMultiplier={TOUR_MAX_FONT_SCALE} style={styles.ymdBad}>That&apos;s not a valid date</Text>
                 ) : parsed ? (
                   <>
-                    <Text style={styles.ymd}>{isDayOne ? 'Welcome. We’re glad you’re here.' : ymdLabel(parsed)}</Text>
-                    <Text style={styles.hours}>
+                    <Text maxFontSizeMultiplier={TOUR_MAX_FONT_SCALE} style={styles.ymd}>{isDayOne ? 'Welcome. We’re glad you’re here.' : ymdLabel(parsed)}</Text>
+                    <Text maxFontSizeMultiplier={TOUR_MAX_FONT_SCALE} style={styles.hours}>
                       {isDayOne ? 'Every count starts right here.' : `That’s ${(days! * 24).toLocaleString('en-US')} hours, one at a time.`}
                     </Text>
                   </>
                 ) : null}
               </View>
 
-              <Text style={styles.fieldLabel}>SOBRIETY DATE</Text>
+              <Text maxFontSizeMultiplier={TOUR_MAX_FONT_SCALE} style={styles.fieldLabel}>SOBRIETY DATE</Text>
               <TextInput
+                maxFontSizeMultiplier={TOUR_MAX_FONT_SCALE}
                 style={[styles.input, { borderColor }, focused && !badDate && styles.inputFocus]}
                 value={value}
                 onChangeText={setText}
@@ -263,7 +266,7 @@ export default function CounterStep({ value, onChangeValue, onSave, onSkip, onBa
           <View style={styles.footer}>
             <PrimaryButton label="Start my count" disabled={!parsed} onPress={() => parsed && onSave(parsed, dayOneRef.current ? 'day_one' : 'typed')} />
             <Pressable style={styles.ghost} onPress={dayOne} accessibilityRole="button">
-              <Text style={styles.ghostText}>Today is my day one</Text>
+              <Text maxFontSizeMultiplier={TOUR_MAX_FONT_SCALE} style={styles.ghostText}>Today is my day one</Text>
             </Pressable>
           </View>
         </OnboardingColumn>

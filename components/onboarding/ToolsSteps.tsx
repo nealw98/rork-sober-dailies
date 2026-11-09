@@ -4,13 +4,13 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { StatusBar } from 'expo-status-bar';
 import { Image } from 'expo-image';
-import { Play, CircleCheck, Heart } from 'lucide-react-native';
+import { CircleCheck, Heart } from 'lucide-react-native';
 import { HandsPraying } from 'phosphor-react-native';
 
 import { colors as lightColors, fontFamily, fontSize, type Tokens } from '@/constants/designTokens';
 import { useTokens, useThemedStyles } from '@/hooks/useTokens';
 import { SPONSORS } from '@/constants/sponsors';
-import { OnboardingColumn, PrimaryButton, TourProgress } from '@/components/onboarding/OnboardingChrome';
+import { OnboardingColumn, PrimaryButton, TourProgress, TOUR_MAX_FONT_SCALE } from '@/components/onboarding/OnboardingChrome';
 
 // R4 · Read & listen and R5 · Talk & practice — static previews of the tools
 // (nothing here is tappable), each card drawn from the real app imagery.
@@ -19,6 +19,9 @@ const BIG_BOOK = require('@/assets/images/big-book_cover.webp');
 const TWELVE_TWELVE = require('@/assets/images/new_12x12_cover.webp');
 const SPEAKERS_BRIGHT = require('@/assets/images/speakers_hero_bright.webp');
 const MEDITATION_HERO = require('@/assets/images/meditation-hero1.webp');
+
+// The speaker card's height at standard text size.
+const SPEAKER_CARD_HEIGHT = 236;
 
 // The sample exchange on the AI sponsor card: Steady Eddie, condensed from a
 // real reply to fit three lines. A still illustration — never generated at
@@ -56,8 +59,8 @@ function TourScreen({ index, overline, overlineColor, title, children, gap, foot
       <OnboardingColumn maxWidth={spread ? SPREAD_MAX_WIDTH : undefined}>
         <TourProgress index={index} onSkip={onSkip} onBack={onBack} />
         <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
-          {!!overline && <Text style={[styles.overline, { color: overlineColor }]}>{overline}</Text>}
-          <Text style={[styles.title, !overline && styles.titleAlone]} accessibilityRole="header">{title}</Text>
+          {!!overline && <Text maxFontSizeMultiplier={TOUR_MAX_FONT_SCALE} style={[styles.overline, { color: overlineColor }]}>{overline}</Text>}
+          <Text maxFontSizeMultiplier={TOUR_MAX_FONT_SCALE} style={[styles.title, !overline && styles.titleAlone]} accessibilityRole="header">{title}</Text>
           <View style={[styles.cards, gap !== undefined && { gap }, spread && styles.cardsSpread]}>
             {spread
               ? React.Children.map(children, (child) => <View style={styles.flex}>{child}</View>)
@@ -65,7 +68,7 @@ function TourScreen({ index, overline, overlineColor, title, children, gap, foot
           </View>
         </ScrollView>
         <View style={styles.footer}>
-          {!!footnote && <Text style={styles.footnote}>{footnote}</Text>}
+          {!!footnote && <Text maxFontSizeMultiplier={TOUR_MAX_FONT_SCALE} style={styles.footnote}>{footnote}</Text>}
           <PrimaryButton label={buttonLabel} onPress={onContinue} />
         </View>
       </OnboardingColumn>
@@ -76,6 +79,9 @@ function TourScreen({ index, overline, overlineColor, title, children, gap, foot
 export function ReadListenStep({ onContinue, onSkip, onBack }: { onContinue: () => void; onSkip: () => void; onBack: () => void }) {
   const styles = useThemedStyles(makeStyles);
   const { colors } = useTokens();
+  // The speaker text grows up from the bottom: grow the card with it so the
+  // text stays on the blanket and off the headphones at large text sizes.
+  const { fontScale } = useWindowDimensions();
   return (
     <TourScreen
       index={2}
@@ -101,15 +107,15 @@ export function ReadListenStep({ onContinue, onSkip, onBack }: { onContinue: () 
               <Image source={TWELVE_TWELVE} style={styles.cover} contentFit="contain" accessibilityLabel="Twelve Steps and Twelve Traditions cover" />
             </View>
           </View>
-          <Text style={styles.litTitle}>Literature</Text>
-          <Text style={styles.litBody}>The Big Book and the Twelve and Twelve, always in your pocket.</Text>
+          <Text maxFontSizeMultiplier={TOUR_MAX_FONT_SCALE} style={styles.litTitle}>Literature</Text>
+          <Text maxFontSizeMultiplier={TOUR_MAX_FONT_SCALE} style={styles.litBody}>The Big Book and the Twelve and Twelve, always in your pocket.</Text>
         </LinearGradient>
       </View>
 
       {/* A bright photo: the text sits on the blanket under a cream fade, so
           the headphones and phone stay clear above it. Dark ink in both modes. */}
       <View style={styles.speakerShadow}>
-        <View style={styles.speakerCard}>
+        <View style={[styles.speakerCard, { minHeight: SPEAKER_CARD_HEIGHT * Math.min(Math.max(1, fontScale), TOUR_MAX_FONT_SCALE) }]}>
           <Image source={SPEAKERS_BRIGHT} style={StyleSheet.absoluteFill} contentFit="cover" contentPosition={{ top: '8%' }} />
           <LinearGradient
             colors={['rgba(250,246,239,0)', 'rgba(250,246,239,0)', 'rgba(250,246,239,0.55)', 'rgba(250,246,239,0.8)']}
@@ -118,11 +124,8 @@ export function ReadListenStep({ onContinue, onSkip, onBack }: { onContinue: () 
             pointerEvents="none"
           />
           <View style={styles.speakerText}>
-            <Text style={styles.speakerTitle}>Speaker tapes</Text>
-            <Text style={styles.speakerBody}>Experience, strength and hope — a meeting&apos;s worth, whenever you need it.</Text>
-          </View>
-          <View style={styles.speakerPlay}>
-            <Play size={18} color="#fff" fill="#fff" />
+            <Text maxFontSizeMultiplier={TOUR_MAX_FONT_SCALE} style={styles.speakerTitle}>Speaker tapes</Text>
+            <Text maxFontSizeMultiplier={TOUR_MAX_FONT_SCALE} style={styles.speakerBody}>Experience, strength and hope. Download a talk and listen whenever you need it.</Text>
           </View>
         </View>
       </View>
@@ -149,12 +152,12 @@ export function TalkPracticeStep({ onContinue, onSkip, onBack }: { onContinue: (
       onBack={onBack}
     >
       <View>
-        <Text style={[styles.groupLabel, { color: colors.tertiaryDark }]}>WHEN IT&apos;S HARD</Text>
+        <Text maxFontSizeMultiplier={TOUR_MAX_FONT_SCALE} style={[styles.groupLabel, { color: colors.tertiaryDark }]}>WHEN IT&apos;S HARD</Text>
         <View style={styles.sponsorCard}>
           <View style={styles.sponsorHead}>
             <View style={styles.flex}>
-              <Text style={styles.cardTitle}>AI sponsor</Text>
-              <Text style={styles.cardBody}>Three personalities. Any hour.</Text>
+              <Text maxFontSizeMultiplier={TOUR_MAX_FONT_SCALE} style={styles.cardTitle}>AI sponsor</Text>
+              <Text maxFontSizeMultiplier={TOUR_MAX_FONT_SCALE} style={styles.cardBody}>Three personalities. Any hour.</Text>
             </View>
             <View style={styles.avatars}>
               {SPONSORS.map((s, i) => (
@@ -163,12 +166,12 @@ export function TalkPracticeStep({ onContinue, onSkip, onBack }: { onContinue: (
             </View>
           </View>
           <View style={styles.userBubble}>
-            <Text style={styles.userText}>{SAMPLE_PROMPT}</Text>
+            <Text maxFontSizeMultiplier={TOUR_MAX_FONT_SCALE} style={styles.userText}>{SAMPLE_PROMPT}</Text>
           </View>
           <View style={styles.replyRow}>
             {eddie && <Image source={eddie.avatar} style={styles.replyAvatar} contentFit="cover" />}
             <View style={styles.replyBubble}>
-              <Text style={styles.replyText}>{SAMPLE_REPLY}</Text>
+              <Text maxFontSizeMultiplier={TOUR_MAX_FONT_SCALE} style={styles.replyText}>{SAMPLE_REPLY}</Text>
             </View>
           </View>
         </View>
@@ -178,41 +181,41 @@ export function TalkPracticeStep({ onContinue, onSkip, onBack }: { onContinue: (
             <CircleCheck size={20} color={colors.accentDark} strokeWidth={2} />
           </View>
           <View style={styles.flex}>
-            <Text style={styles.smallTitle}>Spot check inventory</Text>
-            <Text style={styles.smallBody}>Upset right now? Work through it on the spot.</Text>
+            <Text maxFontSizeMultiplier={TOUR_MAX_FONT_SCALE} style={styles.smallTitle}>Spot check inventory</Text>
+            <Text maxFontSizeMultiplier={TOUR_MAX_FONT_SCALE} style={styles.smallBody}>Upset right now? Work through it on the spot.</Text>
           </View>
         </View>
       </View>
 
       <View style={styles.groups}>
         <View>
-          <Text style={[styles.groupLabel, { color: colors.primaryDark }]}>EVERY DAY</Text>
+          <Text maxFontSizeMultiplier={TOUR_MAX_FONT_SCALE} style={[styles.groupLabel, { color: colors.primaryDark }]}>EVERY DAY</Text>
           <View style={styles.pair}>
             <View style={[styles.dayCard, { backgroundColor: colors.primarySoft }]}>
               <View style={[styles.dayIcon, { backgroundColor: colors.primary }]}>
                 <HandsPraying size={18} color="#fff" />
               </View>
-              <Text style={styles.smallTitle}>Prayers</Text>
-              <Text style={styles.dayBody}>Morning, evening and the ones in between.</Text>
+              <Text maxFontSizeMultiplier={TOUR_MAX_FONT_SCALE} style={styles.smallTitle}>Prayers</Text>
+              <Text maxFontSizeMultiplier={TOUR_MAX_FONT_SCALE} style={styles.dayBody}>Morning, evening and the ones in between.</Text>
             </View>
             <View style={[styles.dayCard, { backgroundColor: colors.accentSoft }]}>
               <View style={[styles.dayIcon, { backgroundColor: colors.accent }]}>
                 <Heart size={18} color="#fff" strokeWidth={2} />
               </View>
-              <Text style={styles.smallTitle}>Gratitude list</Text>
-              <Text style={styles.dayBody}>A few lines that change the whole day.</Text>
+              <Text maxFontSizeMultiplier={TOUR_MAX_FONT_SCALE} style={styles.smallTitle}>Gratitude list</Text>
+              <Text maxFontSizeMultiplier={TOUR_MAX_FONT_SCALE} style={styles.dayBody}>A few lines that change the whole day.</Text>
             </View>
           </View>
         </View>
 
         <View>
-          <Text style={[styles.groupLabel, { color: colors.tertiaryDark }]}>WHEN YOU NEED QUIET</Text>
+          <Text maxFontSizeMultiplier={TOUR_MAX_FONT_SCALE} style={[styles.groupLabel, { color: colors.tertiaryDark }]}>WHEN YOU NEED QUIET</Text>
           <View style={styles.meditationCard}>
             <Image source={MEDITATION_HERO} style={StyleSheet.absoluteFill} contentFit="cover" />
             <LinearGradient colors={['rgba(23,26,34,0.66)', 'rgba(23,26,34,0.12)']} start={{ x: 0, y: 0.5 }} end={{ x: 1, y: 0.5 }} style={StyleSheet.absoluteFill} pointerEvents="none" />
             <View style={styles.meditationText}>
-              <Text style={styles.meditationTitle}>Meditation</Text>
-              <Text style={styles.photoBody}>Its own quiet corner of the app.</Text>
+              <Text maxFontSizeMultiplier={TOUR_MAX_FONT_SCALE} style={styles.meditationTitle}>Meditation</Text>
+              <Text maxFontSizeMultiplier={TOUR_MAX_FONT_SCALE} style={styles.photoBody}>Its own quiet corner of the app.</Text>
             </View>
           </View>
         </View>
@@ -249,11 +252,10 @@ const makeStyles = (tk: Tokens) => {
     litTitle: { fontFamily: fontFamily.displayBold, fontSize: 19, color: '#fff' },
     litBody: { fontFamily: fontFamily.regular, fontSize: fontSize.md, lineHeight: 20, color: 'rgba(255,255,255,0.92)', marginTop: 3 },
     speakerShadow: { flexGrow: 1, borderRadius: 22, backgroundColor: '#EDE6DA', shadowColor: '#171A22', shadowOpacity: 0.1, shadowRadius: 10, shadowOffset: { width: 0, height: 6 }, elevation: 3 },
-    speakerCard: { flexGrow: 1, minHeight: 236, borderRadius: 22, overflow: 'hidden', backgroundColor: '#EDE6DA', justifyContent: 'flex-end' },
-    speakerText: { paddingLeft: 18, paddingRight: 78, paddingBottom: 16, paddingTop: 60 },
+    speakerCard: { flexGrow: 1, borderRadius: 22, overflow: 'hidden', backgroundColor: '#EDE6DA', justifyContent: 'flex-end' },
+    speakerText: { paddingHorizontal: 18, paddingBottom: 16, paddingTop: 60 },
     speakerTitle: { fontFamily: fontFamily.displayBold, fontSize: 19, color: '#232529' },
     speakerBody: { fontFamily: fontFamily.regular, fontSize: 14, lineHeight: 20, color: '#3A3D44', marginTop: 3 },
-    speakerPlay: { position: 'absolute', right: 16, bottom: 18, width: 48, height: 48, borderRadius: 24, backgroundColor: lightColors.steel, alignItems: 'center', justifyContent: 'center', paddingLeft: 3, shadowColor: '#171A22', shadowOpacity: 0.22, shadowRadius: 8, shadowOffset: { width: 0, height: 4 }, elevation: 4 },
     photoBody: { fontFamily: fontFamily.regular, fontSize: fontSize.md, lineHeight: 20, color: 'rgba(255,255,255,0.92)', marginTop: 3 },
 
     // Talk & practice
