@@ -215,17 +215,22 @@ export default function SpeakersScreen() {
 
   const savedSet = useMemo(() => new Set(savedIds), [savedIds]);
 
-  const list = useMemo(() => {
+  // The search applies before the segment filter so the chip counts below can
+  // show how many tapes match the search in each segment.
+  const searched = useMemo(() => {
     const terms = q.toLowerCase().trim().split(/\s+/).filter(Boolean);
-    const match = (s: Speaker) => {
-      if (filter === 'Saved' && !savedSet.has(s.id)) return false;
-      if (filter === 'Offline' && !downloadedIds.has(s.id)) return false;
-      if (!terms.length) return true;
+    if (!terms.length) return speakers;
+    return speakers.filter((s) => {
       const hay = [s.speaker, s.title, s.subtitle, s.hometown, s.core_themes].map((x) => (x || '').toLowerCase()).join(' ');
       return terms.every((t) => new RegExp('\\b' + t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i').test(hay));
-    };
-    return sortSpeakers(speakers.filter(match), sortBy);
-  }, [speakers, q, filter, sortBy, savedSet, downloadedIds]);
+    });
+  }, [speakers, q]);
+
+  const list = useMemo(() => {
+    const inSegment = (s: Speaker) =>
+      filter === 'Saved' ? savedSet.has(s.id) : filter === 'Offline' ? downloadedIds.has(s.id) : true;
+    return sortSpeakers(searched.filter(inSegment), sortBy);
+  }, [searched, filter, sortBy, savedSet, downloadedIds]);
 
   const showFeatured = filter === 'All' && !q.trim() && sortBy === 'newest';
   // Featured rotates weekly (Monday rollover): pick from the catalog in a
@@ -247,10 +252,10 @@ export default function SpeakersScreen() {
   }, [wide]);
 
   const counts = useMemo(() => ({
-    All: speakers.length,
-    Saved: speakers.filter((s) => savedSet.has(s.id)).length,
-    Offline: speakers.filter((s) => downloadedIds.has(s.id)).length,
-  }), [speakers, savedSet, downloadedIds]);
+    All: searched.length,
+    Saved: searched.filter((s) => savedSet.has(s.id)).length,
+    Offline: searched.filter((s) => downloadedIds.has(s.id)).length,
+  }), [searched, savedSet, downloadedIds]);
 
   const renderItem = useCallback(({ item }: { item: Speaker }) => (
     <TapeRow

@@ -83,6 +83,14 @@ export function AudioPlayerProvider({ children }: { children: React.ReactNode })
   const [positionMs, setPositionMs] = useState(0);
   const [durationMs, setDurationMs] = useState(0);
   const [rate, setRateState] = useState(1);
+  // Read through a ref so persistProgress/load stay identity-stable: the
+  // unmount cleanup below depends on them, and when they changed with `rate`
+  // every speed change ran that cleanup and released the live player.
+  const rateRef = useRef(1);
+  rateRef.current = rate;
+  // A speed chosen while nothing is loaded (e.g. after STOP) is the
+  // listener's choice for the next play, so it beats the talk's saved rate.
+  const pendingRateRef = useRef<number | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [didJustFinish, setDidJustFinish] = useState(false);
   const progressSaveAtRef = useRef(0);
@@ -131,10 +139,10 @@ export function AudioPlayerProvider({ children }: { children: React.ReactNode })
     await saveSpeakerProgress(speakerId, {
       positionMs: didFinish ? lastDurationMsRef.current : lastPositionMsRef.current,
       durationMs: lastDurationMsRef.current,
-      rate,
+      rate: rateRef.current,
       didFinish,
     });
-  }, [rate]);
+  }, []);
 
   // Save immediately when the app leaves the foreground. The periodic save is
   // useful during playback, but this closes the small gap between ticks when a
@@ -224,6 +232,7 @@ export function AudioPlayerProvider({ children }: { children: React.ReactNode })
       if (!finishHandledRef.current) {
         finishHandledRef.current = true;
         void persistProgress(true).finally(() => {
+          listenSpeakerRef.current = null; // keep the finished mark from being overwritten
           releasePlayer();
           setCurrentSpeakerId(null);
           setIsLoaded(false);
@@ -277,7 +286,8 @@ export function AudioPlayerProvider({ children }: { children: React.ReactNode })
 
         const saved = await getSpeakerProgress(speakerId);
         const savedPosition = saved && !saved.didFinish ? saved.positionMs : 0;
-        const savedRate = saved?.rate ?? rate;
+        const savedRate = pendingRateRef.current ?? saved?.rate ?? rateRef.current;
+        pendingRateRef.current = null;
         setRateState(savedRate);
 
         const player = createAudioPlayer({ uri }, { updateInterval: 500 });
@@ -336,7 +346,7 @@ export function AudioPlayerProvider({ children }: { children: React.ReactNode })
         setIsBuffering(false);
       }
     },
-    [rate, onStatusUpdate, flushListenTime, persistProgress, releasePlayer, applyAudioMode]
+    [onStatusUpdate, flushListenTime, persistProgress, releasePlayer, applyAudioMode]
   );
 
   const play = useCallback(async () => {
@@ -359,8 +369,13 @@ export function AudioPlayerProvider({ children }: { children: React.ReactNode })
   // Stop = full release, reset everything
   const stop = useCallback(async () => {
     try {
-      flushListenTime();
+      // Save the position BEFORE flushing: flushListenTime zeroes the position
+      // ref, and saving after it overwrote the listener's place with 0:00.
       await persistProgress(false);
+      flushListenTime();
+      // Forget the talk: flushListenTime zeroed the position, so any later
+      // persist (next load, backgrounding) would save 0:00 over its place.
+      listenSpeakerRef.current = null;
       releasePlayer();
       setCurrentSpeakerId(null);
       setIsLoaded(false);
@@ -396,6 +411,7 @@ export function AudioPlayerProvider({ children }: { children: React.ReactNode })
 
   const setRate = useCallback(async (newRate: number) => {
     setRateState(newRate);
+    if (!playerRef.current) pendingRateRef.current = newRate;
     try {
       playerRef.current?.setPlaybackRate(newRate, 'high');
     } catch (err) {
@@ -403,7 +419,8 @@ export function AudioPlayerProvider({ children }: { children: React.ReactNode })
     }
   }, []);
 
-  // Cleanup on unmount
+  // Cleanup on unmount. Every dep here must be identity-stable, or this runs
+  // mid-session and kills playback.
   useEffect(() => {
     return () => {
       void persistProgress(false);

@@ -4,7 +4,7 @@
 // Content is the existing constants/prayers.ts (unchanged). Custom prayers are
 // a separate net-new feature — not built here.
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { View, Text, ScrollView, Pressable, StyleSheet, BackHandler, useWindowDimensions } from 'react-native';
+import { View, Text, ScrollView, Pressable, StyleSheet, BackHandler, Alert, useWindowDimensions } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Stack, useRouter, useLocalSearchParams } from 'expo-router';
 import { ChevronRight, BookOpen, X, Plus, Pencil } from 'lucide-react-native';
@@ -53,9 +53,11 @@ function PrayerBody({ prayer }: { prayer: ReadPrayer }) {
     <>
       <View style={styles.readDivider} />
       {intro && <Text style={[styles.prayerPara, styles.prayerIntro, bodyType]}>{intro}</Text>}
-      {paras.map((para, i) => (
+      {/* Skip empty blocks: lifting the intro out can leave paras[0] empty,
+          and an empty paragraph still renders its full spacing as a gap. */}
+      {paras.map((para, i) => para.trim() ? (
         <Text key={i} style={[styles.prayerPara, bodyType]}>{para.trim()}</Text>
-      ))}
+      ) : null)}
       {prayer.source && (
         <View style={styles.sourceRow}>
           <BookOpen size={13} color={c.textMuted} strokeWidth={1.9} />
@@ -320,7 +322,13 @@ export default function PrayersScreen() {
           initialContent={sheet.prayer.content}
           canDelete
           onSave={(title, content) => { updatePrayer(sheet.prayer.id, title, content); setSheet(null); }}
-          onDelete={() => { removePrayer(sheet.prayer.id); setSheet(null); }}
+          onDelete={() => {
+            const { id, title } = sheet.prayer;
+            Alert.alert('Delete this prayer?', `“${title}” will be removed from My Prayers.`, [
+              { text: 'Cancel', style: 'cancel' },
+              { text: 'Delete', style: 'destructive', onPress: () => { removePrayer(id); setSheet(null); } },
+            ]);
+          }}
           onClose={() => setSheet(null)}
         />
       )}

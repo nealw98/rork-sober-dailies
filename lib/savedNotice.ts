@@ -20,7 +20,7 @@
 // means the user is going to read their entry, which is the wrong moment to
 // interrupt with a backup pitch; the nudge is one-time and self-guarding, so it
 // simply waits for a later save.
-import { Alert } from 'react-native';
+import { Alert, Platform } from 'react-native';
 import { router, type Href } from 'expo-router';
 import { maybePromptBackup } from './backupPrompt';
 
@@ -33,9 +33,12 @@ const JOURNEY: Href = '/(main)/(tabs)/journey' as Href;
 // (components/layout/PaneContext), and "back" there means closing the pane.
 export function confirmSaved(onDone?: () => void): void {
   // Title only — the sentence said nothing the title didn't (Neal, 2026-07-31).
+  // Android can't do title-only: RN always sends a message (empty → a blank
+  // gap under the title), so there the same words split into title + line.
+  const android = Platform.OS === 'android';
   Alert.alert(
-    'Saved to your Journal',
-    undefined,
+    android ? 'Saved' : 'Saved to your Journal',
+    android ? 'You’ll find it in your Journal.' : undefined,
     [
       {
         text: 'View',

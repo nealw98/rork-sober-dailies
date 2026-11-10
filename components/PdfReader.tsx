@@ -5,7 +5,7 @@
 // startPage + pdfPage - 1, and lets you bookmark the current page. Presented
 // full-screen in a Modal by the caller.
 import React, { useEffect, useRef, useState } from 'react';
-import { View, Text, Pressable, StyleSheet, ActivityIndicator, useWindowDimensions } from 'react-native';
+import { View, Text, Pressable, StyleSheet, ActivityIndicator, Platform, useWindowDimensions } from 'react-native';
 import { SafeAreaProvider, SafeAreaView, initialWindowMetrics } from 'react-native-safe-area-context';
 import { Asset } from 'expo-asset';
 import Pdf from 'react-native-pdf';
@@ -127,36 +127,50 @@ export default function PdfReader({
   // The chrome + PDF body, shared by both presentations. In the Modal the
   // chrome gets its own left/right SafeAreaView (the Modal sits outside
   // SideInsetGuard); embedded panes are already inside the guard.
+  const pageLabel = (
+    <Text style={styles.pageLabel}>{uri && startPage > 0 ? `Page ${bookPage}` : ' '}</Text>
+  );
+  const bookmarkBtn = (
+    <Pressable
+      onPress={onToggleBookmark}
+      disabled={!uri}
+      hitSlop={8}
+      style={[styles.bmBtn, marked ? { backgroundColor: accent, borderColor: accent } : { borderColor: c.border }]}
+      accessibilityRole="button"
+      accessibilityLabel={marked ? 'Remove bookmark' : 'Bookmark this page'}
+    >
+      <Bookmark size={14} color={marked ? '#fff' : accent} fill={marked ? '#fff' : 'transparent'} strokeWidth={2} />
+      <Text style={[styles.bmText, { color: marked ? '#fff' : accent }]}>{marked ? 'Saved' : 'Bookmark'}</Text>
+    </Pressable>
+  );
+
+  // Landscape is short: the page label + bookmark join the title row so the
+  // chrome is one line instead of eating a third of the screen.
   const chrome = (
           <>
-          <View style={styles.header}>
+          <View style={[styles.header, landscape && styles.headerLandscape]}>
             {!embedded && (
               <Pressable onPress={onClose} hitSlop={8} style={styles.backBtn} accessibilityRole="button" accessibilityLabel="Close">
                 <ChevronLeft size={22} color={c.text} strokeWidth={2} />
               </Pressable>
             )}
             <Text style={[styles.title, styles.flex]} numberOfLines={1}>{title}</Text>
+            {landscape && pageLabel}
+            {landscape && bookmarkBtn}
             {headerRight}
           </View>
 
           {/* Action row — live BOOK page + bookmark toggle */}
-          <View style={styles.actionRow}>
-            <Text style={styles.pageLabel}>{uri && startPage > 0 ? `Page ${bookPage}` : ' '}</Text>
-            <Pressable
-              onPress={onToggleBookmark}
-              disabled={!uri}
-              hitSlop={8}
-              style={[styles.bmBtn, marked ? { backgroundColor: accent, borderColor: accent } : { borderColor: c.border }]}
-              accessibilityRole="button"
-              accessibilityLabel={marked ? 'Remove bookmark' : 'Bookmark this page'}
-            >
-              <Bookmark size={14} color={marked ? '#fff' : accent} fill={marked ? '#fff' : 'transparent'} strokeWidth={2} />
-              <Text style={[styles.bmText, { color: marked ? '#fff' : accent }]}>{marked ? 'Saved' : 'Bookmark'}</Text>
-            </Pressable>
-          </View>
+          {!landscape && (
+            <View style={styles.actionRow}>
+              {pageLabel}
+              {bookmarkBtn}
+            </View>
+          )}
           </>
   );
 
+  const androidInvert = isDark && Platform.OS === 'android';
   const body = (
         <View style={styles.body}>
           {failed ? (
@@ -164,11 +178,19 @@ export default function PdfReader({
           ) : !uri ? (
             <ActivityIndicator color={accent} style={{ marginTop: 48 }} />
           ) : (
+            // The filter sits on a plain wrapper: the PDF's native view ignores
+            // it, but Android applies a View's filter to everything inside it.
+            <View style={[styles.pdf, androidInvert && styles.pdfInverted]} collapsable={false}>
             <Pdf
               ref={pdfRef}
               key={`${landscape ? 'landscape' : 'portrait'}-${isDark ? 'dark' : 'light'}`}
               source={{ uri, cache: true }}
-              nightMode={isDark}
+              // Android: the patched native nightMode never takes effect under
+              // the New Architecture (the page stays white — verified on an
+              // API-36 emulator), so dark mode inverts the view with a style
+              // filter on the wrapper instead. invert + hueRotate(180) flips
+              // light/dark while keeping hues. iOS keeps the native inversion.
+              nightMode={isDark && !androidInvert}
               // NO `page` prop here: passing it makes the native mount route
               // through goToDestination + a scale re-application that runs
               // before the fit scale settles, leaving landscape rendered at
@@ -183,12 +205,14 @@ export default function PdfReader({
                 // page's running header gets clipped under our header bar).
                 // A single setPage can lose the race against the view's own
                 // scroll-to-page-1 (which used to reset rotation to page 1),
-                // so re-assert until onPageChanged confirms it stuck.
+                // so re-assert until onPageChanged confirms it stuck. ~4s of
+                // retries: release builds on Android lost the race at 1.2s
+                // and the rotation landed back on the chapter's first page.
                 const target = restorePageRef.current;
                 if (target > 1) {
                   let attempts = 0;
                   const assertPage = () => {
-                    if (currentPageRef.current === target || attempts >= 8) { pendingRestoreRef.current = false; return; }
+                    if (currentPageRef.current === target || attempts >= 26) { pendingRestoreRef.current = false; return; }
                     attempts += 1;
                     pdfRef.current?.setPage(target);
                     setTimeout(assertPage, 150);
@@ -203,8 +227,9 @@ export default function PdfReader({
                 onPageSettled?.(p);
               }}
               onError={(e) => { console.warn('[pdf] render error', e); setFailed(true); }}
-              style={styles.pdf}
+              style={[styles.pdf, androidInvert && styles.pdfInvertedInner]}
             />
+            </View>
           )}
         </View>
   );
@@ -238,6 +263,7 @@ const makeStyles = (tk: Tokens) => {
   flex: { flex: 1, minWidth: 0 },
   // Header matches the Big Book text reader: back chevron + displayBold title.
   header: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 14, paddingTop: 8, paddingBottom: 10 },
+  headerLandscape: { gap: 14, paddingTop: 4, paddingBottom: 6, borderBottomWidth: 1, borderBottomColor: c.divider },
   backBtn: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center', backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.04)' },
   title: { fontFamily: fontFamily.displayBold, fontSize: 20, letterSpacing: -0.4, color: c.text },
 
@@ -247,6 +273,9 @@ const makeStyles = (tk: Tokens) => {
   bmText: { fontFamily: fontFamily.semiBold, fontSize: 12 },
 
   body: { flex: 1, backgroundColor: isDark ? c.background : '#E6E1D7' },
+  // White, so the invert filter renders it as the dark page background.
+  pdfInverted: { backgroundColor: '#FFFFFF', filter: [{ invert: 1 }, { hueRotate: '180deg' }] },
+  pdfInvertedInner: { backgroundColor: '#FFFFFF' },
   pdf: { flex: 1, width: '100%', height: '100%', backgroundColor: isDark ? c.background : '#E6E1D7' },
   msg: { fontFamily: fontFamily.regular, fontSize: 15, color: c.textMuted, textAlign: 'center', marginTop: 48 },
 });

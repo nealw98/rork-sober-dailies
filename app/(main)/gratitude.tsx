@@ -58,6 +58,25 @@ export default function GratitudeScreen() {
   const dirty = items.length > 0 && JSON.stringify(items) !== JSON.stringify(initialItems.current ?? []);
   const setVal = (i: number, v: string) => setVals((arr) => arr.map((x, j) => (j === i ? v : x)));
 
+  // The cursor always moves to the next OPEN item: the first empty field at or
+  // after `from` (wrapping to the top), or a new field when every one is
+  // filled. A newly added field is focused once it has rendered.
+  const inputRefs = useRef<(React.ComponentRef<typeof TextInput> | null)[]>([]);
+  const pendingFocus = useRef<number | null>(null);
+  const focusNextOpen = (from: number) => {
+    if (pendingFocus.current !== null) return; // an add is already in flight (Android can fire submit twice)
+    const order = [...vals.keys()].slice(from).concat([...vals.keys()].slice(0, from));
+    const open = order.find((i) => vals[i].trim() === '');
+    if (open !== undefined) { inputRefs.current[open]?.focus(); return; }
+    pendingFocus.current = vals.length;
+    setVals((v) => [...v, '']);
+  };
+  useEffect(() => {
+    if (pendingFocus.current === null) return;
+    inputRefs.current[pendingFocus.current]?.focus();
+    pendingFocus.current = null;
+  }, [vals.length]);
+
   const commit = () => {
     Keyboard.dismiss();
     if (dirty && gratitude) {
@@ -102,17 +121,22 @@ export default function GratitudeScreen() {
           {vals.map((val, i) => (
             <TextInput
               key={i}
+              ref={(el) => { inputRefs.current[i] = el; }}
               value={val}
               onChangeText={(t) => setVal(i, t)}
               placeholder={i === 0 ? 'e.g., My sobriety' : ''}
               placeholderTextColor={c.textMuted}
               style={[styles.field, i === 0 && val === '' ? styles.fieldItalic : null]}
               multiline
+              // Return moves on to the next open item instead of adding a line.
+              returnKeyType="next"
+              submitBehavior="submit"
+              onSubmitEditing={() => focusNextOpen(i + 1)}
               keyboardAppearance={isDark ? 'dark' : 'light'}
             />
           ))}
 
-          <Pressable onPress={() => setVals((v) => [...v, ''])} style={styles.addAnother} hitSlop={6}>
+          <Pressable onPress={() => focusNextOpen(0)} style={styles.addAnother} hitSlop={6}>
             <Plus size={16} color={colors.accentDark} strokeWidth={2.4} />
             <Text style={[styles.addAnotherText, { color: colors.accentDark }]}>Add another</Text>
           </Pressable>

@@ -672,7 +672,9 @@ const styles = StyleSheet.create({
   volKnob: { position: 'absolute', top: 8, width: 18, height: 18, borderRadius: 9, marginLeft: -9, backgroundColor: TH.ink },
 
   controls: { paddingHorizontal: 22, paddingBottom: 34, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 22 },
-  endBtn: { width: 60, height: 60, borderRadius: 30, borderWidth: 1, borderColor: TH.ghostBorder, backgroundColor: TH.glassBg, alignItems: 'center', justifyContent: 'center' },
+  // Dark scrim disc, not white glass: over bright scene photos (Sunrise) the
+  // white square on 12% white all but vanished.
+  endBtn: { width: 60, height: 60, borderRadius: 30, borderWidth: 1.5, borderColor: 'rgba(255,255,255,0.55)', backgroundColor: 'rgba(8,14,28,0.55)', alignItems: 'center', justifyContent: 'center' },
   stopSquare: { width: 16, height: 16, borderRadius: 3, backgroundColor: TH.ink },
   playBtn: { width: 86, height: 86, borderRadius: 43, backgroundColor: TH.primaryBg, alignItems: 'center', justifyContent: 'center' },
 

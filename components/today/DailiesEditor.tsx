@@ -8,7 +8,7 @@
 // Today passes the counter + hero; onboarding passes its title + intro card.
 // Reordering is react-native-sortables (draggable-flatlist died with RNGH 3).
 import React, { useMemo, useState, useCallback } from 'react';
-import { View, Text, Pressable, StyleSheet, type StyleProp, type ViewStyle } from 'react-native';
+import { View, Text, Pressable, StyleSheet, Alert, type StyleProp, type ViewStyle } from 'react-native';
 import Animated, { useAnimatedRef } from 'react-native-reanimated';
 import Sortable, { type SortableGridRenderItem } from 'react-native-sortables';
 import { Minus, Plus, Menu } from 'lucide-react-native';
@@ -143,7 +143,14 @@ export default function DailiesEditor({ header, headerAccessory, contentContaine
     return (
       <EditDailyRow
         item={row.item}
-        onRemove={() => dailies.removeDaily(row.item.id)}
+        onRemove={() =>
+          // Removal is immediate (no draft to cancel), so confirm like the
+          // journal and meeting deletes do.
+          Alert.alert(`Remove “${row.item.label}”?`, 'You can add it back any time from Edit.', [
+            { text: 'Cancel', style: 'cancel' },
+            { text: 'Remove', style: 'destructive', onPress: () => dailies.removeDaily(row.item.id) },
+          ])
+        }
       />
     );
   }, [c.text, colors.primary, dailies, styles]);

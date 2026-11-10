@@ -15,7 +15,7 @@ import { Plus, ChevronRight } from 'lucide-react-native';
 import BackButton from '@/components/BackButton';
 import { usePane } from '@/components/layout/PaneContext';
 import PaneExpandButton from '@/components/layout/PaneExpandButton';
-import { useContacts, normalizePhone, type Contact } from '@/hooks/use-contacts-store';
+import { useContacts, normalizePhone, formatPhone, type Contact } from '@/hooks/use-contacts-store';
 import { pickContact } from '@/lib/pickContact';
 import { fontFamily, shadows, type Tokens } from '@/constants/designTokens';
 import { useTokens, useThemedStyles } from '@/hooks/useTokens';
@@ -103,7 +103,7 @@ export default function ReachOutScreen() {
     showActionSheetWithOptions(
       {
         title: ct.name,
-        message: ct.phone || undefined,
+        message: ct.phone ? formatPhone(ct.phone) : undefined,
         options,
         destructiveButtonIndex: 2,
         cancelButtonIndex: 3,
@@ -152,7 +152,7 @@ export default function ReachOutScreen() {
 
       <Modal visible={showManual} transparent animationType="slide" onRequestClose={() => setShowManual(false)}>
         <KeyboardProvider>
-          <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.manualWrap}>
+          <KeyboardAvoidingView behavior="padding" style={styles.manualWrap}>
             <Pressable style={StyleSheet.absoluteFill} onPress={() => setShowManual(false)} accessibilityLabel="Close" />
             <SafeAreaView edges={['left', 'right']} style={styles.manualSheet}>
               <View style={styles.manualHead}>
@@ -207,7 +207,7 @@ function ContactRow({ ct, highlight, onPress }: { ct: Contact; highlight: boolea
       <View style={styles.avatar}><Text style={styles.avatarText}>{initial}</Text></View>
       <View style={styles.flex}>
         <Text style={styles.rowName} numberOfLines={1}>{ct.name}</Text>
-        {!!ct.phone && <Text style={styles.rowPhone} numberOfLines={1}>{ct.phone}</Text>}
+        {!!ct.phone && <Text style={styles.rowPhone} numberOfLines={1}>{formatPhone(ct.phone)}</Text>}
       </View>
       <ChevronRight size={18} color={c.textMuted} strokeWidth={2} />
     </Pressable>

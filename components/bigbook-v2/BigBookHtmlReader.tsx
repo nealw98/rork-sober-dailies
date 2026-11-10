@@ -867,7 +867,7 @@ export function BigBookHtmlReader({ visible, initialChapterId, scrollToPage, scr
               >
                 <Text style={styles.textSizeLabel}>aA</Text>
               </Pressable>
-              <Pressable onPress={handleBookmarkPress} hitSlop={6} style={[styles.bmBtn, { borderColor: isCurrentPageBookmarked ? ACCENT : c.border }]} accessibilityRole="button" accessibilityLabel="Bookmark this page">
+              <Pressable onPress={handleBookmarkPress} hitSlop={6} style={[styles.bmBtn, { borderColor: isCurrentPageBookmarked ? ACCENT : c.border }]} accessibilityRole="button" accessibilityLabel={isCurrentPageBookmarked ? 'Remove bookmark' : 'Bookmark this page'} accessibilityState={{ selected: isCurrentPageBookmarked }}>
                 <BookmarkIcon size={16} color={isCurrentPageBookmarked ? ACCENT_INK : c.textSecondary} fill={isCurrentPageBookmarked ? ACCENT : 'transparent'} strokeWidth={2} />
               </Pressable>
               {embedded && onExpand ? (

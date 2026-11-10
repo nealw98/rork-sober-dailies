@@ -16,6 +16,21 @@ export function normalizePhone(phone: string): string {
   return phone.replace(/[^+\d]/g, '');
 }
 
+// Display only — storage keeps what was entered/picked, and dialing goes
+// through normalizePhone. US/NANP numbers read as (555) 555-0101; anything
+// else (international, short codes, extensions) is shown untouched.
+export function formatPhone(phone: string): string {
+  const digits = phone.replace(/\D/g, '');
+  const hasPlus = phone.trim().startsWith('+');
+  if (!hasPlus && digits.length === 10) {
+    return `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6)}`;
+  }
+  if (digits.length === 11 && digits.startsWith('1') && (hasPlus || /^\s*1/.test(phone))) {
+    return `+1 (${digits.slice(1, 4)}) ${digits.slice(4, 7)}-${digits.slice(7)}`;
+  }
+  return phone;
+}
+
 export const [ContactsProvider, useContacts] = createContextHook(() => {
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [loaded, setLoaded] = useState(false);

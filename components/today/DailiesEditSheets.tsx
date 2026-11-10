@@ -185,7 +185,7 @@ export function CreateSheet({ section, onClose, onCreate }: { section: WhenBucke
   return (
     <Modal transparent visible animationType="slide" onRequestClose={onClose}>
       <KeyboardProvider>
-      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.sheetWrap}>
+      <KeyboardAvoidingView behavior="padding" style={styles.sheetWrap}>
         <SheetBackdrop onPress={onClose} />
         <SafeAreaView edges={['left', 'right']} style={styles.sheet}>
           <View style={styles.grabber} />

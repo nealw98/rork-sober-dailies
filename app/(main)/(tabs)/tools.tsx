@@ -5,6 +5,7 @@ import {
   Text,
   ScrollView,
   Pressable,
+  PixelRatio,
   useWindowDimensions,
 } from 'react-native';
 import { Image } from 'expo-image';
@@ -125,7 +126,7 @@ function AppTile({ app, color, width, onPress, isDark, styles }: {
 
 export default function ToolsScreen() {
   const router = useRouter();
-  const { width: screenW } = useWindowDimensions();
+  const { width: screenW, height: screenH } = useWindowDimensions();
   const insets = useSafeAreaInsets();
   // The window width isn't what this screen gets: the root SideInsetGuard pads
   // the Duo's side safe strip and expanded widths add the NavigationRail. Size
@@ -136,7 +137,10 @@ export default function ToolsScreen() {
   const { isDark, colors, c } = useTokens();
   useScreenTimeTracking('Tools');
 
-  const heroH = Math.round((availW - H_PAD * 2) * 0.55);
+  // Capped at 40% of the window height: on short, wide windows (an unfolded
+  // Pixel/Galaxy Fold held landscape) width × 0.55 filled the whole screen.
+  // Phones and the Duo sit well under the cap, so they're unchanged.
+  const heroH = Math.round(Math.min((availW - H_PAD * 2) * 0.55, screenH * 0.4));
 
   // Flagship tones: light keeps the tinted cards; dark goes neutral with a
   // solid family circle (steelFill carries white on dark — handoff).
@@ -148,9 +152,12 @@ export default function ToolsScreen() {
     : { bg: lighten(colors.tertiary, 0.56), circle: colors.tertiary };
 
   // 3-column grid: each tile's width fits three across the padded content with
-  // a CARD_GAP between. Exact division (no floor) so the row's outer edges stay
-  // flush with the hero and flagship cards.
-  const tileW = (availW - H_PAD * 2 - CARD_GAP * 2) / 3;
+  // a CARD_GAP between. Floored to a whole device pixel, not a whole point:
+  // the row's outer edges stay flush with the hero and flagship cards (within
+  // a pixel), but Android's pixel snapping can't round three tiles past the
+  // row width and wrap the grid to two across at fractional densities.
+  const pr = PixelRatio.get();
+  const tileW = Math.floor(((availW - H_PAD * 2 - CARD_GAP * 2) / 3) * pr) / pr;
 
   return (
     <SafeAreaView

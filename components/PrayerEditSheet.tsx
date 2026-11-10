@@ -36,7 +36,7 @@ export function PrayerEditSheet({
   return (
     <Modal transparent visible animationType="slide" onRequestClose={onClose}>
       <KeyboardProvider>
-      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.wrap}>
+      <KeyboardAvoidingView behavior="padding" style={styles.wrap}>
         <Pressable style={StyleSheet.absoluteFill} onPress={onClose} accessibilityLabel="Close" />
         {/* edges left/right: native Modals escape the root SideInsetGuard, so
             the sheet pads the Duo's side safe strips itself. */}

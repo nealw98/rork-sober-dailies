@@ -119,6 +119,7 @@
       ],
       "expo-secure-store",
       "./plugins/withModularHeaders.js",
+      "./plugins/withFontScaleConfigChange.js",
       [
         "react-native-cloud-storage",
         {

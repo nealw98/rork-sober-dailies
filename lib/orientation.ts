@@ -50,6 +50,11 @@ let ScreenOrientation: any = null;
 try { ScreenOrientation = require('expo-screen-orientation'); } catch {}
 
 const TABLET_MIN_DIM = 600;
+// The landscape steer and cover release below exist only for iOS's Duo
+// fold-handoff bugs. Android foldables rotate correctly on their own (and
+// Android 16 ignores orientation locks on large screens anyway), so on
+// Android the rule is simply: phone-class → portrait, tablet-class → free.
+const IOS = Platform.OS === 'ios';
 
 // --- Field diagnostics (Neal, 2026-11-06: fold handoff still intermittent on
 // hardware; the sim can't fold, so the device itself must tell us what it
@@ -77,7 +82,9 @@ function diag(step: string, extra?: Record<string, unknown>): void {
     ...extra,
   };
   try { console.log('[orientation]', JSON.stringify(props)); } catch {}
-  if (!DIAG_TOKEN) return;
+  // The Duo is the only device this telemetry is for; Android foldables
+  // would only add noise to the Mixpanel stream.
+  if (!DIAG_TOKEN || !IOS) return;
   try {
     fetch('https://api.mixpanel.com/track', {
       method: 'POST',
@@ -197,7 +204,7 @@ export async function applyDisplayOrientationRule(trigger?: unknown): Promise<vo
       await ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP);
       return;
     }
-    if (prev === 'phone') {
+    if (prev === 'phone' && IOS) {
       // The cover→inner handoff: open the steer window and start nudging.
       steerUntil = Date.now() + STEER_WINDOW_MS;
       diag('apply_handoff', { trig });
@@ -261,7 +268,7 @@ export function watchDisplayOrientationRule(): void {
     // So release the hold on the way out; the rule re-locks portrait the
     // moment the app is active on a phone-class display again. Scoped to
     // the cover's distinctive size so ordinary iPhones keep their lock.
-    if ((s === 'inactive' || s === 'background') && looksLikeDuoCover() && !suspended && ScreenOrientation) {
+    if (IOS && (s === 'inactive' || s === 'background') && looksLikeDuoCover() && !suspended && ScreenOrientation) {
       diag('cover_release', { appstate: s });
       ScreenOrientation.unlockAsync().catch(() => {});
     }
