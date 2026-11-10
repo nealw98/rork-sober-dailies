@@ -5,7 +5,7 @@
 // iOS, Gelasio on Android) at a fixed 16pt. Opens with a centered brand hero
 // (app logo → wordmark → tagline).
 import React from 'react';
-import { View, Text, StyleSheet, ScrollView, Pressable } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Pressable, Platform } from 'react-native';
 import { Image } from 'expo-image';
 import { Stack, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -32,9 +32,10 @@ export default function AboutScreen() {
       <Stack.Screen options={{ headerShown: false }} />
 
       {/* Top bar — this screen is a modal, so the affordance is an X "close"
-          button (swipe-down also dismisses on iOS), not a back arrow.
-          Placement matches the tool pages' ToolHeader (insets.top + 8). */}
-      <View style={[styles.topBar, { paddingTop: insets.top + 8 }]}>
+          button (swipe-down also dismisses on iOS), not a back arrow. On iOS
+          the modal is a page sheet that already starts below the status bar,
+          so adding insets.top there doubled the gap; Android's is full-screen. */}
+      <View style={[styles.topBar, { paddingTop: Platform.OS === 'ios' ? 16 : insets.top + 8 }]}>
         <Pressable
           onPress={() => router.back()}
           hitSlop={8}
@@ -48,7 +49,7 @@ export default function AboutScreen() {
 
       <ScrollView
         style={styles.flex}
-        contentContainerStyle={[styles.scroll, { paddingBottom: insets.bottom + 40 }]}
+        contentContainerStyle={[styles.scroll, { paddingBottom: insets.bottom + 80 }]}
         showsVerticalScrollIndicator={false}
       >
         {/* Brand hero */}
@@ -86,7 +87,9 @@ const makeStyles = (tk: Tokens) => {
       borderColor: isDark ? 'rgba(255,255,255,0.16)' : c.border,
     },
 
-    scroll: { paddingHorizontal: 22, paddingTop: 8 },
+    // Short page: center it in the sheet (biased up by the larger bottom
+    // padding) rather than leaving the lower half empty.
+    scroll: { flexGrow: 1, justifyContent: 'center', paddingHorizontal: 22, paddingTop: 8 },
 
     // Centered brand hero
     hero: { alignItems: 'center', paddingTop: 12, paddingBottom: 28 },

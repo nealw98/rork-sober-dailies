@@ -20,12 +20,13 @@ const SWITCHERS = SELECTION_SPONSOR_IDS
   .filter(Boolean) as SponsorConfig[];
 
 export function SponsorSwitchSheet({
-  current, onSelect, onClose, top, showMeetAllThree = false,
+  current, onSelect, onClose, top, left = 14, showMeetAllThree = false,
 }: {
   current: SponsorType | string;
   onSelect: (id: SponsorType) => void;
   onClose: () => void;
   top: number; // vertical offset for the panel (callers' headers differ)
+  left?: number; // horizontal offset, for headers centered in a reading column
   showMeetAllThree?: boolean;
 }) {
   const router = useRouter();
@@ -36,7 +37,7 @@ export function SponsorSwitchSheet({
   return (
     <>
       <Pressable style={styles.ddBackdrop} onPress={onClose} />
-      <View style={[styles.dropdown, { top }]}>
+      <View style={[styles.dropdown, { top, left }]}>
         <Text style={styles.ddHead}>SWITCH SPONSOR</Text>
         {SWITCHERS.map((sp) => {
           const isCurrent = sp.id === current;
@@ -67,7 +68,7 @@ const makeStyles = (tk: Tokens) => {
   const hairline = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(26,26,46,0.06)';
   return StyleSheet.create({
     ddBackdrop: { ...StyleSheet.absoluteFill, zIndex: 20 },
-    dropdown: { position: 'absolute', left: 14, width: 232, zIndex: 30, backgroundColor: isDark ? c.surfaceRaised : c.surface, borderRadius: 16, borderWidth: 1, borderColor: hairline, padding: 6, ...shadows.lg },
+    dropdown: { position: 'absolute', width: 232, zIndex: 30, backgroundColor: isDark ? c.surfaceRaised : c.surface, borderRadius: 16, borderWidth: 1, borderColor: hairline, padding: 6, ...shadows.lg },
     ddHead: { fontFamily: fontFamily.bold, fontSize: 10, letterSpacing: 1, color: c.textMuted, paddingHorizontal: 10, paddingTop: 8, paddingBottom: 6 },
     ddRow: { flexDirection: 'row', alignItems: 'center', gap: 10, padding: 8, borderRadius: 11 },
     ddAvatar: { width: 34, height: 34, borderRadius: 17, borderWidth: 2, borderColor: isDark ? 'rgba(255,255,255,0.18)' : '#fff' },

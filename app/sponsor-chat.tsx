@@ -126,6 +126,9 @@ function SponsorChatContent({ initialSponsor }: { initialSponsor: string }) {
   const [isCheckingLimits, setIsCheckingLimits] = useState(false);
   const [sizeSheetOpen, setSizeSheetOpen] = useState(false);
   const [switchOpen, setSwitchOpen] = useState(false);
+  // Where the header's centered column starts (the header's 14pt padding on
+  // phones), so the switch menu opens under the sponsor's name.
+  const [columnX, setColumnX] = useState(14);
   const listRef = useRef<FlatList>(null);
 
   const { setLastSponsor } = useLastSponsor();
@@ -209,6 +212,9 @@ function SponsorChatContent({ initialSponsor }: { initialSponsor: string }) {
 
       {/* ── Header ── */}
       <View style={[styles.header, { paddingTop: insets.top + 6 }]}>
+        {/* Same centered column as the conversation below, so on wide screens
+            the identity and actions line up with the messages. */}
+        <ReadingColumn onLayout={(e) => setColumnX(e.nativeEvent.layout.x)}>
         {!pane && <BackButton onPress={exitChat} style={{ marginBottom: 10 }} />}
         <View style={styles.sponsorRow}>
           {/* The identity IS the switch affordance — tap the avatar/name (chevron
@@ -234,6 +240,7 @@ function SponsorChatContent({ initialSponsor }: { initialSponsor: string }) {
             <PaneExpandButton />
           </View>
         </View>
+        </ReadingColumn>
       </View>
 
       {/* ── Switch dropdown (opened from the sponsor identity) ── */}
@@ -243,6 +250,7 @@ function SponsorChatContent({ initialSponsor }: { initialSponsor: string }) {
           onSelect={onSwitch}
           onClose={() => setSwitchOpen(false)}
           top={insets.top + 96}
+          left={columnX}
           showMeetAllThree
         />
       )}

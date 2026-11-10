@@ -27,7 +27,7 @@ import { getSponsorById } from '@/constants/sponsors';
 import type { SpotCheckEntry } from '@/types/spotCheck';
 import type { SpotRecordPatch } from '@/hooks/use-notebook';
 import { NIGHTLY_QUESTIONS } from '@/constants/nightlyQuestions';
-import { parseLocalDate } from '@/lib/dateUtils';
+import { parseLocalDate, calculateDaysBetween } from '@/lib/dateUtils';
 import { useScreenTimeTracking } from '@/hooks/useScreenTimeTracking';
 import SettingsGear from '@/components/navigation/SettingsGear';
 import PassItOnGift from '@/components/navigation/PassItOnGift';
@@ -92,10 +92,13 @@ function dateLabel(key: string, todayKey: string): string {
   if (diff === 1) return `Yesterday, ${md}`;
   return `${d.toLocaleDateString('en-US', { weekday: 'long' })}, ${md}`;
 }
-function dayNFor(key: string, sobrietyDate: string | null): number | null {
+// Days sober as of that day — the same count Today shows (the sobriety date
+// itself is 0). Null before the sobriety date.
+function daysSoberOn(key: string, sobrietyDate: string | null): number | null {
   if (!sobrietyDate) return null;
-  const diff = Math.floor((startOfDay(keyToDate(key)).getTime() - startOfDay(parseLocalDate(sobrietyDate)).getTime()) / 86400000);
-  return diff >= 0 ? diff + 1 : null;
+  const day = keyToDate(key);
+  if (startOfDay(day) < startOfDay(parseLocalDate(sobrietyDate))) return null;
+  return calculateDaysBetween(sobrietyDate, day);
 }
 function timeLabel(ts: number): string { return new Date(ts).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }); }
 function fmtMeditated(sec: number): string {
@@ -144,7 +147,7 @@ function buildShareText(entry: NotebookEntry): string {
   return body ? `${header}\n\n${body}` : header;
 }
 
-type DayBlockData = { key: string; label: string; dayN: number | null; done: number; total: number; isToday: boolean; isYesterday: boolean; entries: NotebookEntry[]; medSeconds: number };
+type DayBlockData = { key: string; label: string; daysSober: number | null; done: number; total: number; isToday: boolean; isYesterday: boolean; entries: NotebookEntry[]; medSeconds: number };
 type MorphTarget = { kind: 'entry'; entry: NotebookEntry } | { kind: 'day'; day: DayBlockData };
 
 export default function JourneyScreen() {
@@ -255,7 +258,7 @@ export default function JourneyScreen() {
         const total = isToday ? dailies.totalCount : (card?.total ?? dailies.program.length + 1);
         const rawDone = (card?.reflection ? 1 : 0) + (card?.done.length ?? 0);
         const done = isToday ? dailies.doneCount : Math.min(rawDone, total);
-        return { key: k, label: dateLabel(k, todayKey), dayN: dayNFor(k, sobrietyDate ?? null), done, total, isToday, isYesterday: k === yesterdayKey, entries: byDay.get(k) ?? [], medSeconds: medByDate[k] ?? 0 };
+        return { key: k, label: dateLabel(k, todayKey), daysSober: daysSoberOn(k, sobrietyDate ?? null), done, total, isToday, isYesterday: k === yesterdayKey, entries: byDay.get(k) ?? [], medSeconds: medByDate[k] ?? 0 };
       })
       .filter((d) => d.isToday || d.isYesterday || d.entries.length > 0 || d.done > 0 || d.medSeconds > 0);
   }, [entries, completion, todayKey, dailies.doneCount, dailies.totalCount, dailies.program, sobrietyDate, medByDate]);
@@ -394,7 +397,7 @@ function DayBlock({ day, onOpenDay, onOpenEntry }: { day: DayBlockData; onOpenDa
       <View style={styles.dayHead}>
         <View style={styles.dayNode} />
         <Text style={styles.dayDate}>{day.label}</Text>
-        {day.dayN != null && <Text style={styles.dayN}>Day {day.dayN}</Text>}
+        {day.daysSober != null && <Text style={styles.dayN}>{day.daysSober.toLocaleString()} {day.daysSober === 1 ? 'day' : 'days'}</Text>}
       </View>
       <View style={styles.cards}>
         {/* Past days with nothing recorded don't get a "0 of N done" card — a

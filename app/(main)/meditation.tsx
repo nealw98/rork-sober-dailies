@@ -469,8 +469,8 @@ export default function MeditationScreen() {
             {firstTime && !hintDismissed && (
               <View style={styles.hint}>
                 <View style={{ flex: 1 }}>
-                  <Text style={styles.hintTitle}>Using the built-in timer</Text>
-                  <Text style={styles.hintBody}>A calm photo timer with placeholder soundtracks. More options later.</Text>
+                  <Text style={styles.hintTitle}>How the timer works</Text>
+                  <Text style={styles.hintBody}>Pick a length and a scene, then tap Begin. Each scene has its own quiet soundscape, and your sit is marked done on Today.</Text>
                 </View>
                 <Pressable onPress={() => setHintDismissed(true)} hitSlop={8}>
                   <X size={15} color={TH.ink2} />

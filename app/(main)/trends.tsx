@@ -198,7 +198,7 @@ export function TrendsView({ embedded = false }: { embedded?: boolean }) {
           <InsightRow label="Strongest day of the week" value={insights.strongestWeekday ?? '—'} />
           <InsightRow label="Strongest section" value={insights.strongestSection ?? '—'} />
           <InsightRow label="Most active month" value={insights.mostActiveMonth ?? '—'} />
-          <InsightRow label="Longest streak ever" value={insights.longest.days > 0 ? `${insights.longest.label} · ${insights.longest.days} days` : '—'} />
+          <InsightRow label="Longest streak ever" value={insights.longest.days > 0 ? `${insights.longest.label} · ${insights.longest.days} ${insights.longest.days === 1 ? 'day' : 'days'}` : '—'} />
           <InsightRow label="Average completion rate" value={`${insights.completionRate}%`} last />
         </View>
       </ScrollView>

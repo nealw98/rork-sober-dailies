@@ -271,27 +271,6 @@ export default function SpeakersScreen() {
 
   const ListHeader = (
     <View>
-      {searchOpen && (
-        <View style={styles.searchWrap}>
-          <View style={styles.searchBar}>
-            <Search size={16} color={c.textMuted} />
-            <TextInput
-              autoFocus
-              value={q}
-              onChangeText={setQ}
-              placeholder="Search speakers, topics…"
-              placeholderTextColor={c.textMuted}
-              style={styles.searchInput}
-              autoCorrect={false}
-              autoCapitalize="none"
-              returnKeyType="search"
-              keyboardAppearance={isDark ? 'dark' : 'light'}
-            />
-            {q ? <Pressable hitSlop={8} onPress={() => setQ('')}><X size={15} color={c.textMuted} strokeWidth={2.2} /></Pressable> : null}
-          </View>
-        </View>
-      )}
-
       <View style={styles.filterRow}>
         {(['All', 'Saved', 'Offline'] as Filter[]).map((f) => {
           const on = filter === f;
@@ -327,7 +306,7 @@ export default function SpeakersScreen() {
   // on the wide spread.
   const listColumn = (
     <SafeAreaView style={styles.screen} edges={['top']}>
-      <View style={styles.header}>
+      <View style={[styles.header, searchOpen && styles.headerSearching]}>
         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
           <BackButton onPress={goBack} />
           <PaneExpandButton />
@@ -338,6 +317,28 @@ export default function SpeakersScreen() {
             <Search size={17} color={searchOpen ? (isDark ? '#0B0C0E' : '#fff') : c.textSecondary} />
           </Pressable>
         </View>
+        {/* In the fixed header, not the list: an autofocused field inside the
+            FlatList got scrolled ~17pt when the keyboard rose, clipping its top. */}
+        {searchOpen && (
+          <View style={styles.searchWrap}>
+            <View style={styles.searchBar}>
+              <Search size={16} color={c.textMuted} />
+              <TextInput
+                autoFocus
+                value={q}
+                onChangeText={setQ}
+                placeholder="Search speakers, topics…"
+                placeholderTextColor={c.textMuted}
+                style={styles.searchInput}
+                autoCorrect={false}
+                autoCapitalize="none"
+                returnKeyType="search"
+                keyboardAppearance={isDark ? 'dark' : 'light'}
+              />
+              {q ? <Pressable hitSlop={8} onPress={() => setQ('')}><X size={15} color={c.textMuted} strokeWidth={2.2} /></Pressable> : null}
+            </View>
+          </View>
+        )}
       </View>
 
       {isLoading ? (
@@ -459,7 +460,9 @@ const makeStyles = (tk: Tokens) => {
   listContentPlaying: { paddingBottom: 230 },
 
   // search
-  searchWrap: { paddingTop: 6, paddingBottom: 2 },
+  headerSearching: { paddingBottom: 6 },
+  // Out by 6 so the field lines up with the filter chips and cards (16pt).
+  searchWrap: { marginTop: 14, marginHorizontal: -6 },
   searchBar: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 14, paddingVertical: 10, borderRadius: 12, backgroundColor: c.surface, borderWidth: 1, borderColor: c.border, ...darkCard },
   searchInput: { flex: 1, fontFamily: fontFamily.regular, fontSize: 14, color: c.text, padding: 0 },
 
@@ -474,7 +477,9 @@ const makeStyles = (tk: Tokens) => {
   // featured hero — solid steel fill carrying white (steelFill.dark on dark)
   featuredWrap: { marginTop: 14 },
   featuredCard: { borderRadius: 20, overflow: 'hidden', paddingTop: 16, ...shadows.lg, shadowColor: isDark ? '#000' : sp.fill },
-  featuredTop: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', gap: 12, paddingHorizontal: 20 },
+  // Wraps: in the unfolded Duo's narrow list pane the place · date line drops
+  // under the eyebrow instead of running off the card.
+  featuredTop: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'baseline', justifyContent: 'space-between', columnGap: 12, rowGap: 4, paddingHorizontal: 20 },
   featuredEyebrow: { fontFamily: fontFamily.bold, fontSize: 10, letterSpacing: 1.6, color: 'rgba(255,255,255,0.92)' },
   featuredMeta: { fontFamily: fontFamily.semiBold, fontSize: 9.5, letterSpacing: 1, color: 'rgba(255,255,255,0.7)', textTransform: 'uppercase' },
   featuredQuote: { fontFamily: fontFamily.serifItalic, fontSize: 20, lineHeight: 27, color: '#fff', paddingHorizontal: 20, paddingTop: 10, paddingBottom: 14 },
