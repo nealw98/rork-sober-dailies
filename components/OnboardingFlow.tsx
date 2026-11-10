@@ -24,7 +24,7 @@ import { ONBOARDING_MAX_WIDTH, OnboardingColumn, TOUR_MAX_FONT_SCALE } from '@/c
 import CounterStep from '@/components/onboarding/CounterStep';
 import { toDateInput } from '@/lib/soberDateInput';
 import ReflectionStep from '@/components/onboarding/ReflectionStep';
-import { ReadListenStep, TalkPracticeStep } from '@/components/onboarding/ToolsSteps';
+import { ReadListenStep, TalkPracticeStep, ProgramStep } from '@/components/onboarding/ToolsSteps';
 
 // App-icon gradient → interior bridge (prototype `obvGrad`). t=0 = vivid app icon,
 // t=1 = muted interior. Onboarding stays icon-leaning (the retiring teal header
@@ -304,18 +304,18 @@ export function DisclaimerStep({ onAgree }: { onAgree: () => void | Promise<void
 // still comes before the paywall so nobody is charged before agreeing to what
 // the app is. There is no setup after the paywall any more: the program is
 // already the six defaults, and Today introduces Edit with a one-time tip.
-type Step = 'welcome' | 'counter' | 'reflection' | 'read_listen' | 'talk_practice' | 'disclaimer' | 'paywall';
+type Step = 'welcome' | 'counter' | 'reflection' | 'read_listen' | 'talk_practice' | 'program' | 'disclaimer' | 'paywall';
 
 // Funnel position for `onboarding_step`. Fixed per step rather than counted, so
 // a member (no paywall) and a new user report the same index for the same
 // screen and the two funnels line up in Mixpanel.
 const STEP_INDEX: Record<Step, number> = {
-  welcome: 0, counter: 1, reflection: 2, read_listen: 3, talk_practice: 4, disclaimer: 5, paywall: 6,
+  welcome: 0, counter: 1, reflection: 2, read_listen: 3, talk_practice: 4, program: 5, disclaimer: 6, paywall: 7,
 };
 // Where back goes — always the screen before in the tour, even when Skip
 // jumped past it. Welcome, the paywall and everything after have no back.
 const PREV_STEP: Partial<Record<Step, Step>> = {
-  counter: 'welcome', reflection: 'counter', read_listen: 'reflection', talk_practice: 'read_listen', disclaimer: 'talk_practice',
+  counter: 'welcome', reflection: 'counter', read_listen: 'reflection', talk_practice: 'read_listen', program: 'talk_practice', disclaimer: 'program',
 };
 // iPhone swipe-back: a drag that starts this close to the left edge and
 // travels this far (or flicks) goes back a step.
@@ -323,7 +323,7 @@ const EDGE_WIDTH = 24;
 const SWIPE_DISTANCE = 70;
 // Tags every onboarding event so this flow and the carousel one it replaced
 // can be compared side by side.
-const FLOW_VERSION = 'v2_tools';
+const FLOW_VERSION = 'v3_program';
 // Read by Today: show the one-time "Edit your dailies" tip after this flow.
 // Only this flow sets it, so people already past onboarding never see the tip.
 export const TODAY_TIP_PENDING_KEY = 'today_edit_tip_pending';
@@ -466,7 +466,8 @@ export default function OnboardingFlow({
     }
     if (step === 'reflection') return <ReflectionStep onContinue={() => go('read_listen')} onSkip={skipTour} onBack={() => back('button')} />;
     if (step === 'read_listen') return <ReadListenStep onContinue={() => go('talk_practice')} onSkip={skipTour} onBack={() => back('button')} />;
-    if (step === 'talk_practice') return <TalkPracticeStep onContinue={() => go('disclaimer')} onSkip={skipTour} onBack={() => back('button')} />;
+    if (step === 'talk_practice') return <TalkPracticeStep onContinue={() => go('program')} onSkip={skipTour} onBack={() => back('button')} />;
+    if (step === 'program') return <ProgramStep onContinue={() => go('disclaimer')} onSkip={skipTour} onBack={() => back('button')} />;
     if (step === 'disclaimer') {
       // Before the paywall: agreeing to what this app is and isn't shouldn't come
       // after we've taken the money. DisclaimerStep records acceptance itself.

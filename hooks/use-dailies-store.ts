@@ -104,7 +104,7 @@ export const DEFAULT_PROGRAM: DailyItem[] = [
 // A daily's tone is derived from its ACTION (the canonical family assignment),
 // so saved programs re-tint to the current palette after a re-theme — older
 // installs never keep stale colors. Custom dailies keep their own tone.
-const ACTION_TONE: Record<string, string> = {
+export const ACTION_TONE: Record<string, string> = {
   prayerMorning: 'terracotta',
   gratitude: 'terracotta',
   spotcheck: 'terracotta',

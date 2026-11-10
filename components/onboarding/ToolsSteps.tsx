@@ -4,12 +4,14 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { StatusBar } from 'expo-status-bar';
 import { Image } from 'expo-image';
-import { CircleCheck, Heart } from 'lucide-react-native';
+import { Check, ChevronRight, CircleCheck, Heart } from 'lucide-react-native';
 import { HandsPraying } from 'phosphor-react-native';
 
-import { colors as lightColors, fontFamily, fontSize, type Tokens } from '@/constants/designTokens';
+import { colors as lightColors, fontFamily, fontSize, shadows, type Tokens } from '@/constants/designTokens';
 import { useTokens, useThemedStyles } from '@/hooks/useTokens';
 import { SPONSORS } from '@/constants/sponsors';
+import { DEFAULT_PROGRAM, ACTION_TONE, type WhenBucket } from '@/hooks/use-dailies-store';
+import { resolveGlyph, resolveTone } from '@/components/dailyTokens';
 import { OnboardingColumn, PrimaryButton, TourProgress, TOUR_MAX_FONT_SCALE } from '@/components/onboarding/OnboardingChrome';
 
 // R4 · Read & listen and R5 · Talk & practice — static previews of the tools
@@ -36,6 +38,11 @@ const SAMPLE_REPLY = 'Yeah, that’s tough — some days just feel heavy. Tell m
 const SPREAD_MIN_WIDTH = 800;
 const SPREAD_MAX_WIDTH = 860;
 
+function useTourSpread() {
+  const { width, height } = useWindowDimensions();
+  return width > height && width >= SPREAD_MIN_WIDTH;
+}
+
 function TourScreen({ index, overline, overlineColor, title, children, gap, footnote, buttonLabel, onContinue, onSkip, onBack }: {
   index: number;
   overline?: string;
@@ -51,8 +58,7 @@ function TourScreen({ index, overline, overlineColor, title, children, gap, foot
 }) {
   const styles = useThemedStyles(makeStyles);
   const { isDark } = useTokens();
-  const { width, height } = useWindowDimensions();
-  const spread = width > height && width >= SPREAD_MIN_WIDTH;
+  const spread = useTourSpread();
   return (
     <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
       <StatusBar style={isDark ? 'light' : 'dark'} />
@@ -224,6 +230,95 @@ export function TalkPracticeStep({ onContinue, onSkip, onBack }: { onContinue: (
   );
 }
 
+// R5b · Your daily program — the default dailies as a Today-style card, each
+// row naming the tool it opens. A still of a day in progress (the two Morning
+// rows done): it shows DEFAULT_PROGRAM, never the user's saved program.
+const PROGRAM_SECTIONS: WhenBucket[] = ['Morning', 'Anytime', 'Evening'];
+const DONE_IN_PREVIEW: WhenBucket = 'Morning';
+// The tool each default daily opens from Today (ACTION_ROUTE in the Today tab).
+// Meetings opens on the Meeting Guide finder, hence "Meeting finder".
+const OPENS: Record<string, string> = {
+  prayerMorning: 'Prayers',
+  gratitude: 'Gratitude',
+  meeting: 'Meeting finder',
+  lit: 'the Big Book reader',
+  nightly: 'Nightly Review',
+  prayerEvening: 'Prayers',
+};
+
+export function ProgramStep({ onContinue, onSkip, onBack }: { onContinue: () => void; onSkip: () => void; onBack: () => void }) {
+  const styles = useThemedStyles(makeStyles);
+  const { colors, mode } = useTokens();
+  const spread = useTourSpread();
+
+  const intro = (
+    <Text maxFontSizeMultiplier={TOUR_MAX_FONT_SCALE} style={styles.programBody}>
+      Pick the daily practices that fit your recovery. Each one opens the tool you need, right from your Today page.
+    </Text>
+  );
+  const note = (
+    <Text maxFontSizeMultiplier={TOUR_MAX_FONT_SCALE} style={[styles.programNote, spread && styles.programNoteSide]}>
+      We&apos;ll start you with these six. Add, remove or reorder any time.
+    </Text>
+  );
+  const card = (
+    <View style={styles.programCard}>
+      {PROGRAM_SECTIONS.map((when) => (
+        <View key={when}>
+          <Text maxFontSizeMultiplier={TOUR_MAX_FONT_SCALE} style={styles.programSection}>{when}</Text>
+          {DEFAULT_PROGRAM.filter((d) => d.when === when).map((d, i) => {
+            // Tinted by action, as Today does (the stored color can be stale).
+            const tone = resolveTone(ACTION_TONE[d.action] ?? d.color, mode);
+            const Glyph = resolveGlyph(d.icon);
+            const done = when === DONE_IN_PREVIEW;
+            return (
+              <View key={d.id} style={[styles.programRow, i > 0 && styles.programRowDivider]}>
+                <View style={[styles.programIcon, { backgroundColor: tone.soft }]}>
+                  <Glyph size={17} color={tone.ink} />
+                </View>
+                <View style={styles.flex}>
+                  <Text maxFontSizeMultiplier={TOUR_MAX_FONT_SCALE} style={styles.programLabel}>{d.label}</Text>
+                  <View style={styles.programOpens}>
+                    <Text maxFontSizeMultiplier={TOUR_MAX_FONT_SCALE} style={[styles.programOpensText, { color: tone.ink }]}>Opens {OPENS[d.action] ?? 'the tool'}</Text>
+                    <ChevronRight size={11} color={tone.ink} strokeWidth={2.6} />
+                  </View>
+                </View>
+                {done ? (
+                  <View style={[styles.programCheck, { backgroundColor: colors.primary }]}>
+                    <Check size={14} color="#fff" strokeWidth={3.2} />
+                  </View>
+                ) : (
+                  <View style={[styles.programCheck, styles.programCheckTodo]} />
+                )}
+              </View>
+            );
+          })}
+        </View>
+      ))}
+    </View>
+  );
+
+  return (
+    <TourScreen
+      index={4}
+      overline="YOUR DAILY PROGRAM"
+      overlineColor={colors.primaryDark}
+      title="Put it all together, one day at a time"
+      buttonLabel="Start my program"
+      onContinue={onContinue}
+      onSkip={onSkip}
+      onBack={onBack}
+    >
+      {/* Wide spread: the intro beside the card. Stacked: intro, card, note. */}
+      {spread ? (
+        [<View key="intro">{intro}{note}</View>, <View key="card">{card}</View>]
+      ) : (
+        <View>{intro}{card}{note}</View>
+      )}
+    </TourScreen>
+  );
+}
+
 const makeStyles = (tk: Tokens) => {
   const { c, colors, isDark } = tk;
   const cardEdge = isDark ? { borderWidth: 1, borderColor: c.border } : null;
@@ -285,5 +380,21 @@ const makeStyles = (tk: Tokens) => {
     meditationCard: { minHeight: 78, borderRadius: 18, overflow: 'hidden', backgroundColor: colors.primary, justifyContent: 'center' },
     meditationText: { paddingVertical: 14, paddingLeft: 16, paddingRight: 90 },
     meditationTitle: { fontFamily: fontFamily.displayBold, fontSize: 17, color: '#fff' },
+
+    // Your daily program
+    programBody: { fontFamily: fontFamily.regular, fontSize: 14.5, lineHeight: 21, color: c.textSecondary, marginTop: -10, marginBottom: 16 },
+    programCard: { backgroundColor: c.surface, borderWidth: 1, borderColor: c.border, borderRadius: 22, paddingHorizontal: 14, paddingTop: 6, paddingBottom: 10, ...shadows.md },
+    programSection: { fontFamily: fontFamily.semiBold, fontSize: 14, color: c.textSecondary, paddingTop: 8, paddingBottom: 4, paddingHorizontal: 2 },
+    programRow: { flexDirection: 'row', alignItems: 'center', gap: 11, paddingVertical: 5 },
+    programRowDivider: { borderTopWidth: 1, borderTopColor: c.divider },
+    programIcon: { width: 36, height: 36, borderRadius: 11, alignItems: 'center', justifyContent: 'center' },
+    programLabel: { fontFamily: fontFamily.semiBold, fontSize: 14, lineHeight: 18, color: c.text },
+    programOpens: { flexDirection: 'row', alignItems: 'center', gap: 3, marginTop: 2 },
+    programOpensText: { fontFamily: fontFamily.semiBold, fontSize: 11.5 },
+    programCheck: { width: 26, height: 26, borderRadius: 13, alignItems: 'center', justifyContent: 'center' },
+    programCheckTodo: { borderWidth: 2, borderColor: colors.primary + '55' },
+    programNote: { fontFamily: fontFamily.regular, fontSize: 13, lineHeight: 18, color: c.textMuted, textAlign: 'center', marginTop: 12 },
+    // Beside the card it sits under the left-aligned intro.
+    programNoteSide: { textAlign: 'left', marginTop: 0 },
   });
 };

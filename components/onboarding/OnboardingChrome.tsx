@@ -13,7 +13,7 @@ import ReadingColumn from '@/components/layout/ReadingColumn';
 // readable column instead of stretching edge to edge.
 
 export const ONBOARDING_MAX_WIDTH = 520;
-export const TOUR_STEPS = 4;
+export const TOUR_STEPS = 5;
 
 // How far the OS text size may grow the onboarding's type. Beyond ~1.5× (the
 // accessibility sizes, up to ~3×) the fixed one-screen layouts break apart:
