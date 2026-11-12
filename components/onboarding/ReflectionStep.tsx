@@ -117,7 +117,7 @@ export default function ReflectionStep({ onContinue, onSkip, onBack }: { onConti
           </ScrollView>
 
           <View style={[styles.footer, { bottom: insets.bottom + 12 }]}>
-            <PrimaryButton label="See what else is inside" onPress={onContinue} />
+            <PrimaryButton label="See your everyday tools" onPress={onContinue} />
           </View>
         </OnboardingColumn>
       </View>

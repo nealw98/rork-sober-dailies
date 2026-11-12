@@ -6,8 +6,8 @@ export type QaEngine = 'auto' | 'sonnet' | 'terra' | 'luna';
 type ConcreteQaEngine = Exclude<QaEngine, 'auto'>;
 type QaEngineSpec = { provider: 'anthropic' | 'openai'; model: string; label: string };
 
-// Production default: Terra for Salty Sam, Luna for every other sponsor and
-// Spot Check. Explicit Dev Console selections override this routing for QA.
+// Production default: Terra for every sponsor chat, Luna for Spot Check.
+// Explicit Dev Console selections override this routing for QA.
 export const DEFAULT_QA_ENGINE: QaEngine = 'auto';
 
 export const QA_LLM_ENGINE_KEY = 'sober_dailies_qa_llm_engine';
@@ -41,9 +41,11 @@ export const QA_ENGINE_SPEC: Record<ConcreteQaEngine, QaEngineSpec> = {
   luna: { provider: 'openai', model: 'gpt-5.6-luna', label: 'gpt-5.6 luna' },
 };
 
-export const resolveQaEngine = (engine: QaEngine, sponsorId: string): QaEngineSpec => {
+export type LlmUse = 'chat' | 'spotcheck';
+
+export const resolveQaEngine = (engine: QaEngine, use: LlmUse): QaEngineSpec => {
   if (engine !== 'auto') return QA_ENGINE_SPEC[engine];
-  return sponsorId === 'salty' ? QA_ENGINE_SPEC.terra : QA_ENGINE_SPEC.luna;
+  return use === 'spotcheck' ? QA_ENGINE_SPEC.luna : QA_ENGINE_SPEC.terra;
 };
 
 export const SPONSOR_API_URL =

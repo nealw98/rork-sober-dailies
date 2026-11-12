@@ -53,20 +53,26 @@ Controlled by `EXPO_PUBLIC_ANALYTICS_ENV` in `.env` — currently **`test`**. Fl
 
 ### Onboarding funnel
 
-Two flows share these event names. **`flow_version`** tells them apart: absent = the carousel flow (store builds up to 3.5.x), `v2_tools` = the "lead with the tools" flow (the Duo release). Every event carries `is_member` (access frozen when onboarding mounts — members skip only the paywall). `paywall_view` is separate and also fires outside onboarding.
+Two flows share these event names. **`flow_version`** tells them apart: absent = the carousel flow (store builds up to 3.5.x), `v2_tools` = the "lead with the tools" flow (the Duo release), `v3_program` = that flow plus the daily-program screen, `v4_help` = consent first, then the tour (counter → reflection → tools → program → help). Every event carries `is_member` (access frozen when onboarding mounts — members skip only the paywall). `paywall_view` is separate and also fires outside onboarding.
 
 | Event | Properties | Notes |
 |---|---|---|
 | `onboarding_started` | `is_member`, `flow_version` | Once, when the flow first mounts |
-| `onboarding_step` | `step`, `step_index`, `is_member`, `flow_version` | Once per showing of a step. Index is fixed per step, so members show no 6. **v2_tools:** `welcome` (0), `counter` (1), `reflection` (2), `read_listen` (3), `talk_practice` (4), `disclaimer` (5), `paywall` (6, only when it runs). **Carousel flow:** `welcome` (0), `inside_1`…`inside_4` (1–4), `disclaimer` (5), `paywall` (6), `date` (7), `dailies` (8) |
-| `onboarding_skip_tapped` | `from_step` | v2_tools: Skip on counter / reflection / read_listen / talk_practice (→ disclaimer) |
-| `onboarding_counter_saved` | `method` (`typed` \| `day_one`), `had_date` | v2_tools: "Start my count" or "Today is my day one". `had_date` = a date already existed (prefilled for members) |
+| `onboarding_step` | `step`, `step_index`, `is_member`, `flow_version` | Once per showing of a step. Index is fixed per step, so members show no paywall index. **v4_help:** `welcome` (0), `disclaimer` (1), `counter` (2), `reflection` (3), `tools` (4), `program` (5), `help` (6), `paywall` (7, only when it runs). **v3_program:** `welcome` (0), `counter` (1), `reflection` (2), `read_listen` (3), `talk_practice` (4), `program` (5), `disclaimer` (6), `paywall` (7). **v2_tools:** `welcome` (0), `counter` (1), `reflection` (2), `read_listen` (3), `talk_practice` (4), `disclaimer` (5), `paywall` (6, only when it runs). **Carousel flow:** `welcome` (0), `inside_1`…`inside_4` (1–4), `disclaimer` (5), `paywall` (6), `date` (7), `dailies` (8) |
+| `onboarding_skip_tapped` | `from_step` | Skip on a tour screen. v4_help: counter / reflection / tools / program / help (→ paywall; members → Today). Earlier flows: → disclaimer |
+| `onboarding_skipped` | `from` (`welcome`) | v4_help: Skip on Welcome → disclaimer, then straight to the paywall (members → Today), skipping the tour |
+| `onboarding_try_opened` | `target` (`eddie` \| `sam` \| `grace` \| `spotcheck`) | v4_help: a card on "Talk to a sponsor right now" opened its free try |
+| `onboarding_sponsor_message` | `sponsor` (`eddie` \| `sam` \| `grace`), `n` (1–3) | v4_help: a reply came back in a sponsor's free try (crisis-guard replies and failed sends don't count) |
+| `onboarding_try_finished` | `target` | v4_help: a try ended — the third sponsor reply (closing shown), the Spot Check reflection, or the server reporting this device already used it |
+| `onboarding_try_another_tapped` | `from` (a target) | v4_help: "Try another" inside a try → back to the list |
+| `onboarding_start_trial_tapped` | `from` (`list` or a target) | v4_help: the help step's main button or a try's end-card button ("Start my free trial" / "Subscribe" → paywall; "Continue" for members → Today) |
+| `onboarding_counter_saved` | `method` (`typed` \| `day_one`), `had_date` | v2_tools: the counter's button ("Start my count"; v4_help: "Today's Daily Reflection") or "Today is my day one". `had_date` = a date already existed (prefilled for members) |
 | `onboarding_counter_skipped` | — | v2_tools: Skip on the counter step; the date stays unset |
 | `onboarding_carousel_skipped` | `card_index` (1–4) | Carousel flow only |
 | `onboarding_disclaimer_accepted` | `is_member` | |
 | `onboarding_paywall_closed` | `is_member` | X on the paywall (or Pass It On offer), or Android back on it → back to Welcome; the next `onboarding_step` is `welcome` again |
 | `onboarding_date_saved` / `onboarding_date_skipped` | `had_date` | Carousel flow only (its post-paywall date step) |
-| `onboarding_completed` | `is_member` | v2_tools: after the paywall (or after the disclaimer, for members). Carousel flow: "Start my program" |
+| `onboarding_completed` | `is_member` | v2_tools: after the paywall (or, for members, after the disclaimer; v4_help: after help, a tour Skip, or the disclaimer following a Welcome Skip). Carousel flow: "Start my program" |
 | `today_tip_shown` / `today_tip_dismissed` | `flow_version` | v2_tools: the one-time "Edit your dailies" coach mark on the first Today after onboarding |
 
 **Reports:** funnel on `onboarding_step` ordered by `step_index`, broken down by `flow_version` (and `is_member`); paywall conversion = users with `step = paywall` who reach `onboarding_completed`.

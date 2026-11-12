@@ -10,7 +10,6 @@ import {
   ActivityIndicator,
   Alert,
   Linking,
-  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -20,7 +19,8 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Image } from 'expo-image';
-import { Bell, Check, Lock, MessageCircle, RefreshCw, SlidersHorizontal, Star, TrendingUp, Wrench, X } from 'lucide-react-native';
+import { Bell, BookOpen, Check, CircleCheck, Clock, Heart, Lock, Mic, Moon, NotebookPen, RefreshCw, SquareCheckBig, Star, Users, X } from 'lucide-react-native';
+import { ChatCircleDots, HandsPraying } from 'phosphor-react-native';
 import { type PurchasesPackage } from 'react-native-purchases';
 import { useSubscription } from '@/hooks/useSubscription';
 import { fetchCreditStatus, setPendingAnnouncement } from '@/lib/creditsService';
@@ -28,9 +28,13 @@ import { scheduleTrialEndingReminder } from '@/lib/trialReminder';
 import { logEvent } from '@/lib/analytics';
 import { fontFamily, shadows, type Tokens } from '@/constants/designTokens';
 import { useTokens, useThemedStyles } from '@/hooks/useTokens';
-import { getNormalSubscriptionOption, trialDaysFromSubscriptionOption } from '@/lib/subscriptionOffers';
+import { hasUsedTrial, isMonthlyPkg, isYearlyPkg, packageTrialDays } from '@/hooks/useTrialAvailable';
+import { termsUrl } from '@/lib/storeLinks';
+import { SPONSORS } from '@/constants/sponsors';
+import { resolveTone, type GlyphComponent } from '@/components/dailyTokens';
+import { SunriseGlyph } from '@/components/navigation/FloatingTabBar';
 
-const TERMS_URL = 'https://www.apple.com/legal/internet-services/itunes/dev/stdeula/';
+const TERMS_URL = termsUrl();
 const PRIVACY_URL = 'https://soberdailies.com/privacy';
 
 // Decorative rail gradient stops (green → teal → lavender), matched to the design.
@@ -38,27 +42,9 @@ const RAIL_GREEN = '#86CBA6';
 const RAIL_TEAL = '#74C7D3';
 const RAIL_LAV = '#BCB3EA';
 const BEAD = 30;         // compact trial-timeline bead diameter
-const RAIL_WIDTH = 32;   // no-trial rail runs behind the benefit tiles
-const CARD_PAD_H = 20;   // timeline card horizontal padding (rail left aligns to this)
-const TILE = 48;         // no-trial benefit icon circle (matches the trial bead)
-const BENEFIT_FADE = 56; // rail length past the last tile center, fading out
-
-// No-trial rail: the SAME green → teal → lavender sweep as the trial rail,
-// sampled at the four tile centers.
-const BENEFIT_RAIL = ['#86CBA6', '#7AC8C4', '#8CC0DB', '#BCB3EA'];
+const CARD_PAD_H = 20;   // card horizontal padding (the title aligns to this)
 
 // ── helpers ──────────────────────────────────────────────────────────────
-const isYearlyPkg = (p: PurchasesPackage) => {
-  const type = String(p?.packageType || '').toUpperCase();
-  const id = String(p?.identifier || '').toLowerCase();
-  return type.includes('ANNUAL') || type.includes('YEAR') || id === '$rc_annual';
-};
-const isMonthlyPkg = (p: PurchasesPackage) => {
-  const type = String(p?.packageType || '').toUpperCase();
-  const id = String(p?.identifier || '').toLowerCase();
-  return type.includes('MONTH') || id === '$rc_monthly';
-};
-
 // "$0.83/mo" from an annual package — divide the numeric price by 12 and reuse
 // the store's own currency symbol from priceString (avoids Intl in Hermes).
 function perMonthFromYearly(pkg: PurchasesPackage | null): string {
@@ -69,24 +55,6 @@ function perMonthFromYearly(pkg: PurchasesPackage | null): string {
   const symbolBefore = priceString.trim().indexOf(symbol) === 0;
   const num = (price / 12).toFixed(2);
   return symbolBefore ? `${symbol}${num}` : `${num}${symbol}`;
-}
-
-// Trial length comes from the STORE, not from us: the offer is configured in
-// App Store Connect / Play, and copy that contradicts the sheet the user is
-// about to sign is a broken promise. Returns null when the package carries no
-// free intro period (or the store hasn't answered yet).
-function trialDaysFrom(pkg: PurchasesPackage | null): number | null {
-  const intro = (pkg?.product as any)?.introPrice;
-  if (!intro || intro.price !== 0) return null;
-  const n = Number(intro.periodNumberOfUnits ?? 0);
-  if (!Number.isFinite(n) || n <= 0) return null;
-  switch (String(intro.periodUnit || '').toUpperCase()) {
-    case 'DAY': return n;
-    case 'WEEK': return n * 7;
-    case 'MONTH': return n * 30;
-    case 'YEAR': return n * 365;
-    default: return null;
-  }
 }
 
 // Deliberately says nothing about price or trial. 3.1.2(c) requires every
@@ -105,8 +73,9 @@ const PAYWALL_TITLE = 'Unlock every tool';
 const ONBOARDING_SUBTITLE = 'Everything you just saw, plus your count and your daily program.';
 
 // What "every tool" means, in the same imagery the onboarding tour just showed.
-// Literature is drawn from the two covers (see LiteratureTile) — no photo
-// shows both books inside a square tile.
+// The Big Book reader tile is drawn from the two covers — no photo shows both
+// books inside a square tile. The sponsor tile is Steady Eddie himself, so it
+// reads as *your sponsor* rather than a meeting.
 const BIG_BOOK_COVER = require('@/assets/images/big-book_cover.webp');
 const TWELVE_TWELVE_COVER = require('@/assets/images/new_12x12_cover.webp');
 // The left (people) side of the meeting photo, blurred, then shaded darker
@@ -114,12 +83,31 @@ const TWELVE_TWELVE_COVER = require('@/assets/images/new_12x12_cover.webp');
 // like the photos beside it.
 const MEETING_PHOTO = require('@/assets/images/literature_hero2.webp');
 const LIT_TILE_SHADE = ['rgba(18,26,38,0.15)', 'rgba(18,26,38,0.45)', 'rgba(18,26,38,0.75)'] as const;
+const EDDIE_AVATAR = SPONSORS.find((s) => s.id === 'supportive')?.avatar;
 const TOOL_TILES = [
-  { key: 'literature', label: 'Literature', source: null },
+  { key: 'sponsor', label: 'AI sponsor', source: EDDIE_AVATAR, position: 'top' as const },
   // Green, so it doesn't read as the same warm photo as the Speakers tile next to it.
   { key: 'reflections', label: 'Reflections', source: require('@/assets/reflections_images/reflection_bg3.webp') },
   { key: 'speakers', label: 'Speakers', source: require('@/assets/images/speakers_hero2.webp') },
-  { key: 'sponsor', label: 'AI sponsor', source: require('@/assets/images/ai_sponsor_hero2.webp') },
+  { key: 'literature', label: 'Big Book reader', source: null },
+];
+
+// No-trial view: what the subscription includes, named plainly. Someone who has
+// already had a trial (or a lapsed subscriber) knows why these matter. Tones
+// follow toolFamily; glyphs are the ones each tool uses elsewhere in the app.
+const FEATURES: { label: string; tone: string; Icon: GlyphComponent }[] = [
+  { label: 'Daily program planner', tone: 'teal', Icon: SquareCheckBig },
+  { label: 'Sobriety counter', tone: 'teal', Icon: Clock },
+  { label: 'Daily Reflections', tone: 'teal', Icon: SunriseGlyph },
+  { label: 'Big Book & 12&12', tone: 'steel', Icon: BookOpen },
+  { label: 'Speaker tapes', tone: 'steel', Icon: Mic },
+  { label: 'AI sponsors', tone: 'periwinkle', Icon: ChatCircleDots },
+  { label: 'Spot check inventory', tone: 'terracotta', Icon: CircleCheck },
+  { label: 'Prayers & meditation', tone: 'teal', Icon: HandsPraying },
+  { label: 'Gratitude list', tone: 'terracotta', Icon: Heart },
+  { label: 'Journal', tone: 'teal', Icon: NotebookPen },
+  { label: 'Nightly review', tone: 'periwinkle', Icon: Moon },
+  { label: 'Meeting finder', tone: 'steel', Icon: Users },
 ];
 
 // Length-neutral on purpose. Someone who is ineligible gets NO intro offer back
@@ -161,7 +149,7 @@ interface PaywallScreenProps {
 
 export default function PaywallScreen({ onDismiss, onDevBypass, onUnavailableDismiss, preview, forceTrial, context }: PaywallScreenProps) {
   const styles = useThemedStyles(makeStyles);
-  const { c, colors } = useTokens();
+  const { c, colors, mode } = useTokens();
   const { offerings, isLoading, autoRetrying, error, purchasePackage, restorePurchases, refresh, applyCustomerInfo, customerInfo, trialEligible, qaForceNewUser } = useSubscription();
 
   const [selected, setSelected] = useState<'yearly' | 'monthly'>('yearly');
@@ -172,10 +160,6 @@ export default function PaywallScreen({ onDismiss, onDevBypass, onUnavailableDis
   const [purchaseFailed, setPurchaseFailed] = useState(false);
   const [restoring, setRestoring] = useState(false);
   const [retrying, setRetrying] = useState(false);
-  // Measured top of each no-trial benefit row (relative to the card) so the
-  // continuous gradient rail can be positioned to pass through the tile
-  // centers exactly.
-  const [benefitY, setBenefitY] = useState<number[]>([]);
 
   const offering = offerings?.all?.['default'] ?? offerings?.current ?? null;
   const packages = offering?.availablePackages ?? [];
@@ -219,43 +203,23 @@ export default function PaywallScreen({ onDismiss, onDevBypass, onUnavailableDis
     });
   }, [isLoading, autoRetrying, chosen, offeringId, packageIds, error, offerings]);
 
-  // Structure decided 2026-08-13: the trial timeline, NOT a benefits list. The
-  // What's Inside carousel sells one screen earlier, so a benefits list here
-  // would restate it; the timeline instead answers the one question the
-  // carousel can't ("what happens to my money"), and its final step carries the
-  // Play-required "a subscription is required" disclosure. A benefits layout
-  // existed once, for no-trial users, and was removed with that variant.
-  //
-  // One paywall for everyone: the trial offer. There is deliberately no
-  // "already used your trial" variant — Play can't report eligibility before
-  // purchase anyway (it always answers UNKNOWN), so an Android user who'd
-  // already had a trial saw this screen regardless and the two layouts only
-  // ever diverged on iOS. Both stores state the real terms in their own
-  // purchase sheet, which is what a returning user is actually charged on.
+  // Two faces. With a trial: the tool tiles and the trial timeline, which
+  // answers "what happens to my money" and whose final step carries the
+  // Play-required "a subscription is required" disclosure. Without one
+  // (showTrial false, below): a plain list of everything the subscription
+  // includes. Both stores state the real terms in their own purchase sheet,
+  // which is what a returning user is actually charged on.
 
   // Trial length comes from the store and drives the timeline/disclosure. The
   // title and CTA deliberately do not advertise the trial, keeping every trial
   // claim visually subordinate to the amount that will actually be billed.
-  const normalTrialDays = (pkg: PurchasesPackage | null) => {
-    if (!pkg) return null;
-    return Platform.OS === 'android'
-      ? trialDaysFromSubscriptionOption(getNormalSubscriptionOption(pkg))
-      : trialDaysFrom(pkg);
-  };
   const trialLen = chosen
-    ? normalTrialDays(chosen)
-    : (normalTrialDays(yearly) ?? normalTrialDays(monthly));
+    ? packageTrialDays(chosen)
+    : (packageTrialDays(yearly) ?? packageTrialDays(monthly));
 
-  // Has this person already used their free trial? If so the store bills them
-  // the moment they subscribe, so promising a free week would be a lie.
-  // Two signals, because neither covers both platforms on its own:
-  //  · trialEligible === false — StoreKit's answer, iOS only (Play always
-  //    reports UNKNOWN before purchase, so it never fires on Android).
-  //  · any prior purchase on the account — works on both. An ACTIVE subscriber
-  //    never reaches this screen, so history here means lapsed or expired.
-  const usedTrial =
-    trialEligible === false ||
-    ((customerInfo as any)?.allPurchasedProductIdentifiers?.length ?? 0) > 0;
+  // Already had a trial (see hasUsedTrial): the store bills them the moment
+  // they subscribe, so promising a free week would be a lie.
+  const usedTrial = hasUsedTrial(trialEligible, customerInfo);
   const showTrial = forceTrial !== undefined ? forceTrial : (!usedTrial && trialLen !== null);
   // The reminder fires 48 h before expiry (lib/trialReminder.ts), clamped so it
   // can't land on or before day 1 of a very short trial.
@@ -293,36 +257,6 @@ export default function PaywallScreen({ onDismiss, onDevBypass, onUnavailableDis
       body: chosen
         ? `Your subscription starts at ${chosen.product.priceString}/${selected === 'yearly' ? 'year' : 'month'} and is required to maintain access to the app. Cancel before then and you pay nothing.`
         : 'Your subscription starts and is required to maintain access to the app. Cancel before then and you pay nothing.',
-    },
-  ];
-
-  // No-trial view — what the subscription buys, since there's no trial
-  // countdown to show. Icons match the trial beads: white circle, bold colored
-  // ring (BENEFIT_RAIL[i]), solid glyph.
-  const BENEFITS = [
-    {
-      key: 'fits',
-      icon: <SlidersHorizontal size={20} color={colors.primary} strokeWidth={2} fill={colors.primary} />,
-      title: 'A practice that fits your life',
-      body: 'Choose the daily habits that fit your program.',
-    },
-    {
-      key: 'tool',
-      icon: <Wrench size={19} color={colors.steelDark} strokeWidth={2} fill={colors.steelDark} />,
-      title: 'The right tool at every step',
-      body: 'Each daily action is paired with its tool — right when you need it.',
-    },
-    {
-      key: 'sponsor',
-      icon: <MessageCircle size={20} color={colors.tertiary} strokeWidth={2} fill={colors.tertiary} />,
-      title: 'Never alone, day or night',
-      body: 'An AI sponsor is always there to talk it through.',
-    },
-    {
-      key: 'progress',
-      icon: <TrendingUp size={21} color={colors.roseDark} strokeWidth={2.5} />,
-      title: 'See your progress add up',
-      body: 'Check off each action and watch your consistency grow, day by day.',
     },
   ];
 
@@ -566,7 +500,7 @@ export default function PaywallScreen({ onDismiss, onDevBypass, onUnavailableDis
             {TOOL_TILES.map((t) => (
               <View key={t.key} style={styles.tile}>
                 {t.source ? (
-                  <Image source={t.source} style={styles.tileImage} contentFit="cover" />
+                  <Image source={t.source} style={styles.tileImage} contentFit="cover" contentPosition={'position' in t ? t.position : 'center'} />
                 ) : (
                   // The Big Book in front and centered, running off the bottom;
                   // the Twelve and Twelve tucked behind it, peeking out at the
@@ -605,38 +539,23 @@ export default function PaywallScreen({ onDismiss, onDevBypass, onUnavailableDis
           </View>
         )}
 
-        {/* No-trial view — the benefits list stands in for the timeline. */}
+        {/* No-trial view — the features list stands in for the timeline. */}
         {!showTrial && (
-          <View style={styles.benefits}>
-            {benefitY[0] != null && benefitY[1] != null && benefitY[2] != null && benefitY[3] != null && (() => {
-              const height = benefitY[3] - benefitY[0] + BENEFIT_FADE;
-              return (
-                <LinearGradient
-                  colors={[BENEFIT_RAIL[0], BENEFIT_RAIL[1], BENEFIT_RAIL[2], BENEFIT_RAIL[3], 'rgba(188,179,234,0)']}
-                  locations={[0, (benefitY[1] - benefitY[0]) / height, (benefitY[2] - benefitY[0]) / height, (benefitY[3] - benefitY[0]) / height, 1]}
-                  start={{ x: 0.5, y: 0 }}
-                  end={{ x: 0.5, y: 1 }}
-                  pointerEvents="none"
-                  style={[styles.benefitRail, { top: benefitY[0] + TILE / 2, height }]}
-                />
-              );
-            })()}
-            {BENEFITS.map((b, i) => (
-              <View
-                key={b.key}
-                style={styles.benefitRow}
-                onLayout={(e) => {
-                  const y = e.nativeEvent.layout.y;
-                  setBenefitY((prev) => (prev[i] === y ? prev : Object.assign([...prev], { [i]: y })));
-                }}
-              >
-                <View style={[styles.benefitTile, { borderColor: BENEFIT_RAIL[i] }]}>{b.icon}</View>
-                <View style={styles.flex}>
-                  <Text style={styles.benefitTitle}>{b.title}</Text>
-                  <Text style={styles.benefitBody}>{b.body}</Text>
-                </View>
-              </View>
-            ))}
+          <View style={styles.features}>
+            <Text style={styles.featuresLabel}>EVERYTHING IN SOBER DAILIES</Text>
+            <View style={styles.featureGrid}>
+              {FEATURES.map((f) => {
+                const tone = resolveTone(f.tone, mode);
+                return (
+                  <View key={f.label} style={styles.feature}>
+                    <View style={[styles.featureIcon, { backgroundColor: tone.soft }]}>
+                      <f.Icon size={14} color={tone.ink} />
+                    </View>
+                    <Text style={styles.featureName}>{f.label}</Text>
+                  </View>
+                );
+              })}
+            </View>
           </View>
         )}
 
@@ -817,15 +736,14 @@ const makeStyles = (tk: Tokens) => {
     litFront: { left: '8%', top: '22%', transform: [{ rotate: '-6deg' }], shadowColor: '#000', shadowOpacity: 0.35, shadowRadius: 6, shadowOffset: { width: 2, height: 2 } },
     tileLabel: { fontFamily: fontFamily.semiBold, fontSize: 11, color: c.text },
 
-    // Sits directly under the title so it is read before the plans, not after.
-    // Tinted card rather than muted footnote type — a reviewer looking for the
-    // disclosure has to be able to find it at a glance.
-    benefits: { position: 'relative', overflow: 'hidden', marginTop: 30, backgroundColor: c.surface, borderRadius: 22, borderWidth: 1, borderColor: c.border, paddingVertical: 22, paddingHorizontal: CARD_PAD_H, gap: 20, ...shadows.sm, ...darkCard },
-    benefitRail: { position: 'absolute', left: CARD_PAD_H + TILE / 2 - RAIL_WIDTH / 2, width: RAIL_WIDTH, borderTopLeftRadius: RAIL_WIDTH / 2, borderTopRightRadius: RAIL_WIDTH / 2, zIndex: 0 },
-    benefitRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 14 },
-    benefitTile: { width: TILE, height: TILE, borderRadius: TILE / 2, borderWidth: 3, backgroundColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center', zIndex: 2, ...shadows.sm },
-    benefitTitle: { fontFamily: fontFamily.bold, fontSize: 16.5, letterSpacing: -0.2, color: c.text },
-    benefitBody: { fontFamily: fontFamily.regular, fontSize: 14, lineHeight: 20, color: c.textSecondary, marginTop: 2 },
+    // No-trial features: a two-column grid, small enough that the plans and
+    // the button still fit on a standard iPhone without scrolling.
+    features: { marginTop: 22, backgroundColor: c.surface, borderRadius: 22, borderWidth: 1, borderColor: c.border, paddingTop: 16, paddingHorizontal: 16, paddingBottom: 14, ...shadows.sm, ...darkCard },
+    featuresLabel: { fontFamily: fontFamily.bold, fontSize: 11, letterSpacing: 1.6, color: c.textMuted, marginBottom: 10 },
+    featureGrid: { flexDirection: 'row', flexWrap: 'wrap', rowGap: 10, columnGap: 10 },
+    feature: { width: '47%', flexGrow: 1, flexDirection: 'row', alignItems: 'center', gap: 9 },
+    featureIcon: { width: 26, height: 26, borderRadius: 8, alignItems: 'center', justifyContent: 'center' },
+    featureName: { flex: 1, fontFamily: fontFamily.semiBold, fontSize: 13, lineHeight: 16, color: c.text },
 
     timeline: { marginTop: 16, backgroundColor: c.surface, borderRadius: 18, borderWidth: 1, borderColor: c.border, paddingVertical: 14, paddingHorizontal: 16, gap: 12, ...shadows.sm, ...darkCard },
     step: { flexDirection: 'row', alignItems: 'flex-start', gap: 12 },
@@ -833,7 +751,6 @@ const makeStyles = (tk: Tokens) => {
     stepLine: { flex: 1, fontFamily: fontFamily.regular, fontSize: 13, lineHeight: 18, color: c.text, paddingTop: 5 },
     stepTitle: { fontFamily: fontFamily.bold },
 
-    // no-trial benefits — tinted icon tiles inside the same card as the trial timeline
     errorCard: { marginTop: 20, padding: 16, borderRadius: 14, backgroundColor: c.surface, borderWidth: 1, borderColor: c.border, ...darkCard },
     errorText: { fontFamily: fontFamily.regular, fontSize: 14, lineHeight: 20, color: c.textSecondary },
     purchaseError: { fontFamily: fontFamily.regular, fontSize: 13.5, lineHeight: 19, color: colors.destructive, textAlign: 'center', marginTop: 10 },

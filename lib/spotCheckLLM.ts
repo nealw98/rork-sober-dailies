@@ -18,7 +18,7 @@ import {
 } from '@/lib/sponsorApiSettings';
 
 const LLM_TIMEOUT_MS = 20000;
-class SponsorLimitError extends Error {
+export class SponsorLimitError extends Error {
   constructor(message: string) {
     super(message);
     this.name = 'SponsorLimitError';
@@ -44,6 +44,7 @@ async function callPaidSponsor(
   // backup passes the selected GPT-5.6 model —
   // same fn, same server personas, different provider outage domain.
   engine?: { provider: 'anthropic' | 'openai'; model: string },
+  options?: TryOptions,
 ): Promise<string> {
   const started = Date.now();
   const sponsor = getSponsorById(sponsorId);
@@ -66,6 +67,7 @@ async function callPaidSponsor(
     model: engine?.model ?? 'claude-sonnet-4-6',
     anonymous_id: anonymousId,
     device_secret: deviceSecret,
+    ...(options?.onboarding ? { onboarding: true, onboarding_member: options.member === true } : {}),
   });
   const postOnce = () =>
     fetch(url, {
@@ -95,7 +97,7 @@ async function callPaidSponsor(
   return String(data.outputText);
 }
 
-// Auto uses Terra for Sam and Luna for all other sponsors. The Dev Console
+// Auto uses Luna for Spot Check (sponsor chat uses Terra). The Dev Console
 // can explicitly select Luna, Terra, or Sonnet. OpenAI primaries fall back to
 // Sonnet; Sonnet falls back to Luna, so a QA
 // session can't dead-end on one provider's outage.
@@ -103,15 +105,16 @@ async function callPaidChain(
   sponsorId: SponsorType,
   message: string,
   conversation: { role: 'user' | 'assistant'; content: string }[],
+  options?: TryOptions,
 ): Promise<string> {
-  const primary = resolveQaEngine(await getQaEngine(), sponsorId);
+  const primary = resolveQaEngine(await getQaEngine(), 'spotcheck');
   const backup = primary.provider === 'anthropic' ? QA_ENGINE_SPEC.luna : QA_ENGINE_SPEC.sonnet;
   try {
-    return await callPaidSponsor(sponsorId, message, conversation, primary);
+    return await callPaidSponsor(sponsorId, message, conversation, primary, options);
   } catch (primaryError) {
     if (primaryError instanceof SponsorLimitError) throw primaryError;
     console.warn(`[spotCheckLLM] ${primary.label} failed; trying ${backup.label}:`, (primaryError as Error).message);
-    return await callPaidSponsor(sponsorId, message, conversation, backup);
+    return await callPaidSponsor(sponsorId, message, conversation, backup, options);
   }
 }
 
@@ -142,7 +145,11 @@ function normalizeReflection(text: string): string {
     .trim();
 }
 
-export async function askFormReflection(feelings: string[], whatsGoingOn: string): Promise<string> {
+// Onboarding's one free Spot Check (v4): counted against the one-time try on
+// the server (members: the daily cap). The reflection prompt is unchanged.
+type TryOptions = { onboarding?: boolean; member?: boolean };
+
+export async function askFormReflection(feelings: string[], whatsGoingOn: string, options?: TryOptions): Promise<string> {
   // The contract + Neal's per-cluster playbook live in the SERVER persona
   // (deploy-only tuning; also keeps this message under the fn's 2000-char
   // cap) — the task here is just the data.
@@ -150,5 +157,5 @@ export async function askFormReflection(feelings: string[], whatsGoingOn: string
     `Feelings they tapped: ${feelings.join(', ')}`,
     `What’s going on (their words): ${trim(whatsGoingOn, 1200)}`,
   ].join('\n');
-  return normalizeReflection(await callPaidChain('reflection' as SponsorType, task, []));
+  return normalizeReflection(await callPaidChain('reflection' as SponsorType, task, [], options));
 }

@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>First open — Today with a tip</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@600;700&amp;family=Inter:wght@400;500;600;700&amp;family=Lora:ital,wght@0,400;0,500;1,400;1,500&amp;display=swap">
+<style>
+body{margin:0}
+a{color:#316769}a:hover{color:#232529}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; position: relative; overflow: hidden; font-family: Inter, sans-serif; color: #232529; background: #FAF6EF; display: flex; flex-direction: column">
+<div style="padding: 63px 22px 0">
+<div style="font-weight: 700; font-size: 11px; letter-spacing: 1.6px; color: #6E7178">{{today}}</div>
+<div style="font-family: Archivo, sans-serif; font-weight: 700; font-size: 30px; letter-spacing: -0.6px; margin-top: 2px">Today</div>
+<div style="display: flex; align-items: center; gap: 14px; margin-top: 14px">
+<div style="width: 64px; height: 64px; border-radius: 32px; background: linear-gradient(145deg, #3D8B8B, #264463); display: flex; align-items: center; justify-content: center; font-family: Archivo, sans-serif; font-weight: 700; font-size: 20px; color: #ffffff; box-shadow: 0 6px 14px rgba(45,88,130,0.25)">{{days}}</div>
+<div>
+<div style="font-family: Lora, serif; font-style: italic; font-size: 17px">days, one at a time</div>
+<div style="font-size: 12.5px; color: #6E7178; margin-top: 2px">From the date you entered</div>
+</div>
+</div>
+<div style="position: relative; height: 110px; margin-top: 16px; border-radius: 16px; overflow: hidden; background: #2E5A5A url(/_blob/9cb4e6c85924525100181cca94520ddb) center / cover no-repeat">
+<div style="position: absolute; inset: 0; background: linear-gradient(180deg, rgba(0,0,0,0.05), rgba(0,0,0,0.62))"></div>
+<div style="position: absolute; left: 14px; right: 14px; bottom: 12px; display: flex; align-items: flex-end; gap: 8px; color: #ffffff">
+<div style="flex-grow: 1"><div style="font-weight: 700; font-size: 9.5px; letter-spacing: 1.4px">DAILY REFLECTIONS</div><div style="font-family: Lora, serif; font-size: 18px; margin-top: 2px">[Today's title]</div></div>
+<span style="display: flex; align-items: center; gap: 5px; background: #3D8B8B; border-radius: 999px; padding: 4px 11px; font-weight: 700; font-size: 11px"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"></path></svg>Read</span>
+</div>
+</div>
+</div>
+<div style="position: relative; z-index: 3; margin: 14px 12px 0; padding: 4px 10px 10px; border-radius: 20px; background: #FAF6EF; box-shadow: 0 0 0 3px #3D8B8B">
+<div style="display: flex; align-items: center; justify-content: space-between; padding: 8px 0 10px">
+<span style="font-weight: 600; font-size: 18px">Morning</span>
+<button type="button" style="border: 0; background: #3D8B8B; color: #ffffff; border-radius: 999px; padding: 6px 14px; font-family: Inter, sans-serif; font-weight: 700; font-size: 13px">Edit</button>
+</div>
+<sc-for list="{{rows}}" as="r" hint-placeholder-count="4">
+<div style="display: flex; align-items: center; gap: 12px; background: #ffffff; border: 1px solid #E8E4DA; border-radius: 14px; padding: 10px 12px; margin-bottom: 8px">
+<div style="width: 38px; height: 38px; border-radius: 11px; background: {{r.soft}}; display: flex; align-items: center; justify-content: center"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="{{r.ink}}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{r.path}}"></path></svg></div>
+<span style="flex-grow: 1; font-weight: 600; font-size: 15px">{{r.label}}</span>
+<span style="border: 1.5px solid rgba(61,139,139,0.45); border-radius: 999px; padding: 4px 12px; font-weight: 700; font-size: 11.5px; color: #316769">Done</span>
+</div>
+</sc-for>
+</div>
+<div style="position: absolute; inset: 0; z-index: 2; background: rgba(23,26,34,0.55)"></div>
+<div style="position: absolute; z-index: 4; left: 20px; right: 20px; top: 92px; background: #ffffff; border-radius: 20px; padding: 18px 18px 16px; box-shadow: 0 18px 40px rgba(0,0,0,0.3)">
+<div style="font-weight: 700; font-size: 11px; letter-spacing: 1.6px; color: #316769">YOUR DAILY PRACTICES</div>
+<div style="font-family: Archivo, sans-serif; font-weight: 700; font-size: 20px; line-height: 25px; margin-top: 6px">We started you with six simple practices</div>
+<p style="margin: 8px 0 0; font-size: 14px; line-height: 20px; color: #474A52">Check them off through the day. Tap <b style="font-weight: 700; color: #232529">Edit</b> any time to add, remove or reorder — there are lots more to choose from.</p>
+<div style="display: flex; justify-content: flex-end; margin-top: 14px">
+<a href="R1-Welcome.dc.html" style="background: #3D8B8B; color: #ffffff; text-decoration: none; border-radius: 12px; padding: 10px 22px; font-weight: 600; font-size: 15px">Got it</a>
+</div>
+<div style="position: absolute; right: 44px; bottom: -9px; width: 18px; height: 18px; background: #ffffff; transform: rotate(45deg)"></div>
+</div>
+<div style="position: absolute; z-index: 1; left: 0; right: 0; bottom: 0; height: 83px; background: #ffffff; border-top: 1px solid #E8E4DA; display: flex; justify-content: space-around; padding-top: 9px; box-sizing: border-box">
+<sc-for list="{{tabs}}" as="t" hint-placeholder-count="5">
+<span style="display: flex; flex-direction: column; align-items: center; gap: 4px; font-weight: 600; font-size: 10.5px; color: {{t.color}}"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="{{t.color}}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{t.path}}"></path></svg>{{t.label}}</span>
+</sc-for>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+renderVals() {
+var now = new Date(); now.setHours(0, 0, 0, 0);
+var start = new Date(2024, 5, 14);
+var n = Math.round((now - start) / 86400000);
+var mon = ['JANUARY','FEBRUARY','MARCH','APRIL','MAY','JUNE','JULY','AUGUST','SEPTEMBER','OCTOBER','NOVEMBER','DECEMBER'];
+var wd = ['SUNDAY','MONDAY','TUESDAY','WEDNESDAY','THURSDAY','FRIDAY','SATURDAY'];
+var pray = 'M12 3v8M9 21l3-10 3 10M7 21h10';
+var heart = 'M19 14c1.5-1.5 3-3.2 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.8 0-3 .5-4.5 2-1.5-1.5-2.7-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4 3 5.5l7 7Z';
+var users = 'M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8ZM22 21v-2a4 4 0 0 0-3-3.9M16 3.1a4 4 0 0 1 0 7.8';
+var lib = 'M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2zM22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z';
+var on = '#316769', off = '#888B92';
+return {
+today: wd[now.getDay()] + ', ' + mon[now.getMonth()] + ' ' + now.getDate(),
+days: n.toLocaleString('en-US'),
+rows: [
+{ label: 'Say my morning prayers', path: pray, soft: '#F6E8E3', ink: '#8B4E3A' },
+{ label: 'Write a gratitude list', path: heart, soft: '#F6E8E3', ink: '#8B4E3A' },
+{ label: 'Attend a meeting', path: users, soft: '#E0E6EC', ink: '#264463' },
+{ label: 'Read the literature', path: lib, soft: '#E0E6EC', ink: '#264463' }
+],
+tabs: [
+{ label: 'Today', color: on, path: 'M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z' },
+{ label: 'Literature', color: off, path: lib },
+{ label: 'Tools', color: off, path: 'M3 3h7v7H3zM14 3h7v7h-7zM3 14h7v7H3zM14 14h7v7h-7z' },
+{ label: 'Journey', color: off, path: 'M3 3v18h18M7 15l4-4 3 3 5-6' },
+{ label: 'Settings', color: off, path: 'M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6ZM19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1Z' }
+]
+};
+}
+}
+</script>
+</body>
+</html>

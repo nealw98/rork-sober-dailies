@@ -53,6 +53,7 @@ import GiftThankYouSheet from '@/components/GiftThankYouSheet';
 import { qaPreviewTrialReminder } from '@/lib/trialReminder';
 import { setSyncPaused, cloudBackupSupported } from '@/lib/cloudSync';
 import { getQaEngine, setQaEngine, type QaEngine } from '@/lib/sponsorApiSettings';
+import { termsUrl } from '@/lib/storeLinks';
 
 // ─── Token-based building blocks (mirror the prototype) ──────────────────────
 
@@ -195,7 +196,7 @@ export default function SettingsScreen() {
       .then((v) => setForceNewUser(v === 'true'))
       .catch(() => {});
   }, []);
-  // QA: Auto routes Sam to Terra and the other sponsors to Luna. Explicit
+  // QA: Auto routes sponsor chat to Terra and Spot Check to Luna. Explicit
   // selections override both chat surfaces for comparisons.
   // on silently served the free lifeboat for a whole evaluation session,
   // which is why the row labels the ACTIVE engine rather than the one it
@@ -421,7 +422,7 @@ export default function SettingsScreen() {
   };
 
   const handlePrivacyPress = () => Linking.openURL('https://soberdailies.com/privacy');
-  const handleTermsPress = () => Linking.openURL('https://www.apple.com/legal/internet-services/itunes/dev/stdeula/');
+  const handleTermsPress = () => Linking.openURL(termsUrl());
   const handleSupportPress = () => Linking.openURL('https://soberdailies.com/support');
 
   const handleRateAppPress = async () => {
@@ -725,7 +726,7 @@ export default function SettingsScreen() {
               <TouchableOpacity style={styles.dcRow} onPress={toggleQaEngine} activeOpacity={0.6}>
                 <View style={styles.dcIcon}><MessageSquare size={17} color={colors.primaryDark} strokeWidth={2} /></View>
                 <View style={styles.dcRowBody}>
-                  <Text style={styles.dcRowLabel}>LLM: {qaEngine === 'auto' ? 'Auto · Sam Terra / others Luna' : qaEngine === 'luna' ? 'GPT-5.6 Luna' : qaEngine === 'terra' ? 'GPT-5.6 Terra' : 'Sonnet'}</Text>
+                  <Text style={styles.dcRowLabel}>LLM: {qaEngine === 'auto' ? 'Auto · chat Terra / Spot Check Luna' : qaEngine === 'luna' ? 'GPT-5.6 Luna' : qaEngine === 'terra' ? 'GPT-5.6 Terra' : 'Sonnet'}</Text>
                   <Text style={styles.dcRowSub}>Tap to cycle · explicit choices override Auto on the next message</Text>
                 </View>
                 <ChevronRight size={17} color={c.textMuted} strokeWidth={2} />

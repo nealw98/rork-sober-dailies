@@ -6,6 +6,8 @@
 // On expanded widths the picker (app/(main)/chat) hosts this same chat in its
 // detail pane via <SponsorChat/>: no back control or switch dropdown there
 // (the picker sits beside it), and an expand button reopens it full-screen.
+// Onboarding's 3-message try (<OnboardingSponsorChat/>) is this same screen on
+// an in-memory conversation (hooks/useOnboardingChat) instead of the store.
 import React, { useState, useRef, useEffect } from 'react';
 import {
   View, Text, TextInput, Pressable, FlatList, ScrollView, KeyboardAvoidingView,
@@ -35,6 +37,8 @@ import PaneExpandButton from '@/components/layout/PaneExpandButton';
 import { logEvent } from '@/lib/analytics';
 import { checkSponsorMessageLimit, recordSponsorMessage, DAILY_SPONSOR_LIMIT } from '@/lib/sponsorChatLimits';
 import { fontFamily, shadows, type Tokens } from '@/constants/designTokens';
+import type { OnboardingChat } from '@/hooks/useOnboardingChat';
+import { TRY_FIRST_NAME, tryButtonLabel, type TryOffer, type TrySponsorId } from '@/constants/onboardingSponsors';
 import { useTokens, useThemedStyles } from '@/hooks/useTokens';
 
 const PAPER = '#FCFBF8';  // conversation background (light)
@@ -107,8 +111,19 @@ function Bubble({ message, size }: { message: ChatMessage; size: number }) {
   );
 }
 
+// Onboarding mode: header back + "Try another" instead of the switch, text
+// size and reset controls; the try's own end card instead of the composer.
+type OnboardingMode = {
+  chat: OnboardingChat;
+  offer: TryOffer;
+  anyLeft: boolean;
+  onBack: () => void;
+  onTryAnother: () => void;
+  onStartTrial: () => void;
+};
+
 // ── Chat content ────────────────────────────────────────────────────────────
-function SponsorChatContent({ initialSponsor }: { initialSponsor: string }) {
+function SponsorChatContent({ initialSponsor, onboarding }: { initialSponsor: string; onboarding?: OnboardingMode }) {
   const router = useRouter();
   const pane = usePane();
   // Carried through a sponsor switch so a full-screen chat opened by the
@@ -121,7 +136,12 @@ function SponsorChatContent({ initialSponsor }: { initialSponsor: string }) {
   const BR_SOFT = isDark ? colors.primarySoft : BR_SOFT_LIGHT;
   const { readingSize } = useReadingSize();
   const size = readingSize * LORA_SCALE; // chat text, Lora-matched; follows the shared reading size
-  const { messages, isLoading, sendMessage, clearChat, changeSponsor, sponsorType } = useChatStore();
+  // No ChatStoreProvider around the onboarding try, so the store is unset
+  // there and the in-memory conversation stands in for it.
+  const store = useChatStore();
+  const { messages, isLoading, clearChat, changeSponsor, sponsorType } = onboarding
+    ? { ...onboarding.chat, clearChat: () => {}, changeSponsor: () => {} }
+    : store;
   const [inputText, setInputText] = useState('');
   const [isCheckingLimits, setIsCheckingLimits] = useState(false);
   const [sizeSheetOpen, setSizeSheetOpen] = useState(false);
@@ -144,10 +164,11 @@ function SponsorChatContent({ initialSponsor }: { initialSponsor: string }) {
   };
 
   useEffect(() => {
+    if (onboarding) return;
     const target = initialSponsor as SponsorType;
     if (target !== sponsorType) changeSponsor(target);
     setLastSponsor(initialSponsor); // FAB shows + resumes this sponsor
-  }, [initialSponsor, sponsorType, changeSponsor, setLastSponsor]);
+  }, [initialSponsor, sponsorType, changeSponsor, setLastSponsor, onboarding]);
 
   const sponsor = getSponsorById(initialSponsor as SponsorType);
   useScreenTimeTracking(sponsor?.name || 'AI Sponsor');
@@ -168,6 +189,13 @@ function SponsorChatContent({ initialSponsor }: { initialSponsor: string }) {
   const handleSend = async () => {
     const trimmed = inputText.trim();
     if (!trimmed || isLoading || isCheckingLimits) return;
+    if (onboarding) {
+      // The try has its own server-side allowance, not the daily cap.
+      setInputText('');
+      Keyboard.dismiss();
+      if (!(await onboarding.chat.sendMessage(trimmed))) setInputText(trimmed);
+      return;
+    }
     setIsCheckingLimits(true);
     const limit = await checkSponsorMessageLimit();
     setIsCheckingLimits(false);
@@ -180,7 +208,7 @@ function SponsorChatContent({ initialSponsor }: { initialSponsor: string }) {
     // Which sponsor personas actually get used — sponsor as a property so
     // Mixpanel can segment one event instead of counting name-suffixed ones.
     logEvent('sponsor_message_sent', { sponsor: getSponsorDisplayName(sponsorType) });
-    const succeeded = await sendMessage(trimmed);
+    const succeeded = await store.sendMessage(trimmed);
     // Count successful paid turns only. Provider failures and server rejections
     // are refunded server-side and must not leave the local UI cap ahead.
     if (succeeded) await recordSponsorMessage();
@@ -215,21 +243,26 @@ function SponsorChatContent({ initialSponsor }: { initialSponsor: string }) {
         {/* Same centered column as the conversation below, so on wide screens
             the identity and actions line up with the messages. */}
         <ReadingColumn onLayout={(e) => setColumnX(e.nativeEvent.layout.x)}>
-        {!pane && <BackButton onPress={exitChat} style={{ marginBottom: 10 }} />}
+        {!pane && <BackButton onPress={onboarding ? onboarding.onBack : exitChat} style={{ marginBottom: 10 }} />}
         <View style={styles.sponsorRow}>
           {/* The identity IS the switch affordance — tap the avatar/name (chevron
               cue) to open the sponsor menu (quick-switch + "Meet all three").
               In the picker's pane the picker itself does the switching. */}
-          <Pressable style={styles.identity} disabled={!!pane} onPress={() => setSwitchOpen((o) => !o)} accessibilityRole={pane ? undefined : 'button'} accessibilityLabel={pane ? undefined : 'Switch sponsor'}>
+          <Pressable style={styles.identity} disabled={!!pane || !!onboarding} onPress={() => setSwitchOpen((o) => !o)} accessibilityRole={pane || onboarding ? undefined : 'button'} accessibilityLabel={pane || onboarding ? undefined : 'Switch sponsor'}>
             <Image source={sponsor.avatar} style={styles.hAvatar} contentFit="cover" />
             <View style={styles.flex}>
               <View style={styles.nameRow}>
                 <Text style={styles.hName} numberOfLines={1}>{sponsor.name}</Text>
-                {!pane && <ChevronDown size={18} color={c.textMuted} strokeWidth={2.4} style={switchOpen && { transform: [{ rotate: '180deg' }] }} />}
+                {!pane && !onboarding && <ChevronDown size={18} color={c.textMuted} strokeWidth={2.4} style={switchOpen && { transform: [{ rotate: '180deg' }] }} />}
               </View>
               <Text style={styles.vibe} numberOfLines={1}>{vibeString(sponsor.tags)}</Text>
             </View>
           </Pressable>
+          {onboarding ? (
+            <Pressable onPress={onboarding.onTryAnother} style={styles.tryAnotherPill} accessibilityRole="button">
+              <Text style={styles.tryAnotherPillText}>Try another</Text>
+            </Pressable>
+          ) : (
           <View style={styles.headActions}>
             <Pressable onPress={() => { setSizeSheetOpen(true); setSwitchOpen(false); }} style={styles.aaBtn} accessibilityLabel="Text size">
               <Text style={styles.aaGlyph}>aA</Text>
@@ -239,6 +272,7 @@ function SponsorChatContent({ initialSponsor }: { initialSponsor: string }) {
             </Pressable>
             <PaneExpandButton />
           </View>
+          )}
         </View>
         </ReadingColumn>
       </View>
@@ -284,6 +318,26 @@ function SponsorChatContent({ initialSponsor }: { initialSponsor: string }) {
           </View>
         )}
 
+        {!!onboarding?.chat.error && (
+          <Text style={styles.tryError} accessibilityLiveRegion="polite">{onboarding.chat.error}</Text>
+        )}
+
+        {onboarding?.chat.finished ? (
+          <View style={[styles.tryDone, { marginBottom: Math.max(insets.bottom, 10) + 8 }]}>
+            <Text style={styles.tryDoneText}>That’s your free try with {TRY_FIRST_NAME[initialSponsor as TrySponsorId]}.</Text>
+            <View style={styles.tryDoneBtns}>
+              {onboarding.anyLeft && (
+                <Pressable onPress={onboarding.onTryAnother} style={styles.tryDoneBtn} accessibilityRole="button">
+                  <Text style={styles.tryDoneBtnText}>Try another</Text>
+                </Pressable>
+              )}
+              <Pressable onPress={onboarding.onStartTrial} style={[styles.tryDoneBtn, styles.tryDoneBtnOutline]} accessibilityRole="button">
+                <Text style={[styles.tryDoneBtnText, styles.tryDoneBtnOutlineText]}>{tryButtonLabel(onboarding.offer)}</Text>
+              </Pressable>
+            </View>
+          </View>
+        ) : (
+        <>
         {/* ── Suggestion chips (above composer; hidden once typing) ── */}
         {showChips && (
           <ScrollView
@@ -323,6 +377,8 @@ function SponsorChatContent({ initialSponsor }: { initialSponsor: string }) {
             <Send size={16} color="#fff" strokeWidth={2} />
           </Pressable>
         </View>
+        </>
+        )}
         </ReadingColumn>
       </KeyboardAvoidingView>
 
@@ -339,6 +395,11 @@ export function SponsorChat({ sponsorId }: { sponsorId: string }) {
       <SponsorChatContent initialSponsor={sponsorId} />
     </ChatStoreProvider>
   );
+}
+
+// Onboarding's 3-message try — rendered by the onboarding flow, not a route.
+export function OnboardingSponsorChat({ sponsorId, ...mode }: { sponsorId: TrySponsorId } & OnboardingMode) {
+  return <SponsorChatContent initialSponsor={sponsorId} onboarding={mode} />;
 }
 
 export default function SponsorChatScreen() {
@@ -402,6 +463,18 @@ const makeStyles = (tk: Tokens) => {
   input: { flex: 1, maxHeight: 120, backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : c.surface, borderWidth: 1, borderColor: isDark ? 'rgba(255,255,255,0.10)' : 'rgba(26,26,46,0.07)', borderRadius: 22, paddingHorizontal: 16, paddingVertical: Platform.OS === 'ios' ? 10 : 6, fontFamily: fontFamily.regular, color: c.text },
   sendBtn: { width: 38, height: 38, borderRadius: 19, alignItems: 'center', justifyContent: 'center', backgroundColor: BR_INK },
   sendDisabled: { opacity: 0.4 },
+
+  // onboarding try
+  tryAnotherPill: { backgroundColor: colors.primary, borderRadius: 999, paddingVertical: 8, paddingHorizontal: 14 },
+  tryAnotherPillText: { fontFamily: fontFamily.bold, fontSize: 13, color: '#fff' },
+  tryError: { fontFamily: fontFamily.medium, fontSize: 13, color: colors.destructive, textAlign: 'center', paddingHorizontal: 18, paddingBottom: 8 },
+  tryDone: { marginHorizontal: 16, marginTop: 4, padding: 14, borderRadius: 16, backgroundColor: colors.primarySoft, alignItems: 'center' },
+  tryDoneText: { fontFamily: fontFamily.semiBold, fontSize: 14, color: colors.primaryDark, textAlign: 'center' },
+  tryDoneBtns: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: 8, marginTop: 10 },
+  tryDoneBtn: { backgroundColor: colors.primary, borderRadius: 999, paddingVertical: 10, paddingHorizontal: 20 },
+  tryDoneBtnText: { fontFamily: fontFamily.bold, fontSize: 14, color: '#fff' },
+  tryDoneBtnOutline: { backgroundColor: c.surface, borderWidth: 1.5, borderColor: colors.primary },
+  tryDoneBtnOutlineText: { color: colors.primaryDark },
 
   // error
   errorBox: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 16, backgroundColor: paper },

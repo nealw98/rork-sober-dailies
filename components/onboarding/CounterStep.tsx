@@ -68,7 +68,7 @@ export default function CounterStep({ value, onChangeValue, onSave, onSkip, onBa
   const { width, height } = useWindowDimensions();
   const reduceMotion = useReducedMotion();
   const [focused, setFocused] = useState(false);
-  // "Today is my day one" only fills the field; Start my count still saves.
+  // "Today is my day one" only fills the field; the button still saves.
   // This remembers how the date got there for the saved event.
   const dayOneRef = useRef(false);
   // With the keyboard up the field sits below the fold on most phones (the
@@ -145,7 +145,11 @@ export default function CounterStep({ value, onChangeValue, onSave, onSkip, onBa
 
   const setText = (t: string) => {
     dayOneRef.current = false;
-    onChangeValue(formatDateInput(t));
+    const next = formatDateInput(t);
+    onChangeValue(next);
+    // Android: a complete, valid date closes the keyboard so the coin counts
+    // up in view and the button is right there — the acknowledgement.
+    if (Platform.OS === 'android' && next.length === 10 && parseDateInput(next)) Keyboard.dismiss();
   };
   const dayOne = () => {
     Keyboard.dismiss();
@@ -160,7 +164,9 @@ export default function CounterStep({ value, onChangeValue, onSave, onSkip, onBa
     // The keyboard avoider wraps the safe area, not the other way round: inside
     // it, its frame stops short of the home indicator and the padding it adds
     // came up short of the keyboard, leaving "Today is my day one" under it.
-    <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.safe}>
+    // Android pads too: edge-to-edge means the window no longer resizes for the
+    // keyboard, so without it the field sat under the keyboard.
+    <KeyboardAvoidingView behavior="padding" style={styles.safe}>
       <SafeAreaView style={styles.flex} edges={['top', 'bottom']}>
         <StatusBar style={isDark ? 'light' : 'dark'} />
         <OnboardingColumn>
@@ -257,6 +263,9 @@ export default function CounterStep({ value, onChangeValue, onSave, onSkip, onBa
                 placeholder="mm/dd/yyyy"
                 placeholderTextColor={lightC.textMuted}
                 keyboardType="number-pad"
+                // Android's number pad shows this as a Done key.
+                returnKeyType="done"
+                onSubmitEditing={() => Keyboard.dismiss()}
                 maxLength={10}
                 accessibilityLabel="Sobriety date, month day year"
               />
@@ -264,7 +273,7 @@ export default function CounterStep({ value, onChangeValue, onSave, onSkip, onBa
           </ScrollView>
 
           <View style={styles.footer}>
-            <PrimaryButton label="Start my count" disabled={!parsed} onPress={() => parsed && onSave(parsed, dayOneRef.current ? 'day_one' : 'typed')} />
+            <PrimaryButton label={"Today's Daily Reflection"} disabled={!parsed} onPress={() => parsed && onSave(parsed, dayOneRef.current ? 'day_one' : 'typed')} />
             <Pressable style={styles.ghost} onPress={dayOne} accessibilityRole="button">
               <Text maxFontSizeMultiplier={TOUR_MAX_FONT_SCALE} style={styles.ghostText}>Today is my day one</Text>
             </Pressable>

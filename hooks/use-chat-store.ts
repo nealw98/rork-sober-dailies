@@ -41,14 +41,14 @@ function timeoutSignal(ms: number): AbortSignal {
   return c.signal;
 }
 
-class SponsorApiError extends Error {
+export class SponsorApiError extends Error {
   constructor(message: string, readonly status: number) {
     super(message);
     this.name = 'SponsorApiError';
   }
 }
 
-const isSponsorLimitError = (error: unknown): error is SponsorApiError =>
+export const isSponsorLimitError = (error: unknown): error is SponsorApiError =>
   error instanceof SponsorApiError && error.status === 429;
 
 async function callSponsorAPI(
@@ -58,13 +58,17 @@ async function callSponsorAPI(
   // Callers ALWAYS pass this now (the chain resolves primary/backup from the
   // Dev Console engine setting) — same fn, same server personas either way.
   // The defaults below are a safety net only; routing lives in QA_ENGINE_SPEC.
-  engine?: { provider: 'anthropic' | 'openai'; model: string }
+  engine?: { provider: 'anthropic' | 'openai'; model: string },
+  // Onboarding's 3-message try (v4): the server adds the onboarding prompt
+  // block and counts it against the one-time try; `member` sends it to the
+  // daily cap instead (see sponsor-chat).
+  options?: { onboarding?: boolean; member?: boolean }
 ): Promise<{ text: string; model?: string; temperature?: number }> {
   const sponsor = getSponsorById(sponsorType);
   const apiSponsorId = sponsor?.apiSponsorId ?? sponsorType;
   // Keep provider comparisons controlled; the server also enforces this value.
   const temperature = 0.8;
-  const defaultEngine = resolveQaEngine(DEFAULT_QA_ENGINE, sponsorType);
+  const defaultEngine = resolveQaEngine(DEFAULT_QA_ENGINE, 'chat');
   const provider = engine?.provider ?? defaultEngine.provider;
   const model = engine?.model ?? defaultEngine.model;
   const sponsorApiUrl = await getSponsorApiUrl();
@@ -101,6 +105,7 @@ async function callSponsorAPI(
     model,
     anonymous_id: anonymousId,
     device_secret: deviceSecret,
+    ...(options?.onboarding ? { onboarding: true, onboarding_member: options.member === true } : {}),
   });
   const postOnce = () =>
     fetch(sponsorApiChatUrl, {
@@ -132,6 +137,35 @@ async function callSponsorAPI(
     model: typeof data.model === "string" ? data.model : undefined,
     temperature,
   };
+}
+
+// One sponsor reply through the paid chain. Auto routes every sponsor's chat
+// to Terra (Spot Check stays on lower-cost Luna); the Dev Console can
+// explicitly override that route. The first fallback always crosses provider —
+// Terra and Luna share OpenAI infrastructure, so chaining them would add cost
+// and latency without buying the reliability Sonnet provides. A server limit
+// (429) is final and is not retried. `chatMessages` ends with the new user
+// message; its first message (the opener) is not sent.
+export async function fetchSponsorReply(
+  sponsorType: SponsorType,
+  chatMessages: ChatMessage[],
+  text: string,
+  options?: { onboarding?: boolean; member?: boolean },
+): Promise<{ text: string; model?: string; temperature?: number }> {
+  const primary = resolveQaEngine(await getQaEngine(), 'chat');
+  const backup = primary.provider === 'anthropic' ? QA_ENGINE_SPEC.luna : QA_ENGINE_SPEC.sonnet;
+  try {
+    return await callSponsorAPI(sponsorType, chatMessages, text, primary, options);
+  } catch (primaryError) {
+    if (isSponsorLimitError(primaryError)) throw primaryError;
+    console.warn(`${primary.label} failed; trying ${backup.label}:`, primaryError);
+    try {
+      return await callSponsorAPI(sponsorType, chatMessages, text, backup, options);
+    } catch (backupError) {
+      console.warn('Both paid engines failed:', backupError);
+      throw backupError;
+    }
+  }
 }
 
 export const [ChatStoreProvider, useChatStore] = createContextHook(() => {
@@ -682,31 +716,9 @@ export const [ChatStoreProvider, useChatStore] = createContextHook(() => {
     }
     
     try {
-      // Auto routes Sam to Terra for stronger character fidelity and the
-      // gentler sponsors to lower-cost Luna. The Dev Console can explicitly
-      // override that route. The first fallback is
-      // always the other provider; if both fail, the outer catch below gives a
-      // deterministic sponsor-specific connection response.
-      let result: { text: string; model?: string; temperature?: number };
-      {
-        const primary = resolveQaEngine(await getQaEngine(), sponsorType);
-        // Always cross provider for the first fallback. Terra and Luna share
-        // OpenAI infrastructure, so chaining them would add cost and
-        // latency without buying the reliability Sonnet provides.
-        const backup = primary.provider === 'anthropic' ? QA_ENGINE_SPEC.luna : QA_ENGINE_SPEC.sonnet;
-        try {
-          result = await callSponsorAPI(sponsorType, updatedMessages, text, primary);
-        } catch (primaryError) {
-          if (isSponsorLimitError(primaryError)) throw primaryError;
-          console.warn(`${primary.label} failed; trying ${backup.label}:`, primaryError);
-          try {
-            result = await callSponsorAPI(sponsorType, updatedMessages, text, backup);
-          } catch (backupError) {
-            console.warn('Both paid engines failed:', backupError);
-            throw backupError;
-          }
-        }
-      }
+      // If both engines fail, the outer catch below gives a deterministic
+      // sponsor-specific connection response.
+      const result = await fetchSponsorReply(sponsorType, updatedMessages, text);
 
       // Add bot response
       const botResponse: ChatMessage = {

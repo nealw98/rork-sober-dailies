@@ -1,0 +1,183 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Your sobriety count</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@600;700&amp;family=Inter:wght@400;500;600;700&amp;family=Lora:ital,wght@0,400;0,500;1,400;1,500&amp;display=swap">
+<style>
+body{margin:0}
+a{color:#474A52}a:hover{color:#232529}
+@keyframes sdBreathe{0%,100%{transform:scale(1);opacity:.55}50%{transform:scale(1.08);opacity:1}}
+@keyframes sdGlint{0%{transform:translateX(-160px) rotate(25deg)}100%{transform:translateX(260px) rotate(25deg)}}
+@keyframes sdPop{0%{transform:scale(.94)}60%{transform:scale(1.03)}100%{transform:scale(1)}}
+.sd-halo{animation:sdBreathe 5s ease-in-out infinite}
+.sd-glint{animation:sdGlint 1.4s ease-in-out .4s 1 both}
+.sd-coin{animation:sdPop .7s ease-out 1 both}
+#soberdate:focus{outline:none;border-color:#3D8B8B;box-shadow:0 0 0 4px rgba(61,139,139,0.15)}
+@media (prefers-reduced-motion: reduce){.sd-halo,.sd-glint,.sd-coin{animation:none}}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; position: relative; overflow: hidden; font-family: Inter, sans-serif; color: #232529; background: #FAF6EF; padding: 59px 0 34px; display: flex; flex-direction: column">
+<div style="position: relative; display: flex; align-items: center; gap: 12px; padding: 8px 24px 0">
+<a href="R1-Welcome.dc.html" aria-label="Back" style="width: 36px; height: 36px; margin-left: -8px; display: flex; align-items: center; justify-content: center"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#474A52" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 18-6-6 6-6"></path></svg></a>
+<div style="flex-grow: 1; display: flex; gap: 6px">
+<span style="flex: 1; height: 4px; border-radius: 2px; background: #3D8B8B"></span>
+<span style="flex: 1; height: 4px; border-radius: 2px; background: #E8E4DA"></span>
+<span style="flex: 1; height: 4px; border-radius: 2px; background: #E8E4DA"></span>
+<span style="flex: 1; height: 4px; border-radius: 2px; background: #E8E4DA"></span>
+<span style="flex: 1; height: 4px; border-radius: 2px; background: #E8E4DA"></span>
+</div>
+<a href="R6-Disclaimer.dc.html" style="font-weight: 600; font-size: 15px; text-decoration: none; padding: 8px 0">Skip</a>
+</div>
+<div style="position: relative; padding: 18px 26px 0; text-align: center">
+<p style="margin: 0; font-family: Lora, serif; font-style: italic; font-weight: 500; font-size: 18px; line-height: 24px; color: #316769">One day at a time.</p>
+<h1 style="margin: 4px 0 0; font-family: Archivo, sans-serif; font-weight: 700; font-size: 28px; line-height: 32px; letter-spacing: -0.6px">When did you get sober?</h1>
+</div>
+<div style="position: relative; flex-grow: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; padding: 0 26px">
+<div style="position: relative; width: 236px; height: 236px">
+<div style="position: absolute; left: -40px; top: -40px; width: 316px; height: 316px; border-radius: 158px; background: radial-gradient(circle, rgba(61,139,139,0.34) 0%, rgba(61,139,139,0) 62%); transform: scale({{haloScale}}); opacity: {{haloOpacity}}"></div>
+<div style="position: absolute; left: 10px; top: 10px; width: 216px; height: 216px; border-radius: 108px; box-sizing: border-box; border: 1.5px solid rgba(61,139,139,0.35)"></div>
+<button type="button" onClick="{{replay}}" aria-label="Replay count" style="position: absolute; left: 20px; top: 20px; width: 196px; height: 196px; padding: 0; border: 0; border-radius: 98px; overflow: hidden; cursor: pointer; font-family: Inter, sans-serif; background: linear-gradient(145deg, #4A9A98 0%, #3D8B8B 45%, #2A6466 100%); box-shadow: 0 18px 36px rgba(49,103,105,0.32), inset 0 0 0 6px rgba(255,255,255,0.14); display: flex; flex-direction: column; align-items: center; justify-content: center; color: #ffffff; transform: scale({{coinScale}})">
+<span style="position: absolute; top: -60px; left: 0; width: 46px; height: 320px; background: linear-gradient(90deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.4) 50%, rgba(255,255,255,0) 100%); transform: translateX({{glintX}}px) rotate(25deg)"></span>
+<span style="position: relative; font-family: Archivo, sans-serif; font-weight: 700; font-size: {{numSize}}; line-height: 1; letter-spacing: -2px">{{big}}</span>
+<span style="position: relative; font-family: Lora, serif; font-style: italic; font-size: 17px; margin-top: 6px; color: rgba(255,255,255,0.92)">{{unit}}</span>
+</button>
+</div>
+<div style="font-weight: 600; font-size: 15px; min-height: 20px; color: #316769">{{ymd}}</div>
+<div style="font-family: Lora, serif; font-style: italic; font-size: 16px; min-height: 21px; color: #474A52">{{line}}</div>
+</div>
+<div style="position: relative; padding: 0 24px">
+<label for="soberdate" style="display: block; font-weight: 700; font-size: 11px; letter-spacing: 1.8px; color: #6E7178; text-align: center; margin-bottom: 8px">SOBRIETY DATE</label>
+<input id="soberdate" type="text" inputmode="numeric" placeholder="mm/dd/yyyy" maxlength="10" value="{{value}}" onChange="{{onDate}}" style="width: 100%; box-sizing: border-box; background: #ffffff; border: 1.5px solid {{inputBorder}}; border-radius: 14px; padding: 14px 16px; font-family: Inter, sans-serif; font-weight: 600; font-size: 20px; letter-spacing: 0.5px; color: #232529; text-align: center; box-shadow: 0 2px 6px rgba(0,0,0,0.04)">
+</div>
+<div style="position: relative; padding: 16px 24px 14px; display: flex; flex-direction: column; align-items: center">
+<a href="R3-Reflection.dc.html" style="align-self: stretch; display: flex; align-items: center; justify-content: center; gap: 9px; padding: 16px 0; border-radius: 16px; background: #3D8B8B; text-decoration: none; font-weight: 600; font-size: 18px; color: #ffffff; box-shadow: 0 4px 12px rgba(61,139,139,0.3)">Today's Daily Reflection
+<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"></path><path d="m12 5 7 7-7 7"></path></svg>
+</a>
+<button type="button" onClick="{{dayOne}}" style="margin-top: 6px; background: none; border: 0; padding: 12px 16px; font-family: Inter, sans-serif; font-weight: 600; font-size: 16px; color: #474A52; cursor: pointer">Today is my day one</button>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+constructor(props) {
+super(props);
+this.state = { value: '06/14/2024', shown: 0, coinScale: 1, glintX: -160, haloScale: 1, haloOpacity: 0.6 };
+this.raf = null;
+this.breathe = null;
+this.target = 0;
+}
+reduced() { return !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches); }
+startBreathing() {
+var self = this;
+if (this.reduced()) return;
+var t0 = null, last = 0;
+var loop = function (t) {
+if (t0 === null) t0 = t;
+if (t - last > 33) {
+last = t;
+var s = (Math.sin(((t - t0) / 5000) * Math.PI * 2 - Math.PI / 2) + 1) / 2;
+self.setState({ haloScale: (1 + 0.1 * s).toFixed(3), haloOpacity: (0.45 + 0.55 * s).toFixed(3) });
+}
+self.breathe = requestAnimationFrame(loop);
+};
+this.breathe = requestAnimationFrame(loop);
+}
+play(target) {
+var self = this;
+this.target = target;
+if (this.raf) cancelAnimationFrame(this.raf);
+if (this.reduced()) { this.setState({ shown: target, coinScale: 1, glintX: -160 }); return; }
+var t0 = null, delay = 350, dur = 1400;
+var ease = function (p) { return 1 - Math.pow(1 - p, 3); };
+var step = function (t) {
+if (t0 === null) t0 = t;
+var el = t - t0 - delay;
+if (el < 0) { self.setState({ shown: 0, coinScale: 0.94 }); self.raf = requestAnimationFrame(step); return; }
+var p = Math.min(1, el / dur);
+var pop = el < 500 ? (el < 300 ? 0.94 + 0.09 * (el / 300) : 1.03 - 0.03 * ((el - 300) / 200)) : 1;
+var gp = Math.min(1, Math.max(0, (el - dur * 0.55) / 900));
+self.setState({
+shown: Math.round(target * ease(p)),
+coinScale: pop.toFixed(3),
+glintX: gp > 0 && gp < 1 ? Math.round(-160 + 420 * ease(gp)) : -160
+});
+if (p < 1 || gp < 1) self.raf = requestAnimationFrame(step);
+};
+this.raf = requestAnimationFrame(step);
+}
+parse(v) {
+var m = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(v);
+if (!m) return { state: 'empty' };
+var mo = +m[1], d = +m[2], y = +m[3];
+var start = new Date(y, mo - 1, d);
+var now = new Date(); now.setHours(0, 0, 0, 0);
+if (start.getFullYear() !== y || start.getMonth() !== mo - 1 || start.getDate() !== d || start > now) return { state: 'bad' };
+var n = Math.round((now - start) / 86400000);
+var yy = now.getFullYear() - y, mm = now.getMonth() - (mo - 1), dd = now.getDate() - d;
+if (dd < 0) { mm -= 1; dd += new Date(now.getFullYear(), now.getMonth(), 0).getDate(); }
+if (mm < 0) { yy -= 1; mm += 12; }
+var parts = [];
+if (yy) parts.push(yy + (yy === 1 ? ' year' : ' years'));
+if (mm) parts.push(mm + (mm === 1 ? ' month' : ' months'));
+parts.push(dd + (dd === 1 ? ' day' : ' days'));
+return { state: 'ok', n: n, ymd: parts.join(' · ') };
+}
+componentDidMount() {
+var r = this.parse(this.state.value);
+if (r.state === 'ok') this.play(r.n);
+this.startBreathing();
+}
+componentDidUpdate(prevProps, prevState) {
+if (prevState.value !== this.state.value) {
+var r = this.parse(this.state.value);
+if (r.state === 'ok') this.play(r.n);
+}
+}
+componentWillUnmount() {
+if (this.raf) cancelAnimationFrame(this.raf);
+if (this.breathe) cancelAnimationFrame(this.breathe);
+}
+renderVals() {
+var self = this;
+var r = this.parse(this.state.value);
+var big = '—', unit = 'days', ymd = '', line = '', numSize = '64px';
+if (r.state === 'ok') {
+if (r.n === 0) {
+big = 'Day 1'; unit = 'the bravest one'; numSize = '52px';
+ymd = 'Welcome. We’re glad you’re here.';
+line = 'Every count starts right here.';
+} else {
+var s = this.state.shown;
+big = s.toLocaleString('en-US'); unit = r.n === 1 ? 'day' : 'days';
+numSize = r.n > 9999 ? '50px' : '64px';
+ymd = r.ymd;
+line = 'That’s ' + (r.n * 24).toLocaleString('en-US') + ' hours, one at a time.';
+}
+} else if (r.state === 'bad') { ymd = 'That’s not a valid date'; }
+var pad = function (x) { return (x < 10 ? '0' : '') + x; };
+return {
+value: this.state.value, big: big, unit: unit, ymd: ymd, line: line, numSize: numSize,
+coinScale: this.state.coinScale, glintX: this.state.glintX, haloScale: this.state.haloScale, haloOpacity: this.state.haloOpacity,
+replay: function () { var r2 = self.parse(self.state.value); if (r2.state === 'ok') self.play(r2.n); },
+inputBorder: r.state === 'bad' ? '#D8584E' : (r.state === 'ok' ? '#3D8B8B' : '#E8E4DA'),
+onDate: function (e) {
+var s2 = String(e.target.value).replace(/\D/g, '').slice(0, 8);
+var f = s2.length <= 2 ? s2 : s2.length <= 4 ? s2.slice(0, 2) + '/' + s2.slice(2) : s2.slice(0, 2) + '/' + s2.slice(2, 4) + '/' + s2.slice(4);
+self.setState({ value: f });
+},
+dayOne: function () {
+var t = new Date();
+self.setState({ value: pad(t.getMonth() + 1) + '/' + pad(t.getDate()) + '/' + t.getFullYear() });
+}
+};
+}
+}
+</script>
+</body>
+</html>

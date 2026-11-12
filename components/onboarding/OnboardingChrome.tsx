@@ -7,7 +7,7 @@ import { useThemedStyles, useTokens } from '@/hooks/useTokens';
 import ReadingColumn from '@/components/layout/ReadingColumn';
 
 // Shared pieces of the "lead with the tools" onboarding screens (counter,
-// reflection, read & listen, talk & practice): the 4-segment progress rail
+// reflection, tools, program, help): the 5-segment progress rail
 // with Skip, the primary button, and the centered column. On a phone the
 // column never binds; on an unfolded Duo or iPad the screens stay a single
 // readable column instead of stretching edge to edge.
@@ -29,7 +29,7 @@ export function OnboardingColumn({ children, style, maxWidth = ONBOARDING_MAX_WI
   );
 }
 
-// Position in the four tour screens, plus Skip (straight to the disclaimer)
+// Position in the five tour screens, plus Skip (straight to the paywall)
 // and, when `onBack` is set, a back chevron across from it. `onImage` is the
 // reflection screen's variant: drawn in white over its photo.
 export function TourProgress({ index, onSkip, onBack, onImage = false }: { index: number; onSkip: () => void; onBack?: () => void; onImage?: boolean }) {

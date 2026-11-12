@@ -21,3 +21,12 @@ export const GET_URL = 'https://soberdailies.com/get';
 export function getUrl(): string {
   return GET_URL;
 }
+
+// Terms of Use. iOS keeps Apple's standard EULA (what App Store review saw);
+// Android links our own terms on soberdailies.com instead.
+export const APPLE_EULA_URL = 'https://www.apple.com/legal/internet-services/itunes/dev/stdeula/';
+export const TERMS_URL = 'https://soberdailies.com/terms';
+
+export function termsUrl(): string {
+  return Platform.OS === 'ios' ? APPLE_EULA_URL : TERMS_URL;
+}

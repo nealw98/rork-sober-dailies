@@ -10,6 +10,8 @@
 // {name}" CTA, the sponsor picker sheet, and the ephemeral chat screen are
 // all gone. The form is the whole feature and the reflection card is its
 // last word.
+// Onboarding v4: <SpotCheckForm onboarding/> is the one free Spot Check in the
+// "try the sponsors" step — nothing is saved, one reflection, then an end card.
 import React, { useEffect, useRef, useState } from 'react';
 import {
   View, Text, StyleSheet, Pressable, TextInput, Alert, BackHandler,
@@ -22,7 +24,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Haptics from 'expo-haptics';
 import BackButton from '@/components/BackButton';
 import { SPOT_CHECK_FEELINGS } from '@/constants/spotCheckPersonas';
-import { askFormReflection } from '@/lib/spotCheckLLM';
+import { askFormReflection, SponsorLimitError } from '@/lib/spotCheckLLM';
 import { useTokens, useThemedStyles } from '@/hooks/useTokens';
 import { logEvent } from '@/lib/analytics';
 import { confirmSaved } from '@/lib/savedNotice';
@@ -31,6 +33,7 @@ import PaneExpandButton from '@/components/layout/PaneExpandButton';
 import { fontFamily, type Tokens } from '@/constants/designTokens';
 import type { SponsorType } from '@/types';
 import type { SpotCheckEntry } from '@/types/spotCheck';
+import { tryButtonLabel, type TryOffer } from '@/constants/onboardingSponsors';
 
 const INVENTORY_STORAGE_KEY = 'spot_check_inventories';
 
@@ -40,7 +43,20 @@ const INVENTORY_STORAGE_KEY = 'spot_check_inventories';
 // wizard-era records alone.
 const RECORD_SPONSOR_ID: SponsorType = 'supportive';
 
+type SpotCheckOnboarding = {
+  offer: TryOffer;
+  anyLeft: boolean;
+  onBack: () => void;
+  onTryAnother: () => void;
+  onStartTrial: () => void;
+  onFinished: () => void;
+};
+
 export default function InventoryScreen() {
+  return <SpotCheckForm />;
+}
+
+export function SpotCheckForm({ onboarding }: { onboarding?: SpotCheckOnboarding }) {
   const router = useRouter();
   // Non-null inside Today's wide-layout pane — back means closing the pane.
   const pane = usePane();
@@ -73,28 +89,48 @@ export default function InventoryScreen() {
   // stays visible until replaced; total failure (offline) shows nothing.
   const [reflection, setReflection] = useState<string | null>(null);
   const [reflecting, setReflecting] = useState(false);
+  // Onboarding: the free reflection is done (or this device already had it) —
+  // the form locks and the end card shows.
+  const [tryDone, setTryDone] = useState(false);
+  const [tryError, setTryError] = useState<string | null>(null);
   // Visible Enter/Cancel row while the what's-going-on input is focused
   // (Neal, 2026-08-04) — the keyboard's return key alone wasn't
   // discoverable. Enter dismisses + generates; Cancel just dismisses.
   const [goingOnFocused, setGoingOnFocused] = useState(false);
   const reflectionKey = useRef('');
   const generateReflection = async () => {
-    if (!ready) return;
+    if (!ready || tryDone) return;
     const key = `${feelings.join(',')}|${whatsGoingOn.trim()}`;
     if (reflectionKey.current === key) return;
     setReflecting(true);
+    setTryError(null);
     try {
-      const text = await askFormReflection(feelings, whatsGoingOn.trim());
+      const text = await askFormReflection(
+        feelings,
+        whatsGoingOn.trim(),
+        onboarding ? { onboarding: true, member: onboarding.offer === 'member' } : undefined,
+      );
       reflectionKey.current = key;
       setReflection(text);
       // The reflection is part of the saved record now — a fresh one after a
       // save re-arms the Save pill so it can be captured.
       markEdited();
-    } catch { /* leave whatever is showing */ }
+      if (onboarding) { setTryDone(true); onboarding.onFinished(); }
+    } catch (e) {
+      // Outside onboarding: leave whatever is showing.
+      if (onboarding && e instanceof SponsorLimitError) {
+        setTryError(e.message);
+        setTryDone(true);
+        onboarding.onFinished();
+      } else if (onboarding) {
+        setTryError('Couldn’t get a reflection just now. Try again.');
+      }
+    }
     setReflecting(false);
   };
 
   const toggleFeeling = (f: string) => {
+    if (tryDone) return;
     markEdited();
     setFeelings((cur) => (cur.includes(f) ? cur.filter((x) => x !== f) : [...cur, f]));
   };
@@ -159,6 +195,8 @@ export default function InventoryScreen() {
   // States 2 & 3 — leaving. Clean form (or saved + unedited) just exits.
   const exit = () => { if (pane) pane.close(); else if (router.canGoBack()) router.back(); else router.replace('/'); };
   const confirmExit = () => {
+    // Onboarding saves nothing, so there's nothing to ask.
+    if (onboarding) { onboarding.onBack(); return; }
     if (!dirty) { exit(); return; }
     Alert.alert('Save this spot check?', 'What you’ve entered will show up in Journey.', [
       { text: 'Keep writing', style: 'cancel' },
@@ -172,6 +210,8 @@ export default function InventoryScreen() {
     ]);
   };
   useEffect(() => {
+    // Onboarding's Android back is handled by the onboarding flow.
+    if (onboarding) return;
     const sub = BackHandler.addEventListener('hardwareBackPress', () => { confirmExit(); return true; });
     return () => sub.remove();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -189,6 +229,12 @@ export default function InventoryScreen() {
       <View style={styles.headerRow}>
         <BackButton onPress={confirmExit} />
         <Text style={styles.title}>Spot Check</Text>
+        {onboarding ? (
+          <Pressable onPress={onboarding.onTryAnother} accessibilityRole="button" style={styles.tryAnotherPill}>
+            <Text style={styles.tryAnotherPillText}>Try another</Text>
+          </Pressable>
+        ) : (
+        <>
         <PaneExpandButton />
         <Pressable
           onPress={onSave}
@@ -201,6 +247,8 @@ export default function InventoryScreen() {
             {savePillLabel}
           </Text>
         </Pressable>
+        </>
+        )}
       </View>
 
       <KeyboardAwareScrollView
@@ -212,6 +260,13 @@ export default function InventoryScreen() {
         bottomOffset={84}
         showsVerticalScrollIndicator={false}
       >
+        {onboarding && (
+          <View style={styles.tryIntro}>
+            <Text style={styles.tryIntroText}>
+              Upset, angry or anxious right now? Tap how you feel, write a line about what’s going on, and tap Enter. You’ll get a short reflection back — a quick Step 10 on the spot.
+            </Text>
+          </View>
+        )}
         <Text style={[styles.sectionLabel, { marginTop: 18 }]}>HOW ARE YOU FEELING?</Text>
         <View style={styles.pills}>
           {[...SPOT_CHECK_FEELINGS, ...customFeelings].map((f) => {
@@ -232,7 +287,7 @@ export default function InventoryScreen() {
               it used to open a full-width input below the row, which read as a
               second, separate question. Typing happens in the pill itself and
               it collapses back on submit/blur. */}
-          {otherOpen ? (
+          {tryDone ? null : otherOpen ? (
             <View style={[styles.pill, styles.pillOther, styles.pillOtherOpen, { borderColor: colors.accent }]}>
               <TextInput
                 value={otherText}
@@ -264,6 +319,7 @@ export default function InventoryScreen() {
           style={[styles.input, { minHeight: 120 }]}
           multiline
           value={whatsGoingOn}
+          editable={!tryDone}
           onChangeText={(t) => { markEdited(); setWhatsGoingOn(t); }}
           placeholder="What’s happening right now"
           placeholderTextColor={c.textMuted}
@@ -308,6 +364,22 @@ export default function InventoryScreen() {
                 style={reflection !== null ? { marginTop: 10 } : null}
               />
             )}
+          </View>
+        )}
+        {!!tryError && <Text style={styles.tryError} accessibilityLiveRegion="polite">{tryError}</Text>}
+        {onboarding && tryDone && (
+          <View style={styles.tryDone}>
+            <Text style={styles.tryDoneText}>That’s your free spot check.</Text>
+            <View style={styles.tryDoneBtns}>
+              {onboarding.anyLeft && (
+                <Pressable onPress={onboarding.onTryAnother} style={styles.tryDoneBtn} accessibilityRole="button">
+                  <Text style={styles.tryDoneBtnText}>Try another</Text>
+                </Pressable>
+              )}
+              <Pressable onPress={onboarding.onStartTrial} style={[styles.tryDoneBtn, styles.tryDoneBtnOutline]} accessibilityRole="button">
+                <Text style={[styles.tryDoneBtnText, styles.tryDoneBtnOutlineText]}>{tryButtonLabel(onboarding.offer)}</Text>
+              </Pressable>
+            </View>
           </View>
         )}
         <View style={{ height: Math.max(insets.bottom, 14) + 20 }} />
@@ -375,5 +447,19 @@ const makeStyles = (tk: Tokens) => {
     },
     inputBtnText: { fontFamily: fontFamily.semiBold, fontSize: 14.5 },
     btnDisabled: { opacity: 0.45 },
+
+    // onboarding try
+    tryAnotherPill: { backgroundColor: colors.primary, borderRadius: 999, paddingVertical: 9, paddingHorizontal: 14 },
+    tryAnotherPillText: { fontFamily: fontFamily.bold, fontSize: 13, color: '#fff' },
+    tryIntro: { backgroundColor: colors.accentSoft, borderRadius: 14, paddingVertical: 11, paddingHorizontal: 14, marginTop: 4 },
+    tryIntroText: { fontFamily: fontFamily.regular, fontSize: 13.5, lineHeight: 19, color: c.text },
+    tryError: { fontFamily: fontFamily.medium, fontSize: 13, color: colors.destructive, textAlign: 'center', marginTop: 12 },
+    tryDone: { marginTop: 12, padding: 14, borderRadius: 16, backgroundColor: colors.primarySoft, alignItems: 'center' },
+    tryDoneText: { fontFamily: fontFamily.semiBold, fontSize: 14, color: colors.primaryDark, textAlign: 'center' },
+    tryDoneBtns: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: 8, marginTop: 10 },
+    tryDoneBtn: { backgroundColor: colors.primary, borderRadius: 999, paddingVertical: 10, paddingHorizontal: 20 },
+    tryDoneBtnText: { fontFamily: fontFamily.bold, fontSize: 14, color: '#fff' },
+    tryDoneBtnOutline: { backgroundColor: c.surface, borderWidth: 1.5, borderColor: colors.primary },
+    tryDoneBtnOutlineText: { color: colors.primaryDark },
   });
 };

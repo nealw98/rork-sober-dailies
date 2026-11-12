@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Before you begin — redesign</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@600;700&amp;family=Inter:wght@400;500;600;700&amp;family=Lora:ital,wght@0,400;1,400;1,500&amp;display=swap">
+<style>
+body{margin:0}
+a{color:#ffffff}a:hover{color:#E2EEEE}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; position: relative; overflow: hidden; font-family: Inter, sans-serif; color: #ffffff; background: linear-gradient(150deg, #2574B5 0%, #1E92A6 50%, #22AC9D 100%); padding: 59px 24px 34px; display: flex; flex-direction: column; justify-content: center">
+<div style="width: 60px; height: 60px; border-radius: 18px; align-self: center; background: rgba(255,255,255,0.16); border: 1px solid rgba(255,255,255,0.32); box-sizing: border-box; display: flex; align-items: center; justify-content: center; margin-bottom: 16px">
+<svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"></path><path d="m9 12 2 2 4-4"></path></svg>
+</div>
+<h1 style="margin: 0; font-family: Archivo, sans-serif; font-weight: 700; font-size: 32px; line-height: 35px; letter-spacing: -0.6px; text-align: center">Before you begin</h1>
+<p style="margin: 14px 0 0; font-family: Lora, serif; font-style: italic; font-size: 16px; line-height: 24px; text-align: center; opacity: 0.94">A word about safety.</p>
+<div style="background: rgba(255,255,255,0.1); border-radius: 14px; padding: 18px; margin: 24px 0; display: flex; flex-direction: column; gap: 12px">
+<div style="font-weight: 600; font-size: 16px">Please note:</div>
+<div style="display: flex; gap: 9px; align-items: flex-start"><span style="font-size: 16px; line-height: 21px">•</span><span style="font-size: 14.5px; line-height: 21px; opacity: 0.95">This app is not a substitute for therapy, medical advice, or emergency support.</span></div>
+<div style="display: flex; gap: 9px; align-items: flex-start"><span style="font-size: 16px; line-height: 21px">•</span><span style="font-size: 14.5px; line-height: 21px; opacity: 0.95">The AI sponsors offer encouragement and reflection, but they are not human and cannot provide crisis support or clinical help.</span></div>
+<div style="display: flex; gap: 9px; align-items: flex-start"><span style="font-size: 16px; line-height: 21px">•</span><span style="font-size: 14.5px; line-height: 21px; opacity: 0.95">If you’re in immediate danger or emotional distress, call or text 988 (Suicide &amp; Crisis Lifeline) or contact your local emergency services.</span></div>
+</div>
+<p style="margin: 0 0 22px; font-size: 15px; line-height: 21px; text-align: center; opacity: 0.95">By continuing, you agree to our <a href="https://www.apple.com/legal/internet-services/itunes/dev/stdeula/" style="font-weight: 600; text-decoration: underline">Terms of Use</a> and <a href="https://soberdailies.com/privacy" style="font-weight: 600; text-decoration: underline">Privacy Policy</a>.</p>
+<label style="display: flex; align-items: flex-start; gap: 12px; padding: 0 8px; margin-bottom: 26px; cursor: pointer">
+<input type="checkbox" checked="{{checked}}" onChange="{{toggle}}" style="width: 22px; height: 22px; margin: 1px 0 0; accent-color: #22C55E; flex-shrink: 0">
+<span style="font-size: 15px; line-height: 21px">I understand the above, and have read and agree to the Terms of Use and Privacy Policy.</span>
+</label>
+<sc-if value="{{checked}}" hint-placeholder-val="{{ false }}">
+<a href="R7-Paywall.dc.html" style="align-self: center; background: #ffffff; padding: 15px 48px; border-radius: 26px; min-width: 200px; box-sizing: border-box; text-align: center; text-decoration: none; font-weight: 600; font-size: 18px; color: #1A7994">Continue</a>
+</sc-if>
+<sc-if value="{{unchecked}}" hint-placeholder-val="{{ true }}">
+<button type="button" disabled style="align-self: center; background: rgba(255,255,255,0.3); border: 0; padding: 15px 48px; border-radius: 26px; min-width: 200px; font-family: Inter, sans-serif; font-weight: 600; font-size: 18px; color: #1A5E70">Continue</button>
+</sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+constructor(props) {
+super(props);
+this.state = { checked: false };
+}
+renderVals() {
+var self = this;
+return {
+checked: this.state.checked,
+unchecked: !this.state.checked,
+toggle: function () { self.setState({ checked: !self.state.checked }); }
+};
+}
+}
+</script>
+</body>
+</html>

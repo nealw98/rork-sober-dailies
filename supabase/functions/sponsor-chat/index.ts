@@ -42,6 +42,14 @@ interface RequestBody {
   model?: string;
   anonymous_id?: string | null;
   device_secret?: string | null;
+  // Onboarding "try the sponsors" (v4): the persona gets the onboarding block
+  // and the request counts against the one-time try instead of the daily cap.
+  onboarding?: boolean;
+  // Set by the app for people who already have access. They still see the
+  // 3-message try, but it counts against the normal daily cap instead — the
+  // same cap any caller can already reach, so trusting the flag gives away
+  // nothing.
+  onboarding_member?: boolean;
 }
 
 // Allowlists for client-selectable models (public endpoint — never trust an
@@ -306,6 +314,38 @@ RESPONSE RULES — FOLLOW THESE EXACTLY:
   },
 };
 
+// Onboarding try (v4 handoff 4). The app shows each sponsor's intro as the
+// first message and appends the closing after the third reply — both are
+// fixed app text, not generated. They're repeated here so the replies in
+// between stay consistent with them. Keep in sync with
+// constants/onboardingSponsors.ts.
+const ONBOARDING: Record<Exclude<SponsorId, 'reflection'>, { intro: string; closing: string }> = {
+  supportive: {
+    intro: "Hey, I'm Eddie. You can bring me the drinking thoughts, the resentment, the fear, the bad day, or the thing you're ashamed to say out loud—any hour.\n\nI'm not a substitute for a sponsor, a meeting, a doctor, therapist, or emergency help, but I can help you find the next right thing.\n\nTell me what's going on.",
+    closing: "You've seen a little of how I work — steady, honest, and focused on the next right thing. … If you want to keep talking with me, sign up for the free trial and we'll keep it simple, one day at a time. You're doing the work.",
+  },
+  salty: {
+    intro: "I'm Salty Sam, sober since October 18, 1983. Bring me the urge to drink, the resentment, the fear, the lie you're nursing, or the crap you're avoiding at any hour.\n\nI'm not a substitute for emergency services, a doctor, a therapist, or a real-life sponsor when you need immediate help.\n\nQuit circling the runway and tell me what's going on.",
+    closing: "Well, you've had your three messages, so now you've seen I'm not here to pet your head and feed you recovery fortune cookies. … Sign up for the free trial if you want to keep talking, and bring me the truth instead of the polished bullshit.",
+  },
+  grace: {
+    intro: "Hi, I'm Gentle Grace, and I'm glad you found your way here. You can bring me the cravings, the fear, the resentment, the shame, the gratitude—whatever is sitting heavy on your heart, at any hour.\n\nI'm an AI sponsor, not a substitute for emergency services, professional mental health care, medical care, or a real local recovery community, but I can help you pause, turn toward your Higher Power, and find the next right thing.\n\nTake a breath, and start wherever you are.",
+    closing: "I'm glad we got to share these few moments together, and I hope you've seen a little of how we can bring things back to the program—one day at a time. … If you'd like to keep talking with me, sign up for the free trial and we'll keep taking the next right step together. You don't have to carry recovery alone.",
+  },
+};
+
+function onboardingBlock(id: Exclude<SponsorId, 'reflection'>): string {
+  const { intro, closing } = ONBOARDING[id];
+  return `
+
+ONBOARDING TRY — THIS CONVERSATION ONLY:
+This is a free 3-message try during onboarding in the Sober Dailies app. You've already sent this introduction:
+"${intro}"
+Don't introduce yourself again. Reply in 2–4 sentences, in your normal voice. Don't mention message limits, the free trial or subscribing — after the third reply the app adds a closing message itself, along these lines:
+"${closing}"
+Your usual crisis handling still applies.`;
+}
+
 function numberFromEnv(name: string, fallback: number): number {
   const value = Number(Deno.env.get(name));
   return Number.isFinite(value) ? value : fallback;
@@ -337,6 +377,7 @@ function resolveOpenAIModel(requested: unknown): string {
 interface RequestContext {
   sponsor: { id: SponsorId; name: string; prompt: string };
   prompt: string;
+  onboarding: boolean;
   message: string;
   conversation: ConversationItem[];
   temperature: number;
@@ -388,10 +429,14 @@ function buildContext(body: RequestBody): RequestContext {
   const maxOutputTokens = Math.round(clamp(Number(body.maxOutputTokens ?? DEFAULT_MAX_OUTPUT_TOKENS), 80, 500));
   const conversation = Array.isArray(body.conversation) ? body.conversation.slice(-10) : [];
 
+  // Spot Check's reflection prompt is used unchanged in onboarding.
+  const onboarding = body.onboarding === true;
   return {
     sponsor,
-    // The persona prompts are complete as written — nothing is appended.
-    prompt: sponsor.prompt,
+    // The persona prompts are complete as written; only the onboarding try
+    // appends its block.
+    prompt: onboarding && sponsor.id !== 'reflection' ? sponsor.prompt + onboardingBlock(sponsor.id) : sponsor.prompt,
+    onboarding,
     message,
     conversation,
     temperature,
@@ -456,7 +501,9 @@ async function callOpenAI(ctx: RequestContext): Promise<ProviderResult> {
       reasoning: { effort: 'none' },
       // Keep all users of a sponsor on the same cache route. GPT-5.6 gets a
       // guaranteed breakpoint immediately after the stable persona prompt.
-      prompt_cache_key: `sober-dailies:${ctx.sponsor.id}:persona-v1`,
+      // The onboarding prompt is a different prefix, so it gets its own route
+      // rather than evicting the everyday persona's cache.
+      prompt_cache_key: `sober-dailies:${ctx.sponsor.id}:${ctx.onboarding && ctx.sponsor.id !== 'reflection' ? 'onboarding-v1' : 'persona-v1'}`,
       ...(isGpt56 ? { prompt_cache_options: { mode: 'explicit' } } : {}),
     }),
   });
@@ -585,7 +632,11 @@ type QuotaBucket = 'sponsor_chat' | 'spot_check';
 
 interface QuotaReservation {
   anonymousId: string;
+  // 'daily' = the 25/day buckets; 'onboarding' = the one-time try, keyed by
+  // sponsor (or 'reflection' for Spot Check).
+  kind: 'daily' | 'onboarding';
   bucket: QuotaBucket;
+  target: SponsorId;
   count: number;
   limit: number;
   isTester: boolean;
@@ -622,6 +673,35 @@ async function authorizeAndReserve(body: RequestBody): Promise<QuotaReservation>
     throw new HttpError(403, 'This app version must be updated before using the AI Sponsor.');
   }
 
+  const target = getSponsor(body.sponsorId).id;
+
+  // Onboarding try for someone without access: its own one-time allowance
+  // (3 per sponsor, 1 Spot Check), not the daily cap.
+  if (body.onboarding === true && body.onboarding_member !== true) {
+    const { data, error } = await supabase.rpc('reserve_onboarding_message', {
+      p_anonymous_id: anonymousId,
+      p_target: target,
+    });
+    if (error) {
+      console.error('[sponsor-chat] onboarding reservation failed:', error.message);
+      throw new HttpError(503, 'The AI Sponsor usage check is temporarily unavailable.');
+    }
+    const row = Array.isArray(data) ? data[0] : data;
+    if (row?.allowed !== true) {
+      const label = target === 'reflection' ? 'free spot check' : `free try with ${SPONSORS[target].name}`;
+      throw new HttpError(429, `You've used your ${label}.`);
+    }
+    return {
+      anonymousId,
+      kind: 'onboarding',
+      bucket: target === 'reflection' ? 'spot_check' : 'sponsor_chat',
+      target,
+      count: Number(row?.message_count ?? 0),
+      limit: Number(row?.try_limit ?? 3),
+      isTester: row?.is_tester === true,
+    };
+  }
+
   // Keep Spot Check from silently consuming the visible 25-message sponsor
   // allowance. Both paid paths are bounded independently; authorized tester
   // devices receive their shared elevated limit in each bucket.
@@ -645,16 +725,21 @@ async function authorizeAndReserve(body: RequestBody): Promise<QuotaReservation>
     throw new HttpError(429, `You've reached today's limit of ${limit} ${label}. Please try again tomorrow.`);
   }
 
-  return { anonymousId, bucket, count, limit, isTester };
+  return { anonymousId, kind: 'daily', bucket, target, count, limit, isTester };
 }
 
 async function refundReservation(reservation: QuotaReservation | null) {
   if (!reservation) return;
   try {
-    const { error } = await serviceClient().rpc('refund_sponsor_chat_message', {
-      p_anonymous_id: reservation.anonymousId,
-      p_quota_bucket: reservation.bucket,
-    });
+    const { error } = reservation.kind === 'onboarding'
+      ? await serviceClient().rpc('refund_onboarding_message', {
+          p_anonymous_id: reservation.anonymousId,
+          p_target: reservation.target,
+        })
+      : await serviceClient().rpc('refund_sponsor_chat_message', {
+          p_anonymous_id: reservation.anonymousId,
+          p_quota_bucket: reservation.bucket,
+        });
     if (error) console.warn('[sponsor-chat] quota refund failed:', error.message);
   } catch (error) {
     console.warn('[sponsor-chat] quota refund failed:', error);
@@ -687,6 +772,7 @@ async function handleChat(body: RequestBody) {
     temperature: ctx.temperature,
     max_output_tokens: ctx.maxOutputTokens,
     request_status: 'success',
+    onboarding: ctx.onboarding,
   });
 
   return {
@@ -765,6 +851,7 @@ serve(async (req: Request) => {
           : resolveOpenAIModel(body?.model),
       request_status: 'error',
       error_message: message.slice(0, 500),
+      onboarding: body?.onboarding === true,
     });
 
     return new Response(JSON.stringify({ error: message }), {

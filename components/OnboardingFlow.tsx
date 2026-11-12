@@ -6,7 +6,7 @@ import { StatusBar } from 'expo-status-bar';
 import { Image } from 'expo-image';
 import * as Updates from 'expo-updates';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { ArrowRight, Check, Play, ShieldCheck } from 'lucide-react-native';
+import { ArrowRight, Check, ShieldCheck } from 'lucide-react-native';
 
 import { families, fontFamily, fontSize, shadows, type Tokens } from '@/constants/designTokens';
 import { useTokens, useThemedStyles } from '@/hooks/useTokens';
@@ -23,8 +23,12 @@ import { logEvent } from '@/lib/analytics';
 import { ONBOARDING_MAX_WIDTH, OnboardingColumn, TOUR_MAX_FONT_SCALE } from '@/components/onboarding/OnboardingChrome';
 import CounterStep from '@/components/onboarding/CounterStep';
 import { toDateInput } from '@/lib/soberDateInput';
+import { termsUrl } from '@/lib/storeLinks';
 import ReflectionStep from '@/components/onboarding/ReflectionStep';
-import { ReadListenStep, TalkPracticeStep, ProgramStep } from '@/components/onboarding/ToolsSteps';
+import { ToolsStep, ProgramStep } from '@/components/onboarding/ToolsSteps';
+import { HelpList, HelpTryChat, HelpTrySpotCheck } from '@/components/onboarding/HelpStep';
+import { TRY_EVENT_NAME, type TryOffer, type TryTarget } from '@/constants/onboardingSponsors';
+import { useTrialAvailable } from '@/hooks/useTrialAvailable';
 
 // App-icon gradient → interior bridge (prototype `obvGrad`). t=0 = vivid app icon,
 // t=1 = muted interior. Onboarding stays icon-leaning (the retiring teal header
@@ -77,9 +81,9 @@ function obvInk(t: number): string {
 
 // Legal links — Apple's standard EULA + our Privacy Policy. The welcome CTA
 // carries implied agreement; explicit agreement (checkbox) happens on the
-// disclaimer step, which now runs BEFORE the paywall so nobody is charged
-// before agreeing (moved back into this flow 2026-08-13).
-const openTerms = () => Linking.openURL('https://www.apple.com/legal/internet-services/itunes/dev/stdeula/').catch(() => {});
+// disclaimer step, which runs right after Welcome, so everyone agrees before
+// the tour and the paywall.
+const openTerms = () => Linking.openURL(termsUrl()).catch(() => {});
 const openPrivacy = () => Linking.openURL('https://soberdailies.com/privacy').catch(() => {});
 
 // ─── Step 1 · Welcome (the toolkit, shown) ──────────────────────────────────
@@ -87,75 +91,105 @@ const openPrivacy = () => Linking.openURL('https://soberdailies.com/privacy').ca
 // to a v2 upgrader this IS a new app, so they are introduced to it the same
 // way a stranger is. Access only ever changes whether the paywall step runs.
 //
-// The collage is real app imagery — the Big Book, today's-reading card, a
-// speaker tape and the three AI sponsors — so the first screen shows what
-// people came for rather than describing it. No single person is the face of
-// it, so it doesn't read as a men's or a women's app. Laid out at the mockup's 334×330 and scaled
-// as one piece, so narrow or short screens shrink it instead of re-flowing it.
-const COLLAGE_W = 334;
-const COLLAGE_H = 330;
-// Steady Eddie · Gentle Grace · Salty Sam, overlapped on the chat chip.
-const CHIP_SPONSORS = ['supportive', 'grace', 'salty']
+// The tiles are real app imagery — today's reflection, the Big Book, a speaker
+// tape and the three AI sponsors with a sample of the chat — so the first
+// screen shows what people came for rather than describing it. No single person
+// is the face of it, so it doesn't read as a men's or a women's app. Laid out
+// at the mockup's 337×338 and scaled as one piece to the text column, so
+// narrow or short screens shrink it instead of re-flowing it.
+const TILES_W = 337;
+const TILE_ROW_H = 132;
+const TILE_CHAT_H = 196;
+const TILE_GAP = 10;
+const TILES_H = TILE_ROW_H + TILE_GAP + TILE_CHAT_H;
+// Steady Eddie · Gentle Grace · Salty Sam, overlapped on the sponsor tile.
+// The Big Book tile's cream, as on the Tools screen.
+const TILE_CREAM = '#F3EBDA';
+const TILE_SPONSORS = ['supportive', 'grace', 'salty']
   .map((id) => SPONSORS.find((s) => s.id === id))
   .filter((s) => s != null);
 
 // iPad / unfolded-Duo heights. On a phone the headline sits at the bottom,
 // above the button (the mockup); on a tall screen that leaves a band of empty
-// gradient between it and the collage, so there the two are kept together and
+// gradient between it and the tiles, so there the two are kept together and
 // the group is centered instead.
 const isTall = (h: number) => h >= 1000;
 
-// The collage's labels are part of the picture, so they keep their designed
-// size (allowFontScaling off) — the collage as a whole shrinks for large text.
-// Below this the collage stops shrinking and the page scrolls instead.
-const COLLAGE_MIN_SCALE = 0.55;
-const COLLAGE_TOP_GAP = 22;
+// The tiles' labels are part of the picture, so they keep their designed size
+// (allowFontScaling off) — the grid as a whole shrinks for large text. Below
+// this it stops shrinking and the page scrolls instead.
+const TILES_MIN_SCALE = 0.75;
+const TILES_TOP_GAP = 22;
+// welcomeSafe's horizontal padding, both sides: the text column's width.
+const WELCOME_SIDE_PADDING = 56;
 
-function WelcomeCollage({ maxHeight }: { maxHeight?: number }) {
+function TileLabel({ overline, title, overlineColor, titleColor }: { overline: string; title: string; overlineColor: string; titleColor: string }) {
   const styles = useThemedStyles(makeStyles);
-  const { width, height } = useWindowDimensions();
-  // Up to 1.3× on a tall screen (iPad, unfolded Duo) so it fills the column.
-  // `maxHeight` is the room the headline and body leave (measured, so large
-  // Dynamic Type or a short screen like the folded Duo shrinks the collage
-  // instead of pushing the copy under the button).
-  const fit = maxHeight != null ? Math.max(COLLAGE_MIN_SCALE, maxHeight / COLLAGE_H) : Infinity;
-  const scale = Math.min(isTall(height) ? 1.3 : 1, (Math.min(width, ONBOARDING_MAX_WIDTH) - 56) / COLLAGE_W, height / 844, fit);
   return (
-    <View style={{ height: COLLAGE_H * scale, alignItems: 'center' }} importantForAccessibility="no-hide-descendants" accessibilityElementsHidden>
-      <View style={[styles.collage, { transform: [{ scale }], marginTop: (COLLAGE_H * (scale - 1)) / 2 }]}>
-        {/* The Big Book is a 3D render on a transparent background, so it
-            stands on its own — no card — with a shadow that follows its shape. */}
-        <View style={styles.collageBook}>
-          <Image source={require('@/assets/images/big-book_cover.webp')} style={StyleSheet.absoluteFill} contentFit="contain" />
-        </View>
-        <View style={styles.collageSpeakers}>
-          <Image source={require('@/assets/images/speakers_hero2.webp')} style={StyleSheet.absoluteFill} contentFit="cover" />
-          <LinearGradient colors={['rgba(0,0,0,0)', 'rgba(0,0,0,0.7)']} locations={[0.4, 1]} style={StyleSheet.absoluteFill} />
-          <View style={styles.collageSpeakersRow}>
-            <View style={styles.collagePlay}><Play size={12} color="#2D5882" fill="#2D5882" /></View>
-            <Text style={styles.collageSpeakersText} allowFontScaling={false}>{'Speaker\ntapes'}</Text>
+    <View style={styles.tileLabel}>
+      <Text style={[styles.tileOverline, { color: overlineColor }]} allowFontScaling={false}>{overline}</Text>
+      <Text style={[styles.tileTitle, { color: titleColor }]} allowFontScaling={false}>{title}</Text>
+    </View>
+  );
+}
+
+function WelcomeTiles({ maxHeight }: { maxHeight?: number }) {
+  const styles = useThemedStyles(makeStyles);
+  const { width } = useWindowDimensions();
+  // As wide as the text column. `maxHeight` is the room the headline and body
+  // leave (measured, so large Dynamic Type or a short screen like the folded
+  // Duo shrinks the grid instead of pushing the copy under the button).
+  const fit = maxHeight != null ? Math.max(TILES_MIN_SCALE, maxHeight / TILES_H) : Infinity;
+  const scale = Math.min((Math.min(width, ONBOARDING_MAX_WIDTH) - WELCOME_SIDE_PADDING) / TILES_W, fit);
+  return (
+    <View style={{ height: TILES_H * scale, alignItems: 'center' }} importantForAccessibility="no-hide-descendants" accessibilityElementsHidden>
+      <View style={[styles.tiles, { transform: [{ scale }], marginTop: (TILES_H * (scale - 1)) / 2 }]}>
+        <View style={styles.tileRow}>
+          {/* The alarm clock on a sunny windowsill, pinned so the clock stays
+              in view; a white fade under the bright window carries the label. */}
+          <View style={[styles.tileShadow, { backgroundColor: '#EEF5F2' }]}>
+            <View style={styles.tile}>
+              <Image source={require('@/assets/images/onboarding-reflection-clock.webp')} style={StyleSheet.absoluteFill} contentFit="cover" contentPosition={{ left: '30%', bottom: 0 }} />
+              <LinearGradient colors={['rgba(255,255,255,0.85)', 'rgba(255,255,255,0)']} style={styles.tileFadeHalf} />
+              <TileLabel overline="DAILY" title="Reflections" overlineColor={families.teal[700]} titleColor="#232529" />
+            </View>
+          </View>
+          <View style={[styles.tileShadow, { backgroundColor: TILE_CREAM }]}>
+            <View style={[styles.tile, { backgroundColor: TILE_CREAM }]}>
+              {/* A 3D render on a transparent background: the shadow follows
+                  the book's shape, and the tile clips its bottom. */}
+              <View style={styles.tileBook}>
+                <Image source={require('@/assets/images/big-book_cover.webp')} style={StyleSheet.absoluteFill} contentFit="contain" />
+              </View>
+              <TileLabel overline="READ" title="Big Book" overlineColor="#8B4E3A" titleColor="#232529" />
+            </View>
+          </View>
+          <View style={[styles.tileShadow, { backgroundColor: '#3A2A20' }]}>
+            <View style={styles.tile}>
+              <Image source={require('@/assets/images/speakers_hero2.webp')} style={StyleSheet.absoluteFill} contentFit="cover" />
+              <LinearGradient colors={['rgba(0,0,0,0.6)', 'rgba(0,0,0,0)']} style={styles.tileFadeDark} />
+              <TileLabel overline="LISTEN" title="Speakers" overlineColor="rgba(255,255,255,0.9)" titleColor="#fff" />
+            </View>
           </View>
         </View>
-        <View style={styles.collageReflection}>
-          {/* The alarm clock on a sunny windowsill, pinned to the bottom so the
-              clock stays in view; a white fade under the bright window carries
-              the dark label. */}
-          <Image source={require('@/assets/images/onboarding-reflection-clock.webp')} style={StyleSheet.absoluteFill} contentFit="cover" contentPosition={{ left: '30%', bottom: 0 }} />
-          <LinearGradient colors={['rgba(255,255,255,0.82)', 'rgba(255,255,255,0.5)', 'rgba(255,255,255,0)']} style={styles.collageReflectionFade} />
-          <View style={styles.collageReflectionText}>
-            <Text style={styles.collageOverline} allowFontScaling={false}>DAILY REFLECTIONS</Text>
-            <Text style={styles.collageReflectionTitle} allowFontScaling={false}>Today&apos;s reading</Text>
+        <View style={[styles.tileShadow, styles.chatTile]}>
+          <View style={styles.chatHead}>
+            <View style={styles.chatAvatars}>
+              {TILE_SPONSORS.map((s, i) => (
+                <Image key={s.id} source={s.avatar} style={[styles.chatAvatar, i > 0 && styles.chatAvatarOverlap]} contentFit="cover" />
+              ))}
+            </View>
+            <View style={styles.flex}>
+              <Text style={[styles.tileOverline, { color: '#605786' }]} allowFontScaling={false}>AI SPONSORS · 24/7</Text>
+              <Text style={styles.chatTitle} allowFontScaling={false}>Someone to talk to at 2am</Text>
+            </View>
           </View>
-        </View>
-        <View style={styles.collageChat}>
-          <View style={styles.collageAvatars}>
-            {CHIP_SPONSORS.map((s, i) => (
-              <Image key={s.id} source={s.avatar} style={[styles.collageAvatar, i > 0 && styles.collageAvatarOverlap]} contentFit="cover" />
-            ))}
+          {/* A sample exchange in the real chat's style. */}
+          <View style={styles.chatUser}>
+            <Text style={styles.chatUserText} allowFontScaling={false}>I really want a drink tonight.</Text>
           </View>
-          <View>
-            <Text style={styles.collageChatName} allowFontScaling={false}>Your AI sponsor</Text>
-            <Text style={styles.collageChatText} allowFontScaling={false}>I&apos;m here. What&apos;s going on?</Text>
+          <View style={styles.chatBot}>
+            <Text style={styles.chatBotText} allowFontScaling={false}>I hear you. Let&apos;s get through tonight together.</Text>
           </View>
         </View>
       </View>
@@ -163,17 +197,17 @@ function WelcomeCollage({ maxHeight }: { maxHeight?: number }) {
   );
 }
 
-function WelcomeStep({ onContinue }: { onContinue: () => void }) {
+function WelcomeStep({ onContinue, onSkip }: { onContinue: () => void; onSkip: () => void }) {
   const styles = useThemedStyles(makeStyles);
   const { isDark } = useTokens();
   useGradientBackdrop(0.18, isDark);
   const tall = isTall(useWindowDimensions().height);
   // Measured: the scroll viewport, the wordmark row and the copy block. What's
-  // left between them is the collage's room.
+  // left between them is the tiles' room.
   const [viewportH, setViewportH] = useState(0);
   const [wordmarkH, setWordmarkH] = useState(0);
   const [copyH, setCopyH] = useState(0);
-  const collageRoom = viewportH && copyH ? viewportH - wordmarkH - COLLAGE_TOP_GAP - copyH : undefined;
+  const tilesRoom = viewportH && copyH ? viewportH - wordmarkH - TILES_TOP_GAP - copyH : undefined;
   return (
     <View style={styles.welcomeRoot}>
       <StatusBar style="light" />
@@ -188,14 +222,23 @@ function WelcomeStep({ onContinue }: { onContinue: () => void }) {
             <View style={styles.wordmarkRow} onLayout={(e) => setWordmarkH(e.nativeEvent.layout.height)}>
               <Image source={require('@/assets/images/icon.png')} style={styles.wordmarkIcon} contentFit="cover" />
               <Text maxFontSizeMultiplier={TOUR_MAX_FONT_SCALE} style={styles.wordmark}>Sober Dailies</Text>
+              {/* Same look as the tour screens' Skip; under the safe area, so
+                  clear of the status bar and Dynamic Island. */}
+              <Pressable onPress={onSkip} hitSlop={12} style={styles.welcomeSkip} accessibilityRole="button" accessibilityLabel="Skip">
+                <Text maxFontSizeMultiplier={TOUR_MAX_FONT_SCALE} style={styles.welcomeSkipText}>Skip</Text>
+              </Pressable>
             </View>
-            {tall && <View style={styles.flex} />}
-            <View style={styles.collageWrap}>
-              <WelcomeCollage maxHeight={collageRoom} />
+            {/* Phones: the copy stays at the bottom and the leftover space is
+                split above and below the tiles. Tall screens: the tiles and
+                the copy are kept together and centered. */}
+            <View style={styles.flex} />
+            <View style={styles.tilesWrap}>
+              <WelcomeTiles maxHeight={tilesRoom} />
             </View>
+            {!tall && <View style={styles.flex} />}
             <View style={[styles.welcomeCopy, tall && styles.welcomeCopyTall]}>
-              {/* Measured on its own (the block above it grows to fill), plus
-                  the block's own top and bottom padding. */}
+              {/* Measured on its own, plus the block's own top and bottom
+                  padding. */}
               <View onLayout={(e) => setCopyH(e.nativeEvent.layout.height + (tall ? 48 : 20) + 26)}>
                 <Text maxFontSizeMultiplier={TOUR_MAX_FONT_SCALE} style={styles.welcomeHeadline} accessibilityRole="header">Your whole recovery toolkit, in one place</Text>
                 <Text maxFontSizeMultiplier={TOUR_MAX_FONT_SCALE} style={styles.welcomeBody}>
@@ -220,12 +263,13 @@ function WelcomeStep({ onContinue }: { onContinue: () => void }) {
   );
 }
 
-// ─── Step 3 · Disclaimer ────────────────────────────────────────────────────
+// ─── Step 2 · Disclaimer ────────────────────────────────────────────────────
 // The v2 welcome-screen disclaimer, on our gradient: what the app is not, the
-// 988 line, and an explicit Terms/Privacy checkbox. Runs after the carousel and
-// BEFORE the paywall — agreeing to what the app is and isn't shouldn't come
-// after we've taken someone's money. Still exported: app/_layout renders it as
-// a backstop for people who completed onboarding before it existed.
+// 988 line, and an explicit Terms/Privacy checkbox. Runs right after Welcome,
+// before the tour and the paywall — agreeing to what the app is and isn't
+// comes before anything else, and long before we take anyone's money. Still
+// exported: app/_layout renders it as a backstop for people who completed
+// onboarding before it existed.
 const DISCLAIMER_BULLETS = [
   'This app is not a substitute for therapy, medical advice, or emergency support.',
   'The AI sponsors offer encouragement and reflection, but they are not human and cannot provide crisis support or clinical help.',
@@ -298,24 +342,30 @@ export function DisclaimerStep({ onAgree }: { onAgree: () => void | Promise<void
 }
 
 // ─── The flow ───────────────────────────────────────────────────────────────
-// Show it → agree to it → subscribe. The four tour screens show what people
-// came for (their count, today's reading, the literature and speakers, the
-// sponsor and the practices) before anything is asked of them; the disclaimer
-// still comes before the paywall so nobody is charged before agreeing to what
-// the app is. There is no setup after the paywall any more: the program is
-// already the six defaults, and Today introduces Edit with a one-time tip.
-type Step = 'welcome' | 'counter' | 'reflection' | 'read_listen' | 'talk_practice' | 'program' | 'disclaimer' | 'paywall';
+// Agree to it → see it → subscribe. Consent comes first, right after Welcome,
+// so everything after it (including the sponsor trial, which sends real
+// messages) happens after agreeing to what the app is and isn't. The five tour
+// screens then show what people came for (their count, today's reading, the
+// everyday tools, the program, the sponsors) before the paywall. There is no
+// setup after the paywall: the program is already the six defaults, and Today
+// introduces Edit with a one-time tip.
+//
+// `help` is the sponsor and Spot Check try.
+type Step = 'welcome' | 'disclaimer' | 'counter' | 'reflection' | 'tools' | 'program' | 'help' | 'paywall';
 
 // Funnel position for `onboarding_step`. Fixed per step rather than counted, so
 // a member (no paywall) and a new user report the same index for the same
 // screen and the two funnels line up in Mixpanel.
 const STEP_INDEX: Record<Step, number> = {
-  welcome: 0, counter: 1, reflection: 2, read_listen: 3, talk_practice: 4, program: 5, disclaimer: 6, paywall: 7,
+  welcome: 0, disclaimer: 1, counter: 2, reflection: 3, tools: 4, program: 5, help: 6, paywall: 7,
 };
+// Position on the tour's 5-segment progress rail.
+const TOUR_INDEX = { counter: 0, reflection: 1, tools: 2, program: 3, help: 4 } as const;
 // Where back goes — always the screen before in the tour, even when Skip
-// jumped past it. Welcome, the paywall and everything after have no back.
+// jumped past it. The counter goes back to Welcome, not to the consent just
+// given. Welcome, the paywall and everything after have no back.
 const PREV_STEP: Partial<Record<Step, Step>> = {
-  counter: 'welcome', reflection: 'counter', read_listen: 'reflection', talk_practice: 'read_listen', program: 'talk_practice', disclaimer: 'program',
+  disclaimer: 'welcome', counter: 'welcome', reflection: 'counter', tools: 'reflection', program: 'tools', help: 'program',
 };
 // iPhone swipe-back: a drag that starts this close to the left edge and
 // travels this far (or flicks) goes back a step.
@@ -323,10 +373,14 @@ const EDGE_WIDTH = 24;
 const SWIPE_DISTANCE = 70;
 // Tags every onboarding event so this flow and the carousel one it replaced
 // can be compared side by side.
-const FLOW_VERSION = 'v3_program';
+const FLOW_VERSION = 'v4_help';
 // Read by Today: show the one-time "Edit your dailies" tip after this flow.
 // Only this flow sets it, so people already past onboarding never see the tip.
 export const TODAY_TIP_PENDING_KEY = 'today_edit_tip_pending';
+// What this device already tried on the help step. The server is the real
+// limit (one try per device, ever); this just keeps the list honest across a
+// relaunch so a card the server would refuse shows as tried.
+const TRY_TRIED_KEY = 'onboarding_try_tried';
 
 export default function OnboardingFlow({
   onDisclaimerAccepted,
@@ -345,8 +399,8 @@ export default function OnboardingFlow({
   const { completeOnboarding } = useOnboarding();
   const { setSobrietyDate, sobrietyDate } = useSobriety();
   // Everyone runs the same introduction — grandfathered members included. To
-  // them this IS a new app, so they get the welcome, the tour and the
-  // disclaimer. The ONLY thing their access buys them is skipping the paywall.
+  // them this IS a new app, so they get the welcome, the disclaimer and the
+  // tour. The ONLY thing their access buys them is skipping the paywall.
   //
   // Frozen at mount, deliberately: a new user who subscribes at the paywall
   // step flips isPremium true mid-flow, and re-reading it live would change
@@ -354,7 +408,28 @@ export default function OnboardingFlow({
   // state resolves, so this is already settled here.
   const { isPremium } = useSubscription();
   const [alreadyHadAccess] = useState(isPremium);
+  const trialAvailable = useTrialAvailable();
+  // The help step's button and the sponsors' closings: same eligibility check
+  // the paywall uses.
+  const tryOffer: TryOffer = alreadyHadAccess ? 'member' : trialAvailable ? 'trial' : 'subscribe';
   const [step, setStep] = useState<Step>('welcome');
+  // The help step shows its list, or one try on top of it. Tried lives here so
+  // it survives going back and forward through the tour.
+  const [helpView, setHelpView] = useState<'list' | TryTarget>('list');
+  const [tried, setTried] = useState<ReadonlySet<TryTarget>>(new Set());
+  useEffect(() => {
+    AsyncStorage.getItem(TRY_TRIED_KEY)
+      .then((v) => { if (v) setTried((cur) => new Set([...cur, ...(JSON.parse(v) as TryTarget[])])); })
+      .catch(() => {});
+  }, []);
+  const markTried = (target: TryTarget) => {
+    setTried((cur) => {
+      if (cur.has(target)) return cur;
+      const next = new Set(cur).add(target);
+      AsyncStorage.setItem(TRY_TRIED_KEY, JSON.stringify([...next])).catch(() => {});
+      return next;
+    });
+  };
   // The counter's typed date lives here, not in the step, so it survives
   // going back to Welcome before it's saved.
   const [dateDraft, setDateDraft] = useState(() => toDateInput(sobrietyDate ? parseLocalDate(sobrietyDate) : null));
@@ -380,6 +455,11 @@ export default function OnboardingFlow({
 
   const go = (next: Step) => setStep(next);
   const back = (via: 'button' | 'swipe' | 'android_back') => {
+    // Inside a try, back returns to the help list.
+    if (step === 'help' && helpView !== 'list') {
+      setHelpView('list');
+      return true;
+    }
     const prev = PREV_STEP[step];
     if (!prev) return false;
     track('onboarding_back_tapped', { from_step: step, via });
@@ -401,13 +481,29 @@ export default function OnboardingFlow({
       if (g.dx > SWIPE_DISTANCE || g.vx > 0.5) backRef.current('swipe');
     },
   })).current;
+  // Skip on Welcome still runs the disclaimer, then jumps past the tour.
+  const [skippedWelcome, setSkippedWelcome] = useState(false);
+  const skipWelcome = () => {
+    track('onboarding_skipped', { from: 'welcome' });
+    setSkippedWelcome(true);
+    go('disclaimer');
+  };
+  const startTour = () => {
+    setSkippedWelcome(false);
+    go('disclaimer');
+  };
+  // Skip on a tour screen: consent is already done, so straight to the end.
   const skipTour = () => {
     track('onboarding_skip_tapped', { from_step: step });
     if (step === 'counter') track('onboarding_counter_skipped');
-    go('disclaimer');
+    toPaywall();
   };
 
   // Members skip only the paywall.
+  const toPaywall = async () => {
+    if (alreadyHadAccess) await finish();
+    else go('paywall');
+  };
   const finishedRef = useRef(false);
   const finish = async () => {
     if (finishedRef.current) return;
@@ -438,15 +534,68 @@ export default function OnboardingFlow({
       return back('android_back');
     });
     return () => sub.remove();
-  }, [step]);
+  }, [step, helpView]);
 
   const content = renderStep();
   // iPhone only: Android has its own back gesture, which arrives above.
   if (Platform.OS !== 'ios' || !PREV_STEP[step]) return content;
   return <View style={{ flex: 1 }} {...swipeBack.panHandlers}>{content}</View>;
 
+  function renderHelp() {
+    const startTrial = (from: 'list' | TryTarget) => {
+      track('onboarding_start_trial_tapped', { from: from === 'list' ? 'list' : TRY_EVENT_NAME[from] });
+      setHelpView('list');
+      toPaywall();
+    };
+    if (helpView === 'list') {
+      return (
+        <HelpList
+          index={TOUR_INDEX.help}
+          tried={tried}
+          offer={tryOffer}
+          onOpen={(target) => {
+            track('onboarding_try_opened', { target: TRY_EVENT_NAME[target] });
+            setHelpView(target);
+          }}
+          onContinue={() => startTrial('list')}
+          onSkip={skipTour}
+          onBack={() => back('button')}
+        />
+      );
+    }
+    const handlers = {
+      tried,
+      offer: tryOffer,
+      onTried: markTried,
+      onFinished: (target: TryTarget) => track('onboarding_try_finished', { target: TRY_EVENT_NAME[target] }),
+      onBack: () => back('button'),
+      onTryAnother: (from: TryTarget) => {
+        track('onboarding_try_another_tapped', { from: TRY_EVENT_NAME[from] });
+        setHelpView('list');
+      },
+      onStartTrial: startTrial,
+      track,
+    };
+    if (helpView === 'spotcheck') return <HelpTrySpotCheck {...handlers} />;
+    return <HelpTryChat key={helpView} sponsorId={helpView} {...handlers} />;
+  }
+
   function renderStep() {
-    if (step === 'welcome') return <WelcomeStep onContinue={() => go('counter')} />;
+    if (step === 'welcome') return <WelcomeStep onContinue={startTour} onSkip={skipWelcome} />;
+    if (step === 'disclaimer') {
+      // Right after Welcome, so everything after it follows agreement.
+      // DisclaimerStep records acceptance itself.
+      return (
+        <DisclaimerStep
+          onAgree={async () => {
+            track('onboarding_disclaimer_accepted');
+            onDisclaimerAccepted?.();
+            if (skippedWelcome) await toPaywall();
+            else go('counter');
+          }}
+        />
+      );
+    }
     if (step === 'counter') {
       return (
         <CounterStep
@@ -464,24 +613,11 @@ export default function OnboardingFlow({
         />
       );
     }
-    if (step === 'reflection') return <ReflectionStep onContinue={() => go('read_listen')} onSkip={skipTour} onBack={() => back('button')} />;
-    if (step === 'read_listen') return <ReadListenStep onContinue={() => go('talk_practice')} onSkip={skipTour} onBack={() => back('button')} />;
-    if (step === 'talk_practice') return <TalkPracticeStep onContinue={() => go('program')} onSkip={skipTour} onBack={() => back('button')} />;
-    if (step === 'program') return <ProgramStep onContinue={() => go('disclaimer')} onSkip={skipTour} onBack={() => back('button')} />;
-    if (step === 'disclaimer') {
-      // Before the paywall: agreeing to what this app is and isn't shouldn't come
-      // after we've taken the money. DisclaimerStep records acceptance itself.
-      return (
-        <DisclaimerStep
-          onAgree={async () => {
-            track('onboarding_disclaimer_accepted');
-            onDisclaimerAccepted?.();
-            if (alreadyHadAccess) await finish();
-            else go('paywall');
-          }}
-        />
-      );
-    }
+    if (step === 'reflection') return <ReflectionStep onContinue={() => go('tools')} onSkip={skipTour} onBack={() => back('button')} />;
+    // Placeholder until the "All the tools you use every day" screen exists.
+    if (step === 'tools') return <ToolsStep index={TOUR_INDEX.tools} onContinue={() => go('program')} onSkip={skipTour} onBack={() => back('button')} />;
+    if (step === 'program') return <ProgramStep index={TOUR_INDEX.program} onContinue={() => go('help')} onSkip={skipTour} onBack={() => back('button')} />;
+    if (step === 'help') return renderHelp();
     // Paywall. Advancing is driven by isPremium flipping after a purchase or
     // restore, including a store-native Pass It On subscription redemption.
     return (
@@ -590,9 +726,11 @@ const makeStyles = (tk: Tokens) => {
   wordmarkRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingTop: 6 },
   wordmarkIcon: { width: 30, height: 30, borderRadius: 8, borderWidth: 1, borderColor: 'rgba(255,255,255,0.4)' },
   wordmark: { fontFamily: fontFamily.displayBold, fontSize: 17, letterSpacing: -0.2, color: '#fff' },
-  collageWrap: { marginTop: COLLAGE_TOP_GAP },
-  welcomeCopy: { flexGrow: 1, justifyContent: 'flex-end', paddingTop: 20, paddingBottom: 26 },
-  welcomeCopyTall: { flexGrow: 0, paddingTop: 48 },
+  welcomeSkip: { marginLeft: 'auto' },
+  welcomeSkipText: { fontFamily: fontFamily.semiBold, fontSize: fontSize.base, color: '#fff', paddingVertical: 8 },
+  tilesWrap: { marginTop: TILES_TOP_GAP },
+  welcomeCopy: { paddingTop: 20, paddingBottom: 26 },
+  welcomeCopyTall: { paddingTop: 48 },
   welcomeHeadline: { fontFamily: fontFamily.displayBold, fontSize: 33, lineHeight: 37, letterSpacing: -0.7, color: '#fff' },
   welcomeBody: { fontFamily: fontFamily.regular, fontSize: fontSize.lg, lineHeight: 23, color: 'rgba(255,255,255,0.94)', marginTop: 14 },
   welcomeFooter: { paddingBottom: 14 },
@@ -610,36 +748,40 @@ const makeStyles = (tk: Tokens) => {
   welcomeAgreeLine: { fontFamily: fontFamily.regular, fontSize: 11.5, lineHeight: 16, color: 'rgba(255,255,255,0.86)', textAlign: 'center', marginTop: 12, paddingHorizontal: 8 },
   welcomeAgreeLink: { fontFamily: fontFamily.semiBold, color: '#fff', textDecorationLine: 'underline' },
 
-  // welcome collage — positions are the mockup's, inside a 334×330 box that
-  // WelcomeCollage scales as a whole. Its cards are photos with white text and
-  // a white chat chip, so they read the same on the light and dark gradients.
-  // The reading card's label is dark on its white fade in both themes too.
-  collage: { width: COLLAGE_W, height: COLLAGE_H },
-  // No background, so iOS draws the shadow from the image's alpha (the book's
-  // outline). Android's elevation would draw a box; its drop-shadow filter
-  // follows the outline instead.
-  collageBook: {
-    position: 'absolute', left: -4, top: 22, width: 146, height: 192, transform: [{ rotate: '-7deg' }],
+  // welcome tiles — the mockup's sizes, inside a 337×338 box that
+  // WelcomeTiles scales as a whole. Photos and fixed colors, so they read the
+  // same on the light and dark gradients.
+  tiles: { width: TILES_W, height: TILES_H, gap: TILE_GAP },
+  tileRow: { flexDirection: 'row', gap: TILE_GAP, height: TILE_ROW_H },
+  // Shadow on an unclipped wrapper; the tile inside clips its picture.
+  tileShadow: { flex: 1, borderRadius: 20, shadowColor: '#000', shadowOpacity: 0.28, shadowRadius: 12, shadowOffset: { width: 0, height: 10 }, elevation: 8 },
+  tile: { flex: 1, borderRadius: 20, overflow: 'hidden' },
+  tileFadeHalf: { position: 'absolute', left: 0, right: 0, top: 0, height: '50%' },
+  tileFadeDark: { position: 'absolute', left: 0, right: 0, top: 0, height: '55%' },
+  tileLabel: { position: 'absolute', left: 12, right: 8, top: 12 },
+  tileOverline: { fontFamily: fontFamily.bold, fontSize: 9.5, letterSpacing: 1.4 },
+  tileTitle: { fontFamily: fontFamily.serif, fontSize: 15, lineHeight: 18, marginTop: 3 },
+  // About 70% of the tile's width, centered and running off the bottom.
+  // No background, so iOS draws the shadow from the image's alpha (the
+  // book's outline); Android's elevation would draw a box, so it uses the
+  // drop-shadow filter, which follows the outline.
+  tileBook: {
+    position: 'absolute', left: '15%', width: '70%', top: 58, height: 100, transform: [{ rotate: '-6deg' }],
     ...Platform.select({
-      ios: { shadowColor: '#000', shadowOpacity: 0.38, shadowRadius: 9, shadowOffset: { width: 0, height: 14 } },
-      android: { filter: [{ dropShadow: { offsetX: 0, offsetY: 14, standardDeviation: 9, color: 'rgba(0,0,0,0.38)' } }] },
+      ios: { shadowColor: '#000', shadowOpacity: 0.3, shadowRadius: 6, shadowOffset: { width: 0, height: 8 } },
+      android: { filter: [{ dropShadow: { offsetX: 0, offsetY: 8, standardDeviation: 6, color: 'rgba(0,0,0,0.3)' } }] },
     }),
   },
-  collageSpeakers: { position: 'absolute', right: 0, top: 30, width: 140, height: 176, borderRadius: 16, overflow: 'hidden', backgroundColor: '#3A2A20', transform: [{ rotate: '8deg' }] },
-  // Right-aligned: the reflection card overlaps this one's left third.
-  collageSpeakersRow: { position: 'absolute', right: 12, bottom: 12, alignItems: 'flex-end', gap: 6 },
-  collagePlay: { width: 30, height: 30, borderRadius: 15, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center', paddingLeft: 2 },
-  collageSpeakersText: { fontFamily: fontFamily.bold, fontSize: 12, lineHeight: 14, color: '#fff', textAlign: 'right' },
-  collageReflection: { position: 'absolute', left: 82, top: 0, width: 170, height: 220, borderRadius: 18, overflow: 'hidden', backgroundColor: '#EEF5F2', ...shadows.lg },
-  collageReflectionFade: { position: 'absolute', left: 0, right: 0, top: 0, height: 90 },
-  collageReflectionText: { position: 'absolute', left: 14, right: 14, top: 14 },
-  collageOverline: { fontFamily: fontFamily.bold, fontSize: 9, letterSpacing: 1.4, color: families.teal[700] },
-  collageReflectionTitle: { fontFamily: fontFamily.serif, fontSize: 19, lineHeight: 23, color: '#232529', marginTop: 4 },
-  collageChat: { position: 'absolute', left: 50, top: 226, flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: '#fff', borderRadius: 18, paddingVertical: 10, paddingLeft: 10, paddingRight: 14, shadowColor: '#000', shadowOpacity: 0.28, shadowRadius: 14, shadowOffset: { width: 0, height: 14 }, elevation: 8 },
-  collageAvatars: { flexDirection: 'row' },
-  collageAvatar: { width: 30, height: 30, borderRadius: 15, borderWidth: 2, borderColor: '#fff' },
-  collageAvatarOverlap: { marginLeft: -10 },
-  collageChatName: { fontFamily: fontFamily.bold, fontSize: 12, color: '#232529' },
-  collageChatText: { fontFamily: fontFamily.regular, fontSize: 12, color: '#474A52' },
+  // The real chat page's paper.
+  chatTile: { flex: 0, height: TILE_CHAT_H, backgroundColor: '#FCFBF8', paddingHorizontal: 14, paddingVertical: 14 },
+  chatHead: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  chatAvatars: { flexDirection: 'row' },
+  chatAvatar: { width: 44, height: 44, borderRadius: 22, borderWidth: 2, borderColor: '#fff' },
+  chatAvatarOverlap: { marginLeft: -12 },
+  chatTitle: { fontFamily: fontFamily.serif, fontSize: 18, lineHeight: 22, color: '#232529', marginTop: 2 },
+  chatUser: { alignSelf: 'flex-end', marginTop: 12, backgroundColor: families.teal[500], borderRadius: 16, borderBottomRightRadius: 4, paddingVertical: 9, paddingHorizontal: 13 },
+  chatUserText: { fontFamily: fontFamily.regular, fontSize: 13.5, lineHeight: 18, color: '#fff' },
+  chatBot: { alignSelf: 'flex-start', maxWidth: '85%', marginTop: 8, backgroundColor: '#fff', borderRadius: 16, borderBottomLeftRadius: 4, paddingVertical: 9, paddingHorizontal: 13, ...shadows.sm },
+  chatBotText: { fontFamily: fontFamily.regular, fontSize: 13.5, lineHeight: 18, color: '#232529' },
   });
 };

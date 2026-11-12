@@ -153,6 +153,20 @@ function getTodayDateString(): string {
   return dateKeyFor(new Date());
 }
 
+// Analytics never gets a name the user typed: custom dailies report as
+// "Custom", and built-ins (which can be renamed) report their stock label,
+// looked up by action. Built lazily — the catalogs live in a component file.
+let stockLabels: Map<string, string> | null = null;
+function analyticsName(item: Pick<DailyItem, 'action' | 'custom'>): string {
+  if (item.custom) return 'Custom';
+  if (!stockLabels) {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const { TOOL_CATALOG, QUICK_CATALOG } = require('@/components/today/DailiesEditSheets');
+    stockLabels = new Map([...DEFAULT_PROGRAM, ...TOOL_CATALOG, ...QUICK_CATALOG].map((t: DailyItem) => [t.action, t.label]));
+  }
+  return stockLabels.get(item.action) ?? item.action;
+}
+
 export const [DailiesProvider, useDailies] = createContextHook(() => {
   const [program, setProgram] = useState<DailyItem[]>(DEFAULT_PROGRAM);
   const [completion, setCompletion] = useState<Record<string, DayCompletion>>({});
@@ -234,7 +248,7 @@ export const [DailiesProvider, useDailies] = createContextHook(() => {
   // Analytics: mirror the current program onto the Mixpanel People profile so
   // "what's on users' Today pages" is visible without event math.
   const syncProgramProfile = useCallback((items: DailyItem[]) => {
-    setProfile({ dailies_program: items.map((d) => d.label), dailies_count: items.length + 1 });
+    setProfile({ dailies_program: items.map(analyticsName), dailies_count: items.length + 1 });
   }, []);
 
   const addDaily = useCallback(
@@ -242,7 +256,7 @@ export const [DailiesProvider, useDailies] = createContextHook(() => {
       const id = `d${Date.now()}${Math.floor(Math.random() * 999)}`;
       const next = [...program, { ...item, id, when }];
       persistProgram(next);
-      logEvent('daily_added', { daily: item.label, when, custom: !!item.custom });
+      logEvent('daily_added', { daily: analyticsName(item), when, custom: !!item.custom });
       syncProgramProfile(next);
       return id;
     },
@@ -254,7 +268,7 @@ export const [DailiesProvider, useDailies] = createContextHook(() => {
       const removed = program.find((d) => d.id === id);
       const next = program.filter((d) => d.id !== id);
       persistProgram(next);
-      if (removed) logEvent('daily_removed', { daily: removed.label });
+      if (removed) logEvent('daily_removed', { daily: analyticsName(removed), custom: !!removed.custom });
       syncProgramProfile(next);
     },
     [program, persistProgram, syncProgramProfile],
@@ -296,7 +310,7 @@ export const [DailiesProvider, useDailies] = createContextHook(() => {
   const logCompleted = useCallback(
     (id: string) => {
       const item = program.find((d) => d.id === id);
-      if (item) logEvent('daily_completed', { daily: item.label, when: item.when, custom: !!item.custom });
+      if (item) logEvent('daily_completed', { daily: analyticsName(item), when: item.when, custom: !!item.custom });
       recordDailyCompletionDay().catch(() => {});
     },
     [program],

@@ -119,7 +119,11 @@ export default function PrayersScreen() {
 
   const openFromCard = (i: number) => {
     const opened = allPrayers[i];
-    if (opened) logEvent('prayer_viewed', { prayer: opened.title, custom: i >= aaPrayers.length });
+    if (opened) {
+      // A user's own prayer reports as "Custom" — its title is their words.
+      const custom = i >= aaPrayers.length;
+      logEvent('prayer_viewed', { prayer: custom ? 'Custom' : opened.title, custom });
+    }
     const node = cardRefs.current[i];
     const root = rootRef.current;
     if (!node || !root) { setSelected(i); setMode('read'); progress.value = 1; return; }

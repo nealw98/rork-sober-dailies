@@ -14,6 +14,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useIsFocused } from 'expo-router/react-navigation';
 import { ChatCircleDots } from 'phosphor-react-native';
+import { ArrowRight, Check } from 'lucide-react-native';
 import BackButton from '@/components/BackButton';
 import ListDetailLayout from '@/components/layout/ListDetailLayout';
 import { PaneProvider, usePane } from '@/components/layout/PaneContext';
@@ -123,20 +124,68 @@ export default function SponsorSelectScreen() {
 }
 
 function SponsorCard({ s, selected = false, onPress }: { s: SponsorConfig; selected?: boolean; onPress: () => void }) {
+  return (
+    <SponsorCardView
+      name={s.name}
+      description={s.description}
+      quote={s.hookQuote}
+      art={<SponsorAvatar source={s.avatar} />}
+      selected={selected}
+      onPress={onPress}
+      accessibilityLabel={`Chat with ${s.name}`}
+    />
+  );
+}
+
+export function SponsorAvatar({ source }: { source: SponsorConfig['avatar'] }) {
+  const styles = useThemedStyles(makeStyles);
+  return <Image source={source} style={styles.avatar} contentFit="cover" />;
+}
+
+// The picker's card, shared with onboarding's "try the sponsors" list, which
+// shows no quote, draws Spot Check as an icon tile (`art`), and grays out
+// what has been tried.
+export function SponsorCardView({ name, description, quote, art, selected = false, tried = false, showTry = false, onPress, accessibilityLabel }: {
+  name: string;
+  description: string;
+  quote?: string;
+  art: React.ReactNode;
+  selected?: boolean;
+  tried?: boolean;
+  // Onboarding's list: a "Try →" pill on each untried card, so it reads as
+  // something to tap. It turns into the Tried pill once used.
+  showTry?: boolean;
+  onPress: () => void;
+  accessibilityLabel: string;
+}) {
   const styles = useThemedStyles(makeStyles);
   return (
     <Pressable
-      style={[styles.card, selected && styles.cardSelected]}
+      style={[styles.card, selected && styles.cardSelected, tried && styles.cardTried]}
       onPress={onPress}
+      disabled={tried}
       accessibilityRole="button"
-      accessibilityState={{ selected }}
-      accessibilityLabel={`Chat with ${s.name}`}
+      accessibilityState={{ selected, disabled: tried }}
+      accessibilityLabel={tried ? `${name}, tried` : accessibilityLabel}
     >
-      <Image source={s.avatar} style={styles.avatar} contentFit="cover" />
+      {art}
       <View style={styles.cardText}>
-        <Text style={styles.name}>{s.name}</Text>
-        <Text style={styles.descriptor}>{s.description}</Text>
-        {!!s.hookQuote && <Text style={styles.quote}>&ldquo;{s.hookQuote}&rdquo;</Text>}
+        <View style={styles.nameRow}>
+          <Text style={styles.name}>{name}</Text>
+          {tried ? (
+            <View style={styles.triedPill}>
+              <Check size={11} color={styles.triedText.color} strokeWidth={3} />
+              <Text style={styles.triedText}>Tried</Text>
+            </View>
+          ) : showTry && (
+            <View style={styles.tryPill}>
+              <Text style={styles.tryText}>Try</Text>
+              <ArrowRight size={13} color="#fff" strokeWidth={2.6} />
+            </View>
+          )}
+        </View>
+        <Text style={styles.descriptor}>{description}</Text>
+        {!!quote && <Text style={styles.quote}>&ldquo;{quote}&rdquo;</Text>}
       </View>
     </Pressable>
   );
@@ -159,7 +208,16 @@ const makeStyles = (tk: Tokens) => {
   // The sponsor open in the wide layout's chat pane.
   cardSelected: { borderWidth: 2, borderColor: colors.primary, padding: 12 },
   avatar: { width: 72, height: 72, borderRadius: 16, borderWidth: 2, borderColor: isDark ? 'rgba(255,255,255,0.18)' : '#fff', backgroundColor: BR_SOFT, ...shadows.sm },
+  // Tried in onboarding: muted and not tappable. RN has no cross-platform
+  // desaturate filter, so the fade carries it.
+  cardTried: { opacity: 0.55 },
   cardText: { flex: 1 },
+  nameRow: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 8 },
+  // Both onboarding pills sit at the right end of the name row.
+  triedPill: { marginLeft: 'auto', flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: colors.primarySoft, borderRadius: 999, paddingVertical: 3, paddingHorizontal: 9 },
+  triedText: { fontFamily: fontFamily.bold, fontSize: 11, color: colors.primaryDark },
+  tryPill: { marginLeft: 'auto', flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: colors.primary, borderRadius: 999, paddingVertical: 6, paddingHorizontal: 12, shadowColor: colors.primary, shadowOpacity: 0.3, shadowRadius: 6, shadowOffset: { width: 0, height: 3 }, elevation: 3 },
+  tryText: { fontFamily: fontFamily.bold, fontSize: 13, color: '#fff' },
   name: { fontFamily: fontFamily.bold, fontSize: 19, color: c.text, letterSpacing: -0.3 },
   descriptor: { fontFamily: fontFamily.regular, fontSize: 14, lineHeight: 19, color: isDark ? c.textSecondary : '#4A4A5E', marginTop: 4 },
   quote: { fontFamily: fontFamily.regularItalic, fontSize: 13.5, lineHeight: 19, color: c.textMuted, marginTop: 8 },
