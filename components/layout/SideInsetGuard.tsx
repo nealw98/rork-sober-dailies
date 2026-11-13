@@ -113,7 +113,7 @@ export default function SideInsetGuard({ children }: { children: React.ReactNode
         // (fold/unfold) or rotates — a third, UI-tree-side trigger for the
         // orientation rule, for handoffs where the Dimensions/AppState events
         // are missed. Idempotent, so repeat fires converge.
-        onLayout={reassertDisplayOrientationRule}
+        onLayout={() => reassertDisplayOrientationRule()}
         style={{ flex: 1, backgroundColor: c.background }}
       >
         {backdrop != null && (

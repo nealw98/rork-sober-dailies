@@ -25,7 +25,7 @@ Controlled by `EXPO_PUBLIC_ANALYTICS_ENV` in `.env` — currently **`test`**. Fl
 
 ### Properties on every event
 
-`environment`, `session_id`, `screen` (current screen name), `app_version`, `platform` (`ios`/`android`), plus Mixpanel reserved: `$os`, `$os_version`, `$model`, `$manufacturer`, `$app_version_string`, `$insert_id` (dedupe).
+`environment`, `session_id`, `screen` (current screen name), `app_version` (version + native build, e.g. `3.5.0 (139)` — before 3.5 (139) it was the version name only), `app_build` (native build, e.g. `139`), `platform` (`ios`/`android`), plus Mixpanel reserved: `$os`, `$os_version`, `$model`, `$manufacturer`, `$app_version_string`, `$insert_id` (dedupe).
 
 ---
 
@@ -71,11 +71,12 @@ Two flows share these event names. **`flow_version`** tells them apart: absent =
 | `onboarding_carousel_skipped` | `card_index` (1–4) | Carousel flow only |
 | `onboarding_disclaimer_accepted` | `is_member` | |
 | `onboarding_paywall_closed` | `is_member` | X on the paywall (or Pass It On offer), or Android back on it → back to Welcome; the next `onboarding_step` is `welcome` again |
+| `paywall_purchase_completed` / `paywall_purchase_not_completed` | `plan` (`yearly` \| `monthly`) | Outcome of `paywall_purchase_tapped` (from 3.5 (139)). `not_completed` = the store sheet was cancelled or the purchase failed. Fires on every paywall, not only onboarding's |
 | `onboarding_date_saved` / `onboarding_date_skipped` | `had_date` | Carousel flow only (its post-paywall date step) |
 | `onboarding_completed` | `is_member` | v2_tools: after the paywall (or, for members, after the disclaimer; v4_help: after help, a tour Skip, or the disclaimer following a Welcome Skip). Carousel flow: "Start my program" |
 | `today_tip_shown` / `today_tip_dismissed` | `flow_version` | v2_tools: the one-time "Edit your dailies" coach mark on the first Today after onboarding |
 
-**Reports:** funnel on `onboarding_step` ordered by `step_index`, broken down by `flow_version` (and `is_member`); paywall conversion = users with `step = paywall` who reach `onboarding_completed`.
+**Reports:** funnel on `onboarding_step` ordered by `step_index`, broken down by `flow_version` (and `is_member`); paywall conversion = users with `step = paywall` who reach `paywall_purchase_completed` (for non-members `onboarding_completed` follows the purchase too; members never see the paywall). **Where people drop off:** the last `onboarding_step` a user reached with no later step and no `onboarding_completed`.
 
 ### Today page / Dailies
 

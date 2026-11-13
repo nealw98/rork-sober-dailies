@@ -1,6 +1,7 @@
 import { Platform, AppState, AppStateStatus } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Constants from 'expo-constants';
+import * as Application from 'expo-application';
 import * as Device from 'expo-device';
 import { getAnonymousId, getAnonymousIdSync } from './anonymousId';
 
@@ -29,6 +30,15 @@ export const DEVELOPER_MODE_KEY = 'developer_mode_enabled';
 // release candidate, then 'production'); dev-client sessions default to 'dev'.
 const ANALYTICS_ENV = process.env.EXPO_PUBLIC_ANALYTICS_ENV || (__DEV__ ? 'dev' : 'production');
 
+// $app_version_string is the version NAME only, so two builds shipped under
+// one name (3.5.0 as TestFlight 137 and store 139) were indistinguishable on
+// the Release rollout board. app_version carries name + native build, and
+// app_build the build alone for filtering.
+const APP_BUILD = Application.nativeBuildVersion ?? undefined;
+const APP_VERSION = Constants.expoConfig?.version
+  ? `${Constants.expoConfig.version}${APP_BUILD ? ` (${APP_BUILD})` : ''}`
+  : undefined;
+
 // Mixpanel reserved properties — attached to every event so the built-in
 // device/version reports work (the native SDKs send these automatically; the
 // HTTP API sends nothing unless we do).
@@ -38,6 +48,7 @@ const DEVICE_PROPS = {
   $model: Device.modelName ?? undefined,
   $manufacturer: Device.manufacturer ?? undefined,
   $app_version_string: Constants.expoConfig?.version ?? undefined,
+  app_build: APP_BUILD,
   mp_lib: 'http',
   environment: ANALYTICS_ENV,
 };
@@ -93,13 +104,15 @@ class Analytics {
   init(): void {
     this.sessionId = this.generateId();
     this.sessionStartTime = Date.now();
-    this.logEvent('app_launch', { platform: Platform.OS, app_version: Constants.expoConfig?.version });
+    this.logEvent('app_launch', { platform: Platform.OS });
     this.checkDailyStreak().catch((e) => console.error('[Analytics] Daily streak check failed:', e));
     // Keep the People profile's device/version facts fresh.
     this.setProfile({
       platform: Platform.OS,
       $os: DEVICE_PROPS.$os,
       $app_version_string: DEVICE_PROPS.$app_version_string,
+      app_version: APP_VERSION,
+      app_build: APP_BUILD,
       $model: DEVICE_PROPS.$model,
       environment: ANALYTICS_ENV,
     });
@@ -168,7 +181,7 @@ class Analytics {
         screen: screen || this.currentScreen || undefined,
         feature,
         duration_seconds,
-        app_version: Constants.expoConfig?.version || undefined,
+        app_version: APP_VERSION,
         platform: Platform.OS,
         ...DEVICE_PROPS,
         ...otherProps,

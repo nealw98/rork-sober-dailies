@@ -267,6 +267,9 @@ export default function PaywallScreen({ onDismiss, onDevBypass, onUnavailableDis
     logEvent('paywall_purchase_tapped', { plan: selected });
     try {
       const info = await purchasePackage(chosen);
+      // The tap alone said nothing about how it ended; these close the funnel.
+      // null covers both a store failure and a plain cancel.
+      logEvent(info ? 'paywall_purchase_completed' : 'paywall_purchase_not_completed', { plan: selected });
       if (info) {
         // Thank-you handoff (design handoff "gift surfaces" §1): this tree
         // dissolves the moment isPremium flips, so the designed sheet is
