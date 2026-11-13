@@ -17,6 +17,10 @@ import { RailItem } from './NavigationRail';
 import { TAB_ITEMS } from './TabGlyphs';
 
 export const BOTTOM_BAR_HEIGHT = 58;
+// The items sit this much lower than centered, borrowed from the home-
+// indicator padding below so the bar's height doesn't change. Centered, the
+// icon pills crowded the top divider while ~40pt sat empty underneath.
+const ITEM_DROP = 8;
 
 export default function BottomTabBar({ bottomInset }: { bottomInset: number }) {
   const { c, colors: tc } = useTokens();
@@ -24,12 +28,13 @@ export default function BottomTabBar({ bottomInset }: { bottomInset: number }) {
   // Tab switches go through the router like a deep link; `navigate` jumps to
   // the existing tab instead of pushing a duplicate.
   const go = (path: string) => router.navigate(path as never);
+  const drop = Math.min(ITEM_DROP, bottomInset);
 
   return (
     <View
       style={[
         styles.bar,
-        { paddingBottom: bottomInset, backgroundColor: c.surface, borderTopColor: c.border },
+        { paddingTop: drop, paddingBottom: bottomInset - drop, backgroundColor: c.surface, borderTopColor: c.border },
       ]}
     >
       {TAB_ITEMS.map(({ path, label, Glyph }) => {
