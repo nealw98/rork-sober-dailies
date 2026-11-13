@@ -61,9 +61,11 @@ import { getTodaysReflection } from '@/constants/reflections';
 import { titleCase } from '@/lib/titleCase';
 import { Reflection } from '@/types';
 
-// Today is a to-do ledger. Completion is fully manual: every daily — including
-// the Daily Reflection hero — is checked off with its "Done" button, never on
-// open. Tapping a row opens its tool. Customisation happens in-place via the
+// Today is a to-do ledger. Every daily — including the Daily Reflection hero —
+// is checked off with its "Done" button, never on open. The one automatic
+// check-off: saving an entry in a writing tool (gratitude, journal, nightly
+// review, spot check) completes its daily, wherever the tool was opened from.
+// Tapping a row opens its tool. Customisation happens in-place via the
 // header Edit toggle (no separate page).
 
 // action → route. undefined = no-tool action (just checks off). null = deferred.

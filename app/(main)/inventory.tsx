@@ -29,6 +29,7 @@ import { useTokens, useThemedStyles } from '@/hooks/useTokens';
 import { logEvent } from '@/lib/analytics';
 import { confirmSaved } from '@/lib/savedNotice';
 import { usePane } from '@/components/layout/PaneContext';
+import { useDailies } from '@/hooks/use-dailies-store';
 import PaneExpandButton from '@/components/layout/PaneExpandButton';
 import { fontFamily, type Tokens } from '@/constants/designTokens';
 import type { SponsorType } from '@/types';
@@ -60,6 +61,7 @@ export function SpotCheckForm({ onboarding }: { onboarding?: SpotCheckOnboarding
   const router = useRouter();
   // Non-null inside Today's wide-layout pane — back means closing the pane.
   const pane = usePane();
+  const dailies = useDailies();
   const insets = useSafeAreaInsets();
   const styles = useThemedStyles(makeStyles);
   const { c, colors } = useTokens();
@@ -179,6 +181,7 @@ export function SpotCheckForm({ onboarding }: { onboarding?: SpotCheckOnboarding
     await AsyncStorage.setItem(INVENTORY_STORAGE_KEY, JSON.stringify(records));
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     logEvent('entry_saved', { type: 'spot_check', sponsor: sp, feeling_count: feelings.length, update: at >= 0 });
+    if (!onboarding) dailies.markActionDone('spotcheck');
     setSavedEntryId(id);
     setEditedSinceSave(false);
     return id;

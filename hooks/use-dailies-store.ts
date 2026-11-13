@@ -337,6 +337,16 @@ export const [DailiesProvider, useDailies] = createContextHook(() => {
     [updateToday, completion, dayKey, logCompleted],
   );
 
+  // Saving an entry in a tool (gratitude, nightly review, journal, spot check)
+  // checks off every Today daily that opens that tool, however the tool was
+  // reached — from Today, the Tools tab, or anywhere else.
+  const markActionDone = useCallback(
+    (action: string) => {
+      program.filter((d) => d.action === action).forEach((d) => markDone(d.id));
+    },
+    [program, markDone],
+  );
+
   const setReflectionDone = useCallback(
     (value: boolean = true) => {
       const turningOn = value && !completion[dayKey]?.reflection;
@@ -396,6 +406,7 @@ export const [DailiesProvider, useDailies] = createContextHook(() => {
       isDone,
       toggleDone,
       markDone,
+      markActionDone,
       reflectionDone: todayDone.reflection,
       setReflectionDone,
       toggleReflection,
@@ -406,6 +417,6 @@ export const [DailiesProvider, useDailies] = createContextHook(() => {
       doneCount,
       totalCount,
     }),
-    [program, isLoading, section, addDaily, removeDaily, setWhen, renameDaily, editDaily, setAll, isDone, toggleDone, markDone, todayDone.reflection, setReflectionDone, toggleReflection, setDayCompletion, reflectionStreak, dayKey, completion, doneCount, totalCount],
+    [program, isLoading, section, addDaily, removeDaily, setWhen, renameDaily, editDaily, setAll, isDone, toggleDone, markDone, markActionDone, todayDone.reflection, setReflectionDone, toggleReflection, setDayCompletion, reflectionStreak, dayKey, completion, doneCount, totalCount],
   );
 });

@@ -6,7 +6,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { View, Text, TextInput, Pressable, StyleSheet, Keyboard, Share } from 'react-native';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
-import { Stack, useRouter, useLocalSearchParams } from 'expo-router';
+import { Stack, useRouter } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import { Plus } from 'lucide-react-native';
 import { useGratitudeStore } from '@/hooks/use-gratitude-store';
@@ -26,7 +26,6 @@ export default function GratitudeScreen() {
   // Non-null when this screen renders inside Today's wide-layout pane —
   // "back" there means closing the pane, not popping the navigator.
   const pane = usePane();
-  const { dailyId } = useLocalSearchParams<{ dailyId?: string }>();
   const styles = useThemedStyles(makeStyles);
   const { c, colors, isDark } = useTokens();
   const gratitude = useGratitudeStore();
@@ -84,7 +83,7 @@ export default function GratitudeScreen() {
       gratitude.saveDetailedEntry(items);
       gratitude.completeToday(items);
       logEvent('entry_saved', { type: 'gratitude', item_count: items.length });
-      if (dailyId) dailies.markDone(dailyId);
+      dailies.markActionDone('gratitude');
       // Tell them where it went, and let the dialog do the navigating so the
       // Alert is never presented mid-transition. It also fires the one-time
       // backup nudge afterwards, so the two queue instead of stacking.

@@ -5,7 +5,7 @@
 import React, { useState } from 'react';
 import { View, Text, TextInput, StyleSheet, Keyboard } from 'react-native';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
-import { Stack, useRouter, useLocalSearchParams } from 'expo-router';
+import { Stack, useRouter } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import { useJournal } from '@/hooks/use-journal-store';
 import { useDailies } from '@/hooks/use-dailies-store';
@@ -22,7 +22,6 @@ export default function JournalScreen() {
   const router = useRouter();
   // Non-null inside Today's wide-layout pane - back means closing the pane.
   const pane = usePane();
-  const { dailyId } = useLocalSearchParams<{ dailyId?: string }>();
   const styles = useThemedStyles(makeStyles);
   const { c, isDark } = useTokens();
   const journal = useJournal();
@@ -36,7 +35,7 @@ export default function JournalScreen() {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       journal.addEntry(text.trim());
       logEvent('entry_saved', { type: 'journal' });
-      if (dailyId) dailies.markDone(dailyId);
+      dailies.markActionDone('journal');
       // Tell them where it went, and let the dialog do the navigating so the
       // Alert is never presented mid-transition. It also fires the one-time
       // backup nudge afterwards, so the two queue instead of stacking.
