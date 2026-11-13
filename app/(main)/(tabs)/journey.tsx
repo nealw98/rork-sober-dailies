@@ -35,6 +35,8 @@ import { fontFamily, getColors, shadows, type ColorMode, type Tokens } from '@/c
 import { useTokens, useThemedStyles } from '@/hooks/useTokens';
 import { useLayoutMode } from '@/hooks/useLayoutMode';
 import { TrendsView } from '@/app/(main)/trends';
+import NewEntrySheet from '@/components/journal/NewEntrySheet';
+import { computeStreaks } from '@/lib/trends-analytics';
 
 // Expanded widths (the unfolded Duo held sideways, iPad landscape) show Trends
 // in a column beside the feed instead of behind the header button. An open
@@ -60,6 +62,10 @@ const jToolFor = (cs: ReturnType<typeof getColors>): Record<NotebookType, { Icon
 const J_TOOL_BY_MODE: Record<ColorMode, ReturnType<typeof jToolFor>> = {
   light: jToolFor(getColors('light')),
   dark: jToolFor(getColors('dark')),
+};
+// Where the "+" sheet sends each entry type.
+const NEW_ENTRY_ROUTE: Record<NotebookType, string> = {
+  journal: '/(main)/journal', gratitude: '/(main)/gratitude', nightly: '/(main)/evening-review', spotcheck: '/(main)/inventory',
 };
 const TYPE_LABEL: Record<NotebookType, string> = {
   gratitude: 'Gratitude', nightly: 'Nightly Review', spotcheck: 'Spot Check', journal: 'Journal',
@@ -163,6 +169,19 @@ export default function JourneyScreen() {
   const insets = useSafeAreaInsets();
   const { width: screenW, height: screenH } = useWindowDimensions();
   const wide = useLayoutMode() === 'expanded';
+
+  // "+" → pick an entry type → open that tool. Its saved entry lands back here.
+  const [newEntryOpen, setNewEntryOpen] = useState(false);
+  const pickNewEntry = (type: NotebookType) => {
+    setNewEntryOpen(false);
+    router.push(NEW_ENTRY_ROUTE[type] as never);
+  };
+  // The Trends card's one-line hook: the longest streak going right now
+  // (a 1-day "streak" reads oddly, so it starts at 2).
+  const topStreak = useMemo(() => {
+    const rows = computeStreaks(dailies.program, dailies.completion);
+    return rows.reduce<(typeof rows)[number] | null>((best, r) => (r.streak > (best?.streak ?? 0) ? r : best), null);
+  }, [dailies.program, dailies.completion]);
 
   const [morph, setMorph] = useState<MorphTarget | null>(null);
   const [source, setSource] = useState<Rect | null>(null);
@@ -293,16 +312,31 @@ export default function JourneyScreen() {
               <Text style={styles.title}>Journal</Text>
               <Text style={styles.subtitle}>Your path of recovery</Text>
             </View>
-            {!wide && (
-              <Pressable style={styles.trendsBtn} onPress={() => router.push('/(main)/trends' as never)} accessibilityRole="button" accessibilityLabel="Trends">
-                <BarChart3 size={16} color={colors.primary} strokeWidth={2.2} />
-                <Text style={styles.trendsBtnText}>Trends</Text>
-              </Pressable>
-            )}
+            <Pressable style={styles.addBtn} onPress={() => setNewEntryOpen(true)} hitSlop={6} accessibilityRole="button" accessibilityLabel="New entry">
+              <Plus size={20} color="#fff" strokeWidth={2.4} />
+            </Pressable>
             <PassItOnGift style={styles.gear} />
             <SettingsGear style={styles.gear} />
           </View>
           <ScrollView contentContainerStyle={styles.feed} showsVerticalScrollIndicator={false}>
+            {/* Trends opens from the top of the feed; expanded widths show it
+                in the side pane instead. */}
+            {!wide && hasAny && (
+              <Pressable style={styles.trendsCard} onPress={() => router.push('/(main)/trends' as never)} accessibilityRole="button" accessibilityLabel="Trends">
+                <View style={styles.trendsIcon}>
+                  <BarChart3 size={20} color={colors.primary} strokeWidth={2.2} />
+                </View>
+                <View style={styles.flex}>
+                  <Text style={styles.trendsTitle}>Trends</Text>
+                  <Text style={styles.trendsHint} numberOfLines={1}>
+                    {topStreak && topStreak.streak >= 2
+                      ? `${topStreak.streak}-day streak · ${topStreak.label}`
+                      : 'Your streaks and patterns'}
+                  </Text>
+                </View>
+                <ChevronRight size={18} color={c.textMuted} strokeWidth={2} />
+              </Pressable>
+            )}
             {!hasAny ? (
               <JourneyEmpty />
             ) : (
@@ -323,6 +357,8 @@ export default function JourneyScreen() {
           </View>
         )}
       </Animated.View>
+
+      <NewEntrySheet visible={newEntryOpen} onClose={() => setNewEntryOpen(false)} onPick={pickNewEntry} />
 
       {morph && (
         <Animated.View style={[styles.overlayCard, overlayStyle]}>
@@ -925,8 +961,11 @@ const makeStyles = (tk: Tokens) => {
     // screens' titles land — with the actions inline, and a roomy paddingBottom.
     header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 22, paddingTop: 54, paddingBottom: 28 },
     gear: { marginLeft: 14 },
-    trendsBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 8, paddingHorizontal: 14, borderRadius: 999, borderWidth: 1, borderColor: c.border, backgroundColor: c.surface, ...shadows.sm, ...darkCard },
-    trendsBtnText: { fontFamily: fontFamily.semiBold, fontSize: 14, color: c.text },
+    addBtn: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.primary, ...shadows.sm },
+    trendsCard: { flexDirection: 'row', alignItems: 'center', gap: 14, padding: 14, marginBottom: 24, borderRadius: 18, borderWidth: 1, borderColor: c.border, backgroundColor: c.surface, ...shadows.sm, ...darkCard },
+    trendsIcon: { width: 44, height: 44, borderRadius: 14, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.primarySoft },
+    trendsTitle: { fontFamily: fontFamily.semiBold, fontSize: 16, color: c.text },
+    trendsHint: { fontFamily: fontFamily.regular, fontSize: 13, color: c.textMuted, marginTop: 2 },
     title: { fontFamily: fontFamily.display, fontSize: 28, letterSpacing: -0.5, color: c.text, lineHeight: 29 },
     subtitle: { fontFamily: fontFamily.regular, fontSize: 14, color: c.textMuted, marginTop: 2 },
 
