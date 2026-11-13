@@ -1,8 +1,9 @@
 // Orientation policy, in one place (Neal, 2026-11-06: the unfolded Duo must
 // rotate with the device).
 //
-// The rule: phone-class displays stay portrait — that includes every regular
-// iPhone and the Duo's cover screen — while tablet-class displays (the Duo's
+// The rule: phone-class displays stay portrait — every regular iPhone, but
+// NOT the Duo's cover screen, which rotates freely (see the phone branch of
+// applyDisplayOrientationRule) — while tablet-class displays (the Duo's
 // unfolded inner screen, iPad) rotate freely so the app follows how the
 // device is held. "Tablet-class" = the display's SHORT side is at least
 // 600pt, the same threshold the wide layouts use (hooks/useLayoutMode).
@@ -146,6 +147,15 @@ export async function applyDisplayOrientationRule(): Promise<void> {
   try {
     if (cls === 'phone') {
       steerUntil = 0;
+      // The Duo's cover rotates freely instead of locking portrait (Neal,
+      // 2026-11-13). The apps that unfold cleanly are the ones holding no
+      // lock: a portrait lock held on the cover is what iOS carries onto
+      // the inner display and then refuses to change. The steer below stays
+      // as the fallback for an unfold that still lands in portrait.
+      if (IOS && looksLikeDuoCover()) {
+        await ScreenOrientation.unlockAsync();
+        return;
+      }
       await ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP);
       return;
     }

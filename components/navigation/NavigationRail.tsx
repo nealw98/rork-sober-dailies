@@ -7,7 +7,7 @@
  * fill, primaryDark label). The Sponsor FAB and the Settings gear live at the
  * bottom of the rail. Rendered by the tabs layout ONLY in `expanded` mode.
  *
- * On the Duo (both displays) it moves into the right safe strip instead
+ * On the Duo (both displays) it moves into the safe strip instead
  * (placement="strip", rendered by SideInsetGuard): it starts below the
  * status cluster, has no fill or divider, and shows over every screen.
  *
@@ -17,7 +17,7 @@
  * href, like any deep link) and reads the active tab from the pathname.
  */
 import React from 'react';
-import { View, Text, Pressable, Image, StyleSheet } from 'react-native';
+import { View, Text, Pressable, Image, StyleSheet, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router, usePathname } from 'expo-router';
 import { Settings } from 'lucide-react-native';
@@ -35,6 +35,11 @@ export const RAIL_WIDTH = 76;
 // of the right strip. The cover's cluster is taller (camera above the clock).
 const STRIP_TOP = 150;
 const STRIP_TOP_COVER = 185;
+// The cover turned landscape: the strip is only ~466pt long and the camera
+// sits at one end of it — the top when the strip is on the left, the bottom
+// when it's on the right. The rail keeps clear of that end.
+const COVER_CAMERA_END = 90;
+const COVER_FAR_END = 12;
 
 // Also the bottom tab bar's item: icon in a selection pill over a small label.
 export function RailItem({
@@ -95,9 +100,18 @@ function RailSponsorFab() {
   );
 }
 
-export default function NavigationRail({ placement = 'edge' }: { placement?: 'edge' | 'strip' }) {
+export default function NavigationRail({
+  placement = 'edge',
+  side = 'right',
+}: {
+  placement?: 'edge' | 'strip';
+  side?: 'left' | 'right';
+}) {
   const strip = placement === 'strip';
   const expanded = useLayoutMode() === 'expanded';
+  const { width: winW, height: winH } = useWindowDimensions();
+  const coverLandscape = strip && !expanded && winW > winH;
+  const cameraTop = side === 'left';
   const insets = useSafeAreaInsets();
   const { c, colors: tc } = useTokens();
   const pathname = usePathname();
@@ -114,8 +128,12 @@ export default function NavigationRail({ placement = 'edge' }: { placement?: 'ed
           // Left safe-area inset comes from the root SideInsetGuard; the rail
           // itself only sizes to its content.
           width: RAIL_WIDTH,
-          paddingTop: strip ? (expanded ? STRIP_TOP : STRIP_TOP_COVER) : insets.top + 16,
-          paddingBottom: Math.max(insets.bottom, 16),
+          paddingTop: coverLandscape
+            ? (cameraTop ? COVER_CAMERA_END : COVER_FAR_END)
+            : strip ? (expanded ? STRIP_TOP : STRIP_TOP_COVER) : insets.top + 16,
+          paddingBottom: coverLandscape
+            ? (cameraTop ? COVER_FAR_END : COVER_CAMERA_END)
+            : Math.max(insets.bottom, 16),
           backgroundColor: c.background,
           borderRightColor: c.border,
         },
@@ -135,13 +153,17 @@ export default function NavigationRail({ placement = 'edge' }: { placement?: 'ed
 
       <View style={styles.bottom}>
         <RailSponsorFab />
-        <RailItem
-          active={pathname === '/settings'}
-          label="Settings"
-          onPress={() => go('/settings')}
-        >
-          <Settings size={22} color={tc.primaryDark} strokeWidth={pathname === '/settings' ? 2.1 : 1.9} />
-        </RailItem>
+        {/* No room in the landscape cover's short strip; the screens'
+            header gear still reaches Settings there. */}
+        {!coverLandscape && (
+          <RailItem
+            active={pathname === '/settings'}
+            label="Settings"
+            onPress={() => go('/settings')}
+          >
+            <Settings size={22} color={tc.primaryDark} strokeWidth={pathname === '/settings' ? 2.1 : 1.9} />
+          </RailItem>
+        )}
       </View>
     </View>
   );

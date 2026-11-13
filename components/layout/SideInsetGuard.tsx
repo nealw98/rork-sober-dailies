@@ -22,9 +22,11 @@
 // App-wide tab navigation. The main app turns it on with <MainNav />
 // (onboarding and the paywall never do), and it stays put over every pushed
 // screen:
-// - Strip rail: on the Duo (both displays) the tab rail lives in the RIGHT
-//   safe strip, under the status cluster, like the system apps. Only where
-//   the strip is wide enough for the rail — the Duo's 84pt strip.
+// - Strip rail: on the Duo (both displays) the tab rail lives in the safe
+//   strip, under the status cluster, like the system apps. Only where the
+//   strip is wide enough for the rail — the Duo's 84pt strip. It's usually
+//   on the right, but the cover rotates freely, and turned one way its
+//   strip lands on the left; the rail follows it.
 // - Bottom bar: everywhere else below expanded width (phones), a docked bar.
 //   It takes real layout height, and the screens above it see a ZERO bottom
 //   inset (the bar pads for the home indicator), so nothing double-pads. It
@@ -54,9 +56,17 @@ const MainNavContext = createContext<{ setOn: (on: boolean) => void }>({ setOn: 
 // including the side safe strips.
 export const useSideBackdrop = () => useContext(BackdropContext);
 
-// True when the tab rail belongs in the right safe strip (the Duo).
+// Which side's safe strip holds the tab rail (the Duo), or null when
+// neither strip is wide enough.
+function stripSide(insets: { left: number; right: number }): 'left' | 'right' | null {
+  if (insets.right >= RAIL_WIDTH) return 'right';
+  if (insets.left >= RAIL_WIDTH) return 'left';
+  return null;
+}
+
+// True when the tab rail belongs in a safe strip (the Duo).
 export function useStripRailFits(): boolean {
-  return useSafeAreaInsets().right >= RAIL_WIDTH;
+  return stripSide(useSafeAreaInsets()) != null;
 }
 
 // True while the docked bottom bar is showing (it hides for the keyboard etc.).
@@ -94,7 +104,8 @@ export default function SideInsetGuard({ children }: { children: React.ReactNode
   const ctx = useMemo(() => ({ set }), [set]);
   const [navOn, setNavOn] = useState(false);
   const navCtx = useMemo(() => ({ setOn: setNavOn }), []);
-  const stripFits = useStripRailFits();
+  const side = stripSide(insets);
+  const stripFits = side != null;
   const expanded = useLayoutMode() === 'expanded';
   const segments = useSegments() as string[];
   const { immersive } = useImmersive();
@@ -126,8 +137,8 @@ export default function SideInsetGuard({ children }: { children: React.ReactNode
         </SafeAreaInsetsContext.Provider>
         {showBar && <BottomTabBar bottomInset={insets.bottom} />}
         {showRail && (
-          <View style={[styles.stripRail, { width: insets.right }]}>
-            <NavigationRail placement="strip" />
+          <View style={[styles.stripRail, side === 'left' ? { left: 0, width: insets.left } : { right: 0, width: insets.right }]}>
+            <NavigationRail placement="strip" side={side!} />
           </View>
         )}
       </View>
@@ -138,5 +149,5 @@ export default function SideInsetGuard({ children }: { children: React.ReactNode
 }
 
 const styles = StyleSheet.create({
-  stripRail: { position: 'absolute', top: 0, bottom: 0, right: 0, alignItems: 'center' },
+  stripRail: { position: 'absolute', top: 0, bottom: 0, alignItems: 'center' },
 });
