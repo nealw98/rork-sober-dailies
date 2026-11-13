@@ -1,12 +1,15 @@
 /**
- * NavigationRail — the expanded-width replacement for FloatingTabBar
- * (3.5 wide layouts, handoff building block 2).
+ * NavigationRail — the expanded-width navigation (3.5 wide layouts, handoff
+ * building block 2); narrower windows get the docked BottomTabBar.
  *
  * A slim vertical rail on the left edge: Today · Tools · Literature · Journey
  * as icon + small label, the selected item on a soft teal pill (primarySoft
  * fill, primaryDark label). The Sponsor FAB and the Settings gear live at the
- * bottom of the rail. Rendered by the tabs layout ONLY in `expanded` mode —
- * compact and medium keep the floating bottom bar untouched.
+ * bottom of the rail. Rendered by the tabs layout ONLY in `expanded` mode.
+ *
+ * On the Duo (both displays) it moves into the right safe strip instead
+ * (placement="strip", rendered by SideInsetGuard): it starts below the
+ * status cluster, has no fill or divider, and shows over every screen.
  *
  * Unlike the bottom bar this is not an overlay: the rail takes real layout
  * width beside the tab screens, so screens never need to know it exists.
@@ -17,26 +20,24 @@ import React from 'react';
 import { View, Text, Pressable, Image, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router, usePathname } from 'expo-router';
-import { BookOpen, Library, PenLine, Settings } from 'lucide-react-native';
+import { Settings } from 'lucide-react-native';
 import { ChatCircleDots } from 'phosphor-react-native';
 import { colors, fontFamily, shadows } from '@/constants/designTokens';
 import { useTokens } from '@/hooks/useTokens';
 import { getSponsorById } from '@/constants/sponsors';
 import { useLastSponsor } from '@/hooks/use-last-sponsor';
-import { SunriseGlyph } from './FloatingTabBar';
+import { TAB_ITEMS } from './TabGlyphs';
+import { useLayoutMode } from '@/hooks/useLayoutMode';
 
 export const RAIL_WIDTH = 76;
 
-// Same four destinations and glyphs as FloatingTabBar's TAB_META, addressed
-// by path because the rail sits outside the tab navigator.
-const RAIL_ITEMS = [
-  { path: '/', label: 'Today', Glyph: SunriseGlyph },
-  { path: '/tools', label: 'Tools', Glyph: Library },
-  { path: '/literature', label: 'Literature', Glyph: BookOpen },
-  { path: '/journey', label: 'Journal', Glyph: PenLine },
-] as const;
+// Where the strip rail starts, clear of the Duo's status cluster at the top
+// of the right strip. The cover's cluster is taller (camera above the clock).
+const STRIP_TOP = 150;
+const STRIP_TOP_COVER = 185;
 
-function RailItem({
+// Also the bottom tab bar's item: icon in a selection pill over a small label.
+export function RailItem({
   active,
   label,
   onPress,
@@ -67,10 +68,14 @@ function RailItem({
 function RailSponsorFab() {
   const { lastSponsorId } = useLastSponsor();
   const sponsor = lastSponsorId ? getSponsorById(lastSponsorId) : null;
+  const expanded = useLayoutMode() === 'expanded';
   const openSponsor = () => {
-    // The rail only shows on expanded widths, where the AI Sponsor screen is
-    // picker | chat — open it on this sponsor's chat.
-    router.push(sponsor ? `/(main)/chat?sponsor=${sponsor.id}` : '/(main)/chat');
+    // Expanded widths: the AI Sponsor screen is picker | chat — open it on
+    // this sponsor's chat. Narrower (the Duo cover's strip rail): straight to
+    // the chat, like the phone's floating button.
+    if (!sponsor) router.push('/(main)/chat');
+    else if (expanded) router.push(`/(main)/chat?sponsor=${sponsor.id}`);
+    else router.push(`/sponsor-chat?sponsor=${sponsor.id}`);
   };
   return (
     <Pressable
@@ -90,7 +95,9 @@ function RailSponsorFab() {
   );
 }
 
-export default function NavigationRail() {
+export default function NavigationRail({ placement = 'edge' }: { placement?: 'edge' | 'strip' }) {
+  const strip = placement === 'strip';
+  const expanded = useLayoutMode() === 'expanded';
   const insets = useSafeAreaInsets();
   const { c, colors: tc } = useTokens();
   const pathname = usePathname();
@@ -107,15 +114,16 @@ export default function NavigationRail() {
           // Left safe-area inset comes from the root SideInsetGuard; the rail
           // itself only sizes to its content.
           width: RAIL_WIDTH,
-          paddingTop: insets.top + 16,
+          paddingTop: strip ? (expanded ? STRIP_TOP : STRIP_TOP_COVER) : insets.top + 16,
           paddingBottom: Math.max(insets.bottom, 16),
           backgroundColor: c.background,
           borderRightColor: c.border,
         },
+        strip && styles.stripRail,
       ]}
     >
       <View style={styles.items}>
-        {RAIL_ITEMS.map(({ path, label, Glyph }) => {
+        {TAB_ITEMS.map(({ path, label, Glyph }) => {
           const active = pathname === path;
           return (
             <RailItem key={path} active={active} label={label} onPress={() => go(path)}>
@@ -143,6 +151,13 @@ const styles = StyleSheet.create({
   rail: {
     borderRightWidth: StyleSheet.hairlineWidth,
     justifyContent: 'space-between',
+  },
+  // In the strip it reads as part of the system chrome: no fill (the guard
+  // paints the strip) and no divider.
+  stripRail: {
+    flex: 1,
+    borderRightWidth: 0,
+    backgroundColor: 'transparent',
   },
   items: {
     gap: 6,

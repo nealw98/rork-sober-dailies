@@ -68,7 +68,11 @@ analytics.
       testers can escape the wall during testing. Revert both gates to
       `__DEV__` only at ship time so store builds on both platforms get
       the hard wall.
-- [ ] **Decide the Developer Console gate before the 3.5 store release** —
+- [x] **Decide the Developer Console gate before the 3.5 store release** —
+      **DECIDED 2026-11-12 (Neal): device check RESTORED.** `openDeveloperConsole`
+      calls `checkDeveloperAccess()` again (uncommitted, not yet OTA'd); a new
+      device needs its Support ID added to `authorized_devices` first.
+      History:
       2026-11-06 (Neal): the `authorized_devices` server check was REMOVED
       client-side (`openDeveloperConsole` in settings.tsx opens directly;
       `lib/developerAccess.ts` and the edge function still exist, unused)

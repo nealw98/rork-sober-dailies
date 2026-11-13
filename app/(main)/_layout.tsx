@@ -44,11 +44,9 @@ export default function MainLayout() {
       <Stack.Screen name="prayers" />
       <Stack.Screen name="evening-review" />
       <Stack.Screen name="inventory" />
-      <Stack.Screen name="check-in" />
       <Stack.Screen name="meditation" />
       <Stack.Screen name="trends" />
       <Stack.Screen name="sober-date" />
-      <Stack.Screen name="modal" />
     </Stack>
       <GlobalSponsorFab />
     </View>

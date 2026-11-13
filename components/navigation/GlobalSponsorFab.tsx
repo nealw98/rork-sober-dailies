@@ -1,8 +1,8 @@
-// AI Sponsor FAB for pushed (non-tab) screens. On the four tabs the
-// FloatingTabBar renders its own FAB above the bar; this one covers every other
-// (main) screen so the sponsor is always one tap away. Hidden in immersive mode
-// (full-screen reading overlays) and naturally sits under native Modals (the
-// PDF / text readers), which render above the layout.
+// AI Sponsor FAB — the floating sponsor portrait over every (main) screen, tabs
+// included, so the sponsor is always one tap away. It floats just above the
+// docked bottom bar (which zeroes the bottom inset while it shows). Hidden in
+// immersive mode (full-screen reading overlays) and naturally sits under
+// native Modals (the PDF / text readers), which render above the layout.
 import React from 'react';
 import { Pressable, View, Image, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -14,6 +14,7 @@ import { useImmersive } from '@/hooks/use-immersive';
 import { useLastSponsor } from '@/hooks/use-last-sponsor';
 import { useGlobalAudioPlayer } from '@/hooks/useGlobalAudioPlayer';
 import { useLayoutMode } from '@/hooks/useLayoutMode';
+import { useStripRailFits } from '@/components/layout/SideInsetGuard';
 
 export default function GlobalSponsorFab() {
   const segments = useSegments();
@@ -22,17 +23,20 @@ export default function GlobalSponsorFab() {
   const insets = useSafeAreaInsets();
   const player = useGlobalAudioPlayer();
   const expanded = useLayoutMode() === 'expanded';
+  const stripRail = useStripRailFits();
   const raisedForMiniPlayer = (segments as string[]).includes('speakers') && player.isLoaded;
 
-  // The tab bar owns the FAB on the four tabs; skip here to avoid doubling up.
-  // Also skip on the meditation screen — it's its own immersive UI, and the FAB
+  // On expanded widths the left rail carries the sponsor on the four tabs;
+  // skip here to avoid doubling up. Skip on the meditation screen — it's its own immersive UI, and the FAB
   // would sit over its controls / Preferences sheet. Skip the Spot Check form
   // too — it's a focused writing surface and a chat FAB over it reads as a
   // competing exit. And skip the AI Sponsor screen on expanded widths, where
-  // it already shows a chat beside the picker.
+  // it already shows a chat beside the picker. And skip it entirely on the
+  // Duo, where the strip rail's sponsor button is always showing.
   if (
+    stripRail ||
     (expanded && (segments as string[]).includes('chat')) ||
-    (segments as string[]).includes('(tabs)') ||
+    (expanded && (segments as string[]).includes('(tabs)')) ||
     (segments as string[]).includes('meditation') ||
     (segments as string[]).includes('trends') ||
     (segments as string[]).includes('inventory') ||
@@ -52,9 +56,8 @@ export default function GlobalSponsorFab() {
       accessibilityLabel={sponsor ? `Chat with ${sponsor.name}` : 'Choose your AI Sponsor'}
       accessibilityRole="button"
       onPress={openSponsor}
-      // Locked to the same spot the FloatingTabBar's inline FAB occupies, so it
-      // doesn't jump when moving between tab and pushed screens: centered in the
-      // 68px bar row that sits above the safe-area pad → bottom = pad + 5.
+      // Just above the docked bar, or above the home indicator where the bar
+      // steps aside.
       style={({ pressed }) => [styles.fab, { bottom: Math.max(insets.bottom, 16) + 5 + (raisedForMiniPlayer ? 88 : 0) }, pressed && { opacity: 0.85 }]}
     >
       {sponsor?.avatar ? (

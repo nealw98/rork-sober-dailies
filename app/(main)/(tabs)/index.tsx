@@ -677,7 +677,7 @@ const makeStyles = (tk: Tokens) => {
   // "Morning"'s descender pulls its ink lower — measured 1.5pt of optical
   // drift on both the pencil and Save (sim, 2026-08-03).
   editBtn: { paddingVertical: 6, paddingHorizontal: 12, marginRight: -4, transform: [{ translateY: 1.5 }] },
-  scroll: { paddingHorizontal: 22, paddingBottom: 120 },
+  scroll: { paddingHorizontal: 22, paddingBottom: 96 },
 
   heroTop: { marginTop: spacing.xl },
   // Reflection pane chrome (expanded): the expand control, top-right.

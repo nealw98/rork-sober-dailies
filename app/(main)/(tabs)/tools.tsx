@@ -30,6 +30,7 @@ import GiftGlyph from '@/components/GiftGlyph';
 import SettingsGear from '@/components/navigation/SettingsGear';
 import PassItOnGift from '@/components/navigation/PassItOnGift';
 import { useScreenTimeTracking } from '@/hooks/useScreenTimeTracking';
+import { useLayoutMode } from '@/hooks/useLayoutMode';
 
 /**
  * Tools — the app's launcher (redesign 3.0). A featured Literature hero, the two
@@ -43,6 +44,7 @@ import { useScreenTimeTracking } from '@/hooks/useScreenTimeTracking';
 
 const H_PAD = 22;     // ScrollView horizontal padding (each side)
 const CARD_GAP = 12;  // gap between the two flagship cards
+const FLAG_H = 150;   // flagship card height
 
 type GlyphComponent = React.ComponentType<{ size?: number; color?: string }>;
 
@@ -141,6 +143,10 @@ export default function ToolsScreen() {
   // Pixel/Galaxy Fold held landscape) width × 0.55 filled the whole screen.
   // Phones and the Duo sit well under the cap, so they're unchanged.
   const heroH = Math.round(Math.min((availW - H_PAD * 2) * 0.55, screenH * 0.4));
+  // Expanded widths (unfolded Duo, iPad landscape) put the hero and the two
+  // flagships on one band: Literature on the left, the flagships stacked
+  // beside it at the hero's height, the grid below.
+  const wide = useLayoutMode() === 'expanded';
 
   // Flagship tones: light keeps the tinted cards; dark goes neutral with a
   // solid family circle (steelFill carries white on dark — handoff).
@@ -159,6 +165,30 @@ export default function ToolsScreen() {
   const pr = PixelRatio.get();
   const tileW = Math.floor(((availW - H_PAD * 2 - CARD_GAP * 2) / 3) * pr) / pr;
 
+  // Featured hero — Literature (photo jewel: stays saturated on dark).
+  const literatureHero = (
+    <Pressable style={[styles.hero, wide ? styles.heroWide : { height: heroH }]} onPress={() => router.push('/(main)/(tabs)/literature')} accessibilityRole="button" accessibilityLabel="Literature">
+      <Image source={require('@/assets/images/literature-hero4.webp')} style={StyleSheet.absoluteFill} contentFit="cover" transition={200} />
+      <LinearGradient colors={['rgba(0,0,0,0)', 'rgba(0,0,0,0.62)']} locations={[0.4, 1]} style={StyleSheet.absoluteFill} />
+      <View style={styles.featured}>
+        <Text style={styles.featuredText}>FEATURED</Text>
+      </View>
+      <View style={styles.heroBottom}>
+        <View style={{ flex: 1 }}>
+          <Text style={styles.heroTitle}>Literature</Text>
+          <Text style={styles.heroSub}>Read. Reflect. Grow.</Text>
+        </View>
+      </View>
+    </Pressable>
+  );
+  // Flagship cards — a row under the hero, or stacked beside it when wide.
+  const flagships = (
+    <>
+      <FlagCard flag={SPEAKER} Icon={Mic} title="Speaker Tapes" subtitle="Members' experience, strength and hope." onPress={() => router.push('/(main)/speakers')} isDark={isDark} styles={styles} />
+      <FlagCard flag={SPONSOR} Icon={ChatCircleDots} title="AI Sponsor" subtitle="Guidance and encouragement." onPress={() => router.push('/(main)/chat')} isDark={isDark} styles={styles} />
+    </>
+  );
+
   return (
     <SafeAreaView
       style={styles.safe}
@@ -176,26 +206,17 @@ export default function ToolsScreen() {
       </View>
 
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
-        {/* Featured hero — Literature (photo jewel: stays saturated on dark) */}
-        <Pressable style={[styles.hero, { height: heroH }]} onPress={() => router.push('/(main)/(tabs)/literature')} accessibilityRole="button" accessibilityLabel="Literature">
-          <Image source={require('@/assets/images/literature-hero4.webp')} style={StyleSheet.absoluteFill} contentFit="cover" transition={200} />
-          <LinearGradient colors={['rgba(0,0,0,0)', 'rgba(0,0,0,0.62)']} locations={[0.4, 1]} style={StyleSheet.absoluteFill} />
-          <View style={styles.featured}>
-            <Text style={styles.featuredText}>FEATURED</Text>
+        {wide ? (
+          <View style={styles.wideBand}>
+            {literatureHero}
+            <View style={styles.flagColumn}>{flagships}</View>
           </View>
-          <View style={styles.heroBottom}>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.heroTitle}>Literature</Text>
-              <Text style={styles.heroSub}>Read. Reflect. Grow.</Text>
-            </View>
-          </View>
-        </Pressable>
-
-        {/* Flagship cards */}
-        <View style={styles.flagRow}>
-          <FlagCard flag={SPEAKER} Icon={Mic} title="Speaker Tapes" subtitle="Members' experience, strength and hope." onPress={() => router.push('/(main)/speakers')} isDark={isDark} styles={styles} />
-          <FlagCard flag={SPONSOR} Icon={ChatCircleDots} title="AI Sponsor" subtitle="Guidance and encouragement." onPress={() => router.push('/(main)/chat')} isDark={isDark} styles={styles} />
-        </View>
+        ) : (
+          <>
+            {literatureHero}
+            <View style={styles.flagRow}>{flagships}</View>
+          </>
+        )}
 
         {/* Tool grid */}
         <View style={styles.grid}>
@@ -228,7 +249,7 @@ const makeStyles = (tk: Tokens) => {
       title: { fontFamily: fontFamily.display, fontSize: 28, letterSpacing: -0.5, color: c.text, lineHeight: 29 },
       subtitle: { fontFamily: fontFamily.regular, fontSize: 14, color: c.textMuted, marginTop: 2 },
 
-      scroll: { paddingHorizontal: H_PAD, paddingTop: 6, paddingBottom: 130 },
+      scroll: { paddingHorizontal: H_PAD, paddingTop: 6, paddingBottom: 96 },
 
       // Featured hero
       hero: { borderRadius: 22, overflow: 'hidden', backgroundColor: colors.primary, marginBottom: 14, ...shadows.md },
@@ -240,8 +261,12 @@ const makeStyles = (tk: Tokens) => {
 
       // Flagship cards
       flagRow: { flexDirection: 'row', gap: CARD_GAP, marginBottom: 22 },
-      flagCard: { flex: 1, height: 150, borderRadius: 20, padding: 16, justifyContent: 'space-between' },
-      flagCardInner: { height: 150, padding: 16, justifyContent: 'space-between' },
+      // Wide band: the hero fills what the stacked flagships leave.
+      wideBand: { flexDirection: 'row', gap: CARD_GAP, marginBottom: 22 },
+      heroWide: { flex: 1, height: FLAG_H * 2 + CARD_GAP, marginBottom: 0 },
+      flagColumn: { width: '40%', height: FLAG_H * 2 + CARD_GAP, gap: CARD_GAP },
+      flagCard: { flex: 1, height: FLAG_H, borderRadius: 20, padding: 16, justifyContent: 'space-between' },
+      flagCardInner: { height: FLAG_H, padding: 16, justifyContent: 'space-between' },
       flagTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
       flagCircle: { width: 46, height: 46, borderRadius: 23, alignItems: 'center', justifyContent: 'center' },
       flagTitle: { fontFamily: fontFamily.semiBold, fontSize: 16.5, color: c.text, letterSpacing: -0.2 },

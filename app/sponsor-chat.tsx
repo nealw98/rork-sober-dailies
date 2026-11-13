@@ -259,9 +259,13 @@ function SponsorChatContent({ initialSponsor, onboarding }: { initialSponsor: st
             </View>
           </Pressable>
           {onboarding ? (
-            <Pressable onPress={onboarding.onTryAnother} style={styles.tryAnotherPill} accessibilityRole="button">
-              <Text style={styles.tryAnotherPillText}>Try another</Text>
-            </Pressable>
+            // Only while there's another to try; the back arrow still
+            // returns to the list.
+            onboarding.anyLeft && (
+              <Pressable onPress={onboarding.onTryAnother} style={styles.tryAnotherPill} accessibilityRole="button">
+                <Text style={styles.tryAnotherPillText}>Try another</Text>
+              </Pressable>
+            )
           ) : (
           <View style={styles.headActions}>
             <Pressable onPress={() => { setSizeSheetOpen(true); setSwitchOpen(false); }} style={styles.aaBtn} accessibilityLabel="Text size">
@@ -326,14 +330,17 @@ function SponsorChatContent({ initialSponsor, onboarding }: { initialSponsor: st
           <View style={[styles.tryDone, { marginBottom: Math.max(insets.bottom, 10) + 8 }]}>
             <Text style={styles.tryDoneText}>That’s your free try with {TRY_FIRST_NAME[initialSponsor as TrySponsorId]}.</Text>
             <View style={styles.tryDoneBtns}>
-              {onboarding.anyLeft && (
+              {/* One way forward: the next try while any are left, then the
+                  offer. The list's own button still reaches the paywall early. */}
+              {onboarding.anyLeft ? (
                 <Pressable onPress={onboarding.onTryAnother} style={styles.tryDoneBtn} accessibilityRole="button">
                   <Text style={styles.tryDoneBtnText}>Try another</Text>
                 </Pressable>
+              ) : (
+                <Pressable onPress={onboarding.onStartTrial} style={styles.tryDoneBtn} accessibilityRole="button">
+                  <Text style={styles.tryDoneBtnText}>{tryButtonLabel(onboarding.offer)}</Text>
+                </Pressable>
               )}
-              <Pressable onPress={onboarding.onStartTrial} style={[styles.tryDoneBtn, styles.tryDoneBtnOutline]} accessibilityRole="button">
-                <Text style={[styles.tryDoneBtnText, styles.tryDoneBtnOutlineText]}>{tryButtonLabel(onboarding.offer)}</Text>
-              </Pressable>
             </View>
           </View>
         ) : (
@@ -473,8 +480,6 @@ const makeStyles = (tk: Tokens) => {
   tryDoneBtns: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: 8, marginTop: 10 },
   tryDoneBtn: { backgroundColor: colors.primary, borderRadius: 999, paddingVertical: 10, paddingHorizontal: 20 },
   tryDoneBtnText: { fontFamily: fontFamily.bold, fontSize: 14, color: '#fff' },
-  tryDoneBtnOutline: { backgroundColor: c.surface, borderWidth: 1.5, borderColor: colors.primary },
-  tryDoneBtnOutlineText: { color: colors.primaryDark },
 
   // error
   errorBox: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 16, backgroundColor: paper },

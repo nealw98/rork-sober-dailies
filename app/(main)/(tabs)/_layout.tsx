@@ -1,39 +1,37 @@
 import { Tabs } from 'expo-router';
 import React from 'react';
 import { View, StyleSheet } from 'react-native';
-import FloatingTabBar from '@/components/navigation/FloatingTabBar';
 import NavigationRail from '@/components/navigation/NavigationRail';
 import { useLayoutMode } from '@/hooks/useLayoutMode';
+import { useStripRailFits } from '@/components/layout/SideInsetGuard';
 
 /**
  * The four redesign-3.0 destinations: Today · Tools · Literature · Journey.
- * Compact/medium render the custom floating bottom bar (+ Sponsor FAB) — see
- * FloatingTabBar. Expanded widths (unfolded Duo landscape, iPad) swap it for
- * the left-edge NavigationRail (3.5 wide layouts): the rail takes real layout
- * width in a row beside the tab screens, which is why it can't come from the
- * tabBar slot. <Tabs> keeps its position in the tree across the swap, so tab
- * state survives fold/unfold.
+ * The tab chrome is drawn app-wide by SideInsetGuard, not here, so it stays
+ * on pushed screens too: a docked bottom bar on phones, the right-strip rail
+ * on the Duo. Only expanded widths without a strip (iPad) draw the left-edge
+ * NavigationRail here — it takes real layout width in a row beside the tab
+ * screens, which is why it can't come from the tabBar slot. <Tabs> keeps its
+ * position in the tree across the swaps, so tab state survives fold/unfold.
  *
  * Settings is no longer a tab; it lives in the tab group bar-less and opens
- * from a header gear (compact) or the rail's bottom gear (expanded). Leaf
- * screens (Daily Reflection, Gratitude, chat, …) live one level up in the
- * (main) Stack, so pushing them covers the bar and the rail — the prototype's
- * "tab bar only on top-level" behavior.
- *
- * Bar button order follows this declaration order, so Literature sits third.
+ * from a header gear or the rail's bottom gear. Leaf screens (Daily
+ * Reflection, Gratitude, chat, …) live one level up in the (main) Stack.
  */
 export default function TabsLayout() {
   const expanded = useLayoutMode() === 'expanded';
+  const stripRail = useStripRailFits();
 
   return (
     <View style={styles.row}>
-      {expanded && <NavigationRail />}
+      {expanded && !stripRail && <NavigationRail />}
       <View style={styles.content}>
         <Tabs
           screenOptions={{ headerShown: false }}
           // "history" so Back from Literature returns to whichever tab opened it.
           backBehavior="history"
-          tabBar={(props) => (expanded ? null : <FloatingTabBar {...props} />)}
+          // The bottom bar and the strip rail are app-wide (SideInsetGuard).
+          tabBar={() => null}
         >
           <Tabs.Screen name="index" options={{ title: 'Today' }} />
           <Tabs.Screen name="tools" options={{ title: 'Tools' }} />

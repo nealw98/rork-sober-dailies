@@ -3782,3 +3782,91 @@ distribution, enable build 137 for it in ASC → TestFlight.
 NOTE: ASC still has the rejected 136 + the duplicate-localization case
 (§29.4) pending — unrelated to internal TestFlight, but 137 is now the
 binary that would go to review once that's sorted.
+
+## 31. Latest session — 2026-11-07/08 (UNFOLD FIX PROVEN+SHIPPED · Duo UX round: safe zones, spreads, meditation · Apple bug FILED)
+
+Branch `codex/3.5-duo-modernization`, LOCAL-ONLY (never push). All of §30's
+work is now COMMITTED here plus this session's commits; tree has ONE dirty
+file (this handoff). TestFlight 137 / runtime 3.5.0 receives OTAs; newest
+OTA = `098e8c5a` (production). tsc baseline: 84 non-supabase errors.
+
+### 31.1 The unfold orientation saga — CLOSED (keep v6, wait for Apple)
+- `lib/orientation.ts` is the ONLY orientation code. Final design: bounded
+  retry steer (20s window, nudge every 1.2s, NEVER unlock mid-handoff) +
+  cover_release (drop portrait hold when backgrounding on the cover) +
+  v6: the nudge cycles LANDSCAPE→LANDSCAPE_RIGHT→LANDSCAPE_LEFT.
+- Device telemetry verdict (2026-11-08, Mixpanel `duo_orientation_debug`,
+  project 4040342/ws 4536597): every handoff lands, but iOS time-gates the
+  nudges 0.5–16s after the visible transition; varied masks don't help
+  (change-trigger theory FALSE). No app-side lever remains. Do NOT retry
+  cadence/mask tricks. Slow unfolds (5–15s) are Apple's bug.
+- diag() block stays in for now (strip in a later OTA once quiet).
+- Apple Feedback FILED from Neal's account: **FB25490434** (Rotation →
+  Orientation in app). No sysdiagnose attached; add one if Apple asks.
+  Expo GitHub issue NOT filed (offered, not requested).
+- Daily cloud routine "Duo unfold fix watcher"
+  (`trig_01RTNrgbHYSFFHXWXuRvxTMY`, 8am Denver) checks Apple/Expo/framework
+  sources; on "POSSIBLE FIX FOUND": verify on Neal's Duo, then delete the
+  steering shim here AND in Hands Off `src/v12/layout/orientation.ts`.
+
+### 31.2 Commits this session (each followed by a production OTA)
+- `07fc1e6a`/`244af956`/`cea849d8` — v4 retry steer; v5 diag+cover_release;
+  dev-console ungate (re-gate decision is on docs/LAUNCH-CHECKLIST.md).
+- `aef8f649` — Duo safe-zone sweep (17 files): pane-embedded morphs
+  (prayers/journey) now measure their container and convert
+  measureInWindow→container coords; onboarding carousel pages use measured
+  width; ~18 native <Modal>s got native-measuring SafeAreaView
+  edges=['left','right'] (pads under the 84pt strips, 0 inside the guard);
+  QA paywall preview wrapped in SideInsetGuard.
+- `7047baa1` — Speaker Tapes list-detail spread on expanded (360pt list |
+  SpeakerDetailBody embedded via PaneProvider; window-class gate `wide =
+  useLayoutMode()==='expanded' && !pane` — measured width DISAGREES with
+  the rail's window-based decision, don't "fix" that); expand/collapse
+  convention: BackButton is pane-aware AND reads `expanded=1` route param
+  (set by every pane expand push) → Minimize2 collapse glyph, chevron at
+  compact widths; spread detail panes have NO collapse control.
+- `fbf32cd5` — steer v6 (varied nudge; see 31.1).
+- Meditation Duo fit rode `7047baa1`'s OTA group predecessor (`62f90c3d`):
+  ring scales to 220 under 760pt-tall windows, setup scrolls, scene photo
+  edge-to-edge via a backdrop slot on SideInsetGuard (useSideBackdrop) +
+  a window-aligned local copy. LESSONS: navigator screens CLIP at padded
+  bounds (negative-offset bleed fails) and contentStyle:'transparent'
+  washes white — don't retry either.
+
+### 31.3 Reference docs
+- Duo Adaptation Playbook (Claude doc, rev 24):
+  https://claude.ai/artifact/HbBAnJQs7qJGtQqmsStvbe — includes the
+  expand/collapse icon convention and the telemetry technique.
+- Auto-memory MEMORY.md is current (session-handoff-sdk58-duo-upgrade has
+  the detailed chronology; duo-unfold-fix-watcher-routine has FB + routine).
+
+### 31.4 Hands Off (separate repo/sessions — context only)
+- hands-off main: `842f793` (open-mode split: Coach|Today, rail, panes) and
+  `7bafe37` (round 2: PROVEN unfold fix ported, split landscape-only,
+  Progress + Today spreads, big-screen polish). coach-chat edge fn v46
+  deployed byte-verified. Build 46 (1.5.0) submitted to TestFlight
+  2026-11-08 — Neal's physical-Duo verification PENDING.
+- Hands Off version for Duo release: 1.5.0 (mirrors 3.0→3.5 convention).
+
+### 31.5 Open items
+1. Neal: test Hands Off build 46 on the Duo (spread, landscape-only split,
+   unfold fix).
+2. Later OTA: strip the diag() block from lib/orientation.ts once the fix
+   has been quiet for a few days.
+3. Ship-time (3.5 store release): dev-console re-gate decision; §29's ASC
+   localization case 20000139933908 still governs store review.
+4. Possibly stale: old note that the paywall dismiss X doesn't render on
+   the Duo unfolded landscape — it worked on the sim 2026-11-07; re-check
+   on device before ship.
+5. Known accepted wart: unfold can sit portrait up to ~15s (Apple bug,
+   see 31.1); waiting beats relaunching.
+
+### 31.6 Session mechanics that bit us (save yourself an hour)
+- The iOS-Simulator MCP cannot send taps while the Duo sim is in a FOLDED
+  posture (screenshots fine; unfolded fine; reboot doesn't help). Device
+  Hub drives posture; Neal denies Device Hub computer-use access — ask him
+  to tap instead. Deep links: `xcrun simctl openurl <udid> myapp://<route>`
+  (confirm dialog needs one human tap).
+- Metro on port 8082; paywall blocks sim QA — TEMP flip PAYWALL_ENABLED
+  false in app/_layout.tsx and ALWAYS restore true before commit (standing
+  pre-commit check).

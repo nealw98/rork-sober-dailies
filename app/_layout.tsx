@@ -92,7 +92,7 @@ import { ThemeProvider } from "@/hooks/useTheme";
 import { useSobrietyBirthday } from "@/hooks/useSobrietyBirthday";
 import SobrietyBirthdayModal from "@/components/SobrietyBirthdayModal";
 import PassOfferScreen from "@/components/PassOfferScreen";
-import SideInsetGuard from "@/components/layout/SideInsetGuard";
+import SideInsetGuard, { MainNav } from "@/components/layout/SideInsetGuard";
 import { watchDisplayOrientationRule } from "@/lib/orientation";
 import { usePendingAndroidPass } from "@/hooks/usePendingAndroidPass";
 
@@ -380,6 +380,7 @@ function RootLayoutNav() {
         />
         
       </Stack>
+        <MainNav />
         <OTASnackbar visible={showSnackbar} onDismiss={dismissSnackbar} onRestart={restartApp} />
         <SobrietyBirthdayModal visible={showBirthdayModal} onClose={closeBirthdayModal} />
     </>

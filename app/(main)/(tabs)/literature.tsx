@@ -225,7 +225,7 @@ const makeStyles = (tk: Tokens) => {
     // paddingTop keeps the covers (and their drop shadow) off the scroll's top
     // clip line, so a small scroll doesn't shear the tops of the books.
     // paddingBottom clears the floating tab bar (Literature is in the tab group).
-    scroll: { paddingTop: 12, paddingBottom: 130 },
+    scroll: { paddingTop: 12, paddingBottom: 96 },
     // Hero: bare covers, titles beneath.
     booksRow: { flexDirection: 'row', gap: 22, paddingHorizontal: 30, alignItems: 'flex-end' },
     bookBtn: {

@@ -32,7 +32,7 @@ import { hasUsedTrial, isMonthlyPkg, isYearlyPkg, packageTrialDays } from '@/hoo
 import { termsUrl } from '@/lib/storeLinks';
 import { SPONSORS } from '@/constants/sponsors';
 import { resolveTone, type GlyphComponent } from '@/components/dailyTokens';
-import { SunriseGlyph } from '@/components/navigation/FloatingTabBar';
+import { SunriseGlyph } from '@/components/navigation/TabGlyphs';
 
 const TERMS_URL = termsUrl();
 const PRIVACY_URL = 'https://soberdailies.com/privacy';

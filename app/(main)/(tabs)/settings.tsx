@@ -53,6 +53,7 @@ import GiftThankYouSheet from '@/components/GiftThankYouSheet';
 import { qaPreviewTrialReminder } from '@/lib/trialReminder';
 import { setSyncPaused, cloudBackupSupported } from '@/lib/cloudSync';
 import { getQaEngine, setQaEngine, type QaEngine } from '@/lib/sponsorApiSettings';
+import { checkDeveloperAccess } from '@/lib/developerAccess';
 import { termsUrl } from '@/lib/storeLinks';
 
 // ─── Token-based building blocks (mirror the prototype) ──────────────────────
@@ -157,6 +158,7 @@ export default function SettingsScreen() {
   useScreenTimeTracking('Settings');
 
   const [logsVisible, setLogsVisible] = useState(false);
+  const [isCheckingDeveloperAccess, setIsCheckingDeveloperAccess] = useState(false);
   const [logsText, setLogsText] = useState('');
   // QA: preview either paywall layout ('trial' | 'notrial'), forced regardless
   // of real trial history. Close the Developer Console first, else the preview
@@ -343,12 +345,32 @@ export default function SettingsScreen() {
   const closeLogs = () => setLogsVisible(false);
 
   const openDeveloperConsole = async () => {
-    // Ungated (Neal, 2026-11-06): the authorized_devices server check kept
-    // locking out his own new devices (the Duo), and the console is already
-    // behind a hidden gesture. Re-gate (lib/developerAccess.ts still has the
-    // check) before the public store release — on docs/LAUNCH-CHECKLIST.md.
-    if (logsVisible) return;
-    setLogsVisible(true);
+    // Gated on the authorized_devices allowlist (re-gated 2026-11-12 for the
+    // 3.5 store release). A new device of Neal's needs its Support ID (tap the
+    // version 7×) added to authorized_devices before the console opens.
+    if (isCheckingDeveloperAccess || logsVisible) return;
+    setIsCheckingDeveloperAccess(true);
+    try {
+      const access = await checkDeveloperAccess();
+      if (access.authorized) setLogsVisible(true);
+      else {
+        // Previously this fell through to nothing, so a failed check and a
+        // mis-aimed long press looked identical. Only ever seen by someone who
+        // found a hidden gesture, so naming the cause costs nothing. The
+        // not-authorized text names the fix, since the fix is always the same:
+        // send the Support ID to be added to authorized_devices.
+        Alert.alert(
+          'Developer access unavailable',
+          access.unavailable === 'unreachable'
+            ? "Couldn't reach the authorization server. Check the connection and try again."
+            : access.unavailable === 'server_error'
+              ? 'The authorization server errored. Check the developer-access function logs.'
+              : 'This device is not authorized. Tap the version 7× for the Support ID and send it to be added.',
+        );
+      }
+    } finally {
+      setIsCheckingDeveloperAccess(false);
+    }
   };
 
   const copyLogs = async () => {
@@ -1065,7 +1087,7 @@ const makeStyles = (tk: Tokens) => {
   subtitle: { fontFamily: fontFamily.regular, fontSize: 14, color: c.textMuted, marginTop: 2 },
 
   content: { flex: 1 },
-  scrollContent: { paddingHorizontal: 16, paddingTop: 8, paddingBottom: 150 },
+  scrollContent: { paddingHorizontal: 16, paddingTop: 8, paddingBottom: 96 },
 
   // Section label + card chrome
   section: { marginBottom: 18 },

@@ -230,9 +230,13 @@ export function SpotCheckForm({ onboarding }: { onboarding?: SpotCheckOnboarding
         <BackButton onPress={confirmExit} />
         <Text style={styles.title}>Spot Check</Text>
         {onboarding ? (
-          <Pressable onPress={onboarding.onTryAnother} accessibilityRole="button" style={styles.tryAnotherPill}>
-            <Text style={styles.tryAnotherPillText}>Try another</Text>
-          </Pressable>
+          // Only while there's another to try; the back arrow still
+          // returns to the list.
+          onboarding.anyLeft && (
+            <Pressable onPress={onboarding.onTryAnother} accessibilityRole="button" style={styles.tryAnotherPill}>
+              <Text style={styles.tryAnotherPillText}>Try another</Text>
+            </Pressable>
+          )
         ) : (
         <>
         <PaneExpandButton />
@@ -371,14 +375,17 @@ export function SpotCheckForm({ onboarding }: { onboarding?: SpotCheckOnboarding
           <View style={styles.tryDone}>
             <Text style={styles.tryDoneText}>That’s your free spot check.</Text>
             <View style={styles.tryDoneBtns}>
-              {onboarding.anyLeft && (
+              {/* One way forward: the next try while any are left, then the
+                  offer. The list's own button still reaches the paywall early. */}
+              {onboarding.anyLeft ? (
                 <Pressable onPress={onboarding.onTryAnother} style={styles.tryDoneBtn} accessibilityRole="button">
                   <Text style={styles.tryDoneBtnText}>Try another</Text>
                 </Pressable>
+              ) : (
+                <Pressable onPress={onboarding.onStartTrial} style={styles.tryDoneBtn} accessibilityRole="button">
+                  <Text style={styles.tryDoneBtnText}>{tryButtonLabel(onboarding.offer)}</Text>
+                </Pressable>
               )}
-              <Pressable onPress={onboarding.onStartTrial} style={[styles.tryDoneBtn, styles.tryDoneBtnOutline]} accessibilityRole="button">
-                <Text style={[styles.tryDoneBtnText, styles.tryDoneBtnOutlineText]}>{tryButtonLabel(onboarding.offer)}</Text>
-              </Pressable>
             </View>
           </View>
         )}
@@ -459,7 +466,5 @@ const makeStyles = (tk: Tokens) => {
     tryDoneBtns: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: 8, marginTop: 10 },
     tryDoneBtn: { backgroundColor: colors.primary, borderRadius: 999, paddingVertical: 10, paddingHorizontal: 20 },
     tryDoneBtnText: { fontFamily: fontFamily.bold, fontSize: 14, color: '#fff' },
-    tryDoneBtnOutline: { backgroundColor: c.surface, borderWidth: 1.5, borderColor: colors.primary },
-    tryDoneBtnOutlineText: { color: colors.primaryDark },
   });
 };
