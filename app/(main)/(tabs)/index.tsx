@@ -62,9 +62,11 @@ import { titleCase } from '@/lib/titleCase';
 import { Reflection } from '@/types';
 
 // Today is a to-do ledger. Every daily — including the Daily Reflection hero —
-// is checked off with its "Done" button, never on open. The one automatic
-// check-off: saving an entry in a writing tool (gratitude, journal, nightly
-// review, spot check) completes its daily, wherever the tool was opened from.
+// is checked off with its "Done" button, never on open. The automatic
+// check-offs: saving an entry in a writing tool (gratitude, journal, nightly
+// review, spot check) or finishing a meditation completes its daily wherever
+// it was opened from; reading a prayer through (open, then close) completes
+// only the prayer daily whose row opened Prayers.
 // Tapping a row opens its tool. Customisation happens in-place via the
 // header Edit toggle (no separate page).
 
@@ -263,7 +265,7 @@ export default function TodayScreen() {
   // Which tool daily is open in the detail pane (expanded only); null = the
   // Daily Reflection, the pane's resting state. Keyed by action so switching
   // dailies remounts the tool fresh.
-  const [paneTool, setPaneTool] = useState<{ action: string; route: Href } | null>(null);
+  const [paneTool, setPaneTool] = useState<{ action: string; route: Href; dailyId: string } | null>(null);
 
   const milestone = sobrietyDate ? calculateMilestone(sobrietyDate) : null;
   const milestoneLabel = (() => {
@@ -443,11 +445,13 @@ export default function TodayScreen() {
     }
     // Expanded: the tool reads/writes in the pane beside the list. Compact
     // (and the few non-pane actions, like the Literature tab switch) pushes.
+    // Either way the tool learns which daily opened it (`dailyId`), so a tool
+    // that completes "its" daily (Prayers) ticks this row and not a sibling.
     if (expanded && PANE_SCREENS[item.action]) {
-      setPaneTool({ action: item.action, route });
+      setPaneTool({ action: item.action, route, dailyId: item.id });
       return;
     }
-    router.push(route);
+    router.push({ pathname: route as never, params: { dailyId: item.id } });
   };
 
   const toggleDaily = (id: string) => {
@@ -612,7 +616,7 @@ export default function TodayScreen() {
                 key={paneTool.action}
                 // expanded=1: the pushed screen's back control renders as the
                 // collapse glyph (it returns here), not a chevron — BackButton.
-                value={{ close: () => setPaneTool(null), expand: () => router.push({ pathname: paneTool.route as never, params: { expanded: '1' } }) }}
+                value={{ close: () => setPaneTool(null), dailyId: paneTool.dailyId, expand: () => router.push({ pathname: paneTool.route as never, params: { expanded: '1', dailyId: paneTool.dailyId } }) }}
               >
                 <PaneTool />
               </PaneProvider>

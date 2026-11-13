@@ -19,6 +19,7 @@ import { useScreenTimeTracking } from '@/hooks/useScreenTimeTracking';
 import { useReadingSize } from '@/hooks/use-reading-size';
 import { ReadingSizeSheet } from '@/components/ReadingSizeSheet';
 import { logEvent } from '@/lib/analytics';
+import { useDailies } from '@/hooks/use-dailies-store';
 import { aaPrayers } from '@/constants/prayers';
 import { fontFamily, shadows, type Tokens } from '@/constants/designTokens';
 import { useTokens, useThemedStyles } from '@/hooks/useTokens';
@@ -34,6 +35,7 @@ type Mode = 'list' | 'opening' | 'read' | 'closing';
 const MORNING_INTRO = 'As I begin this day, I ask my Higher Power:';
 
 type ReadPrayer = { title: string; content: string; source?: string };
+
 
 function PrayerBody({ prayer }: { prayer: ReadPrayer }) {
   const styles = useThemedStyles(makeStyles);
@@ -72,7 +74,7 @@ export default function PrayersScreen() {
   // Non-null inside Today's wide-layout pane - back means closing the pane.
   const pane = usePane();
   const router = useRouter();
-  const params = useLocalSearchParams<{ prayer?: string }>();
+  const params = useLocalSearchParams<{ prayer?: string; dailyId?: string }>();
   const { width: screenW, height: screenH } = useWindowDimensions();
   const styles = useThemedStyles(makeStyles);
   const { c, colors } = useTokens();
@@ -82,6 +84,7 @@ export default function PrayersScreen() {
   const [mode, setMode] = useState<Mode>('list');
   const [source, setSource] = useState<Rect | null>(null);
   const [sizeSheetOpen, setSizeSheetOpen] = useState(false);
+  const dailies = useDailies();
   const cardRefs = useRef<Array<React.ComponentRef<typeof View> | null>>([]);
   const rootRef = useRef<React.ComponentRef<typeof View>>(null);
 
@@ -143,6 +146,11 @@ export default function PrayersScreen() {
   };
 
   const closeRead = () => {
+    // Reading a prayer through (open, then close) checks off the Today daily
+    // that opened Prayers — only that one, so morning and evening prayers
+    // stay separate. Opened from anywhere else (Tools), nothing is checked.
+    const openerDailyId = pane?.dailyId ?? params.dailyId;
+    if (selected != null && openerDailyId) dailies.markDone(openerDailyId);
     if (source) {
       setMode('closing');
       progress.value = withTiming(0, { duration: DUR, easing: Easing.inOut(Easing.cubic) }, (done) => {

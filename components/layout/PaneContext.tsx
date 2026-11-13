@@ -11,6 +11,9 @@ export type PaneControls = {
   close: () => void;
   // Open this content full-screen (the pushed route / modal), if offered.
   expand?: () => void;
+  // The Today daily that opened this content — the pane's stand-in for the
+  // pushed route's `dailyId` param.
+  dailyId?: string;
 };
 
 const PaneContext = React.createContext<PaneControls | null>(null);
