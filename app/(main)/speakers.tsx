@@ -314,7 +314,6 @@ export default function SpeakersScreen() {
       <View style={[styles.header, searchOpen && styles.headerSearching]}>
         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
           <BackButton onPress={goBack} />
-          <PaneExpandButton />
         </View>
         <View style={styles.headerRow}>
           <Text style={styles.title}>Speaker Tapes</Text>

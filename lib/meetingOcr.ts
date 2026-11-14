@@ -6,7 +6,7 @@
 // offline. The ML Kit native module is required lazily so the app keeps working
 // in a dev client that hasn't been rebuilt with it yet (reports 'no-engine').
 import * as ImagePicker from 'expo-image-picker';
-import { parseMeetingGuide, parseBestEffort, type MeetingDraft } from '@/lib/parseMeetingGuide';
+import { parseMeetingGuide, parseBestEffort, type MeetingDraft, type OcrLine } from '@/lib/parseMeetingGuide';
 
 export type ScanSource = 'library' | 'camera';
 
@@ -49,13 +49,20 @@ export async function scanMeetingScreenshot(source: ScanSource = 'library'): Pro
     const recognizer = getRecognizer();
     if (!recognizer) return { status: 'no-engine' };
 
-    let lines: string[] = [];
+    let lines: OcrLine[] = [];
     try {
       const result = await recognizer.recognize(uri);
       const blocks = result?.blocks ?? [];
+      // Keep each line's box: the parser orders lines by position and picks
+      // the title by size, not by the engine's block order.
       lines = blocks
-        .flatMap((b: any) => (b?.lines ?? []).map((l: any) => String(l?.text ?? '')))
-        .filter(Boolean);
+        .flatMap((b: any) => (b?.lines ?? []).map((l: any) => ({
+          text: String(l?.text ?? ''),
+          top: l?.frame?.top,
+          left: l?.frame?.left,
+          height: l?.frame?.height,
+        })))
+        .filter((l: { text: string }) => l.text);
       if (lines.length === 0 && result?.text) lines = String(result.text).split('\n');
     } catch {
       return { status: 'no-engine' };

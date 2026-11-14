@@ -226,7 +226,7 @@ export function SpotCheckForm({ onboarding }: { onboarding?: SpotCheckOnboarding
   return (
     <View style={styles.screen}>
       <Stack.Screen options={{ headerShown: false }} />
-      <View style={{ paddingTop: insets.top }} />
+      <View style={{ paddingTop: insets.top + 8 }} />
 
       {/* Header: chevron (bail out) · title · Save pill */}
       <View style={styles.headerRow}>
@@ -242,7 +242,6 @@ export function SpotCheckForm({ onboarding }: { onboarding?: SpotCheckOnboarding
           )
         ) : (
         <>
-        <PaneExpandButton onCollapse={confirmExit} />
         <Pressable
           onPress={onSave}
           disabled={!savePillActive || saving}
@@ -406,9 +405,9 @@ const makeStyles = (tk: Tokens) => {
   return StyleSheet.create({
     screen: { flex: 1, backgroundColor: c.background },
     flex: { flex: 1 },
-    scroll: { paddingHorizontal: 18, paddingBottom: 24 },
+    scroll: { paddingHorizontal: 22, paddingBottom: 24 },
 
-    headerRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 18, paddingBottom: 10 },
+    headerRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 22, paddingBottom: 10 },
     title: { flex: 1, fontFamily: fontFamily.display, fontSize: 24, letterSpacing: -0.4, color: c.text },
     savePill: { paddingVertical: 9, paddingHorizontal: 18, borderRadius: 999, minHeight: 38, justifyContent: 'center' },
     savePillOn: { backgroundColor: colors.accent },

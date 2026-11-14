@@ -162,12 +162,13 @@ export default function LiteratureScreen() {
         }
         detail={
           <SafeAreaView style={styles.screen} edges={['top']}>
-            {/* Pane chrome: "aA" size control + expand, top-right. */}
+            {/* Pane chrome: expand top-left (where every pane keeps it), the
+                "aA" size control top-right. */}
             <View style={styles.paneBar}>
+              <PaneExpandButton onPress={() => router.push(`/(main)/meeting-reading?id=${selectedReading.id}`)} />
               <Pressable onPress={() => setSizeSheetOpen(true)} hitSlop={8} accessibilityRole="button" accessibilityLabel="Text size" style={styles.aaBtn}>
                 <Text style={styles.aaLabel}>aA</Text>
               </Pressable>
-              <PaneExpandButton onPress={() => router.push(`/(main)/meeting-reading?id=${selectedReading.id}`)} />
             </View>
             <ScrollView contentContainerStyle={styles.paneScroll} showsVerticalScrollIndicator={false}>
               <ReadingColumn>
@@ -245,7 +246,7 @@ const makeStyles = (tk: Tokens) => {
     readingList: { paddingHorizontal: 16, gap: 8 },
 
     // Wide-layout detail pane chrome
-    paneBar: { flexDirection: 'row', justifyContent: 'flex-end', alignItems: 'center', gap: 8, paddingHorizontal: 20, paddingTop: 10 },
+    paneBar: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 8, paddingHorizontal: 20, paddingTop: 10 },
     // Landing's right pane: the Meeting Readings index. Top padding sets the
     // category title on the same optical line as the Literature title.
     indexScroll: { paddingTop: 42, paddingBottom: 48, paddingHorizontal: 16 },

@@ -266,10 +266,10 @@ function WelcomeStep({ onContinue, onSkip }: { onContinue: () => void; onSkip: (
                 the copy are kept together and centered. */}
             <View style={styles.flex} />
             <View style={styles.tilesWrap}>
-              {/* Shrunk narrower than the column (a short screen), the grid
-                  lines up with the left-aligned copy rather than floating
-                  centered above it. */}
-              <WelcomeTiles maxHeight={tilesRoom} align="flex-start" />
+              {/* Shrunk narrower than the column (a short screen, the wide
+                  screens turned sideways), the grid centers over the
+                  full-width Get started button. */}
+              <WelcomeTiles maxHeight={tilesRoom} />
             </View>
             {!tall && <View style={styles.flex} />}
             <View style={[styles.welcomeCopy, tall && styles.welcomeCopyTall]}>

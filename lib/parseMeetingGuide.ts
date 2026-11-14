@@ -6,6 +6,36 @@
 // lines (in reading order) from any OCR source.
 import type { MeetingDay } from '@/hooks/use-meetings-store';
 
+// One recognized line, with its box when the OCR engine reports one (ML Kit
+// does). Plain strings still work: share text and older callers have no boxes.
+export type OcrLine = string | { text: string; top?: number; left?: number; height?: number };
+
+type Line = { text: string; top: number | null; left: number; height: number | null };
+
+// Reading order from the boxes: top to bottom, then left to right on a row.
+// The engine's own block order isn't reliably that — the status bar's right
+// side (battery, headphones, signal glyphs read as "Qi 5") can come out after
+// the "Back" row, and so land in the title.
+function toLines(raw: OcrLine[]): Line[] {
+  const lines: Line[] = raw
+    .map((l) => (typeof l === 'string'
+      ? { text: l.trim(), top: null, left: 0, height: null }
+      : { text: l.text.trim(), top: l.top ?? null, left: l.left ?? 0, height: l.height ?? null }))
+    .filter((l) => l.text);
+  if (lines.length && lines.every((l) => l.top != null && l.height != null)) {
+    lines.sort((a, b) => {
+      const sameRow = Math.abs(a.top! - b.top!) < Math.min(a.height!, b.height!) / 2;
+      return sameRow ? a.left - b.left : a.top! - b.top!;
+    });
+  }
+  return lines;
+}
+
+// The title is set far larger than anything around it (the status bar, the
+// nav bar). With boxes, keep only the lines near the tallest one — this drops
+// stray status-bar glyphs however the OCR reads them.
+const TITLE_HEIGHT_SHARE = 0.75;
+
 export type MeetingDraft = {
   name: string;
   day: MeetingDay | null;
@@ -47,8 +77,9 @@ const STOP_RE = /(mi from current location|navigation distance|^english$|^open$|
 // Timezone abbreviation the Meeting Guide share text adds on its own line.
 const TZ_RE = /^(?:A[KS]?[DS]?T|[CEMP][DS]?T|H[AS]?[DS]?T|UTC|GMT)$/;
 
-export function parseMeetingGuide(rawLines: string[]): MeetingDraft {
-  const lines = rawLines.map((l) => l.trim()).filter(Boolean);
+export function parseMeetingGuide(rawLines: OcrLine[]): MeetingDraft {
+  const boxed = toLines(rawLines);
+  const lines = boxed.map((l) => l.text);
 
   // Anchor: the schedule line.
   let anchor = -1;
@@ -74,7 +105,11 @@ export function parseMeetingGuide(rawLines: string[]): MeetingDraft {
     for (let i = anchor - 1; i >= 0; i--) {
       if (BACK_RE.test(lines[i])) { start = i + 1; break; }
     }
-    nameLines = lines.slice(start, anchor).filter((l) => !JUNK_RE.test(l));
+    const titleRows = boxed.slice(start, anchor).filter((l) => !JUNK_RE.test(l.text));
+    const tallest = Math.max(0, ...titleRows.map((l) => l.height ?? 0));
+    nameLines = titleRows
+      .filter((l) => l.height == null || tallest === 0 || l.height >= tallest * TITLE_HEIGHT_SHARE)
+      .map((l) => l.text);
   } else {
     nameLines = lines.filter((l) => !JUNK_RE.test(l)).slice(0, 1);
   }
@@ -113,8 +148,8 @@ export function parseMeetingGuide(rawLines: string[]): MeetingDraft {
 // Best-effort parse for a flyer / camera photo / non-Meeting-Guide screenshot.
 // Looser than parseMeetingGuide: scans the whole image for a weekday, a time, and
 // address-like lines. Lower confidence — surface it as a "best guess" to check.
-export function parseBestEffort(rawLines: string[]): MeetingDraft {
-  const lines = rawLines.map((l) => l.trim()).filter(Boolean).filter((l) => !JUNK_RE.test(l));
+export function parseBestEffort(rawLines: OcrLine[]): MeetingDraft {
+  const lines = toLines(rawLines).map((l) => l.text).filter((l) => !JUNK_RE.test(l));
 
   const name = (lines[0] ?? '').replace(/\s+/g, ' ').replace(LEADING_INDEX_RE, '').trim();
 

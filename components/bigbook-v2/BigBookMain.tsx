@@ -137,7 +137,7 @@ export function BigBookMain() {
                   accent={PDF_ACCENT}
                   onClose={() => setPanePdf(null)}
                   onPageSettled={(p) => { panePdfPageRef.current = p; }}
-                  headerRight={<PaneExpandButton onPress={() => setPdf({ ...panePdf, initialPage: panePdfPageRef.current })} />}
+                  headerLeft={<PaneExpandButton onPress={() => setPdf({ ...panePdf, initialPage: panePdfPageRef.current })} />}
                 />
               ) : (
                 <BigBookHtmlReader

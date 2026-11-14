@@ -40,10 +40,13 @@
 //   their own bottom controls (chat composer, Spot Check, meditation).
 // - Edge rail: expanded widths without a strip (iPad) get the same rail on
 //   the right edge, as a real column beside the content.
-// Over a photo backdrop (meditation) the rails go transparent with white ink.
+// Over a photo backdrop (meditation) the rails go transparent with white ink,
+// on a frosted strip (RailFrost) so they stay readable over bright scenes
+// like snow or a grey sky.
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
-import { Keyboard, Platform, StyleSheet, View } from 'react-native';
+import { Keyboard, Platform, StyleSheet, View, useWindowDimensions } from 'react-native';
 import { SafeAreaInsetsContext, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { BlurView } from 'expo-blur';
 import { useSegments } from 'expo-router';
 import { useTokens } from '@/hooks/useTokens';
 import { useLayoutMode } from '@/hooks/useLayoutMode';
@@ -55,6 +58,13 @@ import BottomTabBar from '@/components/navigation/BottomTabBar';
 // Screens that own the bottom edge (a composer, a form's submit row, the
 // meditation player) — the bottom bar hides on them.
 const BAR_HIDDEN_SEGMENTS = ['sponsor-chat', 'inventory', 'meditation'];
+
+// Extra edge margin where the Duo reports no inset.
+const DUO_EDGE_TOP = 14;
+const DUO_EDGE_SIDE = 10;
+// Screens that apply the edge margin themselves (useEdgeMargin), because
+// their own colored bands should run under it.
+const OWN_EDGE_SEGMENTS = ['sponsor-chat'];
 
 const BackdropContext = createContext<{ set: (node: React.ReactNode | null) => void }>({ set: () => {} });
 export type RailScene = { node: React.ReactNode; paneW: number };
@@ -70,6 +80,19 @@ export function RailSceneBackdrop({ scene }: { scene: RailScene }) {
       <View style={[styles.railSceneBox, { left: -scene.paneW, width: scene.paneW + RAIL_SCENE_EXTRA }]}>
         {scene.node}
       </View>
+    </View>
+  );
+}
+
+// Frosted glass over the photo where a rail sits on it, as iOS does for bars
+// over content: the scene's color and light carry to the edge, its detail
+// doesn't, and the white ink always reads. The tint is what's left on
+// Android, where the blur may not apply.
+function RailFrost() {
+  return (
+    <View style={StyleSheet.absoluteFill} pointerEvents="none">
+      <BlurView intensity={40} tint="dark" style={StyleSheet.absoluteFill} />
+      <View style={[StyleSheet.absoluteFill, styles.frostTint]} />
     </View>
   );
 }
@@ -93,6 +116,13 @@ function stripSide(insets: { left: number; right: number }): 'left' | 'right' | 
 export function useStripRailFits(): boolean {
   return stripSide(useSafeAreaInsets()) != null;
 }
+
+// The extra Duo edge margin around the content. The guard pads every screen
+// by it, except the OWN_EDGE_SEGMENTS screens, which read it here and pad
+// their content themselves so their colored bands reach the edges.
+export type EdgeMargin = { top: number; left: number; right: number };
+const EdgeMarginContext = createContext<EdgeMargin>({ top: 0, left: 0, right: 0 });
+export const useEdgeMargin = () => useContext(EdgeMarginContext);
 
 // True while the docked bottom bar is showing (it hides for the keyboard etc.).
 const BottomBarContext = createContext(false);
@@ -123,6 +153,7 @@ export function MainNav() {
 
 export default function SideInsetGuard({ children }: { children: React.ReactNode }) {
   const insets = useSafeAreaInsets();
+  const { height: winH } = useWindowDimensions();
   const { c } = useTokens();
   const [backdrop, setBackdrop] = useState<React.ReactNode>(null);
   const set = useCallback((n: React.ReactNode | null) => setBackdrop(n), []);
@@ -141,11 +172,25 @@ export default function SideInsetGuard({ children }: { children: React.ReactNode
   const showEdgeRail = navOn && !stripFits && expanded;
   // A photo runs under the rail: the full-window backdrop, or Today's pane scene.
   const railOnScene = backdrop != null || railScene != null;
+  const stripOnScene = backdrop != null || (railScene != null && side === 'right');
   const showBar = navOn && !stripFits && !expanded && !immersive && !keyboard
     && !segments.some((seg) => BAR_HIDDEN_SEGMENTS.includes(seg));
   // The bar owns the home-indicator inset while it shows.
   const contentInsets = useMemo(() => (showBar ? { ...insets, bottom: 0 } : insets), [showBar, insets]);
+  // On the Duo the status bar lives in the side strip, so the window reports
+  // no top inset, and the side away from the strip has none either: headers
+  // would sit near the very top edge, and content close to the rounded
+  // corner. Every main-app screen (tabs, split panes and pushed screens
+  // alike, so their titles still line up) gets a margin there. Screen-side
+  // insets stay as reported, so nothing double-pads.
+  const roomy = navOn && stripFits;
+  const padTop = roomy && insets.top === 0 ? DUO_EDGE_TOP : 0;
+  const extraLeft = roomy && side === 'right' && insets.left === 0 ? DUO_EDGE_SIDE : 0;
+  const extraRight = roomy && side === 'left' && insets.right === 0 ? DUO_EDGE_SIDE : 0;
+  const edge = useMemo(() => ({ top: padTop, left: extraLeft, right: extraRight }), [padTop, extraLeft, extraRight]);
+  const ownEdge = segments.some((seg) => OWN_EDGE_SEGMENTS.includes(seg));
   return (
+    <EdgeMarginContext.Provider value={edge}>
     <MainNavContext.Provider value={navCtx}>
     <BottomBarContext.Provider value={showBar}>
     <BackdropContext.Provider value={ctx}>
@@ -164,21 +209,37 @@ export default function SideInsetGuard({ children }: { children: React.ReactNode
           </View>
         )}
         <SafeAreaInsetsContext.Provider value={contentInsets}>
-          <View style={[styles.row, { paddingLeft: insets.left, paddingRight: insets.right }]}>
+          <View style={[styles.row, ownEdge
+            ? { paddingLeft: insets.left, paddingRight: insets.right }
+            : { paddingTop: padTop, paddingLeft: insets.left + extraLeft, paddingRight: insets.right + extraRight }]}>
             <View style={styles.flex}>{children}</View>
             {showEdgeRail && (
               <View style={styles.row0}>
                 {railScene && <RailSceneBackdrop scene={railScene} />}
+                {railOnScene && <RailFrost />}
                 <NavigationRail onScene={railOnScene} />
               </View>
             )}
           </View>
         </SafeAreaInsetsContext.Provider>
+        {/* Today's meditation pane: its scene runs on up through the top
+            margin, in the same window-tall box the pane and the strip draw. */}
+        {showRail && railScene && side === 'right' && padTop > 0 && (
+          <View
+            style={[styles.topBand, { height: padTop, right: insets.right, width: railScene.paneW }]}
+            pointerEvents="none"
+          >
+            <View style={{ position: 'absolute', top: 0, left: 0, width: railScene.paneW + RAIL_SCENE_EXTRA, height: winH }}>
+              {railScene.node}
+            </View>
+          </View>
+        )}
         {showBar && <BottomTabBar bottomInset={insets.bottom} />}
         {showRail && (
           <View style={[styles.stripRail, side === 'left' ? { left: 0, width: insets.left } : { right: 0, width: insets.right }]}>
             {railScene && side === 'right' && <RailSceneBackdrop scene={railScene} />}
-            <NavigationRail placement="strip" side={side!} onScene={backdrop != null || (railScene != null && side === 'right')} />
+            {stripOnScene && <RailFrost />}
+            <NavigationRail placement="strip" side={side!} onScene={stripOnScene} />
           </View>
         )}
       </View>
@@ -186,6 +247,7 @@ export default function SideInsetGuard({ children }: { children: React.ReactNode
     </BackdropContext.Provider>
     </BottomBarContext.Provider>
     </MainNavContext.Provider>
+    </EdgeMarginContext.Provider>
   );
 }
 
@@ -197,4 +259,6 @@ const styles = StyleSheet.create({
   // Sized by the rail; a row so the rail stretches full height.
   row0: { flexDirection: 'row' },
   railSceneBox: { position: 'absolute', top: 0, bottom: 0 },
+  topBand: { position: 'absolute', top: 0, overflow: 'hidden' },
+  frostTint: { backgroundColor: 'rgba(0,0,0,0.18)' },
 });

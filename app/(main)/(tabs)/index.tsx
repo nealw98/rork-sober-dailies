@@ -622,14 +622,12 @@ export default function TodayScreen() {
               </PaneProvider>
             ) : (
               <SafeAreaView style={styles.safe} edges={['top']}>
-                <View style={styles.paneBar}>
-                  <PaneExpandButton onPress={() => router.push({ pathname: '/daily-reflections', params: { expanded: '1' } })} />
-                </View>
                 <ReflectionPane
                   reflection={reflection}
                   dateLabel={dateLabel}
                   done={dailies.reflectionDone}
                   onToggleDone={dailies.toggleReflection}
+                  onExpand={() => router.push({ pathname: '/daily-reflections', params: { expanded: '1' } })}
                 />
               </SafeAreaView>
             )
@@ -686,8 +684,6 @@ const makeStyles = (tk: Tokens) => {
   scroll: { paddingHorizontal: 22, paddingBottom: 96 },
 
   heroTop: { marginTop: spacing.xl },
-  // Reflection pane chrome (expanded): the expand control, top-right.
-  paneBar: { flexDirection: 'row', justifyContent: 'flex-end', paddingHorizontal: 20, paddingTop: 10 },
   section: { marginTop: spacing.xl },
   sectionTitle: { fontFamily: fontFamily.semiBold, fontSize: fontSize.xl },
   // Drag-list cells use padding (not margin) so onLayout heights stay correct.

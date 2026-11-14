@@ -10,14 +10,22 @@
  *
  * Typography matches the reader: Lora title, reader serif at the shared "Aa"
  * reading size, and the same *emphasis* markup via withEmphasis.
+ *
+ * Top bar: Expand top-left (where every pane keeps it), and the reader's own
+ * aA and Share top-right, so the pane has everything the full reader's
+ * header does.
  */
-import React from 'react';
+import React, { useState } from 'react';
 import { View, Text, ScrollView, Pressable, StyleSheet } from 'react-native';
-import { Sparkles } from 'lucide-react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Sparkles, Share as ShareIcon } from 'lucide-react-native';
+
+import PaneExpandButton from '@/components/layout/PaneExpandButton';
+import { ReadingSizeSheet } from '@/components/ReadingSizeSheet';
 
 import ReadingColumn from '@/components/layout/ReadingColumn';
 import ReflectionActions from '@/components/today/ReflectionActions';
-import { withEmphasis, splitParagraphs, EM_ITALIC, EM_UPRIGHT } from '@/components/DailyReflection';
+import { withEmphasis, splitParagraphs, shareReflectionText, EM_ITALIC, EM_UPRIGHT } from '@/components/DailyReflection';
 import { titleCase } from '@/lib/titleCase';
 import { fontFamily, type Tokens } from '@/constants/designTokens';
 import { readerSerif, readerSerifItalic } from '@/constants/fonts';
@@ -25,19 +33,20 @@ import { useReadingSize } from '@/hooks/use-reading-size';
 import { useThemedStyles, useTokens } from '@/hooks/useTokens';
 import type { Reflection } from '@/types';
 
-export default function ReflectionPane({ reflection, dateLabel, done, onToggleDone }: {
+export default function ReflectionPane({ reflection, dateLabel, done, onToggleDone, onExpand }: {
   reflection: Reflection | null;
   dateLabel: string;
   done: boolean;
   onToggleDone: () => void;
+  onExpand: () => void;
 }) {
   const styles = useThemedStyles(makeStyles);
-  const { colors } = useTokens();
+  const { c, colors } = useTokens();
+  const insets = useSafeAreaInsets();
   const { readingSize: readSize, readingLineHeight: readLine } = useReadingSize();
+  const [sizeOpen, setSizeOpen] = useState(false);
 
-  if (!reflection) return <View style={styles.flex} />;
-
-  return (
+  const body = reflection && (
     <ScrollView style={styles.flex} contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
       <ReadingColumn>
         <Text style={styles.eyebrow}>Daily Reflections · {dateLabel}</Text>
@@ -78,12 +87,37 @@ export default function ReflectionPane({ reflection, dateLabel, done, onToggleDo
       </ReadingColumn>
     </ScrollView>
   );
+
+  return (
+    <View style={styles.flex}>
+      <View style={styles.bar}>
+        <PaneExpandButton onPress={onExpand} />
+        {reflection && (
+          <View style={styles.barActions}>
+            <Pressable onPress={() => setSizeOpen(true)} hitSlop={6} accessibilityRole="button" accessibilityLabel="Text size" style={styles.barBtn}>
+              <Text style={styles.barAa}>aA</Text>
+            </Pressable>
+            <Pressable onPress={() => shareReflectionText(reflection)} hitSlop={6} accessibilityRole="button" accessibilityLabel="Share" style={styles.barBtn}>
+              <ShareIcon size={16} color={c.textSecondary} strokeWidth={2} />
+            </Pressable>
+          </View>
+        )}
+      </View>
+      {body || <View style={styles.flex} />}
+      <ReadingSizeSheet visible={sizeOpen} onClose={() => setSizeOpen(false)} bottomInset={insets.bottom} />
+    </View>
+  );
 }
 
 const makeStyles = (tk: Tokens) => {
   const { c, colors } = tk;
   return StyleSheet.create({
     flex: { flex: 1 },
+    // Expand left; aA and Share right — the reader header's 34pt round buttons.
+    bar: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, paddingTop: 10 },
+    barActions: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+    barBtn: { width: 34, height: 34, borderRadius: 17, backgroundColor: c.surface, borderWidth: 1, borderColor: c.border, alignItems: 'center', justifyContent: 'center' },
+    barAa: { fontFamily: fontFamily.bold, fontSize: 13, color: c.textSecondary, letterSpacing: -0.2 },
     scroll: { paddingHorizontal: 32, paddingTop: 28, paddingBottom: 48 },
     eyebrow: {
       fontFamily: fontFamily.bold,

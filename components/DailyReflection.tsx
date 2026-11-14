@@ -63,6 +63,14 @@ export function withEmphasis(text: string, em: TextStyle): React.ReactNode {
 // Plain-text form for the share sheet.
 const stripEmphasis = (t: string) => t.replace(EM_RE, '$1');
 
+// The share sheet for a reflection. Exported — the Today reading pane shares
+// the same text.
+export async function shareReflectionText(reflection: Reflection) {
+  const body = `${reflection.title}\n\n"${stripEmphasis(reflection.quote)}"\n\n${reflection.source}\n\n${stripEmphasis(reflection.reflection)}\n\nMeditation:\n${stripEmphasis(reflection.thought)}`;
+  try { await Share.share({ message: body, title: reflection.title }); }
+  catch (e) { console.error('Error sharing reflection:', e); }
+}
+
 // Paragraphs: most multi-paragraph days in Supabase separate paragraphs with a
 // single newline (only a couple use a blank line), so any run of newlines is a
 // paragraph break. Exported — the Today reading pane renders the same text.
@@ -187,10 +195,7 @@ export default function DailyReflection({ jumpToDate = null, onJumpApplied }: Da
   }, [jumpToDate, onJumpApplied, goToDate]);
 
   const shareReflection = useCallback(async () => {
-    if (!reflection) return;
-    const body = `${reflection.title}\n\n"${stripEmphasis(reflection.quote)}"\n\n${reflection.source}\n\n${stripEmphasis(reflection.reflection)}\n\nMeditation:\n${stripEmphasis(reflection.thought)}`;
-    try { await Share.share({ message: body, title: reflection.title }); }
-    catch (e) { console.error('Error sharing reflection:', e); }
+    if (reflection) await shareReflectionText(reflection);
   }, [reflection]);
 
   const pickCalendarDay = (d: Date) => { goToDate(d, false); setSheet(null); };
@@ -207,7 +212,6 @@ export default function DailyReflection({ jumpToDate = null, onJumpApplied }: Da
           <Pressable onPress={shareReflection} accessibilityLabel="Share" style={styles.hdrBtn}>
             <ShareIcon size={16} color={c.textSecondary} strokeWidth={2} />
           </Pressable>
-          <PaneExpandButton />
         </View>
       </View>
 

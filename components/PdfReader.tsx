@@ -29,7 +29,7 @@ try { ScreenOrientation = require('expo-screen-orientation'); } catch {}
 
 export default function PdfReader({
   assetModule, title, book, sectionId, startPage, initialPage, accent = colors.primary, onClose,
-  embedded = false, headerRight, onPageSettled,
+  embedded = false, headerLeft, headerRight, onPageSettled,
 }: {
   assetModule: number;
   title: string;
@@ -44,7 +44,8 @@ export default function PdfReader({
   // already inside SideInsetGuard, so no left/right edges of its own), show
   // no close button, and leave the orientation lock alone.
   embedded?: boolean;
-  headerRight?: React.ReactNode; // extra control(s) after the title, e.g. expand
+  headerLeft?: React.ReactNode; // embedded: a control before the title, e.g. expand
+  headerRight?: React.ReactNode; // extra control(s) after the title
   onPageSettled?: (pdfPage: number) => void; // reports the confirmed native page
 }) {
   const styles = useThemedStyles(makeStyles);
@@ -154,6 +155,7 @@ export default function PdfReader({
                 <ChevronLeft size={22} color={c.text} strokeWidth={2} />
               </Pressable>
             )}
+            {embedded && headerLeft}
             <Text style={[styles.title, styles.flex]} numberOfLines={1}>{title}</Text>
             {landscape && pageLabel}
             {landscape && bookmarkBtn}

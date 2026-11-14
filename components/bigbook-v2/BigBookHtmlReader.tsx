@@ -10,7 +10,7 @@ import { SafeAreaProvider, SafeAreaView, initialWindowMetrics, useSafeAreaInsets
 import { WebView, WebViewMessageEvent } from 'react-native-webview';
 import * as Clipboard from 'expo-clipboard';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Bookmark as BookmarkIcon, ChevronLeft, ChevronRight, Maximize2, X } from 'lucide-react-native';
+import { Bookmark as BookmarkIcon, ChevronLeft, ChevronRight, Maximize2 } from 'lucide-react-native';
 import { useReadingSize } from '@/hooks/use-reading-size';
 import { ReadingSizeSheet } from '@/components/ReadingSizeSheet';
 import { useBigBookContent } from '@/hooks/use-bigbook-content';
@@ -901,8 +901,8 @@ export function BigBookHtmlReader({ visible, initialChapterId, scrollToPage, scr
           {showHint && (
             <View style={styles.hintBar}>
               <Text style={styles.hintText}>Press and hold any passage to highlight, copy, or share it.</Text>
-              <Pressable onPress={dismissHint} hitSlop={10} style={styles.hintClose} accessibilityRole="button" accessibilityLabel="Dismiss tip">
-                <X size={16} color="#fff" strokeWidth={2.4} />
+              <Pressable onPress={dismissHint} hitSlop={8} style={styles.hintClose} accessibilityRole="button">
+                <Text style={styles.hintCloseText}>Got it</Text>
               </Pressable>
             </View>
           )}
@@ -967,7 +967,9 @@ const makeStyles = (tk: Tokens) => {
   webView: { flex: 1, backgroundColor: PAGE },
   hintBar: { flexDirection: 'row', alignItems: 'center', gap: 12, marginHorizontal: 12, marginBottom: 8, backgroundColor: ACCENT_INK, borderRadius: 14, paddingVertical: 12, paddingLeft: 16, paddingRight: 10 },
   hintText: { flex: 1, color: '#fff', fontFamily: fontFamily.medium, fontSize: 13, lineHeight: 18 },
-  hintClose: { width: 28, height: 28, borderRadius: 14, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(255,255,255,0.18)' },
+  // "Got it", as on Today's tip — a white pill here, on the dark bar.
+  hintClose: { borderRadius: 10, paddingVertical: 7, paddingHorizontal: 14, backgroundColor: '#fff' },
+  hintCloseText: { fontFamily: fontFamily.semiBold, fontSize: 13, color: ACCENT_INK },
   footer: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingTop: 8, borderTopWidth: 1, borderTopColor: c.divider },
   navBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingVertical: 6 },
   navText: { fontFamily: fontFamily.semiBold, fontSize: 13.5, color: ACCENT_INK },

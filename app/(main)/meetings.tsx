@@ -102,7 +102,6 @@ export default function MeetingsScreen() {
       <View style={styles.header}>
         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
           <BackButton onPress={() => (pane ? pane.close() : router.back())} />
-          <PaneExpandButton />
         </View>
         <Text style={styles.title}>Meetings</Text>
         <Text style={styles.sub}>Save your regular meetings and find ways to discover more.</Text>

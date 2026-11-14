@@ -12,7 +12,7 @@ import { ChevronLeft, Play, Pause, Plus, Minus, X, SlidersHorizontal } from 'luc
 import { fontFamily } from '@/constants/designTokens';
 import { usePane, useExpandedRoute } from '@/components/layout/PaneContext';
 import PaneExpandButton from '@/components/layout/PaneExpandButton';
-import { useSideBackdrop, useRailScene, RAIL_SCENE_EXTRA } from '@/components/layout/SideInsetGuard';
+import { useSideBackdrop, useRailScene, useEdgeMargin, RAIL_SCENE_EXTRA } from '@/components/layout/SideInsetGuard';
 import { useMeditation, SOUNDS } from '@/hooks/use-meditation-store';
 import { useMeditationSession } from '@/hooks/use-meditation-session';
 import { useMeditationScenes, type MeditationScene } from '@/hooks/useMeditationScenes';
@@ -245,21 +245,19 @@ function VolumeSlider({ value, onChange, onComplete }: { value: number; onChange
 }
 
 function TopBar({ onClose, onPrefs }: { onClose: () => void; onPrefs: () => void }) {
-  // In Today's pane (the list is beside it) and expanded full-screen
-  // (Collapse is the way out) the back chevron gives way to an empty slot of
-  // the same width — the same rule as BackButton.
+  // In Today's pane (the list is beside it) and expanded full-screen the back
+  // chevron's slot holds Expand / Collapse — the same rule as BackButton.
   const pane = usePane();
   const expandedRoute = useExpandedRoute();
   const noBack = pane != null || expandedRoute;
   return (
     <View style={styles.topBar}>
-      {noBack ? <View style={styles.topSlot} /> : (
+      {noBack ? <View style={styles.topSlot}><PaneExpandButton /></View> : (
         <Pressable style={styles.topBtn} onPress={onClose} accessibilityLabel="Close">
           <ChevronLeft size={20} color={TH.topBtnInk} />
         </Pressable>
       )}
       <Text style={styles.topTitle}>Meditation</Text>
-      <PaneExpandButton />
       <Pressable style={styles.topBtn} onPress={onPrefs} accessibilityLabel="Preferences">
         <SlidersHorizontal size={18} color={TH.topBtnInk} />
       </Pressable>
@@ -299,6 +297,8 @@ export default function MeditationScreen() {
   const [loadedUri, setLoadedUri] = useState<string | null>(null);
   const { width: windowW } = useWindowDimensions();
   const insets = useSafeAreaInsets();
+  // The Duo's extra edge margin around the screen (SideInsetGuard).
+  const edge = useEdgeMargin();
 
   const cfg = med.settings.timer;
   const firstTime = med.settings.source === null && !med.settings.hintSeen;
@@ -448,9 +448,11 @@ export default function MeditationScreen() {
       <StatusBar style="light" />
       {pane ? (
         // The scene box runs RAIL_SCENE_EXTRA past the pane's right edge, the
-        // part the rail shows; the pane clips its own copy at its edge.
+        // part the rail shows; the pane clips its own copy at its edge. It
+        // also starts at the window's top, above the guard's top margin on
+        // the Duo, where the guard draws the same box (RailSceneBackdrop).
         <View
-          style={[StyleSheet.absoluteFill, styles.paneScene]}
+          style={[StyleSheet.absoluteFill, styles.paneScene, { top: -edge.top }]}
           pointerEvents="none"
           onLayout={(e) => setPaneW(Math.round(e.nativeEvent.layout.width))}
         >
@@ -463,11 +465,11 @@ export default function MeditationScreen() {
           )}
         </View>
       ) : (
-        // Window-aligned copy — full window width, shifted left by the
-        // guard's padding; what survives the screen's clip matches the
-        // strip backdrop exactly.
+        // Window-aligned copy — full window size, shifted by the guard's
+        // padding; what survives the screen's clip matches the strip
+        // backdrop exactly.
         <View
-          style={{ position: 'absolute', top: 0, bottom: 0, left: -insets.left, width: windowW }}
+          style={{ position: 'absolute', top: -edge.top, bottom: 0, left: -(insets.left + edge.left), width: windowW }}
           pointerEvents="none"
         >
           {sceneLayers}
@@ -638,7 +640,7 @@ const styles = StyleSheet.create({
   footer: { paddingHorizontal: 22, paddingBottom: 24 },
 
   topBar: { paddingHorizontal: 14, paddingTop: 4, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  topSlot: { width: 40 },
+  topSlot: { width: 40, alignItems: 'center' },
   topBtn: { width: 40, height: 40, borderRadius: 20, borderWidth: 1, borderColor: TH.topBtnBorder, backgroundColor: TH.topBtnBg, alignItems: 'center', justifyContent: 'center' },
   topTitle: { fontFamily: fontFamily.semiBold, fontSize: 13, letterSpacing: 0.3, color: TH.ink2 },
 

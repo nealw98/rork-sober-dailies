@@ -17,6 +17,7 @@ import { Image } from 'expo-image';
 import { useRouter, useLocalSearchParams, Stack } from 'expo-router';
 import { ChevronDown, RotateCcw, Send } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useEdgeMargin } from '@/components/layout/SideInsetGuard';
 import * as Haptics from 'expo-haptics';
 import * as Clipboard from 'expo-clipboard';
 import { ChatStoreProvider, useChatStore } from '@/hooks/use-chat-store';
@@ -130,6 +131,12 @@ function SponsorChatContent({ initialSponsor, onboarding }: { initialSponsor: st
   // pane's expand keeps its collapse control.
   const { expanded } = useLocalSearchParams<{ expanded?: string }>();
   const insets = useSafeAreaInsets();
+  // The Duo's extra edge margin. Full screen, the guard leaves it to the
+  // chat, so the header and composer bands run to the edges and only their
+  // content moves in. In a pane the screen around it already has it.
+  const margin = useEdgeMargin();
+  const edge = pane ? { top: 0, left: 0, right: 0 } : margin;
+  const inset = { paddingLeft: 14 + edge.left, paddingRight: 14 + edge.right };
   const styles = useThemedStyles(makeStyles);
   const { c, colors, isDark } = useTokens();
   const BR_INK = isDark ? colors.primaryDark : BR_INK_LIGHT;
@@ -239,11 +246,11 @@ function SponsorChatContent({ initialSponsor, onboarding }: { initialSponsor: st
       <Stack.Screen options={{ headerShown: false }} />
 
       {/* ── Header ── */}
-      <View style={[styles.header, { paddingTop: insets.top + 6 }]}>
+      <View style={[styles.header, inset, { paddingTop: insets.top + edge.top + 6 }]}>
         {/* Same centered column as the conversation below, so on wide screens
             the identity and actions line up with the messages. */}
         <ReadingColumn onLayout={(e) => setColumnX(e.nativeEvent.layout.x)}>
-        {!pane && <BackButton onPress={onboarding ? onboarding.onBack : exitChat} style={{ marginBottom: 10 }} />}
+        <BackButton onPress={onboarding ? onboarding.onBack : exitChat} style={{ marginBottom: 10, alignSelf: 'flex-start' }} />
         <View style={styles.sponsorRow}>
           {/* The identity IS the switch affordance — tap the avatar/name (chevron
               cue) to open the sponsor menu (quick-switch + "Meet all three").
@@ -274,7 +281,6 @@ function SponsorChatContent({ initialSponsor, onboarding }: { initialSponsor: st
             <Pressable onPress={handleRefresh} style={styles.resetBtn} accessibilityLabel="Reset conversation">
               <RotateCcw size={16} color={isDark ? c.textSecondary : '#4A4A5E'} strokeWidth={2} />
             </Pressable>
-            <PaneExpandButton />
           </View>
           )}
         </View>
@@ -305,7 +311,7 @@ function SponsorChatContent({ initialSponsor, onboarding }: { initialSponsor: st
           keyExtractor={(m) => m.id}
           renderItem={({ item }) => <Bubble message={item} size={size} />}
           ListHeaderComponent={<View style={styles.dayDivider}><Text style={styles.dayText}>Today</Text></View>}
-          contentContainerStyle={styles.list}
+          contentContainerStyle={[styles.list, { paddingLeft: 16 + edge.left, paddingRight: 16 + edge.right }]}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
           // Dismissable keyboard: iOS tracks the finger (iMessage-style drag
@@ -351,7 +357,7 @@ function SponsorChatContent({ initialSponsor, onboarding }: { initialSponsor: st
             horizontal
             showsHorizontalScrollIndicator={false}
             style={styles.chipsStrip}
-            contentContainerStyle={styles.chipsStripContent}
+            contentContainerStyle={[styles.chipsStripContent, inset]}
             keyboardShouldPersistTaps="handled"
           >
             {SUGGESTIONS.map((s) => (
@@ -363,7 +369,7 @@ function SponsorChatContent({ initialSponsor, onboarding }: { initialSponsor: st
         )}
 
         {/* ── Input dock ── */}
-        <View style={[styles.inputDock, { paddingBottom: Math.max(insets.bottom, 10) + 8 }]}>
+        <View style={[styles.inputDock, inset, { paddingBottom: Math.max(insets.bottom, 10) + 8 }]}>
           <TextInput
             style={[styles.input, { fontSize: 14 }]}
             value={inputText}

@@ -31,6 +31,8 @@ function dimPath(w: number, h: number, x: number, y: number, hw: number, hh: num
 }
 const GAP = 16;      // card ↔ section
 const ARROW = 18;
+// Narrowest card that may sit beside the section rather than over or under it.
+const BESIDE_MIN = 300;
 
 export default function EditDailiesTip({ section, edit, onDismiss }: {
   section: TipRect;
@@ -50,23 +52,39 @@ export default function EditDailiesTip({ section, edit, onDismiss }: {
     w: Math.min(winW, section.width + PAD * 2),
     h: Math.min(winH - Math.max(0, section.y - PAD), section.height + PAD * 2),
   };
-  // Card sits above the lit section when there's room (the usual case: the
-  // counter and reflection hero sit above the dailies), else below the
-  // section's header row so the Edit control stays visible.
-  const roomAbove = hole.y - GAP - insets.top - 8;
-  const above = cardH === 0 || roomAbove >= cardH;
   // The Modal draws in its own window, outside the app root's SideInsetGuard,
   // so the card keeps out of the Duo's side strips itself (0 on other phones).
   const minLeft = insets.left + 16;
   const maxRight = winW - insets.right - 16;
-  const cardWidth = Math.min(420, Math.max(240, hole.w - 8), maxRight - minLeft);
-  // Right-aligned toward the pencil (which sits at the section's right edge),
-  // so on a wide column the pointer can still reach it.
+  // Where it goes, so it never covers the section it's about:
+  // - beside: wide layouts (the list column with the reading pane to its
+  //   right) — right of the section, pointing left at the pencil;
+  // - above: when there's room (on a phone the counter and reflection hero
+  //   sit above the dailies);
+  // - below the section's header row, so at least the Edit control shows.
+  const besideLeft = hole.x + hole.w + GAP;
+  const beside = maxRight - besideLeft >= BESIDE_MIN;
+  const roomAbove = hole.y - GAP - insets.top - 8;
+  const above = !beside && (cardH === 0 || roomAbove >= cardH);
   const editCenter = edit.x + edit.width / 2;
-  const cardLeft = Math.min(maxRight - cardWidth, Math.max(minLeft, hole.x + 4, editCenter + 40 - cardWidth));
-  const cardTop = above ? hole.y - GAP - cardH : edit.y + edit.height + GAP;
-  // Arrow under (or over) the pencil, clamped inside the card's corners.
-  const arrowLeft = Math.min(cardWidth - 36, Math.max(20, edit.x + edit.width / 2 - cardLeft - ARROW / 2));
+  const editMiddle = edit.y + edit.height / 2;
+  const cardWidth = beside
+    ? Math.min(420, maxRight - besideLeft)
+    : Math.min(420, Math.max(240, hole.w - 8), maxRight - minLeft);
+  // Over or under: right-aligned toward the pencil (which sits at the
+  // section's right edge), so on a wide column the pointer can still reach it.
+  const cardLeft = beside
+    ? besideLeft
+    : Math.min(maxRight - cardWidth, Math.max(minLeft, hole.x + 4, editCenter + 40 - cardWidth));
+  // Beside, the card's top sits a little above the pencil so the arrow meets
+  // it near the card's top corner; kept on screen.
+  const cardTop = beside
+    ? Math.min(winH - insets.bottom - 16 - cardH, editMiddle - 36)
+    : above ? hole.y - GAP - cardH : edit.y + edit.height + GAP;
+  const top = Math.max(insets.top + 8, cardTop);
+  // Arrow at the pencil, clamped inside the card's corners.
+  const arrowLeft = Math.min(cardWidth - 36, Math.max(20, editCenter - cardLeft - ARROW / 2));
+  const arrowTop = Math.min(Math.max(cardH, 72) - 36, Math.max(20, editMiddle - top - ARROW / 2));
 
   return (
     <Modal transparent visible animationType="fade" statusBarTranslucent navigationBarTranslucent onRequestClose={onDismiss}>
@@ -77,10 +95,15 @@ export default function EditDailiesTip({ section, edit, onDismiss }: {
         <View pointerEvents="none" style={[styles.ring, { left: hole.x, top: hole.y, width: hole.w, height: hole.h }]} />
 
         <View
-          style={[styles.card, { left: cardLeft, width: cardWidth, top: Math.max(insets.top + 8, cardTop), opacity: cardH ? 1 : 0 }]}
+          style={[styles.card, { left: cardLeft, width: cardWidth, top, opacity: cardH ? 1 : 0 }]}
           onLayout={(e) => setCardH(e.nativeEvent.layout.height)}
         >
-          <View style={[styles.arrow, above ? styles.arrowDown : styles.arrowUp, { left: arrowLeft }]} />
+          <View
+            style={[
+              styles.arrow,
+              beside ? [styles.arrowLeft, { top: arrowTop }] : [above ? styles.arrowDown : styles.arrowUp, { left: arrowLeft }],
+            ]}
+          />
           <Text style={styles.overline}>YOUR DAILY PRACTICES</Text>
           <Text style={styles.title} accessibilityRole="header">We started you with six simple practices</Text>
           <Text style={styles.body}>
@@ -105,6 +128,7 @@ const makeStyles = (tk: Tokens) => {
     arrow: { position: 'absolute', width: ARROW, height: ARROW, backgroundColor: isDark ? c.surfaceRaised : '#fff', transform: [{ rotate: '45deg' }] },
     arrowDown: { bottom: -ARROW / 2 },
     arrowUp: { top: -ARROW / 2 },
+    arrowLeft: { left: -ARROW / 2 },
     overline: { fontFamily: fontFamily.bold, fontSize: 11, letterSpacing: 1.6, color: colors.primaryDark },
     title: { fontFamily: fontFamily.displayBold, fontSize: 20, lineHeight: 25, color: c.text, marginTop: 6 },
     body: { fontFamily: fontFamily.regular, fontSize: fontSize.md, lineHeight: 20, color: c.textSecondary, marginTop: 8 },

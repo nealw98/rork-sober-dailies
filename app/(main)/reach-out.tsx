@@ -122,7 +122,6 @@ export default function ReachOutScreen() {
       <View style={styles.header}>
         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
           <BackButton onPress={() => (pane ? pane.close() : router.back())} />
-          <PaneExpandButton />
         </View>
         <Text style={styles.title}>Talk with another alcoholic</Text>
         <Text style={styles.sub}>Keep connected with the program.</Text>

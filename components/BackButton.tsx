@@ -3,19 +3,23 @@
 // `dark` variant (translucent) is for colored/dark headers; in dark mode the
 // default variant flips to the translucent treatment automatically.
 //
-// A chevron that means "go back somewhere else". It steps aside on the wide
-// layouts' two pane states, where back has nowhere honest to go:
+// A chevron that means "go back somewhere else". On the wide layouts' two
+// pane states back has nowhere honest to go, so the slot holds the
+// Expand/Collapse toggle instead — top-left, the one control on that side,
+// with the screen's own actions on the right:
 //  - Inside a pane (usePane() non-null): the list it came from is right there
 //    on the left, and picking another row (or the reflection) is how you move
-//    on, so back would only duplicate the list.
-//  - On the full-screen route a pane's Expand pushed (useExpandedRoute): the
-//    way out is Collapse, which PaneExpandButton draws in Expand's own spot.
+//    on. The slot shows Expand.
+//  - On the full-screen route a pane's Expand pushed (useExpandedRoute): it
+//    shows Collapse, in the spot Expand was, running this button's onPress
+//    (so an exit that asks first, like Spot Check's, still asks).
 import React from 'react';
 import { Pressable, StyleSheet, StyleProp, View, ViewStyle } from 'react-native';
 import { ChevronLeft } from 'lucide-react-native';
 import { type Tokens } from '@/constants/designTokens';
 import { useTokens, useThemedStyles } from '@/hooks/useTokens';
 import { usePane, useExpandedRoute } from '@/components/layout/PaneContext';
+import PaneExpandButton from '@/components/layout/PaneExpandButton';
 
 export default function BackButton({
   onPress,
@@ -32,9 +36,9 @@ export default function BackButton({
   const expandedRoute = useExpandedRoute();
   const hidden = pane != null || expandedRoute;
   const translucent = dark || isDark;
-  // An empty slot, not null: headers lay out [back … actions] with
-  // space-between, and a lone child would slide the actions to the left.
-  if (hidden) return <View />;
+  // Wrapped, never null: headers lay out [back … actions] with space-between,
+  // and a lone child would slide the actions to the left.
+  if (hidden) return <View style={style}><PaneExpandButton onCollapse={onPress} /></View>;
   return (
     <Pressable
       onPress={onPress}

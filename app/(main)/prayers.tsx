@@ -221,7 +221,6 @@ export default function PrayersScreen() {
           <View style={styles.header}>
             <View style={styles.headerTopRow}>
               <BackButton onPress={() => (pane ? pane.close() : router.back())} />
-              <PaneExpandButton />
             </View>
             <Text style={styles.bigTitle}>Prayers</Text>
             <Text style={styles.bigSub}>Tap any prayer to read it.</Text>

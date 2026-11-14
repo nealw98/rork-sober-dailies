@@ -32,9 +32,9 @@ const publicUrl = (bucket: string, path: string | null): string | null =>
 // new file names so devices don't keep serving their cached copy.
 const SCENE_DEFS: { key: string; name: string; still: string | null; animated: string | null; audioSource: AudioSource | null }[] = [
   { key: 'silence', name: 'Silence', still: 'meditation-hero1.webp', animated: null, audioSource: null },
-  { key: 'autumn-sky', name: 'Autumn Sky', still: 'autumn-sky.webp', animated: null, audioSource: require('@/assets/autumn-sky-meditation.m4a') },
+  { key: 'autumn-sky', name: 'Autumn Sky', still: 'autumn-sky-2048.webp', animated: null, audioSource: require('@/assets/autumn-sky-meditation.m4a') },
   { key: 'sunrise', name: 'Sunrise', still: 'sunrise.webp', animated: null, audioSource: require('@/assets/sunrise.m4a') },
-  { key: 'summer-rain', name: 'Summer Rain', still: 'summer-rain.webp', animated: null, audioSource: require('@/assets/summer_rain.m4a') },
+  { key: 'summer-rain', name: 'Summer Rain', still: 'summer-rain-2048.webp', animated: null, audioSource: require('@/assets/summer_rain.m4a') },
   { key: 'snowfall', name: 'Snowfall', still: 'snowing.webp', animated: null, audioSource: require('@/assets/snowfall.m4a') },
 ];
 

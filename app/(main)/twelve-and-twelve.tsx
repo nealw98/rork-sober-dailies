@@ -421,7 +421,7 @@ export default function TwelveAndTwelveScreen() {
                 accent={TT_INK}
                 onClose={() => {}}
                 onPageSettled={(p) => { panePageRef.current = p; }}
-                headerRight={<PaneExpandButton onPress={() => setPdf({ ...paneSel, initialPage: panePageRef.current })} />}
+                headerLeft={<PaneExpandButton onPress={() => setPdf({ ...paneSel, initialPage: panePageRef.current })} />}
               />
             ) : null
           }

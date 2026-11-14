@@ -1,9 +1,9 @@
 import React from 'react';
-import { View, Text, StyleSheet, ScrollView, Platform, useWindowDimensions } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { Image } from 'expo-image';
-import { Check, ChevronRight, Heart, Mic, Moon, NotebookPen, Users } from 'lucide-react-native';
+import { Check, ChevronRight, CircleCheck, Heart, Mic, Moon, NotebookPen } from 'lucide-react-native';
 import { HandsPraying, FlowerLotus } from 'phosphor-react-native';
 
 import { families, fontFamily, fontSize, radii, shadows, type Tokens } from '@/constants/designTokens';
@@ -18,19 +18,7 @@ import { OnboardingColumn, PrimaryButton, TourProgress, TOUR_MAX_FONT_SCALE } fr
 const BIG_BOOK = require('@/assets/images/big-book_cover.webp');
 const TWELVE_TWELVE = require('@/assets/images/new_12x12_cover.webp');
 
-// Wide landscape (the unfolded Duo, an iPad on its side): a single 520pt
-// column of stacked cards runs off the bottom of a 669pt-tall screen while
-// most of the width sits empty, so the column widens and the cards go side
-// by side.
-const SPREAD_MIN_WIDTH = 800;
-const SPREAD_MAX_WIDTH = 860;
-
-function useTourSpread() {
-  const { width, height } = useWindowDimensions();
-  return width > height && width >= SPREAD_MIN_WIDTH;
-}
-
-function TourScreen({ index, overline, overlineColor, title, children, gap, footnote, buttonLabel, onContinue, onSkip, onBack, spreadBody }: {
+function TourScreen({ index, overline, overlineColor, title, children, gap, footnote, buttonLabel, onContinue, onSkip, onBack }: {
   index: number;
   overline?: string;
   overlineColor?: string;
@@ -42,30 +30,18 @@ function TourScreen({ index, overline, overlineColor, title, children, gap, foot
   onContinue: () => void;
   onSkip: () => void;
   onBack: () => void;
-  // A screen's own wide-landscape composition, replacing the side-by-side
-  // columns `children` would otherwise get.
-  spreadBody?: React.ReactNode;
 }) {
   const styles = useThemedStyles(makeStyles);
   const { isDark } = useTokens();
-  const spread = useTourSpread();
   return (
     <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
       <StatusBar style={isDark ? 'light' : 'dark'} />
-      <OnboardingColumn maxWidth={spread ? SPREAD_MAX_WIDTH : undefined}>
+      <OnboardingColumn>
         <TourProgress index={index} onSkip={onSkip} onBack={onBack} />
-        <ScrollView contentContainerStyle={[styles.scroll, spread && spreadBody != null && styles.scrollFill]} showsVerticalScrollIndicator={false}>
+        <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
           {!!overline && <Text maxFontSizeMultiplier={TOUR_MAX_FONT_SCALE} style={[styles.overline, { color: overlineColor }]}>{overline}</Text>}
           <Text maxFontSizeMultiplier={TOUR_MAX_FONT_SCALE} style={[styles.title, !overline && styles.titleAlone]} accessibilityRole="header">{title}</Text>
-          {spread && spreadBody != null ? (
-            <View style={styles.spreadBody}>{spreadBody}</View>
-          ) : (
-            <View style={[styles.cards, gap !== undefined && { gap }, spread && styles.cardsSpread]}>
-              {spread
-                ? React.Children.map(children, (child) => <View style={styles.flex}>{child}</View>)
-                : children}
-            </View>
-          )}
+          <View style={[styles.cards, gap !== undefined && { gap }]}>{children}</View>
         </ScrollView>
         <View style={styles.footer}>
           {!!footnote && <Text maxFontSizeMultiplier={TOUR_MAX_FONT_SCALE} style={styles.footnote}>{footnote}</Text>}
@@ -76,27 +52,27 @@ function TourScreen({ index, overline, overlineColor, title, children, gap, foot
   );
 }
 
-// The three everyday tools under the speaker card. Circles keep the light
-// palette's base in both modes so the white glyphs stay readable on dark.
-const SMALL_TOOLS = [
-  { label: 'Prayers', family: 'teal', glyph: <HandsPraying size={18} color="#fff" weight="bold" /> },
-  { label: 'Gratitude', family: 'terracotta', glyph: <Heart size={17} color="#fff" strokeWidth={2.2} /> },
-  { label: 'Meditation', family: 'periwinkle', glyph: <FlowerLotus size={18} color="#fff" weight="bold" /> },
-] as const;
-
-// Wide landscape has room for the rest of the toolbox: six tiles in a row
-// under the two big cards, instead of three and a "plus more" line.
-const SPREAD_TOOLS = [
-  ...SMALL_TOOLS,
-  { label: 'Meetings', family: 'steel', glyph: <Users size={17} color="#fff" strokeWidth={2.2} /> },
-  { label: 'Nightly review', family: 'periwinkle', glyph: <Moon size={17} color="#fff" strokeWidth={2.2} /> },
-  { label: 'Journal', family: 'teal', glyph: <NotebookPen size={17} color="#fff" strokeWidth={2.2} /> },
+// The everyday tools under the speaker card, two rows of three. Circles keep
+// the light palette's base in both modes so the white glyphs stay readable on
+// dark. The writing tools take the Journal feed's tones (teal journal,
+// terracotta spot check, periwinkle nightly).
+const SMALL_TOOL_ROWS = [
+  [
+    { label: 'Prayers', family: 'teal', glyph: <HandsPraying size={18} color="#fff" weight="bold" /> },
+    { label: 'Gratitude', family: 'terracotta', glyph: <Heart size={17} color="#fff" strokeWidth={2.2} /> },
+    { label: 'Meditation', family: 'periwinkle', glyph: <FlowerLotus size={18} color="#fff" weight="bold" /> },
+  ],
+  [
+    { label: 'Journal', family: 'teal', glyph: <NotebookPen size={17} color="#fff" strokeWidth={2.2} /> },
+    { label: 'Spot check', family: 'terracotta', glyph: <CircleCheck size={17} color="#fff" strokeWidth={2.2} /> },
+    { label: 'Nightly review', family: 'periwinkle', glyph: <Moon size={17} color="#fff" strokeWidth={2.2} /> },
+  ],
 ] as const;
 
 export function ToolsStep({ index, onContinue, onSkip, onBack }: { index: number; onContinue: () => void; onSkip: () => void; onBack: () => void }) {
   const styles = useThemedStyles(makeStyles);
   const { colors } = useTokens();
-  const soft = { teal: colors.primarySoft, terracotta: colors.accentSoft, periwinkle: colors.tertiarySoft, steel: colors.steelSoft };
+  const soft = { teal: colors.primarySoft, terracotta: colors.accentSoft, periwinkle: colors.tertiarySoft };
 
   const rest = [
     <View key="speakers" style={styles.speakerCard}>
@@ -108,17 +84,19 @@ export function ToolsStep({ index, onContinue, onSkip, onBack }: { index: number
         <Text maxFontSizeMultiplier={TOUR_MAX_FONT_SCALE} style={styles.speakerBody}>Experience, strength and hope — a meeting’s worth, whenever you need it.</Text>
       </View>
     </View>,
-    <View key="small" style={styles.smallRow}>
-      {SMALL_TOOLS.map(({ label, family, glyph }) => (
-        <View key={label} style={[styles.smallCard, { backgroundColor: soft[family] }]}>
-          <View style={[styles.smallIcon, { backgroundColor: families[family][500] }]}>
-            {glyph}
+    ...SMALL_TOOL_ROWS.map((row, r) => (
+      <View key={`small${r}`} style={styles.smallRow}>
+        {row.map(({ label, family, glyph }) => (
+          <View key={label} style={[styles.smallCard, { backgroundColor: soft[family] }]}>
+            <View style={[styles.smallIcon, { backgroundColor: families[family][500] }]}>
+              {glyph}
+            </View>
+            <Text maxFontSizeMultiplier={TOUR_MAX_FONT_SCALE} style={styles.smallTitle} numberOfLines={1} adjustsFontSizeToFit>{label}</Text>
           </View>
-          <Text maxFontSizeMultiplier={TOUR_MAX_FONT_SCALE} style={styles.smallTitle}>{label}</Text>
-        </View>
-      ))}
-    </View>,
-    <Text key="more" maxFontSizeMultiplier={TOUR_MAX_FONT_SCALE} style={styles.toolsMore}>Plus journal, nightly review, meeting finder and more.</Text>,
+        ))}
+      </View>
+    )),
+    <Text key="more" maxFontSizeMultiplier={TOUR_MAX_FONT_SCALE} style={styles.toolsMore}>Plus a meeting finder, AI sponsors and more.</Text>,
   ];
 
   // Bare 3D covers with the Literature tab's lift: the shadow sits on a
@@ -140,44 +118,11 @@ export function ToolsStep({ index, onContinue, onSkip, onBack }: { index: number
     </>
   );
 
-  // Wide landscape: Speaker tapes and the Big Book as two equal hero cards
-  // (they stretch to fill the height), then a row of six everyday tools.
-  const spreadBody = (
-    <>
-      <View style={styles.heroRow}>
-        <View style={[styles.speakerHero]}>
-          <View style={styles.speakerHeroMic}>
-            <Mic size={34} color="#fff" strokeWidth={1.8} />
-          </View>
-          <View>
-            <Text maxFontSizeMultiplier={TOUR_MAX_FONT_SCALE} style={styles.speakerHeroTitle}>Speaker tapes</Text>
-            <Text maxFontSizeMultiplier={TOUR_MAX_FONT_SCALE} style={styles.speakerHeroBody}>Experience, strength and hope — a meeting’s worth, whenever you need it.</Text>
-          </View>
-        </View>
-        <View style={[styles.litCard, styles.litHero]}>
-          <View style={styles.litHeroCovers}>{covers}</View>
-          <View>{litText}</View>
-        </View>
-      </View>
-      <View style={styles.smallRow}>
-        {SPREAD_TOOLS.map(({ label, family, glyph }) => (
-          <View key={label} style={[styles.smallCard, { backgroundColor: soft[family] }]}>
-            <View style={[styles.smallIcon, { backgroundColor: families[family][500] }]}>
-              {glyph}
-            </View>
-            <Text maxFontSizeMultiplier={TOUR_MAX_FONT_SCALE} style={styles.smallTitle} numberOfLines={1}>{label}</Text>
-          </View>
-        ))}
-      </View>
-    </>
-  );
-
   return (
     <TourScreen
       index={index}
       title="All the tools you use every day"
       gap={12}
-      spreadBody={spreadBody}
       buttonLabel="Your daily program"
       onContinue={onContinue}
       onSkip={onSkip}
@@ -213,7 +158,6 @@ const OPENS: Record<string, string> = {
 export function ProgramStep({ index, onContinue, onSkip, onBack }: { index: number; onContinue: () => void; onSkip: () => void; onBack: () => void }) {
   const styles = useThemedStyles(makeStyles);
   const { colors, mode } = useTokens();
-  const spread = useTourSpread();
 
   const intro = (
     <Text maxFontSizeMultiplier={TOUR_MAX_FONT_SCALE} style={styles.programBody}>
@@ -221,7 +165,7 @@ export function ProgramStep({ index, onContinue, onSkip, onBack }: { index: numb
     </Text>
   );
   const note = (
-    <Text maxFontSizeMultiplier={TOUR_MAX_FONT_SCALE} style={[styles.programNote, spread && styles.programNoteSide]}>
+    <Text maxFontSizeMultiplier={TOUR_MAX_FONT_SCALE} style={styles.programNote}>
       We&apos;ll start you with these six. Add, remove or reorder any time.
     </Text>
   );
@@ -272,12 +216,7 @@ export function ProgramStep({ index, onContinue, onSkip, onBack }: { index: numb
       onSkip={onSkip}
       onBack={onBack}
     >
-      {/* Wide spread: the intro beside the card. Stacked: intro, card, note. */}
-      {spread ? (
-        [<View key="intro">{intro}{note}</View>, <View key="card">{card}</View>]
-      ) : (
-        <View>{intro}{card}{note}</View>
-      )}
+      <View>{intro}{card}{note}</View>
     </TourScreen>
   );
 }
@@ -293,16 +232,13 @@ const makeStyles = (tk: Tokens) => {
     title: { fontFamily: fontFamily.displayBold, fontSize: 28, lineHeight: 32, letterSpacing: -0.6, color: c.text, marginTop: 6 },
     titleAlone: { marginTop: 0 },
     cards: { gap: 14, marginTop: 18 },
-    cardsSpread: { flexDirection: 'row', alignItems: 'stretch' },
-    scrollFill: { flexGrow: 1 },
-    spreadBody: { flex: 1, gap: 12, marginTop: 18 },
     footer: { paddingHorizontal: 24, paddingTop: 12, paddingBottom: 12 },
     footnote: { fontFamily: fontFamily.regular, fontSize: 12.5, lineHeight: 17, color: c.textMuted, textAlign: 'center', marginBottom: 12 },
 
 
     // All the tools you use every day
     litCard: { borderRadius: 22, backgroundColor: '#F3EBDA', paddingHorizontal: 18, paddingTop: 18, paddingBottom: 16 },
-    covers: { flexDirection: 'row', justifyContent: 'center', gap: 16, paddingTop: 4, marginBottom: 14 },
+    covers: { flexDirection: 'row', justifyContent: 'center', gap: 16, paddingTop: 4, marginBottom: 10 },
     // Same lift as the Literature tab's shelf (bookBtn there). Android's
     // elevation would draw a box around the transparent render, so it uses the
     // drop-shadow filter, which follows the book's outline (as Welcome does).
@@ -310,24 +246,16 @@ const makeStyles = (tk: Tokens) => {
       ios: { shadowColor: '#3C280A', shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.28, shadowRadius: 14 },
       android: { filter: [{ dropShadow: { offsetX: 0, offsetY: 10, standardDeviation: 7, color: 'rgba(60,40,10,0.28)' } }] },
     }),
-    cover: { width: 118, height: 156 },
+    // Sized so the page, with its two rows of tools, fits an iPhone without scrolling.
+    cover: { width: 88, height: 116 },
     litTitle: { fontFamily: fontFamily.displayBold, fontSize: 19, color: '#232529' },
     litBody: { fontFamily: fontFamily.regular, fontSize: fontSize.md, lineHeight: 20, color: '#474A52', marginTop: 3 },
-    // Wide landscape heroes: equal halves that stretch with the screen, up to
-    // a height where they'd start to look empty.
-    heroRow: { flex: 1, maxHeight: 440, minHeight: 260, flexDirection: 'row', gap: 12 },
-    speakerHero: { flex: 1, borderRadius: 22, backgroundColor: colors.steelSoft, padding: 24, justifyContent: 'space-between', ...cardEdge },
-    speakerHeroMic: { width: 76, height: 76, borderRadius: 38, backgroundColor: families.steel[500], alignItems: 'center', justifyContent: 'center' },
-    speakerHeroTitle: { fontFamily: fontFamily.displayBold, fontSize: 24, letterSpacing: -0.3, color: c.text },
-    speakerHeroBody: { fontFamily: fontFamily.regular, fontSize: fontSize.md, lineHeight: 21, color: c.textSecondary, marginTop: 4, maxWidth: 340 },
-    litHero: { flex: 1, padding: 24, justifyContent: 'space-between' },
-    litHeroCovers: { flex: 1, justifyContent: 'center' },
-    speakerCard: { minHeight: 118, borderRadius: 22, backgroundColor: colors.steelSoft, paddingVertical: 16, paddingHorizontal: 18, flexDirection: 'row', alignItems: 'center', gap: 14, ...cardEdge },
+    speakerCard: { minHeight: 96, borderRadius: 22, backgroundColor: colors.steelSoft, paddingVertical: 16, paddingHorizontal: 18, flexDirection: 'row', alignItems: 'center', gap: 14, ...cardEdge },
     speakerMic: { width: 48, height: 48, borderRadius: 24, backgroundColor: families.steel[500], alignItems: 'center', justifyContent: 'center' },
     speakerTitle: { fontFamily: fontFamily.displayBold, fontSize: 18, color: c.text },
     speakerBody: { fontFamily: fontFamily.regular, fontSize: 13.5, lineHeight: 19, color: c.textSecondary, marginTop: 3 },
     smallRow: { flexDirection: 'row', gap: 8 },
-    smallCard: { flex: 1, borderRadius: 18, padding: 12, gap: 8, ...cardEdge },
+    smallCard: { flex: 1, borderRadius: 18, padding: 10, gap: 6, ...cardEdge },
     smallIcon: { width: 34, height: 34, borderRadius: 17, alignItems: 'center', justifyContent: 'center' },
     smallTitle: { fontFamily: fontFamily.displayBold, fontSize: 13.5, color: c.text },
     toolsMore: { fontFamily: fontFamily.regular, fontSize: 12.5, lineHeight: 17, color: c.textMuted, textAlign: 'center' },
@@ -346,7 +274,5 @@ const makeStyles = (tk: Tokens) => {
     programDone: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingVertical: 4, paddingHorizontal: 10, borderRadius: radii.full, borderWidth: 1.25 },
     programDoneText: { fontFamily: fontFamily.semiBold, fontSize: 11.5 },
     programNote: { fontFamily: fontFamily.regular, fontSize: 13, lineHeight: 18, color: c.textMuted, textAlign: 'center', marginTop: 12 },
-    // Beside the card it sits under the left-aligned intro.
-    programNoteSide: { textAlign: 'left', marginTop: 0 },
   });
 };

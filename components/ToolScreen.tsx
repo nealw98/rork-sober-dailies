@@ -59,15 +59,14 @@ export function ToolHeader({ tool, dirty, onCommit, onShare, shareDisabled }: {
   const styles = useThemedStyles(makeStyles);
   const { c } = useTokens();
   const accent = useToolAccent(tool);
-  // Inside a wide-layout pane (Today's detail), back closes the pane instead
-  // of popping the navigator, and an expand control joins the actions.
+  // Inside a wide-layout pane (Today's detail) the back slot holds Expand
+  // (BackButton); outside one, back pops the navigator.
   const pane = usePane();
   return (
     <View style={[styles.header, { paddingTop: insets.top + 8 }]}>
       <View style={styles.backRow}>
         <BackButton onPress={() => (pane ? pane.close() : router.back())} />
         <View style={styles.headerActions}>
-          <PaneExpandButton />
           {onShare ? (
             <Pressable
               onPress={onShare}

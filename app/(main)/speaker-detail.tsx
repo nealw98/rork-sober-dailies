@@ -91,12 +91,9 @@ export function SpeakerDetailBody({ id, autoplay = false }: { id?: string; autop
     <SafeAreaView style={styles.screen} edges={['top']}>
       <Stack.Screen options={{ headerShown: false }} />
       <View style={styles.header}>
-        {/* Embedded in the spread there is NO collapse control (reader-spread
-            rule: the list is visible beside the pane, and a second arrows
-            button reads as expand and empties the pane when mis-hit). Expand
-            is the pane's only control. */}
-        {pane ? <View /> : <BackButton onPress={() => router.back()} />}
-        <PaneExpandButton />
+        {/* Embedded in the spread, the back slot holds Expand — the pane's
+            only control (the list is visible beside it). */}
+        <BackButton onPress={() => router.back()} />
       </View>
 
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
