@@ -26,7 +26,7 @@ export default function GlobalSponsorFab() {
   const stripRail = useStripRailFits();
   const raisedForMiniPlayer = (segments as string[]).includes('speakers') && player.isLoaded;
 
-  // On expanded widths the left rail carries the sponsor on the four tabs;
+  // On expanded widths the rail carries the sponsor on the four tabs;
   // skip here to avoid doubling up. Skip on the meditation screen — it's its own immersive UI, and the FAB
   // would sit over its controls / Preferences sheet. Skip the Spot Check form
   // too — it's a focused writing surface and a chat FAB over it reads as a

@@ -3,15 +3,15 @@ import React from 'react';
 import { View, StyleSheet } from 'react-native';
 import NavigationRail from '@/components/navigation/NavigationRail';
 import { useLayoutMode } from '@/hooks/useLayoutMode';
-import { useStripRailFits } from '@/components/layout/SideInsetGuard';
+import { useStripRailFits, useRailScene, RailSceneBackdrop } from '@/components/layout/SideInsetGuard';
 
 /**
  * The four redesign-3.0 destinations: Today · Tools · Literature · Journey.
  * The tab chrome is drawn app-wide by SideInsetGuard, not here, so it stays
  * on pushed screens too: a docked bottom bar on phones, the right-strip rail
- * on the Duo. Only expanded widths without a strip (iPad) draw the left-edge
- * NavigationRail here — it takes real layout width in a row beside the tab
- * screens, which is why it can't come from the tabBar slot. <Tabs> keeps its
+ * on the Duo. Only expanded widths without a strip (iPad) draw the
+ * NavigationRail here, on the right edge like the Duo's strip rail — it
+ * takes real layout width in a row beside the tab screens, which is why it can't come from the tabBar slot. <Tabs> keeps its
  * position in the tree across the swaps, so tab state survives fold/unfold.
  *
  * Settings is no longer a tab; it lives in the tab group bar-less and opens
@@ -21,10 +21,11 @@ import { useStripRailFits } from '@/components/layout/SideInsetGuard';
 export default function TabsLayout() {
   const expanded = useLayoutMode() === 'expanded';
   const stripRail = useStripRailFits();
+  // Today's pane meditation scene, continued under the rail.
+  const { scene } = useRailScene();
 
   return (
     <View style={styles.row}>
-      {expanded && !stripRail && <NavigationRail />}
       <View style={styles.content}>
         <Tabs
           screenOptions={{ headerShown: false }}
@@ -44,6 +45,12 @@ export default function TabsLayout() {
           <Tabs.Screen name="settings" options={{ title: 'Settings' }} />
         </Tabs>
       </View>
+      {expanded && !stripRail && (
+        <View style={styles.rail}>
+          {scene && <RailSceneBackdrop scene={scene} />}
+          <NavigationRail onScene={!!scene} />
+        </View>
+      )}
     </View>
   );
 }
@@ -51,4 +58,6 @@ export default function TabsLayout() {
 const styles = StyleSheet.create({
   row: { flex: 1, flexDirection: 'row' },
   content: { flex: 1 },
+  // Not flex: sized by the rail; a row so the rail stretches full height.
+  rail: { flexDirection: 'row' },
 });

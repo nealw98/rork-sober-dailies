@@ -19,6 +19,12 @@
 // FULL window, behind the padded content, and the screen itself goes
 // transparent (contentStyle in the stack). Cleared on blur.
 //
+// Rail scene: when Today's detail pane shows the meditation scene, the scene
+// continues under the tab rail to the pane's right. The pane registers its
+// scene and width via useRailScene(); the rail (edge or strip) draws it in a
+// box anchored at the pane's left edge — paneW + RAIL_SCENE_EXTRA wide, the
+// same box the pane draws — so the two copies meet seamlessly.
+//
 // App-wide tab navigation. The main app turns it on with <MainNav />
 // (onboarding and the paywall never do), and it stays put over every pushed
 // screen:
@@ -32,7 +38,7 @@
 //   inset (the bar pads for the home indicator), so nothing double-pads. It
 //   steps aside for the keyboard, immersive overlays, and the screens with
 //   their own bottom controls (chat composer, Spot Check, meditation).
-// - Expanded widths without a strip (iPad) keep the tabs layout's left rail.
+// - Expanded widths without a strip (iPad) keep the tabs layout's own rail, on the right edge.
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { Keyboard, Platform, StyleSheet, View } from 'react-native';
 import { SafeAreaInsetsContext, useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -49,6 +55,23 @@ import BottomTabBar from '@/components/navigation/BottomTabBar';
 const BAR_HIDDEN_SEGMENTS = ['sponsor-chat', 'inventory', 'meditation'];
 
 const BackdropContext = createContext<{ set: (node: React.ReactNode | null) => void }>({ set: () => {} });
+export type RailScene = { node: React.ReactNode; paneW: number };
+// Wider than either rail (76pt edge, 84pt strip).
+export const RAIL_SCENE_EXTRA = 120;
+const RailSceneContext = createContext<{ scene: RailScene | null; set: (s: RailScene | null) => void }>({ scene: null, set: () => {} });
+export const useRailScene = () => useContext(RailSceneContext);
+
+// The registered scene, positioned for a rail sitting just right of the pane.
+export function RailSceneBackdrop({ scene }: { scene: RailScene }) {
+  return (
+    <View style={[StyleSheet.absoluteFill, styles.clip]} pointerEvents="none">
+      <View style={[styles.railSceneBox, { left: -scene.paneW, width: scene.paneW + RAIL_SCENE_EXTRA }]}>
+        {scene.node}
+      </View>
+    </View>
+  );
+}
+
 const MainNavContext = createContext<{ setOn: (on: boolean) => void }>({ setOn: () => {} });
 
 // Full-window background slot for immersive screens. Call set(node) while
@@ -102,6 +125,8 @@ export default function SideInsetGuard({ children }: { children: React.ReactNode
   const [backdrop, setBackdrop] = useState<React.ReactNode>(null);
   const set = useCallback((n: React.ReactNode | null) => setBackdrop(n), []);
   const ctx = useMemo(() => ({ set }), [set]);
+  const [railScene, setRailScene] = useState<RailScene | null>(null);
+  const railSceneCtx = useMemo(() => ({ scene: railScene, set: setRailScene }), [railScene]);
   const [navOn, setNavOn] = useState(false);
   const navCtx = useMemo(() => ({ setOn: setNavOn }), []);
   const side = stripSide(insets);
@@ -119,6 +144,7 @@ export default function SideInsetGuard({ children }: { children: React.ReactNode
     <MainNavContext.Provider value={navCtx}>
     <BottomBarContext.Provider value={showBar}>
     <BackdropContext.Provider value={ctx}>
+    <RailSceneContext.Provider value={railSceneCtx}>
       <View
         // The app root re-lays-out whenever the app changes displays
         // (fold/unfold) or rotates — a third, UI-tree-side trigger for the
@@ -138,10 +164,12 @@ export default function SideInsetGuard({ children }: { children: React.ReactNode
         {showBar && <BottomTabBar bottomInset={insets.bottom} />}
         {showRail && (
           <View style={[styles.stripRail, side === 'left' ? { left: 0, width: insets.left } : { right: 0, width: insets.right }]}>
-            <NavigationRail placement="strip" side={side!} />
+            {railScene && side === 'right' && <RailSceneBackdrop scene={railScene} />}
+            <NavigationRail placement="strip" side={side!} onScene={!!railScene && side === 'right'} />
           </View>
         )}
       </View>
+    </RailSceneContext.Provider>
     </BackdropContext.Provider>
     </BottomBarContext.Provider>
     </MainNavContext.Provider>
@@ -150,4 +178,6 @@ export default function SideInsetGuard({ children }: { children: React.ReactNode
 
 const styles = StyleSheet.create({
   stripRail: { position: 'absolute', top: 0, bottom: 0, alignItems: 'center' },
+  clip: { overflow: 'hidden' },
+  railSceneBox: { position: 'absolute', top: 0, bottom: 0 },
 });

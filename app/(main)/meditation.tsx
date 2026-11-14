@@ -12,7 +12,7 @@ import { ChevronLeft, Play, Pause, Plus, Minus, X, SlidersHorizontal } from 'luc
 import { fontFamily } from '@/constants/designTokens';
 import { usePane } from '@/components/layout/PaneContext';
 import PaneExpandButton from '@/components/layout/PaneExpandButton';
-import { useSideBackdrop } from '@/components/layout/SideInsetGuard';
+import { useSideBackdrop, useRailScene, RAIL_SCENE_EXTRA } from '@/components/layout/SideInsetGuard';
 import { useMeditation, SOUNDS } from '@/hooks/use-meditation-store';
 import { useMeditationSession } from '@/hooks/use-meditation-session';
 import { useMeditationScenes, type MeditationScene } from '@/hooks/useMeditationScenes';
@@ -280,10 +280,13 @@ export default function MeditationScreen() {
   // renders TWICE: registered as the guard's full-window backdrop (visible
   // only in the strips), and locally, laid out at the same window width and
   // shifted left by the guard's padding so the clipped copy lines up
-  // pixel-for-pixel with the backdrop at the strip edge. Both share the
-  // same Ken Burns value, so they move as one. Inside Today's pane the
-  // scene stays contained (no backdrop, no shift).
+  // pixel-for-pixel with the backdrop at the strip edge. Inside Today's pane
+  // the scene instead continues under the tab rail to the pane's right (the
+  // iPad's edge rail, the Duo's strip rail): both draw it in one box
+  // anchored at the pane's left edge, so the two copies line up.
   const backdropSlot = useSideBackdrop();
+  const railScene = useRailScene();
+  const [paneW, setPaneW] = useState(0);
   const { width: windowW } = useWindowDimensions();
   const insets = useSafeAreaInsets();
 
@@ -329,26 +332,6 @@ export default function MeditationScreen() {
 
   const minutes = isSetup ? selMinutes : session.minutes;
   const paused = session.paused;
-
-  // Ken Burns — slow continuous pan/zoom that gives the still life.
-  const kb = useRef(new Animated.Value(0)).current;
-  useEffect(() => {
-    const loop = Animated.loop(
-      Animated.sequence([
-        Animated.timing(kb, { toValue: 1, duration: 34000, easing: Easing.inOut(Easing.quad), useNativeDriver: true }),
-        Animated.timing(kb, { toValue: 0, duration: 34000, easing: Easing.inOut(Easing.quad), useNativeDriver: true }),
-      ]),
-    );
-    loop.start();
-    return () => loop.stop();
-  }, [kb]);
-  const kbStyle = {
-    transform: [
-      { scale: kb.interpolate({ inputRange: [0, 1], outputRange: [1.06, 1.20] }) },
-      { translateX: kb.interpolate({ inputRange: [0, 1], outputRange: [-12, 12] }) },
-      { translateY: kb.interpolate({ inputRange: [0, 1], outputRange: [10, -10] }) },
-    ],
-  };
 
   // Ambience follows the meditation SCREEN + selected scene: start/swap on focus
   // and on scene change, pause when navigating away. Locking the phone keeps the
@@ -398,11 +381,11 @@ export default function MeditationScreen() {
   };
 
   // The scene stack: shell underlay (covers while the photo loads), the
-  // photo (real motion, or a Ken Burns still), and the darkening gradient.
+  // photo (real motion, or a still), and the darkening gradient.
   const sceneLayers = (
     <View style={[StyleSheet.absoluteFill, { backgroundColor: TH.shell }]}>
       {sceneAnimated ? (
-        // Real motion already baked in — play it, no Ken Burns.
+        // Real motion already baked in — play it.
         <Image
           source={{ uri: sceneAnimated }}
           placeholder={SCENE_FALLBACK}
@@ -411,16 +394,13 @@ export default function MeditationScreen() {
           transition={300}
         />
       ) : (
-        // Still image — give it life with a slow Ken Burns pan/zoom.
-        <Animated.View style={[StyleSheet.absoluteFill, kbStyle]}>
-          <Image
-            source={sceneStill ? { uri: sceneStill } : SCENE_FALLBACK}
-            placeholder={SCENE_FALLBACK}
-            style={StyleSheet.absoluteFill}
-            contentFit="cover"
-            transition={300}
-          />
-        </Animated.View>
+        <Image
+          source={sceneStill ? { uri: sceneStill } : SCENE_FALLBACK}
+          placeholder={SCENE_FALLBACK}
+          style={StyleSheet.absoluteFill}
+          contentFit="cover"
+          transition={300}
+        />
       )}
       <LinearGradient
         colors={['rgba(8,14,32,0.28)', 'rgba(8,14,32,0)', 'rgba(8,14,32,0.42)']}
@@ -443,11 +423,35 @@ export default function MeditationScreen() {
   }, [pane, sceneStill, sceneAnimated, backdropSlot]);
   useFocusEffect(registerBackdrop);
 
+  // In the pane, hand the scene to the tab rail on the pane's right — unless
+  // the rail is on the left (the Duo's strip, turned that way), where it
+  // doesn't touch the pane.
+  const railOnRight = insets.left <= insets.right;
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const registerRailScene = useCallback(() => {
+    if (!pane || !railOnRight || !paneW) return;
+    railScene.set({ node: sceneLayers, paneW });
+    return () => railScene.set(null);
+    // sceneLayers is rebuilt every render; these are its real inputs.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pane, railOnRight, paneW, sceneStill, sceneAnimated, railScene]);
+  useFocusEffect(registerRailScene);
+
   return (
     <View style={styles.root}>
       <StatusBar style="light" />
       {pane ? (
-        <View style={StyleSheet.absoluteFill} pointerEvents="none">{sceneLayers}</View>
+        // The scene box runs RAIL_SCENE_EXTRA past the pane's right edge, the
+        // part the rail shows; the pane clips its own copy at its edge.
+        <View
+          style={[StyleSheet.absoluteFill, styles.paneScene]}
+          pointerEvents="none"
+          onLayout={(e) => setPaneW(Math.round(e.nativeEvent.layout.width))}
+        >
+          <View style={[styles.sceneBox, paneW ? { width: paneW + RAIL_SCENE_EXTRA } : { right: 0 }]}>
+            {sceneLayers}
+          </View>
+        </View>
       ) : (
         // Window-aligned copy — full window width, shifted left by the
         // guard's padding; what survives the screen's clip matches the
@@ -614,6 +618,8 @@ export default function MeditationScreen() {
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: TH.shell },
+  paneScene: { overflow: 'hidden' },
+  sceneBox: { position: 'absolute', top: 0, bottom: 0, left: 0 },
   safe: { flex: 1 },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 28 },
   // Setup content: centered while it fits, scrollable once it doesn't.
