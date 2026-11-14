@@ -35,6 +35,8 @@ const COIN_GRAD = ['#4A9A98', lightColors.primary, '#2A6466'] as const;
 const TEAL = lightColors.primary;
 const BAD = '#D8584E';
 const COIN_MAX = 196;
+// Below this the coin stops shrinking and the page scrolls instead.
+const COIN_MIN = 96;
 const RING_GAP = 10;
 const COUNT_MS = 1400;
 const GLINT_MS = 900;
@@ -66,6 +68,9 @@ export default function CounterStep({ value, onChangeValue, onSave, onSkip, onBa
   const styles = useThemedStyles(makeStyles);
   const { c, isDark } = useTokens();
   const { width, height } = useWindowDimensions();
+  // The Duo's cover turned sideways is too short to stack the coin over the
+  // field; they sit side by side instead.
+  const sideways = width > height && height < 600;
   const reduceMotion = useReducedMotion();
   const [focused, setFocused] = useState(false);
   // "Today is my day one" only fills the field; the button still saves.
@@ -78,6 +83,18 @@ export default function CounterStep({ value, onChangeValue, onSave, onSkip, onBa
     const sub = Keyboard.addListener('keyboardDidShow', () => scrollRef.current?.scrollToEnd({ animated: true }));
     return () => sub.remove();
   }, []);
+  // Measured: the scroll viewport and everything in it except the coin. The
+  // coin gets what's left, so a short screen (the Duo's cover, an SE) keeps
+  // the field above the buttons. The keyboard shrinks the viewport too, so
+  // layouts while the field has focus are ignored and the coin doesn't
+  // shrink as you type. (Keyboard show/hide events proved unreliable for
+  // this: a missed hide froze the coin small.)
+  const focusedRef = useRef(false);
+  const [viewportH, setViewportH] = useState(0);
+  const [headH, setHeadH] = useState(0);
+  const [belowH, setBelowH] = useState(0);
+  // The scroll's top and bottom padding plus the center block's top padding.
+  const restH = sideways ? 8 + 8 : headH && belowH ? headH + belowH + 22 + 16 + 22 : 0;
 
   const parsed = parseDateInput(value);
   const badDate = value.length === 10 && !parsed;
@@ -85,7 +102,8 @@ export default function CounterStep({ value, onChangeValue, onSave, onSkip, onBa
   const isDayOne = days === 0;
   // Smaller on an SE-height screen so the field and both buttons still fit
   // above the keyboard.
-  const coin = Math.round(Math.min(COIN_MAX, width * 0.5, height * 0.24));
+  const coinFit = viewportH && restH ? viewportH - restH - RING_GAP * 2 : Infinity;
+  const coin = Math.round(Math.max(COIN_MIN, Math.min(COIN_MAX, sideways ? width * 0.3 : width * 0.5, sideways ? Infinity : height * 0.24, coinFit)));
 
   const daysText = days != null ? days.toLocaleString('en-US') : '—';
   // The animated number can't shrink itself to fit, so size it from the
@@ -158,24 +176,17 @@ export default function CounterStep({ value, onChangeValue, onSave, onSkip, onBa
   };
 
   const borderColor = badDate ? BAD : focused || parsed ? TEAL : c.border;
-  const glow = coin * 1.55;
+  // Sideways the coin nearly fills the scroll's height, which would clip the
+  // glow into a hard-edged square; keep it inside.
+  const glow = coin * (sideways ? 1.2 : 1.55);
 
-  return (
-    // The keyboard avoider wraps the safe area, not the other way round: inside
-    // it, its frame stops short of the home indicator and the padding it adds
-    // came up short of the keyboard, leaving "Today is my day one" under it.
-    // Android pads too: edge-to-edge means the window no longer resizes for the
-    // keyboard, so without it the field sat under the keyboard.
-    <KeyboardAvoidingView behavior="padding" style={styles.safe}>
-      <SafeAreaView style={styles.flex} edges={['top', 'bottom']}>
-        <StatusBar style={isDark ? 'light' : 'dark'} />
-        <OnboardingColumn>
-          <TourProgress index={0} onSkip={onSkip} onBack={onBack} />
-          <ScrollView ref={scrollRef} contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
-            <Text maxFontSizeMultiplier={TOUR_MAX_FONT_SCALE} style={styles.affirmation}>One day at a time.</Text>
-            <Text maxFontSizeMultiplier={TOUR_MAX_FONT_SCALE} style={styles.title} accessibilityRole="header">When did you get sober?</Text>
-
-            <View style={styles.center}>
+  const headEl = (
+            <View onLayout={(e) => setHeadH(e.nativeEvent.layout.height)}>
+              <Text maxFontSizeMultiplier={TOUR_MAX_FONT_SCALE} style={[styles.affirmation, sideways && styles.affirmationSideways]}>One day at a time.</Text>
+              <Text maxFontSizeMultiplier={TOUR_MAX_FONT_SCALE} style={[styles.title, sideways && styles.titleSideways]} accessibilityRole="header">When did you get sober?</Text>
+            </View>
+  );
+  const coinEl = (
               <View style={{ width: coin + RING_GAP * 2, height: coin + RING_GAP * 2, alignItems: 'center', justifyContent: 'center' }}>
                 <Animated.View
                   pointerEvents="none"
@@ -238,7 +249,9 @@ export default function CounterStep({ value, onChangeValue, onSave, onSkip, onBa
                   </Animated.View>
                 </Pressable>
               </View>
-
+  );
+  const belowEl = (
+              <View style={styles.below} onLayout={(e) => setBelowH(e.nativeEvent.layout.height)}>
               <View style={styles.lines}>
                 {badDate ? (
                   <Text maxFontSizeMultiplier={TOUR_MAX_FONT_SCALE} style={styles.ymdBad}>That&apos;s not a valid date</Text>
@@ -258,8 +271,8 @@ export default function CounterStep({ value, onChangeValue, onSave, onSkip, onBa
                 style={[styles.input, { borderColor }, focused && !badDate && styles.inputFocus]}
                 value={value}
                 onChangeText={setText}
-                onFocus={() => setFocused(true)}
-                onBlur={() => setFocused(false)}
+                onFocus={() => { focusedRef.current = true; setFocused(true); }}
+                onBlur={() => { focusedRef.current = false; setFocused(false); }}
                 placeholder="mm/dd/yyyy"
                 placeholderTextColor={lightC.textMuted}
                 keyboardType="number-pad"
@@ -269,7 +282,46 @@ export default function CounterStep({ value, onChangeValue, onSave, onSkip, onBa
                 maxLength={10}
                 accessibilityLabel="Sobriety date, month day year"
               />
-            </View>
+              </View>
+  );
+
+  return (
+    // The keyboard avoider wraps the safe area, not the other way round: inside
+    // it, its frame stops short of the home indicator and the padding it adds
+    // came up short of the keyboard, leaving "Today is my day one" under it.
+    // Android pads too: edge-to-edge means the window no longer resizes for the
+    // keyboard, so without it the field sat under the keyboard.
+    <KeyboardAvoidingView behavior="padding" style={styles.safe}>
+      <SafeAreaView style={styles.flex} edges={['top', 'bottom']}>
+        <StatusBar style={isDark ? 'light' : 'dark'} />
+        <OnboardingColumn>
+          <TourProgress index={0} onSkip={onSkip} onBack={onBack} />
+          <ScrollView
+            ref={scrollRef}
+            contentContainerStyle={[styles.scroll, sideways && styles.scrollSideways]}
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={false}
+            onLayout={(e) => { if (!focusedRef.current) setViewportH(e.nativeEvent.layout.height); }}
+          >
+            {sideways ? (
+              // The cover turned sideways: the coin left, the question and
+              // the field right.
+              <View style={styles.sideways}>
+                {coinEl}
+                <View style={styles.flex}>
+                  {headEl}
+                  {belowEl}
+                </View>
+              </View>
+            ) : (
+              <>
+                {headEl}
+                <View style={styles.center}>
+                  {coinEl}
+                  {belowEl}
+                </View>
+              </>
+            )}
           </ScrollView>
 
           <View style={styles.footer}>
@@ -303,6 +355,11 @@ const makeStyles = (tk: Tokens) => {
     coinInput: { padding: 0, margin: 0, includeFontPadding: false } as any,
     coinUnit: { fontFamily: fontFamily.serifItalic, fontSize: 17, color: 'rgba(255,255,255,0.92)', marginTop: 2 },
 
+    scrollSideways: { paddingTop: 8, paddingBottom: 8 },
+    affirmationSideways: { fontSize: 17, lineHeight: 22 },
+    titleSideways: { fontSize: 23, lineHeight: 27, marginTop: 4 },
+    sideways: { flexGrow: 1, flexDirection: 'row', alignItems: 'center', gap: 24 },
+    below: { alignSelf: 'stretch', alignItems: 'center' },
     lines: { minHeight: 46, marginTop: 18, alignItems: 'center', justifyContent: 'center', gap: 4 },
     ymd: { fontFamily: fontFamily.semiBold, fontSize: 15, color: colors.primaryDark, textAlign: 'center' },
     hours: { fontFamily: fontFamily.serifItalic, fontSize: 16, color: c.textSecondary, textAlign: 'center' },

@@ -114,11 +114,16 @@ const TILE_SPONSORS = ['supportive', 'grace', 'salty']
 // gradient between it and the tiles, so there the two are kept together and
 // the group is centered instead.
 const isTall = (h: number) => h >= 1000;
+// The Duo's cover (and SE-height phones): the headline steps down a size so
+// the tiles keep a useful scale. Turned sideways, the cover is too short for a
+// stack at all, so the tiles sit beside the copy instead.
+const isShort = (h: number) => h < 760;
+const isSideways = (w: number, h: number) => w > h && h < 600;
 
 // The tiles' labels are part of the picture, so they keep their designed size
 // (allowFontScaling off) — the grid as a whole shrinks for large text. Below
 // this it stops shrinking and the page scrolls instead.
-const TILES_MIN_SCALE = 0.75;
+const TILES_MIN_SCALE = 0.55;
 const TILES_TOP_GAP = 22;
 // welcomeSafe's horizontal padding, both sides: the text column's width.
 const WELCOME_SIDE_PADDING = 56;
@@ -133,16 +138,18 @@ function TileLabel({ overline, title, overlineColor, titleColor }: { overline: s
   );
 }
 
-function WelcomeTiles({ maxHeight }: { maxHeight?: number }) {
+function WelcomeTiles({ maxHeight, maxWidth, align = 'center' }: { maxHeight?: number; maxWidth?: number; align?: 'center' | 'flex-start' }) {
   const styles = useThemedStyles(makeStyles);
   const { width } = useWindowDimensions();
   // As wide as the text column. `maxHeight` is the room the headline and body
   // leave (measured, so large Dynamic Type or a short screen like the folded
   // Duo shrinks the grid instead of pushing the copy under the button).
   const fit = maxHeight != null ? Math.max(TILES_MIN_SCALE, maxHeight / TILES_H) : Infinity;
-  const scale = Math.min((Math.min(width, ONBOARDING_MAX_WIDTH) - WELCOME_SIDE_PADDING) / TILES_W, fit);
+  const scale = Math.min((maxWidth ?? Math.min(width, ONBOARDING_MAX_WIDTH) - WELCOME_SIDE_PADDING) / TILES_W, fit);
   return (
-    <View style={{ height: TILES_H * scale, alignItems: 'center' }} importantForAccessibility="no-hide-descendants" accessibilityElementsHidden>
+    // Sized to the scaled grid in both directions (the transform doesn't change
+    // layout), so a column beside it gets the rest of the width.
+    <View style={{ width: TILES_W * scale, height: TILES_H * scale, alignSelf: align, alignItems: 'center' }} importantForAccessibility="no-hide-descendants" accessibilityElementsHidden>
       <View style={[styles.tiles, { transform: [{ scale }], marginTop: (TILES_H * (scale - 1)) / 2 }]}>
         <View style={styles.tileRow}>
           {/* The alarm clock on a sunny windowsill, pinned so the clock stays
@@ -201,13 +208,28 @@ function WelcomeStep({ onContinue, onSkip }: { onContinue: () => void; onSkip: (
   const styles = useThemedStyles(makeStyles);
   const { isDark } = useTokens();
   useGradientBackdrop(0.18, isDark);
-  const tall = isTall(useWindowDimensions().height);
+  const { width: winW, height: winH } = useWindowDimensions();
+  const tall = isTall(winH);
+  const short = isShort(winH);
+  const sideways = isSideways(winW, winH);
   // Measured: the scroll viewport, the wordmark row and the copy block. What's
-  // left between them is the tiles' room.
+  // left between them is the tiles' room — below the wordmark beside the copy
+  // when sideways, and above the copy otherwise.
   const [viewportH, setViewportH] = useState(0);
+  const [viewportW, setViewportW] = useState(0);
   const [wordmarkH, setWordmarkH] = useState(0);
   const [copyH, setCopyH] = useState(0);
-  const tilesRoom = viewportH && copyH ? viewportH - wordmarkH - TILES_TOP_GAP - copyH : undefined;
+  const tilesRoom = sideways
+    ? (viewportH ? viewportH - wordmarkH - TILES_TOP_GAP : undefined)
+    : (viewportH && copyH ? viewportH - wordmarkH - TILES_TOP_GAP - copyH : undefined);
+  const copy = (
+    <>
+      <Text maxFontSizeMultiplier={TOUR_MAX_FONT_SCALE} style={[styles.welcomeHeadline, (short || sideways) && styles.welcomeHeadlineShort]} accessibilityRole="header">Your whole recovery toolkit, in one place</Text>
+      <Text maxFontSizeMultiplier={TOUR_MAX_FONT_SCALE} style={[styles.welcomeBody, (short || sideways) && styles.welcomeBodyShort]}>
+        The Big Book, Daily Reflections, speaker tapes, prayers, your sobriety count — and a sponsor to talk to at 2am.
+      </Text>
+    </>
+  );
   return (
     <View style={styles.welcomeRoot}>
       <StatusBar style="light" />
@@ -217,7 +239,10 @@ function WelcomeStep({ onContinue, onSkip }: { onContinue: () => void; onSkip: (
             contentContainerStyle={styles.welcomeScroll}
             showsVerticalScrollIndicator={false}
             bounces={false}
-            onLayout={(e) => setViewportH(e.nativeEvent.layout.height)}
+            onLayout={(e) => {
+              setViewportH(e.nativeEvent.layout.height);
+              setViewportW(e.nativeEvent.layout.width);
+            }}
           >
             <View style={styles.wordmarkRow} onLayout={(e) => setWordmarkH(e.nativeEvent.layout.height)}>
               <Image source={require('@/assets/images/icon.png')} style={styles.wordmarkIcon} contentFit="cover" />
@@ -228,25 +253,34 @@ function WelcomeStep({ onContinue, onSkip }: { onContinue: () => void; onSkip: (
                 <Text maxFontSizeMultiplier={TOUR_MAX_FONT_SCALE} style={styles.welcomeSkipText}>Skip</Text>
               </Pressable>
             </View>
+            {sideways ? (
+              // The cover turned sideways: tiles left, copy right, centered
+              // in what's left under the wordmark.
+              <View style={styles.welcomeSideways}>
+                <WelcomeTiles maxHeight={tilesRoom} maxWidth={viewportW ? viewportW * 0.48 : undefined} />
+                <View style={styles.flex}>{copy}</View>
+              </View>
+            ) : (<>
             {/* Phones: the copy stays at the bottom and the leftover space is
                 split above and below the tiles. Tall screens: the tiles and
                 the copy are kept together and centered. */}
             <View style={styles.flex} />
             <View style={styles.tilesWrap}>
-              <WelcomeTiles maxHeight={tilesRoom} />
+              {/* Shrunk narrower than the column (a short screen), the grid
+                  lines up with the left-aligned copy rather than floating
+                  centered above it. */}
+              <WelcomeTiles maxHeight={tilesRoom} align="flex-start" />
             </View>
             {!tall && <View style={styles.flex} />}
             <View style={[styles.welcomeCopy, tall && styles.welcomeCopyTall]}>
               {/* Measured on its own, plus the block's own top and bottom
                   padding. */}
               <View onLayout={(e) => setCopyH(e.nativeEvent.layout.height + (tall ? 48 : 20) + 26)}>
-                <Text maxFontSizeMultiplier={TOUR_MAX_FONT_SCALE} style={styles.welcomeHeadline} accessibilityRole="header">Your whole recovery toolkit, in one place</Text>
-                <Text maxFontSizeMultiplier={TOUR_MAX_FONT_SCALE} style={styles.welcomeBody}>
-                  The Big Book, Daily Reflections, speaker tapes, prayers, your sobriety count — and a sponsor to talk to at 2am.
-                </Text>
+                {copy}
               </View>
             </View>
             {tall && <View style={styles.flex} />}
+            </>)}
           </ScrollView>
           <View style={styles.welcomeFooter}>
             <Pressable style={styles.welcomeBtn} onPress={onContinue} accessibilityRole="button">
@@ -732,7 +766,10 @@ const makeStyles = (tk: Tokens) => {
   welcomeCopy: { paddingTop: 20, paddingBottom: 26 },
   welcomeCopyTall: { paddingTop: 48 },
   welcomeHeadline: { fontFamily: fontFamily.displayBold, fontSize: 33, lineHeight: 37, letterSpacing: -0.7, color: '#fff' },
+  welcomeHeadlineShort: { fontSize: 27, lineHeight: 31, letterSpacing: -0.5 },
   welcomeBody: { fontFamily: fontFamily.regular, fontSize: fontSize.lg, lineHeight: 23, color: 'rgba(255,255,255,0.94)', marginTop: 14 },
+  welcomeBodyShort: { fontSize: fontSize.base, lineHeight: 21, marginTop: 10 },
+  welcomeSideways: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 22, marginTop: TILES_TOP_GAP },
   welcomeFooter: { paddingBottom: 14 },
   welcomeBtn: {
     minHeight: 56,
