@@ -5,7 +5,8 @@
  * A slim vertical rail on the right edge, matching the Duo's strip rail: Today · Tools · Literature · Journey
  * as icon + small label, the selected item on a soft teal pill (primarySoft
  * fill, primaryDark label). The Sponsor FAB and the Settings gear live at the
- * bottom of the rail. Rendered by the tabs layout ONLY in `expanded` mode.
+ * bottom of the rail. Rendered app-wide by SideInsetGuard in `expanded` mode,
+ * on the right edge, over every screen.
  *
  * On the Duo (both displays) it moves into the safe strip instead
  * (placement="strip", rendered by SideInsetGuard): it starts below the

@@ -27,6 +27,9 @@ const publicUrl = (bucket: string, path: string | null): string | null =>
   path ? supabase.storage.from(bucket).getPublicUrl(path).data.publicUrl : null;
 
 // Scene images remain remotely managed; soundtrack modules ship with the app/update.
+// Keep stills at most ~2048px on the long edge (webp): they're preloaded into
+// memory at launch, and a full camera photo decodes to ~48 MB. New sizes get
+// new file names so devices don't keep serving their cached copy.
 const SCENE_DEFS: { key: string; name: string; still: string | null; animated: string | null; audioSource: AudioSource | null }[] = [
   { key: 'silence', name: 'Silence', still: 'meditation-hero1.webp', animated: null, audioSource: null },
   { key: 'autumn-sky', name: 'Autumn Sky', still: 'autumn-sky.webp', animated: null, audioSource: require('@/assets/autumn-sky-meditation.m4a') },

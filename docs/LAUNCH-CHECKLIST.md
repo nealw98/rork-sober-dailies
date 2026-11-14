@@ -190,6 +190,18 @@ analytics.
 
 ## 3. Finishing the product / QA
 
+- [ ] **⚠️ BEFORE BUILD 140: upload the resized meditation scene photos**
+      (added 2026-11-13). Autumn Sky (3024×4032) and Summer Rain
+      (2310×3598) are full camera photos; the scene the user will open on is
+      now preloaded into memory at launch, where a 12 MP photo costs ~48 MB.
+      Resized webps (1536×2048, 1315×2048, ~200 KB each) are in
+      `meditation-upload/` at the repo root. Steps: (1) upload both to the
+      Supabase Storage bucket `meditation-images` under those exact names
+      (`autumn-sky-2048.webp`, `summer-rain-2048.webp`); keep the originals,
+      since older app versions still load them; (2) in
+      `hooks/useMeditationScenes.ts` change those two `still:` names to the
+      `-2048` files; (3) delete `meditation-upload/`. Do NOT switch the names
+      before the files are live, or those two scenes go blank.
 - [x] **Bundle the accumulating uncommitted changes into ONE OTA** — DONE
       2026-07-31. Three production OTAs shipped that day (security client
       half + backup prompt + trial copy; then the Big Book front-matter

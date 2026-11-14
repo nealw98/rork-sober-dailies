@@ -38,7 +38,9 @@
 //   inset (the bar pads for the home indicator), so nothing double-pads. It
 //   steps aside for the keyboard, immersive overlays, and the screens with
 //   their own bottom controls (chat composer, Spot Check, meditation).
-// - Expanded widths without a strip (iPad) keep the tabs layout's own rail, on the right edge.
+// - Edge rail: expanded widths without a strip (iPad) get the same rail on
+//   the right edge, as a real column beside the content.
+// Over a photo backdrop (meditation) the rails go transparent with white ink.
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { Keyboard, Platform, StyleSheet, View } from 'react-native';
 import { SafeAreaInsetsContext, useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -136,6 +138,9 @@ export default function SideInsetGuard({ children }: { children: React.ReactNode
   const { immersive } = useImmersive();
   const keyboard = useKeyboardShown();
   const showRail = navOn && stripFits;
+  const showEdgeRail = navOn && !stripFits && expanded;
+  // A photo runs under the rail: the full-window backdrop, or Today's pane scene.
+  const railOnScene = backdrop != null || railScene != null;
   const showBar = navOn && !stripFits && !expanded && !immersive && !keyboard
     && !segments.some((seg) => BAR_HIDDEN_SEGMENTS.includes(seg));
   // The bar owns the home-indicator inset while it shows.
@@ -159,13 +164,21 @@ export default function SideInsetGuard({ children }: { children: React.ReactNode
           </View>
         )}
         <SafeAreaInsetsContext.Provider value={contentInsets}>
-          <View style={{ flex: 1, paddingLeft: insets.left, paddingRight: insets.right }}>{children}</View>
+          <View style={[styles.row, { paddingLeft: insets.left, paddingRight: insets.right }]}>
+            <View style={styles.flex}>{children}</View>
+            {showEdgeRail && (
+              <View style={styles.row0}>
+                {railScene && <RailSceneBackdrop scene={railScene} />}
+                <NavigationRail onScene={railOnScene} />
+              </View>
+            )}
+          </View>
         </SafeAreaInsetsContext.Provider>
         {showBar && <BottomTabBar bottomInset={insets.bottom} />}
         {showRail && (
           <View style={[styles.stripRail, side === 'left' ? { left: 0, width: insets.left } : { right: 0, width: insets.right }]}>
             {railScene && side === 'right' && <RailSceneBackdrop scene={railScene} />}
-            <NavigationRail placement="strip" side={side!} onScene={!!railScene && side === 'right'} />
+            <NavigationRail placement="strip" side={side!} onScene={backdrop != null || (railScene != null && side === 'right')} />
           </View>
         )}
       </View>
@@ -179,5 +192,9 @@ export default function SideInsetGuard({ children }: { children: React.ReactNode
 const styles = StyleSheet.create({
   stripRail: { position: 'absolute', top: 0, bottom: 0, alignItems: 'center' },
   clip: { overflow: 'hidden' },
+  row: { flex: 1, flexDirection: 'row' },
+  flex: { flex: 1 },
+  // Sized by the rail; a row so the rail stretches full height.
+  row0: { flexDirection: 'row' },
   railSceneBox: { position: 'absolute', top: 0, bottom: 0 },
 });

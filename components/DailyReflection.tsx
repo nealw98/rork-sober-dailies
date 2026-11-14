@@ -22,6 +22,7 @@ import { useRouter } from 'expo-router';
 import { ChevronLeft, ChevronRight, Calendar, Sparkles, Share as ShareIcon } from 'lucide-react-native';
 
 import BackButton from '@/components/BackButton';
+import PaneExpandButton from '@/components/layout/PaneExpandButton';
 import { getReflectionForDate } from '@/constants/reflections';
 import { Reflection } from '@/types';
 import { maybeAskForReview } from '@/lib/reviewPrompt';
@@ -206,6 +207,7 @@ export default function DailyReflection({ jumpToDate = null, onJumpApplied }: Da
           <Pressable onPress={shareReflection} accessibilityLabel="Share" style={styles.hdrBtn}>
             <ShareIcon size={16} color={c.textSecondary} strokeWidth={2} />
           </Pressable>
+          <PaneExpandButton />
         </View>
       </View>
 

@@ -324,7 +324,7 @@ export default function JourneyScreen() {
             {!wide && hasAny && (
               <Pressable style={styles.trendsCard} onPress={() => router.push('/(main)/trends' as never)} accessibilityRole="button" accessibilityLabel="Trends">
                 <View style={styles.trendsIcon}>
-                  <BarChart3 size={20} color={colors.primary} strokeWidth={2.2} />
+                  <BarChart3 size={20} color="#FFFFFF" strokeWidth={2.2} />
                 </View>
                 <View style={styles.flex}>
                   <Text style={styles.trendsTitle}>Trends</Text>
@@ -334,7 +334,7 @@ export default function JourneyScreen() {
                       : 'Your streaks and patterns'}
                   </Text>
                 </View>
-                <ChevronRight size={18} color={c.textMuted} strokeWidth={2} />
+                <ChevronRight size={18} color="rgba(255,255,255,0.85)" strokeWidth={2} />
               </Pressable>
             )}
             {!hasAny ? (
@@ -962,10 +962,12 @@ const makeStyles = (tk: Tokens) => {
     header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 22, paddingTop: 54, paddingBottom: 28 },
     gear: { marginLeft: 14 },
     addBtn: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.primary, ...shadows.sm },
-    trendsCard: { flexDirection: 'row', alignItems: 'center', gap: 14, padding: 14, marginBottom: 24, borderRadius: 18, borderWidth: 1, borderColor: c.border, backgroundColor: c.surface, ...shadows.sm, ...darkCard },
-    trendsIcon: { width: 44, height: 44, borderRadius: 14, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.primarySoft },
-    trendsTitle: { fontFamily: fontFamily.semiBold, fontSize: 16, color: c.text },
-    trendsHint: { fontFamily: fontFamily.regular, fontSize: 13, color: c.textMuted, marginTop: 2 },
+    // Solid teal, white ink: Trends is a different kind of thing from the
+    // entry cards below it, so it shouldn't read as one of them.
+    trendsCard: { flexDirection: 'row', alignItems: 'center', gap: 14, padding: 14, marginBottom: 24, borderRadius: 18, backgroundColor: colors.primary, ...shadows.sm },
+    trendsIcon: { width: 44, height: 44, borderRadius: 14, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(255,255,255,0.18)' },
+    trendsTitle: { fontFamily: fontFamily.semiBold, fontSize: 16, color: '#FFFFFF' },
+    trendsHint: { fontFamily: fontFamily.regular, fontSize: 13, color: 'rgba(255,255,255,0.85)', marginTop: 2 },
     title: { fontFamily: fontFamily.display, fontSize: 28, letterSpacing: -0.5, color: c.text, lineHeight: 29 },
     subtitle: { fontFamily: fontFamily.regular, fontSize: 14, color: c.textMuted, marginTop: 2 },
 

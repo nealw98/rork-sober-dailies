@@ -10,7 +10,7 @@ import Svg, { Circle, Defs, LinearGradient as SvgGradient, Stop } from 'react-na
 import { ChevronLeft, Play, Pause, Plus, Minus, X, SlidersHorizontal } from 'lucide-react-native';
 
 import { fontFamily } from '@/constants/designTokens';
-import { usePane } from '@/components/layout/PaneContext';
+import { usePane, useExpandedRoute } from '@/components/layout/PaneContext';
 import PaneExpandButton from '@/components/layout/PaneExpandButton';
 import { useSideBackdrop, useRailScene, RAIL_SCENE_EXTRA } from '@/components/layout/SideInsetGuard';
 import { useMeditation, SOUNDS } from '@/hooks/use-meditation-store';
@@ -245,11 +245,19 @@ function VolumeSlider({ value, onChange, onComplete }: { value: number; onChange
 }
 
 function TopBar({ onClose, onPrefs }: { onClose: () => void; onPrefs: () => void }) {
+  // In Today's pane (the list is beside it) and expanded full-screen
+  // (Collapse is the way out) the back chevron gives way to an empty slot of
+  // the same width — the same rule as BackButton.
+  const pane = usePane();
+  const expandedRoute = useExpandedRoute();
+  const noBack = pane != null || expandedRoute;
   return (
     <View style={styles.topBar}>
-      <Pressable style={styles.topBtn} onPress={onClose} accessibilityLabel="Close">
-        <ChevronLeft size={20} color={TH.topBtnInk} />
-      </Pressable>
+      {noBack ? <View style={styles.topSlot} /> : (
+        <Pressable style={styles.topBtn} onPress={onClose} accessibilityLabel="Close">
+          <ChevronLeft size={20} color={TH.topBtnInk} />
+        </Pressable>
+      )}
       <Text style={styles.topTitle}>Meditation</Text>
       <PaneExpandButton />
       <Pressable style={styles.topBtn} onPress={onPrefs} accessibilityLabel="Preferences">
@@ -287,6 +295,8 @@ export default function MeditationScreen() {
   const backdropSlot = useSideBackdrop();
   const railScene = useRailScene();
   const [paneW, setPaneW] = useState(0);
+  // The last scene photo to finish loading; the rail's copy waits for one.
+  const [loadedUri, setLoadedUri] = useState<string | null>(null);
   const { width: windowW } = useWindowDimensions();
   const insets = useSafeAreaInsets();
 
@@ -382,26 +392,19 @@ export default function MeditationScreen() {
 
   // The scene stack: shell underlay (covers while the photo loads), the
   // photo (real motion, or a still), and the darkening gradient.
+  // The photo appears in one step: no placeholder (it was a different photo,
+  // so it flashed), no fade, and a memory cache so the second copy (the
+  // rail's, or the strip backdrop) paints instantly from the first's decode.
+  const sceneUri = sceneAnimated ?? sceneStill;
   const sceneLayers = (
     <View style={[StyleSheet.absoluteFill, { backgroundColor: TH.shell }]}>
-      {sceneAnimated ? (
-        // Real motion already baked in — play it.
-        <Image
-          source={{ uri: sceneAnimated }}
-          placeholder={SCENE_FALLBACK}
-          style={StyleSheet.absoluteFill}
-          contentFit="cover"
-          transition={300}
-        />
-      ) : (
-        <Image
-          source={sceneStill ? { uri: sceneStill } : SCENE_FALLBACK}
-          placeholder={SCENE_FALLBACK}
-          style={StyleSheet.absoluteFill}
-          contentFit="cover"
-          transition={300}
-        />
-      )}
+      <Image
+        source={sceneUri ? { uri: sceneUri } : SCENE_FALLBACK}
+        style={StyleSheet.absoluteFill}
+        contentFit="cover"
+        cachePolicy="memory-disk"
+        onLoad={() => setLoadedUri(sceneUri)}
+      />
       <LinearGradient
         colors={['rgba(8,14,32,0.28)', 'rgba(8,14,32,0)', 'rgba(8,14,32,0.42)']}
         locations={[0, 0.45, 1]}
@@ -429,12 +432,15 @@ export default function MeditationScreen() {
   const railOnRight = insets.left <= insets.right;
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const registerRailScene = useCallback(() => {
-    if (!pane || !railOnRight || !paneW) return;
+    // Wait for the pane's first photo, so the rail's copy comes from memory
+    // and never shows the shell before it. (On a scene change each copy
+    // keeps its old photo until the new one is ready.)
+    if (!pane || !railOnRight || !paneW || !loadedUri) return;
     railScene.set({ node: sceneLayers, paneW });
     return () => railScene.set(null);
     // sceneLayers is rebuilt every render; these are its real inputs.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pane, railOnRight, paneW, sceneStill, sceneAnimated, railScene]);
+  }, [pane, railOnRight, paneW, loadedUri != null, sceneUri, railScene]);
   useFocusEffect(registerRailScene);
 
   return (
@@ -448,9 +454,13 @@ export default function MeditationScreen() {
           pointerEvents="none"
           onLayout={(e) => setPaneW(Math.round(e.nativeEvent.layout.width))}
         >
-          <View style={[styles.sceneBox, paneW ? { width: paneW + RAIL_SCENE_EXTRA } : { right: 0 }]}>
-            {sceneLayers}
-          </View>
+          {/* Drawn once the pane is measured, so the photo never re-crops
+              when the box widens. */}
+          {paneW > 0 && (
+            <View style={[styles.sceneBox, { width: paneW + RAIL_SCENE_EXTRA }]}>
+              {sceneLayers}
+            </View>
+          )}
         </View>
       ) : (
         // Window-aligned copy — full window width, shifted left by the
@@ -628,6 +638,7 @@ const styles = StyleSheet.create({
   footer: { paddingHorizontal: 22, paddingBottom: 24 },
 
   topBar: { paddingHorizontal: 14, paddingTop: 4, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  topSlot: { width: 40 },
   topBtn: { width: 40, height: 40, borderRadius: 20, borderWidth: 1, borderColor: TH.topBtnBorder, backgroundColor: TH.topBtnBg, alignItems: 'center', justifyContent: 'center' },
   topTitle: { fontFamily: fontFamily.semiBold, fontSize: 13, letterSpacing: 0.3, color: TH.ink2 },
 

@@ -242,7 +242,7 @@ export function SpotCheckForm({ onboarding }: { onboarding?: SpotCheckOnboarding
           )
         ) : (
         <>
-        <PaneExpandButton />
+        <PaneExpandButton onCollapse={confirmExit} />
         <Pressable
           onPress={onSave}
           disabled={!savePillActive || saving}

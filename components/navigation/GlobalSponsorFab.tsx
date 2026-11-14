@@ -26,17 +26,15 @@ export default function GlobalSponsorFab() {
   const stripRail = useStripRailFits();
   const raisedForMiniPlayer = (segments as string[]).includes('speakers') && player.isLoaded;
 
-  // On expanded widths the rail carries the sponsor on the four tabs;
-  // skip here to avoid doubling up. Skip on the meditation screen — it's its own immersive UI, and the FAB
-  // would sit over its controls / Preferences sheet. Skip the Spot Check form
-  // too — it's a focused writing surface and a chat FAB over it reads as a
-  // competing exit. And skip the AI Sponsor screen on expanded widths, where
-  // it already shows a chat beside the picker. And skip it entirely on the
-  // Duo, where the strip rail's sponsor button is always showing.
+  // Wherever a rail shows — expanded widths (iPad) and the Duo — its sponsor
+  // button is on every screen, so skip here to avoid doubling up. Skip on
+  // the meditation screen — it's its own immersive UI, and the FAB would sit
+  // over its controls / Preferences sheet. Skip the Spot Check form too —
+  // it's a focused writing surface and a chat FAB over it reads as a
+  // competing exit.
   if (
     stripRail ||
-    (expanded && (segments as string[]).includes('chat')) ||
-    (expanded && (segments as string[]).includes('(tabs)')) ||
+    expanded ||
     (segments as string[]).includes('meditation') ||
     (segments as string[]).includes('trends') ||
     (segments as string[]).includes('inventory') ||

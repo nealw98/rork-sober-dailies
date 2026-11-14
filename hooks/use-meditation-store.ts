@@ -1,6 +1,8 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import createContextHook from '@nkzw/create-context-hook';
+import { Image } from 'expo-image';
+import { useMeditationScenes } from '@/hooks/useMeditationScenes';
 
 /**
  * Meditation settings (NET-NEW, local-first). The built-in timer is the hero /
@@ -45,6 +47,7 @@ const DEFAULT: MeditationSettings = {
 export const [MeditationProvider, useMeditation] = createContextHook(() => {
   const [settings, setSettings] = useState<MeditationSettings>(DEFAULT);
   const [isLoading, setIsLoading] = useState(true);
+  const scenes = useMeditationScenes();
 
   useEffect(() => {
     (async () => {
@@ -58,6 +61,24 @@ export const [MeditationProvider, useMeditation] = createContextHook(() => {
       }
     })();
   }, []);
+
+  // Warm the scene photos at launch so the Meditation page opens on its photo
+  // instead of loading it: the scene it will open on (last used, or for a
+  // first visit the first scene with a soundtrack, matching the page) goes
+  // into memory; the rest only to disk, for quick scene switches.
+  useEffect(() => {
+    if (isLoading) return;
+    const list = Object.values(scenes);
+    const firstTime = settings.source === null && !settings.hintSeen;
+    const openKey = firstTime ? (list.find((sc) => sc.audioSource)?.key ?? settings.timer.sound) : settings.timer.sound;
+    const uriOf = (sc: (typeof list)[number]) => sc.animatedUri ?? sc.stillUri;
+    const open = list.find((sc) => sc.key === openKey);
+    if (open && uriOf(open)) Image.prefetch(uriOf(open)!, 'memory-disk').catch(() => {});
+    const rest = list.filter((sc) => sc !== open).map(uriOf).filter((u): u is string => !!u);
+    if (rest.length) Image.prefetch(rest, 'disk').catch(() => {});
+    // Once per launch, after settings load.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isLoading]);
 
   // Functional update + persist in one place (no stale-closure risk).
   const update = useCallback((mutate: (prev: MeditationSettings) => MeditationSettings) => {

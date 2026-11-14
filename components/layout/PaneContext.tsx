@@ -5,6 +5,8 @@
 // pane instead of popping the navigator. `expand` (optional) reopens the same
 // content as the full-screen route — surfaced by <PaneExpandButton/>.
 import React from 'react';
+import { useLocalSearchParams } from 'expo-router';
+import { useLayoutMode } from '@/hooks/useLayoutMode';
 
 export type PaneControls = {
   // Dismiss the pane content (what router.back() means full-screen).
@@ -24,4 +26,17 @@ export const PaneProvider = PaneContext.Provider;
 // back to router.back() when it's null (i.e. when they run full-screen).
 export function usePane(): PaneControls | null {
   return React.useContext(PaneContext);
+}
+
+// True on a full-screen route a pane's Expand pushed (`expanded=1`, set by
+// every expand handler) while the window is still expanded-class — the one
+// state with a collapse to undo. Its only exit control is Collapse, in the
+// spot Expand occupied (PaneExpandButton); the back button steps aside.
+// Fold the phone and the same screen is the ordinary compact presentation:
+// false again, and the back chevron returns.
+export function useExpandedRoute(): boolean {
+  const { expanded } = useLocalSearchParams<{ expanded?: string }>();
+  const pane = usePane();
+  const layoutMode = useLayoutMode();
+  return pane == null && expanded === '1' && layoutMode === 'expanded';
 }
