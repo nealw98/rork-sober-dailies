@@ -119,12 +119,15 @@ export function SpotCheckForm({ onboarding }: { onboarding?: SpotCheckOnboarding
       markEdited();
       if (onboarding) { setTryDone(true); onboarding.onFinished(); }
     } catch (e) {
-      // Outside onboarding: leave whatever is showing.
+      // Say why nothing came back (a daily limit, or a failed call) instead
+      // of failing silently. Onboarding's limit also ends the try.
       if (onboarding && e instanceof SponsorLimitError) {
         setTryError(e.message);
         setTryDone(true);
         onboarding.onFinished();
-      } else if (onboarding) {
+      } else if (e instanceof SponsorLimitError) {
+        setTryError(e.message);
+      } else {
         setTryError('Couldn’t get a reflection just now. Try again.');
       }
     }

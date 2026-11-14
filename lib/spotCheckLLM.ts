@@ -12,7 +12,7 @@
 import type { SponsorType } from '@/types';
 import { getSponsorById } from '@/constants/sponsors';
 import { getAnonymousId } from '@/lib/anonymousId';
-import { getDeviceSecret } from '@/lib/deviceSecret';
+import { getDeviceSecret, markDeviceSecretVerified } from '@/lib/deviceSecret';
 import {
   SUPABASE_ANON_KEY, getSponsorApiChatUrl, getSponsorApiUrl, getQaEngine, resolveQaEngine, QA_ENGINE_SPEC,
 } from '@/lib/sponsorApiSettings';
@@ -93,11 +93,14 @@ async function callPaidSponsor(
     if (response.status === 429) throw new SponsorLimitError(data?.error || 'Daily AI limit reached.');
     throw new Error(data?.error || `Sponsor API request failed: ${response.status}`);
   }
+  // The server says this device's secret matched the id's claim (backups
+  // carry it). A mismatched device is served too, so a 2xx alone isn't proof.
+  if (deviceSecret && data?.deviceVerified === true) void markDeviceSecretVerified(anonymousId);
   console.log(`[spotCheckLLM] paid ok in ${Date.now() - started}ms (${data.model ?? 'anthropic'})`);
   return String(data.outputText);
 }
 
-// Auto uses Luna for Spot Check (sponsor chat uses Terra). The Dev Console
+// Auto uses Terra for Spot Check, as for sponsor chat. The Dev Console
 // can explicitly select Luna, Terra, or Sonnet. OpenAI primaries fall back to
 // Sonnet; Sonnet falls back to Luna, so a QA
 // session can't dead-end on one provider's outage.

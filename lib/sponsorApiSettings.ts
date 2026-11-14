@@ -6,7 +6,7 @@ export type QaEngine = 'auto' | 'sonnet' | 'terra' | 'luna';
 type ConcreteQaEngine = Exclude<QaEngine, 'auto'>;
 type QaEngineSpec = { provider: 'anthropic' | 'openai'; model: string; label: string };
 
-// Production default: Terra for every sponsor chat, Luna for Spot Check.
+// Production default: Terra for every sponsor chat and for Spot Check.
 // Explicit Dev Console selections override this routing for QA.
 export const DEFAULT_QA_ENGINE: QaEngine = 'auto';
 
@@ -45,7 +45,9 @@ export type LlmUse = 'chat' | 'spotcheck';
 
 export const resolveQaEngine = (engine: QaEngine, use: LlmUse): QaEngineSpec => {
   if (engine !== 'auto') return QA_ENGINE_SPEC[engine];
-  return use === 'spotcheck' ? QA_ENGINE_SPEC.luna : QA_ENGINE_SPEC.terra;
+  // Spot Check moved from Luna to Terra (2026-11-14): Luna's reflections
+  // read as generic and varied little.
+  return QA_ENGINE_SPEC.terra;
 };
 
 export const SPONSOR_API_URL =

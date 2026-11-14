@@ -17,7 +17,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import Purchases from 'react-native-purchases';
 import { supabase, SUPABASE_URL, SUPABASE_ANON_KEY } from '@/lib/supabase';
 import { getAnonymousId } from '@/lib/anonymousId';
-import { getDeviceSecret } from '@/lib/deviceSecret';
+import { getDeviceSecret, markDeviceSecretVerified } from '@/lib/deviceSecret';
 
 // Kill switch (Neal, 2026-07-22): passes are SUSPENDED for the TestFlight
 // period — sandbox subscriptions would otherwise earn passes that dispense
@@ -219,6 +219,7 @@ async function stampSent(token: string): Promise<boolean> {
     action: 'confirm_sent',
     token,
   });
+  if (data?.success && device_secret) void markDeviceSecretVerified(anonymous_id);
   return !!data?.success;
 }
 

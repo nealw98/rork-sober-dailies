@@ -15,6 +15,7 @@
 // write. See the Pass It On wallet-portability decision.
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getAnonymousId, adoptAnonymousId } from './anonymousId';
+import { getVerifiedDeviceSecret, adoptDeviceSecret } from './deviceSecret';
 
 export const SYNC_KEYS: string[] = [
   // ── recovery data ──
@@ -76,6 +77,9 @@ export type BackupSnapshot = {
   exportedAt: number;
   data: Record<string, string>;
   identity?: string; // anonymous_id — see the allowlist note above
+  // The device secret the server accepted for `identity` (lib/deviceSecret.ts).
+  // Without it, a device that adopts the identity is refused every AI call.
+  identitySecret?: string;
 };
 
 // Read the given keys (default: all allowlisted) into a JSON backup string.
@@ -83,12 +87,15 @@ export async function serializeUserData(keys: string[] = SYNC_KEYS): Promise<str
   const pairs = await AsyncStorage.multiGet(keys);
   const data: Record<string, string> = {};
   for (const [k, v] of pairs) if (v != null) data[k] = v;
+  const identity = await getAnonymousId();
+  const identitySecret = await getVerifiedDeviceSecret(identity).catch(() => null);
   const snapshot: BackupSnapshot = {
     app: 'sober-dailies',
     schemaVersion: BACKUP_SCHEMA_VERSION,
     exportedAt: Date.now(),
     data,
-    identity: await getAnonymousId(),
+    identity,
+    ...(identitySecret ? { identitySecret } : {}),
   };
   return JSON.stringify(snapshot);
 }
@@ -115,7 +122,12 @@ export async function restoreUserData(json: string, allowed: string[] = SYNC_KEY
 
   // Adopt the identity FIRST so it's in place before the app reloads and starts
   // re-fetching identity-scoped data (the gift wallet, grandfather status).
-  if (hasIdentity) await adoptAnonymousId(snapshot.identity);
+  if (hasIdentity) {
+    await adoptAnonymousId(snapshot.identity);
+    if (typeof snapshot.identitySecret === 'string') {
+      await adoptDeviceSecret(snapshot.identitySecret, snapshot.identity.trim());
+    }
+  }
   if (entries.length) await AsyncStorage.multiSet(entries);
   return entries.length;
 }

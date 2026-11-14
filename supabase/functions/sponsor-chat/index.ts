@@ -16,7 +16,7 @@
 
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-import { verifyDevice } from '../_shared/deviceAuth.ts';
+import { verifyDevice, sha256Hex } from '../_shared/deviceAuth.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -631,7 +631,12 @@ async function logUsage(payload: Record<string, unknown>) {
 type QuotaBucket = 'sponsor_chat' | 'spot_check';
 
 interface QuotaReservation {
+  // The quota row's key: the anonymous id, or id:secret-hash for a device
+  // whose secret didn't match (authorizeAndReserve).
   anonymousId: string;
+  // The device's secret matched the id's claim; the app only backs a secret
+  // up when this was true.
+  deviceVerified: boolean;
   // 'daily' = the 25/day buckets; 'onboarding' = the one-time try, keyed by
   // sponsor (or 'reflection' for Spot Check).
   kind: 'daily' | 'onboarding';
@@ -665,9 +670,19 @@ async function authorizeAndReserve(body: RequestBody): Promise<QuotaReservation>
   const supabase = serviceClient();
   const hasDeviceSecret = typeof body.device_secret === 'string' && body.device_secret.length >= 32;
 
+  // A device whose secret doesn't match the id's claim is still served: it
+  // usually just picked the id up from the user's other device through iCloud
+  // and never got that device's secret. Locking it out of the AI costs a real
+  // user far more than the check protects here — at most someone who knows a
+  // Support ID could use up that id's daily messages. So it gets its own quota
+  // row (the id plus its secret's hash) and never the tester limit. Passes,
+  // which are worth money, keep the strict check (credits-* functions).
+  let quotaId = anonymousId;
+  let deviceVerified = false;
   if (hasDeviceSecret) {
-    if ((await verifyDevice(supabase, anonymousId, body.device_secret, { requireSecret: true })) !== 'ok') {
-      throw new HttpError(403, 'This device could not be verified.');
+    deviceVerified = (await verifyDevice(supabase, anonymousId, body.device_secret, { requireSecret: true })) === 'ok';
+    if (!deviceVerified) {
+      quotaId = `${anonymousId}:${(await sha256Hex(body.device_secret as string)).slice(0, 16)}`;
     }
   } else if (REQUIRE_DEVICE_SECRET) {
     throw new HttpError(403, 'This app version must be updated before using the AI Sponsor.');
@@ -679,7 +694,7 @@ async function authorizeAndReserve(body: RequestBody): Promise<QuotaReservation>
   // (3 per sponsor, 1 Spot Check), not the daily cap.
   if (body.onboarding === true && body.onboarding_member !== true) {
     const { data, error } = await supabase.rpc('reserve_onboarding_message', {
-      p_anonymous_id: anonymousId,
+      p_anonymous_id: quotaId,
       p_target: target,
     });
     if (error) {
@@ -692,7 +707,8 @@ async function authorizeAndReserve(body: RequestBody): Promise<QuotaReservation>
       throw new HttpError(429, `You've used your ${label}.`);
     }
     return {
-      anonymousId,
+      anonymousId: quotaId,
+      deviceVerified,
       kind: 'onboarding',
       bucket: target === 'reflection' ? 'spot_check' : 'sponsor_chat',
       target,
@@ -707,7 +723,7 @@ async function authorizeAndReserve(body: RequestBody): Promise<QuotaReservation>
   // devices receive their shared elevated limit in each bucket.
   const bucket: QuotaBucket = body.sponsorId === 'reflection' ? 'spot_check' : 'sponsor_chat';
   const { data, error } = await supabase.rpc('reserve_sponsor_chat_message', {
-    p_anonymous_id: anonymousId,
+    p_anonymous_id: quotaId,
     p_quota_bucket: bucket,
   });
   if (error) {
@@ -725,7 +741,7 @@ async function authorizeAndReserve(body: RequestBody): Promise<QuotaReservation>
     throw new HttpError(429, `You've reached today's limit of ${limit} ${label}. Please try again tomorrow.`);
   }
 
-  return { anonymousId, kind: 'daily', bucket, target, count, limit, isTester };
+  return { anonymousId: quotaId, deviceVerified, kind: 'daily', bucket, target, count, limit, isTester };
 }
 
 async function refundReservation(reservation: QuotaReservation | null) {
@@ -827,6 +843,9 @@ serve(async (req: Request) => {
     const result = await handleChat(body);
     return new Response(JSON.stringify({
       ...result,
+      // Whether this device's secret matched the id's claim. The app backs a
+      // secret up with the id only when this is true (lib/deviceSecret.ts).
+      deviceVerified: reservation.deviceVerified,
       quota: {
         count: reservation.count,
         limit: reservation.limit,

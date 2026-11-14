@@ -2,7 +2,7 @@ import createContextHook from "@nkzw/create-context-hook";
 import { useState, useEffect } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { getAnonymousId } from "@/lib/anonymousId";
-import { getDeviceSecret } from "@/lib/deviceSecret";
+import { getDeviceSecret, markDeviceSecretVerified } from "@/lib/deviceSecret";
 import { ChatMessage, SponsorType } from "@/types";
 import { detectCrisis, crisisResponses } from "@/constants/crisisTriggers";
 import { SALTY_SAM_INITIAL_MESSAGE } from "@/constants/salty-sam";
@@ -131,6 +131,9 @@ async function callSponsorAPI(
   if (!response.ok) {
     throw new SponsorApiError(data?.error || `Sponsor API request failed: ${response.status}`, response.status);
   }
+  // The server says this device's secret matched the id's claim (backups
+  // carry it). A mismatched device is served too, so a 2xx alone isn't proof.
+  if (deviceSecret && data?.deviceVerified === true) void markDeviceSecretVerified(anonymousId);
 
   return {
     text: data.outputText || "Sorry, I'm having trouble right now. Try again in a minute.",
@@ -140,7 +143,7 @@ async function callSponsorAPI(
 }
 
 // One sponsor reply through the paid chain. Auto routes every sponsor's chat
-// to Terra (Spot Check stays on lower-cost Luna); the Dev Console can
+// to Terra (Spot Check too); the Dev Console can
 // explicitly override that route. The first fallback always crosses provider —
 // Terra and Luna share OpenAI infrastructure, so chaining them would add cost
 // and latency without buying the reliability Sonnet provides. A server limit
