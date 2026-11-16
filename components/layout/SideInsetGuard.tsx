@@ -33,13 +33,15 @@
 //   strip is wide enough for the rail — the Duo's 84pt strip. It's usually
 //   on the right, but the cover rotates freely, and turned one way its
 //   strip lands on the left; the rail follows it.
-// - Bottom bar: everywhere else below expanded width (phones), a docked bar.
+// - Bottom bar: phone widths (compact, under 600pt) only, a docked bar.
 //   It takes real layout height, and the screens above it see a ZERO bottom
 //   inset (the bar pads for the home indicator), so nothing double-pads. It
 //   steps aside for the keyboard, immersive overlays, and the screens with
 //   their own bottom controls (chat composer, Spot Check, meditation).
-// - Edge rail: expanded widths without a strip (iPad) get the same rail on
-//   the right edge, as a real column beside the content.
+// - Edge rail: tablet-class widths (600pt+) without a side strip — iPad in
+//   either orientation, and the Duo's inner display held portrait, where its
+//   strip runs along the top — get the same rail on the right edge, as a
+//   real column beside the content.
 // Over a photo backdrop (meditation) the rails go transparent with white ink,
 // on a frosted strip (RailFrost) so they stay readable over bright scenes
 // like snow or a grey sky.
@@ -126,6 +128,12 @@ export const useEdgeMargin = () => useContext(EdgeMarginContext);
 
 // True while the docked bottom bar is showing (it hides for the keyboard etc.).
 const BottomBarContext = createContext(false);
+// True while a visible tab rail carries the Settings item, so the screens'
+// header gear (SettingsGear) steps aside instead of duplicating it. The
+// phone's bottom bar has no Settings item, and the landscape cover's short
+// strip rail drops it, so the gear stays in both of those.
+const RailSettingsContext = createContext(false);
+export const useRailHasSettings = () => useContext(RailSettingsContext);
 export const useBottomBarShown = () => useContext(BottomBarContext);
 
 function useKeyboardShown(): boolean {
@@ -153,7 +161,7 @@ export function MainNav() {
 
 export default function SideInsetGuard({ children }: { children: React.ReactNode }) {
   const insets = useSafeAreaInsets();
-  const { height: winH } = useWindowDimensions();
+  const { width: winW, height: winH } = useWindowDimensions();
   const { c } = useTokens();
   const [backdrop, setBackdrop] = useState<React.ReactNode>(null);
   const set = useCallback((n: React.ReactNode | null) => setBackdrop(n), []);
@@ -164,16 +172,28 @@ export default function SideInsetGuard({ children }: { children: React.ReactNode
   const navCtx = useMemo(() => ({ setOn: setNavOn }), []);
   const side = stripSide(insets);
   const stripFits = side != null;
-  const expanded = useLayoutMode() === 'expanded';
+  const layoutMode = useLayoutMode();
+  const expanded = layoutMode === 'expanded';
+  // Any tablet-class width (≥600pt) gets a rail, never the phone's bottom
+  // bar: the Duo's inner display held portrait (669pt, strip along the top
+  // rather than a side) and a portrait iPad (820pt) are medium, not expanded,
+  // and used to fall through to the bar — or, rotated from landscape, to
+  // nothing at all (Neal, 2026-11-16: "the normal tab rail on all the Duo
+  // screens").
+  const wide = layoutMode !== 'compact';
   const segments = useSegments() as string[];
   const { immersive } = useImmersive();
   const keyboard = useKeyboardShown();
   const showRail = navOn && stripFits;
-  const showEdgeRail = navOn && !stripFits && expanded;
+  const showEdgeRail = navOn && !stripFits && wide;
+  // Same test NavigationRail uses to drop Settings from the cover's
+  // landscape strip.
+  const coverLandscape = showRail && !expanded && winW > winH;
+  const railHasSettings = showEdgeRail || (showRail && !coverLandscape);
   // A photo runs under the rail: the full-window backdrop, or Today's pane scene.
   const railOnScene = backdrop != null || railScene != null;
   const stripOnScene = backdrop != null || (railScene != null && side === 'right');
-  const showBar = navOn && !stripFits && !expanded && !immersive && !keyboard
+  const showBar = navOn && !stripFits && !wide && !immersive && !keyboard
     && !segments.some((seg) => BAR_HIDDEN_SEGMENTS.includes(seg));
   // The bar owns the home-indicator inset while it shows.
   const contentInsets = useMemo(() => (showBar ? { ...insets, bottom: 0 } : insets), [showBar, insets]);
@@ -193,6 +213,7 @@ export default function SideInsetGuard({ children }: { children: React.ReactNode
     <EdgeMarginContext.Provider value={edge}>
     <MainNavContext.Provider value={navCtx}>
     <BottomBarContext.Provider value={showBar}>
+    <RailSettingsContext.Provider value={railHasSettings}>
     <BackdropContext.Provider value={ctx}>
     <RailSceneContext.Provider value={railSceneCtx}>
       <View
@@ -245,6 +266,7 @@ export default function SideInsetGuard({ children }: { children: React.ReactNode
       </View>
     </RailSceneContext.Provider>
     </BackdropContext.Provider>
+    </RailSettingsContext.Provider>
     </BottomBarContext.Provider>
     </MainNavContext.Provider>
     </EdgeMarginContext.Provider>

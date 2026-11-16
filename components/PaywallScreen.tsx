@@ -9,11 +9,15 @@ import React, { useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
+  KeyboardAvoidingView,
   Linking,
+  Modal,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
   Text,
+  TextInput,
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -26,6 +30,7 @@ import { useSubscription } from '@/hooks/useSubscription';
 import { fetchCreditStatus, setPendingAnnouncement } from '@/lib/creditsService';
 import { scheduleTrialEndingReminder } from '@/lib/trialReminder';
 import { logEvent } from '@/lib/analytics';
+import { redeemReviewCode } from '@/lib/reviewUnlock';
 import { fontFamily, shadows, type Tokens } from '@/constants/designTokens';
 import { useTokens, useThemedStyles } from '@/hooks/useTokens';
 import { hasUsedTrial, isMonthlyPkg, isYearlyPkg, packageTrialDays } from '@/hooks/useTrialAvailable';
@@ -160,6 +165,11 @@ export default function PaywallScreen({ onDismiss, onDevBypass, onUnavailableDis
   const [purchaseFailed, setPurchaseFailed] = useState(false);
   const [restoring, setRestoring] = useState(false);
   const [retrying, setRetrying] = useState(false);
+  // Store-review unlock (Android only — see supabase/functions/review-unlock).
+  const [codeOpen, setCodeOpen] = useState(false);
+  const [code, setCode] = useState('');
+  const [codeBusy, setCodeBusy] = useState(false);
+  const [codeError, setCodeError] = useState<string | null>(null);
 
   const offering = offerings?.all?.['default'] ?? offerings?.current ?? null;
   const packages = offering?.availablePackages ?? [];
@@ -309,6 +319,37 @@ export default function PaywallScreen({ onDismiss, onDevBypass, onUnavailableDis
       }
     } finally {
       setRestoring(false);
+    }
+  };
+
+  const closeCode = () => {
+    if (codeBusy) return;
+    setCodeOpen(false);
+    setCode('');
+    setCodeError(null);
+  };
+
+  const submitCode = async () => {
+    if (codeBusy || !code.trim()) return;
+    setCodeBusy(true);
+    setCodeError(null);
+    try {
+      const result = await redeemReviewCode(code);
+      if (result.success && result.info.entitlements.active?.premium) {
+        logEvent('paywall_review_code_redeemed');
+        setCodeOpen(false);
+        setCode('');
+        applyCustomerInfo(result.info);
+        return;
+      }
+      logEvent('paywall_review_code_failed', { reason: result.success ? 'no_entitlement' : result.reason });
+      setCodeError(
+        !result.success && result.reason === 'invalid'
+          ? "That code isn't valid."
+          : "Couldn't check the code. Check your connection and try again.",
+      );
+    } finally {
+      setCodeBusy(false);
     }
   };
 
@@ -677,7 +718,47 @@ export default function PaywallScreen({ onDismiss, onDevBypass, onUnavailableDis
           <Text style={styles.footerDot}>·</Text>
           <Pressable onPress={() => Linking.openURL(PRIVACY_URL)}><Text style={styles.footerLink}>Privacy</Text></Pressable>
         </View>
+        {/* Store-review unlock. Android only: on iOS a code that unlocks paid
+            content outside in-app purchase breaks App Store guideline 3.1.1. */}
+        {Platform.OS === 'android' && !preview && (
+          <Pressable onPress={() => setCodeOpen(true)} style={styles.codeLinkWrap} hitSlop={8}>
+            <Text style={styles.footerLink}>Have a code?</Text>
+          </Pressable>
+        )}
       </ScrollView>
+
+      <Modal visible={codeOpen} transparent animationType="fade" onRequestClose={closeCode}>
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.codeBackdrop}>
+          <Pressable style={StyleSheet.absoluteFill} onPress={closeCode} />
+          <View style={styles.codeCard}>
+            <Text style={styles.codeTitle}>Enter your code</Text>
+            <TextInput
+              value={code}
+              onChangeText={(t) => { setCode(t); setCodeError(null); }}
+              placeholder="Code"
+              placeholderTextColor={c.textMuted}
+              autoCapitalize="characters"
+              autoCorrect={false}
+              autoFocus
+              editable={!codeBusy}
+              onSubmitEditing={submitCode}
+              returnKeyType="done"
+              style={styles.codeInput}
+            />
+            {!!codeError && <Text style={styles.codeError}>{codeError}</Text>}
+            <Pressable
+              onPress={submitCode}
+              disabled={codeBusy || !code.trim()}
+              style={[styles.cta, styles.codeCta, (codeBusy || !code.trim()) && { opacity: 0.5 }]}
+            >
+              {codeBusy ? <ActivityIndicator color="#fff" /> : <Text style={styles.ctaText}>Unlock</Text>}
+            </Pressable>
+            <Pressable onPress={closeCode} disabled={codeBusy} style={styles.codeCancel}>
+              <Text style={styles.footerLink}>Cancel</Text>
+            </Pressable>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
 
     </SafeAreaView>
   );
@@ -794,6 +875,14 @@ const makeStyles = (tk: Tokens) => {
     footer: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, marginTop: 10 },
     footerLink: { fontFamily: fontFamily.medium, fontSize: 13, color: c.textMuted },
     footerDot: { color: c.textMuted, fontSize: 13 },
+    codeLinkWrap: { alignSelf: 'center', marginTop: 12, paddingVertical: 4 },
+    codeBackdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.45)', alignItems: 'center', justifyContent: 'center', padding: 24 },
+    codeCard: { width: '100%', maxWidth: 380, backgroundColor: c.surface, borderRadius: 20, padding: 22, ...shadows.sm },
+    codeTitle: { fontFamily: fontFamily.displayBold, fontSize: 21, color: c.text, marginBottom: 14 },
+    codeInput: { borderWidth: 1, borderColor: c.border, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 12, fontFamily: fontFamily.semiBold, fontSize: 17, letterSpacing: 1, color: c.text, backgroundColor: c.background },
+    codeError: { marginTop: 8, fontFamily: fontFamily.regular, fontSize: 13, color: '#C0392B' },
+    codeCta: { marginTop: 14 },
+    codeCancel: { alignSelf: 'center', marginTop: 12, paddingVertical: 4 },
 
   });
 };

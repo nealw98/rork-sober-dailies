@@ -22,19 +22,20 @@ export default function GlobalSponsorFab() {
   const { lastSponsorId } = useLastSponsor();
   const insets = useSafeAreaInsets();
   const player = useGlobalAudioPlayer();
-  const expanded = useLayoutMode() === 'expanded';
+  // A rail shows at every tablet-class width (see SideInsetGuard).
+  const railWidth = useLayoutMode() !== 'compact';
   const stripRail = useStripRailFits();
   const raisedForMiniPlayer = (segments as string[]).includes('speakers') && player.isLoaded;
 
-  // Wherever a rail shows — expanded widths (iPad) and the Duo — its sponsor
-  // button is on every screen, so skip here to avoid doubling up. Skip on
-  // the meditation screen — it's its own immersive UI, and the FAB would sit
-  // over its controls / Preferences sheet. Skip the Spot Check form too —
-  // it's a focused writing surface and a chat FAB over it reads as a
-  // competing exit.
+  // Wherever a rail shows — tablet-class widths (iPad, the Duo's inner
+  // display) and the Duo cover's strip — its sponsor button is on every
+  // screen, so skip here to avoid doubling up. Skip on the meditation
+  // screen — it's its own immersive UI, and the FAB would sit over its
+  // controls / Preferences sheet. Skip the Spot Check form too — it's a
+  // focused writing surface and a chat FAB over it reads as a competing exit.
   if (
     stripRail ||
-    expanded ||
+    railWidth ||
     (segments as string[]).includes('meditation') ||
     (segments as string[]).includes('trends') ||
     (segments as string[]).includes('inventory') ||
