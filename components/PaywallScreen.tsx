@@ -155,7 +155,7 @@ interface PaywallScreenProps {
 export default function PaywallScreen({ onDismiss, onDevBypass, onUnavailableDismiss, preview, forceTrial, context }: PaywallScreenProps) {
   const styles = useThemedStyles(makeStyles);
   const { c, colors, mode } = useTokens();
-  const { offerings, isLoading, autoRetrying, error, purchasePackage, restorePurchases, refresh, applyCustomerInfo, customerInfo, trialEligible, qaForceNewUser } = useSubscription();
+  const { offerings, isLoading, autoRetrying, error, purchasePackage, restorePurchases, refresh, ensurePlans, applyCustomerInfo, customerInfo, trialEligible, qaForceNewUser } = useSubscription();
 
   const [selected, setSelected] = useState<'yearly' | 'monthly'>('yearly');
   const [busy, setBusy] = useState(false);
@@ -182,6 +182,20 @@ export default function PaywallScreen({ onDismiss, onDevBypass, onUnavailableDis
 
   const chosen = selected === 'yearly' ? (yearly ?? monthly) : (monthly ?? yearly);
 
+  // Opening with nothing to sell gets one more silent round of fetches before
+  // the verdict: the launch retries ran right after a cold start, often before
+  // the store connection was up, and this screen usually opens minutes later.
+  // Until that round finishes, treat it exactly like the launch retries —
+  // spinner, no fail screen, no failure event.
+  const recoveryStartedRef = React.useRef(false);
+  const [recoveryDone, setRecoveryDone] = useState(false);
+  React.useEffect(() => {
+    if (recoveryStartedRef.current || isLoading || autoRetrying || chosen) return;
+    recoveryStartedRef.current = true;
+    ensurePlans().finally(() => setRecoveryDone(true));
+  }, [isLoading, autoRetrying, chosen, ensurePlans]);
+  const settling = autoRetrying || (!recoveryDone && !chosen);
+
   // A successful SDK response can still contain no product this UI can sell:
   // an empty/current-less offering, or packages other than annual/monthly. Log
   // the exact catalog shape once per shape so production diagnostics distinguish
@@ -201,7 +215,7 @@ export default function PaywallScreen({ onDismiss, onDevBypass, onUnavailableDis
   React.useEffect(() => {
     // Only log the SETTLED failure — after the silent launch retries have run
     // out, not between attempts.
-    if (isLoading || autoRetrying || chosen) return;
+    if (isLoading || settling || chosen) return;
     console.warn('[Paywall] No usable subscription plan', { offeringId, packageIds: packageIds || 'none', error });
     logEvent('paywall_plans_unavailable', {
       offering_id: offeringId,
@@ -211,7 +225,7 @@ export default function PaywallScreen({ onDismiss, onDevBypass, onUnavailableDis
       error_message: error ?? 'none',
       offerings_received: offerings ? 'yes' : 'no',
     });
-  }, [isLoading, autoRetrying, chosen, offeringId, packageIds, error, offerings]);
+  }, [isLoading, settling, chosen, offeringId, packageIds, error, offerings]);
 
   // Two faces. With a trial: the tool tiles and the trial timeline, which
   // answers "what happens to my money" and whose final step carries the
@@ -370,7 +384,7 @@ export default function PaywallScreen({ onDismiss, onDevBypass, onUnavailableDis
   // unsupported catalog, which must not render as a normal paywall with a dead
   // CTA and no explanation. While the hook's silent launch retries are still
   // running this is NOT yet a verdict — hold the spinner, not the fail screen.
-  const cannotSell = !isLoading && !autoRetrying && !chosen;
+  const cannotSell = !isLoading && !settling && !chosen;
   const closeAction = cannotSell && onUnavailableDismiss ? onUnavailableDismiss : onDismiss;
 
   // Horizontal safe-area edges (the Duo's 84pt side inset, where the close X
@@ -381,7 +395,7 @@ export default function PaywallScreen({ onDismiss, onDevBypass, onUnavailableDis
   // Nothing to sell yet but retries are still in flight — same resolving
   // spinner the variant gate uses, so a transient blip never flashes the fail
   // screen on its way to a working paywall.
-  if (autoRetrying && !chosen) {
+  if (settling && !chosen) {
     return (
       <SafeAreaView style={styles.screen} edges={['top', 'bottom']}>
         <View style={styles.resolving}>

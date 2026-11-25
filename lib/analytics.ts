@@ -49,6 +49,9 @@ const DEVICE_PROPS = {
   $manufacturer: Device.manufacturer ?? undefined,
   $app_version_string: Constants.expoConfig?.version ?? undefined,
   app_build: APP_BUILD,
+  // Simulators/emulators have no store account, so every paywall load fails on
+  // them — filter on this to keep that noise out of real-user failure rates.
+  is_emulator: !Device.isDevice,
   mp_lib: 'http',
   environment: ANALYTICS_ENV,
 };

@@ -227,6 +227,9 @@ export type SubscriptionState = {
   qaForceNewUser: boolean;
 
   refresh: () => Promise<boolean>;
+  // Paywall-open recovery: silently re-fetch the catalog (spinner, not the fail
+  // screen) when there's nothing sellable. No-op once plans are loaded.
+  ensurePlans: () => Promise<void>;
   applyCustomerInfo: (info: CustomerInfo) => void;
   purchasePackage: (pkg: PurchasesPackage) => Promise<CustomerInfo | null>;
   purchasePassPackage: (pkg: PurchasesPackage) => Promise<CustomerInfo | null>;
@@ -296,47 +299,81 @@ export const [SubscriptionProvider, useSubscription] = createContextHook(() => {
 
     if (Platform.OS === 'web') return true;
 
-    try {
-      const [info, offs] = await withTimeout(
-        Promise.all([
-          Purchases.getCustomerInfo(),
-          Purchases.getOfferings(),
-        ]),
-        FETCH_TIMEOUT_MS,
-      );
-      
-      // Debug: Log offerings data to help diagnose product issues
+    // Settled independently: a failed CustomerInfo call (e.g. RevenueCat's
+    // "Error performing request") used to throw away a perfectly good catalog
+    // fetched alongside it, leaving the paywall with nothing to sell.
+    const [infoRes, offsRes] = await Promise.allSettled([
+      withTimeout(Purchases.getCustomerInfo(), FETCH_TIMEOUT_MS),
+      withTimeout(Purchases.getOfferings(), FETCH_TIMEOUT_MS),
+    ]);
+
+    if (infoRes.status === 'fulfilled') {
+      const info = infoRes.value;
       console.log('[Subscription] Customer info received:', {
         originalAppUserId: info.originalAppUserId,
         activeEntitlements: Object.keys(info.entitlements.active || {}),
         allEntitlements: Object.keys(info.entitlements.all || {}),
       });
-      
+      setCustomerInfo(info);
+    } else {
+      console.error('[Subscription] Customer info error:', infoRes.reason);
+    }
+
+    let sellable = false;
+    if (offsRes.status === 'fulfilled') {
+      const offs = offsRes.value;
       console.log('[Subscription] Offerings received:', {
         currentOfferingId: offs.current?.identifier,
         allOfferingIds: Object.keys(offs.all || {}),
         currentPackageCount: offs.current?.availablePackages?.length || 0,
       });
-      
-      // Log each offering's packages
       if (offs.current) {
         console.log('[Subscription] Current offering packages:');
         offs.current.availablePackages?.forEach((pkg, i) => {
           console.log(`  [${i}] identifier: ${pkg.identifier}, type: ${pkg.packageType}, product: ${pkg.product?.identifier}, price: ${pkg.product?.priceString}`);
         });
       }
-      
-      setCustomerInfo(info);
       setOfferings(offs);
-      const ok = hasSellablePackages(offs);
-      offeringsOkRef.current = ok;
-      return ok;
-    } catch (e: any) {
-      console.error('[Subscription] Refresh error:', e);
-      setError(e?.message || 'Failed to refresh subscription status.');
-      return false;
+      sellable = hasSellablePackages(offs);
+      offeringsOkRef.current = sellable;
+    } else {
+      console.error('[Subscription] Offerings error:', offsRes.reason);
     }
+
+    // The catalog's failure is the one the paywall needs to explain; fall back
+    // to the CustomerInfo failure so it still surfaces when that's all that broke.
+    const failure =
+      offsRes.status === 'rejected' ? offsRes.reason
+        : infoRes.status === 'rejected' ? infoRes.reason
+          : null;
+    if (failure) setError(failure?.message || 'Failed to refresh subscription status.');
+
+    // Fully OK only with both: the launch retry loop should also chase a failed
+    // CustomerInfo (it carries the entitlement), not just the catalog.
+    return sellable && infoRes.status === 'fulfilled';
   }, []);
+
+  // Paywall-open recovery. The launch retries all run in the first ~8s after a
+  // cold start — often while the store connection is still coming up — but the
+  // paywall usually appears minutes later, after onboarding, and used to show
+  // that stale failure. When it opens with nothing to sell, try again with the
+  // same silent-spinner treatment before conceding the "unavailable" screen.
+  const ensurePlans = useCallback(async () => {
+    if (Platform.OS === 'web') return;
+    if (offeringsOkRef.current || autoRetryingRef.current) return;
+    autoRetryingRef.current = true;
+    setAutoRetrying(true);
+    try {
+      for (const delay of [0, ...RETRY_DELAYS_MS]) {
+        if (delay) await sleep(delay);
+        await refresh();
+        if (offeringsOkRef.current) break;
+      }
+    } finally {
+      autoRetryingRef.current = false;
+      setAutoRetrying(false);
+    }
+  }, [refresh]);
 
   // Apply a CustomerInfo handed to us by a paywall callback (purchase/restore
   // completed). The RC paywall delivers the post-purchase entitlement in its
@@ -642,6 +679,7 @@ export const [SubscriptionProvider, useSubscription] = createContextHook(() => {
       qaForceNewUser: forceNewUser,
 
       refresh,
+      ensurePlans,
       applyCustomerInfo,
       purchasePackage,
       purchasePassPackage,
@@ -659,6 +697,7 @@ export const [SubscriptionProvider, useSubscription] = createContextHook(() => {
       trialEligible,
       forceNewUser,
       refresh,
+      ensurePlans,
       applyCustomerInfo,
       purchasePackage,
       purchasePassPackage,
